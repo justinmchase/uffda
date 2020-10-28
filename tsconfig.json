@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    /* NodeJS 12 settings */
+    "module": "commonjs",
+    "target": "es2019",
+    "lib": [
+      "es2020"
+    ],
+    /* Basic Options */
+    "incremental": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "noImplicitAny": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "inlineSourceMap": true,
+    "inlineSources": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "exclude": [
+    ".swarm",
+    "node_modules",
+    "dist"
+  ],
+  "include": [
+    "types/**/*.d.ts",
+    "src/**/*.ts"
+  ]
+}

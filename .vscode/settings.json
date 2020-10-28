@@ -1,0 +1,29 @@
+{
+  // Place your settings in this file to overwrite default and user settings.
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.rulers": [
+    100
+  ],
+  // This excludes paths from appearing in the file tree.
+  // search.exclude inherits from this map
+  "files.exclude": {
+    "**/.git": true,
+    "**/node_modules": true,
+    "**/dist": true
+  },
+  // Formatting Options - Remove Prettier
+  "[typescript]": {
+    "editor.formatOnSave": false,
+  },
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact",
+  ],
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  },
+}

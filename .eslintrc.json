@@ -1,0 +1,109 @@
+{
+  "plugins": [
+    "@typescript-eslint",
+    "import"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "project": "./tsconfig.json"
+  },
+  "extends": [
+    "plugin:@typescript-eslint/recommended",
+    "plugin:import/errors",
+    "plugin:import/warnings",
+    "plugin:import/typescript"
+  ],
+  "rules": {
+    "indent": "off",
+    "linebreak-style": [
+      "error",
+      "unix"
+    ],
+    "no-trailing-spaces": "error",
+    "no-fallthrough": "error",
+    "quotes": [
+      "error",
+      "single"
+    ],
+    "semi": [
+      "error",
+      "never"
+    ],
+    "eol-last": [
+      "error",
+      "always"
+    ],
+    "no-return-await": "off",
+    "object-curly-spacing": [
+      "error",
+      "always"
+    ],
+    "import/no-named-as-default": "off",
+    "import/namespace": "off",
+    "import/order": "error",
+    // Spacing
+    "space-before-blocks": "error",
+    "keyword-spacing": "error",
+    "comma-spacing": "error",
+    "arrow-spacing": "error",
+    "block-spacing": "error",
+    "key-spacing": "error",
+    "semi-spacing": "error",
+    "array-bracket-spacing": "error",
+    "switch-colon-spacing": "error",
+    "computed-property-spacing": "error",
+    "generator-star-spacing": "error",
+    "func-call-spacing": "error",
+    "space-before-function-paren": [
+      "error",
+      {
+        "named": "never",
+        "anonymous": "always",
+        "asyncArrow": "always"
+      }
+    ],
+    "space-in-parens": "error",
+    "space-infix-ops": "error",
+    "space-unary-ops": "error",
+    "spaced-comment": "error",
+    "no-mixed-spaces-and-tabs": "error",
+    // TypeScript specific rules.
+    "@typescript-eslint/indent": [
+      "error",
+      2
+    ],
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-non-null-assertion": "off",
+    "@typescript-eslint/no-object-literal-type-assertion": "off",
+    "@typescript-eslint/no-use-before-define": "off",
+    "@typescript-eslint/no-empty-interface": "off",
+    "@typescript-eslint/explicit-member-accessibility": "off",
+    "@typescript-eslint/camelcase": "off",
+    "@typescript-eslint/interface-name-prefix": "off",
+    "@typescript-eslint/no-parameter-properties": "off",
+    "@typescript-eslint/no-unused-vars": "off",
+    "@typescript-eslint/no-triple-slash-reference": "off",
+    "@typescript-eslint/no-namespace": "off",
+    "@typescript-eslint/explicit-module-boundary-types": "off",
+    "@typescript-eslint/ban-types": "off",
+    "@typescript-eslint/await-thenable": "error",
+    "@typescript-eslint/no-floating-promises": [
+      "error",
+      {
+        "ignoreVoid": true,
+        "ignoreIIFE": true
+      }
+    ],
+    "@typescript-eslint/return-await": [
+      "error",
+      "always"
+    ],
+    "@typescript-eslint/no-for-in-array": "error"
+  },
+  "env": {
+    "node": true,
+    "mocha": true,
+    "es6": true
+  }
+}
