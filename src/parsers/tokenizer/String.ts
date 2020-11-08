@@ -1,11 +1,11 @@
 import { any, equal, not, or, projection, rule, slice, then, variable } from '../../patterns'
-import { Letter } from './letter'
-import { Digit } from './digit'
+import { Letter } from './Letter'
+import { Digit } from './Digit'
 
 // StringPattern
-//   = '\'' value:(('\\' '\'') -> '\'' | any)* '\'' -> ({ type: 'String', value: s.join('') })
-export const StringPattern = rule({
-  name: 'StringPattern',
+//   = '\'' value:(('\\' '\'') -> '\'' | any)* '\'' -> s.join('')
+export const String = rule({
+  name: 'String',
   pattern: projection({
     pattern: then({
       patterns: [
@@ -43,6 +43,6 @@ export const StringPattern = rule({
         equal({ value: '\'' })
       ]
     }),
-    expr: ({ value }) => (console.log('UGH:', value), { type: 'String', value: value.join('') })
+    expr: ({ value }) => value.join('')
   })
 })

@@ -22,16 +22,14 @@ describe('/parsers/lang/orpattern', () => {
   })
 
   it('can parse a projection expression', () => {
-    const f = () => undefined
     const p = OrPattern
     const s = Scope
       .From([
         { type: 'Identifier', value: 'x' },
         { type: 'Token', value: '-' },
         { type: 'Token', value: '>' },
-        { type: 'Identifier', value: 'f' }
+        { type: 'SpecialIdentifier', value: '$0' }
       ])
-      .addProjections({ f })
 
     const { matched, done, value } = p(s)
     deepStrictEqual({ matched, done, value }, {
@@ -43,7 +41,10 @@ describe('/parsers/lang/orpattern', () => {
           type: 'ReferencePattern',
           value: 'x'
         },
-        expression: f
+        expression: {
+          type: 'SpecialReferencePattern',
+          value: '$0'
+        }
       }
     })
   })

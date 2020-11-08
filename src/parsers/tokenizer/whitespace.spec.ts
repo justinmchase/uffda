@@ -1,6 +1,6 @@
 import { deepStrictEqual } from 'assert'
 import { Scope } from '../../scope'
-import { Whitespace } from './whitespace'
+import { Whitespace } from './Whitespace'
 
 describe('/parsers/tokenizer/whiespace', () => {
   it('can match space', () => {

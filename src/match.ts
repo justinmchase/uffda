@@ -57,12 +57,22 @@ export class Match {
     )
   }
 
-  public popRule() {
+  public popRule(scope: Scope) {
     return new Match(
       this.matched,
       this.isLr,
       this.start,
-      this.end.popRule(),
+      this.end.popRule(scope),
+      this.value
+    )
+  }
+
+  public popBlock() {
+    return new Match(
+      this.matched,
+      this.isLr,
+      this.start,
+      this.end.pop(),
       this.value
     )
   }

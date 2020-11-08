@@ -34,12 +34,12 @@ describe('/patterns/projection', () => {
   })
 
   it('provides projections as an argument', () => {
-    const f = () => 11
+    const $0 = () => 11
     const p = projection({
       pattern: any,
-      expr: ({}, { p0 }) => p0()
+      expr: ({ $0 }) => $0()
     })
-    const s = Scope.From([7]).addProjections({ p0: f })
+    const s = Scope.From([7]).addVariables({ $0 })
     const { matched, value } = p(s)
     deepStrictEqual({ matched, value }, {
       matched: true,

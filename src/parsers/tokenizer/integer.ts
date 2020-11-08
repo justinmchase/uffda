@@ -1,5 +1,5 @@
 import { projection, slice } from '../../patterns'
-import { Digit } from './digit'
+import { Digit } from './Digit'
 
 export const Integer = projection({
   pattern: slice({

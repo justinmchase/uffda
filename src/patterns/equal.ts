@@ -17,7 +17,7 @@ export function equal(args: IEqualArgs) {
     trace(`- equal@${scope.stream.path}`)
     if (!scope.stream.done) {
       const next = scope.stream.next()
-      console.log('equal:', next.value, '===', value)
+      trace('- equal', value, next.value)
       if (next.value === value) {
         return Match.Ok(scope, scope.withStream(next), next.value)
       }

@@ -1,5 +1,6 @@
 import { any, regexp, projection, or, then, object, rule, variable } from '../../patterns'
 import { ThenPattern } from './ThenPattern'
+import { SpecialReferencePattern } from './SpecialReferencePattern'
 
 export const ProjectionPattern = rule({
   name: 'ProjectionPattern',
@@ -9,7 +10,7 @@ export const ProjectionPattern = rule({
         pattern: then({
           patterns: [
             variable({
-              name: 'p',
+              name: 'pattern',
               pattern: s => ThenPattern(s)
             }),
             object({
@@ -24,21 +25,16 @@ export const ProjectionPattern = rule({
                 value: regexp({ pattern: />/ })
               }
             }),
-            object({
-              keys: {
-                type: regexp({ pattern: /Identifier/ }),
-                value: variable({
-                  name: 'e',
-                  pattern: any
-                })
-              }
+            variable({
+              name: 'expression',
+              pattern: SpecialReferencePattern
             })
           ]
         }),
-        expr: ({ p, e }, projections) => (console.log('ProjectionPattern'), {
+        expr: ({ pattern, expression }) => ({
           type: 'ProjectionPattern',
-          pattern: p,
-          expression: projections[e]
+          pattern,
+          expression,
         })
       }),
       s => ThenPattern(s)

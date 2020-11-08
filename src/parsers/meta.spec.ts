@@ -1,9 +1,12 @@
 import { deepStrictEqual } from 'assert'
+import { pipeline } from '../patterns'
 import { Scope } from '../scope'
+import { Exclusion } from './exclusion'
+import { Lang } from './lang'
 import { meta } from './meta'
+import { Tokenizer } from './tokenizer'
 
 describe('/parsers/meta/endtoend', () => {
-  const p0 = () => true
   const tests = [
     {
       code: ' x = y ',
@@ -33,7 +36,7 @@ describe('/parsers/meta/endtoend', () => {
     },
 
     {
-      code: ' x = y:z -> p0',
+      code: ' x = y:z -> $0',
       ast: {
         type: 'PatternDeclaration',
         name: 'x',
@@ -47,7 +50,10 @@ describe('/parsers/meta/endtoend', () => {
               value: 'z'
             }
           },
-          expression: p0
+          expression: {
+            type: 'SpecialReferencePattern',
+            value: '$0'
+          }
         }
       }
     },
@@ -79,10 +85,17 @@ describe('/parsers/meta/endtoend', () => {
     }
   ]
 
+  const p = pipeline({
+    steps: [
+      { name: 'a', pattern: Tokenizer },
+      { name: 'b', pattern: Exclusion({ types: ['Whitespace', 'Newline'] }) },
+      { name: 'c', pattern: Lang },
+    ]
+  })
+
   tests.forEach(({ code, ast }, i) => {
     it(`e2e ${i}`, () => {
-      const p = meta
-      const s = Scope.From(code).addProjections({ p0 })
+      const s = Scope.From(code)
       const { matched, done, value } = p(s)
       deepStrictEqual({ matched, done, value }, {
         matched: true,

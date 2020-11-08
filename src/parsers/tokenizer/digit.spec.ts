@@ -1,6 +1,6 @@
 import { deepStrictEqual } from 'assert'
 import { Scope } from '../../scope'
-import { Digit } from './digit'
+import { Digit } from './Digit'
 
 describe('/parsers/tokenizer/digit', () => {
   it('matches a digit', () => {

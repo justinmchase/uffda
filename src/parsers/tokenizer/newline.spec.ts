@@ -1,6 +1,6 @@
 import { deepStrictEqual } from 'assert'
 import { Scope } from '../../scope'
-import { Newline } from './newline'
+import { Newline } from './Newline'
 
 describe('/parsers/tokenizer/newline', () => {
   it('can match slash n', () => {

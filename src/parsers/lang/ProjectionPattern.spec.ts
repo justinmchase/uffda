@@ -4,20 +4,16 @@ import { ProjectionPattern } from './ProjectionPattern'
 
 describe('/parsers/lang/projectionpattern', () => {
   it('can parse a projection', () => {
-    const f = () => undefined
     const p = ProjectionPattern
     const s = Scope
       .From([
         { type: 'Identifier', value: 'x' },
         { type: 'Token', value: '-' },
         { type: 'Token', value: '>' },
-        { type: 'Identifier', value: 'f' }
+        { type: 'SpecialIdentifier', value: '$0' }
       ])
-      .addProjections({ f })
 
     const { matched, done, value } = p(s)
-    console.log(value)
-
     deepStrictEqual({ matched, done, value }, {
       matched: true,
       done: true,
@@ -27,7 +23,10 @@ describe('/parsers/lang/projectionpattern', () => {
           type: 'ReferencePattern',
           value: 'x'
         },
-        expression: f
+        expression: {
+          type: 'SpecialReferencePattern',
+          value: '$0'
+        }
       }
     })
   })
@@ -42,9 +41,8 @@ describe('/parsers/lang/projectionpattern', () => {
         { type: 'Identifier', value: 'y' },
         { type: 'Token', value: '-' },
         { type: 'Token', value: '>' },
-        { type: 'Identifier', value: 'f' }
+        { type: 'SpecialIdentifier', value: '$0' }
       ])
-      .addProjections({ f })
 
     const { matched, done, value } = p(s)
     deepStrictEqual({ matched, done, value }, {
@@ -60,7 +58,10 @@ describe('/parsers/lang/projectionpattern', () => {
             value: 'y'
           }
         },
-        expression: f
+        expression: {
+          type: 'SpecialReferencePattern',
+          value: '$0'
+        }
       }
     })
   })

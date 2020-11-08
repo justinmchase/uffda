@@ -8,14 +8,10 @@ export const StringPattern = rule({
         type: equal({ value: 'String' }),
         value: variable({
           name: 'value',
-          pattern: any
+          pattern: any // String
         })
       }
     }),
-    expr: ({ value }) => ({
-      type: 'StringPattern',
-      value,
-    })
+    expr: ({ value, _ }) => ({ type: 'StringPattern', value, })
   })
-
 })

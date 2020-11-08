@@ -1,6 +1,6 @@
 import { deepStrictEqual } from 'assert'
 import { Scope } from '../../scope'
-import { Identifier } from './identifier'
+import { Identifier } from './Identifier'
 
 describe('/parsers/tokenizer/identifier', () => {
   it('matches a character', () => {

@@ -19,8 +19,7 @@ export function projection(args: IProjectionArgs) {
       return match
 
     const variables = Object.assign({}, match.end.variables, { _: match.value })
-    const projections = Object.assign({}, match.end.projections)
-    const value = expr(variables, projections)
+    const value = expr(variables)
     return Match.Ok(scope, match.end, value)
   }
 }

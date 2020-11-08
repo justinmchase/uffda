@@ -11,7 +11,7 @@
     "lint:fix": "npm run lint -- --fix"
   },
   "keywords": [],
-  "author": "",
+  "author": "Justin Chase <justin.m.chase@gmail.com",
   "license": "ISC",
   "dependencies": {
     "debug": "^4.2.0",

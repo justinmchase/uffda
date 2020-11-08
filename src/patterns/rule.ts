@@ -17,39 +17,41 @@ function getKey(scope: Scope, name: string) {
 
 export function rule(args: IRuleArgs) {
   const { name, pattern } = args
-  return function rule(scope: Scope) {
-    const key = getKey(scope, name)
-    const memo = scope.memos[key]
-    trace(key)
-    if (!memo) {
-      const subScope = scope
-        .setMemo(key, pattern, Match.LR(scope))
-        .pushRule(name)
-        .setVariables({})
+  const fn = {
+    [name]: function (scope: Scope) {
+      const key = getKey(scope, name)
+      const memo = scope.memos[key]
+      trace(key)
+      if (!memo) {
+        const subScope = scope
+          .setMemo(key, pattern, Match.LR(scope))
+          .pushRule(name)
 
-      let match = pattern(subScope)
-      if (match.isLr) {
-        match = grow(subScope, args)
+        let match = pattern(subScope)
+        if (match.isLr) {
+          match = grow(subScope, args)
+        }
+
+        const m = match
+          .endRecursion()
+          .popRule(scope)
+          .setMemo(key, pattern)
+
+        trace(key, '=', m.matched, m.end.stream.path.toString())
+        return m
+
+      } else {
+        if (memo.match.isLr) {
+          notStrictEqual(scope.ruleStack.length, 0, 'Invalid recursion detected')
+          strictEqual(scope.ruleStack.slice(-1)[0], name, `Indirect left recursion detected in rule ${name}`)
+          trace(key, 'DLR')
+        }
+        return memo.match.setEnd(scope.withStream(memo.match.end.stream))
       }
-
-      const m = match
-        .setVariables(scope.variables)
-        .endRecursion()
-        .popRule()
-        .setMemo(key, pattern)
-
-      trace(key, '=', m.matched, m.end.stream.path.toString())
-      return m
-
-    } else {
-      if (memo.match.isLr) {
-        notStrictEqual(scope.ruleStack.length, 0, 'Invalid recursion detected')
-        strictEqual(scope.ruleStack.slice(-1)[0], name, `Indirect left recursion detected in rule ${name}`)
-        trace(key, 'DLR')
-      }
-      return memo.match.setEnd(scope.withStream(memo.match.end.stream))
     }
   }
+
+  return fn[name]
 }
 
 function grow(scope: Scope, args: IRuleArgs) {

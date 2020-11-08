@@ -1,15 +1,15 @@
-import { or, rule } from '../../patterns'
+import { any, equal, object, or, projection, rule, variable } from '../../patterns'
+import { StringPattern } from './StringPattern'
 import { ReferencePattern } from './ReferencePattern'
 import { SpecialReferencePattern } from './SpecialReferencePattern'
-import { StringPattern } from './StringPattern'
 
 export const TerminalPattern = rule({
   name: 'TerminalPattern',
   pattern: or({
     patterns: [
-      s => SpecialReferencePattern(s),
-      s => ReferencePattern(s),
-      s => StringPattern(s),
+      StringPattern,
+      ReferencePattern,
+      SpecialReferencePattern,
     ]
   })
 })

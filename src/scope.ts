@@ -2,7 +2,6 @@ import { Match } from './match'
 import { Pattern } from './patterns'
 import { MetaStream } from './stream'
 
-type Projections = Record<string, Function>;
 interface IMemo {
   match: Match;
   pattern: Pattern;
@@ -10,44 +9,38 @@ interface IMemo {
 }
 
 export class Scope {
-  public static readonly Default = () => new Scope(MetaStream.Default(), {}, {}, {}, [])
-  public static readonly From = (s: Iterable<any>) => new Scope(MetaStream.From(s), {}, {}, {}, [])
-  public static readonly Root = (s: MetaStream, p: Projections) => new Scope(s, p, {}, {}, [])
+  public static readonly Default = () => new Scope(undefined, {}, MetaStream.Default(), {}, [])
+  public static readonly From = (s: Iterable<any>) => new Scope(undefined, {}, MetaStream.From(s), {}, [])
+  public static readonly Root = (s: MetaStream, p: any[]) => new Scope(undefined, p, s, {}, [])
 
   constructor(
+    private readonly _parent: Scope | undefined,
+    private readonly _variables: Record<string, any>,
     public readonly stream: MetaStream,
-    public readonly projections: Projections,
-    public readonly variables: Record<string, any>,
     public readonly memos: Record<string, IMemo>,
     public readonly ruleStack: string[]
   ) {
   }
 
+  private *stack() {
+    yield this._variables
+
+    let current: Scope | undefined = this._parent
+    while (current) {
+      yield current._variables
+      current = current._parent
+    }
+  }
+
+  public get variables() {
+    return Object.assign({}, ...this.stack())
+  }
+
   public withStream(stream: MetaStream) {
     return new Scope(
+      this._parent,
+      this._variables,
       stream,
-      this.projections,
-      this.variables,
-      this.memos,
-      this.ruleStack,
-    )
-  }
-
-  public addProjections(projections: Projections) {
-    return new Scope(
-      this.stream,
-      Object.assign({}, this.projections, projections),
-      this.variables,
-      this.memos,
-      this.ruleStack
-    )
-  }
-
-  public addVariable(name: string, value: any) {
-    return new Scope(
-      this.stream,
-      this.projections,
-      Object.assign({}, this.variables, { [name]: value }),
       this.memos,
       this.ruleStack,
     )
@@ -55,9 +48,9 @@ export class Scope {
 
   public addVariables(variables: Record<string, any>) {
     return new Scope(
+      this._parent,
+      Object.assign({}, this._variables, variables),
       this.stream,
-      this.projections,
-      Object.assign({}, this.variables, variables),
       this.memos,
       this.ruleStack,
     )
@@ -65,9 +58,9 @@ export class Scope {
 
   public setVariables(variables: Record<string, any>) {
     return new Scope(
-      this.stream,
-      this.projections,
+      this._parent,
       variables,
+      this.stream,
       this.memos,
       this.ruleStack
     )
@@ -76,9 +69,9 @@ export class Scope {
   public setMemo(key: string, pattern: Pattern, match: Match) {
     const { references = [] } = this.memos[key] ?? {}
     return new Scope(
+      this._parent,
+      this._variables,
       this.stream,
-      this.projections,
-      this.variables,
       Object.assign({}, this.memos, {
         [key]: {
           match,
@@ -93,21 +86,41 @@ export class Scope {
 
   public pushRule(rule: string) {
     return new Scope(
+      this._parent,
+      {},
       this.stream,
-      this.projections,
-      this.variables,
       this.memos,
       [...this.ruleStack, rule],
     )
   }
 
-  public popRule() {
+  public popRule(scope: Scope) {
     return new Scope(
+      this._parent,
+      scope._variables,
       this.stream,
-      this.projections,
-      this.variables,
       this.memos,
       this.ruleStack.slice(-1),
+    )
+  }
+
+  public push() {
+    return new Scope(
+      this,
+      {},
+      this.stream,
+      this.memos,
+      this.ruleStack
+    )
+  }
+
+  public pop() {
+    return new Scope(
+      this._parent?._parent,
+      this._parent?._variables ?? {},
+      this.stream,
+      this.memos,
+      this.ruleStack
     )
   }
 }
