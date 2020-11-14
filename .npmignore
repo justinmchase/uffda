@@ -12,6 +12,7 @@ dist/examples
 # No build output
 coverage
 tsconfig.tsbuildinfo
+*.tgz
 
 # No modules
 node_modules
