@@ -5,10 +5,7 @@
   "editor.rulers": [
     100
   ],
-  // This excludes paths from appearing in the file tree.
-  // search.exclude inherits from this map
-  "files.exclude": {
-    "**/.git": true,
+  "search.exclude": {
     "**/node_modules": true,
     "**/dist": true
   },

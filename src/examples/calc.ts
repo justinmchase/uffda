@@ -1,4 +1,3 @@
-import { strictEqual } from 'assert'
 import { Digit } from '../parsers/tokenizer'
 import { jbang } from '../jbang'
 

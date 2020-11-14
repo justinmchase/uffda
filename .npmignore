@@ -1,0 +1,17 @@
+# No configs
+.*
+
+# No specs
+src/**/*.spec.ts
+dist/**/*.spec.js
+
+# No examples
+src/examples
+dist/examples
+
+# No build output
+coverage
+tsconfig.tsbuildinfo
+
+# No modules
+node_modules
