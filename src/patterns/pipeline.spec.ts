@@ -90,7 +90,6 @@ describe('/patterns/pipeline', () => {
     })
   })
 
-
   it('non-iterable output of final step is not wrapped in an iterable for final output', () => {
     const p = pipeline({
       steps: [
@@ -109,6 +108,41 @@ describe('/patterns/pipeline', () => {
       matched: true,
       done: true,
       value: 6
+    })
+  })
+
+  it('can have a pipeline as a step', () => {
+    const p = pipeline({
+      steps: [
+        {
+          name: 'first',
+          pattern: pipeline({
+            steps: [
+              {
+                name: 'inner',
+                pattern: slice({
+                  pattern: any
+                })
+              }
+            ]
+          })
+        },
+        {
+          name: 'second',
+          pattern: projection({
+            pattern: slice({ min: 3, max: 3, pattern: any }),
+            expr: ({ _ }) => _.join('-')
+          })
+        }
+      ]
+    })
+
+    const s = Scope.From('abc')
+    const { matched, done, value } = p(s)
+    deepStrictEqual({ matched, done, value }, {
+      matched: true,
+      done: true,
+      value: 'a-b-c'
     })
   })
 })

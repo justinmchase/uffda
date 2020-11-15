@@ -3,7 +3,7 @@ import { calc } from './calc'
 
 describe('/examples/calc', () => {
   it('add two numbers', () => {
-    const result = calc`1+2`
-    strictEqual(result, 3)
+    const result = calc`7+11`
+    strictEqual(result, 18)
   })
 })

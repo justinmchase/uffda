@@ -1,4 +1,4 @@
-import { any, equal, object, or, projection, rule, then, variable } from '../../patterns'
+import { equal, object, or, projection, rule, then, variable } from '../../patterns'
 import { VariablePattern } from './VariablePattern'
 
 export const ThenPattern = rule({

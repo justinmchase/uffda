@@ -1,5 +1,5 @@
 import { any, equal, object, or, projection, rule, then, variable } from '../../patterns'
-import { TerminalPattern } from './TerminalPattern'
+import { OneOrMorePattern } from './OneOrMorePattern'
 
 export const VariablePattern = rule({
   name: 'VariablePattern',
@@ -15,13 +15,13 @@ export const VariablePattern = rule({
             }),
             value: variable({
               name: 'pattern',
-              pattern: TerminalPattern
+              pattern: OneOrMorePattern
             })
           }
         }),
         expr: ({ name, pattern }) => (console.log('VARIABLE', { name, pattern }), variable({ name, pattern }))
       }),
-      TerminalPattern
+      OneOrMorePattern
     ]
   })
 })

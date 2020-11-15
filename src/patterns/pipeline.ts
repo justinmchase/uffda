@@ -21,7 +21,7 @@ export function pipeline(args: IPipelineArgs) {
     let items = scope.stream.items
     for (let i = 0; i < steps.length; i++) {
       const { name, pattern } = steps[i]
-      console.log('STEP', name)
+      trace('STEP', name)
       const nextStream = new MetaStream(Path.Default(), items)
       const nextScope = scope.withStream(nextStream)
       result = pattern(nextScope)
@@ -31,7 +31,6 @@ export function pipeline(args: IPipelineArgs) {
       if (!result.end.stream.next().done)
         return Match.Incomplete(result.start, result.end, result.value)
 
-      // console.log(result.value)
       items = result?.value[Symbol.iterator]
         ? result.value[Symbol.iterator]()
         : [result.value][Symbol.iterator]()

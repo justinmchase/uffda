@@ -1,6 +1,4 @@
-import { Stream } from 'stream'
 import { assert } from 'console'
-import { MetaStream } from './stream'
 import { Scope } from './scope'
 import { meta } from './parsers'
 
