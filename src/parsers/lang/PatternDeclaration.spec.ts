@@ -10,6 +10,7 @@ describe('/parsers/lang/patterndeclaration', () => {
         { type: 'Identifier', value: 'x' },
         { type: 'Token', value: '=' },
         { type: 'Identifier', value: 'y' },
+        { type: 'Token', value: ';' }
       ])
 
     const { matched, done, value } = p(s)
@@ -35,7 +36,8 @@ describe('/parsers/lang/patterndeclaration', () => {
         { type: 'Token', value: '=' },
         { type: 'Identifier', value: 'y' },
         { type: 'Token', value: ':', },
-        { type: 'Identifier', value: 'z' }
+        { type: 'Identifier', value: 'z' },
+        { type: 'Token', value: ';' },
       ])
 
     const { matched, done, value } = p(s)

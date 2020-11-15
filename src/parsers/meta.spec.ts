@@ -9,7 +9,7 @@ import { Tokenizer } from './tokenizer'
 describe('/parsers/meta/endtoend', () => {
   const tests = [
     {
-      code: ' x = y ',
+      code: ' x = y ;',
       ast: {
         type: 'PatternDeclaration',
         name: 'x',
@@ -20,7 +20,7 @@ describe('/parsers/meta/endtoend', () => {
       }
     },
     {
-      code: ' x = y:z ',
+      code: ' x = y:z ;',
       ast: {
         type: 'PatternDeclaration',
         name: 'x',
@@ -36,7 +36,7 @@ describe('/parsers/meta/endtoend', () => {
     },
 
     {
-      code: ' x = y:z -> $0',
+      code: ' x = y:z -> $0;',
       ast: {
         type: 'PatternDeclaration',
         name: 'x',
@@ -59,7 +59,7 @@ describe('/parsers/meta/endtoend', () => {
     },
 
     {
-      code: ' p = x | y | z',
+      code: ' p = x | y | z;',
       ast: {
         type: 'PatternDeclaration',
         name: 'p',

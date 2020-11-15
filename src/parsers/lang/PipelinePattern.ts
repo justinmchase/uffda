@@ -1,8 +1,8 @@
-import { or, projection, variable, then, object, rule, equal } from '../../patterns'
-import { ProjectionPattern } from './ProjectionPattern'
+import { regexp, or, projection, variable, then, object, rule, equal } from '../../patterns'
+import { OrPattern } from './OrPattern'
 
-export const OrPattern = rule({
-  name: 'OrPattern',
+export const PipelinePattern = rule({
+  name: 'PipelinePattern',
   pattern: or({
     patterns: [
       projection({
@@ -10,27 +10,27 @@ export const OrPattern = rule({
           patterns: [
             variable({
               name: 'l',
-              pattern: s => OrPattern(s)
+              pattern: s => PipelinePattern(s),
             }),
             object({
               keys: {
                 type: equal({ value: 'Token' }),
-                value: equal({ value: '|' })
+                value: equal({ value: '>' })
               }
             }),
             variable({
               name: 'r',
-              pattern: s => ProjectionPattern(s)
+              pattern: OrPattern
             })
           ]
         }),
         expr: ({ l, r }) => ({
-          type: 'OrPattern',
+          type: 'PipelinePattern',
           left: l,
           right: r
         }),
       }),
-      s => ProjectionPattern(s)
+      OrPattern
     ]
   })
 })

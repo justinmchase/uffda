@@ -1,8 +1,8 @@
 import { rule } from '../../patterns'
-import { OrPattern } from './OrPattern'
+import { PipelinePattern } from './PipelinePattern'
 
 export const PatternExpression = rule({
   name: 'PatternExpression',
-  pattern: s => OrPattern(s)
+  pattern: PipelinePattern
 })
 

@@ -21,6 +21,12 @@ export const PatternDeclaration = rule({
         variable({
           name: 'pattern',
           pattern: PatternExpression
+        }),
+        object({
+          keys: {
+            type: equal({ value: 'Token' }),
+            value: equal({ value: ';' })
+          }
         })
       ]
     }),
