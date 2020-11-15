@@ -1,8 +1,8 @@
 import { or, projection, variable, then, object, rule, equal } from '../../patterns'
 import { TerminalPattern } from './TerminalPattern'
 
-export const OneOrMorePattern = rule({
-  name: 'OneOrMorePattern',
+export const ZeroOrOnePattern = rule({
+  name: 'ZeroOrOnePattern',
   pattern: projection({
     pattern: then({
       patterns: [
@@ -13,13 +13,13 @@ export const OneOrMorePattern = rule({
         object({
           keys: {
             type: equal({ value: 'Token' }),
-            value: equal({ value: '+' })
+            value: equal({ value: '?' })
           }
         })
       ]
     }),
-    expr: ({ pattern }) => (console.log('ONEORMORE', pattern), {
-      type: 'OneOrMorePattern',
+    expr: ({ pattern }) => (console.log('ZEROORONE', pattern), {
+      type: 'ZeroOrOnePattern',
       pattern
     }),
   })

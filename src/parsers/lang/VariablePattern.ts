@@ -1,5 +1,5 @@
 import { any, regexp, projection, variable, object, rule, then, or } from '../../patterns'
-import { OneOrMorePattern } from './OneOrMorePattern'
+import { SlicePattern } from './SlicePattern'
 
 export const VariablePattern = rule({
   name: 'VariablePattern',
@@ -25,7 +25,7 @@ export const VariablePattern = rule({
             }),
             variable({
               name: 'value',
-              pattern: s => OneOrMorePattern(s)
+              pattern: s => SlicePattern(s)
             })
           ]
         }),
@@ -35,7 +35,7 @@ export const VariablePattern = rule({
           value
         })
       }),
-      s => OneOrMorePattern(s)
+      s => SlicePattern(s)
     ]
   })
 })
