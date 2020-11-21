@@ -60,11 +60,14 @@ describe('/parsers/lang/object', () => {
         type: 'ObjectPattern',
         keys: [
           {
-            type: 'VariablePattern',
-            name: 'x',
-            value: {
-              type: 'ObjectKeyPattern',
-              name: 'y'
+            type: 'ObjectKeyPattern',
+            name: 'y',
+            pattern: {
+              type: 'VariablePattern',
+              name: 'x',
+              pattern: {
+                type: 'OkPattern'
+              }
             }
           }
         ]
@@ -91,12 +94,12 @@ describe('/parsers/lang/object', () => {
         type: 'ObjectPattern',
         keys: [
           {
-            type: 'VariablePattern',
-            name: 'x',
-            value: {
-              type: 'ObjectKeyPattern',
-              name: 'y',
-              pattern: {
+            type: 'ObjectKeyPattern',
+            name: 'y',
+            pattern: {
+              type: 'VariablePattern',
+              name: 'x',
+              value: {
                 type: 'ReferencePattern',
                 value: 'z'
               }
@@ -106,7 +109,6 @@ describe('/parsers/lang/object', () => {
       }
     })
   })
-
 
   it('can parse an object with a pattern key', () => {
     const p = ObjectPattern

@@ -5,7 +5,7 @@ import { MetaStream } from '../stream'
 import { Pattern } from './pattern'
 
 interface IObjectArgs {
-  keys?: Record<string, Pattern>
+  keys?: Record<string, Pattern>;
 }
 
 export function object(args: IObjectArgs) {

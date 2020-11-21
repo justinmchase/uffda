@@ -43,12 +43,12 @@ export const ObjectKeyVariableWithPattern = rule({
       ]
     }),
     expr: ({ alias, name, pattern }) => ({
-      type: 'VariablePattern',
-      name: alias,
-      value: {
-        type: 'ObjectKeyPattern',
-        name,
-        pattern
+      type: 'ObjectKeyPattern',
+      name,
+      pattern: {
+        type: 'VariablePattern',
+        name: alias,
+        value: pattern
       }
     })
   })

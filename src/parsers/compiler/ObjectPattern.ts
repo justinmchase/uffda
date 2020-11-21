@@ -1,4 +1,5 @@
 import { any, equal, object, ok, or, projection, reference, rule, variable } from '../../patterns'
+import { PatternExpression } from './PatternExpression'
 
 export const ObjectKeyPattern = rule({
   name: 'ObjectKeyPattern',
@@ -14,14 +15,14 @@ export const ObjectKeyPattern = rule({
           name: 'pattern',
           pattern: or({
             patterns: [
-              any,
+              s => PatternExpression(s),
               ok
             ]
           })
         })
       }
     }),
-    expr: ({ name, pattern = any }) => ({ [name]: pattern })
+    expr: ({ name, pattern = ok }) => ({ [name]: pattern })
   })
 })
 
