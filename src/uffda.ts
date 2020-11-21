@@ -2,24 +2,24 @@ import { assert } from 'console'
 import { Scope } from './scope'
 import { meta } from './parsers'
 
-export function jbang(args: TemplateStringsArray, ...values: any[]) {
-  let jbangCode = ''
+export function uffda(args: TemplateStringsArray, ...values: any[]) {
+  let uffdaCode = ''
   for (let i = 0, n = args.length; i < n; i++) {
     const a = args[i]
-    jbangCode += a
+    uffdaCode += a
     if (i < values.length) {
-      jbangCode += `$${i}`
+      uffdaCode += `$${i}`
     }
   }
 
   const variables = values.reduce((a, b, i) => Object.assign(a, { [`$${i}`]: b }), {})
   const scope = Scope
-    .From(jbangCode)
+    .From(uffdaCode)
     .setVariables(variables)
     .push()
 
   console.log('--')
-  console.log('JBANG CODE:', { jbangCode, variables })
+  console.log('UFFDA CODE:', { uffdaCode, variables })
 
   const { matched, done, value: compiledDsl } = meta(scope)
   console.log('RESULT', {

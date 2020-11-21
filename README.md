@@ -1,10 +1,10 @@
-# J!
+# Uffda
 
 _**NOTE**: work in progress!_
 
-J! is a parser generator for domain specific languages.
+Uffda is a parser generator for domain specific languages.
 
-J! is different from many parser generators in that the syntax is expressive enough to support
+It is different from many parser generators in that the syntax is expressive enough to support
 parsing strings as well as objects, arrays or any other value type. The result of this capability
 is that each step of the compiler can be expressed as dsl.
 
@@ -14,15 +14,15 @@ is that each step of the compiler can be expressed as dsl.
 
 ## How to use
 ```sh
-npm i jbang
+npm i uffda
 ```
 
 ```ts
-import { jbang } from "jbang"
-import { Digit } from "jbang/parsers/tokenizer"
+import { uffda } from "uffda"
+import { Digit } from "uffda/parsers/tokenizer"
 
 // This generates a parser which can be used as a 
-export const calc = jbang`
+export const calc = uffda`
   Add = x:Number '+' y:Number -> ${({ x, y }) => x + y}
   Number = i:${Digit} -> ${({ i }) => parseInt(i)}
   Main

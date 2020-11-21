@@ -27,16 +27,24 @@ export function slice(args: IRangeArgs) {
     const matches: any[] = []
     while (true) {
       const match = pattern(end)
+
+      // The pattern must match successfully
       if (!match.matched)
+        break
+
+      // This prevents infinite recursion for Patterns which succeed
+      // but consume no input, such as `not` or `ok`
+      //
+      // For example (!any)* or ok+
+      //
+      // This will consume no input but it will succeed
+      if (match.end.stream.path.compareTo(end.stream.path) <= 0)
         break
 
       end = match.end
       matches.push(match.value)
-
       if (max != null && matches.length >= max)
         break
-
-      end = match.end
     }
 
     if (!min || matches.length >= min) {

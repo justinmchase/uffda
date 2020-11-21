@@ -19,9 +19,12 @@ describe('/patterns/then', () => {
       patterns: [any]
     })
     const s = Scope.From('a')
-    const m = p(s)
-    strictEqual(m.matched && m.done, true)
-    deepStrictEqual(m.value, ['a'])
+    const { matched, done, value } = p(s)
+    deepStrictEqual({ matched, done, value }, {
+      matched: true,
+      done: true,
+      value: ['a']
+    })
   })
 
   it('reads two patterns successfuly', () => {

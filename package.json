@@ -1,5 +1,5 @@
 {
-  "name": "jbang",
+  "name": "uffda",
   "version": "0.1.1",
   "description": "Parser generator for domain specific languages",
   "main": "dist/index.js",
@@ -13,7 +13,7 @@
     "lint:fix": "npm run lint -- --fix"
   },
   "keywords": [
-    "jbang",
+    "uffda",
     "dsl",
     "domain-specific-language",
     "parser",
@@ -23,14 +23,14 @@
     "meta-programming",
     "ometa"
   ],
-  "homepage": "https://github.com/justinmchase/jbang",
+  "homepage": "https://github.com/justinmchase/uffda",
   "author": "Justin Chase <justin.m.chase@gmail.com",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/justinmchase/jbang/issues"
+    "url": "https://github.com/justinmchase/uffda/issues"
   },
   "repository": {
-    "url": "https://github.com/justinmchase/jbang"
+    "url": "https://github.com/justinmchase/uffda"
   },
   "dependencies": {
     "debug": "^4.2.0",

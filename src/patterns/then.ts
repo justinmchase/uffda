@@ -1,6 +1,7 @@
 import debug from 'debug'
 import { Match } from '../match'
 import { Scope } from '../scope'
+import { ok } from './ok'
 import { Pattern } from './pattern'
 
 const trace = debug('trace')
@@ -10,6 +11,7 @@ interface IAndArgs {
 
 export function then(args: IAndArgs) {
   const { patterns } = args
+  if (patterns.length === 0) return ok
   return function then(scope: Scope) {
     trace(`- then@${scope.stream.path}`)
     let end = scope
