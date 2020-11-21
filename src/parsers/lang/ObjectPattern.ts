@@ -1,68 +1,5 @@
 import { any, regexp, projection, variable, object, rule, equal, then, slice, or } from '../../patterns'
-import { PatternExpression } from './PatternExpression'
-
-export const ObjectKeyReference = rule({
-  name: 'ObjectKeyReference',
-  pattern: projection({
-    pattern: object({
-      keys: {
-        type: equal({ value: 'Identifier' }),
-        value: variable({
-          name: 'name',
-          pattern: any
-        })
-      }
-    }),
-    expr: ({ name }) => ({
-      type: 'ObjectKeyPattern',
-      name
-    })
-  })
-})
-
-export const ObjectKeyWithPattern = rule({
-  name: 'ObjectKeyWithPattern',
-  pattern: projection({
-    pattern: then({
-      patterns: [
-        object({
-          keys: {
-            type: equal({ value: 'Identifier' }),
-            value: variable({
-              name: 'name',
-              pattern: any
-            })
-          }
-        }),
-        object({
-          keys: {
-            type: equal({ value: 'Token' }),
-            value: equal({ value: '=' })
-          }
-        }),
-        variable({
-          name: 'pattern',
-          pattern: s => PatternExpression(s)
-        })
-      ]
-    }),
-    expr: ({ name, pattern }) => ({
-      type: 'ObjectKeyPattern',
-      name,
-      pattern
-    })
-  })
-})
-
-export const ObjectKeyPattern = rule({
-  name: 'ObjectKeyPattern',
-  pattern: or({
-    patterns: [
-      ObjectKeyWithPattern,
-      ObjectKeyReference
-    ]
-  })
-})
+import { ObjectKeyPattern } from './ObjectKeyPattern'
 
 export const ObjectPattern = rule({
   name: 'ObjectPattern',
@@ -75,7 +12,7 @@ export const ObjectPattern = rule({
             value: equal({ value: '{' }),
           }
         }),
-        // keys:(ObjectKeyPattern (',' k:ObjectKeyPattern -> k)*)?
+        // keys:(ObjectKeyPattern (',' k:ObjectKeyPattern -> k)*)? ','?
         variable({
           name: 'keys',
           pattern: slice({
@@ -103,7 +40,18 @@ export const ObjectPattern = rule({
                     }),
                     expr: ({ k }) => k
                   }),
-                })
+                }),
+                // Optional trailing comma
+                slice({
+                  min: 0,
+                  max: 0,
+                  pattern: object({
+                    keys: {
+                      type: equal({ value: 'Token' }),
+                      value: equal({ value: ',' })
+                    }
+                  })
+                }),
               ]
             })
           })

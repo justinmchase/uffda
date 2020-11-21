@@ -13,7 +13,7 @@ export const calc = uffda`
 `
 
 // todo: Make calc2 work
-// 1. 'String' literals need to get parsed as equal
+// 1. ✅ 'String' literals need to get parsed as equal
 // 2. Support shorthand `i:key` which is equivalent to `key = i:any`
 // 3. Support `,` between keys
 // 4. Ensure property variable is available in projection of object pattern

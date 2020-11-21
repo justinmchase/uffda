@@ -43,6 +43,71 @@ describe('/parsers/lang/object', () => {
     })
   })
 
+  it('can parse an object with a variable key', () => {
+    const p = ObjectPattern
+    const s = Scope.From([
+      { type: 'Token', value: '{' },
+      { type: 'Identifier', value: 'x' },
+      { type: 'Token', value: ':' },
+      { type: 'Identifier', value: 'y' },
+      { type: 'Token', value: '}' }
+    ])
+    const { matched, done, value } = p(s)
+    deepStrictEqual({ matched, done, value }, {
+      matched: true,
+      done: true,
+      value: {
+        type: 'ObjectPattern',
+        keys: [
+          {
+            type: 'VariablePattern',
+            name: 'x',
+            value: {
+              type: 'ObjectKeyPattern',
+              name: 'y'
+            }
+          }
+        ]
+      }
+    })
+  })
+
+  it('can parse an object with a pattern key', () => {
+    const p = ObjectPattern
+    const s = Scope.From([
+      { type: 'Token', value: '{' },
+      { type: 'Identifier', value: 'x' },
+      { type: 'Token', value: ':' },
+      { type: 'Identifier', value: 'y' },
+      { type: 'Token', value: '=' },
+      { type: 'Identifier', value: 'z' },
+      { type: 'Token', value: '}' }
+    ])
+    const { matched, done, value } = p(s)
+    deepStrictEqual({ matched, done, value }, {
+      matched: true,
+      done: true,
+      value: {
+        type: 'ObjectPattern',
+        keys: [
+          {
+            type: 'VariablePattern',
+            name: 'x',
+            value: {
+              type: 'ObjectKeyPattern',
+              name: 'y',
+              pattern: {
+                type: 'ReferencePattern',
+                value: 'z'
+              }
+            }
+          }
+        ]
+      }
+    })
+  })
+
+
   it('can parse an object with a pattern key', () => {
     const p = ObjectPattern
     const s = Scope.From([

@@ -8,8 +8,8 @@ interface IObjectArgs {
   keys?: Record<string, Pattern>
 }
 
-export function object(args) {
-  const { keys } = args
+export function object(args: IObjectArgs) {
+  const { keys = {} } = args
   return function object(scope: Scope) {
     if (!scope.stream.done) {
       const next = scope.stream.next()
