@@ -11,14 +11,16 @@ export class Path {
   }
 
   public moveTo(segment: Segment) {
-    // const s = this.segments.slice(0, -1)
-    // s.push(segment)
-    return new Path([...this.segments.slice(0, -1), segment])
+    if (typeof this.segments[this.segments.length - 1] === 'string') {
+      // If the last segment is a key then this the value is a scalar (even if its an array)
+      // So show the same path, the stream keeps the real index.
+      return this
+    } else {
+      return new Path([...this.segments.slice(0, -1), segment])
+    }
   }
 
   public add(segment: Segment) {
-    // const s = this.segments.slice(0)
-    // s.push(segment)
     return new Path([...this.segments, segment])
   }
 

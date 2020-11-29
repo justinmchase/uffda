@@ -18,16 +18,7 @@ export function uffda(args: TemplateStringsArray, ...values: any[]) {
     .setVariables(variables)
     .push()
 
-  console.log('--')
-  console.log('UFFDA CODE:', { uffdaCode, variables })
-
   const { matched, done, value: compiledDsl } = meta(scope)
-  console.log('RESULT', {
-    matched,
-    done,
-    compiledDsl
-  })
-
   assert(matched)
   assert(done)
   assert(compiledDsl)
@@ -42,8 +33,6 @@ export function uffda(args: TemplateStringsArray, ...values: any[]) {
     }
 
     const variables = values.reduce((a, b, i) => Object.assign(a, { [`$${i}`]: b }), {})
-    console.log('--')
-    console.log('DSL CODE:', { dslCode, variables })
     const scope = Scope
       .From(dslCode)
       .setVariables(variables)
