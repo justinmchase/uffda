@@ -1,4 +1,4 @@
-import { any, equal, object, or, projection, rule, variable } from '../../patterns'
+import { any, equal, object, or, pipeline, projection, rule, variable } from '../../patterns'
 import { OrPattern } from './OrPattern'
 
 export const PipelinePattern = rule({
@@ -19,7 +19,7 @@ export const PipelinePattern = rule({
             })
           }
         }),
-        expr: ({ left, right }) => (console.log('PIPELINE', left, right), or({ patterns: [left, right] }))
+        expr: ({ left, right }) => (console.log('PIPELINE', left, right), pipeline({ steps: [left, right] }))
       }),
       OrPattern
     ]

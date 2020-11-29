@@ -1,8 +1,11 @@
 import { Stream } from 'stream'
+import debug from 'debug'
 import { Match } from '../match'
 import { Scope } from '../scope'
 import { MetaStream } from '../stream'
 import { Pattern } from './pattern'
+
+const trace = debug('trace')
 
 interface IObjectArgs {
   keys?: Record<string, Pattern>;
@@ -11,11 +14,13 @@ interface IObjectArgs {
 export function object(args: IObjectArgs) {
   const { keys = {} } = args
   return function object(scope: Scope) {
+    trace(`- object@${scope.stream.path}`, Object.keys(keys))
     if (!scope.stream.done) {
       const next = scope.stream.next()
       if (typeof next.value === 'object') {
         let end = scope
         for (const [key, pattern] of Object.entries(keys) as [string, Pattern][]) {
+          trace(`- key@${scope.stream.path}`, key, pattern)
           if (!Object.getOwnPropertyDescriptor(next.value, key)) {
             // the next value does not contain the given key
             return Match.Fail(end)

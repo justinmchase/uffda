@@ -11,15 +11,15 @@ export class Path {
   }
 
   public moveTo(segment: Segment) {
-    const s = this.segments.slice(0, -1)
-    s.push(segment)
-    return new Path(s)
+    // const s = this.segments.slice(0, -1)
+    // s.push(segment)
+    return new Path([...this.segments.slice(0, -1), segment])
   }
 
   public add(segment: Segment) {
-    const s = this.segments.slice(0)
-    s.push(segment)
-    return new Path(s)
+    // const s = this.segments.slice(0)
+    // s.push(segment)
+    return new Path([...this.segments, segment])
   }
 
   public compareTo(path: Path): number {

@@ -6,9 +6,9 @@ import { Compiler } from './compiler'
 
 export const meta = pipeline({
   steps: [
-    { name: 'tokenize', pattern: Tokenizer },
-    { name: 'whitespace insignificant', pattern: Exclusion({ types: ['Whitespace', 'Newline'] }) },
-    { name: 'lang', pattern: Lang },
-    { name: 'compile', pattern: Compiler },
+    Tokenizer,
+    Exclusion({ types: ['Whitespace', 'Newline'] }),
+    Lang,
+    Compiler,
   ]
 })

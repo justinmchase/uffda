@@ -8,14 +8,8 @@ describe('/parsers/exclusion', () => {
   it('can exclude whitespace', () => {
     const p = pipeline({
       steps: [
-        {
-          name: 'tokenize',
-          pattern: Tokenizer
-        },
-        {
-          name: 'exclude whitespace and newlines',
-          pattern: Exclusion({ types: ['Whitespace', 'Newline'] })
-        }
+        Tokenizer,
+        Exclusion({ types: ['Whitespace', 'Newline'] })
       ]
     })
 

@@ -29,7 +29,7 @@ export const VariablePattern = rule({
             })
           ]
         }),
-        expr: ({ name, value }) => ({
+        expr: ({ name, value }) => (console.log('VAR', name, value), {
           type: 'VariablePattern',
           name,
           value

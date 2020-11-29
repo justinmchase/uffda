@@ -1,4 +1,4 @@
-import { any, equal, object, ok, or, projection, reference, rule, variable } from '../../patterns'
+import { any, array, equal, object, ok, or, projection, reference, rule, slice, variable } from '../../patterns'
 import { PatternExpression } from './PatternExpression'
 
 export const ObjectKeyPattern = rule({
@@ -22,10 +22,14 @@ export const ObjectKeyPattern = rule({
         })
       }
     }),
-    expr: ({ name, pattern = ok }) => ({ [name]: pattern })
+    expr: ({ name, pattern = ok }) => (console.log('KEY', name, pattern), { [name]: pattern })
   })
 })
 
+// ObjectPattern = {
+//   type: 'ObjectPattern',
+//   k:keys = [ObjectKeyPattern*]
+// }
 export const ObjectPattern = rule({
   name: 'ObjectPattern',
   pattern: projection({
@@ -33,11 +37,16 @@ export const ObjectPattern = rule({
       keys: {
         type: equal({ value: 'ObjectPattern' }),
         keys: variable({
-          name: 'keys',
-          pattern: ObjectKeyPattern
+          name: 'k',
+          pattern: array({
+            pattern: slice({
+              min: 0,
+              pattern: ObjectKeyPattern
+            })
+          })
         })
       }
     }),
-    expr: ({ keys }) => (console.log('OBJECT', keys), object({ keys: Object.assign(keys) }))
+    expr: ({ k }) => (console.log('OBJECT', k), object({ keys: Object.assign({}, ...k) }))
   })
 })

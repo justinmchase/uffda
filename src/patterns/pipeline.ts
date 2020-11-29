@@ -8,10 +8,7 @@ import { Pattern } from './pattern'
 const trace = debug('trace')
 
 interface IPipelineArgs {
-  steps: {
-    name: string
-    pattern: Pattern
-  }[]
+  steps: Pattern[]
 }
 
 export function pipeline(args: IPipelineArgs) {
@@ -20,8 +17,7 @@ export function pipeline(args: IPipelineArgs) {
     let result = Match.Default(scope)
     let items = scope.stream.items
     for (let i = 0; i < steps.length; i++) {
-      const { name, pattern } = steps[i]
-      trace('STEP', name)
+      const pattern = steps[i]
       const nextStream = new MetaStream(Path.Default(), items)
       const nextScope = scope.withStream(nextStream)
       result = pattern(nextScope)
@@ -34,6 +30,8 @@ export function pipeline(args: IPipelineArgs) {
       items = result?.value[Symbol.iterator]
         ? result.value[Symbol.iterator]()
         : [result.value][Symbol.iterator]()
+
+      console.log('STEP', i, pattern, JSON.stringify(result.value, null, 2))
     }
 
     return result

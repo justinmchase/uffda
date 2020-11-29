@@ -1,10 +1,5 @@
-import { assert } from 'console'
 import debug from 'debug'
-import { Match } from '../match'
-import { Path } from '../path'
 import { Scope } from '../scope'
-import { MetaStream } from '../stream'
-import { any } from './any'
 import { ok } from './ok'
 import { Pattern } from './pattern'
 

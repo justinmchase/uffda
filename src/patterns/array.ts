@@ -14,7 +14,7 @@ export function array(args: IArrayArgs) {
       const next = scope.stream.next()
       if (Array.isArray(next.value)) {
         const innerStream = new MetaStream(
-          next.path,
+          next.path.add(-1),
           next.value[Symbol.iterator]()
         )
         const innerScope = scope.withStream(innerStream)

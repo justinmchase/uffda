@@ -9,7 +9,7 @@ describe('/patterns/pipeline', () => {
   it('succeeds with single step', () => {
     const p = pipeline({
       steps: [
-        { name: 'first', pattern: any }
+        any
       ]
     })
     const s = Scope.From('a')
@@ -24,8 +24,8 @@ describe('/patterns/pipeline', () => {
   it('succeeds with two steps', () => {
     const p = pipeline({
       steps: [
-        { name: 'first', pattern: projection({ pattern: any, expr: () => 1 }) },
-        { name: 'second', pattern: projection({ pattern: any, expr: () => 2 }) },
+        projection({ pattern: any, expr: () => 1 }),
+        projection({ pattern: any, expr: () => 2 }),
       ]
     })
     const s = Scope.From([0])
@@ -40,20 +40,14 @@ describe('/patterns/pipeline', () => {
   it('output of previous step is input of next step', () => {
     const p = pipeline({
       steps: [
-        {
-          name: 'first',
-          pattern: projection({
-            pattern: slice({ pattern: any }),
-            expr: ({ _ }) => _.map(n => n + 1)
-          })
-        },
-        {
-          name: 'second',
-          pattern: projection({
-            pattern: slice({ pattern: any }),
-            expr: ({ _ }) => _.map(n => n * 2)
-          })
-        }
+        projection({
+          pattern: slice({ pattern: any }),
+          expr: ({ _ }) => _.map(n => n + 1)
+        }),
+        projection({
+          pattern: slice({ pattern: any }),
+          expr: ({ _ }) => _.map(n => n * 2)
+        })
       ]
     })
     const s = Scope.From([1, 2, 3])
@@ -68,17 +62,11 @@ describe('/patterns/pipeline', () => {
   it('non-iterable output is wrapped in an iterable for next step', () => {
     const p = pipeline({
       steps: [
-        {
-          name: 'first',
-          pattern: any
-        },
-        {
-          name: 'second',
-          pattern: projection({
-            pattern: slice({ pattern: any }),
-            expr: ({ _ }) => _.map(n => n * 2)
-          })
-        }
+        any,
+        projection({
+          pattern: slice({ pattern: any }),
+          expr: ({ _ }) => _.map(n => n * 2)
+        })
       ]
     })
     const s = Scope.From([11])
@@ -93,13 +81,10 @@ describe('/patterns/pipeline', () => {
   it('non-iterable output of final step is not wrapped in an iterable for final output', () => {
     const p = pipeline({
       steps: [
-        {
-          name: 'first',
-          pattern: projection({
-            pattern: slice({ pattern: any }),
-            expr: ({ _ }) => _.reduce((i, n) => i + n, 0)
-          })
-        }
+        projection({
+          pattern: slice({ pattern: any }),
+          expr: ({ _ }) => _.reduce((i, n) => i + n, 0)
+        })
       ]
     })
     const s = Scope.From([1, 2, 3])
@@ -114,26 +99,17 @@ describe('/patterns/pipeline', () => {
   it('can have a pipeline as a step', () => {
     const p = pipeline({
       steps: [
-        {
-          name: 'first',
-          pattern: pipeline({
-            steps: [
-              {
-                name: 'inner',
-                pattern: slice({
-                  pattern: any
-                })
-              }
-            ]
-          })
-        },
-        {
-          name: 'second',
-          pattern: projection({
-            pattern: slice({ min: 3, max: 3, pattern: any }),
-            expr: ({ _ }) => _.join('-')
-          })
-        }
+        pipeline({
+          steps: [
+            slice({
+              pattern: any
+            })
+          ]
+        }),
+        projection({
+          pattern: slice({ min: 3, max: 3, pattern: any }),
+          expr: ({ _ }) => _.join('-')
+        })
       ]
     })
 

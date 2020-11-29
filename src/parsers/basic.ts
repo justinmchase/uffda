@@ -4,15 +4,9 @@ import { Tokenizer } from './tokenizer'
 
 export const Basic = pipeline({
   steps: [
-    {
-      name: 'tokenize',
-      pattern: Tokenizer
-    },
-    {
-      name: 'whitespace insignificant',
-      pattern: Exclusion({
-        types: ['Whitespace', 'Newline']
-      })
-    },
+    Tokenizer,
+    Exclusion({
+      types: ['Whitespace', 'Newline']
+    })
   ]
 })

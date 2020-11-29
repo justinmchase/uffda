@@ -13,7 +13,7 @@ interface IVarArgs {
 export function variable(args: IVarArgs) {
   const { name, pattern } = args
   return function variable(scope: Scope) {
-    trace(`- variable@${scope.stream.toString()}`, name, pattern)
+    trace(`- variable@${scope.stream.path}`, name, pattern)
     const match = pattern(scope)
     if (match.matched) {
       return Match.Ok(scope, match.end.addVariables({ [name]: match.value }), match.value)

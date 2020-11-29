@@ -87,9 +87,9 @@ describe('/parsers/meta/endtoend', () => {
 
   const p = pipeline({
     steps: [
-      { name: 'a', pattern: Tokenizer },
-      { name: 'b', pattern: Exclusion({ types: ['Whitespace', 'Newline'] }) },
-      { name: 'c', pattern: Lang },
+      Tokenizer,
+      Exclusion({ types: ['Whitespace', 'Newline'] }),
+      Lang,
     ]
   })
 

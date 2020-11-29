@@ -65,8 +65,8 @@ describe('/parsers/lang/object', () => {
             pattern: {
               type: 'VariablePattern',
               name: 'x',
-              pattern: {
-                type: 'OkPattern'
+              value: {
+                type: 'AnyPattern'
               }
             }
           }

@@ -4,6 +4,7 @@ import { then } from './then'
 import { any } from './any'
 import { array } from './array'
 import { not } from './not'
+import { slice } from './slice'
 
 describe('/patterns/array', () => {
   it('matches explicit empty array', () => {
@@ -49,6 +50,22 @@ describe('/patterns/array', () => {
       value: ['a', 'b']
     })
   })
+  
+  it('slicing an array with 2 item matches all items', () => {
+    const p = array({
+      pattern: slice({
+        pattern: any
+      })
+    })
+    const s = Scope.From([['a', 'b']])
+    const { matched, done, value } = p(s)
+    deepStrictEqual({ matched, done, value }, {
+      matched: true,
+      done: true,
+      value: ['a', 'b']
+    })
+  })
+
 
   it('fails if all items in array are not matched', () => {
     const p = array({
