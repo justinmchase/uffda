@@ -11,7 +11,6 @@ describe('/parsers/lang/pipeline', () => {
       { type: 'Identifier', value: 'y' }
     ])
     const { matched, done, value } = p(s)
-    console.log('WTF', value)
     deepStrictEqual({ matched, done, value }, {
       matched,
       done,

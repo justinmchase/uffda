@@ -30,8 +30,6 @@ export function pipeline(args: IPipelineArgs) {
       items = result?.value[Symbol.iterator]
         ? result.value[Symbol.iterator]()
         : [result.value][Symbol.iterator]()
-
-      console.log('STEP', i, pattern, JSON.stringify(result.value, null, 2))
     }
 
     return result

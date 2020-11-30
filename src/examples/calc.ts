@@ -1,20 +1,22 @@
 import { uffda } from '../uffda'
 import { Basic } from '../parsers'
 
-export const calc2 = uffda`
+export const calc = uffda`
   Number
     = { type = 'Integer', i:value } -> ${({ i }) => i}
     ;
-
-  Add
-    = l:Number { type = 'Token', value = '+' } r:Number
-    -> ${({ l, r }) => l + r}
-    ;
-
-  Calc
-    = Add
+    
+  Sub
+    = l:Sub { type = 'Token', value = '-' } r:Number -> ${({ l, r }) => l - r}
     | Number
     ;
+
+  Add
+    = l:Add { type = 'Token', value = '+' } r:Sub -> ${({ l, r }) => l + r}
+    | Sub
+    ;
+
+  Calc = Add;
 
   Main = ${Basic} > Calc;
 `
