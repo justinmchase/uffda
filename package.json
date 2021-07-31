@@ -33,12 +33,7 @@
     "url": "https://github.com/justinmchase/uffda"
   },
   "dependencies": {
-    "debug": "^4.2.0",
-    "esm": "^3.2.25",
-    "even-more-min": "^1.0.1",
-    "tiny-tfidf": "^0.9.1",
-    "tsc-watch": "^4.2.9",
-    "typescript": "^3.9.7"
+    "debug": "^4.2.0"
   },
   "devDependencies": {
     "@types/debug": "^4.1.5",
@@ -48,8 +43,11 @@
     "@typescript-eslint/parser": "^4.5.0",
     "eslint": "^7.11.0",
     "eslint-plugin-import": "^2.22.1",
+    "even-more-min": "^1.0.1",
     "mocha": "^8.2.0",
     "nyc": "^15.1.0",
-    "ts-node": "^9.0.0"
+    "ts-node": "^9.0.0",
+    "tsc-watch": "^4.4.0",
+    "typescript": "^3.9.10"
   }
 }
