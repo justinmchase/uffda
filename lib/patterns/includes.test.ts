@@ -1,4 +1,4 @@
-import { tests } from './pattern.test.ts'
+import { tests } from '../pattern.test.ts'
 import { includes } from './includes.ts'
 
 // todo

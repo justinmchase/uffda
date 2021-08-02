@@ -1,4 +1,4 @@
-import { tests } from './pattern.test.ts'
+import { tests } from '../pattern.test.ts'
 import { block } from './block.ts'
 import { equal } from './equal.ts'
 import { reference } from './reference.ts'

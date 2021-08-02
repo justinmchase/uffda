@@ -1,5 +1,5 @@
 import { assert } from '../../deps/std.ts'
-import { tests } from './pattern.test.ts'
+import { tests } from '../pattern.test.ts'
 import { any } from './any.ts'
 import { block } from './block.ts'
 import { equal } from './equal.ts'

@@ -1,4 +1,4 @@
-import { tests } from './pattern.test.ts'
+import { tests } from '../pattern.test.ts'
 import { any } from './any.ts'
 import { pipeline } from './pipeline.ts'
 import { projection } from './projection.ts'

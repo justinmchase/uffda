@@ -7,37 +7,47 @@ import { Token } from './Token.ts'
 import { Newline } from './Newline.ts'
 import { SpecialIdentifier } from './SpecialIdentifier.ts'
 
+export enum TokenizerType {
+  Newline = 'Newline',
+  Whitespace = 'Whitespace',
+  Integer = 'Integer',
+  SpecialIdentifier = 'SpecialIdentifier',
+  Identifier = 'Identifier',
+  String = 'String',
+  Token = 'Token'
+}
+
 export const Tokenizer = slice({
   min: 0,
   pattern: or({
     patterns: [
       projection({
         pattern: Newline,
-        expr: ({ _ }) => ({ type: 'Newline', value: _ })
+        expr: ({ _ }: { _: string }) => ({ type: TokenizerType.Newline, value: _ })
       }),
       projection({
         pattern: Whitespace,
-        expr: ({ _ }) => ({ type: 'Whitespace', value: _ })
+        expr: ({ _ }: { _: string }) => ({ type: TokenizerType.Whitespace, value: _ })
       }),
       projection({
         pattern: Integer,
-        expr: ({ _ }) => ({ type: 'Integer', value: parseInt(_) })
+        expr: ({ _ }: { _: string }) => ({ type: TokenizerType.Integer, value: parseInt(_) })
       }),
       projection({
         pattern: SpecialIdentifier,
-        expr: ({ _ }) => ({ type: 'SpecialIdentifier', value: _ })
+        expr: ({ _ }: { _: string }) => ({ type: TokenizerType.SpecialIdentifier, value: _ })
       }),
       projection({
         pattern: Identifier,
-        expr: ({ _ }) => ({ type: 'Identifier', value: _ })
+        expr: ({ _ }: { _: string }) => ({ type: TokenizerType.Identifier, value: _ })
       }),
       projection({
         pattern: String,
-        expr: ({ _ }) => ({ type: 'String', value: _ })
+        expr: ({ _ }: { _: string }) => ({ type: TokenizerType.String, value: _ })
       }),
       projection({
         pattern: Token,
-        expr: ({ _ }) => ({ type: 'Token', value: _ })
+        expr: ({ _ }: { _: string }) => ({ type: TokenizerType.Token, value: _ })
       }),
     ]
   })

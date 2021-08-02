@@ -1,6 +1,4 @@
 import { any, equal, not, or, projection, rule, slice, then, variable } from '../../patterns/mod.ts'
-import { Letter } from './Letter.ts'
-import { Digit } from './Digit.ts'
 
 // StringPattern
 //   = '\'' value:(('\\' '\'') -> '\'' | any)* '\'' -> s.join('')
@@ -30,7 +28,7 @@ export const String = rule({
                       not({ pattern: equal({ value: '\'' }) }),
                       variable({
                         name: 'value',
-                        pattern: any
+                        pattern: any()
                       })
                     ]
                   }),
@@ -43,6 +41,6 @@ export const String = rule({
         equal({ value: '\'' })
       ]
     }),
-    expr: ({ value }) => value.join('')
+    expr: ({ value }: { value: string[] }) => value.join('')
   })
 })

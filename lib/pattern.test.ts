@@ -1,6 +1,6 @@
-import { assert, assertThrows, equal, brightCyan, brightMagenta, brightBlack } from "../../deps/std.ts"
-import { Scope } from '../scope.ts'
-import { Pattern } from './pattern.ts'
+import { assert, assertThrows, equal, brightCyan, brightMagenta, brightBlack } from "../deps/std.ts"
+import { Scope } from './scope.ts'
+import { Pattern } from './patterns/pattern.ts'
 
 interface IPatternTest {
   id: string
@@ -39,7 +39,11 @@ export function tests(testGroupName: string, group: () => PatternTest[]) {
           const p = pattern()
           const s = Scope.From(input)
           const m = p(s)
-          assert(equal(m.value, value), `Pattern value ${m.value} was expected to be ${value}`)
+          assert(equal(m.value, value),
+            `Pattern matched value did not equal expected value\n` +
+            `actual value: ${Deno.inspect(m.value, { colors: true })}\n` +
+            `expected value: ${Deno.inspect(value, { colors: true })}`
+          )
           assert(equal(m.matched, matched), `Pattern was ${matched ? '' : 'not '}expected to match`)
           assert(equal(m.done, done), `Pattern was ${done ? '' : 'not '}expected to be done`)
         }

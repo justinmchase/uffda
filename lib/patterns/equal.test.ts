@@ -1,4 +1,4 @@
-import { tests } from './pattern.test.ts'
+import { tests } from '../pattern.test.ts'
 import { equal } from './equal.ts'
 
 tests('patterns.equal', () => [

@@ -1,4 +1,4 @@
-import { tests } from './pattern.test.ts'
+import { tests } from '../pattern.test.ts'
 import { then } from './then.ts'
 import { any } from './any.ts'
 import { array } from './array.ts'

@@ -1,4 +1,4 @@
-import { tests } from './pattern.test.ts'
+import { tests } from '../pattern.test.ts'
 import { fail } from './fail.ts'
 
 tests('patterns.fail', () => [

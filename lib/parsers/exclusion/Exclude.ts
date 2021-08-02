@@ -5,10 +5,11 @@ interface IExclusionArgs {
 }
 
 /**
- * Removes or preserves Whitespace and Newline characters from Tokenizer output
- * @param args.significance Defaults to None. Determines which whitespace should be preserved or not
+ * Removes objects from Tokenizer output based on the provided type names
+ * Matches objects of the form:
+ * `{ type: string }`
  */
-export function Exclusion(args: IExclusionArgs) {
+export function Exclude(args: IExclusionArgs) {
   const { types } = args
   return projection({
     pattern: slice({
@@ -22,10 +23,10 @@ export function Exclusion(args: IExclusionArgs) {
             }),
             expr: () => undefined
           }),
-          any
+          any()
         ]
       })
     }),
-    expr: ({ _ }) => _.filter(n => n)
+    expr: ({ _ }: { _: string[] }) => _.filter(n => n)
   })
 }

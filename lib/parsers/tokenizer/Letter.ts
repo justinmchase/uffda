@@ -1,4 +1,4 @@
-import { any, slice, regexp, or, projection, variable, then } from '../../patterns'
+import { regexp } from '../../patterns/mod.ts'
 
 export const Letter = regexp({
   pattern: /\p{L}/u

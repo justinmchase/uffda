@@ -1,4 +1,4 @@
-import { equal, or, projection, then } from '../../patterns'
+import { equal, or, projection, then } from '../../patterns/mod.ts'
 
 export const Newline = or({
   patterns: [

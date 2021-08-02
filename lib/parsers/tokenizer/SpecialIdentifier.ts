@@ -2,7 +2,7 @@ import { equal, or, projection, slice, then, variable } from '../../patterns/mod
 import { Letter } from './Letter.ts'
 import { Digit } from './Digit.ts'
 
-// Identifier = '$' Letter+ (Digit | Character)*
+// Identifier = '$' (Digit | Character)+
 export const SpecialIdentifier = projection({
   pattern: then({
     patterns: [
@@ -10,6 +10,7 @@ export const SpecialIdentifier = projection({
       variable({
         name: 'value',
         pattern: slice({
+          min: 1,
           pattern: or({
             patterns: [
               Digit,
@@ -20,5 +21,5 @@ export const SpecialIdentifier = projection({
       })
     ]
   }),
-  expr: ({ value }) => '$' + value.join('')
+  expr: ({ value }: { value: string[] }) => '$' + value.join('')
 })

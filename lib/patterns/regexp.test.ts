@@ -1,4 +1,4 @@
-import { tests } from './pattern.test.ts'
+import { tests } from '../pattern.test.ts'
 import { regexp } from './regexp.ts'
 
 tests('patterns.regexp', () => [

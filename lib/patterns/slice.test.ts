@@ -1,4 +1,4 @@
-import { tests } from './pattern.test.ts'
+import { tests } from '../pattern.test.ts'
 import { any } from './any.ts'
 import { ok } from './ok.ts'
 import { regexp } from './regexp.ts'

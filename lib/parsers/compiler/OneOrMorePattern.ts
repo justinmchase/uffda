@@ -1,4 +1,4 @@
-import { any, equal, object, or, projection, rule, slice, then, variable } from '../../patterns/mod.ts'
+import { Pattern, equal, object, projection, rule, slice, variable } from '../../patterns/mod.ts'
 import { TerminalPattern } from './TerminalPattern.ts'
 
 export const OneOrMorePattern = rule({
@@ -13,7 +13,7 @@ export const OneOrMorePattern = rule({
         })
       }
     }),
-    expr: ({ pattern }) => (console.log('OneOrMore', { pattern }), slice({
+    expr: ({ pattern }: { pattern: Pattern }) => (slice({
       min: 1,
       pattern
     }))

@@ -7,5 +7,5 @@ export const Whitespace = projection({
       pattern: /[^\S\r\n]/
     })
   }),
-  expr: ({ _ }) => _.join('')
+  expr: ({ _ }: { _: string[] }) => _.join('')
 })

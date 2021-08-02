@@ -1,4 +1,4 @@
-import { any, array, equal, object, ok, or, projection, rule, slice, variable } from '../../patterns/mod.ts'
+import { Pattern, any, array, equal, object, ok, or, projection, rule, slice, variable } from '../../patterns/mod.ts'
 import { PatternExpression } from './PatternExpression.ts'
 
 export const ObjectKeyPattern = rule({
@@ -9,20 +9,20 @@ export const ObjectKeyPattern = rule({
         type: equal({ value: 'ObjectKeyPattern' }),
         name: variable({
           name: 'name',
-          pattern: any // String
+          pattern: any() // String
         }),
         pattern: variable({
           name: 'pattern',
           pattern: or({
             patterns: [
               s => PatternExpression(s),
-              ok
+              ok()
             ]
           })
         })
       }
     }),
-    expr: ({ name, pattern = ok }) => (console.log('KEY', name, pattern), { [name]: pattern })
+    expr: ({ name, pattern = ok() }: { name: string, pattern: Pattern }) => ({ [name]: pattern })
   })
 })
 
@@ -47,6 +47,6 @@ export const ObjectPattern = rule({
         })
       }
     }),
-    expr: ({ k }) => (console.log('OBJECT', k), object({ keys: Object.assign({}, ...k) }))
+    expr: ({ k }: { k: Iterable<unknown> }) => (object({ keys: Object.assign({}, ...k) }))
   })
 })

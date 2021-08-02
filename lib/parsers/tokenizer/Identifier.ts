@@ -1,6 +1,6 @@
-import { or, projection, rule, slice, then, variable } from '../../patterns'
-import { Letter } from './Letter'
-import { Digit } from './Digit'
+import { or, projection, rule, slice, then, variable } from '../../patterns/mod.ts'
+import { Letter } from './Letter.ts'
+import { Digit } from './Digit.ts'
 
 // Identifier = Letter+ (Digit | Character)*
 export const Identifier = rule({
@@ -28,6 +28,6 @@ export const Identifier = rule({
         })
       ]
     }),
-    expr: ({ a, b }) => a.join('') + b.join('')
+    expr: ({ a, b }: { a: string[], b: string[] }) => a.join('') + b.join('')
   })
 })

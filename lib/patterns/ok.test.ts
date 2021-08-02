@@ -1,4 +1,4 @@
-import { tests } from './pattern.test.ts'
+import { tests } from '../pattern.test.ts'
 import { Scope } from '../scope.ts'
 import { ok } from './ok.ts'
 
