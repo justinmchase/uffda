@@ -1,4 +1,4 @@
-import { rule, slice, projection, block } from '../../patterns/mod.ts'
+import { Pattern, rule, slice, projection, block } from '../../patterns/mod.ts'
 import { Scope } from '../../scope.ts'
 import { PatternDeclaration } from './PatternDeclaration.ts'
 
@@ -12,7 +12,7 @@ export const Compiler = (s: Scope) => {
       pattern: slice({
         pattern: PatternDeclaration
       }),
-      expr: ({ _ }: { _: Record<string, unknown>[]}) => block(_.reduce((a, b) => ({ ...a, ...b }), {}))
+      expr: ({ _ }: { _: Record<string, Pattern>[]}) => block(_.reduce((a, b) => ({ ...a, ...b }), {}))
     })
   })
   return p(s)

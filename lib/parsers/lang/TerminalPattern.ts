@@ -8,10 +8,10 @@ export const TerminalPattern = rule({
   name: 'TerminalPattern',
   pattern: or({
     patterns: [
-      ObjectPattern,
-      SpecialReferencePattern,
-      ReferencePattern,
-      StringPattern,
+      s => ObjectPattern(s),
+      s => SpecialReferencePattern(s),
+      s => ReferencePattern(s),
+      s => StringPattern(s),
     ]
   })
 })

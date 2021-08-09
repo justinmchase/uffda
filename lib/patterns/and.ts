@@ -1,4 +1,4 @@
-import { assert } from '../../deps/std.ts'
+import { assert } from '../../deps/mod.ts'
 import { Match } from '../match.ts'
 import { Scope } from '../scope.ts'
 import { Pattern } from './pattern.ts'

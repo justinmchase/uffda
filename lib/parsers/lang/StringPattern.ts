@@ -1,4 +1,4 @@
-import { any, equal, object, projection, rule, variable } from '../../patterns/mod.ts'
+import { string, equal, object, projection, rule, variable } from '../../patterns/mod.ts'
 
 export const StringPattern = rule({
   name: 'StringPattern',
@@ -8,7 +8,7 @@ export const StringPattern = rule({
         type: equal({ value: 'String' }),
         value: variable({
           name: 'value',
-          pattern: any // String
+          pattern: string()
         })
       }
     }),

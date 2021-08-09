@@ -1,4 +1,4 @@
-import { any, regexp, projection, variable, object, rule, then, or } from '../../patterns/mod.ts'
+import { regexp, string, projection, variable, object, rule, then, or } from '../../patterns/mod.ts'
 import { SlicePattern } from './SlicePattern.ts'
 
 export const VariablePattern = rule({
@@ -13,7 +13,7 @@ export const VariablePattern = rule({
                 type: regexp({ pattern: /Identifier/ }),
                 value: variable({
                   name: 'name',
-                  pattern: any
+                  pattern: string()
                 })
               }
             }),
@@ -29,7 +29,7 @@ export const VariablePattern = rule({
             })
           ]
         }),
-        expr: ({ name, value }) => (console.log('VAR', name, value), {
+        expr: ({ name, value }) => ({
           type: 'VariablePattern',
           name,
           value

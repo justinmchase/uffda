@@ -1,14 +1,14 @@
-import { any, slice, regexp, or, projection, variable, then, object, pipeline } from '../patterns'
-import { Exclusion } from './exclusion'
-import { Lang } from './lang'
-import { Tokenizer } from './tokenizer'
-import { Compiler } from './compiler'
+import { pipeline } from '../patterns/mod.ts'
+import { Exclude } from './exclusion/mod.ts'
+import { Lang } from './lang/mod.ts'
+import { Tokenizer } from './tokenizer/mod.ts'
+// import { Compiler } from './compiler/mod.ts'
 
 export const meta = pipeline({
   steps: [
     Tokenizer,
-    Exclusion({ types: ['Whitespace', 'Newline'] }),
+    Exclude({ types: ['Whitespace', 'Newline'] }),
     Lang,
-    Compiler,
+    // Compiler,
   ]
 })

@@ -8,7 +8,8 @@ export interface IProjectionArgs<T, TVars> {
   expr: (arg: { _: T } & TVars) => unknown
 }
 
-export function projection<T, TVars extends Record<PropertyKey, unknown>>(args: IProjectionArgs<T, TVars>) {
+// deno-lint-ignore no-explicit-any
+export function projection<T, TVars extends Record<PropertyKey, any>>(args: IProjectionArgs<T, TVars>) {
   const { pattern, expr } = args
   return function projection(scope: Scope) {
     log.debug(`- projection@${scope.stream.path}`)

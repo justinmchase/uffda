@@ -1,4 +1,4 @@
-import { any, equal, object, projection, rule, then, variable } from '../../patterns/mod.ts'
+import { string, equal, object, projection, rule, then, variable } from '../../patterns/mod.ts'
 
 export const ObjectKeyVariablePattern = rule({
   name: 'ObjectKeyVariablePattern',
@@ -10,7 +10,7 @@ export const ObjectKeyVariablePattern = rule({
             type: equal({ value: 'Identifier' }),
             value: variable({
               name: 'alias',
-              pattern: any // String
+              pattern: string()
             })
           }
         }),
@@ -25,7 +25,7 @@ export const ObjectKeyVariablePattern = rule({
             type: equal({ value: 'Identifier' }),
             value: variable({
               name: 'name',
-              pattern: any // String
+              pattern: string()
             })
           }
         })
@@ -33,14 +33,8 @@ export const ObjectKeyVariablePattern = rule({
     }),
     expr: ({ alias, name }) => ({
       type: 'ObjectKeyPattern',
+      alias,
       name,
-      pattern: {
-        type: 'VariablePattern',
-        name: alias,
-        value: {
-          type: 'AnyPattern'
-        }
-      }
     })
   })
 })

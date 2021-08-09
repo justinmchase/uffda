@@ -1,4 +1,4 @@
-import { any, projection, variable, then, object, rule, equal } from '../../patterns/mod.ts'
+import { string, projection, variable, then, object, rule, equal } from '../../patterns/mod.ts'
 import { PatternExpression } from './PatternExpression.ts'
 
 export const PatternDeclaration = rule({
@@ -9,7 +9,7 @@ export const PatternDeclaration = rule({
         object({
           keys: {
             type: equal({ value: 'Identifier' }),
-            value: variable({ name: 'name', pattern: any })
+            value: variable({ name: 'name', pattern: string() })
           }
         }),
         object({

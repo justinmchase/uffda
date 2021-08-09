@@ -3,6 +3,6 @@ import { PipelinePattern } from './PipelinePattern.ts'
 
 export const PatternExpression = rule({
   name: 'PatternExpression',
-  pattern: PipelinePattern
+  pattern: s => PipelinePattern(s)
 })
 

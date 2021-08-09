@@ -1,4 +1,4 @@
-import { any, regexp, projection, variable, object, rule } from '../../patterns/mod.ts'
+import { string, regexp, projection, variable, object, rule } from '../../patterns/mod.ts'
 
 export const SpecialReferencePattern = rule({
   name: 'SpecialReferencePattern',
@@ -8,7 +8,7 @@ export const SpecialReferencePattern = rule({
         type: regexp({ pattern: /SpecialIdentifier/ }),
         value: variable({
           name: 'value',
-          pattern: any
+          pattern: string()
         })
       }
     }),

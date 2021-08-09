@@ -64,7 +64,7 @@ export const ObjectPattern = rule({
         }),
       ]
     }),
-    expr: ({ keys: k, keys: [[k0 = undefined, k1 = []] = []] = [], _ }) => ({
+    expr: ({ keys: _k, keys: [[k0, k1 = []] = []] = [] }) => ({
       type: 'ObjectPattern',
       keys: [k0, ...k1].filter(k => k)
     })

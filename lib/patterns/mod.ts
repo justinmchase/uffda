@@ -18,3 +18,5 @@ export * from "./rule.ts";
 export * from "./slice.ts";
 export * from "./then.ts";
 export * from "./variable.ts";
+export * from "./number.ts";
+export * from "./string.ts";

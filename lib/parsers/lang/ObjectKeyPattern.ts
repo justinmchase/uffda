@@ -8,10 +8,10 @@ export const ObjectKeyPattern = rule({
   name: 'ObjectKeyPattern',
   pattern: or({
     patterns: [
-      s => ObjectKeyVariableWithPattern(s), // { x:y = z }
-      s => ObjectKeyVariablePattern(s),     // { x:y }
-      s => ObjectKeyWithPattern(s),         // { x = z }
-      s => ObjectKeyReferencePattern(s),    // { x }
+      s => ObjectKeyVariableWithPattern(s), // x:y = z
+      s => ObjectKeyVariablePattern(s),     // x:y
+      s => ObjectKeyWithPattern(s),         // x = z
+      s => ObjectKeyReferencePattern(s),    // x
     ]
   })
 })

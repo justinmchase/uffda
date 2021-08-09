@@ -1,4 +1,4 @@
-import { any, regexp, projection, or, then, object, rule, variable } from '../../patterns/mod.ts'
+import { regexp, projection, or, then, object, rule, variable } from '../../patterns/mod.ts'
 import { ThenPattern } from './ThenPattern.ts'
 import { SpecialReferencePattern } from './SpecialReferencePattern.ts'
 

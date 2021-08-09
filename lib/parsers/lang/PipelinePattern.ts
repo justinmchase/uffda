@@ -1,6 +1,13 @@
 import { or, projection, variable, then, object, rule, equal } from '../../patterns/mod.ts'
 import { OrPattern } from './OrPattern.ts'
 
+// PipelinePattern
+//   = l:PipelinePattern { type: 'Token', value: '>' } r:OrPattern
+//   | OrPattern
+//
+// e.g. 
+// x > y > z
+//
 export const PipelinePattern = rule({
   name: 'PipelinePattern',
   pattern: or({
@@ -20,7 +27,7 @@ export const PipelinePattern = rule({
             }),
             variable({
               name: 'r',
-              pattern: OrPattern
+              pattern: s => OrPattern(s)
             })
           ]
         }),
@@ -30,7 +37,7 @@ export const PipelinePattern = rule({
           right: r
         }),
       }),
-      OrPattern
+      s => OrPattern(s)
     ]
   })
 })

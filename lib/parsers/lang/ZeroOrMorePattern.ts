@@ -1,4 +1,4 @@
-import { or, projection, variable, then, object, rule, equal } from '../../patterns/mod.ts'
+import { projection, variable, then, object, rule, equal } from '../../patterns/mod.ts'
 import { TerminalPattern } from './TerminalPattern.ts'
 
 export const ZeroOrMorePattern = rule({
@@ -8,7 +8,7 @@ export const ZeroOrMorePattern = rule({
       patterns: [
         variable({
           name: 'pattern',
-          pattern: TerminalPattern,
+          pattern: s => TerminalPattern(s),
         }),
         object({
           keys: {

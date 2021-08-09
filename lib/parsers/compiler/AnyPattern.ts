@@ -8,6 +8,6 @@ export const AnyPattern = rule({
         type: equal({ value: 'AnyPattern' })
       }
     }),
-    expr: () => (console.log('ANY'), any)
+    expr: () => any()
   })
 })

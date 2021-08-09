@@ -1,4 +1,4 @@
-import { any, equal, object, projection, rule, variable } from '../../patterns/mod.ts'
+import { string, equal, object, projection, rule, variable } from '../../patterns/mod.ts'
 
 export const ObjectKeyReferencePattern = rule({
   name: 'ObjectKeyReferencePattern',
@@ -8,7 +8,7 @@ export const ObjectKeyReferencePattern = rule({
         type: equal({ value: 'Identifier' }),
         value: variable({
           name: 'name',
-          pattern: any
+          pattern: string()
         })
       }
     }),
