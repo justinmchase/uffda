@@ -1,40 +1,52 @@
-import { string, equal, object, projection, rule, then, variable } from '../../patterns/mod.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { ExpressionKind } from '../../runtime/expressions/mod.ts'
+import { LangPatternKind } from './lang.pattern.ts'
 
-export const ObjectKeyVariablePattern = rule({
-  name: 'ObjectKeyVariablePattern',
-  pattern: projection({
-    pattern: then({
+export const ObjectKeyVariablePattern: Pattern = {
+  kind: PatternKind.Rule,
+  pattern: {
+    kind: PatternKind.Projection,
+    pattern: {
+      kind: PatternKind.Then,
       patterns: [
-        object({
+        {
+          kind: PatternKind.Object,
           keys: {
-            type: equal({ value: 'Identifier' }),
-            value: variable({
+            type: { kind: PatternKind.Equal, value: 'Identifier' },
+            value: {
+              kind: PatternKind.Variable,
               name: 'alias',
-              pattern: string()
-            })
+              pattern: { kind: PatternKind.String }
+            }
           }
-        }),
-        object({
+        },
+        {
+          kind: PatternKind.Object,
           keys: {
-            type: equal({ value: 'Token' }),
-            value: equal({ value: ':' })
+            type: { kind: PatternKind.Equal, value: 'Token' },
+            value: { kind: PatternKind.Equal, value: ':' },
           }
-        }),
-        object({
+        },
+        {
+          kind: PatternKind.Object,
           keys: {
-            type: equal({ value: 'Identifier' }),
-            value: variable({
+            type: { kind: PatternKind.Equal, value: 'Identifier' },
+            value: {
+              kind: PatternKind.Variable,
               name: 'name',
-              pattern: string()
-            })
+              pattern: { kind: PatternKind.String }
+            }
           }
-        })
+        }
       ]
-    }),
-    expr: ({ alias, name }) => ({
-      type: 'ObjectKeyPattern',
-      alias,
-      name,
-    })
-  })
-})
+    },
+    expression: {
+      kind: ExpressionKind.Native,
+      fn: ({ alias, name }) => ({
+        kind: LangPatternKind.ObjectKeyPattern,
+        alias,
+        name,
+      })
+    }
+  }
+}

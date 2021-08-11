@@ -1,27 +1,38 @@
-import { equal, object, or, projection, rule, then, variable } from '../../patterns/mod.ts'
-import { VariablePattern } from './VariablePattern.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { ExpressionKind } from '../../runtime/expressions/mod.ts'
 
-export const ThenPattern = rule({
-  name: 'ThenPattern',
-  pattern: or({
+export const ThenPattern: Pattern = {
+  kind: PatternKind.Rule,
+  pattern: {
+    kind: PatternKind.Or,
     patterns: [
-      projection({
-        pattern: object({
+      {
+        kind: PatternKind.Projection,
+        pattern: {
+          kind: PatternKind.Object,
           keys: {
-            type: equal({ value: 'ThenPattern' }),
-            left: variable({
+            type: { kind: PatternKind.Equal, value: 'ThenPattern' },
+            left: {
+              kind: PatternKind.Variable,
               name: 'left',
-              pattern: s => ThenPattern(s),
-            }),
-            right: variable({
+              pattern: { kind: PatternKind.Reference, name: 'ThenPattern' }
+            },
+            right: {
+              kind: PatternKind.Variable,
               name: 'right',
-              pattern: VariablePattern
-            })
+              pattern: { kind: PatternKind.Reference, name: 'VariablePattern' }
+            }
           }
-        }),
-        expr: ({ left, right }) => (console.log('THEN', { left, right }), then({ patterns: [left, right] }))
-      }),
-      VariablePattern
+        },
+        expression: {
+          kind: ExpressionKind.Native,
+          fn: ({ left, right }) => ({
+            kind: PatternKind.Then,
+            patterns: [left, right]
+          })
+        }
+      },
+      { kind: PatternKind.Reference, name: 'VariablePattern' }
     ]
-  })
-})
+  }
+}

@@ -1,12 +1,18 @@
-import { pipeline } from '../patterns/mod.ts'
+import { Pattern, PatternKind } from '../runtime/patterns/mod.ts'
 import { Exclude } from './exclusion/mod.ts'
 import { Tokenizer } from './tokenizer/mod.ts'
 
-export const Basic = pipeline({
-  steps: [
+export const Basic: Pattern = {
+  kind: PatternKind.Block,
+  variables: {
     Tokenizer,
-    Exclude({
-      types: ['Whitespace', 'Newline']
-    })
-  ]
-})
+    Exclude: Exclude({ types: ['Whitespace', 'Newline' ] }),
+    Main: {
+      kind: PatternKind.Pipeline,
+      steps: [
+        { kind: PatternKind.Reference, name: 'Tokenizer' },
+        { kind: PatternKind.Reference, name: 'Exclude' },
+      ]
+    }
+  }
+}

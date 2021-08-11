@@ -1,36 +1,46 @@
-import { or, projection, variable, then, object, rule, equal } from '../../patterns/mod.ts'
-import { ProjectionPattern } from './ProjectionPattern.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { ExpressionKind } from '../../runtime/expressions/mod.ts'
+import { LangPatternKind } from './lang.pattern.ts'
 
-export const OrPattern = rule({
-  name: 'OrPattern',
-  pattern: or({
+export const OrPattern: Pattern = {
+  kind: PatternKind.Rule,
+  pattern: {
+    kind: PatternKind.Or,
     patterns: [
-      projection({
-        pattern: then({
+      {
+        kind: PatternKind.Projection,
+        pattern: {
+          kind: PatternKind.Then,
           patterns: [
-            variable({
+            {
+              kind: PatternKind.Variable,
               name: 'l',
-              pattern: s => OrPattern(s)
-            }),
-            object({
+              pattern: { kind: PatternKind.Reference, name: 'OrPattern' }
+            },
+            {
+              kind: PatternKind.Object,
               keys: {
-                type: equal({ value: 'Token' }),
-                value: equal({ value: '|' })
+                type: { kind: PatternKind.Equal, value: 'Token' },
+                value: { kind: PatternKind.Equal, value: '|' },
               }
-            }),
-            variable({
+            },
+            {
+              kind: PatternKind.Variable,
               name: 'r',
-              pattern: s => ProjectionPattern(s)
-            })
+              pattern: { kind: PatternKind.Reference, name: 'ProjectionPattern' }
+            }
           ]
-        }),
-        expr: ({ l, r }) => ({
-          type: 'OrPattern',
-          left: l,
-          right: r
-        }),
-      }),
-      s => ProjectionPattern(s)
+        },
+        expression: {
+          kind: ExpressionKind.Native,
+          fn: ({ l, r }) => ({
+            kind: LangPatternKind.OrPattern,
+            left: l,
+            right: r
+          }),
+        }
+      },
+      { kind: PatternKind.Reference, name: 'ProjectionPattern' }
     ]
-  })
-})
+  }
+}

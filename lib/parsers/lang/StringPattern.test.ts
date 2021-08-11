@@ -1,15 +1,16 @@
-import { tests } from '../../pattern.test.ts'
-import { StringPattern } from './StringPattern.ts'
+import { tests } from '../../test.ts'
+import { TestLang } from './Lang.test.ts'
+import { LangPatternKind } from './lang.pattern.ts'
 
 tests('parsers.lang.stringpattern', () => [
   {
     id: 'STRINGPATTERN00',
     description: 'Can parse strings',
-    pattern: () => StringPattern,
-    input: [{ type: 'String', value: "test" }],
+    pattern: () => TestLang,
+    input: "'abc'",
     value: {
-      type: 'StringPattern',
-      value: 'test'
+      kind: LangPatternKind.StringPattern,
+      value: 'abc'
     }
   }
 ])

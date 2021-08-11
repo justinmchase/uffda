@@ -1,54 +1,43 @@
-import { tests } from '../../pattern.test.ts'
-import { ProjectionPattern } from './ProjectionPattern.ts'
+import { tests } from '../../test.ts'
+import { TestLang } from './Lang.test.ts'
+import { LangPatternKind, LangExpressionKind } from './lang.pattern.ts'
 
 tests('parsers.lang.projectionpattern', () => [
   {
     id: 'PROJECT00',
     description: 'can parse a projection',
-    pattern: () => ProjectionPattern,
-    input: [
-      { type: 'Identifier', value: 'x' },
-      { type: 'Token', value: '-' },
-      { type: 'Token', value: '>' },
-      { type: 'SpecialIdentifier', value: '$0' }
-    ],
+    pattern: () => TestLang,
+    input: 'x -> $0',
     value: {
-      type: 'ProjectionPattern',
+      kind: LangPatternKind.ProjectionPattern,
       pattern: {
-        type: 'ReferencePattern',
-        value: 'x'
+        kind: LangPatternKind.ReferencePattern,
+        name: 'x'
       },
       expression: {
-        type: 'SpecialReferencePattern',
-        value: '$0'
+        kind: LangExpressionKind.SpecialReferenceExpression,
+        name: '$0'
       }
     }
   },
   {
     id: 'PROJECT01',
     description: 'can parse a variable',
-    pattern: () => ProjectionPattern,
-    input: [
-      { type: 'Identifier', value: 'x' },
-      { type: 'Token', value: ':' },
-      { type: 'Identifier', value: 'y' },
-      { type: 'Token', value: '-' },
-      { type: 'Token', value: '>' },
-      { type: 'SpecialIdentifier', value: '$0' }
-    ],
+    pattern: () => TestLang,
+    input: 'x:y -> $0',
     value: {
-      type: 'ProjectionPattern',
+      kind: LangPatternKind.ProjectionPattern,
       pattern: {
-        type: 'VariablePattern',
+        kind: LangPatternKind.VariablePattern,
         name: 'x',
-        value: {
-          type: 'ReferencePattern',
-          value: 'y'
+        pattern: {
+          kind: LangPatternKind.ReferencePattern,
+          name: 'y'
         }
       },
       expression: {
-        type: 'SpecialReferencePattern',
-        value: '$0'
+        kind: LangExpressionKind.SpecialReferenceExpression,
+        name: '$0'
       }
     }
   }

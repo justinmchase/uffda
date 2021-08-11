@@ -1,17 +1,16 @@
-import { tests } from '../../pattern.test.ts'
-import { ReferencePattern } from './ReferencePattern.ts'
+import { tests } from '../../test.ts'
+import { TestLang } from './Lang.test.ts'
+import { LangPatternKind } from './lang.pattern.ts'
 
 tests('parsers.lang.reference', () => [
   {
     id: 'REF00',
     description: 'Can parse reference',
-    pattern: () => ReferencePattern,
-    input: [
-      { type: 'Identifier', value: 'x' }
-    ],
+    pattern: () => TestLang,
+    input: 'a',
     value: {
-      type: 'ReferencePattern',
-      value: 'x'
+      kind: LangPatternKind.ReferencePattern,
+      name: 'a'
     }
-  },
+  }
 ])

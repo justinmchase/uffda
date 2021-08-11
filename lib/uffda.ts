@@ -1,6 +1,7 @@
 import { assert } from "../deps/std.ts"
 import { Scope } from './scope.ts'
-import { meta } from './parsers/mod.ts'
+import { Meta } from './parsers/mod.ts'
+import { Pattern, match } from './runtime/mod.ts'
 
 export function uffda(args: TemplateStringsArray, ...values: unknown[]) {
   let uffdaCode = ''
@@ -12,16 +13,16 @@ export function uffda(args: TemplateStringsArray, ...values: unknown[]) {
     }
   }
 
-  const variables = values.reduce((a, b, i) => Object.assign(a, { [`$${i}`]: b }), {})
+  const variables = values.reduce((a, b, i) => Object.assign(a, { [`$${i}`]: b }), {}) as Record<string, unknown>
   const scope = Scope
     .From(uffdaCode)
-    .setVariables(variables)
+    .setSpeical(variables)
     .push()
 
-  const { matched, done, value: compiledDsl } = meta(scope)
+  const { matched, done, value: ast } = match(Meta, scope)
   assert(matched)
   assert(done)
-  assert(compiledDsl)
+  assert(ast)
   return function dsl(args: TemplateStringsArray, ...values: unknown[]) {
     let dslCode = ''
     for (let i = 0, n = args.length; i < n; i++) {
@@ -32,12 +33,12 @@ export function uffda(args: TemplateStringsArray, ...values: unknown[]) {
       }
     }
 
-    const variables = values.reduce((a, b, i) => Object.assign(a, { [`$${i}`]: b }), {})
+    const variables = values.reduce((a, b, i) => Object.assign(a, { [`$${i}`]: b }), {}) as Record<string, unknown>
     const scope = Scope
       .From(dslCode)
-      .setVariables(variables)
+      .setSpeical(variables)
 
-    const { matched, done, value: result } = compiledDsl(scope)
+    const { matched, done, value: result } = match(ast as Pattern, scope)
     assert(matched)
     assert(done)
     assert(result)

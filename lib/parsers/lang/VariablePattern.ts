@@ -1,41 +1,52 @@
-import { regexp, string, projection, variable, object, rule, then, or } from '../../patterns/mod.ts'
-import { SlicePattern } from './SlicePattern.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { ExpressionKind } from '../../runtime/expressions/mod.ts'
+import { LangPatternKind } from './lang.pattern.ts'
 
-export const VariablePattern = rule({
-  name: 'VariablePattern',
-  pattern: or({
+export const VariablePattern: Pattern = {
+  kind: PatternKind.Rule,
+  pattern: {
+    kind: PatternKind.Or,
     patterns: [
-      projection({
-        pattern: then({
+      {
+        kind: PatternKind.Projection,
+        pattern: {
+          kind: PatternKind.Then,
           patterns: [
-            object({
+            {
+              kind: PatternKind.Object,
               keys: {
-                type: regexp({ pattern: /Identifier/ }),
-                value: variable({
+                type: { kind: PatternKind.Equal, value: 'Identifier' },
+                value: {
+                  kind: PatternKind.Variable,
                   name: 'name',
-                  pattern: string()
-                })
+                  pattern: { kind: PatternKind.String }
+                }
               }
-            }),
-            object({
+            },
+            {
+              kind: PatternKind.Object,
               keys: {
-                type: regexp({ pattern: /Token/ }),
-                value: regexp({ pattern: /:/ }),
+                type: { kind: PatternKind.Equal, value: 'Token' },
+                value: { kind: PatternKind.Equal, value: ':' },
               }
-            }),
-            variable({
-              name: 'value',
-              pattern: s => SlicePattern(s)
-            })
+            },
+            {
+              kind: PatternKind.Variable,
+              name: 'pattern',
+              pattern: { kind: PatternKind.Reference, name: 'SlicePattern' },
+            }
           ]
-        }),
-        expr: ({ name, value }) => ({
-          type: 'VariablePattern',
-          name,
-          value
-        })
-      }),
-      s => SlicePattern(s)
+        },
+        expression: {
+          kind: ExpressionKind.Native,
+          fn: ({ name, pattern }) => ({
+            kind: LangPatternKind.VariablePattern,
+            name,
+            pattern
+          })
+        }
+      },
+      { kind: PatternKind.Reference, name: 'SlicePattern' }
     ]
-  })
-})
+  }
+}

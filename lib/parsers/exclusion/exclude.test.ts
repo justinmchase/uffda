@@ -1,5 +1,5 @@
-import { tests } from '../../pattern.test.ts'
-import { pipeline } from '../../patterns/mod.ts'
+import { PatternKind } from '../../runtime/patterns/mod.ts'
+import { tests } from '../../test.ts'
 import { Tokenizer } from '../tokenizer/mod.ts'
 import { Exclude } from './Exclude.ts'
 
@@ -7,7 +7,8 @@ tests('parsers.exclusion', () => [
   {
     id: 'EXCLUDE00',
     description: 'can exclude whitespace and newlines',
-    pattern: () => pipeline({
+    pattern: () => ({
+      kind: PatternKind.Pipeline,
       steps: [
         Tokenizer,
         Exclude({ types: ['Whitespace', 'Newline'] })

@@ -1,5 +1,3 @@
-import { rule } from './patterns/mod.ts'
-
 type Segment = number | string
 
 export class Path {

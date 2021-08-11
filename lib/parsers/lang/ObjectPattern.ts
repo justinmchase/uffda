@@ -1,72 +1,93 @@
-import { projection, variable, object, rule, equal, then, slice } from '../../patterns/mod.ts'
-import { ObjectKeyPattern } from './ObjectKeyPattern.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { ExpressionKind } from '../../runtime/expressions/mod.ts'
+import { LangPatternKind } from './lang.pattern.ts'
 
-export const ObjectPattern = rule({
-  name: 'ObjectPattern',
-  pattern: projection({
-    pattern: then({
+export const ObjectPattern: Pattern = {
+  kind: PatternKind.Rule,
+  pattern: {
+    kind: PatternKind.Projection,
+    pattern: {
+      kind: PatternKind.Then,
       patterns: [
-        object({
+        {
+          kind: PatternKind.Object,
           keys: {
-            type: equal({ value: 'Token' }),
-            value: equal({ value: '{' }),
+            type: { kind: PatternKind.Equal, value: 'Token' },
+            value: { kind: PatternKind.Equal, value: '{' },
           }
-        }),
+        },
         // keys:(ObjectKeyPattern (',' k:ObjectKeyPattern -> k)*)? ','?
-        variable({
+        {
+          kind: PatternKind.Variable,
           name: 'keys',
-          pattern: slice({
+          pattern: {
+            kind: PatternKind.Slice,
             min: 0,
             max: 1,
-            pattern: then({
+            pattern: {
+              kind: PatternKind.Then,
               patterns: [
-                s => ObjectKeyPattern(s),
-                slice({
+                { kind: PatternKind.Reference, name: 'ObjectKeyPattern' },
+                {
+                  kind: PatternKind.Slice,
                   min: 0,
-                  pattern: projection({
-                    pattern: then({
+                  pattern: {
+                    kind: PatternKind.Projection,
+                    pattern: {
+                      kind: PatternKind.Then,
                       patterns: [
-                        object({
+                        {
+                          kind: PatternKind.Object,
                           keys: {
-                            type: equal({ value: 'Token' }),
-                            value: equal({ value: ',' })
+                            type: { kind: PatternKind.Equal, value: 'Token' },
+                            value: { kind: PatternKind.Equal, value: ',' }
                           }
-                        }),
-                        variable({
+                        },
+                        {
+                          kind: PatternKind.Variable,
                           name: 'k',
-                          pattern: s => ObjectKeyPattern(s)
-                        }),
+                          pattern: { kind: PatternKind.Reference, name: 'ObjectKeyPattern' },
+                        },
                       ]
-                    }),
-                    expr: ({ k }) => k
-                  }),
-                }),
+                    },
+                    expression: {
+                      kind: ExpressionKind.Native,
+                      fn: ({ k }) => k
+                    }
+                  },
+                },
                 // Optional trailing comma
-                slice({
+                {
+                  kind: PatternKind.Slice,
                   min: 0,
                   max: 0,
-                  pattern: object({
+                  pattern: {
+                    kind: PatternKind.Object,
                     keys: {
-                      type: equal({ value: 'Token' }),
-                      value: equal({ value: ',' })
+                      type: { kind: PatternKind.Equal, value: 'Token' },
+                      value: { kind: PatternKind.Equal, value: ',' },
                     }
-                  })
-                }),
+                  }
+                },
               ]
-            })
-          })
-        }),
-        object({
-          keys: {
-            type: equal({ value: 'Token' }),
-            value: equal({ value: '}' }),
+            }
           }
-        }),
+        },
+        {
+          kind: PatternKind.Object,
+          keys: {
+            type: { kind: PatternKind.Equal, value: 'Token' },
+            value: { kind: PatternKind.Equal, value: '}' },
+          }
+        },
       ]
-    }),
-    expr: ({ keys: _k, keys: [[k0, k1 = []] = []] = [] }) => ({
-      type: 'ObjectPattern',
-      keys: [k0, ...k1].filter(k => k)
-    })
-  })
-})
+    },
+    expression: {
+      kind: ExpressionKind.Native,
+      fn:({ keys: [[k0, k1 = []] = []] = [] }) => ({
+        kind: LangPatternKind.ObjectPattern,
+        keys: [k0, ...k1].filter(k => k)
+      })
+    }
+  }
+}

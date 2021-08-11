@@ -1,25 +1,22 @@
-import { tests } from '../../pattern.test.ts'
-import { PipelinePattern } from './PipelinePattern.ts'
+import { tests } from '../../test.ts'
+import { TestLang } from './Lang.test.ts'
+import { LangPatternKind } from './lang.pattern.ts'
 
 tests('parsers.lang.pipeline', () => [
   {
     id: 'PIPELINE00',
     description: 'it can pipe two steps',
-    pattern: () => s => PipelinePattern(s),
-    input: [
-      { type: 'Identifier', value: 'x' },
-      { type: 'Token', value: '>' },
-      { type: 'Identifier', value: 'y' }
-    ],
+    pattern: () => TestLang,
+    input: 'x > y',
     value: {
-      type: 'PipelinePattern',
+      kind: LangPatternKind.PipelinePattern,
       left: {
-        type: 'ReferencePattern',
-        value: 'x'
+        kind: LangPatternKind.ReferencePattern,
+        name: 'x'
       },
       right: {
-        type: 'ReferencePattern',
-        value: 'y'
+        kind: LangPatternKind.ReferencePattern,
+        name: 'y'
       }
     }
   }

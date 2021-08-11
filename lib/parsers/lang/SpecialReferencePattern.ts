@@ -1,20 +1,28 @@
-import { string, regexp, projection, variable, object, rule } from '../../patterns/mod.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { ExpressionKind } from '../../runtime/expressions/mod.ts'
+import { LangExpressionKind } from './lang.pattern.ts'
 
-export const SpecialReferencePattern = rule({
-  name: 'SpecialReferencePattern',
-  pattern: projection({
-    pattern: object({
+export const SpecialReferencePattern: Pattern = {
+  kind: PatternKind.Rule,
+  pattern: {
+    kind: PatternKind.Projection,
+    pattern: {
+      kind: PatternKind.Object,
       keys: {
-        type: regexp({ pattern: /SpecialIdentifier/ }),
-        value: variable({
-          name: 'value',
-          pattern: string()
-        })
+        type: { kind: PatternKind.Equal, value: 'SpecialIdentifier' },
+        value: {
+          kind: PatternKind.Variable,
+          name: 'name',
+          pattern: { kind: PatternKind.String }
+        }
       }
-    }),
-    expr: ({ value }) => ({
-      type: 'SpecialReferencePattern',
-      value,
-    })
-  })
-})
+    },
+    expression: {
+      kind: ExpressionKind.Native,
+      fn: ({ name }) => ({
+        kind: LangExpressionKind.SpecialReferenceExpression,
+        name,
+      })
+    }
+  }
+}

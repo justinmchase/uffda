@@ -1,62 +1,43 @@
-import { tests } from '../../pattern.test.ts'
-import { ThenPattern } from './ThenPattern.ts'
+import { tests } from '../../test.ts'
+import { TestLang } from './Lang.test.ts'
+import { LangPatternKind } from './lang.pattern.ts'
 
 tests('.parsers.lang.ThenPattern', () => [
   {
-    id: 'THEN00',
-    description: 'can parse as a reference',
-    pattern: () => ThenPattern,
-    input: [
-      { type: 'Identifier', value: 'x' }
-    ],
-    value: {
-      type: 'ReferencePattern',
-      value: 'x'
-    }
-  },
-  {
     id: 'THEN01',
     description: 'can parse x then y references',
-    pattern: () => ThenPattern,
-    input: [
-      { type: 'Identifier', value: 'x' },
-      { type: 'Identifier', value: 'y' },
-    ],
+    pattern: () => TestLang,
+    input: 'x y',
     value: {
-      type: 'ThenPattern',
+      kind: LangPatternKind.ThenPattern,
       left: {
-        type: 'ReferencePattern',
-        value: 'x'
+        kind: LangPatternKind.ReferencePattern,
+        name: 'x'
       },
       right: {
-        type: 'ReferencePattern',
-        value: 'y'
+        kind: LangPatternKind.ReferencePattern,
+        name: 'y'
       }
     }
   },
   {
     id: 'THEN02',
     description: 'can parse variable string',
-    pattern: () => ThenPattern,
-    input: [
-      { type: 'Identifier', value: 'x' },
-      { type: 'Token', value: ':' },
-      { type: 'String', value: 'abc' },
-      { type: 'Identifier', value: 'y' },
-    ],
+    pattern: () => TestLang,
+    input: 'x:y z',
     value: {
-      type: 'ThenPattern',
+      kind: LangPatternKind.ThenPattern,
       left: {
-        type: 'VariablePattern',
+        kind: LangPatternKind.VariablePattern,
         name: 'x',
-        value: {
-          type: 'StringPattern',
-          value: 'abc'
+        pattern: {
+          kind: LangPatternKind.ReferencePattern,
+          name: 'y'
         }
       },
       right: {
-        type: 'ReferencePattern',
-        value: 'y'
+        kind: LangPatternKind.ReferencePattern,
+        name: 'z'
       }
     }
   }

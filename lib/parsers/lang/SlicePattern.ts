@@ -1,17 +1,14 @@
-import { or, rule } from '../../patterns/mod.ts'
-import { ZeroOrMorePattern } from './ZeroOrMorePattern.ts'
-import { ZeroOrOnePattern } from './ZeroOrOnePattern.ts'
-import { OneOrMorePattern } from './OneOrMorePattern.ts'
-import { TerminalPattern } from './TerminalPattern.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
 
-export const SlicePattern = rule({
-  name: 'SlicePattern',
-  pattern: or({
+export const SlicePattern: Pattern = {
+  kind: PatternKind.Rule,
+  pattern: {
+    kind: PatternKind.Or,
     patterns: [
-      s => OneOrMorePattern(s),
-      s => ZeroOrMorePattern(s),
-      s => ZeroOrOnePattern(s),
-      s => TerminalPattern(s),
+      { kind: PatternKind.Reference, name: 'OneOrMorePattern' },
+      { kind: PatternKind.Reference, name: 'ZeroOrMorePattern' },
+      { kind: PatternKind.Reference, name: 'ZeroOrOnePattern' },
+      { kind: PatternKind.Reference, name: 'TerminalPattern' },
     ]
-  })
-})
+  }
+}

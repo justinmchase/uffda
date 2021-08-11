@@ -1,28 +1,39 @@
-import { any, equal, object, or, projection, rule, variable } from '../../patterns/mod.ts'
-import { ThenPattern } from './ThenPattern.ts'
-import { SpecialReferencePattern } from './SpecialReferencePattern.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { ExpressionKind } from '../../runtime/expressions/mod.ts'
 
-export const ProjectionPattern = rule({
-  name: 'ProjectionPattern',
-  pattern: or({
+export const ProjectionPattern: Pattern = {
+  kind: PatternKind.Rule,
+  pattern: {
+    kind: PatternKind.Or,
     patterns: [
-      projection({
-        pattern: object({
+      {
+        kind: PatternKind.Projection,
+        pattern: {
+          kind: PatternKind.Object,
           keys: {
-            type: equal({ value: 'ProjectionPattern' }),
-            pattern: variable({
+            kind: { kind: PatternKind.Equal, value: 'ProjectionPattern' },
+            pattern: {
+              kind: PatternKind.Variable,
               name: 'pattern',
-              pattern: ThenPattern
-            }),
-            expression: variable({
+              pattern: { kind: PatternKind.Reference, name: 'ThenPattern' }
+            },
+            expression: {
+              kind: PatternKind.Variable,
               name: 'expression',
-              pattern: SpecialReferencePattern,
-            })
+              pattern: { kind: PatternKind.Reference, name: 'SpecialReferencePattern' }
+            }
           }
-        }),
-        expr: ({ pattern, expression }) => (console.log('EXPR', pattern, expression), projection({ pattern, expr: expression }))
-      }),
-      ThenPattern
+        },
+        expression: {
+          kind: ExpressionKind.Native,
+          fn:({ pattern, expression }) => ({
+            kind: PatternKind.Projection,
+            pattern, 
+            expression
+          })
+        }
+      },
+      { kind: PatternKind.Reference, name: 'ThenPattern' }
     ]
-  })
-})
+  }
+}

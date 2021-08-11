@@ -1,20 +1,28 @@
-import { string, equal, object, projection, rule, variable } from '../../patterns/mod.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { ExpressionKind } from '../../runtime/expressions/mod.ts'
+import { LangPatternKind } from './lang.pattern.ts'
 
-export const ObjectKeyReferencePattern = rule({
-  name: 'ObjectKeyReferencePattern',
-  pattern: projection({
-    pattern: object({
+export const ObjectKeyReferencePattern: Pattern = {
+  kind: PatternKind.Rule,
+  pattern: {
+    kind: PatternKind.Projection,
+    pattern: {
+      kind: PatternKind.Object,
       keys: {
-        type: equal({ value: 'Identifier' }),
-        value: variable({
+        type: { kind: PatternKind.Equal, value: 'Identifier' },
+        value: {
+          kind: PatternKind.Variable,
           name: 'name',
-          pattern: string()
-        })
+          pattern: { kind: PatternKind.String }
+        }
       }
-    }),
-    expr: ({ name }) => ({
-      type: 'ObjectKeyPattern',
-      name
-    })
-  })
-})
+    },
+    expression: {
+      kind: ExpressionKind.Native,
+      fn: ({ name }) => ({
+        kind: LangPatternKind.ObjectKeyPattern,
+        name
+      })
+    }
+  }
+}

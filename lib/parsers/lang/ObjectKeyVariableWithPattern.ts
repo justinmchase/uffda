@@ -1,52 +1,65 @@
-import { string, equal, object, projection, rule, then, variable } from '../../patterns/mod.ts'
-import { PatternExpression } from './PatternExpression.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { ExpressionKind } from '../../runtime/expressions/mod.ts'
+import { LangPatternKind } from './lang.pattern.ts'
 
-export const ObjectKeyVariableWithPattern = rule({
-  name: 'ObjectKeyVariableWithPattern',
-  pattern: projection({
-    pattern: then({
+export const ObjectKeyVariableWithPattern: Pattern = {
+  kind: PatternKind.Rule,
+  pattern: {
+    kind: PatternKind.Projection,
+    pattern: {
+      kind: PatternKind.Then,
       patterns: [
-        object({
+        {
+          kind: PatternKind.Object,
           keys: {
-            type: equal({ value: 'Identifier' }),
-            value: variable({
+            type: { kind:PatternKind.Equal, value: 'Identifier' },
+            value: {
+              kind: PatternKind.Variable,
               name: 'alias',
-              pattern: string()
-            })
+              pattern: { kind: PatternKind.String }
+            }
           }
-        }),
-        object({
+        },
+        {
+          kind: PatternKind.Object,
           keys: {
-            type: equal({ value: 'Token' }),
-            value: equal({ value: ':' })
+            type: { kind: PatternKind.Equal, value: 'Token' },
+            value: { kind: PatternKind.Equal, value: ':' }
           }
-        }),
-        object({
+        },
+        {
+          kind: PatternKind.Object,
           keys: {
-            type: equal({ value: 'Identifier' }),
-            value: variable({
+            type: { kind: PatternKind.Equal, value: 'Identifier' },
+            value: {
+              kind: PatternKind.Variable,
               name: 'name',
-              pattern: string()
-            })
+              pattern: { kind: PatternKind.String }
+            }
           }
-        }),
-        object({
+        },
+        {
+          kind: PatternKind.Object,
           keys: {
-            type: equal({ value: 'Token' }),
-            value: equal({ value: '=' })
+            type: { kind: PatternKind.Equal, value: 'Token' },
+            value: { kind: PatternKind.Equal, value: '=' }
           }
-        }),
-        variable({
+        },
+        {
+          kind: PatternKind.Variable,
           name: 'pattern',
-          pattern: s => PatternExpression(s)
-        })
+          pattern: { kind: PatternKind.Reference, name: 'PatternExpression' }
+        }
       ]
-    }),
-    expr: ({ alias, name, pattern }) => ({
-      type: 'ObjectKeyPattern',
-      alias,
-      name,
-      pattern
-    })
-  })
-})
+    },
+    expression: {
+      kind: ExpressionKind.Native,
+      fn: ({ alias, name, pattern }) => ({
+        kind: LangPatternKind.ObjectKeyPattern,
+        alias,
+        name,
+        pattern
+      })
+    }
+  }
+}

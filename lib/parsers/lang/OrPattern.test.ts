@@ -1,95 +1,76 @@
-import { tests } from '../../pattern.test.ts'
-import { OrPattern } from './OrPattern.ts'
+import { tests } from '../../test.ts'
+import { TestLang } from './Lang.test.ts'
+import { LangPatternKind, LangExpressionKind } from './lang.pattern.ts'
 
 tests('parsers.lang.orpattern', () => [
   {
     id: 'ORPATTERN00',
     description: 'can parse a reference expression',
-    pattern: () => OrPattern,
-    input: [
-      { type: 'Identifier', value: 'x' },
-    ],
+    pattern: () => TestLang,
+    input: 'x | y',
     value: {
-      type: 'ReferencePattern',
-      value: 'x'
-    }
-  },
-  {
-    id: 'ORPATTERN00',
-    description: 'can parse a projection expression',
-    pattern: () => OrPattern,
-    input: [
-      { type: 'Identifier', value: 'x' },
-      { type: 'Token', value: '-' },
-      { type: 'Token', value: '>' },
-      { type: 'SpecialIdentifier', value: '$0' }
-    ],
-    value: {
-      type: 'ProjectionPattern',
-      pattern: {
-        type: 'ReferencePattern',
-        value: 'x'
+      kind: LangPatternKind.OrPattern,
+      left: {
+        kind: 'ReferencePattern',
+        name: 'x'
       },
-      expression: {
-        type: 'SpecialReferencePattern',
-        value: '$0'
+      right: {
+        kind: 'ReferencePattern',
+        name: 'y'
       }
     }
   },
   {
     id: 'ORPATTERN00',
-    description: 'can parse two reference expressions',
-    pattern: () => OrPattern,
-    input: [
-      { type: 'Identifier', value: 'x' },
-      { type: 'Token', value: '|' },
-      { type: 'Identifier', value: 'y' },
-    ],
+    description: 'can parse a projection expression',
+    pattern: () => TestLang,
+    input: 'x -> $0 | y',
     value: {
-      type: 'OrPattern',
+      kind: LangPatternKind.OrPattern,
       left: {
-        type: 'ReferencePattern',
-        value: 'x'
+        kind: LangPatternKind.ProjectionPattern,
+        pattern: {
+          kind: 'ReferencePattern',
+          name: 'x'
+        },
+        expression: {
+          kind: LangExpressionKind.SpecialReferenceExpression,
+          name: "$0",
+        }
       },
       right: {
-        type: 'ReferencePattern',
-        value: 'y'
+        kind: 'ReferencePattern',
+        name: 'y'
       }
     }
   },
   {
     id: 'ORPATTERN00',
     description: 'can parse two then expressions',
-    pattern: () => OrPattern,
-    input: [
-      { type: 'Identifier', value: 'w' },
-      { type: 'Identifier', value: 'x' },
-      { type: 'Token', value: '|' },
-      { type: 'Identifier', value: 'y' },
-      { type: 'Identifier', value: 'z' },
-    ],
+    pattern: () => TestLang,
+    input: 'w x | y z',
     value: {
-      type: 'OrPattern',
+      kind: LangPatternKind.OrPattern,
       left: {
-        type: 'ThenPattern',
+        kind: LangPatternKind.ThenPattern,
         left: {
-          type: 'ReferencePattern',
-          value: 'w'
+          kind: LangPatternKind.ReferencePattern,
+          name: 'w'
         },
         right: {
-          type: 'ReferencePattern',
-          value: 'x'
+          kind: LangPatternKind.ReferencePattern,
+          name: 'x'
         }
       },
       right: {
-        type: 'ThenPattern',
+        kind: LangPatternKind.ThenPattern,
         left: {
-          type: 'ReferencePattern',
-          value: 'y'
+          kind: LangPatternKind.ReferencePattern,
+          name: 'y'
         },
         right: {
-          type: 'ReferencePattern',
-          value: 'z'
+          kind: LangPatternKind.ReferencePattern,
+          name: 'z'
         }
       },
     }

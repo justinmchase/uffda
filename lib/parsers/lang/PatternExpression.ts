@@ -1,8 +1,6 @@
-import { rule } from '../../patterns/mod.ts'
-import { PipelinePattern } from './PipelinePattern.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
 
-export const PatternExpression = rule({
-  name: 'PatternExpression',
-  pattern: s => PipelinePattern(s)
-})
-
+export const PatternExpression: Pattern = {
+  kind: PatternKind.Rule,
+  pattern: { kind: PatternKind.Reference, name: 'PipelinePattern' }
+}

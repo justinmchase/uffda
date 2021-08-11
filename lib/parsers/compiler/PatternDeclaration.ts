@@ -1,22 +1,34 @@
-import { any, equal, object, projection, rule, variable } from '../../patterns/mod.ts'
-import { PatternExpression } from './PatternExpression.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { ExpressionKind } from '../../runtime/expressions/mod.ts'
 
-export const PatternDeclaration = rule({
-  name: 'PatternDeclaration',
-  pattern: projection({
-    pattern: object({
+export const PatternDeclaration: Pattern = {
+  kind: PatternKind.Rule,
+  pattern: {
+    kind: PatternKind.Projection,
+    pattern: {
+      kind: PatternKind.Object,
       keys: {
-        type: equal({ value: 'PatternDeclaration' }),
-        name: variable({
+        kind: { kind: PatternKind.Equal, value: 'PatternDeclaration' },
+        name: {
+          kind: PatternKind.Variable,
           name: 'name',
-          pattern: any
-        }),
-        pattern: variable({
+          pattern: { kind: PatternKind.String }
+        },
+        pattern: {
+          kind: PatternKind.Variable,
           name: 'pattern',
-          pattern: PatternExpression
-        })
+          pattern: { kind: PatternKind.Reference, name: 'PatternExpression' }
+        }
       }
-    }),
-    expr: ({ name, pattern }) => (console.log('PATTERN DECLARATION', name, pattern), { [name]: rule({ name, pattern }) })
-  })
-})
+    },
+    expression: {
+      kind: ExpressionKind.Native,
+      fn: ({ name, pattern }) => ({
+        [name]: {
+          kind: PatternKind.Rule,
+          pattern
+        }
+      })
+    }
+  }
+}

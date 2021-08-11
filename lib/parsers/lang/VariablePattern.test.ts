@@ -1,36 +1,24 @@
-import { tests } from '../../pattern.test.ts'
-import { VariablePattern } from './VariablePattern.ts'
+import { tests } from '../../test.ts'
+import { TestLang } from './Lang.test.ts'
+import { LangPatternKind } from './lang.pattern.ts'
 
 tests('parsers.lang.variablepattern', () => [
   {
     id: 'VARIABLEPATTERN00',
     description: 'can parse a reference as a variable',
-    pattern: () => VariablePattern,
-    input: [
-      { type: 'Identifier', value: 'x' },
-      { type: 'Token', value: ':' },
-      { type: 'Identifier', value: 'y' }
-    ],
-    value: {
-      type: 'VariablePattern',
-      name: 'x',
-      value: {
-        type: 'ReferencePattern',
-        value: 'y'
+    pattern: () => TestLang,
+    input: 'Test = x:y;',
+    value: [{
+      kind: LangPatternKind.PatternDeclaration,
+      name: 'Test',
+      pattern: {
+        kind: LangPatternKind.VariablePattern,
+        name: 'x',
+        pattern: {
+          kind: LangPatternKind.ReferencePattern,
+          name: 'y'
+        }
       }
-    }
-    
-  },
-  {
-    id: 'VARIABLEPATTERN00',
-    description: 'can parse a reference as a reference',
-    pattern: () => VariablePattern,
-    input: [
-      { type: 'Identifier', value: 'x' }
-    ],
-    value: {
-      type: 'ReferencePattern',
-      value: 'x'
-    }
+    }]    
   }
 ])

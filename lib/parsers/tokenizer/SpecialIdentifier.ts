@@ -1,25 +1,34 @@
-import { equal, or, projection, slice, then, variable } from '../../patterns/mod.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { ExpressionKind } from '../../runtime/expressions/mod.ts'
 import { Letter } from './Letter.ts'
 import { Digit } from './Digit.ts'
 
 // Identifier = '$' (Digit | Character)+
-export const SpecialIdentifier = projection({
-  pattern: then({
+export const SpecialIdentifier: Pattern = {
+  kind: PatternKind.Projection,
+  pattern: {
+    kind: PatternKind.Then,
     patterns: [
-      equal({ value: '$' }),
-      variable({
+      { kind: PatternKind.Equal, value: '$' },
+      {
+        kind: PatternKind.Variable,
         name: 'value',
-        pattern: slice({
+        pattern: {
+          kind: PatternKind.Slice,
           min: 1,
-          pattern: or({
+          pattern: {
+            kind: PatternKind.Or,
             patterns: [
               Digit,
               Letter
             ]
-          })
-        })
-      })
+          }
+        }
+      }
     ]
-  }),
-  expr: ({ value }: { value: string[] }) => '$' + value.join('')
-})
+  },
+  expression: {
+    kind: ExpressionKind.Native,
+    fn: ({ value }) => '$' + value.join('')
+  }
+}

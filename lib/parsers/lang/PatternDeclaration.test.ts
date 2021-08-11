@@ -1,49 +1,44 @@
-import { tests } from '../../pattern.test.ts'
-import { PatternDeclaration } from './PatternDeclaration.ts'
+import { tests } from '../../test.ts'
+import { TestLang } from './Lang.test.ts'
+import { LangPatternKind } from './lang.pattern.ts'
 
 tests('parsers.lang.patterndeclaration', () => [
   {
     id: 'PATTERNDEC00',
     description: 'can parse pattern declaration',
-    pattern: () => PatternDeclaration,
-    input: [
-        { type: 'Identifier', value: 'x' },
-        { type: 'Token', value: '=' },
-        { type: 'Identifier', value: 'y' },
-        { type: 'Token', value: ';' }
-      ],
-    value: {
-      type: 'PatternDeclaration',
+    pattern: () => TestLang,
+    input: 'x = y;',
+    value: [{
+      kind: LangPatternKind.PatternDeclaration,
       name: 'x',
       pattern: {
-        type: 'ReferencePattern',
-        value: 'y'
+        kind: LangPatternKind.ReferencePattern,
+        name: 'y'
       }
-    }
+    }]
   },
   {
     id: 'PATTERNDEC01',
-    description: 'can parse pattern declaration with variable',
-    pattern: () => PatternDeclaration,
-    input: [
-      { type: 'Identifier', value: 'x' },
-      { type: 'Token', value: '=' },
-      { type: 'Identifier', value: 'y' },
-      { type: 'Token', value: ':', },
-      { type: 'Identifier', value: 'z' },
-      { type: 'Token', value: ';' },
-    ],
-    value: {
-      type: 'PatternDeclaration',
-      name: 'x',
-      pattern: {
-        type: 'VariablePattern',
-        name: 'y',
-        value: {
-          type: 'ReferencePattern',
-          value: 'z'
+    description: 'can parse multiple declarations',
+    pattern: () => TestLang,
+    input: 'x = y; a = b;',
+    value: [
+      {
+        kind: LangPatternKind.PatternDeclaration,
+        name: 'x',
+        pattern: {
+          kind: LangPatternKind.ReferencePattern,
+          name: 'y'
+        }
+      },
+      {
+        kind: LangPatternKind.PatternDeclaration,
+        name: 'a',
+        pattern: {
+          kind: LangPatternKind.ReferencePattern,
+          name: 'b'
         }
       }
-    }
+    ]
   }
 ])

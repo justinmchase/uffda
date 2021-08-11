@@ -1,21 +1,23 @@
-import { tests } from '../../pattern.test.ts'
-import { ZeroOrMorePattern } from './ZeroOrMorePattern.ts'
+import { tests } from '../../test.ts'
+import { TestLang } from './Lang.test.ts'
+import { LangPatternKind } from './lang.pattern.ts'
 
 tests('parsers.lang.zeroormorepattern', () => [
   {
     id: 'ZERORMROE00',
     description: 'can parse a*',
-    pattern: () => ZeroOrMorePattern,
-    input: [
-      { type: 'Identifier', value: 'a' },
-      { type: 'Token', value: '*' },
-    ],
-    value: {
-      type: 'ZeroOrMorePattern',
+    pattern: () => TestLang,
+    input: 'Test = a*;',
+    value: [{
+      kind: LangPatternKind.PatternDeclaration,
+      name: 'Test',
       pattern: {
-        type: 'ReferencePattern',
-        value: 'a',
+        kind: LangPatternKind.ZeroOrMorePattern,
+        pattern: {
+          kind: LangPatternKind.ReferencePattern,
+          name: 'a',
+        }
       }
-    }
+    }]
   }
 ])

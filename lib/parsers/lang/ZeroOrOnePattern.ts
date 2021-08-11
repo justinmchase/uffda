@@ -1,26 +1,34 @@
-import { projection, variable, then, object, rule, equal } from '../../patterns/mod.ts'
-import { TerminalPattern } from './TerminalPattern.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { ExpressionKind } from '../../runtime/expressions/mod.ts'
+import { LangPatternKind } from './lang.pattern.ts'
 
-export const ZeroOrOnePattern = rule({
-  name: 'ZeroOrOnePattern',
-  pattern: projection({
-    pattern: then({
+export const ZeroOrOnePattern: Pattern = {
+  kind: PatternKind.Rule,
+  pattern: {
+    kind: PatternKind.Projection,
+    pattern: {
+      kind: PatternKind.Then,
       patterns: [
-        variable({
+        {
+          kind: PatternKind.Variable,
           name: 'pattern',
-          pattern: s => TerminalPattern(s)
-        }),
-        object({
+          pattern: { kind: PatternKind.Reference, name: 'TerminalPattern' },
+        },
+        {
+          kind: PatternKind.Object,
           keys: {
-            type: equal({ value: 'Token' }),
-            value: equal({ value: '?' })
+            type: { kind: PatternKind.Equal, value: 'Token' },
+            value: { kind: PatternKind.Equal, value: '?' },
           }
-        })
+        }
       ]
-    }),
-    expr: ({ pattern }) => (console.log('ZEROORONE', pattern), {
-      type: 'ZeroOrOnePattern',
-      pattern
-    }),
-  })
-})
+    },
+    expression: {
+      kind: ExpressionKind.Native,
+      fn: ({ pattern }) => ({
+        kind: LangPatternKind.ZeroOrOnePattern,
+        pattern
+      })
+    }
+  }
+}

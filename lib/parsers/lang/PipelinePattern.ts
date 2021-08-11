@@ -1,5 +1,6 @@
-import { or, projection, variable, then, object, rule, equal } from '../../patterns/mod.ts'
-import { OrPattern } from './OrPattern.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { ExpressionKind } from '../../runtime/expressions/mod.ts'
+import { LangPatternKind } from './lang.pattern.ts'
 
 // PipelinePattern
 //   = l:PipelinePattern { type: 'Token', value: '>' } r:OrPattern
@@ -8,36 +9,45 @@ import { OrPattern } from './OrPattern.ts'
 // e.g. 
 // x > y > z
 //
-export const PipelinePattern = rule({
-  name: 'PipelinePattern',
-  pattern: or({
+export const PipelinePattern: Pattern = {
+  kind: PatternKind.Rule,
+  pattern: {
+    kind: PatternKind.Or,
     patterns: [
-      projection({
-        pattern: then({
+      {
+        kind: PatternKind.Projection,
+        pattern: {
+          kind: PatternKind.Then,
           patterns: [
-            variable({
-              name: 'l',
-              pattern: s => PipelinePattern(s),
-            }),
-            object({
+            {
+              kind: PatternKind.Variable,
+              name: 'left',
+              pattern: { kind: PatternKind.Reference, name: 'PipelinePattern' }
+            },
+            {
+              kind: PatternKind.Object,
               keys: {
-                type: equal({ value: 'Token' }),
-                value: equal({ value: '>' })
+                type: { kind: PatternKind.Equal, value: 'Token' },
+                value: { kind: PatternKind.Equal, value: '>' },
               }
-            }),
-            variable({
-              name: 'r',
-              pattern: s => OrPattern(s)
-            })
+            },
+            {
+              kind: PatternKind.Variable,
+              name: 'right',
+              pattern: { kind: PatternKind.Reference, name: 'OrPattern' },
+            }
           ]
-        }),
-        expr: ({ l, r }) => ({
-          type: 'PipelinePattern',
-          left: l,
-          right: r
-        }),
-      }),
-      s => OrPattern(s)
+        },
+        expression: {
+          kind: ExpressionKind.Native,
+          fn: ({ left, right }) => ({
+            kind: LangPatternKind.PipelinePattern,
+            left,
+            right,
+          })
+        }
+      },
+      { kind: PatternKind.Reference, name: 'OrPattern' }
     ]
-  })
-})
+  }
+}

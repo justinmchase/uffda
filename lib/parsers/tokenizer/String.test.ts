@@ -1,4 +1,4 @@
-import { tests } from '../../pattern.test.ts'
+import { tests } from '../../test.ts'
 import { String } from './String.ts'
 
 tests('parsers.tokenizer.stringpattern', () => [

@@ -1,46 +1,69 @@
-import { any, equal, not, or, projection, rule, slice, then, variable } from '../../patterns/mod.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { ExpressionKind } from '../../runtime/expressions/mod.ts'
 
 // StringPattern
 //   = '\'' value:(('\\' '\'') -> '\'' | any)* '\'' -> s.join('')
-export const String = rule({
-  name: 'String',
-  pattern: projection({
-    pattern: then({
+export const String: Pattern = {
+  kind: PatternKind.Rule,
+  pattern: {
+    kind: PatternKind.Projection,
+    pattern: {
+      kind: PatternKind.Then,
       patterns: [
-        equal({ value: '\'' }),
-        variable({
+        { kind: PatternKind.Equal, value: '\'' },
+        {
+          kind: PatternKind.Variable,
           name: 'value',
-          pattern: slice({
-            pattern: or({
+          pattern: {
+            kind: PatternKind.Slice,
+            pattern: {
+              kind: PatternKind.Or,
               patterns: [
-                projection({
-                  pattern: then({
+                {
+                  kind: PatternKind.Projection,
+                  pattern: {
+                    kind: PatternKind.Then,
                     patterns: [
-                      equal({ value: '\\' }),
-                      equal({ value: '\'' }),
+                      { kind: PatternKind.Equal, value: '\\' },
+                      { kind: PatternKind.Equal, value: '\'' },
                     ]
-                  }),
-                  expr: () => '\''
-                }),
-                projection({
-                  pattern: then({
+                  },
+                  expression: {
+                    kind: ExpressionKind.Native,
+                    fn: () => '\''
+                  }
+                },
+                {
+                  kind: PatternKind.Projection,
+                  pattern: {
+                    kind: PatternKind.Then,
                     patterns: [
-                      not({ pattern: equal({ value: '\'' }) }),
-                      variable({
+                      {
+                        kind: PatternKind.Not,
+                        pattern: { kind: PatternKind.Equal, value: '\'' }
+                      },
+                      {
+                        kind: PatternKind.Variable,
                         name: 'value',
-                        pattern: any()
-                      })
+                        pattern: { kind: PatternKind.String }
+                      }
                     ]
-                  }),
-                  expr: ({ value }) => value
-                })
+                  },
+                  expression: {
+                    kind: ExpressionKind.Native,
+                    fn: ({ value }) => value
+                  }
+                }
               ]
-            })
-          })
-        }),
-        equal({ value: '\'' })
+            }
+          }
+        },
+        { kind: PatternKind.Equal, value: '\'' }
       ]
-    }),
-    expr: ({ value }: { value: string[] }) => value.join('')
-  })
-})
+    },
+    expression: {
+      kind: ExpressionKind.Native,
+      fn: ({ value }) => value.join('')
+    }
+  }
+}

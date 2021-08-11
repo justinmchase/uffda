@@ -1,17 +1,16 @@
-import { or, rule } from '../../patterns/mod.ts'
-import { ReferencePattern } from './ReferencePattern.ts'
-import { SpecialReferencePattern } from './SpecialReferencePattern.ts'
-import { StringPattern } from './StringPattern.ts'
-import { ObjectPattern } from './ObjectPattern.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
 
-export const TerminalPattern = rule({
-  name: 'TerminalPattern',
-  pattern: or({
+export const TerminalPattern: Pattern = {
+  kind: PatternKind.Rule,
+  pattern: {
+    kind: PatternKind.Or,
     patterns: [
-      s => ObjectPattern(s),
-      s => SpecialReferencePattern(s),
-      s => ReferencePattern(s),
-      s => StringPattern(s),
+      { kind: PatternKind.Reference, name: 'AnyPattern' },
+      { kind: PatternKind.Reference, name: 'OkPattern' },
+      { kind: PatternKind.Reference, name: 'ObjectPattern' },
+      { kind: PatternKind.Reference, name: 'SpecialReferencePattern' },
+      { kind: PatternKind.Reference, name: 'ReferencePattern' },
+      { kind: PatternKind.Reference, name: 'StringPattern' },
     ]
-  })
-})
+  }
+}

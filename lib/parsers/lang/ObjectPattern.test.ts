@@ -1,34 +1,28 @@
-import { tests } from '../../pattern.test.ts'
-import { ObjectPattern } from './ObjectPattern.ts'
+import { tests } from '../../test.ts'
+import { TestLang } from './Lang.test.ts'
+import { LangPatternKind } from './lang.pattern.ts'
 
 tests('parsers.lang.object', () => [
   {
     id: 'OBJECT00',
     description: 'can parse empty object',
-    pattern: () => ObjectPattern,
-    input: [
-      { type: 'Token', value: '{' },
-      { type: 'Token', value: '}' }
-    ],
+    pattern: () => TestLang,
+    input: '{}',
     value: {
-      type: 'ObjectPattern',
+      kind: LangPatternKind.ObjectPattern,
       keys: []
     }
   },
   {
     id: 'OBJECT01',
     description: 'can parse an object with a key',
-    pattern: () => ObjectPattern,
-    input: [
-      { type: 'Token', value: '{' },
-      { type: 'Identifier', value: 'x' },
-      { type: 'Token', value: '}' }
-    ],
+    pattern: () => TestLang,
+    input: '{ x }',
     value: {
-      type: 'ObjectPattern',
+      kind: LangPatternKind.ObjectPattern,
       keys: [
         {
-          type: 'ObjectKeyPattern',
+          kind: LangPatternKind.ObjectKeyPattern,
           name: 'x'
         }
       ]
@@ -37,19 +31,13 @@ tests('parsers.lang.object', () => [
   {
     id: 'OBJECT02',
     description: 'can parse an object with a variable key',
-    pattern: () => ObjectPattern,
-    input: [
-      { type: 'Token', value: '{' },
-      { type: 'Identifier', value: 'x' },
-      { type: 'Token', value: ':' },
-      { type: 'Identifier', value: 'y' },
-      { type: 'Token', value: '}' }
-    ],
+    pattern: () => TestLang,
+    input: '{ x:y }',
     value: {
-      type: 'ObjectPattern',
+      kind: LangPatternKind.ObjectPattern,
       keys: [
         {
-          type: 'ObjectKeyPattern',
+          kind: LangPatternKind.ObjectKeyPattern,
           alias: 'x',
           name: 'y',
         }
@@ -59,26 +47,18 @@ tests('parsers.lang.object', () => [
   {
     id: 'OBJECT03',
     description: 'can parse an object with a pattern key',
-    pattern: () => ObjectPattern,
-    input: [
-      { type: 'Token', value: '{' },
-      { type: 'Identifier', value: 'x' },
-      { type: 'Token', value: ':' },
-      { type: 'Identifier', value: 'y' },
-      { type: 'Token', value: '=' },
-      { type: 'Identifier', value: 'z' },
-      { type: 'Token', value: '}' }
-    ],
+    pattern: () => TestLang,
+    input: '{ x:y = z }',
     value: {
-      type: 'ObjectPattern',
+      kind: LangPatternKind.ObjectPattern,
       keys: [
         {
-          type: 'ObjectKeyPattern',
+          kind: LangPatternKind.ObjectKeyPattern,
           alias: 'x',
           name: 'y',
           pattern: {
-            type: 'ReferencePattern',
-            value: 'z'
+            kind: LangPatternKind.ReferencePattern,
+            name: 'z'
           }
         }
       ]
@@ -87,23 +67,17 @@ tests('parsers.lang.object', () => [
   {
     id: 'OBJECT04',
     description: 'can parse an object with a pattern key',
-    pattern: () => ObjectPattern,
-    input: [
-      { type: 'Token', value: '{' },
-      { type: 'Identifier', value: 'x' },
-      { type: 'Token', value: '=' },
-      { type: 'Identifier', value: 'y' },
-      { type: 'Token', value: '}' }
-    ],
+    pattern: () => TestLang,
+    input: '{ x = y }',
     value: {
-      type: 'ObjectPattern',
+      kind: LangPatternKind.ObjectPattern,
       keys: [
         {
-          type: 'ObjectKeyPattern',
+          kind: LangPatternKind.ObjectKeyPattern,
           name: 'x',
           pattern: {
-            type: 'ReferencePattern',
-            value: 'y'
+            kind: LangPatternKind.ReferencePattern,
+            name: 'y'
           }
         }
       ]
@@ -112,35 +86,25 @@ tests('parsers.lang.object', () => [
   {
     id: 'OBJECT05',
     description: 'can parse an object with two pattern keys',
-    pattern: () => ObjectPattern,
-    input: [
-      { type: 'Token', value: '{' },
-      { type: 'Identifier', value: 'a' },
-      { type: 'Token', value: '=' },
-      { type: 'Identifier', value: 'b' },
-      { type: 'Token', value: ',' },
-      { type: 'Identifier', value: 'x' },
-      { type: 'Token', value: '=' },
-      { type: 'Identifier', value: 'y' },
-      { type: 'Token', value: '}' }
-    ],
+    pattern: () => TestLang,
+    input: '{ a = b, x = y }',
     value: {
-      type: 'ObjectPattern',
+      kind: LangPatternKind.ObjectPattern,
       keys: [
         {
-          type: 'ObjectKeyPattern',
+          kind: LangPatternKind.ObjectKeyPattern,
           name: 'a',
           pattern: {
-            type: 'ReferencePattern',
-            value: 'b'
+            kind: LangPatternKind.ReferencePattern,
+            name: 'b'
           }
         },
         {
-          type: 'ObjectKeyPattern',
+          kind: LangPatternKind.ObjectKeyPattern,
           name: 'x',
           pattern: {
-            type: 'ReferencePattern',
-            value: 'y'
+            kind: LangPatternKind.ReferencePattern,
+            name: 'y'
           }
         }
       ]

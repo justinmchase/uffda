@@ -1,5 +1,6 @@
-import { regexp } from '../../patterns/mod.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
 
-export const Digit = regexp({
+export const Digit: Pattern = {
+  kind: PatternKind.RegExp,
   pattern: /[0-9]/
-})
+}

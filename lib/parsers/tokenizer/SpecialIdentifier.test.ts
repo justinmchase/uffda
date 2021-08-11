@@ -1,4 +1,4 @@
-import { tests } from '../../pattern.test.ts'
+import { tests } from '../../test.ts'
 import { SpecialIdentifier } from './SpecialIdentifier.ts'
 
 tests('parsers.tokenizer.specialidentifier', () => [

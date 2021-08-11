@@ -1,24 +1,24 @@
 import { Match } from './match.ts'
-import { Pattern } from './patterns/mod.ts'
+// import { Pattern } from './patterns/mod.ts'
 import { MetaStream } from './stream.ts'
 
 interface IMemo {
   match: Match;
-  pattern: Pattern;
+  pattern: unknown; // Pattern;
   references: IMemo[];
 }
 
 export class Scope {
-  public static readonly Default = () => new Scope(undefined, {}, MetaStream.Default(), {}, [])
-  public static readonly From = (s: Iterable<unknown> | Scope) => s instanceof Scope ? s : new Scope(undefined, {}, MetaStream.From(s), {}, [])
-  public static readonly Root = (s: MetaStream, p: Record<string, unknown>) => new Scope(undefined, p, s, {}, [])
+  public static readonly Default = () => new Scope()
+  public static readonly From = (s: Iterable<unknown> | Scope) => s instanceof Scope ? s : new Scope(undefined, {}, {}, MetaStream.From(s))
 
   constructor(
-    private readonly _parent: Scope | undefined,
-    private readonly _variables: Record<string, unknown>,
-    public readonly stream: MetaStream,
-    public readonly memos: Record<string, IMemo>,
-    public readonly ruleStack: string[]
+    private readonly _parent: Scope | undefined = undefined,
+    private readonly _variables: Record<string, unknown> = {},
+    private readonly _special: Record<string, unknown> = {},
+    public readonly stream: MetaStream = MetaStream.Default(),
+    public readonly memos: Record<string, IMemo> = {},
+    public readonly ruleStack: string[] = []
   ) {
   }
 
@@ -36,10 +36,15 @@ export class Scope {
     return Object.assign({}, ...this.stack())
   }
 
+  public getSpecial(name: string) {
+    return this._variables[name]
+  }
+
   public withStream(stream: MetaStream) {
     return new Scope(
       this._parent,
       this._variables,
+      this._special,
       stream,
       this.memos,
       this.ruleStack,
@@ -50,6 +55,7 @@ export class Scope {
     return new Scope(
       this._parent,
       Object.assign({}, this._variables, variables),
+      this._special,
       this.stream,
       this.memos,
       this.ruleStack,
@@ -60,17 +66,29 @@ export class Scope {
     return new Scope(
       this._parent,
       variables,
+      this._special,
+      this.stream,
+      this.memos,
+      this.ruleStack
+    )
+  }
+  public setSpeical(variables: Record<string, unknown>) {
+    return new Scope(
+      this._parent,
+      this._variables,
+      variables,
       this.stream,
       this.memos,
       this.ruleStack
     )
   }
 
-  public setMemo(key: string, pattern: Pattern, match: Match) {
+  public setMemo(key: string, pattern: unknown, match: Match) {
     const { references = [] } = this.memos[key] ?? {}
     return new Scope(
       this._parent,
       this._variables,
+      this._special,
       this.stream,
       Object.assign({}, this.memos, {
         [key]: {
@@ -84,13 +102,14 @@ export class Scope {
   }
 
 
-  public pushRule(rule: string) {
+  public pushRule(ruleName: string) {
     return new Scope(
       this._parent,
       {},
+      this._special,
       this.stream,
       this.memos,
-      [...this.ruleStack, rule],
+      [...this.ruleStack, ruleName],
     )
   }
 
@@ -98,6 +117,7 @@ export class Scope {
     return new Scope(
       this._parent,
       scope._variables,
+      this._special,
       this.stream,
       this.memos,
       this.ruleStack.slice(-1),
@@ -108,6 +128,7 @@ export class Scope {
     return new Scope(
       this,
       {},
+      this._special,
       this.stream,
       this.memos,
       this.ruleStack
@@ -118,6 +139,7 @@ export class Scope {
     return new Scope(
       this._parent?._parent,
       this._parent?._variables ?? {},
+      this._special,
       this.stream,
       this.memos,
       this.ruleStack

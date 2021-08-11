@@ -1,39 +1,53 @@
-import { string, projection, variable, then, object, rule, equal } from '../../patterns/mod.ts'
-import { PatternExpression } from './PatternExpression.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { ExpressionKind } from '../../runtime/expressions/mod.ts'
+import { LangPatternKind } from './lang.pattern.ts'
 
-export const PatternDeclaration = rule({
-  name: 'PatternDeclaration',
-  pattern: projection({
-    pattern: then({
+export const PatternDeclaration: Pattern = {
+  kind: PatternKind.Rule,
+  pattern: {
+    kind: PatternKind.Projection,
+    pattern: {
+      kind: PatternKind.Then,
       patterns: [
-        object({
+        {
+          kind: PatternKind.Object,
           keys: {
-            type: equal({ value: 'Identifier' }),
-            value: variable({ name: 'name', pattern: string() })
+            type: { kind: PatternKind.Equal, value: 'Identifier' },
+            value: {
+              kind: PatternKind.Variable,
+              name: 'name',
+              pattern: { kind: PatternKind.String }
+            }
           }
-        }),
-        object({
+        },
+        {
+          kind: PatternKind.Object,
           keys: {
-            type: equal({ value: 'Token' }),
-            value: equal({ value: '=' })
+            type: { kind: PatternKind.Equal, value: 'Token' },
+            value: { kind: PatternKind.Equal, value: '=' }
           }
-        }),
-        variable({
+        },
+        {
+          kind: PatternKind.Variable,
           name: 'pattern',
-          pattern: PatternExpression
-        }),
-        object({
+          pattern: { kind: PatternKind.Reference, name: 'PatternExpression' }
+        },
+        {
+          kind: PatternKind.Object,
           keys: {
-            type: equal({ value: 'Token' }),
-            value: equal({ value: ';' })
+            type: { kind: PatternKind.Equal, value: 'Token' },
+            value: { kind: PatternKind.Equal, value: ';' }
           }
-        })
+        }
       ]
-    }),
-    expr: ({ name, pattern }) => ({
-      type: 'PatternDeclaration',
-      name,
-      pattern
-    })
-  })
-})
+    },
+    expression: {
+      kind: ExpressionKind.Native,
+      fn: ({ name, pattern }) => ({
+        kind: LangPatternKind.PatternDeclaration,
+        name,
+        pattern
+      })
+    }
+  }
+}

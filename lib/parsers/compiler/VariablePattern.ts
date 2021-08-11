@@ -1,27 +1,35 @@
-import { any, equal, object, or, projection, rule, then, variable } from '../../patterns/mod.ts'
-import { SlicePattern } from './SlicePattern.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { ExpressionKind } from '../../runtime/expressions/mod.ts'
 
-export const VariablePattern = rule({
-  name: 'VariablePattern',
-  pattern: or({
+export const VariablePattern: Pattern = {
+  kind: PatternKind.Rule,
+  pattern: {
+    kind: PatternKind.Or,
     patterns: [
-      projection({
-        pattern: object({
+      {
+        kind: PatternKind.Projection,
+        pattern: {
+          kind: PatternKind.Object,
           keys: {
-            type: equal({ value: 'VariablePattern' }),
-            name: variable({
+            type: { kind: PatternKind.Equal, value: 'VariablePattern' },
+            name: {
+              kind: PatternKind.Variable,
               name: 'name',
-              pattern: any, // String
-            }),
-            value: variable({
+              pattern: { kind: PatternKind.String }
+            },
+            value: {
+              kind: PatternKind.Variable,
               name: 'pattern',
-              pattern: SlicePattern
-            })
+              pattern: { kind: PatternKind.Reference, name: 'SlicePattern' }
+            }
           }
-        }),
-        expr: ({ name, pattern }) => (console.log('VARIABLE', { name, pattern }), variable({ name, pattern }))
-      }),
-      SlicePattern
+        },
+        expression: {
+          kind: ExpressionKind.Native,
+          fn: ({ name, pattern }) => ({ kind: PatternKind.Variable, name, pattern })
+        }
+      },
+      { kind: PatternKind.Reference, name: 'SlicePattern' }
     ]
-  })
-})
+  }
+}

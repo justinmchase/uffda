@@ -1,27 +1,39 @@
-import { any, equal, object, or, projection, rule, variable } from '../../patterns/mod.ts'
-import { ProjectionPattern } from './ProjectionPattern.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { ExpressionKind } from '../../runtime/expressions/mod.ts'
+import { LangPatternKind } from '../lang/lang.pattern.ts'
 
-export const OrPattern = rule({
-  name: 'OrPattern',
-  pattern: or({
+export const OrPattern: Pattern = {
+  kind: PatternKind.Rule,
+  pattern: {
+    kind: PatternKind.Or,
     patterns: [
-      projection({
-        pattern: object({
+      {
+        kind: PatternKind.Projection,
+        pattern: {
+          kind: PatternKind.Object,
           keys: {
-            type: equal({ value: 'OrPattern' }),
-            left: variable({
+            kind: { kind: PatternKind.Equal, value: LangPatternKind.OrPattern },
+            left: {
+              kind: PatternKind.Variable,
               name: 'left',
-              pattern: s => OrPattern(s)
-            }),
-            right: variable({
+              pattern: { kind: PatternKind.Reference, name: 'OrPattern' }
+            },
+            right: {
+              kind: PatternKind.Variable,
               name: 'right',
-              pattern: ProjectionPattern,
-            })
+              pattern: { kind: PatternKind.Reference, name: 'ProjectionPattern' },
+            }
           }
-        }),
-        expr: ({ left, right }) => (console.log('OR PATTERN', left, right), or({ patterns: [left, right] }))
-      }),
-      ProjectionPattern
+        },
+        expression: {
+          kind: ExpressionKind.Native,
+          fn: ({ left, right }) => ({
+            kind: PatternKind.Or,
+            patterns: [left, right]
+          })
+        }
+      },
+      { kind: PatternKind.Reference, name: 'ProjectionPattern' }
     ]
-  })
-})
+  }
+}

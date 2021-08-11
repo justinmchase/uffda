@@ -1,4 +1,4 @@
-import { tests } from '../../pattern.test.ts'
+import { tests } from '../../test.ts'
 import { Letter } from './Letter.ts'
 
 tests('parsers.tokenizer.letter', () => [

@@ -1,17 +1,14 @@
-import { rule, or } from '../../patterns/mod.ts'
-import { ObjectKeyReferencePattern } from './ObjectKeyReferencePattern.ts'
-import { ObjectKeyWithPattern } from './ObjectKeyWithPattern.ts'
-import { ObjectKeyVariablePattern } from './ObjectKeyVariablePattern.ts'
-import { ObjectKeyVariableWithPattern } from './ObjectKeyVariableWithPattern.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
 
-export const ObjectKeyPattern = rule({
-  name: 'ObjectKeyPattern',
-  pattern: or({
+export const ObjectKeyPattern: Pattern = {
+  kind: PatternKind.Rule,
+  pattern: {
+    kind: PatternKind.Or,
     patterns: [
-      s => ObjectKeyVariableWithPattern(s), // x:y = z
-      s => ObjectKeyVariablePattern(s),     // x:y
-      s => ObjectKeyWithPattern(s),         // x = z
-      s => ObjectKeyReferencePattern(s),    // x
+      { kind: PatternKind.Reference, name: 'ObjectKeyVariableWithPattern' },
+      { kind: PatternKind.Reference, name: 'ObjectKeyVariablePattern' },
+      { kind: PatternKind.Reference, name: 'ObjectKeyWithPattern' },
+      { kind: PatternKind.Reference, name: 'ObjectKeyReferencePattern' },
     ]
-  })
-})
+  }
+}

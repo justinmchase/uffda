@@ -1,40 +1,51 @@
-import { string, equal, object, projection, rule, then, variable } from '../../patterns/mod.ts'
-import { PatternExpression } from './PatternExpression.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { ExpressionKind } from '../../runtime/expressions/mod.ts'
+import { LangPatternKind } from './lang.pattern.ts'
 
 // The key of an object pattern which has a pattern
 //
 // e.g.
 // key = pattern
-export const ObjectKeyWithPattern = rule({
-  name: 'ObjectKeyWithPattern',
-  pattern: projection({
-    pattern: then({
+export const ObjectKeyWithPattern: Pattern = {
+  kind: PatternKind.Rule,
+  pattern: {
+    kind: PatternKind.Projection,
+    pattern: {
+      kind: PatternKind.Then,
       patterns: [
-        object({
+        {
+          kind: PatternKind.Object,
           keys: {
-            type: equal({ value: 'Identifier' }),
-            value: variable({
+            type: { kind: PatternKind.Equal, value: 'Identifier' },
+            value: {
+              kind: PatternKind.Variable,
               name: 'name',
-              pattern: string()
-            })
+              pattern: { kind: PatternKind.String }
+            }
           }
-        }),
-        object({
+        },
+        {
+          kind: PatternKind.Object,
           keys: {
-            type: equal({ value: 'Token' }),
-            value: equal({ value: '=' })
+            type: { kind: PatternKind.Equal, value: 'Token' },
+            value: { kind: PatternKind.Equal, value: '=' }
           }
-        }),
-        variable({
+        },
+        {
+          kind: PatternKind.Variable,
           name: 'pattern',
-          pattern: s => PatternExpression(s)
-        })
+          pattern: { kind: PatternKind.Reference, name: 'PatternExpression' }
+        }
       ]
-    }),
-    expr: ({ name, pattern }) => ({
-      type: 'ObjectKeyPattern',
-      name,
-      pattern
-    })
-  })
-})
+    },
+    expression: {
+      kind: ExpressionKind.Native,
+      fn: ({ name, pattern }) => ({
+        kind: LangPatternKind.ObjectKeyPattern,
+        name,
+        pattern
+      })
+    }
+  }
+}
+

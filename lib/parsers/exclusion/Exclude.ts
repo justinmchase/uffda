@@ -1,4 +1,5 @@
-import { any, object, or, projection, slice, includes } from '../../patterns/mod.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { ExpressionKind } from '../../runtime/expressions/mod.ts'
 
 interface IExclusionArgs {
   types: string[]
@@ -9,24 +10,38 @@ interface IExclusionArgs {
  * Matches objects of the form:
  * `{ type: string }`
  */
-export function Exclude(args: IExclusionArgs) {
+export function Exclude(args: IExclusionArgs): Pattern {
   const { types } = args
-  return projection({
-    pattern: slice({
-      pattern: or({
+  return {
+    kind: PatternKind.Projection,
+    pattern: {
+      kind: PatternKind.Slice,
+      pattern: {
+        kind: PatternKind.Or,
         patterns: [
-          projection({
-            pattern: object({
+          {
+            kind: PatternKind.Projection,
+            pattern: {
+              kind: PatternKind.Object,
               keys: {
-                type: includes({ values: types })
+                type: {
+                  kind: PatternKind.Includes,
+                  values: types
+                }
               }
-            }),
-            expr: () => undefined
-          }),
-          any()
+            },
+            expression: {
+              kind: ExpressionKind.Native,
+              fn: () => undefined
+            }
+          },
+          { kind: PatternKind.Any }
         ]
-      })
-    }),
-    expr: ({ _ }: { _: string[] }) => _.filter(n => n)
-  })
+      }
+    },
+    expression: {
+      kind: ExpressionKind.Native,
+      fn: ({ _ }) => _.filter((n: unknown) => n)
+    }
+  }
 }

@@ -1,14 +1,19 @@
-import { pipeline } from '../patterns/mod.ts'
-import { Exclude } from './exclusion/mod.ts'
-import { Lang } from './lang/mod.ts'
-import { Tokenizer } from './tokenizer/mod.ts'
-// import { Compiler } from './compiler/mod.ts'
+import { Pattern, PatternKind } from '../runtime/patterns/mod.ts'
+import { Basic, Lang, Compiler } from './mod.ts'
 
-export const meta = pipeline({
-  steps: [
-    Tokenizer,
-    Exclude({ types: ['Whitespace', 'Newline'] }),
+export const Meta: Pattern = {
+  kind: PatternKind.Block,
+  variables: {
+    Basic,
     Lang,
-    // Compiler,
-  ]
-})
+    Compiler,
+    Main: {
+      kind: PatternKind.Pipeline,
+      steps: [
+        { kind: PatternKind.Reference, name: 'Basic' },
+        { kind: PatternKind.Reference, name: 'Lang' },
+        { kind: PatternKind.Reference, name: 'Compiler' },
+      ]
+    }
+  }
+}

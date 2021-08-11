@@ -1,52 +1,72 @@
-import { Pattern, any, array, equal, object, ok, or, projection, rule, slice, variable } from '../../patterns/mod.ts'
-import { PatternExpression } from './PatternExpression.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { ExpressionKind } from '../../runtime/expressions/mod.ts'
+import { LangPatternKind } from '../lang/lang.pattern.ts'
 
-export const ObjectKeyPattern = rule({
-  name: 'ObjectKeyPattern',
-  pattern: projection({
-    pattern: object({
+export const ObjectKeyPattern: Pattern = {
+  kind: PatternKind.Rule,
+  pattern: {
+    kind: PatternKind.Projection,
+    pattern: {
+      kind: PatternKind.Object,
       keys: {
-        type: equal({ value: 'ObjectKeyPattern' }),
-        name: variable({
+        kind: { kind: PatternKind.Equal, value: LangPatternKind.ObjectKeyPattern },
+        name: {
+          kind: PatternKind.Variable,
           name: 'name',
-          pattern: any() // String
-        }),
-        pattern: variable({
+          pattern: { kind: PatternKind.String }
+        },
+        pattern: {
+          kind: PatternKind.Variable,
           name: 'pattern',
-          pattern: or({
+          pattern: {
+            kind: PatternKind.Or,
             patterns: [
-              s => PatternExpression(s),
-              ok()
+              { kind: PatternKind.Reference, name: 'PatternExpression' },
+              { kind: PatternKind.Ok }
             ]
-          })
-        })
+          }
+        }
       }
-    }),
-    expr: ({ name, pattern = ok() }: { name: string, pattern: Pattern }) => ({ [name]: pattern })
-  })
-})
+    },
+    expression: {
+      kind: ExpressionKind.Native,
+      fn: ({ name, pattern = { kind: PatternKind.Ok } }) => ({ [name]: pattern })
+    }
+  }
+}
 
 // ObjectPattern = {
 //   type: 'ObjectPattern',
 //   k:keys = [ObjectKeyPattern*]
 // }
-export const ObjectPattern = rule({
-  name: 'ObjectPattern',
-  pattern: projection({
-    pattern: object({
+export const ObjectPattern: Pattern = {
+  kind: PatternKind.Rule,
+  pattern: {
+    kind: PatternKind.Projection,
+    pattern: {
+      kind: PatternKind.Object,
       keys: {
-        type: equal({ value: 'ObjectPattern' }),
-        keys: variable({
+        kind: { kind: PatternKind.Equal, value: LangPatternKind.ObjectPattern },
+        keys: {
+          kind: PatternKind.Variable,
           name: 'k',
-          pattern: array({
-            pattern: slice({
+          pattern: {
+            kind: PatternKind.Array,
+            pattern: {
+              kind: PatternKind.Slice,
               min: 0,
               pattern: ObjectKeyPattern
-            })
-          })
-        })
+            }
+          }
+        }
       }
-    }),
-    expr: ({ k }: { k: Iterable<unknown> }) => (object({ keys: Object.assign({}, ...k) }))
-  })
-})
+    },
+    expression: {
+      kind: ExpressionKind.Native,
+      fn: ({ k }) => ({
+        kind: PatternKind.Object,
+        keys: Object.assign({}, ...k)
+      })
+    }
+  }
+}

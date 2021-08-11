@@ -1,17 +1,16 @@
-import { tests } from '../../pattern.test.ts'
-import { SpecialReferencePattern } from './SpecialReferencePattern.ts'
+import { tests } from '../../test.ts'
+import { TestLang } from './Lang.test.ts'
+import { LangExpressionKind } from './lang.pattern.ts'
 
 tests('parsers.lang.specialreference', () => [
   {
     id: 'SPECREF00',
     description: 'Can parse special reference',
-    pattern: () => SpecialReferencePattern,
-    input: [
-      { type: 'SpecialIdentifier', value: '$0' }
-    ],
+    pattern: () => TestLang,
+    input: '$0',
     value: {
-      type: 'SpecialReferencePattern',
-      value: '$0'
+      kind: LangExpressionKind.SpecialReferenceExpression,
+      name: '$0'
     }
-  },
+  }
 ])

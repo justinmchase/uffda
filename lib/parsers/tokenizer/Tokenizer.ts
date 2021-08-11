@@ -1,14 +1,15 @@
-import { slice, or, projection } from '../../patterns/mod.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { ExpressionKind } from '../../runtime/expressions/mod.ts'
 import { String } from './String.ts'
 import { Whitespace } from './Whitespace.ts'
 import { Integer } from './Integer.ts'
 import { Identifier } from './Identifier.ts'
 import { Token } from './Token.ts'
-import { Newline } from './Newline.ts'
+import { NewLine } from './NewLine.ts'
 import { SpecialIdentifier } from './SpecialIdentifier.ts'
 
 export enum TokenizerType {
-  Newline = 'Newline',
+  NewLine = 'NewLine',
   Whitespace = 'Whitespace',
   Integer = 'Integer',
   SpecialIdentifier = 'SpecialIdentifier',
@@ -17,38 +18,68 @@ export enum TokenizerType {
   Token = 'Token'
 }
 
-export const Tokenizer = slice({
+export const Tokenizer: Pattern = {
+  kind: PatternKind.Slice,
   min: 0,
-  pattern: or({
+  pattern: {
+    kind: PatternKind.Or,
     patterns: [
-      projection({
-        pattern: Newline,
-        expr: ({ _ }: { _: string }) => ({ type: TokenizerType.Newline, value: _ })
-      }),
-      projection({
+      {
+        kind: PatternKind.Projection,
+        pattern: NewLine,
+        expression: {
+          kind: ExpressionKind.Native,
+          fn: ({ _ }) => ({ type: TokenizerType.NewLine, value: _ })
+        }
+      },
+      {
+        kind: PatternKind.Projection,
         pattern: Whitespace,
-        expr: ({ _ }: { _: string }) => ({ type: TokenizerType.Whitespace, value: _ })
-      }),
-      projection({
+        expression: {
+          kind: ExpressionKind.Native,
+          fn: ({ _ }) => ({ type: TokenizerType.Whitespace, value: _ })
+        }
+      },
+      {
+        kind: PatternKind.Projection,
         pattern: Integer,
-        expr: ({ _ }: { _: string }) => ({ type: TokenizerType.Integer, value: parseInt(_) })
-      }),
-      projection({
+        expression: {
+          kind: ExpressionKind.Native,
+          fn: ({ _ }) => ({ type: TokenizerType.Integer, value: parseInt(_) })
+        }
+      },
+      {
+        kind: PatternKind.Projection,
         pattern: SpecialIdentifier,
-        expr: ({ _ }: { _: string }) => ({ type: TokenizerType.SpecialIdentifier, value: _ })
-      }),
-      projection({
+        expression: {
+          kind: ExpressionKind.Native,
+          fn: ({ _ }) => ({ type: TokenizerType.SpecialIdentifier, value: _ })
+        }
+      },
+      {
+        kind: PatternKind.Projection,
         pattern: Identifier,
-        expr: ({ _ }: { _: string }) => ({ type: TokenizerType.Identifier, value: _ })
-      }),
-      projection({
+        expression: {
+          kind: ExpressionKind.Native,
+          fn: ({ _ }) => ({ type: TokenizerType.Identifier, value: _ })
+        }
+      },
+      {
+        kind: PatternKind.Projection,
         pattern: String,
-        expr: ({ _ }: { _: string }) => ({ type: TokenizerType.String, value: _ })
-      }),
-      projection({
+        expression: {
+          kind: ExpressionKind.Native,
+          fn: ({ _ }) => ({ type: TokenizerType.String, value: _ })
+        }
+      },
+      {
+        kind: PatternKind.Projection,
         pattern: Token,
-        expr: ({ _ }: { _: string }) => ({ type: TokenizerType.Token, value: _ })
-      }),
+        expression: {
+          kind: ExpressionKind.Native,
+          fn: ({ _ }) => ({ type: TokenizerType.Token, value: _ })
+        }
+      },
     ]
-  })
-})
+  }
+}

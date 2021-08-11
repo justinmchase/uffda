@@ -1,11 +1,18 @@
-import { projection, regexp, slice } from '../../patterns/mod.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { ExpressionKind } from '../../runtime/expressions/mod.ts'
 
-export const Whitespace = projection({
-  pattern: slice({
+export const Whitespace: Pattern = {
+  kind: PatternKind.Projection,
+  pattern: {
+    kind: PatternKind.Slice,
     min: 1,
-    pattern: regexp({
-      pattern: /[^\S\r\n]/
-    })
-  }),
-  expr: ({ _ }: { _: string[] }) => _.join('')
-})
+    pattern: {
+      kind: PatternKind.RegExp,
+      pattern: /^[^\S\r\n]$/
+    }
+  },
+  expression: {
+    kind: ExpressionKind.Native,
+    fn: ({ _ }) => _.join('')
+  }
+}

@@ -1,4 +1,4 @@
-import { tests } from '../../pattern.test.ts'
+import { tests } from '../../test.ts'
 import { Tokenizer } from './mod.ts'
 
 tests('parsers.tokenizer', () => [
@@ -23,20 +23,20 @@ tests('parsers.tokenizer', () => [
     done: true,
   },
   {
-    id: 'WHITESPACE03',
+    id: 'TOKENIZER02',
     description: 'succeeds on multiple lines',
     pattern: () => Tokenizer,
     input: '   \n   \n   ',
     value: [
       { type: 'Whitespace', value: '   ' },
-      { type: 'Newline', value: '\n' },
+      { type: 'NewLine', value: '\n' },
       { type: 'Whitespace', value: '   ' },
-      { type: 'Newline', value: '\n' },
+      { type: 'NewLine', value: '\n' },
       { type: 'Whitespace', value: '   ' },
     ]
   },
   {
-    id: 'WHITESPACE04',
+    id: 'TOKENIZER03',
     description: 'successfully parses expressions',
     pattern: () => Tokenizer,
     input: 'x + y - 1 -> $0',

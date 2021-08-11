@@ -1,21 +1,28 @@
-import { Pattern, equal, object, projection, rule, slice, variable } from '../../patterns/mod.ts'
-import { TerminalPattern } from './TerminalPattern.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { ExpressionKind } from '../../runtime/expressions/mod.ts'
 
-export const OneOrMorePattern = rule({
-  name: 'OneOrMorePattern',
-  pattern: projection({
-    pattern: object({
+export const OneOrMorePattern: Pattern = {
+  kind: PatternKind.Rule,
+  pattern: {
+    kind: PatternKind.Projection,
+    pattern: {
+      kind: PatternKind.Object,
       keys: {
-        type: equal({ value: 'OneOrMorePattern' }),
-        pattern: variable({
+        kind: { kind: PatternKind.Equal, value: 'OneOrMorePattern' },
+        pattern: {
+          kind: PatternKind.Variable,
           name: 'pattern',
-          pattern: TerminalPattern,
-        })
+          pattern: { kind: PatternKind.Reference, name: 'TerminalPattern' },
+        }
       }
-    }),
-    expr: ({ pattern }: { pattern: Pattern }) => (slice({
-      min: 1,
-      pattern
-    }))
-  })
-})
+    },
+    expression: {
+      kind: ExpressionKind.Native,
+      fn: ({ pattern }: { pattern: Pattern }) => ({
+        kind: PatternKind.Slice,
+        min: 1,
+        pattern
+      })
+    }
+  }
+}

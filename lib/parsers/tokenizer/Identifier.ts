@@ -1,33 +1,44 @@
-import { or, projection, rule, slice, then, variable } from '../../patterns/mod.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { ExpressionKind } from '../../runtime/expressions/mod.ts'
 import { Letter } from './Letter.ts'
 import { Digit } from './Digit.ts'
 
 // Identifier = Letter+ (Digit | Character)*
-export const Identifier = rule({
-  name: 'Identifier',
-  pattern: projection({
-    pattern: then({
+export const Identifier: Pattern = {
+  kind: PatternKind.Rule,
+  pattern: {
+    kind: PatternKind.Projection,
+    pattern: {
+      kind: PatternKind.Then,
       patterns: [
-        variable({
+        {
+          kind: PatternKind.Variable,
           name: 'a',
-          pattern: slice({
+          pattern: {
+            kind: PatternKind.Slice,
             min: 1,
             pattern: Letter,
-          })
-        }),
-        variable({
+          }
+        },
+        {
+          kind: PatternKind.Variable,
           name: 'b',
-          pattern: slice({
-            pattern: or({
+          pattern: {
+            kind: PatternKind.Slice,
+            pattern: {
+              kind: PatternKind.Or,
               patterns: [
                 Digit,
-                Letter
+                Letter,
               ]
-            })
-          })
-        })
+            }
+          }
+        }
       ]
-    }),
-    expr: ({ a, b }: { a: string[], b: string[] }) => a.join('') + b.join('')
-  })
-})
+    },
+    expression: {
+      kind: ExpressionKind.Native,
+      fn: ({ a, b }) => a.join('') + b.join('')
+    }
+  }
+}

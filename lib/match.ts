@@ -1,4 +1,4 @@
-import { Pattern } from './patterns/mod.ts'
+// import { Pattern } from './patterns/mod.ts'
 import { Scope } from './scope.ts'
 
 export class Match {
@@ -15,7 +15,6 @@ export class Match {
     public readonly start: Scope,
     public readonly end: Scope,
     public readonly value?: unknown,
-    // public readonly variables: ???
     // public readonly errors: ???
   ) {
 
@@ -24,8 +23,6 @@ export class Match {
   public get done() {
     return this.end.stream.done
   }
-
-
 
   public endRecursion() {
     return new Match(
@@ -47,7 +44,7 @@ export class Match {
     )
   }
 
-  public setMemo(key: string, pattern: Pattern) {
+  public setMemo(key: string, pattern: unknown /*Pattern*/) {
     return new Match(
       this.matched,
       this.isLr,

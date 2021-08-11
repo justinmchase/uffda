@@ -1,7 +1,7 @@
-import { tests } from '../../pattern.test.ts'
+import { tests } from '../../test.ts'
 import { Whitespace } from './Whitespace.ts'
 
-tests('parsers.tokenizer.whiespace', () => [
+tests('parsers.tokenizer.whitespace', () => [
   {
     id: 'WHITESPACE00',
     description: 'can match space',

@@ -1,4 +1,4 @@
-import { tests } from '../../pattern.test.ts'
+import { tests } from '../../test.ts'
 import { Integer } from './Integer.ts'
 
 tests('parsers.tokenizer.integer', () => [

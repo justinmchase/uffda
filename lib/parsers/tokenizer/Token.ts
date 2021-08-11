@@ -1,5 +1,7 @@
-import { regexp } from '../../patterns/mod.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
 
-export const Token = regexp({
-  pattern: /[^\w\d\s]/
-})
+
+export const Token: Pattern = {
+  kind: PatternKind.RegExp,
+  pattern: /^[^\w\d\s]$/
+}

@@ -1,27 +1,43 @@
-import { any, equal, object, or, pipeline, projection, rule, variable } from '../../patterns/mod.ts'
-import { OrPattern } from './OrPattern.ts'
+import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { ExpressionKind } from '../../runtime/expressions/mod.ts'
 
-export const PipelinePattern = rule({
-  name: 'PipelinePattern',
-  pattern: or({
-    patterns: [
-      projection({
-        pattern: object({
-          keys: {
-            type: equal({ value: 'PipelinePattern' }),
-            left: variable({
-              name: 'left',
-              pattern: s => PipelinePattern(s)
-            }),
-            right: variable({
-              name: 'right',
-              pattern: OrPattern,
-            })
-          }
-        }),
-        expr: ({ left, right }) => (console.log('PIPELINE', left, right), pipeline({ steps: [left, right] }))
-      }),
-      OrPattern
-    ]
-  })
-})
+export const PipelinePattern: Pattern = {
+  kind: PatternKind.Block,
+  variables: {
+    PipelinePattern: {
+      kind: PatternKind.Rule,
+      pattern: {
+        kind: PatternKind.Or,
+        patterns: [
+          {
+            kind: PatternKind.Projection,
+            pattern: {
+              kind: PatternKind.Object,
+              keys: {
+                kind: { kind: PatternKind.Equal, value: 'PipelinePattern' },
+                left: {
+                  kind: PatternKind.Variable,
+                  name: 'left',
+                  pattern: { kind: PatternKind.Reference, name: 'PipelinePattern' }
+                },
+                right: {
+                  kind: PatternKind.Variable,
+                  name: 'right',
+                  pattern: { kind: PatternKind.Reference, name: 'OrPattern' }
+                }
+              }
+            },
+            expression: {
+              kind: ExpressionKind.Native,
+              fn: ({ left, right }) => ({
+                kind: PatternKind.Pipeline,
+                steps: [left, right]
+              })
+            }
+          },
+          { kind: PatternKind.Reference, name: 'OrPattern' }
+        ]
+      }
+    }
+  }
+}
