@@ -8,7 +8,7 @@ export const ZeroOrMorePattern: Pattern = {
     pattern: {
       kind: PatternKind.Object,
       keys: {
-        type: { kind: PatternKind.Equal, value: 'ZeroOrMorePattern' },
+        kind: { kind: PatternKind.Equal, value: 'ZeroOrMorePattern' },
         pattern: {
           kind: PatternKind.Variable,
           name: 'pattern',

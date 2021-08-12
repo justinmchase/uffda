@@ -8,7 +8,7 @@ export const StringPattern: Pattern = {
     pattern: {
       kind: PatternKind.Object,
       keys: {
-        type: { kind: PatternKind.Equal, value: 'StringPattern' },
+        kind: { kind: PatternKind.Equal, value: 'StringPattern' },
         value: {
           kind: PatternKind.Variable,
           name: 'value',

@@ -1,5 +1,16 @@
-// import { strictEqual } from 'assert'
-// import { calc } from './calc'
+import { assert } from '../../deps/std.ts'
+// import { calc } from './calc.js'
+
+Deno.test({
+  name: 'CALC00',
+  fn: async () => {
+    const { calc } = await import('./calc.js')
+    const result = calc`7 + 11`
+
+    console.log(result)
+    assert(result === 18, `Expected 18 got ${result}`)
+  }
+})
 
 // describe('/examples/calc2', () => {
 //   it('add two numbers', () => {

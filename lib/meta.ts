@@ -3,30 +3,32 @@ import { Scope } from './scope.ts'
 import { Meta } from './parsers/mod.ts'
 import { Pattern, match } from './runtime/mod.ts'
 
-export function uffda(args: TemplateStringsArray, ...values: unknown[]) {
-  let uffdaCode = ''
-  for (let i = 0, n = args.length; i < n; i++) {
-    const a = args[i]
-    uffdaCode += a
-    if (i < values.length) {
-      uffdaCode += `$${i}`
+export function meta<T>(template: TemplateStringsArray, ...args: T[]) {
+  let metaCode = ''
+  for (let i = 0, n = template.length; i < n; i++) {
+    const a = template[i]
+    metaCode += a
+    if (i < args.length) {
+      metaCode += `$${i}`
     }
   }
 
-  const variables = values.reduce((a, b, i) => Object.assign(a, { [`$${i}`]: b }), {}) as Record<string, unknown>
+  const variables = args.reduce((a, b, i) => Object.assign(a, { [`$${i}`]: b }), {}) as Record<string, unknown>
   const scope = Scope
-    .From(uffdaCode)
+    .From(metaCode)
     .setSpeical(variables)
     .push()
+
+  // console.log(metaCode)
 
   const { matched, done, value: ast } = match(Meta, scope)
   assert(matched)
   assert(done)
   assert(ast)
-  return function dsl(args: TemplateStringsArray, ...values: unknown[]) {
+  return function dsl(template: TemplateStringsArray, ...values: unknown[]): unknown {
     let dslCode = ''
-    for (let i = 0, n = args.length; i < n; i++) {
-      const a = args[i]
+    for (let i = 0, n = template.length; i < n; i++) {
+      const a = template[i]
       dslCode += a
       if (i < values.length) {
         dslCode += `$${i}`

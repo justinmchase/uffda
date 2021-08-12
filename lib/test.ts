@@ -42,8 +42,8 @@ export function tests(testGroupName: string, group: () => PatternTest[]) {
           const m = match(p, s)
           assert(equal(m.value, value),
             `Pattern matched value did not equal expected value\n` +
-            `actual value: ${Deno.inspect(m.value, { colors: true, depth: 10 })}\n` +
-            `expected value: ${Deno.inspect(value, { colors: true, depth: 10 })}`
+            `expected value: ${Deno.inspect(value, { colors: true, depth: 10 })}\n` +
+            `  actual value: ${Deno.inspect(m.value, { colors: true, depth: 10 })}`
           )
           assert(equal(m.matched, matched), `Pattern was ${matched ? '' : 'not '}expected to match`)
           assert(equal(m.done, done), `Pattern was ${done ? '' : 'not '}expected to be done`)

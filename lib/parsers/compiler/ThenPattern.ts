@@ -11,7 +11,7 @@ export const ThenPattern: Pattern = {
         pattern: {
           kind: PatternKind.Object,
           keys: {
-            type: { kind: PatternKind.Equal, value: 'ThenPattern' },
+            kind: { kind: PatternKind.Equal, value: 'ThenPattern' },
             left: {
               kind: PatternKind.Variable,
               name: 'left',
