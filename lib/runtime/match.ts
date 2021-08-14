@@ -7,10 +7,12 @@ import {
   any,
   array,
   block,
+  bool,
   error,
   equal,
   fail,
   includes,
+  must,
   not,
   number,
   object,
@@ -38,6 +40,8 @@ export function match(pattern: Pattern, scope: Scope): Match {
       return array(pattern, scope)
     case PatternKind.Block:
       return block(pattern, scope)
+    case PatternKind.Boolean:
+      return bool(scope)
     case PatternKind.ErrorUntil:
       return error(pattern, scope)
     case PatternKind.Equal:
@@ -46,6 +50,8 @@ export function match(pattern: Pattern, scope: Scope): Match {
       return fail(scope)
     case PatternKind.Includes:
       return includes(pattern, scope)
+    case PatternKind.Must:
+      return must(pattern, scope)
     case PatternKind.Not:
       return not(pattern, scope)
     case PatternKind.Number:

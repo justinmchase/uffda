@@ -33,7 +33,9 @@ export function rule(args: IRulePattern, scope: Scope): Match {
       // todo: make a proper error object
       if (scope.ruleStack.length === 0) {
         // This should never happen unless there is a bug in this code base
-        throw new Error('Invalid recursion detected')
+        return Match
+          .Fail(scope)
+          .pushError(scope, scope) // todo: Add error messages or codes of some kind
       }
       if (scope.ruleStack.slice(-1)[0] !== key) {
         return Match.Fail(scope)

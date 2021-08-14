@@ -1,9 +1,11 @@
 import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
 import { AndPattern } from './AndPattern.ts'
 import { AnyPattern } from './AnyPattern.ts'
+import { MustPattern } from './MustPattern.ts'
 import { NotPattern } from './NotPattern.ts'
 import { OkPattern } from './OkPattern.ts'
 import { PatternDeclaration } from './PatternDeclaration.ts'
+import { ObjectKeyMustPattern } from './ObjectKeyMustPattern.ts'
 import { ObjectKeyPattern } from './ObjectKeyPattern.ts'
 import { ObjectKeyReferencePattern } from './ObjectKeyReferencePattern.ts'
 import { ObjectKeyVariablePattern } from './ObjectKeyVariablePattern.ts'
@@ -20,10 +22,12 @@ import { SlicePattern } from './SlicePattern.ts'
 import { SpecialReferencePattern } from './SpecialReferencePattern.ts'
 import { StringPattern } from './StringPattern.ts'
 import { TerminalPattern } from './TerminalPattern.ts'
+import { TypePattern } from './TypePattern.ts'
 import { ThenPattern } from './ThenPattern.ts'
 import { VariablePattern } from './VariablePattern.ts'
 import { ZeroOrMorePattern } from './ZeroOrMorePattern.ts'
 import { ZeroOrOnePattern } from './ZeroOrOnePattern.ts'
+
 
 export const Lang: Pattern = {
   kind: PatternKind.Rule,
@@ -32,8 +36,10 @@ export const Lang: Pattern = {
     variables: {
       AndPattern,
       AnyPattern,
+      MustPattern,
       NotPattern,
       OkPattern,
+      ObjectKeyMustPattern,
       ObjectKeyPattern,
       ObjectKeyReferencePattern,
       ObjectKeyVariablePattern,
@@ -52,6 +58,7 @@ export const Lang: Pattern = {
       StringPattern,
       TerminalPattern,
       ThenPattern,
+      TypePattern,
       VariablePattern,
       ZeroOrMorePattern,
       ZeroOrOnePattern,

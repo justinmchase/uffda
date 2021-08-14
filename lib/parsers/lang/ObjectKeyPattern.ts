@@ -8,6 +8,7 @@ export const ObjectKeyPattern: Pattern = {
       { kind: PatternKind.Reference, name: 'ObjectKeyVariableWithPattern' },
       { kind: PatternKind.Reference, name: 'ObjectKeyVariablePattern' },
       { kind: PatternKind.Reference, name: 'ObjectKeyWithPattern' },
+      { kind: PatternKind.Reference, name: 'ObjectKeyMustPattern' },
       { kind: PatternKind.Reference, name: 'ObjectKeyReferencePattern' },
     ]
   }

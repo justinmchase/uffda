@@ -2,6 +2,7 @@ import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
 import { ExpressionKind } from '../../runtime/expressions/mod.ts'
 import { LangPatternKind } from './lang.pattern.ts'
 
+// This matches quoted string literals "abc" and turns them into equality matches for that string literal
 export const StringPattern: Pattern = {
   kind: PatternKind.Rule,
   pattern: {
@@ -20,7 +21,7 @@ export const StringPattern: Pattern = {
     expression: {
       kind: ExpressionKind.Native,
       fn: ({ value }) => ({
-        kind: LangPatternKind.StringPattern,
+        kind: LangPatternKind.EqualPattern,
         value
       })
     }

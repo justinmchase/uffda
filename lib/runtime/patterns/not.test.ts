@@ -4,20 +4,20 @@ import { PatternKind } from './pattern.kind.ts'
 tests('patterns.not', () => [
   {
     id: 'NOT00',
-    description: '!ok',
+    description: '^ok',
     pattern: () => ({ kind: PatternKind.Not, pattern: { kind: PatternKind.Ok } }),
     input: [],
     matched: false
   },
   {
-    id: 'NOT00',
-    description: '!fail',
+    id: 'NOT01',
+    description: '^fail',
     pattern: () => ({ kind: PatternKind.Not, pattern: { kind: PatternKind.Fail }}),
     input: [],
   },
   {
-    id: 'NOT00',
-    description: '!!ok',
+    id: 'NOT02',
+    description: '^^ok',
     pattern: () => ({
       kind: PatternKind.Not,
       pattern: {
@@ -28,8 +28,8 @@ tests('patterns.not', () => [
     input: [],
   },
   {
-    id: 'NOT00',
-    description: '!fail consumes no input',
+    id: 'NOT03',
+    description: '^fail',
     pattern: () => ({ kind: PatternKind.Not, pattern: { kind: PatternKind.Fail }}),
     input: 'a',
     done: false,

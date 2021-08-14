@@ -1,6 +1,9 @@
 export enum LangPatternKind {
   AndPattern = "AndPattern",
   AnyPattern = "AnyPattern",
+  BooleanPattern = "BooleanPattern",
+  EqualPattern = "EqualPattern",
+  MustPattern = "MustPattern",
   NotPattern = "NotPattern",
   OkPattern = "OkPattern",
   ObjectPattern = "ObjectPattern",
@@ -25,6 +28,9 @@ export enum LangExpressionKind {
 export type LangPattern
   = IAndPattern
   | IAnyPattern
+  | IBooleanPattern
+  | IEqualPattern
+  | IMustPattern
   | INotPattern
   | IOkPattern
   | IObjectPattern
@@ -52,6 +58,17 @@ export interface IAndPattern {
 export interface IAnyPattern {
   kind: LangPatternKind.AnyPattern
 }
+export interface IBooleanPattern {
+  kind: LangPatternKind.BooleanPattern
+}
+export interface IEqualPattern {
+  kind: LangPatternKind.EqualPattern
+  value: unknown
+}
+export interface IMustPattern {
+  kind: LangPatternKind.MustPattern
+  pattern: LangPattern
+}
 export interface INotPattern {
   kind: LangPatternKind.NotPattern
   pattern: LangPattern
@@ -69,6 +86,7 @@ export interface IObjectPattern {
 export interface IObjectKeyPattern {
   kind: LangPatternKind.ObjectKeyPattern
   name: string
+  must?: boolean
   alias?: string
   pattern?: LangPattern
 }

@@ -15,6 +15,28 @@ export const ObjectKeyPattern: Pattern = {
           name: 'name',
           pattern: { kind: PatternKind.String }
         },
+        alias: {
+          kind: PatternKind.Variable,
+          name: 'alias',
+          pattern: {
+            kind: PatternKind.Or,
+            patterns: [
+              { kind: PatternKind.String },
+              { kind: PatternKind.Ok },
+            ]
+          }
+        },
+        must: {
+          kind: PatternKind.Variable,
+          name: 'must',
+          pattern: {
+            kind: PatternKind.Or,
+            patterns: [
+              { kind: PatternKind.Boolean },
+              { kind: PatternKind.Ok },
+            ]
+          }
+        },
         pattern: {
           kind: PatternKind.Variable,
           name: 'pattern',
@@ -30,7 +52,21 @@ export const ObjectKeyPattern: Pattern = {
     },
     expression: {
       kind: ExpressionKind.Native,
-      fn: ({ name, pattern = { kind: PatternKind.Ok } }) => ({ [name]: pattern })
+      fn: ({ _, name, alias, must, pattern = { kind: PatternKind.Any } }) => {
+        console.log('ObjectPatternProjection:')
+        console.log(Deno.inspect(_))
+        console.log(Deno.inspect({ name, alias, pattern }))
+        
+        pattern = must
+          ? { kind: PatternKind.Must, pattern }
+          : pattern
+
+        return {
+          [name]: alias
+            ? { kind: PatternKind.Variable, name: alias, pattern }
+            : pattern
+        }
+      }
     }
   }
 }

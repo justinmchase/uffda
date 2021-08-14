@@ -9,7 +9,6 @@ export function projection(args: IProjectionPattern, scope: Scope) {
   const m = match(pattern, scope)
   if (!m.matched)
     return m
-
   const value = exec(expression, m)
   return Match.Ok(scope, m.end, value)
 }

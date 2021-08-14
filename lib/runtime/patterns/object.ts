@@ -11,14 +11,15 @@ export function object(args: IObjectPattern, scope: Scope) {
     if (next.value && typeof next.value === 'object') {
       let end = scope
       const errors: MatchError[] = []
+      const objValue = next.value as Record<PropertyKey, unknown>
       for (const [key, pattern] of Object.entries(keys) as [string, Pattern][]) {
-        if (!Object.getOwnPropertyDescriptor(next.value, key)) {
-          // the next value does not contain the given key
-          return Match.Fail(end)
-        }
 
-        const objValue = next.value as Record<PropertyKey, unknown>
-        const value = [objValue[key]]
+        // The pattern will define whether or not its an error for this field to exist or not
+
+        const keyValue = objValue[key]
+        const value = [keyValue]
+
+        // console.log(Deno.inspect(value, { colors: true }))
         const propertyStream = new MetaStream(
           next.path.add(key),
           value[Symbol.iterator]()

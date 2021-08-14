@@ -40,6 +40,7 @@ tests('parsers.lang.object', () => [
           kind: LangPatternKind.ObjectKeyPattern,
           alias: 'x',
           name: 'y',
+          must: false,
         }
       ]
     }
@@ -109,5 +110,59 @@ tests('parsers.lang.object', () => [
         }
       ]
     }
-  }
+  },
+  {
+    id: 'OBJECT06',
+    description: '{ a! }',
+    pattern: () => TestLang,
+    input: '{ a! }',
+    value: {
+      kind: LangPatternKind.ObjectPattern,
+      keys: [
+        {
+          kind: LangPatternKind.ObjectKeyPattern,
+          name: 'a',
+          must: true,
+        }
+      ]
+    }
+  },
+  {
+    id: 'OBJECT02',
+    description: '{ x:y! }',
+    pattern: () => TestLang,
+    input: '{ x:y! }',
+    value: {
+      kind: LangPatternKind.ObjectPattern,
+      keys: [
+        {
+          kind: LangPatternKind.ObjectKeyPattern,
+          alias: 'x',
+          name: 'y',
+          must: true,
+        }
+      ]
+    }
+  },
+  {
+    id: 'OBJECT06',
+    description: '{ a = string }',
+    pattern: () => TestLang,
+    input: '{ a = string! }',
+    value: {
+      kind: LangPatternKind.ObjectPattern,
+      keys: [
+        {
+          kind: LangPatternKind.ObjectKeyPattern,
+          name: 'a',
+          pattern: {
+            kind: LangPatternKind.MustPattern,
+            pattern: {
+              kind: LangPatternKind.StringPattern
+            }
+          }
+        }
+      ]
+    }
+  },
 ])

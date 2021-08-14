@@ -12,7 +12,7 @@ export const ZeroOrOnePattern: Pattern = {
         pattern: {
           kind: PatternKind.Variable,
           name: 'pattern',
-          pattern: { kind: PatternKind.Reference, name: 'TerminalPattern' },
+          pattern: { kind: PatternKind.Reference, name: 'PatternExpression' },
         }
       }
     },

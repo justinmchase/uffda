@@ -8,19 +8,13 @@ export const StringPattern: Pattern = {
     pattern: {
       kind: PatternKind.Object,
       keys: {
-        kind: { kind: PatternKind.Equal, value: 'StringPattern' },
-        value: {
-          kind: PatternKind.Variable,
-          name: 'value',
-          pattern: { kind: PatternKind.String }
-        }
+        kind: { kind: PatternKind.Equal, value: 'StringPattern' }
       }
     },
     expression: {
       kind: ExpressionKind.Native,
-      fn: ({ value, _ }) => ({
-        kind: PatternKind.Equal,
-        value
+      fn: () => ({
+        kind: PatternKind.String
       })
     }
   }

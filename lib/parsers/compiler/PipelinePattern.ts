@@ -7,36 +7,30 @@ export const PipelinePattern: Pattern = {
     PipelinePattern: {
       kind: PatternKind.Rule,
       pattern: {
-        kind: PatternKind.Or,
-        patterns: [
-          {
-            kind: PatternKind.Projection,
-            pattern: {
-              kind: PatternKind.Object,
-              keys: {
-                kind: { kind: PatternKind.Equal, value: 'PipelinePattern' },
-                left: {
-                  kind: PatternKind.Variable,
-                  name: 'left',
-                  pattern: { kind: PatternKind.Reference, name: 'PipelinePattern' }
-                },
-                right: {
-                  kind: PatternKind.Variable,
-                  name: 'right',
-                  pattern: { kind: PatternKind.Reference, name: 'OrPattern' }
-                }
-              }
+        kind: PatternKind.Projection,
+        pattern: {
+          kind: PatternKind.Object,
+          keys: {
+            kind: { kind: PatternKind.Equal, value: 'PipelinePattern' },
+            left: {
+              kind: PatternKind.Variable,
+              name: 'left',
+              pattern: { kind: PatternKind.Reference, name: 'PatternExpression' }
             },
-            expression: {
-              kind: ExpressionKind.Native,
-              fn: ({ left, right }) => ({
-                kind: PatternKind.Pipeline,
-                steps: [left, right]
-              })
+            right: {
+              kind: PatternKind.Variable,
+              name: 'right',
+              pattern: { kind: PatternKind.Reference, name: 'PatternExpression' }
             }
-          },
-          { kind: PatternKind.Reference, name: 'OrPattern' }
-        ]
+          }
+        },
+        expression: {
+          kind: ExpressionKind.Native,
+          fn: ({ left, right }) => ({
+            kind: PatternKind.Pipeline,
+            steps: [left, right]
+          })
+        }
       }
     }
   }

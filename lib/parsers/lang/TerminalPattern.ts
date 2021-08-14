@@ -7,6 +7,7 @@ export const TerminalPattern: Pattern = {
     patterns: [
       { kind: PatternKind.Reference, name: 'AnyPattern' },
       { kind: PatternKind.Reference, name: 'OkPattern' },
+      { kind: PatternKind.Reference, name: 'TypePattern' },
       { kind: PatternKind.Reference, name: 'ObjectPattern' },
       { kind: PatternKind.Reference, name: 'SpecialReferencePattern' },
       { kind: PatternKind.Reference, name: 'ReferencePattern' },

@@ -37,15 +37,40 @@ export const ObjectKeyVariablePattern: Pattern = {
               pattern: { kind: PatternKind.String }
             }
           }
+        },
+        {
+          kind: PatternKind.Variable,
+          name: 'must',
+          pattern: {
+            // must:'!'? -> !!_.length
+            kind: PatternKind.Projection,
+            pattern: {
+              kind: PatternKind.Slice,
+              min: 0,
+              max: 1,
+              pattern: {
+                kind: PatternKind.Object,
+                keys: {
+                  type: { kind: PatternKind.Equal, value: 'Token' },
+                  value: { kind: PatternKind.Equal, value: '!' },
+                }
+              }
+            },
+            expression: {
+              kind: ExpressionKind.Native,
+              fn: ({ _ }) => !!_.length
+            }
+          }
         }
       ]
     },
     expression: {
       kind: ExpressionKind.Native,
-      fn: ({ alias, name }) => ({
+      fn: ({ alias, name, must }) => ({
         kind: LangPatternKind.ObjectKeyPattern,
         alias,
         name,
+        must,
       })
     }
   }

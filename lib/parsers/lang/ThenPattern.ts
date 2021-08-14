@@ -23,7 +23,7 @@ export const ThenPattern: Pattern = {
             {
               kind: PatternKind.Variable,
               name: 'right',
-              pattern: { kind: PatternKind.Reference, name: 'NotPattern' }
+              pattern: { kind: PatternKind.Reference, name: 'MustPattern' }
             },
           ]
         },
@@ -36,7 +36,7 @@ export const ThenPattern: Pattern = {
           })
         }
       },
-      { kind: PatternKind.Reference, name: 'NotPattern' }
+      { kind: PatternKind.Reference, name: 'MustPattern' }
     ]
   }
 }

@@ -14,5 +14,90 @@ tests('parsers.compiler.objectpattern', () => [
         x: { kind: PatternKind.Ok }
       }
     }
+  },
+  {
+    id: 'OBJECTPATTERN01',
+    description: 'parses ObjectPattern into object pattern',
+    pattern: () => Meta,
+    input: '{ x }',
+    value: {
+      kind: PatternKind.Object,
+      keys: {
+        x: { kind: PatternKind.Any }
+      }
+    }
+  },
+  {
+    id: 'OBJECTPATTERN02',
+    description: '{ x:y }',
+    pattern: () => Meta,
+    input: '{ x:y }',
+    value: {
+      kind: PatternKind.Object,
+      keys: {
+        y: {
+          kind: PatternKind.Variable,
+          name: 'x',
+          pattern: {
+            kind: PatternKind.Any
+          }
+        }
+      }
+    }
+  },
+  {
+    id: 'OBJECTPATTERN03',
+    description: '{ x! }',
+    pattern: () => Meta,
+    input: '{ x! }',
+    value: {
+      kind: PatternKind.Object,
+      keys: {
+        x: {
+          kind: PatternKind.Must,
+          pattern: {
+            kind: PatternKind.Any
+          }
+        }
+      }
+    }
+  },
+  {
+    id: 'OBJECTPATTERN04',
+    description: '{ x:y! }',
+    pattern: () => Meta,
+    input: '{ x:y! }',
+    value: {
+      kind: PatternKind.Object,
+      keys: {
+        y: {
+          kind: PatternKind.Variable,
+          name: 'x',
+          pattern: {
+            kind: PatternKind.Must,
+            pattern: {
+              kind: PatternKind.Any
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    id: 'OBJECTPATTERN05',
+    description: '{ x = string! }',
+    pattern: () => Meta,
+    input: '{ x = string! }',
+    value: {
+      kind: PatternKind.Object,
+      keys: {
+        x: {
+          kind: PatternKind.Must,
+          pattern: {
+            kind: PatternKind.String
+          }
+        }
+      }
+    }
   }
 ])

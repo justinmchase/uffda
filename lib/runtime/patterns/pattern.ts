@@ -6,10 +6,12 @@ export type Pattern
   | IAndPattern
   | IArrayPattern
   | IBlockPattern
+  | IBooleanPattern
   | IEqualPattern
   | IErrorUntilPattern
   | IFailPattern
   | IIncludesPattern
+  | IMustPattern
   | INotPattern
   | INumberPattern
   | IObjectPattern
@@ -40,6 +42,9 @@ export interface IBlockPattern {
   kind: PatternKind.Block,
   variables: Record<string, Pattern>
 }
+export interface IBooleanPattern {
+  kind: PatternKind.Boolean
+}
 export interface IEqualPattern {
   kind: PatternKind.Equal,
   value: unknown
@@ -54,6 +59,10 @@ export interface IFailPattern {
 export interface IIncludesPattern {
   kind: PatternKind.Includes
   values: unknown[]
+}
+export interface IMustPattern {
+  kind: PatternKind.Must
+  pattern: Pattern
 }
 export interface INotPattern {
   kind: PatternKind.Not

@@ -1,6 +1,7 @@
 import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
 import { ExpressionKind } from '../../runtime/expressions/mod.ts'
 import { AnyPattern } from './AnyPattern.ts'
+import { MustPattern } from './MustPattern.ts'
 import { ObjectPattern } from './ObjectPattern.ts'
 import { OkPattern } from './OkPattern.ts'
 import { OneOrMorePattern } from './OneOrMorePattern.ts'
@@ -10,10 +11,8 @@ import { PatternExpression } from './PatternExpression.ts'
 import { PipelinePattern } from './PipelinePattern.ts'
 import { ProjectionPattern } from './ProjectionPattern.ts'
 import { ReferencePattern } from './ReferencePattern.ts'
-import { SlicePattern } from './SlicePattern.ts'
 import { SpecialReferencePattern } from './SpecialReferencePattern.ts'
 import { StringPattern } from './StringPattern.ts'
-import { TerminalPattern } from './TerminalPattern.ts'
 import { ThenPattern } from './ThenPattern.ts'
 import { VariablePattern } from './VariablePattern.ts'
 import { ZeroOrMorePattern } from './ZeroOrMorePattern.ts'
@@ -31,15 +30,14 @@ export const Compiler: Pattern = {
       OkPattern,
       OneOrMorePattern,
       OrPattern,
+      MustPattern,
       PatternDeclaration,
       PatternExpression,
       PipelinePattern,
       ProjectionPattern,
       ReferencePattern,
-      SlicePattern,
       SpecialReferencePattern,
       StringPattern,
-      TerminalPattern,
       ThenPattern,
       VariablePattern,
       ZeroOrMorePattern,
