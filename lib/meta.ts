@@ -22,6 +22,8 @@ export function meta<T>(template: TemplateStringsArray, ...args: T[]) {
   // console.log(metaCode)
 
   const { matched, done, value: ast } = match(Meta, scope)
+
+  console.log(Deno.inspect(ast, { colors: true }))
   assert(matched)
   assert(done)
   assert(ast)

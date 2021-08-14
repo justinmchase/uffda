@@ -2,6 +2,16 @@ import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
 import { ExpressionKind } from '../../runtime/expressions/mod.ts'
 import { LangPatternKind } from './lang.pattern.ts'
 
+// PatternDeclaration
+//   = { kind = 'Identifier', name:value = string }
+//     { kind = 'Token',      value = '=' }
+//     pattern:PatternExpression
+//     { kind = 'Token',      value = ';' }
+//   -> {
+//     kind: 'PatternDeclaration',
+//     name,
+//     pattern
+//   }
 export const PatternDeclaration: Pattern = {
   kind: PatternKind.Rule,
   pattern: {

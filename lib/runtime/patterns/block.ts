@@ -12,9 +12,6 @@ export function block(args: IBlockPattern, scope: Scope): Match {
       .push()
 
     const result = match(pattern, subScope)
-    if (!result.matched)
-      return result
-
     return result.popBlock()
   } else {
     return Match.Ok(scope, scope, undefined)

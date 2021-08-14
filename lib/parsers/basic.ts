@@ -6,7 +6,7 @@ export const Basic: Pattern = {
   kind: PatternKind.Block,
   variables: {
     Tokenizer,
-    Exclude: Exclude({ types: ['Whitespace', 'Newline' ] }),
+    Exclude: Exclude({ types: ['Whitespace', 'NewLine' ] }),
     Main: {
       kind: PatternKind.Pipeline,
       steps: [

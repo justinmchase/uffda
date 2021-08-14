@@ -3,8 +3,8 @@ import { ExpressionKind } from '../../runtime/expressions/mod.ts'
 import { LangPatternKind } from './lang.pattern.ts'
 
 // ThenPattern
-//   = left:ThenPattern right:VariablePattern -> ({ type: 'ThenPattern', left right })
-//   | VariablePattern
+//   = left:ThenPattern right:NotPattern -> ({ type: 'ThenPattern', left right })
+//   | NotPattern
 export const ThenPattern: Pattern = {
   kind: PatternKind.Rule,
   pattern: {
@@ -23,7 +23,7 @@ export const ThenPattern: Pattern = {
             {
               kind: PatternKind.Variable,
               name: 'right',
-              pattern: { kind: PatternKind.Reference, name: 'VariablePattern' }
+              pattern: { kind: PatternKind.Reference, name: 'NotPattern' }
             },
           ]
         },
@@ -36,7 +36,7 @@ export const ThenPattern: Pattern = {
           })
         }
       },
-      { kind: PatternKind.Reference, name: 'VariablePattern' }
+      { kind: PatternKind.Reference, name: 'NotPattern' }
     ]
   }
 }

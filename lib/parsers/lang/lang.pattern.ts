@@ -1,5 +1,7 @@
 export enum LangPatternKind {
+  AndPattern = "AndPattern",
   AnyPattern = "AnyPattern",
+  NotPattern = "NotPattern",
   OkPattern = "OkPattern",
   ObjectPattern = "ObjectPattern",
   ObjectKeyPattern = "ObjectKeyPattern",
@@ -21,7 +23,9 @@ export enum LangExpressionKind {
 }
 
 export type LangPattern
-  = IAnyPattern
+  = IAndPattern
+  | IAnyPattern
+  | INotPattern
   | IOkPattern
   | IObjectPattern
   | IOneOrMorePattern
@@ -40,9 +44,17 @@ export interface IPatternDeclaration {
   kind: LangPatternKind.PatternDeclaration,
   pattern: LangPattern
 }
-
+export interface IAndPattern {
+  kind: LangPatternKind.AndPattern
+  left: LangPattern
+  right: LangPattern
+}
 export interface IAnyPattern {
   kind: LangPatternKind.AnyPattern
+}
+export interface INotPattern {
+  kind: LangPatternKind.NotPattern
+  pattern: LangPattern
 }
 
 export interface IOkPattern {

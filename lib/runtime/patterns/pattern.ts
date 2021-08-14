@@ -7,6 +7,7 @@ export type Pattern
   | IArrayPattern
   | IBlockPattern
   | IEqualPattern
+  | IErrorUntilPattern
   | IFailPattern
   | IIncludesPattern
   | INotPattern
@@ -42,6 +43,10 @@ export interface IBlockPattern {
 export interface IEqualPattern {
   kind: PatternKind.Equal,
   value: unknown
+}
+export interface IErrorUntilPattern {
+  kind: PatternKind.ErrorUntil,
+  pattern: Pattern
 }
 export interface IFailPattern {
   kind: PatternKind.Fail

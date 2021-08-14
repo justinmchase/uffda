@@ -1,4 +1,5 @@
 import { Match } from './match.ts'
+import { Path } from './path.ts'
 // import { Pattern } from './patterns/mod.ts'
 import { MetaStream } from './stream.ts'
 
@@ -6,6 +7,13 @@ interface IMemo {
   match: Match;
   pattern: unknown; // Pattern;
   references: IMemo[];
+}
+
+export class Reference {
+  constructor(
+    public readonly name: string,
+    public readonly path: Path,
+  ) {}
 }
 
 export class Scope {
@@ -18,7 +26,8 @@ export class Scope {
     private readonly _special: Record<string, unknown> = {},
     public readonly stream: MetaStream = MetaStream.Default(),
     public readonly memos: Record<string, IMemo> = {},
-    public readonly ruleStack: string[] = []
+    public readonly ruleStack: string[] = [],
+    public readonly refStack: Reference[] = [],
   ) {
   }
 
@@ -48,6 +57,7 @@ export class Scope {
       stream,
       this.memos,
       this.ruleStack,
+      this.refStack,
     )
   }
 
@@ -59,6 +69,7 @@ export class Scope {
       this.stream,
       this.memos,
       this.ruleStack,
+      this.refStack,
     )
   }
 
@@ -69,7 +80,8 @@ export class Scope {
       this._special,
       this.stream,
       this.memos,
-      this.ruleStack
+      this.ruleStack,
+      this.refStack,
     )
   }
   public setSpeical(variables: Record<string, unknown>) {
@@ -79,7 +91,8 @@ export class Scope {
       variables,
       this.stream,
       this.memos,
-      this.ruleStack
+      this.ruleStack,
+      this.refStack,
     )
   }
 
@@ -98,6 +111,7 @@ export class Scope {
         } as IMemo
       }),
       this.ruleStack,
+      this.refStack,
     )
   }
 
@@ -110,6 +124,19 @@ export class Scope {
       this.stream,
       this.memos,
       [...this.ruleStack, ruleName],
+      this.refStack,
+    )
+  }
+  
+  public pushRef(name: string) {
+    return new Scope(
+      this._parent,
+      {},
+      this._special,
+      this.stream,
+      this.memos,
+      this.ruleStack,
+      [...this.refStack, new Reference(name, this.stream.path)],
     )
   }
 
@@ -121,6 +148,19 @@ export class Scope {
       this.stream,
       this.memos,
       this.ruleStack.slice(-1),
+      this.refStack,
+    )
+  }
+
+  public popRef(scope: Scope) {
+    return new Scope(
+      this._parent,
+      scope._variables,
+      this._special,
+      this.stream,
+      this.memos,
+      this.ruleStack,
+      this.refStack.slice(-1),
     )
   }
 
@@ -131,7 +171,8 @@ export class Scope {
       this._special,
       this.stream,
       this.memos,
-      this.ruleStack
+      this.ruleStack,
+      this.refStack,
     )
   }
 
@@ -142,7 +183,8 @@ export class Scope {
       this._special,
       this.stream,
       this.memos,
-      this.ruleStack
+      this.ruleStack,
+      this.refStack,
     )
   }
 }

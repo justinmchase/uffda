@@ -20,7 +20,7 @@ export function array(args: IArrayPattern, scope: Scope) {
         return Match.Fail(scope)
 
       if (!m.end.stream.done)
-        return Match.Incomplete(m.start, m.end, m.value)
+        return Match.Incomplete(m.start, m.end, m.value, m.errors)
 
       return m
     }

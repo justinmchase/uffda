@@ -2,14 +2,7 @@ import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
 import { ExpressionKind } from '../../runtime/expressions/mod.ts'
 import { LangPatternKind } from './lang.pattern.ts'
 
-// PipelinePattern
-//   = l:PipelinePattern { type: 'Token', value: '>' } r:OrPattern
-//   | OrPattern
-//
-// e.g. 
-// x > y > z
-//
-export const PipelinePattern: Pattern = {
+export const AndPattern: Pattern = {
   kind: PatternKind.Rule,
   pattern: {
     kind: PatternKind.Or,
@@ -21,33 +14,33 @@ export const PipelinePattern: Pattern = {
           patterns: [
             {
               kind: PatternKind.Variable,
-              name: 'left',
-              pattern: { kind: PatternKind.Reference, name: 'PipelinePattern' }
+              name: 'l',
+              pattern: { kind: PatternKind.Reference, name: 'AndPattern' }
             },
             {
               kind: PatternKind.Object,
               keys: {
                 type: { kind: PatternKind.Equal, value: 'Token' },
-                value: { kind: PatternKind.Equal, value: '>' },
+                value: { kind: PatternKind.Equal, value: '&' },
               }
             },
             {
               kind: PatternKind.Variable,
-              name: 'right',
-              pattern: { kind: PatternKind.Reference, name: 'AndPattern' },
+              name: 'r',
+              pattern: { kind: PatternKind.Reference, name: 'OrPattern' }
             }
           ]
         },
         expression: {
           kind: ExpressionKind.Native,
-          fn: ({ left, right }) => ({
-            kind: LangPatternKind.PipelinePattern,
-            left,
-            right,
-          })
+          fn: ({ l, r }) => ({
+            kind: LangPatternKind.AndPattern,
+            left: l,
+            right: r
+          }),
         }
       },
-      { kind: PatternKind.Reference, name: 'AndPattern' }
+      { kind: PatternKind.Reference, name: 'OrPattern' }
     ]
   }
 }

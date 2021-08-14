@@ -1,5 +1,4 @@
 import { Match } from '../../match.ts'
-import { Path } from '../../path.ts'
 import { Scope } from '../../scope.ts'
 import { MetaStream } from '../../stream.ts'
 import { match } from '../match.ts'
@@ -11,16 +10,16 @@ export function pipeline(args: IPipelinePattern, scope: Scope) {
   let items = scope.stream.items
   for (let i = 0; i < steps.length; i++) {
     const pattern = steps[i]
-    const nextStream = new MetaStream(Path.Default(), items)
+    const nextStream = new MetaStream(scope.stream.path.add(`(${i})`).add(-1), items)
     const nextScope = scope.withStream(nextStream)
     result = match(pattern, nextScope)
+    // console.log(`pipeline: ${Deno.inspect(result.value, { colors: true })}`)
+
     if (!result.matched)
       return result
 
-    if (!result.end.stream.next().done)
-      return Match.Incomplete(result.start, result.end, result.value)
-
-    // console.log(Deno.inspect(result.value, { colors: true }))
+    if (!result.end.stream.next().done || result.errors.length)
+      return Match.Incomplete(scope, result.end, result.value, result.errors)
 
     const iterable = result.value as Iterable<unknown>
     items = iterable?.[Symbol.iterator]

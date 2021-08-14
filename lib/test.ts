@@ -6,6 +6,7 @@ interface IPatternTest {
   id: string
   description: string
   pattern: () => Pattern
+  errors?: { start: string, end: string }[]
 }
 
 interface IPatternThrows {
@@ -29,7 +30,7 @@ type PatternTest = IPatternTest & (
 export function tests(testGroupName: string, group: () => PatternTest[]) {
   const tests = group()
   for (const test of tests) {
-    const { id, description, pattern } = test
+    const { id, description, pattern, errors = [] } = test
     Deno.test({
       name: `${brightCyan(testGroupName)} [${brightMagenta(id)}] (${brightBlack(description)})`,
       fn: () => {
@@ -40,6 +41,10 @@ export function tests(testGroupName: string, group: () => PatternTest[]) {
           const p = pattern()
           const s = Scope.From(input)
           const m = match(p, s)
+          const e = m.errors.map(e => ({
+            start: e.start.stream.path.toString(),
+            end: e.end.stream.path.toString(),
+          }))
           assert(equal(m.value, value),
             `Pattern matched value did not equal expected value\n` +
             `expected value: ${Deno.inspect(value, { colors: true, depth: 10 })}\n` +
@@ -47,6 +52,11 @@ export function tests(testGroupName: string, group: () => PatternTest[]) {
           )
           assert(equal(m.matched, matched), `Pattern was ${matched ? '' : 'not '}expected to match`)
           assert(equal(m.done, done), `Pattern was ${done ? '' : 'not '}expected to be done`)
+          assert(equal(e, errors),
+            `Pattern had unexpected errors\n` +
+            `expected errors: ${Deno.inspect(errors, { colors: true, depth: 10 })}\n` +
+            `  actual errors: ${Deno.inspect(e, { colors: true, depth: 10 })}\n`
+          )
         }
       }
     })

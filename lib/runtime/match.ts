@@ -7,6 +7,7 @@ import {
   any,
   array,
   block,
+  error,
   equal,
   fail,
   includes,
@@ -37,6 +38,8 @@ export function match(pattern: Pattern, scope: Scope): Match {
       return array(pattern, scope)
     case PatternKind.Block:
       return block(pattern, scope)
+    case PatternKind.ErrorUntil:
+      return error(pattern, scope)
     case PatternKind.Equal:
       return equal(pattern, scope)
     case PatternKind.Fail:

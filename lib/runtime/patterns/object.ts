@@ -1,4 +1,4 @@
-import { Match } from '../../match.ts'
+import { Match, MatchError } from '../../match.ts'
 import { Scope } from '../../scope.ts'
 import { MetaStream } from '../../stream.ts'
 import { match } from '../match.ts'
@@ -10,6 +10,7 @@ export function object(args: IObjectPattern, scope: Scope) {
     const next = scope.stream.next()
     if (next.value && typeof next.value === 'object') {
       let end = scope
+      const errors: MatchError[] = []
       for (const [key, pattern] of Object.entries(keys) as [string, Pattern][]) {
         if (!Object.getOwnPropertyDescriptor(next.value, key)) {
           // the next value does not contain the given key
@@ -24,16 +25,17 @@ export function object(args: IObjectPattern, scope: Scope) {
         )
         const propertyScope = end.withStream(propertyStream)
         const m = match(pattern, propertyScope)
+        errors.push(...m.errors)
 
         if (!m.matched)
           return m
 
         if (!m.end.stream.next().done)
-          return Match.Incomplete(m.start, m.end, m.value)
+          return Match.Incomplete(m.start, m.end, m.value, errors)
 
         end = end.addVariables(m.end.variables)
       }
-      return Match.Ok(scope, end.withStream(next), next.value)
+      return Match.Ok(scope, end.withStream(next), next.value, errors)
     }
   }
   return Match.Fail(scope)

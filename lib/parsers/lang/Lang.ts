@@ -1,5 +1,7 @@
 import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { AndPattern } from './AndPattern.ts'
 import { AnyPattern } from './AnyPattern.ts'
+import { NotPattern } from './NotPattern.ts'
 import { OkPattern } from './OkPattern.ts'
 import { PatternDeclaration } from './PatternDeclaration.ts'
 import { ObjectKeyPattern } from './ObjectKeyPattern.ts'
@@ -28,7 +30,9 @@ export const Lang: Pattern = {
   pattern: {
     kind: PatternKind.Block,
     variables: {
+      AndPattern,
       AnyPattern,
+      NotPattern,
       OkPattern,
       ObjectKeyPattern,
       ObjectKeyReferencePattern,
@@ -62,7 +66,17 @@ export const Lang: Pattern = {
               name: 'PatternDeclaration'
             }
           },
-          { kind: PatternKind.Reference, name: 'PatternExpression' }
+          { kind: PatternKind.Reference, name: 'PatternExpression' },
+          {
+            kind: PatternKind.ErrorUntil,
+            pattern: {
+              kind: PatternKind.Object,
+              keys: {
+                kind: { kind: PatternKind.Equal, value: 'Token' },
+                value: { kind: PatternKind.Equal, value: ';' },
+              }
+            }
+          }
         ]
       }
     }
