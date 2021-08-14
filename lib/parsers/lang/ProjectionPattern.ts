@@ -1,6 +1,6 @@
-import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
-import { ExpressionKind } from '../../runtime/expressions/mod.ts'
-import { LangPatternKind } from './lang.pattern.ts'
+import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
+import { ExpressionKind } from "../../runtime/expressions/mod.ts";
+import { LangPatternKind } from "./lang.pattern.ts";
 
 export const ProjectionPattern: Pattern = {
   kind: PatternKind.Rule,
@@ -14,40 +14,43 @@ export const ProjectionPattern: Pattern = {
           patterns: [
             {
               kind: PatternKind.Variable,
-              name: 'pattern',
-              pattern: { kind: PatternKind.Reference, name: 'ThenPattern' },
+              name: "pattern",
+              pattern: { kind: PatternKind.Reference, name: "ThenPattern" },
             },
             {
               kind: PatternKind.Object,
               keys: {
-                type: { kind: PatternKind.Equal, value: 'Token' },
-                value: { kind: PatternKind.Equal, value: '-' },
-              }
+                type: { kind: PatternKind.Equal, value: "Token" },
+                value: { kind: PatternKind.Equal, value: "-" },
+              },
             },
             {
               kind: PatternKind.Object,
               keys: {
-                type: { kind: PatternKind.Equal, value: 'Token' },
-                value: { kind: PatternKind.Equal, value: '>' },
-              }
+                type: { kind: PatternKind.Equal, value: "Token" },
+                value: { kind: PatternKind.Equal, value: ">" },
+              },
             },
             {
               kind: PatternKind.Variable,
-              name: 'expression',
-              pattern: { kind: PatternKind.Reference, name: 'SpecialReferencePattern' },
-            }
-          ]
+              name: "expression",
+              pattern: {
+                kind: PatternKind.Reference,
+                name: "SpecialReferencePattern",
+              },
+            },
+          ],
         },
         expression: {
           kind: ExpressionKind.Native,
-          fn:({ pattern, expression }) => ({
+          fn: ({ pattern, expression }) => ({
             kind: LangPatternKind.ProjectionPattern,
             pattern,
             expression,
-          })
-        }
+          }),
+        },
       },
-      { kind: PatternKind.Reference, name: 'ThenPattern' },
-    ]
-  }
-}
+      { kind: PatternKind.Reference, name: "ThenPattern" },
+    ],
+  },
+};

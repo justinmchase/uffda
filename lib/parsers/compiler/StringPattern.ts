@@ -1,5 +1,5 @@
-import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
-import { ExpressionKind } from '../../runtime/expressions/mod.ts'
+import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
+import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 
 export const StringPattern: Pattern = {
   kind: PatternKind.Rule,
@@ -8,14 +8,14 @@ export const StringPattern: Pattern = {
     pattern: {
       kind: PatternKind.Object,
       keys: {
-        kind: { kind: PatternKind.Equal, value: 'StringPattern' }
-      }
+        kind: { kind: PatternKind.Equal, value: "StringPattern" },
+      },
     },
     expression: {
       kind: ExpressionKind.Native,
       fn: () => ({
-        kind: PatternKind.String
-      })
-    }
-  }
-}
+        kind: PatternKind.String,
+      }),
+    },
+  },
+};

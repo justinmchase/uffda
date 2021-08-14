@@ -1,4 +1,4 @@
-import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
+import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
 
 export const PatternExpression: Pattern = {
   kind: PatternKind.Rule,
@@ -7,64 +7,64 @@ export const PatternExpression: Pattern = {
     patterns: [
       {
         kind: PatternKind.Reference,
-        name: 'AnyPattern'
+        name: "AnyPattern",
       },
       {
         kind: PatternKind.Reference,
-        name: 'MustPattern'
+        name: "MustPattern",
       },
       {
         kind: PatternKind.Reference,
-        name: 'ObjectPattern'
+        name: "ObjectPattern",
       },
       {
         kind: PatternKind.Reference,
-        name: 'OkPattern'
+        name: "OkPattern",
       },
       {
         kind: PatternKind.Reference,
-        name: 'OneOrMorePattern'
+        name: "OneOrMorePattern",
       },
       {
         kind: PatternKind.Reference,
-        name: 'OrPattern'
+        name: "OrPattern",
       },
       {
         kind: PatternKind.Reference,
-        name: 'PipelinePattern'
+        name: "PipelinePattern",
       },
       {
         kind: PatternKind.Reference,
-        name: 'ProjectionPattern'
+        name: "ProjectionPattern",
       },
       {
         kind: PatternKind.Reference,
-        name: 'ReferencePattern'
+        name: "ReferencePattern",
       },
       {
         kind: PatternKind.Reference,
-        name: 'SpecialReferencePattern'
+        name: "SpecialReferencePattern",
       },
       {
         kind: PatternKind.Reference,
-        name: 'StringPattern'
+        name: "StringPattern",
       },
       {
         kind: PatternKind.Reference,
-        name: 'ThenPattern'
+        name: "ThenPattern",
       },
       {
         kind: PatternKind.Reference,
-        name: 'VariablePattern'
+        name: "VariablePattern",
       },
       {
         kind: PatternKind.Reference,
-        name: 'ZeroOrMorePattern'
+        name: "ZeroOrMorePattern",
       },
       {
         kind: PatternKind.Reference,
-        name: 'ZeroOrOnePattern'
+        name: "ZeroOrOnePattern",
       },
-    ]
-  }
-}
+    ],
+  },
+};

@@ -1,5 +1,5 @@
-import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
-import { ExpressionKind } from '../../runtime/expressions/mod.ts'
+import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
+import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 
 export const ProjectionPattern: Pattern = {
   kind: PatternKind.Rule,
@@ -8,26 +8,29 @@ export const ProjectionPattern: Pattern = {
     pattern: {
       kind: PatternKind.Object,
       keys: {
-        kind: { kind: PatternKind.Equal, value: 'ProjectionPattern' },
+        kind: { kind: PatternKind.Equal, value: "ProjectionPattern" },
         pattern: {
           kind: PatternKind.Variable,
-          name: 'pattern',
-          pattern: { kind: PatternKind.Reference, name: 'PatternExpression' }
+          name: "pattern",
+          pattern: { kind: PatternKind.Reference, name: "PatternExpression" },
         },
         expression: {
           kind: PatternKind.Variable,
-          name: 'expression',
-          pattern: { kind: PatternKind.Reference, name: 'SpecialReferencePattern' }
-        }
-      }
+          name: "expression",
+          pattern: {
+            kind: PatternKind.Reference,
+            name: "SpecialReferencePattern",
+          },
+        },
+      },
     },
     expression: {
       kind: ExpressionKind.Native,
-      fn:({ pattern, expression }) => ({
+      fn: ({ pattern, expression }) => ({
         kind: PatternKind.Projection,
-        pattern, 
-        expression
-      })
-    }
-  }
-}
+        pattern,
+        expression,
+      }),
+    },
+  },
+};

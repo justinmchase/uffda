@@ -1,5 +1,5 @@
-import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
-import { ExpressionKind } from '../../runtime/expressions/mod.ts'
+import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
+import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 
 export const ZeroOrOnePattern: Pattern = {
   kind: PatternKind.Rule,
@@ -8,13 +8,13 @@ export const ZeroOrOnePattern: Pattern = {
     pattern: {
       kind: PatternKind.Object,
       keys: {
-        kind: { kind: PatternKind.Equal, value: 'ZeroOrOnePattern' },
+        kind: { kind: PatternKind.Equal, value: "ZeroOrOnePattern" },
         pattern: {
           kind: PatternKind.Variable,
-          name: 'pattern',
-          pattern: { kind: PatternKind.Reference, name: 'PatternExpression' },
-        }
-      }
+          name: "pattern",
+          pattern: { kind: PatternKind.Reference, name: "PatternExpression" },
+        },
+      },
     },
     expression: {
       kind: ExpressionKind.Native,
@@ -22,8 +22,8 @@ export const ZeroOrOnePattern: Pattern = {
         kind: PatternKind.Slice,
         min: 0,
         max: 1,
-        pattern
-      })
-    }
-  }
-}
+        pattern,
+      }),
+    },
+  },
+};

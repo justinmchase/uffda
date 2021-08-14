@@ -1,1 +1,1 @@
-export * from "./deps/mod.ts"
+export * from "./deps/mod.ts";

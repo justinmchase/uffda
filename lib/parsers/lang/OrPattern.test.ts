@@ -1,78 +1,78 @@
-import { tests } from '../../test.ts'
-import { TestLang } from './Lang.test.ts'
-import { LangPatternKind, LangExpressionKind } from './lang.pattern.ts'
+import { tests } from "../../test.ts";
+import { TestLang } from "./Lang.test.ts";
+import { LangExpressionKind, LangPatternKind } from "./lang.pattern.ts";
 
-tests('parsers.lang.orpattern', () => [
+tests("parsers.lang.orpattern", () => [
   {
-    id: 'ORPATTERN00',
-    description: 'can parse a reference expression',
+    id: "ORPATTERN00",
+    description: "can parse a reference expression",
     pattern: () => TestLang,
-    input: 'x | y',
+    input: "x | y",
     value: {
       kind: LangPatternKind.OrPattern,
       left: {
-        kind: 'ReferencePattern',
-        name: 'x'
+        kind: "ReferencePattern",
+        name: "x",
       },
       right: {
-        kind: 'ReferencePattern',
-        name: 'y'
-      }
-    }
+        kind: "ReferencePattern",
+        name: "y",
+      },
+    },
   },
   {
-    id: 'ORPATTERN00',
-    description: 'can parse a projection expression',
+    id: "ORPATTERN00",
+    description: "can parse a projection expression",
     pattern: () => TestLang,
-    input: 'x -> $0 | y',
+    input: "x -> $0 | y",
     value: {
       kind: LangPatternKind.OrPattern,
       left: {
         kind: LangPatternKind.ProjectionPattern,
         pattern: {
-          kind: 'ReferencePattern',
-          name: 'x'
+          kind: "ReferencePattern",
+          name: "x",
         },
         expression: {
           kind: LangExpressionKind.SpecialReferenceExpression,
           name: "$0",
-        }
+        },
       },
       right: {
-        kind: 'ReferencePattern',
-        name: 'y'
-      }
-    }
+        kind: "ReferencePattern",
+        name: "y",
+      },
+    },
   },
   {
-    id: 'ORPATTERN00',
-    description: 'can parse two then expressions',
+    id: "ORPATTERN00",
+    description: "can parse two then expressions",
     pattern: () => TestLang,
-    input: 'w x | y z',
+    input: "w x | y z",
     value: {
       kind: LangPatternKind.OrPattern,
       left: {
         kind: LangPatternKind.ThenPattern,
         left: {
           kind: LangPatternKind.ReferencePattern,
-          name: 'w'
+          name: "w",
         },
         right: {
           kind: LangPatternKind.ReferencePattern,
-          name: 'x'
-        }
+          name: "x",
+        },
       },
       right: {
         kind: LangPatternKind.ThenPattern,
         left: {
           kind: LangPatternKind.ReferencePattern,
-          name: 'y'
+          name: "y",
         },
         right: {
           kind: LangPatternKind.ReferencePattern,
-          name: 'z'
-        }
+          name: "z",
+        },
       },
-    }
-  }
-])
+    },
+  },
+]);

@@ -1,5 +1,5 @@
-import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
-import { ExpressionKind } from '../../runtime/expressions/mod.ts'
+import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
+import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 
 // StringPattern
 //   = '\'' value:(('\\' '\'') -> '\'' | any)* '\'' -> s.join('')
@@ -10,10 +10,10 @@ export const String: Pattern = {
     pattern: {
       kind: PatternKind.Then,
       patterns: [
-        { kind: PatternKind.Equal, value: '\'' },
+        { kind: PatternKind.Equal, value: "'" },
         {
           kind: PatternKind.Variable,
-          name: 'value',
+          name: "value",
           pattern: {
             kind: PatternKind.Slice,
             pattern: {
@@ -24,14 +24,14 @@ export const String: Pattern = {
                   pattern: {
                     kind: PatternKind.Then,
                     patterns: [
-                      { kind: PatternKind.Equal, value: '\\' },
-                      { kind: PatternKind.Equal, value: '\'' },
-                    ]
+                      { kind: PatternKind.Equal, value: "\\" },
+                      { kind: PatternKind.Equal, value: "'" },
+                    ],
                   },
                   expression: {
                     kind: ExpressionKind.Native,
-                    fn: () => '\''
-                  }
+                    fn: () => "'",
+                  },
                 },
                 {
                   kind: PatternKind.Projection,
@@ -40,30 +40,30 @@ export const String: Pattern = {
                     patterns: [
                       {
                         kind: PatternKind.Not,
-                        pattern: { kind: PatternKind.Equal, value: '\'' }
+                        pattern: { kind: PatternKind.Equal, value: "'" },
                       },
                       {
                         kind: PatternKind.Variable,
-                        name: 'value',
-                        pattern: { kind: PatternKind.String }
-                      }
-                    ]
+                        name: "value",
+                        pattern: { kind: PatternKind.String },
+                      },
+                    ],
                   },
                   expression: {
                     kind: ExpressionKind.Native,
-                    fn: ({ value }) => value
-                  }
-                }
-              ]
-            }
-          }
+                    fn: ({ value }) => value,
+                  },
+                },
+              ],
+            },
+          },
         },
-        { kind: PatternKind.Equal, value: '\'' }
-      ]
+        { kind: PatternKind.Equal, value: "'" },
+      ],
     },
     expression: {
       kind: ExpressionKind.Native,
-      fn: ({ value }) => value.join('')
-    }
-  }
-}
+      fn: ({ value }) => value.join(""),
+    },
+  },
+};

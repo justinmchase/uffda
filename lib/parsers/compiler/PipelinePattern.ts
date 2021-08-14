@@ -1,5 +1,5 @@
-import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
-import { ExpressionKind } from '../../runtime/expressions/mod.ts'
+import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
+import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 
 export const PipelinePattern: Pattern = {
   kind: PatternKind.Block,
@@ -11,27 +11,33 @@ export const PipelinePattern: Pattern = {
         pattern: {
           kind: PatternKind.Object,
           keys: {
-            kind: { kind: PatternKind.Equal, value: 'PipelinePattern' },
+            kind: { kind: PatternKind.Equal, value: "PipelinePattern" },
             left: {
               kind: PatternKind.Variable,
-              name: 'left',
-              pattern: { kind: PatternKind.Reference, name: 'PatternExpression' }
+              name: "left",
+              pattern: {
+                kind: PatternKind.Reference,
+                name: "PatternExpression",
+              },
             },
             right: {
               kind: PatternKind.Variable,
-              name: 'right',
-              pattern: { kind: PatternKind.Reference, name: 'PatternExpression' }
-            }
-          }
+              name: "right",
+              pattern: {
+                kind: PatternKind.Reference,
+                name: "PatternExpression",
+              },
+            },
+          },
         },
         expression: {
           kind: ExpressionKind.Native,
           fn: ({ left, right }) => ({
             kind: PatternKind.Pipeline,
-            steps: [left, right]
-          })
-        }
-      }
-    }
-  }
-}
+            steps: [left, right],
+          }),
+        },
+      },
+    },
+  },
+};

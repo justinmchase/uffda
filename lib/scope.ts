@@ -1,7 +1,7 @@
-import { Match } from './match.ts'
-import { Path } from './path.ts'
+import { Match } from "./match.ts";
+import { Path } from "./path.ts";
 // import { Pattern } from './patterns/mod.ts'
-import { MetaStream } from './stream.ts'
+import { MetaStream } from "./stream.ts";
 
 interface IMemo {
   match: Match;
@@ -17,8 +17,9 @@ export class Reference {
 }
 
 export class Scope {
-  public static readonly Default = () => new Scope()
-  public static readonly From = (s: Iterable<unknown> | Scope) => s instanceof Scope ? s : new Scope(undefined, {}, {}, MetaStream.From(s))
+  public static readonly Default = () => new Scope();
+  public static readonly From = (s: Iterable<unknown> | Scope) =>
+    s instanceof Scope ? s : new Scope(undefined, {}, {}, MetaStream.From(s));
 
   constructor(
     private readonly _parent: Scope | undefined = undefined,
@@ -32,21 +33,21 @@ export class Scope {
   }
 
   private *stack() {
-    yield this._variables
+    yield this._variables;
 
-    let current: Scope | undefined = this._parent
+    let current: Scope | undefined = this._parent;
     while (current) {
-      yield current._variables
-      current = current._parent
+      yield current._variables;
+      current = current._parent;
     }
   }
 
   public get variables() {
-    return Object.assign({}, ...this.stack())
+    return Object.assign({}, ...this.stack());
   }
 
   public getSpecial(name: string) {
-    return this._variables[name]
+    return this._variables[name];
   }
 
   public withStream(stream: MetaStream) {
@@ -58,7 +59,7 @@ export class Scope {
       this.memos,
       this.ruleStack,
       this.refStack,
-    )
+    );
   }
 
   public addVariables(variables: Record<string, unknown>) {
@@ -70,7 +71,7 @@ export class Scope {
       this.memos,
       this.ruleStack,
       this.refStack,
-    )
+    );
   }
 
   public setVariables(variables: Record<string, unknown>) {
@@ -82,7 +83,7 @@ export class Scope {
       this.memos,
       this.ruleStack,
       this.refStack,
-    )
+    );
   }
   public setSpeical(variables: Record<string, unknown>) {
     return new Scope(
@@ -93,11 +94,11 @@ export class Scope {
       this.memos,
       this.ruleStack,
       this.refStack,
-    )
+    );
   }
 
   public setMemo(key: string, pattern: unknown, match: Match) {
-    const { references = [] } = this.memos[key] ?? {}
+    const { references = [] } = this.memos[key] ?? {};
     return new Scope(
       this._parent,
       this._variables,
@@ -107,14 +108,13 @@ export class Scope {
         [key]: {
           match,
           pattern,
-          references
-        } as IMemo
+          references,
+        } as IMemo,
       }),
       this.ruleStack,
       this.refStack,
-    )
+    );
   }
-
 
   public pushRule(ruleName: string) {
     return new Scope(
@@ -125,9 +125,9 @@ export class Scope {
       this.memos,
       [...this.ruleStack, ruleName],
       this.refStack,
-    )
+    );
   }
-  
+
   public pushRef(name: string) {
     return new Scope(
       this._parent,
@@ -137,7 +137,7 @@ export class Scope {
       this.memos,
       this.ruleStack,
       [...this.refStack, new Reference(name, this.stream.path)],
-    )
+    );
   }
 
   public popRule(scope: Scope) {
@@ -149,7 +149,7 @@ export class Scope {
       this.memos,
       this.ruleStack.slice(-1),
       this.refStack,
-    )
+    );
   }
 
   public popRef(scope: Scope) {
@@ -161,7 +161,7 @@ export class Scope {
       this.memos,
       this.ruleStack,
       this.refStack.slice(-1),
-    )
+    );
   }
 
   public push() {
@@ -173,7 +173,7 @@ export class Scope {
       this.memos,
       this.ruleStack,
       this.refStack,
-    )
+    );
   }
 
   public pop() {
@@ -185,6 +185,6 @@ export class Scope {
       this.memos,
       this.ruleStack,
       this.refStack,
-    )
+    );
   }
 }

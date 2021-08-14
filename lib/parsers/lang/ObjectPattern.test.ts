@@ -1,168 +1,168 @@
-import { tests } from '../../test.ts'
-import { TestLang } from './Lang.test.ts'
-import { LangPatternKind } from './lang.pattern.ts'
+import { tests } from "../../test.ts";
+import { TestLang } from "./Lang.test.ts";
+import { LangPatternKind } from "./lang.pattern.ts";
 
-tests('parsers.lang.object', () => [
+tests("parsers.lang.object", () => [
   {
-    id: 'OBJECT00',
-    description: 'can parse empty object',
+    id: "OBJECT00",
+    description: "can parse empty object",
     pattern: () => TestLang,
-    input: '{}',
+    input: "{}",
     value: {
       kind: LangPatternKind.ObjectPattern,
-      keys: []
-    }
+      keys: [],
+    },
   },
   {
-    id: 'OBJECT01',
-    description: 'can parse an object with a key',
+    id: "OBJECT01",
+    description: "can parse an object with a key",
     pattern: () => TestLang,
-    input: '{ x }',
+    input: "{ x }",
     value: {
       kind: LangPatternKind.ObjectPattern,
       keys: [
         {
           kind: LangPatternKind.ObjectKeyPattern,
-          name: 'x'
-        }
-      ]
-    }
+          name: "x",
+        },
+      ],
+    },
   },
   {
-    id: 'OBJECT02',
-    description: 'can parse an object with a variable key',
+    id: "OBJECT02",
+    description: "can parse an object with a variable key",
     pattern: () => TestLang,
-    input: '{ x:y }',
+    input: "{ x:y }",
     value: {
       kind: LangPatternKind.ObjectPattern,
       keys: [
         {
           kind: LangPatternKind.ObjectKeyPattern,
-          alias: 'x',
-          name: 'y',
+          alias: "x",
+          name: "y",
           must: false,
-        }
-      ]
-    }
+        },
+      ],
+    },
   },
   {
-    id: 'OBJECT03',
-    description: 'can parse an object with a pattern key',
+    id: "OBJECT03",
+    description: "can parse an object with a pattern key",
     pattern: () => TestLang,
-    input: '{ x:y = z }',
+    input: "{ x:y = z }",
     value: {
       kind: LangPatternKind.ObjectPattern,
       keys: [
         {
           kind: LangPatternKind.ObjectKeyPattern,
-          alias: 'x',
-          name: 'y',
+          alias: "x",
+          name: "y",
           pattern: {
             kind: LangPatternKind.ReferencePattern,
-            name: 'z'
-          }
-        }
-      ]
-    }
+            name: "z",
+          },
+        },
+      ],
+    },
   },
   {
-    id: 'OBJECT04',
-    description: 'can parse an object with a pattern key',
+    id: "OBJECT04",
+    description: "can parse an object with a pattern key",
     pattern: () => TestLang,
-    input: '{ x = y }',
+    input: "{ x = y }",
     value: {
       kind: LangPatternKind.ObjectPattern,
       keys: [
         {
           kind: LangPatternKind.ObjectKeyPattern,
-          name: 'x',
+          name: "x",
           pattern: {
             kind: LangPatternKind.ReferencePattern,
-            name: 'y'
-          }
-        }
-      ]
-    }
+            name: "y",
+          },
+        },
+      ],
+    },
   },
   {
-    id: 'OBJECT05',
-    description: 'can parse an object with two pattern keys',
+    id: "OBJECT05",
+    description: "can parse an object with two pattern keys",
     pattern: () => TestLang,
-    input: '{ a = b, x = y }',
+    input: "{ a = b, x = y }",
     value: {
       kind: LangPatternKind.ObjectPattern,
       keys: [
         {
           kind: LangPatternKind.ObjectKeyPattern,
-          name: 'a',
+          name: "a",
           pattern: {
             kind: LangPatternKind.ReferencePattern,
-            name: 'b'
-          }
+            name: "b",
+          },
         },
         {
           kind: LangPatternKind.ObjectKeyPattern,
-          name: 'x',
+          name: "x",
           pattern: {
             kind: LangPatternKind.ReferencePattern,
-            name: 'y'
-          }
-        }
-      ]
-    }
+            name: "y",
+          },
+        },
+      ],
+    },
   },
   {
-    id: 'OBJECT06',
-    description: '{ a! }',
+    id: "OBJECT06",
+    description: "{ a! }",
     pattern: () => TestLang,
-    input: '{ a! }',
+    input: "{ a! }",
     value: {
       kind: LangPatternKind.ObjectPattern,
       keys: [
         {
           kind: LangPatternKind.ObjectKeyPattern,
-          name: 'a',
+          name: "a",
           must: true,
-        }
-      ]
-    }
+        },
+      ],
+    },
   },
   {
-    id: 'OBJECT02',
-    description: '{ x:y! }',
+    id: "OBJECT02",
+    description: "{ x:y! }",
     pattern: () => TestLang,
-    input: '{ x:y! }',
+    input: "{ x:y! }",
     value: {
       kind: LangPatternKind.ObjectPattern,
       keys: [
         {
           kind: LangPatternKind.ObjectKeyPattern,
-          alias: 'x',
-          name: 'y',
+          alias: "x",
+          name: "y",
           must: true,
-        }
-      ]
-    }
+        },
+      ],
+    },
   },
   {
-    id: 'OBJECT06',
-    description: '{ a = string }',
+    id: "OBJECT06",
+    description: "{ a = string }",
     pattern: () => TestLang,
-    input: '{ a = string! }',
+    input: "{ a = string! }",
     value: {
       kind: LangPatternKind.ObjectPattern,
       keys: [
         {
           kind: LangPatternKind.ObjectKeyPattern,
-          name: 'a',
+          name: "a",
           pattern: {
             kind: LangPatternKind.MustPattern,
             pattern: {
-              kind: LangPatternKind.StringPattern
-            }
-          }
-        }
-      ]
-    }
+              kind: LangPatternKind.StringPattern,
+            },
+          },
+        },
+      ],
+    },
   },
-])
+]);

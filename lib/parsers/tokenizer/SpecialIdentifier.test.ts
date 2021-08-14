@@ -1,27 +1,27 @@
-import { tests } from '../../test.ts'
-import { SpecialIdentifier } from './SpecialIdentifier.ts'
+import { tests } from "../../test.ts";
+import { SpecialIdentifier } from "./SpecialIdentifier.ts";
 
-tests('parsers.tokenizer.specialidentifier', () => [
+tests("parsers.tokenizer.specialidentifier", () => [
   {
-    id: 'SPECIALIDENTIFIER00',
-    description: 'can match a digit special identifier',
+    id: "SPECIALIDENTIFIER00",
+    description: "can match a digit special identifier",
     pattern: () => SpecialIdentifier,
-    input: '$0',
-    value: '$0'
+    input: "$0",
+    value: "$0",
   },
   {
-    id: 'SPECIALIDENTIFIER01',
-    description: 'can match a letter special identifier',
+    id: "SPECIALIDENTIFIER01",
+    description: "can match a letter special identifier",
     pattern: () => SpecialIdentifier,
-    input: '$x',
-    value: '$x'
+    input: "$x",
+    value: "$x",
   },
   {
-    id: 'SPECIALIDENTIFIER02',
-    description: 'must start with $',
+    id: "SPECIALIDENTIFIER02",
+    description: "must start with $",
     pattern: () => SpecialIdentifier,
-    input: 'x',
+    input: "x",
     matched: false,
-    done: false
+    done: false,
   },
-])
+]);

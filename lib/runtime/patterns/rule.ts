@@ -1,33 +1,32 @@
-import { Match } from '../../match.ts'
-import { Scope } from '../../scope.ts'
-import { match } from '../match.ts'
-import { hash } from '../hash.ts'
-import { Pattern, IRulePattern } from './pattern.ts'
+import { Match } from "../../match.ts";
+import { Scope } from "../../scope.ts";
+import { match } from "../match.ts";
+import { hash } from "../hash.ts";
+import { IRulePattern, Pattern } from "./pattern.ts";
 
 function getKey(pattern: Pattern, scope: Scope) {
-  const id = hash(pattern)
-  return `${id}@${scope.stream.path}`
+  const id = hash(pattern);
+  return `${id}@${scope.stream.path}`;
 }
 
 export function rule(args: IRulePattern, scope: Scope): Match {
-  const { pattern } = args
-  const key = getKey(pattern, scope)
-  const memo = scope.memos[key]
+  const { pattern } = args;
+  const key = getKey(pattern, scope);
+  const memo = scope.memos[key];
   if (!memo) {
     const subScope = scope
       .setMemo(key, pattern, Match.LR(scope))
-      .pushRule(key)
+      .pushRule(key);
 
-    let m = match(pattern, subScope)
+    let m = match(pattern, subScope);
     if (m.isLr) {
-      m = grow(args, subScope)
+      m = grow(args, subScope);
     }
 
     return m
       .endRecursion()
       .popRule(scope)
-      .setMemo(key, args)
-
+      .setMemo(key, args);
   } else {
     if (memo.match.isLr) {
       // todo: make a proper error object
@@ -35,36 +34,36 @@ export function rule(args: IRulePattern, scope: Scope): Match {
         // This should never happen unless there is a bug in this code base
         return Match
           .Fail(scope)
-          .pushError(scope, scope) // todo: Add error messages or codes of some kind
+          .pushError(scope, scope); // todo: Add error messages or codes of some kind
       }
       if (scope.ruleStack.slice(-1)[0] !== key) {
-        return Match.Fail(scope)
+        return Match.Fail(scope);
       }
     }
-    return memo.match.setEnd(scope.withStream(memo.match.end.stream))
+    return memo.match.setEnd(scope.withStream(memo.match.end.stream));
   }
 }
 
 function grow(args: IRulePattern, scope: Scope): Match {
-  const { pattern } = args
-  const key = getKey(pattern, scope)
-  let m = Match.Fail(scope)
-  const start = scope.stream
+  const { pattern } = args;
+  const key = getKey(pattern, scope);
+  let m = Match.Fail(scope);
+  const start = scope.stream;
   while (true) {
     const growScope = m
       .end
       .setMemo(key, pattern, m)
-      .withStream(start)
+      .withStream(start);
 
-    const result = match(pattern, growScope)
-    const progressed = result.end.stream.path.compareTo(m.end.stream.path) > 0
-    const { matched } = result
+    const result = match(pattern, growScope);
+    const progressed = result.end.stream.path.compareTo(m.end.stream.path) > 0;
+    const { matched } = result;
     if (!matched || !progressed) {
-      break
+      break;
     }
 
-    m = result
+    m = result;
   }
 
-  return m
+  return m;
 }

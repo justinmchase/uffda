@@ -1,54 +1,54 @@
-import { tests } from '../../test.ts'
-import { PatternKind } from './pattern.kind.ts'
+import { tests } from "../../test.ts";
+import { PatternKind } from "./pattern.kind.ts";
 
-tests('patterns.slice', () => [
+tests("patterns.slice", () => [
   {
-    id: 'SLICE00',
-    description: 'zero or more matches ok without infinite looping',
+    id: "SLICE00",
+    description: "zero or more matches ok without infinite looping",
     pattern: () => ({
       kind: PatternKind.Slice,
       pattern: {
-        kind: PatternKind.Ok
-      }
+        kind: PatternKind.Ok,
+      },
     }),
-    input: '',
+    input: "",
     value: [],
   },
   {
-    id: 'SLICE01',
-    description: 'zero or more matches empty set',
+    id: "SLICE01",
+    description: "zero or more matches empty set",
     pattern: () => ({
       kind: PatternKind.Slice,
       pattern: {
-        kind: PatternKind.Any
-      }
+        kind: PatternKind.Any,
+      },
     }),
-    input: '',
+    input: "",
     value: [],
   },
   {
-    id: 'SLICE02',
-    description: 'zero or more matches a single element',
+    id: "SLICE02",
+    description: "zero or more matches a single element",
     pattern: () => ({
       kind: PatternKind.Slice,
-      pattern: { kind: PatternKind.String }
+      pattern: { kind: PatternKind.String },
     }),
-    input: 'a',
-    value: ['a'],
+    input: "a",
+    value: ["a"],
   },
   {
-    id: 'SLICE03',
-    description: 'zero or more matches multiple elements',
+    id: "SLICE03",
+    description: "zero or more matches multiple elements",
     pattern: () => ({
       kind: PatternKind.Slice,
-      pattern: { kind: PatternKind.String }
+      pattern: { kind: PatternKind.String },
     }),
-    input: 'abc',
-    value: ['a', 'b', 'c'],
+    input: "abc",
+    value: ["a", "b", "c"],
   },
   {
-    id: 'SLICE04',
-    description: 'zero or more not matching is still a success',
+    id: "SLICE04",
+    description: "zero or more not matching is still a success",
     pattern: () => ({
       kind: PatternKind.Then,
       patterns: [
@@ -56,18 +56,18 @@ tests('patterns.slice', () => [
           kind: PatternKind.Slice,
           pattern: {
             kind: PatternKind.RegExp,
-            pattern: /a/
-          }
+            pattern: /a/,
+          },
         },
-        { kind: PatternKind.Any }
-      ]
+        { kind: PatternKind.Any },
+      ],
     }),
-    input: 'b',
-    value: [[], 'b'],
+    input: "b",
+    value: [[], "b"],
   },
   {
-    id: 'SLICE05',
-    description: 'zero or more not matching at end is still a success',
+    id: "SLICE05",
+    description: "zero or more not matching at end is still a success",
     pattern: () => ({
       kind: PatternKind.Then,
       patterns: [
@@ -76,94 +76,94 @@ tests('patterns.slice', () => [
           kind: PatternKind.Slice,
           pattern: {
             kind: PatternKind.RegExp,
-            pattern: /a/
-          }
+            pattern: /a/,
+          },
         },
-      ]
+      ],
     }),
-    input: 'a',
-    value: ['a', []],
+    input: "a",
+    value: ["a", []],
   },
   {
-    id: 'SLICE06',
-    description: 'one or more fails ok without infinite looping',
+    id: "SLICE06",
+    description: "one or more fails ok without infinite looping",
     pattern: () => ({
       kind: PatternKind.Slice,
       pattern: { kind: PatternKind.Any },
       min: 1,
     }),
-    input: '',
+    input: "",
     matched: false,
   },
   {
-    id: 'SLICE07',
-    description: 'one or more fails on empty set',
+    id: "SLICE07",
+    description: "one or more fails on empty set",
     pattern: () => ({
       kind: PatternKind.Slice,
       pattern: { kind: PatternKind.Any },
-      min: 1
+      min: 1,
     }),
-    input: '',
+    input: "",
     matched: false,
   },
   {
-    id: 'SLICE08',
-    description: 'one or more matches one item',
+    id: "SLICE08",
+    description: "one or more matches one item",
     pattern: () => ({
       kind: PatternKind.Slice,
       pattern: { kind: PatternKind.String },
-      min: 1
+      min: 1,
     }),
-    input: 'a',
-    value: ['a'],
+    input: "a",
+    value: ["a"],
   },
   {
-    id: 'SLICE09',
-    description: 'one or more matches multiple items',
+    id: "SLICE09",
+    description: "one or more matches multiple items",
     pattern: () => ({
       kind: PatternKind.Slice,
       pattern: { kind: PatternKind.String },
-      min: 1
+      min: 1,
     }),
-    input: 'abc',
-    value: ['a', 'b', 'c'],
+    input: "abc",
+    value: ["a", "b", "c"],
   },
   {
-    id: 'SLICE10',
-    description: 'exact number matches exactly',
+    id: "SLICE10",
+    description: "exact number matches exactly",
     pattern: () => ({
       kind: PatternKind.Slice,
       pattern: { kind: PatternKind.String },
       min: 3,
-      max: 3
+      max: 3,
     }),
-    input: 'abc',
-    value: ['a', 'b', 'c'],
+    input: "abc",
+    value: ["a", "b", "c"],
   },
   {
-    id: 'SLICE11',
-    description: 'exact number fails with not enough items',
+    id: "SLICE11",
+    description: "exact number fails with not enough items",
     pattern: () => ({
       kind: PatternKind.Slice,
       pattern: { kind: PatternKind.String },
       min: 3,
-      max: 3
+      max: 3,
     }),
-    input: 'ab',
+    input: "ab",
     matched: false,
     done: false,
   },
   {
-    id: 'SLICE12',
-    description: 'exact number does not read too many items',
+    id: "SLICE12",
+    description: "exact number does not read too many items",
     pattern: () => ({
       kind: PatternKind.Slice,
       pattern: { kind: PatternKind.String },
       min: 3,
-      max: 3
+      max: 3,
     }),
-    input: 'abcd',
-    value: ['a', 'b', 'c'],
+    input: "abcd",
+    value: ["a", "b", "c"],
     done: false,
-  }
-])
+  },
+]);

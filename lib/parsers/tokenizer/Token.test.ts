@@ -1,36 +1,36 @@
-import { tests } from '../../test.ts'
-import { Token } from './Token.ts'
+import { tests } from "../../test.ts";
+import { Token } from "./Token.ts";
 
-tests('parsers.tokenizer.token', () => [
+tests("parsers.tokenizer.token", () => [
   {
-    id: 'TOKEN00',
-    description: 'does not match a letter',
+    id: "TOKEN00",
+    description: "does not match a letter",
     pattern: () => Token,
-    input: 'a',
-    matched: false,
-    done: false
-  },
-  {
-    id: 'TOKEN01',
-    description: 'does not match a digit',
-    pattern: () => Token,
-    input: '1',
-    matched: false,
-    done: false
-  },
-  {
-    id: 'TOKEN02',
-    description: 'does not match whitespace',
-    pattern: () => Token,
-    input: ' ',
+    input: "a",
     matched: false,
     done: false,
   },
   {
-    id: 'TOKEN03',
-    description: 'matches a non-letter, non-digit, non-whitespace',
+    id: "TOKEN01",
+    description: "does not match a digit",
     pattern: () => Token,
-    input: '*',
-    value: '*',
-  }
-])
+    input: "1",
+    matched: false,
+    done: false,
+  },
+  {
+    id: "TOKEN02",
+    description: "does not match whitespace",
+    pattern: () => Token,
+    input: " ",
+    matched: false,
+    done: false,
+  },
+  {
+    id: "TOKEN03",
+    description: "matches a non-letter, non-digit, non-whitespace",
+    pattern: () => Token,
+    input: "*",
+    value: "*",
+  },
+]);

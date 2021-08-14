@@ -1,7 +1,7 @@
-import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
-import { ExpressionKind } from '../../runtime/expressions/mod.ts'
-import { Letter } from './Letter.ts'
-import { Digit } from './Digit.ts'
+import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
+import { ExpressionKind } from "../../runtime/expressions/mod.ts";
+import { Letter } from "./Letter.ts";
+import { Digit } from "./Digit.ts";
 
 // Identifier = '$' (Digit | Character)+
 export const SpecialIdentifier: Pattern = {
@@ -9,10 +9,10 @@ export const SpecialIdentifier: Pattern = {
   pattern: {
     kind: PatternKind.Then,
     patterns: [
-      { kind: PatternKind.Equal, value: '$' },
+      { kind: PatternKind.Equal, value: "$" },
       {
         kind: PatternKind.Variable,
-        name: 'value',
+        name: "value",
         pattern: {
           kind: PatternKind.Slice,
           min: 1,
@@ -20,15 +20,15 @@ export const SpecialIdentifier: Pattern = {
             kind: PatternKind.Or,
             patterns: [
               Digit,
-              Letter
-            ]
-          }
-        }
-      }
-    ]
+              Letter,
+            ],
+          },
+        },
+      },
+    ],
   },
   expression: {
     kind: ExpressionKind.Native,
-    fn: ({ value }) => '$' + value.join('')
-  }
-}
+    fn: ({ value }) => "$" + value.join(""),
+  },
+};

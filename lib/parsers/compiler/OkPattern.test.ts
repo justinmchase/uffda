@@ -1,13 +1,13 @@
-import { tests } from '../../test.ts'
-import { Meta } from '../meta.ts'
-import { PatternKind } from '../../runtime/patterns/mod.ts'
+import { tests } from "../../test.ts";
+import { Meta } from "../meta.ts";
+import { PatternKind } from "../../runtime/patterns/mod.ts";
 
-tests('parsers.compiler.okpattern', () => [
+tests("parsers.compiler.okpattern", () => [
   {
-    id: 'OKPATTERN00',
-    description: 'parses OkPattern into ok',
+    id: "OKPATTERN00",
+    description: "parses OkPattern into ok",
     pattern: () => Meta,
-    input: 'ok',
-    value: { kind: PatternKind.Ok }
-  }
-])
+    input: "ok",
+    value: { kind: PatternKind.Ok },
+  },
+]);

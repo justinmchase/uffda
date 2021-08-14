@@ -1,7 +1,6 @@
-import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
-
+import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
 
 export const Token: Pattern = {
   kind: PatternKind.RegExp,
-  pattern: /^[^\w\d\s]$/
-}
+  pattern: /^[^\w\d\s]$/,
+};

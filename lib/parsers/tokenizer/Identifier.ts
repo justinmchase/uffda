@@ -1,7 +1,7 @@
-import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
-import { ExpressionKind } from '../../runtime/expressions/mod.ts'
-import { Letter } from './Letter.ts'
-import { Digit } from './Digit.ts'
+import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
+import { ExpressionKind } from "../../runtime/expressions/mod.ts";
+import { Letter } from "./Letter.ts";
+import { Digit } from "./Digit.ts";
 
 // Identifier = Letter+ (Digit | Character)*
 export const Identifier: Pattern = {
@@ -13,16 +13,16 @@ export const Identifier: Pattern = {
       patterns: [
         {
           kind: PatternKind.Variable,
-          name: 'a',
+          name: "a",
           pattern: {
             kind: PatternKind.Slice,
             min: 1,
             pattern: Letter,
-          }
+          },
         },
         {
           kind: PatternKind.Variable,
-          name: 'b',
+          name: "b",
           pattern: {
             kind: PatternKind.Slice,
             pattern: {
@@ -30,15 +30,15 @@ export const Identifier: Pattern = {
               patterns: [
                 Digit,
                 Letter,
-              ]
-            }
-          }
-        }
-      ]
+              ],
+            },
+          },
+        },
+      ],
     },
     expression: {
       kind: ExpressionKind.Native,
-      fn: ({ a, b }) => a.join('') + b.join('')
-    }
-  }
-}
+      fn: ({ a, b }) => a.join("") + b.join(""),
+    },
+  },
+};

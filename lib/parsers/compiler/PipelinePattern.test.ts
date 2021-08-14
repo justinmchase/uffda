@@ -1,25 +1,25 @@
-import { tests } from '../../test.ts'
-import { Meta } from '../meta.ts'
-import { PatternKind } from '../../runtime/patterns/mod.ts'
+import { tests } from "../../test.ts";
+import { Meta } from "../meta.ts";
+import { PatternKind } from "../../runtime/patterns/mod.ts";
 
-tests('parsers.compiler.pipelinepattern', () => [
+tests("parsers.compiler.pipelinepattern", () => [
   {
-    id: 'PIPELINEPATTERN00',
-    description: 'a > b',
+    id: "PIPELINEPATTERN00",
+    description: "a > b",
     pattern: () => Meta,
-    input: 'a > b',
+    input: "a > b",
     value: {
       kind: PatternKind.Pipeline,
       steps: [
         {
           kind: PatternKind.Reference,
-          name: 'a'
+          name: "a",
         },
         {
           kind: PatternKind.Reference,
-          name: 'b'
-        }
-      ]
-    }
-  }
-])
+          name: "b",
+        },
+      ],
+    },
+  },
+]);

@@ -1,23 +1,23 @@
-import { tests } from '../../test.ts'
-import { TestLang } from './Lang.test.ts'
-import { LangPatternKind } from './lang.pattern.ts'
+import { tests } from "../../test.ts";
+import { TestLang } from "./Lang.test.ts";
+import { LangPatternKind } from "./lang.pattern.ts";
 
-tests('parsers.lang.and', () => [
+tests("parsers.lang.and", () => [
   {
-    id: 'AND00',
-    description: 'x & y',
+    id: "AND00",
+    description: "x & y",
     pattern: () => TestLang,
-    input: 'x & y',
+    input: "x & y",
     value: {
       kind: LangPatternKind.AndPattern,
       left: {
         kind: LangPatternKind.ReferencePattern,
-        name: 'x'
+        name: "x",
       },
       right: {
         kind: LangPatternKind.ReferencePattern,
-        name: 'y'
-      }
-    }
-  }
-])
+        name: "y",
+      },
+    },
+  },
+]);

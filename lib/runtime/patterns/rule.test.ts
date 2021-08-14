@@ -1,25 +1,25 @@
-import { assert } from '../../../deps/std.ts'
-import { tests } from '../../test.ts'
-import { ExpressionKind } from '../expressions/mod.ts'
-import { PatternKind } from './pattern.kind.ts'
+import { assert } from "../../../deps/std.ts";
+import { tests } from "../../test.ts";
+import { ExpressionKind } from "../expressions/mod.ts";
+import { PatternKind } from "./pattern.kind.ts";
 
-tests('patterns.rule', () => [
+tests("patterns.rule", () => [
   {
-    id: 'RULE00',
-    description: 'can parse a non-recursive rule',
+    id: "RULE00",
+    description: "can parse a non-recursive rule",
     pattern: () => ({
       kind: PatternKind.Rule,
-      pattern: { 
+      pattern: {
         kind: PatternKind.Equal,
-        value: 'a'
-      }
+        value: "a",
+      },
     }),
-    input: 'a',
-    value: 'a',
+    input: "a",
+    value: "a",
   },
   {
-    id: 'RULE01',
-    description: 'non-progressive recursive patterns only match a single item',
+    id: "RULE01",
+    description: "non-progressive recursive patterns only match a single item",
     pattern: () => ({
       kind: PatternKind.Block,
       variables: {
@@ -31,30 +31,30 @@ tests('patterns.rule', () => [
             patterns: [
               {
                 kind: PatternKind.Reference,
-                name: 'a',
+                name: "a",
               },
               {
                 kind: PatternKind.Equal,
-                value: 'a'
-              }
-            ]
-          }
-        }
-      }
+                value: "a",
+              },
+            ],
+          },
+        },
+      },
     }),
-    input: 'aa',
-    value: 'a',
-    done: false
+    input: "aa",
+    value: "a",
+    done: false,
   },
   {
-    id: 'RULE02',
-    description: 'lr patterns match multiple items',
+    id: "RULE02",
+    description: "lr patterns match multiple items",
     pattern: () => ({
       kind: PatternKind.Block,
       variables: {
         a: {
           kind: PatternKind.Rule,
-          name: 'a',
+          name: "a",
           // a = a 'a' | 'a'
           pattern: {
             kind: PatternKind.Or,
@@ -62,50 +62,50 @@ tests('patterns.rule', () => [
               {
                 kind: PatternKind.Then,
                 patterns: [
-                  { kind: PatternKind.Reference, name: 'a' },
-                  { kind: PatternKind.Equal, value: 'a' },
-                ]
+                  { kind: PatternKind.Reference, name: "a" },
+                  { kind: PatternKind.Equal, value: "a" },
+                ],
               },
-              { kind: PatternKind.Equal, value: 'a' },
-            ]
-          }
-        }
-      }
+              { kind: PatternKind.Equal, value: "a" },
+            ],
+          },
+        },
+      },
     }),
-    input: 'aaa',
-    value: [['a', 'a'], 'a'],
+    input: "aaa",
+    value: [["a", "a"], "a"],
   },
   {
-    id: 'RULE03',
-    description: 'indirect left recursion results in an error',
+    id: "RULE03",
+    description: "indirect left recursion results in an error",
     pattern: () => ({
       kind: PatternKind.Block,
       variables: {
         a: {
           kind: PatternKind.Rule,
-          name: 'a',
-            pattern: {
-              kind: PatternKind.Reference,
-              name: 'b'
-            }
+          name: "a",
+          pattern: {
+            kind: PatternKind.Reference,
+            name: "b",
+          },
         },
         b: {
           kind: PatternKind.Rule,
-          name: 'b',
+          name: "b",
           pattern: {
             kind: PatternKind.Reference,
-            name: 'a'
-          }
-        }
-      }
+            name: "a",
+          },
+        },
+      },
     }),
-    input: 'ab',
+    input: "ab",
     matched: false,
     done: false,
   },
   {
-    id: 'RULE04',
-    description: 'right recursion is fine',
+    id: "RULE04",
+    description: "right recursion is fine",
     pattern: () => ({
       kind: PatternKind.Block,
       variables: {
@@ -118,22 +118,22 @@ tests('patterns.rule', () => [
               {
                 kind: PatternKind.Then,
                 patterns: [
-                  { kind: PatternKind.Equal, value: 'a' },
-                  { kind: PatternKind.Reference, name: 'a' },
-                ]
+                  { kind: PatternKind.Equal, value: "a" },
+                  { kind: PatternKind.Reference, name: "a" },
+                ],
               },
-              { kind: PatternKind.Equal, value: 'a' }
-            ]
-          }
-        }
-      }
+              { kind: PatternKind.Equal, value: "a" },
+            ],
+          },
+        },
+      },
     }),
-    input: 'aaa',
-    value: ['a', ['a', 'a']]
+    input: "aaa",
+    value: ["a", ["a", "a"]],
   },
   {
-    id: 'RULE05',
-    description: 'upper variables should not be available in lower scopes',
+    id: "RULE05",
+    description: "upper variables should not be available in lower scopes",
     pattern: () => ({
       kind: PatternKind.Block,
       variables: {
@@ -144,9 +144,9 @@ tests('patterns.rule', () => [
             pattern: { kind: PatternKind.Any },
             expression: {
               kind: ExpressionKind.Native,
-              fn: ({ x }) => (assert(x === undefined), true)
-            }
-          }
+              fn: ({ x }) => (assert(x === undefined), true),
+            },
+          },
         },
         P1: {
           kind: PatternKind.Rule,
@@ -155,27 +155,27 @@ tests('patterns.rule', () => [
             patterns: [
               {
                 kind: PatternKind.Variable,
-                name: 'x',
-                pattern: { kind: PatternKind.Any }
+                name: "x",
+                pattern: { kind: PatternKind.Any },
               },
               {
                 kind: PatternKind.Or,
                 patterns: [
-                  { kind: PatternKind.Reference, name: 'P0' },
+                  { kind: PatternKind.Reference, name: "P0" },
                   { kind: PatternKind.Any },
-                ]
-              }
-            ]
-          }
-        }
-      }
+                ],
+              },
+            ],
+          },
+        },
+      },
     }),
-    input: 'ab',
-    value: ['a', true],
+    input: "ab",
+    value: ["a", true],
   },
   {
-    id: 'RULE06',
-    description: 'lower variables should not be available in upper scope',
+    id: "RULE06",
+    description: "lower variables should not be available in upper scope",
     pattern: () => ({
       kind: PatternKind.Block,
       variables: {
@@ -185,14 +185,14 @@ tests('patterns.rule', () => [
             kind: PatternKind.Projection,
             pattern: {
               kind: PatternKind.Variable,
-              name: 'x',
-              pattern: { kind: PatternKind.Any }
+              name: "x",
+              pattern: { kind: PatternKind.Any },
             },
             expression: {
               kind: ExpressionKind.Native,
-              fn: ({ x }) => (assert(x === 'a'), x)
-            }
-          }
+              fn: ({ x }) => (assert(x === "a"), x),
+            },
+          },
         },
         P1: {
           kind: PatternKind.Rule,
@@ -200,19 +200,18 @@ tests('patterns.rule', () => [
             kind: PatternKind.Projection,
             pattern: {
               kind: PatternKind.Reference,
-              name: 'P0'
+              name: "P0",
             },
             expression: {
               kind: ExpressionKind.Native,
-              fn: ({ x, _ }) => (assert(x === undefined), _)
-            }
-          }
-        }
-      }
+              fn: ({ x, _ }) => (assert(x === undefined), _),
+            },
+          },
+        },
+      },
     }),
-    input: 'a',
-    value: 'a',
-  }
-
+    input: "a",
+    value: "a",
+  },
   // todo: two identical rules with different native projections should not trigger DLR
-])
+]);

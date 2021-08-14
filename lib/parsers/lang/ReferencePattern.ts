@@ -1,6 +1,6 @@
-import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
-import { ExpressionKind } from '../../runtime/expressions/mod.ts'
-import { LangPatternKind } from './lang.pattern.ts'
+import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
+import { ExpressionKind } from "../../runtime/expressions/mod.ts";
+import { LangPatternKind } from "./lang.pattern.ts";
 
 export const ReferencePattern: Pattern = {
   kind: PatternKind.Rule,
@@ -9,20 +9,20 @@ export const ReferencePattern: Pattern = {
     pattern: {
       kind: PatternKind.Object,
       keys: {
-        type: { kind: PatternKind.Equal, value: 'Identifier' },
+        type: { kind: PatternKind.Equal, value: "Identifier" },
         value: {
           kind: PatternKind.Variable,
-          name: 'name',
-          pattern: { kind: PatternKind.String }
-        }
-      }
+          name: "name",
+          pattern: { kind: PatternKind.String },
+        },
+      },
     },
-    expression:{
+    expression: {
       kind: ExpressionKind.Native,
       fn: ({ name }) => ({
         kind: LangPatternKind.ReferencePattern,
-        name
-      })
-    }
-  }
-}
+        name,
+      }),
+    },
+  },
+};

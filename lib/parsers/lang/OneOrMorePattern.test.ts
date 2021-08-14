@@ -1,19 +1,19 @@
-import { tests } from '../../test.ts'
-import { TestLang } from './Lang.test.ts'
-import { LangPatternKind } from './lang.pattern.ts'
+import { tests } from "../../test.ts";
+import { TestLang } from "./Lang.test.ts";
+import { LangPatternKind } from "./lang.pattern.ts";
 
-tests('parsers.lang.oneormore', () => [
+tests("parsers.lang.oneormore", () => [
   {
     id: "ONEORMORE00",
-    description: 'parse one or more reference',
+    description: "parse one or more reference",
     pattern: () => TestLang,
-    input: 'x+',
+    input: "x+",
     value: {
       kind: LangPatternKind.OneOrMorePattern,
       pattern: {
         kind: LangPatternKind.ReferencePattern,
-        name: 'x'
-      }
-    }
-  }
-])
+        name: "x",
+      },
+    },
+  },
+]);

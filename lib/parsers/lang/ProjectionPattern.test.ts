@@ -1,44 +1,44 @@
-import { tests } from '../../test.ts'
-import { TestLang } from './Lang.test.ts'
-import { LangPatternKind, LangExpressionKind } from './lang.pattern.ts'
+import { tests } from "../../test.ts";
+import { TestLang } from "./Lang.test.ts";
+import { LangExpressionKind, LangPatternKind } from "./lang.pattern.ts";
 
-tests('parsers.lang.projectionpattern', () => [
+tests("parsers.lang.projectionpattern", () => [
   {
-    id: 'PROJECT00',
-    description: 'can parse a projection',
+    id: "PROJECT00",
+    description: "can parse a projection",
     pattern: () => TestLang,
-    input: 'x -> $0',
+    input: "x -> $0",
     value: {
       kind: LangPatternKind.ProjectionPattern,
       pattern: {
         kind: LangPatternKind.ReferencePattern,
-        name: 'x'
+        name: "x",
       },
       expression: {
         kind: LangExpressionKind.SpecialReferenceExpression,
-        name: '$0'
-      }
-    }
+        name: "$0",
+      },
+    },
   },
   {
-    id: 'PROJECT01',
-    description: 'can parse a variable',
+    id: "PROJECT01",
+    description: "can parse a variable",
     pattern: () => TestLang,
-    input: 'x:y -> $0',
+    input: "x:y -> $0",
     value: {
       kind: LangPatternKind.ProjectionPattern,
       pattern: {
         kind: LangPatternKind.VariablePattern,
-        name: 'x',
+        name: "x",
         pattern: {
           kind: LangPatternKind.ReferencePattern,
-          name: 'y'
-        }
+          name: "y",
+        },
       },
       expression: {
         kind: LangExpressionKind.SpecialReferenceExpression,
-        name: '$0'
-      }
-    }
-  }
-])
+        name: "$0",
+      },
+    },
+  },
+]);

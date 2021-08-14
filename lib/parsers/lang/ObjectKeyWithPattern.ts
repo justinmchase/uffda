@@ -1,6 +1,6 @@
-import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
-import { ExpressionKind } from '../../runtime/expressions/mod.ts'
-import { LangPatternKind } from './lang.pattern.ts'
+import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
+import { ExpressionKind } from "../../runtime/expressions/mod.ts";
+import { LangPatternKind } from "./lang.pattern.ts";
 
 // The key of an object pattern which has a pattern
 //
@@ -16,36 +16,35 @@ export const ObjectKeyWithPattern: Pattern = {
         {
           kind: PatternKind.Object,
           keys: {
-            type: { kind: PatternKind.Equal, value: 'Identifier' },
+            type: { kind: PatternKind.Equal, value: "Identifier" },
             value: {
               kind: PatternKind.Variable,
-              name: 'name',
-              pattern: { kind: PatternKind.String }
-            }
-          }
+              name: "name",
+              pattern: { kind: PatternKind.String },
+            },
+          },
         },
         {
           kind: PatternKind.Object,
           keys: {
-            type: { kind: PatternKind.Equal, value: 'Token' },
-            value: { kind: PatternKind.Equal, value: '=' }
-          }
+            type: { kind: PatternKind.Equal, value: "Token" },
+            value: { kind: PatternKind.Equal, value: "=" },
+          },
         },
         {
           kind: PatternKind.Variable,
-          name: 'pattern',
-          pattern: { kind: PatternKind.Reference, name: 'PatternExpression' }
-        }
-      ]
+          name: "pattern",
+          pattern: { kind: PatternKind.Reference, name: "PatternExpression" },
+        },
+      ],
     },
     expression: {
       kind: ExpressionKind.Native,
       fn: ({ name, pattern }) => ({
         kind: LangPatternKind.ObjectKeyPattern,
         name,
-        pattern
-      })
-    }
-  }
-}
-
+        pattern,
+      }),
+    },
+  },
+};

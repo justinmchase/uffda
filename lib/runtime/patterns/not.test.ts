@@ -1,37 +1,46 @@
-import { tests } from '../../test.ts'
-import { PatternKind } from './pattern.kind.ts'
+import { tests } from "../../test.ts";
+import { PatternKind } from "./pattern.kind.ts";
 
-tests('patterns.not', () => [
+tests("patterns.not", () => [
   {
-    id: 'NOT00',
-    description: '^ok',
-    pattern: () => ({ kind: PatternKind.Not, pattern: { kind: PatternKind.Ok } }),
-    input: [],
-    matched: false
-  },
-  {
-    id: 'NOT01',
-    description: '^fail',
-    pattern: () => ({ kind: PatternKind.Not, pattern: { kind: PatternKind.Fail }}),
-    input: [],
-  },
-  {
-    id: 'NOT02',
-    description: '^^ok',
+    id: "NOT00",
+    description: "^ok",
     pattern: () => ({
       kind: PatternKind.Not,
-      pattern: {
-        kind: PatternKind.Not,
-        pattern: { kind: PatternKind.Ok }
-      }
+      pattern: { kind: PatternKind.Ok },
+    }),
+    input: [],
+    matched: false,
+  },
+  {
+    id: "NOT01",
+    description: "^fail",
+    pattern: () => ({
+      kind: PatternKind.Not,
+      pattern: { kind: PatternKind.Fail },
     }),
     input: [],
   },
   {
-    id: 'NOT03',
-    description: '^fail',
-    pattern: () => ({ kind: PatternKind.Not, pattern: { kind: PatternKind.Fail }}),
-    input: 'a',
+    id: "NOT02",
+    description: "^^ok",
+    pattern: () => ({
+      kind: PatternKind.Not,
+      pattern: {
+        kind: PatternKind.Not,
+        pattern: { kind: PatternKind.Ok },
+      },
+    }),
+    input: [],
+  },
+  {
+    id: "NOT03",
+    description: "^fail",
+    pattern: () => ({
+      kind: PatternKind.Not,
+      pattern: { kind: PatternKind.Fail },
+    }),
+    input: "a",
     done: false,
-  }
-])
+  },
+]);

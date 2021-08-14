@@ -1,6 +1,6 @@
-import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
-import { ExpressionKind } from '../../runtime/expressions/mod.ts'
-import { LangPatternKind } from './lang.pattern.ts'
+import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
+import { ExpressionKind } from "../../runtime/expressions/mod.ts";
+import { LangPatternKind } from "./lang.pattern.ts";
 
 export const ObjectKeyVariablePattern: Pattern = {
   kind: PatternKind.Rule,
@@ -12,35 +12,35 @@ export const ObjectKeyVariablePattern: Pattern = {
         {
           kind: PatternKind.Object,
           keys: {
-            type: { kind: PatternKind.Equal, value: 'Identifier' },
+            type: { kind: PatternKind.Equal, value: "Identifier" },
             value: {
               kind: PatternKind.Variable,
-              name: 'alias',
-              pattern: { kind: PatternKind.String }
-            }
-          }
+              name: "alias",
+              pattern: { kind: PatternKind.String },
+            },
+          },
         },
         {
           kind: PatternKind.Object,
           keys: {
-            type: { kind: PatternKind.Equal, value: 'Token' },
-            value: { kind: PatternKind.Equal, value: ':' },
-          }
+            type: { kind: PatternKind.Equal, value: "Token" },
+            value: { kind: PatternKind.Equal, value: ":" },
+          },
         },
         {
           kind: PatternKind.Object,
           keys: {
-            type: { kind: PatternKind.Equal, value: 'Identifier' },
+            type: { kind: PatternKind.Equal, value: "Identifier" },
             value: {
               kind: PatternKind.Variable,
-              name: 'name',
-              pattern: { kind: PatternKind.String }
-            }
-          }
+              name: "name",
+              pattern: { kind: PatternKind.String },
+            },
+          },
         },
         {
           kind: PatternKind.Variable,
-          name: 'must',
+          name: "must",
           pattern: {
             // must:'!'? -> !!_.length
             kind: PatternKind.Projection,
@@ -51,18 +51,18 @@ export const ObjectKeyVariablePattern: Pattern = {
               pattern: {
                 kind: PatternKind.Object,
                 keys: {
-                  type: { kind: PatternKind.Equal, value: 'Token' },
-                  value: { kind: PatternKind.Equal, value: '!' },
-                }
-              }
+                  type: { kind: PatternKind.Equal, value: "Token" },
+                  value: { kind: PatternKind.Equal, value: "!" },
+                },
+              },
             },
             expression: {
               kind: ExpressionKind.Native,
-              fn: ({ _ }) => !!_.length
-            }
-          }
-        }
-      ]
+              fn: ({ _ }) => !!_.length,
+            },
+          },
+        },
+      ],
     },
     expression: {
       kind: ExpressionKind.Native,
@@ -71,7 +71,7 @@ export const ObjectKeyVariablePattern: Pattern = {
         alias,
         name,
         must,
-      })
-    }
-  }
-}
+      }),
+    },
+  },
+};

@@ -1,10 +1,10 @@
-import { tests } from '../../test.ts'
-import { Meta } from '../meta.ts'
-import { PatternKind } from '../../runtime/patterns/mod.ts'
+import { tests } from "../../test.ts";
+import { Meta } from "../meta.ts";
+import { PatternKind } from "../../runtime/patterns/mod.ts";
 
-tests('parsers.compiler.thenpattern', () => [
+tests("parsers.compiler.thenpattern", () => [
   {
-    id: 'THENPATTERN00',
+    id: "THENPATTERN00",
     description: "a b",
     pattern: () => Meta,
     input: "x y",
@@ -13,13 +13,13 @@ tests('parsers.compiler.thenpattern', () => [
       patterns: [
         {
           kind: PatternKind.Reference,
-          name: 'x'
+          name: "x",
         },
         {
           kind: PatternKind.Reference,
-          name: 'y'
-        }
-      ]
-    }
-  }
-])
+          name: "y",
+        },
+      ],
+    },
+  },
+]);

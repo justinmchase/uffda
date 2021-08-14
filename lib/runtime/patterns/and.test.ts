@@ -1,18 +1,18 @@
-import { tests } from '../../test.ts'
-import { PatternKind } from './pattern.kind.ts'
+import { tests } from "../../test.ts";
+import { PatternKind } from "./pattern.kind.ts";
 
-tests('patterns.and', () => [
+tests("patterns.and", () => [
   {
-    id: 'AND00',
-    description: 'and pattern matches with single pattern',
+    id: "AND00",
+    description: "and pattern matches with single pattern",
     pattern: () => ({
       kind: PatternKind.And,
       patterns: [
-        { kind: PatternKind.Any }
-      ]
+        { kind: PatternKind.Any },
+      ],
     }),
-    input: 'a',
-    value: 'a',
+    input: "a",
+    value: "a",
   },
   {
     id: "AND01",
@@ -22,10 +22,10 @@ tests('patterns.and', () => [
       patterns: [
         { kind: PatternKind.Any },
         { kind: PatternKind.Any },
-      ]
+      ],
     }),
-    input: 'a',
-    value: 'a'
+    input: "a",
+    value: "a",
   },
   {
     id: "AND02",
@@ -37,14 +37,14 @@ tests('patterns.and', () => [
           kind: PatternKind.And,
           patterns: [
             { kind: PatternKind.Any },
-            { kind: PatternKind.Any }
-          ]
+            { kind: PatternKind.Any },
+          ],
         },
-        { kind: PatternKind.Any }
-      ]
+        { kind: PatternKind.Any },
+      ],
     }),
-    input: 'ab',
-    value: ['a', 'b']
+    input: "ab",
+    value: ["a", "b"],
   },
   {
     id: "AND03",
@@ -54,11 +54,11 @@ tests('patterns.and', () => [
       patterns: [
         { kind: PatternKind.RegExp, pattern: /b/ },
         { kind: PatternKind.RegExp, pattern: /a/ },
-      ]
+      ],
     }),
-    input: 'a',
+    input: "a",
     matched: false,
-    done: false
+    done: false,
   },
   {
     id: "AND04",
@@ -68,10 +68,10 @@ tests('patterns.and', () => [
       patterns: [
         { kind: PatternKind.RegExp, pattern: /b/ },
         { kind: PatternKind.RegExp, pattern: /a/ },
-      ]
+      ],
     }),
-    input: 'a',
+    input: "a",
     matched: false,
     done: false,
-  }
-])
+  },
+]);

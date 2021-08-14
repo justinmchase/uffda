@@ -1,5 +1,5 @@
-import { crypto } from '../../deps/std.ts'
-import { Pattern } from './patterns/mod.ts'
+import { crypto } from "../../deps/std.ts";
+import { Pattern } from "./patterns/mod.ts";
 
 const toHexString = (bytes: ArrayBuffer): string =>
   new Uint8Array(bytes).reduce(
@@ -8,8 +8,8 @@ const toHexString = (bytes: ArrayBuffer): string =>
   );
 
 export function hash(pattern: Pattern): string {
-  const inputString = JSON.stringify(pattern)
+  const inputString = JSON.stringify(pattern);
   const inputBytes = new TextEncoder().encode(inputString);
-  const h = crypto.subtle.digestSync("SHA-384", inputBytes) // todo: make it all async...
-  return toHexString(h)
+  const h = crypto.subtle.digestSync("SHA-384", inputBytes); // todo: make it all async...
+  return toHexString(h);
 }

@@ -1,60 +1,60 @@
-import { tests } from '../../test.ts'
-import { Tokenizer } from './mod.ts'
+import { tests } from "../../test.ts";
+import { Tokenizer } from "./mod.ts";
 
-tests('parsers.tokenizer', () => [
+tests("parsers.tokenizer", () => [
   {
-    id: 'TOKENIZER00',
-    description: 'succeeds on empty input',
+    id: "TOKENIZER00",
+    description: "succeeds on empty input",
     pattern: () => Tokenizer,
-    input: '',
+    input: "",
     value: [],
     matched: true,
     done: true,
   },
   {
-    id: 'TOKENIZER01',
-    description: 'succeeds on whitespace',
+    id: "TOKENIZER01",
+    description: "succeeds on whitespace",
     pattern: () => Tokenizer,
-    input: ' ',
+    input: " ",
     value: [
-      { type: 'Whitespace', value: ' ' },
+      { type: "Whitespace", value: " " },
     ],
     matched: true,
     done: true,
   },
   {
-    id: 'TOKENIZER02',
-    description: 'succeeds on multiple lines',
+    id: "TOKENIZER02",
+    description: "succeeds on multiple lines",
     pattern: () => Tokenizer,
-    input: '   \n   \n   ',
+    input: "   \n   \n   ",
     value: [
-      { type: 'Whitespace', value: '   ' },
-      { type: 'NewLine', value: '\n' },
-      { type: 'Whitespace', value: '   ' },
-      { type: 'NewLine', value: '\n' },
-      { type: 'Whitespace', value: '   ' },
-    ]
+      { type: "Whitespace", value: "   " },
+      { type: "NewLine", value: "\n" },
+      { type: "Whitespace", value: "   " },
+      { type: "NewLine", value: "\n" },
+      { type: "Whitespace", value: "   " },
+    ],
   },
   {
-    id: 'TOKENIZER03',
-    description: 'successfully parses expressions',
+    id: "TOKENIZER03",
+    description: "successfully parses expressions",
     pattern: () => Tokenizer,
-    input: 'x + y - 1 -> $0',
+    input: "x + y - 1 -> $0",
     value: [
-      { type: 'Identifier', value: 'x' },
-      { type: 'Whitespace', value: ' ' },
-      { type: 'Token', value: '+' },
-      { type: 'Whitespace', value: ' ' },
-      { type: 'Identifier', value: 'y' },
-      { type: 'Whitespace', value: ' ' },
-      { type: 'Token', value: '-' },
-      { type: 'Whitespace', value: ' ' },
-      { type: 'Integer', value: 1 },
-      { type: 'Whitespace', value: ' ' },
-      { type: 'Token', value: '-' },
-      { type: 'Token', value: '>' },
-      { type: 'Whitespace', value: ' ' },
-      { type: 'SpecialIdentifier', value: '$0' },
-    ]
+      { type: "Identifier", value: "x" },
+      { type: "Whitespace", value: " " },
+      { type: "Token", value: "+" },
+      { type: "Whitespace", value: " " },
+      { type: "Identifier", value: "y" },
+      { type: "Whitespace", value: " " },
+      { type: "Token", value: "-" },
+      { type: "Whitespace", value: " " },
+      { type: "Integer", value: 1 },
+      { type: "Whitespace", value: " " },
+      { type: "Token", value: "-" },
+      { type: "Token", value: ">" },
+      { type: "Whitespace", value: " " },
+      { type: "SpecialIdentifier", value: "$0" },
+    ],
   },
-])
+]);

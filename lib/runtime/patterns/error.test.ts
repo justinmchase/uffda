@@ -1,57 +1,57 @@
-import { tests } from '../../test.ts'
-import { PatternKind } from './pattern.kind.ts'
+import { tests } from "../../test.ts";
+import { PatternKind } from "./pattern.kind.ts";
 
-tests('patterns.error', () => [
+tests("patterns.error", () => [
   {
-    id: 'ERROR00',
+    id: "ERROR00",
     description: "~'a'",
     pattern: () => ({
       kind: PatternKind.ErrorUntil,
       pattern: {
         kind: PatternKind.Equal,
-        value: 'a'
-      }
+        value: "a",
+      },
     }),
-    input: '',
+    input: "",
     matched: false,
     errors: [
-      { start: '-1', end: '-1' }
-    ]
+      { start: "-1", end: "-1" },
+    ],
   },
   {
-    id: 'ERROR01',
+    id: "ERROR01",
     description: "~'c'",
     pattern: () => ({
       kind: PatternKind.ErrorUntil,
       pattern: {
         kind: PatternKind.Equal,
-        value: 'c'
-      }
+        value: "c",
+      },
     }),
-    input: 'abc',
+    input: "abc",
     errors: [
-      { start: '-1', end: '1' }
-    ]
+      { start: "-1", end: "1" },
+    ],
   },
   {
-    id: 'ERROR02',
+    id: "ERROR02",
     description: "~'c'",
     pattern: () => ({
       kind: PatternKind.ErrorUntil,
       pattern: {
         kind: PatternKind.Equal,
-        value: 'c'
-      }
+        value: "c",
+      },
     }),
-    input: 'ab',
+    input: "ab",
     matched: false,
     done: false,
     errors: [
-      { start: '-1', end: '1' }
-    ]
+      { start: "-1", end: "1" },
+    ],
   },
   {
-    id: 'ERROR03',
+    id: "ERROR03",
     description: "~',' ~','",
     pattern: () => ({
       kind: PatternKind.Then,
@@ -60,27 +60,27 @@ tests('patterns.error', () => [
           kind: PatternKind.ErrorUntil,
           pattern: {
             kind: PatternKind.Equal,
-            value: ','
-          }
+            value: ",",
+          },
         },
         {
           kind: PatternKind.ErrorUntil,
           pattern: {
             kind: PatternKind.Equal,
-            value: ','
-          }
-        }
-      ]
+            value: ",",
+          },
+        },
+      ],
     }),
-    input: 'a,b,',
+    input: "a,b,",
     value: [undefined, undefined],
     errors: [
-      { start: '-1', end: '0' },
-      { start: '1', end: '2' },
-    ]
+      { start: "-1", end: "0" },
+      { start: "1", end: "2" },
+    ],
   },
   {
-    id: 'ERRO3.1',
+    id: "ERRO3.1",
     description: "~',' ';'",
     pattern: () => ({
       kind: PatternKind.Then,
@@ -89,24 +89,24 @@ tests('patterns.error', () => [
           kind: PatternKind.ErrorUntil,
           pattern: {
             kind: PatternKind.Equal,
-            value: ','
-          }
+            value: ",",
+          },
         },
         {
           kind: PatternKind.Equal,
-          value: ';',
-        }
-      ]
+          value: ";",
+        },
+      ],
     }),
-    input: 'a,;',
-    value: [undefined, ';'],
+    input: "a,;",
+    value: [undefined, ";"],
     errors: [
-      { start: '-1', end: '0' }
-    ]
+      { start: "-1", end: "0" },
+    ],
   },
   {
-    id: 'ERROR04',
-    description: '~).|~);',
+    id: "ERROR04",
+    description: "~).|~);",
     pattern: () => ({
       kind: PatternKind.Or,
       patterns: [
@@ -117,14 +117,14 @@ tests('patterns.error', () => [
               kind: PatternKind.ErrorUntil,
               pattern: {
                 kind: PatternKind.Equal,
-                value: ')'
-              }
+                value: ")",
+              },
             },
             {
               kind: PatternKind.Equal,
-              value: '.'
-            }
-          ]
+              value: ".",
+            },
+          ],
         },
         {
           kind: PatternKind.Then,
@@ -133,27 +133,27 @@ tests('patterns.error', () => [
               kind: PatternKind.ErrorUntil,
               pattern: {
                 kind: PatternKind.Equal,
-                value: ')'
-              }
+                value: ")",
+              },
             },
             {
               kind: PatternKind.Equal,
-              value: ';'
-            }
-          ]
+              value: ";",
+            },
+          ],
         },
-      ]
+      ],
     }),
     // This should match the second or clause
     // While both clauses will generate errors, only one error should make it through
-    input: '(abc);',
-    value: [undefined, ';'],
+    input: "(abc);",
+    value: [undefined, ";"],
     errors: [
-      { start: '-1', end: '3' },
-    ]
+      { start: "-1", end: "3" },
+    ],
   },
   {
-    id: 'ERROR05',
+    id: "ERROR05",
     description: "~';' & ~';'",
     pattern: () => ({
       kind: PatternKind.And,
@@ -162,27 +162,27 @@ tests('patterns.error', () => [
           kind: PatternKind.ErrorUntil,
           pattern: {
             kind: PatternKind.Equal,
-            value: ';'
-          }
+            value: ";",
+          },
         },
         {
           kind: PatternKind.ErrorUntil,
           pattern: {
             kind: PatternKind.Equal,
-            value: ';'
-          }
-        }
-      ]
+            value: ";",
+          },
+        },
+      ],
     }),
     // Each clause should generate an error and all should be propagated
-    input: 'a;',
+    input: "a;",
     errors: [
-      { start: '-1', end: '0' },
-      { start: '-1', end: '0' },
-    ]
+      { start: "-1", end: "0" },
+      { start: "-1", end: "0" },
+    ],
   },
   {
-    id: 'ERROR06',
+    id: "ERROR06",
     description: "[~';']",
     pattern: () => ({
       kind: PatternKind.Array,
@@ -190,18 +190,18 @@ tests('patterns.error', () => [
         kind: PatternKind.ErrorUntil,
         pattern: {
           kind: PatternKind.Equal,
-          value: ';'
-        }
-      }
+          value: ";",
+        },
+      },
     }),
     // Each clause should generate an error and all should be propagated
-    input: [['a', ';']],
+    input: [["a", ";"]],
     errors: [
-      { start: '0.-1', end: '0.0' },
-    ]
+      { start: "0.-1", end: "0.0" },
+    ],
   },
   {
-    id: 'ERROR07',
+    id: "ERROR07",
     description: "{ A = ~';'}",
     pattern: () => ({
       kind: PatternKind.Block,
@@ -210,19 +210,19 @@ tests('patterns.error', () => [
           kind: PatternKind.ErrorUntil,
           pattern: {
             kind: PatternKind.Equal,
-            value: ';'
-          }
-        }
-      }
+            value: ";",
+          },
+        },
+      },
     }),
     // Each clause should generate an error and all should be propagated
-    input: 'a;',
+    input: "a;",
     errors: [
-      { start: '-1', end: '0' },
-    ]
+      { start: "-1", end: "0" },
+    ],
   },
   {
-    id: 'ERROR08',
+    id: "ERROR08",
     description: "^~';'",
     pattern: () => ({
       kind: PatternKind.Not,
@@ -230,17 +230,17 @@ tests('patterns.error', () => [
         kind: PatternKind.ErrorUntil,
         pattern: {
           kind: PatternKind.Equal,
-          value: ';'
-        }
-      }
+          value: ";",
+        },
+      },
     }),
-    input: 'a;',
+    input: "a;",
     matched: false,
     done: false,
-    errors: []
+    errors: [],
   },
   {
-    id: 'ERROR08',
+    id: "ERROR08",
     description: "^~';'",
     pattern: () => ({
       kind: PatternKind.Not,
@@ -251,24 +251,24 @@ tests('patterns.error', () => [
             kind: PatternKind.ErrorUntil,
             pattern: {
               kind: PatternKind.Equal,
-              value: 'c'
-            }
+              value: "c",
+            },
           },
           {
             kind: PatternKind.Equal,
-            value: ';'
-          }
-        ]
-      }
+            value: ";",
+          },
+        ],
+      },
     }),
-    input: 'abc',
+    input: "abc",
     done: false,
     errors: [
-      { start: '-1', end: '1' }
-    ]
+      { start: "-1", end: "1" },
+    ],
   },
   {
-    id: 'ERROR09',
+    id: "ERROR09",
     description: "{ x = ~';' }",
     pattern: () => ({
       kind: PatternKind.Object,
@@ -279,20 +279,20 @@ tests('patterns.error', () => [
             kind: PatternKind.ErrorUntil,
             pattern: {
               kind: PatternKind.Equal,
-              value: ';'
-            }
-          }
-        }
-      }
+              value: ";",
+            },
+          },
+        },
+      },
     }),
-    input: [{ x: ['a', ';'] }],
-    value: { x: ['a', ';'] },
+    input: [{ x: ["a", ";"] }],
+    value: { x: ["a", ";"] },
     errors: [
-      { start: '0.x.-1', end: '0.x.0' }
-    ]
+      { start: "0.x.-1", end: "0.x.0" },
+    ],
   },
   {
-    id: 'ERROR10',
+    id: "ERROR10",
     description: "~';' > 'a' ';'",
     pattern: () => ({
       kind: PatternKind.Pipeline,
@@ -301,26 +301,26 @@ tests('patterns.error', () => [
           kind: PatternKind.ErrorUntil,
           pattern: {
             kind: PatternKind.Equal,
-            value: ';'
-          }
+            value: ";",
+          },
         },
         {
           kind: PatternKind.Then,
           patterns: [
-            { kind: PatternKind.Equal, value: 'a' },
-            { kind: PatternKind.Equal, value: ';' },
-          ]
-        }
-      ]
+            { kind: PatternKind.Equal, value: "a" },
+            { kind: PatternKind.Equal, value: ";" },
+          ],
+        },
+      ],
     }),
-    input: 'a;',
+    input: "a;",
     matched: false,
     errors: [
-      { start: '-1.(0).-1', end: '-1.(0).0' }
-    ]
+      { start: "-1.(0).-1", end: "-1.(0).0" },
+    ],
   },
   {
-    id: 'ERROR10',
+    id: "ERROR10",
     description: "'a' ';' > ~';'",
     pattern: () => ({
       kind: PatternKind.Pipeline,
@@ -328,23 +328,23 @@ tests('patterns.error', () => [
         {
           kind: PatternKind.Then,
           patterns: [
-            { kind: PatternKind.Equal, value: 'a' },
-            { kind: PatternKind.Equal, value: ';' },
-          ]
+            { kind: PatternKind.Equal, value: "a" },
+            { kind: PatternKind.Equal, value: ";" },
+          ],
         },
         {
           kind: PatternKind.ErrorUntil,
           pattern: {
             kind: PatternKind.Equal,
-            value: ';'
-          }
+            value: ";",
+          },
         },
-      ]
+      ],
     }),
-    input: 'a;',
+    input: "a;",
     matched: false,
     errors: [
-      { start: '-1.(1).-1', end: '-1.(1).0' }
-    ]
+      { start: "-1.(1).-1", end: "-1.(1).0" },
+    ],
   },
-])
+]);

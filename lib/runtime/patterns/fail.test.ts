@@ -1,13 +1,13 @@
-import { tests } from '../../test.ts'
-import { PatternKind } from './pattern.kind.ts'
+import { tests } from "../../test.ts";
+import { PatternKind } from "./pattern.kind.ts";
 
-tests('patterns.fail', () => [
+tests("patterns.fail", () => [
   {
-    id: 'FAIL00',
-    description: 'fail pattern fails',
+    id: "FAIL00",
+    description: "fail pattern fails",
     pattern: () => ({ kind: PatternKind.Fail }),
-    input: 'a',
+    input: "a",
     matched: false,
-    done: false
-  }
-])
+    done: false,
+  },
+]);

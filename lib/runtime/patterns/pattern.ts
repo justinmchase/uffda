@@ -1,8 +1,8 @@
-import { Expression } from '../expressions/mod.ts'
-import { PatternKind } from './pattern.kind.ts'
+import { Expression } from "../expressions/mod.ts";
+import { PatternKind } from "./pattern.kind.ts";
 
-export type Pattern
-  = IAnyPattern
+export type Pattern =
+  | IAnyPattern
   | IAndPattern
   | IArrayPattern
   | IBlockPattern
@@ -25,99 +25,99 @@ export type Pattern
   | ISlicePattern
   | IStringPattern
   | IThenPattern
-  | IVariablePattern
+  | IVariablePattern;
 
 export interface IAnyPattern {
-  kind: PatternKind.Any
+  kind: PatternKind.Any;
 }
 export interface IAndPattern {
-  kind: PatternKind.And,
-  patterns: Pattern[]
+  kind: PatternKind.And;
+  patterns: Pattern[];
 }
 export interface IArrayPattern {
-  kind: PatternKind.Array,
-  pattern: Pattern
+  kind: PatternKind.Array;
+  pattern: Pattern;
 }
 export interface IBlockPattern {
-  kind: PatternKind.Block,
-  variables: Record<string, Pattern>
+  kind: PatternKind.Block;
+  variables: Record<string, Pattern>;
 }
 export interface IBooleanPattern {
-  kind: PatternKind.Boolean
+  kind: PatternKind.Boolean;
 }
 export interface IEqualPattern {
-  kind: PatternKind.Equal,
-  value: unknown
+  kind: PatternKind.Equal;
+  value: unknown;
 }
 export interface IErrorUntilPattern {
-  kind: PatternKind.ErrorUntil,
-  pattern: Pattern
+  kind: PatternKind.ErrorUntil;
+  pattern: Pattern;
 }
 export interface IFailPattern {
-  kind: PatternKind.Fail
+  kind: PatternKind.Fail;
 }
 export interface IIncludesPattern {
-  kind: PatternKind.Includes
-  values: unknown[]
+  kind: PatternKind.Includes;
+  values: unknown[];
 }
 export interface IMustPattern {
-  kind: PatternKind.Must
-  pattern: Pattern
+  kind: PatternKind.Must;
+  pattern: Pattern;
 }
 export interface INotPattern {
-  kind: PatternKind.Not
-  pattern: Pattern
+  kind: PatternKind.Not;
+  pattern: Pattern;
 }
 export interface INumberPattern {
-  kind: PatternKind.Number
+  kind: PatternKind.Number;
 }
 export interface IObjectPattern {
-  kind: PatternKind.Object
+  kind: PatternKind.Object;
   keys?: Record<string, Pattern>;
 }
 export interface IOkPattern {
-  kind: PatternKind.Ok
+  kind: PatternKind.Ok;
 }
 export interface IOrPattern {
-  kind: PatternKind.Or
-  patterns: Pattern[]
+  kind: PatternKind.Or;
+  patterns: Pattern[];
 }
 export interface IPipelinePattern {
-  kind: PatternKind.Pipeline
-  steps: Pattern[]
+  kind: PatternKind.Pipeline;
+  steps: Pattern[];
 }
 export interface IProjectionPattern {
-  kind: PatternKind.Projection
-  pattern: Pattern
-  expression: Expression
+  kind: PatternKind.Projection;
+  pattern: Pattern;
+  expression: Expression;
 }
 export interface IReferencePattern {
-  kind: PatternKind.Reference
-  name: string
+  kind: PatternKind.Reference;
+  name: string;
 }
 export interface IRegExpPattern {
-  kind: PatternKind.RegExp
-  pattern: RegExp
+  kind: PatternKind.RegExp;
+  pattern: RegExp;
 }
 export interface IRulePattern {
-  kind: PatternKind.Rule
-  pattern: Pattern
+  kind: PatternKind.Rule;
+  pattern: Pattern;
 }
 export interface ISlicePattern {
-  kind: PatternKind.Slice
-  pattern: Pattern
-  min?: number
-  max?: number
+  kind: PatternKind.Slice;
+  pattern: Pattern;
+  min?: number;
+  max?: number;
 }
 export interface IStringPattern {
-  kind: PatternKind.String
+  kind: PatternKind.String;
 }
 export interface IThenPattern {
-  kind: PatternKind.Then
-  patterns: Pattern[]
+  kind: PatternKind.Then;
+  patterns: Pattern[];
 }
 export interface IVariablePattern {
-  kind: PatternKind.Variable
-  name: string
-  pattern: Pattern
+  kind: PatternKind.Variable;
+  name: string;
+  pattern: Pattern;
 }

@@ -1,15 +1,13 @@
-import { Scope } from '../scope.ts'
-import { Match } from '../match.ts'
+import { Scope } from "../scope.ts";
+import { Match } from "../match.ts";
 import {
-  Pattern,
-  PatternKind,
   and,
   any,
   array,
   block,
   bool,
-  error,
   equal,
+  error,
   fail,
   includes,
   must,
@@ -18,6 +16,8 @@ import {
   object,
   ok,
   or,
+  Pattern,
+  PatternKind,
   pipeline,
   projection,
   reference,
@@ -27,58 +27,58 @@ import {
   string,
   then,
   variable,
-} from './patterns/mod.ts'
+} from "./patterns/mod.ts";
 
 export function match(pattern: Pattern, scope: Scope): Match {
   // console.log(`${pattern.kind}@${scope.stream.path}: ${Deno.inspect(scope.stream.value, { colors: true })}`)
-  switch(pattern.kind) {
+  switch (pattern.kind) {
     case PatternKind.And:
-      return and(pattern, scope)
+      return and(pattern, scope);
     case PatternKind.Any:
-      return any(scope)
+      return any(scope);
     case PatternKind.Array:
-      return array(pattern, scope)
+      return array(pattern, scope);
     case PatternKind.Block:
-      return block(pattern, scope)
+      return block(pattern, scope);
     case PatternKind.Boolean:
-      return bool(scope)
+      return bool(scope);
     case PatternKind.ErrorUntil:
-      return error(pattern, scope)
+      return error(pattern, scope);
     case PatternKind.Equal:
-      return equal(pattern, scope)
+      return equal(pattern, scope);
     case PatternKind.Fail:
-      return fail(scope)
+      return fail(scope);
     case PatternKind.Includes:
-      return includes(pattern, scope)
+      return includes(pattern, scope);
     case PatternKind.Must:
-      return must(pattern, scope)
+      return must(pattern, scope);
     case PatternKind.Not:
-      return not(pattern, scope)
+      return not(pattern, scope);
     case PatternKind.Number:
-      return number(scope)
+      return number(scope);
     case PatternKind.Object:
-      return object(pattern, scope)
+      return object(pattern, scope);
     case PatternKind.Ok:
-      return ok(scope)
+      return ok(scope);
     case PatternKind.Or:
-      return or(pattern, scope)
+      return or(pattern, scope);
     case PatternKind.Pipeline:
-      return pipeline(pattern, scope)
+      return pipeline(pattern, scope);
     case PatternKind.Projection:
-      return projection(pattern, scope)
+      return projection(pattern, scope);
     case PatternKind.Reference:
-      return reference(pattern, scope)
+      return reference(pattern, scope);
     case PatternKind.RegExp:
-      return regexp(pattern, scope)
+      return regexp(pattern, scope);
     case PatternKind.Rule:
-      return rule(pattern, scope)
+      return rule(pattern, scope);
     case PatternKind.Slice:
-      return slice(pattern, scope)
+      return slice(pattern, scope);
     case PatternKind.String:
-      return string(scope)
+      return string(scope);
     case PatternKind.Then:
-      return then(pattern, scope)
+      return then(pattern, scope);
     case PatternKind.Variable:
-      return variable(pattern, scope)
+      return variable(pattern, scope);
   }
 }

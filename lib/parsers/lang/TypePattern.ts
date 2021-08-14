@@ -1,6 +1,6 @@
-import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
-import { ExpressionKind } from '../../runtime/expressions/mod.ts'
-import { LangPatternKind } from './lang.pattern.ts'
+import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
+import { ExpressionKind } from "../../runtime/expressions/mod.ts";
+import { LangPatternKind } from "./lang.pattern.ts";
 
 // This matches quoted string literals "abc" and turns them into equality matches for that string literal
 export const TypePattern: Pattern = {
@@ -13,39 +13,39 @@ export const TypePattern: Pattern = {
         pattern: {
           kind: PatternKind.Object,
           keys: {
-            type: { kind: PatternKind.Equal, value: 'Identifier' },
+            type: { kind: PatternKind.Equal, value: "Identifier" },
             value: {
               kind: PatternKind.Equal,
-              value: 'string'
-            }
-          }
+              value: "string",
+            },
+          },
         },
         expression: {
           kind: ExpressionKind.Native,
           fn: () => ({
             kind: LangPatternKind.StringPattern,
-          })
-        }
+          }),
+        },
       },
       {
         kind: PatternKind.Projection,
         pattern: {
           kind: PatternKind.Object,
           keys: {
-            type: { kind: PatternKind.Equal, value: 'Identifier' },
+            type: { kind: PatternKind.Equal, value: "Identifier" },
             value: {
               kind: PatternKind.Equal,
-              value: 'boolean'
-            }
-          }
+              value: "boolean",
+            },
+          },
         },
         expression: {
           kind: ExpressionKind.Native,
           fn: () => ({
             kind: LangPatternKind.BooleanPattern,
-          })
-        }
-      }
-    ]
-  }
-}
+          }),
+        },
+      },
+    ],
+  },
+};

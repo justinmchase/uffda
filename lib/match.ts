@@ -1,5 +1,5 @@
 // import { Pattern } from './patterns/mod.ts'
-import { Scope } from './scope.ts'
+import { Scope } from "./scope.ts";
 
 export class MatchError {
   constructor(
@@ -9,12 +9,24 @@ export class MatchError {
 }
 
 export class Match {
-
-  public static readonly Default = (scope: Scope) => new Match(true, false, scope, scope, undefined, [])
-  public static readonly Ok = (start: Scope, end: Scope, value: unknown, errors: MatchError[] = []) => new Match(true, false, start, end, value, errors)
-  public static readonly LR = (scope: Scope) => new Match(false, true, scope, scope, undefined, [])
-  public static readonly Fail = (scope: Scope) => new Match(false, false, scope, scope, undefined, [])
-  public static readonly Incomplete = (start: Scope, end: Scope, value: unknown, errors: MatchError[]) => new Match(false, false, start, end, value, errors)
+  public static readonly Default = (scope: Scope) =>
+    new Match(true, false, scope, scope, undefined, []);
+  public static readonly Ok = (
+    start: Scope,
+    end: Scope,
+    value: unknown,
+    errors: MatchError[] = [],
+  ) => new Match(true, false, start, end, value, errors);
+  public static readonly LR = (scope: Scope) =>
+    new Match(false, true, scope, scope, undefined, []);
+  public static readonly Fail = (scope: Scope) =>
+    new Match(false, false, scope, scope, undefined, []);
+  public static readonly Incomplete = (
+    start: Scope,
+    end: Scope,
+    value: unknown,
+    errors: MatchError[],
+  ) => new Match(false, false, start, end, value, errors);
 
   constructor(
     public readonly matched: boolean,
@@ -24,11 +36,10 @@ export class Match {
     public readonly value: unknown,
     public readonly errors: MatchError[],
   ) {
-
   }
 
   public get done() {
-    return this.end.stream.done
+    return this.end.stream.done;
   }
 
   public endRecursion() {
@@ -38,8 +49,8 @@ export class Match {
       this.start,
       this.end,
       this.value,
-      this.errors
-    )
+      this.errors,
+    );
   }
 
   public setValue(value: unknown) {
@@ -50,7 +61,7 @@ export class Match {
       this.end,
       value,
       this.errors,
-    )
+    );
   }
 
   public setVariables(variables: Record<PropertyKey, unknown>) {
@@ -61,7 +72,7 @@ export class Match {
       this.end.setVariables(variables),
       this.value,
       this.errors,
-    )
+    );
   }
 
   public setMemo(key: string, pattern: unknown /*Pattern*/) {
@@ -72,7 +83,7 @@ export class Match {
       this.end.setMemo(key, pattern, this),
       this.value,
       this.errors,
-    )
+    );
   }
 
   public pushError(start: Scope, end: Scope) {
@@ -82,11 +93,14 @@ export class Match {
       this.start,
       this.end,
       this.value,
-      [...this.errors, new MatchError(
-        start,
-        end
-      )]
-    )
+      [
+        ...this.errors,
+        new MatchError(
+          start,
+          end,
+        ),
+      ],
+    );
   }
 
   public setErrors(errors: MatchError[]) {
@@ -97,7 +111,7 @@ export class Match {
       this.end,
       this.value,
       [...errors],
-    )
+    );
   }
 
   public popRule(scope: Scope) {
@@ -108,7 +122,7 @@ export class Match {
       this.end.popRule(scope),
       this.value,
       this.errors,
-    )
+    );
   }
 
   public popBlock() {
@@ -119,7 +133,7 @@ export class Match {
       this.end.pop(),
       this.value,
       this.errors,
-    )
+    );
   }
 
   public popRef(scope: Scope) {
@@ -130,7 +144,7 @@ export class Match {
       this.end.popRef(scope),
       this.value,
       this.errors,
-    )
+    );
   }
 
   public setEnd(end: Scope) {
@@ -141,6 +155,6 @@ export class Match {
       end,
       this.value,
       this.errors,
-    )
+    );
   }
 }

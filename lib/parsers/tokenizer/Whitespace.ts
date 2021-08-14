@@ -1,5 +1,5 @@
-import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
-import { ExpressionKind } from '../../runtime/expressions/mod.ts'
+import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
+import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 
 export const Whitespace: Pattern = {
   kind: PatternKind.Projection,
@@ -8,11 +8,11 @@ export const Whitespace: Pattern = {
     min: 1,
     pattern: {
       kind: PatternKind.RegExp,
-      pattern: /^[^\S\r\n]$/
-    }
+      pattern: /^[^\S\r\n]$/,
+    },
   },
   expression: {
     kind: ExpressionKind.Native,
-    fn: ({ _ }) => _.join('')
-  }
-}
+    fn: ({ _ }) => _.join(""),
+  },
+};

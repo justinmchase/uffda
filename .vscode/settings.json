@@ -11,13 +11,13 @@
   },
   // Formatting Options - Remove Prettier
   "[typescript]": {
-    "editor.formatOnSave": false,
+    "editor.formatOnSave": false
   },
   "eslint.validate": [
     "javascript",
     "javascriptreact",
     "typescript",
-    "typescriptreact",
+    "typescriptreact"
   ],
   "typescript.tsdk": "node_modules/typescript/lib",
   "editor.codeActionsOnSave": {
@@ -28,5 +28,5 @@
   "deno.unstable": true,
   "deno.suggest.imports.hosts": {
     "https://deno.land": false
-  },
+  }
 }

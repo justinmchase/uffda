@@ -1,13 +1,13 @@
-import { tests } from '../../test.ts'
-import { Meta } from '../meta.ts'
-import { PatternKind } from '../../runtime/patterns/mod.ts'
+import { tests } from "../../test.ts";
+import { Meta } from "../meta.ts";
+import { PatternKind } from "../../runtime/patterns/mod.ts";
 
-tests('parsers.compiler.patterndeclaration', () => [
+tests("parsers.compiler.patterndeclaration", () => [
   {
-    id: 'PATTERNDECLARATION00',
-    description: 'X = ok',
+    id: "PATTERNDECLARATION00",
+    description: "X = ok",
     pattern: () => Meta,
-    input: 'X = ok;',
+    input: "X = ok;",
     value: {
       kind: PatternKind.Block,
       variables: {
@@ -15,9 +15,9 @@ tests('parsers.compiler.patterndeclaration', () => [
           kind: PatternKind.Rule,
           pattern: {
             kind: PatternKind.Ok,
-          }
-        }
-      }
-    }
-  }
-])
+          },
+        },
+      },
+    },
+  },
+]);

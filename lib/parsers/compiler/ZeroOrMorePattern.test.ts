@@ -1,10 +1,10 @@
-import { tests } from '../../test.ts'
-import { Meta } from '../meta.ts'
-import { PatternKind } from '../../runtime/patterns/mod.ts'
+import { tests } from "../../test.ts";
+import { Meta } from "../meta.ts";
+import { PatternKind } from "../../runtime/patterns/mod.ts";
 
-tests('parsers.compiler.variablepattern', () => [
+tests("parsers.compiler.variablepattern", () => [
   {
-    id: 'ZEROORMORE00',
+    id: "ZEROORMORE00",
     description: "x*",
     pattern: () => Meta,
     input: "x*",
@@ -13,8 +13,8 @@ tests('parsers.compiler.variablepattern', () => [
       min: 0,
       pattern: {
         kind: PatternKind.Reference,
-        name: 'x'
-      }
-    }
-  }
-])
+        name: "x",
+      },
+    },
+  },
+]);

@@ -1,33 +1,33 @@
-import { tests } from '../../test.ts'
-import { String } from './String.ts'
+import { tests } from "../../test.ts";
+import { String } from "./String.ts";
 
-tests('parsers.tokenizer.stringpattern', () => [
+tests("parsers.tokenizer.stringpattern", () => [
   {
-    id: 'STRING00',
-    description: 'can parse empty single quote string',
+    id: "STRING00",
+    description: "can parse empty single quote string",
     pattern: () => String,
-    input: '\'\'',
-    value: ''
+    input: "''",
+    value: "",
   },
   {
-    id: 'STRING01',
-    description: 'can parse single quote string',
+    id: "STRING01",
+    description: "can parse single quote string",
     pattern: () => String,
-    input: '\'a\'',
-    value: 'a',
+    input: "'a'",
+    value: "a",
   },
   {
-    id: 'STRING02',
-    description: 'can parse single quote string with multiple characters',
+    id: "STRING02",
+    description: "can parse single quote string with multiple characters",
     pattern: () => String,
-    input: '\'abc\'',
-    value: 'abc',
+    input: "'abc'",
+    value: "abc",
   },
   {
-    id: 'STRING03',
-    description: 'can parse string with escaped single-quote',
+    id: "STRING03",
+    description: "can parse string with escaped single-quote",
     pattern: () => String,
-    input: '\'abc\\\'xyz\'',
-    value: 'abc\'xyz'
-  }
-])
+    input: "'abc\\'xyz'",
+    value: "abc'xyz",
+  },
+]);

@@ -1,6 +1,6 @@
-import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
-import { ExpressionKind } from '../../runtime/expressions/mod.ts'
-import { LangPatternKind } from './lang.pattern.ts'
+import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
+import { ExpressionKind } from "../../runtime/expressions/mod.ts";
+import { LangPatternKind } from "./lang.pattern.ts";
 
 export const MustPattern: Pattern = {
   kind: PatternKind.Rule,
@@ -14,33 +14,33 @@ export const MustPattern: Pattern = {
           patterns: [
             {
               kind: PatternKind.Variable,
-              name: 'pattern',
+              name: "pattern",
               pattern: {
                 kind: PatternKind.Reference,
-                name: LangPatternKind.NotPattern
-              }
+                name: LangPatternKind.NotPattern,
+              },
             },
             {
               kind: PatternKind.Object,
               keys: {
-                type: { kind: PatternKind.Equal, value: 'Token' },
-                value: { kind: PatternKind.Equal, value: '!' },
-              }
+                type: { kind: PatternKind.Equal, value: "Token" },
+                value: { kind: PatternKind.Equal, value: "!" },
+              },
             },
-          ]
+          ],
         },
-        expression:{
+        expression: {
           kind: ExpressionKind.Native,
           fn: ({ pattern }) => ({
             kind: LangPatternKind.MustPattern,
-            pattern
-          })
-        }
+            pattern,
+          }),
+        },
       },
       {
         kind: PatternKind.Reference,
-        name: LangPatternKind.NotPattern
-      }
-    ]
-  }
-}
+        name: LangPatternKind.NotPattern,
+      },
+    ],
+  },
+};

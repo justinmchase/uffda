@@ -1,4 +1,3 @@
-
 export enum PatternKind {
   And = "and",
   Any = "any",
@@ -23,5 +22,5 @@ export enum PatternKind {
   Slice = "slice",
   String = "string",
   Then = "then",
-  Variable = "variable"
+  Variable = "variable",
 }

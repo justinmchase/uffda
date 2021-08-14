@@ -1,18 +1,18 @@
-import { tests } from '../../test.ts'
-import { PatternKind } from './pattern.kind.ts'
+import { tests } from "../../test.ts";
+import { PatternKind } from "./pattern.kind.ts";
 
-tests('patterns.reference', () => [
+tests("patterns.reference", () => [
   {
-    id: 'REFERENCE00',
-    description: 'can reference other pattern',
+    id: "REFERENCE00",
+    description: "can reference other pattern",
     pattern: () => ({
       kind: PatternKind.Block,
       variables: {
-        A: { kind: PatternKind.Equal, value: 'a' },
-        Main: { kind: PatternKind.Reference, name: 'A' },
-      }
+        A: { kind: PatternKind.Equal, value: "a" },
+        Main: { kind: PatternKind.Reference, name: "A" },
+      },
     }),
-    input: 'a',
-    value: 'a',
-  }
-])
+    input: "a",
+    value: "a",
+  },
+]);

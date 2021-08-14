@@ -1,1 +1,1 @@
-export * from "./Lang.ts"
+export * from "./Lang.ts";

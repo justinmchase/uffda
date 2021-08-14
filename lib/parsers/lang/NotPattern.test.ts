@@ -1,19 +1,19 @@
-import { tests } from '../../test.ts'
-import { TestLang } from './Lang.test.ts'
-import { LangPatternKind } from './lang.pattern.ts'
+import { tests } from "../../test.ts";
+import { TestLang } from "./Lang.test.ts";
+import { LangPatternKind } from "./lang.pattern.ts";
 
-tests('parsers.lang.not', () => [
+tests("parsers.lang.not", () => [
   {
-    id: 'NOT00',
-    description: '^x',
+    id: "NOT00",
+    description: "^x",
     pattern: () => TestLang,
-    input: '^x',
+    input: "^x",
     value: {
       kind: LangPatternKind.NotPattern,
       pattern: {
         kind: LangPatternKind.ReferencePattern,
-        name: 'x'
-      }
-    }
-  }
-])
+        name: "x",
+      },
+    },
+  },
+]);

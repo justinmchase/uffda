@@ -1,6 +1,6 @@
-import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
-import { ExpressionKind } from '../../runtime/expressions/mod.ts'
-import { LangPatternKind } from './lang.pattern.ts'
+import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
+import { ExpressionKind } from "../../runtime/expressions/mod.ts";
+import { LangPatternKind } from "./lang.pattern.ts";
 
 export const OrPattern: Pattern = {
   kind: PatternKind.Rule,
@@ -14,33 +14,36 @@ export const OrPattern: Pattern = {
           patterns: [
             {
               kind: PatternKind.Variable,
-              name: 'l',
-              pattern: { kind: PatternKind.Reference, name: 'OrPattern' }
+              name: "l",
+              pattern: { kind: PatternKind.Reference, name: "OrPattern" },
             },
             {
               kind: PatternKind.Object,
               keys: {
-                type: { kind: PatternKind.Equal, value: 'Token' },
-                value: { kind: PatternKind.Equal, value: '|' },
-              }
+                type: { kind: PatternKind.Equal, value: "Token" },
+                value: { kind: PatternKind.Equal, value: "|" },
+              },
             },
             {
               kind: PatternKind.Variable,
-              name: 'r',
-              pattern: { kind: PatternKind.Reference, name: 'ProjectionPattern' }
-            }
-          ]
+              name: "r",
+              pattern: {
+                kind: PatternKind.Reference,
+                name: "ProjectionPattern",
+              },
+            },
+          ],
         },
         expression: {
           kind: ExpressionKind.Native,
           fn: ({ l, r }) => ({
             kind: LangPatternKind.OrPattern,
             left: l,
-            right: r
+            right: r,
           }),
-        }
+        },
       },
-      { kind: PatternKind.Reference, name: 'ProjectionPattern' }
-    ]
-  }
-}
+      { kind: PatternKind.Reference, name: "ProjectionPattern" },
+    ],
+  },
+};

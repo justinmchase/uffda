@@ -1,44 +1,44 @@
-import { tests } from '../../test.ts'
-import { TestLang } from './Lang.test.ts'
-import { LangPatternKind } from './lang.pattern.ts'
+import { tests } from "../../test.ts";
+import { TestLang } from "./Lang.test.ts";
+import { LangPatternKind } from "./lang.pattern.ts";
 
-tests('.parsers.lang.ThenPattern', () => [
+tests(".parsers.lang.ThenPattern", () => [
   {
-    id: 'THEN01',
-    description: 'can parse x then y references',
+    id: "THEN01",
+    description: "can parse x then y references",
     pattern: () => TestLang,
-    input: 'x y',
+    input: "x y",
     value: {
       kind: LangPatternKind.ThenPattern,
       left: {
         kind: LangPatternKind.ReferencePattern,
-        name: 'x'
+        name: "x",
       },
       right: {
         kind: LangPatternKind.ReferencePattern,
-        name: 'y'
-      }
-    }
+        name: "y",
+      },
+    },
   },
   {
-    id: 'THEN02',
-    description: 'can parse variable string',
+    id: "THEN02",
+    description: "can parse variable string",
     pattern: () => TestLang,
-    input: 'x:y z',
+    input: "x:y z",
     value: {
       kind: LangPatternKind.ThenPattern,
       left: {
         kind: LangPatternKind.VariablePattern,
-        name: 'x',
+        name: "x",
         pattern: {
           kind: LangPatternKind.ReferencePattern,
-          name: 'y'
-        }
+          name: "y",
+        },
       },
       right: {
         kind: LangPatternKind.ReferencePattern,
-        name: 'z'
-      }
-    }
-  }
-])
+        name: "z",
+      },
+    },
+  },
+]);

@@ -1,8 +1,8 @@
-import { Pattern, PatternKind } from '../../runtime/patterns/mod.ts'
-import { ExpressionKind } from '../../runtime/expressions/mod.ts'
+import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
+import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 
 interface IExclusionArgs {
-  types: string[]
+  types: string[];
 }
 
 /**
@@ -11,7 +11,7 @@ interface IExclusionArgs {
  * `{ type: string }`
  */
 export function Exclude(args: IExclusionArgs): Pattern {
-  const { types } = args
+  const { types } = args;
   return {
     kind: PatternKind.Projection,
     pattern: {
@@ -26,22 +26,22 @@ export function Exclude(args: IExclusionArgs): Pattern {
               keys: {
                 type: {
                   kind: PatternKind.Includes,
-                  values: types
-                }
-              }
+                  values: types,
+                },
+              },
             },
             expression: {
               kind: ExpressionKind.Native,
-              fn: () => undefined
-            }
+              fn: () => undefined,
+            },
           },
-          { kind: PatternKind.Any }
-        ]
-      }
+          { kind: PatternKind.Any },
+        ],
+      },
     },
     expression: {
       kind: ExpressionKind.Native,
-      fn: ({ _ }) => _.filter((n: unknown) => n)
-    }
-  }
+      fn: ({ _ }) => _.filter((n: unknown) => n),
+    },
+  };
 }

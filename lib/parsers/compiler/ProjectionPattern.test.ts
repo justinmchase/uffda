@@ -1,24 +1,24 @@
-import { tests } from '../../test.ts'
-import { Meta } from '../meta.ts'
-import { PatternKind } from '../../runtime/patterns/mod.ts'
-import { ExpressionKind } from '../../runtime/expressions/mod.ts'
+import { tests } from "../../test.ts";
+import { Meta } from "../meta.ts";
+import { PatternKind } from "../../runtime/patterns/mod.ts";
+import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 
-tests('parsers.compiler.projectionpattern', () => [
+tests("parsers.compiler.projectionpattern", () => [
   {
-    id: 'PROJECTIONPATTERN00',
-    description: 'a -> $0',
+    id: "PROJECTIONPATTERN00",
+    description: "a -> $0",
     pattern: () => Meta,
-    input: 'a -> $0',
+    input: "a -> $0",
     value: {
       kind: PatternKind.Projection,
       pattern: {
         kind: PatternKind.Reference,
-        name: 'a'
+        name: "a",
       },
       expression: {
         kind: ExpressionKind.SpecialReference,
-        name: '$0'
-      }
-    }
-  }
-])
+        name: "$0",
+      },
+    },
+  },
+]);

@@ -1,19 +1,19 @@
-import { Scope } from '../../scope.ts'
-import { Match } from '../../match.ts'
-import { match } from '../match.ts'
-import { IBlockPattern } from './pattern.ts'
+import { Scope } from "../../scope.ts";
+import { Match } from "../../match.ts";
+import { match } from "../match.ts";
+import { IBlockPattern } from "./pattern.ts";
 
 export function block(args: IBlockPattern, scope: Scope): Match {
-  const { variables } = args
-  const pattern = Object.entries(variables).pop()?.[1]
+  const { variables } = args;
+  const pattern = Object.entries(variables).pop()?.[1];
   if (pattern) {
     const subScope = scope
       .addVariables(variables)
-      .push()
+      .push();
 
-    const result = match(pattern, subScope)
-    return result.popBlock()
+    const result = match(pattern, subScope);
+    return result.popBlock();
   } else {
-    return Match.Ok(scope, scope, undefined)
+    return Match.Ok(scope, scope, undefined);
   }
 }
