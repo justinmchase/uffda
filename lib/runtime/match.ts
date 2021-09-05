@@ -1,18 +1,17 @@
 import { Scope } from "../scope.ts";
 import { Match } from "../match.ts";
 import {
+  ValueType,
   and,
   any,
   array,
   block,
-  bool,
   equal,
   error,
   fail,
   includes,
   must,
   not,
-  number,
   object,
   ok,
   or,
@@ -24,8 +23,8 @@ import {
   regexp,
   rule,
   slice,
-  string,
   then,
+  type,
   variable,
 } from "./patterns/mod.ts";
 
@@ -41,7 +40,7 @@ export function match(pattern: Pattern, scope: Scope): Match {
     case PatternKind.Block:
       return block(pattern, scope);
     case PatternKind.Boolean:
-      return bool(scope);
+      return type(ValueType.Boolean, scope);
     case PatternKind.ErrorUntil:
       return error(pattern, scope);
     case PatternKind.Equal:
@@ -55,7 +54,7 @@ export function match(pattern: Pattern, scope: Scope): Match {
     case PatternKind.Not:
       return not(pattern, scope);
     case PatternKind.Number:
-      return number(scope);
+      return type(ValueType.Number, scope);
     case PatternKind.Object:
       return object(pattern, scope);
     case PatternKind.Ok:
@@ -75,7 +74,7 @@ export function match(pattern: Pattern, scope: Scope): Match {
     case PatternKind.Slice:
       return slice(pattern, scope);
     case PatternKind.String:
-      return string(scope);
+      return type(ValueType.String, scope);
     case PatternKind.Then:
       return then(pattern, scope);
     case PatternKind.Variable:

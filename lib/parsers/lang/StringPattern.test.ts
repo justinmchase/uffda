@@ -9,7 +9,7 @@ tests("parsers.lang.stringpattern", () => [
     pattern: () => TestLang,
     input: "'abc'",
     value: {
-      kind: LangPatternKind.StringPattern,
+      kind: LangPatternKind.EqualPattern,
       value: "abc",
     },
   },

@@ -1,6 +1,7 @@
 import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
 import { AndPattern } from "./AndPattern.ts";
 import { AnyPattern } from "./AnyPattern.ts";
+import { EqualPattern } from "./EqualPattern.ts";
 import { MustPattern } from "./MustPattern.ts";
 import { NotPattern } from "./NotPattern.ts";
 import { OkPattern } from "./OkPattern.ts";
@@ -35,6 +36,7 @@ export const Lang: Pattern = {
     variables: {
       AndPattern,
       AnyPattern,
+      EqualPattern,
       MustPattern,
       NotPattern,
       OkPattern,

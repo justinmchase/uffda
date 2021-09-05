@@ -56,12 +56,7 @@ export const ObjectKeyPattern: Pattern = {
     expression: {
       kind: ExpressionKind.Native,
       fn: ({ _, name, alias, must, pattern = { kind: PatternKind.Any } }) => {
-        console.log("ObjectPatternProjection:");
-        console.log(Deno.inspect(_));
-        console.log(Deno.inspect({ name, alias, pattern }));
-
         pattern = must ? { kind: PatternKind.Must, pattern } : pattern;
-
         return {
           [name]: alias
             ? { kind: PatternKind.Variable, name: alias, pattern }

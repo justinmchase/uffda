@@ -11,6 +11,10 @@ export const PatternExpression: Pattern = {
       },
       {
         kind: PatternKind.Reference,
+        name: "EqualPattern",
+      },
+      {
+        kind: PatternKind.Reference,
         name: "MustPattern",
       },
       {
