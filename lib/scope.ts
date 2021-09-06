@@ -1,20 +1,7 @@
-import { Match } from "./match.ts";
-import { Path } from "./path.ts";
-// import { Pattern } from './patterns/mod.ts'
+import { IRulePattern } from './runtime/patterns/mod.ts'
 import { MetaStream } from "./stream.ts";
-
-interface IMemo {
-  match: Match;
-  pattern: unknown; // Pattern;
-  references: IMemo[];
-}
-
-export class Reference {
-  constructor(
-    public readonly name: string,
-    public readonly path: Path,
-  ) {}
-}
+import { Memos } from './memo.ts'
+import { Reference } from './reference.ts'
 
 export class Scope {
   public static readonly Default = () => new Scope();
@@ -26,8 +13,8 @@ export class Scope {
     private readonly _variables: Record<string, unknown> = {},
     private readonly _special: Record<string, unknown> = {},
     public readonly stream: MetaStream = MetaStream.Default(),
-    public readonly memos: Record<string, IMemo> = {},
-    public readonly ruleStack: string[] = [],
+    public readonly memos: Memos = new Memos(),
+    public readonly ruleStack: IRulePattern[] = [],
     public readonly refStack: Reference[] = [],
   ) {
   }
@@ -96,34 +83,15 @@ export class Scope {
       this.refStack,
     );
   }
-
-  public setMemo(key: string, pattern: unknown, match: Match) {
-    const { references = [] } = this.memos[key] ?? {};
-    return new Scope(
-      this._parent,
-      this._variables,
-      this._special,
-      this.stream,
-      Object.assign({}, this.memos, {
-        [key]: {
-          match,
-          pattern,
-          references,
-        } as IMemo,
-      }),
-      this.ruleStack,
-      this.refStack,
-    );
-  }
-
-  public pushRule(ruleName: string) {
+  
+  public pushRule(rule: IRulePattern) {
     return new Scope(
       this._parent,
       {},
       this._special,
       this.stream,
       this.memos,
-      [...this.ruleStack, ruleName],
+      [...this.ruleStack, rule],
       this.refStack,
     );
   }

@@ -75,17 +75,6 @@ export class Match {
     );
   }
 
-  public setMemo(key: string, pattern: unknown /*Pattern*/) {
-    return new Match(
-      this.matched,
-      this.isLr,
-      this.start,
-      this.end.setMemo(key, pattern, this),
-      this.value,
-      this.errors,
-    );
-  }
-
   public pushError(start: Scope, end: Scope) {
     return new Match(
       this.matched,

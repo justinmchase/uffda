@@ -1,32 +1,22 @@
 import { Match } from "../../match.ts";
 import { Scope } from "../../scope.ts";
 import { match } from "../match.ts";
-import { hash } from "../hash.ts";
-import { IRulePattern, Pattern } from "./pattern.ts";
+import { IRulePattern } from "./pattern.ts";
 
-function getKey(pattern: Pattern, scope: Scope) {
-  const id = hash(pattern);
-  return `${id}@${scope.stream.path}`;
-}
-
-export function rule(args: IRulePattern, scope: Scope): Match {
-  const { pattern } = args;
-  const key = getKey(pattern, scope);
-  const memo = scope.memos[key];
+export function rule(rule: IRulePattern, scope: Scope): Match {
+  const { pattern } = rule;
+  let memo = scope.memos.get(scope.stream.path, rule);
   if (!memo) {
-    const subScope = scope
-      .setMemo(key, pattern, Match.LR(scope))
-      .pushRule(key);
-
+    memo = scope.memos.set(scope.stream.path, rule, Match.LR(scope))
+    const subScope = scope.pushRule(rule);
     let m = match(pattern, subScope);
     if (m.isLr) {
-      m = grow(args, subScope);
+      m = grow(rule, subScope);
     }
-
+    memo.match = m
     return m
       .endRecursion()
-      .popRule(scope)
-      .setMemo(key, args);
+      .popRule(scope);
   } else {
     if (memo.match.isLr) {
       // todo: make a proper error object
@@ -36,7 +26,7 @@ export function rule(args: IRulePattern, scope: Scope): Match {
           .Fail(scope)
           .pushError(scope, scope); // todo: Add error messages or codes of some kind
       }
-      if (scope.ruleStack.slice(-1)[0] !== key) {
+      if (!Object.is(scope.ruleStack.slice(-1)[0], rule)) {
         return Match.Fail(scope);
       }
     }
@@ -44,15 +34,15 @@ export function rule(args: IRulePattern, scope: Scope): Match {
   }
 }
 
-function grow(args: IRulePattern, scope: Scope): Match {
-  const { pattern } = args;
-  const key = getKey(pattern, scope);
+function grow(rule: IRulePattern, scope: Scope): Match {
+  const { pattern } = rule;
   let m = Match.Fail(scope);
   const start = scope.stream;
-  while (true) {
+  const memo = scope.memos.get(start.path, rule)
+  while (memo) {
+    memo.match = m;
     const growScope = m
       .end
-      .setMemo(key, pattern, m)
       .withStream(start);
 
     const result = match(pattern, growScope);
