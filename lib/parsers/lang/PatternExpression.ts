@@ -1,6 +1,6 @@
-import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
+import { IRulePattern, PatternKind } from "../../runtime/patterns/mod.ts";
 
-export const PatternExpression: Pattern = {
+export const PatternExpression: IRulePattern = {
   kind: PatternKind.Rule,
   pattern: { kind: PatternKind.Reference, name: "PipelinePattern" },
 };

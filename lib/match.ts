@@ -114,23 +114,23 @@ export class Match {
     );
   }
 
-  public popBlock() {
-    return new Match(
-      this.matched,
-      this.isLr,
-      this.start,
-      this.end.pop(),
-      this.value,
-      this.errors,
-    );
-  }
-
   public popRef(scope: Scope) {
     return new Match(
       this.matched,
       this.isLr,
       this.start,
       this.end.popRef(scope),
+      this.value,
+      this.errors,
+    );
+  }
+  
+  public pop() {
+    return new Match(
+      this.matched,
+      this.isLr,
+      this.start,
+      this.end.pop(),
       this.value,
       this.errors,
     );

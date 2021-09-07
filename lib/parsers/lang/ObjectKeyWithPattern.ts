@@ -1,4 +1,4 @@
-import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
+import { IRulePattern, PatternKind } from "../../runtime/patterns/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 import { LangPatternKind } from "./lang.pattern.ts";
 
@@ -6,7 +6,7 @@ import { LangPatternKind } from "./lang.pattern.ts";
 //
 // e.g.
 // key = pattern
-export const ObjectKeyWithPattern: Pattern = {
+export const ObjectKeyWithPattern: IRulePattern = {
   kind: PatternKind.Rule,
   pattern: {
     kind: PatternKind.Projection,

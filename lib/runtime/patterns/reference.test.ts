@@ -7,9 +7,15 @@ tests("patterns.reference", () => [
     description: "can reference other pattern",
     pattern: () => ({
       kind: PatternKind.Block,
-      variables: {
-        A: { kind: PatternKind.Equal, value: "a" },
-        Main: { kind: PatternKind.Reference, name: "A" },
+      rules: {
+        A: { kind: PatternKind.Rule, pattern: { kind: PatternKind.Equal, value: "a" } },
+        Main: {
+          kind: PatternKind.Rule,
+          pattern: {
+            kind: PatternKind.Reference,
+            name: "A"
+          },
+        }
       },
     }),
     input: "a",

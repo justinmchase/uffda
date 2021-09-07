@@ -4,15 +4,15 @@ import { match } from "../match.ts";
 import { IBlockPattern } from "./pattern.ts";
 
 export function block(args: IBlockPattern, scope: Scope): Match {
-  const { variables } = args;
-  const pattern = Object.entries(variables).pop()?.[1];
+  const { rules } = args;
+  const pattern = Object.entries(rules).pop()?.[1];
   if (pattern) {
     const subScope = scope
-      .addVariables(variables)
+      .setRules(rules)
       .push();
 
     const result = match(pattern, subScope);
-    return result.popBlock();
+    return result.pop();
   } else {
     return Match.Ok(scope, scope, undefined);
   }

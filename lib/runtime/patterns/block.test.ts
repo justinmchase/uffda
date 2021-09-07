@@ -9,8 +9,8 @@ tests("patterns.block", () => [
     description: "can run main pattern",
     pattern: () => ({
       kind: PatternKind.Block,
-      variables: {
-        Main: ({ kind: PatternKind.Equal, value: "a" }),
+      rules: {
+        Main: ({ kind: PatternKind.Rule, pattern: { kind: PatternKind.Equal, value: "a" } }),
       },
     }),
     input: "a",
@@ -21,9 +21,9 @@ tests("patterns.block", () => [
     description: "defaults to last pattern",
     pattern: () => ({
       kind: PatternKind.Block,
-      variables: {
-        A: { kind: PatternKind.Equal, value: "a" },
-        B: { kind: PatternKind.Equal, value: "b" },
+      rules: {
+        A: { kind: PatternKind.Rule, pattern: { kind: PatternKind.Equal, value: "a" } },
+        B: { kind: PatternKind.Rule, pattern: { kind: PatternKind.Equal, value: "b" } },
       },
     }),
     input: "b",
@@ -32,50 +32,60 @@ tests("patterns.block", () => [
   {
     id: "BLOCK02",
     description: "empty block is ok",
-    pattern: () => ({ kind: PatternKind.Block, variables: {} }),
+    pattern: () => ({ kind: PatternKind.Block, rules: {} }),
     input: "a",
     done: false,
   },
   {
     id: "BLOCK03",
-    description: "block values are available as variables",
+    description: "block values are not available as variables",
     pattern: () => ({
       kind: PatternKind.Block,
-      variables: {
-        A: { kind: PatternKind.Any },
+      rules: {
+        A: { kind: PatternKind.Rule, pattern: { kind: PatternKind.Any } },
         Main: {
-          kind: PatternKind.Projection,
-          pattern: { kind: PatternKind.Any },
-          expression: {
-            kind: ExpressionKind.Native,
-            fn: ({ A }) => (assert(A), 7),
-          },
+          kind: PatternKind.Rule,
+          pattern: {
+            kind: PatternKind.Projection,
+            pattern: { kind: PatternKind.Any },
+            expression: {
+              kind: ExpressionKind.Native,
+              fn: ({ A }) => (assert(!A), 7),
+            },
+          }
         },
       },
     }),
     input: "x",
     value: 7,
   },
+  // todo: make higher block variables are available as references...
   {
     id: "BLOCK04",
-    description: "higher block values are available as variables",
+    description: "higher block values are not available as variables",
     pattern: () => ({
       kind: PatternKind.Block,
-      variables: {
-        A: { kind: PatternKind.Any },
+      rules: {
+        A: { kind: PatternKind.Rule, pattern: { kind: PatternKind.Any } },
         Main: {
-          kind: PatternKind.Block,
-          variables: {
-            B: { kind: PatternKind.Any },
-            Main: {
-              kind: PatternKind.Projection,
-              pattern: { kind: PatternKind.Any },
-              expression: {
-                kind: ExpressionKind.Native,
-                fn: ({ A, B }) => (assert(A), assert(B), 7),
+          kind: PatternKind.Rule,
+          pattern: {
+            kind: PatternKind.Block,
+            rules: {
+              B: { kind: PatternKind.Rule, pattern: { kind: PatternKind.Any } },
+              Main: {
+                kind: PatternKind.Rule,
+                pattern: {
+                  kind: PatternKind.Projection,
+                  pattern: { kind: PatternKind.Any },
+                  expression: {
+                    kind: ExpressionKind.Native,
+                    fn: ({ A, B }) => (assert(!A), assert(!B), 7),
+                  },
+                },
               },
             },
-          },
+          }
         },
       },
     }),
@@ -84,25 +94,24 @@ tests("patterns.block", () => [
   },
   {
     id: "BLOCK05",
-    description: "block values are available in rule as variables",
+    description: "block values are available in rule as references",
     pattern: () => ({
       kind: PatternKind.Block,
-      variables: {
-        A: { kind: PatternKind.Any },
-        Main: {
+      rules: {
+        A: {
           kind: PatternKind.Rule,
           pattern: {
-            kind: PatternKind.Projection,
-            pattern: { kind: PatternKind.Any },
-            expression: {
-              kind: ExpressionKind.Native,
-              fn: ({ A }) => (assert(A), 7),
-            },
-          },
+            kind: PatternKind.Equal,
+            value: "x"
+          }
+        },
+        Main: {
+          kind: PatternKind.Rule,
+          pattern: { kind: PatternKind.Reference, name: 'A' },
         },
       },
     }),
     input: "x",
-    value: 7,
+    value: "x",
   },
 ]);

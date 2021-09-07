@@ -41,7 +41,7 @@ export interface IArrayPattern {
 }
 export interface IBlockPattern {
   kind: PatternKind.Block;
-  variables: Record<string, Pattern>;
+  rules: Record<string, IRulePattern>;
 }
 export interface IBooleanPattern {
   kind: PatternKind.Boolean;

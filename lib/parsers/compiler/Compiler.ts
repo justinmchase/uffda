@@ -1,4 +1,4 @@
-import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
+import { IRulePattern, PatternKind } from "../../runtime/patterns/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 import { AnyPattern } from "./AnyPattern.ts";
 import { EqualPattern } from "./EqualPattern.ts";
@@ -21,11 +21,11 @@ import { ZeroOrOnePattern } from "./ZeroOrOnePattern.ts";
 
 // Compiler = PatternDeclaration* -> block(_.reduce((a, b) => ({ })))
 
-export const Compiler: Pattern = {
+export const Compiler: IRulePattern = {
   kind: PatternKind.Rule,
   pattern: {
     kind: PatternKind.Block,
-    variables: {
+    rules: {
       AnyPattern,
       EqualPattern,
       ObjectPattern,
@@ -45,37 +45,40 @@ export const Compiler: Pattern = {
       ZeroOrMorePattern,
       ZeroOrOnePattern,
       Main: {
-        kind: PatternKind.Or,
-        patterns: [
-          {
-            kind: PatternKind.Projection,
-            pattern: {
-              kind: PatternKind.Slice,
-              min: 1,
+        kind: PatternKind.Rule,
+        pattern: {
+          kind: PatternKind.Or,
+          patterns: [
+            {
+              kind: PatternKind.Projection,
               pattern: {
-                kind: PatternKind.Reference,
-                name: "PatternDeclaration",
+                kind: PatternKind.Slice,
+                min: 1,
+                pattern: {
+                  kind: PatternKind.Reference,
+                  name: "PatternDeclaration",
+                },
+              },
+              expression: {
+                kind: ExpressionKind.Native,
+                fn: ({ _ }) => ({
+                  kind: PatternKind.Block,
+                  variables: _.reduce(
+                    (a: Record<string, unknown>, b: Record<string, unknown>) => ({
+                      ...a,
+                      ...b,
+                    }),
+                    {},
+                  ),
+                }),
               },
             },
-            expression: {
-              kind: ExpressionKind.Native,
-              fn: ({ _ }) => ({
-                kind: PatternKind.Block,
-                variables: _.reduce(
-                  (a: Record<string, unknown>, b: Record<string, unknown>) => ({
-                    ...a,
-                    ...b,
-                  }),
-                  {},
-                ),
-              }),
+            {
+              kind: PatternKind.Reference,
+              name: "PatternExpression",
             },
-          },
-          {
-            kind: PatternKind.Reference,
-            name: "PatternExpression",
-          },
-        ],
+          ],
+        },
       },
     },
   },

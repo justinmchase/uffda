@@ -1,6 +1,6 @@
-import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
+import { IRulePattern, PatternKind } from "../../runtime/patterns/mod.ts";
 
-export const ObjectKeyPattern: Pattern = {
+export const ObjectKeyPattern: IRulePattern = {
   kind: PatternKind.Rule,
   pattern: {
     kind: PatternKind.Or,

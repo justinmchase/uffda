@@ -22,7 +22,7 @@ tests("patterns.rule", () => [
     description: "non-progressive recursive patterns only match a single item",
     pattern: () => ({
       kind: PatternKind.Block,
-      variables: {
+      rules: {
         // a = a | 'a'
         a: {
           kind: PatternKind.Rule,
@@ -51,7 +51,7 @@ tests("patterns.rule", () => [
     description: "lr patterns match multiple items",
     pattern: () => ({
       kind: PatternKind.Block,
-      variables: {
+      rules: {
         a: {
           kind: PatternKind.Rule,
           name: "a",
@@ -80,7 +80,7 @@ tests("patterns.rule", () => [
     description: "indirect left recursion results in an error",
     pattern: () => ({
       kind: PatternKind.Block,
-      variables: {
+      rules: {
         a: {
           kind: PatternKind.Rule,
           name: "a",
@@ -108,7 +108,7 @@ tests("patterns.rule", () => [
     description: "right recursion is fine",
     pattern: () => ({
       kind: PatternKind.Block,
-      variables: {
+      rules: {
         // a = 'a' a | 'a'
         a: {
           kind: PatternKind.Rule,
@@ -136,7 +136,7 @@ tests("patterns.rule", () => [
     description: "upper variables should not be available in lower scopes",
     pattern: () => ({
       kind: PatternKind.Block,
-      variables: {
+      rules: {
         P0: {
           kind: PatternKind.Rule,
           pattern: {
@@ -178,7 +178,7 @@ tests("patterns.rule", () => [
     description: "lower variables should not be available in upper scope",
     pattern: () => ({
       kind: PatternKind.Block,
-      variables: {
+      rules: {
         P0: {
           kind: PatternKind.Rule,
           pattern: {
@@ -190,7 +190,7 @@ tests("patterns.rule", () => [
             },
             expression: {
               kind: ExpressionKind.Native,
-              fn: ({ x }) => (assert(x === "a"), x),
+              fn: ({ x }) => (console.log({ x }), assert(x === "a"), x),
             },
           },
         },
@@ -204,7 +204,7 @@ tests("patterns.rule", () => [
             },
             expression: {
               kind: ExpressionKind.Native,
-              fn: ({ x, _ }) => (assert(x === undefined), _),
+              fn: ({ x, _ }) => (console.log({ x, _ }), assert(x === undefined), _),
             },
           },
         },

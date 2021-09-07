@@ -205,13 +205,16 @@ tests("patterns.error", () => [
     description: "{ A = ~';'}",
     pattern: () => ({
       kind: PatternKind.Block,
-      variables: {
+      rules: {
         A: {
-          kind: PatternKind.ErrorUntil,
+          kind: PatternKind.Rule,
           pattern: {
-            kind: PatternKind.Equal,
-            value: ";",
-          },
+            kind: PatternKind.ErrorUntil,
+            pattern: {
+              kind: PatternKind.Equal,
+              value: ";",
+            },
+          }
         },
       },
     }),

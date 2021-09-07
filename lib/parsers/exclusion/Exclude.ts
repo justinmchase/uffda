@@ -1,4 +1,4 @@
-import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
+import { IRulePattern, PatternKind } from "../../runtime/patterns/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 
 interface IExclusionArgs {
@@ -10,38 +10,41 @@ interface IExclusionArgs {
  * Matches objects of the form:
  * `{ type: string }`
  */
-export function Exclude(args: IExclusionArgs): Pattern {
+export function Exclude(args: IExclusionArgs): IRulePattern {
   const { types } = args;
   return {
-    kind: PatternKind.Projection,
+    kind: PatternKind.Rule,
     pattern: {
-      kind: PatternKind.Slice,
+      kind: PatternKind.Projection,
       pattern: {
-        kind: PatternKind.Or,
-        patterns: [
-          {
-            kind: PatternKind.Projection,
-            pattern: {
-              kind: PatternKind.Object,
-              keys: {
-                type: {
-                  kind: PatternKind.Includes,
-                  values: types,
+        kind: PatternKind.Slice,
+        pattern: {
+          kind: PatternKind.Or,
+          patterns: [
+            {
+              kind: PatternKind.Projection,
+              pattern: {
+                kind: PatternKind.Object,
+                keys: {
+                  type: {
+                    kind: PatternKind.Includes,
+                    values: types,
+                  },
                 },
               },
+              expression: {
+                kind: ExpressionKind.Native,
+                fn: () => undefined,
+              },
             },
-            expression: {
-              kind: ExpressionKind.Native,
-              fn: () => undefined,
-            },
-          },
-          { kind: PatternKind.Any },
-        ],
+            { kind: PatternKind.Any },
+          ],
+        },
       },
-    },
-    expression: {
-      kind: ExpressionKind.Native,
-      fn: ({ _ }) => _.filter((n: unknown) => n),
-    },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ _ }) => _.filter((n: unknown) => n),
+      },
+    }
   };
 }

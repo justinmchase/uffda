@@ -1,4 +1,4 @@
-import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
+import { IRulePattern, PatternKind } from "../../runtime/patterns/mod.ts";
 import { AndPattern } from "./AndPattern.ts";
 import { AnyPattern } from "./AnyPattern.ts";
 import { EqualPattern } from "./EqualPattern.ts";
@@ -29,11 +29,11 @@ import { VariablePattern } from "./VariablePattern.ts";
 import { ZeroOrMorePattern } from "./ZeroOrMorePattern.ts";
 import { ZeroOrOnePattern } from "./ZeroOrOnePattern.ts";
 
-export const Lang: Pattern = {
+export const Lang: IRulePattern = {
   kind: PatternKind.Rule,
   pattern: {
     kind: PatternKind.Block,
-    variables: {
+    rules: {
       AndPattern,
       AnyPattern,
       EqualPattern,
@@ -64,28 +64,31 @@ export const Lang: Pattern = {
       ZeroOrMorePattern,
       ZeroOrOnePattern,
       Main: {
-        kind: PatternKind.Or,
-        patterns: [
-          {
-            kind: PatternKind.Slice,
-            min: 1,
-            pattern: {
-              kind: PatternKind.Reference,
-              name: "PatternDeclaration",
-            },
-          },
-          { kind: PatternKind.Reference, name: "PatternExpression" },
-          {
-            kind: PatternKind.ErrorUntil,
-            pattern: {
-              kind: PatternKind.Object,
-              keys: {
-                kind: { kind: PatternKind.Equal, value: "Token" },
-                value: { kind: PatternKind.Equal, value: ";" },
+        kind: PatternKind.Rule,
+        pattern: {
+          kind: PatternKind.Or,
+          patterns: [
+            {
+              kind: PatternKind.Slice,
+              min: 1,
+              pattern: {
+                kind: PatternKind.Reference,
+                name: "PatternDeclaration",
               },
             },
-          },
-        ],
+            { kind: PatternKind.Reference, name: "PatternExpression" },
+            {
+              kind: PatternKind.ErrorUntil,
+              pattern: {
+                kind: PatternKind.Object,
+                keys: {
+                  kind: { kind: PatternKind.Equal, value: "Token" },
+                  value: { kind: PatternKind.Equal, value: ";" },
+                },
+              },
+            },
+          ],
+        },
       },
     },
   },
