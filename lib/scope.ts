@@ -1,7 +1,7 @@
-import { IRulePattern } from './runtime/patterns/mod.ts'
+import { IRulePattern } from "./runtime/patterns/mod.ts";
 import { MetaStream } from "./stream.ts";
-import { Memos } from './memo.ts'
-import { Reference } from './reference.ts'
+import { Memos } from "./memo.ts";
+import { Reference } from "./reference.ts";
 
 export class Scope {
   public static readonly Default = () => new Scope();
@@ -11,7 +11,7 @@ export class Scope {
   constructor(
     private readonly _parent: Scope | undefined = undefined,
     private readonly _variables: Record<string, unknown> = {},
-    private readonly _special: Record<string, unknown> = {},
+    private readonly _specials: Record<string, unknown> = {},
     public readonly stream: MetaStream = MetaStream.Default(),
     public readonly memos: Memos = new Memos(),
     public readonly ruleStack: IRulePattern[] = [],
@@ -34,14 +34,14 @@ export class Scope {
   }
 
   public getSpecial(name: string) {
-    return this._variables[name];
+    return this._specials[name];
   }
 
   public withStream(stream: MetaStream) {
     return new Scope(
       this._parent,
       this._variables,
-      this._special,
+      this._specials,
       stream,
       this.memos,
       this.ruleStack,
@@ -53,7 +53,7 @@ export class Scope {
     return new Scope(
       this._parent,
       Object.assign({}, this._variables, variables),
-      this._special,
+      this._specials,
       this.stream,
       this.memos,
       this.ruleStack,
@@ -65,30 +65,30 @@ export class Scope {
     return new Scope(
       this._parent,
       variables,
-      this._special,
+      this._specials,
       this.stream,
       this.memos,
       this.ruleStack,
       this.refStack,
     );
   }
-  public setSpeical(variables: Record<string, unknown>) {
+  public setSpecials(specials: Record<string, unknown>) {
     return new Scope(
       this._parent,
       this._variables,
-      variables,
+      specials,
       this.stream,
       this.memos,
       this.ruleStack,
       this.refStack,
     );
   }
-  
+
   public pushRule(rule: IRulePattern) {
     return new Scope(
       this._parent,
       {},
-      this._special,
+      this._specials,
       this.stream,
       this.memos,
       [...this.ruleStack, rule],
@@ -100,7 +100,7 @@ export class Scope {
     return new Scope(
       this._parent,
       {},
-      this._special,
+      this._specials,
       this.stream,
       this.memos,
       this.ruleStack,
@@ -112,7 +112,7 @@ export class Scope {
     return new Scope(
       this._parent,
       scope._variables,
-      this._special,
+      this._specials,
       this.stream,
       this.memos,
       this.ruleStack.slice(-1),
@@ -124,7 +124,7 @@ export class Scope {
     return new Scope(
       this._parent,
       scope._variables,
-      this._special,
+      this._specials,
       this.stream,
       this.memos,
       this.ruleStack,
@@ -136,7 +136,7 @@ export class Scope {
     return new Scope(
       this,
       {},
-      this._special,
+      this._specials,
       this.stream,
       this.memos,
       this.ruleStack,
@@ -148,7 +148,7 @@ export class Scope {
     return new Scope(
       this._parent?._parent,
       this._parent?._variables ?? {},
-      this._special,
+      this._specials,
       this.stream,
       this.memos,
       this.ruleStack,

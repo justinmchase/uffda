@@ -12,10 +12,10 @@ export const EqualPattern: Pattern = {
         type: { kind: PatternKind.Equal, value: LangPatternKind.EqualPattern },
         value: {
           kind: PatternKind.Variable,
-          name: 'value',
+          name: "value",
           pattern: {
-            kind: PatternKind.Any
-          }
+            kind: PatternKind.Any,
+          },
         },
       },
     },
@@ -23,7 +23,7 @@ export const EqualPattern: Pattern = {
       kind: ExpressionKind.Native,
       fn: ({ value }) => ({
         kind: LangPatternKind.EqualPattern,
-        value
+        value,
       }),
     },
   },

@@ -20,6 +20,7 @@ export enum PatternKind {
   RegExp = "regexp",
   Rule = "rule",
   Slice = "slice",
+  Special = "special",
   String = "string",
   Then = "then",
   Variable = "variable",

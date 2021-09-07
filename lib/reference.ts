@@ -1,4 +1,4 @@
-import { Path } from './path.ts';
+import { Path } from "./path.ts";
 
 export class Reference {
   constructor(

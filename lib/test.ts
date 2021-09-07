@@ -22,6 +22,7 @@ interface IPatternThrows {
 
 interface IPatternMatches {
   throws?: false;
+  specials?: Record<string, unknown>;
   input: Iterable<unknown> | Scope;
   value?: unknown;
   matched?: boolean;
@@ -52,9 +53,10 @@ export function tests(testGroupName: string, group: () => PatternTest[]) {
             `Pattern was expected to throw during construction`,
           );
         } else {
-          const { input, value, matched = true, done = true } = test;
+          const { input, specials = {}, value, matched = true, done = true } =
+            test;
           const p = pattern();
-          const s = Scope.From(input);
+          const s = Scope.From(input).setSpecials(specials);
           const m = match(p, s);
           const e = m.errors.map((e) => ({
             start: e.start.stream.path.toString(),

@@ -45,6 +45,6 @@ tests("patterns.type", () => [
     pattern: () => ({ kind: PatternKind.Boolean }),
     input: [7],
     matched: false,
-    done: false
+    done: false,
   },
 ]);

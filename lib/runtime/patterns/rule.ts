@@ -7,13 +7,13 @@ export function rule(rule: IRulePattern, scope: Scope): Match {
   const { pattern } = rule;
   let memo = scope.memos.get(scope.stream.path, rule);
   if (!memo) {
-    memo = scope.memos.set(scope.stream.path, rule, Match.LR(scope))
+    memo = scope.memos.set(scope.stream.path, rule, Match.LR(scope));
     const subScope = scope.pushRule(rule);
     let m = match(pattern, subScope);
     if (m.isLr) {
       m = grow(rule, subScope);
     }
-    memo.match = m
+    memo.match = m;
     return m
       .endRecursion()
       .popRule(scope);
@@ -38,7 +38,7 @@ function grow(rule: IRulePattern, scope: Scope): Match {
   const { pattern } = rule;
   let m = Match.Fail(scope);
   const start = scope.stream;
-  const memo = scope.memos.get(start.path, rule)
+  const memo = scope.memos.get(start.path, rule);
   while (memo) {
     memo.match = m;
     const growScope = m

@@ -1,7 +1,7 @@
 import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 import { AnyPattern } from "./AnyPattern.ts";
-import { EqualPattern } from './EqualPattern.ts';
+import { EqualPattern } from "./EqualPattern.ts";
 import { MustPattern } from "./MustPattern.ts";
 import { ObjectPattern } from "./ObjectPattern.ts";
 import { OkPattern } from "./OkPattern.ts";

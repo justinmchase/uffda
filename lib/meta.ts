@@ -17,9 +17,10 @@ export function meta<T>(template: TemplateStringsArray, ...args: T[]) {
     (a, b, i) => Object.assign(a, { [`$${i}`]: b }),
     {},
   ) as Record<string, unknown>;
+
   const scope = Scope
     .From(metaCode)
-    .setSpeical(variables)
+    .setSpecials(variables)
     .push();
 
   // console.log(metaCode)
@@ -49,7 +50,7 @@ export function meta<T>(template: TemplateStringsArray, ...args: T[]) {
     ) as Record<string, unknown>;
     const scope = Scope
       .From(dslCode)
-      .setSpeical(variables);
+      .setSpecials(variables);
 
     const { matched, done, value: result } = match(ast as Pattern, scope);
     assert(matched);
