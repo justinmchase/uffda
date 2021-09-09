@@ -22,7 +22,6 @@ import {
   regexp,
   rule,
   slice,
-  special,
   then,
   type,
   ValueType,
@@ -74,8 +73,6 @@ export function match(pattern: Pattern, scope: Scope): Match {
       return rule(pattern, scope);
     case PatternKind.Slice:
       return slice(pattern, scope);
-    case PatternKind.Special:
-      return special(pattern, scope);
     case PatternKind.String:
       return type(ValueType.String, scope);
     case PatternKind.Then:

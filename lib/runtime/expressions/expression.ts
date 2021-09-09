@@ -7,7 +7,7 @@ export type Expression =
 export interface INativeExpression {
   kind: ExpressionKind.Native;
   // deno-lint-ignore no-explicit-any
-  fn: (args: any) => any;
+  fn: (args: any, specials: Record<string, unknown>) => any;
 }
 
 export interface ISpecialReferenceExpression {

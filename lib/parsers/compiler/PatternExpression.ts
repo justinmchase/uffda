@@ -69,6 +69,12 @@ export const PatternExpression: IRulePattern = {
         kind: PatternKind.Reference,
         name: "ZeroOrOnePattern",
       },
+
+      // Expressions
+      {
+        kind: PatternKind.Reference,
+        name: "SpecialReferenceExpression",
+      },
     ],
   },
 };

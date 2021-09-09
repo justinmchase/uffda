@@ -1,17 +1,25 @@
-// import { assert } from "../../deps/std.ts";
-// import { calc } from './calc.js'
+import { assert, equal } from "../../deps/std.ts";
 
-// Deno.test({
-//   name: 'CALC00',
-//   fn: async () => {
-//     const { calc } = await import('./calc.js')
-
-//     console.log(Deno.inspect(calc, { colors: true }))
-//     // const result = calc`7 + 11`
-//     // console.log(result)
-//     // assert(result === 18, `Expected 18 got ${result}`)
-//   }
-// })
+Deno.test({
+  name: "CALC00",
+  fn: async () => {
+    const { calc } = await import("./calc.js");
+    const { matched, end, value, errors } = calc`7 + 11`;
+    const actual = { matched, done: end.stream.done, value, errors };
+    const expected = {
+      matched: true,
+      done: true,
+      value: 18,
+      errors: [],
+    };
+    assert(
+      equal(expected, actual),
+      `Expected:\n${
+        Deno.inspect(expected, { colors: true, depth: 5 })
+      }\nActual:\n${Deno.inspect(actual, { colors: true, depth: 5 })}`,
+    );
+  },
+});
 
 // describe('/examples/calc2', () => {
 //   it('add two numbers', () => {

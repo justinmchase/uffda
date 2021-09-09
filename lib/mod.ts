@@ -5,7 +5,7 @@ export * from "./scope.ts";
 export * from "./stream.ts";
 
 // String interpolation api
-export * from "./meta.ts";
+export * from "./uffda.ts";
 
 // Main parsers
 export * from "./parsers/mod.ts";

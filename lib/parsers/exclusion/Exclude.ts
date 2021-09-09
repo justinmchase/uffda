@@ -45,6 +45,6 @@ export function Exclude(args: IExclusionArgs): IRulePattern {
         kind: ExpressionKind.Native,
         fn: ({ _ }) => _.filter((n: unknown) => n),
       },
-    }
+    },
   };
 }

@@ -3,12 +3,15 @@ import { Meta } from "../meta.ts";
 import { PatternKind } from "../../runtime/patterns/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 
-tests("parsers.compiler.specialreferencepattern", () => [
+const $0 = () => {};
+
+tests("parsers.compiler.specialreferenceexpression", () => [
   {
-    id: "SPECIALREFERENCEPATTERN00",
+    id: "SPECFUNCEXPR00",
     description: "a -> $0",
     pattern: () => Meta,
     input: "a -> $0",
+    specials: { $0 },
     value: {
       kind: PatternKind.Projection,
       pattern: {
@@ -16,8 +19,8 @@ tests("parsers.compiler.specialreferencepattern", () => [
         name: "a",
       },
       expression: {
-        kind: ExpressionKind.SpecialReference,
-        name: "$0",
+        kind: ExpressionKind.Native,
+        fn: $0,
       },
     },
   },

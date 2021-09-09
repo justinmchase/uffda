@@ -10,7 +10,10 @@ tests("patterns.block", () => [
     pattern: () => ({
       kind: PatternKind.Block,
       rules: {
-        Main: ({ kind: PatternKind.Rule, pattern: { kind: PatternKind.Equal, value: "a" } }),
+        Main: ({
+          kind: PatternKind.Rule,
+          pattern: { kind: PatternKind.Equal, value: "a" },
+        }),
       },
     }),
     input: "a",
@@ -22,8 +25,14 @@ tests("patterns.block", () => [
     pattern: () => ({
       kind: PatternKind.Block,
       rules: {
-        A: { kind: PatternKind.Rule, pattern: { kind: PatternKind.Equal, value: "a" } },
-        B: { kind: PatternKind.Rule, pattern: { kind: PatternKind.Equal, value: "b" } },
+        A: {
+          kind: PatternKind.Rule,
+          pattern: { kind: PatternKind.Equal, value: "a" },
+        },
+        B: {
+          kind: PatternKind.Rule,
+          pattern: { kind: PatternKind.Equal, value: "b" },
+        },
       },
     }),
     input: "b",
@@ -52,7 +61,7 @@ tests("patterns.block", () => [
               kind: ExpressionKind.Native,
               fn: ({ A }) => (assert(!A), 7),
             },
-          }
+          },
         },
       },
     }),
@@ -85,7 +94,7 @@ tests("patterns.block", () => [
                 },
               },
             },
-          }
+          },
         },
       },
     }),
@@ -102,12 +111,12 @@ tests("patterns.block", () => [
           kind: PatternKind.Rule,
           pattern: {
             kind: PatternKind.Equal,
-            value: "x"
-          }
+            value: "x",
+          },
         },
         Main: {
           kind: PatternKind.Rule,
-          pattern: { kind: PatternKind.Reference, name: 'A' },
+          pattern: { kind: PatternKind.Reference, name: "A" },
         },
       },
     }),

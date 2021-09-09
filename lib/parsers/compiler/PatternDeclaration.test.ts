@@ -10,7 +10,7 @@ tests("parsers.compiler.patterndeclaration", () => [
     input: "X = ok;",
     value: {
       kind: PatternKind.Block,
-      variables: {
+      rules: {
         X: {
           kind: PatternKind.Rule,
           pattern: {

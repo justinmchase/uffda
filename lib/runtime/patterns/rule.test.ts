@@ -190,7 +190,7 @@ tests("patterns.rule", () => [
             },
             expression: {
               kind: ExpressionKind.Native,
-              fn: ({ x }) => (console.log({ x }), assert(x === "a"), x),
+              fn: ({ x }) => (assert(x === "a"), x),
             },
           },
         },
@@ -204,7 +204,9 @@ tests("patterns.rule", () => [
             },
             expression: {
               kind: ExpressionKind.Native,
-              fn: ({ x, _ }) => (console.log({ x, _ }), assert(x === undefined), _),
+              fn: (
+                { x, _ },
+              ) => (assert(x === undefined), _),
             },
           },
         },

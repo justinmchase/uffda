@@ -21,7 +21,7 @@ tests("parsers.lang.orpattern", () => [
     },
   },
   {
-    id: "ORPATTERN00",
+    id: "ORPATTERN01",
     description: "can parse a projection expression",
     pattern: () => TestLang,
     input: "x -> $0 | y",
@@ -45,7 +45,7 @@ tests("parsers.lang.orpattern", () => [
     },
   },
   {
-    id: "ORPATTERN00",
+    id: "ORPATTERN02",
     description: "can parse two then expressions",
     pattern: () => TestLang,
     input: "w x | y z",

@@ -16,7 +16,9 @@ export function pipeline(args: IPipelinePattern, scope: Scope) {
     );
     const nextScope = scope.withStream(nextStream);
     result = match(pattern, nextScope);
-    // console.log(`pipeline: ${Deno.inspect(result.value, { colors: true })}`)
+    // console.log(
+    //   `pipeline: ${Deno.inspect(result.value, { colors: true, depth: 10 })}`,
+    // );
 
     if (!result.matched) {
       return result;

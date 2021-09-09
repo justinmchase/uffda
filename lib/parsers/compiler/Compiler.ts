@@ -18,6 +18,7 @@ import { ThenPattern } from "./ThenPattern.ts";
 import { VariablePattern } from "./VariablePattern.ts";
 import { ZeroOrMorePattern } from "./ZeroOrMorePattern.ts";
 import { ZeroOrOnePattern } from "./ZeroOrOnePattern.ts";
+import { SpecialReferenceExpression } from "./SpecialReferenceExpression.ts";
 
 // Compiler = PatternDeclaration* -> block(_.reduce((a, b) => ({ })))
 
@@ -44,6 +45,7 @@ export const Compiler: IRulePattern = {
       VariablePattern,
       ZeroOrMorePattern,
       ZeroOrOnePattern,
+      SpecialReferenceExpression,
       Main: {
         kind: PatternKind.Rule,
         pattern: {
@@ -63,8 +65,11 @@ export const Compiler: IRulePattern = {
                 kind: ExpressionKind.Native,
                 fn: ({ _ }) => ({
                   kind: PatternKind.Block,
-                  variables: _.reduce(
-                    (a: Record<string, unknown>, b: Record<string, unknown>) => ({
+                  rules: _.reduce(
+                    (
+                      a: Record<string, unknown>,
+                      b: Record<string, unknown>,
+                    ) => ({
                       ...a,
                       ...b,
                     }),

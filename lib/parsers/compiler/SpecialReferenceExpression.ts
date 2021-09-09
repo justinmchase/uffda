@@ -1,8 +1,8 @@
 import { IRulePattern, PatternKind } from "../../runtime/patterns/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
-import { LangPatternKind } from "../lang/lang.pattern.ts";
+import { LangExpressionKind } from "../lang/lang.pattern.ts";
 
-export const SpecialReferencePattern: IRulePattern = {
+export const SpecialReferenceExpression: IRulePattern = {
   kind: PatternKind.Rule,
   pattern: {
     kind: PatternKind.Projection,
@@ -11,7 +11,7 @@ export const SpecialReferencePattern: IRulePattern = {
       keys: {
         kind: {
           kind: PatternKind.Equal,
-          value: LangPatternKind.SpecialReferencePattern,
+          value: LangExpressionKind.SpecialReferenceExpression,
         },
         name: {
           kind: PatternKind.Variable,
@@ -22,7 +22,10 @@ export const SpecialReferencePattern: IRulePattern = {
     },
     expression: {
       kind: ExpressionKind.Native,
-      fn: ({ name }, specials) => specials[name], // todo: make sure this value is a Pattern
+      fn: ({ name }, specials) => ({
+        kind: ExpressionKind.Native,
+        fn: specials[name],
+      }),
     },
   },
 };

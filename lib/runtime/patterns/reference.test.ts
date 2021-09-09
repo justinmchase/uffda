@@ -8,14 +8,17 @@ tests("patterns.reference", () => [
     pattern: () => ({
       kind: PatternKind.Block,
       rules: {
-        A: { kind: PatternKind.Rule, pattern: { kind: PatternKind.Equal, value: "a" } },
+        A: {
+          kind: PatternKind.Rule,
+          pattern: { kind: PatternKind.Equal, value: "a" },
+        },
         Main: {
           kind: PatternKind.Rule,
           pattern: {
             kind: PatternKind.Reference,
-            name: "A"
+            name: "A",
           },
-        }
+        },
       },
     }),
     input: "a",

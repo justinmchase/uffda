@@ -17,7 +17,6 @@ export * from "./reference.ts";
 export * from "./regexp.ts";
 export * from "./rule.ts";
 export * from "./slice.ts";
-export * from "./special.ts";
 export * from "./then.ts";
 export * from "./type.ts";
 export * from "./variable.ts";

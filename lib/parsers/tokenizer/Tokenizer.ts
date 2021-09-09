@@ -47,7 +47,10 @@ export const Tokenizer: IRulePattern = {
           pattern: Integer,
           expression: {
             kind: ExpressionKind.Native,
-            fn: ({ _ }) => ({ type: TokenizerType.Integer, value: parseInt(_) }),
+            fn: ({ _ }) => ({
+              type: TokenizerType.Integer,
+              value: parseInt(_),
+            }),
           },
         },
         {
@@ -55,7 +58,10 @@ export const Tokenizer: IRulePattern = {
           pattern: SpecialIdentifier,
           expression: {
             kind: ExpressionKind.Native,
-            fn: ({ _ }) => ({ type: TokenizerType.SpecialIdentifier, value: _ }),
+            fn: ({ _ }) => ({
+              type: TokenizerType.SpecialIdentifier,
+              value: _,
+            }),
           },
         },
         {

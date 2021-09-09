@@ -1,6 +1,6 @@
 import { tests } from "../../test.ts";
 import { TestLang } from "./Lang.test.ts";
-import { LangExpressionKind } from "./lang.pattern.ts";
+import { LangPatternKind } from "./lang.pattern.ts";
 
 tests("parsers.lang.specialreference", () => [
   {
@@ -9,7 +9,7 @@ tests("parsers.lang.specialreference", () => [
     pattern: () => TestLang,
     input: "$0",
     value: {
-      kind: LangExpressionKind.SpecialReferenceExpression,
+      kind: LangPatternKind.SpecialReferencePattern,
       name: "$0",
     },
   },

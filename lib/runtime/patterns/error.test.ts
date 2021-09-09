@@ -214,7 +214,7 @@ tests("patterns.error", () => [
               kind: PatternKind.Equal,
               value: ";",
             },
-          }
+          },
         },
       },
     }),

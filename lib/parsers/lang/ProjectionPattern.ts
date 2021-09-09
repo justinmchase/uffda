@@ -36,7 +36,7 @@ export const ProjectionPattern: IRulePattern = {
               name: "expression",
               pattern: {
                 kind: PatternKind.Reference,
-                name: "SpecialReferencePattern",
+                name: "ExpressionPattern",
               },
             },
           ],

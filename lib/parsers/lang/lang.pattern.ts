@@ -14,6 +14,7 @@ export enum LangPatternKind {
   PipelinePattern = "PipelinePattern",
   ProjectionPattern = "ProjectionPattern",
   ReferencePattern = "ReferencePattern",
+  SpecialReferencePattern = "SpecialReferencePattern",
   StringPattern = "StringPattern",
   ThenPattern = "ThenPattern",
   VariablePattern = "VariablePattern",
@@ -39,6 +40,7 @@ export type LangPattern =
   | IPipelinePattern
   | IProjectionPattern
   | IReferencePattern
+  | ISpecialReferencePattern
   | IStringPattern
   | IVariablePattern
   | IZeroOrMorePattern
@@ -114,13 +116,13 @@ export interface IProjectionPattern {
   right: LangExpression;
 }
 
-export interface ISpecialReferenceExpression {
-  kind: LangExpressionKind.SpecialReferenceExpression;
+export interface IReferencePattern {
+  kind: LangPatternKind.ReferencePattern;
   name: string;
 }
 
-export interface IReferencePattern {
-  kind: LangPatternKind.ReferencePattern;
+export interface ISpecialReferencePattern {
+  kind: LangPatternKind.SpecialReferencePattern;
   name: string;
 }
 
@@ -143,4 +145,11 @@ export interface IZeroOrMorePattern {
 export interface IZeroOrOnePattern {
   kind: LangPatternKind.ZeroOrOnePattern;
   pattern: LangPattern;
+}
+
+// Expressions
+
+export interface ISpecialReferenceExpression {
+  kind: LangExpressionKind.SpecialReferenceExpression;
+  name: string;
 }

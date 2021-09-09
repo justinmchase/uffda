@@ -23,10 +23,19 @@ export type Pattern =
   | IRegExpPattern
   | IRulePattern
   | ISlicePattern
-  | ISpecialPattern
   | IStringPattern
   | IThenPattern
   | IVariablePattern;
+
+export function isPattern(value: unknown): value is Pattern {
+  if (value == null) return false;
+  if (typeof value !== "object") return false;
+
+  const p = value as Pattern;
+  if (!Object.values(PatternKind).includes(p.kind)) return false;
+
+  return true;
+}
 
 export interface IAnyPattern {
   kind: PatternKind.Any;
@@ -112,10 +121,6 @@ export interface ISlicePattern {
 }
 export interface IStringPattern {
   kind: PatternKind.String;
-}
-export interface ISpecialPattern {
-  kind: PatternKind.Special;
-  name: string;
 }
 export interface IThenPattern {
   kind: PatternKind.Then;

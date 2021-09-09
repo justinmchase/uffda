@@ -63,14 +63,14 @@ export function tests(testGroupName: string, group: () => PatternTest[]) {
             end: e.end.stream.path.toString(),
           }));
           assert(
-            equal(m.value, value),
-            `Pattern matched value did not equal expected value\n` +
-              `expected value: ${
-                Deno.inspect(value, { colors: true, depth: 10 })
+            equal(e, errors),
+            `Pattern had unexpected errors\n` +
+              `expected errors: ${
+                Deno.inspect(errors, { colors: true, depth: 10 })
               }\n` +
-              `  actual value: ${
-                Deno.inspect(m.value, { colors: true, depth: 10 })
-              }`,
+              `  actual errors: ${
+                Deno.inspect(e, { colors: true, depth: 10 })
+              }\n`,
           );
           assert(
             equal(m.matched, matched),
@@ -81,14 +81,14 @@ export function tests(testGroupName: string, group: () => PatternTest[]) {
             `Pattern was ${done ? "" : "not "}expected to be done`,
           );
           assert(
-            equal(e, errors),
-            `Pattern had unexpected errors\n` +
-              `expected errors: ${
-                Deno.inspect(errors, { colors: true, depth: 10 })
+            equal(m.value, value),
+            `Pattern matched value did not equal expected value\n` +
+              `expected value: ${
+                Deno.inspect(value, { colors: true, depth: 10 })
               }\n` +
-              `  actual errors: ${
-                Deno.inspect(e, { colors: true, depth: 10 })
-              }\n`,
+              `  actual value: ${
+                Deno.inspect(m.value, { colors: true, depth: 10 })
+              }`,
           );
         }
       },

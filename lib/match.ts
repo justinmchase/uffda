@@ -124,7 +124,7 @@ export class Match {
       this.errors,
     );
   }
-  
+
   public pop() {
     return new Match(
       this.matched,

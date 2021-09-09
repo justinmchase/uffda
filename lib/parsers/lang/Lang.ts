@@ -29,6 +29,9 @@ import { VariablePattern } from "./VariablePattern.ts";
 import { ZeroOrMorePattern } from "./ZeroOrMorePattern.ts";
 import { ZeroOrOnePattern } from "./ZeroOrOnePattern.ts";
 
+import { ExpressionPattern } from "./ExpressionPattern.ts";
+import { SpecialReferenceExpression } from "./SpecialReferenceExpression.ts";
+
 export const Lang: IRulePattern = {
   kind: PatternKind.Rule,
   pattern: {
@@ -63,6 +66,10 @@ export const Lang: IRulePattern = {
       VariablePattern,
       ZeroOrMorePattern,
       ZeroOrOnePattern,
+      // Expressions
+      ExpressionPattern,
+      SpecialReferenceExpression,
+
       Main: {
         kind: PatternKind.Rule,
         pattern: {

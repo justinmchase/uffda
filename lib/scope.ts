@@ -7,7 +7,13 @@ import { Reference } from "./reference.ts";
 export class Scope {
   public static readonly Default = () => new Scope();
   public static readonly From = (s: Iterable<unknown> | Scope) =>
-    s instanceof Scope ? s : new Scope(undefined, undefined, undefined, undefined, MetaStream.From(s));
+    s instanceof Scope ? s : new Scope(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      MetaStream.From(s),
+    );
 
   constructor(
     private readonly _parent: Scope | undefined = undefined,
@@ -35,15 +41,20 @@ export class Scope {
     return Object.assign({}, ...this.stack());
   }
 
+  public get specials() {
+    return this._specials;
+  }
+
   public getSpecial(name: string) {
     return this._specials[name];
   }
 
   public getRule(name: string): IRulePattern | undefined {
-    if (this._rules.has(name))
-      return this._rules.get(name)
-    else
-      return this._parent?.getRule(name)
+    if (this._rules.has(name)) {
+      return this._rules.get(name);
+    } else {
+      return this._parent?.getRule(name);
+    }
   }
 
   public withStream(stream: MetaStream) {
@@ -174,7 +185,7 @@ export class Scope {
   }
 
   public pop() {
-    assert(this._parent, 'Assymetrical push and pop')
+    assert(this._parent, "Assymetrical push and pop");
     return new Scope(
       this._parent!._parent,
       this._parent!._variables,

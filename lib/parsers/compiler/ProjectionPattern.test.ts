@@ -3,12 +3,14 @@ import { Meta } from "../meta.ts";
 import { PatternKind } from "../../runtime/patterns/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 
+const $0 = () => {};
 tests("parsers.compiler.projectionpattern", () => [
   {
     id: "PROJECTIONPATTERN00",
     description: "a -> $0",
     pattern: () => Meta,
     input: "a -> $0",
+    specials: { $0 },
     value: {
       kind: PatternKind.Projection,
       pattern: {
@@ -16,8 +18,8 @@ tests("parsers.compiler.projectionpattern", () => [
         name: "a",
       },
       expression: {
-        kind: ExpressionKind.SpecialReference,
-        name: "$0",
+        kind: ExpressionKind.Native,
+        fn: $0,
       },
     },
   },

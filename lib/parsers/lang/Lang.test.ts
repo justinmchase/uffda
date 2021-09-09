@@ -16,7 +16,7 @@ export const TestLang: IRulePattern = {
             { kind: PatternKind.Reference, name: "Basic" },
             { kind: PatternKind.Reference, name: "Lang" },
           ],
-        }
+        },
       },
     },
   },
