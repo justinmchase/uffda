@@ -1,9 +1,10 @@
 import { assert, equal } from "../../deps/std.ts";
+import { Calc, calc } from "./calc.ts";
+import { tests } from "../test.ts";
 
 Deno.test({
   name: "CALC00",
-  fn: async () => {
-    const { calc } = await import("./calc.js");
+  fn: () => {
     const { matched, end, value, errors } = calc`7 + 11`;
     const actual = { matched, done: end.stream.done, value, errors };
     const expected = {
@@ -21,25 +22,35 @@ Deno.test({
   },
 });
 
-// describe('/examples/calc2', () => {
-//   it('add two numbers', () => {
-//     const result = calc`7 + 11`
-//     strictEqual(result, 18)
-//   })
-//   it('can add three numbers', () => {
-//     const result = calc`7 + 11 + 100`
-//     strictEqual(result, 118)
-//   })
-//   it('can sub two numbers', () => {
-//     const result = calc`11 - 7`
-//     strictEqual(result, 4)
-//   })
-//   it('can sub three numbers', () => {
-//     const result = calc`3 - 2 - 1`
-//     strictEqual(result, 0)
-//   })
-//   it('sub has correct precedence', () => {
-//     const result = calc`1 + 2 - 3 + 4`
-//     strictEqual(result, 4)
-//   })
-// })
+tests("examples.calc", () => [
+  {
+    id: "CALC01",
+    pattern: () => Calc,
+    input: "7 + 11",
+    value: 18,
+  },
+  {
+    id: "CALC02",
+    pattern: () => Calc,
+    input: "7 + 11 + 100",
+    value: 118,
+  },
+  {
+    id: "CALC03",
+    pattern: () => Calc,
+    input: "11 - 7",
+    value: 4,
+  },
+  {
+    id: "CALC04",
+    pattern: () => Calc,
+    input: "3 - 2 - 1",
+    value: 0,
+  },
+  {
+    id: "CALC05",
+    pattern: () => Calc,
+    input: "1 + 2 - 3 + 4",
+    value: 4,
+  },
+]);

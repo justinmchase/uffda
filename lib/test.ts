@@ -11,7 +11,8 @@ import { match, Pattern } from "./runtime/mod.ts";
 
 interface IPatternTest {
   id: string;
-  description: string;
+  description?: string;
+  input?: string | { toString(): string };
   pattern: () => Pattern;
   errors?: { start: string; end: string }[];
 }
@@ -39,10 +40,10 @@ type PatternTest =
 export function tests(testGroupName: string, group: () => PatternTest[]) {
   const tests = group();
   for (const test of tests) {
-    const { id, description, pattern, errors = [] } = test;
+    const { id, input, description, pattern, errors = [] } = test;
     Deno.test({
       name: `${brightCyan(testGroupName)} [${brightMagenta(id)}] (${
-        brightBlack(description)
+        brightBlack(description ?? input?.toString() ?? "")
       })`,
       fn: () => {
         if (test.throws) {

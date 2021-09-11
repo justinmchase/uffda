@@ -1,6 +1,6 @@
-import { Basic, uffda } from "../mod.ts";
+import { Basic, dsl, Pattern, uffda } from "../mod.ts";
 
-export const calc = uffda`
+const match = uffda`
   Number
     = { type = 'Integer', i:value } -> ${({ i }) => i}
     ;
@@ -19,3 +19,6 @@ export const calc = uffda`
 
   Main = ${Basic} > Calc;
 `;
+
+export const Calc = match.value as Pattern;
+export const calc = dsl(Calc);
