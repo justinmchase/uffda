@@ -1,5 +1,5 @@
 import { assert } from "../../../deps/std.ts";
-import { Match } from "../../match.ts";
+import { Match, MatchError } from "../../match.ts";
 import { Scope } from "../../scope.ts";
 import { match } from "../match.ts";
 import { ISlicePattern } from "./pattern.ts";
@@ -18,6 +18,7 @@ export function slice(args: ISlicePattern, scope: Scope) {
 
   let end: Scope = scope;
   const matches: unknown[] = [];
+  const errors: MatchError[] = []
   while (true) {
     const m = match(pattern, end);
 
@@ -25,6 +26,8 @@ export function slice(args: ISlicePattern, scope: Scope) {
     if (!m.matched) {
       break;
     }
+
+    errors.push(...m.errors);
 
     // This prevents infinite recursion for Patterns which succeed
     // but consume no input, such as `not` or `ok`
@@ -44,7 +47,7 @@ export function slice(args: ISlicePattern, scope: Scope) {
   }
 
   if (!min || matches.length >= min) {
-    return Match.Ok(scope, end, matches);
+    return Match.Ok(scope, end, matches, errors);
   } else {
     return Match.Fail(scope);
   }

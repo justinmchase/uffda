@@ -1,7 +1,7 @@
 import { tests } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
-tests("patterns.includes", () => [
+tests(import.meta.url, () => [
   {
     id: "INCLUDES00",
     description: "can match single included value",

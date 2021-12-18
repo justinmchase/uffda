@@ -1,7 +1,7 @@
 import { tests } from "../../test.ts";
 import { Whitespace } from "./Whitespace.ts";
 
-tests("parsers.tokenizer.whitespace", () => [
+tests(import.meta.url, () => [
   {
     id: "WHITESPACE00",
     description: "can match space",

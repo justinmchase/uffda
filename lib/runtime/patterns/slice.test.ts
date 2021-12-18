@@ -1,7 +1,7 @@
 import { tests } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
-tests("patterns.slice", () => [
+tests(import.meta.url, () => [
   {
     id: "SLICE00",
     description: "zero or more matches ok without infinite looping",
@@ -165,5 +165,22 @@ tests("patterns.slice", () => [
     input: "abcd",
     value: ["a", "b", "c"],
     done: false,
+  },
+  {
+    id: "SLICE13",
+    description: "slice propagates errors properly",
+    pattern: () => ({
+      kind: PatternKind.Slice,
+      pattern: {
+        kind: PatternKind.ErrorUntil,
+        pattern: { kind: PatternKind.Any },
+        name: "Test",
+        message: "test",
+      },
+      min: 0,
+    }),
+    input: "a",
+    errors: [ { name: "Test", message: "test", start: "-1", end: "0" } ],
+    value: [ undefined ]
   },
 ]);

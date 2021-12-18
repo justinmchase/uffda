@@ -2,7 +2,7 @@ import { tests } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { ExpressionKind } from "../expressions/mod.ts";
 
-tests("patterns.variable", () => [
+tests(import.meta.url, () => [
   {
     id: "VARIABLE00",
     description: "should be available in projection of same scope",

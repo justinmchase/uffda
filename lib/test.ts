@@ -42,7 +42,7 @@ export function tests(testGroupName: string, group: () => PatternTest[]) {
   for (const test of tests) {
     const { id, input, description, pattern, errors = [] } = test;
     Deno.test({
-      name: `${brightCyan(testGroupName)} [${brightMagenta(id)}] (${
+      name: `${brightCyan(new URL('', testGroupName).pathname)} [${brightMagenta(id)}] (${
         brightBlack(description ?? input?.toString() ?? "")
       })`,
       fn: () => {
@@ -60,6 +60,8 @@ export function tests(testGroupName: string, group: () => PatternTest[]) {
           const s = Scope.From(input).setSpecials(specials);
           const m = match(p, s);
           const e = m.errors.map((e) => ({
+            name: e.name,
+            message: e.message,
             start: e.start.stream.path.toString(),
             end: e.end.stream.path.toString(),
           }));
@@ -74,14 +76,6 @@ export function tests(testGroupName: string, group: () => PatternTest[]) {
               }\n`,
           );
           assert(
-            equal(m.matched, matched),
-            `Pattern was ${matched ? "" : "not "}expected to match`,
-          );
-          assert(
-            equal(m.done, done),
-            `Pattern was ${done ? "" : "not "}expected to be done`,
-          );
-          assert(
             equal(m.value, value),
             `Pattern matched value did not equal expected value\n` +
               `expected value: ${
@@ -90,6 +84,14 @@ export function tests(testGroupName: string, group: () => PatternTest[]) {
               `  actual value: ${
                 Deno.inspect(m.value, { colors: true, depth: 10 })
               }`,
+          );
+          assert(
+            equal(m.matched, matched),
+            `Pattern was ${matched ? "" : "not "}expected to match`,
+          );
+          assert(
+            equal(m.done, done),
+            `Pattern was ${done ? "" : "not "}expected to be done`,
           );
         }
       },

@@ -1,8 +1,8 @@
 import { tests } from "../../test.ts";
-import { TestLang } from "./Lang.test.ts";
+import { TestLang } from "./TestLang.test.ts"
 import { LangPatternKind } from "./lang.pattern.ts";
 
-tests("parsers.lang.patterndeclaration", () => [
+tests(import.meta.url, () => [
   {
     id: "PATTERNDEC00",
     description: "can parse pattern declaration",

@@ -69,7 +69,6 @@ export const Lang: IRulePattern = {
       // Expressions
       ExpressionPattern,
       SpecialReferenceExpression,
-
       Main: {
         kind: PatternKind.Rule,
         pattern: {
@@ -79,21 +78,28 @@ export const Lang: IRulePattern = {
               kind: PatternKind.Slice,
               min: 1,
               pattern: {
-                kind: PatternKind.Reference,
-                name: "PatternDeclaration",
+                kind: PatternKind.Or,
+                patterns: [
+                  {
+                    kind: PatternKind.Reference,
+                    name: "PatternDeclaration",
+                  },
+                  {
+                    kind: PatternKind.ErrorUntil,
+                    name: "InvalidPattern",
+                    message: "Not a valid Pattern",
+                    pattern: {
+                      kind: PatternKind.Object,
+                      keys: {
+                        type: { kind: PatternKind.Equal, value: "Token" },
+                        value: { kind: PatternKind.Equal, value: ";" },
+                      },
+                    },
+                  }
+                ]
               },
             },
             { kind: PatternKind.Reference, name: "PatternExpression" },
-            {
-              kind: PatternKind.ErrorUntil,
-              pattern: {
-                kind: PatternKind.Object,
-                keys: {
-                  kind: { kind: PatternKind.Equal, value: "Token" },
-                  value: { kind: PatternKind.Equal, value: ";" },
-                },
-              },
-            },
           ],
         },
       },

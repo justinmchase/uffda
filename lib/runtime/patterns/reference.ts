@@ -12,8 +12,10 @@ export function reference(args: IReferencePattern, scope: Scope): Match {
     // console.log(`${scope.stream.path} (${Deno.inspect(scope.stream.value, { colors: true, depth: 10 })}) match (${name})`)
     return m.popRef(scope);
   } else {
-    // todo: This needs to be in the error itself...
-    console.log("Missing reference: ", name);
-    return Match.Fail(scope).pushError(scope, scope);
+    return Match.Fail(scope).pushError(
+      "MissingReference",
+      `The rule ${name} was not found`,
+      scope,
+      scope);
   }
 }

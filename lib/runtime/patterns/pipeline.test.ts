@@ -2,7 +2,7 @@ import { tests } from "../../test.ts";
 import { ExpressionKind } from "../expressions/mod.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
-tests("patterns.pipeline", () => [
+tests(import.meta.url, () => [
   {
     id: "PIPELINE00",
     description: "succeeds with single step",

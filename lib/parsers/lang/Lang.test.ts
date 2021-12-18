@@ -1,23 +1,36 @@
-import { IRulePattern, PatternKind } from "../../runtime/patterns/mod.ts";
-import { Basic, Lang } from "../mod.ts";
+import { tests } from "../../test.ts";
+import { TestLang } from "./TestLang.test.ts"
 
-export const TestLang: IRulePattern = {
-  kind: PatternKind.Rule,
-  pattern: {
-    kind: PatternKind.Block,
-    rules: {
-      Basic,
-      Lang,
-      Main: {
-        kind: PatternKind.Rule,
-        pattern: {
-          kind: PatternKind.Pipeline,
-          steps: [
-            { kind: PatternKind.Reference, name: "Basic" },
-            { kind: PatternKind.Reference, name: "Lang" },
-          ],
-        },
+tests(import.meta.url, () => [
+  {
+    id: "LANG00",
+    pattern: () => TestLang,
+    input: `
+      A = B;
+      xyz;
+      C = D;
+    `,
+    matched: false, // Errors in a pipeline step will result in matched false
+    errors: [
+      {
+        name: "InvalidPattern",
+        message: "Not a valid Pattern",
+        start: "-1.(1).3",
+        end: "-1.(1).5"
+      }
+    ],
+    value: [
+      {
+        kind: "PatternDeclaration",
+        name: "A",
+        pattern: { kind: "ReferencePattern", name: "B" }
       },
-    },
-  },
-};
+      undefined,
+      {
+        kind: "PatternDeclaration",
+        name: "C",
+        pattern: { kind: "ReferencePattern", name: "D" }
+      }
+    ]
+  }
+]);

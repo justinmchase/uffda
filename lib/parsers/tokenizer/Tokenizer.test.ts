@@ -1,7 +1,7 @@
 import { tests } from "../../test.ts";
 import { Tokenizer } from "./mod.ts";
 
-tests("parsers.tokenizer", () => [
+tests(import.meta.url, () => [
   {
     id: "TOKENIZER00",
     description: "succeeds on empty input",
@@ -57,4 +57,16 @@ tests("parsers.tokenizer", () => [
       { type: "SpecialIdentifier", value: "$0" },
     ],
   },
+  {
+    id: "TOKENIZER04",
+    pattern: () => Tokenizer,
+    input: ["a", "b", 7],
+    value: [
+      { type: "Identifier", value: "ab" },
+      undefined 
+    ],
+    errors: [
+      { name: "InvalidToken", message: "Tokens are expected to be strings", start: "1", end: "2" }
+    ]
+  }
 ]);

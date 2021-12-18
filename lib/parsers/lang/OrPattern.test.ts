@@ -1,8 +1,8 @@
 import { tests } from "../../test.ts";
-import { TestLang } from "./Lang.test.ts";
+import { TestLang } from "./TestLang.test.ts"
 import { LangExpressionKind, LangPatternKind } from "./lang.pattern.ts";
 
-tests("parsers.lang.orpattern", () => [
+tests(import.meta.url, () => [
   {
     id: "ORPATTERN00",
     description: "can parse a reference expression",

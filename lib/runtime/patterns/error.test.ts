@@ -1,12 +1,14 @@
 import { tests } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
-tests("patterns.error", () => [
+tests(import.meta.url, () => [
   {
     id: "ERROR00",
     description: "~'a'",
     pattern: () => ({
       kind: PatternKind.ErrorUntil,
+      name: "Test",
+      message: "testing",
       pattern: {
         kind: PatternKind.Equal,
         value: "a",
@@ -14,15 +16,14 @@ tests("patterns.error", () => [
     }),
     input: "",
     matched: false,
-    errors: [
-      { start: "-1", end: "-1" },
-    ],
   },
   {
     id: "ERROR01",
     description: "~'c'",
     pattern: () => ({
       kind: PatternKind.ErrorUntil,
+      name: "Test",
+      message: "testing",
       pattern: {
         kind: PatternKind.Equal,
         value: "c",
@@ -30,7 +31,7 @@ tests("patterns.error", () => [
     }),
     input: "abc",
     errors: [
-      { start: "-1", end: "1" },
+      { name: "Test", message: "testing", start: "-1", end: "2" },
     ],
   },
   {
@@ -38,16 +39,16 @@ tests("patterns.error", () => [
     description: "~'c'",
     pattern: () => ({
       kind: PatternKind.ErrorUntil,
+      name: "Test",
+      message: "testing",
       pattern: {
         kind: PatternKind.Equal,
         value: "c",
       },
     }),
     input: "ab",
-    matched: false,
-    done: false,
     errors: [
-      { start: "-1", end: "1" },
+      { name: "Test", message: "testing", start: "-1", end: "1" },
     ],
   },
   {
@@ -58,6 +59,8 @@ tests("patterns.error", () => [
       patterns: [
         {
           kind: PatternKind.ErrorUntil,
+          name: "Test",
+          message: "testing",
           pattern: {
             kind: PatternKind.Equal,
             value: ",",
@@ -65,6 +68,8 @@ tests("patterns.error", () => [
         },
         {
           kind: PatternKind.ErrorUntil,
+          name: "Test",
+          message: "testing",
           pattern: {
             kind: PatternKind.Equal,
             value: ",",
@@ -75,8 +80,8 @@ tests("patterns.error", () => [
     input: "a,b,",
     value: [undefined, undefined],
     errors: [
-      { start: "-1", end: "0" },
-      { start: "1", end: "2" },
+      { name: "Test", message: "testing", start: "-1", end: "1" },
+      { name: "Test", message: "testing", start: "1", end: "3" },
     ],
   },
   {
@@ -87,6 +92,8 @@ tests("patterns.error", () => [
       patterns: [
         {
           kind: PatternKind.ErrorUntil,
+          name: "Test",
+          message: "testing",
           pattern: {
             kind: PatternKind.Equal,
             value: ",",
@@ -101,7 +108,7 @@ tests("patterns.error", () => [
     input: "a,;",
     value: [undefined, ";"],
     errors: [
-      { start: "-1", end: "0" },
+      { name: "Test", message: "testing", start: "-1", end: "1" },
     ],
   },
   {
@@ -115,6 +122,8 @@ tests("patterns.error", () => [
           patterns: [
             {
               kind: PatternKind.ErrorUntil,
+              name: "Test",
+              message: "testing",
               pattern: {
                 kind: PatternKind.Equal,
                 value: ")",
@@ -131,6 +140,8 @@ tests("patterns.error", () => [
           patterns: [
             {
               kind: PatternKind.ErrorUntil,
+              name: "Test",
+              message: "testing",
               pattern: {
                 kind: PatternKind.Equal,
                 value: ")",
@@ -149,7 +160,7 @@ tests("patterns.error", () => [
     input: "(abc);",
     value: [undefined, ";"],
     errors: [
-      { start: "-1", end: "3" },
+      { name: "Test", message: "testing", start: "-1", end: "4" },
     ],
   },
   {
@@ -160,6 +171,8 @@ tests("patterns.error", () => [
       patterns: [
         {
           kind: PatternKind.ErrorUntil,
+          name: "Test",
+          message: "testing",
           pattern: {
             kind: PatternKind.Equal,
             value: ";",
@@ -167,6 +180,8 @@ tests("patterns.error", () => [
         },
         {
           kind: PatternKind.ErrorUntil,
+          name: "Test",
+          message: "testing",
           pattern: {
             kind: PatternKind.Equal,
             value: ";",
@@ -177,8 +192,8 @@ tests("patterns.error", () => [
     // Each clause should generate an error and all should be propagated
     input: "a;",
     errors: [
-      { start: "-1", end: "0" },
-      { start: "-1", end: "0" },
+      { name: "Test", message: "testing", start: "-1", end: "1" },
+      { name: "Test", message: "testing", start: "-1", end: "1" },
     ],
   },
   {
@@ -188,6 +203,8 @@ tests("patterns.error", () => [
       kind: PatternKind.Array,
       pattern: {
         kind: PatternKind.ErrorUntil,
+        name: "Test",
+        message: "testing",
         pattern: {
           kind: PatternKind.Equal,
           value: ";",
@@ -197,7 +214,7 @@ tests("patterns.error", () => [
     // Each clause should generate an error and all should be propagated
     input: [["a", ";"]],
     errors: [
-      { start: "0.-1", end: "0.0" },
+      { name: "Test", message: "testing", start: "0.-1", end: "0.1" },
     ],
   },
   {
@@ -210,6 +227,8 @@ tests("patterns.error", () => [
           kind: PatternKind.Rule,
           pattern: {
             kind: PatternKind.ErrorUntil,
+            name: "Test",
+            message: "testing",
             pattern: {
               kind: PatternKind.Equal,
               value: ";",
@@ -221,7 +240,7 @@ tests("patterns.error", () => [
     // Each clause should generate an error and all should be propagated
     input: "a;",
     errors: [
-      { start: "-1", end: "0" },
+      { name: "Test", message: "testing", start: "-1", end: "1" },
     ],
   },
   {
@@ -231,6 +250,8 @@ tests("patterns.error", () => [
       kind: PatternKind.Not,
       pattern: {
         kind: PatternKind.ErrorUntil,
+        name: "Test",
+        message: "testing",
         pattern: {
           kind: PatternKind.Equal,
           value: ";",
@@ -243,7 +264,7 @@ tests("patterns.error", () => [
     errors: [],
   },
   {
-    id: "ERROR08",
+    id: "ERROR09",
     description: "^~';'",
     pattern: () => ({
       kind: PatternKind.Not,
@@ -252,6 +273,8 @@ tests("patterns.error", () => [
         patterns: [
           {
             kind: PatternKind.ErrorUntil,
+            name: "Test",
+            message: "testing",
             pattern: {
               kind: PatternKind.Equal,
               value: "c",
@@ -267,11 +290,11 @@ tests("patterns.error", () => [
     input: "abc",
     done: false,
     errors: [
-      { start: "-1", end: "1" },
+      { name: "Test", message: "testing", start: "-1", end: "2" },
     ],
   },
   {
-    id: "ERROR09",
+    id: "ERROR10",
     description: "{ x = ~';' }",
     pattern: () => ({
       kind: PatternKind.Object,
@@ -280,6 +303,8 @@ tests("patterns.error", () => [
           kind: PatternKind.Array,
           pattern: {
             kind: PatternKind.ErrorUntil,
+            name: "Test",
+            message: "testing",
             pattern: {
               kind: PatternKind.Equal,
               value: ";",
@@ -291,17 +316,19 @@ tests("patterns.error", () => [
     input: [{ x: ["a", ";"] }],
     value: { x: ["a", ";"] },
     errors: [
-      { start: "0.x.-1", end: "0.x.0" },
+      { name: "Test", message: "testing", start: "0.x.-1", end: "0.x.1" },
     ],
   },
   {
-    id: "ERROR10",
+    id: "ERROR11",
     description: "~';' > 'a' ';'",
     pattern: () => ({
       kind: PatternKind.Pipeline,
       steps: [
         {
           kind: PatternKind.ErrorUntil,
+          name: "Test",
+          message: "testing",
           pattern: {
             kind: PatternKind.Equal,
             value: ";",
@@ -319,11 +346,11 @@ tests("patterns.error", () => [
     input: "a;",
     matched: false,
     errors: [
-      { start: "-1.(0).-1", end: "-1.(0).0" },
+      { name: "Test", message: "testing", start: "-1.(0).-1", end: "-1.(0).1" },
     ],
   },
   {
-    id: "ERROR10",
+    id: "ERROR12",
     description: "'a' ';' > ~';'",
     pattern: () => ({
       kind: PatternKind.Pipeline,
@@ -337,6 +364,8 @@ tests("patterns.error", () => [
         },
         {
           kind: PatternKind.ErrorUntil,
+          name: "Test",
+          message: "testing",
           pattern: {
             kind: PatternKind.Equal,
             value: ";",
@@ -347,7 +376,25 @@ tests("patterns.error", () => [
     input: "a;",
     matched: false,
     errors: [
-      { start: "-1.(1).-1", end: "-1.(1).0" },
+      { name: "Test", message: "testing", start: "-1.(1).-1", end: "-1.(1).1" },
+    ],
+  },
+  
+  {
+    id: "ERROR13",
+    description: "consumes all until end",
+    pattern: () => ({
+      kind: PatternKind.ErrorUntil,
+      name: "Test",
+      message: "testing",
+      pattern: {
+        kind: PatternKind.Equal,
+        value: ";",
+      },
+    }),
+    input: "abc",
+    errors: [
+      { name: "Test", message: "testing", start: "-1", end: "2" },
     ],
   },
 ]);

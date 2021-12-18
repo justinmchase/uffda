@@ -1,7 +1,7 @@
 import { tests } from "../../test.ts";
 import { Identifier } from "./Identifier.ts";
 
-tests("parsers.tokenizer.identifier", () => [
+tests(import.meta.url, () => [
   {
     id: "IDENTIFIER00",
     description: "matches a character",

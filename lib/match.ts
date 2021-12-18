@@ -3,9 +3,19 @@ import { Scope } from "./scope.ts";
 
 export class MatchError {
   constructor(
+    public readonly name: string,
+    public readonly message: string,
     public readonly start: Scope,
     public readonly end: Scope,
   ) {}
+
+  public trace() {
+
+    return {
+      start: this.start.stream.path,
+      end: this.end.stream.path,
+    }
+  }
 }
 
 export class Match {
@@ -75,7 +85,7 @@ export class Match {
     );
   }
 
-  public pushError(start: Scope, end: Scope) {
+  public pushError(kind: string, message: string, start: Scope, end: Scope) {
     return new Match(
       this.matched,
       this.isLr,
@@ -85,6 +95,8 @@ export class Match {
       [
         ...this.errors,
         new MatchError(
+          kind,
+          message,
           start,
           end,
         ),

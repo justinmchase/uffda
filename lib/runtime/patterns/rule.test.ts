@@ -3,7 +3,7 @@ import { tests } from "../../test.ts";
 import { ExpressionKind } from "../expressions/mod.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
-tests("patterns.rule", () => [
+tests(import.meta.url, () => [
   {
     id: "RULE00",
     description: "can parse a non-recursive rule",

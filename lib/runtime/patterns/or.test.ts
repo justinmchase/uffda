@@ -1,7 +1,7 @@
 import { tests } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
-tests("patterns.or", () => [
+tests(import.meta.url, () => [
   {
     id: "OR00",
     description: "requires at least one pattern to match",
@@ -64,4 +64,21 @@ tests("patterns.or", () => [
     value: 1,
     done: false,
   },
+  {
+    id: "OR05",
+    description: "Or propagates errors correctly",
+    pattern: () => ({
+      kind: PatternKind.Or,
+      patterns: [
+        {
+          kind: PatternKind.ErrorUntil,
+          pattern: { kind: PatternKind.Any },
+          name: "Test",
+          message: "Intentional error",
+        }
+      ]
+    }),
+    input: "a",
+    errors: [{ name: "Test", message: "Intentional error", start: "-1", end: "0" }]
+  }
 ]);

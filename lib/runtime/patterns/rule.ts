@@ -19,12 +19,16 @@ export function rule(rule: IRulePattern, scope: Scope): Match {
       .popRule(scope);
   } else {
     if (memo.match.isLr) {
-      // todo: make a proper error object
       if (scope.ruleStack.length === 0) {
         // This should never happen unless there is a bug in this code base
         return Match
           .Fail(scope)
-          .pushError(scope, scope); // todo: Add error messages or codes of some kind
+          .pushError(
+            "InvalidLeftRecursion",
+            "Left recursion was detected but no rules are in the stack",
+            scope,
+            scope
+          );
       }
       if (!Object.is(scope.ruleStack.slice(-1)[0], rule)) {
         return Match.Fail(scope);

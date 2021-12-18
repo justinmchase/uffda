@@ -1,7 +1,7 @@
 import { tests } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
-tests("patterns.not", () => [
+tests(import.meta.url, () => [
   {
     id: "NOT00",
     description: "^ok",

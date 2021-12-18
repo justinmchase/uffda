@@ -1,12 +1,14 @@
 import { tests } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
-tests("patterns.must", () => [
+tests(import.meta.url, () => [
   {
     id: "MUST00",
     description: "ok!",
     pattern: () => ({
       kind: PatternKind.Must,
+      name: "Test",
+      message: "Testing",
       pattern: { kind: PatternKind.Ok },
     }),
     input: [],
@@ -16,12 +18,14 @@ tests("patterns.must", () => [
     description: "fail!",
     pattern: () => ({
       kind: PatternKind.Must,
+      name: "Test",
+      message: "Testing",
       pattern: { kind: PatternKind.Fail },
     }),
     input: [],
     matched: false,
     errors: [
-      { start: "-1", end: "-1" },
+      { name: "Test", message: "Testing", start: "-1", end: "-1" },
     ],
   },
   {
@@ -29,6 +33,8 @@ tests("patterns.must", () => [
     description: "'a'!",
     pattern: () => ({
       kind: PatternKind.Must,
+      name: "Test",
+      message: "Testing",
       pattern: { kind: PatternKind.Equal, value: "a" },
     }),
     input: "a",
@@ -39,13 +45,15 @@ tests("patterns.must", () => [
     description: "'a'!",
     pattern: () => ({
       kind: PatternKind.Must,
+      name: "Test",
+      message: "Testing",
       pattern: { kind: PatternKind.Equal, value: "a" },
     }),
     input: "b",
     matched: false,
     done: false,
     errors: [
-      { start: "-1", end: "-1" },
+      { name: "Test", message: "Testing", start: "-1", end: "-1" },
     ],
   },
 ]);

@@ -3,7 +3,7 @@ import { tests } from "../../test.ts";
 import { ExpressionKind } from "../expressions/mod.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
-tests("patterns.block", () => [
+tests(import.meta.url, () => [
   {
     id: "BLOCK00",
     description: "can run main pattern",

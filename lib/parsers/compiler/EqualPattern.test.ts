@@ -2,7 +2,7 @@ import { tests } from "../../test.ts";
 import { Meta } from "../meta.ts";
 import { PatternKind } from "../../runtime/patterns/mod.ts";
 
-tests("parsers.compiler.equal", () => [
+tests(import.meta.url, () => [
   {
     id: "EQUAL00",
     description: "'abc'",

@@ -3,7 +3,7 @@ import { tests } from "../../test.ts";
 import { Tokenizer } from "../tokenizer/mod.ts";
 import { Exclude } from "./Exclude.ts";
 
-tests("parsers.exclusion", () => [
+tests(import.meta.url, () => [
   {
     id: "EXCLUDE00",
     description: "can exclude whitespace and newlines",

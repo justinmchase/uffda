@@ -1,8 +1,8 @@
 import { tests } from "../../test.ts";
-import { TestLang } from "./Lang.test.ts";
+import { TestLang } from "./TestLang.test.ts"
 import { LangPatternKind } from "./lang.pattern.ts";
 
-tests("parsers.lang.object", () => [
+tests(import.meta.url, () => [
   {
     id: "OBJECT00",
     description: "can parse empty object",

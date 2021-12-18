@@ -1,8 +1,8 @@
 import { tests } from "../../test.ts";
-import { TestLang } from "./Lang.test.ts";
+import { TestLang } from "./TestLang.test.ts"
 import { LangPatternKind } from "./lang.pattern.ts";
 
-tests("parsers.lang.and", () => [
+tests(import.meta.url, () => [
   {
     id: "AND00",
     description: "x & y",

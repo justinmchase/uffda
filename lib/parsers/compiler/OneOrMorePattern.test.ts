@@ -2,7 +2,7 @@ import { tests } from "../../test.ts";
 import { Meta } from "../meta.ts";
 import { PatternKind } from "../../runtime/patterns/mod.ts";
 
-tests("parsers.compiler.oneormorepattern", () => [
+tests(import.meta.url, () => [
   {
     id: "ONEORMOREPATTERN00",
     description: "a+",

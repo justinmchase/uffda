@@ -1,7 +1,7 @@
 import { tests } from "../../test.ts";
 import { NewLine } from "./NewLine.ts";
 
-tests("parsers.tokenizer.newline", () => [
+tests(import.meta.url, () => [
   {
     id: "NEWLINE00",
     description: "can match slash n",

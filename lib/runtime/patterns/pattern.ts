@@ -62,6 +62,8 @@ export interface IEqualPattern {
 export interface IErrorUntilPattern {
   kind: PatternKind.ErrorUntil;
   pattern: Pattern;
+  name: string;
+  message: string;
 }
 export interface IFailPattern {
   kind: PatternKind.Fail;
@@ -72,6 +74,8 @@ export interface IIncludesPattern {
 }
 export interface IMustPattern {
   kind: PatternKind.Must;
+  name: string
+  message: string
   pattern: Pattern;
 }
 export interface INotPattern {

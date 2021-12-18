@@ -4,7 +4,7 @@ import { match } from "../match.ts";
 import { IMustPattern } from "./pattern.ts";
 
 export function must(args: IMustPattern, scope: Scope): Match {
-  const { pattern } = args;
+  const { name, message, pattern } = args;
   const m = match(pattern, scope);
   if (m.matched) {
     return m;
@@ -12,5 +12,10 @@ export function must(args: IMustPattern, scope: Scope): Match {
 
   return Match
     .Fail(scope)
-    .pushError(scope, scope);
+    .pushError(
+      name,
+      message,
+      scope,
+      scope
+    );
 }

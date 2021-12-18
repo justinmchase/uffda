@@ -22,7 +22,7 @@ Deno.test({
   },
 });
 
-tests("examples.calc", () => [
+tests(import.meta.url, () => [
   {
     id: "CALC01",
     pattern: () => Calc,

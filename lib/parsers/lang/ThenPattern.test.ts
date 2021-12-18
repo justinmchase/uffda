@@ -1,8 +1,8 @@
 import { tests } from "../../test.ts";
-import { TestLang } from "./Lang.test.ts";
+import { TestLang } from "./TestLang.test.ts"
 import { LangPatternKind } from "./lang.pattern.ts";
 
-tests(".parsers.lang.ThenPattern", () => [
+tests(import.meta.url, () => [
   {
     id: "THEN01",
     description: "can parse x then y references",

@@ -1,8 +1,8 @@
 import { tests } from "../../test.ts";
-import { TestLang } from "./Lang.test.ts";
+import { TestLang } from "./TestLang.test.ts"
 import { LangPatternKind } from "./lang.pattern.ts";
 
-tests("parsers.lang.variablepattern", () => [
+tests(import.meta.url, () => [
   {
     id: "VARIABLEPATTERN00",
     description: "can parse a reference as a variable",

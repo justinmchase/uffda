@@ -20,6 +20,7 @@ export function pipeline(args: IPipelinePattern, scope: Scope) {
     //   `pipeline: ${Deno.inspect(result.value, { colors: true, depth: 10 })}`,
     // );
 
+    // console.log('pipeline:', result.matched, result.end.stream.done)
     if (!result.matched) {
       return result;
     }

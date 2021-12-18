@@ -1,7 +1,7 @@
 import { tests } from "../../test.ts";
 import { Digit } from "./Digit.ts";
 
-tests("parsers.tokenizer.digit", () => [
+tests(import.meta.url, () => [
   {
     id: "DIGIT00",
     description: "matches a digit",

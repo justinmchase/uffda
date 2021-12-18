@@ -1,8 +1,8 @@
 import { tests } from "../../test.ts";
-import { TestLang } from "./Lang.test.ts";
+import { TestLang } from "./TestLang.test.ts"
 import { LangPatternKind } from "./lang.pattern.ts";
 
-tests("parsers.lang.specialreference", () => [
+tests(import.meta.url, () => [
   {
     id: "SPECREF00",
     description: "Can parse special reference",

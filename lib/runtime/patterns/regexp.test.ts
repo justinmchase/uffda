@@ -1,7 +1,7 @@
 import { tests } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
-tests("patterns.regexp", () => [
+tests(import.meta.url, () => [
   {
     id: "REGEXP00",
     description: "can match strings with a regexp",

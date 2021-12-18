@@ -6,8 +6,8 @@ Uffda is a parser generator for domain specific languages.
 
 It is different from many parser generators in that the syntax is expressive
 enough to support parsing strings as well as objects, arrays or any other value
-type. The result of this capability is that each step of the compiler can be
-expressed as dsl.
+type. The result of this capability is that the entire compiler pipeline can be
+expressed in patterns.
 
 > OMeta’s key insight is the realization that all of the passes in a traditional
 > compiler are essentially pattern matching operations
@@ -21,8 +21,8 @@ npm i uffda
 ```
 
 ```ts
-import { uffda } from "uffda";
-import { Digit } from "uffda/parsers/tokenizer";
+import { uffda } from "https://deno.land/x/uffda/mod.ts";
+import { Digit } from "https://deno.land/x/uffda/lib/parsers/tokenizer/Digit.ts";
 
 // This generates a parser which can be used as a
 export const calc = uffda`
