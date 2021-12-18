@@ -7,6 +7,7 @@ export type Pattern =
   | IArrayPattern
   | IBlockPattern
   | IBooleanPattern
+  | IEndPattern
   | IEqualPattern
   | IErrorUntilPattern
   | IFailPattern
@@ -32,9 +33,7 @@ export function isPattern(value: unknown): value is Pattern {
   if (typeof value !== "object") return false;
 
   const p = value as Pattern;
-  if (!Object.values(PatternKind).includes(p.kind)) return false;
-
-  return true;
+  return Reflect.has(PatternKind, p.kind)
 }
 
 export interface IAnyPattern {
@@ -54,6 +53,9 @@ export interface IBlockPattern {
 }
 export interface IBooleanPattern {
   kind: PatternKind.Boolean;
+}
+export interface IEndPattern {
+  kind: PatternKind.End;
 }
 export interface IEqualPattern {
   kind: PatternKind.Equal;

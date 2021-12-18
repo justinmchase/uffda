@@ -1,6 +1,4 @@
-# Uffda
-
-_**NOTE**: work in progress!_
+# Uffda 🦕
 
 Uffda is a parser generator for domain specific languages.
 
@@ -17,7 +15,7 @@ expressed in patterns.
 ## How to use
 
 ```sh
-npm i uffda
+import { uffda } from "https://deno.land/x/uffda/mod.ts";
 ```
 
 ```ts
@@ -38,9 +36,13 @@ const { value } = calc`1+2`;
 assert(value === 3);
 ```
 
-## Documentation
+## Development
 
-_This is a work in progress_
+This is a deno library.
+
+```sh
+deno test --watch --jobs 4
+```
 
 ### Resources
 
@@ -48,7 +50,6 @@ This project is based on a previous project I made called Meta# which was a C#
 implementation of the ideas written in the OMeta paper by
 [Alessandro Warth](http://www.tinlizzie.org/~awarth/).
 
-- [Experimenting with Programming
-  Languages](http://www.vpri.org/pdf/tr2008003_experimenting.pdf)
+- [Experimenting with Programming Languages](http://www.vpri.org/pdf/tr2008003_experimenting.pdf)
 - [ohm-js](https://ohmlang.github.io/)
 - [meta#](https://archive.codeplex.com/?p=metasharp)

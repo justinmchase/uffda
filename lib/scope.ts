@@ -4,14 +4,25 @@ import { MetaStream } from "./stream.ts";
 import { Memos } from "./memo.ts";
 import { Reference } from "./reference.ts";
 
+interface IScopeOptions {
+  trace?: boolean
+}
+
 export class Scope {
-  public static readonly Default = () => new Scope();
-  public static readonly From = (s: Iterable<unknown> | Scope) =>
+  public static readonly Default = (opts?: IScopeOptions) => new Scope(
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    opts
+  );
+  public static readonly From = (s: Iterable<unknown> | Scope, opts?: IScopeOptions) =>
     s instanceof Scope ? s : new Scope(
       undefined,
       undefined,
       undefined,
       undefined,
+      opts,
       MetaStream.From(s),
     );
 
@@ -20,6 +31,7 @@ export class Scope {
     private readonly _variables: Record<string, unknown> = {},
     private readonly _specials: Record<string, unknown> = {},
     private readonly _rules: Map<string, IRulePattern> = new Map(),
+    public readonly options: IScopeOptions = {},
     public readonly stream: MetaStream = MetaStream.Default(),
     public readonly memos: Memos = new Memos(),
     public readonly ruleStack: IRulePattern[] = [],
@@ -63,6 +75,7 @@ export class Scope {
       this._variables,
       this._specials,
       this._rules,
+      this.options,
       stream,
       this.memos,
       this.ruleStack,
@@ -76,6 +89,7 @@ export class Scope {
       Object.assign({}, this._variables, variables),
       this._specials,
       this._rules,
+      this.options,
       this.stream,
       this.memos,
       this.ruleStack,
@@ -89,6 +103,7 @@ export class Scope {
       variables,
       this._specials,
       this._rules,
+      this.options,
       this.stream,
       this.memos,
       this.ruleStack,
@@ -101,6 +116,7 @@ export class Scope {
       this._variables,
       specials,
       this._rules,
+      this.options,
       this.stream,
       this.memos,
       this.ruleStack,
@@ -113,6 +129,7 @@ export class Scope {
       this._variables,
       this._specials,
       new Map(Object.entries(rules)),
+      this.options,
       this.stream,
       this.memos,
       this.ruleStack,
@@ -125,6 +142,7 @@ export class Scope {
       {},
       this._specials,
       this._rules,
+      this.options,
       this.stream,
       this.memos,
       [...this.ruleStack, rule],
@@ -138,6 +156,7 @@ export class Scope {
       {},
       this._specials,
       this._rules,
+      this.options,
       this.stream,
       this.memos,
       this.ruleStack,
@@ -151,6 +170,7 @@ export class Scope {
       scope._variables,
       this._specials,
       this._rules,
+      this.options,
       this.stream,
       this.memos,
       this.ruleStack.slice(-1),
@@ -164,6 +184,7 @@ export class Scope {
       scope._variables,
       this._specials,
       this._rules,
+      this.options,
       this.stream,
       this.memos,
       this.ruleStack,
@@ -177,6 +198,7 @@ export class Scope {
       {},
       this._specials,
       this._rules,
+      this.options,
       this.stream,
       this.memos,
       this.ruleStack,
@@ -191,6 +213,7 @@ export class Scope {
       this._parent!._variables,
       this._parent!._specials,
       this._parent!._rules,
+      this.options,
       this.stream,
       this.memos,
       this.ruleStack,

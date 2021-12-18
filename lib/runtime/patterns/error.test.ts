@@ -47,9 +47,8 @@ tests(import.meta.url, () => [
       },
     }),
     input: "ab",
-    errors: [
-      { name: "Test", message: "testing", start: "-1", end: "1" },
-    ],
+    matched: false,
+    done: false,
   },
   {
     id: "ERROR03",
@@ -388,8 +387,7 @@ tests(import.meta.url, () => [
       name: "Test",
       message: "testing",
       pattern: {
-        kind: PatternKind.Equal,
-        value: ";",
+        kind: PatternKind.End
       },
     }),
     input: "abc",

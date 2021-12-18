@@ -4,6 +4,7 @@ export enum PatternKind {
   Array = "array",
   Block = "block",
   Boolean = "boolean",
+  End = "end",
   Equal = "equal",
   ErrorUntil = "error",
   Fail = "fail",

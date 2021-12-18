@@ -5,6 +5,7 @@ import {
   any,
   array,
   block,
+  end,
   equal,
   error,
   fail,
@@ -29,7 +30,10 @@ import {
 } from "./patterns/mod.ts";
 
 export function match(pattern: Pattern, scope: Scope): Match {
-  // console.log(`${pattern.kind}@${scope.stream.path}: ${Deno.inspect(scope.stream.value, { colors: true })}`)
+  if (scope.options.trace === true) {
+    console.log(`${pattern.kind}@${scope.stream.path}: ${Deno.inspect(scope.stream.value, { colors: true })}`)
+  }
+
   switch (pattern.kind) {
     case PatternKind.And:
       return and(pattern, scope);
@@ -41,6 +45,8 @@ export function match(pattern: Pattern, scope: Scope): Match {
       return block(pattern, scope);
     case PatternKind.Boolean:
       return type(ValueType.Boolean, scope);
+    case PatternKind.End:
+      return end(scope)
     case PatternKind.ErrorUntil:
       return error(pattern, scope);
     case PatternKind.Equal:
