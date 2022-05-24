@@ -11,7 +11,7 @@ export function pipeline(args: IPipelinePattern, scope: Scope) {
   for (let i = 0; i < steps.length; i++) {
     const pattern = steps[i];
     const nextStream = new MetaStream(
-      scope.stream.path.add(`(${i})`).add(-1),
+      scope.stream.path, // .add(`(${i})`).add(0),
       items,
     );
     const nextScope = scope.withStream(nextStream);

@@ -75,10 +75,15 @@ tests(import.meta.url, () => [
           pattern: { kind: PatternKind.Any },
           name: "Test",
           message: "Intentional error",
-        }
-      ]
+        },
+      ],
     }),
     input: "a",
-    errors: [{ name: "Test", message: "Intentional error", start: "-1", end: "0" }]
-  }
+    errors: [{
+      name: "Test",
+      message: "Intentional error",
+      start: "0",
+      end: "1",
+    }],
+  },
 ]);

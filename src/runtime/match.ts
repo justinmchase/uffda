@@ -31,7 +31,11 @@ import {
 
 export function match(pattern: Pattern, scope: Scope): Match {
   if (scope.options.trace === true) {
-    console.log(`${pattern.kind}@${scope.stream.path}: ${Deno.inspect(scope.stream.value, { colors: true })}`)
+    console.log(
+      `${pattern.kind}@${scope.stream.path}: ${
+        Deno.inspect(scope.stream.value, { colors: true })
+      }`,
+    );
   }
 
   switch (pattern.kind) {
@@ -46,7 +50,7 @@ export function match(pattern: Pattern, scope: Scope): Match {
     case PatternKind.Boolean:
       return type(ValueType.Boolean, scope);
     case PatternKind.End:
-      return end(scope)
+      return end(scope);
     case PatternKind.ErrorUntil:
       return error(pattern, scope);
     case PatternKind.Equal:

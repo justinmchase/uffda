@@ -36,7 +36,7 @@ export async function compileFile(file: string, _options: ICompileOptions) {
 
   const scope = Scope.From(contents);
   const results = match(Meta, scope);
-  const { start, end, matched, done, errors, value } = results;
+  const { end, matched, done, errors, value } = results;
   if (done && matched && !errors.length) {
     console.log(`compiled ${file} successfully...`, value);
   } else if (errors.length) {

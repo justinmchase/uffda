@@ -63,10 +63,15 @@ tests(import.meta.url, () => [
     input: ["a", "b", 7],
     value: [
       { type: "Identifier", value: "ab" },
-      undefined 
+      undefined,
     ],
     errors: [
-      { name: "InvalidToken", message: "Tokens are expected to be strings", start: "1", end: "2" }
-    ]
-  }
+      {
+        name: "InvalidToken",
+        message: "Tokens are expected to be strings",
+        start: "2",
+        end: "3",
+      },
+    ],
+  },
 ]);

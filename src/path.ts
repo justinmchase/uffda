@@ -1,7 +1,7 @@
 type Segment = number | string;
 
 export class Path {
-  public static readonly Default = () => new Path([-1]);
+  public static readonly Default = () => new Path([0]);
   public static readonly From = (segment: Segment) => new Path([segment]);
   constructor(
     public readonly segments: Segment[],
