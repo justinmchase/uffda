@@ -30,7 +30,7 @@ Deno.test(
 Deno.test(
   "SCOPE_01",
   async () => {
-    const scope = Scope.From("abc");
+    const scope = Scope.From("aabbbcc");
     const pattern: Pattern = {
       kind: PatternKind.Pipeline,
       steps: [
@@ -39,7 +39,14 @@ Deno.test(
           patterns: [
             {
               kind: PatternKind.Projection,
-              pattern: { kind: PatternKind.Any },
+              pattern: {
+                kind: PatternKind.Slice,
+                min: 1,
+                pattern: {
+                  kind: PatternKind.Equal,
+                  value: "a",
+                },
+              },
               expression: {
                 kind: ExpressionKind.Native,
                 fn: ({ _ }) => ({ value: _ }),
@@ -47,7 +54,14 @@ Deno.test(
             },
             {
               kind: PatternKind.Projection,
-              pattern: { kind: PatternKind.Any },
+              pattern: {
+                kind: PatternKind.Slice,
+                min: 1,
+                pattern: {
+                  kind: PatternKind.Equal,
+                  value: "b",
+                },
+              },
               expression: {
                 kind: ExpressionKind.Native,
                 fn: ({ _ }) => ({ value: _ }),
@@ -55,7 +69,14 @@ Deno.test(
             },
             {
               kind: PatternKind.Projection,
-              pattern: { kind: PatternKind.Any },
+              pattern: {
+                kind: PatternKind.Slice,
+                min: 1,
+                pattern: {
+                  kind: PatternKind.Equal,
+                  value: "c",
+                },
+              },
               expression: {
                 kind: ExpressionKind.Native,
                 fn: ({ _ }) => ({ value: _ }),
@@ -89,7 +110,7 @@ Deno.test(
     assertObjectMatch({ matched, done, index, errors }, {
       matched: true,
       done: false,
-      index: 2,
+      index: 5,
       errors: [],
     });
   },

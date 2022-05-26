@@ -18,10 +18,18 @@ export function compileCommand() {
         default: "./src",
       },
     )
+    .option(
+      "-t, --trace",
+      "Enables tracing in the compiler",
+      {
+        default: false,
+      },
+    )
     .action(async (opts) => {
       await compile({
         dstDir: opts.dst,
         srcDir: opts.src,
+        trace: opts.trace,
       });
     });
 }
