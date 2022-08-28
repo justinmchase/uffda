@@ -1,0 +1,47 @@
+name: Checks
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  check:
+    name: Checks
+    runs-on: [ubuntu-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Setup Cache
+        uses: actions/cache@v2
+        with:
+          key: ${{ runner.os }}-deno-${{ hashFiles('deps/*') }}
+          restore-keys: ${{ runner.os }}-deno-
+          path: |
+            /home/runner/.deno
+
+      - name: Cache
+        run: deno cache deps.ts
+
+      - name: Lint
+        continue-on-error: true
+        run: deno lint
+
+      - name: Format
+        continue-on-error: true
+        run: deno fmt --check
+
+      - name: Type Check
+        continue-on-error: true
+        run: deno check mod.ts
+
+      - name: Test
+        run: deno test

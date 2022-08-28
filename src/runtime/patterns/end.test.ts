@@ -19,8 +19,8 @@ tests(import.meta.url, () => [
     pattern: () => ({
       kind: PatternKind.Not,
       pattern: {
-        kind: PatternKind.End
-      }
+        kind: PatternKind.End,
+      },
     }),
     input: "a",
     done: false,

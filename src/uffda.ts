@@ -11,7 +11,7 @@ const templateToCode = (template: TemplateStringsArray) =>
   template.reduce(
     (l, r, i) => `${l}$${i - 1}${r}`,
   );
-const argsToSpecials = (args: unknown[]) =>
+const argsToSpecials = (args: (ProjectionFunction | IRulePattern)[]) =>
   args.reduce(
     (a, b, i) => Object.assign(a, { [`$${i}`]: b }),
     {},

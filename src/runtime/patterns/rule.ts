@@ -27,7 +27,7 @@ export function rule(rule: IRulePattern, scope: Scope): Match {
             "InvalidLeftRecursion",
             "Left recursion was detected but no rules are in the stack",
             scope,
-            scope
+            scope,
           );
       }
       if (!Object.is(scope.ruleStack.slice(-1)[0], rule)) {

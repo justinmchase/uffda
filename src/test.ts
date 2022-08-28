@@ -42,15 +42,13 @@ export function tests(testGroupName: string, group: () => PatternTest[]) {
   for (const test of tests) {
     const { id, input, description, pattern, errors = [] } = test;
     Deno.test({
-      name: `${brightCyan(new URL('', testGroupName).pathname)} [${brightMagenta(id)}] (${
-        brightBlack(description ?? input?.toString() ?? "")
-      })`,
+      name: `${brightCyan(new URL("", testGroupName).pathname)} [${
+        brightMagenta(id)
+      }] (${brightBlack(description ?? input?.toString() ?? "")})`,
       fn: () => {
         if (test.throws) {
           assertThrows(
             pattern,
-            undefined,
-            undefined,
             `Pattern was expected to throw during construction`,
           );
         } else {

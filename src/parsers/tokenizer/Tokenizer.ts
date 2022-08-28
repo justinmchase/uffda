@@ -92,8 +92,8 @@ export const Tokenizer: IRulePattern = {
           kind: PatternKind.ErrorUntil,
           name: "InvalidToken",
           message: "Tokens are expected to be strings",
-          pattern: { kind: PatternKind.Any }
-        }
+          pattern: { kind: PatternKind.Any },
+        },
       ],
     },
   },
