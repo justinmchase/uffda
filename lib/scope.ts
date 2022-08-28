@@ -5,18 +5,22 @@ import { Memos } from "./memo.ts";
 import { Reference } from "./reference.ts";
 
 interface IScopeOptions {
-  trace?: boolean
+  trace?: boolean;
 }
 
 export class Scope {
-  public static readonly Default = (opts?: IScopeOptions) => new Scope(
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    opts
-  );
-  public static readonly From = (s: Iterable<unknown> | Scope, opts?: IScopeOptions) =>
+  public static readonly Default = (opts?: IScopeOptions) =>
+    new Scope(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      opts,
+    );
+  public static readonly From = (
+    s: Iterable<unknown> | Scope,
+    opts?: IScopeOptions,
+  ) =>
     s instanceof Scope ? s : new Scope(
       undefined,
       undefined,

@@ -95,8 +95,8 @@ export const Lang: IRulePattern = {
                         value: { kind: PatternKind.Equal, value: ";" },
                       },
                     },
-                  }
-                ]
+                  },
+                ],
               },
             },
             { kind: PatternKind.Reference, name: "PatternExpression" },

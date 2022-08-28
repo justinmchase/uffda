@@ -1,5 +1,5 @@
 import { tests } from "../../test.ts";
-import { TestLang } from "./TestLang.test.ts"
+import { TestLang } from "./TestLang.test.ts";
 import { LangExpressionKind, LangPatternKind } from "./lang.pattern.ts";
 
 tests(import.meta.url, () => [

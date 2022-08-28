@@ -18,7 +18,7 @@ export function slice(args: ISlicePattern, scope: Scope) {
 
   let end: Scope = scope;
   const matches: unknown[] = [];
-  const errors: MatchError[] = []
+  const errors: MatchError[] = [];
   while (true) {
     const m = match(pattern, end);
 

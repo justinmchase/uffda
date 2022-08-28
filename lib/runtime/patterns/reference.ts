@@ -16,6 +16,7 @@ export function reference(args: IReferencePattern, scope: Scope): Match {
       "MissingReference",
       `The rule ${name} was not found`,
       scope,
-      scope);
+      scope,
+    );
   }
 }

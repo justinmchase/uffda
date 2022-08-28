@@ -378,7 +378,7 @@ tests(import.meta.url, () => [
       { name: "Test", message: "testing", start: "-1.(1).-1", end: "-1.(1).1" },
     ],
   },
-  
+
   {
     id: "ERROR13",
     description: "consumes all until end",
@@ -387,7 +387,7 @@ tests(import.meta.url, () => [
       name: "Test",
       message: "testing",
       pattern: {
-        kind: PatternKind.End
+        kind: PatternKind.End,
       },
     }),
     input: "abc",

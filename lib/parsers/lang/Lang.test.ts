@@ -1,5 +1,5 @@
 import { tests } from "../../test.ts";
-import { TestLang } from "./TestLang.test.ts"
+import { TestLang } from "./TestLang.test.ts";
 
 tests(import.meta.url, () => [
   {
@@ -16,21 +16,21 @@ tests(import.meta.url, () => [
         name: "InvalidPattern",
         message: "Not a valid Pattern",
         start: "-1.(1).3",
-        end: "-1.(1).5"
-      }
+        end: "-1.(1).5",
+      },
     ],
     value: [
       {
         kind: "PatternDeclaration",
         name: "A",
-        pattern: { kind: "ReferencePattern", name: "B" }
+        pattern: { kind: "ReferencePattern", name: "B" },
       },
       undefined,
       {
         kind: "PatternDeclaration",
         name: "C",
-        pattern: { kind: "ReferencePattern", name: "D" }
-      }
-    ]
-  }
+        pattern: { kind: "ReferencePattern", name: "D" },
+      },
+    ],
+  },
 ]);

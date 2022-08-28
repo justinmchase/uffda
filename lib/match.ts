@@ -10,11 +10,10 @@ export class MatchError {
   ) {}
 
   public trace() {
-
     return {
       start: this.start.stream.path,
       end: this.end.stream.path,
-    }
+    };
   }
 }
 

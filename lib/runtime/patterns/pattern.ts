@@ -33,7 +33,7 @@ export function isPattern(value: unknown): value is Pattern {
   if (typeof value !== "object") return false;
 
   const p = value as Pattern;
-  return Reflect.has(PatternKind, p.kind)
+  return Reflect.has(PatternKind, p.kind);
 }
 
 export interface IAnyPattern {
@@ -76,8 +76,8 @@ export interface IIncludesPattern {
 }
 export interface IMustPattern {
   kind: PatternKind.Must;
-  name: string
-  message: string
+  name: string;
+  message: string;
   pattern: Pattern;
 }
 export interface INotPattern {

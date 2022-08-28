@@ -16,6 +16,6 @@ export function must(args: IMustPattern, scope: Scope): Match {
       name,
       message,
       scope,
-      scope
+      scope,
     );
 }
