@@ -49,8 +49,6 @@ export function tests(testGroupName: string, group: () => PatternTest[]) {
         if (test.throws) {
           assertThrows(
             pattern,
-            undefined,
-            undefined,
             `Pattern was expected to throw during construction`,
           );
         } else {
