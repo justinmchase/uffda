@@ -1,2 +1,3 @@
-export * from "./std.ts";
-export * from "./debug.ts";
+import "./cliffy.ts";
+import "./debug.ts";
+import "./std.ts";

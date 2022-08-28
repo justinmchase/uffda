@@ -6,6 +6,7 @@ export class MetaStream {
       Path.Default(),
       [][Symbol.iterator](),
     );
+
   public static readonly From = (s: Iterable<unknown>) =>
     new MetaStream(
       Path.Default(),
@@ -18,7 +19,7 @@ export class MetaStream {
   constructor(
     public readonly path: Path,
     public readonly items: Iterator<unknown>,
-    public readonly index = -1,
+    public readonly index = 0,
     public readonly value?: unknown,
   ) {
   }

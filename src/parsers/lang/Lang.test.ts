@@ -15,8 +15,8 @@ tests(import.meta.url, () => [
       {
         name: "InvalidPattern",
         message: "Not a valid Pattern",
-        start: "-1.(1).3",
-        end: "-1.(1).5",
+        start: "4",
+        end: "6",
       },
     ],
     value: [

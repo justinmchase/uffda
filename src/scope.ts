@@ -4,6 +4,8 @@ import { MetaStream } from "./stream.ts";
 import { Memos } from "./memo.ts";
 import { Reference } from "./reference.ts";
 
+export const SOURCE = Symbol();
+
 interface IScopeOptions {
   trace?: boolean;
 }
@@ -223,5 +225,35 @@ export class Scope {
       this.ruleStack,
       this.refStack,
     );
+  }
+
+  public setSource(value: unknown) {
+    if (value != null && typeof value === "object") {
+      if (!Reflect.getOwnPropertyDescriptor(value, SOURCE)) {
+        Reflect.defineProperty(value, SOURCE, {
+          enumerable: false,
+          writable: true,
+        });
+      }
+      Reflect.set(value, SOURCE, this);
+    }
+  }
+
+  public source(): Scope {
+    const value = this.stream.next().value;
+    if (value == null) {
+      return this;
+    }
+
+    if (typeof value !== "object") {
+      return this;
+    }
+
+    if (!Reflect.has(value, SOURCE)) {
+      return this;
+    }
+
+    const source = Reflect.get(value, SOURCE) as Scope;
+    return source.source();
   }
 }

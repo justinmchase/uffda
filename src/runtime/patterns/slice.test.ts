@@ -180,7 +180,7 @@ tests(import.meta.url, () => [
       min: 0,
     }),
     input: "a",
-    errors: [{ name: "Test", message: "test", start: "-1", end: "0" }],
+    errors: [{ name: "Test", message: "test", start: "0", end: "1" }],
     value: [undefined],
   },
 ]);

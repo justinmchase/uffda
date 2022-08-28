@@ -10,7 +10,7 @@ export function array(args: IArrayPattern, scope: Scope) {
     const next = scope.stream.next();
     if (Array.isArray(next.value)) {
       const innerStream = new MetaStream(
-        next.path.add(-1),
+        next.path.add(0),
         next.value[Symbol.iterator](),
       );
       const innerScope = scope.withStream(innerStream);

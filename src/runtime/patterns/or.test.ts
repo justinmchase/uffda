@@ -82,8 +82,8 @@ tests(import.meta.url, () => [
     errors: [{
       name: "Test",
       message: "Intentional error",
-      start: "-1",
-      end: "0",
+      start: "0",
+      end: "1",
     }],
   },
 ]);

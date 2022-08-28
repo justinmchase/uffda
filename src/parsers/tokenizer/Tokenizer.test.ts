@@ -69,8 +69,8 @@ tests(import.meta.url, () => [
       {
         name: "InvalidToken",
         message: "Tokens are expected to be strings",
-        start: "1",
-        end: "2",
+        start: "2",
+        end: "3",
       },
     ],
   },

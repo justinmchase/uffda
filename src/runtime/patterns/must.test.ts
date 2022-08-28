@@ -25,11 +25,11 @@ tests(import.meta.url, () => [
     input: [],
     matched: false,
     errors: [
-      { name: "Test", message: "Testing", start: "-1", end: "-1" },
+      { name: "Test", message: "Testing", start: "0", end: "0" },
     ],
   },
   {
-    id: "MUST01",
+    id: "MUST02",
     description: "'a'!",
     pattern: () => ({
       kind: PatternKind.Must,
@@ -41,7 +41,7 @@ tests(import.meta.url, () => [
     value: "a",
   },
   {
-    id: "MUST01",
+    id: "MUST03",
     description: "'a'!",
     pattern: () => ({
       kind: PatternKind.Must,
@@ -53,7 +53,7 @@ tests(import.meta.url, () => [
     matched: false,
     done: false,
     errors: [
-      { name: "Test", message: "Testing", start: "-1", end: "-1" },
+      { name: "Test", message: "Testing", start: "0", end: "0" },
     ],
   },
 ]);

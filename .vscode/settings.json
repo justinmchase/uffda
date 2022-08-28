@@ -1,32 +1,11 @@
 {
-  // Place your settings in this file to overwrite default and user settings.
-  "editor.tabSize": 2,
-  "editor.insertSpaces": true,
-  "editor.rulers": [
-    100
-  ],
-  "search.exclude": {
-    "**/node_modules": true,
-    "**/dist": true
-  },
-  // Formatting Options - Remove Prettier
-  "[typescript]": {
-    "editor.formatOnSave": false
-  },
-  "eslint.validate": [
-    "javascript",
-    "javascriptreact",
-    "typescript",
-    "typescriptreact"
-  ],
-  "typescript.tsdk": "node_modules/typescript/lib",
-  "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true
-  },
+  "editor.formatOnSave": true,
   "deno.enable": true,
   "deno.lint": true,
   "deno.unstable": true,
+  "deno.internalDebug": true,
   "deno.suggest.imports.hosts": {
     "https://deno.land": false
-  }
+  },
+  "deno.path": "/home/justin/.deno/bin/deno"
 }

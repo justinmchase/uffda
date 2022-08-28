@@ -31,7 +31,7 @@ tests(import.meta.url, () => [
     }),
     input: "abc",
     errors: [
-      { name: "Test", message: "testing", start: "-1", end: "2" },
+      { name: "Test", message: "testing", start: "0", end: "3" },
     ],
   },
   {
@@ -79,8 +79,8 @@ tests(import.meta.url, () => [
     input: "a,b,",
     value: [undefined, undefined],
     errors: [
-      { name: "Test", message: "testing", start: "-1", end: "1" },
-      { name: "Test", message: "testing", start: "1", end: "3" },
+      { name: "Test", message: "testing", start: "0", end: "2" },
+      { name: "Test", message: "testing", start: "2", end: "4" },
     ],
   },
   {
@@ -107,7 +107,7 @@ tests(import.meta.url, () => [
     input: "a,;",
     value: [undefined, ";"],
     errors: [
-      { name: "Test", message: "testing", start: "-1", end: "1" },
+      { name: "Test", message: "testing", start: "0", end: "2" },
     ],
   },
   {
@@ -159,7 +159,7 @@ tests(import.meta.url, () => [
     input: "(abc);",
     value: [undefined, ";"],
     errors: [
-      { name: "Test", message: "testing", start: "-1", end: "4" },
+      { name: "Test", message: "testing", start: "0", end: "5" },
     ],
   },
   {
@@ -191,8 +191,8 @@ tests(import.meta.url, () => [
     // Each clause should generate an error and all should be propagated
     input: "a;",
     errors: [
-      { name: "Test", message: "testing", start: "-1", end: "1" },
-      { name: "Test", message: "testing", start: "-1", end: "1" },
+      { name: "Test", message: "testing", start: "0", end: "2" },
+      { name: "Test", message: "testing", start: "0", end: "2" },
     ],
   },
   {
@@ -213,7 +213,7 @@ tests(import.meta.url, () => [
     // Each clause should generate an error and all should be propagated
     input: [["a", ";"]],
     errors: [
-      { name: "Test", message: "testing", start: "0.-1", end: "0.1" },
+      { name: "Test", message: "testing", start: "1.0", end: "1.2" },
     ],
   },
   {
@@ -239,7 +239,7 @@ tests(import.meta.url, () => [
     // Each clause should generate an error and all should be propagated
     input: "a;",
     errors: [
-      { name: "Test", message: "testing", start: "-1", end: "1" },
+      { name: "Test", message: "testing", start: "0", end: "2" },
     ],
   },
   {
@@ -289,7 +289,7 @@ tests(import.meta.url, () => [
     input: "abc",
     done: false,
     errors: [
-      { name: "Test", message: "testing", start: "-1", end: "2" },
+      { name: "Test", message: "testing", start: "0", end: "3" },
     ],
   },
   {
@@ -315,7 +315,7 @@ tests(import.meta.url, () => [
     input: [{ x: ["a", ";"] }],
     value: { x: ["a", ";"] },
     errors: [
-      { name: "Test", message: "testing", start: "0.x.-1", end: "0.x.1" },
+      { name: "Test", message: "testing", start: "1.x.0", end: "1.x.2" },
     ],
   },
   {
@@ -345,7 +345,7 @@ tests(import.meta.url, () => [
     input: "a;",
     matched: false,
     errors: [
-      { name: "Test", message: "testing", start: "-1.(0).-1", end: "-1.(0).1" },
+      { name: "Test", message: "testing", start: "0", end: "2" },
     ],
   },
   {
@@ -375,7 +375,7 @@ tests(import.meta.url, () => [
     input: "a;",
     matched: false,
     errors: [
-      { name: "Test", message: "testing", start: "-1.(1).-1", end: "-1.(1).1" },
+      { name: "Test", message: "testing", start: "0", end: "2" },
     ],
   },
 
@@ -392,7 +392,7 @@ tests(import.meta.url, () => [
     }),
     input: "abc",
     errors: [
-      { name: "Test", message: "testing", start: "-1", end: "2" },
+      { name: "Test", message: "testing", start: "0", end: "3" },
     ],
   },
 ]);

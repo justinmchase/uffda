@@ -5,7 +5,7 @@ Uffda is a parser generator for domain specific languages.
 It is different from many parser generators in that the syntax is expressive
 enough to support parsing strings as well as objects, arrays or any other value
 type. The result of this capability is that the entire compiler pipeline can be
-expressed in patterns.
+expressed in pattern matching operations.
 
 > OMeta’s key insight is the realization that all of the passes in a traditional
 > compiler are essentially pattern matching operations

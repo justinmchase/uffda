@@ -1,7 +1,1 @@
-node_modules
-dist
-coverage
-.nyc_output
-
-*.tsbuildinfo
-*.tgz
+.env
