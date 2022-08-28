@@ -29,9 +29,7 @@ jobs:
             /home/runner/.deno
 
       - name: Cache
-        run: |
-          deno cache deps.ts
-          deno cache mod.ts
+        run: deno cache deps.ts
 
       - name: Lint
         continue-on-error: true
