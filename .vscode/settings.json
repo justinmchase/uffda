@@ -1,11 +1,4 @@
 {
-  "editor.formatOnSave": true,
   "deno.enable": true,
-  "deno.lint": true,
-  "deno.unstable": true,
-  "deno.internalDebug": true,
-  "deno.suggest.imports.hosts": {
-    "https://deno.land": false
-  },
-  "deno.path": "/home/justin/.deno/bin/deno"
+  "deno.unstable": true
 }

@@ -70,7 +70,7 @@ export async function compileFile(file: string, options: ICompileOptions) {
   const scope = Scope.From(contents, {
     trace: options.trace,
   });
-  const results = match(Basic, scope);
+  const results = match(Meta, scope);
   const { end, matched, done, errors, value } = results;
   if (done && matched && !errors.length) {
     console.log(`compiled ${file} successfully...`, value);
