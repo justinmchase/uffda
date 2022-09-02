@@ -15,6 +15,8 @@ interface IPatternTest {
   input?: string | { toString(): string };
   pattern: () => Pattern;
   errors?: { start: string; end: string }[];
+  only?: boolean;
+  trace?: boolean;
 }
 
 interface IPatternThrows {
@@ -40,8 +42,9 @@ type PatternTest =
 export function tests(testGroupName: string, group: () => PatternTest[]) {
   const tests = group();
   for (const test of tests) {
-    const { id, input, description, pattern, errors = [] } = test;
+    const { id, input, description, pattern, only, trace, errors = [] } = test;
     Deno.test({
+      only,
       name: `${brightCyan(new URL("", testGroupName).pathname)} [${
         brightMagenta(id)
       }] (${brightBlack(description ?? input?.toString() ?? "")})`,
@@ -55,7 +58,7 @@ export function tests(testGroupName: string, group: () => PatternTest[]) {
           const { input, specials = {}, value, matched = true, done = true } =
             test;
           const p = pattern();
-          const s = Scope.From(input).setSpecials(specials);
+          const s = Scope.From(input, { trace }).setSpecials(specials);
           const m = match(p, s);
           const e = m.errors.map((e) => ({
             name: e.name,

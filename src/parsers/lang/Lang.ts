@@ -3,6 +3,7 @@ import { AndPattern } from "./AndPattern.ts";
 import { AnyPattern } from "./AnyPattern.ts";
 import { EqualPattern } from "./EqualPattern.ts";
 import { MustPattern } from "./MustPattern.ts";
+import { NumberPattern } from "./NumberPattern.ts";
 import { NotPattern } from "./NotPattern.ts";
 import { OkPattern } from "./OkPattern.ts";
 import { PatternDeclaration } from "./PatternDeclaration.ts";
@@ -42,6 +43,7 @@ export const Lang: IRulePattern = {
       EqualPattern,
       MustPattern,
       NotPattern,
+      NumberPattern,
       OkPattern,
       ObjectKeyMustPattern,
       ObjectKeyPattern,

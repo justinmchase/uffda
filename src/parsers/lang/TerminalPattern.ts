@@ -12,6 +12,7 @@ export const TerminalPattern: IRulePattern = {
       { kind: PatternKind.Reference, name: "SpecialReferencePattern" },
       { kind: PatternKind.Reference, name: "ReferencePattern" },
       { kind: PatternKind.Reference, name: "StringPattern" },
+      { kind: PatternKind.Reference, name: "NumberPattern" },
     ],
   },
 };
