@@ -1,4 +1,4 @@
-import { YargsInstance, Arguments } from "../../deps/yargs.ts";
+import { Arguments, YargsInstance } from "../../deps/yargs.ts";
 import { compile } from "../compiler/mod.ts";
 
 export const compileCommand = {
@@ -10,7 +10,8 @@ export const compileCommand = {
         destination: {
           alias: "dst",
           type: "string",
-          describe: "The destination directory where compile results will be written to",
+          describe:
+            "The destination directory where compile results will be written to",
           default: "./dst",
         },
         source: {
@@ -23,17 +24,17 @@ export const compileCommand = {
           alias: "t",
           type: "boolean",
           describe: "Enables tracing in the compiler",
-          default: false
-        }
-      })
+          default: false,
+        },
+      });
   },
   async handler(args: Arguments) {
-    console.log({ args })
+    console.log({ args });
     const { source, destination, trace } = args;
     await compile({
       dstDir: destination,
       srcDir: source,
-      trace
+      trace,
     });
-  }
-}
+  },
+};

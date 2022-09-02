@@ -1,9 +1,10 @@
 import { ExpressionKind } from "./expression.kind.ts";
 
-// deno-lint-ignore no-explicit-any
 export type ProjectionFunction = (
+  // deno-lint-ignore no-explicit-any
   args: any,
   specials: Record<string, unknown>,
+// deno-lint-ignore no-explicit-any
 ) => any;
 
 export type Expression =

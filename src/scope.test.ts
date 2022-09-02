@@ -1,4 +1,4 @@
-import { assert, assertObjectMatch, equal } from "../deps/std.ts";
+import { assertObjectMatch } from "../deps/std.ts";
 import { Scope } from "./scope.ts";
 import { Pattern, PatternKind } from "./runtime/patterns/mod.ts";
 import { ExpressionKind } from "./runtime/expressions/mod.ts";

@@ -17,8 +17,8 @@ tests(import.meta.url, () => [
     input: "",
     matched: true,
     errors: [
-      { name: 'Test', message: "testing", start: "0", end: "0" }
-    ]
+      { name: "Test", message: "testing", start: "0", end: "0" },
+    ],
   },
   {
     id: "UNLESS01",
@@ -36,8 +36,8 @@ tests(import.meta.url, () => [
     matched: true,
     done: false,
     errors: [
-      { name: 'Test', message: "testing", start: "0", end: "0" }
-    ]
+      { name: "Test", message: "testing", start: "0", end: "0" },
+    ],
   },
   {
     id: "UNLESS02",
@@ -47,7 +47,7 @@ tests(import.meta.url, () => [
       patterns: [
         {
           kind: PatternKind.Equal,
-          value: 'a'
+          value: "a",
         },
         {
           kind: PatternKind.Unless,
@@ -57,11 +57,11 @@ tests(import.meta.url, () => [
             kind: PatternKind.Equal,
             value: ";",
           },
-        }
-      ]
+        },
+      ],
     }),
     input: "a;",
-    value: ['a', ';'],
+    value: ["a", ";"],
   },
   {
     id: "UNLESS03",
@@ -71,7 +71,7 @@ tests(import.meta.url, () => [
       patterns: [
         {
           kind: PatternKind.Equal,
-          value: 'a'
+          value: "a",
         },
         {
           kind: PatternKind.Unless,
@@ -81,15 +81,15 @@ tests(import.meta.url, () => [
             kind: PatternKind.Equal,
             value: ";",
           },
-        }
-      ]
+        },
+      ],
     }),
     input: "a:",
     matched: true,
     done: false,
-    value: ['a', undefined],
+    value: ["a", undefined],
     errors: [
-      { name: 'Test', message: "testing", start: "1", end: "1" }
+      { name: "Test", message: "testing", start: "1", end: "1" },
     ],
-  }
+  },
 ]);

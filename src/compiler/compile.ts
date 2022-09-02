@@ -1,7 +1,7 @@
 import { ICompileOptions } from "./compileOptions.ts";
 import { brightRed, path } from "../../deps/std.ts";
 import { Scope } from "../scope.ts";
-import { Basic, Meta } from "../parsers/mod.ts";
+import { Meta } from "../parsers/mod.ts";
 import { match } from "../runtime/mod.ts";
 
 export async function compile(options: ICompileOptions) {
@@ -77,7 +77,7 @@ export async function compileFile(file: string, options: ICompileOptions) {
   } else if (errors.length) {
     console.log(`errors compiling ${file}...`);
     for (const err of errors) {
-      const { name, message, end } = err
+      const { name, message, end } = err;
       const source = end.source();
       const snippet = snippetFromTextStream(
         source.stream.index,

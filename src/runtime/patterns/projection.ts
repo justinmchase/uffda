@@ -16,6 +16,6 @@ export function projection(args: IProjectionPattern, scope: Scope) {
     scope,
     m.end,
     value,
-    m.errors
+    m.errors,
   );
 }

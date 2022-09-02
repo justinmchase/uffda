@@ -25,7 +25,7 @@ export function unless(args: IUnlessPattern, scope: Scope): Match {
           scope,
           m.end,
         ),
-      ]
+      ],
     );
   }
 }

@@ -44,8 +44,8 @@ export const PatternDeclaration: IRulePattern = {
         },
         {
           kind: PatternKind.Unless,
-          name: 'TokenExpected',
-          message: 'Expected token `;`',
+          name: "TokenExpected",
+          message: "Expected token `;`",
           pattern: {
             kind: PatternKind.Object,
             keys: {
