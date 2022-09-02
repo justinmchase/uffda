@@ -71,7 +71,7 @@ tests(import.meta.url, () => [
       kind: PatternKind.Or,
       patterns: [
         {
-          kind: PatternKind.ErrorUntil,
+          kind: PatternKind.Until,
           pattern: { kind: PatternKind.Any },
           name: "Test",
           message: "Intentional error",

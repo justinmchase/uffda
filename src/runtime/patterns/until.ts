@@ -1,6 +1,6 @@
 import { Match, MatchError } from "../../match.ts";
 import { Scope } from "../../scope.ts";
-import { IErrorUntilPattern } from "./pattern.ts";
+import { IUntilPattern } from "./pattern.ts";
 import { match } from "../match.ts";
 
 // This rule only matches and produces an error if the supplied pattern
@@ -11,7 +11,7 @@ import { match } from "../match.ts";
 // end of the stream without encountering the end, then it will fail to match.
 // The caller should interpret an incomplete match as an error.
 
-export function error(args: IErrorUntilPattern, scope: Scope): Match {
+export function until(args: IUntilPattern, scope: Scope): Match {
   const { name, message, pattern } = args;
   if (scope.stream.done) {
     return Match.Fail(scope);

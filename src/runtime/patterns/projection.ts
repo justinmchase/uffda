@@ -1,5 +1,5 @@
 import { Match } from "../../match.ts";
-import { Scope, SOURCE } from "../../scope.ts";
+import { Scope } from "../../scope.ts";
 import { match } from "../match.ts";
 import { exec } from "../exec.ts";
 import { IProjectionPattern } from "./pattern.ts";
@@ -12,5 +12,10 @@ export function projection(args: IProjectionPattern, scope: Scope) {
   }
   const value = exec(expression, m);
   scope.setSource(value);
-  return Match.Ok(scope, m.end, value);
+  return Match.Ok(
+    scope,
+    m.end,
+    value,
+    m.errors
+  );
 }

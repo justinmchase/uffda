@@ -75,7 +75,18 @@ export async function compileFile(file: string, options: ICompileOptions) {
   if (done && matched && !errors.length) {
     console.log(`compiled ${file} successfully...`, value);
   } else if (errors.length) {
-    console.log(`errors compiling ${file}`, errors);
+    console.log(`errors compiling ${file}...`);
+    for (const err of errors) {
+      const { name, message, end } = err
+      const source = end.source();
+      const snippet = snippetFromTextStream(
+        source.stream.index,
+        contents[Symbol.iterator](),
+      );
+      console.log(`${brightRed("error")} (${name}): ${message}`);
+      console.log(snippet);
+      console.log(`  at ${file}:${source.stream.index}`);
+    }
   } else if (!matched) {
     const source = end.source();
     const snippet = snippetFromTextStream(

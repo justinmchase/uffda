@@ -2,7 +2,6 @@ export * from "./and.ts";
 export * from "./any.ts";
 export * from "./array.ts";
 export * from "./block.ts";
-export * from "./error.ts";
 export * from "./end.ts";
 export * from "./equal.ts";
 export * from "./fail.ts";
@@ -20,6 +19,8 @@ export * from "./rule.ts";
 export * from "./slice.ts";
 export * from "./then.ts";
 export * from "./type.ts";
+export * from "./unless.ts";
+export * from "./until.ts";
 export * from "./variable.ts";
 
 export * from "./pattern.kind.ts";

@@ -43,10 +43,15 @@ export const PatternDeclaration: IRulePattern = {
           pattern: { kind: PatternKind.Reference, name: "PatternExpression" },
         },
         {
-          kind: PatternKind.Object,
-          keys: {
-            type: { kind: PatternKind.Equal, value: "Token" },
-            value: { kind: PatternKind.Equal, value: ";" },
+          kind: PatternKind.Unless,
+          name: 'TokenExpected',
+          message: 'Expected token `;`',
+          pattern: {
+            kind: PatternKind.Object,
+            keys: {
+              type: { kind: PatternKind.Equal, value: "Token" },
+              value: { kind: PatternKind.Equal, value: ";" },
+            },
           },
         },
       ],

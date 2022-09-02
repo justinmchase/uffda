@@ -84,18 +84,6 @@ export const Lang: IRulePattern = {
                     kind: PatternKind.Reference,
                     name: "PatternDeclaration",
                   },
-                  {
-                    kind: PatternKind.ErrorUntil,
-                    name: "InvalidPattern",
-                    message: "Not a valid Pattern",
-                    pattern: {
-                      kind: PatternKind.Object,
-                      keys: {
-                        type: { kind: PatternKind.Equal, value: "Token" },
-                        value: { kind: PatternKind.Equal, value: ";" },
-                      },
-                    },
-                  },
                 ],
               },
             },

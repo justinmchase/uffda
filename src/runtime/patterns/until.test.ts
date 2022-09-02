@@ -6,7 +6,7 @@ tests(import.meta.url, () => [
     id: "ERROR00",
     description: "~'a'",
     pattern: () => ({
-      kind: PatternKind.ErrorUntil,
+      kind: PatternKind.Until,
       name: "Test",
       message: "testing",
       pattern: {
@@ -21,7 +21,7 @@ tests(import.meta.url, () => [
     id: "ERROR01",
     description: "~'c'",
     pattern: () => ({
-      kind: PatternKind.ErrorUntil,
+      kind: PatternKind.Until,
       name: "Test",
       message: "testing",
       pattern: {
@@ -38,7 +38,7 @@ tests(import.meta.url, () => [
     id: "ERROR02",
     description: "~'c'",
     pattern: () => ({
-      kind: PatternKind.ErrorUntil,
+      kind: PatternKind.Until,
       name: "Test",
       message: "testing",
       pattern: {
@@ -57,7 +57,7 @@ tests(import.meta.url, () => [
       kind: PatternKind.Then,
       patterns: [
         {
-          kind: PatternKind.ErrorUntil,
+          kind: PatternKind.Until,
           name: "Test",
           message: "testing",
           pattern: {
@@ -66,7 +66,7 @@ tests(import.meta.url, () => [
           },
         },
         {
-          kind: PatternKind.ErrorUntil,
+          kind: PatternKind.Until,
           name: "Test",
           message: "testing",
           pattern: {
@@ -90,7 +90,7 @@ tests(import.meta.url, () => [
       kind: PatternKind.Then,
       patterns: [
         {
-          kind: PatternKind.ErrorUntil,
+          kind: PatternKind.Until,
           name: "Test",
           message: "testing",
           pattern: {
@@ -120,7 +120,7 @@ tests(import.meta.url, () => [
           kind: PatternKind.Then,
           patterns: [
             {
-              kind: PatternKind.ErrorUntil,
+              kind: PatternKind.Until,
               name: "Test",
               message: "testing",
               pattern: {
@@ -138,7 +138,7 @@ tests(import.meta.url, () => [
           kind: PatternKind.Then,
           patterns: [
             {
-              kind: PatternKind.ErrorUntil,
+              kind: PatternKind.Until,
               name: "Test",
               message: "testing",
               pattern: {
@@ -169,7 +169,7 @@ tests(import.meta.url, () => [
       kind: PatternKind.And,
       patterns: [
         {
-          kind: PatternKind.ErrorUntil,
+          kind: PatternKind.Until,
           name: "Test",
           message: "testing",
           pattern: {
@@ -178,7 +178,7 @@ tests(import.meta.url, () => [
           },
         },
         {
-          kind: PatternKind.ErrorUntil,
+          kind: PatternKind.Until,
           name: "Test",
           message: "testing",
           pattern: {
@@ -201,7 +201,7 @@ tests(import.meta.url, () => [
     pattern: () => ({
       kind: PatternKind.Array,
       pattern: {
-        kind: PatternKind.ErrorUntil,
+        kind: PatternKind.Until,
         name: "Test",
         message: "testing",
         pattern: {
@@ -225,7 +225,7 @@ tests(import.meta.url, () => [
         A: {
           kind: PatternKind.Rule,
           pattern: {
-            kind: PatternKind.ErrorUntil,
+            kind: PatternKind.Until,
             name: "Test",
             message: "testing",
             pattern: {
@@ -248,7 +248,7 @@ tests(import.meta.url, () => [
     pattern: () => ({
       kind: PatternKind.Not,
       pattern: {
-        kind: PatternKind.ErrorUntil,
+        kind: PatternKind.Until,
         name: "Test",
         message: "testing",
         pattern: {
@@ -271,7 +271,7 @@ tests(import.meta.url, () => [
         kind: PatternKind.Then,
         patterns: [
           {
-            kind: PatternKind.ErrorUntil,
+            kind: PatternKind.Until,
             name: "Test",
             message: "testing",
             pattern: {
@@ -301,7 +301,7 @@ tests(import.meta.url, () => [
         x: {
           kind: PatternKind.Array,
           pattern: {
-            kind: PatternKind.ErrorUntil,
+            kind: PatternKind.Until,
             name: "Test",
             message: "testing",
             pattern: {
@@ -325,7 +325,7 @@ tests(import.meta.url, () => [
       kind: PatternKind.Pipeline,
       steps: [
         {
-          kind: PatternKind.ErrorUntil,
+          kind: PatternKind.Until,
           name: "Test",
           message: "testing",
           pattern: {
@@ -362,7 +362,7 @@ tests(import.meta.url, () => [
           ],
         },
         {
-          kind: PatternKind.ErrorUntil,
+          kind: PatternKind.Until,
           name: "Test",
           message: "testing",
           pattern: {
@@ -383,7 +383,7 @@ tests(import.meta.url, () => [
     id: "ERROR13",
     description: "consumes all until end",
     pattern: () => ({
-      kind: PatternKind.ErrorUntil,
+      kind: PatternKind.Until,
       name: "Test",
       message: "testing",
       pattern: {

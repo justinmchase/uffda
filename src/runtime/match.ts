@@ -7,7 +7,6 @@ import {
   block,
   end,
   equal,
-  error,
   fail,
   includes,
   must,
@@ -25,6 +24,8 @@ import {
   slice,
   then,
   type,
+  unless,
+  until,
   ValueType,
   variable,
 } from "./patterns/mod.ts";
@@ -51,8 +52,10 @@ export function match(pattern: Pattern, scope: Scope): Match {
       return type(ValueType.Boolean, scope);
     case PatternKind.End:
       return end(scope);
-    case PatternKind.ErrorUntil:
-      return error(pattern, scope);
+    case PatternKind.Unless:
+      return unless(pattern, scope);
+    case PatternKind.Until:
+      return until(pattern, scope);
     case PatternKind.Equal:
       return equal(pattern, scope);
     case PatternKind.Fail:
