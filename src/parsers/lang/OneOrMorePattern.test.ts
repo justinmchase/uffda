@@ -2,7 +2,7 @@ import { tests } from "../../test.ts";
 import { TestLang } from "./TestLang.test.ts";
 import { LangPatternKind } from "./lang.pattern.ts";
 
-tests(import.meta.url, () => [
+tests(() => [
   {
     id: "ONEORMORE00",
     description: "parse one or more reference",

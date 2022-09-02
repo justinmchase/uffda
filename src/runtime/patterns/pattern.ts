@@ -9,7 +9,6 @@ export type Pattern =
   | IBooleanPattern
   | IEndPattern
   | IEqualPattern
-  | IUnlessPattern
   | IUntilPattern
   | IFailPattern
   | IIncludesPattern
@@ -61,12 +60,6 @@ export interface IEndPattern {
 export interface IEqualPattern {
   kind: PatternKind.Equal;
   value: unknown;
-}
-export interface IUnlessPattern {
-  kind: PatternKind.Unless;
-  pattern: Pattern;
-  name: string;
-  message: string;
 }
 export interface IUntilPattern {
   kind: PatternKind.Until;

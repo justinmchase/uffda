@@ -1,11 +1,11 @@
 import { ICompileOptions } from "./compileOptions.ts";
 import { brightRed, path } from "../../deps/std.ts";
 import { Scope } from "../scope.ts";
+import { Match } from "../match.ts";
 import { Meta } from "../parsers/mod.ts";
 import { match } from "../runtime/mod.ts";
 
 export async function compile(options: ICompileOptions) {
-  console.log("compiling...", options);
   const { srcDir } = options;
   await compileDir(await Deno.realPath(srcDir), options);
 }
@@ -37,6 +37,7 @@ function snippetFromTextStream(index: number, items: Iterable<string>) {
   let lastLine = false;
 
   for (const next of items) {
+    if (i === index) lastLine = true;
     if (next === "\n") {
       lineCount++;
       lines.push(current);
@@ -54,9 +55,7 @@ function snippetFromTextStream(index: number, items: Iterable<string>) {
       current += next;
     }
 
-    if (i === index) {
-      lastLine = true;
-    } else if (!lastLine) {
+    if (!lastLine) {
       n++;
     }
 
@@ -77,25 +76,29 @@ export async function compileFile(file: string, options: ICompileOptions) {
   } else if (errors.length) {
     console.log(`errors compiling ${file}...`);
     for (const err of errors) {
-      const { name, message, end } = err;
-      const source = end.source();
+      const { name, message } = err;
+      const { end } = err.trace();
       const snippet = snippetFromTextStream(
-        source.stream.index,
+        end,
         contents[Symbol.iterator](),
       );
       console.log(`${brightRed("error")} (${name}): ${message}`);
       console.log(snippet);
-      console.log(`  at ${file}:${source.stream.index}`);
+      console.log(`  at ${file}:${end}`);
     }
   } else if (!matched) {
-    const source = end.source();
+    console.log("not matched:", results.value);
+    const next = results.end.stream.next();
+    const { start } = (Match.From(next.value) ?? results).span();
     const snippet = snippetFromTextStream(
-      source.stream.index,
+      start,
       contents[Symbol.iterator](),
     );
-    console.log(`${brightRed("error")}: failed to match`);
+    console.log(
+      `${brightRed("error")}: failed to match ${JSON.stringify(next.value)}`,
+    );
     console.log(snippet);
-    console.log(`  at ${file}:${source.stream.index}`);
+    console.log(`  at ${file}:${end}`);
   } else if (!done) {
     console.log(
       `failed to fully parse ${file} at: `,

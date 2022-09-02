@@ -1,4 +1,4 @@
-import { Match, MatchError } from "../../match.ts";
+import { Match } from "../../match.ts";
 import { Scope } from "../../scope.ts";
 import { IUntilPattern } from "./pattern.ts";
 import { match } from "../match.ts";
@@ -22,15 +22,14 @@ export function until(args: IUntilPattern, scope: Scope): Match {
   while (true) {
     m = match(pattern, end);
     if (m.matched) {
-      return Match.Ok(scope, m.end, undefined, [
-        ...m.errors,
-        new MatchError(
+      return Match
+        .Ok(scope, m.end, undefined, m.errors)
+        .pushError(
           name,
           message,
           scope,
           m.end,
-        ),
-      ]);
+        );
     } else if (end.stream.done) {
       break;
     }

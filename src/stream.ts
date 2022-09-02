@@ -34,9 +34,10 @@ export class MetaStream {
   public next(): MetaStream {
     if (!this._next) {
       const { value, done } = this.items.next();
-      const i = this.index + 1;
       this._done = done;
       if (done) return this;
+
+      const i = this.index + 1;
       this._next = new MetaStream(
         this.path.moveTo(i),
         this.items,

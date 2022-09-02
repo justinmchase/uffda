@@ -1,7 +1,7 @@
 import { tests } from "../../test.ts";
 import { Token } from "./Token.ts";
 
-tests(import.meta.url, () => [
+tests(() => [
   {
     id: "TOKEN00",
     description: "does not match a letter",

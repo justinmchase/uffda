@@ -2,7 +2,6 @@ import {
   assert,
   assertThrows,
   brightBlack,
-  brightCyan,
   brightMagenta,
   equal,
 } from "../deps/std.ts";
@@ -39,15 +38,15 @@ type PatternTest =
     | IPatternMatches
   );
 
-export function tests(testGroupName: string, group: () => PatternTest[]) {
+export function tests(group: () => PatternTest[]) {
   const tests = group();
   for (const test of tests) {
     const { id, input, description, pattern, only, trace, errors = [] } = test;
     Deno.test({
       only,
-      name: `${brightCyan(new URL("", testGroupName).pathname)} [${
-        brightMagenta(id)
-      }] (${brightBlack(description ?? input?.toString() ?? "")})`,
+      name: `[${brightMagenta(id)}] (${
+        brightBlack(description ?? input?.toString() ?? "")
+      })`,
       fn: () => {
         if (test.throws) {
           assertThrows(

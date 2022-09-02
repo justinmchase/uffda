@@ -2,7 +2,7 @@ import { tests } from "../../test.ts";
 import { Meta } from "../meta.ts";
 import { PatternKind } from "../../runtime/patterns/mod.ts";
 
-tests(import.meta.url, () => [
+tests(() => [
   {
     id: "PIPELINEPATTERN00",
     description: "a > b",

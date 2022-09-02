@@ -11,7 +11,9 @@ export function projection(args: IProjectionPattern, scope: Scope) {
     return m;
   }
   const value = exec(expression, m);
-  scope.setSource(value);
+
+  // m.setSpan(value)
+  // scope.setSpan(value, m.end);
   return Match.Ok(
     scope,
     m.end,

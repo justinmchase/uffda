@@ -4,12 +4,12 @@ import { Pattern, PatternKind } from "./runtime/patterns/mod.ts";
 import { ExpressionKind } from "./runtime/expressions/mod.ts";
 import { match } from "./runtime/match.ts";
 
-Deno.test(
-  "SCOPE_00",
-  async () => {
+Deno.test({
+  name: "SCOPE_00",
+  fn: async () => {
     const scope = Scope.From("abc");
     const pattern: Pattern = {
-      kind: PatternKind.And,
+      kind: PatternKind.Then,
       patterns: [
         { kind: PatternKind.Any },
         { kind: PatternKind.Any },
@@ -17,20 +17,22 @@ Deno.test(
     };
     const result = await match(pattern, scope);
     const { matched, done } = result;
-    const source = result.end.source();
-    const index = source.stream.index;
-    assertObjectMatch({ matched, done, index }, {
+    const { start, end } = result.span();
+    assertObjectMatch({ matched, done, start, end }, {
       matched: true,
       done: false,
-      index: 1,
+      start: 0,
+      end: 2,
     });
   },
-);
+});
 
-Deno.test(
-  "SCOPE_01",
-  async () => {
+Deno.test({
+  name: "SCOPE_01",
+  fn: async () => {
     const scope = Scope.From("aabbbcc");
+
+    // ('a'+ -> { value: _ }, 'b'+ -> { value: _ }, 'c'+ -> { value: _ }) > ({ value }, { value })
     const pattern: Pattern = {
       kind: PatternKind.Pipeline,
       steps: [
@@ -99,19 +101,44 @@ Deno.test(
                 value: { kind: PatternKind.Any },
               },
             },
+            // it doesn't consume the c's here, thus the parse is done: false and should report an error.
           ],
         },
       ],
     };
     const result = await match(pattern, scope);
     const { matched, done, errors } = result;
-    const source = result.end.source();
-    const index = source.stream.index;
-    assertObjectMatch({ matched, done, index, errors }, {
+    const { start, end } = result.span();
+    assertObjectMatch({ matched, done, start, end, errors }, {
       matched: true,
       done: false,
-      index: 5,
+      start: 0,
+      end: 5,
       errors: [],
     });
   },
-);
+});
+
+Deno.test({
+  name: "SCOPE_02",
+  fn: async () => {
+    const scope = Scope.From("abc");
+    const pattern: Pattern = {
+      kind: PatternKind.Then,
+      patterns: [
+        { kind: PatternKind.Any },
+        { kind: PatternKind.Any },
+        { kind: PatternKind.Any },
+      ],
+    };
+    const result = await match(pattern, scope);
+    const { matched, done } = result;
+    const { start, end } = result.span();
+    assertObjectMatch({ matched, done, start, end }, {
+      matched: true,
+      done: true,
+      start: 0,
+      end: 3,
+    });
+  },
+});

@@ -1,7 +1,7 @@
 import { tests } from "../../test.ts";
 import { SpecialIdentifier } from "./SpecialIdentifier.ts";
 
-tests(import.meta.url, () => [
+tests(() => [
   {
     id: "SPECIALIDENTIFIER00",
     description: "can match a digit special identifier",

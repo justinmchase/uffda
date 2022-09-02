@@ -2,7 +2,7 @@ import { tests } from "../../test.ts";
 import { TestLang } from "./TestLang.test.ts";
 import { LangPatternKind } from "./lang.pattern.ts";
 
-tests(import.meta.url, () => [
+tests(() => [
   {
     id: "EQUAL00",
     description: "'a'",
@@ -10,7 +10,7 @@ tests(import.meta.url, () => [
     input: "'a'",
     value: {
       kind: LangPatternKind.EqualPattern,
-      value: "a"
+      value: "a",
     },
   },
   {
@@ -20,7 +20,7 @@ tests(import.meta.url, () => [
     input: "1",
     value: {
       kind: LangPatternKind.EqualPattern,
-      value: 1
+      value: 1,
     },
   },
 ]);

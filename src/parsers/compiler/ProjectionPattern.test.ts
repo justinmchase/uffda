@@ -4,7 +4,7 @@ import { PatternKind } from "../../runtime/patterns/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 
 const $0 = () => {};
-tests(import.meta.url, () => [
+tests(() => [
   {
     id: "PROJECTIONPATTERN00",
     description: "a -> $0",

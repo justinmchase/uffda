@@ -1,7 +1,7 @@
 import { tests } from "../../test.ts";
 import { Identifier } from "./Identifier.ts";
 
-tests(import.meta.url, () => [
+tests(() => [
   {
     id: "IDENTIFIER00",
     description: "matches a character",

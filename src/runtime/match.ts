@@ -24,7 +24,6 @@ import {
   slice,
   then,
   type,
-  unless,
   until,
   ValueType,
   variable,
@@ -52,8 +51,6 @@ export function match(pattern: Pattern, scope: Scope): Match {
       return type(ValueType.Boolean, scope);
     case PatternKind.End:
       return end(scope);
-    case PatternKind.Unless:
-      return unless(pattern, scope);
     case PatternKind.Until:
       return until(pattern, scope);
     case PatternKind.Equal:

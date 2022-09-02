@@ -29,7 +29,6 @@ export const compileCommand = {
       });
   },
   async handler(args: Arguments) {
-    console.log({ args });
     const { source, destination, trace } = args;
     await compile({
       dstDir: destination,

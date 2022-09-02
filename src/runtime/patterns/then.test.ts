@@ -1,7 +1,7 @@
 import { tests } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
-tests(import.meta.url, () => [
+tests(() => [
   {
     id: "THEN00",
     description: "no patterns is success",

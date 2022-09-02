@@ -1,7 +1,7 @@
 import { tests } from "../../test.ts";
 import { Whitespace } from "./Whitespace.ts";
 
-tests(import.meta.url, () => [
+tests(() => [
   {
     id: "WHITESPACE00",
     description: "can match space",

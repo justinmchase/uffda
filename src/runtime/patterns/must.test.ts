@@ -1,7 +1,7 @@
 import { tests } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
-tests(import.meta.url, () => [
+tests(() => [
   {
     id: "MUST00",
     description: "ok!",
@@ -23,7 +23,7 @@ tests(import.meta.url, () => [
       pattern: { kind: PatternKind.Fail },
     }),
     input: [],
-    matched: false,
+    matched: true,
     errors: [
       { name: "Test", message: "Testing", start: "0", end: "0" },
     ],
@@ -50,7 +50,7 @@ tests(import.meta.url, () => [
       pattern: { kind: PatternKind.Equal, value: "a" },
     }),
     input: "b",
-    matched: false,
+    matched: true,
     done: false,
     errors: [
       { name: "Test", message: "Testing", start: "0", end: "0" },

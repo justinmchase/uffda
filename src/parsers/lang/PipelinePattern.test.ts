@@ -2,7 +2,7 @@ import { tests } from "../../test.ts";
 import { TestLang } from "./TestLang.test.ts";
 import { LangPatternKind } from "./lang.pattern.ts";
 
-tests(import.meta.url, () => [
+tests(() => [
   {
     id: "PIPELINE00",
     description: "it can pipe two steps",

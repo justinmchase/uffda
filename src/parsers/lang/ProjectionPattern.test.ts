@@ -2,7 +2,7 @@ import { tests } from "../../test.ts";
 import { TestLang } from "./TestLang.test.ts";
 import { LangExpressionKind, LangPatternKind } from "./lang.pattern.ts";
 
-tests(import.meta.url, () => [
+tests(() => [
   {
     id: "PROJECT00",
     description: "can parse a projection",

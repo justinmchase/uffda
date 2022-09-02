@@ -7,7 +7,6 @@ export enum PatternKind {
   End = "end",
   Equal = "equal",
   Until = "until",
-  Unless = "unless",
   Fail = "fail",
   Includes = "includes",
   Must = "must",

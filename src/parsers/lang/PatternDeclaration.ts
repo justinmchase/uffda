@@ -43,7 +43,7 @@ export const PatternDeclaration: IRulePattern = {
           pattern: { kind: PatternKind.Reference, name: "PatternExpression" },
         },
         {
-          kind: PatternKind.Unless,
+          kind: PatternKind.Must,
           name: "TokenExpected",
           message: "Expected token `;`",
           pattern: {

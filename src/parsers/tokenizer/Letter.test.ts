@@ -1,7 +1,7 @@
 import { tests } from "../../test.ts";
 import { Letter } from "./Letter.ts";
 
-tests(import.meta.url, () => [
+tests(() => [
   {
     id: "LETTER00",
     description: "matches a letter",

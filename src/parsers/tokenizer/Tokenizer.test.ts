@@ -1,7 +1,7 @@
 import { tests } from "../../test.ts";
 import { Tokenizer } from "./mod.ts";
 
-tests(import.meta.url, () => [
+tests(() => [
   {
     id: "TOKENIZER00",
     description: "succeeds on empty input",

@@ -3,7 +3,7 @@ import { Scope } from "../../scope.ts";
 import { ExpressionKind } from "../expressions/mod.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
-tests(import.meta.url, () => {
+tests(() => {
   const $0 = () => 11;
   return [
     {

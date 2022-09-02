@@ -1,7 +1,7 @@
 import { tests } from "../../test.ts";
 import { String } from "./String.ts";
 
-tests(import.meta.url, () => [
+tests(() => [
   {
     id: "STRING00",
     description: "can parse empty single quote string",

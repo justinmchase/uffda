@@ -1,5 +1,20 @@
-// import { Pattern } from './patterns/mod.ts'
 import { Scope } from "./scope.ts";
+import { ISpan } from "./span.ts";
+
+const MATCH = Symbol();
+
+function indexOf(t: (m: Match) => Scope, scope: Scope): number {
+  const stream = scope.stream;
+  const index = stream.index;
+  const value = stream.value;
+  const match = Match.From(value);
+
+  if (!match || match.start === scope) {
+    return index;
+  }
+
+  return indexOf(t, t(match));
+}
 
 export class MatchError {
   constructor(
@@ -11,8 +26,8 @@ export class MatchError {
 
   public trace() {
     return {
-      start: this.start.stream.path,
-      end: this.end.stream.path,
+      start: indexOf((m) => m.start, this.start),
+      end: indexOf((m) => m.end, this.end),
     };
   }
 }
@@ -37,6 +52,22 @@ export class Match {
     errors: MatchError[],
   ) => new Match(false, false, start, end, value, errors);
 
+  public static From(value: unknown) {
+    if (value == null) {
+      return undefined;
+    }
+
+    if (typeof value !== "object") {
+      return undefined;
+    }
+
+    if (!Reflect.has(value, MATCH)) {
+      return undefined;
+    }
+
+    return Reflect.get(value, MATCH) as Match | undefined;
+  }
+
   constructor(
     public readonly matched: boolean,
     public readonly isLr: boolean,
@@ -45,6 +76,24 @@ export class Match {
     public readonly value: unknown,
     public readonly errors: MatchError[],
   ) {
+    if (value != null && typeof value === "object") {
+      if (!Reflect.getOwnPropertyDescriptor(value, MATCH)) {
+        Reflect.defineProperty(value, MATCH, {
+          enumerable: false,
+          writable: true,
+        });
+      }
+      const m = Reflect.get(value, MATCH);
+      if (!m) {
+        Reflect.set(value, MATCH, this);
+      }
+    }
+  }
+
+  public span(): ISpan {
+    const start = indexOf((m) => m.start, this.start);
+    const end = indexOf((m) => m.end, this.end);
+    return { start, end };
   }
 
   public get done() {

@@ -19,7 +19,6 @@ export * from "./rule.ts";
 export * from "./slice.ts";
 export * from "./then.ts";
 export * from "./type.ts";
-export * from "./unless.ts";
 export * from "./until.ts";
 export * from "./variable.ts";
 

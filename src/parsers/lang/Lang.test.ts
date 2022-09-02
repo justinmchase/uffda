@@ -1,7 +1,7 @@
 import { tests } from "../../test.ts";
 import { TestLang } from "./TestLang.test.ts";
 
-tests(import.meta.url, () => [
+tests(() => [
   {
     id: "LANG00",
     pattern: () => TestLang,
