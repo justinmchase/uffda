@@ -6,21 +6,46 @@ import { Meta } from "../parsers/mod.ts";
 import { match } from "../runtime/mod.ts";
 
 export async function compile(options: ICompileOptions) {
-  const { srcDir } = options;
-  await compileDir(await Deno.realPath(srcDir), options);
+  const { srcDir, dstDir } = options;
+  const sourceDirectory = path.resolve(srcDir);
+  const destinationDirectory = path.resolve(dstDir);
+
+  console.log({ sourceDirectory, destinationDirectory });
+  await compileDir(
+    sourceDirectory,
+    destinationDirectory,
+    ".",
+    options,
+  );
 }
 
-export async function compileDir(directory: string, options: ICompileOptions) {
+export async function compileDir(
+  sourceDirectory: string,
+  destinationDirectory: string,
+  subDirectory: string,
+  options: ICompileOptions,
+) {
+  const directory = path.resolve(sourceDirectory, subDirectory);
   for await (const dirEntry of Deno.readDir(directory)) {
     const { name, isDirectory, isFile, isSymlink } = dirEntry;
     if (isDirectory) {
-      const subDir = path.join(directory, name);
-      await compileDir(subDir, options);
+      const subDir = path.join(subDirectory, name);
+      await compileDir(
+        sourceDirectory,
+        destinationDirectory,
+        subDir,
+        options,
+      );
     } else if (isFile) {
       const ext = path.extname(name);
       if (ext === ".uff") {
-        const file = path.join(directory, name);
-        await compileFile(file, options);
+        const relativeFile = path.join(subDirectory, name);
+        await compileFile(
+          sourceDirectory,
+          destinationDirectory,
+          relativeFile,
+          options,
+        );
       }
     } else if (isSymlink) {
       throw new Error("Symlinks not yet supported.");
@@ -63,7 +88,13 @@ function snippetFromTextStream(index: number, items: Iterable<string>) {
   }
 }
 
-export async function compileFile(file: string, options: ICompileOptions) {
+export async function compileFile(
+  sourceDirectory: string,
+  destinationDirectory: string,
+  relativeFile: string,
+  options: ICompileOptions,
+) {
+  const file = path.join(sourceDirectory, relativeFile);
   console.log("compiling file:", file);
   const contents = await Deno.readTextFile(file);
   const scope = Scope.From(contents, {
@@ -72,7 +103,13 @@ export async function compileFile(file: string, options: ICompileOptions) {
   const results = match(Meta, scope);
   const { end, matched, done, errors, value } = results;
   if (done && matched && !errors.length) {
-    console.log(`compiled ${file} successfully...`, value);
+    console.log(`compiled ${file} successfully.`);
+    const destinationFile = path
+      .join(destinationDirectory, relativeFile)
+      .replace(/[.]uff$/i, ".json");
+    const dir = path.dirname(destinationFile);
+    await Deno.mkdir(dir, { recursive: true });
+    await Deno.writeTextFile(destinationFile, JSON.stringify(value, null, 2));
   } else if (errors.length) {
     console.log(`errors compiling ${file}...`);
     for (const err of errors) {
