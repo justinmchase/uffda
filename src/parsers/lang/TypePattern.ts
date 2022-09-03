@@ -46,6 +46,25 @@ export const TypePattern: IRulePattern = {
           }),
         },
       },
+      {
+        kind: PatternKind.Projection,
+        pattern: {
+          kind: PatternKind.Object,
+          keys: {
+            type: { kind: PatternKind.Equal, value: "Identifier" },
+            value: {
+              kind: PatternKind.Equal,
+              value: "number",
+            },
+          },
+        },
+        expression: {
+          kind: ExpressionKind.Native,
+          fn: () => ({
+            kind: LangPatternKind.NumberPattern,
+          }),
+        },
+      },
     ],
   },
 };

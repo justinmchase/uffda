@@ -33,6 +33,8 @@ export const MustPattern: IRulePattern = {
           kind: ExpressionKind.Native,
           fn: ({ pattern }) => ({
             kind: LangPatternKind.MustPattern,
+            name: "PatternExpected",
+            description: `${pattern.kind} is expected`,
             pattern,
           }),
         },

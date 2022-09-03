@@ -5,6 +5,7 @@ export enum LangPatternKind {
   EqualPattern = "EqualPattern",
   MustPattern = "MustPattern",
   NotPattern = "NotPattern",
+  NumberPattern = "NumberPattern",
   OkPattern = "OkPattern",
   ObjectPattern = "ObjectPattern",
   ObjectKeyPattern = "ObjectKeyPattern",
@@ -33,6 +34,7 @@ export type LangPattern =
   | IEqualPattern
   | IMustPattern
   | INotPattern
+  | INumberPattern
   | IOkPattern
   | IObjectPattern
   | IOneOrMorePattern
@@ -75,7 +77,9 @@ export interface INotPattern {
   kind: LangPatternKind.NotPattern;
   pattern: LangPattern;
 }
-
+export interface INumberPattern {
+  kind: LangPatternKind.NumberPattern;
+}
 export interface IOkPattern {
   kind: LangPatternKind.OkPattern;
 }

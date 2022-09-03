@@ -157,6 +157,8 @@ tests(() => [
           name: "a",
           pattern: {
             kind: LangPatternKind.MustPattern,
+            name: "PatternExpected",
+            description: "StringPattern is expected",
             pattern: {
               kind: LangPatternKind.StringPattern,
             },
