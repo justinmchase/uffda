@@ -19,7 +19,7 @@ tests(() => [
       kind: LangPatternKind.BooleanPattern,
     },
   },
-  
+
   {
     id: "TYPE00",
     pattern: () => TestLang,

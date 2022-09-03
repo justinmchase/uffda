@@ -10,7 +10,7 @@ tests(() => [
     input: "1",
     value: {
       kind: LangPatternKind.EqualPattern,
-      value: 1
+      value: 1,
     },
   },
 ]);
