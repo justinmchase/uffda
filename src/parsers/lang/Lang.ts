@@ -2,6 +2,7 @@ import { IRulePattern, PatternKind } from "../../runtime/patterns/mod.ts";
 import { AndPattern } from "./AndPattern.ts";
 import { AnyPattern } from "./AnyPattern.ts";
 import { EqualPattern } from "./EqualPattern.ts";
+import { GroupPattern } from "./GroupPattern.ts";
 import { MustPattern } from "./MustPattern.ts";
 import { NumberPattern } from "./NumberPattern.ts";
 import { NotPattern } from "./NotPattern.ts";
@@ -41,6 +42,7 @@ export const Lang: IRulePattern = {
       AndPattern,
       AnyPattern,
       EqualPattern,
+      GroupPattern,
       MustPattern,
       NotPattern,
       NumberPattern,
