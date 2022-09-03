@@ -1,3 +1,4 @@
+import { Comparable } from "../../comparable.ts";
 import { Expression } from "../expressions/mod.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
@@ -20,6 +21,7 @@ export type Pattern =
   | IOrPattern
   | IPipelinePattern
   | IProjectionPattern
+  | IRangePattern
   | IReferencePattern
   | IRegExpPattern
   | IRulePattern
@@ -106,6 +108,11 @@ export interface IProjectionPattern {
   kind: PatternKind.Projection;
   pattern: Pattern;
   expression: Expression;
+}
+export interface IRangePattern {
+  kind: PatternKind.Range;
+  left: Comparable;
+  right: Comparable;
 }
 export interface IReferencePattern {
   kind: PatternKind.Reference;

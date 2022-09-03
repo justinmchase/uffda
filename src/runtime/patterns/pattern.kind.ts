@@ -17,6 +17,7 @@ export enum PatternKind {
   Or = "or",
   Pipeline = "pipeline",
   Projection = "projection",
+  Range = "range",
   Reference = "reference",
   RegExp = "regexp",
   Rule = "rule",

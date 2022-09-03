@@ -43,6 +43,10 @@ export const PatternExpression: IRulePattern = {
       },
       {
         kind: PatternKind.Reference,
+        name: "RangePattern",
+      },
+      {
+        kind: PatternKind.Reference,
         name: "ReferencePattern",
       },
       {

@@ -13,6 +13,7 @@ export * from "./ok.ts";
 export * from "./or.ts";
 export * from "./pipeline.ts";
 export * from "./projection.ts";
+export * from "./range.ts";
 export * from "./reference.ts";
 export * from "./regexp.ts";
 export * from "./rule.ts";

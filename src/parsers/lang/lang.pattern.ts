@@ -1,3 +1,5 @@
+import { Comparable } from "../../comparable.ts";
+
 export enum LangPatternKind {
   AndPattern = "AndPattern",
   AnyPattern = "AnyPattern",
@@ -14,6 +16,7 @@ export enum LangPatternKind {
   PatternDeclaration = "PatternDeclaration",
   PipelinePattern = "PipelinePattern",
   ProjectionPattern = "ProjectionPattern",
+  RangePattern = "RangePattern",
   ReferencePattern = "ReferencePattern",
   SpecialReferencePattern = "SpecialReferencePattern",
   StringPattern = "StringPattern",
@@ -41,6 +44,7 @@ export type LangPattern =
   | IOrPattern
   | IPipelinePattern
   | IProjectionPattern
+  | IRangePattern
   | IReferencePattern
   | ISpecialReferencePattern
   | IStringPattern
@@ -118,6 +122,12 @@ export interface IProjectionPattern {
   kind: LangPatternKind.ProjectionPattern;
   left: LangPattern;
   right: LangExpression;
+}
+
+export interface IRangePattern {
+  kind: LangPatternKind.RangePattern;
+  left: Comparable;
+  right: Comparable;
 }
 
 export interface IReferencePattern {

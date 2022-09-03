@@ -11,6 +11,7 @@ import { PatternDeclaration } from "./PatternDeclaration.ts";
 import { PatternExpression } from "./PatternExpression.ts";
 import { PipelinePattern } from "./PipelinePattern.ts";
 import { ProjectionPattern } from "./ProjectionPattern.ts";
+import { RangePattern } from "./RangePattern.ts";
 import { ReferencePattern } from "./ReferencePattern.ts";
 import { SpecialReferencePattern } from "./SpecialReferencePattern.ts";
 import { StringPattern } from "./StringPattern.ts";
@@ -38,6 +39,7 @@ export const Compiler: IRulePattern = {
       PatternExpression,
       PipelinePattern,
       ProjectionPattern,
+      RangePattern,
       ReferencePattern,
       SpecialReferencePattern,
       StringPattern,

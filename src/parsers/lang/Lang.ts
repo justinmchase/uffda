@@ -20,6 +20,7 @@ import { OrPattern } from "./OrPattern.ts";
 import { PatternExpression } from "./PatternExpression.ts";
 import { PipelinePattern } from "./PipelinePattern.ts";
 import { ProjectionPattern } from "./ProjectionPattern.ts";
+import { RangePattern } from "./RangePattern.ts";
 import { ReferencePattern } from "./ReferencePattern.ts";
 import { SlicePattern } from "./SlicePattern.ts";
 import { SpecialReferencePattern } from "./SpecialReferencePattern.ts";
@@ -59,6 +60,7 @@ export const Lang: IRulePattern = {
       PatternDeclaration,
       PatternExpression,
       PipelinePattern,
+      RangePattern,
       ProjectionPattern,
       ReferencePattern,
       SlicePattern,
