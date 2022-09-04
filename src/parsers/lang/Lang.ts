@@ -33,6 +33,7 @@ import { ZeroOrMorePattern } from "./ZeroOrMorePattern.ts";
 import { ZeroOrOnePattern } from "./ZeroOrOnePattern.ts";
 import { ExpressionPattern } from "./patterns/ExpressionPattern.ts";
 import {
+  MemberExpression,
   ReferenceExpression,
   SpecialReferenceExpression,
   TerminalExpression,
@@ -79,6 +80,7 @@ export const Lang: IRulePattern = {
       ZeroOrOnePattern,
 
       // Expressions
+      MemberExpression,
       ReferenceExpression,
       SpecialReferenceExpression,
       TerminalExpression,

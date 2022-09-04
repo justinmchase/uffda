@@ -5,7 +5,7 @@ export const ExpressionPattern: IRulePattern = {
   pattern: {
     kind: PatternKind.Or,
     patterns: [
-      { kind: PatternKind.Reference, name: "TerminalExpression" },
+      { kind: PatternKind.Reference, name: "MemberExpression" },
     ],
   },
 };

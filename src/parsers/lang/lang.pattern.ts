@@ -28,6 +28,7 @@ export enum LangPatternKind {
 }
 
 export enum LangExpressionKind {
+  MemberExpression = "MemberExpression",
   SpecialReferenceExpression = "SpecialReferenceExpression",
   ReferenceExpression = "ReferenceExpression",
 }
@@ -55,6 +56,7 @@ export type LangPattern =
   | IZeroOrOnePattern;
 
 export type LangExpression =
+  | IMemberExpression
   | ISpecialReferenceExpression
   | IReferenceExpression;
 
@@ -134,11 +136,6 @@ export interface IRangePattern {
   right: Comparable;
 }
 
-export interface IReferenceExpression {
-  kind: LangExpressionKind.ReferenceExpression;
-  name: string;
-}
-
 export interface IReferencePattern {
   kind: LangPatternKind.ReferencePattern;
   name: string;
@@ -171,6 +168,16 @@ export interface IZeroOrOnePattern {
 }
 
 // Expressions
+export interface IMemberExpression {
+  kind: LangExpressionKind.MemberExpression;
+  expression: LangExpression;
+  name: string;
+}
+
+export interface IReferenceExpression {
+  kind: LangExpressionKind.ReferenceExpression;
+  name: string;
+}
 
 export interface ISpecialReferenceExpression {
   kind: LangExpressionKind.SpecialReferenceExpression;
