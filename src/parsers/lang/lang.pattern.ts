@@ -1,6 +1,7 @@
 import { Comparable } from "../../comparable.ts";
 
 export enum LangPatternKind {
+  // Patterns
   AndPattern = "AndPattern",
   AnyPattern = "AnyPattern",
   BooleanPattern = "BooleanPattern",
@@ -28,6 +29,7 @@ export enum LangPatternKind {
 
 export enum LangExpressionKind {
   SpecialReferenceExpression = "SpecialReferenceExpression",
+  ReferenceExpression = "ReferenceExpression",
 }
 
 export type LangPattern =
@@ -52,7 +54,9 @@ export type LangPattern =
   | IZeroOrMorePattern
   | IZeroOrOnePattern;
 
-export type LangExpression = ISpecialReferenceExpression;
+export type LangExpression =
+  | ISpecialReferenceExpression
+  | IReferenceExpression;
 
 export interface IPatternDeclaration {
   kind: LangPatternKind.PatternDeclaration;
@@ -128,6 +132,11 @@ export interface IRangePattern {
   kind: LangPatternKind.RangePattern;
   left: Comparable;
   right: Comparable;
+}
+
+export interface IReferenceExpression {
+  kind: LangExpressionKind.ReferenceExpression;
+  name: string;
 }
 
 export interface IReferencePattern {

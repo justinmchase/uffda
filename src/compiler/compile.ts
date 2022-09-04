@@ -9,8 +9,6 @@ export async function compile(options: ICompileOptions) {
   const { srcDir, dstDir } = options;
   const sourceDirectory = path.resolve(srcDir);
   const destinationDirectory = path.resolve(dstDir);
-
-  console.log({ sourceDirectory, destinationDirectory });
   await compileDir(
     sourceDirectory,
     destinationDirectory,
@@ -95,7 +93,6 @@ export async function compileFile(
   options: ICompileOptions,
 ) {
   const file = path.join(sourceDirectory, relativeFile);
-  console.log("compiling file:", file);
   const contents = await Deno.readTextFile(file);
   const scope = Scope.From(contents, {
     trace: options.trace,
@@ -103,7 +100,7 @@ export async function compileFile(
   const results = match(Meta, scope);
   const { end, matched, done, errors, value } = results;
   if (done && matched && !errors.length) {
-    console.log(`compiled ${file} successfully.`);
+    console.log(`compiled ${relativeFile}`);
     const destinationFile = path
       .join(destinationDirectory, relativeFile)
       .replace(/[.]uff$/i, ".json");

@@ -31,18 +31,23 @@ import { ThenPattern } from "./ThenPattern.ts";
 import { VariablePattern } from "./VariablePattern.ts";
 import { ZeroOrMorePattern } from "./ZeroOrMorePattern.ts";
 import { ZeroOrOnePattern } from "./ZeroOrOnePattern.ts";
-
-import { ExpressionPattern } from "./ExpressionPattern.ts";
-import { SpecialReferenceExpression } from "./SpecialReferenceExpression.ts";
+import { ExpressionPattern } from "./patterns/ExpressionPattern.ts";
+import {
+  ReferenceExpression,
+  SpecialReferenceExpression,
+  TerminalExpression,
+} from "./expressions/mod.ts";
 
 export const Lang: IRulePattern = {
   kind: PatternKind.Rule,
   pattern: {
     kind: PatternKind.Block,
     rules: {
+      // Patterns
       AndPattern,
       AnyPattern,
       EqualPattern,
+      ExpressionPattern,
       GroupPattern,
       MustPattern,
       NotPattern,
@@ -72,9 +77,12 @@ export const Lang: IRulePattern = {
       VariablePattern,
       ZeroOrMorePattern,
       ZeroOrOnePattern,
+
       // Expressions
-      ExpressionPattern,
+      ReferenceExpression,
       SpecialReferenceExpression,
+      TerminalExpression,
+
       Main: {
         kind: PatternKind.Rule,
         pattern: {
