@@ -2,15 +2,7 @@ import { IRulePattern, PatternKind } from "../../../runtime/patterns/mod.ts";
 import { ExpressionKind } from "../../../runtime/expressions/mod.ts";
 import { LangExpressionKind } from "../lang.pattern.ts";
 
-// MemberExpression
-//   = expression:MemberExpression '.' name:IdentifierExpression -> {
-//       kind: LangExpressionKind.MemberExpression,
-//       expression,
-//       name,
-//     }
-//   | TerminalExpression
-
-export const MemberExpression: IRulePattern = {
+export const InvocationExpression: IRulePattern = {
   kind: PatternKind.Rule,
   pattern: {
     kind: PatternKind.Or,
@@ -21,45 +13,52 @@ export const MemberExpression: IRulePattern = {
           kind: PatternKind.Then,
           patterns: [
             {
+              kind: PatternKind.Object,
+              keys: {
+                type: { kind: PatternKind.Equal, value: "Token" },
+                value: { kind: PatternKind.Equal, value: "(" },
+              },
+            },
+            {
               kind: PatternKind.Variable,
               name: "expression",
               pattern: {
                 kind: PatternKind.Reference,
-                name: "MemberExpression",
+                name: "ExpressionPattern",
+              },
+            },
+            {
+              kind: PatternKind.Variable,
+              name: "args",
+              pattern: {
+                kind: PatternKind.Slice,
+                pattern: {
+                  kind: PatternKind.Reference,
+                  name: "ExpressionPattern",
+                },
               },
             },
             {
               kind: PatternKind.Object,
               keys: {
                 type: { kind: PatternKind.Equal, value: "Token" },
-                value: { kind: PatternKind.Equal, value: "." },
-              },
-            },
-            {
-              kind: PatternKind.Object,
-              keys: {
-                type: { kind: PatternKind.Equal, value: "Identifier" },
-                value: {
-                  kind: PatternKind.Variable,
-                  name: "name",
-                  pattern: { kind: PatternKind.String },
-                },
+                value: { kind: PatternKind.Equal, value: ")" },
               },
             },
           ],
         },
         expression: {
           kind: ExpressionKind.Native,
-          fn: ({ expression, name }) => ({
-            kind: LangExpressionKind.MemberExpression,
+          fn: ({ args, expression }) => ({
+            kind: LangExpressionKind.InvocationExpression,
+            arguments: args,
             expression,
-            name,
           }),
         },
       },
       {
         kind: PatternKind.Reference,
-        name: "InvocationExpression",
+        name: "TerminalExpression",
       },
     ],
   },

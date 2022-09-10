@@ -28,6 +28,7 @@ export enum LangPatternKind {
 }
 
 export enum LangExpressionKind {
+  InvocationExpression = "InvocationExpression",
   MemberExpression = "MemberExpression",
   SpecialReferenceExpression = "SpecialReferenceExpression",
   ReferenceExpression = "ReferenceExpression",
@@ -56,6 +57,7 @@ export type LangPattern =
   | IZeroOrOnePattern;
 
 export type LangExpression =
+  | IInvocationExpression
   | IMemberExpression
   | ISpecialReferenceExpression
   | IReferenceExpression;
@@ -168,6 +170,11 @@ export interface IZeroOrOnePattern {
 }
 
 // Expressions
+export interface IInvocationExpression {
+  kind: LangExpressionKind.InvocationExpression;
+  expression: LangExpression;
+}
+
 export interface IMemberExpression {
   kind: LangExpressionKind.MemberExpression;
   expression: LangExpression;
