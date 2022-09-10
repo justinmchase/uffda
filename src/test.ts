@@ -2,6 +2,7 @@ import {
   assert,
   assertThrows,
   brightBlack,
+  brightCyan,
   brightMagenta,
   equal,
 } from "../deps/std.ts";
@@ -16,6 +17,7 @@ interface IPatternTest {
   errors?: { start: string; end: string }[];
   only?: boolean;
   trace?: boolean;
+  future?: boolean;
 }
 
 interface IPatternThrows {
@@ -41,12 +43,23 @@ type PatternTest =
 export function tests(group: () => PatternTest[]) {
   const tests = group();
   for (const test of tests) {
-    const { id, input, description, pattern, only, trace, errors = [] } = test;
-    Deno.test({
+    const {
+      id,
+      input,
+      description,
+      pattern,
       only,
-      name: `[${brightMagenta(id)}] (${
+      future,
+      trace,
+      errors = [],
+    } = test;
+    const futureMessage = future ? ` (${brightCyan("future")})` : "";
+    Deno.test({
+      ignore: future,
+      only,
+      name: `[${brightMagenta(id)}](${
         brightBlack(description ?? input?.toString() ?? "")
-      })`,
+      })${futureMessage}`,
       fn: () => {
         if (test.throws) {
           assertThrows(

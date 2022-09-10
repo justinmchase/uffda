@@ -35,6 +35,7 @@ import { ExpressionPattern } from "./patterns/ExpressionPattern.ts";
 import {
   InvocationExpression,
   MemberExpression,
+  NumberExpression,
   ReferenceExpression,
   SpecialReferenceExpression,
   TerminalExpression,
@@ -82,6 +83,7 @@ export const Lang: IRulePattern = {
 
       // Expressions
       InvocationExpression,
+      NumberExpression,
       MemberExpression,
       ReferenceExpression,
       SpecialReferenceExpression,

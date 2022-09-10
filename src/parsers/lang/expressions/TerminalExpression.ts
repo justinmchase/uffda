@@ -8,6 +8,10 @@ export const TerminalExpression: IRulePattern = {
     patterns: [
       {
         kind: PatternKind.Reference,
+        name: LangExpressionKind.NumberExpression,
+      },
+      {
+        kind: PatternKind.Reference,
         name: LangExpressionKind.ReferenceExpression,
       },
       {
