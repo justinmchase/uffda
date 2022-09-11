@@ -35,6 +35,7 @@ export enum LangExpressionKind {
   MemberExpression = "MemberExpression",
   NumberExpression = "NumberExpression",
   SpecialReferenceExpression = "SpecialReferenceExpression",
+  SpreadExpression = "SpreadExpression",
   ReferenceExpression = "ReferenceExpression",
 }
 
@@ -68,6 +69,7 @@ export type LangExpression =
   | IMemberExpression
   | INumberExpression
   | ISpecialReferenceExpression
+  | ISpreadExpression
   | IReferenceExpression;
 
 export interface IPatternDeclaration {
@@ -211,6 +213,11 @@ export interface IMemberExpression {
 export interface IReferenceExpression {
   kind: LangExpressionKind.ReferenceExpression;
   name: string;
+}
+
+export interface ISpreadExpression {
+  kind: LangExpressionKind.SpreadExpression;
+  expression: LangExpression;
 }
 
 export interface ISpecialReferenceExpression {

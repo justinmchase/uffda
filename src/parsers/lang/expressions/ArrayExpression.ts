@@ -49,7 +49,7 @@ export const ArrayExpression: IRulePattern = {
       },
       {
         kind: PatternKind.Reference,
-        name: "TerminalExpression",
+        name: LangExpressionKind.SpreadExpression,
       },
     ],
   },

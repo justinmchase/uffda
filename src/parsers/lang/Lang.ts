@@ -40,6 +40,7 @@ import {
   NumberExpression,
   ReferenceExpression,
   SpecialReferenceExpression,
+  SpreadExpression,
   TerminalExpression,
 } from "./expressions/mod.ts";
 
@@ -91,6 +92,7 @@ export const Lang: IRulePattern = {
       MemberExpression,
       ReferenceExpression,
       SpecialReferenceExpression,
+      SpreadExpression,
       TerminalExpression,
 
       Main: {

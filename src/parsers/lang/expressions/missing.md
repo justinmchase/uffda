@@ -15,3 +15,4 @@ to bootstrap.
 | lambda              | `k => k`                               | lang      |        |
 | add                 | `a + b`                                | tokenizer | ✔      |
 | ternary             | `a ? b : c`                            | compiler  |        |
+| import              | `import { Foo } from "./foo.uff"`      | tokenizer |        |
