@@ -29,6 +29,6 @@ export const SpecialIdentifier: Pattern = {
   },
   expression: {
     kind: ExpressionKind.Native,
-    fn: ({ value }) => "$" + value.join(""),
+    fn: ({ value }) => `$${value.join("")}`,
   },
 };

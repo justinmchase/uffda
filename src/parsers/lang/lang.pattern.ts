@@ -6,6 +6,7 @@ export enum LangPatternKind {
   AnyPattern = "AnyPattern",
   BooleanPattern = "BooleanPattern",
   EqualPattern = "EqualPattern",
+  ExpressionPattern = "ExpressionPattern",
   MustPattern = "MustPattern",
   NotPattern = "NotPattern",
   NumberPattern = "NumberPattern",
@@ -28,6 +29,7 @@ export enum LangPatternKind {
 }
 
 export enum LangExpressionKind {
+  AddExpression = "AddExpression",
   InvocationExpression = "InvocationExpression",
   MemberExpression = "MemberExpression",
   NumberExpression = "NumberExpression",
@@ -40,6 +42,7 @@ export type LangPattern =
   | IAnyPattern
   | IBooleanPattern
   | IEqualPattern
+  | IExpressionPattern
   | IMustPattern
   | INotPattern
   | INumberPattern
@@ -58,6 +61,7 @@ export type LangPattern =
   | IZeroOrOnePattern;
 
 export type LangExpression =
+  | IAddExpression
   | IInvocationExpression
   | IMemberExpression
   | INumberExpression
@@ -82,6 +86,9 @@ export interface IBooleanPattern {
 export interface IEqualPattern {
   kind: LangPatternKind.EqualPattern;
   value: unknown;
+}
+export interface IExpressionPattern {
+  kind: LangPatternKind.ExpressionPattern;
 }
 export interface IMustPattern {
   kind: LangPatternKind.MustPattern;
@@ -172,6 +179,12 @@ export interface IZeroOrOnePattern {
 }
 
 // Expressions
+export interface IAddExpression {
+  kind: LangExpressionKind.AddExpression;
+  left: LangExpression;
+  right: LangExpression;
+}
+
 export interface IInvocationExpression {
   kind: LangExpressionKind.InvocationExpression;
   expression: LangExpression;
