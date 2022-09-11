@@ -30,6 +30,7 @@ export enum LangPatternKind {
 
 export enum LangExpressionKind {
   AddExpression = "AddExpression",
+  ArrayExpression = "ArrayExpression",
   InvocationExpression = "InvocationExpression",
   MemberExpression = "MemberExpression",
   NumberExpression = "NumberExpression",
@@ -62,6 +63,7 @@ export type LangPattern =
 
 export type LangExpression =
   | IAddExpression
+  | IArrayExpression
   | IInvocationExpression
   | IMemberExpression
   | INumberExpression
@@ -183,6 +185,11 @@ export interface IAddExpression {
   kind: LangExpressionKind.AddExpression;
   left: LangExpression;
   right: LangExpression;
+}
+
+export interface IArrayExpression {
+  kind: LangExpressionKind.ArrayExpression;
+  expressions: LangExpression[];
 }
 
 export interface IInvocationExpression {

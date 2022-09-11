@@ -2,7 +2,7 @@ import { IRulePattern, PatternKind } from "../../../runtime/patterns/mod.ts";
 import { ExpressionKind } from "../../../runtime/expressions/mod.ts";
 import { LangExpressionKind } from "../lang.pattern.ts";
 
-export const InvocationExpression: IRulePattern = {
+export const ArrayExpression: IRulePattern = {
   kind: PatternKind.Rule,
   pattern: {
     kind: PatternKind.Or,
@@ -16,20 +16,12 @@ export const InvocationExpression: IRulePattern = {
               kind: PatternKind.Object,
               keys: {
                 type: { kind: PatternKind.Equal, value: "Token" },
-                value: { kind: PatternKind.Equal, value: "(" },
+                value: { kind: PatternKind.Equal, value: "[" },
               },
             },
             {
               kind: PatternKind.Variable,
-              name: "expression",
-              pattern: {
-                kind: PatternKind.Reference,
-                name: "ExpressionPattern",
-              },
-            },
-            {
-              kind: PatternKind.Variable,
-              name: "args",
+              name: "expressions",
               pattern: {
                 kind: PatternKind.Slice,
                 pattern: {
@@ -42,23 +34,22 @@ export const InvocationExpression: IRulePattern = {
               kind: PatternKind.Object,
               keys: {
                 type: { kind: PatternKind.Equal, value: "Token" },
-                value: { kind: PatternKind.Equal, value: ")" },
+                value: { kind: PatternKind.Equal, value: "]" },
               },
             },
           ],
         },
         expression: {
           kind: ExpressionKind.Native,
-          fn: ({ args, expression }) => ({
-            kind: LangExpressionKind.InvocationExpression,
-            arguments: args,
-            expression,
+          fn: ({ expressions }) => ({
+            kind: LangExpressionKind.ArrayExpression,
+            expressions,
           }),
         },
       },
       {
         kind: PatternKind.Reference,
-        name: LangExpressionKind.ArrayExpression,
+        name: "TerminalExpression",
       },
     ],
   },

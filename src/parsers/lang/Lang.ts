@@ -34,6 +34,7 @@ import { ZeroOrOnePattern } from "./ZeroOrOnePattern.ts";
 import { ExpressionPattern } from "./patterns/ExpressionPattern.ts";
 import {
   AddExpression,
+  ArrayExpression,
   InvocationExpression,
   MemberExpression,
   NumberExpression,
@@ -84,6 +85,7 @@ export const Lang: IRulePattern = {
 
       // Expressions
       AddExpression,
+      ArrayExpression,
       InvocationExpression,
       NumberExpression,
       MemberExpression,
