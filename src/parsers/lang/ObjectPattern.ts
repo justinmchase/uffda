@@ -63,7 +63,7 @@ export const ObjectPattern: IRulePattern = {
                 {
                   kind: PatternKind.Slice,
                   min: 0,
-                  max: 0,
+                  max: 1,
                   pattern: {
                     kind: PatternKind.Object,
                     keys: {

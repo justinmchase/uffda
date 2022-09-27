@@ -34,6 +34,8 @@ export enum LangExpressionKind {
   InvocationExpression = "InvocationExpression",
   MemberExpression = "MemberExpression",
   NumberExpression = "NumberExpression",
+  ObjectExpression = "ObjectExpression",
+  ObjectKeyExpression = "ObjectKeyExpression",
   SpecialReferenceExpression = "SpecialReferenceExpression",
   SpreadExpression = "SpreadExpression",
   ReferenceExpression = "ReferenceExpression",
@@ -68,6 +70,7 @@ export type LangExpression =
   | IInvocationExpression
   | IMemberExpression
   | INumberExpression
+  | IObjectExpression
   | ISpecialReferenceExpression
   | ISpreadExpression
   | IReferenceExpression;
@@ -209,6 +212,18 @@ export interface IMemberExpression {
   expression: LangExpression;
   name: string;
 }
+
+export interface IObjectExpression {
+  kind: LangExpressionKind.ObjectExpression;
+  keys: Record<string, IObjectKeyExpression>;
+}
+
+export interface IObjectKeyExpression {
+  kind: LangExpressionKind.ObjectKeyExpression;
+  name: string;
+  expression: LangExpression;
+}
+
 
 export interface IReferenceExpression {
   kind: LangExpressionKind.ReferenceExpression;

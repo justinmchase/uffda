@@ -128,7 +128,7 @@ tests(() => [
     },
   },
   {
-    id: "OBJECT02",
+    id: "OBJECT07",
     description: "{ x:y! }",
     pattern: () => TestLang,
     input: "{ x:y! }",
@@ -145,7 +145,7 @@ tests(() => [
     },
   },
   {
-    id: "OBJECT06",
+    id: "OBJECT08",
     description: "{ a = string }",
     pattern: () => TestLang,
     input: "{ a = string! }",
@@ -162,6 +162,33 @@ tests(() => [
             pattern: {
               kind: LangPatternKind.StringPattern,
             },
+          },
+        },
+      ],
+    },
+  },
+  {
+    id: "OBJECT09",
+    description: "can parse an object with trailing comma",
+    pattern: () => TestLang,
+    input: "{ a = b, x = y, }",
+    value: {
+      kind: LangPatternKind.ObjectPattern,
+      keys: [
+        {
+          kind: LangPatternKind.ObjectKeyPattern,
+          name: "a",
+          pattern: {
+            kind: LangPatternKind.ReferencePattern,
+            name: "b",
+          },
+        },
+        {
+          kind: LangPatternKind.ObjectKeyPattern,
+          name: "x",
+          pattern: {
+            kind: LangPatternKind.ReferencePattern,
+            name: "y",
           },
         },
       ],
