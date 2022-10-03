@@ -1,4 +1,8 @@
-import { IRulePattern, Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
+import {
+  IRulePattern,
+  Pattern,
+  PatternKind,
+} from "../../runtime/patterns/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 import { IImportDeclaration, LangModuleKind } from "./lang.pattern.ts";
 
@@ -19,15 +23,15 @@ export const PatternModule: IRulePattern = {
               patterns: [
                 {
                   kind: PatternKind.Reference,
-                  name: LangModuleKind.ImportDeclaration
+                  name: LangModuleKind.ImportDeclaration,
                 },
                 {
                   kind: PatternKind.Reference,
                   name: LangModuleKind.InvalidImportDeclaration,
-                }
-              ]
-            }
-          }
+                },
+              ],
+            },
+          },
         },
         {
           kind: PatternKind.Variable,
@@ -39,25 +43,25 @@ export const PatternModule: IRulePattern = {
               patterns: [
                 {
                   kind: PatternKind.Reference,
-                  name: LangModuleKind.PatternDeclaration
+                  name: LangModuleKind.PatternDeclaration,
                 },
                 {
                   kind: PatternKind.Reference,
-                  name: LangModuleKind.InvalidPatternDeclaration
-                }
-              ]
-            }
-          }
-        }
-      ]
+                  name: LangModuleKind.InvalidPatternDeclaration,
+                },
+              ],
+            },
+          },
+        },
+      ],
     },
     expression: {
       kind: ExpressionKind.Native,
       fn: ({ patterns, imports }) => ({
         kind: LangModuleKind.PatternModule,
         patterns: patterns.filter((p: Pattern) => p),
-        imports: imports.filter((i: IImportDeclaration) => i)
-      })
-    }
+        imports: imports.filter((i: IImportDeclaration) => i),
+      }),
+    },
   },
 };

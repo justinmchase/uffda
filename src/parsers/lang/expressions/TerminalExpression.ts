@@ -21,7 +21,7 @@ export const TerminalExpression: IRulePattern = {
       {
         kind: PatternKind.Reference,
         name: LangExpressionKind.ObjectExpression,
-      }
+      },
     ],
   },
 };

@@ -9,7 +9,7 @@ tests(() => [
     input: "...a",
     value: {
       kind: "SpreadExpression",
-      expression: { kind: "ReferenceExpression", name: "a" }
+      expression: { kind: "ReferenceExpression", name: "a" },
     },
   },
   {

@@ -1,6 +1,6 @@
 import { tests } from "../../../test.ts";
 import { Lang } from "../Lang.ts";
-import { LangPatternKind, LangModuleKind } from "../lang.pattern.ts";
+import { LangModuleKind, LangPatternKind } from "../lang.pattern.ts";
 import { PatternModule } from "../PatternModule.ts";
 
 tests(() => [
@@ -20,8 +20,8 @@ tests(() => [
             kind: LangPatternKind.ReferencePattern,
             name: "y",
           },
-        }
-      ]
+        },
+      ],
     },
   },
   {

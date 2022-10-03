@@ -8,7 +8,11 @@ export function reference(args: IReferencePattern, scope: Scope): Match {
   const rule = scope.getRule(name);
   if (rule) {
     if (scope.options.trace) {
-      console.log(`#${name}: ${scope.stream.path} (${Deno.inspect(scope.stream.value, { colors: true, depth: 10 })})`)
+      console.log(
+        `#${name}: ${scope.stream.path} (${
+          Deno.inspect(scope.stream.value, { colors: true, depth: 10 })
+        })`,
+      );
     }
 
     const s = scope.pushRef(name);
@@ -16,7 +20,7 @@ export function reference(args: IReferencePattern, scope: Scope): Match {
     return m.popRef(scope);
   } else {
     if (scope.options.trace) {
-      console.log(`#${name}@${scope.stream.path} Not Found`)
+      console.log(`#${name}@${scope.stream.path} Not Found`);
     }
     return Match.Fail(scope).pushError(
       "MissingReference",

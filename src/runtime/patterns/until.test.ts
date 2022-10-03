@@ -47,7 +47,7 @@ tests(() => [
         value: "c",
       },
     }),
-    errors: [ { name: "Test", message: "testing", start: "0", end: "2" } ],
+    errors: [{ name: "Test", message: "testing", start: "0", end: "2" }],
   },
   {
     id: "ERROR03",

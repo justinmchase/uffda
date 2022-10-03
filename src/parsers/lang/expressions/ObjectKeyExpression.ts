@@ -42,7 +42,7 @@ export const ObjectKeyExpression: IRulePattern = {
       fn: ({ key, expression }) => ({
         kind: LangExpressionKind.ObjectKeyExpression,
         key,
-        expression
+        expression,
       }),
     },
   },

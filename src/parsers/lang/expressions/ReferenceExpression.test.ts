@@ -8,7 +8,8 @@ tests(() => [
     pattern: () => ExpressionLang,
     input: "a",
     value: {
-      kind: LangExpressionKind.ReferenceExpression, name: "a"
+      kind: LangExpressionKind.ReferenceExpression,
+      name: "a",
     },
   },
 ]);

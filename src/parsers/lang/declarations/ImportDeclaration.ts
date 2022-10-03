@@ -27,7 +27,7 @@ export const ImportDeclaration: IRulePattern = {
             type: { kind: PatternKind.Equal, value: "Identifier" },
             value: {
               kind: PatternKind.Equal,
-              value: "import"
+              value: "import",
             },
           },
         },
@@ -38,9 +38,9 @@ export const ImportDeclaration: IRulePattern = {
             value: {
               kind: PatternKind.Variable,
               name: "modulePath",
-              pattern: { kind: PatternKind.Any }
-            }
-          }
+              pattern: { kind: PatternKind.Any },
+            },
+          },
         },
         {
           kind: PatternKind.Object,
@@ -64,15 +64,15 @@ export const ImportDeclaration: IRulePattern = {
                   value: {
                     kind: PatternKind.Variable,
                     name: "i",
-                    pattern: { kind: PatternKind.String }
-                  }
-                }
+                    pattern: { kind: PatternKind.String },
+                  },
+                },
               },
               expression: {
                 kind: ExpressionKind.Native,
-                fn: ({ i }) => i
-              }
-            }
+                fn: ({ i }) => i,
+              },
+            },
           },
         },
         {
@@ -94,7 +94,6 @@ export const ImportDeclaration: IRulePattern = {
             },
           },
         },
-
       ],
     },
     expression: {

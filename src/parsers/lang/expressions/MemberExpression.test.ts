@@ -1,5 +1,5 @@
 import { tests } from "../../../test.ts";
-import { ExpressionLang } from "../ExpressionLang.ts"
+import { ExpressionLang } from "../ExpressionLang.ts";
 import { LangExpressionKind } from "../lang.pattern.ts";
 
 tests(() => [

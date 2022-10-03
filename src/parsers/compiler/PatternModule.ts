@@ -2,7 +2,7 @@ import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { IRulePattern } from "../../runtime/patterns/pattern.ts";
 
-export const PatternModule: IRulePattern = {  
+export const PatternModule: IRulePattern = {
   kind: PatternKind.Rule,
   pattern: {
     kind: PatternKind.Projection,
@@ -19,13 +19,13 @@ export const PatternModule: IRulePattern = {
               kind: PatternKind.Slice,
               pattern: {
                 kind: PatternKind.Reference,
-                name: "PatternDeclaration"
-              }
-            }
-          }
+                name: "PatternDeclaration",
+              },
+            },
+          },
         },
         // imports // todo: implement imports...
-      }
+      },
     },
     expression: {
       kind: ExpressionKind.Native,

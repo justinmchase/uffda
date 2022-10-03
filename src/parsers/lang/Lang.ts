@@ -1,7 +1,7 @@
 import { IRulePattern, PatternKind } from "../../runtime/patterns/mod.ts";
 import { LangModuleKind } from "./lang.pattern.ts";
 import { Basic } from "../basic.ts";
-import { PatternModule } from "./PatternModule.ts"; 
+import { PatternModule } from "./PatternModule.ts";
 import * as Declarations from "./declarations/mod.ts";
 import * as Patterns from "./patterns/mod.ts";
 import * as Expressions from "./expressions/mod.ts";

@@ -1,10 +1,10 @@
 export interface ISnippet {
-  index: number
-  column: number
-  line: number
-  lines: string[]
-  snippetLines: string[]
-  snippetText: string
+  index: number;
+  column: number;
+  line: number;
+  lines: string[];
+  snippetLines: string[];
+  snippetText: string;
 }
 
 export function snippet(index: number, items: Iterable<string>): ISnippet {
@@ -15,11 +15,11 @@ export function snippet(index: number, items: Iterable<string>): ISnippet {
   let line = -1;
   for (const next of items) {
     if (i === index) {
-      line = lines.length
-      column = current.length
+      line = lines.length;
+      column = current.length;
     }
     i++;
-    
+
     if (next === "\n") {
       lines.push(current);
       current = "";
@@ -29,19 +29,20 @@ export function snippet(index: number, items: Iterable<string>): ISnippet {
   }
 
   if (column === -1) {
-    line = lines.length
-    column = current.length
+    line = lines.length;
+    column = current.length;
   }
   lines.push(current);
 
   const snippetLines = lines.slice(
     Math.max(0, line - 2),
-    Math.min(lines.length, line + 1)
+    Math.min(lines.length, line + 1),
   );
-  const snippetText = `${snippetLines
-    .map((line) => `  ${line}`)
-    .join("\n")
-  }\n--${new Array(column + 1).join("-")}^`
+  const snippetText = `${
+    snippetLines
+      .map((line) => `  ${line}`)
+      .join("\n")
+  }\n--${new Array(column + 1).join("-")}^`;
 
   return {
     index,
@@ -49,6 +50,6 @@ export function snippet(index: number, items: Iterable<string>): ISnippet {
     line,
     lines,
     snippetLines,
-    snippetText
-  }
+    snippetText,
+  };
 }

@@ -20,12 +20,12 @@ export * from "./PatternPattern.ts";
 export * from "./PipelinePattern.ts";
 export * from "./ProjectionPattern.ts";
 export * from "./ReferencePattern.ts";
-export * from "./SlicePattern.ts"
-export * from "./SpecialReferencePattern.ts"
-export * from "./StringPattern.ts"
+export * from "./SlicePattern.ts";
+export * from "./SpecialReferencePattern.ts";
+export * from "./StringPattern.ts";
 export * from "./TerminalPattern.ts";
 export * from "./ThenPattern.ts";
 export * from "./TypePattern.ts";
-export * from "./VariablePattern.ts"
-export * from "./ZeroOrMorePattern.ts"
+export * from "./VariablePattern.ts";
+export * from "./ZeroOrMorePattern.ts";
 export * from "./ZeroOrOnePattern.ts";

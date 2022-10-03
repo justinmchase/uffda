@@ -16,7 +16,8 @@ tests(() => [
     errors: [
       {
         name: "InvalidPatternDeclaration",
-        message: "A pattern declaration was expected and should be in the form of [A = B;]",
+        message:
+          "A pattern declaration was expected and should be in the form of [A = B;]",
         start: "4",
         end: "6",
       },
@@ -36,6 +37,6 @@ tests(() => [
           pattern: { kind: "ReferencePattern", name: "D" },
         },
       ],
-    }
+    },
   },
 ]);

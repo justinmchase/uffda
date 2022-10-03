@@ -8,7 +8,8 @@ export const InvalidPatternDeclaration: IRulePattern = {
     pattern: {
       kind: PatternKind.Until,
       name: "InvalidPatternDeclaration",
-      message: "A pattern declaration was expected and should be in the form of [A = B;]",
+      message:
+        "A pattern declaration was expected and should be in the form of [A = B;]",
       pattern: {
         kind: PatternKind.Object,
         keys: {
@@ -19,7 +20,7 @@ export const InvalidPatternDeclaration: IRulePattern = {
     },
     expression: {
       kind: ExpressionKind.Native,
-      fn: () => (undefined)
-    }
-  }
-}
+      fn: () => (undefined),
+    },
+  },
+};

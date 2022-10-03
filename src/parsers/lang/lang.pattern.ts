@@ -86,9 +86,9 @@ export type LangExpression =
 
 // Module
 export interface IPatternModule {
-  kind: LangModuleKind.PatternModule
-  imports: IImportDeclaration[]
-  patterns: IPatternDeclaration[]
+  kind: LangModuleKind.PatternModule;
+  imports: IImportDeclaration[];
+  patterns: IPatternDeclaration[];
 }
 export interface IPatternDeclaration {
   kind: LangModuleKind.PatternDeclaration;
@@ -96,8 +96,8 @@ export interface IPatternDeclaration {
 }
 export interface IImportDeclaration {
   kind: LangModuleKind.ImportDeclaration;
-  names: string[]
-  modulePath: string
+  names: string[];
+  modulePath: string;
 }
 
 // Patterns
@@ -245,7 +245,6 @@ export interface IObjectKeyExpression {
   name: string;
   expression: LangExpression;
 }
-
 
 export interface IReferenceExpression {
   kind: LangExpressionKind.ReferenceExpression;

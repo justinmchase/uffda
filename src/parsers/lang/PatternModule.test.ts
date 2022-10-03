@@ -14,10 +14,10 @@ tests(() => [
         {
           kind: LangModuleKind.PatternDeclaration,
           name: "A",
-          pattern: { kind: LangPatternKind.ReferencePattern, name: "B" }
-        }
+          pattern: { kind: LangPatternKind.ReferencePattern, name: "B" },
+        },
       ],
-    }
+    },
   },
   {
     id: "MOD01",
@@ -29,17 +29,17 @@ tests(() => [
         {
           kind: LangModuleKind.ImportDeclaration,
           names: ["B"],
-          modulePath: "./b.uff"
-        }
+          modulePath: "./b.uff",
+        },
       ],
       patterns: [
         {
           kind: LangModuleKind.PatternDeclaration,
           name: "A",
-          pattern: { kind: LangPatternKind.ReferencePattern, name: "B" }
-        }
+          pattern: { kind: LangPatternKind.ReferencePattern, name: "B" },
+        },
       ],
-    }
+    },
   },
   {
     id: "MOD02",
@@ -51,11 +51,11 @@ tests(() => [
         {
           kind: LangModuleKind.ImportDeclaration,
           names: ["A", "B"],
-          modulePath: "./b.uff"
-        }
+          modulePath: "./b.uff",
+        },
       ],
       patterns: [],
-    }
+    },
   },
   {
     id: "MOD03",
@@ -70,11 +70,11 @@ tests(() => [
         {
           kind: LangModuleKind.ImportDeclaration,
           names: ["A", "B"],
-          modulePath: "./b.uff"
-        }
+          modulePath: "./b.uff",
+        },
       ],
       patterns: [],
-    }
+    },
   },
   {
     id: "MOD04",
@@ -87,10 +87,10 @@ tests(() => [
         {
           kind: LangModuleKind.PatternDeclaration,
           name: "A",
-          pattern: { kind: LangPatternKind.ReferencePattern, name: "B" }
-        }
+          pattern: { kind: LangPatternKind.ReferencePattern, name: "B" },
+        },
       ],
-    }
+    },
   },
   {
     id: "MOD05",
@@ -100,7 +100,7 @@ tests(() => [
       kind: LangModuleKind.PatternModule,
       imports: [],
       patterns: [],
-    }
+    },
   },
   {
     id: "MOD06",
@@ -115,10 +115,11 @@ tests(() => [
     errors: [
       {
         name: "InvalidPatternDeclaration",
-        message: "A pattern declaration was expected and should be in the form of [A = B;]",
+        message:
+          "A pattern declaration was expected and should be in the form of [A = B;]",
         start: "0",
-        end: "1"
-      }
-    ]
+        end: "1",
+      },
+    ],
   },
 ]);

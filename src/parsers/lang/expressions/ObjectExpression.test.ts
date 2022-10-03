@@ -9,7 +9,7 @@ tests(() => [
     input: "{}",
     value: {
       kind: LangExpressionKind.ObjectExpression,
-      keys: []
+      keys: [],
     },
   },
   {
@@ -22,9 +22,9 @@ tests(() => [
         {
           kind: LangExpressionKind.ObjectKeyExpression,
           key: "a",
-          expression: { kind: LangExpressionKind.NumberExpression, value: 1 }
-        }
-      ]
+          expression: { kind: LangExpressionKind.NumberExpression, value: 1 },
+        },
+      ],
     },
   },
   {
@@ -37,14 +37,14 @@ tests(() => [
         {
           kind: LangExpressionKind.ObjectKeyExpression,
           key: "a",
-          expression: { kind: LangExpressionKind.NumberExpression, value: 1 }
+          expression: { kind: LangExpressionKind.NumberExpression, value: 1 },
         },
         {
           kind: LangExpressionKind.ObjectKeyExpression,
           key: "b",
-          expression: { kind: LangExpressionKind.NumberExpression, value: 2 }
-        }
-      ]
+          expression: { kind: LangExpressionKind.NumberExpression, value: 2 },
+        },
+      ],
     },
   },
   {
@@ -57,14 +57,14 @@ tests(() => [
         {
           kind: LangExpressionKind.ObjectKeyExpression,
           key: "a",
-          expression: { kind: LangExpressionKind.NumberExpression, value: 1 }
+          expression: { kind: LangExpressionKind.NumberExpression, value: 1 },
         },
         {
           kind: LangExpressionKind.ObjectKeyExpression,
           key: "b",
-          expression: { kind: LangExpressionKind.NumberExpression, value: 2 }
-        }
-      ]
+          expression: { kind: LangExpressionKind.NumberExpression, value: 2 },
+        },
+      ],
     },
   },
 ]);

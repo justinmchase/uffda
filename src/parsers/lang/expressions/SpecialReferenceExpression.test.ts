@@ -10,7 +10,7 @@ tests(() => [
     input: "$0",
     value: {
       kind: LangExpressionKind.SpecialReferenceExpression,
-      name: "$0"
-    }
-  }
+      name: "$0",
+    },
+  },
 ]);

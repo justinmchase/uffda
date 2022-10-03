@@ -60,9 +60,12 @@ export const ObjectExpression: IRulePattern = {
                             {
                               kind: PatternKind.Object,
                               keys: {
-                                type: { kind: PatternKind.Equal, value: "Token" },
+                                type: {
+                                  kind: PatternKind.Equal,
+                                  value: "Token",
+                                },
                                 value: { kind: PatternKind.Equal, value: "," },
-                              }
+                              },
                             },
                             {
                               kind: PatternKind.Variable,
@@ -72,13 +75,13 @@ export const ObjectExpression: IRulePattern = {
                                 name: "ObjectKeyExpression",
                               },
                             },
-                          ]
+                          ],
                         },
                         expression: {
                           kind: ExpressionKind.Native,
-                          fn: ({ k }) => k
-                        }
-                      }
+                          fn: ({ k }) => k,
+                        },
+                      },
                     },
                   },
                   {
@@ -90,17 +93,17 @@ export const ObjectExpression: IRulePattern = {
                       keys: {
                         type: { kind: PatternKind.Equal, value: "Token" },
                         value: { kind: PatternKind.Equal, value: "," },
-                      }
-                    }  
-                  }
+                      },
+                    },
+                  },
                 ],
-              }
+              },
             },
             expression: {
               kind: ExpressionKind.Native,
-              fn: ({ k0, k1 = [] }) => [k0, ...k1].filter(k => k)
-            }
-          }
+              fn: ({ k0, k1 = [] }) => [k0, ...k1].filter((k) => k),
+            },
+          },
         },
         {
           kind: PatternKind.Object,
@@ -115,7 +118,7 @@ export const ObjectExpression: IRulePattern = {
       kind: ExpressionKind.Native,
       fn: ({ keys }) => ({
         kind: LangExpressionKind.ObjectExpression,
-        keys
+        keys,
       }),
     },
   },

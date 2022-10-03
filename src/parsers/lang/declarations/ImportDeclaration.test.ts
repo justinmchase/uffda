@@ -13,10 +13,10 @@ tests(() => [
         {
           kind: LangModuleKind.ImportDeclaration,
           names: ["a"],
-          modulePath: './a.uff'
-        }
+          modulePath: "./a.uff",
+        },
       ],
-      patterns: []
+      patterns: [],
     },
   },
   {
@@ -32,10 +32,11 @@ tests(() => [
     errors: [
       {
         name: "InvalidImportDeclaration",
-        message: "Expected an import to be in the form [import './file.uff' (Name);]",
+        message:
+          "Expected an import to be in the form [import './file.uff' (Name);]",
         start: "1",
-        end: "6"
-      }
-    ]
+        end: "6",
+      },
+    ],
   },
-])
+]);
