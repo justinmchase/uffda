@@ -6,7 +6,6 @@ import * as Declarations from "./declarations/mod.ts";
 import * as Patterns from "./patterns/mod.ts";
 import * as Expressions from "./expressions/mod.ts";
 
-
 export const Lang: IRulePattern = {
   kind: PatternKind.Rule,
   pattern: {
