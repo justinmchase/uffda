@@ -1,7 +1,14 @@
 import { Comparable } from "../../comparable.ts";
 
+export enum LangModuleKind {
+  PatternModule = "PatternModule",
+  ImportDeclaration = "ImportDeclaration",
+  InvalidImportDeclaration = "InvalidImportDeclaration",
+  InvalidPatternDeclaration = "InvalidPatternDeclaration",
+  PatternDeclaration = "PatternDeclaration",
+}
+
 export enum LangPatternKind {
-  // Patterns
   AndPattern = "AndPattern",
   AnyPattern = "AnyPattern",
   BooleanPattern = "BooleanPattern",
@@ -15,13 +22,14 @@ export enum LangPatternKind {
   ObjectKeyPattern = "ObjectKeyPattern",
   OneOrMorePattern = "OneOrMorePattern",
   OrPattern = "OrPattern",
-  PatternDeclaration = "PatternDeclaration",
+  PatternPattern = "PatternPattern",
   PipelinePattern = "PipelinePattern",
   ProjectionPattern = "ProjectionPattern",
   RangePattern = "RangePattern",
   ReferencePattern = "ReferencePattern",
   SpecialReferencePattern = "SpecialReferencePattern",
   StringPattern = "StringPattern",
+  TerminalPattern = "TerminalPattern",
   ThenPattern = "ThenPattern",
   VariablePattern = "VariablePattern",
   ZeroOrMorePattern = "ZeroOrMorePattern",
@@ -47,6 +55,7 @@ export type LangPattern =
   | IBooleanPattern
   | IEqualPattern
   | IExpressionPattern
+  | IImportDeclaration
   | IMustPattern
   | INotPattern
   | INumberPattern
@@ -75,10 +84,23 @@ export type LangExpression =
   | ISpreadExpression
   | IReferenceExpression;
 
+// Module
+export interface IPatternModule {
+  kind: LangModuleKind.PatternModule
+  imports: IImportDeclaration[]
+  patterns: IPatternDeclaration[]
+}
 export interface IPatternDeclaration {
-  kind: LangPatternKind.PatternDeclaration;
+  kind: LangModuleKind.PatternDeclaration;
   pattern: LangPattern;
 }
+export interface IImportDeclaration {
+  kind: LangModuleKind.ImportDeclaration;
+  names: string[]
+  modulePath: string
+}
+
+// Patterns
 export interface IAndPattern {
   kind: LangPatternKind.AndPattern;
   left: LangPattern;

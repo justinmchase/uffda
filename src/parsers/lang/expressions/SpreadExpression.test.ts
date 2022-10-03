@@ -1,84 +1,63 @@
 import { tests } from "../../../test.ts";
-import { TestLang } from "../TestLang.test.ts";
-import { LangExpressionKind, LangPatternKind } from "../lang.pattern.ts";
+import { ExpressionLang } from "../ExpressionLang.ts";
+import { LangExpressionKind } from "../lang.pattern.ts";
 
 tests(() => [
   {
     id: "SPREAD00",
-    pattern: () => TestLang,
-    input: "A -> [...a]",
+    pattern: () => ExpressionLang,
+    input: "...a",
     value: {
-      kind: LangPatternKind.ProjectionPattern,
-      pattern: { kind: LangPatternKind.ReferencePattern, name: "A" },
-      expression: {
-        kind: "ArrayExpression",
-        expressions: [
-          {
-            kind: "SpreadExpression",
-            expression: { kind: "ReferenceExpression", name: "a" },
-          },
-        ],
-      },
+      kind: "SpreadExpression",
+      expression: { kind: "ReferenceExpression", name: "a" }
     },
   },
   {
     id: "SPREAD01",
-    pattern: () => TestLang,
-    input: "A -> [...[]]",
+    pattern: () => ExpressionLang,
+    input: "[...[]]",
     value: {
-      kind: LangPatternKind.ProjectionPattern,
-      pattern: { kind: LangPatternKind.ReferencePattern, name: "A" },
-      expression: {
-        kind: "ArrayExpression",
-        expressions: [
-          {
-            kind: "SpreadExpression",
-            expression: { kind: "ArrayExpression", expressions: [] },
-          },
-        ],
-      },
+      kind: "ArrayExpression",
+      expressions: [
+        {
+          kind: "SpreadExpression",
+          expression: { kind: "ArrayExpression", expressions: [] },
+        },
+      ],
     },
   },
   {
     id: "SPREAD02",
-    pattern: () => TestLang,
-    input: "A -> ...a.b.c",
+    pattern: () => ExpressionLang,
+    input: "...a.b.c",
     value: {
-      kind: LangPatternKind.ProjectionPattern,
-      pattern: { kind: LangPatternKind.ReferencePattern, name: "A" },
+      kind: LangExpressionKind.SpreadExpression,
       expression: {
-        kind: LangExpressionKind.SpreadExpression,
+        kind: LangExpressionKind.MemberExpression,
         expression: {
           kind: LangExpressionKind.MemberExpression,
           expression: {
-            kind: LangExpressionKind.MemberExpression,
-            expression: {
-              kind: LangExpressionKind.ReferenceExpression,
-              name: "a",
-            },
-            name: "b",
+            kind: LangExpressionKind.ReferenceExpression,
+            name: "a",
           },
-          name: "c",
+          name: "b",
         },
+        name: "c",
       },
     },
   },
   {
     id: "SPREAD03",
-    pattern: () => TestLang,
-    input: "A -> ...(a)",
+    pattern: () => ExpressionLang,
+    input: "...(a)",
     value: {
-      kind: LangPatternKind.ProjectionPattern,
-      pattern: { kind: LangPatternKind.ReferencePattern, name: "A" },
+      kind: LangExpressionKind.SpreadExpression,
       expression: {
-        kind: LangExpressionKind.SpreadExpression,
+        kind: LangExpressionKind.InvocationExpression,
+        arguments: [],
         expression: {
-          kind: LangExpressionKind.InvocationExpression,
-          arguments: [],
-          expression: {
-            kind: LangExpressionKind.ReferenceExpression,
-            name: "a",
-          },
+          kind: LangExpressionKind.ReferenceExpression,
+          name: "a",
         },
       },
     },

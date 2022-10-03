@@ -45,7 +45,7 @@ export function slice(args: ISlicePattern, scope: Scope) {
       break;
     }
   }
-
+  
   if (!min || matches.length >= min) {
     return Match.Ok(scope, end, matches, errors);
   } else {

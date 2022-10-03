@@ -1,15 +1,46 @@
 import { tests } from "../../../test.ts";
-import { TestLang } from "../TestLang.test.ts";
-import { LangExpressionKind, LangPatternKind } from "../lang.pattern.ts";
+import { ExpressionLang } from "../ExpressionLang.ts";
+import { LangExpressionKind } from "../lang.pattern.ts";
 
 tests(() => [
   {
     id: "ARRAY00",
-    pattern: () => TestLang,
-    input: "A -> []",
+    pattern: () => ExpressionLang,
+    input: "[]",
     value: {
-      kind: LangPatternKind.ProjectionPattern,
-      pattern: { kind: LangPatternKind.ReferencePattern, name: "A" },
+      kind: LangExpressionKind.ArrayExpression,
+      expressions: [],
+    },
+  },
+  {
+    id: "ARRAY01",
+    pattern: () => ExpressionLang,
+    input: "[a b c]",
+    value: {
+      kind: LangExpressionKind.ArrayExpression,
+      expressions: [
+        {
+          kind: LangExpressionKind.ReferenceExpression,
+          name: "a",
+        },
+        {
+          kind: LangExpressionKind.ReferenceExpression,
+          name: "b",
+        },
+        {
+          kind: LangExpressionKind.ReferenceExpression,
+          name: "c",
+        },
+      ],
+    },
+  },
+  {
+    id: "ARRAY02",
+    pattern: () => ExpressionLang,
+    input: "([])",
+    value: {
+      kind: LangExpressionKind.InvocationExpression,
+      arguments: [],
       expression: {
         kind: LangExpressionKind.ArrayExpression,
         expressions: [],
@@ -17,62 +48,15 @@ tests(() => [
     },
   },
   {
-    id: "ARRAY01",
-    pattern: () => TestLang,
-    input: "A -> [a b c]",
+    id: "ARRAY03",
+    pattern: () => ExpressionLang,
+    input: "[].join",
     value: {
-      kind: LangPatternKind.ProjectionPattern,
-      pattern: { kind: LangPatternKind.ReferencePattern, name: "A" },
+      kind: LangExpressionKind.MemberExpression,
+      name: "join",
       expression: {
         kind: LangExpressionKind.ArrayExpression,
-        expressions: [
-          {
-            kind: LangExpressionKind.ReferenceExpression,
-            name: "a",
-          },
-          {
-            kind: LangExpressionKind.ReferenceExpression,
-            name: "b",
-          },
-          {
-            kind: LangExpressionKind.ReferenceExpression,
-            name: "c",
-          },
-        ],
-      },
-    },
-  },
-  {
-    id: "ARRAY02",
-    pattern: () => TestLang,
-    input: "A -> ([])",
-    value: {
-      kind: LangPatternKind.ProjectionPattern,
-      pattern: { kind: LangPatternKind.ReferencePattern, name: "A" },
-      expression: {
-        kind: LangExpressionKind.InvocationExpression,
-        arguments: [],
-        expression: {
-          kind: LangExpressionKind.ArrayExpression,
-          expressions: [],
-        },
-      },
-    },
-  },
-  {
-    id: "ARRAY03",
-    pattern: () => TestLang,
-    input: "A -> [].join",
-    value: {
-      kind: LangPatternKind.ProjectionPattern,
-      pattern: { kind: LangPatternKind.ReferencePattern, name: "A" },
-      expression: {
-        kind: LangExpressionKind.MemberExpression,
-        name: "join",
-        expression: {
-          kind: LangExpressionKind.ArrayExpression,
-          expressions: [],
-        },
+        expressions: [],
       },
     },
   },

@@ -1,42 +1,34 @@
 import { tests } from "../../../test.ts";
-import { TestLang } from "../TestLang.test.ts";
-import { LangExpressionKind, LangPatternKind } from "../lang.pattern.ts";
+import { ExpressionLang } from "../ExpressionLang.ts"
+import { LangExpressionKind } from "../lang.pattern.ts";
 
 tests(() => [
   {
     id: "MEMBEREXP00",
-    pattern: () => TestLang,
-    input: "A -> a.b",
+    pattern: () => ExpressionLang,
+    input: "a.b",
     value: {
-      kind: LangPatternKind.ProjectionPattern,
-      pattern: { kind: LangPatternKind.ReferencePattern, name: "A" },
+      kind: LangExpressionKind.MemberExpression,
+      name: "b",
+      expression: {
+        kind: LangExpressionKind.ReferenceExpression,
+        name: "a",
+      },
+    },
+  },
+  {
+    id: "MEMBEREXP01",
+    pattern: () => ExpressionLang,
+    input: "a.b.c",
+    value: {
+      kind: LangExpressionKind.MemberExpression,
+      name: "c",
       expression: {
         kind: LangExpressionKind.MemberExpression,
         name: "b",
         expression: {
           kind: LangExpressionKind.ReferenceExpression,
           name: "a",
-        },
-      },
-    },
-  },
-  {
-    id: "MEMBEREXP01",
-    pattern: () => TestLang,
-    input: "A -> a.b.c",
-    value: {
-      kind: LangPatternKind.ProjectionPattern,
-      pattern: { kind: LangPatternKind.ReferencePattern, name: "A" },
-      expression: {
-        kind: LangExpressionKind.MemberExpression,
-        name: "c",
-        expression: {
-          kind: LangExpressionKind.MemberExpression,
-          name: "b",
-          expression: {
-            kind: LangExpressionKind.ReferenceExpression,
-            name: "a",
-          },
         },
       },
     },

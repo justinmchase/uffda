@@ -1,0 +1,3 @@
+import (Digit) './Digit.uff';
+
+Integer = Digit+ -> (join _ '');

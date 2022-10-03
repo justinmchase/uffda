@@ -5,9 +5,9 @@ to bootstrap.
 
 | name                | example                                | parser    | status |
 | ------------------- | -------------------------------------- | --------- | ------ |
-| object literal      | `{}`, `{ a }`, `{ a:b }`, `{ [a]: b }` | lang      |        |
+| object literal      | `{}`, `{ a }`, `{ a:b }`, `{ [a]: b }` | lang      | ✔      |
 | index access        | `a[b]`, `(index a b)`                  | compiler  | x      |
-| string literal      | `""`, `"abc"`                          | lang      |        |
+| string literal      | `""`, `"abc"`                          | lang      | x      |
 | interpolated string | `"${a}"`, `(format "{0}" a)`           | lang      |        |
 | not                 | `!`, `!!`, `(not x)`                   | lang      |        |
 | array literal       | `[]`, `[a b c]`, `(array a b c)`       | lang      | ✔      |
@@ -15,7 +15,7 @@ to bootstrap.
 | lambda              | `k => k`                               | lang      |        |
 | add                 | `a + b`, `(add a b)`                   | tokenizer | ✔      |
 | ternary             | `a ? b : c`, `(ternary a b c)`         | compiler  |        |
-| import              | `import { Foo } from "./foo.uff"`      | tokenizer |        |
+| import              | `import { Foo } from "./foo.uff"`      | tokenizer | O      |
 | pipe                | `data \|> base64 = (base64 data)`      | future    |        |
 | template            | `` `(f $x) ``                          | future    |        |
 | match               | `x >> y`                               | future    |        |
@@ -27,6 +27,26 @@ non-syntactic array indexing for arrays such as `(at a b)` or `(pop a b)` etc.
 
 For index access on objects you could use the same function but perhaps it would
 be possible to also support something like `a."${b}"`
+
+# Strings
+
+Right now the tokenizer is actually already parsing string literals, it would be
+trivial to just parse that into a Lang ast. But what I really want is
+interpolated strings, which could contain expressions in the interpolated
+regions. But since this is in the Tokenizer instead of in the Lang, i will
+probably have to adjust the string parsing in the tokenizer to return an object
+with an array of interpolated segments and a format string. Then in the Lang it
+will parse the String object and each of the segments as expressions. The
+interpolated string type should be similar to a template string function
+signature, something like:
+
+```js
+{
+  kind: TokenizerPatternKind.String,
+  template: string[],
+  args: TokenizerPattern[]
+}
+```
 
 # Ternary
 
@@ -44,7 +64,8 @@ switch statement and ternary expressions.
 | name     | example    | status |
 | -------- | ---------- | ------ |
 | template | `` `(p) `` |        |
-| match    | `e : p`    |        |
+| match    | `e >> p`   |        |
+| pipe     | `e \|> e`  |        |
 
 # Template Expressions
 

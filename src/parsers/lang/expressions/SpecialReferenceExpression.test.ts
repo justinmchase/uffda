@@ -1,20 +1,16 @@
 import { tests } from "../../../test.ts";
-import { TestLang } from "../TestLang.test.ts";
-import { LangExpressionKind, LangPatternKind } from "../lang.pattern.ts";
+import { ExpressionLang } from "../ExpressionLang.ts";
+import { LangExpressionKind } from "../lang.pattern.ts";
 
 tests(() => [
   {
     id: "SPECREFEXP00",
     description: "Can parse special reference",
-    pattern: () => TestLang,
-    input: "A -> $0",
+    pattern: () => ExpressionLang,
+    input: "$0",
     value: {
-      kind: LangPatternKind.ProjectionPattern,
-      pattern: { kind: LangPatternKind.ReferencePattern, name: "A" },
-      expression: {
-        kind: LangExpressionKind.SpecialReferenceExpression,
-        name: "$0",
-      },
-    },
-  },
+      kind: LangExpressionKind.SpecialReferenceExpression,
+      name: "$0"
+    }
+  }
 ]);

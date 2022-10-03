@@ -1,65 +1,53 @@
 import { tests } from "../../../test.ts";
-import { TestLang } from "../TestLang.test.ts";
-import { LangExpressionKind, LangPatternKind } from "../lang.pattern.ts";
+import { LangExpressionKind } from "../lang.pattern.ts";
+import { ExpressionLang } from "../ExpressionLang.ts";
 
 tests(() => [
   {
     id: "ADD00",
-    pattern: () => TestLang,
-    input: "A -> 1 + 2",
+    pattern: () => ExpressionLang,
+    input: "1 + 2",
     value: {
-      kind: LangPatternKind.ProjectionPattern,
-      pattern: { kind: LangPatternKind.ReferencePattern, name: "A" },
-      expression: {
-        kind: LangExpressionKind.AddExpression,
-        left: { kind: LangExpressionKind.NumberExpression, value: 1 },
-        right: { kind: LangExpressionKind.NumberExpression, value: 2 },
-      },
+      kind: LangExpressionKind.AddExpression,
+      left: { kind: LangExpressionKind.NumberExpression, value: 1 },
+      right: { kind: LangExpressionKind.NumberExpression, value: 2 },
     },
   },
   {
     id: "ADD01",
-    pattern: () => TestLang,
-    input: "A -> a + b",
+    pattern: () => ExpressionLang,
+    input: "a + b",
     value: {
-      kind: LangPatternKind.ProjectionPattern,
-      pattern: { kind: LangPatternKind.ReferencePattern, name: "A" },
-      expression: {
-        kind: LangExpressionKind.AddExpression,
-        left: { kind: LangExpressionKind.ReferenceExpression, name: "a" },
-        right: { kind: LangExpressionKind.ReferenceExpression, name: "b" },
-      },
+      kind: LangExpressionKind.AddExpression,
+      left: { kind: LangExpressionKind.ReferenceExpression, name: "a" },
+      right: { kind: LangExpressionKind.ReferenceExpression, name: "b" },
     },
   },
   {
     id: "ADD02",
-    pattern: () => TestLang,
-    input: "A -> (a.b) + c.d",
+    pattern: () => ExpressionLang,
+    input: "(a.b) + c.d",
     value: {
-      kind: LangPatternKind.ProjectionPattern,
-      pattern: { kind: LangPatternKind.ReferencePattern, name: "A" },
-      expression: {
-        kind: LangExpressionKind.AddExpression,
-        left: {
-          kind: LangExpressionKind.InvocationExpression,
-          arguments: [],
-          expression: {
-            kind: LangExpressionKind.MemberExpression,
-            expression: {
-              kind: LangExpressionKind.ReferenceExpression,
-              name: "a",
-            },
-            name: "b",
-          },
-        },
-        right: {
+      kind: LangExpressionKind.AddExpression,
+      left: {
+        kind: LangExpressionKind.InvocationExpression,
+        arguments: [],
+        expression: {
           kind: LangExpressionKind.MemberExpression,
           expression: {
             kind: LangExpressionKind.ReferenceExpression,
-            name: "c",
+            name: "a",
           },
-          name: "d",
+          name: "b",
         },
+      },
+      right: {
+        kind: LangExpressionKind.MemberExpression,
+        expression: {
+          kind: LangExpressionKind.ReferenceExpression,
+          name: "c",
+        },
+        name: "d",
       },
     },
   },

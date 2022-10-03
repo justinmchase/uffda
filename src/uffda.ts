@@ -1,5 +1,5 @@
 import { Scope } from "./scope.ts";
-import { Meta } from "./parsers/mod.ts";
+import { Meta } from "./parsers/meta.ts";
 import {
   IRulePattern,
   match,

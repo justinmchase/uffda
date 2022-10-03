@@ -3,7 +3,7 @@ import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 import { Letter } from "./Letter.ts";
 import { Digit } from "./Digit.ts";
 
-// Identifier = Letter+ (Digit | Character)*
+// Identifier = Letter+ (Digit | Letter)*
 export const Identifier: Pattern = {
   kind: PatternKind.Rule,
   pattern: {

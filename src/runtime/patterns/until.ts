@@ -16,12 +16,11 @@ export function until(args: IUntilPattern, scope: Scope): Match {
   if (scope.stream.done) {
     return Match.Fail(scope);
   }
-
   let end = scope;
   let m = Match.Fail(scope);
   while (true) {
     m = match(pattern, end);
-    if (m.matched) {
+    if (m.matched || end.stream.done) {
       return Match
         .Ok(scope, m.end, undefined, m.errors)
         .pushError(
@@ -30,13 +29,9 @@ export function until(args: IUntilPattern, scope: Scope): Match {
           scope,
           m.end,
         );
-    } else if (end.stream.done) {
-      break;
     }
 
     const next = end.stream.next();
     end = scope.withStream(next);
   }
-
-  return Match.Fail(scope);
 }

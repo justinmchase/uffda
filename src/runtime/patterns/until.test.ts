@@ -37,6 +37,7 @@ tests(() => [
   {
     id: "ERROR02",
     description: "~'c'",
+    input: "ab",
     pattern: () => ({
       kind: PatternKind.Until,
       name: "Test",
@@ -46,9 +47,7 @@ tests(() => [
         value: "c",
       },
     }),
-    input: "ab",
-    matched: false,
-    done: false,
+    errors: [ { name: "Test", message: "testing", start: "0", end: "2" } ],
   },
   {
     id: "ERROR03",
@@ -378,7 +377,6 @@ tests(() => [
       { name: "Test", message: "testing", start: "0", end: "2" },
     ],
   },
-
   {
     id: "ERROR13",
     description: "consumes all until end",

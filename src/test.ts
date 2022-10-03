@@ -7,7 +7,8 @@ import {
   equal,
 } from "../deps/std.ts";
 import { Scope } from "./scope.ts";
-import { match, Pattern } from "./runtime/mod.ts";
+import { match } from "./runtime/match.ts";
+import { Pattern } from "./runtime/patterns/pattern.ts";
 
 interface IPatternTest {
   id: string;
