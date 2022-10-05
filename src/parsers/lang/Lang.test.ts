@@ -5,7 +5,6 @@ import { Lang } from "./Lang.ts";
 tests(() => [
   {
     id: "LANG00",
-    only: true,
     pattern: () => Lang,
     input: `
       A = B;
