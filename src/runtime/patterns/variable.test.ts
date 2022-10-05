@@ -132,5 +132,27 @@ tests(() => [
     input: [{ X: [6, 7], Y: [10, 11] }],
     value: 18,
   },
+  {
+    id: "VARIABLE04",
+    description: "variables convey errors on match",
+    input: ["a", "b", "c", ";"],
+    value: undefined,
+    errors: [
+      { name: "TestError", message: "A test error", start: "0", end: "4" },
+    ],
+    pattern: () => ({
+      kind: PatternKind.Variable,
+      name: "x",
+      pattern: {
+        kind: PatternKind.Until,
+        name: "TestError",
+        message: "A test error",
+        pattern: {
+          kind: PatternKind.Equal,
+          value: ";",
+        },
+      },
+    }),
+  },
   // todo: variable name colision should probably be an error
 ]);

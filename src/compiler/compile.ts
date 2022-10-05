@@ -2,8 +2,8 @@ import { ICompileOptions } from "./compileOptions.ts";
 import { brightRed, path } from "../../deps/std.ts";
 import { Scope } from "../scope.ts";
 import { Match } from "../match.ts";
-import { Meta } from "../parsers/mod.ts";
 import { match } from "../runtime/mod.ts";
+import { snippet } from "./snippet.ts";
 
 export async function compile(options: ICompileOptions) {
   const { srcDir, dstDir } = options;
@@ -51,41 +51,6 @@ export async function compileDir(
   }
 }
 
-function snippetFromTextStream(index: number, items: Iterable<string>) {
-  const lines = [];
-  let lineCount = 0;
-  let current = "";
-  let i = 0;
-  let n = 0;
-  let lastLine = false;
-
-  for (const next of items) {
-    if (i === index) lastLine = true;
-    if (next === "\n") {
-      lineCount++;
-      lines.push(current);
-      if (lines.length > 2) lines.splice(0, 1);
-
-      if (lastLine) {
-        lines.push(`${new Array(n + 1).join("-")}^`);
-        return lines
-          .map((line) => `  ${line}`)
-          .join("\n");
-      } else {
-        n = 0;
-      }
-    } else {
-      current += next;
-    }
-
-    if (!lastLine) {
-      n++;
-    }
-
-    i++;
-  }
-}
-
 export async function compileFile(
   sourceDirectory: string,
   destinationDirectory: string,
@@ -112,27 +77,27 @@ export async function compileFile(
     for (const err of errors) {
       const { name, message } = err;
       const { end } = err.trace();
-      const snippet = snippetFromTextStream(
+      const { snippetText, line, column } = snippet(
         end,
         contents[Symbol.iterator](),
       );
       console.log(`${brightRed("error")} (${name}): ${message}`);
-      console.log(snippet);
-      console.log(`  at ${file}:${end}`);
+      console.log(snippetText);
+      console.log(`  at ${file}:${line}:${column}`);
     }
   } else if (!matched) {
     console.log("not matched:", results.value);
     const next = results.end.stream.next();
     const { start } = (Match.From(next.value) ?? results).span();
-    const snippet = snippetFromTextStream(
+    const { snippetText, line, column } = snippet(
       start,
       contents[Symbol.iterator](),
     );
     console.log(
       `${brightRed("error")}: failed to match ${JSON.stringify(next.value)}`,
     );
-    console.log(snippet);
-    console.log(`  at ${file}:${end}`);
+    console.log(snippetText);
+    console.log(`  at ${file}:${line}:${column}`);
   } else if (!done) {
     console.log(
       `failed to fully parse ${file} at: `,

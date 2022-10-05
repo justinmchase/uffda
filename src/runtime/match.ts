@@ -31,13 +31,13 @@ import {
 } from "./patterns/mod.ts";
 
 export function match(pattern: Pattern, scope: Scope): Match {
-  if (scope.options.trace === true) {
-    console.log(
-      `${pattern.kind}@${scope.stream.path}: ${
-        Deno.inspect(scope.stream.value, { colors: true })
-      }`,
-    );
-  }
+  // if (scope.options.trace === true) {
+  //   console.log(
+  //     `${pattern.kind}@${scope.stream.path}: ${
+  //       Deno.inspect(scope.stream.value, { colors: true })
+  //     }`,
+  //   );
+  // }
 
   switch (pattern.kind) {
     case PatternKind.And:

@@ -18,6 +18,10 @@ export const TerminalExpression: IRulePattern = {
         kind: PatternKind.Reference,
         name: LangExpressionKind.SpecialReferenceExpression,
       },
+      {
+        kind: PatternKind.Reference,
+        name: LangExpressionKind.ObjectExpression,
+      },
     ],
   },
 };
