@@ -5,6 +5,6 @@ export const ExpressionPattern: IRulePattern = {
   kind: PatternKind.Rule,
   pattern: {
     kind: PatternKind.Reference,
-    name: LangExpressionKind.AddExpression,
+    name: LangExpressionKind.LambdaExpression,
   },
 };
