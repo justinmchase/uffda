@@ -40,6 +40,7 @@ export enum LangExpressionKind {
   AddExpression = "AddExpression",
   ArrayExpression = "ArrayExpression",
   InvocationExpression = "InvocationExpression",
+  LambdaExpression = "LambdaExpression",
   MemberExpression = "MemberExpression",
   NumberExpression = "NumberExpression",
   ObjectExpression = "ObjectExpression",
@@ -77,6 +78,7 @@ export type LangExpression =
   | IAddExpression
   | IArrayExpression
   | IInvocationExpression
+  | ILambdaExpression
   | IMemberExpression
   | INumberExpression
   | IObjectExpression
@@ -224,15 +226,21 @@ export interface IInvocationExpression {
   expression: LangExpression;
 }
 
-export interface INumberExpression {
-  kind: LangExpressionKind.NumberExpression;
-  value: number;
+export interface ILambdaExpression {
+  kind: LangPatternKind.ProjectionPattern;
+  left: LangPattern;
+  right: LangExpression;
 }
 
 export interface IMemberExpression {
   kind: LangExpressionKind.MemberExpression;
   expression: LangExpression;
   name: string;
+}
+
+export interface INumberExpression {
+  kind: LangExpressionKind.NumberExpression;
+  value: number;
 }
 
 export interface IObjectExpression {
