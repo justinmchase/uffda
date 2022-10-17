@@ -1,4 +1,4 @@
-import { IRulePattern, PatternKind } from "../../runtime/mod.ts";
+import { IRulePattern, PatternKind } from "../../runtime/patterns/mod.ts";
 import { Basic } from "../../mod.ts";
 import * as Patterns from "./patterns/mod.ts";
 import * as Expressions from "./expressions/mod.ts";

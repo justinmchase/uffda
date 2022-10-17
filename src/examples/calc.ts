@@ -1,4 +1,5 @@
-import { Basic, dsl, Pattern, uffda } from "../mod.ts";
+import { Basic, dsl, uffda } from "../mod.ts";
+import { Pattern } from "../runtime/patterns/mod.ts";
 
 const match = uffda`
   Number

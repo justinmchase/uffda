@@ -92,5 +92,10 @@ export function match(pattern: Pattern, scope: Scope): Match {
       return then(pattern, scope);
     case PatternKind.Variable:
       return variable(pattern, scope);
+    default:
+      throw new Error(
+        // deno-lint-ignore no-explicit-any
+        `Cannot match unknown pattern kind ${(pattern as any)?.kind}`,
+      );
   }
 }
