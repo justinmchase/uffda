@@ -1,11 +1,8 @@
 import { Scope } from "./scope.ts";
 import { Meta } from "./parsers/meta.ts";
-import {
-  IRulePattern,
-  match,
-  Pattern,
-  ProjectionFunction,
-} from "./runtime/mod.ts";
+import { match } from "./runtime/mod.ts";
+import { ProjectionFunction } from "./runtime/expressions/mod.ts";
+import { IRulePattern, Pattern } from "./runtime/patterns/mod.ts";
 
 const templateToCode = (template: TemplateStringsArray) =>
   template.reduce(
