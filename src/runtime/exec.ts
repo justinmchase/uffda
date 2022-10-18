@@ -1,6 +1,7 @@
 import { Match } from "../match.ts";
 import {
   add,
+  array,
   Expression,
   ExpressionKind,
   native,
@@ -13,6 +14,8 @@ export function exec(expression: Expression, match: Match): unknown {
   switch (expression.kind) {
     case ExpressionKind.Add:
       return add(expression, match);
+    case ExpressionKind.Array:
+      return array(expression, match);
     case ExpressionKind.Native:
       return native(expression, match);
     case ExpressionKind.Reference:

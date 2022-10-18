@@ -16,6 +16,7 @@ export function isExpression(value: unknown): value is Expression {
 
 export type Expression =
   | IAddExpression
+  | IArrayExpression
   | INativeExpression
   | IReferenceExpression
   | ISpecialReferenceExpression
@@ -25,6 +26,11 @@ export interface IAddExpression {
   kind: ExpressionKind.Add;
   left: Expression;
   right: Expression;
+}
+
+export interface IArrayExpression {
+  kind: ExpressionKind.Array;
+  expressions: Expression[];
 }
 
 export interface INativeExpression {
