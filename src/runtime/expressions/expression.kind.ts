@@ -5,4 +5,5 @@ export enum ExpressionKind {
   Reference = "reference",
   SpecialReference = "special",
   Subtract = "subtract",
+  Value = "value",
 }

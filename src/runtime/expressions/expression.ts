@@ -20,7 +20,10 @@ export type Expression =
   | INativeExpression
   | IReferenceExpression
   | ISpecialReferenceExpression
-  | ISubtractExpression;
+  | ISubtractExpression
+  | ISubtractExpression
+  | IValueExpression
+  ;
 
 export interface IAddExpression {
   kind: ExpressionKind.Add;
@@ -52,4 +55,9 @@ export interface ISubtractExpression {
   kind: ExpressionKind.Subtract;
   left: Expression;
   right: Expression;
+}
+
+export interface IValueExpression {
+  kind: ExpressionKind.Value;
+  value: unknown;
 }
