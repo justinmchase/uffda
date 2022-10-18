@@ -21,7 +21,9 @@ export type Expression =
   | IReferenceExpression
   | ISpecialReferenceExpression
   | ISubtractExpression
-  | IValueExpression;
+  | ISubtractExpression
+  | IValueExpression
+  ;
 
 export interface IAddExpression {
   kind: ExpressionKind.Add;
