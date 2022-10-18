@@ -8,6 +8,7 @@ import {
   reference,
   special,
   subtract,
+  value,
 } from "./expressions/mod.ts";
 
 export function exec(expression: Expression, match: Match): unknown {
@@ -24,6 +25,8 @@ export function exec(expression: Expression, match: Match): unknown {
       return special(expression, match);
     case ExpressionKind.Subtract:
       return subtract(expression, match);
+    case ExpressionKind.Value:
+      return value(expression);
     default:
       throw new Error(
         // deno-lint-ignore no-explicit-any

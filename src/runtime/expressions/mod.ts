@@ -7,3 +7,4 @@ export * from "./native.ts";
 export * from "./reference.ts";
 export * from "./special.ts";
 export * from "./subtract.ts";
+export * from "./value.ts";
