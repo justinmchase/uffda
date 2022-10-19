@@ -6,7 +6,7 @@ export function invocation(
   expression: IInvocationExpression,
   match: Match,
 ): unknown {
-  const { expression: expr, arguments: args } = expression;
+  const { expression: expr, args } = expression;
   const a = args.map((arg) => exec(arg, match));
 
   // deno-lint-ignore ban-types

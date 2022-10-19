@@ -39,7 +39,7 @@ export interface IArrayExpression {
 export interface IInvocationExpression {
   kind: ExpressionKind.Invocation;
   expression: Expression;
-  arguments: Expression[];
+  args: Expression[];
 }
 
 export interface INativeExpression {
