@@ -15,7 +15,7 @@ export const LambdaExpression: IRulePattern = {
             {
               kind: PatternKind.Variable,
               name: "pattern",
-              pattern: { kind: PatternKind.Reference, name: "ThenPattern" },
+              pattern: { kind: PatternKind.Reference, name: LangPatternKind.PatternPattern },
             },
             {
               kind: PatternKind.Object,
