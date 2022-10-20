@@ -6,6 +6,7 @@ import { Reference } from "./reference.ts";
 
 interface IScopeOptions {
   trace?: boolean;
+  globals?: Record<string, unknown>;
 }
 
 export class Scope {

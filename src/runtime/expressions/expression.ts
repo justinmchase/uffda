@@ -17,13 +17,13 @@ export function isExpression(value: unknown): value is Expression {
 export type Expression =
   | IAddExpression
   | IArrayExpression
+  | IInvocationExpression
   | INativeExpression
   | IReferenceExpression
   | ISpecialReferenceExpression
   | ISubtractExpression
   | ISubtractExpression
-  | IValueExpression
-  ;
+  | IValueExpression;
 
 export interface IAddExpression {
   kind: ExpressionKind.Add;
@@ -34,6 +34,12 @@ export interface IAddExpression {
 export interface IArrayExpression {
   kind: ExpressionKind.Array;
   expressions: Expression[];
+}
+
+export interface IInvocationExpression {
+  kind: ExpressionKind.Invocation;
+  expression: Expression;
+  args: Expression[];
 }
 
 export interface INativeExpression {

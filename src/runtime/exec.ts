@@ -4,6 +4,7 @@ import {
   array,
   Expression,
   ExpressionKind,
+  invocation,
   native,
   reference,
   special,
@@ -17,6 +18,8 @@ export function exec(expression: Expression, match: Match): unknown {
       return add(expression, match);
     case ExpressionKind.Array:
       return array(expression, match);
+    case ExpressionKind.Invocation:
+      return invocation(expression, match);
     case ExpressionKind.Native:
       return native(expression, match);
     case ExpressionKind.Reference:

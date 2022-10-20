@@ -223,6 +223,7 @@ export interface IArrayExpression {
 
 export interface IInvocationExpression {
   kind: LangExpressionKind.InvocationExpression;
+  args: LangExpression[];
   expression: LangExpression;
 }
 
