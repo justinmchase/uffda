@@ -21,7 +21,7 @@ tests(() => [
         kind: ExpressionKind.Reference,
         name: "fn",
       },
-      arguments: [
+      args: [
         {
           kind: ExpressionKind.Reference,
           name: "a",
@@ -47,7 +47,7 @@ tests(() => [
         kind: ExpressionKind.Reference,
         name: "fn",
       },
-      arguments: [],
+      args: [],
     }),
   },
 
@@ -67,7 +67,7 @@ tests(() => [
         kind: ExpressionKind.Reference,
         name: "fn",
       },
-      arguments: [],
+      args: [],
     }),
   },
 ]);
