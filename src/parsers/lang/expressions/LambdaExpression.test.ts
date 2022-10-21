@@ -4,7 +4,7 @@ import { ExpressionLang } from "../ExpressionLang.ts";
 
 tests(() => [
   {
-    id: "LAMBDA00",
+    id: "LANG.LAMBDA00",
     pattern: () => ExpressionLang,
     input: "a -> a",
     value: {
@@ -14,7 +14,7 @@ tests(() => [
     },
   },
   {
-    id: "LAMBDA01",
+    id: "LANG.LAMBDA01",
     pattern: () => ExpressionLang,
     input: "a -> a + 1",
     value: {
@@ -34,7 +34,7 @@ tests(() => [
     },
   },
   {
-    id: "LAMBDA01",
+    id: "LANG.LAMBDA02",
     pattern: () => ExpressionLang,
     input: "a -> b -> a + b",
     value: {
