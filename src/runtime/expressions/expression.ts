@@ -37,8 +37,7 @@ export interface IAddExpression {
 
 export type ArrayInitializer =
   | IArrayElementExpression
-  | IArraySpreadExpression
-  ;
+  | IArraySpreadExpression;
 
 export interface IArrayExpression {
   kind: ExpressionKind.Array;
@@ -80,8 +79,7 @@ export interface INativeExpression {
 
 export type ObjectInitializer =
   | IObjectKeyExpression
-  | IObjectSpreadExpression
-  ;
+  | IObjectSpreadExpression;
 
 export interface IObjectExpression {
   kind: ExpressionKind.Object;

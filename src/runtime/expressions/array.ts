@@ -18,6 +18,5 @@ export function array(
       default:
         throw new Error(`Unexpected array initializer ${kind}`);
     }
-  },
-  []);
+  }, []);
 }

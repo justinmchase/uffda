@@ -76,9 +76,9 @@ tests(() => [
           kind: ExpressionKind.ObjectSpread,
           expression: {
             kind: ExpressionKind.Value,
-            value: { x: 7, y: 11 }
-          }
-        }
+            value: { x: 7, y: 11 },
+          },
+        },
       ],
     }),
   },
@@ -93,15 +93,15 @@ tests(() => [
           kind: ExpressionKind.ObjectSpread,
           expression: {
             kind: ExpressionKind.Value,
-            value: { x: 7, y: 11 }
-          }
+            value: { x: 7, y: 11 },
+          },
         },
         {
           kind: ExpressionKind.ObjectSpread,
           expression: {
             kind: ExpressionKind.Value,
-            value: { y: 13, z: 19 }
-          }
+            value: { y: 13, z: 19 },
+          },
         },
       ],
     }),
@@ -117,24 +117,24 @@ tests(() => [
           kind: ExpressionKind.ObjectSpread,
           expression: {
             kind: ExpressionKind.Value,
-            value: { x: 7, y: 11 }
-          }
+            value: { x: 7, y: 11 },
+          },
         },
         {
           kind: ExpressionKind.ObjectKey,
           name: "x",
           expression: {
             kind: ExpressionKind.Value,
-            value: 13
-          }
+            value: 13,
+          },
         },
         {
           kind: ExpressionKind.ObjectSpread,
           expression: {
             kind: ExpressionKind.Value,
-            value: { z: 19 }
-          }
-        }
+            value: { z: 19 },
+          },
+        },
       ],
     }),
   },

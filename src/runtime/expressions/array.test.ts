@@ -20,14 +20,14 @@ tests(() => [
           expression: {
             kind: ExpressionKind.Reference,
             name: "a",
-          }
+          },
         },
         {
           kind: ExpressionKind.ArrayElement,
           expression: {
             kind: ExpressionKind.Reference,
             name: "b",
-          }
+          },
         },
       ],
     }),
@@ -62,10 +62,10 @@ tests(() => [
                 expression: {
                   kind: ExpressionKind.Reference,
                   name: "a",
-                }
+                },
               },
             ],
-          }
+          },
         },
       ],
     }),
@@ -87,18 +87,18 @@ tests(() => [
                 kind: ExpressionKind.ArrayElement,
                 expression: {
                   kind: ExpressionKind.Value,
-                  value: 7
-                }
+                  value: 7,
+                },
               },
               {
                 kind: ExpressionKind.ArrayElement,
                 expression: {
                   kind: ExpressionKind.Value,
-                  value: 11
-                }
-              }
-            ]
-          }
+                  value: 11,
+                },
+              },
+            ],
+          },
         },
       ],
     }),
@@ -120,18 +120,18 @@ tests(() => [
                 kind: ExpressionKind.ArrayElement,
                 expression: {
                   kind: ExpressionKind.Value,
-                  value: 7
-                }
+                  value: 7,
+                },
               },
               {
                 kind: ExpressionKind.ArrayElement,
                 expression: {
                   kind: ExpressionKind.Value,
-                  value: 11
-                }
-              }
-            ]
-          }
+                  value: 11,
+                },
+              },
+            ],
+          },
         },
         {
           kind: ExpressionKind.ArraySpread,
@@ -142,12 +142,12 @@ tests(() => [
                 kind: ExpressionKind.ArrayElement,
                 expression: {
                   kind: ExpressionKind.Value,
-                  value: 13
-                }
-              }
-            ]
-          }
-        }
+                  value: 13,
+                },
+              },
+            ],
+          },
+        },
       ],
     }),
   },
@@ -163,8 +163,8 @@ tests(() => [
           kind: ExpressionKind.ArrayElement,
           expression: {
             kind: ExpressionKind.Value,
-            value: []
-          }
+            value: [],
+          },
         },
         {
           kind: ExpressionKind.ArraySpread,
@@ -175,18 +175,18 @@ tests(() => [
                 kind: ExpressionKind.ArrayElement,
                 expression: {
                   kind: ExpressionKind.Value,
-                  value: 7
-                }
+                  value: 7,
+                },
               },
               {
                 kind: ExpressionKind.ArrayElement,
                 expression: {
                   kind: ExpressionKind.Value,
-                  value: 11
-                }
-              }
-            ]
-          }
+                  value: 11,
+                },
+              },
+            ],
+          },
         },
       ],
     }),
@@ -213,28 +213,28 @@ tests(() => [
                       kind: ExpressionKind.ArrayElement,
                       expression: {
                         kind: ExpressionKind.Value,
-                        value: 7
-                      }
+                        value: 7,
+                      },
                     },
                     {
                       kind: ExpressionKind.ArrayElement,
                       expression: {
                         kind: ExpressionKind.Value,
-                        value: 11
-                      }
-                    }
-                  ]
-                }
+                        value: 11,
+                      },
+                    },
+                  ],
+                },
               },
               {
                 kind: ExpressionKind.ArrayElement,
                 expression: {
                   kind: ExpressionKind.Value,
-                  value: 13
-                }
-              }
-            ]
-          } 
+                  value: 13,
+                },
+              },
+            ],
+          },
         },
       ],
     }),
