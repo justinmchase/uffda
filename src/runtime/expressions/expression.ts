@@ -35,9 +35,23 @@ export interface IAddExpression {
   right: Expression;
 }
 
+export type ArrayInitializer =
+  | IArrayElementExpression
+  | IArraySpreadExpression;
+
 export interface IArrayExpression {
   kind: ExpressionKind.Array;
-  expressions: Expression[];
+  expressions: ArrayInitializer[];
+}
+
+export interface IArrayElementExpression {
+  kind: ExpressionKind.ArrayElement;
+  expression: Expression;
+}
+
+export interface IArraySpreadExpression {
+  kind: ExpressionKind.ArraySpread;
+  expression: Expression;
 }
 
 export interface IInvocationExpression {
@@ -63,12 +77,22 @@ export interface INativeExpression {
   fn: ProjectionFunction;
 }
 
+export type ObjectInitializer =
+  | IObjectKeyExpression
+  | IObjectSpreadExpression;
+
 export interface IObjectExpression {
   kind: ExpressionKind.Object;
-  keys: IObjectKey[];
+  keys: ObjectInitializer[];
 }
 
-export interface IObjectKey {
+export interface IObjectSpreadExpression {
+  kind: ExpressionKind.ObjectSpread;
+  expression: Expression;
+}
+
+export interface IObjectKeyExpression {
+  kind: ExpressionKind.ObjectKey;
   name: string;
   expression: Expression;
 }
