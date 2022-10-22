@@ -13,7 +13,7 @@ tests(() => [
         kind: ExpressionKind.Reference,
         name: "a",
       },
-      args: []
+      args: [],
     },
   },
   {
@@ -29,13 +29,13 @@ tests(() => [
       args: [
         {
           kind: ExpressionKind.Reference,
-          name: "b"
+          name: "b",
         },
         {
           kind: ExpressionKind.Reference,
-          name: "c"
-        }
-      ]
+          name: "c",
+        },
+      ],
     },
   },
   {

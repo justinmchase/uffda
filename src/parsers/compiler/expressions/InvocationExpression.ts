@@ -31,8 +31,8 @@ export const InvocationExpression: IRulePattern = {
               pattern: {
                 kind: PatternKind.Reference,
                 name: "ExpressionPattern",
-              }
-            }
+              },
+            },
           },
         },
       },
