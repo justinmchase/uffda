@@ -6,6 +6,7 @@ import {
   ExpressionKind,
   invocation,
   lambda,
+  member,
   native,
   reference,
   special,
@@ -23,6 +24,8 @@ export function exec(expression: Expression, match: Match): unknown {
       return invocation(expression, match);
     case ExpressionKind.Lambda:
       return lambda(expression, match);
+    case ExpressionKind.Member:
+      return member(expression, match);
     case ExpressionKind.Native:
       return native(expression, match);
     case ExpressionKind.Reference:

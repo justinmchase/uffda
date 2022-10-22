@@ -153,8 +153,11 @@ export function tests(group: () => PatternTest[]) {
           const { expression } = test;
           if (test.throws) {
             assertThrows(
-              expression,
-              `Expression was expected to throw during construction`,
+              () => {
+                const e = expression();
+                exec(e, test.match);
+              },
+              `Expression was expected to throw`,
             );
           } else {
             const { match, result } = test;

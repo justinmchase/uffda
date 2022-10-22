@@ -5,6 +5,7 @@ export * from "./add.ts";
 export * from "./array.ts";
 export * from "./invocation.ts";
 export * from "./lambda.ts";
+export * from "./member.ts";
 export * from "./native.ts";
 export * from "./reference.ts";
 export * from "./special.ts";
