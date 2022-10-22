@@ -5,6 +5,7 @@ import {
   brightCyan,
   brightMagenta,
   equal,
+  red,
 } from "../deps/std.ts";
 import { Scope } from "./scope.ts";
 import { Match } from "./match.ts";
@@ -109,45 +110,60 @@ export function tests(group: () => PatternTest[]) {
               `Pattern was expected to throw during construction`,
             );
           } else {
-            const { input, specials = {}, value, matched = true, done = true } =
-              test;
-            const p = pattern();
-            const s = Scope.From(input, { trace }).setSpecials(specials);
-            const m = match(p, s);
-            const e = m.errors.map((e) => ({
-              name: e.name,
-              message: e.message,
-              start: e.start.stream.path.toString(),
-              end: e.end.stream.path.toString(),
-            }));
-            assert(
-              equal(e, errors),
-              `Pattern had unexpected errors\n` +
-                `expected errors: ${
-                  Deno.inspect(errors, { colors: true, depth: 10 })
-                }\n` +
-                `  actual errors: ${
-                  Deno.inspect(e, { colors: true, depth: 10 })
-                }\n`,
-            );
-            assert(
-              equal(m.value, value),
-              `Pattern matched value did not equal expected value\n` +
-                `expected value: ${
-                  Deno.inspect(value, { colors: true, depth: 10 })
-                }\n` +
-                `  actual value: ${
-                  Deno.inspect(m.value, { colors: true, depth: 10 })
+            try {
+              const {
+                input,
+                specials = {},
+                value,
+                matched = true,
+                done = true,
+              } = test;
+              const p = pattern();
+              const s = Scope.From(input, { trace }).setSpecials(specials);
+              const m = match(p, s);
+              const e = m.errors.map((e) => ({
+                name: e.name,
+                message: e.message,
+                start: e.start.stream.path.toString(),
+                end: e.end.stream.path.toString(),
+              }));
+              assert(
+                equal(e, errors),
+                `Pattern had unexpected errors\n` +
+                  `expected errors: ${
+                    Deno.inspect(errors, { colors: true, depth: 10 })
+                  }\n` +
+                  `  actual errors: ${
+                    Deno.inspect(e, { colors: true, depth: 10 })
+                  }\n`,
+              );
+              assert(
+                equal(m.value, value),
+                `Pattern matched value did not equal expected value\n` +
+                  `expected value: ${
+                    Deno.inspect(value, { colors: true, depth: 10 })
+                  }\n` +
+                  `  actual value: ${
+                    Deno.inspect(m.value, { colors: true, depth: 10 })
+                  }`,
+              );
+              assert(
+                equal(m.matched, matched),
+                `Pattern was ${matched ? "" : "not "}expected to match`,
+              );
+              assert(
+                equal(m.done, done),
+                `Pattern was ${done ? "" : "not "}expected to be done`,
+              );
+            } catch (err) {
+              const { name, message, stack: _stack, metadata } = err;
+              console.log(
+                `${red("error")}: ${
+                  JSON.stringify({ name, message, metadata }, null, 2)
                 }`,
-            );
-            assert(
-              equal(m.matched, matched),
-              `Pattern was ${matched ? "" : "not "}expected to match`,
-            );
-            assert(
-              equal(m.done, done),
-              `Pattern was ${done ? "" : "not "}expected to be done`,
-            );
+              );
+              throw err;
+            }
           }
         } else if (isExpressionTest(test)) {
           const { expression } = test;
@@ -160,19 +176,29 @@ export function tests(group: () => PatternTest[]) {
               `Expression was expected to throw`,
             );
           } else {
-            const { match, result } = test;
-            const e = expression();
-            const r = exec(e, match);
-            assert(
-              equal(r, result),
-              `Expression result did not match expected value\n` +
-                `expected value: ${
-                  Deno.inspect(result, { colors: true, depth: 10 })
-                }\n` +
-                `  actual value: ${
-                  Deno.inspect(r, { colors: true, depth: 10 })
+            try {
+              const { match, result } = test;
+              const e = expression();
+              const r = exec(e, match);
+              assert(
+                equal(r, result),
+                `Expression result did not match expected value\n` +
+                  `expected value: ${
+                    Deno.inspect(result, { colors: true, depth: 10 })
+                  }\n` +
+                  `  actual value: ${
+                    Deno.inspect(r, { colors: true, depth: 10 })
+                  }`,
+              );
+            } catch (err) {
+              const { name, message, stack: _stack, metadata } = err;
+              console.log(
+                `${red("error")}: ${
+                  JSON.stringify({ name, message, metadata }, null, 2)
                 }`,
-            );
+              );
+              throw err;
+            }
           }
         } else {
           assert(

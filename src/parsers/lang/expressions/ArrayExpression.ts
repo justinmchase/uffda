@@ -1,6 +1,6 @@
 import { IRulePattern, PatternKind } from "../../../runtime/patterns/mod.ts";
 import { ExpressionKind } from "../../../runtime/expressions/mod.ts";
-import { LangExpressionKind } from "../lang.pattern.ts";
+import { LangExpressionKind, LangPatternKind } from "../lang.pattern.ts";
 
 export const ArrayExpression: IRulePattern = {
   kind: PatternKind.Rule,
@@ -25,8 +25,37 @@ export const ArrayExpression: IRulePattern = {
               pattern: {
                 kind: PatternKind.Slice,
                 pattern: {
-                  kind: PatternKind.Reference,
-                  name: "ExpressionPattern",
+                  kind: PatternKind.Or,
+                  patterns: [
+                    {
+                      kind: PatternKind.Projection,
+                      pattern: {
+                        kind: PatternKind.Reference,
+                        name: LangExpressionKind.SpreadExpression,
+                      },
+                      expression: {
+                        kind: ExpressionKind.Native,
+                        fn: ({ _ }) => ({
+                          kind: LangExpressionKind.ArraySpreadExpression,
+                          expression: _,
+                        }),
+                      },
+                    },
+                    {
+                      kind: PatternKind.Projection,
+                      pattern: {
+                        kind: PatternKind.Reference,
+                        name: LangPatternKind.ExpressionPattern,
+                      },
+                      expression: {
+                        kind: ExpressionKind.Native,
+                        fn: ({ _ }) => ({
+                          kind: LangExpressionKind.ArrayElementExpression,
+                          expression: _,
+                        }),
+                      },
+                    },
+                  ],
                 },
               },
             },
@@ -49,7 +78,7 @@ export const ArrayExpression: IRulePattern = {
       },
       {
         kind: PatternKind.Reference,
-        name: LangExpressionKind.SpreadExpression,
+        name: LangExpressionKind.TerminalExpression,
       },
     ],
   },

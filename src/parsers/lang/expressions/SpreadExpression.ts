@@ -1,61 +1,49 @@
 import { IRulePattern, PatternKind } from "../../../runtime/patterns/mod.ts";
-import { LangExpressionKind, LangPatternKind } from "../lang.pattern.ts";
+import { LangPatternKind } from "../lang.pattern.ts";
 import { ExpressionKind } from "../../../runtime/expressions/mod.ts";
 import { TokenizerType } from "../../mod.ts";
 
 export const SpreadExpression: IRulePattern = {
   kind: PatternKind.Rule,
   pattern: {
-    kind: PatternKind.Or,
-    patterns: [
-      {
-        kind: PatternKind.Projection,
-        pattern: {
-          kind: PatternKind.Then,
-          patterns: [
-            {
-              kind: PatternKind.Object,
-              keys: {
-                type: { kind: PatternKind.Equal, value: TokenizerType.Token },
-                value: { kind: PatternKind.Equal, value: "." },
-              },
-            },
-            {
-              kind: PatternKind.Object,
-              keys: {
-                type: { kind: PatternKind.Equal, value: TokenizerType.Token },
-                value: { kind: PatternKind.Equal, value: "." },
-              },
-            },
-            {
-              kind: PatternKind.Object,
-              keys: {
-                type: { kind: PatternKind.Equal, value: TokenizerType.Token },
-                value: { kind: PatternKind.Equal, value: "." },
-              },
-            },
-            {
-              kind: PatternKind.Variable,
-              name: "expression",
-              pattern: {
-                kind: PatternKind.Reference,
-                name: LangPatternKind.ExpressionPattern,
-              },
-            },
-          ],
+    kind: PatternKind.Projection,
+    pattern: {
+      kind: PatternKind.Then,
+      patterns: [
+        {
+          kind: PatternKind.Object,
+          keys: {
+            type: { kind: PatternKind.Equal, value: TokenizerType.Token },
+            value: { kind: PatternKind.Equal, value: "." },
+          },
         },
-        expression: {
-          kind: ExpressionKind.Native,
-          fn: ({ expression }) => ({
-            kind: LangExpressionKind.SpreadExpression,
-            expression,
-          }),
+        {
+          kind: PatternKind.Object,
+          keys: {
+            type: { kind: PatternKind.Equal, value: TokenizerType.Token },
+            value: { kind: PatternKind.Equal, value: "." },
+          },
         },
-      },
-      {
-        kind: PatternKind.Reference,
-        name: "TerminalExpression",
-      },
-    ],
+        {
+          kind: PatternKind.Object,
+          keys: {
+            type: { kind: PatternKind.Equal, value: TokenizerType.Token },
+            value: { kind: PatternKind.Equal, value: "." },
+          },
+        },
+        {
+          kind: PatternKind.Variable,
+          name: "expression",
+          pattern: {
+            kind: PatternKind.Reference,
+            name: LangPatternKind.ExpressionPattern,
+          },
+        },
+      ],
+    },
+    expression: {
+      kind: ExpressionKind.Native,
+      fn: ({ expression }) => expression,
+    },
   },
 };

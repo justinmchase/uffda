@@ -19,6 +19,7 @@ export * from "./OrPattern.ts";
 export * from "./PatternPattern.ts";
 export * from "./PipelinePattern.ts";
 export * from "./ProjectionPattern.ts";
+export * from "./RangePattern.ts";
 export * from "./ReferencePattern.ts";
 export * from "./SlicePattern.ts";
 export * from "./SpecialReferencePattern.ts";

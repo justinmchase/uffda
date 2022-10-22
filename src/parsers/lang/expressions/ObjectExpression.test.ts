@@ -30,27 +30,7 @@ tests(() => [
   {
     id: "OBJECT02",
     pattern: () => ExpressionLang,
-    input: "{ a = 1, b = 2 }",
-    value: {
-      kind: LangExpressionKind.ObjectExpression,
-      keys: [
-        {
-          kind: LangExpressionKind.ObjectKeyExpression,
-          key: "a",
-          expression: { kind: LangExpressionKind.NumberExpression, value: 1 },
-        },
-        {
-          kind: LangExpressionKind.ObjectKeyExpression,
-          key: "b",
-          expression: { kind: LangExpressionKind.NumberExpression, value: 2 },
-        },
-      ],
-    },
-  },
-  {
-    id: "OBJECT03",
-    pattern: () => ExpressionLang,
-    input: "{ a = 1, b = 2, }",
+    input: "{ a = 1 b = 2 }",
     value: {
       kind: LangExpressionKind.ObjectExpression,
       keys: [

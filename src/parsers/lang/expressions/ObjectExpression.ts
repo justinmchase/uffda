@@ -33,75 +33,45 @@ export const ObjectExpression: IRulePattern = {
           kind: PatternKind.Variable,
           name: "keys",
           pattern: {
-            kind: PatternKind.Projection,
+            kind: PatternKind.Slice,
             pattern: {
-              kind: PatternKind.Slice,
+              kind: PatternKind.Projection,
               pattern: {
                 kind: PatternKind.Then,
                 patterns: [
                   {
                     kind: PatternKind.Variable,
-                    name: "k0",
+                    name: "k",
                     pattern: {
-                      kind: PatternKind.Reference,
-                      name: "ObjectKeyExpression",
-                    },
-                  },
-                  {
-                    kind: PatternKind.Variable,
-                    name: "k1",
-                    pattern: {
-                      kind: PatternKind.Slice,
-                      pattern: {
-                        kind: PatternKind.Projection,
-                        pattern: {
-                          kind: PatternKind.Then,
-                          patterns: [
-                            {
-                              kind: PatternKind.Object,
-                              keys: {
-                                type: {
-                                  kind: PatternKind.Equal,
-                                  value: "Token",
-                                },
-                                value: { kind: PatternKind.Equal, value: "," },
-                              },
-                            },
-                            {
-                              kind: PatternKind.Variable,
-                              name: "k",
-                              pattern: {
-                                kind: PatternKind.Reference,
-                                name: "ObjectKeyExpression",
-                              },
-                            },
-                          ],
+                      kind: PatternKind.Or,
+                      patterns: [
+                        {
+                          kind: PatternKind.Reference,
+                          name: LangExpressionKind.ObjectKeyExpression,
                         },
-                        expression: {
-                          kind: ExpressionKind.Native,
-                          fn: ({ k }) => k,
+                        {
+                          kind: PatternKind.Projection,
+                          pattern: {
+                            kind: PatternKind.Reference,
+                            name: LangExpressionKind.SpreadExpression,
+                          },
+                          expression: {
+                            kind: ExpressionKind.Native,
+                            fn: ({ _ }) => ({
+                              kind: LangExpressionKind.ObjectSpreadExpression,
+                              expression: _,
+                            }),
+                          },
                         },
-                      },
-                    },
-                  },
-                  {
-                    kind: PatternKind.Slice,
-                    min: 0,
-                    max: 1,
-                    pattern: {
-                      kind: PatternKind.Object,
-                      keys: {
-                        type: { kind: PatternKind.Equal, value: "Token" },
-                        value: { kind: PatternKind.Equal, value: "," },
-                      },
+                      ],
                     },
                   },
                 ],
               },
-            },
-            expression: {
-              kind: ExpressionKind.Native,
-              fn: ({ k0, k1 = [] }) => [k0, ...k1].filter((k) => k),
+              expression: {
+                kind: ExpressionKind.Native,
+                fn: ({ k }) => k,
+              },
             },
           },
         },

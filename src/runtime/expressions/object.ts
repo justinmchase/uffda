@@ -1,10 +1,7 @@
 import { Match } from "../../match.ts";
 import { exec } from "../exec.ts";
 import { ExpressionKind } from "./expression.kind.ts";
-import {
-  IObjectExpression,
-  ObjectInitializer,
-} from "./expression.ts";
+import { IObjectExpression, ObjectInitializer } from "./expression.ts";
 
 export function object(
   expression: IObjectExpression,
