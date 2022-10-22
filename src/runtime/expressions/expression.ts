@@ -20,6 +20,7 @@ export type Expression =
   | IArrayExpression
   | IInvocationExpression
   | ILambdaExpression
+  | IMemberExpression
   | INativeExpression
   | IReferenceExpression
   | ISpecialReferenceExpression
@@ -47,6 +48,12 @@ export interface IInvocationExpression {
 export interface ILambdaExpression {
   kind: ExpressionKind.Lambda;
   pattern: Pattern;
+  expression: Expression;
+}
+
+export interface IMemberExpression {
+  kind: ExpressionKind.Member;
+  name: string;
   expression: Expression;
 }
 
