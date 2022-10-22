@@ -16,6 +16,10 @@ export const ExpressionPattern: IRulePattern = {
       },
       {
         kind: PatternKind.Reference,
+        name: LangExpressionKind.InvocationExpression,
+      },
+      {
+        kind: PatternKind.Reference,
         name: LangExpressionKind.SpecialReferenceExpression,
       },
       {
