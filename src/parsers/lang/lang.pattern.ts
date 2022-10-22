@@ -39,15 +39,19 @@ export enum LangPatternKind {
 export enum LangExpressionKind {
   AddExpression = "AddExpression",
   ArrayExpression = "ArrayExpression",
+  ArrayElementExpression = "ArrayElementExpression",
+  ArraySpreadExpression = "ArraySpreadExpression",
   InvocationExpression = "InvocationExpression",
   LambdaExpression = "LambdaExpression",
   MemberExpression = "MemberExpression",
   NumberExpression = "NumberExpression",
   ObjectExpression = "ObjectExpression",
   ObjectKeyExpression = "ObjectKeyExpression",
+  ObjectSpreadExpression = "ObjectSpreadExpression",
+  ReferenceExpression = "ReferenceExpression",
   SpecialReferenceExpression = "SpecialReferenceExpression",
   SpreadExpression = "SpreadExpression",
-  ReferenceExpression = "ReferenceExpression",
+  TerminalExpression = "TerminalExpression",
 }
 
 export type LangPattern =

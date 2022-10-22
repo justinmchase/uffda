@@ -20,16 +20,25 @@ tests(() => [
       kind: LangExpressionKind.ArrayExpression,
       expressions: [
         {
-          kind: LangExpressionKind.ReferenceExpression,
-          name: "a",
+          kind: LangExpressionKind.ArrayElementExpression,
+          expression: {
+            kind: LangExpressionKind.ReferenceExpression,
+            name: "a",
+          },
         },
         {
-          kind: LangExpressionKind.ReferenceExpression,
-          name: "b",
+          kind: LangExpressionKind.ArrayElementExpression,
+          expression: {
+            kind: LangExpressionKind.ReferenceExpression,
+            name: "b",
+          },
         },
         {
-          kind: LangExpressionKind.ReferenceExpression,
-          name: "c",
+          kind: LangExpressionKind.ArrayElementExpression,
+          expression: {
+            kind: LangExpressionKind.ReferenceExpression,
+            name: "c",
+          },
         },
       ],
     },

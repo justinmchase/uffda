@@ -2,6 +2,7 @@ import { Scope } from "../../scope.ts";
 import { Match } from "../../match.ts";
 import { match } from "../match.ts";
 import { IReferencePattern } from "./pattern.ts";
+import { RuntimeError, RuntimeErrorCode } from "../runtime.error.ts";
 
 export function reference(args: IReferencePattern, scope: Scope): Match {
   const { name } = args;
@@ -19,14 +20,15 @@ export function reference(args: IReferencePattern, scope: Scope): Match {
     const m = match(rule, s);
     return m.popRef(scope);
   } else {
-    if (scope.options.trace) {
-      console.log(`#${name}@${scope.stream.path} Not Found`);
-    }
-    return Match.Fail(scope).pushError(
-      "MissingReference",
-      `The rule ${name} was not found`,
-      scope,
-      scope,
+    throw new RuntimeError(
+      RuntimeErrorCode.PatternNotFound,
+      args,
+      Match.Fail(scope),
+      {
+        metadata: {
+          name,
+        },
+      },
     );
   }
 }

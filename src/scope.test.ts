@@ -1,4 +1,4 @@
-import { assertEquals, assertObjectMatch } from "../deps/std.ts";
+import { assertEquals, assertObjectMatch, assertThrows } from "../deps/std.ts";
 import { Scope } from "./scope.ts";
 import { Pattern, PatternKind } from "./runtime/patterns/mod.ts";
 import { Expression, ExpressionKind } from "./runtime/expressions/mod.ts";
@@ -158,16 +158,7 @@ Deno.test({
       kind: PatternKind.Reference,
       name: "x",
     };
-    const result = await match(pattern, scope);
-    const { matched, done, value } = result;
-    const { start, end } = result.span();
-    assertObjectMatch({ value, matched, done, start, end }, {
-      value: undefined,
-      matched: false,
-      done: true,
-      start: 0,
-      end: 0,
-    });
+    await assertThrows(() => match(pattern, scope));
   },
 });
 
