@@ -5,6 +5,7 @@ export enum ExpressionKind {
   Lambda = "lambda",
   Member = "member",
   Native = "native",
+  Object = "object",
   Reference = "reference",
   SpecialReference = "special",
   Subtract = "subtract",
