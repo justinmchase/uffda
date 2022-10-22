@@ -22,6 +22,7 @@ export type Expression =
   | ILambdaExpression
   | IMemberExpression
   | INativeExpression
+  | IObjectExpression
   | IReferenceExpression
   | ISpecialReferenceExpression
   | ISubtractExpression
@@ -60,6 +61,16 @@ export interface IMemberExpression {
 export interface INativeExpression {
   kind: ExpressionKind.Native;
   fn: ProjectionFunction;
+}
+
+export interface IObjectExpression {
+  kind: ExpressionKind.Object;
+  keys: IObjectKey[];
+}
+
+export interface IObjectKey {
+  name: string;
+  expression: Expression;
 }
 
 export interface IReferenceExpression {
