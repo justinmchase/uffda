@@ -1,3 +1,4 @@
+import { Pattern } from "../patterns/pattern.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 
 export type ProjectionFunction = (
@@ -18,6 +19,7 @@ export type Expression =
   | IAddExpression
   | IArrayExpression
   | IInvocationExpression
+  | ILambdaExpression
   | INativeExpression
   | IReferenceExpression
   | ISpecialReferenceExpression
@@ -40,6 +42,12 @@ export interface IInvocationExpression {
   kind: ExpressionKind.Invocation;
   expression: Expression;
   args: Expression[];
+}
+
+export interface ILambdaExpression {
+  kind: ExpressionKind.Lambda;
+  pattern: Pattern;
+  expression: Expression;
 }
 
 export interface INativeExpression {
