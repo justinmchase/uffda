@@ -1,28 +1,13 @@
-import { assert, equal } from "../../deps/std.ts";
-import { Calc, calc } from "./calc.ts";
+import { Calc } from "./calc.ts";
 import { tests } from "../test.ts";
 
-Deno.test({
-  name: "CALC00",
-  fn: () => {
-    const { matched, end, value, errors } = calc`7 + 11`;
-    const actual = { matched, done: end.stream.done, value, errors };
-    const expected = {
-      matched: true,
-      done: true,
-      value: 18,
-      errors: [],
-    };
-    assert(
-      equal(expected, actual),
-      `Expected:\n${
-        Deno.inspect(expected, { colors: true, depth: 5 })
-      }\nActual:\n${Deno.inspect(actual, { colors: true, depth: 5 })}`,
-    );
-  },
-});
-
 tests(() => [
+  {
+    id: "CALC00",
+    pattern: () => Calc,
+    input: "7",
+    value: 7,
+  },
   {
     id: "CALC01",
     pattern: () => Calc,

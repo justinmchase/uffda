@@ -20,6 +20,14 @@ export const ExpressionPattern: IRulePattern = {
       },
       {
         kind: PatternKind.Reference,
+        name: LangExpressionKind.LambdaExpression,
+      },
+      {
+        kind: PatternKind.Reference,
+        name: LangExpressionKind.NumberExpression,
+      },
+      {
+        kind: PatternKind.Reference,
         name: LangExpressionKind.SpecialReferenceExpression,
       },
       {

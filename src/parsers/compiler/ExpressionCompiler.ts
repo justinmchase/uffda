@@ -1,6 +1,6 @@
 import { IRulePattern, PatternKind } from "../../runtime/patterns/mod.ts";
 import { ExpressionLang } from "../lang/ExpressionLang.ts";
-import { ExpressionPattern } from "./patterns/mod.ts";
+import * as Patterns from "./patterns/mod.ts";
 import * as Expressions from "./expressions/mod.ts";
 
 export const ExpressionCompiler: IRulePattern = {
@@ -9,7 +9,7 @@ export const ExpressionCompiler: IRulePattern = {
     kind: PatternKind.Block,
     rules: {
       ExpressionLang,
-      ExpressionPattern,
+      ...Patterns,
       ...Expressions,
       Main: {
         kind: PatternKind.Rule,

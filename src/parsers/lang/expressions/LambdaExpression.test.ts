@@ -6,7 +6,7 @@ tests(() => [
   {
     id: "LANG.LAMBDA00",
     pattern: () => ExpressionLang,
-    input: "a -> a",
+    input: "(a -> a)",
     value: {
       kind: LangExpressionKind.LambdaExpression,
       pattern: { kind: LangPatternKind.ReferencePattern, name: "a" },
@@ -16,7 +16,7 @@ tests(() => [
   {
     id: "LANG.LAMBDA01",
     pattern: () => ExpressionLang,
-    input: "a -> a + 1",
+    input: "(a -> a + 1)",
     value: {
       kind: LangExpressionKind.LambdaExpression,
       pattern: { kind: LangPatternKind.ReferencePattern, name: "a" },
@@ -36,7 +36,7 @@ tests(() => [
   {
     id: "LANG.LAMBDA02",
     pattern: () => ExpressionLang,
-    input: "a -> b -> a + b",
+    input: "(a -> (b -> a + b))",
     value: {
       kind: LangExpressionKind.LambdaExpression,
       pattern: { kind: LangPatternKind.ReferencePattern, name: "a" },
@@ -54,6 +54,57 @@ tests(() => [
             name: "b",
           },
         },
+      },
+    },
+  },
+  {
+    id: "LANG.LAMBDA03",
+    pattern: () => ExpressionLang,
+    input: "(a b -> _)",
+    value: {
+      kind: LangExpressionKind.LambdaExpression,
+      pattern: {
+        kind: LangPatternKind.ThenPattern,
+        left: {
+          kind: LangPatternKind.ReferencePattern,
+          name: "a",
+        },
+        right: {
+          kind: LangPatternKind.ReferencePattern,
+          name: "b",
+        },
+      },
+      expression: {
+        kind: LangExpressionKind.ReferenceExpression,
+        name: "_",
+      },
+    },
+  },
+  {
+    id: "LANG.LAMBDA04",
+    pattern: () => ExpressionLang,
+
+    // this is ambiguous between a lambda expression
+    // and a projection pattern, because the pattern
+    // is PatternPattern vs the lower priority ThenPattern
+    // Should we have projec
+    input: "(a | b -> _)",
+    value: {
+      kind: LangExpressionKind.LambdaExpression,
+      pattern: {
+        kind: LangPatternKind.OrPattern,
+        left: {
+          kind: LangPatternKind.ReferencePattern,
+          name: "a",
+        },
+        right: {
+          kind: LangPatternKind.ReferencePattern,
+          name: "b",
+        },
+      },
+      expression: {
+        kind: LangExpressionKind.ReferenceExpression,
+        name: "_",
       },
     },
   },

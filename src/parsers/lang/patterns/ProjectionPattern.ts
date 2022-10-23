@@ -13,6 +13,13 @@ export const ProjectionPattern: IRulePattern = {
           kind: PatternKind.Then,
           patterns: [
             {
+              kind: PatternKind.Object,
+              keys: {
+                type: { kind: PatternKind.Equal, value: "Token" },
+                value: { kind: PatternKind.Equal, value: "(" },
+              },
+            },
+            {
               kind: PatternKind.Variable,
               name: "pattern",
               pattern: { kind: PatternKind.Reference, name: "ThenPattern" },
@@ -37,6 +44,13 @@ export const ProjectionPattern: IRulePattern = {
               pattern: {
                 kind: PatternKind.Reference,
                 name: LangPatternKind.ExpressionPattern,
+              },
+            },
+            {
+              kind: PatternKind.Object,
+              keys: {
+                type: { kind: PatternKind.Equal, value: "Token" },
+                value: { kind: PatternKind.Equal, value: ")" },
               },
             },
           ],

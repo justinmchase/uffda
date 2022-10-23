@@ -4,7 +4,7 @@ import { LangExpressionKind, LangPatternKind } from "../lang.pattern.ts";
 
 tests(() => [
   {
-    id: "ORPATTERN00",
+    id: "LANG.PATTERN.OR00",
     description: "can parse a reference expression",
     pattern: () => PatternLang,
     input: "x | y",
@@ -21,10 +21,10 @@ tests(() => [
     },
   },
   {
-    id: "ORPATTERN01",
+    id: "LANG.PATTERN.OR01",
     description: "can parse a projection expression",
     pattern: () => PatternLang,
-    input: "x -> $0 | y",
+    input: "(x -> $0) | y",
     value: {
       kind: LangPatternKind.OrPattern,
       left: {
@@ -45,8 +45,8 @@ tests(() => [
     },
   },
   {
-    id: "ORPATTERN02",
-    description: "can parse two then expressions",
+    id: "LANG.PATTERN.OR02",
+    description: "can parse two then patterns",
     pattern: () => PatternLang,
     input: "w x | y z",
     value: {

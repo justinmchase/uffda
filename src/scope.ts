@@ -1,10 +1,10 @@
 import { assert } from "../deps/std.ts";
-import { IRulePattern } from "./runtime/patterns/mod.ts";
+import { IRulePattern, Pattern } from "./runtime/patterns/mod.ts";
 import { MetaStream } from "./stream.ts";
 import { Memos } from "./memo.ts";
 import { Reference } from "./reference.ts";
 
-interface IScopeOptions {
+export interface IScopeOptions {
   trace?: boolean;
   globals?: Record<string, unknown>;
 }
@@ -41,6 +41,7 @@ export class Scope {
     public readonly memos: Memos = new Memos(),
     public readonly ruleStack: IRulePattern[] = [],
     public readonly refStack: Reference[] = [],
+    public readonly pipelineStack: Pattern[] = [],
   ) {
   }
 
@@ -52,6 +53,10 @@ export class Scope {
       yield current._variables;
       current = current._parent;
     }
+  }
+
+  public get depth() {
+    return this.pipelineStack.length + this.ruleStack.length;
   }
 
   public get variables() {
@@ -99,6 +104,7 @@ export class Scope {
       this.memos,
       this.ruleStack,
       this.refStack,
+      this.pipelineStack,
     );
   }
 
@@ -113,6 +119,7 @@ export class Scope {
       this.memos,
       this.ruleStack,
       this.refStack,
+      this.pipelineStack,
     );
   }
   public setSpecials(specials: Record<string, unknown>) {
@@ -126,6 +133,7 @@ export class Scope {
       this.memos,
       this.ruleStack,
       this.refStack,
+      this.pipelineStack,
     );
   }
   public setRules(rules: Record<string, IRulePattern>) {
@@ -139,6 +147,7 @@ export class Scope {
       this.memos,
       this.ruleStack,
       this.refStack,
+      this.pipelineStack,
     );
   }
   public pushRule(rule: IRulePattern) {
@@ -152,6 +161,7 @@ export class Scope {
       this.memos,
       [...this.ruleStack, rule],
       this.refStack,
+      this.pipelineStack,
     );
   }
 
@@ -166,6 +176,22 @@ export class Scope {
       this.memos,
       this.ruleStack,
       [...this.refStack, new Reference(name, this.stream.path)],
+      this.pipelineStack,
+    );
+  }
+
+  public pushPipeline(pattern: Pattern, stream: MetaStream) {
+    return new Scope(
+      this._parent,
+      {},
+      this._specials,
+      this._rules,
+      this.options,
+      stream,
+      this.memos,
+      this.ruleStack,
+      this.refStack,
+      [...this.pipelineStack, pattern],
     );
   }
 
@@ -178,8 +204,9 @@ export class Scope {
       this.options,
       this.stream,
       this.memos,
-      this.ruleStack.slice(-1),
+      this.ruleStack.slice(0, -1),
       this.refStack,
+      this.pipelineStack,
     );
   }
 
@@ -193,7 +220,22 @@ export class Scope {
       this.stream,
       this.memos,
       this.ruleStack,
-      this.refStack.slice(-1),
+      this.refStack.slice(0, -1),
+      this.pipelineStack,
+    );
+  }
+  public popPipeline(scope: Scope) {
+    return new Scope(
+      this._parent,
+      scope._variables,
+      this._specials,
+      this._rules,
+      this.options,
+      this.stream,
+      this.memos,
+      this.ruleStack,
+      this.refStack,
+      this.pipelineStack.slice(0, -1),
     );
   }
 
@@ -208,6 +250,7 @@ export class Scope {
       this.memos,
       this.ruleStack,
       this.refStack,
+      this.pipelineStack,
     );
   }
 
@@ -223,6 +266,7 @@ export class Scope {
       this.memos,
       this.ruleStack,
       this.refStack,
+      this.pipelineStack,
     );
   }
 }

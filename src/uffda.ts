@@ -1,4 +1,4 @@
-import { Scope } from "./scope.ts";
+import { IScopeOptions, Scope } from "./scope.ts";
 import { Meta } from "./parsers/meta.ts";
 import { match } from "./runtime/mod.ts";
 import { ProjectionFunction } from "./runtime/expressions/mod.ts";
@@ -26,14 +26,14 @@ const argsToSpecials = (args: (ProjectionFunction | IRulePattern)[]) =>
 //   return dsl(value as Pattern);
 // }
 
-export function dsl(pattern: Pattern) {
+export function dsl(pattern: Pattern, options?: IScopeOptions) {
   return (
     template: TemplateStringsArray,
     ...args: (ProjectionFunction | IRulePattern)[]
   ) => {
     const dslCode = templateToCode(template);
     const specials = argsToSpecials(args);
-    const scope = Scope.From(dslCode).setSpecials(specials);
+    const scope = Scope.From(dslCode, options).setSpecials(specials);
     return match(pattern, scope);
   };
 }
