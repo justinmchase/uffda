@@ -1,6 +1,8 @@
+import { brightBlack, cyan, underline } from "../../../deps/std.ts";
 import { Match } from "../../match.ts";
 import { Scope } from "../../scope.ts";
 import { match } from "../match.ts";
+import { RuntimeError, RuntimeErrorCode } from "../runtime.error.ts";
 import { IRulePattern } from "./pattern.ts";
 
 export function rule(rule: IRulePattern, scope: Scope): Match {
@@ -21,14 +23,11 @@ export function rule(rule: IRulePattern, scope: Scope): Match {
     if (memo.match.isLr) {
       if (scope.ruleStack.length === 0) {
         // This should never happen unless there is a bug in this code base
-        return Match
-          .Fail(scope)
-          .pushError(
-            "InvalidLeftRecursion",
-            "Left recursion was detected but no rules are in the stack",
-            scope,
-            scope,
-          );
+        throw new RuntimeError(
+          RuntimeErrorCode.IndirectLeftRecursion,
+          rule,
+          memo.match,
+        );
       }
       if (!Object.is(scope.ruleStack.slice(-1)[0], rule)) {
         return Match.Fail(scope);
@@ -44,6 +43,10 @@ function grow(rule: IRulePattern, scope: Scope): Match {
   const start = scope.stream;
   const memo = scope.memos.get(start.path, rule);
   while (memo) {
+    if (scope.options.trace) {
+      const indent = "»".padStart(scope.depth);
+      console.log(`${indent} ${underline(brightBlack("grow..."))}`);
+    }
     memo.match = m;
     const growScope = m
       .end
@@ -52,6 +55,15 @@ function grow(rule: IRulePattern, scope: Scope): Match {
     const result = match(pattern, growScope);
     const progressed = result.end.stream.path.compareTo(m.end.stream.path) > 0;
     const { matched } = result;
+
+    if (scope.options.trace) {
+      const indent = "»".padStart(scope.depth);
+      const message = matched && progressed
+        ? underline(cyan("progressed."))
+        : underline(brightBlack("done."));
+      console.log(`${indent} ${message}`);
+    }
+
     if (!matched || !progressed) {
       break;
     }

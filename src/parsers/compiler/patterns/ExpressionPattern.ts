@@ -34,6 +34,10 @@ export const ExpressionPattern: IRulePattern = {
         kind: PatternKind.Reference,
         name: LangExpressionKind.ReferenceExpression,
       },
+      {
+        kind: PatternKind.Reference,
+        name: LangExpressionKind.SubtractExpression,
+      },
     ],
   },
 };

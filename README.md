@@ -18,18 +18,34 @@ expressed in pattern matching operations.
 import { uffda } from "https://deno.land/x/uffda/mod.ts";
 ```
 
-```ts
-import { uffda } from "https://deno.land/x/uffda/mod.ts";
-import { Digit } from "https://deno.land/x/uffda/lib/parsers/tokenizer/Digit.ts";
+### [Calc Example](./src/examples/calc.ts)
 
-// This generates a parser which can be used as a
-export const calc = uffda`
-  Add = x:Number '+' y:Number -> ${({ x, y }) => x + y}
-  Number = i:${Digit} -> ${({ i }) => parseInt(i)}
-  Main
-    = Add
+```ts
+import { Basic, dsl, Pattern, uffda } from "https://deno.land/x/uffda/mod.ts";
+
+// This generates a parser which can be used as a basic calculator
+const match = uffda`
+  Number
+    = ({ type = 'Integer', i:value } -> i)
+    ;
+    
+  Sub
+    = (l:Sub { type = 'Token', value = '-' } r:Number -> l - r)
     | Number
+    ;
+
+  Add
+    = (l:Add { type = 'Token', value = '+' } r:Sub -> l + r)
+    | Sub
+    ;
+
+  Calc = Add;
+
+  Main = ${Basic} > Calc;
 `;
+
+export const Calc = match.value as Pattern;
+export const calc = dsl(Calc);
 
 // Parses a calculator dsl which procuces mathematical results
 const { value } = calc`1+2`;

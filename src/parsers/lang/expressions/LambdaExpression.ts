@@ -67,7 +67,10 @@ export const LambdaExpression: IRulePattern = {
           }),
         },
       },
-      { kind: PatternKind.Reference, name: LangExpressionKind.AddExpression },
+      {
+        kind: PatternKind.Reference,
+        name: LangExpressionKind.SubtractExpression,
+      },
     ],
   },
 };

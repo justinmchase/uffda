@@ -51,6 +51,7 @@ export enum LangExpressionKind {
   ReferenceExpression = "ReferenceExpression",
   SpecialReferenceExpression = "SpecialReferenceExpression",
   SpreadExpression = "SpreadExpression",
+  SubtractExpression = "SubtractExpression",
   TerminalExpression = "TerminalExpression",
 }
 
@@ -88,6 +89,7 @@ export type LangExpression =
   | IObjectExpression
   | ISpecialReferenceExpression
   | ISpreadExpression
+  | ISubtractExpression
   | IReferenceExpression;
 
 // Module
@@ -267,6 +269,12 @@ export interface IReferenceExpression {
 export interface ISpreadExpression {
   kind: LangExpressionKind.SpreadExpression;
   expression: LangExpression;
+}
+
+export interface ISubtractExpression {
+  kind: LangExpressionKind.SubtractExpression;
+  left: LangExpression;
+  right: LangExpression;
 }
 
 export interface ISpecialReferenceExpression {
