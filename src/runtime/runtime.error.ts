@@ -12,7 +12,8 @@ export enum RuntimeErrorCode {
 
 export const RuntimeErrorMessages = {
   [RuntimeErrorCode.Unknown]: () => "An unknown error occurred",
-  [RuntimeErrorCode.IndirectLeftRecursion]: () => "Left recursion was detected but no rules are in the stack",
+  [RuntimeErrorCode.IndirectLeftRecursion]: () =>
+    "Left recursion was detected but no rules are in the stack",
   [RuntimeErrorCode.PatternNotFound]: ({ name = "unknown" }) =>
     `A pattern (${name}) was referenced but not found`,
   [RuntimeErrorCode.PatternUnmatched]: () => "Input failed to match pattern",

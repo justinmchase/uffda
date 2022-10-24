@@ -28,7 +28,7 @@ tests(() => [
         kind: LangExpressionKind.AddExpression,
         left: { kind: LangExpressionKind.NumberExpression, value: 13 },
         right: { kind: LangExpressionKind.NumberExpression, value: 3 },
-      }
+      },
     },
   },
   {
@@ -61,13 +61,13 @@ tests(() => [
         kind: LangExpressionKind.SubtractExpression,
         left: {
           kind: LangExpressionKind.NumberExpression,
-          value: 11
+          value: 11,
         },
         right: {
           kind: LangExpressionKind.AddExpression,
           left: { kind: LangExpressionKind.NumberExpression, value: 7 },
           right: { kind: LangExpressionKind.NumberExpression, value: 13 },
-        }
+        },
       },
       right: { kind: LangExpressionKind.NumberExpression, value: 3 },
     },

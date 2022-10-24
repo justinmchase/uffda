@@ -3,11 +3,7 @@ import { Match } from "../../match.ts";
 import { match } from "../match.ts";
 import { IReferencePattern } from "./pattern.ts";
 import { RuntimeError, RuntimeErrorCode } from "../runtime.error.ts";
-import {
-  brightBlack,
-  green,
-  red,
-} from "../../../deps/std.ts";
+import { brightBlack, green, red } from "../../../deps/std.ts";
 
 export function reference(args: IReferencePattern, scope: Scope): Match {
   const { name } = args;

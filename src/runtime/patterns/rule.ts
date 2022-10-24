@@ -1,4 +1,4 @@
-import { brightBlack, cyan, magenta, underline } from "../../../deps/std.ts";
+import { brightBlack, cyan, underline } from "../../../deps/std.ts";
 import { Match } from "../../match.ts";
 import { Scope } from "../../scope.ts";
 import { match } from "../match.ts";
@@ -26,7 +26,7 @@ export function rule(rule: IRulePattern, scope: Scope): Match {
         throw new RuntimeError(
           RuntimeErrorCode.IndirectLeftRecursion,
           rule,
-          memo.match
+          memo.match,
         );
       }
       if (!Object.is(scope.ruleStack.slice(-1)[0], rule)) {
@@ -44,8 +44,8 @@ function grow(rule: IRulePattern, scope: Scope): Match {
   const memo = scope.memos.get(start.path, rule);
   while (memo) {
     if (scope.options.trace) {
-      const indent = '»'.padStart(scope.depth)
-      console.log(`${indent} ${underline(brightBlack('grow...'))}`)
+      const indent = "»".padStart(scope.depth);
+      console.log(`${indent} ${underline(brightBlack("grow..."))}`);
     }
     memo.match = m;
     const growScope = m
@@ -57,11 +57,11 @@ function grow(rule: IRulePattern, scope: Scope): Match {
     const { matched } = result;
 
     if (scope.options.trace) {
-      const indent = '»'.padStart(scope.depth)
+      const indent = "»".padStart(scope.depth);
       const message = matched && progressed
-        ? underline(cyan('progressed.'))
-        : underline(brightBlack('done.'))
-      console.log(`${indent} ${message}`)
+        ? underline(cyan("progressed."))
+        : underline(brightBlack("done."));
+      console.log(`${indent} ${message}`);
     }
 
     if (!matched || !progressed) {

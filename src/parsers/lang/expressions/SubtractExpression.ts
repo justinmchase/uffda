@@ -1,5 +1,5 @@
 import { IRulePattern, PatternKind } from "../../../runtime/patterns/mod.ts";
-import { LangExpressionKind, LangPatternKind } from "../lang.pattern.ts";
+import { LangExpressionKind } from "../lang.pattern.ts";
 import { ExpressionKind } from "../../../runtime/expressions/mod.ts";
 import { TokenizerType } from "../../mod.ts";
 

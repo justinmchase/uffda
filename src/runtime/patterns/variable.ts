@@ -7,8 +7,8 @@ import { IVariablePattern } from "./pattern.ts";
 export function variable(args: IVariablePattern, scope: Scope): Match {
   const { name, pattern } = args;
   if (scope.options.trace) {
-    const indent = '●'.padStart(scope.depth)
-    console.log(`${indent} ${yellow(name)}`)
+    const indent = "●".padStart(scope.depth);
+    console.log(`${indent} ${yellow(name)}`);
   }
   const m = match(pattern, scope);
   if (m.matched) {
