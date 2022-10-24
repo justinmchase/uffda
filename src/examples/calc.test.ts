@@ -38,4 +38,10 @@ tests(() => [
     input: "1 + 2 - 3 + 4",
     value: 4,
   },
+  {
+    id: "CALC06",
+    pattern: () => Calc,
+    input: "1 - 2 + 3 - 4",
+    value: -2,
+  },
 ]);

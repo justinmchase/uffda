@@ -3,7 +3,7 @@ import { LangExpressionKind, LangPatternKind } from "../lang.pattern.ts";
 import { ExpressionKind } from "../../../runtime/expressions/mod.ts";
 import { TokenizerType } from "../../mod.ts";
 
-export const AddExpression: IRulePattern = {
+export const SubtractExpression: IRulePattern = {
   kind: PatternKind.Rule,
   pattern: {
     kind: PatternKind.Or,
@@ -18,14 +18,14 @@ export const AddExpression: IRulePattern = {
               name: "left",
               pattern: {
                 kind: PatternKind.Reference,
-                name: LangExpressionKind.AddExpression,
+                name: LangExpressionKind.SubtractExpression,
               },
             },
             {
               kind: PatternKind.Object,
               keys: {
                 type: { kind: PatternKind.Equal, value: TokenizerType.Token },
-                value: { kind: PatternKind.Equal, value: "+" },
+                value: { kind: PatternKind.Equal, value: "-" },
               },
             },
             {
@@ -33,7 +33,7 @@ export const AddExpression: IRulePattern = {
               name: "right",
               pattern: {
                 kind: PatternKind.Reference,
-                name: LangExpressionKind.MemberExpression,
+                name: LangExpressionKind.AddExpression,
               },
             },
           ],
@@ -41,7 +41,7 @@ export const AddExpression: IRulePattern = {
         expression: {
           kind: ExpressionKind.Native,
           fn: ({ left, right }) => ({
-            kind: LangExpressionKind.AddExpression,
+            kind: LangExpressionKind.SubtractExpression,
             left,
             right,
           }),
@@ -49,7 +49,7 @@ export const AddExpression: IRulePattern = {
       },
       {
         kind: PatternKind.Reference,
-        name: LangExpressionKind.MemberExpression,
+        name: LangExpressionKind.AddExpression,
       },
     ],
   },
