@@ -1,18 +1,25 @@
 import { IRulePattern, PatternKind } from "../../../runtime/patterns/mod.ts";
 import { ExpressionKind } from "../../../runtime/expressions/mod.ts";
+import { LangExpressionKind } from "../../lang/lang.pattern.ts";
 
-export const ProjectionPattern: IRulePattern = {
+export const LambdaExpression: IRulePattern = {
   kind: PatternKind.Rule,
   pattern: {
     kind: PatternKind.Projection,
     pattern: {
       kind: PatternKind.Object,
       keys: {
-        kind: { kind: PatternKind.Equal, value: "ProjectionPattern" },
+        kind: {
+          kind: PatternKind.Equal,
+          value: LangExpressionKind.LambdaExpression,
+        },
         pattern: {
           kind: PatternKind.Variable,
           name: "pattern",
-          pattern: { kind: PatternKind.Reference, name: "PatternPattern" },
+          pattern: {
+            kind: PatternKind.Reference,
+            name: "PatternPattern",
+          },
         },
         expression: {
           kind: PatternKind.Variable,
@@ -27,7 +34,7 @@ export const ProjectionPattern: IRulePattern = {
     expression: {
       kind: ExpressionKind.Native,
       fn: ({ pattern, expression }) => ({
-        kind: PatternKind.Projection,
+        kind: ExpressionKind.Lambda,
         pattern,
         expression,
       }),

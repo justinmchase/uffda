@@ -6,7 +6,7 @@ tests(() => [
   {
     id: "PROJECT00",
     pattern: () => PatternLang,
-    input: "x -> $0",
+    input: "(x -> $0)",
     value: {
       kind: LangPatternKind.ProjectionPattern,
       pattern: {
@@ -22,7 +22,7 @@ tests(() => [
   {
     id: "PROJECT01",
     pattern: () => PatternLang,
-    input: "x:y -> $0",
+    input: "(x:y -> $0)",
     value: {
       kind: LangPatternKind.ProjectionPattern,
       pattern: {

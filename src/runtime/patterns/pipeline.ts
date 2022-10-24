@@ -1,7 +1,9 @@
+import { magenta } from "../../../deps/std.ts";
 import { Match } from "../../match.ts";
 import { Scope } from "../../scope.ts";
 import { MetaStream } from "../../stream.ts";
 import { match } from "../match.ts";
+import { PatternKind } from "./pattern.kind.ts";
 import { IPipelinePattern } from "./pattern.ts";
 
 export function pipeline(args: IPipelinePattern, scope: Scope) {
@@ -11,16 +13,19 @@ export function pipeline(args: IPipelinePattern, scope: Scope) {
   for (let i = 0; i < steps.length; i++) {
     const pattern = steps[i];
     const nextStream = new MetaStream(
-      scope.stream.path, // .add(`(${i})`).add(0),
+      scope.stream.path,
       items,
     );
-    const nextScope = scope.withStream(nextStream);
-    result = match(pattern, nextScope);
-    // console.log(
-    //   `pipeline: ${Deno.inspect(result.value, { colors: true, depth: 10 })}`,
-    // );
+    if (scope.options.trace) {
+      const name = pattern.kind === PatternKind.Reference
+        ? pattern.name
+        : pattern.kind;
+      console.log(`${"›".padStart(scope.depth)} ${magenta(name)}`);
+    }
 
-    // console.log('pipeline:', result.matched, result.end.stream.done)
+    const nextScope = scope.pushPipeline(pattern, nextStream);
+    result = match(pattern, nextScope);
+
     if (!result.matched) {
       return result;
     }
@@ -30,6 +35,11 @@ export function pipeline(args: IPipelinePattern, scope: Scope) {
     }
 
     const iterable = result.value as Iterable<unknown>;
+    // if (scope.options.trace) {
+    //   console.log('--- result ---');
+    //   console.log(Deno.inspect(result.value, { colors: true, depth: 10 }));
+    //   console.log('----  end  ---');
+    // }
     items = iterable?.[Symbol.iterator]
       ? iterable[Symbol.iterator]()
       : [result.value][Symbol.iterator]();

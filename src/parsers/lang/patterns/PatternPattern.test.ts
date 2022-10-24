@@ -4,7 +4,7 @@ import { IPipelinePattern, LangPatternKind } from "../lang.pattern.ts";
 
 tests(() => [
   {
-    id: "PEXPR00",
+    id: "LANG.PATTERN.PATTERN00",
     pattern: () => PatternLang,
     input: "a > b & c",
     value: {
@@ -27,7 +27,7 @@ tests(() => [
     } as IPipelinePattern,
   },
   {
-    id: "PEXPR01",
+    id: "LANG.PATTERN.PATTERN01",
     pattern: () => PatternLang,
     input: "a & b > c",
     value: {
@@ -50,7 +50,7 @@ tests(() => [
     } as IPipelinePattern,
   },
   {
-    id: "PEXPR02",
+    id: "LANG.PATTERN.PATTERN02",
     pattern: () => PatternLang,
     input: "a | b & c",
     value: {
@@ -64,9 +64,9 @@ tests(() => [
     },
   },
   {
-    id: "PEXPR03",
+    id: "LANG.PATTERN.PATTERN03",
     pattern: () => PatternLang,
-    input: "a -> $0 | b",
+    input: "(a -> $0) | b",
     value: {
       kind: "OrPattern",
       left: {
@@ -78,9 +78,9 @@ tests(() => [
     },
   },
   {
-    id: "PEXPR04",
+    id: "LANG.PATTERN.PATTERN04",
     pattern: () => PatternLang,
-    input: "a b -> $0",
+    input: "(a b -> $0)",
     value: {
       kind: "ProjectionPattern",
       pattern: {
@@ -92,7 +92,7 @@ tests(() => [
     },
   },
   {
-    id: "PEXPR05",
+    id: "LANG.PATTERN.PATTERN05",
     pattern: () => PatternLang,
     input: "a! b",
     value: {
@@ -107,7 +107,7 @@ tests(() => [
     },
   },
   {
-    id: "PEXPR06",
+    id: "LANG.PATTERN.PATTERN06",
     pattern: () => PatternLang,
     input: "^a!",
     value: {
@@ -121,7 +121,7 @@ tests(() => [
     },
   },
   {
-    id: "PEXPR07",
+    id: "LANG.PATTERN.PATTERN07",
     pattern: () => PatternLang,
     input: "^a:b",
     value: {
@@ -134,7 +134,7 @@ tests(() => [
     },
   },
   {
-    id: "PEXPR08",
+    id: "LANG.PATTERN.PATTERN08",
     pattern: () => PatternLang,
     input: "a:b+",
     value: {
@@ -147,7 +147,7 @@ tests(() => [
     },
   },
   {
-    id: "PEXPR09",
+    id: "LANG.PATTERN.PATTERN09",
     pattern: () => PatternLang,
     input: "a:b*",
     value: {
@@ -160,7 +160,7 @@ tests(() => [
     },
   },
   {
-    id: "PEXPR10",
+    id: "LANG.PATTERN.PATTERN10",
     pattern: () => PatternLang,
     input: "a:b?",
     value: {
@@ -173,31 +173,31 @@ tests(() => [
     },
   },
   {
-    id: "PEXPR11",
+    id: "LANG.PATTERN.PATTERN11",
     pattern: () => PatternLang,
     input: "any*",
     value: { kind: "ZeroOrMorePattern", pattern: { kind: "AnyPattern" } },
   },
   {
-    id: "PEXPR12",
+    id: "LANG.PATTERN.PATTERN12",
     pattern: () => PatternLang,
     input: "ok*",
     value: { kind: "ZeroOrMorePattern", pattern: { kind: "OkPattern" } },
   },
   {
-    id: "PEXPR13",
+    id: "LANG.PATTERN.PATTERN13",
     pattern: () => PatternLang,
     input: "string*",
     value: { kind: "ZeroOrMorePattern", pattern: { kind: "StringPattern" } },
   },
   {
-    id: "PEXPR14",
+    id: "LANG.PATTERN.PATTERN14",
     pattern: () => PatternLang,
     input: "number*",
     value: { kind: "ZeroOrMorePattern", pattern: { kind: "NumberPattern" } },
   },
   {
-    id: "PEXPR15",
+    id: "LANG.PATTERN.PATTERN15",
     pattern: () => PatternLang,
     input: "$0*",
     value: {
@@ -206,7 +206,7 @@ tests(() => [
     },
   },
   {
-    id: "PEXPR16",
+    id: "LANG.PATTERN.PATTERN16",
     pattern: () => PatternLang,
     input: "x*",
     value: {
@@ -215,7 +215,7 @@ tests(() => [
     },
   },
   {
-    id: "PEXPR17",
+    id: "LANG.PATTERN.PATTERN17",
     pattern: () => PatternLang,
     input: "'abc'*",
     value: {
@@ -224,7 +224,7 @@ tests(() => [
     },
   },
   {
-    id: "PEXPR18",
+    id: "LANG.PATTERN.PATTERN18",
     pattern: () => PatternLang,
     input: "1*",
     value: {
@@ -233,7 +233,7 @@ tests(() => [
     },
   },
   {
-    id: "PEXPR18",
+    id: "LANG.PATTERN.PATTERN18",
     pattern: () => PatternLang,
     input: "(x)*",
     value: {
