@@ -1,7 +1,7 @@
 import { Match } from "../match.ts";
 import {
-  add,
   array,
+  binary,
   Expression,
   ExpressionKind,
   invocation,
@@ -11,16 +11,15 @@ import {
   object,
   reference,
   special,
-  subtract,
   value,
 } from "./expressions/mod.ts";
 
 export function exec(expression: Expression, match: Match): unknown {
   switch (expression.kind) {
-    case ExpressionKind.Add:
-      return add(expression, match);
     case ExpressionKind.Array:
       return array(expression, match);
+    case ExpressionKind.Binary:
+      return binary(expression, match);
     case ExpressionKind.Invocation:
       return invocation(expression, match);
     case ExpressionKind.Lambda:
@@ -35,8 +34,6 @@ export function exec(expression: Expression, match: Match): unknown {
       return reference(expression, match);
     case ExpressionKind.SpecialReference:
       return special(expression, match);
-    case ExpressionKind.Subtract:
-      return subtract(expression, match);
     case ExpressionKind.Value:
       return value(expression);
     default:

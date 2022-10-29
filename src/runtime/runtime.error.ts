@@ -8,6 +8,7 @@ export enum RuntimeErrorCode {
   PatternUnmatched = "E_PATTERN_UNMATCHED",
   StreamIncomplete = "E_STREAM_INCOMPLETE",
   MatchError = "E_MATCH_ERROR",
+  InvalidExpression = "E_INVALID_EXPRESSION",
 }
 
 export const RuntimeErrorMessages = {
@@ -21,6 +22,8 @@ export const RuntimeErrorMessages = {
     "Pattern failed to read entire stream",
   [RuntimeErrorCode.MatchError]: () =>
     "A pattern match operation produced one or more errors",
+  [RuntimeErrorCode.InvalidExpression]: () =>
+    "An expression is invalid"
 };
 
 export class RuntimeError extends Error {

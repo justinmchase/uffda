@@ -2,6 +2,7 @@ import { Match } from "../../match.ts";
 import { Scope } from "../../scope.ts";
 import { tests } from "../../test.ts";
 import { ExpressionKind } from "./expression.kind.ts";
+import { BinaryOperation } from "./mod.ts";
 
 tests(() => [
   {
@@ -11,7 +12,8 @@ tests(() => [
     }),
     result: 18,
     expression: () => ({
-      kind: ExpressionKind.Add,
+      kind: ExpressionKind.Binary,
+      op: BinaryOperation.Add,
       left: {
         kind: ExpressionKind.Member,
         name: "x",

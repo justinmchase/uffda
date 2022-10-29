@@ -1,5 +1,5 @@
 import { IRulePattern, PatternKind } from "../../../runtime/patterns/mod.ts";
-import { ExpressionKind } from "../../../runtime/expressions/mod.ts";
+import { BinaryOperation, ExpressionKind } from "../../../runtime/expressions/mod.ts";
 import { LangExpressionKind } from "../../lang/lang.pattern.ts";
 
 export const AddExpression: IRulePattern = {
@@ -34,7 +34,8 @@ export const AddExpression: IRulePattern = {
     expression: {
       kind: ExpressionKind.Native,
       fn: ({ left, right }) => ({
-        kind: ExpressionKind.Add,
+        kind: ExpressionKind.Binary,
+        op: BinaryOperation.Add,
         left,
         right,
       }),

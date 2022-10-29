@@ -8,6 +8,14 @@ export type ProjectionFunction = (
   // deno-lint-ignore no-explicit-any
 ) => any;
 
+export enum BinaryOperation {
+  Add = "add",
+  Subtract = "subtract",
+  Multiply = "multiply",
+  Divide = "divide",
+  Mod = "mod"
+}
+
 export function isExpression(value: unknown): value is Expression {
   if (value == null) return false;
   if (typeof value !== "object") return false;
@@ -16,8 +24,8 @@ export function isExpression(value: unknown): value is Expression {
 }
 
 export type Expression =
-  | IAddExpression
   | IArrayExpression
+  | IBinaryExpression
   | IInvocationExpression
   | ILambdaExpression
   | IMemberExpression
@@ -25,15 +33,7 @@ export type Expression =
   | IObjectExpression
   | IReferenceExpression
   | ISpecialReferenceExpression
-  | ISubtractExpression
-  | ISubtractExpression
   | IValueExpression;
-
-export interface IAddExpression {
-  kind: ExpressionKind.Add;
-  left: Expression;
-  right: Expression;
-}
 
 export type ArrayInitializer =
   | IArrayElementExpression
@@ -52,6 +52,13 @@ export interface IArrayElementExpression {
 export interface IArraySpreadExpression {
   kind: ExpressionKind.ArraySpread;
   expression: Expression;
+}
+
+export interface IBinaryExpression {
+  kind: ExpressionKind.Binary;
+  op: BinaryOperation;
+  left: Expression;
+  right: Expression;
 }
 
 export interface IInvocationExpression {
@@ -105,12 +112,6 @@ export interface IReferenceExpression {
 export interface ISpecialReferenceExpression {
   kind: ExpressionKind.SpecialReference;
   name: string;
-}
-
-export interface ISubtractExpression {
-  kind: ExpressionKind.Subtract;
-  left: Expression;
-  right: Expression;
 }
 
 export interface IValueExpression {

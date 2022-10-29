@@ -1,8 +1,8 @@
 export enum ExpressionKind {
-  Add = "add",
   Array = "array",
   ArrayElement = "arrayElement",
   ArraySpread = "arraySpread",
+  Binary = "binary",
   Invocation = "invocation",
   Lambda = "lambda",
   Member = "member",
@@ -12,6 +12,5 @@ export enum ExpressionKind {
   ObjectSpread = "objectSpread",
   Reference = "reference",
   SpecialReference = "special",
-  Subtract = "subtract",
   Value = "value",
 }

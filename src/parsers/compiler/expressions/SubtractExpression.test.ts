@@ -1,5 +1,5 @@
 import { tests } from "../../../test.ts";
-import { ExpressionKind } from "../../../runtime/expressions/mod.ts";
+import { BinaryOperation, ExpressionKind } from "../../../runtime/expressions/mod.ts";
 import { ExpressionCompiler } from "../ExpressionCompiler.ts";
 
 tests(() => [
@@ -8,7 +8,8 @@ tests(() => [
     pattern: () => ExpressionCompiler,
     input: "a - b",
     value: {
-      kind: ExpressionKind.Subtract,
+      kind: ExpressionKind.Binary,
+      op: BinaryOperation.Subtract,
       left: {
         kind: ExpressionKind.Reference,
         name: "a",
