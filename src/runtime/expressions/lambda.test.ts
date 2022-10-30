@@ -3,6 +3,7 @@ import { Scope } from "../../scope.ts";
 import { tests } from "../../test.ts";
 import { PatternKind } from "../patterns/pattern.kind.ts";
 import { ExpressionKind } from "./expression.kind.ts";
+import { BinaryOperation } from "./mod.ts";
 
 tests(() => [
   {
@@ -25,7 +26,8 @@ tests(() => [
           },
         },
         expression: {
-          kind: ExpressionKind.Add,
+          kind: ExpressionKind.Binary,
+          op: BinaryOperation.Add,
           left: {
             kind: ExpressionKind.Reference,
             name: "a",
@@ -99,7 +101,8 @@ tests(() => [
           ],
         },
         expression: {
-          kind: ExpressionKind.Add,
+          kind: ExpressionKind.Binary,
+          op: BinaryOperation.Add,
           left: {
             kind: ExpressionKind.Reference,
             name: "a",
@@ -147,7 +150,8 @@ tests(() => [
           ],
         },
         expression: {
-          kind: ExpressionKind.Add,
+          kind: ExpressionKind.Binary,
+          op: BinaryOperation.Add,
           left: {
             kind: ExpressionKind.Reference,
             name: "a",

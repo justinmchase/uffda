@@ -1,5 +1,5 @@
 import { tests } from "../../../test.ts";
-import { ExpressionKind } from "../../../runtime/expressions/mod.ts";
+import { BinaryOperation, ExpressionKind } from "../../../runtime/expressions/mod.ts";
 import { ExpressionCompiler } from "../ExpressionCompiler.ts";
 import { PatternKind } from "../../../runtime/patterns/pattern.kind.ts";
 
@@ -68,7 +68,8 @@ tests(() => [
             name: "i",
           },
           expression: {
-            kind: ExpressionKind.Add,
+            kind: ExpressionKind.Binary,
+            op: BinaryOperation.Add,
             left: {
               kind: ExpressionKind.Reference,
               name: "i",

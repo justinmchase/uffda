@@ -1,6 +1,6 @@
 import { tests } from "../../../test.ts";
 import { PatternKind } from "../../../runtime/patterns/mod.ts";
-import { ExpressionKind } from "../../../runtime/expressions/mod.ts";
+import { BinaryOperation, ExpressionKind } from "../../../runtime/expressions/mod.ts";
 import { PatternCompiler } from "../PatternCompiler.ts";
 
 const $0 = () => {};
@@ -57,7 +57,8 @@ tests(() => [
               pattern: { kind: PatternKind.Any },
             },
             expression: {
-              kind: ExpressionKind.Add,
+              kind: ExpressionKind.Binary,
+              op: BinaryOperation.Add,
               left: { kind: ExpressionKind.Reference, name: "i" },
               right: { kind: ExpressionKind.Value, value: 1 },
             },
