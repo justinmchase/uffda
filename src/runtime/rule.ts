@@ -1,31 +1,35 @@
-import { brightBlack, cyan, underline } from "../../../deps/std.ts";
-import { Match } from "../../match.ts";
-import { Scope } from "../../scope.ts";
-import { match } from "../match.ts";
-import { RuntimeError, RuntimeErrorCode } from "../runtime.error.ts";
-import { IRulePattern } from "./pattern.ts";
+import { brightBlack, cyan, underline } from "../../deps/std.ts";
+import { Match } from "../match.ts";
+import { Scope } from "../scope.ts";
+import { IRule } from "../modules.ts";
+import { match } from "./match.ts";
+import { RuntimeError, RuntimeErrorCode } from "./runtime.error.ts";
 
-export function rule(rule: IRulePattern, scope: Scope): Match {
-  const { pattern } = rule;
+export function rule(rule: IRule, scope: Scope): Match {
+  const { module, pattern } = rule;
   let memo = scope.memos.get(scope.stream.path, rule);
   if (!memo) {
     memo = scope.memos.set(scope.stream.path, rule, Match.LR(scope));
-    const subScope = scope.pushRule(rule);
+    const subScope = scope
+      .pushModule(module)
+      .pushRule(rule);
+
     let m = match(pattern, subScope);
     if (m.isLr) {
       m = grow(rule, subScope);
     }
     memo.match = m;
-    return m
-      .endRecursion()
-      .popRule(scope);
+    return m.endRecursion().pop(scope);
+
   } else {
     if (memo.match.isLr) {
       if (scope.ruleStack.length === 0) {
         // This should never happen unless there is a bug in this code base
         throw new RuntimeError(
           RuntimeErrorCode.IndirectLeftRecursion,
+          rule.module,
           rule,
+          rule.pattern,
           memo.match,
         );
       }
@@ -37,7 +41,7 @@ export function rule(rule: IRulePattern, scope: Scope): Match {
   }
 }
 
-function grow(rule: IRulePattern, scope: Scope): Match {
+function grow(rule: IRule, scope: Scope): Match {
   const { pattern } = rule;
   let m = Match.Fail(scope);
   const start = scope.stream;
@@ -59,8 +63,10 @@ function grow(rule: IRulePattern, scope: Scope): Match {
     if (scope.options.trace) {
       const indent = "»".padStart(scope.depth);
       const message = matched && progressed
-        ? underline(cyan("progressed."))
-        : underline(brightBlack("done."));
+        ? underline(cyan(`progressed (${result.end.stream.path})`))
+        : matched
+        ? underline(brightBlack("no progress."))
+        : underline(brightBlack("not matched."));
       console.log(`${indent} ${message}`);
     }
 

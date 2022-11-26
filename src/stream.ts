@@ -7,11 +7,12 @@ export class MetaStream {
       [][Symbol.iterator](),
     );
 
-  public static readonly From = (s: Iterable<unknown>) =>
-    new MetaStream(
-      Path.Default(),
-      s[Symbol.iterator](),
-    );
+  public static readonly From = (s: MetaStream | Iterable<unknown>) => s instanceof MetaStream
+    ? s
+    : new MetaStream(
+        Path.Default(),
+        s[Symbol.iterator](),
+      );
 
   private _next: MetaStream | undefined = undefined;
   private _done: boolean | undefined = undefined;

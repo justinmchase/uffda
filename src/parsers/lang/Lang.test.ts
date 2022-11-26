@@ -1,11 +1,12 @@
+import { DeclarationKind } from "../../runtime/declarations/declaration.kind.ts";
 import { tests } from "../../test.ts";
-import { LangModuleKind } from "./lang.pattern.ts";
+import { LangExpressionKind, LangModuleKind, LangPatternKind } from "./lang.pattern.ts";
 import { Lang } from "./Lang.ts";
 
 tests(() => [
   {
     id: "LANG00",
-    pattern: () => Lang,
+    module: () => Lang,
     input: `
       A = B;
       xyz;
@@ -34,6 +35,81 @@ tests(() => [
           kind: "PatternDeclaration",
           name: "C",
           pattern: { kind: "ReferencePattern", name: "D" },
+        },
+      ],
+    },
+  },
+  {
+    id: "LANG01",
+    module: () => Lang,
+    input: "x = y; a = b;",
+    value: {
+      kind: LangModuleKind.PatternModule,
+      imports: [],
+      patterns: [
+        {
+          kind: LangModuleKind.PatternDeclaration,
+          name: "x",
+          pattern: {
+            kind: LangPatternKind.ReferencePattern,
+            name: "y",
+          },
+        },
+        {
+          kind: LangModuleKind.PatternDeclaration,
+          name: "a",
+          pattern: {
+            kind: LangPatternKind.ReferencePattern,
+            name: "b",
+          },
+        },
+      ],
+    },
+  },
+  {
+    id: "LANG02",
+    module: () => Lang,
+    input: "A = (_ -> '');",
+    value: {
+      kind: LangModuleKind.PatternModule,
+      imports: [],
+      patterns: [
+        {
+          kind: LangModuleKind.PatternDeclaration,
+          name: "A",
+          pattern: {
+            kind: LangPatternKind.ProjectionPattern,
+            pattern: { kind: LangPatternKind.ReferencePattern, name: "_" },
+            expression: { kind: LangExpressionKind.StringExpression, value: "" }
+          },
+        },
+      ],
+    },
+  },
+  {
+    id: "LANG02",
+    module: () => Lang,
+    input: `
+      import './test.uff' (B);
+      A = B;
+    `,
+    value: {
+      kind: LangModuleKind.PatternModule,
+      imports: [
+        {
+          kind: LangModuleKind.ImportDeclaration,
+          modulePath: "./test.uff",
+          names: [ "B" ],
+        }
+      ],
+      patterns: [
+        {
+          kind: LangModuleKind.PatternDeclaration,
+          name: "A",
+          pattern: {
+            kind: LangPatternKind.ReferencePattern,
+            name: "B"
+          },
         },
       ],
     },

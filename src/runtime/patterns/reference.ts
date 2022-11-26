@@ -4,19 +4,18 @@ import { match } from "../match.ts";
 import { IReferencePattern } from "./pattern.ts";
 import { RuntimeError, RuntimeErrorCode } from "../runtime.error.ts";
 import { brightBlack, green, red } from "../../../deps/std.ts";
+import { rule } from "../rule.ts";
 
-export function reference(args: IReferencePattern, scope: Scope): Match {
-  const { name } = args;
-  const rule = scope.getRule(name);
-  if (rule) {
+export function reference(pattern: IReferencePattern, scope: Scope): Match {
+  const { name } = pattern;
+  const ref = scope.getRule(name);
+  if (ref) {
     if (scope.options.trace) {
       const indent = "›".padStart(scope.depth);
       console.log(`${indent} ${brightBlack(name)}`);
     }
 
-    const s = scope.pushRef(name);
-    const m = match(rule, s);
-    const r = m.popRef(scope);
+    const m = rule(ref, scope);
 
     if (scope.options.trace) {
       const indent = "›".padStart(scope.depth);
@@ -26,12 +25,14 @@ export function reference(args: IReferencePattern, scope: Scope): Match {
         console.log(`${indent} ${red(name)}`);
       }
     }
-
-    return r;
+    
+    return m;
   } else {
     throw new RuntimeError(
       RuntimeErrorCode.PatternNotFound,
-      args,
+      scope.module,
+      scope.ruleStack[-1],
+      pattern,
       Match.Fail(scope),
       {
         metadata: {

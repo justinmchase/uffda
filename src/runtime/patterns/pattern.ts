@@ -6,7 +6,6 @@ export type Pattern =
   | IAnyPattern
   | IAndPattern
   | IArrayPattern
-  | IBlockPattern
   | IBooleanPattern
   | IEndPattern
   | IEqualPattern
@@ -24,7 +23,6 @@ export type Pattern =
   | IRangePattern
   | IReferencePattern
   | IRegExpPattern
-  | IRulePattern
   | ISlicePattern
   | IStringPattern
   | IThenPattern
@@ -48,10 +46,6 @@ export interface IAndPattern {
 export interface IArrayPattern {
   kind: PatternKind.Array;
   pattern: Pattern;
-}
-export interface IBlockPattern {
-  kind: PatternKind.Block;
-  rules: Record<string, IRulePattern>;
 }
 export interface IBooleanPattern {
   kind: PatternKind.Boolean;
@@ -121,10 +115,6 @@ export interface IReferencePattern {
 export interface IRegExpPattern {
   kind: PatternKind.RegExp;
   pattern: RegExp;
-}
-export interface IRulePattern {
-  kind: PatternKind.Rule;
-  pattern: Pattern;
 }
 export interface ISlicePattern {
   kind: PatternKind.Slice;

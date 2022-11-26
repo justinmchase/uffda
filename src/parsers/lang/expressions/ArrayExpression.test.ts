@@ -1,21 +1,31 @@
 import { tests } from "../../../test.ts";
-import { ExpressionLang } from "../ExpressionLang.ts";
+import { TokenizerKind } from "../../mod.ts";
 import { LangExpressionKind } from "../lang.pattern.ts";
+import { ArrayExpression } from "./ArrayExpression.ts";
 
 tests(() => [
   {
-    id: "ARRAY00",
-    pattern: () => ExpressionLang,
-    input: "[]",
+    id: "LANG.EXPRESSION.ARRAY00",
+    module: () => ArrayExpression,
+    input: [
+      { kind: TokenizerKind.Token, value: "[" },
+      { kind: TokenizerKind.Token, value: "]" },
+    ], 
     value: {
       kind: LangExpressionKind.ArrayExpression,
       expressions: [],
     },
   },
   {
-    id: "ARRAY01",
-    pattern: () => ExpressionLang,
-    input: "[a b c]",
+    id: "LANG.EXPRESSION.ARRAY01",
+    module: () => ArrayExpression,
+    input: [
+      { kind: TokenizerKind.Token, value: "[" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Identifier, value: "b" },
+      { kind: TokenizerKind.Identifier, value: "c" },
+      { kind: TokenizerKind.Token, value: "]" },
+    ], 
     value: {
       kind: LangExpressionKind.ArrayExpression,
       expressions: [
@@ -44,29 +54,57 @@ tests(() => [
     },
   },
   {
-    id: "ARRAY02",
-    pattern: () => ExpressionLang,
-    input: "([])",
+    id: "LANG.EXPRESSION.ARRAY02",
+    module: () => ArrayExpression,
+    input: [
+      { kind: TokenizerKind.Token, value: "[" },
+      { kind: TokenizerKind.Token, value: "(" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: ")" },
+      { kind: TokenizerKind.Token, value: "]" },
+    ], 
     value: {
-      kind: LangExpressionKind.InvocationExpression,
-      arguments: [],
-      expression: {
-        kind: LangExpressionKind.ArrayExpression,
-        expressions: [],
-      },
+      kind: LangExpressionKind.ArrayExpression,
+      expressions: [
+        {
+          kind: LangExpressionKind.ArrayElementExpression,
+          expression: {
+            kind: LangExpressionKind.InvocationExpression,
+            arguments: [],
+            expression: {
+              kind: LangExpressionKind.ReferenceExpression,
+              name: "a"    
+            } 
+          }
+        }
+      ]
     },
   },
   {
-    id: "ARRAY03",
-    pattern: () => ExpressionLang,
-    input: "[].join",
+    id: "LANG.EXPRESSION.ARRAY03",
+    module: () => ArrayExpression,
+    input: [
+      { kind: TokenizerKind.Token, value: "[" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: "." },
+      { kind: TokenizerKind.Identifier, value: "b" },
+      { kind: TokenizerKind.Token, value: "]" },
+    ],  
     value: {
-      kind: LangExpressionKind.MemberExpression,
-      name: "join",
-      expression: {
-        kind: LangExpressionKind.ArrayExpression,
-        expressions: [],
-      },
+      kind: LangExpressionKind.ArrayExpression,
+      expressions: [
+        {
+          kind: LangExpressionKind.ArrayElementExpression,
+          expression: {
+            kind: LangExpressionKind.MemberExpression,
+            name: "b",
+            expression: {
+              kind: LangExpressionKind.ReferenceExpression,
+              name: "a"
+            },
+          }
+        }
+      ]
     },
   },
 ]);

@@ -1,12 +1,20 @@
 import { tests } from "../../../test.ts";
-import { PatternLang } from "../PatternLang.ts";
+import { TokenizerKind } from "../../mod.ts";
 import { IPipelinePattern, LangPatternKind } from "../lang.pattern.ts";
+import { PatternPattern } from "./PatternPattern.ts";
 
 tests(() => [
   {
     id: "LANG.PATTERN.PATTERN00",
-    pattern: () => PatternLang,
-    input: "a > b & c",
+    module: () => PatternPattern,
+    // input: "a > b & c",
+    input: [
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: ">" },
+      { kind: TokenizerKind.Identifier, value: "b" },
+      { kind: TokenizerKind.Token, value: "&" },
+      { kind: TokenizerKind.Identifier, value: "c" },
+    ],
     value: {
       kind: LangPatternKind.PipelinePattern,
       left: {
@@ -28,8 +36,14 @@ tests(() => [
   },
   {
     id: "LANG.PATTERN.PATTERN01",
-    pattern: () => PatternLang,
-    input: "a & b > c",
+    module: () => PatternPattern,
+    input: [
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: "&" },
+      { kind: TokenizerKind.Identifier, value: "b" },
+      { kind: TokenizerKind.Token, value: ">" },
+      { kind: TokenizerKind.Identifier, value: "c" },
+    ],
     value: {
       kind: LangPatternKind.PipelinePattern,
       left: {
@@ -51,8 +65,14 @@ tests(() => [
   },
   {
     id: "LANG.PATTERN.PATTERN02",
-    pattern: () => PatternLang,
-    input: "a | b & c",
+    module: () => PatternPattern,
+    input: [
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: "|" },
+      { kind: TokenizerKind.Identifier, value: "b" },
+      { kind: TokenizerKind.Token, value: "&" },
+      { kind: TokenizerKind.Identifier, value: "c" },
+    ],
     value: {
       kind: "AndPattern",
       left: {
@@ -65,8 +85,19 @@ tests(() => [
   },
   {
     id: "LANG.PATTERN.PATTERN03",
-    pattern: () => PatternLang,
-    input: "(a -> $0) | b",
+    future: true,
+    module: () => PatternPattern,
+    // input: "(a -> $0) | b",
+    input: [
+      { kind: TokenizerKind.Token, value: "(" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: "-" },
+      { kind: TokenizerKind.Token, value: ">" },
+      { kind: TokenizerKind.SpecialIdentifier, value: "$0" },
+      { kind: TokenizerKind.Token, value: ")" },
+      { kind: TokenizerKind.Token, value: "|" },
+      { kind: TokenizerKind.Identifier, value: "b" },
+    ],
     value: {
       kind: "OrPattern",
       left: {
@@ -79,8 +110,17 @@ tests(() => [
   },
   {
     id: "LANG.PATTERN.PATTERN04",
-    pattern: () => PatternLang,
-    input: "(a b -> $0)",
+    future: true,
+    module: () => PatternPattern,
+    input: [
+      { kind: TokenizerKind.Token, value: "(" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Identifier, value: "b" },
+      { kind: TokenizerKind.Token, value: "-" },
+      { kind: TokenizerKind.Token, value: ">" },
+      { kind: TokenizerKind.SpecialIdentifier, value: "$0" },
+      { kind: TokenizerKind.Token, value: ")" },
+    ],
     value: {
       kind: "ProjectionPattern",
       pattern: {
@@ -93,8 +133,12 @@ tests(() => [
   },
   {
     id: "LANG.PATTERN.PATTERN05",
-    pattern: () => PatternLang,
-    input: "a! b",
+    module: () => PatternPattern,
+    input: [
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: "!" },
+      { kind: TokenizerKind.Identifier, value: "b" },
+    ],
     value: {
       kind: "ThenPattern",
       left: {
@@ -108,8 +152,12 @@ tests(() => [
   },
   {
     id: "LANG.PATTERN.PATTERN06",
-    pattern: () => PatternLang,
-    input: "^a!",
+    module: () => PatternPattern,
+    input: [
+      { kind: TokenizerKind.Token, value: "^" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: "!" },
+    ],
     value: {
       kind: "MustPattern",
       name: "PatternExpected",
@@ -122,8 +170,13 @@ tests(() => [
   },
   {
     id: "LANG.PATTERN.PATTERN07",
-    pattern: () => PatternLang,
-    input: "^a:b",
+    module: () => PatternPattern,
+    input: [
+      { kind: TokenizerKind.Token, value: "^" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: ":" },
+      { kind: TokenizerKind.Identifier, value: "b" },
+    ],
     value: {
       kind: "NotPattern",
       pattern: {
@@ -135,8 +188,13 @@ tests(() => [
   },
   {
     id: "LANG.PATTERN.PATTERN08",
-    pattern: () => PatternLang,
-    input: "a:b+",
+    module: () => PatternPattern,
+    input: [
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: ":" },
+      { kind: TokenizerKind.Identifier, value: "b" },
+      { kind: TokenizerKind.Token, value: "+" },
+    ],
     value: {
       kind: "VariablePattern",
       name: "a",
@@ -148,8 +206,13 @@ tests(() => [
   },
   {
     id: "LANG.PATTERN.PATTERN09",
-    pattern: () => PatternLang,
-    input: "a:b*",
+    module: () => PatternPattern,
+    input: [
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: ":" },
+      { kind: TokenizerKind.Identifier, value: "b" },
+      { kind: TokenizerKind.Token, value: "*" },
+    ],
     value: {
       kind: "VariablePattern",
       name: "a",
@@ -161,8 +224,13 @@ tests(() => [
   },
   {
     id: "LANG.PATTERN.PATTERN10",
-    pattern: () => PatternLang,
-    input: "a:b?",
+    module: () => PatternPattern,
+    input: [
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: ":" },
+      { kind: TokenizerKind.Identifier, value: "b" },
+      { kind: TokenizerKind.Token, value: "?" },
+    ],
     value: {
       kind: "VariablePattern",
       name: "a",
@@ -174,32 +242,47 @@ tests(() => [
   },
   {
     id: "LANG.PATTERN.PATTERN11",
-    pattern: () => PatternLang,
-    input: "any*",
+    module: () => PatternPattern,
+    input: [
+      { kind: TokenizerKind.Identifier, value: "any" },
+      { kind: TokenizerKind.Token, value: "*" },
+    ],
     value: { kind: "ZeroOrMorePattern", pattern: { kind: "AnyPattern" } },
   },
   {
     id: "LANG.PATTERN.PATTERN12",
-    pattern: () => PatternLang,
-    input: "ok*",
+    module: () => PatternPattern,
+    input: [
+      { kind: TokenizerKind.Identifier, value: "ok" },
+      { kind: TokenizerKind.Token, value: "*" },
+    ],
     value: { kind: "ZeroOrMorePattern", pattern: { kind: "OkPattern" } },
   },
   {
     id: "LANG.PATTERN.PATTERN13",
-    pattern: () => PatternLang,
-    input: "string*",
+    module: () => PatternPattern,
+    input: [
+      { kind: TokenizerKind.Identifier, value: "string" },
+      { kind: TokenizerKind.Token, value: "*" },
+    ],
     value: { kind: "ZeroOrMorePattern", pattern: { kind: "StringPattern" } },
   },
   {
     id: "LANG.PATTERN.PATTERN14",
-    pattern: () => PatternLang,
-    input: "number*",
+    module: () => PatternPattern,
+    input: [
+      { kind: TokenizerKind.Identifier, value: "number" },
+      { kind: TokenizerKind.Token, value: "*" },
+    ],
     value: { kind: "ZeroOrMorePattern", pattern: { kind: "NumberPattern" } },
   },
   {
     id: "LANG.PATTERN.PATTERN15",
-    pattern: () => PatternLang,
-    input: "$0*",
+    module: () => PatternPattern,
+    input: [
+      { kind: TokenizerKind.SpecialIdentifier, value: "$0" },
+      { kind: TokenizerKind.Token, value: "*" },
+    ],
     value: {
       kind: "ZeroOrMorePattern",
       pattern: { kind: "SpecialReferencePattern", name: "$0" },
@@ -207,8 +290,11 @@ tests(() => [
   },
   {
     id: "LANG.PATTERN.PATTERN16",
-    pattern: () => PatternLang,
-    input: "x*",
+    module: () => PatternPattern,
+    input: [
+      { kind: TokenizerKind.Identifier, value: "x" },
+      { kind: TokenizerKind.Token, value: "*" },
+    ],
     value: {
       kind: "ZeroOrMorePattern",
       pattern: { kind: "ReferencePattern", name: "x" },
@@ -216,8 +302,11 @@ tests(() => [
   },
   {
     id: "LANG.PATTERN.PATTERN17",
-    pattern: () => PatternLang,
-    input: "'abc'*",
+    module: () => PatternPattern,
+    input: [
+      { kind: TokenizerKind.String, value: "abc" },
+      { kind: TokenizerKind.Token, value: "*" },
+    ],
     value: {
       kind: "ZeroOrMorePattern",
       pattern: { kind: "EqualPattern", value: "abc" },
@@ -225,17 +314,25 @@ tests(() => [
   },
   {
     id: "LANG.PATTERN.PATTERN18",
-    pattern: () => PatternLang,
-    input: "1*",
+    module: () => PatternPattern,
+    input: [
+      { kind: TokenizerKind.Integer, value: 1 },
+      { kind: TokenizerKind.Token, value: "*" },
+    ],
     value: {
       kind: "ZeroOrMorePattern",
       pattern: { kind: "EqualPattern", value: 1 },
     },
   },
   {
-    id: "LANG.PATTERN.PATTERN18",
-    pattern: () => PatternLang,
-    input: "(x)*",
+    id: "LANG.PATTERN.PATTERN19",
+    module: () => PatternPattern,
+    input: [
+      { kind: TokenizerKind.Token, value: "(" },
+      { kind: TokenizerKind.Identifier, value: "x" },
+      { kind: TokenizerKind.Token, value: ")" },
+      { kind: TokenizerKind.Token, value: "*" },
+    ],
     value: {
       kind: "ZeroOrMorePattern",
       pattern: { kind: "ReferencePattern", name: "x" },

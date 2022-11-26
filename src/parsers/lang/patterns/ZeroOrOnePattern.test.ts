@@ -1,12 +1,16 @@
 import { tests } from "../../../test.ts";
-import { PatternLang } from "../PatternLang.ts";
 import { LangPatternKind } from "../lang.pattern.ts";
+import { ZeroOrOnePattern } from "./ZeroOrOnePattern.ts";
+import { TokenizerKind } from "../../mod.ts";
 
 tests(() => [
   {
     id: "ZERORONE00",
-    pattern: () => PatternLang,
-    input: "a?",
+    module: () => ZeroOrOnePattern,
+    input: [
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: "?" },
+    ],
     value: {
       kind: LangPatternKind.ZeroOrOnePattern,
       pattern: {

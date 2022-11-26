@@ -1,6 +1,5 @@
 export * from "./AndPattern.ts";
 export * from "./AnyPattern.ts";
-export * from "./EqualPattern.ts";
 export * from "./ExpressionPattern.ts";
 export * from "./GroupPattern.ts";
 export * from "./MustPattern.ts";

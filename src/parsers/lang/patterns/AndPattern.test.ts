@@ -1,13 +1,17 @@
 import { tests } from "../../../test.ts";
-import { PatternLang } from "../PatternLang.ts";
 import { LangPatternKind } from "../lang.pattern.ts";
+import { AndPattern } from "./AndPattern.ts";
+import { TokenizerKind } from "../../mod.ts";
 
 tests(() => [
   {
-    id: "AND00",
-    description: "x & y",
-    pattern: () => PatternLang,
-    input: "x & y",
+    id: "LANG.PATTERN.AND00",
+    module: () => AndPattern,
+    input: [
+      { kind: TokenizerKind.Identifier, value: "x" },
+      { kind: TokenizerKind.Token, value: "&" },
+      { kind: TokenizerKind.Identifier, value: "y" },
+    ],
     value: {
       kind: LangPatternKind.AndPattern,
       left: {

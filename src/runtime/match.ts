@@ -4,7 +4,6 @@ import {
   and,
   any,
   array,
-  block,
   end,
   equal,
   fail,
@@ -21,7 +20,6 @@ import {
   range,
   reference,
   regexp,
-  rule,
   slice,
   then,
   type,
@@ -46,8 +44,6 @@ export function match(pattern: Pattern, scope: Scope): Match {
       return any(scope);
     case PatternKind.Array:
       return array(pattern, scope);
-    case PatternKind.Block:
-      return block(pattern, scope);
     case PatternKind.Boolean:
       return type(ValueType.Boolean, scope);
     case PatternKind.End:
@@ -82,8 +78,6 @@ export function match(pattern: Pattern, scope: Scope): Match {
       return reference(pattern, scope);
     case PatternKind.RegExp:
       return regexp(pattern, scope);
-    case PatternKind.Rule:
-      return rule(pattern, scope);
     case PatternKind.Slice:
       return slice(pattern, scope);
     case PatternKind.String:

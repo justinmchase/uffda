@@ -1,7 +1,6 @@
 export * from "./and.ts";
 export * from "./any.ts";
 export * from "./array.ts";
-export * from "./block.ts";
 export * from "./end.ts";
 export * from "./equal.ts";
 export * from "./fail.ts";
@@ -16,7 +15,6 @@ export * from "./projection.ts";
 export * from "./range.ts";
 export * from "./reference.ts";
 export * from "./regexp.ts";
-export * from "./rule.ts";
 export * from "./slice.ts";
 export * from "./then.ts";
 export * from "./type.ts";

@@ -1,12 +1,17 @@
 import { tests } from "../../../test.ts";
+import { TokenizerKind } from "../../mod.ts";
 import { LangExpressionKind } from "../lang.pattern.ts";
-import { ExpressionLang } from "../ExpressionLang.ts";
+import { InvocationExpression } from "./InvocationExpression.ts";
 
 tests(() => [
   {
     id: "INVOKE00",
-    pattern: () => ExpressionLang,
-    input: "(a)",
+    module: () => InvocationExpression,
+    input: [
+      { kind: TokenizerKind.Token, value: "(" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: ")" },
+    ],  
     value: {
       kind: LangExpressionKind.InvocationExpression,
       arguments: [],
@@ -15,8 +20,14 @@ tests(() => [
   },
   {
     id: "INVOKE01",
-    pattern: () => ExpressionLang,
-    input: "((a))",
+    module: () => InvocationExpression,
+    input: [
+      { kind: TokenizerKind.Token, value: "(" },
+      { kind: TokenizerKind.Token, value: "(" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: ")" },
+      { kind: TokenizerKind.Token, value: ")" },
+    ],  
     value: {
       kind: LangExpressionKind.InvocationExpression,
       arguments: [],
@@ -32,8 +43,13 @@ tests(() => [
   },
   {
     id: "INVOKE02",
-    pattern: () => ExpressionLang,
-    input: "(a b)",
+    module: () => InvocationExpression,
+    input: [
+      { kind: TokenizerKind.Token, value: "(" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Identifier, value: "b" },
+      { kind: TokenizerKind.Token, value: ")" },
+    ],  
     value: {
       kind: LangExpressionKind.InvocationExpression,
       arguments: [
@@ -50,8 +66,16 @@ tests(() => [
   },
   {
     id: "INVOKE03",
-    pattern: () => ExpressionLang,
-    input: "(a b c d)",
+    module: () => InvocationExpression,
+    // input: "(a b c d)",
+    input: [
+      { kind: TokenizerKind.Token, value: "(" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Identifier, value: "b" },
+      { kind: TokenizerKind.Identifier, value: "c" },
+      { kind: TokenizerKind.Identifier, value: "d" },
+      { kind: TokenizerKind.Token, value: ")" },
+    ],  
     value: {
       kind: LangExpressionKind.InvocationExpression,
       arguments: [
@@ -76,8 +100,16 @@ tests(() => [
   },
   {
     id: "INVOKE04",
-    pattern: () => ExpressionLang,
-    input: "((a).join)",
+    module: () => InvocationExpression,
+    input: [
+      { kind: TokenizerKind.Token, value: "(" },
+      { kind: TokenizerKind.Token, value: "(" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: ")" },
+      { kind: TokenizerKind.Token, value: "." },
+      { kind: TokenizerKind.Identifier, value: "join" },
+      { kind: TokenizerKind.Token, value: ")" },
+    ],  
     value: {
       kind: LangExpressionKind.InvocationExpression,
       arguments: [],

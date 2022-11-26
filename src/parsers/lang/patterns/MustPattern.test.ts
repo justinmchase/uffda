@@ -1,13 +1,17 @@
 import { tests } from "../../../test.ts";
-import { PatternLang } from "../PatternLang.ts";
+import { TokenizerKind } from "../../mod.ts";
 import { LangPatternKind } from "../lang.pattern.ts";
+import { MustPattern } from "./MustPattern.ts";
 
 tests(() => [
   {
-    id: "MUST00",
+    id: "LANG.PATTERN.MUST00",
     description: "x!",
-    pattern: () => PatternLang,
-    input: "x!",
+    module: () => MustPattern,
+    input: [
+      { kind: TokenizerKind.Identifier, value: "x" },
+      { kind: TokenizerKind.Token, value: "!" },
+    ],
     value: {
       kind: LangPatternKind.MustPattern,
       name: "PatternExpected",

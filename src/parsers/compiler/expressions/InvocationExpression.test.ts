@@ -1,12 +1,23 @@
 import { tests } from "../../../test.ts";
 import { ExpressionKind } from "../../../runtime/expressions/mod.ts";
-import { ExpressionCompiler } from "../ExpressionCompiler.ts";
+import { InvocationExpression } from "./InvocationExpression.ts";
+import { LangExpressionKind } from "../../lang/lang.pattern.ts";
 
 tests(() => [
   {
     id: "COMPILER.EXPRESSION.INVOCATION00",
-    pattern: () => ExpressionCompiler,
-    input: "(a)",
+    module: () => InvocationExpression,
+    description: "(a)",
+    input: [
+      {
+        kind: LangExpressionKind.InvocationExpression,
+        expression: {
+          kind: LangExpressionKind.ReferenceExpression,
+          name: "a"
+        },
+        arguments: []
+      }
+    ],
     value: {
       kind: ExpressionKind.Invocation,
       expression: {
@@ -18,8 +29,27 @@ tests(() => [
   },
   {
     id: "COMPILER.EXPRESSION.INVOCATION01",
-    pattern: () => ExpressionCompiler,
-    input: "(a b c)",
+    module: () => InvocationExpression,
+    description: "(a b c)",
+    input: [
+      {
+        kind: LangExpressionKind.InvocationExpression,
+        expression: {
+          kind: LangExpressionKind.ReferenceExpression,
+          name: "a"
+        },
+        arguments: [
+          {
+            kind: LangExpressionKind.ReferenceExpression,
+            name: "b"
+          },
+          {
+            kind: LangExpressionKind.ReferenceExpression,
+            name: "c"
+          }
+        ]
+      }
+    ],
     value: {
       kind: ExpressionKind.Invocation,
       expression: {
@@ -37,12 +67,5 @@ tests(() => [
         },
       ],
     },
-  },
-  {
-    id: "COMPILER.EXPRESSION.INVOCATION02",
-    pattern: () => ExpressionCompiler,
-    input: "()",
-    matched: false,
-    done: false,
   },
 ]);

@@ -1,41 +1,53 @@
 import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
+import { IModuleDeclaration } from "../../runtime/declarations/module.ts";
+import { DeclarationKind } from "../../runtime/declarations/declaration.kind.ts";
 
 // NewLine
 //   = '\n'
 //   | '\r\n' -> '\n'
 //   | '\r' -> '\n'
 
-export const NewLine: Pattern = {
-  kind: PatternKind.Or,
-  patterns: [
-    { kind: PatternKind.Equal, value: "\n" },
+export const NewLine: IModuleDeclaration = {
+  kind: DeclarationKind.Module,
+  imports: [],
+  rules: [
     {
-      kind: PatternKind.Projection,
+      kind: DeclarationKind.Rule,
+      name: "NewLine",
       pattern: {
-        kind: PatternKind.Then,
+        kind: PatternKind.Or,
         patterns: [
-          { kind: PatternKind.Equal, value: "\r" },
           { kind: PatternKind.Equal, value: "\n" },
+          {
+            kind: PatternKind.Projection,
+            pattern: {
+              kind: PatternKind.Then,
+              patterns: [
+                { kind: PatternKind.Equal, value: "\r" },
+                { kind: PatternKind.Equal, value: "\n" },
+              ],
+            },
+            expression: {
+              kind: ExpressionKind.Native,
+              fn: () => "\n",
+            },
+          },
+          {
+            kind: PatternKind.Projection,
+            pattern: {
+              kind: PatternKind.Then,
+              patterns: [
+                { kind: PatternKind.Equal, value: "\r" },
+              ],
+            },
+            expression: {
+              kind: ExpressionKind.Native,
+              fn: () => "\n",
+            },
+          },
         ],
-      },
-      expression: {
-        kind: ExpressionKind.Native,
-        fn: () => "\n",
-      },
-    },
-    {
-      kind: PatternKind.Projection,
-      pattern: {
-        kind: PatternKind.Then,
-        patterns: [
-          { kind: PatternKind.Equal, value: "\r" },
-        ],
-      },
-      expression: {
-        kind: ExpressionKind.Native,
-        fn: () => "\n",
-      },
-    },
-  ],
+      }
+    }
+  ]
 };

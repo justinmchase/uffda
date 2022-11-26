@@ -1,13 +1,16 @@
 import { tests } from "../../../test.ts";
-import { PatternLang } from "../PatternLang.ts";
+import { TokenizerKind } from "../../mod.ts";
 import { LangPatternKind } from "../lang.pattern.ts";
+import { ThenPattern } from "./ThenPattern.ts";
 
 tests(() => [
   {
-    id: "THEN01",
-    description: "can parse x then y references",
-    pattern: () => PatternLang,
-    input: "x y",
+    id: "LANG.PATTERN.THEN01",
+    module: () => ThenPattern,
+    input: [
+      { kind: TokenizerKind.Identifier, value: "x" },
+      { kind: TokenizerKind.Identifier, value: "y" },
+    ],
     value: {
       kind: LangPatternKind.ThenPattern,
       left: {
@@ -21,10 +24,14 @@ tests(() => [
     },
   },
   {
-    id: "THEN02",
-    description: "can parse variable string",
-    pattern: () => PatternLang,
-    input: "x:y z",
+    id: "LANG.PATTERN.THEN02",
+    module: () => ThenPattern,
+    input: [
+      { kind: TokenizerKind.Identifier, value: "x" },
+      { kind: TokenizerKind.Token, value: ":" },
+      { kind: TokenizerKind.Identifier, value: "y" },
+      { kind: TokenizerKind.Identifier, value: "z" },
+    ],
     value: {
       kind: LangPatternKind.ThenPattern,
       left: {

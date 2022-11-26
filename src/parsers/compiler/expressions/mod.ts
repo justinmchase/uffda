@@ -5,4 +5,5 @@ export * from "./LambdaExpression.ts";
 export * from "./NumberExpression.ts";
 export * from "./ReferenceExpression.ts";
 export * from "./SpecialReferenceExpression.ts";
+export * from "./StringExpression.ts";
 export * from "./SubtractExpression.ts";

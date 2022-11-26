@@ -1,83 +1,81 @@
 import { tests } from "../../../test.ts";
+import { TokenizerKind } from "../../mod.ts";
 import { ExpressionLang } from "../ExpressionLang.ts";
 import { LangExpressionKind } from "../lang.pattern.ts";
+import { SpreadExpression } from "./SpreadExpression.ts";
 
 tests(() => [
   {
     id: "LANG.EXPRESSIONS.SPREAD00",
-    pattern: () => ExpressionLang,
-    input: "{ ...a }",
+    module: () => SpreadExpression,
+    input: [
+      { kind: TokenizerKind.Token, value: "." },
+      { kind: TokenizerKind.Token, value: "." },
+      { kind: TokenizerKind.Token, value: "." },
+      { kind: TokenizerKind.Token, value: "{" },
+      { kind: TokenizerKind.Token, value: "}" },
+    ],
     value: {
       kind: LangExpressionKind.ObjectExpression,
-      keys: [
-        {
-          kind: LangExpressionKind.ObjectSpreadExpression,
-          expression: {
-            kind: LangExpressionKind.ReferenceExpression,
-            name: "a",
-          },
-        },
-      ],
+      keys: [],
     },
   },
   {
     id: "LANG.EXPRESSIONS.SPREAD01",
-    pattern: () => ExpressionLang,
-    input: "[...[]]",
-    value: {
-      kind: "ArrayExpression",
-      expressions: [
-        {
-          kind: "ArraySpreadExpression",
-          expression: { kind: "ArrayExpression", expressions: [] },
-        },
-      ],
-    },
+    module: () => SpreadExpression,
+    input: [
+      { kind: TokenizerKind.Token, value: "." },
+      { kind: TokenizerKind.Token, value: "." },
+      { kind: TokenizerKind.Token, value: "." },
+      { kind: TokenizerKind.Token, value: "[" },
+      { kind: TokenizerKind.Token, value: "]" },
+    ],
+    value: { kind: "ArrayExpression", expressions: [] },
   },
   {
     id: "LANG.EXPRESSIONS.SPREAD02",
-    pattern: () => ExpressionLang,
-    input: "[...a.b.c]",
+    module: () => SpreadExpression,
+    input: [
+      { kind: TokenizerKind.Token, value: "." },
+      { kind: TokenizerKind.Token, value: "." },
+      { kind: TokenizerKind.Token, value: "." },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: "." },
+      { kind: TokenizerKind.Identifier, value: "b" },
+      { kind: TokenizerKind.Token, value: "." },
+      { kind: TokenizerKind.Identifier, value: "c" },
+    ],
     value: {
-      kind: LangExpressionKind.ArrayExpression,
-      expressions: [
-        {
-          kind: LangExpressionKind.ArraySpreadExpression,
-          expression: {
-            kind: LangExpressionKind.MemberExpression,
-            expression: {
-              kind: LangExpressionKind.MemberExpression,
-              expression: {
-                kind: LangExpressionKind.ReferenceExpression,
-                name: "a",
-              },
-              name: "b",
-            },
-            name: "c",
-          },
+      kind: LangExpressionKind.MemberExpression,
+      expression: {
+        kind: LangExpressionKind.MemberExpression,
+        expression: {
+          kind: LangExpressionKind.ReferenceExpression,
+          name: "a",
         },
-      ],
+        name: "b",
+      },
+      name: "c",
     },
   },
   {
     id: "LANG.EXPRESSIONS.SPREAD03",
-    pattern: () => ExpressionLang,
-    input: "[...(a)]",
+    module: () => SpreadExpression,
+    input: [
+      { kind: TokenizerKind.Token, value: "." },
+      { kind: TokenizerKind.Token, value: "." },
+      { kind: TokenizerKind.Token, value: "." },
+      { kind: TokenizerKind.Token, value: "(" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: ")" },
+    ],
     value: {
-      kind: LangExpressionKind.ArrayExpression,
-      expressions: [
-        {
-          kind: LangExpressionKind.ArraySpreadExpression,
-          expression: {
-            kind: LangExpressionKind.InvocationExpression,
-            arguments: [],
-            expression: {
-              kind: LangExpressionKind.ReferenceExpression,
-              name: "a",
-            },
-          },
-        },
-      ],
+      kind: LangExpressionKind.InvocationExpression,
+      arguments: [],
+      expression: {
+        kind: LangExpressionKind.ReferenceExpression,
+        name: "a",
+      },
     },
   },
 ]);

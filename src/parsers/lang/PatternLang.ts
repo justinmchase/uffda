@@ -1,30 +1,40 @@
-import { IRulePattern, PatternKind } from "../../runtime/patterns/mod.ts";
-import { Basic } from "../../mod.ts";
-import * as Patterns from "./patterns/mod.ts";
-import * as Expressions from "./expressions/mod.ts";
+import { PatternKind } from "../../runtime/patterns/mod.ts";
+import { Basic } from "../basic.ts";
 import { LangPatternKind } from "./lang.pattern.ts";
+import { DeclarationKind } from "../../runtime/declarations/declaration.kind.ts";
+import { IModuleDeclaration } from "../../runtime/declarations/mod.ts";
+import { PatternPattern } from "./patterns/mod.ts";
 
-export const PatternLang: IRulePattern = {
-  kind: PatternKind.Rule,
-  pattern: {
-    kind: PatternKind.Block,
-    rules: {
-      Basic,
-      ...Patterns,
-      ...Expressions,
-      Main: {
-        kind: PatternKind.Rule,
-        pattern: {
-          kind: PatternKind.Pipeline,
-          steps: [
-            { kind: PatternKind.Reference, name: "Basic" },
-            {
-              kind: PatternKind.Reference,
-              name: LangPatternKind.PatternPattern,
-            },
-          ],
-        },
+export const PatternLang: IModuleDeclaration = {
+  kind: DeclarationKind.Module,
+  imports: [
+    {
+      kind: DeclarationKind.NativeImport,
+      moduleUrl: "../basic.ts",
+      module: Basic,
+      names: ["Basic"]
+    },
+    {
+      kind: DeclarationKind.NativeImport,
+      moduleUrl: "./patterns/PatternPattern.ts",
+      module: PatternPattern,
+      names: ["PatternPattern"],
+    }
+  ],
+  rules: [
+    {
+      kind: DeclarationKind.Rule,
+      name: "PatternLang",
+      pattern: {
+        kind: PatternKind.Pipeline,
+        steps: [
+          { kind: PatternKind.Reference, name: "Basic" },
+          {
+            kind: PatternKind.Reference,
+            name: LangPatternKind.PatternPattern,
+          },
+        ],
       },
     },
-  },
+  ],
 };

@@ -1,12 +1,17 @@
 import { tests } from "../../../test.ts";
+import { TokenizerKind } from "../../mod.ts";
 import { LangExpressionKind } from "../lang.pattern.ts";
-import { ExpressionLang } from "../ExpressionLang.ts";
+import { SubtractExpression } from "./SubtractExpression.ts";
 
 tests(() => [
   {
     id: "LANG.EXPRESSION.SUBTRACT00",
-    pattern: () => ExpressionLang,
-    input: "11 - 7",
+    module: () => SubtractExpression,
+    input: [
+      { kind: TokenizerKind.Integer, value: 11 },
+      { kind: TokenizerKind.Token, value: "-" },
+      { kind: TokenizerKind.Integer, value: 7 },
+    ],
     value: {
       kind: LangExpressionKind.SubtractExpression,
       left: { kind: LangExpressionKind.NumberExpression, value: 11 },
@@ -15,8 +20,16 @@ tests(() => [
   },
   {
     id: "LANG.EXPRESSION.SUBTRACT01",
-    pattern: () => ExpressionLang,
-    input: "11 + 7 - 13 + 3",
+    module: () => SubtractExpression,
+    input: [
+      { kind: TokenizerKind.Integer, value: 11 },
+      { kind: TokenizerKind.Token, value: "+" },
+      { kind: TokenizerKind.Integer, value: 7 },
+      { kind: TokenizerKind.Token, value: "-" },
+      { kind: TokenizerKind.Integer, value: 13 },
+      { kind: TokenizerKind.Token, value: "+" },
+      { kind: TokenizerKind.Integer, value: 3 },
+    ],
     value: {
       kind: LangExpressionKind.SubtractExpression,
       left: {
@@ -33,9 +46,16 @@ tests(() => [
   },
   {
     id: "LANG.EXPRESSION.SUBTRACT02",
-    pattern: () => ExpressionLang,
-    //     ((11 - 7) - 13) - 3
-    input: "11 - 7 - 13 - 3",
+    module: () => SubtractExpression,
+    input: [
+      { kind: TokenizerKind.Integer, value: 11 },
+      { kind: TokenizerKind.Token, value: "-" },
+      { kind: TokenizerKind.Integer, value: 7 },
+      { kind: TokenizerKind.Token, value: "-" },
+      { kind: TokenizerKind.Integer, value: 13 },
+      { kind: TokenizerKind.Token, value: "-" },
+      { kind: TokenizerKind.Integer, value: 3 },
+    ],
     value: {
       kind: LangExpressionKind.SubtractExpression,
       left: {
@@ -52,9 +72,16 @@ tests(() => [
   },
   {
     id: "LANG.EXPRESSION.SUBTRACT03",
-    pattern: () => ExpressionLang,
-    //     ((11 - 7) - 13) - 3
-    input: "11 - 7 + 13 - 3",
+    module: () => SubtractExpression,
+    input: [
+      { kind: TokenizerKind.Integer, value: 11 },
+      { kind: TokenizerKind.Token, value: "-" },
+      { kind: TokenizerKind.Integer, value: 7 },
+      { kind: TokenizerKind.Token, value: "+" },
+      { kind: TokenizerKind.Integer, value: 13 },
+      { kind: TokenizerKind.Token, value: "-" },
+      { kind: TokenizerKind.Integer, value: 3 },
+    ],
     value: {
       kind: LangExpressionKind.SubtractExpression,
       left: {

@@ -5,21 +5,21 @@ tests(() => [
   {
     id: "INTEGER00",
     description: "can match a single digit",
-    pattern: () => Integer,
+    module: () => Integer,
     input: "1",
     value: "1",
   },
   {
     id: "INTEGER01",
     description: "can match multiple digits",
-    pattern: () => Integer,
+    module: () => Integer,
     input: "123",
     value: "123",
   },
   {
     id: "INTEGER02",
     description: "does not match a letter",
-    pattern: () => Integer,
+    module: () => Integer,
     input: "a",
     matched: false,
     done: false,
@@ -27,7 +27,7 @@ tests(() => [
   {
     id: "INTEGER03",
     description: "does not match a symbol",
-    pattern: () => Integer,
+    module: () => Integer,
     input: "*",
     matched: false,
     done: false,
@@ -35,7 +35,7 @@ tests(() => [
   {
     id: "INTEGER04",
     description: "does not match letters after an integer",
-    pattern: () => Integer,
+    module: () => Integer,
     input: "123ms",
     value: "123",
     done: false,
@@ -43,7 +43,7 @@ tests(() => [
   {
     id: "INTEGER05",
     description: "does not match float remainder",
-    pattern: () => Integer,
+    module: () => Integer,
     input: "7.11",
     value: "7",
     done: false,

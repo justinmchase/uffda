@@ -1,37 +1,54 @@
-import { IRulePattern, PatternKind } from "../../../runtime/patterns/mod.ts";
+import { PatternKind } from "../../../runtime/patterns/mod.ts";
 import { ExpressionKind } from "../../../runtime/expressions/mod.ts";
 import { LangPatternKind } from "../../lang/lang.pattern.ts";
+import { DeclarationKind } from "../../../runtime/declarations/declaration.kind.ts";
+import { IModuleDeclaration } from "../../../runtime/declarations/mod.ts";
+import { PatternPattern } from "./PatternPattern.ts";
 
-export const VariablePattern: IRulePattern = {
-  kind: PatternKind.Rule,
-  pattern: {
-    kind: PatternKind.Projection,
-    pattern: {
-      kind: PatternKind.Object,
-      keys: {
-        kind: {
-          kind: PatternKind.Equal,
-          value: LangPatternKind.VariablePattern,
-        },
-        name: {
-          kind: PatternKind.Variable,
-          name: "name",
-          pattern: { kind: PatternKind.String },
-        },
+export const VariablePattern: IModuleDeclaration = {
+  kind: DeclarationKind.Module,
+  imports: [
+    {
+      kind: DeclarationKind.NativeImport,
+      module: () => PatternPattern,
+      moduleUrl: "./PatternPattern.ts",
+      names: ["PatternPattern"],
+    }
+  ],
+  rules: [
+    {
+      kind: DeclarationKind.Rule,
+      name: "VariablePattern",
+      pattern: {
+        kind: PatternKind.Projection,
         pattern: {
-          kind: PatternKind.Variable,
-          name: "pattern",
-          pattern: { kind: PatternKind.Reference, name: "PatternPattern" },
+          kind: PatternKind.Object,
+          keys: {
+            kind: {
+              kind: PatternKind.Equal,
+              value: LangPatternKind.VariablePattern,
+            },
+            name: {
+              kind: PatternKind.Variable,
+              name: "name",
+              pattern: { kind: PatternKind.String },
+            },
+            pattern: {
+              kind: PatternKind.Variable,
+              name: "pattern",
+              pattern: { kind: PatternKind.Reference, name: "PatternPattern" },
+            },
+          },
+        },
+        expression: {
+          kind: ExpressionKind.Native,
+          fn: ({ name, pattern }) => ({
+            kind: PatternKind.Variable,
+            name,
+            pattern,
+          }),
         },
       },
-    },
-    expression: {
-      kind: ExpressionKind.Native,
-      fn: ({ name, pattern }) => ({
-        kind: PatternKind.Variable,
-        name,
-        pattern,
-      }),
-    },
-  },
+    }
+  ]
 };

@@ -1,41 +1,44 @@
-import { IScopeOptions, Scope } from "./scope.ts";
-import { Meta } from "./parsers/meta.ts";
-import { match } from "./runtime/mod.ts";
-import { ProjectionFunction } from "./runtime/expressions/mod.ts";
-import { IRulePattern, Pattern } from "./runtime/patterns/mod.ts";
+// import { Scope } from "./scope.ts";
+// import { Resolver, run } from "./runtime/mod.ts";
+// import { Compiler } from "./parsers/compiler/Compiler.ts";
+// import { IModuleDeclaration } from "./runtime/declarations/module.ts";
 
-const templateToCode = (template: TemplateStringsArray) =>
-  template.reduce(
-    (l, r, i) => `${l}$${i - 1}${r}`,
-  );
-const argsToSpecials = (args: (ProjectionFunction | IRulePattern)[]) =>
-  args.reduce(
-    (a, b, i) => Object.assign(a, { [`$${i}`]: b }),
-    {},
-  ) as Record<string, unknown>;
+// const templateToCode = (template: TemplateStringsArray) =>
+//   template.reduce(
+//     (l, r, i) => `${l}$${i - 1}${r}`,
+//   );
+// const argsToSpecials = (args: unknown[]) =>
+//   args.reduce<Record<string, unknown>>(
+//     (a, b, i) => Object.assign(a, { [`$${i}`]: b }),
+//     {},
+//   );
 
-// function uffda<T>(template: TemplateStringsArray, ...args: T[]) {
-//   const metaCode = templateToCode(template);
+// export function code(
+//   template: TemplateStringsArray,
+//   ...args: unknown[]
+// ): Scope {
+//   const dslCode = templateToCode(template);
 //   const specials = argsToSpecials(args);
-//   const scope = Scope.From(metaCode).setSpecials(specials);
-//   const { matched, done, value, errors } = match(Meta, scope);
-//   assert(equal(errors, []), errors.join("\n"));
-//   assert(done, "Parser failed to parse entire code");
-//   assert(matched, "The parser failed to parse the provided code");
-//   assert(value, "The parser did not produce a valid AST");
-//   return dsl(value as Pattern);
+//   return Scope.From(dslCode, {
+//     specials
+//   })
+// };
+
+// export function dsl<T>(moduleUrl: string, module: IModuleDeclaration, resolver?: Resolver) {
+//   return async (template: TemplateStringsArray, ...args: unknown[] ) => {     
+//     const dslCode = templateToCode(template);
+//     const specials = argsToSpecials(args);
+//     const r = resolver ?? new Resolver(moduleUrl)
+//     const m = await r.load(moduleUrl, module)
+//     const s = Scope.From(dslCode, {
+//       module: m,
+//       specials
+//     })
+//     return await run<T>(s)
+//   }
 // }
 
-export function dsl(pattern: Pattern, options?: IScopeOptions) {
-  return (
-    template: TemplateStringsArray,
-    ...args: (ProjectionFunction | IRulePattern)[]
-  ) => {
-    const dslCode = templateToCode(template);
-    const specials = argsToSpecials(args);
-    const scope = Scope.From(dslCode, options).setSpecials(specials);
-    return match(pattern, scope);
-  };
-}
-
-export const uffda = dsl(Meta);
+// export const uffda = dsl<IModuleDeclaration>(
+//   Resolver.normalizeModulePath("./parsers/compiler/Compiler.ts", import.meta.url),
+//   Compiler
+// );

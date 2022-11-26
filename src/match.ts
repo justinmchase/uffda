@@ -163,34 +163,12 @@ export class Match {
     );
   }
 
-  public popRule(scope: Scope) {
+  public pop(scope: Scope) {
     return new Match(
       this.matched,
       this.isLr,
       this.start,
-      this.end.popRule(scope),
-      this.value,
-      this.errors,
-    );
-  }
-
-  public popRef(scope: Scope) {
-    return new Match(
-      this.matched,
-      this.isLr,
-      this.start,
-      this.end.popRef(scope),
-      this.value,
-      this.errors,
-    );
-  }
-
-  public pop() {
-    return new Match(
-      this.matched,
-      this.isLr,
-      this.start,
-      this.end.pop(),
+      this.end.pop(scope),
       this.value,
       this.errors,
     );

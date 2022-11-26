@@ -1,5 +1,6 @@
 import {
   assert,
+  assertRejects,
   assertThrows,
   brightBlack,
   brightCyan,
@@ -13,14 +14,22 @@ import { match } from "./runtime/match.ts";
 import { exec } from "./runtime/exec.ts";
 import { Pattern } from "./runtime/patterns/pattern.ts";
 import { Expression } from "./runtime/expressions/expression.ts";
+import { IModuleDeclaration } from "./runtime/declarations/module.ts";
+import { Resolver, run } from "./mod.ts";
 
 interface ITest {
   id: string;
   description?: string;
-  errors?: { start: string; end: string }[];
+  errors?: { name?: string; message?: string; start: string; end: string }[];
   only?: boolean;
   trace?: boolean;
   future?: boolean;
+}
+
+interface IModuleDeclarationTest extends ITest {
+  input?: string | { toString(): string };
+  moduleUrl?: string;
+  module: () => IModuleDeclaration;
 }
 
 interface IPatternTest extends ITest {
@@ -38,9 +47,9 @@ interface IThrows {
 }
 
 interface IPatternResults {
+  input?: string | { toString(): string };
   throws?: false;
   specials?: Record<string, unknown>;
-  input: Iterable<unknown> | Scope;
   value?: unknown;
   matched?: boolean;
   done?: boolean;
@@ -49,6 +58,14 @@ interface IPatternResults {
 interface IExpressionResults {
   throws?: false;
   result?: unknown;
+}
+
+interface IModuleDeclarationResults {
+  throws?: false;
+  value?: unknown;
+  specials?: Record<string, unknown>;
+  matched?: boolean;
+  done?: boolean;
 }
 
 type PatternTest =
@@ -64,6 +81,11 @@ type PatternTest =
         | IThrows
         | IExpressionResults
       )
+    | IModuleDeclarationTest
+      & (
+        | IThrows
+        | IModuleDeclarationResults
+      )
   );
 
 export function isExpressionTest(value: unknown): value is IExpressionTest {
@@ -77,6 +99,12 @@ export function isPatternTest(value: unknown): value is IPatternTest {
   if (typeof value !== "object") return false;
   const t = value as IPatternTest;
   return typeof t.pattern === "function";
+}
+export function isModuleDeclarationTest(value: unknown): value is IModuleDeclarationTest {
+  if (value == null) return false;
+  if (typeof value !== "object") return false;
+  const t = value as IModuleDeclarationTest;
+  return typeof t.module == "function";
 }
 
 export function tests(group: () => PatternTest[]) {
@@ -101,7 +129,7 @@ export function tests(group: () => PatternTest[]) {
         s
       )
         .join(" "),
-      fn: () => {
+      fn: async () => {
         if (isPatternTest(test)) {
           const { pattern } = test;
           if (test.throws) {
@@ -119,7 +147,7 @@ export function tests(group: () => PatternTest[]) {
                 done = true,
               } = test;
               const p = pattern();
-              const s = Scope.From(input, { trace }).setSpecials(specials);
+              const s = Scope.From(input?.toString() ?? '', { trace, specials });
               const m = match(p, s);
               const e = m.errors.map((e) => ({
                 name: e.name,
@@ -197,6 +225,61 @@ export function tests(group: () => PatternTest[]) {
                   JSON.stringify({ name, message, metadata }, null, 2)
                 }`,
               );
+              throw err;
+            }
+          }
+        } else if (isModuleDeclarationTest(test)) {
+          const { module, input, moduleUrl = import.meta.url } = test;
+          const resolver = new Resolver(moduleUrl)
+          const moduleDeclaration = module()
+          if (test.throws) {
+            await assertRejects(
+              async () => {
+                const main = await resolver.load(moduleUrl, moduleDeclaration)
+                const scope = Scope.From(input as Iterable<unknown> ?? '', { module: main, })
+                await run(scope)
+              },
+              'Module was expected to throw'
+            )
+          } else {
+            try {
+              const { value, done = true, matched = true, trace, specials } = test;
+              const main = await resolver.load(moduleUrl, moduleDeclaration)
+              const scope = Scope.From(input as Iterable<unknown> ?? '', { module: main, trace, specials })
+              const m = await run(scope)
+              const e = m.errors.map((e) => ({
+                name: e.name,
+                message: e.message,
+                start: e.start.stream.path.toString(),
+                end: e.end.stream.path.toString(),
+              }));
+              const actual = {
+                matched: m.matched,
+                done: m.done,
+                errors: e,
+                value: m.value
+              };
+              const expected = {
+                matched,
+                done,
+                errors,
+                value
+              };
+              assert(
+                equal(actual, expected),
+                `Module failed to run:\n` +
+                `expected: ${
+                    Deno.inspect(expected, { colors: true, depth: 10 })
+                  }\n` +
+                `actual: ${
+                    Deno.inspect(actual, { colors: true, depth: 10 })
+                  }\n`,
+              );
+            } catch (err) {
+              const { name, message, stack: _stack, ...rest } = err;
+              console.log(`${red("error")}: ${
+                Deno.inspect({ name, message, ...rest }, { colors: true, depth: 3 })
+              }`);
               throw err;
             }
           }

@@ -1,13 +1,26 @@
 import { tests } from "../../../test.ts";
 import { PatternKind } from "../../../runtime/patterns/mod.ts";
-import { PatternCompiler } from "../PatternCompiler.ts";
+import { PipelinePattern } from "./PipelinePattern.ts";
+import { LangPatternKind } from "../../lang/lang.pattern.ts";
 
 tests(() => [
   {
     id: "PIPELINEPATTERN00",
     description: "a > b",
-    pattern: () => PatternCompiler,
-    input: "a > b",
+    module: () => PipelinePattern,
+    input: [
+      {
+        kind: LangPatternKind.PipelinePattern,
+        left: {
+          kind: LangPatternKind.ReferencePattern,
+          name: "a"
+        },
+        right: {
+          kind: LangPatternKind.ReferencePattern,
+          name: "b"
+        }
+      }
+    ],
     value: {
       kind: PatternKind.Pipeline,
       steps: [

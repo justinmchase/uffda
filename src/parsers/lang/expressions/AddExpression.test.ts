@@ -1,12 +1,17 @@
 import { tests } from "../../../test.ts";
+import { TokenizerKind } from "../../mod.ts";
 import { LangExpressionKind } from "../lang.pattern.ts";
-import { ExpressionLang } from "../ExpressionLang.ts";
+import { AddExpression } from "./AddExpression.ts";
 
 tests(() => [
   {
     id: "ADD00",
-    pattern: () => ExpressionLang,
-    input: "1 + 2",
+    module: () => AddExpression,
+    input: [
+      { kind: TokenizerKind.Integer, value: 1 },
+      { kind: TokenizerKind.Token, value: "+" },
+      { kind: TokenizerKind.Integer, value: 2 },
+    ],
     value: {
       kind: LangExpressionKind.AddExpression,
       left: { kind: LangExpressionKind.NumberExpression, value: 1 },
@@ -15,8 +20,12 @@ tests(() => [
   },
   {
     id: "ADD01",
-    pattern: () => ExpressionLang,
-    input: "a + b",
+    module: () => AddExpression,
+    input: [
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: "+" },
+      { kind: TokenizerKind.Identifier, value: "b" },
+    ],
     value: {
       kind: LangExpressionKind.AddExpression,
       left: { kind: LangExpressionKind.ReferenceExpression, name: "a" },
@@ -25,8 +34,19 @@ tests(() => [
   },
   {
     id: "ADD02",
-    pattern: () => ExpressionLang,
-    input: "(a.b) + c.d",
+    module: () => AddExpression,
+    // input: "(a.b) + c.d",
+    input: [
+      { kind: TokenizerKind.Token, value: "(" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: "." },
+      { kind: TokenizerKind.Identifier, value: "b" },
+      { kind: TokenizerKind.Token, value: ")" },
+      { kind: TokenizerKind.Token, value: "+" },
+      { kind: TokenizerKind.Identifier, value: "c" },
+      { kind: TokenizerKind.Token, value: "." },
+      { kind: TokenizerKind.Identifier, value: "d" },
+    ],
     value: {
       kind: LangExpressionKind.AddExpression,
       left: {

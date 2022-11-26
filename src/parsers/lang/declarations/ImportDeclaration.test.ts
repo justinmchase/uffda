@@ -1,34 +1,38 @@
 import { tests } from "../../../test.ts";
-import { Lang } from "../Lang.ts";
 import { LangModuleKind } from "../lang.pattern.ts";
+import { ImportDeclaration } from "./ImportDeclaration.ts";
+import { InvalidImportDeclaration } from "./InvalidImportDeclaration.ts";
 
 tests(() => [
   {
     id: "IMPORT00",
-    pattern: () => Lang,
-    input: "import './a.uff' (a);",
+    module: () => ImportDeclaration,
+    input: [
+      { kind: 'Identifier', value: 'import' },
+      { kind: 'String', value: './test.uff' },
+      { kind: 'Token',      value: '(' },
+      { kind: 'Identifier', value: 'Test'},
+      { kind: 'Token',      value: ')' },
+      { kind: 'Token',      value: ';' },
+    ],
     value: {
-      kind: LangModuleKind.PatternModule,
-      imports: [
-        {
-          kind: LangModuleKind.ImportDeclaration,
-          names: ["a"],
-          modulePath: "./a.uff",
-        },
-      ],
-      patterns: [],
+      kind: LangModuleKind.ImportDeclaration,
+      names: ["Test"],
+      modulePath: "./test.uff",
     },
   },
   {
     id: "IMPORT01",
-    pattern: () => Lang,
-    input: "import (a) './a.uff';",
-    value: {
-      kind: LangModuleKind.PatternModule,
-      imports: [],
-      patterns: [],
-    },
-    matched: false,
+    module: () => InvalidImportDeclaration,
+    input: [
+      { kind: 'Identifier', value: 'import' },
+      { kind: 'Token',      value: '(' },
+      { kind: 'Identifier', value: 'Test'},
+      { kind: 'Token',      value: ')' },
+      { kind: 'String', value: './test.uff' },
+      { kind: 'Token',      value: ';' },
+    ],
+    value: undefined,
     errors: [
       {
         name: "InvalidImportDeclaration",

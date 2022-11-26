@@ -1,13 +1,24 @@
 import { tests } from "../../../test.ts";
 import { PatternKind } from "../../../runtime/patterns/mod.ts";
-import { PatternCompiler } from "../PatternCompiler.ts";
+import { ObjectPattern } from "./ObjectPattern.ts";
+import { LangPatternKind } from "../../lang/lang.pattern.ts";
 
 tests(() => [
   {
     id: "OBJECTPATTERN00",
-    description: "parses ObjectPattern into object pattern",
-    pattern: () => PatternCompiler,
-    input: "{ x = ok }",
+    module: () => ObjectPattern,
+    input: [
+      {
+        kind: LangPatternKind.ObjectPattern,
+        keys: [
+          {
+            kind: LangPatternKind.ObjectKeyPattern,
+            name: "x",
+            pattern: { kind: LangPatternKind.OkPattern }
+          }
+        ]
+      }
+    ],
     value: {
       kind: PatternKind.Object,
       keys: {
@@ -17,9 +28,18 @@ tests(() => [
   },
   {
     id: "OBJECTPATTERN01",
-    description: "parses ObjectPattern into object pattern",
-    pattern: () => PatternCompiler,
-    input: "{ x }",
+    module: () => ObjectPattern,
+    input: [
+      {
+        kind: LangPatternKind.ObjectPattern,
+        keys: [
+          {
+            kind: LangPatternKind.ObjectKeyPattern,
+            name: "x",
+          }
+        ]
+      }
+    ],
     value: {
       kind: PatternKind.Object,
       keys: {
@@ -29,9 +49,19 @@ tests(() => [
   },
   {
     id: "OBJECTPATTERN02",
-    description: "{ x:y }",
-    pattern: () => PatternCompiler,
-    input: "{ x:y }",
+    module: () => ObjectPattern,
+    input: [
+      {
+        kind: LangPatternKind.ObjectPattern,
+        keys: [
+          {
+            kind: LangPatternKind.ObjectKeyPattern,
+            alias: "x",
+            name: "y",
+          }
+        ]
+      }
+    ],
     value: {
       kind: PatternKind.Object,
       keys: {
@@ -47,9 +77,19 @@ tests(() => [
   },
   {
     id: "OBJECTPATTERN03",
-    description: "{ x! }",
-    pattern: () => PatternCompiler,
-    input: "{ x! }",
+    module: () => ObjectPattern,
+    input: [
+      {
+        kind: LangPatternKind.ObjectPattern,
+        keys: [
+          {
+            kind: LangPatternKind.ObjectKeyPattern,
+            name: "x",
+            must: true,
+          }
+        ]
+      }
+    ],
     value: {
       kind: PatternKind.Object,
       keys: {
@@ -64,9 +104,20 @@ tests(() => [
   },
   {
     id: "OBJECTPATTERN04",
-    description: "{ x:y! }",
-    pattern: () => PatternCompiler,
-    input: "{ x:y! }",
+    module: () => ObjectPattern,
+    input: [
+      {
+        kind: LangPatternKind.ObjectPattern,
+        keys: [
+          {
+            kind: LangPatternKind.ObjectKeyPattern,
+            alias: "x",
+            name: "y",
+            must: true,
+          }
+        ]
+      }
+    ],
     value: {
       kind: PatternKind.Object,
       keys: {
@@ -85,9 +136,24 @@ tests(() => [
   },
   {
     id: "OBJECTPATTERN05",
-    description: "{ x = string! }",
-    pattern: () => PatternCompiler,
-    input: "{ x = string! }",
+    module: () => ObjectPattern,
+    input: [
+      {
+        kind: LangPatternKind.ObjectPattern,
+        keys: [
+          {
+            kind: LangPatternKind.ObjectKeyPattern,
+            name: "x",
+            pattern: {
+              kind: LangPatternKind.MustPattern,
+              pattern: {
+                kind: LangPatternKind.StringPattern
+              }
+            }
+          }
+        ]
+      }
+    ],
     value: {
       kind: PatternKind.Object,
       keys: {

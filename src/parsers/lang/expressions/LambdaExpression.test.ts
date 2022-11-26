@@ -1,12 +1,21 @@
 import { tests } from "../../../test.ts";
+import { TokenizerKind } from "../../mod.ts";
 import { LangExpressionKind, LangPatternKind } from "../lang.pattern.ts";
-import { ExpressionLang } from "../ExpressionLang.ts";
+import { LambdaExpression } from "./LambdaExpression.ts";
 
 tests(() => [
   {
     id: "LANG.LAMBDA00",
-    pattern: () => ExpressionLang,
-    input: "(a -> a)",
+    module: () => LambdaExpression,
+    // input: "(a -> a)",
+    input: [
+      { kind: TokenizerKind.Token, value: "(" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: "-" },
+      { kind: TokenizerKind.Token, value: ">" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: ")" },
+    ],  
     value: {
       kind: LangExpressionKind.LambdaExpression,
       pattern: { kind: LangPatternKind.ReferencePattern, name: "a" },
@@ -15,8 +24,18 @@ tests(() => [
   },
   {
     id: "LANG.LAMBDA01",
-    pattern: () => ExpressionLang,
-    input: "(a -> a + 1)",
+    module: () => LambdaExpression,
+    // input: "(a -> a + 1)",
+    input: [
+      { kind: TokenizerKind.Token, value: "(" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: "-" },
+      { kind: TokenizerKind.Token, value: ">" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: "+" },
+      { kind: TokenizerKind.Integer, value: 1 },
+      { kind: TokenizerKind.Token, value: ")" },
+    ],  
     value: {
       kind: LangExpressionKind.LambdaExpression,
       pattern: { kind: LangPatternKind.ReferencePattern, name: "a" },
@@ -35,8 +54,23 @@ tests(() => [
   },
   {
     id: "LANG.LAMBDA02",
-    pattern: () => ExpressionLang,
-    input: "(a -> (b -> a + b))",
+    module: () => LambdaExpression,
+    // input: "(a -> (b -> a + b))",
+    input: [
+      { kind: TokenizerKind.Token, value: "(" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: "-" },
+      { kind: TokenizerKind.Token, value: ">" },
+      { kind: TokenizerKind.Token, value: "(" },
+      { kind: TokenizerKind.Identifier, value: "b" },
+      { kind: TokenizerKind.Token, value: "-" },
+      { kind: TokenizerKind.Token, value: ">" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: "+" },
+      { kind: TokenizerKind.Identifier, value: "b" },
+      { kind: TokenizerKind.Token, value: ")" },
+      { kind: TokenizerKind.Token, value: ")" },
+    ],  
     value: {
       kind: LangExpressionKind.LambdaExpression,
       pattern: { kind: LangPatternKind.ReferencePattern, name: "a" },
@@ -59,8 +93,17 @@ tests(() => [
   },
   {
     id: "LANG.LAMBDA03",
-    pattern: () => ExpressionLang,
-    input: "(a b -> _)",
+    module: () => LambdaExpression,
+    // input: "(a b -> _)",
+    input: [
+      { kind: TokenizerKind.Token, value: "(" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Identifier, value: "b" },
+      { kind: TokenizerKind.Token, value: "-" },
+      { kind: TokenizerKind.Token, value: ">" },
+      { kind: TokenizerKind.Identifier, value: "_" },
+      { kind: TokenizerKind.Token, value: ")" },
+    ],  
     value: {
       kind: LangExpressionKind.LambdaExpression,
       pattern: {
@@ -82,13 +125,23 @@ tests(() => [
   },
   {
     id: "LANG.LAMBDA04",
-    pattern: () => ExpressionLang,
+    module: () => LambdaExpression,
 
     // this is ambiguous between a lambda expression
     // and a projection pattern, because the pattern
     // is PatternPattern vs the lower priority ThenPattern
     // Should we have projec
-    input: "(a | b -> _)",
+    // input: "(a | b -> _)",
+    input: [
+      { kind: TokenizerKind.Token, value: "(" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: "|" },
+      { kind: TokenizerKind.Identifier, value: "b" },
+      { kind: TokenizerKind.Token, value: "-" },
+      { kind: TokenizerKind.Token, value: ">" },
+      { kind: TokenizerKind.Identifier, value: "_" },
+      { kind: TokenizerKind.Token, value: ")" },
+    ],    
     value: {
       kind: LangExpressionKind.LambdaExpression,
       pattern: {

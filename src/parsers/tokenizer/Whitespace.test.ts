@@ -5,21 +5,21 @@ tests(() => [
   {
     id: "WHITESPACE00",
     description: "can match space",
-    pattern: () => Whitespace,
+    module: () => Whitespace,
     input: " ",
     value: " ",
   },
   {
     id: "WHITESPACE01",
     description: "can match tab",
-    pattern: () => Whitespace,
+    module: () => Whitespace,
     input: "\t",
     value: "\t",
   },
   {
     id: "WHITESPACE02",
     description: "does not match newline",
-    pattern: () => Whitespace,
+    module: () => Whitespace,
     input: "\n",
     matched: false,
     done: false,
@@ -27,7 +27,7 @@ tests(() => [
   {
     id: "WHITESPACE03",
     description: "matches multiple whitespace characters in a row",
-    pattern: () => Whitespace,
+    module: () => Whitespace,
     input: "     ",
     value: "     ",
   },

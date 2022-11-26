@@ -1,18 +1,33 @@
 import { tests } from "../../../test.ts";
-import { PatternLang } from "../PatternLang.ts";
+import { TokenizerKind } from "../../mod.ts";
 import { LangPatternKind } from "../lang.pattern.ts";
+import { GroupPattern } from "./GroupPattern.ts";
 
 tests(() => [
   {
     id: "GROUP00",
-    pattern: () => PatternLang,
-    input: "(a)",
+    module: () => GroupPattern,
+    input: [
+      { kind: TokenizerKind.Token, value: "(" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: ")" },
+    ],
     value: { kind: LangPatternKind.ReferencePattern, name: "a" },
   },
   {
     id: "GROUP01",
-    pattern: () => PatternLang,
-    input: "(a & b) | c",
+    module: () => GroupPattern,
+    input: [
+      { kind: TokenizerKind.Token, value: "(" },
+      { kind: TokenizerKind.Token, value: "(" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: "&" },
+      { kind: TokenizerKind.Identifier, value: "b" },
+      { kind: TokenizerKind.Token, value: ")" },
+      { kind: TokenizerKind.Token, value: "|" },
+      { kind: TokenizerKind.Identifier, value: "c" },
+      { kind: TokenizerKind.Token, value: ")" },
+    ],
     value: {
       kind: LangPatternKind.OrPattern,
       left: {
@@ -31,8 +46,22 @@ tests(() => [
   },
   {
     id: "GROUP02",
-    pattern: () => PatternLang,
-    input: "(a | (b & c)) | d",
+    module: () => GroupPattern,
+    input: [
+      { kind: TokenizerKind.Token, value: "(" },
+      { kind: TokenizerKind.Token, value: "(" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: "|" },
+      { kind: TokenizerKind.Token, value: "(" },
+      { kind: TokenizerKind.Identifier, value: "b" },
+      { kind: TokenizerKind.Token, value: "&" },
+      { kind: TokenizerKind.Identifier, value: "c" },
+      { kind: TokenizerKind.Token, value: ")" },
+      { kind: TokenizerKind.Token, value: ")" },
+      { kind: TokenizerKind.Token, value: "|" },
+      { kind: TokenizerKind.Identifier, value: "d" },
+      { kind: TokenizerKind.Token, value: ")" },
+    ],
     value: {
       kind: LangPatternKind.OrPattern,
       left: {

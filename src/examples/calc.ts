@@ -1,7 +1,7 @@
-import { Basic, dsl, uffda } from "../mod.ts";
-import { Pattern } from "../runtime/patterns/mod.ts";
+import { Basic, dsl, uffda, code } from "../mod.ts";
+import { Scope } from "../scope.ts";
 
-const match = uffda`
+export const Calc = await uffda`
   Number
     = ({ type = 'Integer', i:value } -> i)
     ;
@@ -19,7 +19,9 @@ const match = uffda`
   Calc = Add;
 
   Main = ${Basic} > Calc;
-`;
+`
 
-export const Calc = match.value as Pattern;
-export const calc = dsl(Calc);
+export const calc = dsl<number>(import.meta.url, Calc)
+
+// const ex0 = await calc('1 + 2 - 3') // 0
+// const ex1 = await calc(code`7 + ${11}`) // 18

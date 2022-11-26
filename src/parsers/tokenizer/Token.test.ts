@@ -5,7 +5,7 @@ tests(() => [
   {
     id: "TOKEN00",
     description: "does not match a letter",
-    pattern: () => Token,
+    module: () => Token,
     input: "a",
     matched: false,
     done: false,
@@ -13,7 +13,7 @@ tests(() => [
   {
     id: "TOKEN01",
     description: "does not match a digit",
-    pattern: () => Token,
+    module: () => Token,
     input: "1",
     matched: false,
     done: false,
@@ -21,7 +21,7 @@ tests(() => [
   {
     id: "TOKEN02",
     description: "does not match whitespace",
-    pattern: () => Token,
+    module: () => Token,
     input: " ",
     matched: false,
     done: false,
@@ -29,7 +29,7 @@ tests(() => [
   {
     id: "TOKEN03",
     description: "matches a non-letter, non-digit, non-whitespace",
-    pattern: () => Token,
+    module: () => Token,
     input: "*",
     value: "*",
   },

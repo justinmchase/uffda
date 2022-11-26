@@ -5,7 +5,7 @@ import { LangModuleKind, LangPatternKind } from "./lang.pattern.ts";
 tests(() => [
   {
     id: "MOD00",
-    pattern: () => Lang,
+    module: () => Lang,
     input: "A = B;",
     value: {
       kind: LangModuleKind.PatternModule,
@@ -21,7 +21,7 @@ tests(() => [
   },
   {
     id: "MOD01",
-    pattern: () => Lang,
+    module: () => Lang,
     input: "import './b.uff' (B); A = B;",
     value: {
       kind: LangModuleKind.PatternModule,
@@ -43,7 +43,7 @@ tests(() => [
   },
   {
     id: "MOD02",
-    pattern: () => Lang,
+    module: () => Lang,
     input: "import './b.uff' (A B);",
     value: {
       kind: LangModuleKind.PatternModule,
@@ -59,7 +59,7 @@ tests(() => [
   },
   {
     id: "MOD03",
-    pattern: () => Lang,
+    module: () => Lang,
     input: `import './b.uff' (
       A
       B
@@ -78,7 +78,7 @@ tests(() => [
   },
   {
     id: "MOD04",
-    pattern: () => Lang,
+    module: () => Lang,
     input: "A = B;",
     value: {
       kind: LangModuleKind.PatternModule,
@@ -94,7 +94,7 @@ tests(() => [
   },
   {
     id: "MOD05",
-    pattern: () => Lang,
+    module: () => Lang,
     input: "",
     value: {
       kind: LangModuleKind.PatternModule,
@@ -104,7 +104,7 @@ tests(() => [
   },
   {
     id: "MOD06",
-    pattern: () => Lang,
+    module: () => Lang,
     input: "abc",
     value: {
       kind: LangModuleKind.PatternModule,

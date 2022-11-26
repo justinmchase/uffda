@@ -1,21 +1,32 @@
 import { tests } from "../../../test.ts";
-import { ExpressionLang } from "../ExpressionLang.ts";
+import { TokenizerKind } from "../../mod.ts";
 import { LangExpressionKind } from "../lang.pattern.ts";
+import { ObjectExpression } from "./ObjectExpression.ts";
 
 tests(() => [
   {
-    id: "OBJECT00",
-    pattern: () => ExpressionLang,
-    input: "{}",
+    id: "LANG.EXPRESSION.OBJECT00",
+    module: () => ObjectExpression,
+    input: [
+      { kind: TokenizerKind.Token, value: "{" },
+      { kind: TokenizerKind.Token, value: "}" },
+    ],
     value: {
       kind: LangExpressionKind.ObjectExpression,
       keys: [],
     },
   },
   {
-    id: "OBJECT01",
-    pattern: () => ExpressionLang,
-    input: "{ a = 1 }",
+    id: "LANG.EXPRESSION.OBJECT01",
+    module: () => ObjectExpression,
+    // input: "{ a = 1 }",
+    input: [
+      { kind: TokenizerKind.Token, value: "{" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: "=" },
+      { kind: TokenizerKind.Integer, value: 1 },
+      { kind: TokenizerKind.Token, value: "}" },
+    ],
     value: {
       kind: LangExpressionKind.ObjectExpression,
       keys: [
@@ -28,9 +39,18 @@ tests(() => [
     },
   },
   {
-    id: "OBJECT02",
-    pattern: () => ExpressionLang,
-    input: "{ a = 1 b = 2 }",
+    id: "LANG.EXPRESSION.OBJECT02",
+    module: () => ObjectExpression,
+    input: [
+      { kind: TokenizerKind.Token, value: "{" },
+      { kind: TokenizerKind.Identifier, value: "a" },
+      { kind: TokenizerKind.Token, value: "=" },
+      { kind: TokenizerKind.Integer, value: 1 },
+      { kind: TokenizerKind.Identifier, value: "b" },
+      { kind: TokenizerKind.Token, value: "=" },
+      { kind: TokenizerKind.Integer, value: 2 },
+      { kind: TokenizerKind.Token, value: "}" },
+    ],
     value: {
       kind: LangExpressionKind.ObjectExpression,
       keys: [

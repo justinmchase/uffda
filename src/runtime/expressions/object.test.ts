@@ -5,7 +5,7 @@ import { ExpressionKind } from "./expression.kind.ts";
 
 tests(() => [
   {
-    id: "RUNTIME.OBJECT00",
+    id: "RUNTIME.EXPRESSION.OBJECT00",
     match: Match.Default(Scope.Default()),
     result: { x: 7, y: 11 },
     expression: () => ({
@@ -31,7 +31,7 @@ tests(() => [
     }),
   },
   {
-    id: "RUNTIME.OBJECT01",
+    id: "RUNTIME.EXPRESSION.OBJECT01",
     match: Match.Default(Scope.Default()),
     result: { x: 11 },
     expression: () => ({
@@ -57,7 +57,7 @@ tests(() => [
     }),
   },
   {
-    id: "RUNTIME.OBJECT02",
+    id: "RUNTIME.EXPRESSION.OBJECT02",
     match: Match.Default(Scope.Default()),
     result: {},
     expression: () => ({
@@ -66,7 +66,7 @@ tests(() => [
     }),
   },
   {
-    id: "RUNTIME.OBJECT03",
+    id: "RUNTIME.EXPRESSION.OBJECT03",
     match: Match.Default(Scope.Default()),
     result: { x: 7, y: 11 },
     expression: () => ({
@@ -83,7 +83,7 @@ tests(() => [
     }),
   },
   {
-    id: "RUNTIME.OBJECT04",
+    id: "RUNTIME.EXPRESSION.OBJECT04",
     match: Match.Default(Scope.Default()),
     result: { x: 7, y: 13, z: 19 },
     expression: () => ({
@@ -107,7 +107,7 @@ tests(() => [
     }),
   },
   {
-    id: "RUNTIME.OBJECT05",
+    id: "RUNTIME.EXPRESSION.OBJECT05",
     match: Match.Default(Scope.Default()),
     result: { x: 13, y: 11, z: 19 },
     expression: () => ({

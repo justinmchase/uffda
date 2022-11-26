@@ -20,6 +20,8 @@ export function lambda(
     if (!result.matched) {
       throw new RuntimeError(
         RuntimeErrorCode.PatternUnmatched,
+        scope.module,
+        scope.ruleStack[-1],
         pattern,
         result,
       );
@@ -28,6 +30,8 @@ export function lambda(
     if (!result.end.stream.next().done) {
       throw new RuntimeError(
         RuntimeErrorCode.StreamIncomplete,
+        scope.module,
+        scope.ruleStack[-1],
         pattern,
         result,
       );
@@ -36,6 +40,8 @@ export function lambda(
     if (result.errors.length) {
       throw new RuntimeError(
         RuntimeErrorCode.MatchError,
+        scope.module,
+        scope.ruleStack[-1],
         pattern,
         result,
       );

@@ -3,6 +3,7 @@ import { brightRed, path } from "../../deps/std.ts";
 import { Scope } from "../scope.ts";
 import { Match } from "../match.ts";
 import { match } from "../runtime/mod.ts";
+import { Compiler } from "../parsers/compiler/Compiler.ts";
 import { snippet } from "./snippet.ts";
 
 export async function compile(options: ICompileOptions) {
@@ -62,7 +63,7 @@ export async function compileFile(
   const scope = Scope.From(contents, {
     trace: options.trace,
   });
-  const results = match(Meta, scope);
+  const results = match(Compiler, scope);
   const { end, matched, done, errors, value } = results;
   if (done && matched && !errors.length) {
     console.log(`compiled ${relativeFile}`);

@@ -1,13 +1,15 @@
 import { tests } from "../../../test.ts";
-import { PatternLang } from "../PatternLang.ts";
+import { TokenizerKind } from "../../mod.ts";
 import { LangPatternKind } from "../lang.pattern.ts";
+import { AnyPattern } from "./AnyPattern.ts";
 
 tests(() => [
   {
     id: "ANY00",
-    description: "any",
-    pattern: () => PatternLang,
-    input: "any",
+    module: () => AnyPattern,
+    input: [
+      { kind: TokenizerKind.Identifier, value: "any" },
+    ],
     value: {
       kind: LangPatternKind.AnyPattern,
     },

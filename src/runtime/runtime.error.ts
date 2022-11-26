@@ -1,4 +1,6 @@
 import { Match } from "../match.ts";
+import { IModule, IRule } from "../modules.ts";
+import { Expression } from "./expressions/expression.ts";
 import { Pattern } from "./patterns/pattern.ts";
 
 export enum RuntimeErrorCode {
@@ -9,6 +11,7 @@ export enum RuntimeErrorCode {
   StreamIncomplete = "E_STREAM_INCOMPLETE",
   MatchError = "E_MATCH_ERROR",
   InvalidExpression = "E_INVALID_EXPRESSION",
+  UnknownReference = "E_UNKNOWN_REFERENCE",
 }
 
 export const RuntimeErrorMessages = {
@@ -23,15 +26,19 @@ export const RuntimeErrorMessages = {
   [RuntimeErrorCode.MatchError]: () =>
     "A pattern match operation produced one or more errors",
   [RuntimeErrorCode.InvalidExpression]: () =>
-    "An expression is invalid"
+    "An expression is invalid",
+  [RuntimeErrorCode.UnknownReference]: ({ name = "unknown" }) => 
+    `Unable to resolve reference ${name}`
 };
 
 export class RuntimeError extends Error {
   private readonly metadata?: Record<string, unknown>;
   constructor(
     public readonly code: RuntimeErrorCode,
-    public readonly pattern: Pattern,
-    public readonly match: Match,
+    public readonly module?: IModule,
+    public readonly rule?: IRule,
+    public readonly op?: Pattern | Expression,
+    public readonly match?: Match,
     public options?:
       | ErrorOptions & { metadata?: Record<string, unknown> }
       | undefined,

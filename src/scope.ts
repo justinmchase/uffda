@@ -1,57 +1,92 @@
 import { assert } from "../deps/std.ts";
-import { IRulePattern, Pattern } from "./runtime/patterns/mod.ts";
+import { Pattern } from "./runtime/patterns/mod.ts";
 import { MetaStream } from "./stream.ts";
 import { Memos } from "./memo.ts";
-import { Reference } from "./reference.ts";
+import { IModule, IRule } from "./modules.ts";
+import { RuntimeError, RuntimeErrorCode } from "./runtime/runtime.error.ts";
+import { Match } from "./match.ts";
+import { isModuleDeclarationTest } from "./test.ts";
 
 export interface IScopeOptions {
   trace?: boolean;
+  specials?: Record<string, unknown>;
   globals?: Record<string, unknown>;
 }
 
+// todo: Figure out an ideal default modulePath...
+// Ideally it would be the Deno main module url, but I don't know how to find that
+// Also possible an env var, or maybe cwd(). 
+// `modulePath` should probably be a function so it doesn't incur any permissions checks
+// until an import is attempted.
+export const DefaultModule = { moduleUrl: import.meta.url, imports: new Map(), rules: new Map() };
+export const DefaultOptions = { globals: {}, specials: {}, trace: false };
+
 export class Scope {
-  public static readonly Default = (opts?: IScopeOptions) =>
-    new Scope(
+  public static readonly Default = (args?: { module?: IModule } & IScopeOptions) => {
+    const { module, ...options } = args ?? {}
+    return new Scope(
+      module ?? DefaultModule,
+      options ?? DefaultOptions,
       undefined,
-      undefined,
-      undefined,
-      undefined,
-      opts,
+      {},
+      MetaStream.Default(),
+      new Memos(),
+      [],
+      [],
+      [],
     );
+  }
+
   public static readonly From = (
-    s: Iterable<unknown> | Scope,
-    opts?: IScopeOptions,
-  ) =>
-    s instanceof Scope ? s : new Scope(
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      opts,
-      MetaStream.From(s),
-    );
+    stream: Iterable<unknown> | MetaStream | Scope,
+    args?: { module?: IModule } & IScopeOptions
+  ) => {
+    const { module, ...options } = args ?? {};
+    return stream instanceof Scope
+      ? new Scope(
+          module ?? stream.module,
+          { ...stream.options, ...options },
+          stream.parent,
+          stream.variables,
+          stream.stream,
+          stream.memos,
+          stream.ruleStack,
+          stream.pipelineStack,
+          stream.moduleStack
+        )
+      : new Scope(
+          module ?? DefaultModule,
+          options ?? DefaultOptions,
+          undefined,
+          {},
+          MetaStream.From(stream),
+          new Memos(),
+          [],
+          [],
+          [],
+        );
+  }
 
   constructor(
-    private readonly _parent: Scope | undefined = undefined,
-    private readonly _variables: Record<string, unknown> = {},
-    private readonly _specials: Record<string, unknown> = {},
-    private readonly _rules: Map<string, IRulePattern> = new Map(),
-    public readonly options: IScopeOptions = {},
-    public readonly stream: MetaStream = MetaStream.Default(),
-    public readonly memos: Memos = new Memos(),
-    public readonly ruleStack: IRulePattern[] = [],
-    public readonly refStack: Reference[] = [],
-    public readonly pipelineStack: Pattern[] = [],
+    public readonly module: IModule,
+    public readonly options: IScopeOptions,
+    public readonly parent: Scope | undefined = undefined,
+    public readonly variables: Record<string, unknown>,
+    public readonly stream: MetaStream,
+    public readonly memos: Memos,
+    public readonly ruleStack: IRule[],
+    public readonly pipelineStack: Pattern[],
+    public readonly moduleStack: IModule[]
   ) {
   }
 
-  private *stack() {
-    yield this._variables;
+  public *stack() {
+    yield this;
 
-    let current: Scope | undefined = this._parent;
+    let current: Scope | undefined = this.parent;
     while (current) {
-      yield current._variables;
-      current = current._parent;
+      yield current;
+      current = current.parent;
     }
   }
 
@@ -59,214 +94,156 @@ export class Scope {
     return this.pipelineStack.length + this.ruleStack.length;
   }
 
-  public get variables() {
-    return Object.assign({}, ...this.stack());
-  }
-
-  public get specials() {
-    return this._specials;
-  }
-
   public getSpecial(name: string) {
-    return this._specials[name];
+    return this.options.specials?.[name];
   }
 
-  public getRule(name: string): IRulePattern | undefined {
-    if (this._rules.has(name)) {
-      return this._rules.get(name);
-    } else {
-      return this._parent?.getRule(name);
+  public getRule(name: string): IRule | undefined {
+    if (this.module.rules.has(name)) {
+      return this.module.rules.get(name);
+    } else if (this.module.imports.has(name)) {
+      return this.module
+        .imports.get(name)!
+        .module
+        .rules.get(name)
     }
   }
-
+  
   public withStream(stream: MetaStream) {
     return new Scope(
-      this._parent,
-      this._variables,
-      this._specials,
-      this._rules,
+      this.module,
       this.options,
+      this.parent,
+      this.variables,
       stream,
       this.memos,
       this.ruleStack,
-      this.refStack,
+      this.pipelineStack,
+      this.moduleStack,
     );
   }
 
   public addVariables(variables: Record<string, unknown>) {
     return new Scope(
-      this._parent,
-      Object.assign({}, this._variables, variables),
-      this._specials,
-      this._rules,
+      this.module,
       this.options,
+      this.parent,
+      Object.assign({}, this.variables, variables),
       this.stream,
       this.memos,
       this.ruleStack,
-      this.refStack,
       this.pipelineStack,
+      this.moduleStack,
     );
   }
 
   public setVariables(variables: Record<string, unknown>) {
     return new Scope(
-      this._parent,
-      variables,
-      this._specials,
-      this._rules,
+      this.module,
       this.options,
+      this.parent,
+      Object.assign({}, this.variables, variables),
       this.stream,
       this.memos,
       this.ruleStack,
-      this.refStack,
       this.pipelineStack,
-    );
-  }
-  public setSpecials(specials: Record<string, unknown>) {
-    return new Scope(
-      this._parent,
-      this._variables,
-      specials,
-      this._rules,
-      this.options,
-      this.stream,
-      this.memos,
-      this.ruleStack,
-      this.refStack,
-      this.pipelineStack,
-    );
-  }
-  public setRules(rules: Record<string, IRulePattern>) {
-    return new Scope(
-      this._parent,
-      this._variables,
-      this._specials,
-      new Map(Object.entries(rules)),
-      this.options,
-      this.stream,
-      this.memos,
-      this.ruleStack,
-      this.refStack,
-      this.pipelineStack,
-    );
-  }
-  public pushRule(rule: IRulePattern) {
-    return new Scope(
-      this._parent,
-      {},
-      this._specials,
-      this._rules,
-      this.options,
-      this.stream,
-      this.memos,
-      [...this.ruleStack, rule],
-      this.refStack,
-      this.pipelineStack,
+      this.moduleStack,
     );
   }
 
-  public pushRef(name: string) {
+  public pushRule(rule: IRule) {
     return new Scope(
-      this._parent,
-      {},
-      this._specials,
-      this._rules,
+      this.module,
       this.options,
+      this.parent,
+      {},
       this.stream,
       this.memos,
-      this.ruleStack,
-      [...this.refStack, new Reference(name, this.stream.path)],
+      [...this.ruleStack, rule],
       this.pipelineStack,
+      this.moduleStack
     );
   }
 
   public pushPipeline(pattern: Pattern, stream: MetaStream) {
     return new Scope(
-      this._parent,
-      {},
-      this._specials,
-      this._rules,
+      this.module,
       this.options,
+      this.parent,
+      {},
       stream,
       this.memos,
       this.ruleStack,
-      this.refStack,
       [...this.pipelineStack, pattern],
+      this.moduleStack
     );
   }
 
-  public popRule(scope: Scope) {
+  public pushModule(module: IModule) {
+    if (this.module === module) {
+      return this;
+    }
     return new Scope(
-      this._parent,
-      scope._variables,
-      this._specials,
-      this._rules,
+      module,
       this.options,
-      this.stream,
-      this.memos,
-      this.ruleStack.slice(0, -1),
-      this.refStack,
-      this.pipelineStack,
-    );
-  }
-
-  public popRef(scope: Scope) {
-    return new Scope(
-      this._parent,
-      scope._variables,
-      this._specials,
-      this._rules,
-      this.options,
-      this.stream,
-      this.memos,
-      this.ruleStack,
-      this.refStack.slice(0, -1),
-      this.pipelineStack,
-    );
-  }
-  public popPipeline(scope: Scope) {
-    return new Scope(
-      this._parent,
-      scope._variables,
-      this._specials,
-      this._rules,
-      this.options,
-      this.stream,
-      this.memos,
-      this.ruleStack,
-      this.refStack,
-      this.pipelineStack.slice(0, -1),
-    );
-  }
-
-  public push() {
-    return new Scope(
-      this,
+      undefined,
       {},
-      this._specials,
-      this._rules,
-      this.options,
       this.stream,
       this.memos,
       this.ruleStack,
-      this.refStack,
       this.pipelineStack,
+      this.module !== module
+        ? [...this.moduleStack, module]
+        : this.moduleStack
     );
   }
 
-  public pop() {
-    assert(this._parent, "Assymetrical push and pop");
+  /// <summary>
+  /// The scope should be the original scope from before the rule was pushed.
+  /// The entire original scope is returned, except for the stream and memos.
+  /// </summary>
+  public pop(scope: Scope) {
     return new Scope(
-      this._parent!._parent,
-      this._parent!._variables,
-      this._parent!._specials,
-      this._parent!._rules,
-      this.options,
+      scope.module,
+      scope.options,
+      scope.parent,
+      scope.variables,
       this.stream,
       this.memos,
-      this.ruleStack,
-      this.refStack,
-      this.pipelineStack,
+      scope.ruleStack,
+      scope.pipelineStack,
+      scope.moduleStack,
     );
   }
+
+  // public push() {
+  //   return new Scope(
+  //     this,
+  //     {},
+  //     this._specials,
+  //     this._rules,
+  //     this.options,
+  //     this.stream,
+  //     this.memos,
+  //     this.ruleStack,
+  //     this.refStack,
+  //     this.pipelineStack,
+  //   );
+  // }
+
+  // public pop() {
+  //   assert(this._parent, "Assymetrical push and pop");
+  //   return new Scope(
+  //     this._parent!._parent,
+  //     this._parent!._variables,
+  //     this._parent!._specials,
+  //     this._parent!._rules,
+  //     this.options,
+  //     this.stream,
+  //     this.memos,
+  //     this.ruleStack,
+  //     this.refStack,
+  //     this.pipelineStack,
+  //   );
+  // }
 }

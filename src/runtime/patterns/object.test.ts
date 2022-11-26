@@ -3,7 +3,7 @@ import { PatternKind } from "./pattern.kind.ts";
 
 tests(() => [
   {
-    id: "OBJECT00",
+    id: "RUNTIME.PATTERN.OBJECT00",
     description: "matches an object without keys",
     pattern: () => ({
       kind: PatternKind.Object,
@@ -13,7 +13,7 @@ tests(() => [
     value: {},
   },
   {
-    id: "OBJECT01",
+    id: "RUNTIME.PATTERN.OBJECT01",
     description: "matches an object with extra keys",
     pattern: () => ({
       kind: PatternKind.Object,
@@ -23,7 +23,7 @@ tests(() => [
     value: { x: "a" },
   },
   {
-    id: "OBJECT02",
+    id: "RUNTIME.PATTERN.OBJECT02",
     description: "matches an object and key",
     pattern: () => ({
       kind: PatternKind.Object,
@@ -35,7 +35,7 @@ tests(() => [
     value: { x: "a" },
   },
   {
-    id: "OBJECT03",
+    id: "RUNTIME.PATTERN.OBJECT03",
     description: "fails to match an object missing a key",
     pattern: () => ({
       kind: PatternKind.Object,
@@ -48,7 +48,7 @@ tests(() => [
     done: false,
   },
   {
-    id: "OBJECT04",
+    id: "RUNTIME.PATTERN.OBJECT04",
     description: "matches if all keys match",
     pattern: () => ({
       kind: PatternKind.Object,

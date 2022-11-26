@@ -1,12 +1,17 @@
 import { tests } from "../../../test.ts";
-import { PatternLang } from "../PatternLang.ts";
+import { TokenizerKind } from "../../mod.ts";
 import { LangPatternKind } from "../lang.pattern.ts";
+import { SlicePattern } from "./SlicePattern.ts";
 
 tests(() => [
   {
     id: "SLICE00",
-    pattern: () => PatternLang,
-    input: "x+",
+    module: () => SlicePattern,
+    input: [
+      // "x+"
+      { kind: TokenizerKind.Identifier, value: "x" },
+      { kind: TokenizerKind.Token, value: "+" },
+    ],
     value: {
       kind: LangPatternKind.OneOrMorePattern,
       pattern: {
@@ -17,8 +22,12 @@ tests(() => [
   },
   {
     id: "SLICE01",
-    pattern: () => PatternLang,
-    input: "x*",
+    module: () => SlicePattern,
+    input: [
+      // "x*"
+      { kind: TokenizerKind.Identifier, value: "x" },
+      { kind: TokenizerKind.Token, value: "*" },
+    ],
     value: {
       kind: LangPatternKind.ZeroOrMorePattern,
       pattern: {
@@ -29,8 +38,12 @@ tests(() => [
   },
   {
     id: "SLICE02",
-    pattern: () => PatternLang,
-    input: "x?",
+    module: () => SlicePattern,
+    input: [
+      // "x?"
+      { kind: TokenizerKind.Identifier, value: "x" },
+      { kind: TokenizerKind.Token, value: "?" },
+    ],
     value: {
       kind: LangPatternKind.ZeroOrOnePattern,
       pattern: {

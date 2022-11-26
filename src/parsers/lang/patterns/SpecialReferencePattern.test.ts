@@ -1,13 +1,15 @@
 import { tests } from "../../../test.ts";
-import { PatternLang } from "../PatternLang.ts";
+import { TokenizerKind } from "../../mod.ts";
 import { LangPatternKind } from "../lang.pattern.ts";
+import { SpecialReferencePattern } from "./SpecialReferencePattern.ts";
 
 tests(() => [
   {
     id: "SPECREF00",
-    description: "Can parse special reference",
-    pattern: () => PatternLang,
-    input: "$0",
+    module: () => SpecialReferencePattern,
+    input: [
+      { kind: TokenizerKind.SpecialIdentifier, value: "$0" }
+    ],
     value: {
       kind: LangPatternKind.SpecialReferencePattern,
       name: "$0",

@@ -1,20 +1,27 @@
 import { tests } from "../../../test.ts";
-import { PatternLang } from "../PatternLang.ts";
+import { TokenizerKind } from "../../mod.ts";
 import { LangPatternKind } from "../lang.pattern.ts";
+import { TypePattern } from "./TypePattern.ts";
 
 tests(() => [
   {
     id: "TYPE00",
-    pattern: () => PatternLang,
-    input: "string",
+    module: () => TypePattern,
+    input: [
+      // "string"
+      { kind: TokenizerKind.Identifier, value: "string" },
+    ],
     value: {
       kind: LangPatternKind.StringPattern,
     },
   },
   {
     id: "TYPE01",
-    pattern: () => PatternLang,
-    input: "boolean",
+    module: () => TypePattern,
+    input: [
+      // "boolean"
+      { kind: TokenizerKind.Identifier, value: "boolean" },
+    ],
     value: {
       kind: LangPatternKind.BooleanPattern,
     },
@@ -22,8 +29,11 @@ tests(() => [
 
   {
     id: "TYPE00",
-    pattern: () => PatternLang,
-    input: "number",
+    module: () => TypePattern,
+    input: [
+      // "number"
+      { kind: TokenizerKind.Identifier, value: "number" },
+    ],
     value: {
       kind: LangPatternKind.NumberPattern,
     },

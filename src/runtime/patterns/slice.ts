@@ -16,6 +16,11 @@ export function slice(args: ISlicePattern, scope: Scope) {
     assert((max % 1) === 0, `max must be an integer but is ${max}`);
   }
 
+  if (scope.options.trace) {
+    const indent = `-`.padStart(scope.depth);
+    console.log(`${indent} [${min ?? ''}-${max ?? ''}]`);
+  }
+
   let end: Scope = scope;
   const matches: unknown[] = [];
   const errors: MatchError[] = [];
