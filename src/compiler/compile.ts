@@ -2,9 +2,12 @@ import { ICompileOptions } from "./compileOptions.ts";
 import { brightRed, path } from "../../deps/std.ts";
 import { Scope } from "../scope.ts";
 import { Match } from "../match.ts";
-import { match } from "../runtime/mod.ts";
+import { Resolver, run } from "../runtime/mod.ts";
 import { Compiler } from "../parsers/compiler/Compiler.ts";
 import { snippet } from "./snippet.ts";
+
+const resolver = new Resolver(import.meta.url);
+const CompilerModule = await resolver.load("../parsers/compiler/Compiler.ts", Compiler);
 
 export async function compile(options: ICompileOptions) {
   const { srcDir, dstDir } = options;
@@ -60,10 +63,14 @@ export async function compileFile(
 ) {
   const file = path.join(sourceDirectory, relativeFile);
   const contents = await Deno.readTextFile(file);
+  const resolver = new Resolver(sourceDirectory);
   const scope = Scope.From(contents, {
+    resolver,
+    module: CompilerModule,
     trace: options.trace,
   });
-  const results = match(Compiler, scope);
+
+  const results = run(scope);
   const { end, matched, done, errors, value } = results;
   if (done && matched && !errors.length) {
     console.log(`compiled ${relativeFile}`);

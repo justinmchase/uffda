@@ -14,7 +14,7 @@ export enum RuntimeErrorCode {
   InvalidExpression = "E_INVALID_EXPRESSION",
   UnknownReference = "E_UNKNOWN_REFERENCE",
   UnknownSpecialKind = "E_UNKNOWN_SPECIAL_KIND",
-  UnknownPatternKind = "$_UNKNOWN_PATTERN_KIND",
+  UnknownPatternKind = "E_UNKNOWN_PATTERN_KIND",
 }
 
 type RuntimeErrorArgs = {

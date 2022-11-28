@@ -20,72 +20,83 @@ const pathNormalizationTests = [
   ],
 ];
 
-pathNormalizationTests.forEach(([modulePath, parentPath, expectedPath], i) => {
+
+const readPermissions = await Deno.permissions.query({ name: "read" })
+if (readPermissions.state === "granted") {
+  pathNormalizationTests.forEach(([modulePath, parentPath, expectedPath], i) => {
+    Deno.test({
+      name: `NORM${i.toString().padStart(2, "0")}`,
+      fn: () => {
+        const resolved = Resolver.normalizeModulePath(modulePath, parentPath);
+        assertEquals(resolved, expectedPath);
+      },
+    });
+  });
+
+
   Deno.test({
-    name: `NORM${i.toString().padStart(2, "0")}`,
-    fn: () => {
-      const resolved = Resolver.normalizeModulePath(modulePath, parentPath);
-      assertEquals(resolved, expectedPath);
+    name: "RESOLVE00",
+    fn: async () => {
+      const resolver = new Resolver(import.meta.url);
+      const resolved = await resolver.load("./resolvers/test.module.json");
+      assertEquals(
+        resolved.moduleUrl,
+        `file://${MODULE_DIR}/resolvers/test.module.json`,
+      );
     },
   });
-});
-
-Deno.test({
-  name: "RESOLVE00",
-  fn: async () => {
-    const resolver = new Resolver(import.meta.url);
-    const resolved = await resolver.load("./resolvers/test.module.json");
-    assertEquals(
-      resolved.moduleUrl,
-      `file://${MODULE_DIR}/resolvers/test.module.json`,
-    );
-  },
-});
-Deno.test({
-  name: "RESOLVE01",
-  fn: async () => {
-    const resolver = new Resolver(import.meta.url);
-    const resolved = await resolver.load("./resolvers/test.module.js");
-    assertEquals(
-      resolved.moduleUrl,
-      `file://${MODULE_DIR}/resolvers/test.module.js`,
-    );
-  },
-});
-Deno.test({
-  name: "RESOLVE02",
-  fn: async () => {
-    const resolver = new Resolver(import.meta.url);
-    const resolved = await resolver.load("./resolvers/test0.module.ts");
-    assertEquals(
-      resolved.moduleUrl,
-      `file://${MODULE_DIR}/resolvers/test0.module.ts`,
-    );
-  },
-});
-Deno.test({
-  name: "RESOLVE03",
-  fn: async () => {
-    const resolver = new Resolver(import.meta.url);
-    const resolved = await resolver.load("./resolvers/test0.module.ts");
-    assertEquals(
-      resolved.moduleUrl,
-      `file://${MODULE_DIR}/resolvers/test0.module.ts`,
-    );
-  },
-});
-Deno.test({
-  name: "RESOLVE04",
-  fn: async () => {
-    const resolver = new Resolver(import.meta.url);
-    const resolved = await resolver.load("./resolvers/test1.module.ts");
-    assertEquals(
-      resolved.moduleUrl,
-      `file://${MODULE_DIR}/resolvers/test1.module.ts`,
-    );
-    assertEquals(
-      resolved.imports.get("A")?.module.moduleUrl,
-      `file://${MODULE_DIR}/resolvers/test0.module.ts`,
-    );
-  },
-});
+  Deno.test({
+    name: "RESOLVE01",
+    fn: async () => {
+      const resolver = new Resolver(import.meta.url);
+      const resolved = await resolver.load("./resolvers/test.module.js");
+      assertEquals(
+        resolved.moduleUrl,
+        `file://${MODULE_DIR}/resolvers/test.module.js`,
+      );
+    },
+  });
+  Deno.test({
+    name: "RESOLVE02",
+    fn: async () => {
+      const resolver = new Resolver(import.meta.url);
+      const resolved = await resolver.load("./resolvers/test0.module.ts");
+      assertEquals(
+        resolved.moduleUrl,
+        `file://${MODULE_DIR}/resolvers/test0.module.ts`,
+      );
+    },
+  });
+  Deno.test({
+    name: "RESOLVE03",
+    fn: async () => {
+      const resolver = new Resolver(import.meta.url);
+      const resolved = await resolver.load("./resolvers/test0.module.ts");
+      assertEquals(
+        resolved.moduleUrl,
+        `file://${MODULE_DIR}/resolvers/test0.module.ts`,
+      );
+    },
+  });
+  Deno.test({
+    name: "RESOLVE04",
+    fn: async () => {
+      const resolver = new Resolver(import.meta.url);
+      const resolved = await resolver.load("./resolvers/test1.module.ts");
+      assertEquals(
+        resolved.moduleUrl,
+        `file://${MODULE_DIR}/resolvers/test1.module.ts`,
+      );
+      assertEquals(
+        resolved.imports.get("A")?.module.moduleUrl,
+        `file://${MODULE_DIR}/resolvers/test0.module.ts`,
+      );
+    },
+  });
+} else {
+  Deno.test({
+    name: "resolve tests require read permissions",
+    ignore: true,
+    fn: () => {},
+  })
+}
