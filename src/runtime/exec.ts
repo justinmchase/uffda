@@ -32,7 +32,7 @@ export function exec(expression: Expression, match: Match): unknown {
       return object(expression, match);
     case ExpressionKind.Reference:
       return reference(expression, match);
-    case ExpressionKind.SpecialReference:
+    case ExpressionKind.Special:
       return special(expression, match);
     case ExpressionKind.Value:
       return value(expression);

@@ -1,6 +1,5 @@
 import { Scope } from "../../scope.ts";
 import { Match } from "../../match.ts";
-import { match } from "../match.ts";
 import { IReferencePattern } from "./pattern.ts";
 import { RuntimeError, RuntimeErrorCode } from "../runtime.error.ts";
 import { brightBlack, green, red } from "../../../deps/std.ts";

@@ -7,6 +7,9 @@ class Test {
   public compareTo(obj: Test) {
     return this.value == obj.value ? 0 : this.value > obj.value ? -1 : 1;
   }
+  public toJSON() {
+    return { value: this.value }
+  }
 }
 
 const t = new Test(1);

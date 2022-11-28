@@ -1,3 +1,4 @@
+import { black, brightBlack, underline } from "../../../deps/std.ts";
 import { Match, MatchError } from "../../match.ts";
 import { Scope } from "../../scope.ts";
 import { MetaStream } from "../../stream.ts";
@@ -12,10 +13,14 @@ export function object(args: IObjectPattern, scope: Scope) {
       let end = scope;
       const errors: MatchError[] = [];
       const objValue = next.value as Record<PropertyKey, unknown>;
-      for (
-        const [key, pattern] of Object.entries(keys) as [string, Pattern][]
-      ) {
+      for (const [key, pattern] of Object.entries<Pattern>(keys)) {
         // The pattern will define whether or not its an error for this field to exist or not
+
+        if (scope.options.trace) {
+          const indent = "˃".padStart(scope.depth);
+          console.log(`${indent} (${underline(brightBlack(key))})`);
+
+        }
 
         const keyValue = objValue[key];
         const value = [keyValue];
@@ -30,6 +35,9 @@ export function object(args: IObjectPattern, scope: Scope) {
         errors.push(...m.errors);
 
         if (!m.matched) {
+          // todo: Look for a better way to bubble up an error when an object is completely missing an expected property.
+          // Possibly alter the definition of the `!` on the property to be handled in this pattern rather than just wrapping
+          // it in a must pattern. Then throw an error explaining that the expected field is missing from the object.
           return m;
         }
 

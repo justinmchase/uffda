@@ -2,7 +2,7 @@ import { Match } from "../match.ts";
 import { Scope } from "../scope.ts";
 import { rule } from "./rule.ts";
 
-export async function run(scope: Scope): Promise<Match> {
+export function run(scope: Scope): Match {
   const { module } = scope;
   const main = module.rules.has("Main")
     ? module.rules.get("Main")
@@ -11,8 +11,13 @@ export async function run(scope: Scope): Promise<Match> {
 
   if (!main) {
     // todo: make a proper error...
-    throw new Error('No rules defined')
+    return Match.Fail(scope).pushError(
+      "E_EMPTY_MODULE",
+      `A module with no rules was run (${module.moduleUrl})`,
+      scope,
+      scope
+    )
   }
 
-  return await rule(main, scope);
+  return rule(main, scope);
 }

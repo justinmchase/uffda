@@ -16,6 +16,7 @@ import { Pattern } from "./runtime/patterns/pattern.ts";
 import { Expression } from "./runtime/expressions/expression.ts";
 import { IModuleDeclaration } from "./runtime/declarations/module.ts";
 import { Resolver, run } from "./mod.ts";
+import { IImport, IModule, IRule } from "./modules.ts";
 
 interface ITest {
   id: string;
@@ -34,6 +35,7 @@ interface IModuleDeclarationTest extends ITest {
 
 interface IPatternTest extends ITest {
   input?: string | { toString(): string };
+  moduleUrl?: string;
   pattern: () => Pattern;
 }
 
@@ -49,7 +51,7 @@ interface IThrows {
 interface IPatternResults {
   input?: string | { toString(): string };
   throws?: false;
-  specials?: Record<string, unknown>;
+  specials?: Record<string, IModule | IRule | IImport | ((...args: unknown[]) => unknown)>;
   value?: unknown;
   matched?: boolean;
   done?: boolean;
@@ -63,7 +65,7 @@ interface IExpressionResults {
 interface IModuleDeclarationResults {
   throws?: false;
   value?: unknown;
-  specials?: Record<string, unknown>;
+  specials?: Record<string, IModule | IRule | IImport | ((...args: unknown[]) => unknown)>;
   matched?: boolean;
   done?: boolean;
 }
@@ -115,7 +117,6 @@ export function tests(group: () => PatternTest[]) {
       description,
       only,
       future,
-      trace,
       errors = [],
     } = test;
     const futureMessage = future ? ` (${brightCyan("future")})` : "";
@@ -141,13 +142,16 @@ export function tests(group: () => PatternTest[]) {
             try {
               const {
                 input,
-                specials = {},
                 value,
                 matched = true,
                 done = true,
+                trace,
+                moduleUrl = import.meta.url,
               } = test;
+              const resolver = new Resolver(moduleUrl)
+              const specials = new Map(Object.entries(test.specials ?? {}))
               const p = pattern();
-              const s = Scope.From(input?.toString() ?? '', { trace, specials });
+              const s = Scope.From(input as Iterable<unknown> ?? '', { trace, specials, resolver })
               const m = match(p, s);
               const e = m.errors.map((e) => ({
                 name: e.name,
@@ -236,17 +240,18 @@ export function tests(group: () => PatternTest[]) {
             await assertRejects(
               async () => {
                 const main = await resolver.load(moduleUrl, moduleDeclaration)
-                const scope = Scope.From(input as Iterable<unknown> ?? '', { module: main, })
-                await run(scope)
+                const scope = Scope.From(input as Iterable<unknown> ?? '', { module: main, resolver })
+                run(scope)
               },
               'Module was expected to throw'
             )
           } else {
             try {
-              const { value, done = true, matched = true, trace, specials } = test;
+              const { value, done = true, matched = true, trace } = test;
               const main = await resolver.load(moduleUrl, moduleDeclaration)
-              const scope = Scope.From(input as Iterable<unknown> ?? '', { module: main, trace, specials })
-              const m = await run(scope)
+              const specials = new Map(Object.entries(test.specials ?? {}))
+              const scope = Scope.From(input as Iterable<unknown> ?? '', { module: main, trace, specials, resolver })
+              const m = run(scope)
               const e = m.errors.map((e) => ({
                 name: e.name,
                 message: e.message,

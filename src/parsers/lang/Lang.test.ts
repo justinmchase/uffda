@@ -1,4 +1,3 @@
-import { DeclarationKind } from "../../runtime/declarations/declaration.kind.ts";
 import { tests } from "../../test.ts";
 import { LangExpressionKind, LangModuleKind, LangPatternKind } from "./lang.pattern.ts";
 import { Lang } from "./Lang.ts";
@@ -25,7 +24,7 @@ tests(() => [
     value: {
       kind: LangModuleKind.PatternModule,
       imports: [],
-      patterns: [
+      rules: [
         {
           kind: "PatternDeclaration",
           name: "A",
@@ -46,7 +45,7 @@ tests(() => [
     value: {
       kind: LangModuleKind.PatternModule,
       imports: [],
-      patterns: [
+      rules: [
         {
           kind: LangModuleKind.PatternDeclaration,
           name: "x",
@@ -73,7 +72,7 @@ tests(() => [
     value: {
       kind: LangModuleKind.PatternModule,
       imports: [],
-      patterns: [
+      rules: [
         {
           kind: LangModuleKind.PatternDeclaration,
           name: "A",
@@ -87,7 +86,7 @@ tests(() => [
     },
   },
   {
-    id: "LANG02",
+    id: "LANG03",
     module: () => Lang,
     input: `
       import './test.uff' (B);
@@ -102,7 +101,7 @@ tests(() => [
           names: [ "B" ],
         }
       ],
-      patterns: [
+      rules: [
         {
           kind: LangModuleKind.PatternDeclaration,
           name: "A",

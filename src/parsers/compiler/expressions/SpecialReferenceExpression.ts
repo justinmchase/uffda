@@ -31,7 +31,7 @@ export const SpecialReferenceExpression: IModuleDeclaration = {
           kind: ExpressionKind.Native,
           fn: ({ name }, specials) => ({
             kind: ExpressionKind.Native,
-            fn: specials[name],
+            fn: specials.get(name),
           }),
         },
       },

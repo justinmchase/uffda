@@ -1,6 +1,6 @@
 import { path } from "../../deps/std.ts";
 import { DeclarationKind, IModuleDeclaration } from "./declarations/mod.ts";
-import { IModule } from "../modules.ts";
+import { IModule, ModuleKind } from "../modules.ts";
 import { JsonResolver } from "./resolvers/json.resolver.ts";
 import { ImportResolver } from "./resolvers/import.resolver.ts";
 import { IModuleResolvers } from "./resolvers/resolver.ts";
@@ -8,7 +8,7 @@ import { IModuleResolvers } from "./resolvers/resolver.ts";
 export class Resolver {
 
   constructor(
-    private readonly moduleUrl: string,
+    private readonly moduleUrl: string = import.meta.url,
     private readonly modules = new Map<string, IModule>(),
     private readonly resolvers: IModuleResolvers = {
       ['.json']: new JsonResolver(),
@@ -37,6 +37,7 @@ export class Resolver {
       return this.modules.get(normalizedModuleUrl)!
     } else {
       const module: IModule = {
+        kind: ModuleKind.Module,
         moduleUrl: normalizedModuleUrl,
         imports: new Map(),
         rules: new Map()
@@ -44,6 +45,7 @@ export class Resolver {
       this.modules.set(normalizedModuleUrl, module)
       for (const { name, pattern } of moduleDeclaration.rules) {
         module.rules.set(name, {
+          kind: ModuleKind.Rule,
           module,
           name,
           pattern
@@ -58,6 +60,7 @@ export class Resolver {
           : await this.resolveImport(importModuleUrl);
         for (const name of i.names) {
           module.imports.set(name, {
+            kind: ModuleKind.Import,
             name,
             module: importedModule
           });

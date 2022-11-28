@@ -16,6 +16,7 @@ export * from "./range.ts";
 export * from "./reference.ts";
 export * from "./regexp.ts";
 export * from "./slice.ts";
+export * from "./special.ts";
 export * from "./then.ts";
 export * from "./type.ts";
 export * from "./until.ts";

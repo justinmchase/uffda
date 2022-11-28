@@ -29,7 +29,11 @@ export const SpecialReferencePattern: IModuleDeclaration = {
         },
         expression: {
           kind: ExpressionKind.Native,
-          fn: ({ name }, specials) => specials[name], // todo: make sure this value is a Pattern
+          fn: ({ name }, specials) => ({
+            kind: PatternKind.Special,
+            name,
+            value: specials.get(name)
+          })
         },
       },
     }

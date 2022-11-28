@@ -72,7 +72,7 @@ export const PatternModule: IModuleDeclaration = {
             },
             {
               kind: PatternKind.Variable,
-              name: "patterns",
+              name: "rules",
               pattern: {
                 kind: PatternKind.Slice,
                 pattern: {
@@ -94,10 +94,10 @@ export const PatternModule: IModuleDeclaration = {
         },
         expression: {
           kind: ExpressionKind.Native,
-          fn: ({ patterns, imports }) => ({
+          fn: ({ imports, rules }) => ({
             kind: LangModuleKind.PatternModule,
-            patterns: patterns.filter((p: Pattern) => p),
             imports: imports.filter((i: IImportDeclaration) => i),
+            rules: rules.filter((p: Pattern) => p),
           }),
         },
       }

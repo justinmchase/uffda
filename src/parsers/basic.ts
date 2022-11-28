@@ -10,13 +10,13 @@ export const Basic: IModuleDeclaration = {
     {
       kind: DeclarationKind.NativeImport,
       moduleUrl: "./tokenizer/Tokenizer.ts",
-      module: Tokenizer,
+      module: () => Tokenizer,
       names: ["Tokenizer"]
     },
     {
       kind: DeclarationKind.NativeImport,
       moduleUrl: "./exclusion/ExcludeWhitespace.ts",
-      module: ExcludeWhitespace,
+      module: () => ExcludeWhitespace,
       names: ["ExcludeWhitespace"]
     }
   ],

@@ -10,7 +10,7 @@ tests(() => [
     value: {
       kind: LangModuleKind.PatternModule,
       imports: [],
-      patterns: [
+      rules: [
         {
           kind: LangModuleKind.PatternDeclaration,
           name: "A",
@@ -32,7 +32,7 @@ tests(() => [
           modulePath: "./b.uff",
         },
       ],
-      patterns: [
+      rules: [
         {
           kind: LangModuleKind.PatternDeclaration,
           name: "A",
@@ -54,7 +54,7 @@ tests(() => [
           modulePath: "./b.uff",
         },
       ],
-      patterns: [],
+      rules: [],
     },
   },
   {
@@ -73,7 +73,7 @@ tests(() => [
           modulePath: "./b.uff",
         },
       ],
-      patterns: [],
+      rules: [],
     },
   },
   {
@@ -83,7 +83,7 @@ tests(() => [
     value: {
       kind: LangModuleKind.PatternModule,
       imports: [],
-      patterns: [
+      rules: [
         {
           kind: LangModuleKind.PatternDeclaration,
           name: "A",
@@ -99,7 +99,7 @@ tests(() => [
     value: {
       kind: LangModuleKind.PatternModule,
       imports: [],
-      patterns: [],
+      rules: [],
     },
   },
   {
@@ -109,7 +109,7 @@ tests(() => [
     value: {
       kind: LangModuleKind.PatternModule,
       imports: [],
-      patterns: [],
+      rules: [],
     },
     matched: false,
     errors: [

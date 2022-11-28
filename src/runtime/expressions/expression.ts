@@ -1,10 +1,12 @@
+import { SpecialType } from "../../mod.ts";
+import { Serializable } from "../hash.ts";
 import { Pattern } from "../patterns/pattern.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 
 export type ProjectionFunction = (
   // deno-lint-ignore no-explicit-any
   args: any,
-  specials: Record<string, unknown>,
+  specials: Map<string, SpecialType>,
   // deno-lint-ignore no-explicit-any
 ) => any;
 
@@ -110,11 +112,11 @@ export interface IReferenceExpression {
 }
 
 export interface ISpecialReferenceExpression {
-  kind: ExpressionKind.SpecialReference;
+  kind: ExpressionKind.Special;
   name: string;
 }
 
 export interface IValueExpression {
   kind: ExpressionKind.Value;
-  value: unknown;
+  value: Serializable;
 }

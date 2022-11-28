@@ -1,32 +1,42 @@
-import { assert } from "../deps/std.ts";
 import { Pattern } from "./runtime/patterns/mod.ts";
 import { MetaStream } from "./stream.ts";
 import { Memos } from "./memo.ts";
-import { IModule, IRule } from "./modules.ts";
-import { RuntimeError, RuntimeErrorCode } from "./runtime/runtime.error.ts";
-import { Match } from "./match.ts";
-import { isModuleDeclarationTest } from "./test.ts";
+import { IImport, IModule, IRule, ModuleKind } from "./modules.ts";
+import { Resolver } from "./runtime/resolve.ts";
+
+export type SpecialType = 
+  | IModule
+  | IRule
+  | IImport
+  | ((...args: unknown[]) => unknown)
+  ;
 
 export interface IScopeOptions {
-  trace?: boolean;
-  specials?: Record<string, unknown>;
-  globals?: Record<string, unknown>;
+  trace: boolean;
+  specials: Map<string, SpecialType>;
+  globals: Record<string, unknown>;
+  resolver: Resolver;
 }
 
-// todo: Figure out an ideal default modulePath...
-// Ideally it would be the Deno main module url, but I don't know how to find that
-// Also possible an env var, or maybe cwd(). 
-// `modulePath` should probably be a function so it doesn't incur any permissions checks
-// until an import is attempted.
-export const DefaultModule = { moduleUrl: import.meta.url, imports: new Map(), rules: new Map() };
-export const DefaultOptions = { globals: {}, specials: {}, trace: false };
+export const DefaultModule: IModule = {
+  kind: ModuleKind.Module,
+  moduleUrl: import.meta.url,
+  imports: new Map(),
+  rules: new Map()
+};
+export const DefaultOptions: IScopeOptions = {
+  globals: {},
+  specials: new Map(),
+  trace: false,
+  resolver: new Resolver()
+};
 
 export class Scope {
-  public static readonly Default = (args?: { module?: IModule } & IScopeOptions) => {
+  public static readonly Default = (args?: { module?: IModule } & Partial<IScopeOptions>) => {
     const { module, ...options } = args ?? {}
     return new Scope(
       module ?? DefaultModule,
-      options ?? DefaultOptions,
+      { ...DefaultOptions, ...options ?? {} },
       undefined,
       {},
       MetaStream.Default(),
@@ -39,13 +49,13 @@ export class Scope {
 
   public static readonly From = (
     stream: Iterable<unknown> | MetaStream | Scope,
-    args?: { module?: IModule } & IScopeOptions
+    args?: { module?: IModule } & Partial<IScopeOptions>
   ) => {
     const { module, ...options } = args ?? {};
     return stream instanceof Scope
       ? new Scope(
           module ?? stream.module,
-          { ...stream.options, ...options },
+          { ...DefaultOptions, ...stream.options, ...options },
           stream.parent,
           stream.variables,
           stream.stream,
@@ -56,7 +66,7 @@ export class Scope {
         )
       : new Scope(
           module ?? DefaultModule,
-          options ?? DefaultOptions,
+          { ...DefaultOptions, ...options },
           undefined,
           {},
           MetaStream.From(stream),
@@ -95,7 +105,7 @@ export class Scope {
   }
 
   public getSpecial(name: string) {
-    return this.options.specials?.[name];
+    return this.options.specials?.get(name);
   }
 
   public getRule(name: string): IRule | undefined {

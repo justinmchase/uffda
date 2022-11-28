@@ -33,7 +33,7 @@ export class MatchError {
 }
 
 export class Match {
-  public static readonly Default = (scope: Scope) =>
+  public static readonly Default = (scope: Scope = Scope.Default()) =>
     new Match(true, false, scope, scope, undefined, []);
   public static readonly Ok = (
     start: Scope,

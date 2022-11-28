@@ -21,22 +21,16 @@ import {
   reference,
   regexp,
   slice,
+  special,
   then,
   type,
   until,
   ValueType,
   variable,
 } from "./patterns/mod.ts";
+import { RuntimeError, RuntimeErrorCode } from "./runtime.error.ts";
 
 export function match(pattern: Pattern, scope: Scope): Match {
-  // if (scope.options.trace === true) {
-  //   console.log(
-  //     `${pattern.kind}@${scope.stream.path}: ${
-  //       Deno.inspect(scope.stream.value, { colors: true })
-  //     }`,
-  //   );
-  // }
-
   switch (pattern.kind) {
     case PatternKind.And:
       return and(pattern, scope);
@@ -80,6 +74,8 @@ export function match(pattern: Pattern, scope: Scope): Match {
       return regexp(pattern, scope);
     case PatternKind.Slice:
       return slice(pattern, scope);
+    case PatternKind.Special:
+      return special(pattern, scope);
     case PatternKind.String:
       return type(ValueType.String, scope);
     case PatternKind.Then:
@@ -87,9 +83,18 @@ export function match(pattern: Pattern, scope: Scope): Match {
     case PatternKind.Variable:
       return variable(pattern, scope);
     default:
-      throw new Error(
-        // deno-lint-ignore no-explicit-any
-        `Cannot match unknown pattern kind ${(pattern as any)?.kind}`,
+      throw new RuntimeError(
+        RuntimeErrorCode.UnknownPatternKind,
+        scope.moduleStack[0],
+        scope.ruleStack[0],
+        pattern,
+        undefined,
+        {
+          metadata: {
+            // deno-lint-ignore no-explicit-any
+            kind: (pattern as any).kind
+          }
+        }
       );
   }
 }

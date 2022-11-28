@@ -5,6 +5,7 @@ import { PatternKind } from "./pattern.kind.ts";
 tests(() => [
   {
     id: "REFERENCE00",
+    trace: true,
     description: "can reference other pattern",
     module: () => ({
       kind: DeclarationKind.Module,
@@ -26,6 +27,6 @@ tests(() => [
       ]
     }),
     input: "a",
-    result: "a",
+    value: "a",
   },
 ]);

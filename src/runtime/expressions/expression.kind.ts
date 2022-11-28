@@ -11,6 +11,6 @@ export enum ExpressionKind {
   ObjectKey = "objectKey",
   ObjectSpread = "objectSpread",
   Reference = "reference",
-  SpecialReference = "special",
+  Special = "special",
   Value = "value",
 }

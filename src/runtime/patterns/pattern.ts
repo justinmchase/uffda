@@ -1,5 +1,7 @@
 import { Comparable } from "../../comparable.ts";
+import { SpecialType } from "../../scope.ts";
 import { Expression } from "../expressions/mod.ts";
+import { Serializable } from "../hash.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
 export type Pattern =
@@ -24,9 +26,11 @@ export type Pattern =
   | IReferencePattern
   | IRegExpPattern
   | ISlicePattern
+  | ISpecialPattern
   | IStringPattern
   | IThenPattern
-  | IVariablePattern;
+  | IVariablePattern
+  ;
 
 export function isPattern(value: unknown): value is Pattern {
   if (value == null) return false;
@@ -55,7 +59,7 @@ export interface IEndPattern {
 }
 export interface IEqualPattern {
   kind: PatternKind.Equal;
-  value: unknown;
+  value: Serializable;
 }
 export interface IUntilPattern {
   kind: PatternKind.Until;
@@ -68,7 +72,7 @@ export interface IFailPattern {
 }
 export interface IIncludesPattern {
   kind: PatternKind.Includes;
-  values: unknown[];
+  values: Serializable[];
 }
 export interface IMustPattern {
   kind: PatternKind.Must;
@@ -121,6 +125,11 @@ export interface ISlicePattern {
   pattern: Pattern;
   min?: number;
   max?: number;
+}
+export interface ISpecialPattern {
+  kind: PatternKind.Special;
+  name: string;
+  value: SpecialType;
 }
 export interface IStringPattern {
   kind: PatternKind.String;

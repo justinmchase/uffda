@@ -1,5 +1,20 @@
 import { crypto } from "../../deps/std.ts";
-import { Pattern } from "./patterns/mod.ts";
+
+export type Serializable =
+  | undefined
+  | null
+  | string
+  | number
+  | boolean
+  | Date
+  | { toJSON(): Serializable }
+  | Serializable[]
+  | ISerializable
+  ;
+
+export interface ISerializable {
+  [key: string]: Serializable
+}
 
 const toHexString = (bytes: ArrayBuffer): string =>
   new Uint8Array(bytes).reduce(
@@ -7,8 +22,8 @@ const toHexString = (bytes: ArrayBuffer): string =>
     "",
   );
 
-export function hash(pattern: Pattern): string {
-  const inputString = JSON.stringify(pattern);
+export function hash(serializable: Serializable): string {
+  const inputString = JSON.stringify(serializable);
   const inputBytes = new TextEncoder().encode(inputString);
   const h = crypto.subtle.digestSync("SHA-384", inputBytes); // todo: make it all async...
   return toHexString(h);
