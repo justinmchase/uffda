@@ -1,5 +1,8 @@
 import { tests } from "../../../test.ts";
-import { BinaryOperation, ExpressionKind } from "../../../runtime/expressions/mod.ts";
+import {
+  BinaryOperation,
+  ExpressionKind,
+} from "../../../runtime/expressions/mod.ts";
 import { SubtractExpression } from "./SubtractExpression.ts";
 import { LangExpressionKind } from "../../lang/lang.pattern.ts";
 
@@ -18,8 +21,8 @@ tests(() => [
         right: {
           kind: LangExpressionKind.ReferenceExpression,
           name: "b",
-        }
-      }
+        },
+      },
     ],
     value: {
       kind: ExpressionKind.Binary,

@@ -1,7 +1,4 @@
-import {
-  Pattern,
-  PatternKind,
-} from "../../../runtime/patterns/mod.ts";
+import { Pattern, PatternKind } from "../../../runtime/patterns/mod.ts";
 import { ExpressionKind } from "../../../runtime/expressions/mod.ts";
 import { DeclarationKind } from "../../../runtime/declarations/declaration.kind.ts";
 import { IModuleDeclaration } from "../../../runtime/declarations/module.ts";
@@ -15,7 +12,7 @@ export const OneOrMorePattern: IModuleDeclaration = {
       module: () => PatternPattern,
       moduleUrl: "./PatternPattern.ts",
       names: ["PatternPattern"],
-    }
+    },
   ],
   rules: [
     {
@@ -43,6 +40,6 @@ export const OneOrMorePattern: IModuleDeclaration = {
           }),
         },
       },
-    }
-  ]
+    },
+  ],
 };

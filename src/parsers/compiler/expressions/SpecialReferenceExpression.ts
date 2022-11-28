@@ -35,6 +35,6 @@ export const SpecialReferenceExpression: IModuleDeclaration = {
           }),
         },
       },
-    }
-  ]
+    },
+  ],
 };

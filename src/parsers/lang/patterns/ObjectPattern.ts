@@ -13,7 +13,7 @@ export const ObjectPattern: IModuleDeclaration = {
       module: ObjectKeyPattern,
       moduleUrl: "./ObjectKeyPattern.ts",
       names: ["ObjectKeyPattern"],
-    }
+    },
   ],
   rules: [
     {
@@ -54,7 +54,10 @@ export const ObjectPattern: IModuleDeclaration = {
                             {
                               kind: PatternKind.Object,
                               keys: {
-                                kind: { kind: PatternKind.Equal, value: "Token" },
+                                kind: {
+                                  kind: PatternKind.Equal,
+                                  value: "Token",
+                                },
                                 value: { kind: PatternKind.Equal, value: "," },
                               },
                             },
@@ -107,7 +110,7 @@ export const ObjectPattern: IModuleDeclaration = {
             keys: [k0, ...k1].filter((k) => k),
           }),
         },
-      }
-    }
-  ]
+      },
+    },
+  ],
 };

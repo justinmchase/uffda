@@ -12,14 +12,14 @@ export const PatternLang: IModuleDeclaration = {
       kind: DeclarationKind.NativeImport,
       moduleUrl: "../basic.ts",
       module: Basic,
-      names: ["Basic"]
+      names: ["Basic"],
     },
     {
       kind: DeclarationKind.NativeImport,
       moduleUrl: "./patterns/PatternPattern.ts",
       module: PatternPattern,
       names: ["PatternPattern"],
-    }
+    },
   ],
   rules: [
     {

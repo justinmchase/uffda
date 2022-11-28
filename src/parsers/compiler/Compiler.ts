@@ -18,7 +18,7 @@ export const Compiler: IModuleDeclaration = {
       module: () => Lang,
       moduleUrl: "../lang/Lang.ts",
       names: ["Lang"],
-    }
+    },
   ],
   rules: [
     {
@@ -31,6 +31,6 @@ export const Compiler: IModuleDeclaration = {
           { kind: PatternKind.Reference, name: "PatternModule" },
         ],
       },
-    }
-  ]
+    },
+  ],
 };

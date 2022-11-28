@@ -61,6 +61,6 @@ export const ObjectKeyExpression: IModuleDeclaration = {
           }),
         },
       },
-    }
-  ]
+    },
+  ],
 };

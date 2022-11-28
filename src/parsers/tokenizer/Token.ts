@@ -12,7 +12,7 @@ export const Token: IModuleDeclaration = {
       pattern: {
         kind: PatternKind.RegExp,
         pattern: /^[^\w\d\s]$/,
-      }
-    }
-  ]
+      },
+    },
+  ],
 };

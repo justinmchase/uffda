@@ -21,7 +21,7 @@ export const MemberExpression: IModuleDeclaration = {
       module: InvocationExpression,
       moduleUrl: "./InvocationExpression.ts",
       names: ["InvocationExpression"],
-    }
+    },
   ],
   rules: [
     {
@@ -78,6 +78,6 @@ export const MemberExpression: IModuleDeclaration = {
           },
         ],
       },
-    }
-  ]
+    },
+  ],
 };

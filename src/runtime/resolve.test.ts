@@ -1,85 +1,91 @@
-import { assert, equal, path, assertEquals } from '../../deps/std.ts'
-import { Context, IContext } from '../context.ts';
+import { assertEquals, path } from "../../deps/std.ts";
 import { Resolver } from "./resolve.ts";
-import { JsonResolver } from './resolvers/json.resolver.ts';
 
-const MODULE_DIR = path.dirname(path.fromFileUrl(import.meta.url))
+const MODULE_DIR = path.dirname(path.fromFileUrl(import.meta.url));
 const pathNormalizationTests = [
-  ['./test.uff', '/var/test/mod.ts', 'file:///var/test/test.uff'],
-  ['./test.uff', 'file:///var/test.uff', 'file:///var/test.uff'],
-  ['./test.uff', 'http://example.com/mod.ts', 'http://example.com/test.uff'],
-  ['./test.uff', 'http://test.com/x/mod.js', 'http://test.com/x/test.uff'],
-  ['/var/example/test.uff', '/var/test/mod.ts', 'file:///var/example/test.uff'],
-  ['file:///var/example/test.uff', 'file:///var/test/mod.uff', 'file:///var/example/test.uff'],
-  ['http://example.com/test.uff', 'http://test.com/mod.js', 'http://example.com/test.uff'],
-]
+  ["./test.uff", "/var/test/mod.ts", "file:///var/test/test.uff"],
+  ["./test.uff", "file:///var/test.uff", "file:///var/test.uff"],
+  ["./test.uff", "http://example.com/mod.ts", "http://example.com/test.uff"],
+  ["./test.uff", "http://test.com/x/mod.js", "http://test.com/x/test.uff"],
+  ["/var/example/test.uff", "/var/test/mod.ts", "file:///var/example/test.uff"],
+  [
+    "file:///var/example/test.uff",
+    "file:///var/test/mod.uff",
+    "file:///var/example/test.uff",
+  ],
+  [
+    "http://example.com/test.uff",
+    "http://test.com/mod.js",
+    "http://example.com/test.uff",
+  ],
+];
 
 pathNormalizationTests.forEach(([modulePath, parentPath, expectedPath], i) => {
   Deno.test({
-    name: `NORM${i.toString().padStart(2, '0')}`,
+    name: `NORM${i.toString().padStart(2, "0")}`,
     fn: () => {
-      const resolved = Resolver.normalizeModulePath(modulePath, parentPath)
-      assertEquals(resolved, expectedPath)
-    }
-  })
-})
+      const resolved = Resolver.normalizeModulePath(modulePath, parentPath);
+      assertEquals(resolved, expectedPath);
+    },
+  });
+});
 
 Deno.test({
-  name: 'RESOLVE00',
+  name: "RESOLVE00",
   fn: async () => {
-    const resolver = new Resolver(import.meta.url)
-    const resolved = await resolver.load('./resolvers/test.module.json')
+    const resolver = new Resolver(import.meta.url);
+    const resolved = await resolver.load("./resolvers/test.module.json");
     assertEquals(
       resolved.moduleUrl,
-      `file://${MODULE_DIR}/resolvers/test.module.json`
-    )
-  }
-})
+      `file://${MODULE_DIR}/resolvers/test.module.json`,
+    );
+  },
+});
 Deno.test({
-  name: 'RESOLVE01',
+  name: "RESOLVE01",
   fn: async () => {
-    const resolver = new Resolver(import.meta.url)
-    const resolved = await resolver.load('./resolvers/test.module.js')
+    const resolver = new Resolver(import.meta.url);
+    const resolved = await resolver.load("./resolvers/test.module.js");
     assertEquals(
       resolved.moduleUrl,
-      `file://${MODULE_DIR}/resolvers/test.module.js`
-    )
-  }
-})
+      `file://${MODULE_DIR}/resolvers/test.module.js`,
+    );
+  },
+});
 Deno.test({
-  name: 'RESOLVE02',
+  name: "RESOLVE02",
   fn: async () => {
-    const resolver = new Resolver(import.meta.url)
-    const resolved = await resolver.load('./resolvers/test0.module.ts')
+    const resolver = new Resolver(import.meta.url);
+    const resolved = await resolver.load("./resolvers/test0.module.ts");
     assertEquals(
       resolved.moduleUrl,
-      `file://${MODULE_DIR}/resolvers/test0.module.ts`
-    )
-  }
-})
+      `file://${MODULE_DIR}/resolvers/test0.module.ts`,
+    );
+  },
+});
 Deno.test({
-  name: 'RESOLVE03',
+  name: "RESOLVE03",
   fn: async () => {
-    const resolver = new Resolver(import.meta.url)
-    const resolved = await resolver.load('./resolvers/test0.module.ts')
+    const resolver = new Resolver(import.meta.url);
+    const resolved = await resolver.load("./resolvers/test0.module.ts");
     assertEquals(
       resolved.moduleUrl,
-      `file://${MODULE_DIR}/resolvers/test0.module.ts`
-    )
-  }
-})
+      `file://${MODULE_DIR}/resolvers/test0.module.ts`,
+    );
+  },
+});
 Deno.test({
-  name: 'RESOLVE04',
+  name: "RESOLVE04",
   fn: async () => {
-    const resolver = new Resolver(import.meta.url)
-    const resolved = await resolver.load('./resolvers/test1.module.ts')
+    const resolver = new Resolver(import.meta.url);
+    const resolved = await resolver.load("./resolvers/test1.module.ts");
     assertEquals(
       resolved.moduleUrl,
-      `file://${MODULE_DIR}/resolvers/test1.module.ts`
-    )
+      `file://${MODULE_DIR}/resolvers/test1.module.ts`,
+    );
     assertEquals(
       resolved.imports.get("A")?.module.moduleUrl,
-      `file://${MODULE_DIR}/resolvers/test0.module.ts`
-    )
-  }
-})
+      `file://${MODULE_DIR}/resolvers/test0.module.ts`,
+    );
+  },
+});

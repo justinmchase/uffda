@@ -20,8 +20,8 @@ tests(() => [
             kind: PatternKind.Equal,
             value: "a",
           },
-        }
-      ]
+        },
+      ],
     }),
     input: "a",
     value: "a",
@@ -110,7 +110,7 @@ tests(() => [
             name: "a",
           },
         },
-      ]
+      ],
     }),
     input: "ab",
     matched: false,
@@ -161,7 +161,13 @@ tests(() => [
             pattern: { kind: PatternKind.Any },
             expression: {
               kind: ExpressionKind.Native,
-              fn: ({ x }) => (assert(x === undefined, `x should be undefined but is '${x}'`), true),
+              fn: (
+                { x },
+              ) => (assert(
+                x === undefined,
+                `x should be undefined but is '${x}'`,
+              ),
+                true),
             },
           },
         },
@@ -252,11 +258,17 @@ tests(() => [
               pattern: { kind: PatternKind.Any },
               expression: {
                 kind: ExpressionKind.Native,
-                fn: ({ x }) => (assert(x === undefined, `x should be undefined but is '${x}'`), true),
+                fn: (
+                  { x },
+                ) => (assert(
+                  x === undefined,
+                  `x should be undefined but is '${x}'`,
+                ),
+                  true),
               },
             },
           },
-        ]
+        ],
       };
       const m1: IModuleDeclaration = {
         kind: DeclarationKind.Module,
@@ -266,7 +278,7 @@ tests(() => [
             module: m0,
             moduleUrl: "./m0.ts",
             names: ["P0"],
-          }
+          },
         ],
         rules: [
           {
@@ -291,7 +303,7 @@ tests(() => [
             },
           },
         ],
-      }
+      };
       return m1;
     },
     input: "ab",

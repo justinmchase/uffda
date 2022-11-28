@@ -8,13 +8,12 @@ import { NotPattern } from "./NotPattern.ts";
 export const MustPattern: IModuleDeclaration = {
   kind: DeclarationKind.Module,
   imports: [
-    
     {
       kind: DeclarationKind.NativeImport,
       module: NotPattern,
       moduleUrl: "./NotPattern.ts",
       names: ["NotPattern"],
-    }
+    },
   ],
   rules: [
     {
@@ -61,6 +60,6 @@ export const MustPattern: IModuleDeclaration = {
           },
         ],
       },
-    }
-  ]
+    },
+  ],
 };

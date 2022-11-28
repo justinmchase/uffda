@@ -9,7 +9,7 @@ tests(() => [
     description: "Can parse special reference",
     module: () => SpecialReferenceExpression,
     input: [
-      { kind: TokenizerKind.SpecialIdentifier, value: "$0" }
+      { kind: TokenizerKind.SpecialIdentifier, value: "$0" },
     ],
     value: {
       kind: LangExpressionKind.SpecialReferenceExpression,

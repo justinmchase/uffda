@@ -13,8 +13,8 @@ export const SpreadExpression: IModuleDeclaration = {
       kind: DeclarationKind.NativeImport,
       module: () => ExpressionPattern,
       moduleUrl: "../patterns/ExpressionPattern.ts",
-      names: ["ExpressionPattern"]
-    }
+      names: ["ExpressionPattern"],
+    },
   ],
   rules: [
     {
@@ -61,6 +61,6 @@ export const SpreadExpression: IModuleDeclaration = {
           fn: ({ expression }) => expression,
         },
       },
-    }
-  ]
+    },
+  ],
 };

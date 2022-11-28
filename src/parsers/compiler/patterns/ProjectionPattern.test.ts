@@ -1,7 +1,13 @@
 import { tests } from "../../../test.ts";
 import { PatternKind } from "../../../runtime/patterns/mod.ts";
-import { BinaryOperation, ExpressionKind } from "../../../runtime/expressions/mod.ts";
-import { LangExpressionKind, LangPatternKind } from "../../lang/lang.pattern.ts";
+import {
+  BinaryOperation,
+  ExpressionKind,
+} from "../../../runtime/expressions/mod.ts";
+import {
+  LangExpressionKind,
+  LangPatternKind,
+} from "../../lang/lang.pattern.ts";
 import { ProjectionPattern } from "./ProjectionPattern.ts";
 
 const $0 = () => {};
@@ -15,13 +21,13 @@ tests(() => [
         kind: LangPatternKind.ProjectionPattern,
         pattern: {
           kind: LangPatternKind.ReferencePattern,
-          name: "a"
+          name: "a",
         },
         expression: {
           kind: LangExpressionKind.SpecialReferenceExpression,
-          name: "$0"
-        }
-      }
+          name: "$0",
+        },
+      },
     ],
     specials: { $0 },
     value: {
@@ -53,13 +59,13 @@ tests(() => [
         kind: LangPatternKind.ProjectionPattern,
         pattern: {
           kind: LangPatternKind.ReferencePattern,
-          name: "items"
+          name: "items",
         },
         expression: {
           kind: LangExpressionKind.InvocationExpression,
           expression: {
             kind: LangExpressionKind.ReferenceExpression,
-            name: "map"
+            name: "map",
           },
           arguments: [
             {
@@ -70,23 +76,23 @@ tests(() => [
               kind: LangExpressionKind.LambdaExpression,
               pattern: {
                 kind: LangPatternKind.ReferencePattern,
-                name: "i"
+                name: "i",
               },
               expression: {
                 kind: LangExpressionKind.AddExpression,
                 left: {
                   kind: LangExpressionKind.ReferenceExpression,
-                  name: "i"
+                  name: "i",
                 },
                 right: {
                   kind: LangExpressionKind.NumberExpression,
-                  value: 1
-                }
-              }
-            }
-          ]
-        }
-      }
+                  value: 1,
+                },
+              },
+            },
+          ],
+        },
+      },
     ],
     value: {
       kind: PatternKind.Projection,

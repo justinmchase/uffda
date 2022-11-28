@@ -74,6 +74,6 @@ export const TypePattern: IModuleDeclaration = {
           },
         ],
       },
-    }
-  ]
+    },
+  ],
 };

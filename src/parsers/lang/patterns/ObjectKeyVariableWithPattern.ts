@@ -12,8 +12,8 @@ export const ObjectKeyVariableWithPattern: IModuleDeclaration = {
       kind: DeclarationKind.NativeImport,
       module: () => PatternPattern,
       moduleUrl: "./PatternPattern.ts",
-      names: ["PatternPattern"]
-    }
+      names: ["PatternPattern"],
+    },
   ],
   rules: [
     {
@@ -80,6 +80,6 @@ export const ObjectKeyVariableWithPattern: IModuleDeclaration = {
           }),
         },
       },
-    }
-  ]
+    },
+  ],
 };

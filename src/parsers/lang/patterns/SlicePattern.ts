@@ -47,6 +47,6 @@ export const SlicePattern: IModuleDeclaration = {
           { kind: PatternKind.Reference, name: "TerminalPattern" },
         ],
       },
-    }
-  ]
+    },
+  ],
 };

@@ -5,5 +5,4 @@ import { IRuleDeclaration } from "./rule.ts";
 export type Declaration =
   | IModuleDeclaration
   | ImportDeclaration
-  | IRuleDeclaration
-  ;
+  | IRuleDeclaration;

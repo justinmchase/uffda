@@ -11,10 +11,10 @@ tests(() => [
     description: "$0",
     module: () => SpecialReferenceExpression,
     input: [
-      { kind: LangExpressionKind.SpecialReferenceExpression, name: "$0" }
+      { kind: LangExpressionKind.SpecialReferenceExpression, name: "$0" },
     ],
     specials: {
-      $0
+      $0,
     },
     value: {
       kind: ExpressionKind.Native,

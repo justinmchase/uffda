@@ -12,7 +12,7 @@ export const PatternModule: IModuleDeclaration = {
       module: () => PatternDeclaration,
       moduleUrl: "./declarations/PatternDeclaration.ts",
       names: ["PatternDeclaration"],
-    }
+    },
   ],
   rules: [
     {
@@ -24,7 +24,7 @@ export const PatternModule: IModuleDeclaration = {
           kind: PatternKind.Object,
           keys: {
             kind: { kind: PatternKind.Equal, value: "PatternModule" },
-            
+
             // imports // todo: implement imports...
             // imports: {
             //   kind: PatternKind.Variable,
@@ -40,7 +40,7 @@ export const PatternModule: IModuleDeclaration = {
             //     }
             //   }
             // },
-            
+
             rules: {
               kind: PatternKind.Variable,
               name: "rules",
@@ -66,6 +66,6 @@ export const PatternModule: IModuleDeclaration = {
           }),
         },
       },
-    }
-  ]
+    },
+  ],
 };

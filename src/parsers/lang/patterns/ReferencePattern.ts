@@ -32,6 +32,6 @@ export const ReferencePattern: IModuleDeclaration = {
           }),
         },
       },
-    }
-  ]
+    },
+  ],
 };

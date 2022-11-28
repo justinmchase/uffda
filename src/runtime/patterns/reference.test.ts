@@ -14,7 +14,7 @@ tests(() => [
         {
           kind: DeclarationKind.Rule,
           name: "A",
-          pattern: { kind: PatternKind.Equal, value: "a" }
+          pattern: { kind: PatternKind.Equal, value: "a" },
         },
         {
           kind: DeclarationKind.Rule,
@@ -23,8 +23,8 @@ tests(() => [
             kind: PatternKind.Reference,
             name: "A",
           },
-        }
-      ]
+        },
+      ],
     }),
     input: "a",
     value: "a",

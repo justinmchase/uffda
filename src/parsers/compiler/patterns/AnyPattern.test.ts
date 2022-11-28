@@ -9,7 +9,7 @@ tests(() => [
     module: () => AnyPattern,
     // input: "any",
     input: [
-      { kind: LangPatternKind.AnyPattern }
+      { kind: LangPatternKind.AnyPattern },
     ],
     value: {
       kind: PatternKind.Any,

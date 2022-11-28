@@ -9,7 +9,7 @@ tests(() => [
     description: "'abc'",
     module: () => EqualPattern,
     input: [
-      { kind: LangPatternKind.EqualPattern, value: "abc" }
+      { kind: LangPatternKind.EqualPattern, value: "abc" },
     ],
     value: {
       kind: PatternKind.Equal,
@@ -21,7 +21,7 @@ tests(() => [
     description: "7",
     module: () => EqualPattern,
     input: [
-      { kind: LangPatternKind.EqualPattern, value: 7 }
+      { kind: LangPatternKind.EqualPattern, value: 7 },
     ],
     value: {
       kind: PatternKind.Equal,

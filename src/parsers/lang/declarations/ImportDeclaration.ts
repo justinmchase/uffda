@@ -1,7 +1,10 @@
 import { PatternKind } from "../../../runtime/patterns/mod.ts";
 import { ExpressionKind } from "../../../runtime/expressions/mod.ts";
 import { LangModuleKind } from "../lang.pattern.ts";
-import { DeclarationKind, IModuleDeclaration } from "../../../runtime/declarations/mod.ts";
+import {
+  DeclarationKind,
+  IModuleDeclaration,
+} from "../../../runtime/declarations/mod.ts";
 
 // ImportDeclaration
 //   = { kind = 'Identifier', value = 'import' }
@@ -109,8 +112,8 @@ export const ImportDeclaration: IModuleDeclaration = {
             names,
             modulePath,
           }),
-        }
-      }
-    }
-  ]
+        },
+      },
+    },
+  ],
 };

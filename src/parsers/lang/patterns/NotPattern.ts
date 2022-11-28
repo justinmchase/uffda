@@ -13,7 +13,7 @@ export const NotPattern: IModuleDeclaration = {
       module: VariablePattern,
       moduleUrl: "./VariablePattern.ts",
       names: ["VariablePattern"],
-    }
+    },
   ],
   rules: [
     {
@@ -58,6 +58,6 @@ export const NotPattern: IModuleDeclaration = {
           },
         ],
       },
-    }
-  ]
+    },
+  ],
 };

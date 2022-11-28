@@ -44,6 +44,6 @@ export const ThenPattern: IModuleDeclaration = {
           }),
         },
       },
-    }
-  ]
+    },
+  ],
 };

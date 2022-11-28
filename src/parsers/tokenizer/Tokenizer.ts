@@ -27,31 +27,31 @@ export const Tokenizer: IModuleDeclaration = {
       kind: DeclarationKind.NativeImport,
       moduleUrl: "./NewLine.ts",
       module: NewLine,
-      names: ["NewLine"]
+      names: ["NewLine"],
     },
     {
       kind: DeclarationKind.NativeImport,
       moduleUrl: "./Whitespace.ts",
       module: Whitespace,
-      names: ["Whitespace"]
+      names: ["Whitespace"],
     },
     {
       kind: DeclarationKind.NativeImport,
       moduleUrl: "./Integer.ts",
       module: Integer,
-      names: ["Integer"]
+      names: ["Integer"],
     },
     {
       kind: DeclarationKind.NativeImport,
       moduleUrl: "./SpecialIdentifier.ts",
       module: SpecialIdentifier,
-      names: ["SpecialIdentifier"]
+      names: ["SpecialIdentifier"],
     },
     {
       kind: DeclarationKind.NativeImport,
       moduleUrl: "./Identifier.ts",
       module: Identifier,
-      names: ["Identifier"]
+      names: ["Identifier"],
     },
     {
       kind: DeclarationKind.NativeImport,
@@ -64,7 +64,7 @@ export const Tokenizer: IModuleDeclaration = {
       moduleUrl: "./Token.ts",
       module: Token,
       names: ["Token"],
-    }
+    },
   ],
   rules: [
     {
@@ -79,29 +79,29 @@ export const Tokenizer: IModuleDeclaration = {
               kind: PatternKind.Projection,
               pattern: {
                 kind: PatternKind.Reference,
-                name: "NewLine"
+                name: "NewLine",
               },
               expression: {
                 kind: ExpressionKind.Native,
-                fn: ({ _ }) => ({ kind: TokenizerKind.NewLine, value: _ })
-              }
+                fn: ({ _ }) => ({ kind: TokenizerKind.NewLine, value: _ }),
+              },
             },
             {
               kind: PatternKind.Projection,
               pattern: {
                 kind: PatternKind.Reference,
-                name: "Whitespace"
+                name: "Whitespace",
               },
               expression: {
                 kind: ExpressionKind.Native,
                 fn: ({ _ }) => ({ kind: TokenizerKind.Whitespace, value: _ }),
-              }
+              },
             },
             {
               kind: PatternKind.Projection,
               pattern: {
                 kind: PatternKind.Reference,
-                name: "Integer"
+                name: "Integer",
               },
               expression: {
                 kind: ExpressionKind.Native,
@@ -115,7 +115,7 @@ export const Tokenizer: IModuleDeclaration = {
               kind: PatternKind.Projection,
               pattern: {
                 kind: PatternKind.Reference,
-                name: "SpecialIdentifier"
+                name: "SpecialIdentifier",
               },
               expression: {
                 kind: ExpressionKind.Native,
@@ -129,7 +129,7 @@ export const Tokenizer: IModuleDeclaration = {
               kind: PatternKind.Projection,
               pattern: {
                 kind: PatternKind.Reference,
-                name: "Identifier"
+                name: "Identifier",
               },
               expression: {
                 kind: ExpressionKind.Native,
@@ -164,9 +164,9 @@ export const Tokenizer: IModuleDeclaration = {
               message: "Tokens are expected to be strings",
               pattern: { kind: PatternKind.Any },
             },
-          ]
-        }
-      }
-    }
+          ],
+        },
+      },
+    },
   ],
 };

@@ -24,7 +24,7 @@ export function reference(pattern: IReferencePattern, scope: Scope): Match {
         console.log(`${indent} ${red(name)}`);
       }
     }
-    
+
     return m;
   } else {
     throw new RuntimeError(

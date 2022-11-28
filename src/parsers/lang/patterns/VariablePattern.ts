@@ -13,7 +13,7 @@ export const VariablePattern: IModuleDeclaration = {
       module: SlicePattern,
       moduleUrl: "./SlicePattern.ts",
       names: ["SlicePattern"],
-    }
+    },
   ],
   rules: [
     {
@@ -48,7 +48,10 @@ export const VariablePattern: IModuleDeclaration = {
                 {
                   kind: PatternKind.Variable,
                   name: "pattern",
-                  pattern: { kind: PatternKind.Reference, name: "SlicePattern" },
+                  pattern: {
+                    kind: PatternKind.Reference,
+                    name: "SlicePattern",
+                  },
                 },
               ],
             },
@@ -64,6 +67,6 @@ export const VariablePattern: IModuleDeclaration = {
           { kind: PatternKind.Reference, name: "SlicePattern" },
         ],
       },
-    }
-  ]
+    },
+  ],
 };

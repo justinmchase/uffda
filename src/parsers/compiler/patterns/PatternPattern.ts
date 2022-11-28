@@ -131,7 +131,6 @@ export const PatternPattern: IModuleDeclaration = {
       moduleUrl: "../expressions/SpecialReferenceExpression.ts",
       names: ["SpecialReferenceExpression"],
     },
-
   ],
   rules: [
     {
@@ -216,6 +215,6 @@ export const PatternPattern: IModuleDeclaration = {
           },
         ],
       },
-    }
-  ]
+    },
+  ],
 };

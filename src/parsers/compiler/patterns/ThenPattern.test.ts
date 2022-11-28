@@ -13,7 +13,7 @@ tests(() => [
         kind: LangPatternKind.ThenPattern,
         left: { kind: LangPatternKind.ReferencePattern, name: "x" },
         right: { kind: LangPatternKind.ReferencePattern, name: "y" },
-      }
+      },
     ],
     value: {
       kind: PatternKind.Then,

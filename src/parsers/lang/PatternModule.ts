@@ -1,7 +1,4 @@
-import {
-  Pattern,
-  PatternKind,
-} from "../../runtime/patterns/mod.ts";
+import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 import { IImportDeclaration, LangModuleKind } from "./lang.pattern.ts";
 import { IModuleDeclaration } from "../../runtime/declarations/module.ts";
@@ -9,8 +6,8 @@ import { DeclarationKind } from "../../runtime/declarations/declaration.kind.ts"
 import {
   ImportDeclaration,
   InvalidImportDeclaration,
-  PatternDeclaration,
   InvalidPatternDeclaration,
+  PatternDeclaration,
 } from "./declarations/mod.ts";
 
 export const PatternModule: IModuleDeclaration = {
@@ -100,7 +97,7 @@ export const PatternModule: IModuleDeclaration = {
             rules: rules.filter((p: Pattern) => p),
           }),
         },
-      }
-    }
-  ]
+      },
+    },
+  ],
 };

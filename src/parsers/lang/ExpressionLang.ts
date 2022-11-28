@@ -13,14 +13,14 @@ export const ExpressionLang: IModuleDeclaration = {
       kind: DeclarationKind.NativeImport,
       module: Basic,
       moduleUrl: "../basic.ts",
-      names: ["Basic"]
+      names: ["Basic"],
     },
     {
       kind: DeclarationKind.NativeImport,
       module: ExpressionPattern,
       moduleUrl: "./patterns/ExpressionPattern.ts",
       names: ["ExpressionPattern"],
-    }
+    },
   ],
   rules: [
     {
@@ -36,6 +36,6 @@ export const ExpressionLang: IModuleDeclaration = {
           },
         ],
       },
-    }
-  ]
+    },
+  ],
 };

@@ -62,6 +62,6 @@ export const RangePattern: IModuleDeclaration = {
           },
         ],
       },
-    }
-  ]
+    },
+  ],
 };

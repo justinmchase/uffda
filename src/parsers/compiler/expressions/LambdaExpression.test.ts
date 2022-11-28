@@ -1,8 +1,14 @@
 import { tests } from "../../../test.ts";
-import { BinaryOperation, ExpressionKind } from "../../../runtime/expressions/mod.ts";
+import {
+  BinaryOperation,
+  ExpressionKind,
+} from "../../../runtime/expressions/mod.ts";
 import { PatternKind } from "../../../runtime/patterns/pattern.kind.ts";
 import { LambdaExpression } from "./LambdaExpression.ts";
-import { LangExpressionKind, LangPatternKind } from "../../lang/lang.pattern.ts";
+import {
+  LangExpressionKind,
+  LangPatternKind,
+} from "../../lang/lang.pattern.ts";
 
 tests(() => [
   {
@@ -13,13 +19,13 @@ tests(() => [
         kind: LangExpressionKind.LambdaExpression,
         pattern: {
           kind: LangPatternKind.ReferencePattern,
-          name: "a"
+          name: "a",
         },
         expression: {
           kind: LangExpressionKind.ReferenceExpression,
-          name: "a"
-        }
-      }
+          name: "a",
+        },
+      },
     ],
     value: {
       kind: ExpressionKind.Lambda,
@@ -43,18 +49,18 @@ tests(() => [
           kind: LangPatternKind.OrPattern,
           left: {
             kind: LangPatternKind.ReferencePattern,
-            name: "a"
+            name: "a",
           },
           right: {
             kind: LangPatternKind.ReferencePattern,
-            name: "b"
-          }
+            name: "b",
+          },
         },
         expression: {
           kind: LangExpressionKind.ReferenceExpression,
-          name: "_"
-        }
-      }
+          name: "_",
+        },
+      },
     ],
     value: {
       kind: ExpressionKind.Lambda,
@@ -86,13 +92,13 @@ tests(() => [
         kind: LangExpressionKind.LambdaExpression,
         pattern: {
           kind: LangPatternKind.ReferencePattern,
-          name: "items"
+          name: "items",
         },
         expression: {
           kind: LangExpressionKind.InvocationExpression,
           expression: {
             kind: LangExpressionKind.ReferenceExpression,
-            name: "map"
+            name: "map",
           },
           arguments: [
             {
@@ -109,23 +115,23 @@ tests(() => [
                 kind: LangExpressionKind.AddExpression,
                 left: {
                   kind: LangExpressionKind.ReferenceExpression,
-                  name: "i"
+                  name: "i",
                 },
                 right: {
                   kind: LangExpressionKind.NumberExpression,
-                  value: 1
-                }
-              }
-            }
-          ]
-        }
-      }
+                  value: 1,
+                },
+              },
+            },
+          ],
+        },
+      },
     ],
     value: {
       kind: ExpressionKind.Lambda,
       pattern: {
         kind: PatternKind.Reference,
-        name: "items"
+        name: "items",
       },
       expression: {
         kind: ExpressionKind.Invocation,
@@ -153,12 +159,12 @@ tests(() => [
               },
               right: {
                 kind: ExpressionKind.Value,
-                value: 1
+                value: 1,
               },
             },
           },
         ],
-      }
+      },
     },
   },
 ]);

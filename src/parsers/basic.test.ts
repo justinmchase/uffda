@@ -6,7 +6,7 @@ tests(() => [
     id: "BASIC00",
     description: "succeeds on empty input",
     module: () => Basic,
-    value: []
+    value: [],
   },
   {
     id: "BASIC01",
@@ -16,7 +16,7 @@ tests(() => [
     value: [
       { kind: "Identifier", value: "x" },
       { kind: "Token", value: "+" },
-      { kind: "Identifier", value: "y" }
+      { kind: "Identifier", value: "y" },
     ],
   },
 ]);

@@ -33,6 +33,6 @@ export const NumberExpression: IModuleDeclaration = {
           }),
         },
       },
-    }
-  ]
+    },
+  ],
 };

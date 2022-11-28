@@ -16,7 +16,10 @@ export const EqualPattern: IModuleDeclaration = {
         pattern: {
           kind: PatternKind.Object,
           keys: {
-            kind: { kind: PatternKind.Equal, value: LangPatternKind.EqualPattern },
+            kind: {
+              kind: PatternKind.Equal,
+              value: LangPatternKind.EqualPattern,
+            },
             value: {
               kind: PatternKind.Variable,
               name: "value",
@@ -32,6 +35,6 @@ export const EqualPattern: IModuleDeclaration = {
           }),
         },
       },
-    }
-  ]
+    },
+  ],
 };

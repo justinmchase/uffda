@@ -18,7 +18,7 @@ export const ExpressionCompiler: IModuleDeclaration = {
       moduleUrl: "../lang/ExpressionPattern.ts",
       names: ["ExpressionPattern"],
       module: ExpressionPattern,
-    }
+    },
   ],
   rules: [
     {
@@ -31,6 +31,6 @@ export const ExpressionCompiler: IModuleDeclaration = {
           { kind: PatternKind.Reference, name: "ExpressionPattern" },
         ],
       },
-    }
-  ]
+    },
+  ],
 };

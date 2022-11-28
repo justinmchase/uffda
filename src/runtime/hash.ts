@@ -9,11 +9,10 @@ export type Serializable =
   | Date
   | { toJSON(): Serializable }
   | Serializable[]
-  | ISerializable
-  ;
+  | ISerializable;
 
 export interface ISerializable {
-  [key: string]: Serializable
+  [key: string]: Serializable;
 }
 
 const toHexString = (bytes: ArrayBuffer): string =>

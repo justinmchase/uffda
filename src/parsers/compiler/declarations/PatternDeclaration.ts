@@ -12,7 +12,7 @@ export const PatternDeclaration: IModuleDeclaration = {
       module: () => PatternPattern,
       moduleUrl: "./PatternPattern.ts",
       names: ["PatternPattern"],
-    }
+    },
   ],
   rules: [
     {
@@ -41,10 +41,10 @@ export const PatternDeclaration: IModuleDeclaration = {
           fn: ({ name, pattern }) => ({
             kind: DeclarationKind.Rule,
             name,
-            pattern
+            pattern,
           }),
         },
       },
-    }
-  ]
+    },
+  ],
 };

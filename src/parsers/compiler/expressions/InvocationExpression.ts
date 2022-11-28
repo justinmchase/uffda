@@ -13,7 +13,7 @@ export const InvocationExpression: IModuleDeclaration = {
       module: () => ExpressionPattern,
       moduleUrl: "./ExpressionPattern.ts",
       names: ["ExpressionPattern"],
-    }
+    },
   ],
   rules: [
     {
@@ -61,6 +61,6 @@ export const InvocationExpression: IModuleDeclaration = {
           }),
         },
       },
-    }
-  ]
+    },
+  ],
 };

@@ -14,16 +14,16 @@ tests(() => [
         kind: LangModuleKind.PatternDeclaration,
         name: "X",
         pattern: {
-          kind: LangPatternKind.OkPattern
-        }
-      }
+          kind: LangPatternKind.OkPattern,
+        },
+      },
     ],
     value: {
       kind: DeclarationKind.Rule,
       name: "X",
       pattern: {
         kind: PatternKind.Ok,
-      }
+      },
     },
   },
 ]);

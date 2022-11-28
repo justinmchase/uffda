@@ -1,6 +1,5 @@
 import { tests } from "../../../test.ts";
 import { TokenizerKind } from "../../mod.ts";
-import { ExpressionLang } from "../ExpressionLang.ts";
 import { LangExpressionKind } from "../lang.pattern.ts";
 import { SpreadExpression } from "./SpreadExpression.ts";
 

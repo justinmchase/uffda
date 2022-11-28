@@ -13,7 +13,7 @@ export const ZeroOrOnePattern: IModuleDeclaration = {
       module: TerminalPattern,
       moduleUrl: "./TerminalPattern.ts",
       names: ["TerminalPattern"],
-    }
+    },
   ],
   rules: [
     {
@@ -46,6 +46,6 @@ export const ZeroOrOnePattern: IModuleDeclaration = {
           }),
         },
       },
-    }
-  ]
+    },
+  ],
 };

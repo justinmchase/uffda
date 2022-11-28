@@ -92,9 +92,9 @@ export function match(pattern: Pattern, scope: Scope): Match {
         {
           metadata: {
             // deno-lint-ignore no-explicit-any
-            kind: (pattern as any).kind
-          }
-        }
+            kind: (pattern as any).kind,
+          },
+        },
       );
   }
 }

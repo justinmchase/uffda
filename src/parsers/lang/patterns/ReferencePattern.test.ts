@@ -15,7 +15,7 @@ tests(() => [
       name: "a",
     },
   },
-  
+
   {
     id: "REF01",
     module: () => ReferencePattern,

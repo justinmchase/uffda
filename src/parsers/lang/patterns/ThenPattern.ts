@@ -16,7 +16,7 @@ export const ThenPattern: IModuleDeclaration = {
       module: MustPattern,
       moduleUrl: "./MustPattern.ts",
       names: ["MustPattern"],
-    }
+    },
   ],
   rules: [
     {
@@ -54,6 +54,6 @@ export const ThenPattern: IModuleDeclaration = {
           { kind: PatternKind.Reference, name: "MustPattern" },
         ],
       },
-    }
-  ]
+    },
+  ],
 };

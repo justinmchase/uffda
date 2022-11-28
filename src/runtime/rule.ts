@@ -20,7 +20,6 @@ export function rule(rule: IRule, scope: Scope): Match {
     }
     memo.match = m;
     return m.endRecursion().pop(scope);
-
   } else {
     if (memo.match.isLr) {
       if (scope.ruleStack.length === 0) {

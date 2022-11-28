@@ -10,7 +10,7 @@ export default {
       moduleUrl: "./test0.module.ts",
       names: ["A"],
       module: test0,
-    }
+    },
   ],
-  rules: []
-} as IModuleDeclaration
+  rules: [],
+} as IModuleDeclaration;

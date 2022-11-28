@@ -10,7 +10,7 @@ tests(() => [
     input: [
       { kind: TokenizerKind.Token, value: "[" },
       { kind: TokenizerKind.Token, value: "]" },
-    ], 
+    ],
     value: {
       kind: LangExpressionKind.ArrayExpression,
       expressions: [],
@@ -25,7 +25,7 @@ tests(() => [
       { kind: TokenizerKind.Identifier, value: "b" },
       { kind: TokenizerKind.Identifier, value: "c" },
       { kind: TokenizerKind.Token, value: "]" },
-    ], 
+    ],
     value: {
       kind: LangExpressionKind.ArrayExpression,
       expressions: [
@@ -62,7 +62,7 @@ tests(() => [
       { kind: TokenizerKind.Identifier, value: "a" },
       { kind: TokenizerKind.Token, value: ")" },
       { kind: TokenizerKind.Token, value: "]" },
-    ], 
+    ],
     value: {
       kind: LangExpressionKind.ArrayExpression,
       expressions: [
@@ -73,11 +73,11 @@ tests(() => [
             arguments: [],
             expression: {
               kind: LangExpressionKind.ReferenceExpression,
-              name: "a"    
-            } 
-          }
-        }
-      ]
+              name: "a",
+            },
+          },
+        },
+      ],
     },
   },
   {
@@ -89,7 +89,7 @@ tests(() => [
       { kind: TokenizerKind.Token, value: "." },
       { kind: TokenizerKind.Identifier, value: "b" },
       { kind: TokenizerKind.Token, value: "]" },
-    ],  
+    ],
     value: {
       kind: LangExpressionKind.ArrayExpression,
       expressions: [
@@ -100,11 +100,11 @@ tests(() => [
             name: "b",
             expression: {
               kind: LangExpressionKind.ReferenceExpression,
-              name: "a"
+              name: "a",
             },
-          }
-        }
-      ]
+          },
+        },
+      ],
     },
   },
 ]);

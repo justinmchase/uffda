@@ -62,6 +62,6 @@ export const LambdaExpression: IModuleDeclaration = {
           }),
         },
       },
-    }
-  ]
+    },
+  ],
 };

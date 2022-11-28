@@ -13,7 +13,7 @@ export const GroupPattern: IModuleDeclaration = {
       module: () => PatternPattern,
       moduleUrl: "./PatternPattern.ts",
       names: ["PatternPattern"],
-    }
+    },
   ],
   rules: [
     {
@@ -58,6 +58,6 @@ export const GroupPattern: IModuleDeclaration = {
           fn: ({ p }) => p,
         },
       },
-    }
-  ]
+    },
+  ],
 };

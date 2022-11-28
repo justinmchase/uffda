@@ -19,7 +19,7 @@ export const ProjectionPattern: IModuleDeclaration = {
       module: () => ExpressionPattern,
       moduleUrl: "./ExpressionPattern.ts",
       names: ["ExpressionPattern"],
-    }
+    },
   ],
   rules: [
     {
@@ -55,6 +55,6 @@ export const ProjectionPattern: IModuleDeclaration = {
           }),
         },
       },
-    }
-  ]
+    },
+  ],
 };

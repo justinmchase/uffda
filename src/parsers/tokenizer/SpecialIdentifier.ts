@@ -40,7 +40,7 @@ export const SpecialIdentifier: IModuleDeclaration = {
           kind: ExpressionKind.Native,
           fn: ({ value }) => `$${value.join("")}`,
         },
-      }
-    }
-  ]
+      },
+    },
+  ],
 };

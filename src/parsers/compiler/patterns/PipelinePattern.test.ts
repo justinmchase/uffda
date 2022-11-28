@@ -13,13 +13,13 @@ tests(() => [
         kind: LangPatternKind.PipelinePattern,
         left: {
           kind: LangPatternKind.ReferencePattern,
-          name: "a"
+          name: "a",
         },
         right: {
           kind: LangPatternKind.ReferencePattern,
-          name: "b"
-        }
-      }
+          name: "b",
+        },
+      },
     ],
     value: {
       kind: PatternKind.Pipeline,

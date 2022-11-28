@@ -25,6 +25,6 @@ export const StringPattern: IModuleDeclaration = {
           }),
         },
       },
-    }
-  ]
+    },
+  ],
 };

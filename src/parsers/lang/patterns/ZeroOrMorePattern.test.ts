@@ -1,5 +1,4 @@
 import { tests } from "../../../test.ts";
-import { PatternLang } from "../PatternLang.ts";
 import { LangPatternKind } from "../lang.pattern.ts";
 import { ZeroOrMorePattern } from "./ZeroOrMorePattern.ts";
 import { TokenizerKind } from "../../mod.ts";

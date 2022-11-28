@@ -1,4 +1,4 @@
-import { Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
+import { PatternKind } from "../../runtime/patterns/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 import { Digit } from "./Digit.ts";
 import { IModuleDeclaration } from "../../runtime/declarations/module.ts";
@@ -22,7 +22,7 @@ export const Integer: IModuleDeclaration = {
           kind: ExpressionKind.Native,
           fn: ({ _ }) => _.join(""),
         },
-      }
-    }
-  ]
+      },
+    },
+  ],
 };

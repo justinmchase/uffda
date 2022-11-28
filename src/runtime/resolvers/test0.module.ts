@@ -12,8 +12,8 @@ export default {
       pattern: {
         kind: PatternKind.Range,
         left: "0",
-        right: "9"
-      }
+        right: "9",
+      },
     },
     {
       kind: DeclarationKind.Rule,
@@ -22,9 +22,9 @@ export default {
         kind: PatternKind.Slice,
         pattern: {
           kind: PatternKind.Reference,
-          name: "A"
-        }
-      }
-    }
-  ]
-} as IModuleDeclaration
+          name: "A",
+        },
+      },
+    },
+  ],
+} as IModuleDeclaration;

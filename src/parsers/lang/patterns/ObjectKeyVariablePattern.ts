@@ -81,6 +81,6 @@ export const ObjectKeyVariablePattern: IModuleDeclaration = {
           }),
         },
       },
-    }
-  ]
+    },
+  ],
 };

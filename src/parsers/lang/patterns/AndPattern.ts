@@ -13,7 +13,7 @@ export const AndPattern: IModuleDeclaration = {
       moduleUrl: "./OrPattern.ts",
       module: OrPattern,
       names: ["OrPattern"],
-    }
+    },
   ],
   rules: [
     {
@@ -30,7 +30,10 @@ export const AndPattern: IModuleDeclaration = {
                 {
                   kind: PatternKind.Variable,
                   name: "l",
-                  pattern: { kind: PatternKind.Reference, name: LangPatternKind.AndPattern },
+                  pattern: {
+                    kind: PatternKind.Reference,
+                    name: LangPatternKind.AndPattern,
+                  },
                 },
                 {
                   kind: PatternKind.Object,
@@ -42,7 +45,10 @@ export const AndPattern: IModuleDeclaration = {
                 {
                   kind: PatternKind.Variable,
                   name: "r",
-                  pattern: { kind: PatternKind.Reference, name: LangPatternKind.OrPattern },
+                  pattern: {
+                    kind: PatternKind.Reference,
+                    name: LangPatternKind.OrPattern,
+                  },
                 },
               ],
             },
@@ -57,7 +63,7 @@ export const AndPattern: IModuleDeclaration = {
           },
           { kind: PatternKind.Reference, name: LangPatternKind.OrPattern },
         ],
-      }
-    }
+      },
+    },
   ],
 };

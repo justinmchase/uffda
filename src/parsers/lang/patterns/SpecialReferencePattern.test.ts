@@ -8,7 +8,7 @@ tests(() => [
     id: "SPECREF00",
     module: () => SpecialReferencePattern,
     input: [
-      { kind: TokenizerKind.SpecialIdentifier, value: "$0" }
+      { kind: TokenizerKind.SpecialIdentifier, value: "$0" },
     ],
     value: {
       kind: LangPatternKind.SpecialReferencePattern,

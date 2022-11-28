@@ -71,6 +71,6 @@ export const TerminalExpression: IModuleDeclaration = {
           },
         ],
       },
-    }
-  ]
+    },
+  ],
 };

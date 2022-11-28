@@ -1,8 +1,11 @@
 import { PatternKind } from "../../../runtime/patterns/mod.ts";
 import { ExpressionKind } from "../../../runtime/expressions/mod.ts";
 import { LangModuleKind, LangPatternKind } from "../lang.pattern.ts";
-import { DeclarationKind, IModuleDeclaration } from "../../../runtime/declarations/mod.ts";
-import { PatternPattern } from "../patterns/PatternPattern.ts"
+import {
+  DeclarationKind,
+  IModuleDeclaration,
+} from "../../../runtime/declarations/mod.ts";
+import { PatternPattern } from "../patterns/PatternPattern.ts";
 
 // PatternDeclaration
 //   = { kind = 'Identifier', name:value = string }
@@ -21,8 +24,8 @@ export const PatternDeclaration: IModuleDeclaration = {
       kind: DeclarationKind.NativeImport,
       moduleUrl: "../patterns/PatternPattern.ts",
       module: PatternPattern,
-      names: ["PatternPattern"]
-    }
+      names: ["PatternPattern"],
+    },
   ],
   rules: [
     {
@@ -81,7 +84,7 @@ export const PatternDeclaration: IModuleDeclaration = {
             pattern,
           }),
         },
-      }
-    }
+      },
+    },
   ],
 };

@@ -46,7 +46,7 @@ export const ExcludeWhitespace: IModuleDeclaration = {
           kind: ExpressionKind.Native,
           fn: ({ _ }) => _.filter((n: unknown) => n),
         },
-      }
-    }
-  ]
+      },
+    },
+  ],
 };

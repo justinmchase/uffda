@@ -9,7 +9,7 @@ tests(() => [
     description: "a",
     module: () => ReferencePattern,
     input: [
-      { kind: LangPatternKind.ReferencePattern, name: "a" }
+      { kind: LangPatternKind.ReferencePattern, name: "a" },
     ],
     value: {
       kind: PatternKind.Reference,

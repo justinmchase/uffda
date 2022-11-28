@@ -111,6 +111,6 @@ export const ArrayExpression: IModuleDeclaration = {
           },
         ],
       },
-    }
-  ]
+    },
+  ],
 };

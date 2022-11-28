@@ -15,7 +15,7 @@ export function special(pattern: ISpecialPattern, scope: Scope): Match {
       console.log(`${indent} ${brightBlack(name)}`);
     }
 
-    if (typeof value === 'function') {
+    if (typeof value === "function") {
       // todo: Theoretically we could support this with a native pattern, where they pass in a function as a pattern which does custom handling.
       throw new RuntimeError(
         RuntimeErrorCode.UnknownSpecialKind,
@@ -41,16 +41,16 @@ export function special(pattern: ISpecialPattern, scope: Scope): Match {
         return rule(value as IRule, scope);
       }
       // todo: Theoretically we could support any pattern object being inlined directly if we wanted.
-      default:      
+      default:
         return Match.Fail(scope).pushError(
           "UnknownSpecialKind",
           `A special reference has an uknown kind ${kind}`,
           scope,
-          scope
+          scope,
         );
     }
   }
-  
+
   // todo: Maybe a more specific error is needed but this should never happen without a bad ast object
   throw new RuntimeError(
     RuntimeErrorCode.UnknownReference,
@@ -61,7 +61,7 @@ export function special(pattern: ISpecialPattern, scope: Scope): Match {
     {
       metadata: {
         name,
-        value
+        value,
       },
     },
   );

@@ -73,6 +73,6 @@ export const String: IModuleDeclaration = {
           fn: ({ value }) => value.join(""),
         },
       },
-    }
-  ]
+    },
+  ],
 };

@@ -3,8 +3,8 @@ import { ModuleDeclaration } from "./module.ts";
 
 export interface IImportDeclaration {
   kind: DeclarationKind.Import;
-  moduleUrl: string
-  names: string[]
+  moduleUrl: string;
+  names: string[];
 }
 
 export interface INativeImportDeclaration {

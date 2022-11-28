@@ -8,13 +8,12 @@ import { PatternPattern } from "./PatternPattern.ts";
 export const ObjectPattern: IModuleDeclaration = {
   kind: DeclarationKind.Module,
   imports: [
-    
     {
       kind: DeclarationKind.NativeImport,
       module: () => PatternPattern,
       moduleUrl: "./PatternPattern.ts",
       names: ["PatternPattern"],
-    }
+    },
   ],
   rules: [
     {
@@ -71,7 +70,9 @@ export const ObjectPattern: IModuleDeclaration = {
         },
         expression: {
           kind: ExpressionKind.Native,
-          fn: ({ _, name, alias, must, pattern = { kind: PatternKind.Any } }) => {
+          fn: (
+            { _, name, alias, must, pattern = { kind: PatternKind.Any } },
+          ) => {
             pattern = must ? { kind: PatternKind.Must, pattern } : pattern;
             return {
               [name]: alias
@@ -90,7 +91,10 @@ export const ObjectPattern: IModuleDeclaration = {
         pattern: {
           kind: PatternKind.Object,
           keys: {
-            kind: { kind: PatternKind.Equal, value: LangPatternKind.ObjectPattern },
+            kind: {
+              kind: PatternKind.Equal,
+              value: LangPatternKind.ObjectPattern,
+            },
             keys: {
               kind: PatternKind.Variable,
               name: "k",
@@ -116,6 +120,6 @@ export const ObjectPattern: IModuleDeclaration = {
           }),
         },
       },
-    }
-  ]
+    },
+  ],
 };

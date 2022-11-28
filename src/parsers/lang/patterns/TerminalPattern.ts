@@ -95,6 +95,6 @@ export const TerminalPattern: IModuleDeclaration = {
           { kind: PatternKind.Reference, name: "GroupPattern" },
         ],
       },
-    }
-  ]
+    },
+  ],
 };

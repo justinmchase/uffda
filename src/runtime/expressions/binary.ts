@@ -34,9 +34,9 @@ export function binary(
         {
           metadata: {
             kind,
-            op
-          }
-        }
-      )
+            op,
+          },
+        },
+      );
   }
 }

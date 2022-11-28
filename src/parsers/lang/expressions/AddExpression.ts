@@ -14,7 +14,7 @@ export const AddExpression: IModuleDeclaration = {
       module: MemberExpression,
       moduleUrl: "./MemberExpression.ts",
       names: ["MemberExpression"],
-    }
+    },
   ],
   rules: [
     {
@@ -39,7 +39,10 @@ export const AddExpression: IModuleDeclaration = {
                 {
                   kind: PatternKind.Object,
                   keys: {
-                    kind: { kind: PatternKind.Equal, value: TokenizerKind.Token },
+                    kind: {
+                      kind: PatternKind.Equal,
+                      value: TokenizerKind.Token,
+                    },
                     value: { kind: PatternKind.Equal, value: "+" },
                   },
                 },
@@ -68,6 +71,6 @@ export const AddExpression: IModuleDeclaration = {
           },
         ],
       },
-    }
-  ]
+    },
+  ],
 };

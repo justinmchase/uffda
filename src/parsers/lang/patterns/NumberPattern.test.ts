@@ -8,7 +8,7 @@ tests(() => [
     id: "LANG.PATTERN.NUMBER00",
     module: () => NumberPattern,
     input: [
-      { kind: TokenizerKind.Integer, value: 1 }
+      { kind: TokenizerKind.Integer, value: 1 },
     ],
     value: {
       kind: LangPatternKind.EqualPattern,

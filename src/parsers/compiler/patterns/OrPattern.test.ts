@@ -13,13 +13,13 @@ tests(() => [
         kind: LangPatternKind.OrPattern,
         left: {
           kind: LangPatternKind.ReferencePattern,
-          name: "a"
+          name: "a",
         },
         right: {
           kind: LangPatternKind.ReferencePattern,
-          name: "b"
-        }
-      }
+          name: "b",
+        },
+      },
     ],
     value: {
       kind: PatternKind.Or,

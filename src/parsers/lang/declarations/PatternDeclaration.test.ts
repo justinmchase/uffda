@@ -1,6 +1,8 @@
 import { tests } from "../../../test.ts";
-import { Lang } from "../Lang.ts";
-import { LangExpressionKind, LangModuleKind, LangPatternKind } from "../lang.pattern.ts";
+import {
+  LangModuleKind,
+  LangPatternKind,
+} from "../lang.pattern.ts";
 import { PatternDeclaration } from "./PatternDeclaration.ts";
 import { TokenizerKind } from "../../mod.ts";
 
@@ -25,4 +27,3 @@ tests(() => [
     },
   },
 ]);
-

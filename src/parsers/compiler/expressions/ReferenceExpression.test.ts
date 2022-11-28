@@ -10,8 +10,8 @@ tests(() => [
     input: [
       {
         kind: LangExpressionKind.ReferenceExpression,
-        name: "a"
-      }
+        name: "a",
+      },
     ],
     value: {
       kind: ExpressionKind.Reference,

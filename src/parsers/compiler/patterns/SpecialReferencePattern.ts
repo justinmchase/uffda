@@ -32,10 +32,10 @@ export const SpecialReferencePattern: IModuleDeclaration = {
           fn: ({ name }, specials) => ({
             kind: PatternKind.Special,
             name,
-            value: specials.get(name)
-          })
+            value: specials.get(name),
+          }),
         },
       },
-    }
-  ]
+    },
+  ],
 };

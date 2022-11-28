@@ -13,7 +13,7 @@ export const OrPattern: IModuleDeclaration = {
       module: () => PatternPattern,
       moduleUrl: "./PatternPattern.ts",
       names: ["PatternPattern"],
-    }
+    },
   ],
   rules: [
     {
@@ -45,6 +45,6 @@ export const OrPattern: IModuleDeclaration = {
           }),
         },
       },
-    }
-  ]
+    },
+  ],
 };

@@ -9,10 +9,10 @@ tests(() => [
     description: "'abc'",
     module: () => StringPattern,
     input: [
-      { kind: LangPatternKind.StringPattern }
+      { kind: LangPatternKind.StringPattern },
     ],
     value: {
-      kind: PatternKind.String
+      kind: PatternKind.String,
     },
   },
 ]);

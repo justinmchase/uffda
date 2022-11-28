@@ -1,6 +1,9 @@
 import { PatternKind } from "../../../runtime/patterns/mod.ts";
 import { ExpressionKind } from "../../../runtime/expressions/mod.ts";
-import { DeclarationKind, IModuleDeclaration } from "../../../runtime/declarations/mod.ts";
+import {
+  DeclarationKind,
+  IModuleDeclaration,
+} from "../../../runtime/declarations/mod.ts";
 
 export const InvalidPatternDeclaration: IModuleDeclaration = {
   kind: DeclarationKind.Module,
@@ -29,6 +32,6 @@ export const InvalidPatternDeclaration: IModuleDeclaration = {
           fn: () => (undefined),
         },
       },
-    }
-  ]
+    },
+  ],
 };

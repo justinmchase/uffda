@@ -14,9 +14,9 @@ tests(() => [
         kind: LangPatternKind.ZeroOrMorePattern,
         pattern: {
           kind: LangPatternKind.ReferencePattern,
-          name: "x"
-        }
-      }
+          name: "x",
+        },
+      },
     ],
     value: {
       kind: PatternKind.Slice,

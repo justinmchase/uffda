@@ -20,7 +20,7 @@ export const PipelinePattern: IModuleDeclaration = {
       module: AndPattern,
       moduleUrl: "./AndPattern.ts",
       names: ["AndPattern"],
-    }
+    },
   ],
   rules: [
     {
@@ -37,7 +37,10 @@ export const PipelinePattern: IModuleDeclaration = {
                 {
                   kind: PatternKind.Variable,
                   name: "left",
-                  pattern: { kind: PatternKind.Reference, name: LangPatternKind.PipelinePattern },
+                  pattern: {
+                    kind: PatternKind.Reference,
+                    name: LangPatternKind.PipelinePattern,
+                  },
                 },
                 {
                   kind: PatternKind.Object,
@@ -64,7 +67,7 @@ export const PipelinePattern: IModuleDeclaration = {
           },
           { kind: PatternKind.Reference, name: "AndPattern" },
         ],
-      }
-    }
+      },
+    },
   ],
 };

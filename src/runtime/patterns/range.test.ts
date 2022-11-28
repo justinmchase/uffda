@@ -8,7 +8,7 @@ class Test {
     return this.value == obj.value ? 0 : this.value > obj.value ? -1 : 1;
   }
   public toJSON() {
-    return { value: this.value }
+    return { value: this.value };
   }
 }
 

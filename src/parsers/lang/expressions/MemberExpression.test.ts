@@ -81,8 +81,8 @@ tests(() => [
       name: "b",
       expression: {
         kind: LangExpressionKind.ArrayExpression,
-        expressions: []
+        expressions: [],
       },
     },
-  }
+  },
 ]);

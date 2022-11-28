@@ -1,4 +1,4 @@
-import { black, brightBlack, underline } from "../../../deps/std.ts";
+import { brightBlack, underline } from "../../../deps/std.ts";
 import { Match, MatchError } from "../../match.ts";
 import { Scope } from "../../scope.ts";
 import { MetaStream } from "../../stream.ts";
@@ -19,7 +19,6 @@ export function object(args: IObjectPattern, scope: Scope) {
         if (scope.options.trace) {
           const indent = "˃".padStart(scope.depth);
           console.log(`${indent} (${underline(brightBlack(key))})`);
-
         }
 
         const keyValue = objValue[key];

@@ -15,7 +15,7 @@ export enum BinaryOperation {
   Subtract = "subtract",
   Multiply = "multiply",
   Divide = "divide",
-  Mod = "mod"
+  Mod = "mod",
 }
 
 export function isExpression(value: unknown): value is Expression {

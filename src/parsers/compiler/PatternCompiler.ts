@@ -18,7 +18,7 @@ export const PatternCompiler: IModuleDeclaration = {
       module: () => PatternPattern,
       moduleUrl: "./patterns/PatternPattern.ts",
       names: ["PatternPattern"],
-    }
+    },
   ],
   rules: [
     {
@@ -31,6 +31,6 @@ export const PatternCompiler: IModuleDeclaration = {
           { kind: PatternKind.Reference, name: "PatternPattern" },
         ],
       },
-    }
-  ]
+    },
+  ],
 };

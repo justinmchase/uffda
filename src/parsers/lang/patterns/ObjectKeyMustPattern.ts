@@ -1,7 +1,10 @@
 import { PatternKind } from "../../../runtime/patterns/mod.ts";
 import { ExpressionKind } from "../../../runtime/expressions/mod.ts";
 import { LangPatternKind } from "../lang.pattern.ts";
-import { DeclarationKind, IModuleDeclaration } from "../../../runtime/declarations/mod.ts";
+import {
+  DeclarationKind,
+  IModuleDeclaration,
+} from "../../../runtime/declarations/mod.ts";
 
 export const ObjectKeyMustPattern: IModuleDeclaration = {
   kind: DeclarationKind.Module,
@@ -43,7 +46,7 @@ export const ObjectKeyMustPattern: IModuleDeclaration = {
             must: true,
           }),
         },
-      }
-    }
-  ]
+      },
+    },
+  ],
 };

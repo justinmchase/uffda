@@ -13,7 +13,7 @@ export const VariablePattern: IModuleDeclaration = {
       module: () => PatternPattern,
       moduleUrl: "./PatternPattern.ts",
       names: ["PatternPattern"],
-    }
+    },
   ],
   rules: [
     {
@@ -49,6 +49,6 @@ export const VariablePattern: IModuleDeclaration = {
           }),
         },
       },
-    }
-  ]
+    },
+  ],
 };

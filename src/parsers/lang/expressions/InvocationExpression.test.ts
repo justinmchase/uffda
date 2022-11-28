@@ -11,7 +11,7 @@ tests(() => [
       { kind: TokenizerKind.Token, value: "(" },
       { kind: TokenizerKind.Identifier, value: "a" },
       { kind: TokenizerKind.Token, value: ")" },
-    ],  
+    ],
     value: {
       kind: LangExpressionKind.InvocationExpression,
       arguments: [],
@@ -27,7 +27,7 @@ tests(() => [
       { kind: TokenizerKind.Identifier, value: "a" },
       { kind: TokenizerKind.Token, value: ")" },
       { kind: TokenizerKind.Token, value: ")" },
-    ],  
+    ],
     value: {
       kind: LangExpressionKind.InvocationExpression,
       arguments: [],
@@ -49,7 +49,7 @@ tests(() => [
       { kind: TokenizerKind.Identifier, value: "a" },
       { kind: TokenizerKind.Identifier, value: "b" },
       { kind: TokenizerKind.Token, value: ")" },
-    ],  
+    ],
     value: {
       kind: LangExpressionKind.InvocationExpression,
       arguments: [
@@ -75,7 +75,7 @@ tests(() => [
       { kind: TokenizerKind.Identifier, value: "c" },
       { kind: TokenizerKind.Identifier, value: "d" },
       { kind: TokenizerKind.Token, value: ")" },
-    ],  
+    ],
     value: {
       kind: LangExpressionKind.InvocationExpression,
       arguments: [
@@ -109,7 +109,7 @@ tests(() => [
       { kind: TokenizerKind.Token, value: "." },
       { kind: TokenizerKind.Identifier, value: "join" },
       { kind: TokenizerKind.Token, value: ")" },
-    ],  
+    ],
     value: {
       kind: LangExpressionKind.InvocationExpression,
       arguments: [],

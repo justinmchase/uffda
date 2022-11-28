@@ -14,7 +14,7 @@ export const SubtractExpression: IModuleDeclaration = {
       module: AddExpression,
       moduleUrl: "./AddExpression.ts",
       names: ["AddExpression"],
-    }
+    },
   ],
   rules: [
     {
@@ -39,7 +39,10 @@ export const SubtractExpression: IModuleDeclaration = {
                 {
                   kind: PatternKind.Object,
                   keys: {
-                    kind: { kind: PatternKind.Equal, value: TokenizerKind.Token },
+                    kind: {
+                      kind: PatternKind.Equal,
+                      value: TokenizerKind.Token,
+                    },
                     value: { kind: PatternKind.Equal, value: "-" },
                   },
                 },
@@ -68,6 +71,6 @@ export const SubtractExpression: IModuleDeclaration = {
           },
         ],
       },
-    }
-  ]
+    },
+  ],
 };

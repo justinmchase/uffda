@@ -4,12 +4,11 @@ import { Memos } from "./memo.ts";
 import { IImport, IModule, IRule, ModuleKind } from "./modules.ts";
 import { Resolver } from "./runtime/resolve.ts";
 
-export type SpecialType = 
+export type SpecialType =
   | IModule
   | IRule
   | IImport
-  | ((...args: unknown[]) => unknown)
-  ;
+  | ((...args: unknown[]) => unknown);
 
 export interface IScopeOptions {
   trace: boolean;
@@ -22,18 +21,20 @@ export const DefaultModule: IModule = {
   kind: ModuleKind.Module,
   moduleUrl: import.meta.url,
   imports: new Map(),
-  rules: new Map()
+  rules: new Map(),
 };
 export const DefaultOptions: IScopeOptions = {
   globals: {},
   specials: new Map(),
   trace: false,
-  resolver: new Resolver()
+  resolver: new Resolver(),
 };
 
 export class Scope {
-  public static readonly Default = (args?: { module?: IModule } & Partial<IScopeOptions>) => {
-    const { module, ...options } = args ?? {}
+  public static readonly Default = (
+    args?: { module?: IModule } & Partial<IScopeOptions>,
+  ) => {
+    const { module, ...options } = args ?? {};
     return new Scope(
       module ?? DefaultModule,
       { ...DefaultOptions, ...options ?? {} },
@@ -45,37 +46,37 @@ export class Scope {
       [],
       [],
     );
-  }
+  };
 
   public static readonly From = (
     stream: Iterable<unknown> | MetaStream | Scope,
-    args?: { module?: IModule } & Partial<IScopeOptions>
+    args?: { module?: IModule } & Partial<IScopeOptions>,
   ) => {
     const { module, ...options } = args ?? {};
     return stream instanceof Scope
       ? new Scope(
-          module ?? stream.module,
-          { ...DefaultOptions, ...stream.options, ...options },
-          stream.parent,
-          stream.variables,
-          stream.stream,
-          stream.memos,
-          stream.ruleStack,
-          stream.pipelineStack,
-          stream.moduleStack
-        )
+        module ?? stream.module,
+        { ...DefaultOptions, ...stream.options, ...options },
+        stream.parent,
+        stream.variables,
+        stream.stream,
+        stream.memos,
+        stream.ruleStack,
+        stream.pipelineStack,
+        stream.moduleStack,
+      )
       : new Scope(
-          module ?? DefaultModule,
-          { ...DefaultOptions, ...options },
-          undefined,
-          {},
-          MetaStream.From(stream),
-          new Memos(),
-          [],
-          [],
-          [],
-        );
-  }
+        module ?? DefaultModule,
+        { ...DefaultOptions, ...options },
+        undefined,
+        {},
+        MetaStream.From(stream),
+        new Memos(),
+        [],
+        [],
+        [],
+      );
+  };
 
   constructor(
     public readonly module: IModule,
@@ -86,7 +87,7 @@ export class Scope {
     public readonly memos: Memos,
     public readonly ruleStack: IRule[],
     public readonly pipelineStack: Pattern[],
-    public readonly moduleStack: IModule[]
+    public readonly moduleStack: IModule[],
   ) {
   }
 
@@ -115,10 +116,10 @@ export class Scope {
       return this.module
         .imports.get(name)!
         .module
-        .rules.get(name)
+        .rules.get(name);
     }
   }
-  
+
   public withStream(stream: MetaStream) {
     return new Scope(
       this.module,
@@ -171,7 +172,7 @@ export class Scope {
       this.memos,
       [...this.ruleStack, rule],
       this.pipelineStack,
-      this.moduleStack
+      this.moduleStack,
     );
   }
 
@@ -185,7 +186,7 @@ export class Scope {
       this.memos,
       this.ruleStack,
       [...this.pipelineStack, pattern],
-      this.moduleStack
+      this.moduleStack,
     );
   }
 
@@ -202,9 +203,7 @@ export class Scope {
       this.memos,
       this.ruleStack,
       this.pipelineStack,
-      this.module !== module
-        ? [...this.moduleStack, module]
-        : this.moduleStack
+      this.module !== module ? [...this.moduleStack, module] : this.moduleStack,
     );
   }
 

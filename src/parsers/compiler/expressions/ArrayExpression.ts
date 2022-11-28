@@ -13,7 +13,8 @@ export const ArrayExpression: IModuleDeclaration = {
       module: () => ExpressionPattern,
       moduleUrl: "./ExpressionPattern.ts",
       names: ["ExpressionPattern"],
-    },],
+    },
+  ],
   rules: [
     {
       kind: DeclarationKind.Rule,
@@ -106,6 +107,6 @@ export const ArrayExpression: IModuleDeclaration = {
           }),
         },
       },
-    }
-  ]
+    },
+  ],
 };

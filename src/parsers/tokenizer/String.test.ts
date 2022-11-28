@@ -42,6 +42,6 @@ tests(() => [
     description: "can parse string with escaped single-quote",
     module: () => String,
     input: "'\"'",
-    value: "\"",
+    value: '"',
   },
 ]);

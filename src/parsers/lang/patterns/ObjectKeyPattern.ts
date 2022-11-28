@@ -14,7 +14,7 @@ export const ObjectKeyPattern: IModuleDeclaration = {
       kind: DeclarationKind.NativeImport,
       module: ObjectKeyVariableWithPattern,
       moduleUrl: "./ObjectKeyVariableWithPattern.ts",
-      names: ["ObjectKeyVariableWithPattern"]
+      names: ["ObjectKeyVariableWithPattern"],
     },
     {
       kind: DeclarationKind.NativeImport,
@@ -55,6 +55,6 @@ export const ObjectKeyPattern: IModuleDeclaration = {
           { kind: PatternKind.Reference, name: "ObjectKeyReferencePattern" },
         ],
       },
-    }
-  ]
+    },
+  ],
 };

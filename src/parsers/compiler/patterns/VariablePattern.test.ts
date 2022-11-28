@@ -14,9 +14,9 @@ tests(() => [
         name: "x",
         pattern: {
           kind: LangPatternKind.ReferencePattern,
-          name: "y"
-        }
-      }
+          name: "y",
+        },
+      },
     ],
     value: {
       kind: PatternKind.Variable,

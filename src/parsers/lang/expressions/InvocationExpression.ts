@@ -84,6 +84,6 @@ export const InvocationExpression: IModuleDeclaration = {
           },
         ],
       },
-    }
-  ]
+    },
+  ],
 };

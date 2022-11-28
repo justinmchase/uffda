@@ -18,9 +18,9 @@ export const Calc = await uffda()`
   Calc = Add;
 
   Main = ${Basic} > Calc;
-`
+`;
 
-export const calc = dsl(import.meta.url, Calc)
+export const calc = dsl(import.meta.url, Calc);
 
 // const ex0 = await calc('1 + 2 - 3') // 0
 // const ex1 = await calc(code`7 + ${11}`) // 18

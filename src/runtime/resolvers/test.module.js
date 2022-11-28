@@ -8,8 +8,8 @@ export default {
       pattern: {
         kind: "range",
         left: "0",
-        right: "9"
-      }
+        right: "9",
+      },
     },
     {
       kind: "rule",
@@ -18,9 +18,9 @@ export default {
         kind: "slice",
         pattern: {
           kind: "reference",
-          name: "A"
-        }
-      }
-    }
-  ]
-}
+          name: "A",
+        },
+      },
+    },
+  ],
+};

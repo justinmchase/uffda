@@ -20,7 +20,7 @@ export const OrPattern: IModuleDeclaration = {
       module: ProjectionPattern,
       moduleUrl: "./ProjectionPattern.ts",
       names: ["ProjectionPattern"],
-    }
+    },
   ],
   rules: [
     {
@@ -68,6 +68,6 @@ export const OrPattern: IModuleDeclaration = {
           { kind: PatternKind.Reference, name: "ProjectionPattern" },
         ],
       },
-    }
-  ]
+    },
+  ],
 };

@@ -3,9 +3,9 @@ import { ExpressionKind } from "../../../runtime/expressions/mod.ts";
 import { LangExpressionKind, LangPatternKind } from "../lang.pattern.ts";
 import { DeclarationKind } from "../../../runtime/declarations/declaration.kind.ts";
 import { IModuleDeclaration } from "../../../runtime/declarations/module.ts";
-import { SubtractExpression } from "./SubtractExpression.ts"; 
-import { PatternPattern } from "../patterns/PatternPattern.ts"; 
-import { ExpressionPattern } from "../patterns/ExpressionPattern.ts"; 
+import { SubtractExpression } from "./SubtractExpression.ts";
+import { PatternPattern } from "../patterns/PatternPattern.ts";
+import { ExpressionPattern } from "../patterns/ExpressionPattern.ts";
 
 export const LambdaExpression: IModuleDeclaration = {
   kind: DeclarationKind.Module,
@@ -102,6 +102,6 @@ export const LambdaExpression: IModuleDeclaration = {
           },
         ],
       },
-    }
-  ]
+    },
+  ],
 };

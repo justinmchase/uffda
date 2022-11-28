@@ -11,8 +11,8 @@ tests(() => [
     input: [
       {
         kind: LangExpressionKind.ArrayExpression,
-        expressions: []
-      }
+        expressions: [],
+      },
     ],
     value: {
       kind: ExpressionKind.Array,
@@ -31,18 +31,18 @@ tests(() => [
             kind: LangExpressionKind.ArrayElementExpression,
             expression: {
               kind: LangExpressionKind.ReferenceExpression,
-              name: "a"
-            }
+              name: "a",
+            },
           },
           {
             kind: LangExpressionKind.ArrayElementExpression,
             expression: {
               kind: LangExpressionKind.ReferenceExpression,
-              name: "b"
-            }
-          }
-        ]
-      }
+              name: "b",
+            },
+          },
+        ],
+      },
     ],
     value: {
       kind: ExpressionKind.Array,
@@ -76,18 +76,18 @@ tests(() => [
             kind: LangExpressionKind.ArrayElementExpression,
             expression: {
               kind: LangExpressionKind.ReferenceExpression,
-              name: "a"
-            }
+              name: "a",
+            },
           },
           {
             kind: LangExpressionKind.ArraySpreadExpression,
             expression: {
               kind: LangExpressionKind.ReferenceExpression,
-              name: "b"
-            }
-          }
-        ]
-      }
+              name: "b",
+            },
+          },
+        ],
+      },
     ],
     value: {
       kind: ExpressionKind.Array,

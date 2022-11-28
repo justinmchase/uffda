@@ -7,8 +7,8 @@ export default {
     {
       kind: DeclarationKind.Import,
       moduleUrl: "./test0.module.ts",
-      names: ["A"]
-    }
+      names: ["A"],
+    },
   ],
-  rules: []
-} as IModuleDeclaration
+  rules: [],
+} as IModuleDeclaration;

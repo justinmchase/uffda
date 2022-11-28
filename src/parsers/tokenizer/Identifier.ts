@@ -48,6 +48,6 @@ export const Identifier: IModuleDeclaration = {
           fn: ({ a, b }) => a.join("") + b.join(""),
         },
       },
-    }
-  ]
+    },
+  ],
 };

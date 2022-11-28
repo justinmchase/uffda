@@ -1,5 +1,9 @@
 import { tests } from "../../test.ts";
-import { LangExpressionKind, LangModuleKind, LangPatternKind } from "./lang.pattern.ts";
+import {
+  LangExpressionKind,
+  LangModuleKind,
+  LangPatternKind,
+} from "./lang.pattern.ts";
 import { Lang } from "./Lang.ts";
 
 tests(() => [
@@ -79,7 +83,10 @@ tests(() => [
           pattern: {
             kind: LangPatternKind.ProjectionPattern,
             pattern: { kind: LangPatternKind.ReferencePattern, name: "_" },
-            expression: { kind: LangExpressionKind.StringExpression, value: "" }
+            expression: {
+              kind: LangExpressionKind.StringExpression,
+              value: "",
+            },
           },
         },
       ],
@@ -98,8 +105,8 @@ tests(() => [
         {
           kind: LangModuleKind.ImportDeclaration,
           modulePath: "./test.uff",
-          names: [ "B" ],
-        }
+          names: ["B"],
+        },
       ],
       rules: [
         {
@@ -107,7 +114,7 @@ tests(() => [
           name: "A",
           pattern: {
             kind: LangPatternKind.ReferencePattern,
-            name: "B"
+            name: "B",
           },
         },
       ],

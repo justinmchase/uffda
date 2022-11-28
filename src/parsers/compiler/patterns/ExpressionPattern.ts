@@ -115,6 +115,6 @@ export const ExpressionPattern: IModuleDeclaration = {
           },
         ],
       },
-    }
-  ]
+    },
+  ],
 };

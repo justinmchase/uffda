@@ -8,7 +8,7 @@ tests(() => [
     id: "COMPILER.EXPRESSION.NUMBER00",
     module: () => NumberExpression,
     input: [
-      { kind: LangExpressionKind.NumberExpression, value: 1 }
+      { kind: LangExpressionKind.NumberExpression, value: 1 },
     ],
     value: {
       kind: ExpressionKind.Value,

@@ -29,8 +29,7 @@ export type Pattern =
   | ISpecialPattern
   | IStringPattern
   | IThenPattern
-  | IVariablePattern
-  ;
+  | IVariablePattern;
 
 export function isPattern(value: unknown): value is Pattern {
   if (value == null) return false;

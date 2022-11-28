@@ -13,10 +13,10 @@ tests(() => [
         kind: LangExpressionKind.InvocationExpression,
         expression: {
           kind: LangExpressionKind.ReferenceExpression,
-          name: "a"
+          name: "a",
         },
-        arguments: []
-      }
+        arguments: [],
+      },
     ],
     value: {
       kind: ExpressionKind.Invocation,
@@ -36,19 +36,19 @@ tests(() => [
         kind: LangExpressionKind.InvocationExpression,
         expression: {
           kind: LangExpressionKind.ReferenceExpression,
-          name: "a"
+          name: "a",
         },
         arguments: [
           {
             kind: LangExpressionKind.ReferenceExpression,
-            name: "b"
+            name: "b",
           },
           {
             kind: LangExpressionKind.ReferenceExpression,
-            name: "c"
-          }
-        ]
-      }
+            name: "c",
+          },
+        ],
+      },
     ],
     value: {
       kind: ExpressionKind.Invocation,

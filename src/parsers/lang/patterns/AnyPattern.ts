@@ -27,7 +27,7 @@ export const AnyPattern: IModuleDeclaration = {
             kind: LangPatternKind.AnyPattern,
           }),
         },
-      }
-    }
-  ]
+      },
+    },
+  ],
 };

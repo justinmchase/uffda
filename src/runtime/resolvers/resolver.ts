@@ -5,5 +5,5 @@ export interface IModuleResolver {
 }
 
 export interface IModuleResolvers {
-  [extension: string]: IModuleResolver
+  [extension: string]: IModuleResolver;
 }

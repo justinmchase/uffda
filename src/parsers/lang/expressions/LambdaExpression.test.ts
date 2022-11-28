@@ -15,7 +15,7 @@ tests(() => [
       { kind: TokenizerKind.Token, value: ">" },
       { kind: TokenizerKind.Identifier, value: "a" },
       { kind: TokenizerKind.Token, value: ")" },
-    ],  
+    ],
     value: {
       kind: LangExpressionKind.LambdaExpression,
       pattern: { kind: LangPatternKind.ReferencePattern, name: "a" },
@@ -35,7 +35,7 @@ tests(() => [
       { kind: TokenizerKind.Token, value: "+" },
       { kind: TokenizerKind.Integer, value: 1 },
       { kind: TokenizerKind.Token, value: ")" },
-    ],  
+    ],
     value: {
       kind: LangExpressionKind.LambdaExpression,
       pattern: { kind: LangPatternKind.ReferencePattern, name: "a" },
@@ -70,7 +70,7 @@ tests(() => [
       { kind: TokenizerKind.Identifier, value: "b" },
       { kind: TokenizerKind.Token, value: ")" },
       { kind: TokenizerKind.Token, value: ")" },
-    ],  
+    ],
     value: {
       kind: LangExpressionKind.LambdaExpression,
       pattern: { kind: LangPatternKind.ReferencePattern, name: "a" },
@@ -103,7 +103,7 @@ tests(() => [
       { kind: TokenizerKind.Token, value: ">" },
       { kind: TokenizerKind.Identifier, value: "_" },
       { kind: TokenizerKind.Token, value: ")" },
-    ],  
+    ],
     value: {
       kind: LangExpressionKind.LambdaExpression,
       pattern: {
@@ -141,7 +141,7 @@ tests(() => [
       { kind: TokenizerKind.Token, value: ">" },
       { kind: TokenizerKind.Identifier, value: "_" },
       { kind: TokenizerKind.Token, value: ")" },
-    ],    
+    ],
     value: {
       kind: LangExpressionKind.LambdaExpression,
       pattern: {

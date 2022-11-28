@@ -13,7 +13,7 @@ tests(() => [
     ],
     value: {
       kind: ExpressionKind.Value,
-      value: 'abc',
+      value: "abc",
     },
   },
 ]);

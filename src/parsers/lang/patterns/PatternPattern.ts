@@ -9,10 +9,10 @@ export const PatternPattern: IModuleDeclaration = {
   imports: [
     {
       kind: DeclarationKind.NativeImport,
-      moduleUrl: './PipelinePattern.ts',
+      moduleUrl: "./PipelinePattern.ts",
       module: PipelinePattern,
-      names: ["PipelinePattern"]
-    }
+      names: ["PipelinePattern"],
+    },
   ],
   rules: [
     {
@@ -22,6 +22,6 @@ export const PatternPattern: IModuleDeclaration = {
         kind: PatternKind.Reference,
         name: LangPatternKind.PipelinePattern,
       },
-    }
-  ]
+    },
+  ],
 };

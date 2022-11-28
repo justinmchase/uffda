@@ -14,10 +14,10 @@ tests(() => [
           {
             kind: LangPatternKind.ObjectKeyPattern,
             name: "x",
-            pattern: { kind: LangPatternKind.OkPattern }
-          }
-        ]
-      }
+            pattern: { kind: LangPatternKind.OkPattern },
+          },
+        ],
+      },
     ],
     value: {
       kind: PatternKind.Object,
@@ -36,9 +36,9 @@ tests(() => [
           {
             kind: LangPatternKind.ObjectKeyPattern,
             name: "x",
-          }
-        ]
-      }
+          },
+        ],
+      },
     ],
     value: {
       kind: PatternKind.Object,
@@ -58,9 +58,9 @@ tests(() => [
             kind: LangPatternKind.ObjectKeyPattern,
             alias: "x",
             name: "y",
-          }
-        ]
-      }
+          },
+        ],
+      },
     ],
     value: {
       kind: PatternKind.Object,
@@ -86,9 +86,9 @@ tests(() => [
             kind: LangPatternKind.ObjectKeyPattern,
             name: "x",
             must: true,
-          }
-        ]
-      }
+          },
+        ],
+      },
     ],
     value: {
       kind: PatternKind.Object,
@@ -114,9 +114,9 @@ tests(() => [
             alias: "x",
             name: "y",
             must: true,
-          }
-        ]
-      }
+          },
+        ],
+      },
     ],
     value: {
       kind: PatternKind.Object,
@@ -147,12 +147,12 @@ tests(() => [
             pattern: {
               kind: LangPatternKind.MustPattern,
               pattern: {
-                kind: LangPatternKind.StringPattern
-              }
-            }
-          }
-        ]
-      }
+                kind: LangPatternKind.StringPattern,
+              },
+            },
+          },
+        ],
+      },
     ],
     value: {
       kind: PatternKind.Object,

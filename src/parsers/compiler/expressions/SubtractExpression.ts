@@ -1,5 +1,8 @@
 import { PatternKind } from "../../../runtime/patterns/mod.ts";
-import { BinaryOperation, ExpressionKind } from "../../../runtime/expressions/mod.ts";
+import {
+  BinaryOperation,
+  ExpressionKind,
+} from "../../../runtime/expressions/mod.ts";
 import { LangExpressionKind } from "../../lang/lang.pattern.ts";
 import { IModuleDeclaration } from "../../../runtime/declarations/module.ts";
 import { DeclarationKind } from "../../../runtime/declarations/declaration.kind.ts";
@@ -12,7 +15,7 @@ export const SubtractExpression: IModuleDeclaration = {
       kind: DeclarationKind.NativeImport,
       module: () => ExpressionPattern,
       moduleUrl: "../patterns/ExpressionPattern.ts",
-      names: ["ExpressionPattern"]
+      names: ["ExpressionPattern"],
     },
   ],
   rules: [
@@ -56,6 +59,6 @@ export const SubtractExpression: IModuleDeclaration = {
           }),
         },
       },
-    }
-  ]
+    },
+  ],
 };

@@ -26,13 +26,13 @@ export const ObjectExpression: IModuleDeclaration = {
       kind: DeclarationKind.NativeImport,
       module: () => ObjectKeyExpression,
       moduleUrl: "./ObjectKeyExpression.ts",
-      names: ["ObjectKeyExpression"]
+      names: ["ObjectKeyExpression"],
     },
     {
       kind: DeclarationKind.NativeImport,
       module: () => SpreadExpression,
       moduleUrl: "./SpreadExpression.ts",
-      names: ["SpreadExpression"]
+      names: ["SpreadExpression"],
     },
   ],
   rules: [
@@ -80,7 +80,8 @@ export const ObjectExpression: IModuleDeclaration = {
                               expression: {
                                 kind: ExpressionKind.Native,
                                 fn: ({ _ }) => ({
-                                  kind: LangExpressionKind.ObjectSpreadExpression,
+                                  kind:
+                                    LangExpressionKind.ObjectSpreadExpression,
                                   expression: _,
                                 }),
                               },
@@ -114,6 +115,6 @@ export const ObjectExpression: IModuleDeclaration = {
           }),
         },
       },
-    }
-  ]
+    },
+  ],
 };

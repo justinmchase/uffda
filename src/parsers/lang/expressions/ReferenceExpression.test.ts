@@ -8,7 +8,7 @@ tests(() => [
     id: "REFEXP00",
     module: () => ReferenceExpression,
     input: [
-      { kind: TokenizerKind.Identifier, value: "a" }
+      { kind: TokenizerKind.Identifier, value: "a" },
     ],
     value: {
       kind: LangExpressionKind.ReferenceExpression,
