@@ -18,7 +18,7 @@ tests(() => [
     value: {
       kind: LangModuleKind.ImportDeclaration,
       names: ["Test"],
-      modulePath: "./test.uff",
+      moduleUrl: "./test.uff",
     },
   },
   {

@@ -3,6 +3,7 @@ import { MetaStream } from "./stream.ts";
 import { Memos } from "./memo.ts";
 import { IImport, IModule, IRule, ModuleKind } from "./modules.ts";
 import { Resolver } from "./runtime/resolve.ts";
+import { runtime } from "./runtime/runtime.ts";
 
 export type SpecialType =
   | IModule
@@ -24,7 +25,7 @@ export const DefaultModule: IModule = {
   rules: new Map(),
 };
 export const DefaultOptions: IScopeOptions = {
-  globals: {},
+  globals: runtime,
   specials: new Map(),
   trace: false,
   resolver: new Resolver(),
@@ -224,35 +225,4 @@ export class Scope {
       scope.moduleStack,
     );
   }
-
-  // public push() {
-  //   return new Scope(
-  //     this,
-  //     {},
-  //     this._specials,
-  //     this._rules,
-  //     this.options,
-  //     this.stream,
-  //     this.memos,
-  //     this.ruleStack,
-  //     this.refStack,
-  //     this.pipelineStack,
-  //   );
-  // }
-
-  // public pop() {
-  //   assert(this._parent, "Assymetrical push and pop");
-  //   return new Scope(
-  //     this._parent!._parent,
-  //     this._parent!._variables,
-  //     this._parent!._specials,
-  //     this._parent!._rules,
-  //     this.options,
-  //     this.stream,
-  //     this.memos,
-  //     this.ruleStack,
-  //     this.refStack,
-  //     this.pipelineStack,
-  //   );
-  // }
 }

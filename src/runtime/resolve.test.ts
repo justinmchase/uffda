@@ -20,19 +20,17 @@ const pathNormalizationTests = [
   ],
 ];
 
-
-const readPermissions = await Deno.permissions.query({ name: "read" })
+const readPermissions = await Deno.permissions.query({ name: "read" });
 if (readPermissions.state === "granted") {
-  pathNormalizationTests.forEach(([modulePath, parentPath, expectedPath], i) => {
+  pathNormalizationTests.forEach(([moduleUrl, parentPath, expectedPath], i) => {
     Deno.test({
       name: `NORM${i.toString().padStart(2, "0")}`,
       fn: () => {
-        const resolved = Resolver.normalizeModulePath(modulePath, parentPath);
+        const resolved = Resolver.normalizeModulePath(moduleUrl, parentPath);
         assertEquals(resolved, expectedPath);
       },
     });
   });
-
 
   Deno.test({
     name: "RESOLVE00",
@@ -98,5 +96,5 @@ if (readPermissions.state === "granted") {
     name: "resolve tests require read permissions",
     ignore: true,
     fn: () => {},
-  })
+  });
 }

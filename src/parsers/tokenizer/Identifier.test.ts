@@ -1,49 +1,47 @@
-import { tests } from "../../test.ts";
-import { Identifier } from "./Identifier.ts";
+import { integration } from "../../integration.ts";
 
-tests(() => [
-  {
-    id: "IDENTIFIER00",
-    description: "matches a character",
-    module: () => Identifier,
-    input: "a",
-    value: "a",
-  },
-  {
-    id: "IDENTIFIER01",
-    description: "matches a word",
-    module: () => Identifier,
-    input: "abc",
-    value: "abc",
-  },
-  {
-    id: "IDENTIFIER02",
-    description: "does not match a leading digit",
-    module: () => Identifier,
-    input: "1abc",
-    matched: false,
-    done: false,
-  },
-  {
-    id: "IDENTIFIER03",
-    description: "matches a word followed by digits",
-    module: () => Identifier,
-    input: "abc123",
-    value: "abc123",
-  },
-  {
-    id: "IDENTIFIER04",
-    description: "matches interleaved letters and numbers",
-    module: () => Identifier,
-    input: "a1b2c3",
-    value: "a1b2c3",
-  },
-  {
-    id: "IDENTIFIER05",
-    description: "does not match punctuation",
-    module: () => Identifier,
-    input: "a.b",
-    value: "a",
-    done: false,
-  },
-]);
+const identifier = {
+  importMetaUrl: import.meta.url,
+  area: "tokenizer",
+  name: "identifier",
+  moduleUrl: "./Identifier.uff",
+};
+
+Deno.test(integration({
+  ...identifier,
+  index: 0,
+  input: "Test",
+  expected: "Test",
+}));
+Deno.test(integration({
+  ...identifier,
+  index: 1,
+  input: "Test123",
+  expected: "Test123",
+}));
+Deno.test(integration({
+  ...identifier,
+  index: 2,
+  input: "123Test",
+  matched: false,
+  done: false,
+}));
+Deno.test(integration({
+  ...identifier,
+  index: 3,
+  input: "a",
+  expected: "a",
+}));
+Deno.test(integration({
+  ...identifier,
+  index: 4,
+  input: "a1b2c3",
+  expected: "a1b2c3",
+}));
+Deno.test(integration({
+  ...identifier,
+  index: 4,
+  input: "a.b",
+  expected: "a",
+  done: false,
+}));

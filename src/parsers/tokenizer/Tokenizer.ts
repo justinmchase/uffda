@@ -9,6 +9,7 @@ import { Integer } from "./Integer.ts";
 import { Identifier } from "./Identifier.ts";
 import { Token } from "./Token.ts";
 import { SpecialIdentifier } from "./SpecialIdentifier.ts";
+import { Letter } from "./Letter.ts";
 
 export enum TokenizerKind {
   NewLine = "NewLine",
@@ -64,6 +65,12 @@ export const Tokenizer: IModuleDeclaration = {
       moduleUrl: "./Token.ts",
       module: Token,
       names: ["Token"],
+    },
+    {
+      kind: DeclarationKind.NativeImport,
+      moduleUrl: "./Letter.ts",
+      module: Letter,
+      names: ["Letter"],
     },
   ],
   rules: [

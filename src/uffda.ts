@@ -8,8 +8,8 @@ import { IModule } from "./modules.ts";
 import { DeclarationKind } from "./runtime/declarations/declaration.kind.ts";
 import { serialize } from "./runtime/serialization/mod.ts";
 
-const templateToCode = (template: TemplateStringsArray) =>
-  template.reduce(
+const templateToCode = (template: TemplateStringsArray | string) =>
+  typeof template === "string" ? template : template.reduce(
     (l, r, i) => `${l}$${i - 1}${r}`,
   );
 
@@ -59,7 +59,10 @@ export function dsl<T>(
   options?: DslOptions,
 ) {
   const { resolver, trace } = options ?? {};
-  return async (template: TemplateStringsArray, ...args: Declaration[]) => {
+  return async (
+    template: TemplateStringsArray | string,
+    ...args: Declaration[]
+  ) => {
     const r = resolver ?? new Resolver(moduleUrl);
     const dslCode = templateToCode(template);
     const specials = await argsToSpecials(r, args);

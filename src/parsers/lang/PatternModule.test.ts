@@ -29,7 +29,7 @@ tests(() => [
         {
           kind: LangModuleKind.ImportDeclaration,
           names: ["B"],
-          modulePath: "./b.uff",
+          moduleUrl: "./b.uff",
         },
       ],
       rules: [
@@ -51,7 +51,7 @@ tests(() => [
         {
           kind: LangModuleKind.ImportDeclaration,
           names: ["A", "B"],
-          modulePath: "./b.uff",
+          moduleUrl: "./b.uff",
         },
       ],
       rules: [],
@@ -70,7 +70,7 @@ tests(() => [
         {
           kind: LangModuleKind.ImportDeclaration,
           names: ["A", "B"],
-          modulePath: "./b.uff",
+          moduleUrl: "./b.uff",
         },
       ],
       rules: [],

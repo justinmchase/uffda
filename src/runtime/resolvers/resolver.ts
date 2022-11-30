@@ -1,7 +1,7 @@
 import { IModuleDeclaration } from "../declarations/module.ts";
 
 export interface IModuleResolver {
-  resolveModule: (modulePath: string) => Promise<IModuleDeclaration>;
+  resolveModule: (moduleUrl: string) => Promise<IModuleDeclaration>;
 }
 
 export interface IModuleResolvers {

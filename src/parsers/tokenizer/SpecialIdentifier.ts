@@ -8,7 +8,20 @@ import { DeclarationKind } from "../../runtime/declarations/declaration.kind.ts"
 // Identifier = '$' (Digit | Character)+
 export const SpecialIdentifier: IModuleDeclaration = {
   kind: DeclarationKind.Module,
-  imports: [],
+  imports: [
+    {
+      kind: DeclarationKind.NativeImport,
+      moduleUrl: "./Digit.ts",
+      module: Digit,
+      names: ["Digit"],
+    },
+    {
+      kind: DeclarationKind.NativeImport,
+      moduleUrl: "./Letter.ts",
+      module: Letter,
+      names: ["Letter"],
+    },
+  ],
   rules: [
     {
       kind: DeclarationKind.Rule,
@@ -28,8 +41,14 @@ export const SpecialIdentifier: IModuleDeclaration = {
                 pattern: {
                   kind: PatternKind.Or,
                   patterns: [
-                    Digit,
-                    Letter,
+                    {
+                      kind: PatternKind.Reference,
+                      name: "Digit",
+                    },
+                    {
+                      kind: PatternKind.Reference,
+                      name: "Letter",
+                    },
                   ],
                 },
               },

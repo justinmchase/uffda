@@ -1,11 +1,12 @@
 import { IModuleDeclaration } from "../declarations/module.ts";
 import { IModuleResolver } from "./resolver.ts";
+import { uffda } from "../../uffda.ts";
 
-export class JsonResolver implements IModuleResolver {
-  public readonly extension = ".json";
+export class UffdaResolver implements IModuleResolver {
+  public readonly extension = ".uff";
   async resolveModule(moduleUrl: string): Promise<IModuleDeclaration> {
-    const json = await this.fetchContent(moduleUrl);
-    return await JSON.parse(json);
+    const uff = await this.fetchContent(moduleUrl);
+    return await uffda()(uff);
   }
 
   async fetchContent(moduleUrl: string) {

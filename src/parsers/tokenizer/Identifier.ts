@@ -5,10 +5,23 @@ import { Digit } from "./Digit.ts";
 import { IModuleDeclaration } from "../../runtime/declarations/module.ts";
 import { DeclarationKind } from "../../runtime/declarations/declaration.kind.ts";
 
-// Identifier = Letter+ (Digit | Letter)*
+// Identifier = a:Letter+ b:(Digit | Letter)* -> (concat (join a '') (join b ''))
 export const Identifier: IModuleDeclaration = {
   kind: DeclarationKind.Module,
-  imports: [],
+  imports: [
+    {
+      kind: DeclarationKind.NativeImport,
+      moduleUrl: "./Digit.ts",
+      module: Digit,
+      names: ["Digit"],
+    },
+    {
+      kind: DeclarationKind.NativeImport,
+      moduleUrl: "./Letter.ts",
+      module: Letter,
+      names: ["Letter"],
+    },
+  ],
   rules: [
     {
       kind: DeclarationKind.Rule,
@@ -24,7 +37,10 @@ export const Identifier: IModuleDeclaration = {
               pattern: {
                 kind: PatternKind.Slice,
                 min: 1,
-                pattern: Letter,
+                pattern: {
+                  kind: PatternKind.Reference,
+                  name: "Letter",
+                },
               },
             },
             {
@@ -35,8 +51,14 @@ export const Identifier: IModuleDeclaration = {
                 pattern: {
                   kind: PatternKind.Or,
                   patterns: [
-                    Digit,
-                    Letter,
+                    {
+                      kind: PatternKind.Reference,
+                      name: "Digit",
+                    },
+                    {
+                      kind: PatternKind.Reference,
+                      name: "Letter",
+                    },
                   ],
                 },
               },

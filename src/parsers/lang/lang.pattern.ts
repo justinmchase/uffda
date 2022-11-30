@@ -107,7 +107,7 @@ export interface IPatternDeclaration {
 export interface IImportDeclaration {
   kind: LangModuleKind.ImportDeclaration;
   names: string[];
-  modulePath: string;
+  moduleUrl: string;
 }
 
 // Patterns

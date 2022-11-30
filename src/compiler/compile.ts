@@ -7,7 +7,10 @@ import { Compiler } from "../parsers/compiler/Compiler.ts";
 import { snippet } from "./snippet.ts";
 
 const resolver = new Resolver(import.meta.url);
-const CompilerModule = await resolver.load("../parsers/compiler/Compiler.ts", Compiler);
+const CompilerModule = await resolver.load(
+  "../parsers/compiler/Compiler.ts",
+  Compiler,
+);
 
 export async function compile(options: ICompileOptions) {
   const { srcDir, dstDir } = options;

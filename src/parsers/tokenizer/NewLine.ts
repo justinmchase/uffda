@@ -1,4 +1,4 @@
-import {PatternKind } from "../../runtime/patterns/mod.ts";
+import { PatternKind } from "../../runtime/patterns/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 import { IModuleDeclaration } from "../../runtime/declarations/module.ts";
 import { DeclarationKind } from "../../runtime/declarations/declaration.kind.ts";

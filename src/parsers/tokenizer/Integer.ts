@@ -6,7 +6,14 @@ import { DeclarationKind } from "../../runtime/declarations/declaration.kind.ts"
 
 export const Integer: IModuleDeclaration = {
   kind: DeclarationKind.Module,
-  imports: [],
+  imports: [
+    {
+      kind: DeclarationKind.NativeImport,
+      moduleUrl: "./Digit.ts",
+      module: Digit,
+      names: ["Digit"],
+    },
+  ],
   rules: [
     {
       kind: DeclarationKind.Rule,
@@ -16,7 +23,10 @@ export const Integer: IModuleDeclaration = {
         pattern: {
           kind: PatternKind.Slice,
           min: 1,
-          pattern: Digit,
+          pattern: {
+            kind: PatternKind.Reference,
+            name: "Digit",
+          },
         },
         expression: {
           kind: ExpressionKind.Native,

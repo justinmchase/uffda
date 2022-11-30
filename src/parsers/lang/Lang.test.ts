@@ -104,7 +104,7 @@ tests(() => [
       imports: [
         {
           kind: LangModuleKind.ImportDeclaration,
-          modulePath: "./test.uff",
+          moduleUrl: "./test.uff",
           names: ["B"],
         },
       ],

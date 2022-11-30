@@ -11,7 +11,7 @@ import {
 //     { kind = 'Token',      value = '(' }
 //     names:({ kind = 'Identifier', i:value = string } ','? -> i)+
 //     { kind = 'Token',      value = ')' }
-//     modulePath: ??
+//     moduleUrl: ??
 //     { kind = 'Token',      value = ';' }
 //   -> {
 //     kind: 'ImportDeclaration',
@@ -46,7 +46,7 @@ export const ImportDeclaration: IModuleDeclaration = {
                 kind: { kind: PatternKind.Equal, value: "String" },
                 value: {
                   kind: PatternKind.Variable,
-                  name: "modulePath",
+                  name: "moduleUrl",
                   pattern: { kind: PatternKind.String },
                 },
               },
@@ -107,10 +107,10 @@ export const ImportDeclaration: IModuleDeclaration = {
         },
         expression: {
           kind: ExpressionKind.Native,
-          fn: ({ names, modulePath }) => ({
+          fn: ({ names, moduleUrl }) => ({
             kind: LangModuleKind.ImportDeclaration,
             names,
-            modulePath,
+            moduleUrl,
           }),
         },
       },

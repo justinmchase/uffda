@@ -1,9 +1,12 @@
 import { path } from "../../deps/std.ts";
 import { DeclarationKind, IModuleDeclaration } from "./declarations/mod.ts";
 import { IModule, ModuleKind } from "../modules.ts";
-import { JsonResolver } from "./resolvers/json.resolver.ts";
-import { ImportResolver } from "./resolvers/import.resolver.ts";
 import { IModuleResolvers } from "./resolvers/resolver.ts";
+import {
+  ImportResolver,
+  JsonResolver,
+  UffdaResolver,
+} from "./resolvers/mod.ts";
 
 export class Resolver {
   constructor(
@@ -13,6 +16,7 @@ export class Resolver {
       [".json"]: new JsonResolver(),
       [".ts"]: new ImportResolver(),
       [".js"]: new ImportResolver(),
+      [".uff"]: new UffdaResolver(),
     },
   ) {}
 
@@ -20,14 +24,7 @@ export class Resolver {
     if (this.modules.has(normalizedModuleUrl)) {
       return this.modules.get(normalizedModuleUrl)!;
     } else {
-      const ext = path.extname(normalizedModuleUrl);
-      const resolver = this.resolvers[ext];
-      if (!resolver) {
-        // todo: Use proper errors
-        throw new Error(`Unable to resolve file of unknown extension ${ext}`);
-      }
-      const moduleDeclaration: IModuleDeclaration = await resolver
-        .resolveModule(normalizedModuleUrl);
+      const moduleDeclaration = await this.resolve(normalizedModuleUrl);
       return await this.resolveModule(normalizedModuleUrl, moduleDeclaration);
     }
   }
@@ -46,6 +43,13 @@ export class Resolver {
         rules: new Map(),
       };
       this.modules.set(normalizedModuleUrl, module);
+
+      if (!moduleDeclaration) {
+        console.log({
+          normalizedModuleUrl,
+          moduleDeclaration,
+        });
+      }
       for (const { name, pattern } of moduleDeclaration.rules) {
         module.rules.set(name, {
           kind: ModuleKind.Rule,
@@ -91,30 +95,45 @@ export class Resolver {
     }
   }
 
-  public static normalizeModulePath(modulePath: string, parentPath: string) {
+  public async resolve(moduleUrl: string): Promise<IModuleDeclaration> {
+    const normalizedModuleUrl = Resolver.normalizeModulePath(
+      moduleUrl,
+      this.moduleUrl,
+    );
+
+    const ext = path.extname(normalizedModuleUrl);
+    const resolver = this.resolvers[ext];
+    if (!resolver) {
+      // todo: Use proper errors
+      throw new Error(`Unable to resolve file of unknown extension ${ext}`);
+    }
+    return await resolver.resolveModule(normalizedModuleUrl);
+  }
+
+  public static normalizeModulePath(moduleUrl: string, parentPath: string) {
     const { origin, pathname } = (() => {
-      if (modulePath.match(/^file:\/\//)) {
+      if (moduleUrl.match(/^file:\/\//)) {
         return {
           origin: "file://",
-          pathname: modulePath,
+          pathname: moduleUrl,
         };
       } else if (parentPath.match(/^file:\/\//)) {
         return {
           origin: "file://",
           pathname: path.resolve(
             path.dirname(path.fromFileUrl(parentPath)),
-            modulePath,
+            moduleUrl,
           ),
         };
       } else if (parentPath.match(/^\w+:\/\//)) {
         const parentUrl = new URL(parentPath);
-        const parsedUrl = new URL(modulePath, parentUrl);
+        const parsedUrl = new URL(moduleUrl, parentUrl);
         const { origin, pathname } = parsedUrl;
         return { origin, pathname };
       } else {
         return {
           origin: "file://",
-          pathname: path.resolve(path.dirname(parentPath), modulePath),
+          pathname: path.resolve(path.dirname(parentPath), moduleUrl),
         };
       }
     })();
