@@ -40,7 +40,7 @@ Deno.test(integration({
 }));
 Deno.test(integration({
   ...identifier,
-  index: 4,
+  index: 5,
   input: "a.b",
   expected: "a",
   done: false,
