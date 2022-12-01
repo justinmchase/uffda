@@ -2,6 +2,7 @@ import { Match } from "../match.ts";
 import {
   array,
   binary,
+  boolean,
   Expression,
   ExpressionKind,
   invocation,
@@ -21,6 +22,8 @@ export function exec(expression: Expression, match: Match): unknown {
       return array(expression, match);
     case ExpressionKind.Binary:
       return binary(expression, match);
+    case ExpressionKind.Boolean:
+      return boolean(expression);
     case ExpressionKind.Invocation:
       return invocation(expression, match);
     case ExpressionKind.Lambda:

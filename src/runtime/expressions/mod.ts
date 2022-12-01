@@ -3,6 +3,7 @@ export * from "./expression.ts";
 
 export * from "./array.ts";
 export * from "./binary.ts";
+export * from "./boolean.ts";
 export * from "./invocation.ts";
 export * from "./lambda.ts";
 export * from "./member.ts";

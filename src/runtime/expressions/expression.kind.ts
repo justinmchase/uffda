@@ -3,6 +3,7 @@ export enum ExpressionKind {
   ArrayElement = "arrayElement",
   ArraySpread = "arraySpread",
   Binary = "binary",
+  Boolean = "boolean",
   Invocation = "invocation",
   Lambda = "lambda",
   Member = "member",
