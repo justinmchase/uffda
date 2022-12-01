@@ -1,20 +1,27 @@
-import { tests } from "../../test.ts";
-import { Digit } from "./Digit.ts";
+import { integration } from "../../integration.ts";
 
-tests(() => [
-  {
-    id: "DIGIT00",
-    description: "matches a digit",
-    pattern: () => Digit,
-    input: "1",
-    value: "1",
-  },
-  {
-    id: "DIGIT01",
-    description: "does not match a non-digit",
-    pattern: () => Digit,
-    input: "*",
-    matched: false,
-    done: false,
-  },
-]);
+Deno.test(integration({
+  moduleUrl: "./Digit.uff",
+  input: "1",
+  expected: "1",
+}));
+
+Deno.test(integration({
+  moduleUrl: "./Digit.uff",
+  input: "*",
+  matched: false,
+  done: false,
+}));
+
+Deno.test(integration({
+  moduleUrl: "./Digit.uff",
+  input: "12",
+  expected: "1",
+  done: false,
+}));
+Deno.test(integration({
+  moduleUrl: "./Digit.uff",
+  input: "1m",
+  expected: "1",
+  done: false,
+}));

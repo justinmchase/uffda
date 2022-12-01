@@ -44,4 +44,18 @@ tests(() => [
     input: "'\"'",
     value: '"',
   },
+  {
+    id: "STRING04",
+    description: "can parse string with escaped newline",
+    module: () => String,
+    input: "'\n'",
+    value: '\n',
+  },
+  {
+    id: "STRING04",
+    description: "can parse string with escaped tab",
+    module: () => String,
+    input: "'\t'",
+    value: '\t',
+  },
 ]);

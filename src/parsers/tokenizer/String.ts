@@ -37,7 +37,25 @@ export const String: IModuleDeclaration = {
                       },
                       expression: {
                         kind: ExpressionKind.Native,
-                        fn: () => "'",
+                        fn: () => "'"
+                      },
+                    },
+                    {
+                      kind: PatternKind.Projection,
+                      pattern: {
+                        kind: PatternKind.Then,
+                        patterns: [
+                          { kind: PatternKind.Equal, value: "\\" },
+                          {
+                            kind: PatternKind.Variable,
+                            name: "value",
+                            pattern: { kind: PatternKind.String }
+                          },
+                        ],
+                      },
+                      expression: {
+                        kind: ExpressionKind.Native,
+                        fn: ({ value }) => JSON.parse(`"\\${value}"`)
                       },
                     },
                     {

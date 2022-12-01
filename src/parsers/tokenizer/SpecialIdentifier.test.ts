@@ -1,5 +1,13 @@
+import { integration } from "../../integration.ts";
 import { tests } from "../../test.ts";
 import { SpecialIdentifier } from "./SpecialIdentifier.ts";
+
+Deno.test(integration({
+  future: "Requires support for string interpolation first",
+  moduleUrl: "./SpecialIdentifier.uff",
+  input: "$0",
+  expected: "$0",
+}));
 
 tests(() => [
   {

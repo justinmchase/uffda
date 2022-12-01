@@ -1,4 +1,4 @@
-import { equal, green, magenta, red } from "../deps/std.ts";
+import { equal, green, magenta, red, yellow, path, brightBlack } from "../deps/std.ts";
 import { assert } from "../deps/std.ts";
 import { Resolver, run, Scope } from "./mod.ts";
 
@@ -6,14 +6,9 @@ type IntegrationArgs = {
   // Debug
   only?: boolean;
   trace?: boolean;
-
-  // Naming
-  area: string;
-  name: string;
-  index: number;
+  future?: string;
 
   // Input
-  importMetaUrl: string;
   moduleUrl: string;
   input: string;
 
@@ -23,27 +18,53 @@ type IntegrationArgs = {
   expected?: unknown;
 };
 
+const testCounts = new Map<string, number>();
+
+function testInfo(callStack: string) {
+  const lastLine = callStack.split('\n').slice(-1)[0] // last line of the call stack
+  const parts = lastLine.slice("    at ".length).split(':')
+  const urlParts = parts.slice(0, -2)
+  const line = parts.slice(-2, -1)
+  const column = parts.slice(-1)
+  const importMetaUrl = urlParts.join(':');
+
+  const testPath = `./${importMetaUrl.split('/src/')[1]}`;
+
+
+  const fileName = path.basename(testPath, path.extname(testPath))
+  const dirName = path.dirname(testPath);
+  const name = `${dirName.slice(2).replace('/', '.')}.${fileName}`
+  
+  const count = (testCounts.get(name) ?? 0) + 1
+  testCounts.set(name, count);
+  return {
+    importMetaUrl: urlParts.join(':'),
+    line,
+    column,
+    name: `${name.toUpperCase()}:${count.toString().padStart(4, '0')}`
+  }
+}
+
 export function integration(args: IntegrationArgs) {
   const {
     only,
     trace,
-    area,
-    name,
-    index,
-    importMetaUrl,
+    future,
     moduleUrl,
     input,
     expected,
     matched = true,
     done = true,
   } = args;
-  const fullName = `INTEGRATION.${area.toUpperCase()}.${name.toUpperCase()}.${
-    index.toString().padStart(2, "0")
-  }`;
+  
+  const { stack = '' } = new Error()
+  const { name, importMetaUrl, line, column } = testInfo(stack)
   return {
     only,
-    name: `[${magenta(fullName)}] ${moduleUrl}`,
+    ignore: !!future,
+    name: `[${magenta(name)}] ${future ? yellow(future) : moduleUrl}`,
     fn: async () => {
+      if (future) return;
       const resolver = new Resolver(importMetaUrl);
       const mod = await resolver.load(moduleUrl);
       const scope = Scope.From(input, {
@@ -51,24 +72,31 @@ export function integration(args: IntegrationArgs) {
         trace,
       });
       const match = run(scope);
-      // const actual = await resolver.resolve(moduleUrl);
+      
+      const matchedMessage = match.matched === matched
+        ? `${green('matched')}: ${Deno.inspect(match.matched)}`
+        : `${red('matched')}: ${Deno.inspect(match.matched)}`
+      ;
+      const doneMessage = match.done === done
+        ? `${green('done')}: ${Deno.inspect(match.done)}`
+        : `${red('done')}: ${Deno.inspect(match.done)}`
+      ;
+      const valueMessage = equal(match.value, expected)
+        ? ''
+        : `${yellow('expected')}: ${Deno.inspect(expected, { colors: true, depth: 10 })}\n` +
+          `${red('actual')}: ${Deno.inspect(match.value, { colors: true, depth: 10 })}`
+        ;
       assert(
-        equal(match.matched, matched) && equal(match.done, done) &&
-          equal(match.value, expected),
+        equal(match.matched, matched) &&
+        equal(match.done, done) &&
+        equal(match.value, expected),
         `Module failed to parse:\n` +
-          `moduleUrl: ${moduleUrl}\n` +
-          `matched: ${
-            match.matched === matched
-              ? green(match.matched.toString())
-              : red(match.matched.toString())
-          }\n` +
-          `done: ${
-            match.done === done
-              ? green(match.done.toString())
-              : red(match.done.toString())
-          }\n` +
-          `expected: ${Deno.inspect(expected, { colors: true, depth: 10 })}\n` +
-          `actual: ${Deno.inspect(match.value, { colors: true, depth: 10 })}\n`,
+        `${brightBlack('test')}: [${magenta(name)}]\n` +
+        `${brightBlack('testUrl')}: ${importMetaUrl}:${line}:${column}\n` +
+        `${brightBlack('moduleUrl')}: ${moduleUrl}\n` +
+        `${matchedMessage}\n` +
+        `${doneMessage}\n` + 
+        `${valueMessage}\n`,
       );
     },
   };
