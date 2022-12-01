@@ -32,6 +32,7 @@ export type Expression =
   | ILambdaExpression
   | IMemberExpression
   | INativeExpression
+  | INumberExpression
   | IObjectExpression
   | IReferenceExpression
   | ISpecialReferenceExpression
@@ -114,6 +115,11 @@ export interface IReferenceExpression {
 export interface ISpecialReferenceExpression {
   kind: ExpressionKind.Special;
   name: string;
+}
+
+export interface INumberExpression {
+  kind: ExpressionKind.Number;
+  value: number
 }
 
 export interface IValueExpression {

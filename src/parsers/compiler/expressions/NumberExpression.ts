@@ -30,7 +30,7 @@ export const NumberExpression: IModuleDeclaration = {
         expression: {
           kind: ExpressionKind.Native,
           fn: ({ value }) => ({
-            kind: ExpressionKind.Value,
+            kind: ExpressionKind.Number,
             value,
           }),
         },
