@@ -1,0 +1,6 @@
+{
+  "tasks": {
+    "test": "deno test -A --parallel src",
+    "pre": "deno fmt && deno lint",
+  }
+}
