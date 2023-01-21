@@ -177,13 +177,13 @@ export class Scope {
     );
   }
 
-  public pushPipeline(pattern: Pattern, stream: MetaStream) {
+  public pushPipeline(pattern: Pattern) {
     return new Scope(
       this.module,
       this.options,
       this.parent,
       {},
-      stream,
+      this.stream,
       this.memos,
       this.ruleStack,
       [...this.pipelineStack, pattern],

@@ -117,8 +117,8 @@ tests(() => [
         name: "InvalidPatternDeclaration",
         message:
           "A pattern declaration was expected and should be in the form of [A = B;]",
-        start: "0",
-        end: "1",
+        start: "3.1.0",
+        end: "3.1.1",
       },
     ],
   },

@@ -10,7 +10,10 @@ tests(() => [
     input: [
       { kind: TokenizerKind.String, value: "" },
     ],
-    value: { kind: LangExpressionKind.StringExpression, value: "" },
+    value: {
+      kind: LangExpressionKind.StringExpression,
+      value: "",
+    },
   },
   {
     id: "LANG.EXPRESSION.STRING01",
@@ -18,7 +21,10 @@ tests(() => [
     input: [
       { kind: TokenizerKind.String, value: "abc" },
     ],
-    value: { kind: LangExpressionKind.StringExpression, value: "abc" },
+    value: {
+      kind: LangExpressionKind.StringExpression,
+      value: "abc",
+    },
   },
   {
     id: "LANG.EXPRESSION.STRING02",
@@ -26,6 +32,19 @@ tests(() => [
     input: [
       { kind: TokenizerKind.String, value: "'\"" },
     ],
-    value: { kind: LangExpressionKind.StringExpression, value: "'\"" },
+    value: {
+      kind: LangExpressionKind.StringExpression,
+      value: "'\"",
+    },
+  },
+  {
+    id: "LANG.EXPRESSION.STRING03",
+    module: () => StringExpression,
+    main: "StringExpression",
+    input: [{ kind: TokenizerKind.String, value: "${1 + 1}" }],
+    value: {
+      kind: LangExpressionKind.StringExpression,
+      value: "${1 + 1}",
+    },
   },
 ]);

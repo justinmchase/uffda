@@ -10,6 +10,8 @@ tests(() => [
   {
     id: "LANG00",
     module: () => Lang,
+
+    // todo: Add an error-if for `;` before the `=`
     input: `
       A = B;
       xyz;
@@ -21,8 +23,8 @@ tests(() => [
         name: "InvalidPatternDeclaration",
         message:
           "A pattern declaration was expected and should be in the form of [A = B;]",
-        start: "4",
-        end: "6",
+        start: "42.22.4",
+        end: "42.22.6"
       },
     ],
     value: {
@@ -85,7 +87,7 @@ tests(() => [
             pattern: { kind: LangPatternKind.ReferencePattern, name: "_" },
             expression: {
               kind: LangExpressionKind.StringExpression,
-              value: "",
+              value: ""
             },
           },
         },

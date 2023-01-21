@@ -39,7 +39,7 @@ export const Tokenizer: IModuleDeclaration = {
     {
       kind: DeclarationKind.NativeImport,
       moduleUrl: "./Integer.ts",
-      module: Integer,
+      module: () => Integer,
       names: ["Integer"],
     },
     {

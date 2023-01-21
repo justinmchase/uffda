@@ -37,7 +37,10 @@ export type Expression =
   | IObjectExpression
   | IReferenceExpression
   | ISpecialReferenceExpression
-  | IValueExpression;
+  | IStringExpression
+  | IUndefinedExpression
+  | IValueExpression
+  ;
 
 export type ArrayInitializer =
   | IArrayElementExpression
@@ -123,9 +126,18 @@ export interface ISpecialReferenceExpression {
   name: string;
 }
 
+export interface IStringExpression {
+  kind: ExpressionKind.String;
+  value: string;
+}
+
 export interface INumberExpression {
   kind: ExpressionKind.Number;
   value: number
+}
+
+export interface IUndefinedExpression {
+  kind: ExpressionKind.Undefined;
 }
 
 export interface IValueExpression {

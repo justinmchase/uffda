@@ -8,17 +8,41 @@ import {
   UffdaResolver,
 } from "./resolvers/mod.ts";
 
+export interface IResolverOptions {
+  moduleUrl?: string;
+  modules?: Map<string, IModule>;
+  declarations?: Map<string, IModuleDeclaration>;
+  resolvers?: IModuleResolvers
+  trace?: boolean
+}
+
 export class Resolver {
-  constructor(
-    private readonly moduleUrl: string = import.meta.url,
-    private readonly modules = new Map<string, IModule>(),
-    private readonly resolvers: IModuleResolvers = {
-      [".json"]: new JsonResolver(),
-      [".ts"]: new ImportResolver(),
-      [".js"]: new ImportResolver(),
-      [".uff"]: new UffdaResolver(),
-    },
-  ) {}
+  public static readonly DefaultResolvers: IModuleResolvers = {
+    [".json"]: new JsonResolver(),
+    [".ts"]: new ImportResolver(),
+    [".js"]: new ImportResolver(),
+    [".uff"]: new UffdaResolver(),
+  };
+
+  private readonly moduleUrl: string;
+  private readonly modules: Map<string, IModule>;
+  private readonly declarations: Map<string, IModuleDeclaration>;
+  private readonly resolvers: IModuleResolvers;
+  private readonly trace: boolean;
+  constructor(opts?: IResolverOptions) {
+    const {
+      moduleUrl = import.meta.url,
+      modules = new Map<string, IModule>(),
+      declarations = new Map<string, IModuleDeclaration>(),
+      resolvers = Resolver.DefaultResolvers,
+      trace = false,
+    } = opts ?? {};
+    this.moduleUrl = moduleUrl;
+    this.modules = modules;
+    this.declarations = declarations;
+    this.resolvers = resolvers;
+    this.trace = trace;
+  }
 
   private async resolveImport(normalizedModuleUrl: string): Promise<IModule> {
     if (this.modules.has(normalizedModuleUrl)) {
@@ -33,6 +57,10 @@ export class Resolver {
     normalizedModuleUrl: string,
     moduleDeclaration: IModuleDeclaration,
   ): Promise<IModule> {
+    if (this.trace) {
+      // todo: improve the logging here.
+      console.log(`resolving module ${normalizedModuleUrl}...`)
+    }
     if (this.modules.has(normalizedModuleUrl)) {
       return this.modules.get(normalizedModuleUrl)!;
     } else {
@@ -84,6 +112,10 @@ export class Resolver {
     moduleUrl: string,
     moduleDeclaration?: IModuleDeclaration,
   ): Promise<IModule> {
+    if (this.trace) {
+      // todo: improve the logging here.
+      console.log(`loading ${moduleUrl}...`)
+    }
     const normalizedModuleUrl = Resolver.normalizeModulePath(
       moduleUrl,
       this.moduleUrl,
@@ -96,18 +128,28 @@ export class Resolver {
   }
 
   public async resolve(moduleUrl: string): Promise<IModuleDeclaration> {
+    if (this.trace) {
+      // todo: improve the logging here.
+      console.log(`resolving ${moduleUrl}...`)
+    }
     const normalizedModuleUrl = Resolver.normalizeModulePath(
       moduleUrl,
       this.moduleUrl,
     );
 
-    const ext = path.extname(normalizedModuleUrl);
-    const resolver = this.resolvers[ext];
-    if (!resolver) {
-      // todo: Use proper errors
-      throw new Error(`Unable to resolve file of unknown extension ${ext}`);
+    if (this.declarations.has(normalizedModuleUrl)) {
+      return this.declarations.get(normalizedModuleUrl)!;
+    } else {
+      const ext = path.extname(normalizedModuleUrl);
+      const resolver = this.resolvers[ext];
+      if (!resolver) {
+        // todo: Use proper errors
+        throw new Error(`Unable to resolve file of unknown extension ${ext}`);
+      }
+      const declaration = await resolver.resolveModule(normalizedModuleUrl);
+      this.declarations.set(normalizedModuleUrl, declaration);
+      return declaration;
     }
-    return await resolver.resolveModule(normalizedModuleUrl);
   }
 
   public static normalizeModulePath(moduleUrl: string, parentPath: string) {

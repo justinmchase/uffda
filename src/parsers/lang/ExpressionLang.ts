@@ -11,13 +11,13 @@ export const ExpressionLang: IModuleDeclaration = {
     // Basic
     {
       kind: DeclarationKind.NativeImport,
-      module: Basic,
+      module: () => Basic,
       moduleUrl: "../basic.ts",
       names: ["Basic"],
     },
     {
       kind: DeclarationKind.NativeImport,
-      module: ExpressionPattern,
+      module: () => ExpressionPattern,
       moduleUrl: "./patterns/ExpressionPattern.ts",
       names: ["ExpressionPattern"],
     },

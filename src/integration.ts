@@ -65,7 +65,7 @@ export function integration(args: IntegrationArgs) {
     name: `[${magenta(name)}] ${future ? yellow(future) : moduleUrl}`,
     fn: async () => {
       if (future) return;
-      const resolver = new Resolver(importMetaUrl);
+      const resolver = new Resolver({ moduleUrl: importMetaUrl });
       const mod = await resolver.load(moduleUrl);
       const scope = Scope.From(input, {
         module: mod,

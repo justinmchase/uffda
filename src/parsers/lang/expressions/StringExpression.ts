@@ -4,10 +4,35 @@ import { ExpressionKind } from "../../../runtime/expressions/mod.ts";
 import { DeclarationKind } from "../../../runtime/declarations/declaration.kind.ts";
 import { IModuleDeclaration } from "../../../runtime/declarations/module.ts";
 import { TokenizerKind } from "../../mod.ts";
+import { ExpressionLang } from "../ExpressionLang.ts";
+
+// 1. `undefined` expression
+// 2. filter, map functions
+// 3. (^'a'*)* - does it prevent infinite expansion already?
+// 4. Define Expression pattern to match Lang Expression ast
+//
+// import '../ExpressionLang.ts' (ExpressionLang);
+//
+// MaybeString = string | undefined;
+//
+// StringExpression = {
+//   kind = 'string'
+//   value:value = string -> {
+//     kind: 'string
+//     value
+//   })
+// };
 
 export const StringExpression: IModuleDeclaration = {
   kind: DeclarationKind.Module,
-  imports: [],
+  imports: [
+    {
+      kind: DeclarationKind.NativeImport,
+      module: () => ExpressionLang,
+      moduleUrl: '../ExpressionLang.ts',
+      names: ["ExpressionLang"],
+    }
+  ],
   rules: [
     {
       kind: DeclarationKind.Rule,
@@ -21,7 +46,9 @@ export const StringExpression: IModuleDeclaration = {
             value: {
               kind: PatternKind.Variable,
               name: "value",
-              pattern: { kind: PatternKind.String },
+              pattern: {
+                kind: PatternKind.String
+              }
             },
           },
         },
@@ -29,7 +56,7 @@ export const StringExpression: IModuleDeclaration = {
           kind: ExpressionKind.Native,
           fn: ({ value }) => ({
             kind: LangExpressionKind.StringExpression,
-            value,
+            value
           }),
         },
       },

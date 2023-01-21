@@ -95,4 +95,28 @@ tests(() => [
     matched: false,
     done: false,
   },
+  {
+    id: "ARRAY07",
+    description: "can drill into strings",
+    pattern: () => ({
+      kind: PatternKind.And,
+      patterns: [
+        { kind: PatternKind.String },
+        {
+          kind: PatternKind.Array,
+          pattern: {
+            kind: PatternKind.Then,
+            patterns: [
+              { kind: PatternKind.String },
+              { kind: PatternKind.String },
+              { kind: PatternKind.String },
+            ],
+          },
+        }
+      ],
+    }),
+    input: "abc",
+    matched: false,
+    done: false,
+  },
 ]);

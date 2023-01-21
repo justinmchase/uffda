@@ -13,6 +13,7 @@ import {
   object,
   reference,
   special,
+  string,
   value,
 } from "./expressions/mod.ts";
 
@@ -40,6 +41,10 @@ export function exec(expression: Expression, match: Match): unknown {
       return reference(expression, match);
     case ExpressionKind.Special:
       return special(expression, match);
+    case ExpressionKind.String:
+      return string(expression);
+    case ExpressionKind.Undefined:
+      return undefined;
     case ExpressionKind.Value:
       return value(expression);
     default:

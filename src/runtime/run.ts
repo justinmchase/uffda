@@ -2,20 +2,31 @@ import { Match } from "../match.ts";
 import { Scope } from "../scope.ts";
 import { rule } from "./rule.ts";
 
-export function run(scope: Scope): Match {
+export function run(scope: Scope, patternName?: string): Match {
   const { module } = scope;
-  const main = module.rules.has("Main")
-    ? module.rules.get("Main")
-    : [...module.rules.values()].slice(-1)[0];
+  const main = patternName
+    ? module.rules.get(patternName)
+    : (module.rules.get("Main") ?? [...module.rules.values()].slice(-1)[0])
+    ;
 
   if (!main) {
-    // todo: make a proper error...
-    return Match.Fail(scope).pushError(
-      "E_EMPTY_MODULE",
-      `A module with no rules was run (${module.moduleUrl})`,
-      scope,
-      scope,
-    );
+
+    if (!module.rules.size) {
+      // todo: make a proper error...
+      return Match.Fail(scope).pushError(
+        "E_EMPTY_MODULE",
+        `A module with no rules was run (${module.moduleUrl})`,
+        scope,
+        scope,
+      );
+    } else {
+      return Match.Fail(scope).pushError(
+        "E_MODULE_MAIN",
+        `A module (${module.moduleUrl}) does not contain main rule [${patternName ?? "Main"}]`,
+        scope,
+        scope,
+      );
+    }
   }
 
   return rule(main, scope);

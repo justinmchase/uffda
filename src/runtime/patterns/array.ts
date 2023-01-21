@@ -4,11 +4,19 @@ import { MetaStream } from "../../stream.ts";
 import { match } from "../match.ts";
 import { IArrayPattern } from "./pattern.ts";
 
+// deno-lint-ignore no-explicit-any
+function isIterable(value: any): value is Iterable<unknown> {
+  if (value == null) {
+    return false
+  }
+  return typeof value[Symbol.iterator] === "function";
+}
+
 export function array(args: IArrayPattern, scope: Scope) {
   const { pattern } = args;
   if (!scope.stream.done) {
     const next = scope.stream.next();
-    if (Array.isArray(next.value)) {
+    if (isIterable(next.value)) {
       const innerStream = new MetaStream(
         next.path.add(0),
         next.value[Symbol.iterator](),
