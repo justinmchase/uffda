@@ -13,7 +13,6 @@ export function projection(args: IProjectionPattern, scope: Scope) {
   }
   const value = exec(expression, m);
 
-  
   if (scope.options.trace) {
     const indent = "->".padStart(scope.depth);
     console.log(`${indent} [${black(Deno.inspect(value))}]`);

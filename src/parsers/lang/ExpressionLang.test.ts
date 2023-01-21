@@ -26,8 +26,8 @@ tests(() => [
           kind: DeclarationKind.NativeImport,
           module: () => ExpressionLang,
           moduleUrl: "./ExpressionLang.ts",
-          names: ["ExpressionLang"]
-        }        
+          names: ["ExpressionLang"],
+        },
       ],
       rules: [
         {
@@ -46,19 +46,19 @@ tests(() => [
                     name: "expression",
                     pattern: {
                       kind: PatternKind.Reference,
-                      name: "ExpressionLang"
-                    }
-                  }
-                }
-              }
+                      name: "ExpressionLang",
+                    },
+                  },
+                },
+              },
             },
             expression: {
               kind: ExpressionKind.Native,
-              fn: ({ expression }) => expression
-            }
-          }
-        }
-      ]
+              fn: ({ expression }) => expression,
+            },
+          },
+        },
+      ],
     }),
     input: [
       { kind: TokenizerKind.String, value: "7 + 11" },
@@ -67,12 +67,12 @@ tests(() => [
       kind: LangExpressionKind.AddExpression,
       left: {
         kind: LangExpressionKind.NumberExpression,
-        value: 7
+        value: 7,
       },
       right: {
         kind: LangExpressionKind.NumberExpression,
-        value: 11
-      }
-    }
-  }
+        value: 11,
+      },
+    },
+  },
 ]);

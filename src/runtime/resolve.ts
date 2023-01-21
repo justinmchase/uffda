@@ -12,8 +12,8 @@ export interface IResolverOptions {
   moduleUrl?: string;
   modules?: Map<string, IModule>;
   declarations?: Map<string, IModuleDeclaration>;
-  resolvers?: IModuleResolvers
-  trace?: boolean
+  resolvers?: IModuleResolvers;
+  trace?: boolean;
 }
 
 export class Resolver {
@@ -59,7 +59,7 @@ export class Resolver {
   ): Promise<IModule> {
     if (this.trace) {
       // todo: improve the logging here.
-      console.log(`resolving module ${normalizedModuleUrl}...`)
+      console.log(`resolving module ${normalizedModuleUrl}...`);
     }
     if (this.modules.has(normalizedModuleUrl)) {
       return this.modules.get(normalizedModuleUrl)!;
@@ -114,7 +114,7 @@ export class Resolver {
   ): Promise<IModule> {
     if (this.trace) {
       // todo: improve the logging here.
-      console.log(`loading ${moduleUrl}...`)
+      console.log(`loading ${moduleUrl}...`);
     }
     const normalizedModuleUrl = Resolver.normalizeModulePath(
       moduleUrl,
@@ -130,7 +130,7 @@ export class Resolver {
   public async resolve(moduleUrl: string): Promise<IModuleDeclaration> {
     if (this.trace) {
       // todo: improve the logging here.
-      console.log(`resolving ${moduleUrl}...`)
+      console.log(`resolving ${moduleUrl}...`);
     }
     const normalizedModuleUrl = Resolver.normalizeModulePath(
       moduleUrl,

@@ -26,8 +26,8 @@ export const StringPattern: IModuleDeclaration = {
                 kind: PatternKind.And,
                 patterns: [
                   { kind: PatternKind.String },
-                ]
-              }
+                ],
+              },
             },
           },
         },

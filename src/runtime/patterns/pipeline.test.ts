@@ -19,9 +19,9 @@ tests(() => [
             steps: [
               { kind: PatternKind.Any },
             ],
-          }
-        }
-      ]
+          },
+        },
+      ],
     }),
     input: "a",
     value: "a",
@@ -56,9 +56,9 @@ tests(() => [
                 },
               },
             ],
-          }
-        }
-      ]
+          },
+        },
+      ],
     }),
     input: [0],
     value: 2,
@@ -99,9 +99,9 @@ tests(() => [
                 },
               },
             ],
-          }
-        }
-      ]
+          },
+        },
+      ],
     }),
     input: [1, 2, 3],
     value: [4, 6, 8],
@@ -132,9 +132,9 @@ tests(() => [
                 },
               },
             ],
-          }
-        }
-      ]
+          },
+        },
+      ],
     }),
     input: [11],
     value: [22],
@@ -165,9 +165,9 @@ tests(() => [
                 },
               },
             ],
-          }
-        }
-      ]
+          },
+        },
+      ],
     }),
     input: [1, 2, 3],
     value: 6,
@@ -208,9 +208,9 @@ tests(() => [
                 },
               },
             ],
-          }
-        }
-      ]
+          },
+        },
+      ],
     }),
     input: "abc",
     value: "a-b-c",
@@ -229,7 +229,7 @@ tests(() => [
             patterns: [
               {
                 kind: PatternKind.Equal,
-                value: 'a'
+                value: "a",
               },
               {
                 kind: PatternKind.Pipeline,
@@ -239,22 +239,22 @@ tests(() => [
                     steps: [
                       {
                         kind: PatternKind.Slice,
-                        pattern: { kind: PatternKind.Equal, value: 'b' },
+                        pattern: { kind: PatternKind.Equal, value: "b" },
                       },
                     ],
                   },
-                ]
+                ],
               },
               {
                 kind: PatternKind.Equal,
-                value: 'c'
+                value: "c",
               },
             ],
-          }
-        }
-      ]
+          },
+        },
+      ],
     }),
     input: "abc",
-    value: ["a", ["b"], "c"]
+    value: ["a", ["b"], "c"],
   },
 ]);

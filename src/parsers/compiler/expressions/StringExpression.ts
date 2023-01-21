@@ -24,7 +24,7 @@ export const StringExpression: IModuleDeclaration = {
               kind: PatternKind.Variable,
               name: "value",
               pattern: {
-                kind: PatternKind.String
+                kind: PatternKind.String,
               },
             },
           },

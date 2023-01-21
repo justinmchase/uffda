@@ -6,11 +6,9 @@ export function run(scope: Scope, patternName?: string): Match {
   const { module } = scope;
   const main = patternName
     ? module.rules.get(patternName)
-    : (module.rules.get("Main") ?? [...module.rules.values()].slice(-1)[0])
-    ;
+    : (module.rules.get("Main") ?? [...module.rules.values()].slice(-1)[0]);
 
   if (!main) {
-
     if (!module.rules.size) {
       // todo: make a proper error...
       return Match.Fail(scope).pushError(
@@ -22,7 +20,9 @@ export function run(scope: Scope, patternName?: string): Match {
     } else {
       return Match.Fail(scope).pushError(
         "E_MODULE_MAIN",
-        `A module (${module.moduleUrl}) does not contain main rule [${patternName ?? "Main"}]`,
+        `A module (${module.moduleUrl}) does not contain main rule [${
+          patternName ?? "Main"
+        }]`,
         scope,
         scope,
       );

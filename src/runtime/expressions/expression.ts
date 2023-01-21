@@ -39,8 +39,7 @@ export type Expression =
   | ISpecialReferenceExpression
   | IStringExpression
   | IUndefinedExpression
-  | IValueExpression
-  ;
+  | IValueExpression;
 
 export type ArrayInitializer =
   | IArrayElementExpression
@@ -133,7 +132,7 @@ export interface IStringExpression {
 
 export interface INumberExpression {
   kind: ExpressionKind.Number;
-  value: number
+  value: number;
 }
 
 export interface IUndefinedExpression {

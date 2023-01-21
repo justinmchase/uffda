@@ -37,7 +37,7 @@ export const String: IModuleDeclaration = {
                       },
                       expression: {
                         kind: ExpressionKind.Native,
-                        fn: () => "'"
+                        fn: () => "'",
                       },
                     },
                     {
@@ -49,13 +49,13 @@ export const String: IModuleDeclaration = {
                           {
                             kind: PatternKind.Variable,
                             name: "value",
-                            pattern: { kind: PatternKind.String }
+                            pattern: { kind: PatternKind.String },
                           },
                         ],
                       },
                       expression: {
                         kind: ExpressionKind.Native,
-                        fn: ({ value }) => JSON.parse(`"\\${value}"`)
+                        fn: ({ value }) => JSON.parse(`"\\${value}"`),
                       },
                     },
                     {

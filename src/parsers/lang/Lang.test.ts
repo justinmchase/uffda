@@ -24,7 +24,7 @@ tests(() => [
         message:
           "A pattern declaration was expected and should be in the form of [A = B;]",
         start: "42.22.4",
-        end: "42.22.6"
+        end: "42.22.6",
       },
     ],
     value: {
@@ -87,7 +87,7 @@ tests(() => [
             pattern: { kind: LangPatternKind.ReferencePattern, name: "_" },
             expression: {
               kind: LangExpressionKind.StringExpression,
-              value: ""
+              value: "",
             },
           },
         },

@@ -7,7 +7,7 @@ import { IArrayPattern } from "./pattern.ts";
 // deno-lint-ignore no-explicit-any
 function isIterable(value: any): value is Iterable<unknown> {
   if (value == null) {
-    return false
+    return false;
   }
   return typeof value[Symbol.iterator] === "function";
 }

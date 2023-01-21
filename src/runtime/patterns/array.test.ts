@@ -112,7 +112,7 @@ tests(() => [
               { kind: PatternKind.String },
             ],
           },
-        }
+        },
       ],
     }),
     input: "abc",

@@ -15,9 +15,9 @@ export function pipeline(args: IPipelinePattern, scope: Scope) {
 
     // The first pipeline step should operate on the original scope and stream
     // Its ok if it doesn't completely consume the entire stream, there may be more
-    // patterns after this one. This enables the pipeline to operate like all other 
+    // patterns after this one. This enables the pipeline to operate like all other
     // patterns instead of requiring it to consume an entire stream.
-    // 
+    //
     // However steps beyond the first in the pipeline will operate like an entire pattern
     // match operation which will require the entire stream to be read.
 

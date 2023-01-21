@@ -29,9 +29,9 @@ export const StringExpression: IModuleDeclaration = {
     {
       kind: DeclarationKind.NativeImport,
       module: () => ExpressionLang,
-      moduleUrl: '../ExpressionLang.ts',
+      moduleUrl: "../ExpressionLang.ts",
       names: ["ExpressionLang"],
-    }
+    },
   ],
   rules: [
     {
@@ -47,8 +47,8 @@ export const StringExpression: IModuleDeclaration = {
               kind: PatternKind.Variable,
               name: "value",
               pattern: {
-                kind: PatternKind.String
-              }
+                kind: PatternKind.String,
+              },
             },
           },
         },
@@ -56,7 +56,7 @@ export const StringExpression: IModuleDeclaration = {
           kind: ExpressionKind.Native,
           fn: ({ value }) => ({
             kind: LangExpressionKind.StringExpression,
-            value
+            value,
           }),
         },
       },
