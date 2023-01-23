@@ -1,6 +1,6 @@
 import { DeclarationKind } from "../../runtime/declarations/declaration.kind.ts";
 import { IModuleDeclaration } from "../../runtime/declarations/module.ts";
-import { PatternKind } from "../../runtime/patterns/mod.ts";
+import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 
 // export const Digit: Pattern = {
 //   kind: PatternKind.RegExp,

@@ -30,6 +30,7 @@ interface ITest {
 interface IModuleDeclarationTest extends ITest {
   input?: string | { toString(): string };
   moduleUrl?: string;
+  main?: string;
   module: () => IModuleDeclaration;
 }
 
@@ -156,7 +157,7 @@ export function tests(group: () => PatternTest[]) {
                 trace,
                 moduleUrl = import.meta.url,
               } = test;
-              const resolver = new Resolver(moduleUrl);
+              const resolver = new Resolver({ moduleUrl });
               const specials = new Map(Object.entries(test.specials ?? {}));
               const p = pattern();
               const s = Scope.From(input as Iterable<unknown> ?? "", {
@@ -246,7 +247,7 @@ export function tests(group: () => PatternTest[]) {
           }
         } else if (isModuleDeclarationTest(test)) {
           const { module, input, moduleUrl = import.meta.url } = test;
-          const resolver = new Resolver(moduleUrl);
+          const resolver = new Resolver({ moduleUrl });
           const moduleDeclaration = module();
           if (test.throws) {
             await assertRejects(
@@ -256,7 +257,7 @@ export function tests(group: () => PatternTest[]) {
                   module: main,
                   resolver,
                 });
-                run(scope);
+                run(scope, test.main);
               },
               "Module was expected to throw",
             );
@@ -271,7 +272,7 @@ export function tests(group: () => PatternTest[]) {
                 specials,
                 resolver,
               });
-              const m = run(scope);
+              const m = run(scope, test.main);
               const e = m.errors.map((e) => ({
                 name: e.name,
                 message: e.message,

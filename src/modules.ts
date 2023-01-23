@@ -1,4 +1,4 @@
-import { Pattern } from "./runtime/patterns/mod.ts";
+import { Pattern } from "./runtime/patterns/pattern.ts";
 
 export enum ModuleKind {
   Module = "module",

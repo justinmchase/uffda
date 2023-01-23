@@ -35,7 +35,7 @@ if (readPermissions.state === "granted") {
   Deno.test({
     name: "RESOLVE00",
     fn: async () => {
-      const resolver = new Resolver(import.meta.url);
+      const resolver = new Resolver({ moduleUrl: import.meta.url });
       const resolved = await resolver.load("./resolvers/test.module.json");
       assertEquals(
         resolved.moduleUrl,
@@ -46,7 +46,7 @@ if (readPermissions.state === "granted") {
   Deno.test({
     name: "RESOLVE01",
     fn: async () => {
-      const resolver = new Resolver(import.meta.url);
+      const resolver = new Resolver({ moduleUrl: import.meta.url });
       const resolved = await resolver.load("./resolvers/test.module.js");
       assertEquals(
         resolved.moduleUrl,
@@ -57,7 +57,7 @@ if (readPermissions.state === "granted") {
   Deno.test({
     name: "RESOLVE02",
     fn: async () => {
-      const resolver = new Resolver(import.meta.url);
+      const resolver = new Resolver({ moduleUrl: import.meta.url });
       const resolved = await resolver.load("./resolvers/test0.module.ts");
       assertEquals(
         resolved.moduleUrl,
@@ -68,7 +68,7 @@ if (readPermissions.state === "granted") {
   Deno.test({
     name: "RESOLVE03",
     fn: async () => {
-      const resolver = new Resolver(import.meta.url);
+      const resolver = new Resolver({ moduleUrl: import.meta.url });
       const resolved = await resolver.load("./resolvers/test0.module.ts");
       assertEquals(
         resolved.moduleUrl,
@@ -79,7 +79,7 @@ if (readPermissions.state === "granted") {
   Deno.test({
     name: "RESOLVE04",
     fn: async () => {
-      const resolver = new Resolver(import.meta.url);
+      const resolver = new Resolver({ moduleUrl: import.meta.url });
       const resolved = await resolver.load("./resolvers/test1.module.ts");
       assertEquals(
         resolved.moduleUrl,

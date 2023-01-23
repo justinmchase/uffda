@@ -7,12 +7,14 @@ tests(() => [
   {
     id: "COMPILER.EXPRESSION.STRING00",
     module: () => StringExpression,
-    // input: "'abc'",
     input: [
-      { kind: LangExpressionKind.StringExpression, value: "abc" },
+      {
+        kind: LangExpressionKind.StringExpression,
+        value: "abc",
+      },
     ],
     value: {
-      kind: ExpressionKind.Value,
+      kind: ExpressionKind.String,
       value: "abc",
     },
   },

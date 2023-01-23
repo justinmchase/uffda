@@ -35,12 +35,7 @@ export const NewLine: IModuleDeclaration = {
           },
           {
             kind: PatternKind.Projection,
-            pattern: {
-              kind: PatternKind.Then,
-              patterns: [
-                { kind: PatternKind.Equal, value: "\r" },
-              ],
-            },
+            pattern: { kind: PatternKind.Equal, value: "\r" },
             expression: {
               kind: ExpressionKind.Native,
               fn: () => "\n",

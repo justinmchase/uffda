@@ -22,7 +22,12 @@ export const StringPattern: IModuleDeclaration = {
             value: {
               kind: PatternKind.Variable,
               name: "value",
-              pattern: { kind: PatternKind.String },
+              pattern: {
+                kind: PatternKind.And,
+                patterns: [
+                  { kind: PatternKind.String },
+                ],
+              },
             },
           },
         },

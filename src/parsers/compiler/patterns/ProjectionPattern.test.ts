@@ -118,7 +118,7 @@ tests(() => [
               kind: ExpressionKind.Binary,
               op: BinaryOperation.Add,
               left: { kind: ExpressionKind.Reference, name: "i" },
-              right: { kind: ExpressionKind.Value, value: 1 },
+              right: { kind: ExpressionKind.Number, value: 1 },
             },
           },
         ],

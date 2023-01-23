@@ -28,13 +28,17 @@ export function isExpression(value: unknown): value is Expression {
 export type Expression =
   | IArrayExpression
   | IBinaryExpression
+  | IBooleanExpression
   | IInvocationExpression
   | ILambdaExpression
   | IMemberExpression
   | INativeExpression
+  | INumberExpression
   | IObjectExpression
   | IReferenceExpression
   | ISpecialReferenceExpression
+  | IStringExpression
+  | IUndefinedExpression
   | IValueExpression;
 
 export type ArrayInitializer =
@@ -61,6 +65,11 @@ export interface IBinaryExpression {
   op: BinaryOperation;
   left: Expression;
   right: Expression;
+}
+
+export interface IBooleanExpression {
+  kind: ExpressionKind.Boolean;
+  value: boolean;
 }
 
 export interface IInvocationExpression {
@@ -114,6 +123,20 @@ export interface IReferenceExpression {
 export interface ISpecialReferenceExpression {
   kind: ExpressionKind.Special;
   name: string;
+}
+
+export interface IStringExpression {
+  kind: ExpressionKind.String;
+  value: string;
+}
+
+export interface INumberExpression {
+  kind: ExpressionKind.Number;
+  value: number;
+}
+
+export interface IUndefinedExpression {
+  kind: ExpressionKind.Undefined;
 }
 
 export interface IValueExpression {

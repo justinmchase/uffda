@@ -11,7 +11,7 @@ tests(() => [
       { kind: LangExpressionKind.NumberExpression, value: 1 },
     ],
     value: {
-      kind: ExpressionKind.Value,
+      kind: ExpressionKind.Number,
       value: 1,
     },
   },

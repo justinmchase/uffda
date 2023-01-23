@@ -5,14 +5,14 @@ tests(() => [
   {
     id: "LETTER00",
     description: "matches a letter",
-    pattern: () => Letter,
+    module: () => Letter,
     input: "a",
     value: "a",
   },
   {
     id: "LETTER01",
     description: "does not match a non-letter",
-    pattern: () => Letter,
+    module: () => Letter,
     input: "*",
     matched: false,
     done: false,
@@ -20,7 +20,7 @@ tests(() => [
   {
     id: "LETTER02",
     description: "does not match a digit",
-    pattern: () => Letter,
+    module: () => Letter,
     input: "1",
     matched: false,
     done: false,

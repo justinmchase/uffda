@@ -158,7 +158,7 @@ tests(() => [
                 name: "i",
               },
               right: {
-                kind: ExpressionKind.Value,
+                kind: ExpressionKind.Number,
                 value: 1,
               },
             },

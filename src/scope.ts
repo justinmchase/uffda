@@ -24,12 +24,12 @@ export const DefaultModule: IModule = {
   imports: new Map(),
   rules: new Map(),
 };
-export const DefaultOptions: IScopeOptions = {
+export const DefaultOptions: () => IScopeOptions = () => ({
   globals: runtime,
   specials: new Map(),
   trace: false,
   resolver: new Resolver(),
-};
+});
 
 export class Scope {
   public static readonly Default = (
@@ -38,7 +38,7 @@ export class Scope {
     const { module, ...options } = args ?? {};
     return new Scope(
       module ?? DefaultModule,
-      { ...DefaultOptions, ...options ?? {} },
+      { ...DefaultOptions(), ...options ?? {} },
       undefined,
       {},
       MetaStream.Default(),
@@ -57,7 +57,7 @@ export class Scope {
     return stream instanceof Scope
       ? new Scope(
         module ?? stream.module,
-        { ...DefaultOptions, ...stream.options, ...options },
+        { ...DefaultOptions(), ...stream.options, ...options },
         stream.parent,
         stream.variables,
         stream.stream,
@@ -68,7 +68,7 @@ export class Scope {
       )
       : new Scope(
         module ?? DefaultModule,
-        { ...DefaultOptions, ...options },
+        { ...DefaultOptions(), ...options },
         undefined,
         {},
         MetaStream.From(stream),
@@ -177,13 +177,13 @@ export class Scope {
     );
   }
 
-  public pushPipeline(pattern: Pattern, stream: MetaStream) {
+  public pushPipeline(pattern: Pattern) {
     return new Scope(
       this.module,
       this.options,
       this.parent,
       {},
-      stream,
+      this.stream,
       this.memos,
       this.ruleStack,
       [...this.pipelineStack, pattern],

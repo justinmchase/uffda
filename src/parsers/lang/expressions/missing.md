@@ -28,7 +28,7 @@ non-syntactic array indexing for arrays such as `(at a b)` or `(pop a b)` etc.
 For index access on objects you could use the same function but perhaps it would
 be possible to also support something like `a."${b}"`
 
-# Strings
+# String Interpolation
 
 Right now the tokenizer is actually already parsing string literals, it would be
 trivial to just parse that into a Lang ast. But what I really want is
@@ -47,6 +47,19 @@ signature, something like:
   args: TokenizerPattern[]
 }
 ```
+
+### Notes
+
+Turns out interpolated strings are pretty hard. If you want to be able to have
+infinite regression of interpolated strings inside of interpolated string
+expressions then you have to parse into the contents of the string more deeply,
+specifically having knowledge about expression syntax down where I have the
+tokenizer knowledge only right now. This means you have to either "plugin"
+expression syntax from higher up or you'll need to not just give back a string
+at the tokenizer but all of the inner tokens. Then push up the string parsing
+into the expression layer. This is what I think should happen it it is not
+"basic" anymore at that point and I think I want to try to tackle that in a more
+advanced language later.
 
 # Ternary
 

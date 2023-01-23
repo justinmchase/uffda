@@ -10,7 +10,11 @@ export function equal(args: IEqualPattern, scope: Scope): Match {
 
     if (scope.options.trace) {
       const indent = "›".padStart(scope.depth);
-      console.log(`${indent} [${black(`${next.value} === ${value}`)}]`);
+      console.log(
+        `${indent} [${
+          black(`${Deno.inspect(next.value)} === ${Deno.inspect(value)}`)
+        }]`,
+      );
     }
 
     if (next.value === value) {

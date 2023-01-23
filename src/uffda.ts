@@ -63,7 +63,7 @@ export function dsl<T>(
     template: TemplateStringsArray | string,
     ...args: Declaration[]
   ) => {
-    const r = resolver ?? new Resolver(moduleUrl);
+    const r = resolver ?? new Resolver({ moduleUrl });
     const dslCode = templateToCode(template);
     const specials = await argsToSpecials(r, args);
     const m = await r.load(moduleUrl, module);

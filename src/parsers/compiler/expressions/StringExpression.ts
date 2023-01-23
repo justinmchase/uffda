@@ -23,14 +23,16 @@ export const StringExpression: IModuleDeclaration = {
             value: {
               kind: PatternKind.Variable,
               name: "value",
-              pattern: { kind: PatternKind.String },
+              pattern: {
+                kind: PatternKind.String,
+              },
             },
           },
         },
         expression: {
           kind: ExpressionKind.Native,
           fn: ({ value }) => ({
-            kind: ExpressionKind.Value,
+            kind: ExpressionKind.String,
             value,
           }),
         },
