@@ -14,14 +14,14 @@ tests(() => [
           kind: LangPatternKind.EqualPattern,
           value: "abc",
         },
-      }
+      },
     ],
     value: {
       kind: PatternKind.Not,
       pattern: {
         kind: PatternKind.Equal,
         value: "abc",
-      }
+      },
     },
   },
 ]);

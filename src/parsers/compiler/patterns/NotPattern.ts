@@ -24,7 +24,10 @@ export const NotPattern: IModuleDeclaration = {
         pattern: {
           kind: PatternKind.Object,
           keys: {
-            kind: { kind: PatternKind.Equal, value: LangPatternKind.NotPattern },
+            kind: {
+              kind: PatternKind.Equal,
+              value: LangPatternKind.NotPattern,
+            },
             pattern: {
               kind: PatternKind.Variable,
               name: "pattern",

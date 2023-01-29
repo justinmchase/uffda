@@ -6,9 +6,8 @@ Deno.test({
     moduleUrl: "./Digit.uff",
     input: "1",
     expected: "1",
-  })
+  }),
 });
-
 
 Deno.test({
   name: "DIGIT01",
@@ -17,9 +16,8 @@ Deno.test({
     input: "*",
     matched: false,
     done: false,
-  })
+  }),
 });
-
 
 Deno.test({
   name: "DIGIT02",
@@ -28,9 +26,8 @@ Deno.test({
     input: "12",
     expected: "1",
     done: false,
-  })
+  }),
 });
-
 
 Deno.test({
   name: "DIGIT03",
@@ -39,5 +36,5 @@ Deno.test({
     input: "1m",
     expected: "1",
     done: false,
-  })
+  }),
 });
