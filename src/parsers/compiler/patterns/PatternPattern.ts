@@ -4,7 +4,7 @@ import { PatternKind } from "../../../runtime/patterns/mod.ts";
 import { AnyPattern } from "./AnyPattern.ts";
 import { EqualPattern } from "./EqualPattern.ts";
 import { MustPattern } from "./MustPattern.ts";
-import { NotPattern  } from "./NotPattern.ts";
+import { NotPattern } from "./NotPattern.ts";
 import { ObjectPattern } from "./ObjectPattern.ts";
 import { OkPattern } from "./OkPattern.ts";
 import { OneOrMorePattern } from "./OneOrMorePattern.ts";

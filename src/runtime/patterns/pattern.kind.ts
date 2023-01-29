@@ -3,6 +3,7 @@ export enum PatternKind {
   Any = "any",
   Array = "array",
   Boolean = "boolean",
+  Character = "character",
   End = "end",
   Equal = "equal",
   Until = "until",

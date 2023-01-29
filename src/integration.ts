@@ -110,8 +110,8 @@ export function integration(args: IntegrationArgs) {
             `${valueMessage}\n`,
         );
       } catch (err) {
-        const { name, message, code, stack: _stack, ... rest } = err
-        console.log({ name, message, code, ...rest })
+        const { name, message, code, stack: _stack, ...rest } = err;
+        console.log({ name, message, code, ...rest });
         throw err;
       }
     },

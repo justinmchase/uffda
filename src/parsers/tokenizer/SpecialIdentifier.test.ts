@@ -6,7 +6,7 @@ Deno.test({
     moduleUrl: "./SpecialIdentifier.uff",
     input: "$0",
     expected: "$0",
-  })
+  }),
 });
 Deno.test({
   name: "SPECIALIDENTIFIER01",
@@ -14,7 +14,7 @@ Deno.test({
     moduleUrl: "./SpecialIdentifier.uff",
     input: "$x",
     expected: "$x",
-  })
+  }),
 });
 Deno.test({
   name: "SPECIALIDENTIFIER02",
@@ -23,5 +23,5 @@ Deno.test({
     input: "x",
     matched: false,
     done: false,
-  })
+  }),
 });

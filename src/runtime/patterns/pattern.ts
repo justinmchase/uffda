@@ -9,6 +9,7 @@ export type Pattern =
   | IAndPattern
   | IArrayPattern
   | IBooleanPattern
+  | ICharacterPattern
   | IEndPattern
   | IEqualPattern
   | IUntilPattern
@@ -39,6 +40,49 @@ export function isPattern(value: unknown): value is Pattern {
   return Reflect.has(PatternKind, p.kind);
 }
 
+export enum CharacterClass {
+  Any = "A",
+  Assigned = "As",
+  Ascii = "Ac",
+  Letter = "L",
+  UppercaseLetter = "Lu",
+  LowercaseLetter = "Ll",
+  TitlecaseLetter = "Lt",
+  ModifierLetter = "Lm",
+  OtherLetter = "Lo",
+  Mark = "M",
+  NonSpacingMark = "Mn",
+  SpacingCombiningMark = "Mc",
+  EnclosingMark = "Mn",
+  Number = "N",
+  DecimalDigitNumber = "Nd",
+  LetterNumber = "Nl",
+  OtherNumber = "No",
+  Symbol = "S",
+  MathSymbol = "Sm",
+  CurrencySymbol = "Sc",
+  ModifierSymbol = "Sk",
+  OtherSymbol = "So",
+  Punctuation = "P",
+  ConnectorPunctuation = "Pc",
+  DashPunctuation = "Pd",
+  OpenPunctuation = "Ps",
+  ClosePunctuation = "Pe",
+  InitualPunctuation = "Pi",
+  FinalPunctuation = "Pf",
+  OtherPunctuation = "Po",
+  Separator = "Z",
+  SpaceSeparator = "Zs",
+  LineSeparator = "Zl",
+  ParagraphSeparator = "Zp",
+  Other = "C",
+  Control = "Cc",
+  Format = "Cf",
+  Surrogate = "Cs",
+  PrivateUse = "Co",
+  Unassigned = "Cn",
+}
+
 export interface IAnyPattern {
   kind: PatternKind.Any;
 }
@@ -52,6 +96,10 @@ export interface IArrayPattern {
 }
 export interface IBooleanPattern {
   kind: PatternKind.Boolean;
+}
+export interface ICharacterPattern {
+  kind: PatternKind.Character;
+  characterClass: CharacterClass;
 }
 export interface IEndPattern {
   kind: PatternKind.End;
