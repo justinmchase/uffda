@@ -17,6 +17,11 @@ export function array(args: IArrayPattern, scope: Scope) {
   if (!scope.stream.done) {
     const next = scope.stream.next();
     if (isIterable(next.value)) {
+      if (scope.options.trace) {
+        console.log(
+          `* [${next.value}] ${(next.value as [])?.length ?? "<none>"}`,
+        );
+      }
       const innerStream = new MetaStream(
         next.path.add(0),
         next.value[Symbol.iterator](),
@@ -33,6 +38,10 @@ export function array(args: IArrayPattern, scope: Scope) {
       }
 
       return m;
+    } else {
+      if (scope.options.trace) {
+        console.log(`* [${typeof next.value}]: <non-iterable>`);
+      }
     }
   }
   return Match.Fail(scope);

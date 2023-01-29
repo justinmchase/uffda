@@ -1,6 +1,7 @@
 export * from "./and.ts";
 export * from "./any.ts";
 export * from "./array.ts";
+export * from "./character.ts";
 export * from "./end.ts";
 export * from "./equal.ts";
 export * from "./fail.ts";

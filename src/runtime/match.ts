@@ -4,6 +4,7 @@ import {
   and,
   any,
   array,
+  character,
   end,
   equal,
   fail,
@@ -38,6 +39,8 @@ export function match(pattern: Pattern, scope: Scope): Match {
       return any(scope);
     case PatternKind.Array:
       return array(pattern, scope);
+    case PatternKind.Character:
+      return character(pattern, scope);
     case PatternKind.Boolean:
       return type(ValueType.Boolean, scope);
     case PatternKind.End:

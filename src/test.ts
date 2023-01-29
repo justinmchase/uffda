@@ -157,7 +157,7 @@ export function tests(group: () => PatternTest[]) {
                 trace,
                 moduleUrl = import.meta.url,
               } = test;
-              const resolver = new Resolver({ moduleUrl });
+              const resolver = new Resolver({ moduleUrl, trace });
               const specials = new Map(Object.entries(test.specials ?? {}));
               const p = pattern();
               const s = Scope.From(input as Iterable<unknown> ?? "", {
