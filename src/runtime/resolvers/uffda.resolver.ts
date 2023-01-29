@@ -12,7 +12,12 @@ export class UffdaResolver implements IModuleResolver {
   async fetchContent(moduleUrl: string) {
     const url = new URL(moduleUrl);
     if (url.protocol === "file:") {
-      return await Deno.readTextFile(url.pathname);
+      try {
+        return await Deno.readTextFile(url.pathname);
+      } catch (err) {
+        err.moduleUrl = moduleUrl;
+        throw err;
+      }
     } else if (url.protocol === "http:" || url.protocol === "https:") {
       const result = await fetch(moduleUrl);
       return await result.text();

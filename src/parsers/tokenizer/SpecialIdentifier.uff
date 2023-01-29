@@ -1,0 +1,9 @@
+import './Digit.uff' (Digit);
+import './Letter.ts' (Letter);
+
+Identifier = (
+  '$' value:(Digit | Letter)+ -> (format
+    '${0}'
+    (join value '')
+  )
+);

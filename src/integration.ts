@@ -8,7 +8,7 @@ import {
   yellow,
 } from "../deps/std.ts";
 import { assert } from "../deps/std.ts";
-import { Resolver, run, Scope } from "./mod.ts";
+import { Resolver, run, Scope, SpecialType } from "./mod.ts";
 
 type IntegrationArgs = {
   // Debug
@@ -19,6 +19,7 @@ type IntegrationArgs = {
   // Input
   moduleUrl: string;
   input: string;
+  specials?: Record<string, SpecialType>;
 
   // Assertions
   matched?: boolean;
@@ -60,6 +61,7 @@ export function integration(args: IntegrationArgs) {
     moduleUrl,
     input,
     expected,
+    specials = {},
     matched = true,
     done = true,
   } = args;
@@ -69,43 +71,49 @@ export function integration(args: IntegrationArgs) {
   return {
     only,
     ignore: !!future,
-    name: `[${magenta(name)}] ${future ? yellow(future) : moduleUrl}`,
     fn: async () => {
       if (future) return;
-      const resolver = new Resolver({ moduleUrl: importMetaUrl });
-      const mod = await resolver.load(moduleUrl);
-      const scope = Scope.From(input, {
-        module: mod,
-        trace,
-      });
-      const match = run(scope);
+      try {
+        const resolver = new Resolver({ moduleUrl: importMetaUrl });
+        const mod = await resolver.load(moduleUrl);
+        const scope = Scope.From(input, {
+          module: mod,
+          specials: new Map<string, SpecialType>(Object.entries(specials)),
+          trace,
+        });
+        const match = run(scope);
 
-      const matchedMessage = match.matched === matched
-        ? `${green("matched")}: ${Deno.inspect(match.matched)}`
-        : `${red("matched")}: ${Deno.inspect(match.matched)}`;
-      const doneMessage = match.done === done
-        ? `${green("done")}: ${Deno.inspect(match.done)}`
-        : `${red("done")}: ${Deno.inspect(match.done)}`;
-      const valueMessage = equal(match.value, expected)
-        ? ""
-        : `${yellow("expected")}: ${
-          Deno.inspect(expected, { colors: true, depth: 10 })
-        }\n` +
-          `${red("actual")}: ${
-            Deno.inspect(match.value, { colors: true, depth: 10 })
-          }`;
-      assert(
-        equal(match.matched, matched) &&
-          equal(match.done, done) &&
-          equal(match.value, expected),
-        `Module failed to parse:\n` +
-          `${brightBlack("test")}: [${magenta(name)}]\n` +
-          `${brightBlack("testUrl")}: ${importMetaUrl}:${line}:${column}\n` +
-          `${brightBlack("moduleUrl")}: ${moduleUrl}\n` +
-          `${matchedMessage}\n` +
-          `${doneMessage}\n` +
-          `${valueMessage}\n`,
-      );
+        const matchedMessage = match.matched === matched
+          ? `${green("matched")}: ${Deno.inspect(match.matched)}`
+          : `${red("matched")}: ${Deno.inspect(match.matched)}`;
+        const doneMessage = match.done === done
+          ? `${green("done")}: ${Deno.inspect(match.done)}`
+          : `${red("done")}: ${Deno.inspect(match.done)}`;
+        const valueMessage = equal(match.value, expected)
+          ? ""
+          : `${yellow("expected")}: ${
+            Deno.inspect(expected, { colors: true, depth: 10 })
+          }\n` +
+            `${red("actual")}: ${
+              Deno.inspect(match.value, { colors: true, depth: 10 })
+            }`;
+        assert(
+          equal(match.matched, matched) &&
+            equal(match.done, done) &&
+            equal(match.value, expected),
+          `Module failed to parse:\n` +
+            `${brightBlack("test")}: [${magenta(name)}]\n` +
+            `${brightBlack("testUrl")}: ${importMetaUrl}:${line}:${column}\n` +
+            `${brightBlack("moduleUrl")}: ${moduleUrl}\n` +
+            `${matchedMessage}\n` +
+            `${doneMessage}\n` +
+            `${valueMessage}\n`,
+        );
+      } catch (err) {
+        const { name, message, code, stack: _stack, ... rest } = err
+        console.log({ name, message, code, ...rest })
+        throw err;
+      }
     },
   };
 }

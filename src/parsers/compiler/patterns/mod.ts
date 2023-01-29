@@ -2,6 +2,7 @@ export * from "./AnyPattern.ts";
 export * from "./EqualPattern.ts";
 export * from "./ExpressionPattern.ts";
 export * from "./MustPattern.ts";
+export * from "./NotPattern.ts";
 export * from "./ObjectPattern.ts";
 export * from "./OkPattern.ts";
 export * from "./OrPattern.ts";

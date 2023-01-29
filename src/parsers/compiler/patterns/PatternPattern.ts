@@ -4,6 +4,7 @@ import { PatternKind } from "../../../runtime/patterns/mod.ts";
 import { AnyPattern } from "./AnyPattern.ts";
 import { EqualPattern } from "./EqualPattern.ts";
 import { MustPattern } from "./MustPattern.ts";
+import { NotPattern  } from "./NotPattern.ts";
 import { ObjectPattern } from "./ObjectPattern.ts";
 import { OkPattern } from "./OkPattern.ts";
 import { OneOrMorePattern } from "./OneOrMorePattern.ts";
@@ -40,6 +41,12 @@ export const PatternPattern: IModuleDeclaration = {
       module: () => MustPattern,
       moduleUrl: "./MustPattern.ts",
       names: ["MustPattern"],
+    },
+    {
+      kind: DeclarationKind.NativeImport,
+      module: () => NotPattern,
+      moduleUrl: "./NotPattern.ts",
+      names: ["NotPattern"],
     },
     {
       kind: DeclarationKind.NativeImport,
@@ -150,6 +157,10 @@ export const PatternPattern: IModuleDeclaration = {
           {
             kind: PatternKind.Reference,
             name: "MustPattern",
+          },
+          {
+            kind: PatternKind.Reference,
+            name: "NotPattern",
           },
           {
             kind: PatternKind.Reference,

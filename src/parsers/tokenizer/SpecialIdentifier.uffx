@@ -1,4 +1,0 @@
-import './Digit.uff' (Digit);
-import './Letter.uff' (Letter);
-
-Identifier = ('$' value:(Digit | Character)+ -> '$${(join value '')}' );

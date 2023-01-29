@@ -1,0 +1,12 @@
+
+Quote = '\'';
+Escape = '\\';
+EscapedQuote = (Escape Quote -> '\'');
+NotEscaped = (^Quote v:string -> v);
+
+StringPattern = (
+  Quote
+  v:(EscapedQuote | NotEscaped)*
+  Quote
+  -> (join v '')
+);

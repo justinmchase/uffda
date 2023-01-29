@@ -1,61 +1,76 @@
+import { integration } from "../../integration.ts";
 import { tests } from "../../test.ts";
 import { String } from "./String.ts";
 
-tests(() => [
-  {
-    id: "STRING00",
-    description: "can parse empty single quote string",
-    module: () => String,
+Deno.test({
+  name: "STRING00",
+  ...integration({
+    moduleUrl: "./String.uff",
     input: "''",
-    value: "",
-  },
-  {
-    id: "STRING01",
-    description: "can parse single quote string",
-    module: () => String,
+    expected: "",
+  })
+});
+Deno.test({
+  name: "STRING01",
+  ...integration({
+    moduleUrl: "./String.uff",
     input: "'a'",
-    value: "a",
-  },
-  {
-    id: "STRING02",
-    description: "can parse single quote string with multiple characters",
-    module: () => String,
+    expected: "a",
+  })
+});
+Deno.test({
+  name: "STRING02",
+  ...integration({
+    moduleUrl: "./String.uff",
     input: "'abc'",
-    value: "abc",
-  },
-  {
-    id: "STRING03",
-    description: "can parse string with escaped single-quote",
-    module: () => String,
+    expected: "abc",
+  })
+});
+Deno.test({
+  name: "STRING03",
+  ...integration({
+    moduleUrl: "./String.uff",
     input: "'abc\\'xyz'",
-    value: "abc'xyz",
-  },
-  {
-    id: "STRING04",
-    description: "can parse string with escaped single-quote",
-    module: () => String,
+    expected: "abc'xyz",
+  })
+});
+Deno.test({
+  name: "STRING04",
+  ...integration({
+    moduleUrl: "./String.uff",
     input: "'\\''",
-    value: "'",
-  },
-  {
-    id: "STRING04",
-    description: "can parse string with escaped single-quote",
-    module: () => String,
+    expected: "'",
+  })
+});
+Deno.test({
+  name: "STRING05",
+  ...integration({
+    moduleUrl: "./String.uff",
     input: "'\"'",
-    value: '"',
-  },
-  {
-    id: "STRING04",
-    description: "can parse string with escaped newline",
-    module: () => String,
+    expected: '"',
+  })
+});
+Deno.test({
+  name: "STRING05",
+  ...integration({
+    moduleUrl: "./String.uff",
     input: "'\n'",
-    value: "\n",
-  },
-  {
-    id: "STRING04",
-    description: "can parse string with escaped tab",
-    module: () => String,
+    expected: "\n",
+  })
+});
+Deno.test({
+  name: "STRING05",
+  ...integration({
+    moduleUrl: "./String.uff",
     input: "'\t'",
-    value: "\t",
-  },
-]);
+    expected: "\t",
+  })
+});
+Deno.test({
+  name: "STRING06",
+  ...integration({
+    moduleUrl: "./String.uff",
+    input: "'\\n'",
+    expected: "\\n",
+  })
+});
