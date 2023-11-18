@@ -1,19 +1,19 @@
 import { Path } from "./path.ts";
 
-export class MetaStream {
+export class Input {
   public static readonly Default = () =>
-    new MetaStream(
+    new Input(
       Path.Default(),
       [][Symbol.iterator](),
     );
 
-  public static readonly From = (s: MetaStream | Iterable<unknown>) =>
-    s instanceof MetaStream ? s : new MetaStream(
+  public static readonly From = (s: Input | Iterable<unknown>) =>
+    s instanceof Input ? s : new Input(
       Path.Default(),
       s[Symbol.iterator](),
     );
 
-  private _next: MetaStream | undefined = undefined;
+  private _next: Input | undefined = undefined;
   private _done: boolean | undefined = undefined;
 
   constructor(
@@ -31,14 +31,14 @@ export class MetaStream {
     return this._done!;
   }
 
-  public next(): MetaStream {
+  public next(): Input {
     if (!this._next) {
       const { value, done } = this.items.next();
       this._done = done;
       if (done) return this;
 
       const i = this.index + 1;
-      this._next = new MetaStream(
+      this._next = new Input(
         this.path.moveTo(i),
         this.items,
         i,

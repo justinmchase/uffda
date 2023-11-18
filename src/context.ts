@@ -7,13 +7,9 @@ export interface IContext {
 }
 
 export class Context implements IContext {
-  public readonly resolver: Resolver;
   constructor(
-    resolverOrImportMetaUrl: Resolver | string,
+    public readonly resolver: Resolver,
     public readonly scope = Scope.Default(),
   ) {
-    this.resolver = resolverOrImportMetaUrl instanceof Resolver
-      ? resolverOrImportMetaUrl
-      : new Resolver(resolverOrImportMetaUrl);
   }
 }

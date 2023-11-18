@@ -1,5 +1,5 @@
 import { Match } from "../../match.ts";
-import { MetaStream } from "../../stream.ts";
+import { Input } from "../../input.ts";
 import { exec } from "../exec.ts";
 import { match } from "../match.ts";
 import { RuntimeError, RuntimeErrorCode } from "../runtime.error.ts";
@@ -11,7 +11,7 @@ export function lambda(
 ): unknown {
   const { pattern, expression } = e;
   return function () {
-    const stream = new MetaStream(
+    const stream = new Input(
       m.end.stream.path.add(0),
       arguments[Symbol.iterator](),
     );

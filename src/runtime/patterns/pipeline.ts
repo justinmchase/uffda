@@ -1,7 +1,7 @@
 import { magenta } from "std/fmt/colors.ts";
 import { Match } from "../../match.ts";
 import { Scope } from "../../scope.ts";
-import { MetaStream } from "../../stream.ts";
+import { Input } from "../../input.ts";
 import { match } from "../match.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { IPipelinePattern } from "./pattern.ts";
@@ -26,7 +26,7 @@ export function pipeline(args: IPipelinePattern, scope: Scope) {
       const items = iterable?.[Symbol.iterator]
         ? iterable[Symbol.iterator]()
         : [result.value][Symbol.iterator]();
-      const nextStream = new MetaStream(
+      const nextStream = new Input(
         result.end.stream.path.add(0),
         items,
       );

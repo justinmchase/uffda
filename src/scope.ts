@@ -1,5 +1,5 @@
 import { Pattern } from "./runtime/patterns/mod.ts";
-import { MetaStream } from "./stream.ts";
+import { Input } from "./input.ts";
 import { Memos } from "./memo.ts";
 import { IImport, IModule, IRule, ModuleKind } from "./modules.ts";
 import { Resolver } from "./runtime/resolve.ts";
@@ -42,7 +42,7 @@ export class Scope {
       { ...DefaultOptions(), ...options ?? {} },
       undefined,
       {},
-      MetaStream.Default(),
+      Input.Default(),
       new Memos(),
       [],
       [],
@@ -51,7 +51,7 @@ export class Scope {
   };
 
   public static readonly From = (
-    stream: Iterable<unknown> | MetaStream | Scope,
+    stream: Iterable<unknown> | Input | Scope,
     args?: { module?: IModule } & Partial<IScopeOptions>,
   ) => {
     const { module, ...options } = args ?? {};
@@ -72,7 +72,7 @@ export class Scope {
         { ...DefaultOptions(), ...options },
         undefined,
         {},
-        MetaStream.From(stream),
+        Input.From(stream),
         new Memos(),
         [],
         [],
@@ -85,7 +85,7 @@ export class Scope {
     public readonly options: IScopeOptions,
     public readonly parent: Scope | undefined = undefined,
     public readonly variables: Record<string, unknown>,
-    public readonly stream: MetaStream,
+    public readonly stream: Input,
     public readonly memos: Memos,
     public readonly ruleStack: IRule[],
     public readonly pipelineStack: Pattern[],
@@ -122,7 +122,7 @@ export class Scope {
     }
   }
 
-  public withStream(stream: MetaStream) {
+  public withStream(stream: Input) {
     return new Scope(
       this.module,
       this.options,

@@ -1,6 +1,6 @@
 import { Match } from "../../match.ts";
 import { Scope } from "../../scope.ts";
-import { MetaStream } from "../../stream.ts";
+import { Input } from "../../input.ts";
 import { match } from "../match.ts";
 import { IArrayPattern } from "./pattern.ts";
 
@@ -22,7 +22,7 @@ export function array(args: IArrayPattern, scope: Scope) {
           `* [${next.value}] ${(next.value as [])?.length ?? "<none>"}`,
         );
       }
-      const innerStream = new MetaStream(
+      const innerStream = new Input(
         next.path.add(0),
         next.value[Symbol.iterator](),
       );

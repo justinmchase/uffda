@@ -1,7 +1,7 @@
 import { brightBlack, underline } from "std/fmt/colors.ts";
 import { Match, MatchError } from "../../match.ts";
 import { Scope } from "../../scope.ts";
-import { MetaStream } from "../../stream.ts";
+import { Input } from "../../input.ts";
 import { match } from "../match.ts";
 import { IObjectPattern, Pattern } from "./pattern.ts";
 
@@ -25,7 +25,7 @@ export function object(args: IObjectPattern, scope: Scope) {
         const value = [keyValue];
 
         // console.log(Deno.inspect(value, { colors: true }))
-        const propertyStream = new MetaStream(
+        const propertyStream = new Input(
           next.path.add(key),
           value[Symbol.iterator](),
         );

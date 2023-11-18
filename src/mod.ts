@@ -2,7 +2,7 @@
 export * from "./match.ts";
 export * from "./path.ts";
 export * from "./scope.ts";
-export * from "./stream.ts";
+export * from "./input.ts";
 
 // Execution engine
 export * from "./runtime/mod.ts";
