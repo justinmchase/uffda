@@ -1,4 +1,4 @@
-import { assert } from "../../deps/std.ts";
+import { assert } from "std/testing/asserts.ts";
 import { tests } from "../test.ts";
 import { DeclarationKind } from "./declarations/declaration.kind.ts";
 import { IModuleDeclaration } from "./declarations/module.ts";

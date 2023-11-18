@@ -1,4 +1,4 @@
-import { black } from "../../deps/std.ts";
+import { black } from "std/fmt/colors.ts";
 import { Match } from "../match.ts";
 import { IModule, IRule } from "../modules.ts";
 import { Expression } from "./expressions/expression.ts";

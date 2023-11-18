@@ -7,44 +7,6 @@ enough to support parsing strings as well as objects, arrays or any other value
 type. The result of this capability is that the entire compiler pipeline can be
 expressed in pattern matching operations.
 
-## How to use
-
-```sh
-import { uffda } from "https://deno.land/x/uffda/mod.ts";
-```
-
-### [Calc Example](./src/examples/calc.ts)
-
-```ts
-import { Basic, dsl, uffda } from "https://deno.land/x/uffda/mod.ts";
-
-export const Calc = await uffda()`
-  Number
-    = ({ kind = 'Integer', i:value } -> i)
-    ;
-    
-  Sub
-    = (l:Sub { kind = 'Token', value = '-' } r:Number -> l - r)
-    | Number
-    ;
-
-  Add
-    = (l:Add { kind = 'Token', value = '+' } r:Sub -> l + r)
-    | Sub
-    ;
-
-  Calc = Add;
-
-  Main = ${Basic} > Calc;
-`;
-
-export const calc = dsl(import.meta.url, Calc);
-
-// Parses a calculator dsl which procuces mathematical results
-const { value } = calc`1 + 2 - 3`;
-assert(value === 0);
-```
-
 ## Development
 
 This is a deno library.
@@ -52,7 +14,7 @@ This is a deno library.
 #### test
 
 ```sh
-deno test --allow-read --watch src --parallel
+deno test --watch --parallel
 ```
 
 #### cli

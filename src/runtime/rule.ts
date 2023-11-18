@@ -1,4 +1,4 @@
-import { brightBlack, cyan, underline } from "../../deps/std.ts";
+import { brightBlack, cyan, underline } from "std/fmt/colors.ts";
 import { Match } from "../match.ts";
 import { Scope } from "../scope.ts";
 import { IRule } from "../modules.ts";

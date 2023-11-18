@@ -1,4 +1,4 @@
-import { crypto } from "../../deps/std.ts";
+import { crypto } from "std/crypto/mod.ts";
 
 export type Serializable =
   | undefined

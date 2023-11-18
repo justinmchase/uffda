@@ -2,7 +2,7 @@ import { Scope } from "../../scope.ts";
 import { Match } from "../../match.ts";
 import { IReferencePattern } from "./pattern.ts";
 import { RuntimeError, RuntimeErrorCode } from "../runtime.error.ts";
-import { brightBlack, green, red } from "../../../deps/std.ts";
+import { brightBlack, green, red } from "std/fmt/colors.ts";
 import { rule } from "../rule.ts";
 
 export function reference(pattern: IReferencePattern, scope: Scope): Match {

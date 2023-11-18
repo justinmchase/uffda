@@ -24,6 +24,7 @@ export const DefaultModule: IModule = {
   imports: new Map(),
   rules: new Map(),
 };
+
 export const DefaultOptions: () => IScopeOptions = () => ({
   globals: runtime,
   specials: new Map(),

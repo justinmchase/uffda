@@ -1,4 +1,4 @@
-import { brightBlack, underline } from "../../../deps/std.ts";
+import { brightBlack, underline } from "std/fmt/colors.ts";
 import { Match, MatchError } from "../../match.ts";
 import { Scope } from "../../scope.ts";
 import { MetaStream } from "../../stream.ts";

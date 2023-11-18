@@ -1,7 +1,7 @@
 import { Scope } from "../../scope.ts";
 import { Match } from "../../match.ts";
 import { RuntimeError, RuntimeErrorCode } from "../runtime.error.ts";
-import { brightBlack } from "../../../deps/std.ts";
+import { brightBlack } from "std/fmt/colors.ts";
 import { ISpecialPattern } from "./pattern.ts";
 import { run } from "../run.ts";
 import { IModule, IRule, ModuleKind } from "../../modules.ts";

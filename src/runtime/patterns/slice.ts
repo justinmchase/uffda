@@ -1,4 +1,4 @@
-import { assert } from "../../../deps/std.ts";
+import { assert } from "std/testing/asserts.ts";
 import { Match, MatchError } from "../../match.ts";
 import { Scope } from "../../scope.ts";
 import { match } from "../match.ts";

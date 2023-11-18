@@ -13,10 +13,12 @@ export function invocation(
   const fn = exec(expr, match) as Function;
   if (!fn) {
     throw new Error(
-      `Unable to invoke function [${fn}] for expression (${expr.kind}:${(expr as unknown as Record<
-        string,
-        unknown
-      >)?.name})`,
+      `Unable to invoke function [${fn}] for expression (${expr.kind}:${
+        (expr as unknown as Record<
+          string,
+          unknown
+        >)?.name
+      })`,
     );
   }
   return fn(...a);
