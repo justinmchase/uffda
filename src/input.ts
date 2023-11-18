@@ -39,7 +39,7 @@ export class Input {
 
       const i = this.index + 1;
       this._next = new Input(
-        this.path.moveTo(i),
+        this.path.set(i),
         this.items,
         i,
         value,

@@ -1,25 +1,32 @@
 type Segment = number | string;
 
 export class Path {
-  public static readonly Default = () => new Path([0]);
-  public static readonly From = (segment: Segment) => new Path([segment]);
-  constructor(
-    public readonly segments: Segment[],
-  ) {
+  public static readonly Default = () => new Path(0);
+  public static readonly From = (...segments: Segment[]) => new Path(...segments);
+  public readonly segments: Segment[]
+  constructor(...segments: Segment[]) {
+    this.segments = segments.map(Path.getValidSegment);
+  }
+  public set(segment: Segment) {
+    return new Path(...this.segments.slice(0, -1), segment);
   }
 
-  public moveTo(segment: Segment) {
-    if (typeof this.segments[this.segments.length - 1] === "string") {
-      // If the last segment is a key then this the value is a scalar (even if its an array)
-      // So show the same path, the stream keeps the real index.
-      return this;
+  public push(segment: Segment) {
+    return new Path(...this.segments, segment);
+  }
+
+  public pop() {
+    return new Path(...this.segments.slice(0, -1))
+  }
+
+  private static getValidSegment(value: Segment): Segment {
+    if (typeof value === 'number' && Number.isInteger(value)) {
+      return value;
+    } else if (typeof value === 'string') {
+      return value;
     } else {
-      return new Path([...this.segments.slice(0, -1), segment]);
+      return value.toString();
     }
-  }
-
-  public add(segment: Segment) {
-    return new Path([...this.segments, segment]);
   }
 
   public compareTo(path: Path): number {
@@ -53,11 +60,13 @@ export class Path {
       }
     }
 
-    // All segments are the same and the depth of both paths is the same
+    // All segments are the same and the depth of both paths are the same
     return 0;
   }
 
   public toString() {
-    return this.segments.join(".");
+    return this.segments
+      .map(s => typeof s === 'string' ? `"${s}"` : `[${s}]`)
+      .join(".");
   }
 }

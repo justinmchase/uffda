@@ -27,7 +27,7 @@ export function pipeline(args: IPipelinePattern, scope: Scope) {
         ? iterable[Symbol.iterator]()
         : [result.value][Symbol.iterator]();
       const nextStream = new Input(
-        result.end.stream.path.add(0),
+        result.end.stream.path.push(0),
         items,
       );
       nextScope = scope.withStream(nextStream);

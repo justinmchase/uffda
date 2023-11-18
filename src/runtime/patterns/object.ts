@@ -26,7 +26,7 @@ export function object(args: IObjectPattern, scope: Scope) {
 
         // console.log(Deno.inspect(value, { colors: true }))
         const propertyStream = new Input(
-          next.path.add(key),
+          next.path.push(key),
           value[Symbol.iterator](),
         );
         const propertyScope = end.withStream(propertyStream);

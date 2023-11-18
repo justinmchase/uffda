@@ -23,7 +23,7 @@ export function array(args: IArrayPattern, scope: Scope) {
         );
       }
       const innerStream = new Input(
-        next.path.add(0),
+        next.path.push(0),
         next.value[Symbol.iterator](),
       );
       const innerScope = scope.withStream(innerStream);

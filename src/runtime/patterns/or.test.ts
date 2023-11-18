@@ -82,8 +82,8 @@ tests(() => [
     errors: [{
       name: "Test",
       message: "Intentional error",
-      start: "0",
-      end: "1",
+      start: "[0]",
+      end: "[1]",
     }],
   },
 ]);

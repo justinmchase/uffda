@@ -25,7 +25,7 @@ tests(() => [
     input: [],
     matched: true,
     errors: [
-      { name: "Test", message: "Testing", start: "0", end: "0" },
+      { name: "Test", message: "Testing", start: "[0]", end: "[0]" },
     ],
   },
   {
@@ -53,7 +53,7 @@ tests(() => [
     matched: true,
     done: false,
     errors: [
-      { name: "Test", message: "Testing", start: "0", end: "0" },
+      { name: "Test", message: "Testing", start: "[0]", end: "[0]" },
     ],
   },
 ]);

@@ -1,5 +1,5 @@
 import { Scope } from "./scope.ts";
-import { ISpan } from "./span.ts";
+import { Span } from "./span.ts";
 
 const MATCH = Symbol();
 
@@ -90,7 +90,7 @@ export class Match {
     }
   }
 
-  public span(): ISpan {
+  public span(): Span {
     const start = indexOf((m) => m.start, this.start);
     const end = indexOf((m) => m.end, this.end);
     return { start, end };

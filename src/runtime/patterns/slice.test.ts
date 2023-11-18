@@ -180,7 +180,7 @@ tests(() => [
       min: 0,
     }),
     input: "a",
-    errors: [{ name: "Test", message: "test", start: "0", end: "1" }],
+    errors: [{ name: "Test", message: "test", start: "[0]", end: "[1]" }],
     value: [undefined],
   },
 ]);

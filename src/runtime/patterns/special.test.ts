@@ -36,7 +36,7 @@ tests(() => [
     value: "a",
   },
   {
-    id: "PATTERN.SPECIAL00",
+    id: "PATTERN.SPECIAL01",
     pattern: () => ({
       kind: PatternKind.Special,
       name: "$0",
@@ -46,7 +46,7 @@ tests(() => [
     value: 7,
   },
   {
-    id: "PATTERN.SPECIAL00",
+    id: "PATTERN.SPECIAL02",
     description: "Cannot resolve module with no rules",
     pattern: () => ({
       kind: PatternKind.Special,
@@ -58,8 +58,8 @@ tests(() => [
       {
         name: "E_EMPTY_MODULE",
         message: "A module with no rules was run (file://t1.ts)",
-        start: "0",
-        end: "0",
+        start: "[0]",
+        end: "[0]",
       },
     ],
   },
