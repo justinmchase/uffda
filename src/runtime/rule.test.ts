@@ -161,13 +161,12 @@ tests(() => [
             pattern: { kind: PatternKind.Any },
             expression: {
               kind: ExpressionKind.Native,
-              fn: (
-                { x },
-              ) => (assert(
-                x === undefined,
-                `x should be undefined but is '${x}'`,
+              fn: ({ x }: { x: undefined }) => (
+                assert(
+                  x === undefined,
+                  `x should be undefined but is '${x}'`,
+                ), true
               ),
-                true),
             },
           },
         },
@@ -216,7 +215,7 @@ tests(() => [
             },
             expression: {
               kind: ExpressionKind.Native,
-              fn: ({ x }) => (assert(x === "a"), x),
+              fn: ({ x }: { x: "a" }) => (assert(x === "a"), x),
             },
           },
         },
@@ -231,9 +230,9 @@ tests(() => [
             },
             expression: {
               kind: ExpressionKind.Native,
-              fn: (
-                { x, _ },
-              ) => (assert(x === undefined), _),
+              fn: ({ x, _ }: { x: undefined; _: unknown }) => (
+                assert(x === undefined), _
+              ),
             },
           },
         },
@@ -258,13 +257,12 @@ tests(() => [
               pattern: { kind: PatternKind.Any },
               expression: {
                 kind: ExpressionKind.Native,
-                fn: (
-                  { x },
-                ) => (assert(
-                  x === undefined,
-                  `x should be undefined but is '${x}'`,
+                fn: ({ x }: { x: undefined }) => (
+                  assert(
+                    x === undefined,
+                    `x should be undefined but is '${x}'`,
+                  ), true
                 ),
-                  true),
               },
             },
           },

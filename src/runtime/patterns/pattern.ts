@@ -1,8 +1,8 @@
-import { Comparable } from "../../comparable.ts";
-import { SpecialType } from "../../scope.ts";
-import { Expression } from "../expressions/mod.ts";
-import { Serializable } from "../hash.ts";
 import { PatternKind } from "./pattern.kind.ts";
+import { Expression } from "../expressions/mod.ts";
+import { Special } from "../modules/special.ts";
+import { Serializable } from "../hash.ts";
+import { Comparable } from "../../comparable.ts";
 
 export type Pattern =
   | IAnyPattern
@@ -176,7 +176,7 @@ export interface ISlicePattern {
 export interface ISpecialPattern {
   kind: PatternKind.Special;
   name: string;
-  value: SpecialType;
+  value: Special;
 }
 export interface IStringPattern {
   kind: PatternKind.String;

@@ -1,12 +1,12 @@
-import { SpecialType } from "../../mod.ts";
 import { Serializable } from "../hash.ts";
 import { Pattern } from "../patterns/pattern.ts";
 import { ExpressionKind } from "./expression.kind.ts";
+import type { Special } from "../modules/mod.ts";
 
 export type ProjectionFunction = (
   // deno-lint-ignore no-explicit-any
   args: any,
-  specials: Map<string, SpecialType>,
+  specials: Map<string, Special>,
   // deno-lint-ignore no-explicit-any
 ) => any;
 

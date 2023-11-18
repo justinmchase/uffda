@@ -6,13 +6,13 @@ import {
   resolve,
 } from "std/path/mod.ts";
 import { DeclarationKind, IModuleDeclaration } from "./declarations/mod.ts";
-import { IModule, ModuleKind } from "../modules.ts";
+import { Module, ModuleKind } from "./modules/mod.ts";
 import { IModuleResolvers } from "./resolvers/resolver.ts";
 import { ImportResolver, JsonResolver } from "./resolvers/mod.ts";
 
 export interface IResolverOptions {
   moduleUrl?: string;
-  modules?: Map<string, IModule>;
+  modules?: Map<string, Module>;
   declarations?: Map<string, IModuleDeclaration>;
   resolvers?: IModuleResolvers;
   trace?: boolean;
@@ -26,14 +26,14 @@ export class Resolver {
   };
 
   private readonly moduleUrl: string;
-  private readonly modules: Map<string, IModule>;
+  private readonly modules: Map<string, Module>;
   private readonly declarations: Map<string, IModuleDeclaration>;
   private readonly resolvers: IModuleResolvers;
   private readonly trace: boolean;
   constructor(opts?: IResolverOptions) {
     const {
       moduleUrl = import.meta.url,
-      modules = new Map<string, IModule>(),
+      modules = new Map<string, Module>(),
       declarations = new Map<string, IModuleDeclaration>(),
       resolvers = Resolver.DefaultResolvers,
       trace = false,
@@ -45,7 +45,7 @@ export class Resolver {
     this.trace = trace;
   }
 
-  private async resolveImport(normalizedModuleUrl: string): Promise<IModule> {
+  private async resolveImport(normalizedModuleUrl: string): Promise<Module> {
     if (this.modules.has(normalizedModuleUrl)) {
       return this.modules.get(normalizedModuleUrl)!;
     } else {
@@ -57,7 +57,7 @@ export class Resolver {
   private async resolveModule(
     normalizedModuleUrl: string,
     moduleDeclaration: IModuleDeclaration,
-  ): Promise<IModule> {
+  ): Promise<Module> {
     if (this.trace) {
       // todo: improve the logging here.
       console.log(`resolving module ${normalizedModuleUrl}...`);
@@ -65,7 +65,7 @@ export class Resolver {
     if (this.modules.has(normalizedModuleUrl)) {
       return this.modules.get(normalizedModuleUrl)!;
     } else {
-      const module: IModule = {
+      const module: Module = {
         kind: ModuleKind.Module,
         moduleUrl: normalizedModuleUrl,
         imports: new Map(),
@@ -112,7 +112,7 @@ export class Resolver {
   public async load(
     moduleUrl: string,
     moduleDeclaration?: IModuleDeclaration,
-  ): Promise<IModule> {
+  ): Promise<Module> {
     if (this.trace) {
       // todo: improve the logging here.
       console.log(`loading ${moduleUrl}...`);

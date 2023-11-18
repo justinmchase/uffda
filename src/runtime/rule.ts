@@ -1,11 +1,11 @@
 import { brightBlack, cyan, underline } from "std/fmt/colors.ts";
 import { Match } from "../match.ts";
 import { Scope } from "../scope.ts";
-import { IRule } from "../modules.ts";
+import { Rule } from "./modules/mod.ts";
 import { match } from "./match.ts";
 import { RuntimeError, RuntimeErrorCode } from "./runtime.error.ts";
 
-export function rule(rule: IRule, scope: Scope): Match {
+export function rule(rule: Rule, scope: Scope): Match {
   const { module, pattern } = rule;
   let memo = scope.memos.get(scope.stream.path, rule);
   if (!memo) {
@@ -40,7 +40,7 @@ export function rule(rule: IRule, scope: Scope): Match {
   }
 }
 
-function grow(rule: IRule, scope: Scope): Match {
+function grow(rule: Rule, scope: Scope): Match {
   const { pattern } = rule;
   let m = Match.Fail(scope);
   const start = scope.stream;

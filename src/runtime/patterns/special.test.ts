@@ -1,20 +1,20 @@
-import { IModule, IRule, ModuleKind } from "../../modules.ts";
+import { Module, ModuleKind, Rule } from "../modules/mod.ts";
 import { tests } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
-const mod0: IModule = {
+const mod0: Module = {
   kind: ModuleKind.Module,
   moduleUrl: "file://t0.ts",
   imports: new Map(),
   rules: new Map(),
 };
-const mod1: IModule = {
+const mod1: Module = {
   kind: ModuleKind.Module,
   moduleUrl: "file://t1.ts",
   imports: new Map(),
   rules: new Map(),
 };
-const rule: IRule = {
+const rule: Rule = {
   kind: ModuleKind.Rule,
   name: "A",
   module: mod0,

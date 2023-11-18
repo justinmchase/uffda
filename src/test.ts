@@ -13,7 +13,7 @@ import { Pattern } from "./runtime/patterns/pattern.ts";
 import { Expression } from "./runtime/expressions/expression.ts";
 import { IModuleDeclaration } from "./runtime/declarations/module.ts";
 import { Resolver, run } from "./mod.ts";
-import { IImport, IModule, IRule } from "./modules.ts";
+import { Module, Special } from "./runtime/modules/mod.ts";
 
 interface ITest {
   id: string;
@@ -49,10 +49,7 @@ interface IThrows {
 interface IPatternResults {
   input?: string | { toString(): string };
   throws?: false;
-  specials?: Record<
-    string,
-    IModule | IRule | IImport | ((...args: unknown[]) => unknown)
-  >;
+  specials?: Record<string, Special>;
   value?: unknown;
   matched?: boolean;
   done?: boolean;
@@ -66,10 +63,7 @@ interface IExpressionResults {
 interface IModuleDeclarationResults {
   throws?: false;
   value?: unknown;
-  specials?: Record<
-    string,
-    IModule | IRule | IImport | ((...args: unknown[]) => unknown)
-  >;
+  specials?: Record<string, Module>;
   matched?: boolean;
   done?: boolean;
 }

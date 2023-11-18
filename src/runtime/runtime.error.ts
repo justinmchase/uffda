@@ -1,6 +1,6 @@
 import { black } from "std/fmt/colors.ts";
 import { Match } from "../match.ts";
-import { IModule, IRule } from "../modules.ts";
+import { Module, Rule } from "./modules/mod.ts";
 import { Expression } from "./expressions/expression.ts";
 import { Pattern } from "./patterns/pattern.ts";
 
@@ -18,8 +18,8 @@ export enum RuntimeErrorCode {
 }
 
 type RuntimeErrorArgs = {
-  mod?: IModule;
-  rule?: IRule;
+  mod?: Module;
+  rule?: Rule;
   op?: Pattern | Expression;
   match?: Match;
   metadata?: Record<string, unknown>;
@@ -57,8 +57,8 @@ export class RuntimeError extends Error {
   private readonly metadata?: Record<string, unknown>;
   constructor(
     public readonly code: RuntimeErrorCode,
-    public readonly module?: IModule,
-    public readonly rule?: IRule,
+    public readonly module?: Module,
+    public readonly rule?: Rule,
     public readonly op?: Pattern | Expression,
     public readonly match?: Match,
     public options?:

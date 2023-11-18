@@ -1,7 +1,7 @@
 import { Path } from "./path.ts";
 import { Match } from "./match.ts";
 import { Reference } from "./reference.ts";
-import { IRule } from "./modules.ts";
+import { Rule } from "./runtime/modules/mod.ts";
 
 interface IMemo {
   match: Match;
@@ -9,15 +9,15 @@ interface IMemo {
 }
 
 export class Memos {
-  private readonly memos = new Map<Path, Map<IRule, IMemo>>();
+  private readonly memos = new Map<Path, Map<Rule, IMemo>>();
 
-  public get(path: Path, rule: IRule): IMemo | undefined {
+  public get(path: Path, rule: Rule): IMemo | undefined {
     return this.memos.get(path)?.get(rule);
   }
 
-  public set(path: Path, rule: IRule, match: Match) {
+  public set(path: Path, rule: Rule, match: Match) {
     if (!this.memos.has(path)) {
-      this.memos.set(path, new Map<IRule, IMemo>());
+      this.memos.set(path, new Map<Rule, IMemo>());
     }
 
     if (!this.memos.get(path)!.has(rule)) {
@@ -31,7 +31,7 @@ export class Memos {
     }
   }
 
-  public ref(path: Path, rule: IRule, reference: Reference) {
+  public ref(path: Path, rule: Rule, reference: Reference) {
     this.memos.get(path)!.get(rule)!.references.push(reference);
   }
 }

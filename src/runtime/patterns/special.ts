@@ -4,7 +4,7 @@ import { RuntimeError, RuntimeErrorCode } from "../runtime.error.ts";
 import { brightBlack } from "std/fmt/colors.ts";
 import { ISpecialPattern } from "./pattern.ts";
 import { run } from "../run.ts";
-import { IModule, IRule, ModuleKind } from "../../modules.ts";
+import { ModuleKind } from "../modules/mod.ts";
 import { rule } from "../rule.ts";
 
 export function special(pattern: ISpecialPattern, scope: Scope): Match {
@@ -31,20 +31,16 @@ export function special(pattern: ISpecialPattern, scope: Scope): Match {
       );
     }
 
-    const { kind } = value;
-    switch (kind) {
-      case ModuleKind.Module: {
-        const mod = value as IModule;
-        return run(scope.pushModule(mod)).pop(scope);
-      }
-      case ModuleKind.Rule: {
-        return rule(value as IRule, scope);
-      }
+    switch (value.kind) {
+      case ModuleKind.Module:
+        return run(scope.pushModule(value)).pop(scope);
+      case ModuleKind.Rule:
+        return rule(value, scope);
       // todo: Theoretically we could support any pattern object being inlined directly if we wanted.
       default:
         return Match.Fail(scope).pushError(
           "UnknownSpecialKind",
-          `A special reference has an uknown kind ${kind}`,
+          `A special reference has an uknown kind ${value.kind}`,
           scope,
           scope,
         );

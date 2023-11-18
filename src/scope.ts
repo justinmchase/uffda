@@ -1,29 +1,16 @@
 import { Pattern } from "./runtime/patterns/mod.ts";
 import { Input } from "./input.ts";
 import { Memos } from "./memo.ts";
-import { IImport, IModule, IRule, ModuleKind } from "./modules.ts";
+import { DefaultModule, Module, Rule, Special } from "./runtime/modules/mod.ts";
 import { Resolver } from "./runtime/resolve.ts";
 import { runtime } from "./runtime/runtime.ts";
 
-export type SpecialType =
-  | IModule
-  | IRule
-  | IImport
-  | ((...args: unknown[]) => unknown);
-
 export interface IScopeOptions {
   trace: boolean;
-  specials: Map<string, SpecialType>;
+  specials: Map<string, Special>;
   globals: Record<string, unknown>;
   resolver: Resolver;
 }
-
-export const DefaultModule: IModule = {
-  kind: ModuleKind.Module,
-  moduleUrl: import.meta.url,
-  imports: new Map(),
-  rules: new Map(),
-};
 
 export const DefaultOptions: () => IScopeOptions = () => ({
   globals: runtime,
@@ -34,7 +21,7 @@ export const DefaultOptions: () => IScopeOptions = () => ({
 
 export class Scope {
   public static readonly Default = (
-    args?: { module?: IModule } & Partial<IScopeOptions>,
+    args?: { module?: Module } & Partial<IScopeOptions>,
   ) => {
     const { module, ...options } = args ?? {};
     return new Scope(
@@ -52,7 +39,7 @@ export class Scope {
 
   public static readonly From = (
     stream: Iterable<unknown> | Input | Scope,
-    args?: { module?: IModule } & Partial<IScopeOptions>,
+    args?: { module?: Module } & Partial<IScopeOptions>,
   ) => {
     const { module, ...options } = args ?? {};
     return stream instanceof Scope
@@ -81,15 +68,15 @@ export class Scope {
   };
 
   constructor(
-    public readonly module: IModule,
+    public readonly module: Module,
     public readonly options: IScopeOptions,
     public readonly parent: Scope | undefined = undefined,
     public readonly variables: Record<string, unknown>,
     public readonly stream: Input,
     public readonly memos: Memos,
-    public readonly ruleStack: IRule[],
+    public readonly ruleStack: Rule[],
     public readonly pipelineStack: Pattern[],
-    public readonly moduleStack: IModule[],
+    public readonly moduleStack: Module[],
   ) {
   }
 
@@ -111,15 +98,10 @@ export class Scope {
     return this.options.specials?.get(name);
   }
 
-  public getRule(name: string): IRule | undefined {
-    if (this.module.rules.has(name)) {
-      return this.module.rules.get(name);
-    } else if (this.module.imports.has(name)) {
-      return this.module
-        .imports.get(name)!
-        .module
-        .rules.get(name);
-    }
+  public getRule(name: string): Rule | undefined {
+    return this.module.rules.has(name)
+      ? this.module.rules.get(name)
+      : this.module.imports.get(name)?.module.rules.get(name);
   }
 
   public withStream(stream: Input) {
@@ -164,7 +146,7 @@ export class Scope {
     );
   }
 
-  public pushRule(rule: IRule) {
+  public pushRule(rule: Rule) {
     return new Scope(
       this.module,
       this.options,
@@ -192,7 +174,7 @@ export class Scope {
     );
   }
 
-  public pushModule(module: IModule) {
+  public pushModule(module: Module) {
     if (this.module === module) {
       return this;
     }
