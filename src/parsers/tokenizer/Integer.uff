@@ -1,3 +1,0 @@
-import './Digit.uff' (Digit);
-
-Integer = (Digit+ -> (join _ ''));

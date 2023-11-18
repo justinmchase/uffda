@@ -1,4 +1,4 @@
-import { black } from "../../../deps/std.ts";
+import { black } from "std/fmt/colors.ts";
 import { Match } from "../../match.ts";
 import { Scope } from "../../scope.ts";
 import { IEqualPattern } from "./pattern.ts";

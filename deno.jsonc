@@ -1,8 +1,10 @@
 {
   "tasks": {
-    "compile": "deno run --allow-env --allow-read --allow-write main.ts compile --src src --dst dst",
-    "test": "deno test -A --parallel src",
-    "test:watch": "deno test -A --parallel src --watch",
-    "pre": "deno fmt && deno lint"
+    "test": "deno test --parallel",
+    "test:watch": "deno test --watch --parallel",
+    "pre": "deno task test && deno fmt && deno lint"
+  },
+  "imports": {
+    "std/": "https://deno.land/std@0.152.0/"
   }
 }

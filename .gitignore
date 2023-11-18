@@ -1,2 +1,4 @@
 .env
 dst
+cov_profile
+*.lcov

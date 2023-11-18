@@ -1,4 +1,0 @@
-import './Letter.ts' (Letter);
-import './Digit.uff' (Digit);
-
-Identifier = (a:Letter+ b:(Digit | Letter)* -> (join a '') + (join b ''));

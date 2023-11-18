@@ -1,4 +1,4 @@
-import { magenta } from "../../../deps/std.ts";
+import { magenta } from "std/fmt/colors.ts";
 import { Declaration } from "../declarations/declaration.ts";
 import { DeclarationKind } from "../declarations/declaration.kind.ts";
 import { serialize } from "./serialize.ts";

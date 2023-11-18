@@ -1,12 +1,14 @@
-import { path } from "../../deps/std.ts";
+import {
+  dirname,
+  extname,
+  fromFileUrl,
+  normalize,
+  resolve,
+} from "std/path/mod.ts";
 import { DeclarationKind, IModuleDeclaration } from "./declarations/mod.ts";
 import { IModule, ModuleKind } from "../modules.ts";
 import { IModuleResolvers } from "./resolvers/resolver.ts";
-import {
-  ImportResolver,
-  JsonResolver,
-  UffdaResolver,
-} from "./resolvers/mod.ts";
+import { ImportResolver, JsonResolver } from "./resolvers/mod.ts";
 
 export interface IResolverOptions {
   moduleUrl?: string;
@@ -21,7 +23,6 @@ export class Resolver {
     [".json"]: new JsonResolver(),
     [".ts"]: new ImportResolver(),
     [".js"]: new ImportResolver(),
-    [".uff"]: new UffdaResolver(),
   };
 
   private readonly moduleUrl: string;
@@ -140,7 +141,7 @@ export class Resolver {
     if (this.declarations.has(normalizedModuleUrl)) {
       return this.declarations.get(normalizedModuleUrl)!;
     } else {
-      const ext = path.extname(normalizedModuleUrl);
+      const ext = extname(normalizedModuleUrl);
       const resolver = this.resolvers[ext];
       if (!resolver) {
         // todo: Use proper errors
@@ -162,8 +163,8 @@ export class Resolver {
       } else if (parentPath.match(/^file:\/\//)) {
         return {
           origin: "file://",
-          pathname: path.resolve(
-            path.dirname(path.fromFileUrl(parentPath)),
+          pathname: resolve(
+            dirname(fromFileUrl(parentPath)),
             moduleUrl,
           ),
         };
@@ -175,12 +176,12 @@ export class Resolver {
       } else {
         return {
           origin: "file://",
-          pathname: path.resolve(path.dirname(parentPath), moduleUrl),
+          pathname: resolve(dirname(parentPath), moduleUrl),
         };
       }
     })();
 
-    const normalizedModulePath = path.normalize(pathname);
+    const normalizedModulePath = normalize(pathname);
     const absoluteModulePath = new URL(normalizedModulePath, origin).toString();
     return absoluteModulePath;
   }

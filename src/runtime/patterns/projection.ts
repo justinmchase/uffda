@@ -3,7 +3,7 @@ import { Scope } from "../../scope.ts";
 import { match } from "../match.ts";
 import { exec } from "../exec.ts";
 import { IProjectionPattern } from "./pattern.ts";
-import { black } from "../../../deps/std.ts";
+import { black } from "std/fmt/colors.ts";
 
 export function projection(args: IProjectionPattern, scope: Scope) {
   const { pattern, expression } = args;

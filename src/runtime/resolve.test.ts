@@ -1,7 +1,8 @@
-import { assertEquals, path } from "../../deps/std.ts";
+import { assertEquals } from "std/testing/asserts.ts";
+import { dirname, fromFileUrl } from "std/path/mod.ts";
 import { Resolver } from "./resolve.ts";
 
-const MODULE_DIR = path.dirname(path.fromFileUrl(import.meta.url));
+const MODULE_DIR = dirname(fromFileUrl(import.meta.url));
 const pathNormalizationTests = [
   ["./test.uff", "/var/test/mod.ts", "file:///var/test/test.uff"],
   ["./test.uff", "file:///var/test.uff", "file:///var/test.uff"],
