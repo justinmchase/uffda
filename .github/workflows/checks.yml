@@ -47,6 +47,7 @@ jobs:
 
       - name: Coverage
         run: |
+          set -e -o pipefail
           deno coverage cov_profile --lcov --output=cov_profile.lcov
 
           cat << EOF >> $GITHUB_STEP_SUMMARY
