@@ -46,8 +46,8 @@ jobs:
         run: |
           deno coverage cov_profile --lcov --output=cov_profile.lcov
           
-          echo "### Code Coverage"
-          echo "\`\`\`" >> $GITHUB_SUMMARY_OUTPUT
-          lcov --summary cov_profile.lcov >> $GITHUB_SUMMARY_OUTPUT
-          echo "\`\`\`" >> $GITHUB_SUMMARY_OUTPUT
+          echo "### Code Coverage" >> $GITHUB_OUTPUT_SUMMARY
+          echo "\`\`\`" >> $GITHUB_OUTPUT_SUMMARY
+          lcov --summary cov_profile.lcov >> $GITHUB_OUTPUT_SUMMARY
+          echo "\`\`\`" >> $GITHUB_OUTPUT_SUMMARY
 
