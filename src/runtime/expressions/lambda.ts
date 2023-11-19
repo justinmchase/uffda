@@ -12,10 +12,10 @@ export function lambda(
   const { pattern, expression } = e;
   return function () {
     const stream = new Input(
+      arguments,
       m.end.stream.path.push(0),
-      arguments[Symbol.iterator](),
     );
-    const scope = m.end.withStream(stream);
+    const scope = m.end.withInput(stream);
     const result = match(pattern, scope);
     if (!result.matched) {
       throw new RuntimeError(

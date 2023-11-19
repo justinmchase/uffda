@@ -36,7 +36,7 @@ export function rule(rule: Rule, scope: Scope): Match {
         return Match.Fail(scope);
       }
     }
-    return memo.match.setEnd(scope.withStream(memo.match.end.stream));
+    return memo.match.setEnd(scope.withInput(memo.match.end.stream));
   }
 }
 
@@ -53,7 +53,7 @@ function grow(rule: Rule, scope: Scope): Match {
     memo.match = m;
     const growScope = m
       .end
-      .withStream(start);
+      .withInput(start);
 
     const result = match(pattern, growScope);
     const progressed = result.end.stream.path.compareTo(m.end.stream.path) > 0;

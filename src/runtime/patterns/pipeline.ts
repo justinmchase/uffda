@@ -27,10 +27,10 @@ export function pipeline(args: IPipelinePattern, scope: Scope) {
         ? iterable[Symbol.iterator]()
         : [result.value][Symbol.iterator]();
       const nextStream = new Input(
-        result.end.stream.path.push(0),
         items,
+        result.end.stream.path.push(0),
       );
-      nextScope = scope.withStream(nextStream);
+      nextScope = scope.withInput(nextStream);
     }
 
     if (scope.options.trace) {

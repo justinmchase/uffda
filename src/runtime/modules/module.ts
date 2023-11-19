@@ -9,9 +9,9 @@ export type Module = {
   rules: Map<string, Rule>;
 };
 
-export const DefaultModule: Module = {
+export const DefaultModule: () => Module = () => ({
   kind: ModuleKind.Module,
   moduleUrl: import.meta.url,
   imports: new Map(),
   rules: new Map(),
-};
+});

@@ -18,7 +18,7 @@ export function equal(args: IEqualPattern, scope: Scope): Match {
     }
 
     if (next.value === value) {
-      return Match.Ok(scope, scope.withStream(next), next.value);
+      return Match.Ok(scope, scope.withInput(next), next.value);
     }
   }
 

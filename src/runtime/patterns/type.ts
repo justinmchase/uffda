@@ -17,7 +17,7 @@ export function type(type: ValueType, scope: Scope): Match {
     const end = scope.stream.next();
     const t = typeof end.value;
     if (t === type) {
-      return Match.Ok(scope, scope.withStream(end), end.value);
+      return Match.Ok(scope, scope.withInput(end), end.value);
     }
   }
   return Match.Fail(scope);

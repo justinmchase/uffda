@@ -23,10 +23,10 @@ export function array(args: IArrayPattern, scope: Scope) {
         );
       }
       const innerStream = new Input(
+        next.value,
         next.path.push(0),
-        next.value[Symbol.iterator](),
       );
-      const innerScope = scope.withStream(innerStream);
+      const innerScope = scope.withInput(innerStream);
       const m = match(pattern, innerScope);
 
       if (!m.matched) {

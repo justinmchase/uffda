@@ -14,6 +14,7 @@ import { Expression } from "./runtime/expressions/expression.ts";
 import { IModuleDeclaration } from "./runtime/declarations/module.ts";
 import { Resolver, run } from "./mod.ts";
 import { Module, Special } from "./runtime/modules/mod.ts";
+import { Input } from "./input.ts";
 
 interface ITest {
   id: string;
@@ -25,14 +26,14 @@ interface ITest {
 }
 
 interface IModuleDeclarationTest extends ITest {
-  input?: string | { toString(): string };
+  input?: Iterable<unknown>;
   moduleUrl?: string;
   main?: string;
   module: () => IModuleDeclaration;
 }
 
 interface IPatternTest extends ITest {
-  input?: string | { toString(): string };
+  input?: Iterable<unknown>;
   moduleUrl?: string;
   pattern: () => Pattern;
 }
@@ -47,7 +48,7 @@ interface IThrows {
 }
 
 interface IPatternResults {
-  input?: string | { toString(): string };
+  input?: Iterable<unknown>;
   throws?: false;
   specials?: Record<string, Special>;
   value?: unknown;
@@ -151,11 +152,21 @@ export function tests(group: () => PatternTest[]) {
               const resolver = new Resolver({ moduleUrl, trace });
               const specials = new Map(Object.entries(test.specials ?? {}));
               const p = pattern();
-              const s = Scope.From(input as Iterable<unknown> ?? "", {
-                trace,
-                specials,
-                resolver,
-              });
+              const s = new Scope(
+                undefined,
+                undefined,
+                undefined,
+                new Input(input ?? []),
+                undefined,
+                undefined,
+                undefined,
+                undefined,
+                {
+                  trace,
+                  specials,
+                  resolver,
+                },
+              );
               const m = match(p, s);
               const e = m.errors.map((e) => ({
                 name: e.name,
@@ -244,10 +255,17 @@ export function tests(group: () => PatternTest[]) {
             await assertRejects(
               async () => {
                 const main = await resolver.load(moduleUrl, moduleDeclaration);
-                const scope = Scope.From(input as Iterable<unknown> ?? "", {
-                  module: main,
-                  resolver,
-                });
+                const scope = new Scope(
+                  main,
+                  undefined,
+                  undefined,
+                  new Input(input ?? []),
+                  undefined,
+                  undefined,
+                  undefined,
+                  undefined,
+                  { resolver },
+                );
                 run(scope, test.main);
               },
               "Module was expected to throw",
@@ -257,12 +275,21 @@ export function tests(group: () => PatternTest[]) {
               const { value, done = true, matched = true, trace } = test;
               const main = await resolver.load(moduleUrl, moduleDeclaration);
               const specials = new Map(Object.entries(test.specials ?? {}));
-              const scope = Scope.From(input as Iterable<unknown> ?? "", {
-                module: main,
-                trace,
-                specials,
-                resolver,
-              });
+              const scope = new Scope(
+                main,
+                undefined,
+                undefined,
+                new Input(input ?? []),
+                undefined,
+                undefined,
+                undefined,
+                undefined,
+                {
+                  trace,
+                  specials,
+                  resolver,
+                },
+              );
               const m = run(scope, test.main);
               const e = m.errors.map((e) => ({
                 name: e.name,
@@ -314,4 +341,100 @@ export function tests(group: () => PatternTest[]) {
       },
     });
   }
+}
+
+type ExpressionTestOptions = {
+  expression: Expression;
+  match: Match;
+  result?: unknown;
+  throws?: boolean;
+};
+export function expressionTest(options: ExpressionTestOptions) {
+  const {
+    expression,
+    match,
+    result,
+    throws,
+  } = options;
+  return async () => {
+    if (throws) {
+      assertThrows(
+        () => {
+          exec(expression, match);
+        },
+        `Expression was expected to throw`,
+      );
+    } else {
+      const r = await exec(expression, match);
+      assert(
+        equal(r, result),
+        `Expression result did not match expected value\n` +
+          `expected value: ${
+            Deno.inspect(result, { colors: true, depth: 10 })
+          }\n` +
+          `  actual value: ${Deno.inspect(r, { colors: true, depth: 10 })}`,
+      );
+    }
+  };
+}
+
+type PatternTestOptions = {
+  pattern: () => Pattern;
+  input?: Input;
+  variables?: Record<string, unknown>;
+  value?: unknown;
+  errors?: { name: string; message: string; start: string; end: string }[];
+  matched?: boolean;
+  done?: boolean;
+};
+export function patternTest(options: PatternTestOptions) {
+  const {
+    pattern,
+    input = Input.Default(),
+    variables = {},
+    value = undefined,
+    errors = [],
+    matched = true,
+    done = true,
+  } = options;
+  return async () => {
+    const p = pattern();
+    const s = new Scope(
+      undefined,
+      undefined,
+      variables,
+      input,
+    );
+    const m = await match(p, s);
+    const e = m.errors.map((e) => ({
+      name: e.name,
+      message: e.message,
+      start: e.start.stream.path.toString(),
+      end: e.end.stream.path.toString(),
+    }));
+    assert(
+      equal(e, errors),
+      `Pattern had unexpected errors\n` +
+        `expected errors: ${
+          Deno.inspect(errors, { colors: true, depth: 10 })
+        }\n` +
+        `  actual errors: ${Deno.inspect(e, { colors: true, depth: 10 })}\n`,
+    );
+    assert(
+      equal(m.value, value),
+      `Pattern matched value did not equal expected value\n` +
+        `expected value: ${
+          Deno.inspect(value, { colors: true, depth: 10 })
+        }\n` +
+        `  actual value: ${Deno.inspect(m.value, { colors: true, depth: 10 })}`,
+    );
+    assert(
+      equal(m.matched, matched),
+      `Pattern was ${matched ? "" : "not "}expected to match`,
+    );
+    assert(
+      equal(m.done, done),
+      `Pattern was ${done ? "" : "not "}expected to be done`,
+    );
+  };
 }

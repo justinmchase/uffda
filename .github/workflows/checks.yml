@@ -43,7 +43,8 @@ jobs:
         run: deno check mod.ts
 
       - name: Test
-        run: deno test --parallel --coverage=cov_profile
+        # Allow read is required to run resolve tests
+        run: deno test --allow-read --parallel --coverage=cov_profile
 
       - name: Coverage
         run: |

@@ -32,6 +32,6 @@ export function until(args: IUntilPattern, scope: Scope): Match {
     }
 
     const next = end.stream.next();
-    end = scope.withStream(next);
+    end = scope.withInput(next);
   }
 }

@@ -11,7 +11,7 @@ export function character(args: ICharacterPattern, scope: Scope): Match {
       console.log(`* ${pattern} : <${next.value}>`);
     }
     if (typeof next.value === "string" && pattern.test(next.value)) {
-      return Match.Ok(scope, scope.withStream(next), next.value);
+      return Match.Ok(scope, scope.withInput(next), next.value);
     }
   }
   return Match.Fail(scope);

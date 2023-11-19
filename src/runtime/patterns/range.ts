@@ -74,7 +74,7 @@ export function range(args: IRangePattern, scope: Scope): Match {
     }
 
     if (inRange) {
-      return Match.Ok(scope, scope.withStream(next), next.value);
+      return Match.Ok(scope, scope.withInput(next), next.value);
     }
   }
 

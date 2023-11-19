@@ -26,10 +26,10 @@ export function object(args: IObjectPattern, scope: Scope) {
 
         // console.log(Deno.inspect(value, { colors: true }))
         const propertyStream = new Input(
+          value,
           next.path.push(key),
-          value[Symbol.iterator](),
         );
-        const propertyScope = end.withStream(propertyStream);
+        const propertyScope = end.withInput(propertyStream);
         const m = match(pattern, propertyScope);
         errors.push(...m.errors);
 
@@ -46,7 +46,7 @@ export function object(args: IObjectPattern, scope: Scope) {
 
         end = end.addVariables(m.end.variables);
       }
-      return Match.Ok(scope, end.withStream(next), next.value, errors);
+      return Match.Ok(scope, end.withInput(next), next.value, errors);
     }
   }
   return Match.Fail(scope);

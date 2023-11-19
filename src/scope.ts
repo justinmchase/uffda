@@ -20,64 +20,23 @@ export const DefaultOptions: () => IScopeOptions = () => ({
 });
 
 export class Scope {
-  public static readonly Default = (
-    args?: { module?: Module } & Partial<IScopeOptions>,
-  ) => {
-    const { module, ...options } = args ?? {};
-    return new Scope(
-      module ?? DefaultModule,
-      { ...DefaultOptions(), ...options ?? {} },
-      undefined,
-      {},
-      Input.Default(),
-      new Memos(),
-      [],
-      [],
-      [],
-    );
-  };
-
-  public static readonly From = (
-    stream: Iterable<unknown> | Input | Scope,
-    args?: { module?: Module } & Partial<IScopeOptions>,
-  ) => {
-    const { module, ...options } = args ?? {};
-    return stream instanceof Scope
-      ? new Scope(
-        module ?? stream.module,
-        { ...DefaultOptions(), ...stream.options, ...options },
-        stream.parent,
-        stream.variables,
-        stream.stream,
-        stream.memos,
-        stream.ruleStack,
-        stream.pipelineStack,
-        stream.moduleStack,
-      )
-      : new Scope(
-        module ?? DefaultModule,
-        { ...DefaultOptions(), ...options },
-        undefined,
-        {},
-        Input.From(stream),
-        new Memos(),
-        [],
-        [],
-        [],
-      );
-  };
-
+  public static readonly Default = () => new Scope();
+  public readonly options: IScopeOptions;
   constructor(
-    public readonly module: Module,
-    public readonly options: IScopeOptions,
+    public readonly module: Module = DefaultModule(),
     public readonly parent: Scope | undefined = undefined,
-    public readonly variables: Record<string, unknown>,
-    public readonly stream: Input,
-    public readonly memos: Memos,
-    public readonly ruleStack: Rule[],
-    public readonly pipelineStack: Pattern[],
-    public readonly moduleStack: Module[],
+    public readonly variables: Record<string, unknown> = {},
+    public readonly stream: Input = Input.Default(),
+    public readonly memos: Memos = new Memos(),
+    public readonly ruleStack: Rule[] = [],
+    public readonly pipelineStack: Pattern[] = [],
+    public readonly moduleStack: Module[] = [],
+    options?: Partial<IScopeOptions>,
   ) {
+    this.options = {
+      ...DefaultOptions(),
+      ...options,
+    };
   }
 
   public *stack() {
@@ -104,24 +63,23 @@ export class Scope {
       : this.module.imports.get(name)?.module.rules.get(name);
   }
 
-  public withStream(stream: Input) {
+  public withInput(input: Input) {
     return new Scope(
       this.module,
-      this.options,
       this.parent,
       this.variables,
-      stream,
+      input,
       this.memos,
       this.ruleStack,
       this.pipelineStack,
       this.moduleStack,
+      this.options,
     );
   }
 
   public addVariables(variables: Record<string, unknown>) {
     return new Scope(
       this.module,
-      this.options,
       this.parent,
       Object.assign({}, this.variables, variables),
       this.stream,
@@ -129,13 +87,13 @@ export class Scope {
       this.ruleStack,
       this.pipelineStack,
       this.moduleStack,
+      this.options,
     );
   }
 
   public setVariables(variables: Record<string, unknown>) {
     return new Scope(
       this.module,
-      this.options,
       this.parent,
       Object.assign({}, this.variables, variables),
       this.stream,
@@ -143,13 +101,13 @@ export class Scope {
       this.ruleStack,
       this.pipelineStack,
       this.moduleStack,
+      this.options,
     );
   }
 
   public pushRule(rule: Rule) {
     return new Scope(
       this.module,
-      this.options,
       this.parent,
       {},
       this.stream,
@@ -157,13 +115,13 @@ export class Scope {
       [...this.ruleStack, rule],
       this.pipelineStack,
       this.moduleStack,
+      this.options,
     );
   }
 
   public pushPipeline(pattern: Pattern) {
     return new Scope(
       this.module,
-      this.options,
       this.parent,
       {},
       this.stream,
@@ -171,6 +129,7 @@ export class Scope {
       this.ruleStack,
       [...this.pipelineStack, pattern],
       this.moduleStack,
+      this.options,
     );
   }
 
@@ -180,7 +139,6 @@ export class Scope {
     }
     return new Scope(
       module,
-      this.options,
       undefined,
       {},
       this.stream,
@@ -188,6 +146,7 @@ export class Scope {
       this.ruleStack,
       this.pipelineStack,
       this.module !== module ? [...this.moduleStack, module] : this.moduleStack,
+      this.options,
     );
   }
 
@@ -198,7 +157,6 @@ export class Scope {
   public pop(scope: Scope) {
     return new Scope(
       scope.module,
-      scope.options,
       scope.parent,
       scope.variables,
       this.stream,
@@ -206,6 +164,24 @@ export class Scope {
       scope.ruleStack,
       scope.pipelineStack,
       scope.moduleStack,
+      scope.options,
+    );
+  }
+
+  public withOptions(options: Partial<IScopeOptions>) {
+    return new Scope(
+      this.module,
+      this.parent,
+      this.variables,
+      this.stream,
+      this.memos,
+      this.ruleStack,
+      this.pipelineStack,
+      this.moduleStack,
+      {
+        ...this.options,
+        ...options,
+      },
     );
   }
 }
