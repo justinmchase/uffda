@@ -1,5 +1,5 @@
 import { Match } from "../../match.ts";
-import { Scope } from "../../scope.ts";
+import { Scope } from "../scope.ts";
 import { Serializable } from "../hash.ts";
 import { IIncludesPattern } from "./pattern.ts";
 

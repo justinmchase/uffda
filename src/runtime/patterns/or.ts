@@ -1,5 +1,5 @@
 import { Match } from "../../match.ts";
-import { Scope } from "../../scope.ts";
+import { Scope } from "../scope.ts";
 import { match } from "../match.ts";
 import { IOrPattern } from "./pattern.ts";
 

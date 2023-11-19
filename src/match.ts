@@ -1,4 +1,4 @@
-import { Scope } from "./scope.ts";
+import { Scope } from "./runtime/scope.ts";
 import { Span } from "./span.ts";
 
 const MATCH = Symbol();

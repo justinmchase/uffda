@@ -1,6 +1,6 @@
 import { black } from "std/fmt/colors.ts";
 import { Match } from "../../match.ts";
-import { Scope } from "../../scope.ts";
+import { Scope } from "../scope.ts";
 import { IEqualPattern } from "./pattern.ts";
 
 export function equal(args: IEqualPattern, scope: Scope): Match {

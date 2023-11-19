@@ -1,9 +1,9 @@
-import { Pattern } from "./runtime/patterns/mod.ts";
-import { Input } from "./input.ts";
-import { Memos } from "./memo.ts";
-import { DefaultModule, Module, Rule, Special } from "./runtime/modules/mod.ts";
-import { Resolver } from "./runtime/resolve.ts";
-import { runtime } from "./runtime/runtime.ts";
+import { Pattern } from "./patterns/mod.ts";
+import { Input } from "../input.ts";
+import { Memos } from "../memo.ts";
+import { DefaultModule, Module, Rule, Special } from "./modules/mod.ts";
+import { Resolver } from "./resolve.ts";
+import { runtime } from "./runtime.ts";
 
 export interface IScopeOptions {
   trace: boolean;

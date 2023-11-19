@@ -1,4 +1,4 @@
-import { Scope } from "../../scope.ts";
+import { Scope } from "../scope.ts";
 import { Match } from "../../match.ts";
 import { IReferencePattern } from "./pattern.ts";
 import { RuntimeError, RuntimeErrorCode } from "../runtime.error.ts";

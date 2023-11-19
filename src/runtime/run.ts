@@ -1,5 +1,5 @@
 import { Match } from "../match.ts";
-import { Scope } from "../scope.ts";
+import { Scope } from "./scope.ts";
 import { rule } from "./rule.ts";
 
 export function run(scope: Scope, patternName?: string): Match {

@@ -1,4 +1,4 @@
-import { Scope } from "../../scope.ts";
+import { Scope } from "../scope.ts";
 import { Match, MatchError } from "../../match.ts";
 import { match } from "../match.ts";
 import { IAndPattern } from "./pattern.ts";

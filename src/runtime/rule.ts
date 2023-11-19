@@ -1,6 +1,6 @@
 import { brightBlack, cyan, underline } from "std/fmt/colors.ts";
 import { Match } from "../match.ts";
-import { Scope } from "../scope.ts";
+import { Scope } from "./scope.ts";
 import { Rule } from "./modules/mod.ts";
 import { match } from "./match.ts";
 import { RuntimeError, RuntimeErrorCode } from "./runtime.error.ts";

@@ -1,5 +1,5 @@
 import { Match } from "../../match.ts";
-import { Scope } from "../../scope.ts";
+import { Scope } from "../scope.ts";
 import { tests } from "../../test.ts";
 import { BinaryOperation } from "./expression.ts";
 import { ExpressionKind } from "./expression.kind.ts";

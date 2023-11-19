@@ -1,6 +1,6 @@
 import { Comparable } from "../../comparable.ts";
 import { Match } from "../../match.ts";
-import { Scope } from "../../scope.ts";
+import { Scope } from "../scope.ts";
 import { IRangePattern } from "./pattern.ts";
 
 export function range(args: IRangePattern, scope: Scope): Match {

@@ -5,7 +5,7 @@ import {
   assertThrows,
   equal,
 } from "std/testing/asserts.ts";
-import { Scope } from "./scope.ts";
+import { Scope } from "./runtime/scope.ts";
 import { Match } from "./match.ts";
 import { match } from "./runtime/match.ts";
 import { exec } from "./runtime/exec.ts";

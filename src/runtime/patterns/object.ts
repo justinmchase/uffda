@@ -1,6 +1,6 @@
 import { brightBlack, underline } from "std/fmt/colors.ts";
 import { Match, MatchError } from "../../match.ts";
-import { Scope } from "../../scope.ts";
+import { Scope } from "../scope.ts";
 import { Input } from "../../input.ts";
 import { match } from "../match.ts";
 import { IObjectPattern, Pattern } from "./pattern.ts";

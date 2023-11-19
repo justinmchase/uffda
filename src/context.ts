@@ -1,5 +1,5 @@
 import { Resolver } from "./mod.ts";
-import { Scope } from "./scope.ts";
+import { Scope } from "./runtime/scope.ts";
 
 export interface IContext {
   resolver: Resolver;

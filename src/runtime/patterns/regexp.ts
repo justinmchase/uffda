@@ -1,5 +1,5 @@
 import { Match } from "../../match.ts";
-import { Scope } from "../../scope.ts";
+import { Scope } from "../scope.ts";
 import { IRegExpPattern } from "./pattern.ts";
 
 export function regexp(args: IRegExpPattern, scope: Scope) {

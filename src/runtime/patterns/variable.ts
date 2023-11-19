@@ -1,6 +1,6 @@
 import { yellow } from "std/fmt/colors.ts";
 import { Match } from "../../match.ts";
-import { Scope } from "../../scope.ts";
+import { Scope } from "../scope.ts";
 import { match } from "../match.ts";
 import { IVariablePattern } from "./pattern.ts";
 

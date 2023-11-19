@@ -1,5 +1,5 @@
 import { Match, MatchError } from "../../match.ts";
-import { Scope } from "../../scope.ts";
+import { Scope } from "../scope.ts";
 import { match } from "../match.ts";
 import { IThenPattern } from "./pattern.ts";
 
