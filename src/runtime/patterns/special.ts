@@ -19,9 +19,7 @@ export function special(pattern: ISpecialPattern, scope: Scope): Match {
       // todo: Theoretically we could support this with a native pattern, where they pass in a function as a pattern which does custom handling.
       throw new RuntimeError(
         RuntimeErrorCode.UnknownSpecialKind,
-        scope.module,
-        scope.ruleStack[-1],
-        pattern,
+        scope,
         Match.Fail(scope),
         {
           metadata: {
@@ -50,9 +48,7 @@ export function special(pattern: ISpecialPattern, scope: Scope): Match {
   // todo: Maybe a more specific error is needed but this should never happen without a bad ast object
   throw new RuntimeError(
     RuntimeErrorCode.UnknownReference,
-    scope.module,
-    scope.ruleStack[-1],
-    pattern,
+    scope,
     Match.Fail(scope),
     {
       metadata: {

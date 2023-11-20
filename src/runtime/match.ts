@@ -88,10 +88,8 @@ export function match(pattern: Pattern, scope: Scope): Match {
     default:
       throw new RuntimeError(
         RuntimeErrorCode.UnknownPatternKind,
-        scope.moduleStack[0],
-        scope.ruleStack[0],
-        pattern,
-        undefined,
+        scope,
+        Match.Fail(scope),
         {
           metadata: {
             // deno-lint-ignore no-explicit-any

@@ -1,8 +1,8 @@
 import { black } from "std/fmt/colors.ts";
 import { Match } from "../match.ts";
 import { Module, Rule } from "./modules/mod.ts";
-import { Expression } from "./expressions/expression.ts";
-import { Pattern } from "./patterns/pattern.ts";
+import { StackFrame } from "./stack/frame.ts";
+import { Scope } from "./scope.ts";
 
 export enum RuntimeErrorCode {
   Unknown = "E_UNKNOWN",
@@ -18,11 +18,9 @@ export enum RuntimeErrorCode {
 }
 
 type RuntimeErrorArgs = {
-  mod?: Module;
-  rule?: Rule;
-  op?: Pattern | Expression;
-  match?: Match;
-  metadata?: Record<string, unknown>;
+  scope: Scope;
+  match: Match;
+  metadata: Record<string, unknown>;
 };
 
 export const RuntimeErrorMessages = {
@@ -30,8 +28,8 @@ export const RuntimeErrorMessages = {
   [RuntimeErrorCode.IndirectLeftRecursion]: () =>
     "Left recursion was detected but no rules are in the stack",
   [RuntimeErrorCode.PatternNotFound]: (
-    { metadata: { name = "unknown" } = {}, mod }: RuntimeErrorArgs,
-  ) => `A pattern (${name}) was referenced but not found in ${mod?.moduleUrl}`,
+    { metadata: { name = "unknown" }, scope }: RuntimeErrorArgs,
+  ) => `A pattern (${name}) was referenced but not found in ${scope.module.moduleUrl}`,
   [RuntimeErrorCode.PatternUnmatched]: () => "Input failed to match pattern",
   [RuntimeErrorCode.StreamIncomplete]: (
     { match = Match.Default() }: RuntimeErrorArgs,
@@ -43,10 +41,10 @@ export const RuntimeErrorMessages = {
     "A pattern match operation produced one or more errors",
   [RuntimeErrorCode.InvalidExpression]: () => "An expression is invalid",
   [RuntimeErrorCode.UnknownReference]: (
-    { metadata: { name = "unknown" } = {} },
+    { metadata: { name = "unknown" } },
   ) => `Unable to resolve reference ${name}`,
   [RuntimeErrorCode.UnknownSpecialKind]: (
-    { metadata: { kind = "unknown", name = "unknown" } = {} }: RuntimeErrorArgs,
+    { metadata: { kind = "unknown", name = "unknown" } }: RuntimeErrorArgs,
   ) => `Unknown special kind [${kind}] for (${name})`,
   [RuntimeErrorCode.UnknownPatternKind]: (
     { metadata: { kind = "unknown" } = {} }: RuntimeErrorArgs,
@@ -54,24 +52,18 @@ export const RuntimeErrorMessages = {
 };
 
 export class RuntimeError extends Error {
-  private readonly metadata?: Record<string, unknown>;
+  public readonly metadata: Record<string, unknown>;
   constructor(
     public readonly code: RuntimeErrorCode,
-    public readonly module?: Module,
-    public readonly rule?: Rule,
-    public readonly op?: Pattern | Expression,
+    public readonly scope?: Scope,
     public readonly match?: Match,
-    public options?:
-      | ErrorOptions & { metadata?: Record<string, unknown> }
-      | undefined,
+    public options?: ErrorOptions & { metadata?: Record<string, unknown> }
   ) {
-    const { metadata, cause } = options ?? {};
+    const { metadata = {}, cause } = options ?? {};
     const args = {
-      mod: module,
-      rule,
-      op,
-      match,
-      metadata: options?.metadata,
+      scope: scope ?? Scope.Default(),
+      match: match ?? Match.Default(),
+      metadata,
     };
     super(`${code} ${RuntimeErrorMessages[code](args)}`, { cause });
     this.metadata = metadata;

@@ -27,9 +27,7 @@ export function binary(
     default:
       throw new RuntimeError(
         RuntimeErrorCode.InvalidExpression,
-        match.start.module,
-        match.start.ruleStack[-1],
-        expression,
+        match.start,
         match,
         {
           metadata: {

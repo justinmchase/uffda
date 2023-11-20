@@ -4,6 +4,7 @@ import { Scope } from "./scope.ts";
 import { Rule } from "./modules/mod.ts";
 import { match } from "./match.ts";
 import { RuntimeError, RuntimeErrorCode } from "./runtime.error.ts";
+import { StackFrameKind } from "./stack/stackFrameKind.ts";
 
 export function rule(rule: Rule, scope: Scope): Match {
   const { module, pattern } = rule;
@@ -22,17 +23,16 @@ export function rule(rule: Rule, scope: Scope): Match {
     return m.endRecursion().pop(scope);
   } else {
     if (memo.match.isLr) {
-      if (scope.ruleStack.length === 0) {
+      const frame = scope.stack[scope.stack.length - 1]
+      if (frame?.kind !== StackFrameKind.Rule) {
         // This should never happen unless there is a bug in this code base
         throw new RuntimeError(
           RuntimeErrorCode.IndirectLeftRecursion,
-          rule.module,
-          rule,
-          rule.pattern,
+          scope,
           memo.match,
         );
       }
-      if (!Object.is(scope.ruleStack.slice(-1)[0], rule)) {
+      if (!Object.is(frame.rule, rule)) {
         return Match.Fail(scope);
       }
     }

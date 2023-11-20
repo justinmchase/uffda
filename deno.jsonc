@@ -5,6 +5,6 @@
     "pre": "deno task test && deno fmt && deno lint"
   },
   "imports": {
-    "std/": "https://deno.land/std@0.152.0/"
+    "std/": "https://deno.land/std@0.207.0/"
   }
 }

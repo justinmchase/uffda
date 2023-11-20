@@ -29,9 +29,7 @@ export function reference(pattern: IReferencePattern, scope: Scope): Match {
   } else {
     throw new RuntimeError(
       RuntimeErrorCode.PatternNotFound,
-      scope.module,
-      scope.ruleStack[-1],
-      pattern,
+      scope,
       Match.Fail(scope),
       {
         metadata: {

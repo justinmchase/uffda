@@ -4,15 +4,17 @@ import { Memos } from "../memo.ts";
 import { DefaultModule, Module, Rule, Special } from "./modules/mod.ts";
 import { Resolver } from "./resolve.ts";
 import { runtime } from "./runtime.ts";
+import { StackFrame } from "./stack/frame.ts";
+import { StackFrameKind } from "./stack/stackFrameKind.ts";
 
-export interface IScopeOptions {
+export type ScopeOptions = {
   trace: boolean;
   specials: Map<string, Special>;
   globals: Record<string, unknown>;
   resolver: Resolver;
 }
 
-export const DefaultOptions: () => IScopeOptions = () => ({
+export const DefaultOptions: () => ScopeOptions = () => ({
   globals: runtime,
   specials: new Map(),
   trace: false,
@@ -21,17 +23,21 @@ export const DefaultOptions: () => IScopeOptions = () => ({
 
 export class Scope {
   public static readonly Default = () => new Scope();
-  public readonly options: IScopeOptions;
+  public static readonly From = (input: Input | Iterable<unknown> | Iterator<unknown>) => Scope.Default().withInput(
+    input instanceof Input
+    ? input
+    : Input.From(input)
+  );
+
+  public readonly options: ScopeOptions;
   constructor(
     public readonly module: Module = DefaultModule(),
     public readonly parent: Scope | undefined = undefined,
     public readonly variables: Record<string, unknown> = {},
     public readonly stream: Input = Input.Default(),
     public readonly memos: Memos = new Memos(),
-    public readonly ruleStack: Rule[] = [],
-    public readonly pipelineStack: Pattern[] = [],
-    public readonly moduleStack: Module[] = [],
-    options?: Partial<IScopeOptions>,
+    public readonly stack: StackFrame[] = [],
+    options?: Partial<ScopeOptions>,
   ) {
     this.options = {
       ...DefaultOptions(),
@@ -39,18 +45,8 @@ export class Scope {
     };
   }
 
-  public *stack() {
-    yield this;
-
-    let current: Scope | undefined = this.parent;
-    while (current) {
-      yield current;
-      current = current.parent;
-    }
-  }
-
   public get depth() {
-    return this.pipelineStack.length + this.ruleStack.length;
+    return this.stack.length;
   }
 
   public getSpecial(name: string) {
@@ -70,9 +66,7 @@ export class Scope {
       this.variables,
       input,
       this.memos,
-      this.ruleStack,
-      this.pipelineStack,
-      this.moduleStack,
+      this.stack,
       this.options,
     );
   }
@@ -84,9 +78,7 @@ export class Scope {
       Object.assign({}, this.variables, variables),
       this.stream,
       this.memos,
-      this.ruleStack,
-      this.pipelineStack,
-      this.moduleStack,
+      this.stack,
       this.options,
     );
   }
@@ -98,9 +90,7 @@ export class Scope {
       Object.assign({}, this.variables, variables),
       this.stream,
       this.memos,
-      this.ruleStack,
-      this.pipelineStack,
-      this.moduleStack,
+      this.stack,
       this.options,
     );
   }
@@ -112,23 +102,19 @@ export class Scope {
       {},
       this.stream,
       this.memos,
-      [...this.ruleStack, rule],
-      this.pipelineStack,
-      this.moduleStack,
+      [...this.stack, { kind: StackFrameKind.Rule, rule }],
       this.options,
     );
   }
 
-  public pushPipeline(pattern: Pattern) {
+  public pushPipeline(pipeline: Pattern) {
     return new Scope(
       this.module,
       this.parent,
       {},
       this.stream,
       this.memos,
-      this.ruleStack,
-      [...this.pipelineStack, pattern],
-      this.moduleStack,
+      [...this.stack, { kind: StackFrameKind.Pipeline, pipeline }],
       this.options,
     );
   }
@@ -143,9 +129,7 @@ export class Scope {
       {},
       this.stream,
       this.memos,
-      this.ruleStack,
-      this.pipelineStack,
-      this.module !== module ? [...this.moduleStack, module] : this.moduleStack,
+      this.module !== module ? [...this.stack, { kind: StackFrameKind.Module, module }] : this.stack,
       this.options,
     );
   }
@@ -161,23 +145,19 @@ export class Scope {
       scope.variables,
       this.stream,
       this.memos,
-      scope.ruleStack,
-      scope.pipelineStack,
-      scope.moduleStack,
+      scope.stack,
       scope.options,
     );
   }
 
-  public withOptions(options: Partial<IScopeOptions>) {
+  public withOptions(options: Partial<ScopeOptions>) {
     return new Scope(
       this.module,
       this.parent,
       this.variables,
       this.stream,
       this.memos,
-      this.ruleStack,
-      this.pipelineStack,
-      this.moduleStack,
+      this.stack,
       {
         ...this.options,
         ...options,

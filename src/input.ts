@@ -1,11 +1,8 @@
 import { Path } from "./path.ts";
 
 export class Input {
-  public static readonly Default = () =>
-    new Input(
-      [],
-      Path.Default(),
-    );
+  public static readonly Default = () => Input.From([]);
+  public static readonly From = (items: Iterable<unknown> | Iterator<unknown>) => new Input(items)
 
   public static getIterator(value: string) {
     return value[Symbol.iterator]();

@@ -159,8 +159,6 @@ export function tests(group: () => PatternTest[]) {
                 new Input(input ?? []),
                 undefined,
                 undefined,
-                undefined,
-                undefined,
                 {
                   trace,
                   specials,
@@ -262,8 +260,6 @@ export function tests(group: () => PatternTest[]) {
                   new Input(input ?? []),
                   undefined,
                   undefined,
-                  undefined,
-                  undefined,
                   { resolver },
                 );
                 run(scope, test.main);
@@ -280,8 +276,6 @@ export function tests(group: () => PatternTest[]) {
                 undefined,
                 undefined,
                 new Input(input ?? []),
-                undefined,
-                undefined,
                 undefined,
                 undefined,
                 {
