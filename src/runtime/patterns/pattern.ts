@@ -1,7 +1,7 @@
 import { PatternKind } from "./pattern.kind.ts";
 import { Expression } from "../expressions/mod.ts";
 import { Special } from "../modules/special.ts";
-import { Serializable } from "../hash.ts";
+import { Serializable } from "serializable/mod.ts";
 import { Comparable } from "../../comparable.ts";
 
 export type Pattern =

@@ -1,29 +1,10 @@
 import { crypto } from "std/crypto/mod.ts";
+import { encodeHex } from "std/encoding/hex.ts";
+import type { Serializable } from "serializable/mod.ts";
 
-export type Serializable =
-  | undefined
-  | null
-  | string
-  | number
-  | boolean
-  | Date
-  | { toJSON(): Serializable }
-  | Serializable[]
-  | ISerializable;
-
-export interface ISerializable {
-  [key: string]: Serializable;
-}
-
-const toHexString = (bytes: ArrayBuffer): string =>
-  new Uint8Array(bytes).reduce(
-    (str, byte) => str + byte.toString(16).padStart(2, "0"),
-    "",
-  );
-
-export function hash(serializable: Serializable): string {
+export async function hash(serializable: Serializable): Promise<string> {
   const inputString = JSON.stringify(serializable);
   const inputBytes = new TextEncoder().encode(inputString);
-  const h = crypto.subtle.digestSync("SHA-384", inputBytes); // todo: make it all async...
-  return toHexString(h);
+  const h = await crypto.subtle.digest("SHA-384", inputBytes);
+  return encodeHex(h);
 }

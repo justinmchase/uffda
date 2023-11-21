@@ -5,6 +5,7 @@
     "pre": "deno task test && deno fmt && deno lint"
   },
   "imports": {
+    "serializable/": "https://deno.land/x/serializable@0.3.6/",
     "std/": "https://deno.land/std@0.207.0/"
   }
 }

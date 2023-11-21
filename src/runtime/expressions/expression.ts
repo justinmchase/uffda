@@ -1,4 +1,4 @@
-import { Serializable } from "../hash.ts";
+import { Serializable } from "serializable/mod.ts";
 import { Pattern } from "../patterns/pattern.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import type { Special } from "../modules/mod.ts";

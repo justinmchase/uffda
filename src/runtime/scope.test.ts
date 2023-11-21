@@ -43,7 +43,7 @@ Deno.test("runtime.scope", async t => {
       const { matched, done, errors } = result;
       const { start, end } = result.span();
       // It matched the full pattern but didn't consume all of the output
-      assertObjectMatch({ matched, done, start, end, errors }, {
+      assertEquals({ matched, done, start, end, errors }, {
         matched: true,
         done: false,
         start: 0,

@@ -1,6 +1,6 @@
+import { Serializable } from "serializable/mod.ts";
 import { Match } from "../../match.ts";
 import { Scope } from "../scope.ts";
-import { Serializable } from "../hash.ts";
 import { IIncludesPattern } from "./pattern.ts";
 
 export function includes(args: IIncludesPattern, scope: Scope) {

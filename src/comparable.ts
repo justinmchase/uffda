@@ -1,6 +1,7 @@
-import { Serializable } from "./runtime/hash.ts";
+import { Serializable } from "serializable/mod.ts";
 
-export type Comparable =
+export type Comparable = Serializable & (
   | number
   | string
-  | { compareTo(value: unknown): number; toJSON(): Serializable };
+  | { compareTo(value: unknown): number; toJSON(): Serializable }
+);

@@ -6,7 +6,7 @@ import {
   ExpressionKind,
   ObjectInitializer,
 } from "../expressions/mod.ts";
-import { Serializable } from "../hash.ts";
+import { Serializable } from "serializable/mod.ts";
 
 export function serialize(
   declaration:
