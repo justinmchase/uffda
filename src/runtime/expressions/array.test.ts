@@ -6,10 +6,10 @@ import { ExpressionKind } from "./expression.kind.ts";
 tests(() => [
   {
     id: "RUNTIME.ARRAY00",
-    match: Match.Default(Scope.Default()).setVariables({
+    match: Match.Default(Scope.Default().addVariables({
       a: 7,
       b: 11,
-    }),
+    })),
     description: "a:[] b:[] -> [a b]",
     result: [7, 11],
     expression: () => ({
@@ -44,9 +44,9 @@ tests(() => [
   },
   {
     id: "RUNTIME.ARRAY02",
-    match: Match.Default(Scope.Default()).setVariables({
+    match: Match.Default(Scope.Default().addVariables({
       a: [],
-    }),
+    })),
     description: "a:[] -> [a]",
     result: [[[]]],
     expression: () => ({

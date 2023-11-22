@@ -8,10 +8,10 @@ import { BinaryOperation } from "./mod.ts";
 tests(() => [
   {
     id: "RUNTIME.LAMBDA00",
-    match: Match.Default(Scope.Default()).setVariables({
+    match: Match.Default(Scope.Default().addVariables({
       a: 7,
       b: 11,
-    }),
+    })),
     result: 18,
     expression: () => ({
       // (!any -> a + b)
@@ -42,10 +42,10 @@ tests(() => [
   },
   {
     id: "RUNTIME.LAMBDA01",
-    match: Match.Default(Scope.Default()).setVariables({
+    match: Match.Default(Scope.Default().addVariables({
       a: 7,
       b: 11,
-    }),
+    })),
     result: 18,
     expression: () => ({
       // (!any -> [native])

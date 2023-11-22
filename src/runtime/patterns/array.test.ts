@@ -1,5 +1,6 @@
 import { tests } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
+import { ValueType } from "./pattern.ts";
 
 tests(() => [
   {
@@ -101,15 +102,15 @@ tests(() => [
     pattern: () => ({
       kind: PatternKind.And,
       patterns: [
-        { kind: PatternKind.String },
+        { kind: PatternKind.Type, type: ValueType.String },
         {
           kind: PatternKind.Array,
           pattern: {
             kind: PatternKind.Then,
             patterns: [
-              { kind: PatternKind.String },
-              { kind: PatternKind.String },
-              { kind: PatternKind.String },
+              { kind: PatternKind.Type, type: ValueType.String },
+              { kind: PatternKind.Type, type: ValueType.String },
+              { kind: PatternKind.Type, type: ValueType.String },
             ],
           },
         },

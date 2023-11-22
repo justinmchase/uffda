@@ -10,6 +10,11 @@ export function reference(
     case "_":
       return match.value;
     default:
-      return match.end.variables[name] ?? match.end.options.globals[name];
+      return match.end.variables.has(name)
+        ? match.end.variables.get(name)
+        : match.end.options.globals.has(name)
+        ? match.end.options.globals.get(name)
+        : undefined
+        ;
   }
 }

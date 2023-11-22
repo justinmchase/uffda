@@ -27,11 +27,11 @@ Deno.test("runtime.expressions.invocation", async (t) => {
       match: Match.Default(
         Scope.Default()
           .withOptions({
-            globals: {
-              fn: (a: number, b: number) => a + b,
-            },
+            globals: new Map([
+              ["fn", (a: number, b: number) => a + b]
+            ]),
           })
-          .setVariables({
+          .addVariables({
             a: 7,
             b: 11,
           }),
@@ -54,9 +54,9 @@ Deno.test("runtime.expressions.invocation", async (t) => {
       match: Match.Default(
         Scope.Default()
           .withOptions({
-            globals: {
-              fn: () => "uffda",
-            },
+            globals: new Map([
+              ["fn", () => "uffda"]
+            ]),
           }),
       ),
       result: "uffda",
@@ -77,11 +77,11 @@ Deno.test("runtime.expressions.invocation", async (t) => {
       match: Match.Default(
         Scope.Default()
           .withOptions({
-            globals: {
-              fn: () => "one",
-            },
+            globals: new Map([
+              ["fn", () => "one"]
+            ]),
           })
-          .setVariables({
+          .addVariables({
             // The locally scoped variable should resolve rather than the global
             fn: () => "two",
           }),

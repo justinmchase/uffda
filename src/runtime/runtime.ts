@@ -1,1 +1,3 @@
-export * as runtime from "./std/mod.ts";
+import { std } from "./std/mod.ts";
+
+export const globals = new Map([...std])

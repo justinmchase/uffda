@@ -4,7 +4,7 @@ import {
   assertRejects,
   assertThrows,
   equal,
-} from "std/testing/asserts.ts";
+} from "std/assert/mod.ts";
 import { Scope } from "./runtime/scope.ts";
 import { Match } from "./match.ts";
 import { match } from "./runtime/match.ts";
@@ -373,9 +373,9 @@ export function expressionTest(options: ExpressionTestOptions) {
 }
 
 type PatternTestOptions = {
-  pattern: () => Pattern;
+  pattern: Pattern;
   input?: Input;
-  variables?: Record<string, unknown>;
+  variables?: Map<string, unknown>;
   value?: unknown;
   errors?: { name: string; message: string; start: string; end: string }[];
   matched?: boolean;
@@ -385,21 +385,20 @@ export function patternTest(options: PatternTestOptions) {
   const {
     pattern,
     input = Input.Default(),
-    variables = {},
+    variables = new Map(),
     value = undefined,
     errors = [],
     matched = true,
     done = true,
   } = options;
   return async () => {
-    const p = pattern();
     const s = new Scope(
       undefined,
       undefined,
       variables,
       input,
     );
-    const m = await match(p, s);
+    const m = await match(pattern, s);
     const e = m.errors.map((e) => ({
       name: e.name,
       message: e.message,

@@ -1,5 +1,6 @@
 import { tests } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
+import { ValueType } from "./pattern.ts";
 
 tests(() => [
   {
@@ -31,7 +32,7 @@ tests(() => [
     description: "zero or more matches a single element",
     pattern: () => ({
       kind: PatternKind.Slice,
-      pattern: { kind: PatternKind.String },
+      pattern: { kind: PatternKind.Type, type: ValueType.String },
     }),
     input: "a",
     value: ["a"],
@@ -41,7 +42,7 @@ tests(() => [
     description: "zero or more matches multiple elements",
     pattern: () => ({
       kind: PatternKind.Slice,
-      pattern: { kind: PatternKind.String },
+      pattern: { kind: PatternKind.Type, type: ValueType.String },
     }),
     input: "abc",
     value: ["a", "b", "c"],
@@ -111,7 +112,7 @@ tests(() => [
     description: "one or more matches one item",
     pattern: () => ({
       kind: PatternKind.Slice,
-      pattern: { kind: PatternKind.String },
+      pattern: { kind: PatternKind.Type, type: ValueType.String },
       min: 1,
     }),
     input: "a",
@@ -122,7 +123,7 @@ tests(() => [
     description: "one or more matches multiple items",
     pattern: () => ({
       kind: PatternKind.Slice,
-      pattern: { kind: PatternKind.String },
+      pattern: { kind: PatternKind.Type, type: ValueType.String },
       min: 1,
     }),
     input: "abc",
@@ -133,7 +134,7 @@ tests(() => [
     description: "exact number matches exactly",
     pattern: () => ({
       kind: PatternKind.Slice,
-      pattern: { kind: PatternKind.String },
+      pattern: { kind: PatternKind.Type, type: ValueType.String },
       min: 3,
       max: 3,
     }),
@@ -145,7 +146,7 @@ tests(() => [
     description: "exact number fails with not enough items",
     pattern: () => ({
       kind: PatternKind.Slice,
-      pattern: { kind: PatternKind.String },
+      pattern: { kind: PatternKind.Type, type: ValueType.String },
       min: 3,
       max: 3,
     }),
@@ -158,7 +159,7 @@ tests(() => [
     description: "exact number does not read too many items",
     pattern: () => ({
       kind: PatternKind.Slice,
-      pattern: { kind: PatternKind.String },
+      pattern: { kind: PatternKind.Type, type: ValueType.String },
       min: 3,
       max: 3,
     }),

@@ -3,19 +3,19 @@ import { Input } from "../input.ts";
 import { Memos } from "../memo.ts";
 import { DefaultModule, Module, Rule, Special } from "./modules/mod.ts";
 import { Resolver } from "./resolve.ts";
-import { runtime } from "./runtime.ts";
+import { globals } from "./runtime.ts";
 import { StackFrame } from "./stack/frame.ts";
 import { StackFrameKind } from "./stack/stackFrameKind.ts";
 
 export type ScopeOptions = {
   trace: boolean;
   specials: Map<string, Special>;
-  globals: Record<string, unknown>;
+  globals: Map<string, unknown>;
   resolver: Resolver;
 }
 
 export const DefaultOptions: () => ScopeOptions = () => ({
-  globals: runtime,
+  globals,
   specials: new Map(),
   trace: false,
   resolver: new Resolver(),
@@ -33,7 +33,7 @@ export class Scope {
   constructor(
     public readonly module: Module = DefaultModule(),
     public readonly parent: Scope | undefined = undefined,
-    public readonly variables: Record<string, unknown> = {},
+    public readonly variables: Map<string, unknown> = new Map(),
     public readonly stream: Input = Input.Default(),
     public readonly memos: Memos = new Memos(),
     public readonly stack: StackFrame[] = [],
@@ -71,23 +71,14 @@ export class Scope {
     );
   }
 
-  public addVariables(variables: Record<string, unknown>) {
+  public addVariables(variables: Record<string, unknown> | Map<string, unknown>) {
+    if (!(variables instanceof Map)) {
+      variables = new Map(Object.entries(variables))
+    }
     return new Scope(
       this.module,
       this.parent,
-      Object.assign({}, this.variables, variables),
-      this.stream,
-      this.memos,
-      this.stack,
-      this.options,
-    );
-  }
-
-  public setVariables(variables: Record<string, unknown>) {
-    return new Scope(
-      this.module,
-      this.parent,
-      Object.assign({}, this.variables, variables),
+      new Map([...this.variables, ...variables]),
       this.stream,
       this.memos,
       this.stack,
@@ -99,7 +90,7 @@ export class Scope {
     return new Scope(
       this.module,
       this.parent,
-      {},
+      new Map(),
       this.stream,
       this.memos,
       [...this.stack, { kind: StackFrameKind.Rule, rule }],
@@ -111,7 +102,7 @@ export class Scope {
     return new Scope(
       this.module,
       this.parent,
-      {},
+      new Map(),
       this.stream,
       this.memos,
       [...this.stack, { kind: StackFrameKind.Pipeline, pipeline }],
@@ -126,7 +117,7 @@ export class Scope {
     return new Scope(
       module,
       undefined,
-      {},
+      new Map(),
       this.stream,
       this.memos,
       this.module !== module ? [...this.stack, { kind: StackFrameKind.Module, module }] : this.stack,

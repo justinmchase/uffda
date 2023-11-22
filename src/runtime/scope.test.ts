@@ -84,9 +84,9 @@ Deno.test("runtime.scope", async t => {
       const scope = Scope.Default()
         .withInput(Input.From(""))
         .withOptions({
-          globals: {
-            x: 7,
-          },
+          globals: new Map([
+            ["x", 7]
+          ]),
         });
       const pattern: Pattern = {
         kind: PatternKind.Reference,
@@ -103,9 +103,9 @@ Deno.test("runtime.scope", async t => {
       const scope = Scope.Default()
         .withInput(Input.From("a"))
         .withOptions({
-          globals: {
-            x: 7,
-          }
+          globals: new Map([
+            ["x", 7]
+          ]),
         });
       const match = Match.Default(scope);
       const expression: Expression = {

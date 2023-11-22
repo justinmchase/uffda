@@ -122,17 +122,6 @@ export class Match {
     );
   }
 
-  public setVariables(variables: Record<PropertyKey, unknown>) {
-    return new Match(
-      this.matched,
-      this.isLr,
-      this.start,
-      this.end.setVariables(variables),
-      this.value,
-      this.errors,
-    );
-  }
-
   public pushError(kind: string, message: string, start: Scope, end: Scope) {
     return new Match(
       this.matched,
