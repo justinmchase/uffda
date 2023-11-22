@@ -8,7 +8,6 @@ export type Pattern =
   | IAnyPattern
   | IAndPattern
   | IArrayPattern
-  | IBooleanPattern
   | ICharacterPattern
   | IEndPattern
   | IEqualPattern
@@ -17,7 +16,6 @@ export type Pattern =
   | IIncludesPattern
   | IMustPattern
   | INotPattern
-  | INumberPattern
   | IObjectPattern
   | IOkPattern
   | IOrPattern
@@ -28,8 +26,8 @@ export type Pattern =
   | IRegExpPattern
   | ISlicePattern
   | ISpecialPattern
-  | IStringPattern
   | IThenPattern
+  | ITypePattern
   | IVariablePattern;
 
 export function isPattern(value: unknown): value is Pattern {
@@ -83,6 +81,17 @@ export enum CharacterClass {
   Unassigned = "Cn",
 }
 
+export enum ValueType {
+  String = "string",
+  Number = "number",
+  BigInt = "bigint",
+  Boolean = "boolean",
+  Symbol = "symbol",
+  Undefined = "undefined",
+  Object = "object",
+  Function = "function",
+}
+
 export interface IAnyPattern {
   kind: PatternKind.Any;
 }
@@ -93,9 +102,6 @@ export interface IAndPattern {
 export interface IArrayPattern {
   kind: PatternKind.Array;
   pattern: Pattern;
-}
-export interface IBooleanPattern {
-  kind: PatternKind.Boolean;
 }
 export interface ICharacterPattern {
   kind: PatternKind.Character;
@@ -130,9 +136,6 @@ export interface IMustPattern {
 export interface INotPattern {
   kind: PatternKind.Not;
   pattern: Pattern;
-}
-export interface INumberPattern {
-  kind: PatternKind.Number;
 }
 export interface IObjectPattern {
   kind: PatternKind.Object;
@@ -178,12 +181,13 @@ export interface ISpecialPattern {
   name: string;
   value: Special;
 }
-export interface IStringPattern {
-  kind: PatternKind.String;
-}
 export interface IThenPattern {
   kind: PatternKind.Then;
   patterns: Pattern[];
+}
+export interface ITypePattern {
+  kind: PatternKind.Type;
+  type: ValueType;
 }
 export interface IVariablePattern {
   kind: PatternKind.Variable;

@@ -20,14 +20,15 @@ export function serialize(
   switch (kind) {
     // PATTERNS
     case PatternKind.Any:
-    case PatternKind.Boolean:
     case PatternKind.End:
     case PatternKind.Fail:
-    case PatternKind.Number:
-    case PatternKind.Ok:
-    case PatternKind.String: {
+    case PatternKind.Ok: {
       const { kind } = declaration;
       return { kind };
+    }
+    case PatternKind.Type: {
+      const { kind, type } = declaration;
+      return { kind, type };
     }
     case PatternKind.And:
     case PatternKind.Or:

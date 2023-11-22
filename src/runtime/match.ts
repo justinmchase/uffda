@@ -26,7 +26,6 @@ import {
   then,
   type,
   until,
-  ValueType,
   variable,
 } from "./patterns/mod.ts";
 import { RuntimeError, RuntimeErrorCode } from "./runtime.error.ts";
@@ -41,8 +40,6 @@ export function match(pattern: Pattern, scope: Scope): Match {
       return array(pattern, scope);
     case PatternKind.Character:
       return character(pattern, scope);
-    case PatternKind.Boolean:
-      return type(ValueType.Boolean, scope);
     case PatternKind.End:
       return end(scope);
     case PatternKind.Until:
@@ -57,8 +54,6 @@ export function match(pattern: Pattern, scope: Scope): Match {
       return must(pattern, scope);
     case PatternKind.Not:
       return not(pattern, scope);
-    case PatternKind.Number:
-      return type(ValueType.Number, scope);
     case PatternKind.Object:
       return object(pattern, scope);
     case PatternKind.Ok:
@@ -79,10 +74,10 @@ export function match(pattern: Pattern, scope: Scope): Match {
       return slice(pattern, scope);
     case PatternKind.Special:
       return special(pattern, scope);
-    case PatternKind.String:
-      return type(ValueType.String, scope);
     case PatternKind.Then:
       return then(pattern, scope);
+    case PatternKind.Type:
+      return type(pattern, scope);
     case PatternKind.Variable:
       return variable(pattern, scope);
     default:
