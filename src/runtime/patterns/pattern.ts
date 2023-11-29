@@ -82,14 +82,14 @@ export enum CharacterClass {
 }
 
 export enum ValueType {
-  String = "string",
-  Number = "number",
   BigInt = "bigint",
   Boolean = "boolean",
+  Function = "function",
+  Number = "number",
+  Object = "object",
+  String = "string",
   Symbol = "symbol",
   Undefined = "undefined",
-  Object = "object",
-  Function = "function",
 }
 
 export interface IAnyPattern {

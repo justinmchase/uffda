@@ -1,52 +1,40 @@
-import { tests } from "../../test.ts";
+import { Input } from "../../input.ts";
+import { patternTest, tests } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { ValueType } from "./pattern.ts";
 
-tests(() => [
-  {
-    id: "TYPE00",
-    description: "reads a string successfully",
-    pattern: () => ({ kind: PatternKind.Type, type: ValueType.String }),
-    input: ["a"],
-    value: "a",
-  },
-  {
-    id: "TYPE01",
-    description: "does not read a non-string",
-    pattern: () => ({ kind: PatternKind.Type, type: ValueType.String }),
-    input: [7],
-    matched: false,
-    done: false,
-  },
-  {
-    id: "TYPE02",
-    description: "reads a number successfully",
-    pattern: () => ({ kind: PatternKind.Type, type: ValueType.Number }),
-    input: [7],
-    value: 7,
-  },
-  {
-    id: "TYPE03",
-    description: "does not read a non-number",
-    pattern: () => ({ kind: PatternKind.Type, type: ValueType.Number }),
-    input: ["a"],
-    matched: false,
-    done: false,
-  },
-  {
-    id: "TYPE04",
-    description: "boolean",
-    pattern: () => ({ kind: PatternKind.Type, type: ValueType.Boolean }),
-    input: [true],
-    value: true,
-  },
-  {
-    id: "TYPE05",
-    description: "boolean",
-    pattern: () => ({ kind: PatternKind.Type, type: ValueType.Boolean }),
-    input: [7],
-    matched: false,
-    done: false,
-  },
-  // todo: the other types too
-]);
+Deno.test("runtime.patterns.type", async t => {
+  const typeTests = [
+    { input: BigInt("0001"), type: ValueType.BigInt, success: true },
+    { input: true, type: ValueType.Boolean, success: true },
+    { input: false, type: ValueType.Boolean, success: true },
+    { input: () => {}, type: ValueType.Function, success: true },
+    { input: 7, type: ValueType.Number, success: true },
+    { input: {}, type: ValueType.Object, success: true },
+    { input: "a", type: ValueType.String, success: true },
+    { input: Symbol(), type: ValueType.Symbol, success: true },
+    { input: undefined, type: ValueType.Undefined, success: true },
+
+    { input: null, type: ValueType.BigInt, success: false },
+    { input: null, type: ValueType.Boolean, success: false },
+    { input: null, type: ValueType.Function, success: false },
+    { input: null, type: ValueType.Number, success: false },
+    { input: undefined, type: ValueType.Object, success: false },
+    { input: null, type: ValueType.String, success: false },
+    { input: null, type: ValueType.Symbol, success: false },
+    { input: null, type: ValueType.Undefined, success: false },
+  ]
+
+  for (const { input, type, success } of typeTests) {
+    await t.step({
+      name: `${type}: ${success}`,
+      fn: patternTest({
+        pattern: { kind: PatternKind.Type, type },
+        input: Input.From([input]),
+        value: success ? input : undefined,
+        matched: success,
+        done: success,
+      })
+    });
+  }
+});
