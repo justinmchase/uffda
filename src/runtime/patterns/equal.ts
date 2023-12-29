@@ -22,5 +22,12 @@ export function equal(args: IEqualPattern, scope: Scope): Match {
     }
   }
 
-  return Match.Fail(scope);
+  return Match
+    .Fail(scope)
+    .pushError(
+      "E_EXPECTED",
+      `${value}`,
+      scope,
+      scope
+    );
 }

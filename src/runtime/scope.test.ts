@@ -127,13 +127,8 @@ Deno.test("runtime.scope", async (t) => {
       // expressions can resolve globals
       const scope = Scope.From("a");
       const pattern: Pattern = {
-        kind: PatternKind.Must,
-        name: "x",
-        message: "x is expected",
-        pattern: {
-          kind: PatternKind.Equal,
-          value: "x",
-        },
+        kind: PatternKind.Equal,
+        value: "x",
       };
       const result = await match(pattern, scope);
       const { matched, done } = result;
@@ -143,12 +138,12 @@ Deno.test("runtime.scope", async (t) => {
         message: err.message,
       }));
       assertEquals({ matched, done, errors, start, end }, {
-        matched: true,
+        matched: false,
         done: false,
         start: 0,
         end: 0,
         errors: [
-          { name: "x", message: "x is expected" },
+          { name: "E_EXPECTED", message: "x" },
         ],
       });
     },

@@ -55,8 +55,7 @@ export function serialize(
       const { kind, values } = declaration;
       return { kind, values };
     }
-    case PatternKind.Until:
-    case PatternKind.Must: {
+    case PatternKind.Until: {
       const { kind, message, name, pattern } = declaration;
       return { kind, message, name, pattern: serialize(pattern) };
     }

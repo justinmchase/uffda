@@ -8,7 +8,6 @@ import {
   Expression,
   ObjectInitializer,
 } from "../expressions/expression.ts";
-import { normalize } from "std/path/normalize.ts";
 import { ExpressionKind } from "../expressions/expression.kind.ts";
 import { ModuleKind } from "../modules/moduleKind.ts";
 
@@ -82,12 +81,6 @@ const testData: (
   {
     kind: PatternKind.Includes,
     values: [{ kind: PatternKind.Any }],
-  },
-  {
-    kind: PatternKind.Must,
-    name: "Example",
-    message: "Test message",
-    pattern: { kind: PatternKind.Any },
   },
   {
     kind: PatternKind.Not,

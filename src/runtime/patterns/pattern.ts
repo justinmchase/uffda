@@ -14,7 +14,6 @@ export type Pattern =
   | IUntilPattern
   | IFailPattern
   | IIncludesPattern
-  | IMustPattern
   | INotPattern
   | IObjectPattern
   | IOkPattern
@@ -126,12 +125,6 @@ export interface IFailPattern {
 export interface IIncludesPattern {
   kind: PatternKind.Includes;
   values: Serializable[];
-}
-export interface IMustPattern {
-  kind: PatternKind.Must;
-  name: string;
-  message: string;
-  pattern: Pattern;
 }
 export interface INotPattern {
   kind: PatternKind.Not;

@@ -9,7 +9,6 @@ import {
   equal,
   fail,
   includes,
-  must,
   not,
   object,
   ok,
@@ -50,8 +49,6 @@ export function match(pattern: Pattern, scope: Scope): Match {
       return fail(scope);
     case PatternKind.Includes:
       return includes(pattern, scope);
-    case PatternKind.Must:
-      return must(pattern, scope);
     case PatternKind.Not:
       return not(pattern, scope);
     case PatternKind.Object:
