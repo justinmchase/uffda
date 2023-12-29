@@ -19,7 +19,6 @@ export * from "./slice.ts";
 export * from "./special.ts";
 export * from "./then.ts";
 export * from "./type.ts";
-export * from "./until.ts";
 export * from "./variable.ts";
 
 export * from "./pattern.kind.ts";

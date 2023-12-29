@@ -11,7 +11,6 @@ export type Pattern =
   | ICharacterPattern
   | IEndPattern
   | IEqualPattern
-  | IUntilPattern
   | IFailPattern
   | IIncludesPattern
   | INotPattern
@@ -112,12 +111,6 @@ export interface IEndPattern {
 export interface IEqualPattern {
   kind: PatternKind.Equal;
   value: Serializable;
-}
-export interface IUntilPattern {
-  kind: PatternKind.Until;
-  pattern: Pattern;
-  name: string;
-  message: string;
 }
 export interface IFailPattern {
   kind: PatternKind.Fail;

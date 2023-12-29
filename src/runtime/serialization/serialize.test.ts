@@ -140,12 +140,6 @@ const testData: (
   },
   { kind: PatternKind.Type, type: ValueType.Number },
   {
-    kind: PatternKind.Until,
-    name: "until",
-    message: "message",
-    pattern: { kind: PatternKind.Any },
-  },
-  {
     kind: PatternKind.Variable,
     name: "x",
     pattern: { kind: PatternKind.Any },

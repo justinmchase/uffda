@@ -34,6 +34,6 @@ tests(() => [
     done: false,
     errors: [
       { name: "E_EXPECTED", message: "7", start: "[0]", end: "[0]" },
-    ]
+    ],
   },
 ]);

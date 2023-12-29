@@ -142,35 +142,6 @@ Deno.test("runtime.patterns.variable", async (t) => {
   });
 
   await t.step({
-    name: "VARIABLE04",
-    fn: patternTest({
-      input: Input.From(["a", "b", "c", ";"]),
-      value: undefined,
-      errors: [
-        {
-          name: "TestError",
-          message: "A test error",
-          start: "[0]",
-          end: "[4]",
-        },
-      ],
-      pattern: {
-        kind: PatternKind.Variable,
-        name: "x",
-        pattern: {
-          kind: PatternKind.Until,
-          name: "TestError",
-          message: "A test error",
-          pattern: {
-            kind: PatternKind.Equal,
-            value: ";",
-          },
-        },
-      },
-    }),
-  });
-
-  await t.step({
     name: "VARIABLE05",
     fn: patternTest({
       input: Input.From([1, 2]),

@@ -64,26 +64,4 @@ tests(() => [
     value: 1,
     done: false,
   },
-  {
-    id: "OR05",
-    description: "Or propagates errors correctly",
-    pattern: () => ({
-      kind: PatternKind.Or,
-      patterns: [
-        {
-          kind: PatternKind.Until,
-          pattern: { kind: PatternKind.Any },
-          name: "Test",
-          message: "Intentional error",
-        },
-      ],
-    }),
-    input: "a",
-    errors: [{
-      name: "Test",
-      message: "Intentional error",
-      start: "[0]",
-      end: "[1]",
-    }],
-  },
 ]);

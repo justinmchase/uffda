@@ -167,21 +167,4 @@ tests(() => [
     value: ["a", "b", "c"],
     done: false,
   },
-  {
-    id: "SLICE13",
-    description: "slice propagates errors properly",
-    pattern: () => ({
-      kind: PatternKind.Slice,
-      pattern: {
-        kind: PatternKind.Until,
-        pattern: { kind: PatternKind.Any },
-        name: "Test",
-        message: "test",
-      },
-      min: 0,
-    }),
-    input: "a",
-    errors: [{ name: "Test", message: "test", start: "[0]", end: "[1]" }],
-    value: [undefined],
-  },
 ]);

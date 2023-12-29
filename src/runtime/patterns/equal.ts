@@ -28,6 +28,6 @@ export function equal(args: IEqualPattern, scope: Scope): Match {
       "E_EXPECTED",
       `${value}`,
       scope,
-      scope
+      scope,
     );
 }

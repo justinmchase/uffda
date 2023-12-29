@@ -24,7 +24,6 @@ import {
   special,
   then,
   type,
-  until,
   variable,
 } from "./patterns/mod.ts";
 import { RuntimeError, RuntimeErrorCode } from "./runtime.error.ts";
@@ -41,8 +40,6 @@ export function match(pattern: Pattern, scope: Scope): Match {
       return character(pattern, scope);
     case PatternKind.End:
       return end(scope);
-    case PatternKind.Until:
-      return until(pattern, scope);
     case PatternKind.Equal:
       return equal(pattern, scope);
     case PatternKind.Fail:
