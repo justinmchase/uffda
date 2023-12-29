@@ -32,7 +32,7 @@ Deno.test("runtime.patterns.projection", async (t) => {
         },
       },
       input: new Input([7]),
-      variables: new Map([ ["v0", 11] ]),
+      variables: new Map([["v0", 11]]),
       value: 11,
     }),
   });

@@ -7,9 +7,11 @@ import { BinaryOperation } from "./mod.ts";
 tests(() => [
   {
     id: "RUNTIME.MEMBER00",
-    match: Match.Default(Scope.Default().addVariables({
-      a: { x: 7, y: 11 },
-    })),
+    match: Match.Default(
+      Scope.Default().addVariables({
+        a: { x: 7, y: 11 },
+      }),
+    ),
     result: 18,
     expression: () => ({
       kind: ExpressionKind.Binary,
@@ -48,9 +50,11 @@ tests(() => [
 
   {
     id: "RUNTIME.MEMBER02",
-    match: Match.Default(Scope.Default().addVariables({
-      a: {},
-    })),
+    match: Match.Default(
+      Scope.Default().addVariables({
+        a: {},
+      }),
+    ),
     value: undefined,
     expression: () => ({
       kind: ExpressionKind.Member,

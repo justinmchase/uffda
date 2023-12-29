@@ -9,5 +9,5 @@ export const std = new Map<string, unknown>([
   ["format", format],
   ["join", join],
   ["json", json],
-  ["map", map]
-])
+  ["map", map],
+]);

@@ -1,318 +1,393 @@
-import { tests } from "../../test.ts";
+import { patternTest } from "../../test.ts";
 import { CharacterClass } from "./pattern.ts";
 import { PatternKind } from "./pattern.kind.ts";
+import { Input } from "../../input.ts";
 
-tests(() => [
-  {
-    id: "CHARACTER00",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.Letter,
+Deno.test("patterns/character", async (t) => {
+  await t.step({
+    name: "CHARACTER00",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.Letter,
+      },
+      input: Input.From("a"),
+      value: "a",
     }),
-    input: "a",
-    value: "a",
-  },
-  {
-    id: "CHARACTER01",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.Letter,
-    }),
-    input: "1",
-    matched: false,
-    done: false,
-  },
-  {
-    id: "CHARACTER02",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.UppercaseLetter,
-    }),
-    input: "A",
-    value: "A",
-  },
-  {
-    id: "CHARACTER03",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.LowercaseLetter,
-    }),
-    input: "z",
-    value: "z",
-  },
-  {
-    id: "CHARACTER04",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.TitlecaseLetter,
-    }),
-    input: "ǅ",
-    value: "ǅ",
-  },
-  {
-    id: "CHARACTER05",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.ModifierLetter,
-    }),
-    input: "ᶭ",
-    value: "ᶭ",
-  },
-  {
-    id: "CHARACTER06",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.OtherLetter,
-    }),
-    input: "ǂ",
-    value: "ǂ",
-  },
-  {
-    id: "CHARACTER07",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.Mark,
-    }),
-    input: "⃟",
-    value: "⃟",
-  },
-  {
-    id: "CHARACTER08",
-    future: true,
-    pattern: () => ({
-      kind: PatternKind.Then,
-      patterns: [
+  });
+  await t.step({
+    name: "CHARACTER01",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.Letter,
+      },
+      input: Input.From("1"),
+      matched: false,
+      done: false,
+      errors: [
         {
-          kind: PatternKind.Character,
-          characterClass: CharacterClass.Letter,
-        },
-        {
-          kind: PatternKind.Character,
-          characterClass: CharacterClass.EnclosingMark,
-        },
-        {
-          kind: PatternKind.Character,
-          characterClass: CharacterClass.Letter,
+          name: "E_EXPECTED",
+          message: "/L/",
+          start: "[0]",
+          end: "[0]",
         },
       ],
     }),
-    input: "a꙱b",
-    value: "a꙱b",
-  },
-  {
-    id: "CHARACTER09",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.Number,
+  });
+  await t.step({
+    name: "CHARACTER02",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.UppercaseLetter,
+      },
+      input: Input.From("A"),
+      value: "A",
     }),
-    input: "7",
-    value: "7",
-  },
-  {
-    id: "CHARACTER10",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.DecimalDigitNumber,
+  });
+  await t.step({
+    name: "CHARACTER03",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.LowercaseLetter,
+      },
+      input: Input.From("z"),
+      value: "z",
     }),
-    input: "0",
-    value: "0",
-  },
-  {
-    id: "CHARACTER11",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.LetterNumber,
+  });
+  await t.step({
+    name: "CHARACTER04",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.TitlecaseLetter,
+      },
+      input: Input.From("ǅ"),
+      value: "ǅ",
     }),
-    input: "Ⅳ",
-    value: "Ⅳ",
-  },
-  {
-    id: "CHARACTER12",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.OtherNumber,
+  });
+  await t.step({
+    name: "CHARACTER05",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.ModifierLetter,
+      },
+      input: Input.From("ᶭ"),
+      value: "ᶭ",
     }),
-    input: "¼",
-    value: "¼",
-  },
-  {
-    id: "CHARACTER13",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.Symbol,
+  });
+  await t.step({
+    name: "CHARACTER06",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.OtherLetter,
+      },
+      input: Input.From("ǂ"),
+      value: "ǂ",
     }),
-    input: "+",
-    value: "+",
-  },
-  {
-    id: "CHARACTER14",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.MathSymbol,
+  });
+  await t.step({
+    name: "CHARACTER07",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.Mark,
+      },
+      input: Input.From("⃟"),
+      value: "⃟",
     }),
-    input: "+",
-    value: "+",
-  },
-  {
-    id: "CHARACTER15",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.CurrencySymbol,
+  });
+  await t.step({
+    name: "CHARACTER08",
+    ignore: true, // not sure why this isn't working
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Character,
+            characterClass: CharacterClass.Letter,
+          },
+          {
+            kind: PatternKind.Character,
+            characterClass: CharacterClass.EnclosingMark,
+          },
+          {
+            kind: PatternKind.Character,
+            characterClass: CharacterClass.Letter,
+          },
+        ],
+      },
+      input: Input.From("a꙱b"),
+      value: "a꙱b",
     }),
-    input: "$",
-    value: "$",
-  },
-  {
-    id: "CHARACTER16",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.ModifierSymbol,
+  });
+  await t.step({
+    name: "CHARACTER09",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.Number,
+      },
+      input: Input.From("7"),
+      value: "7",
     }),
-    input: "¨",
-    value: "¨",
-  },
-  {
-    id: "CHARACTER17",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.OtherSymbol,
+  });
+  await t.step({
+    name: "CHARACTER10",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.DecimalDigitNumber,
+      },
+      input: Input.From("0"),
+      value: "0",
     }),
-    input: "֍",
-    value: "֍",
-  },
-  {
-    id: "CHARACTER18",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.Punctuation,
+  });
+  await t.step({
+    name: "CHARACTER11",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.LetterNumber,
+      },
+      input: Input.From("Ⅳ"),
+      value: "Ⅳ",
     }),
-    input: ".",
-    value: ".",
-  },
-  {
-    id: "CHARACTER19",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.OpenPunctuation,
+  });
+  await t.step({
+    name: "CHARACTER12",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.OtherNumber,
+      },
+      input: Input.From("¼"),
+      value: "¼",
     }),
-    input: "(",
-    value: "(",
-  },
-  {
-    id: "CHARACTER20",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.ClosePunctuation,
+  });
+  await t.step({
+    name: "CHARACTER13",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.Symbol,
+      },
+      input: Input.From("+"),
+      value: "+",
     }),
-    input: ")",
-    value: ")",
-  },
-  {
-    id: "CHARACTER21",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.DashPunctuation,
+  });
+  await t.step({
+    name: "CHARACTER14",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.MathSymbol,
+      },
+      input: Input.From("+"),
+      value: "+",
     }),
-    input: "-",
-    value: "-",
-  },
-  {
-    id: "CHARACTER22",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.InitualPunctuation,
+  });
+  await t.step({
+    name: "CHARACTER15",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.CurrencySymbol,
+      },
+      input: Input.From("$"),
+      value: "$",
     }),
-    input: "«",
-    value: "«",
-  },
-  {
-    id: "CHARACTER23",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.ConnectorPunctuation,
+  });
+  await t.step({
+    name: "CHARACTER16",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.ModifierSymbol,
+      },
+      input: Input.From("¨"),
+      value: "¨",
     }),
-    input: "﹍",
-    value: "﹍",
-  },
-  {
-    id: "CHARACTER24",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.FinalPunctuation,
+  });
+  await t.step({
+    name: "CHARACTER17",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.OtherSymbol,
+      },
+      input: Input.From("֍"),
+      value: "֍",
     }),
-    input: "»",
-    value: "»",
-  },
-  {
-    id: "CHARACTER25",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.OtherPunctuation,
+  });
+  await t.step({
+    name: "CHARACTER18",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.Punctuation,
+      },
+      input: Input.From("."),
+      value: ".",
     }),
-    input: "!",
-    value: "!",
-  },
-  {
-    id: "CHARACTER26",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.Separator,
+  });
+  await t.step({
+    name: "CHARACTER19",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.OpenPunctuation,
+      },
+      input: Input.From("("),
+      value: "(",
     }),
-    input: " ",
-    value: " ",
-  },
-  {
-    id: "CHARACTER27",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.SpaceSeparator,
+  });
+  await t.step({
+    name: "CHARACTER20",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.ClosePunctuation,
+      },
+      input: Input.From(")"),
+      value: ")",
     }),
-    input: " ",
-    value: " ",
-  },
-  {
-    id: "CHARACTER28",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.LineSeparator,
+  });
+  await t.step({
+    name: "CHARACTER21",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.DashPunctuation,
+      },
+      input: Input.From("-"),
+      value: "-",
     }),
-    input: "\u2028",
-    value: "\u2028",
-  },
-  {
-    id: "CHARACTER29",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.ParagraphSeparator,
+  });
+  await t.step({
+    name: "CHARACTER22",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.InitualPunctuation,
+      },
+      input: Input.From("«"),
+      value: "«",
     }),
-    input: "\u2029",
-    value: "\u2029",
-  },
-  {
-    id: "CHARACTER30",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.Other,
+  });
+  await t.step({
+    name: "CHARACTER23",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.ConnectorPunctuation,
+      },
+      input: Input.From("﹍"),
+      value: "﹍",
     }),
-    input: "\u0000",
-    value: "\u0000",
-  },
-  {
-    id: "CHARACTER31",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.Control,
+  });
+  await t.step({
+    name: "CHARACTER24",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.FinalPunctuation,
+      },
+      input: Input.From("»"),
+      value: "»",
     }),
-    input: "\u0000",
-    value: "\u0000",
-  },
-  {
-    id: "CHARACTER32",
-    pattern: () => ({
-      kind: PatternKind.Character,
-      characterClass: CharacterClass.Format,
+  });
+  await t.step({
+    name: "CHARACTER25",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.OtherPunctuation,
+      },
+      input: Input.From("!"),
+      value: "!",
     }),
-    input: "\uFEFF",
-    value: "\uFEFF",
-  },
-]);
+  });
+  await t.step({
+    name: "CHARACTER26",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.Separator,
+      },
+      input: Input.From(" "),
+      value: " ",
+    }),
+  });
+  await t.step({
+    name: "CHARACTER27",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.SpaceSeparator,
+      },
+      input: Input.From(" "),
+      value: " ",
+    }),
+  });
+  await t.step({
+    name: "CHARACTER28",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.LineSeparator,
+      },
+      input: Input.From("\u2028"),
+      value: "\u2028",
+    }),
+  });
+  await t.step({
+    name: "CHARACTER29",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.ParagraphSeparator,
+      },
+      input: Input.From("\u2029"),
+      value: "\u2029",
+    }),
+  });
+  await t.step({
+    name: "CHARACTER30",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.Other,
+      },
+      input: Input.From("\u0000"),
+      value: "\u0000",
+    }),
+  });
+  await t.step({
+    name: "CHARACTER31",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.Control,
+      },
+      input: Input.From("\u0000"),
+      value: "\u0000",
+    }),
+  });
+  await t.step({
+    name: "CHARACTER32",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.Format,
+      },
+      input: Input.From("\uFEFF"),
+      value: "\uFEFF",
+    }),
+  });
+});

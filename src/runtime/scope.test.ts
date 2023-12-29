@@ -1,13 +1,17 @@
-import { assertEquals, assertObjectMatch, assertThrows } from "std/assert/mod.ts";
+import {
+  assertEquals,
+  assertObjectMatch,
+  assertThrows,
+} from "std/assert/mod.ts";
 import { match } from "./match.ts";
-import { PatternKind, Pattern } from "./patterns/mod.ts";
+import { Pattern, PatternKind } from "./patterns/mod.ts";
 import { Scope } from "./scope.ts";
 import { Input } from "../input.ts";
 import { Match } from "../match.ts";
 import { Expression, ExpressionKind } from "./expressions/mod.ts";
 import { exec } from "./exec.ts";
 
-Deno.test("runtime.scope", async t => {
+Deno.test("runtime.scope", async (t) => {
   await t.step({
     name: "SCOPE00",
     fn: async () => {
@@ -85,7 +89,7 @@ Deno.test("runtime.scope", async t => {
         .withInput(Input.From(""))
         .withOptions({
           globals: new Map([
-            ["x", 7]
+            ["x", 7],
           ]),
         });
       const pattern: Pattern = {
@@ -104,7 +108,7 @@ Deno.test("runtime.scope", async t => {
         .withInput(Input.From("a"))
         .withOptions({
           globals: new Map([
-            ["x", 7]
+            ["x", 7],
           ]),
         });
       const match = Match.Default(scope);
@@ -128,23 +132,23 @@ Deno.test("runtime.scope", async t => {
         message: "x is expected",
         pattern: {
           kind: PatternKind.Equal,
-          value: "x"
+          value: "x",
         },
       };
       const result = await match(pattern, scope);
       const { matched, done } = result;
       const { start, end } = result.span();
-      const errors = result.errors.map(err => ({
+      const errors = result.errors.map((err) => ({
         name: err.name,
         message: err.message,
-      }))
+      }));
       assertEquals({ matched, done, errors, start, end }, {
         matched: true,
         done: false,
         start: 0,
         end: 0,
         errors: [
-          { name: "x", message: "x is expected" }
+          { name: "x", message: "x is expected" },
         ],
       });
     },

@@ -3,7 +3,7 @@ import { patternTest, tests } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { ValueType } from "./pattern.ts";
 
-Deno.test("runtime.patterns.type", async t => {
+Deno.test("runtime.patterns.type", async (t) => {
   const typeTests = [
     { input: BigInt("0001"), type: ValueType.BigInt, success: true },
     { input: true, type: ValueType.Boolean, success: true },
@@ -23,7 +23,7 @@ Deno.test("runtime.patterns.type", async t => {
     { input: null, type: ValueType.String, success: false },
     { input: null, type: ValueType.Symbol, success: false },
     { input: null, type: ValueType.Undefined, success: false },
-  ]
+  ];
 
   for (const { input, type, success } of typeTests) {
     await t.step({
@@ -34,7 +34,7 @@ Deno.test("runtime.patterns.type", async t => {
         value: success ? input : undefined,
         matched: success,
         done: success,
-      })
+      }),
     });
   }
 });

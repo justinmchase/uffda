@@ -5,6 +5,4 @@ import { RuleStackFrame } from "./rule.ts";
 export type StackFrame =
   | ModuleStackFrame
   | PipelineStackFrame
-  | RuleStackFrame
-  ;
-  
+  | RuleStackFrame;

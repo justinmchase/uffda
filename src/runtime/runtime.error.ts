@@ -29,7 +29,8 @@ export const RuntimeErrorMessages = {
     "Left recursion was detected but no rules are in the stack",
   [RuntimeErrorCode.PatternNotFound]: (
     { metadata: { name = "unknown" }, scope }: RuntimeErrorArgs,
-  ) => `A pattern (${name}) was referenced but not found in ${scope.module.moduleUrl}`,
+  ) =>
+    `A pattern (${name}) was referenced but not found in ${scope.module.moduleUrl}`,
   [RuntimeErrorCode.PatternUnmatched]: () => "Input failed to match pattern",
   [RuntimeErrorCode.StreamIncomplete]: (
     { match = Match.Default() }: RuntimeErrorArgs,
@@ -57,7 +58,7 @@ export class RuntimeError extends Error {
     public readonly code: RuntimeErrorCode,
     public readonly scope?: Scope,
     public readonly match?: Match,
-    public options?: ErrorOptions & { metadata?: Record<string, unknown> }
+    public options?: ErrorOptions & { metadata?: Record<string, unknown> },
   ) {
     const { metadata = {}, cause } = options ?? {};
     const args = {

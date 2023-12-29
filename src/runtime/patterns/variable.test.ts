@@ -7,11 +7,11 @@ import { PatternKind } from "./pattern.kind.ts";
 import { ExpressionKind } from "../expressions/mod.ts";
 import { Input } from "../../input.ts";
 
-Deno.test("runtime.patterns.variable", async t => {
+Deno.test("runtime.patterns.variable", async (t) => {
   await t.step({
     name: "VARIABLE00",
     fn: patternTest({
-    // P = x:any -> x + 11
+      // P = x:any -> x + 11
       pattern: {
         kind: PatternKind.Projection,
         pattern: {
@@ -26,7 +26,7 @@ Deno.test("runtime.patterns.variable", async t => {
       },
       input: new Input([7]),
       value: 18,
-    })
+    }),
   });
   await t.step({
     name: "VARIABLE01",
@@ -60,38 +60,38 @@ Deno.test("runtime.patterns.variable", async t => {
       },
       input: Input.From([7, 11]),
       value: 18,
-    })
+    }),
   });
 
   await t.step({
     name: "VARIABLE02",
     fn: patternTest({
       pattern: {
-      kind: PatternKind.Projection,
-      pattern: {
-        kind: PatternKind.Object,
-        keys: {
-          X: {
-            kind: PatternKind.Variable,
-            name: "x",
-            pattern: { kind: PatternKind.Any },
-          },
-          Y: {
-            kind: PatternKind.Variable,
-            name: "y",
-            pattern: { kind: PatternKind.Any },
+        kind: PatternKind.Projection,
+        pattern: {
+          kind: PatternKind.Object,
+          keys: {
+            X: {
+              kind: PatternKind.Variable,
+              name: "x",
+              pattern: { kind: PatternKind.Any },
+            },
+            Y: {
+              kind: PatternKind.Variable,
+              name: "y",
+              pattern: { kind: PatternKind.Any },
+            },
           },
         },
+        expression: {
+          kind: ExpressionKind.Native,
+          fn: ({ x, y }) => x + y,
+        },
       },
-      expression: {
-        kind: ExpressionKind.Native,
-        fn: ({ x, y }) => x + y,
-      },
-    },
-    input: Input.From([{ X: 7, Y: 11 }]),
-    value: 18,
-  })
-});
+      input: Input.From([{ X: 7, Y: 11 }]),
+      value: 18,
+    }),
+  });
 
   await t.step({
     name: "VARIABLE03",
@@ -138,7 +138,7 @@ Deno.test("runtime.patterns.variable", async t => {
       },
       input: Input.From([{ X: [6, 7], Y: [10, 11] }]),
       value: 18,
-    })
+    }),
   });
 
   await t.step({
@@ -147,7 +147,12 @@ Deno.test("runtime.patterns.variable", async t => {
       input: Input.From(["a", "b", "c", ";"]),
       value: undefined,
       errors: [
-        { name: "TestError", message: "A test error", start: "[0]", end: "[4]" },
+        {
+          name: "TestError",
+          message: "A test error",
+          start: "[0]",
+          end: "[4]",
+        },
       ],
       pattern: {
         kind: PatternKind.Variable,
@@ -161,8 +166,8 @@ Deno.test("runtime.patterns.variable", async t => {
             value: ";",
           },
         },
-      }
-    })
+      },
+    }),
   });
 
   await t.step({
@@ -177,7 +182,7 @@ Deno.test("runtime.patterns.variable", async t => {
           message: "Cannot redeclare variable 'x'",
           start: "[1]",
           end: "[1]",
-        }
+        },
       ],
       pattern: {
         kind: PatternKind.Then,
@@ -185,15 +190,15 @@ Deno.test("runtime.patterns.variable", async t => {
           {
             kind: PatternKind.Variable,
             name: "x",
-            pattern: { kind: PatternKind.Any }
+            pattern: { kind: PatternKind.Any },
           },
           {
             kind: PatternKind.Variable,
             name: "x",
-            pattern: { kind: PatternKind.Any }
-          }
-        ]
-      }
-    })
-  })
+            pattern: { kind: PatternKind.Any },
+          },
+        ],
+      },
+    }),
+  });
 });

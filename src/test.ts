@@ -1,10 +1,5 @@
 import { brightBlack, brightCyan, brightMagenta, red } from "std/fmt/colors.ts";
-import {
-  assert,
-  assertRejects,
-  assertThrows,
-  equal,
-} from "std/assert/mod.ts";
+import { assert, assertRejects, assertThrows, equal } from "std/assert/mod.ts";
 import { Scope } from "./runtime/scope.ts";
 import { Match } from "./match.ts";
 import { match } from "./runtime/match.ts";

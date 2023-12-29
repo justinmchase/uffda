@@ -6,9 +6,11 @@ import { ExpressionKind } from "./expression.kind.ts";
 tests(() => [
   {
     id: "REFERENCE00",
-    match: Match.Default(Scope.Default().addVariables({
-      a: 7,
-    })),
+    match: Match.Default(
+      Scope.Default().addVariables({
+        a: 7,
+      }),
+    ),
     result: 7,
     expression: () => ({
       kind: ExpressionKind.Reference,
@@ -17,10 +19,12 @@ tests(() => [
   },
   {
     id: "REFERENCE01",
-    match: Match.Default(Scope.Default().addVariables({
-      a: 7,
-      b: 11,
-    })),
+    match: Match.Default(
+      Scope.Default().addVariables({
+        a: 7,
+        b: 11,
+      }),
+    ),
     result: 11,
     expression: () => ({
       kind: ExpressionKind.Reference,

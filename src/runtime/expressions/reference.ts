@@ -14,7 +14,6 @@ export function reference(
         ? match.end.variables.get(name)
         : match.end.options.globals.has(name)
         ? match.end.options.globals.get(name)
-        : undefined
-        ;
+        : undefined;
   }
 }

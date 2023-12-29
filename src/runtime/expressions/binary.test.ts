@@ -7,10 +7,12 @@ import { ExpressionKind } from "./expression.kind.ts";
 tests(() => [
   {
     id: "ADD00",
-    match: Match.Default(Scope.Default().addVariables({
-      a: 7,
-      b: 11,
-    })),
+    match: Match.Default(
+      Scope.Default().addVariables({
+        a: 7,
+        b: 11,
+      }),
+    ),
     result: 18,
     expression: () => ({
       kind: ExpressionKind.Binary,
@@ -27,11 +29,13 @@ tests(() => [
   },
   {
     id: "ADD01",
-    match: Match.Default(Scope.Default().addVariables({
-      a: "l",
-      b: 11,
-      c: "r",
-    })),
+    match: Match.Default(
+      Scope.Default().addVariables({
+        a: "l",
+        b: 11,
+        c: "r",
+      }),
+    ),
     result: "lr",
     expression: () => ({
       kind: ExpressionKind.Binary,
@@ -48,10 +52,12 @@ tests(() => [
   },
   {
     id: "SUB00",
-    match: Match.Default(Scope.Default().addVariables({
-      a: 3,
-      b: 2,
-    })),
+    match: Match.Default(
+      Scope.Default().addVariables({
+        a: 3,
+        b: 2,
+      }),
+    ),
     result: 1,
     expression: () => ({
       kind: ExpressionKind.Binary,
@@ -68,11 +74,13 @@ tests(() => [
   },
   {
     id: "SUB01",
-    match: Match.Default(Scope.Default().addVariables({
-      a: 100,
-      b: 50,
-      c: 25,
-    })),
+    match: Match.Default(
+      Scope.Default().addVariables({
+        a: 100,
+        b: 50,
+        c: 25,
+      }),
+    ),
     result: 75,
     expression: () => ({
       kind: ExpressionKind.Binary,
@@ -97,10 +105,12 @@ tests(() => [
   },
   {
     id: "MULT01",
-    match: Match.Default(Scope.Default().addVariables({
-      a: 7,
-      b: 11,
-    })),
+    match: Match.Default(
+      Scope.Default().addVariables({
+        a: 7,
+        b: 11,
+      }),
+    ),
     result: 77,
     expression: () => ({
       kind: ExpressionKind.Binary,

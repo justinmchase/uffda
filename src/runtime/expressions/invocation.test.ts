@@ -28,7 +28,7 @@ Deno.test("runtime.expressions.invocation", async (t) => {
         Scope.Default()
           .withOptions({
             globals: new Map([
-              ["fn", (a: number, b: number) => a + b]
+              ["fn", (a: number, b: number) => a + b],
             ]),
           })
           .addVariables({
@@ -55,7 +55,7 @@ Deno.test("runtime.expressions.invocation", async (t) => {
         Scope.Default()
           .withOptions({
             globals: new Map([
-              ["fn", () => "uffda"]
+              ["fn", () => "uffda"],
             ]),
           }),
       ),
@@ -78,7 +78,7 @@ Deno.test("runtime.expressions.invocation", async (t) => {
         Scope.Default()
           .withOptions({
             globals: new Map([
-              ["fn", () => "one"]
+              ["fn", () => "one"],
             ]),
           })
           .addVariables({

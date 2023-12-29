@@ -74,43 +74,43 @@ const testData: (
   },
   {
     kind: PatternKind.Equal,
-    value: 0
+    value: 0,
   },
   {
-    kind: PatternKind.Fail
+    kind: PatternKind.Fail,
   },
   {
     kind: PatternKind.Includes,
-    values: [{ kind: PatternKind.Any }]
+    values: [{ kind: PatternKind.Any }],
   },
   {
     kind: PatternKind.Must,
     name: "Example",
     message: "Test message",
-    pattern: { kind: PatternKind.Any }
+    pattern: { kind: PatternKind.Any },
   },
   {
     kind: PatternKind.Not,
-    pattern: { kind: PatternKind.Any }
+    pattern: { kind: PatternKind.Any },
   },
   {
     kind: PatternKind.Object,
     keys: {
-      x: { kind: PatternKind.Any }
-    }
+      x: { kind: PatternKind.Any },
+    },
   },
   { kind: PatternKind.Ok },
   {
     kind: PatternKind.Pipeline,
-    steps: []
+    steps: [],
   },
   {
     kind: PatternKind.Projection,
     pattern: { kind: PatternKind.Any },
     expression: {
       kind: ExpressionKind.Native,
-      fn: () => {}
-    }
+      fn: () => {},
+    },
   },
   {
     kind: PatternKind.Range,
@@ -119,11 +119,11 @@ const testData: (
   },
   {
     kind: PatternKind.Reference,
-    name: "x"
+    name: "x",
   },
   {
     kind: PatternKind.RegExp,
-    pattern: /xyz/
+    pattern: /xyz/,
   },
   {
     kind: PatternKind.Slice,
@@ -139,24 +139,24 @@ const testData: (
       moduleUrl: import.meta.url,
       imports: new Map(),
       rules: new Map(),
-    }
+    },
   },
   {
     kind: PatternKind.Then,
-    patterns: []
+    patterns: [],
   },
   { kind: PatternKind.Type, type: ValueType.Number },
-  { 
-    kind: PatternKind.Until, 
+  {
+    kind: PatternKind.Until,
     name: "until",
     message: "message",
-    pattern: { kind: PatternKind.Any }
+    pattern: { kind: PatternKind.Any },
   },
   {
     kind: PatternKind.Variable,
     name: "x",
-    pattern: { kind: PatternKind.Any }
-  }
+    pattern: { kind: PatternKind.Any },
+  },
 ];
 
 for (let i = 0; i < testData.length; i++) {

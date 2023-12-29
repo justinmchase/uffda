@@ -10,17 +10,17 @@ export function variable(args: IVariablePattern, scope: Scope): Match {
     const indent = "●".padStart(scope.depth);
     console.log(`${indent} ${yellow(name)}`);
   }
-  
+
   if (scope.variables.has(name)) {
     return Match.Fail(scope)
       .pushError(
         "E_VAR_REDECLARE",
         `Cannot redeclare variable '${name}'`,
         scope,
-        scope
-      )
+        scope,
+      );
   }
-  
+
   const m = match(pattern, scope);
   if (m.matched) {
     return Match.Ok(

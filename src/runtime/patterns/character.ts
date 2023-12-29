@@ -14,7 +14,14 @@ export function character(args: ICharacterPattern, scope: Scope): Match {
       return Match.Ok(scope, scope.withInput(next), next.value);
     }
   }
-  return Match.Fail(scope);
+  return Match
+    .Fail(scope)
+    .pushError(
+      "E_EXPECTED",
+      `/${characterClass}/`,
+      scope,
+      scope,
+    );
 }
 
 function characterClassToRegexp(characterClass: CharacterClass) {

@@ -3,13 +3,13 @@ import { Comparable } from "../../comparable.ts";
 import { tests } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
-class Test implements ToJson  {
+class Test implements ToJson {
   constructor(public readonly value: number) {}
   public compareTo(obj: Test) {
     return this.value == obj.value ? 0 : this.value > obj.value ? -1 : 1;
   }
   public toJSON() {
-    return { value: this.value }
+    return { value: this.value };
   }
 }
 

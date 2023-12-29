@@ -23,7 +23,7 @@ export function rule(rule: Rule, scope: Scope): Match {
     return m.endRecursion().pop(scope);
   } else {
     if (memo.match.isLr) {
-      const frame = scope.stack[scope.stack.length - 1]
+      const frame = scope.stack[scope.stack.length - 1];
       if (frame?.kind !== StackFrameKind.Rule) {
         // This should never happen unless there is a bug in this code base
         throw new RuntimeError(

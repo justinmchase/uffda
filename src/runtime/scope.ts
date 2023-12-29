@@ -12,7 +12,7 @@ export type ScopeOptions = {
   specials: Map<string, Special>;
   globals: Map<string, unknown>;
   resolver: Resolver;
-}
+};
 
 export const DefaultOptions: () => ScopeOptions = () => ({
   globals,
@@ -23,11 +23,12 @@ export const DefaultOptions: () => ScopeOptions = () => ({
 
 export class Scope {
   public static readonly Default = () => new Scope();
-  public static readonly From = (input: Input | Iterable<unknown> | Iterator<unknown>) => Scope.Default().withInput(
-    input instanceof Input
-    ? input
-    : Input.From(input)
-  );
+  public static readonly From = (
+    input: Input | Iterable<unknown> | Iterator<unknown>,
+  ) =>
+    Scope.Default().withInput(
+      input instanceof Input ? input : Input.From(input),
+    );
 
   public readonly options: ScopeOptions;
   constructor(
@@ -71,9 +72,11 @@ export class Scope {
     );
   }
 
-  public addVariables(variables: Record<string, unknown> | Map<string, unknown>) {
+  public addVariables(
+    variables: Record<string, unknown> | Map<string, unknown>,
+  ) {
     if (!(variables instanceof Map)) {
-      variables = new Map(Object.entries(variables))
+      variables = new Map(Object.entries(variables));
     }
     return new Scope(
       this.module,
@@ -120,7 +123,9 @@ export class Scope {
       new Map(),
       this.stream,
       this.memos,
-      this.module !== module ? [...this.stack, { kind: StackFrameKind.Module, module }] : this.stack,
+      this.module !== module
+        ? [...this.stack, { kind: StackFrameKind.Module, module }]
+        : this.stack,
       this.options,
     );
   }
