@@ -1,15 +1,17 @@
 import { Scope } from "./runtime/scope.ts";
 import { Span } from "./span.ts";
 
-const MATCH = Symbol();
-
 function indexOf(t: (m: Match) => Scope, scope: Scope): number {
   const stream = scope.stream;
   const index = stream.index;
   const value = stream.value;
-  const match = Match.From(value);
 
-  if (!match || match.start === scope) {
+  const memo = scope.memos.lookup(value);
+  if (!memo) {
+    return index;
+  }
+  const { match } = memo;
+  if (match.start === scope) {
     return index;
   }
 
@@ -52,22 +54,6 @@ export class Match {
     errors: MatchError[],
   ) => new Match(false, false, start, end, value, errors);
 
-  public static From(value: unknown) {
-    if (value == null) {
-      return undefined;
-    }
-
-    if (typeof value !== "object") {
-      return undefined;
-    }
-
-    if (!Reflect.has(value, MATCH)) {
-      return undefined;
-    }
-
-    return Reflect.get(value, MATCH) as Match | undefined;
-  }
-
   constructor(
     public readonly matched: boolean,
     public readonly isLr: boolean,
@@ -76,18 +62,6 @@ export class Match {
     public readonly value: unknown,
     public readonly errors: MatchError[],
   ) {
-    if (value != null && typeof value === "object") {
-      if (!Reflect.getOwnPropertyDescriptor(value, MATCH)) {
-        Reflect.defineProperty(value, MATCH, {
-          enumerable: false,
-          writable: true,
-        });
-      }
-      const m = Reflect.get(value, MATCH);
-      if (!m) {
-        Reflect.set(value, MATCH, this);
-      }
-    }
   }
 
   public span(): Span {

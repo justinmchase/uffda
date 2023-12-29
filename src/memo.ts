@@ -1,37 +1,31 @@
 import { Path } from "./path.ts";
 import { Match } from "./match.ts";
-import { Reference } from "./reference.ts";
 import { Rule } from "./runtime/modules/mod.ts";
 
-interface IMemo {
-  match: Match;
-  references: Reference[];
-}
-
 export class Memos {
-  private readonly memos = new Map<Path, Map<Rule, IMemo>>();
+  private readonly memos = new Map<Path, Map<Rule, { match: Match }>>();
+  private readonly lookups = new Map<unknown, { match: Match, rule: Rule, path: Path}>();
 
-  public get(path: Path, rule: Rule): IMemo | undefined {
+  public get(path: Path, rule: Rule): { match: Match } | undefined {
     return this.memos.get(path)?.get(rule);
+  }
+
+  public lookup(value: unknown): { match: Match, rule: Rule, path: Path } | undefined {
+    return this.lookups.get(value);
   }
 
   public set(path: Path, rule: Rule, match: Match) {
     if (!this.memos.has(path)) {
-      this.memos.set(path, new Map<Rule, IMemo>());
+      this.memos.set(path, new Map<Rule, { match: Match }>());
     }
-
-    if (!this.memos.get(path)!.has(rule)) {
-      const memo = { match, references: [] };
-      this.memos.get(path)!.set(rule, memo);
-      return memo;
-    } else {
-      const memo = this.memos.get(path)!.get(rule)!;
-      memo.match = match;
-      return memo;
+    
+    const { value } = match;
+    if (value != null && typeof value === 'object')
+    {
+      this.lookups.set(match.value, { match, rule, path });
     }
-  }
-
-  public ref(path: Path, rule: Rule, reference: Reference) {
-    this.memos.get(path)!.get(rule)!.references.push(reference);
+    const memo = { match }
+    this.memos.get(path)!.set(rule, memo);
+    return memo;
   }
 }
