@@ -1,7 +1,7 @@
 {
   "tasks": {
-    "test": "deno test --parallel",
-    "test:watch": "deno test --watch --parallel",
+    "test": "deno test -A --parallel",
+    "test:watch": "deno test -A --watch --parallel",
     "pre": "deno task test && deno fmt && deno lint"
   },
   "imports": {

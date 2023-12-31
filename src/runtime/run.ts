@@ -13,14 +13,14 @@ export function run(scope: Scope, patternName?: string): Match {
       // todo: make a proper error...
       return Match.Fail(scope).pushError(
         "E_EMPTY_MODULE",
-        `A module with no rules was run (${module.moduleUrl})`,
+        `A module with no rules was run (${module.moduleUrl.href})`,
         scope,
         scope,
       );
     } else {
       return Match.Fail(scope).pushError(
         "E_MODULE_MAIN",
-        `A module (${module.moduleUrl}) does not contain main rule [${
+        `A module (${module.moduleUrl.href}) does not contain main rule [${
           patternName ?? "Main"
         }]`,
         scope,

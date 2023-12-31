@@ -1,32 +1,36 @@
-import { tests } from "../../test.ts";
+import { Input } from "../../input.ts";
+import { moduleDeclarationTest } from "../../test.ts";
 import { DeclarationKind } from "../declarations/declaration.kind.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
-tests(() => [
-  {
-    id: "REFERENCE00",
-    trace: true,
-    description: "can reference other pattern",
-    module: () => ({
-      kind: DeclarationKind.Module,
-      imports: [],
-      rules: [
-        {
-          kind: DeclarationKind.Rule,
-          name: "A",
-          pattern: { kind: PatternKind.Equal, value: "a" },
+Deno.test("runtime.patterns.reference", async (t) => {
+  await t.step({
+    name: "REFERENCE00",
+    fn: moduleDeclarationTest({
+      moduleUrl: import.meta.url,
+      declarations: {
+        [import.meta.url]: {
+          kind: DeclarationKind.Module,
+          imports: [],
+          rules: [
+            {
+              kind: DeclarationKind.Rule,
+              name: "A",
+              pattern: { kind: PatternKind.Equal, value: "a" },
+            },
+            {
+              kind: DeclarationKind.Rule,
+              name: "Main",
+              pattern: {
+                kind: PatternKind.Reference,
+                name: "A",
+              },
+            },
+          ],
         },
-        {
-          kind: DeclarationKind.Rule,
-          name: "Main",
-          pattern: {
-            kind: PatternKind.Reference,
-            name: "A",
-          },
-        },
-      ],
+      },
+      input: Input.From("a"),
+      value: "a",
     }),
-    input: "a",
-    value: "a",
-  },
-]);
+  });
+});

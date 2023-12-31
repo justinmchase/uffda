@@ -1,7 +1,5 @@
 import { black } from "std/fmt/colors.ts";
 import { Match } from "../match.ts";
-import { Module, Rule } from "./modules/mod.ts";
-import { StackFrame } from "./stack/frame.ts";
 import { Scope } from "./scope.ts";
 
 export enum RuntimeErrorCode {

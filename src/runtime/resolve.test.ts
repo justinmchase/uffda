@@ -1,94 +1,81 @@
-import { assertEquals } from "std/testing/asserts.ts";
-import { dirname, fromFileUrl } from "std/path/mod.ts";
+import { assertEquals } from "std/assert/mod.ts";
 import { Resolver } from "./resolve.ts";
-
-const MODULE_DIR = dirname(fromFileUrl(import.meta.url));
-const pathNormalizationTests = [
-  ["./test.uff", "/var/test/mod.ts", "file:///var/test/test.uff"],
-  ["./test.uff", "file:///var/test.uff", "file:///var/test.uff"],
-  ["./test.uff", "http://example.com/mod.ts", "http://example.com/test.uff"],
-  ["./test.uff", "http://test.com/x/mod.js", "http://test.com/x/test.uff"],
-  ["/var/example/test.uff", "/var/test/mod.ts", "file:///var/example/test.uff"],
-  [
-    "file:///var/example/test.uff",
-    "file:///var/test/mod.uff",
-    "file:///var/example/test.uff",
-  ],
-  [
-    "http://example.com/test.uff",
-    "http://test.com/mod.js",
-    "http://example.com/test.uff",
-  ],
-];
 
 const readPermissions = await Deno.permissions.query({ name: "read" });
 if (readPermissions.state === "granted") {
-  pathNormalizationTests.forEach(([moduleUrl, parentPath, expectedPath], i) => {
-    Deno.test({
-      name: `NORM${i.toString().padStart(2, "0")}`,
-      fn: () => {
-        const resolved = Resolver.normalizeModulePath(moduleUrl, parentPath);
-        assertEquals(resolved, expectedPath);
-      },
-    });
-  });
-
   Deno.test({
     name: "RESOLVE00",
     fn: async () => {
-      const resolver = new Resolver({ moduleUrl: import.meta.url });
-      const resolved = await resolver.load("./resolvers/test.module.json");
+      const resolver = new Resolver();
+      const resolved = await resolver.import(
+        new URL("./resolvers/test.module.json", import.meta.url),
+      );
       assertEquals(
-        resolved.moduleUrl,
-        `file://${MODULE_DIR}/resolvers/test.module.json`,
+        [...resolved.rules.keys()],
+        ["A", "B"],
       );
     },
   });
+
   Deno.test({
     name: "RESOLVE01",
     fn: async () => {
-      const resolver = new Resolver({ moduleUrl: import.meta.url });
-      const resolved = await resolver.load("./resolvers/test.module.js");
+      const resolver = new Resolver();
+      const resolved = await resolver.import(
+        new URL("./resolvers/test.module.js", import.meta.url),
+      );
       assertEquals(
-        resolved.moduleUrl,
-        `file://${MODULE_DIR}/resolvers/test.module.js`,
+        [...resolved.rules.keys()],
+        ["A", "B"],
       );
     },
   });
+
   Deno.test({
     name: "RESOLVE02",
     fn: async () => {
-      const resolver = new Resolver({ moduleUrl: import.meta.url });
-      const resolved = await resolver.load("./resolvers/test0.module.ts");
+      const resolver = new Resolver();
+      const resolved = await resolver.import(
+        new URL("./resolvers/test0.module.ts", import.meta.url),
+      );
       assertEquals(
-        resolved.moduleUrl,
-        `file://${MODULE_DIR}/resolvers/test0.module.ts`,
+        [...resolved.rules.keys()],
+        ["A", "B"],
       );
     },
   });
+
   Deno.test({
     name: "RESOLVE03",
     fn: async () => {
-      const resolver = new Resolver({ moduleUrl: import.meta.url });
-      const resolved = await resolver.load("./resolvers/test0.module.ts");
+      const resolver = new Resolver();
+      const resolved = await resolver.import(
+        new URL("./resolvers/test1.module.ts", import.meta.url),
+      );
       assertEquals(
-        resolved.moduleUrl,
-        `file://${MODULE_DIR}/resolvers/test0.module.ts`,
+        [...resolved.rules.keys()],
+        [],
+      );
+      assertEquals(
+        [...resolved.imports.get("A")!.module.rules.keys()],
+        ["A", "B"],
       );
     },
   });
+
   Deno.test({
     name: "RESOLVE04",
     fn: async () => {
-      const resolver = new Resolver({ moduleUrl: import.meta.url });
-      const resolved = await resolver.load("./resolvers/test1.module.ts");
-      assertEquals(
-        resolved.moduleUrl,
-        `file://${MODULE_DIR}/resolvers/test1.module.ts`,
+      const resolver = new Resolver();
+      const t1 = await resolver.import(
+        new URL("./resolvers/test1.module.ts", import.meta.url),
+      );
+      const t2 = await resolver.import(
+        new URL("./resolvers/test2.module.ts", import.meta.url),
       );
       assertEquals(
-        resolved.imports.get("A")?.module.moduleUrl,
-        `file://${MODULE_DIR}/resolvers/test0.module.ts`,
+        t1.imports.get("A")?.module,
+        t2.imports.get("A")?.module,
       );
     },
   });

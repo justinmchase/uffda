@@ -1,4 +1,3 @@
-import { assert } from "std/testing/asserts.ts";
 import { Match, MatchError } from "../../match.ts";
 import { Scope } from "../scope.ts";
 import { match } from "../match.ts";
@@ -7,13 +6,24 @@ import { ISlicePattern } from "./pattern.ts";
 export function slice(args: ISlicePattern, scope: Scope) {
   const { min, max, pattern } = args;
   if (min != null) {
-    assert(min >= 0, `min must be 0 or greater but is ${min}`);
-    assert((min % 1) === 0, `min must be an integer but is ${min}`);
+    if (min < 0) throw new Error(`min must be 0 or greater but is ${min}`);
+    if (isNaN(min)) throw new Error(`min must be a number but is NaN`);
+    if ((min % 1) !== 0) {
+      throw new Error(`min must be an integer but is ${min}`);
+    }
   }
 
   if (max != null) {
-    assert(max >= 0, `max must be 0 or greater but is ${max}`);
-    assert((max % 1) === 0, `max must be an integer but is ${max}`);
+    if (max < 0) throw new Error(`max must be 0 or greater but is ${max}`);
+    if (min != null && max < min) {
+      throw new Error(
+        `max must be greater than or equal to min but is ${max} < ${min}`,
+      );
+    }
+    if (isNaN(max)) throw new Error(`max must be a number but is NaN`);
+    if (max !== Number.POSITIVE_INFINITY && (max % 1) !== 0) {
+      throw new Error(`max must be an integer but is ${max}`);
+    }
   }
 
   if (scope.options.trace) {

@@ -3,12 +3,12 @@ import { IModuleResolver } from "./resolver.ts";
 
 export class JsonResolver implements IModuleResolver {
   public readonly extension = ".json";
-  async resolveModule(moduleUrl: string): Promise<IModuleDeclaration> {
+  async resolveModule(moduleUrl: URL): Promise<IModuleDeclaration> {
     const json = await this.fetchContent(moduleUrl);
     return await JSON.parse(json);
   }
 
-  async fetchContent(moduleUrl: string) {
+  async fetchContent(moduleUrl: URL) {
     const url = new URL(moduleUrl);
     if (url.protocol === "file:") {
       return await Deno.readTextFile(url.pathname);

@@ -129,7 +129,7 @@ const testData: (
     name: "x",
     value: {
       kind: ModuleKind.Module,
-      moduleUrl: import.meta.url,
+      moduleUrl: new URL(import.meta.url),
       imports: new Map(),
       rules: new Map(),
     },

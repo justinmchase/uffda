@@ -1,5 +1,5 @@
 import { brightBlack, brightCyan, brightMagenta, red } from "std/fmt/colors.ts";
-import { assert, assertRejects, assertThrows, equal } from "std/assert/mod.ts";
+import { assert, assertThrows, equal } from "std/assert/mod.ts";
 import { Scope } from "./runtime/scope.ts";
 import { Match } from "./match.ts";
 import { match } from "./runtime/match.ts";
@@ -8,7 +8,7 @@ import { Pattern } from "./runtime/patterns/pattern.ts";
 import { Expression } from "./runtime/expressions/expression.ts";
 import { IModuleDeclaration } from "./runtime/declarations/module.ts";
 import { Resolver, run } from "./mod.ts";
-import { Module, Special } from "./runtime/modules/mod.ts";
+import { Special } from "./runtime/modules/mod.ts";
 import { Input } from "./input.ts";
 
 interface ITest {
@@ -18,13 +18,6 @@ interface ITest {
   only?: boolean;
   trace?: boolean;
   future?: boolean;
-}
-
-interface IModuleDeclarationTest extends ITest {
-  input?: Iterable<unknown>;
-  moduleUrl?: string;
-  main?: string;
-  module: () => IModuleDeclaration;
 }
 
 interface IPatternTest extends ITest {
@@ -56,14 +49,6 @@ interface IExpressionResults {
   result?: unknown;
 }
 
-interface IModuleDeclarationResults {
-  throws?: false;
-  value?: unknown;
-  specials?: Record<string, Module>;
-  matched?: boolean;
-  done?: boolean;
-}
-
 type PatternTest =
   & ITest
   & (
@@ -76,11 +61,6 @@ type PatternTest =
       & (
         | IThrows
         | IExpressionResults
-      )
-    | IModuleDeclarationTest
-      & (
-        | IThrows
-        | IModuleDeclarationResults
       )
   );
 
@@ -95,14 +75,6 @@ export function isPatternTest(value: unknown): value is IPatternTest {
   if (typeof value !== "object") return false;
   const t = value as IPatternTest;
   return typeof t.pattern === "function";
-}
-export function isModuleDeclarationTest(
-  value: unknown,
-): value is IModuleDeclarationTest {
-  if (value == null) return false;
-  if (typeof value !== "object") return false;
-  const t = value as IModuleDeclarationTest;
-  return typeof t.module == "function";
 }
 
 export function tests(group: () => PatternTest[]) {
@@ -126,7 +98,7 @@ export function tests(group: () => PatternTest[]) {
         s
       )
         .join(" "),
-      fn: async () => {
+      fn: () => {
         if (isPatternTest(test)) {
           const { pattern } = test;
           if (test.throws) {
@@ -142,9 +114,8 @@ export function tests(group: () => PatternTest[]) {
                 matched = true,
                 done = true,
                 trace,
-                moduleUrl = import.meta.url,
               } = test;
-              const resolver = new Resolver({ moduleUrl, trace });
+              const resolver = new Resolver({ trace });
               const specials = new Map(Object.entries(test.specials ?? {}));
               const p = pattern();
               const s = new Scope(
@@ -235,87 +206,6 @@ export function tests(group: () => PatternTest[]) {
               console.log(
                 `${red("error")}: ${
                   JSON.stringify({ name, message, metadata }, null, 2)
-                }`,
-              );
-              throw err;
-            }
-          }
-        } else if (isModuleDeclarationTest(test)) {
-          const { module, input, moduleUrl = import.meta.url } = test;
-          const resolver = new Resolver({ moduleUrl });
-          const moduleDeclaration = module();
-          if (test.throws) {
-            await assertRejects(
-              async () => {
-                const main = await resolver.load(moduleUrl, moduleDeclaration);
-                const scope = new Scope(
-                  main,
-                  undefined,
-                  undefined,
-                  new Input(input ?? []),
-                  undefined,
-                  undefined,
-                  { resolver },
-                );
-                run(scope, test.main);
-              },
-              "Module was expected to throw",
-            );
-          } else {
-            try {
-              const { value, done = true, matched = true, trace } = test;
-              const main = await resolver.load(moduleUrl, moduleDeclaration);
-              const specials = new Map(Object.entries(test.specials ?? {}));
-              const scope = new Scope(
-                main,
-                undefined,
-                undefined,
-                new Input(input ?? []),
-                undefined,
-                undefined,
-                {
-                  trace,
-                  specials,
-                  resolver,
-                },
-              );
-              const m = run(scope, test.main);
-              const e = m.errors.map((e) => ({
-                name: e.name,
-                message: e.message,
-                start: e.start.stream.path.toString(),
-                end: e.end.stream.path.toString(),
-              }));
-              const actual = {
-                matched: m.matched,
-                done: m.done,
-                errors: e,
-                value: m.value,
-              };
-              const expected = {
-                matched,
-                done,
-                errors,
-                value,
-              };
-              assert(
-                equal(actual, expected),
-                `Module failed to run:\n` +
-                  `expected: ${
-                    Deno.inspect(expected, { colors: true, depth: 10 })
-                  }\n` +
-                  `actual: ${
-                    Deno.inspect(actual, { colors: true, depth: 10 })
-                  }\n`,
-              );
-            } catch (err) {
-              const { name, message, stack: _stack, ...rest } = err;
-              console.log(
-                `${red("error")}: ${
-                  Deno.inspect({ name, message, ...rest }, {
-                    colors: true,
-                    depth: 3,
-                  })
                 }`,
               );
               throw err;
@@ -422,6 +312,78 @@ export function patternTest(options: PatternTestOptions) {
     );
     assert(
       equal(m.done, done),
+      `Pattern was ${done ? "" : "not "}expected to be done`,
+    );
+  };
+}
+
+type ModuleDeclarationTestOptions = {
+  moduleUrl: string;
+  declarations?: Record<string, IModuleDeclaration>;
+  input?: Input;
+  variables?: Map<string, unknown>;
+  value?: unknown;
+  errors?: { name: string; message: string; start: string; end: string }[];
+  matched?: boolean;
+  done?: boolean;
+};
+export function moduleDeclarationTest(options: ModuleDeclarationTestOptions) {
+  const {
+    moduleUrl,
+    declarations,
+    input,
+    variables,
+    value,
+    matched = true,
+    done = true,
+    errors = [],
+  } = options;
+  return async () => {
+    const resolver = new Resolver({ declarations });
+    const module = await resolver.import(new URL(moduleUrl));
+    const scope = new Scope(
+      module,
+      undefined,
+      variables,
+      input,
+      undefined,
+      undefined,
+      {
+        resolver,
+      },
+    );
+
+    const match = run(scope);
+    const e = match.errors.map(({ name, message, start, end }) => ({
+      name,
+      message,
+      start: start.stream.path.toString(),
+      end: end.stream.path.toString(),
+    }));
+    assert(
+      equal(e, errors),
+      `Pattern had unexpected errors\n` +
+        `expected errors: ${
+          Deno.inspect(errors, { colors: true, depth: 10 })
+        }\n` +
+        `  actual errors: ${Deno.inspect(e, { colors: true, depth: 10 })}\n`,
+    );
+    assert(
+      equal(match.value, value),
+      `Pattern matched value did not equal expected value\n` +
+        `expected value: ${
+          Deno.inspect(value, { colors: true, depth: 10 })
+        }\n` +
+        `  actual value: ${
+          Deno.inspect(match.value, { colors: true, depth: 10 })
+        }`,
+    );
+    assert(
+      equal(match.matched, matched),
+      `Pattern was ${matched ? "" : "not "}expected to match`,
+    );
+    assert(
+      equal(match.done, done),
       `Pattern was ${done ? "" : "not "}expected to be done`,
     );
   };

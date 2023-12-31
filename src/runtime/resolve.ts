@@ -1,19 +1,11 @@
-import {
-  dirname,
-  extname,
-  fromFileUrl,
-  normalize,
-  resolve,
-} from "std/path/mod.ts";
+import { extname } from "std/path/mod.ts";
 import { DeclarationKind, IModuleDeclaration } from "./declarations/mod.ts";
 import { Module, ModuleKind } from "./modules/mod.ts";
 import { IModuleResolvers } from "./resolvers/resolver.ts";
 import { ImportResolver, JsonResolver } from "./resolvers/mod.ts";
 
 export interface IResolverOptions {
-  moduleUrl?: string;
-  modules?: Map<string, Module>;
-  declarations?: Map<string, IModuleDeclaration>;
+  declarations?: Record<string, IModuleDeclaration>;
   resolvers?: IModuleResolvers;
   trace?: boolean;
 }
@@ -25,60 +17,33 @@ export class Resolver {
     [".js"]: new ImportResolver(),
   };
 
-  private readonly moduleUrl: string;
-  private readonly modules: Map<string, Module>;
+  private readonly modules = new Map<string, Module>();
   private readonly declarations: Map<string, IModuleDeclaration>;
   private readonly resolvers: IModuleResolvers;
   private readonly trace: boolean;
   constructor(opts?: IResolverOptions) {
     const {
-      moduleUrl = import.meta.url,
-      modules = new Map<string, Module>(),
       declarations = new Map<string, IModuleDeclaration>(),
       resolvers = Resolver.DefaultResolvers,
       trace = false,
     } = opts ?? {};
-    this.moduleUrl = moduleUrl;
-    this.modules = modules;
-    this.declarations = declarations;
+    this.declarations = new Map(Object.entries(declarations));
     this.resolvers = resolvers;
     this.trace = trace;
   }
 
-  private async resolveImport(normalizedModuleUrl: string): Promise<Module> {
-    if (this.modules.has(normalizedModuleUrl)) {
-      return this.modules.get(normalizedModuleUrl)!;
-    } else {
-      const moduleDeclaration = await this.resolve(normalizedModuleUrl);
-      return await this.resolveModule(normalizedModuleUrl, moduleDeclaration);
-    }
-  }
-
-  private async resolveModule(
-    normalizedModuleUrl: string,
-    moduleDeclaration: IModuleDeclaration,
-  ): Promise<Module> {
-    if (this.trace) {
-      // todo: improve the logging here.
-      console.log(`resolving module ${normalizedModuleUrl}...`);
-    }
-    if (this.modules.has(normalizedModuleUrl)) {
-      return this.modules.get(normalizedModuleUrl)!;
+  public async import(moduleUrl: URL): Promise<Module> {
+    if (this.modules.has(moduleUrl.href)) {
+      return this.modules.get(moduleUrl.href)!;
     } else {
       const module: Module = {
         kind: ModuleKind.Module,
-        moduleUrl: normalizedModuleUrl,
+        moduleUrl,
         imports: new Map(),
         rules: new Map(),
       };
-      this.modules.set(normalizedModuleUrl, module);
-
-      if (!moduleDeclaration) {
-        console.log({
-          normalizedModuleUrl,
-          moduleDeclaration,
-        });
-      }
+      this.modules.set(moduleUrl.href, module);
+      const moduleDeclaration = await this.importModule(moduleUrl);
       for (const { name, pattern } of moduleDeclaration.rules) {
         module.rules.set(name, {
           kind: ModuleKind.Rule,
@@ -88,15 +53,20 @@ export class Resolver {
         });
       }
       for (const i of moduleDeclaration.imports) {
-        const importModuleUrl = Resolver.normalizeModulePath(
-          i.moduleUrl,
-          normalizedModuleUrl,
-        );
-        const importedModule = i.kind === DeclarationKind.NativeImport
-          ? typeof i.module === "function"
-            ? await this.resolveModule(importModuleUrl, i.module())
-            : await this.resolveModule(importModuleUrl, i.module)
-          : await this.resolveImport(importModuleUrl);
+        const resolvedModuleUrl = new URL(i.moduleUrl, moduleUrl);
+        if (
+          i.kind === DeclarationKind.NativeImport &&
+          !this.declarations.has(resolvedModuleUrl.href)
+        ) {
+          const importedModuleDeclaration = typeof i.module === "function"
+            ? i.module()
+            : i.module;
+          this.declarations.set(
+            resolvedModuleUrl.href,
+            importedModuleDeclaration,
+          );
+        }
+        const importedModule = await this.import(resolvedModuleUrl);
         for (const name of i.names) {
           module.imports.set(name, {
             kind: ModuleKind.Import,
@@ -109,80 +79,23 @@ export class Resolver {
     }
   }
 
-  public async load(
-    moduleUrl: string,
-    moduleDeclaration?: IModuleDeclaration,
-  ): Promise<Module> {
+  private async importModule(moduleUrl: URL): Promise<IModuleDeclaration> {
     if (this.trace) {
       // todo: improve the logging here.
-      console.log(`loading ${moduleUrl}...`);
+      console.log(`resolving ${moduleUrl.href}...`);
     }
-    const normalizedModuleUrl = Resolver.normalizeModulePath(
-      moduleUrl,
-      this.moduleUrl,
-    );
-    if (moduleDeclaration) {
-      return await this.resolveModule(normalizedModuleUrl, moduleDeclaration);
+    if (this.declarations.has(moduleUrl.href)) {
+      return this.declarations.get(moduleUrl.href)!;
     } else {
-      return await this.resolveImport(normalizedModuleUrl);
-    }
-  }
-
-  public async resolve(moduleUrl: string): Promise<IModuleDeclaration> {
-    if (this.trace) {
-      // todo: improve the logging here.
-      console.log(`resolving ${moduleUrl}...`);
-    }
-    const normalizedModuleUrl = Resolver.normalizeModulePath(
-      moduleUrl,
-      this.moduleUrl,
-    );
-
-    if (this.declarations.has(normalizedModuleUrl)) {
-      return this.declarations.get(normalizedModuleUrl)!;
-    } else {
-      const ext = extname(normalizedModuleUrl);
+      const ext = extname(moduleUrl.pathname);
       const resolver = this.resolvers[ext];
       if (!resolver) {
         // todo: Use proper errors
         throw new Error(`Unable to resolve file of unknown extension ${ext}`);
       }
-      const declaration = await resolver.resolveModule(normalizedModuleUrl);
-      this.declarations.set(normalizedModuleUrl, declaration);
+      const declaration = await resolver.resolveModule(moduleUrl);
+      this.declarations.set(moduleUrl.href, declaration);
       return declaration;
     }
-  }
-
-  public static normalizeModulePath(moduleUrl: string, parentPath: string) {
-    const { origin, pathname } = (() => {
-      if (moduleUrl.match(/^file:\/\//)) {
-        return {
-          origin: "file://",
-          pathname: moduleUrl,
-        };
-      } else if (parentPath.match(/^file:\/\//)) {
-        return {
-          origin: "file://",
-          pathname: resolve(
-            dirname(fromFileUrl(parentPath)),
-            moduleUrl,
-          ),
-        };
-      } else if (parentPath.match(/^\w+:\/\//)) {
-        const parentUrl = new URL(parentPath);
-        const parsedUrl = new URL(moduleUrl, parentUrl);
-        const { origin, pathname } = parsedUrl;
-        return { origin, pathname };
-      } else {
-        return {
-          origin: "file://",
-          pathname: resolve(dirname(parentPath), moduleUrl),
-        };
-      }
-    })();
-
-    const normalizedModulePath = normalize(pathname);
-    const absoluteModulePath = new URL(normalizedModulePath, origin).toString();
-    return absoluteModulePath;
   }
 }

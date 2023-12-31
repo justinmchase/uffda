@@ -1,5 +1,5 @@
 import { Input } from "../../input.ts";
-import { patternTest, tests } from "../../test.ts";
+import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { ValueType } from "./pattern.ts";
 
