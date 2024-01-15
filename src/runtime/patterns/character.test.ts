@@ -25,14 +25,6 @@ Deno.test("patterns/character", async (t) => {
       input: Input.From("1"),
       matched: false,
       done: false,
-      errors: [
-        {
-          name: "E_EXPECTED",
-          message: "/L/",
-          start: "[0]",
-          end: "[0]",
-        },
-      ],
     }),
   });
   await t.step({

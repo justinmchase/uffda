@@ -5,6 +5,7 @@ export function any(scope: Scope): Match {
   if (!scope.stream.done) {
     const end = scope.stream.next();
     return Match.Ok(scope, scope.withInput(end), end.value);
+  } else {
+    return Match.Fail(scope);
   }
-  return Match.Fail(scope);
 }

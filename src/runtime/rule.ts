@@ -42,6 +42,7 @@ export function rule(rule: Rule, scope: Scope): Match {
 
 function grow(rule: Rule, scope: Scope): Match {
   const { pattern } = rule;
+
   let m = Match.Fail(scope);
   const start = scope.stream;
   const memo = scope.memos.get(start.path, rule);

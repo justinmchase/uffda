@@ -12,23 +12,12 @@ export function variable(args: IVariablePattern, scope: Scope): Match {
   }
 
   if (scope.variables.has(name)) {
-    return Match.Fail(scope)
-      .pushError(
-        "E_VAR_REDECLARE",
-        `Cannot redeclare variable '${name}'`,
-        scope,
-        scope,
-      );
+    return Match.Fail(scope);
   }
 
   const m = match(pattern, scope);
   if (m.matched) {
-    return Match.Ok(
-      scope,
-      m.end.addVariables({ [name]: m.value }),
-      m.value,
-      m.errors,
-    );
+    return m.addVariable(name, m.value);
   } else {
     return m;
   }

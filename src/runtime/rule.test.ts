@@ -1,10 +1,9 @@
-import { assertEquals } from "std/assert/mod.ts";
+import { assertEquals, assertStrictEquals } from "std/assert/mod.ts";
 import { moduleDeclarationTest } from "../test.ts";
 import { DeclarationKind } from "./declarations/declaration.kind.ts";
 import { ExpressionKind } from "./expressions/expression.kind.ts";
 import { PatternKind } from "./patterns/pattern.kind.ts";
 import { Input } from "../input.ts";
-import { assertUndefined } from "https://deno.land/x/type@0.2.0/mod.ts";
 
 Deno.test("runtime.rule", async (t) => {
   await t.step({
@@ -134,7 +133,6 @@ Deno.test("runtime.rule", async (t) => {
       input: Input.From("ab"),
       matched: false,
       done: false,
-      errors: [], // todo: There should be an error reported here
     }),
   });
 
@@ -190,7 +188,9 @@ Deno.test("runtime.rule", async (t) => {
                 pattern: { kind: PatternKind.Any },
                 expression: {
                   kind: ExpressionKind.Native,
-                  fn: ({ x }: { x: undefined }) => (assertUndefined(x), true),
+                  fn: (
+                    { x }: { x: undefined },
+                  ) => (assertStrictEquals(x, undefined), true),
                 },
               },
             },
@@ -260,7 +260,7 @@ Deno.test("runtime.rule", async (t) => {
                 expression: {
                   kind: ExpressionKind.Native,
                   fn: ({ x, _ }: { x: undefined; _: unknown }) => (
-                    assertUndefined(x), _
+                    assertStrictEquals(x, undefined), _
                   ),
                 },
               },
@@ -291,7 +291,7 @@ Deno.test("runtime.rule", async (t) => {
                 expression: {
                   kind: ExpressionKind.Native,
                   fn: ({ x }: { x: undefined }) => (
-                    assertUndefined(x), true
+                    assertStrictEquals(x, undefined), true
                   ),
                 },
               },

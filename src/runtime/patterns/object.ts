@@ -1,5 +1,5 @@
 import { brightBlack, underline } from "std/fmt/colors.ts";
-import { Match, MatchError } from "../../match.ts";
+import { Match } from "../../match.ts";
 import { Scope } from "../scope.ts";
 import { Input } from "../../input.ts";
 import { match } from "../match.ts";
@@ -11,7 +11,6 @@ export function object(args: IObjectPattern, scope: Scope) {
     const next = scope.stream.next();
     if (next.value && typeof next.value === "object") {
       let end = scope;
-      const errors: MatchError[] = [];
       const objValue = next.value as Record<PropertyKey, unknown>;
       for (const [key, pattern] of Object.entries<Pattern>(keys)) {
         // The pattern will define whether or not its an error for this field to exist or not
@@ -31,8 +30,6 @@ export function object(args: IObjectPattern, scope: Scope) {
         );
         const propertyScope = end.withInput(propertyStream);
         const m = match(pattern, propertyScope);
-        errors.push(...m.errors);
-
         if (!m.matched) {
           // todo: Look for a better way to bubble up an error when an object is completely missing an expected property.
           // Possibly alter the definition of the `!` on the property to be handled in this pattern rather than just wrapping
@@ -41,12 +38,14 @@ export function object(args: IObjectPattern, scope: Scope) {
         }
 
         if (!m.end.stream.next().done) {
-          return Match.Incomplete(m.start, m.end, m.value, errors);
+          return Match.Fail(scope);
         }
 
         end = end.addVariables(m.end.variables);
       }
-      return Match.Ok(scope, end.withInput(next), next.value, errors);
+      return Match.Ok(scope, end.withInput(next), next.value);
+    } else {
+      return Match.Fail(scope);
     }
   }
   return Match.Fail(scope);

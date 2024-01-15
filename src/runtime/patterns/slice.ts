@@ -1,4 +1,4 @@
-import { Match, MatchError } from "../../match.ts";
+import { Match } from "../../match.ts";
 import { Scope } from "../scope.ts";
 import { match } from "../match.ts";
 import { ISlicePattern } from "./pattern.ts";
@@ -33,7 +33,6 @@ export function slice(args: ISlicePattern, scope: Scope) {
 
   let end: Scope = scope;
   const matches: unknown[] = [];
-  const errors: MatchError[] = [];
   while (true) {
     const m = match(pattern, end);
 
@@ -42,8 +41,6 @@ export function slice(args: ISlicePattern, scope: Scope) {
       break;
     }
 
-    errors.push(...m.errors);
-
     // This prevents infinite recursion for Patterns which succeed
     // but consume no input, such as `not` or `ok`
     //
@@ -51,7 +48,11 @@ export function slice(args: ISlicePattern, scope: Scope) {
     //
     // This will consume no input but it will succeed
     if (m.end.stream.path.compareTo(end.stream.path) <= 0) {
-      break;
+      // If we've specified a minimum, then match at least that many times
+      // before breaking, else match once then break
+      if (matches.length >= (min ? min : 1)) {
+        break;
+      }
     }
 
     end = m.end;
@@ -62,7 +63,7 @@ export function slice(args: ISlicePattern, scope: Scope) {
   }
 
   if (!min || matches.length >= min) {
-    return Match.Ok(scope, end, matches, errors);
+    return Match.Ok(scope, end, matches);
   } else {
     return Match.Fail(scope);
   }

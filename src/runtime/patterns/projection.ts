@@ -18,12 +18,9 @@ export function projection(args: IProjectionPattern, scope: Scope) {
     console.log(`${indent} [${black(Deno.inspect(value))}]`);
   }
 
-  // m.setSpan(value)
-  // scope.setSpan(value, m.end);
   return Match.Ok(
     scope,
     m.end,
     value,
-    m.errors,
   );
 }

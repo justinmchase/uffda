@@ -26,7 +26,6 @@ import {
   type,
   variable,
 } from "./patterns/mod.ts";
-import { RuntimeError, RuntimeErrorCode } from "./runtime.error.ts";
 
 export function match(pattern: Pattern, scope: Scope): Match {
   switch (pattern.kind) {
@@ -75,16 +74,6 @@ export function match(pattern: Pattern, scope: Scope): Match {
     case PatternKind.Variable:
       return variable(pattern, scope);
     default:
-      throw new RuntimeError(
-        RuntimeErrorCode.UnknownPatternKind,
-        scope,
-        Match.Fail(scope),
-        {
-          metadata: {
-            // deno-lint-ignore no-explicit-any
-            kind: (pattern as any).kind,
-          },
-        },
-      );
+      return Match.Fail(scope);
   }
 }

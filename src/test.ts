@@ -14,7 +14,6 @@ import { Input } from "./input.ts";
 interface ITest {
   id: string;
   description?: string;
-  errors?: { name?: string; message?: string; start: string; end: string }[];
   only?: boolean;
   trace?: boolean;
   future?: boolean;
@@ -85,7 +84,6 @@ export function tests(group: () => PatternTest[]) {
       description,
       only,
       future,
-      errors = [],
     } = test;
     const futureMessage = future ? ` (${brightCyan("future")})` : "";
     const desc = description ??
@@ -132,22 +130,6 @@ export function tests(group: () => PatternTest[]) {
                 },
               );
               const m = match(p, s);
-              const e = m.errors.map((e) => ({
-                name: e.name,
-                message: e.message,
-                start: e.start.stream.path.toString(),
-                end: e.end.stream.path.toString(),
-              }));
-              assert(
-                equal(e, errors),
-                `Pattern had unexpected errors\n` +
-                  `expected errors: ${
-                    Deno.inspect(errors, { colors: true, depth: 10 })
-                  }\n` +
-                  `  actual errors: ${
-                    Deno.inspect(e, { colors: true, depth: 10 })
-                  }\n`,
-              );
               assert(
                 equal(m.value, value),
                 `Pattern matched value did not equal expected value\n` +
@@ -262,7 +244,6 @@ type PatternTestOptions = {
   input?: Input;
   variables?: Map<string, unknown>;
   value?: unknown;
-  errors?: { name: string; message: string; start: string; end: string }[];
   matched?: boolean;
   done?: boolean;
 };
@@ -272,7 +253,6 @@ export function patternTest(options: PatternTestOptions) {
     input = Input.Default(),
     variables = new Map(),
     value = undefined,
-    errors = [],
     matched = true,
     done = true,
   } = options;
@@ -284,20 +264,6 @@ export function patternTest(options: PatternTestOptions) {
       input,
     );
     const m = await match(pattern, s);
-    const e = m.errors.map((e) => ({
-      name: e.name,
-      message: e.message,
-      start: e.start.stream.path.toString(),
-      end: e.end.stream.path.toString(),
-    }));
-    assert(
-      equal(e, errors),
-      `Pattern had unexpected errors\n` +
-        `expected errors: ${
-          Deno.inspect(errors, { colors: true, depth: 10 })
-        }\n` +
-        `  actual errors: ${Deno.inspect(e, { colors: true, depth: 10 })}\n`,
-    );
     assert(
       equal(m.value, value),
       `Pattern matched value did not equal expected value\n` +
@@ -323,7 +289,6 @@ type ModuleDeclarationTestOptions = {
   input?: Input;
   variables?: Map<string, unknown>;
   value?: unknown;
-  errors?: { name: string; message: string; start: string; end: string }[];
   matched?: boolean;
   done?: boolean;
 };
@@ -336,7 +301,6 @@ export function moduleDeclarationTest(options: ModuleDeclarationTestOptions) {
     value,
     matched = true,
     done = true,
-    errors = [],
   } = options;
   return async () => {
     const resolver = new Resolver({ declarations });
@@ -354,20 +318,6 @@ export function moduleDeclarationTest(options: ModuleDeclarationTestOptions) {
     );
 
     const match = run(scope);
-    const e = match.errors.map(({ name, message, start, end }) => ({
-      name,
-      message,
-      start: start.stream.path.toString(),
-      end: end.stream.path.toString(),
-    }));
-    assert(
-      equal(e, errors),
-      `Pattern had unexpected errors\n` +
-        `expected errors: ${
-          Deno.inspect(errors, { colors: true, depth: 10 })
-        }\n` +
-        `  actual errors: ${Deno.inspect(e, { colors: true, depth: 10 })}\n`,
-    );
     assert(
       equal(match.value, value),
       `Pattern matched value did not equal expected value\n` +

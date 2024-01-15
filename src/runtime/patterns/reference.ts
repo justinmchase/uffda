@@ -1,7 +1,6 @@
 import { Scope } from "../scope.ts";
 import { Match } from "../../match.ts";
 import { IReferencePattern } from "./pattern.ts";
-import { RuntimeError, RuntimeErrorCode } from "../runtime.error.ts";
 import { brightBlack, green, red } from "std/fmt/colors.ts";
 import { rule } from "../rule.ts";
 
@@ -27,15 +26,6 @@ export function reference(pattern: IReferencePattern, scope: Scope): Match {
 
     return m;
   } else {
-    throw new RuntimeError(
-      RuntimeErrorCode.PatternNotFound,
-      scope,
-      Match.Fail(scope),
-      {
-        metadata: {
-          name,
-        },
-      },
-    );
+    return Match.Fail(scope);
   }
 }

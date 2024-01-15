@@ -13,6 +13,10 @@ export class Memos {
     return this.memos.get(path)?.get(rule);
   }
 
+  public at(path: Path): Map<Rule, { match: Match }> | undefined {
+    return this.memos.get(path);
+  }
+
   public lookup(
     value: unknown,
   ): { match: Match; rule: Rule; path: Path } | undefined {

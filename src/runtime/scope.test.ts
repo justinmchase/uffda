@@ -1,7 +1,7 @@
 import {
   assertEquals,
+  assertFalse,
   assertObjectMatch,
-  assertThrows,
 } from "std/assert/mod.ts";
 import { match } from "./match.ts";
 import { Pattern, PatternKind } from "./patterns/mod.ts";
@@ -44,15 +44,14 @@ Deno.test("runtime.scope", async (t) => {
         value: "a",
       };
       const result = await match(pattern, scope);
-      const { matched, done, errors } = result;
+      const { matched, done } = result;
       const { start, end } = result.span();
       // It matched the full pattern but didn't consume all of the output
-      assertEquals({ matched, done, start, end, errors }, {
+      assertEquals({ matched, done, start, end }, {
         matched: true,
         done: false,
         start: 0,
         end: 1,
-        errors: [],
       });
     },
   });
@@ -83,7 +82,7 @@ Deno.test("runtime.scope", async (t) => {
 
   await t.step({
     name: "SCOPE03",
-    fn: async () => {
+    fn: () => {
       // patterns can't resolve global references
       const scope = Scope.Default()
         .withInput(Input.From(""))
@@ -96,7 +95,8 @@ Deno.test("runtime.scope", async (t) => {
         kind: PatternKind.Reference,
         name: "x",
       };
-      await assertThrows(() => match(pattern, scope));
+      const { matched } = match(pattern, scope);
+      assertFalse(matched);
     },
   });
 
@@ -133,18 +133,11 @@ Deno.test("runtime.scope", async (t) => {
       const result = await match(pattern, scope);
       const { matched, done } = result;
       const { start, end } = result.span();
-      const errors = result.errors.map((err) => ({
-        name: err.name,
-        message: err.message,
-      }));
-      assertEquals({ matched, done, errors, start, end }, {
+      assertEquals({ matched, done, start, end }, {
         matched: false,
         done: false,
         start: 0,
         end: 0,
-        errors: [
-          { name: "E_EXPECTED", message: "x" },
-        ],
       });
     },
   });

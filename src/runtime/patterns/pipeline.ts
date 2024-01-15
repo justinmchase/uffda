@@ -47,8 +47,8 @@ export function pipeline(args: IPipelinePattern, scope: Scope) {
       return result;
     }
 
-    if (i > 0 && !result.end.stream.next().done || result.errors.length) {
-      return Match.Incomplete(scope, result.end, result.value, result.errors);
+    if (i > 0 && !result.end.stream.next().done) {
+      return Match.Fail(scope);
     }
   }
 

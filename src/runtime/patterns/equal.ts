@@ -21,13 +21,5 @@ export function equal(args: IEqualPattern, scope: Scope): Match {
       return Match.Ok(scope, scope.withInput(next), next.value);
     }
   }
-
-  return Match
-    .Fail(scope)
-    .pushError(
-      "E_EXPECTED",
-      `${value}`,
-      scope,
-      scope,
-    );
+  return Match.Fail(scope);
 }

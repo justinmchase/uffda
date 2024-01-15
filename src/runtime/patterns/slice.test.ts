@@ -1,170 +1,203 @@
-import { tests } from "../../test.ts";
+import { Input } from "../../input.ts";
+import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { ValueType } from "./pattern.ts";
 
-tests(() => [
-  {
-    id: "SLICE00",
-    description: "zero or more matches ok without infinite looping",
-    pattern: () => ({
-      kind: PatternKind.Slice,
+Deno.test("runtime.patterns.slice", async (t) => {
+  await t.step({
+    name: "SLICE00",
+    fn: patternTest({
       pattern: {
-        kind: PatternKind.Ok,
+        kind: PatternKind.Slice,
+        pattern: {
+          kind: PatternKind.Ok,
+        },
       },
+      input: Input.From("abc"),
+      done: false,
+      value: [undefined],
     }),
-    input: "",
-    value: [],
-  },
-  {
-    id: "SLICE01",
-    description: "zero or more matches empty set",
-    pattern: () => ({
-      kind: PatternKind.Slice,
+  });
+  await t.step({
+    name: "SLICE01",
+    fn: patternTest({
       pattern: {
-        kind: PatternKind.Any,
+        kind: PatternKind.Slice,
+        pattern: {
+          kind: PatternKind.Any,
+        },
       },
+      input: Input.From(""),
+      value: [],
     }),
-    input: "",
-    value: [],
-  },
-  {
-    id: "SLICE02",
-    description: "zero or more matches a single element",
-    pattern: () => ({
-      kind: PatternKind.Slice,
-      pattern: { kind: PatternKind.Type, type: ValueType.String },
+  });
+
+  await t.step({
+    name: "SLICE02",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Slice,
+        pattern: { kind: PatternKind.Type, type: ValueType.String },
+      },
+      input: Input.From("a"),
+      value: ["a"],
     }),
-    input: "a",
-    value: ["a"],
-  },
-  {
-    id: "SLICE03",
-    description: "zero or more matches multiple elements",
-    pattern: () => ({
-      kind: PatternKind.Slice,
-      pattern: { kind: PatternKind.Type, type: ValueType.String },
+  });
+
+  await t.step({
+    name: "SLICE03",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Slice,
+        pattern: { kind: PatternKind.Type, type: ValueType.String },
+      },
+      input: Input.From("abc"),
+      value: ["a", "b", "c"],
     }),
-    input: "abc",
-    value: ["a", "b", "c"],
-  },
-  {
-    id: "SLICE04",
-    description: "zero or more not matching is still a success",
-    pattern: () => ({
-      kind: PatternKind.Then,
-      patterns: [
-        {
-          kind: PatternKind.Slice,
-          pattern: {
-            kind: PatternKind.RegExp,
-            pattern: /a/,
+  });
+  await t.step({
+    name: "SLICE04",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Slice,
+            pattern: {
+              kind: PatternKind.RegExp,
+              pattern: /a/,
+            },
           },
-        },
-        { kind: PatternKind.Any },
-      ],
+          { kind: PatternKind.Any },
+        ],
+      },
+      input: Input.From("b"),
+      value: [[], "b"],
     }),
-    input: "b",
-    value: [[], "b"],
-  },
-  {
-    id: "SLICE05",
-    description: "zero or more not matching at end is still a success",
-    pattern: () => ({
-      kind: PatternKind.Then,
-      patterns: [
-        { kind: PatternKind.Any },
-        {
-          kind: PatternKind.Slice,
-          pattern: {
-            kind: PatternKind.RegExp,
-            pattern: /a/,
+  });
+  await t.step({
+    name: "SLICE05",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          { kind: PatternKind.Any },
+          {
+            kind: PatternKind.Slice,
+            pattern: {
+              kind: PatternKind.RegExp,
+              pattern: /a/,
+            },
           },
+        ],
+      },
+      input: Input.From("a"),
+      value: ["a", []],
+    }),
+  });
+  await t.step({
+    name: "SLICE06",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Slice,
+        pattern: { kind: PatternKind.Any },
+        min: 1,
+      },
+      input: Input.From(""),
+      matched: false,
+    }),
+  });
+  await t.step({
+    name: "SLICE07",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Slice,
+        pattern: { kind: PatternKind.Ok },
+        min: 3,
+      },
+      input: Input.From("a"),
+      value: [undefined, undefined, undefined],
+      done: false,
+    }),
+  });
+  await t.step({
+    name: "SLICE08",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Slice,
+        pattern: {
+          kind: PatternKind.Type,
+          type: ValueType.String,
         },
-      ],
+        min: 1,
+      },
+      input: Input.From("a"),
+      value: ["a"],
     }),
-    input: "a",
-    value: ["a", []],
-  },
-  {
-    id: "SLICE06",
-    description: "one or more fails ok without infinite looping",
-    pattern: () => ({
-      kind: PatternKind.Slice,
-      pattern: { kind: PatternKind.Any },
-      min: 1,
+  });
+  await t.step({
+    name: "SLICE09",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Slice,
+        pattern: {
+          kind: PatternKind.Type,
+          type: ValueType.String,
+        },
+        min: 3,
+      },
+      input: Input.From("abc"),
+      value: ["a", "b", "c"],
     }),
-    input: "",
-    matched: false,
-  },
-  {
-    id: "SLICE07",
-    description: "one or more fails on empty set",
-    pattern: () => ({
-      kind: PatternKind.Slice,
-      pattern: { kind: PatternKind.Any },
-      min: 1,
+  });
+  await t.step({
+    name: "SLICE10",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Slice,
+        pattern: {
+          kind: PatternKind.Type,
+          type: ValueType.String,
+        },
+        min: 3,
+        max: 3,
+      },
+      input: Input.From("abc"),
+      value: ["a", "b", "c"],
     }),
-    input: "",
-    matched: false,
-  },
-  {
-    id: "SLICE08",
-    description: "one or more matches one item",
-    pattern: () => ({
-      kind: PatternKind.Slice,
-      pattern: { kind: PatternKind.Type, type: ValueType.String },
-      min: 1,
+  });
+  await t.step({
+    name: "SLICE11",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Slice,
+        pattern: {
+          kind: PatternKind.Type,
+          type: ValueType.String,
+        },
+        min: 3,
+        max: 3,
+      },
+      input: Input.From("ab"),
+      matched: false,
+      done: false,
     }),
-    input: "a",
-    value: ["a"],
-  },
-  {
-    id: "SLICE09",
-    description: "one or more matches multiple items",
-    pattern: () => ({
-      kind: PatternKind.Slice,
-      pattern: { kind: PatternKind.Type, type: ValueType.String },
-      min: 1,
+  });
+  await t.step({
+    name: "SLICE12",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Slice,
+        pattern: {
+          kind: PatternKind.Type,
+          type: ValueType.String,
+        },
+        min: 3,
+        max: 3,
+      },
+      input: Input.From("abcd"),
+      value: ["a", "b", "c"],
+      done: false,
     }),
-    input: "abc",
-    value: ["a", "b", "c"],
-  },
-  {
-    id: "SLICE10",
-    description: "exact number matches exactly",
-    pattern: () => ({
-      kind: PatternKind.Slice,
-      pattern: { kind: PatternKind.Type, type: ValueType.String },
-      min: 3,
-      max: 3,
-    }),
-    input: "abc",
-    value: ["a", "b", "c"],
-  },
-  {
-    id: "SLICE11",
-    description: "exact number fails with not enough items",
-    pattern: () => ({
-      kind: PatternKind.Slice,
-      pattern: { kind: PatternKind.Type, type: ValueType.String },
-      min: 3,
-      max: 3,
-    }),
-    input: "ab",
-    matched: false,
-    done: false,
-  },
-  {
-    id: "SLICE12",
-    description: "exact number does not read too many items",
-    pattern: () => ({
-      kind: PatternKind.Slice,
-      pattern: { kind: PatternKind.Type, type: ValueType.String },
-      min: 3,
-      max: 3,
-    }),
-    input: "abcd",
-    value: ["a", "b", "c"],
-    done: false,
-  },
-]);
+  });
+});

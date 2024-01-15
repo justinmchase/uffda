@@ -61,14 +61,6 @@ Deno.test("runtime.patterns.special", async (t) => {
         value: mod1,
       },
       matched: false,
-      errors: [
-        {
-          name: "E_EMPTY_MODULE",
-          message: "A module with no rules was run (file:///t1.ts)",
-          start: "[0]",
-          end: "[0]",
-        },
-      ],
     }),
   });
 });

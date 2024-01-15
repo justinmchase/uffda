@@ -1,7 +1,3 @@
-// import { tests } from "../../test.ts";
-// import { PatternKind } from "./pattern.kind.ts";
-// import { ExpressionKind } from "../expressions/mod.ts";
-
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { ExpressionKind } from "../expressions/mod.ts";
@@ -147,14 +143,6 @@ Deno.test("runtime.patterns.variable", async (t) => {
       input: Input.From([1, 2]),
       matched: false,
       done: false,
-      errors: [
-        {
-          name: "E_VAR_REDECLARE",
-          message: "Cannot redeclare variable 'x'",
-          start: "[1]",
-          end: "[1]",
-        },
-      ],
       pattern: {
         kind: PatternKind.Then,
         patterns: [

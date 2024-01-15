@@ -25,7 +25,7 @@ export function lambda(
       );
     }
 
-    if (!result.end.stream.next().done) {
+    if (!result.done || !result.end.stream.next().done) {
       throw new RuntimeError(
         RuntimeErrorCode.StreamIncomplete,
         scope,
@@ -33,7 +33,7 @@ export function lambda(
       );
     }
 
-    if (result.errors.length) {
+    if (!result.matched) {
       throw new RuntimeError(
         RuntimeErrorCode.MatchError,
         scope,

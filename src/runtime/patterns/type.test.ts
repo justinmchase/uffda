@@ -15,19 +15,51 @@ Deno.test("runtime.patterns.type", async (t) => {
     { input: Symbol(), type: ValueType.Symbol, success: true },
     { input: undefined, type: ValueType.Undefined, success: true },
 
-    { input: null, type: ValueType.BigInt, success: false },
-    { input: null, type: ValueType.Boolean, success: false },
-    { input: null, type: ValueType.Function, success: false },
-    { input: null, type: ValueType.Number, success: false },
-    { input: undefined, type: ValueType.Object, success: false },
-    { input: null, type: ValueType.String, success: false },
-    { input: null, type: ValueType.Symbol, success: false },
-    { input: null, type: ValueType.Undefined, success: false },
+    {
+      input: null,
+      type: ValueType.BigInt,
+      success: false,
+    },
+    {
+      input: null,
+      type: ValueType.Boolean,
+      success: false,
+    },
+    {
+      input: null,
+      type: ValueType.Function,
+      success: false,
+    },
+    {
+      input: null,
+      type: ValueType.Number,
+      success: false,
+    },
+    {
+      input: undefined,
+      type: ValueType.Object,
+      success: false,
+    },
+    {
+      input: null,
+      type: ValueType.String,
+      success: false,
+    },
+    {
+      input: null,
+      type: ValueType.Symbol,
+      success: false,
+    },
+    {
+      input: null,
+      type: ValueType.Undefined,
+      success: false,
+    },
   ];
 
   for (const { input, type, success } of typeTests) {
     await t.step({
-      name: `${type}: ${success}`,
+      name: `${String(input)} is ${type}: ${success}`,
       fn: patternTest({
         pattern: { kind: PatternKind.Type, type },
         input: Input.From([input]),

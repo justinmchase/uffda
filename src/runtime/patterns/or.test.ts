@@ -50,10 +50,6 @@ tests(() => [
     input: [3],
     matched: false,
     done: false,
-    errors: [
-      { name: "E_EXPECTED", message: "1", start: "[0]", end: "[0]" },
-      { name: "E_EXPECTED", message: "2", start: "[0]", end: "[0]" },
-    ],
   },
   {
     id: "OR04",
@@ -100,10 +96,5 @@ tests(() => [
     input: [1, 2, 3],
     matched: false,
     done: false,
-    errors: [
-      { name: "E_EXPECTED", message: "0", start: "[0]", end: "[0]" },
-      { name: "E_EXPECTED", message: "0", start: "[1]", end: "[1]" },
-      { name: "E_EXPECTED", message: "0", start: "[2]", end: "[2]" },
-    ],
   },
 ]);

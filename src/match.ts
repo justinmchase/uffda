@@ -1,11 +1,11 @@
 import { Scope } from "./runtime/scope.ts";
 import { Span } from "./span.ts";
 
-function indexOf(t: (m: Match) => Scope, scope: Scope): number {
+type Traceable = { start: Scope; end: Scope };
+function indexOf(t: (traceable: Traceable) => Scope, scope: Scope): number {
   const stream = scope.stream;
   const index = stream.index;
   const value = stream.value;
-
   const memo = scope.memos.lookup(value);
   if (!memo) {
     return index;
@@ -18,41 +18,27 @@ function indexOf(t: (m: Match) => Scope, scope: Scope): number {
   return indexOf(t, t(match));
 }
 
-export class MatchError {
-  constructor(
-    public readonly name: string,
-    public readonly message: string,
-    public readonly start: Scope,
-    public readonly end: Scope,
-  ) {}
-
-  public trace() {
-    return {
-      start: indexOf((m) => m.start, this.start),
-      end: indexOf((m) => m.end, this.end),
-    };
-  }
+export function trace(traceable: Traceable) {
+  return {
+    start: indexOf((m) => m.start, traceable.start),
+    end: indexOf((m) => m.end, traceable.end),
+  };
 }
 
 export class Match {
   public static readonly Default = (scope: Scope = Scope.Default()) =>
-    new Match(true, false, scope, scope, undefined, []);
+    new Match(true, false, scope, scope, undefined);
   public static readonly Ok = (
     start: Scope,
     end: Scope,
     value: unknown,
-    errors: MatchError[] = [],
-  ) => new Match(true, false, start, end, value, errors);
-  public static readonly LR = (scope: Scope) =>
-    new Match(false, true, scope, scope, undefined, []);
+  ) => new Match(true, false, start, end, value);
   public static readonly Fail = (scope: Scope) =>
-    new Match(false, false, scope, scope, undefined, []);
-  public static readonly Incomplete = (
-    start: Scope,
-    end: Scope,
-    value: unknown,
-    errors: MatchError[],
-  ) => new Match(false, false, start, end, value, errors);
+    new Match(false, false, scope, scope, undefined);
+
+  // Indicates Left Recursion is detected
+  public static readonly LR = (scope: Scope) =>
+    new Match(false, true, scope, scope, undefined);
 
   constructor(
     public readonly matched: boolean,
@@ -60,7 +46,6 @@ export class Match {
     public readonly start: Scope,
     public readonly end: Scope,
     public readonly value: unknown,
-    public readonly errors: MatchError[],
   ) {
   }
 
@@ -81,7 +66,6 @@ export class Match {
       this.start,
       this.end,
       this.value,
-      this.errors,
     );
   }
 
@@ -92,37 +76,16 @@ export class Match {
       this.start,
       this.end,
       value,
-      this.errors,
     );
   }
 
-  public pushError(kind: string, message: string, start: Scope, end: Scope) {
+  public addVariable(name: string, value: unknown) {
     return new Match(
       this.matched,
       this.isLr,
       this.start,
-      this.end,
+      this.end.addVariables({ [name]: value }),
       this.value,
-      [
-        ...this.errors,
-        new MatchError(
-          kind,
-          message,
-          start,
-          end,
-        ),
-      ],
-    );
-  }
-
-  public setErrors(errors: MatchError[]) {
-    return new Match(
-      this.matched,
-      this.isLr,
-      this.start,
-      this.end,
-      this.value,
-      [...errors],
     );
   }
 
@@ -133,7 +96,6 @@ export class Match {
       this.start,
       this.end.pop(scope),
       this.value,
-      this.errors,
     );
   }
 
@@ -144,7 +106,6 @@ export class Match {
       this.start,
       end,
       this.value,
-      this.errors,
     );
   }
 }

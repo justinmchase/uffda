@@ -1,6 +1,5 @@
 import { Scope } from "../scope.ts";
 import { Match } from "../../match.ts";
-import { RuntimeError, RuntimeErrorCode } from "../runtime.error.ts";
 import { brightBlack } from "std/fmt/colors.ts";
 import { ISpecialPattern } from "./pattern.ts";
 import { run } from "../run.ts";
@@ -17,16 +16,7 @@ export function special(pattern: ISpecialPattern, scope: Scope): Match {
 
     if (typeof value === "function") {
       // todo: Theoretically we could support this with a native pattern, where they pass in a function as a pattern which does custom handling.
-      throw new RuntimeError(
-        RuntimeErrorCode.UnknownSpecialKind,
-        scope,
-        Match.Fail(scope),
-        {
-          metadata: {
-            name,
-          },
-        },
-      );
+      return Match.Fail(scope);
     }
 
     switch (value.kind) {
@@ -36,25 +26,9 @@ export function special(pattern: ISpecialPattern, scope: Scope): Match {
         return rule(value, scope);
       // todo: Theoretically we could support any pattern object being inlined directly if we wanted.
       default:
-        return Match.Fail(scope).pushError(
-          "UnknownSpecialKind",
-          `A special reference has an uknown kind ${value.kind}`,
-          scope,
-          scope,
-        );
+        return Match.Fail(scope);
     }
   }
 
-  // todo: Maybe a more specific error is needed but this should never happen without a bad ast object
-  throw new RuntimeError(
-    RuntimeErrorCode.UnknownReference,
-    scope,
-    Match.Fail(scope),
-    {
-      metadata: {
-        name,
-        value,
-      },
-    },
-  );
+  return Match.Fail(scope);
 }

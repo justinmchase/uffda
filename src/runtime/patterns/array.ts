@@ -28,20 +28,15 @@ export function array(args: IArrayPattern, scope: Scope) {
       );
       const innerScope = scope.withInput(innerStream);
       const m = match(pattern, innerScope);
-
       if (!m.matched) {
         return Match.Fail(scope);
       }
 
       if (!m.end.stream.done) {
-        return Match.Incomplete(m.start, m.end, m.value, m.errors);
+        return Match.Fail(scope);
       }
 
       return m;
-    } else {
-      if (scope.options.trace) {
-        console.log(`* [${typeof next.value}]: <non-iterable>`);
-      }
     }
   }
   return Match.Fail(scope);
