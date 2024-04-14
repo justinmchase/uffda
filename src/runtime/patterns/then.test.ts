@@ -1,77 +1,88 @@
-import { tests } from "../../test.ts";
+import { Input } from "../../input.ts";
+import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
-tests(() => [
-  {
-    id: "THEN00",
-    description: "no patterns is success",
-    pattern: () => ({
-      kind: PatternKind.Then,
-      patterns: [],
+await Deno.test("patterns/end", async (t) => {
+  await t.step({
+    name: "THEN00",
+    fn: patternTest({
+      pattern: { kind: PatternKind.Then, patterns: [] },
+      input: Input.From([]),
+      value: [],
     }),
-    input: [],
-    value: [],
-  },
-  {
-    id: "THEN01",
-    description: "reads one pattern successfuly",
-    pattern: () => ({
-      kind: PatternKind.Then,
-      patterns: [{ kind: PatternKind.Any }],
+  });
+
+  await t.step({
+    name: "THEN01",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [{ kind: PatternKind.Any }],
+      },
+      input: Input.From("a"),
+      value: ["a"],
     }),
-    input: "a",
-    value: ["a"],
-  },
-  {
-    id: "THEN02",
-    description: "reads two patterns successfuly",
-    pattern: () => ({
-      kind: PatternKind.Then,
-      patterns: [
-        { kind: PatternKind.Any },
-        { kind: PatternKind.Any },
-      ],
+  });
+
+  await t.step({
+    name: "THEN02",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          { kind: PatternKind.Any },
+          { kind: PatternKind.Any },
+        ],
+      },
+      input: Input.From("ab"),
+      value: ["a", "b"],
     }),
-    input: "ab",
-    value: ["a", "b"],
-  },
-  {
-    id: "THEN03",
-    description: "does not read too much",
-    pattern: () => ({
-      kind: PatternKind.Then,
-      patterns: [
-        { kind: PatternKind.Any },
-        { kind: PatternKind.Any },
-      ],
+  });
+
+  await t.step({
+    name: "THEN03",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          { kind: PatternKind.Any },
+          { kind: PatternKind.Any },
+        ],
+      },
+      input: Input.From("abc"),
+      value: ["a", "b"],
+      done: false,
     }),
-    input: "abc",
-    value: ["a", "b"],
-    done: false,
-  },
-  {
-    id: "THEN04",
-    description: "it doesnt fail if at the end",
-    pattern: () => ({
-      kind: PatternKind.Then,
-      patterns: [
-        { kind: PatternKind.Ok },
-      ],
+  });
+
+  // It deson't fail if at the end
+  await t.step({
+    name: "THEN04",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          { kind: PatternKind.Ok },
+        ],
+      },
+      input: Input.From([]),
+      value: [undefined],
     }),
-    input: [],
-    value: [undefined],
-  },
-  {
-    id: "THEN05",
-    description: "it fails if it reaches the end",
-    pattern: () => ({
-      kind: PatternKind.Then,
-      patterns: [
-        { kind: PatternKind.Any },
-        { kind: PatternKind.Any },
-      ],
+  });
+
+  // If inner pattern fails it propagates the fail
+  await t.step({
+    name: "THEN05",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          { kind: PatternKind.Any },
+          { kind: PatternKind.Any },
+        ],
+      },
+      input: Input.From("a"),
+      matched: false,
     }),
-    input: "a",
-    matched: false,
-  },
-]);
+  });
+});

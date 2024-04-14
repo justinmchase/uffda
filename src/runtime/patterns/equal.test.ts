@@ -1,36 +1,42 @@
-import { tests } from "../../test.ts";
+import { Input } from "../../input.ts";
+import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
-tests(() => [
-  {
-    id: "EQUAL00",
-    description: "matches exact string",
-    pattern: () => ({
-      kind: PatternKind.Equal,
+await Deno.test("runtime/patterns/equal", async (t) => {
+  await t.step({
+    name: "EQUAL00",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Equal,
+        value: "a",
+      },
+      input: Input.From("a"),
       value: "a",
     }),
-    input: "a",
-    value: "a",
-  },
-  {
-    id: "EQUAL01",
-    description: "matches exact number",
-    pattern: () => ({
-      kind: PatternKind.Equal,
+  });
+
+  await t.step({
+    name: "EQUAL00",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Equal,
+        value: 7,
+      },
+      input: Input.From([7]),
       value: 7,
     }),
-    input: [7],
-    value: 7,
-  },
-  {
-    id: "EQUAL02",
-    description: "fails to match wrong number",
-    pattern: () => ({
-      kind: PatternKind.Equal,
-      value: 7,
+  });
+
+  await t.step({
+    name: "EQUAL00",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Equal,
+        value: 7,
+      },
+      input: Input.From([11]),
+      matched: false,
+      done: false,
     }),
-    input: [11],
-    matched: false,
-    done: false,
-  },
-]);
+  });
+});

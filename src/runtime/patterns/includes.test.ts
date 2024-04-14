@@ -1,36 +1,42 @@
-import { tests } from "../../test.ts";
+import { Input } from "../../input.ts";
+import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
-tests(() => [
-  {
-    id: "INCLUDES00",
-    description: "can match single included value",
-    pattern: () => ({
-      kind: PatternKind.Includes,
-      values: ["x"],
+await Deno.test("runtime/patterns/includes", async (t) => {
+  await t.step({
+    name: "INCLUDES00",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Includes,
+        values: ["x"],
+      },
+      input: Input.From("x"),
+      value: "x",
     }),
-    input: "x",
-    value: "x",
-  },
-  {
-    id: "INCLUDES01",
-    description: "can match single included value in set of values",
-    pattern: () => ({
-      kind: PatternKind.Includes,
-      values: ["x", "y", "z"],
+  });
+
+  await t.step({
+    name: "INCLUDES01",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Includes,
+        values: ["x", "y", "z"],
+      },
+      input: Input.From("y"),
+      value: "y",
     }),
-    input: "y",
-    value: "y",
-  },
-  {
-    id: "INCLUDES02",
-    description: "fails to match if not in set of values",
-    pattern: () => ({
-      kind: PatternKind.Includes,
-      values: ["x", "y", "z"],
+  });
+
+  await t.step({
+    name: "INCLUDES02",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Includes,
+        values: ["x", "y", "z"],
+      },
+      input: Input.From("a"),
+      matched: false,
+      done: false,
     }),
-    input: "a",
-    matched: false,
-    done: false,
-  },
-]);
+  });
+});

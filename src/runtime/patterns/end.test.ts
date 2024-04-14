@@ -1,28 +1,38 @@
-import { tests } from "../../test.ts";
+import { Input } from "../../mod.ts";
+import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
-tests(() => [
-  {
-    id: "END00",
-    pattern: () => ({ kind: PatternKind.End }),
-    input: [],
-  },
-  {
-    id: "END01",
-    pattern: () => ({ kind: PatternKind.End }),
-    input: "a",
-    matched: false,
-    done: false,
-  },
-  {
-    id: "END02",
-    pattern: () => ({
-      kind: PatternKind.Not,
-      pattern: {
-        kind: PatternKind.End,
-      },
+await Deno.test("runtime/patterns/end", async (t) => {
+  await t.step({
+    name: "END00",
+    fn: patternTest({
+      pattern: { kind: PatternKind.End },
+      input: Input.From([]),
     }),
-    input: "a",
-    done: false,
-  },
-]);
+  });
+
+  await t.step({
+    name: "END01",
+    fn: patternTest({
+      pattern: { kind: PatternKind.End },
+      input: Input.From("a"),
+      matched: false,
+      done: false,
+    }),
+  });
+
+  await t.step({
+    name: "END02",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Not,
+        pattern: {
+          kind: PatternKind.End,
+        },
+      },
+      input: Input.From("a"),
+      matched: true,
+      done: false,
+    }),
+  });
+});

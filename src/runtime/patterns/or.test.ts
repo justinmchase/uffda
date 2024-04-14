@@ -1,100 +1,112 @@
-import { tests } from "../../test.ts";
+import { Input } from "../../input.ts";
+import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
-tests(() => [
-  {
-    id: "OR00",
-    description: "requires at least one pattern to match",
-    pattern: () => ({
-      kind: PatternKind.Or,
-      patterns: [],
+await Deno.test("runtime/patterns/or", async (t) => {
+  await t.step({
+    name: "OR00",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Or,
+        patterns: [],
+      },
+      input: Input.From([]),
+      matched: false,
     }),
-    input: [],
-    matched: false,
-  },
-  {
-    id: "OR01",
-    description: "matches with a single pattern",
-    pattern: () => ({
-      kind: PatternKind.Or,
-      patterns: [
-        { kind: PatternKind.Any },
-      ],
+  });
+
+  await t.step({
+    name: "OR01",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Or,
+        patterns: [
+          { kind: PatternKind.Any },
+        ],
+      },
+      input: Input.From("a"),
+      value: "a",
     }),
-    input: "a",
-    value: "a",
-  },
-  {
-    id: "OR02",
-    description: "matches second pattern",
-    pattern: () => ({
-      kind: PatternKind.Or,
-      patterns: [
-        { kind: PatternKind.Equal, value: 1 },
-        { kind: PatternKind.Equal, value: 2 },
-      ],
+  });
+
+  await t.step({
+    name: "OR02",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Or,
+        patterns: [
+          { kind: PatternKind.Equal, value: 1 },
+          { kind: PatternKind.Equal, value: 2 },
+        ],
+      },
+      input: Input.From([2]),
+      value: 2,
     }),
-    input: [2],
-    value: 2,
-  },
-  {
-    id: "OR03",
-    description: "fails if no pattern matches",
-    pattern: () => ({
-      kind: PatternKind.Or,
-      patterns: [
-        { kind: PatternKind.Equal, value: 1 },
-        { kind: PatternKind.Equal, value: 2 },
-      ],
+  });
+
+  await t.step({
+    name: "OR03",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Or,
+        patterns: [
+          { kind: PatternKind.Equal, value: 1 },
+          { kind: PatternKind.Equal, value: 2 },
+        ],
+      },
+      input: Input.From([3]),
+      matched: false,
+      done: false,
     }),
-    input: [3],
-    matched: false,
-    done: false,
-  },
-  {
-    id: "OR04",
-    description: "consumes only a single input",
-    pattern: () => ({
-      kind: PatternKind.Or,
-      patterns: [
-        { kind: PatternKind.Equal, value: 1 },
-      ],
+  });
+
+  await t.step({
+    name: "OR04",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Or,
+        patterns: [
+          { kind: PatternKind.Equal, value: 1 },
+        ],
+      },
+      input: Input.From([1, 2]),
+      value: 1,
+      done: false,
     }),
-    input: [1, 2],
-    value: 1,
-    done: false,
-  },
-  {
-    id: "OR05",
-    description: "fails if no pattern matches",
-    pattern: () => ({
-      kind: PatternKind.Or,
-      patterns: [
-        {
-          kind: PatternKind.Then,
-          patterns: [
-            { kind: PatternKind.Equal, value: 0 },
-          ],
-        },
-        {
-          kind: PatternKind.Then,
-          patterns: [
-            { kind: PatternKind.Equal, value: 1 },
-            { kind: PatternKind.Equal, value: 0 },
-          ],
-        },
-        {
-          kind: PatternKind.Then,
-          patterns: [
-            { kind: PatternKind.Equal, value: 1 },
-            { kind: PatternKind.Equal, value: 2 },
-            { kind: PatternKind.Equal, value: 0 },
-          ],
-        },
-      ],
+  });
+
+  await t.step({
+    name: "OR05",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Or,
+        patterns: [
+          {
+            kind: PatternKind.Then,
+            patterns: [
+              { kind: PatternKind.Equal, value: 0 },
+            ],
+          },
+          {
+            kind: PatternKind.Then,
+            patterns: [
+              { kind: PatternKind.Equal, value: 1 },
+              { kind: PatternKind.Equal, value: 0 },
+            ],
+          },
+          {
+            kind: PatternKind.Then,
+            patterns: [
+              { kind: PatternKind.Equal, value: 1 },
+              { kind: PatternKind.Equal, value: 2 },
+              { kind: PatternKind.Equal, value: 0 },
+            ],
+          },
+        ],
+      },
+      input: Input.From([1, 2, 3]),
+      matched: false,
+      done: false,
     }),
-    input: [1, 2, 3],
-    matched: false,
-    done: false,
-  },
-]);
+  });
+});

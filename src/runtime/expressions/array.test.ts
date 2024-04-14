@@ -1,246 +1,259 @@
 import { Match } from "../../match.ts";
 import { Scope } from "../scope.ts";
-import { tests } from "../../test.ts";
+import { expressionTest } from "../../test.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 
-tests(() => [
-  {
-    id: "RUNTIME.ARRAY00",
-    match: Match.Default(
-      Scope.Default().addVariables({
-        a: 7,
-        b: 11,
-      }),
-    ),
-    description: "a:[] b:[] -> [a b]",
-    result: [7, 11],
-    expression: () => ({
-      kind: ExpressionKind.Array,
-      expressions: [
-        {
-          kind: ExpressionKind.ArrayElement,
-          expression: {
-            kind: ExpressionKind.Reference,
-            name: "a",
+await Deno.test("runtime/expressions/array", async (t) => {
+  await t.step({
+    name: "RUNTIME.ARRAY00",
+    fn: expressionTest({
+      expression: {
+        kind: ExpressionKind.Array,
+        expressions: [
+          {
+            kind: ExpressionKind.ArrayElement,
+            expression: {
+              kind: ExpressionKind.Reference,
+              name: "a",
+            },
           },
-        },
-        {
-          kind: ExpressionKind.ArrayElement,
-          expression: {
-            kind: ExpressionKind.Reference,
-            name: "b",
+          {
+            kind: ExpressionKind.ArrayElement,
+            expression: {
+              kind: ExpressionKind.Reference,
+              name: "b",
+            },
           },
-        },
-      ],
+        ],
+      },
+      match: Match.Default(
+        Scope.Default().addVariables({
+          a: 7,
+          b: 11,
+        }),
+      ),
+      result: [7, 11],
     }),
-  },
-  {
-    id: "RUNTIME.ARRAY01",
-    match: Match.Default(Scope.Default()),
-    description: "[]",
-    result: [],
-    expression: () => ({
-      kind: ExpressionKind.Array,
-      expressions: [],
+  });
+
+  await t.step({
+    name: "RUNTIME.ARRAY01",
+    fn: expressionTest({
+      expression: {
+        kind: ExpressionKind.Array,
+        expressions: [],
+      },
+      match: Match.Default(Scope.Default()),
+      result: [],
     }),
-  },
-  {
-    id: "RUNTIME.ARRAY02",
-    match: Match.Default(
-      Scope.Default().addVariables({
-        a: [],
-      }),
-    ),
-    description: "a:[] -> [a]",
-    result: [[[]]],
-    expression: () => ({
-      kind: ExpressionKind.Array,
-      expressions: [
-        {
-          kind: ExpressionKind.ArrayElement,
-          expression: {
-            kind: ExpressionKind.Array,
-            expressions: [
-              {
-                kind: ExpressionKind.ArrayElement,
-                expression: {
-                  kind: ExpressionKind.Reference,
-                  name: "a",
+  });
+
+  await t.step({
+    name: "RUNTIME.ARRAY02",
+    fn: expressionTest({
+      expression: {
+        kind: ExpressionKind.Array,
+        expressions: [
+          {
+            kind: ExpressionKind.ArrayElement,
+            expression: {
+              kind: ExpressionKind.Array,
+              expressions: [
+                {
+                  kind: ExpressionKind.ArrayElement,
+                  expression: {
+                    kind: ExpressionKind.Reference,
+                    name: "a",
+                  },
                 },
-              },
-            ],
+              ],
+            },
           },
-        },
-      ],
+        ],
+      },
+      match: Match.Default(
+        Scope.Default().addVariables({
+          a: [],
+        }),
+      ),
+      result: [[[]]],
     }),
-  },
-  {
-    id: "RUNTIME.ARRAY03",
-    match: Match.Default(Scope.Default()),
-    description: "[...[7 11]]",
-    result: [7, 11],
-    expression: () => ({
-      kind: ExpressionKind.Array,
-      expressions: [
-        {
-          kind: ExpressionKind.ArraySpread,
-          expression: {
-            kind: ExpressionKind.Array,
-            expressions: [
-              {
-                kind: ExpressionKind.ArrayElement,
-                expression: {
-                  kind: ExpressionKind.Value,
-                  value: 7,
+  });
+
+  await t.step({
+    name: "RUNTIME.ARRAY03",
+    fn: expressionTest({
+      expression: {
+        kind: ExpressionKind.Array,
+        expressions: [
+          {
+            kind: ExpressionKind.ArraySpread,
+            expression: {
+              kind: ExpressionKind.Array,
+              expressions: [
+                {
+                  kind: ExpressionKind.ArrayElement,
+                  expression: {
+                    kind: ExpressionKind.Value,
+                    value: 7,
+                  },
                 },
-              },
-              {
-                kind: ExpressionKind.ArrayElement,
-                expression: {
-                  kind: ExpressionKind.Value,
-                  value: 11,
+                {
+                  kind: ExpressionKind.ArrayElement,
+                  expression: {
+                    kind: ExpressionKind.Value,
+                    value: 11,
+                  },
                 },
-              },
-            ],
+              ],
+            },
           },
-        },
-      ],
+        ],
+      },
+      match: Match.Default(Scope.Default()),
+      result: [7, 11],
     }),
-  },
-  {
-    id: "RUNTIME.ARRAY04",
-    match: Match.Default(Scope.Default()),
-    description: "[[7 11] ...[13]]",
-    result: [[7, 11], 13],
-    expression: () => ({
-      kind: ExpressionKind.Array,
-      expressions: [
-        {
-          kind: ExpressionKind.ArrayElement,
-          expression: {
-            kind: ExpressionKind.Array,
-            expressions: [
-              {
-                kind: ExpressionKind.ArrayElement,
-                expression: {
-                  kind: ExpressionKind.Value,
-                  value: 7,
+  });
+
+  await t.step({
+    name: "RUNTIME.ARRAY04",
+    fn: expressionTest({
+      expression: {
+        kind: ExpressionKind.Array,
+        expressions: [
+          {
+            kind: ExpressionKind.ArrayElement,
+            expression: {
+              kind: ExpressionKind.Array,
+              expressions: [
+                {
+                  kind: ExpressionKind.ArrayElement,
+                  expression: {
+                    kind: ExpressionKind.Value,
+                    value: 7,
+                  },
                 },
-              },
-              {
-                kind: ExpressionKind.ArrayElement,
-                expression: {
-                  kind: ExpressionKind.Value,
-                  value: 11,
+                {
+                  kind: ExpressionKind.ArrayElement,
+                  expression: {
+                    kind: ExpressionKind.Value,
+                    value: 11,
+                  },
                 },
-              },
-            ],
+              ],
+            },
           },
-        },
-        {
-          kind: ExpressionKind.ArraySpread,
-          expression: {
-            kind: ExpressionKind.Array,
-            expressions: [
-              {
-                kind: ExpressionKind.ArrayElement,
-                expression: {
-                  kind: ExpressionKind.Value,
-                  value: 13,
+          {
+            kind: ExpressionKind.ArraySpread,
+            expression: {
+              kind: ExpressionKind.Array,
+              expressions: [
+                {
+                  kind: ExpressionKind.ArrayElement,
+                  expression: {
+                    kind: ExpressionKind.Value,
+                    value: 13,
+                  },
                 },
-              },
-            ],
+              ],
+            },
           },
-        },
-      ],
+        ],
+      },
+      match: Match.Default(Scope.Default()),
+      result: [[7, 11], 13],
     }),
-  },
-  {
-    id: "RUNTIME.ARRAY05",
-    match: Match.Default(Scope.Default()),
-    description: "[[] ...[7 11]]",
-    result: [[], 7, 11],
-    expression: () => ({
-      kind: ExpressionKind.Array,
-      expressions: [
-        {
-          kind: ExpressionKind.ArrayElement,
-          expression: {
-            kind: ExpressionKind.Value,
-            value: [],
+  });
+
+  await t.step({
+    name: "RUNTIME.ARRAY05",
+    fn: expressionTest({
+      expression: {
+        kind: ExpressionKind.Array,
+        expressions: [
+          {
+            kind: ExpressionKind.ArrayElement,
+            expression: {
+              kind: ExpressionKind.Value,
+              value: [],
+            },
           },
-        },
-        {
-          kind: ExpressionKind.ArraySpread,
-          expression: {
-            kind: ExpressionKind.Array,
-            expressions: [
-              {
-                kind: ExpressionKind.ArrayElement,
-                expression: {
-                  kind: ExpressionKind.Value,
-                  value: 7,
+          {
+            kind: ExpressionKind.ArraySpread,
+            expression: {
+              kind: ExpressionKind.Array,
+              expressions: [
+                {
+                  kind: ExpressionKind.ArrayElement,
+                  expression: {
+                    kind: ExpressionKind.Value,
+                    value: 7,
+                  },
                 },
-              },
-              {
-                kind: ExpressionKind.ArrayElement,
-                expression: {
-                  kind: ExpressionKind.Value,
-                  value: 11,
+                {
+                  kind: ExpressionKind.ArrayElement,
+                  expression: {
+                    kind: ExpressionKind.Value,
+                    value: 11,
+                  },
                 },
-              },
-            ],
+              ],
+            },
           },
-        },
-      ],
+        ],
+      },
+      match: Match.Default(Scope.Default()),
+      result: [[], 7, 11],
     }),
-  },
-  {
-    id: "RUNTIME.ARRAY06",
-    match: Match.Default(Scope.Default()),
-    description: "[...[...[7 11] 13]]",
-    result: [7, 11, 13],
-    expression: () => ({
-      kind: ExpressionKind.Array,
-      expressions: [
-        {
-          kind: ExpressionKind.ArraySpread,
-          expression: {
-            kind: ExpressionKind.Array,
-            expressions: [
-              {
-                kind: ExpressionKind.ArraySpread,
-                expression: {
-                  kind: ExpressionKind.Array,
-                  expressions: [
-                    {
-                      kind: ExpressionKind.ArrayElement,
-                      expression: {
-                        kind: ExpressionKind.Value,
-                        value: 7,
+  });
+
+  await t.step({
+    name: "RUNTIME.ARRAY06",
+    fn: expressionTest({
+      expression: {
+        kind: ExpressionKind.Array,
+        expressions: [
+          {
+            kind: ExpressionKind.ArraySpread,
+            expression: {
+              kind: ExpressionKind.Array,
+              expressions: [
+                {
+                  kind: ExpressionKind.ArraySpread,
+                  expression: {
+                    kind: ExpressionKind.Array,
+                    expressions: [
+                      {
+                        kind: ExpressionKind.ArrayElement,
+                        expression: {
+                          kind: ExpressionKind.Value,
+                          value: 7,
+                        },
                       },
-                    },
-                    {
-                      kind: ExpressionKind.ArrayElement,
-                      expression: {
-                        kind: ExpressionKind.Value,
-                        value: 11,
+                      {
+                        kind: ExpressionKind.ArrayElement,
+                        expression: {
+                          kind: ExpressionKind.Value,
+                          value: 11,
+                        },
                       },
-                    },
-                  ],
+                    ],
+                  },
                 },
-              },
-              {
-                kind: ExpressionKind.ArrayElement,
-                expression: {
-                  kind: ExpressionKind.Value,
-                  value: 13,
+                {
+                  kind: ExpressionKind.ArrayElement,
+                  expression: {
+                    kind: ExpressionKind.Value,
+                    value: 13,
+                  },
                 },
-              },
-            ],
+              ],
+            },
           },
-        },
-      ],
+        ],
+      },
+      match: Match.Default(Scope.Default()),
+      result: [7, 11, 13],
     }),
-  },
-]);
+  });
+});

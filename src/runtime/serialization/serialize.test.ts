@@ -1,4 +1,3 @@
-import { magenta } from "std/fmt/colors.ts";
 import { Declaration } from "../declarations/declaration.ts";
 import { DeclarationKind } from "../declarations/declaration.kind.ts";
 import { serialize } from "./serialize.ts";
@@ -146,13 +145,15 @@ const testData: (
   },
 ];
 
-for (let i = 0; i < testData.length; i++) {
-  const name = i.toString().padStart(2, "0");
-  const data = testData[i];
-  Deno.test({
-    name: `[${magenta(`SERIALIZE${name}`)}]`,
-    fn: () => {
-      serialize(data);
-    },
-  });
-}
+Deno.test("runtime/serialization/serialize", async (t) => {
+  for (let i = 0; i < testData.length; i++) {
+    const name = i.toString().padStart(2, "0");
+    const data = testData[i];
+    await t.step({
+      name: `SERIALIZE${name}`,
+      fn: () => {
+        serialize(data);
+      },
+    });
+  }
+});

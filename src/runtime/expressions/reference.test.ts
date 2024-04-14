@@ -1,34 +1,39 @@
 import { Match } from "../../match.ts";
 import { Scope } from "../scope.ts";
-import { tests } from "../../test.ts";
+import { expressionTest } from "../../test.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 
-tests(() => [
-  {
-    id: "REFERENCE00",
-    match: Match.Default(
-      Scope.Default().addVariables({
-        a: 7,
-      }),
-    ),
-    result: 7,
-    expression: () => ({
-      kind: ExpressionKind.Reference,
-      name: "a",
+await Deno.test("runtime/expressions/reference", async (t) => {
+  await t.step({
+    name: "REFERENCE00",
+    fn: expressionTest({
+      match: Match.Default(
+        Scope.Default().addVariables({
+          a: 7,
+        }),
+      ),
+      result: 7,
+      expression: {
+        kind: ExpressionKind.Reference,
+        name: "a",
+      },
     }),
-  },
-  {
-    id: "REFERENCE01",
-    match: Match.Default(
-      Scope.Default().addVariables({
-        a: 7,
-        b: 11,
-      }),
-    ),
-    result: 11,
-    expression: () => ({
-      kind: ExpressionKind.Reference,
-      name: "b",
+  });
+
+  await t.step({
+    name: "REFERENCE01",
+    fn: expressionTest({
+      match: Match.Default(
+        Scope.Default().addVariables({
+          a: 7,
+          b: 11,
+        }),
+      ),
+      result: 11,
+      expression: {
+        kind: ExpressionKind.Reference,
+        name: "b",
+      },
     }),
-  },
-]);
+  });
+});

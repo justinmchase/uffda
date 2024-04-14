@@ -1,15 +1,17 @@
 import { Match } from "../../match.ts";
-import { tests } from "../../test.ts";
+import { expressionTest } from "../../test.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 
-tests(() => [
-  {
-    id: "STRING00",
-    match: Match.Default(),
-    result: "abc",
-    expression: () => ({
-      kind: ExpressionKind.String,
-      value: "abc",
+await Deno.test("runtime/expressions/string", async (t) => {
+  await t.step({
+    name: "STRING00",
+    fn: expressionTest({
+      match: Match.Default(),
+      result: "abc",
+      expression: {
+        kind: ExpressionKind.String,
+        value: "abc",
+      },
     }),
-  },
-]);
+  });
+});

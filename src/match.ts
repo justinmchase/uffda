@@ -50,6 +50,7 @@ export class Match {
   }
 
   public span(): Span {
+    // todo: just look at the start/end path and get the first segment
     const start = indexOf((m) => m.start, this.start);
     const end = indexOf((m) => m.end, this.end);
     return { start, end };

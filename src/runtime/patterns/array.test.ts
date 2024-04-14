@@ -1,122 +1,138 @@
-import { tests } from "../../test.ts";
+import { Input } from "../../input.ts";
+import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { ValueType } from "./pattern.ts";
 
-tests(() => [
-  {
-    id: "ARRAY00",
-    description: "matches explicit empty array",
-    pattern: () => ({
-      kind: PatternKind.Array,
+await Deno.test("runtime/patterns/array", async (t) => {
+  await t.step({
+    name: "ARRAY00",
+    fn: patternTest({
       pattern: {
-        kind: PatternKind.Not,
-        pattern: { kind: PatternKind.Any },
+        kind: PatternKind.Array,
+        pattern: {
+          kind: PatternKind.Not,
+          pattern: { kind: PatternKind.Any },
+        },
       },
+      input: Input.From([[]]),
     }),
-    input: [[]],
-  },
-  {
-    id: "ARRAY01",
-    description: "matches array with 1 item",
-    pattern: () => ({
-      kind: PatternKind.Array,
-      pattern: { kind: PatternKind.Any },
-    }),
-    input: [["a"]],
-    value: "a",
-  },
-  {
-    id: "ARRAY02",
-    description: "matches array with 2 item",
-    pattern: () => ({
-      kind: PatternKind.Array,
-      pattern: {
-        kind: PatternKind.Then,
-        patterns: [
-          { kind: PatternKind.Any },
-          { kind: PatternKind.Any },
-        ],
-      },
-    }),
-    input: [["a", "b"]],
-    value: ["a", "b"],
-  },
-  {
-    id: "ARRAY03",
-    description: "slicing an array with 2 item matches all items",
-    pattern: () => ({
-      kind: PatternKind.Array,
-      pattern: {
-        kind: PatternKind.Slice,
-        pattern: { kind: PatternKind.Any },
-      },
-    }),
-    input: [["a", "b"]],
-    value: ["a", "b"],
-  },
-  {
-    id: "ARRAY04",
-    description: "fails if all items in array are not matched",
-    pattern: () => ({
-      kind: PatternKind.Array,
-      pattern: { kind: PatternKind.Any },
-    }),
-    input: [["a", "b"]],
-    value: undefined,
-    matched: false,
-    done: false,
-  },
-  {
-    id: "ARRAY05",
-    description: "matches array with an array",
-    pattern: () => ({
-      kind: PatternKind.Array,
+  });
+
+  await t.step({
+    name: "ARRAY01",
+    fn: patternTest({
       pattern: {
         kind: PatternKind.Array,
         pattern: { kind: PatternKind.Any },
       },
+      input: Input.From([["a"]]),
+      value: "a",
     }),
-    input: [[["a"]]],
-    value: "a",
-  },
-  {
-    id: "ARRAY06",
-    description: "match outside of array fails",
-    pattern: () => ({
-      kind: PatternKind.Array,
+  });
+
+  await t.step({
+    name: "ARRAY02",
+    fn: patternTest({
       pattern: {
-        kind: PatternKind.Then,
+        kind: PatternKind.Array,
+        pattern: {
+          kind: PatternKind.Then,
+          patterns: [
+            { kind: PatternKind.Any },
+            { kind: PatternKind.Any },
+          ],
+        },
+      },
+      input: Input.From([["a", "b"]]),
+      value: ["a", "b"],
+    }),
+  });
+
+  await t.step({
+    name: "ARRAY03",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Array,
+        pattern: {
+          kind: PatternKind.Slice,
+          pattern: { kind: PatternKind.Any },
+        },
+      },
+      input: Input.From([["a", "b"]]),
+      value: ["a", "b"],
+    }),
+  });
+
+  await t.step({
+    name: "ARRAY04",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Array,
+        pattern: { kind: PatternKind.Any },
+      },
+      input: Input.From([["a", "b"]]),
+      value: undefined,
+      matched: false,
+      done: false,
+    }),
+  });
+
+  await t.step({
+    name: "ARRAY05",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Array,
+        pattern: {
+          kind: PatternKind.Array,
+          pattern: { kind: PatternKind.Any },
+        },
+      },
+      input: Input.From([[["a"]]]),
+      value: "a",
+    }),
+  });
+
+  await t.step({
+    name: "ARRAY06",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Array,
+        pattern: {
+          kind: PatternKind.Then,
+          patterns: [
+            { kind: PatternKind.Any },
+            { kind: PatternKind.Any },
+          ],
+        },
+      },
+      input: Input.From([["a"], "b"]),
+      matched: false,
+      done: false,
+    }),
+  });
+
+  await t.step({
+    name: "ARRAY07",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.And,
         patterns: [
-          { kind: PatternKind.Any },
-          { kind: PatternKind.Any },
+          { kind: PatternKind.Type, type: ValueType.String },
+          {
+            kind: PatternKind.Array,
+            pattern: {
+              kind: PatternKind.Then,
+              patterns: [
+                { kind: PatternKind.Type, type: ValueType.String },
+                { kind: PatternKind.Type, type: ValueType.String },
+                { kind: PatternKind.Type, type: ValueType.String },
+              ],
+            },
+          },
         ],
       },
+      input: Input.From(["abc"]),
+      value: ["a", "b", "c"],
     }),
-    input: [["a"], "b"],
-    matched: false,
-    done: false,
-  },
-  {
-    id: "ARRAY07",
-    description: "can drill into strings",
-    pattern: () => ({
-      kind: PatternKind.And,
-      patterns: [
-        { kind: PatternKind.Type, type: ValueType.String },
-        {
-          kind: PatternKind.Array,
-          pattern: {
-            kind: PatternKind.Then,
-            patterns: [
-              { kind: PatternKind.Type, type: ValueType.String },
-              { kind: PatternKind.Type, type: ValueType.String },
-              { kind: PatternKind.Type, type: ValueType.String },
-            ],
-          },
-        },
-      ],
-    }),
-    input: ["abc"],
-    value: ["a", "b", "c"],
-  },
-]);
+  });
+});
