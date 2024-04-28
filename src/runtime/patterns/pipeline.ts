@@ -1,9 +1,7 @@
-import { magenta } from "std/fmt/colors.ts";
 import { Match } from "../../match.ts";
 import { Scope } from "../scope.ts";
 import { Input } from "../../input.ts";
 import { match } from "../match.ts";
-import { PatternKind } from "./pattern.kind.ts";
 import { IPipelinePattern } from "./pattern.ts";
 
 export function pipeline(args: IPipelinePattern, scope: Scope) {
@@ -32,13 +30,6 @@ export function pipeline(args: IPipelinePattern, scope: Scope) {
         result.end.stream.path.push(0),
       );
       nextScope = scope.withInput(nextStream);
-    }
-
-    if (scope.options.trace) {
-      const name = pattern.kind === PatternKind.Reference
-        ? pattern.name
-        : pattern.kind;
-      console.log(`${"ǂ".padStart(nextScope.depth)} ${magenta(name)}`);
     }
 
     nextScope = nextScope.pushPipeline(pattern);

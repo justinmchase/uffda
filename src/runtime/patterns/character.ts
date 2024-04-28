@@ -7,9 +7,6 @@ export function character(pattern: ICharacterPattern, scope: Scope): Match {
   const regexp = characterClassToRegexp(characterClass);
   if (!scope.stream.done) {
     const next = scope.stream.next();
-    if (scope.options.trace) {
-      console.log(`* ${regexp} : <${next.value}>`);
-    }
     if (typeof next.value !== "string") {
       return Match.Fail(scope, pattern);
     }

@@ -26,11 +26,6 @@ export function slice(args: ISlicePattern, scope: Scope) {
     }
   }
 
-  if (scope.options.trace) {
-    const indent = `[`.padStart(scope.depth);
-    console.log(`${indent} ${min ?? ""}:${max ?? ""} ]`);
-  }
-
   let end: Scope = scope;
   const values: unknown[] = [];
   const matches: Match[] = [];

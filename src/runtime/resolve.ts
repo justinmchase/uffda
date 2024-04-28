@@ -20,16 +20,13 @@ export class Resolver {
   private readonly modules = new Map<string, Module>();
   private readonly declarations: Map<string, IModuleDeclaration>;
   private readonly resolvers: IModuleResolvers;
-  private readonly trace: boolean;
   constructor(opts?: IResolverOptions) {
     const {
       declarations = new Map<string, IModuleDeclaration>(),
       resolvers = Resolver.DefaultResolvers,
-      trace = false,
     } = opts ?? {};
     this.declarations = new Map(Object.entries(declarations));
     this.resolvers = resolvers;
-    this.trace = trace;
   }
 
   public async import(moduleUrl: URL): Promise<Module> {
@@ -80,10 +77,6 @@ export class Resolver {
   }
 
   private async importModule(moduleUrl: URL): Promise<IModuleDeclaration> {
-    if (this.trace) {
-      // todo: improve the logging here.
-      console.log(`resolving ${moduleUrl.href}...`);
-    }
     if (this.declarations.has(moduleUrl.href)) {
       return this.declarations.get(moduleUrl.href)!;
     } else {

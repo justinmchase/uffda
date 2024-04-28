@@ -1,4 +1,3 @@
-import { brightBlack, underline } from "std/fmt/colors.ts";
 import { Match } from "../../match.ts";
 import { Scope } from "../scope.ts";
 import { Input } from "../../input.ts";
@@ -15,12 +14,6 @@ export function object(args: IObjectPattern, scope: Scope) {
       const objValue = next.value as Record<PropertyKey, unknown>;
       for (const [key, pattern] of Object.entries<Pattern>(keys)) {
         // The pattern will define whether or not its an error for this field to exist or not
-
-        if (scope.options.trace) {
-          const indent = "˃".padStart(scope.depth);
-          console.log(`${indent} (${underline(brightBlack(key))})`);
-        }
-
         const keyValue = objValue[key];
         const value = [keyValue];
 

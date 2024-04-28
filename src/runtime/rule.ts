@@ -1,4 +1,3 @@
-import { brightBlack, cyan, underline } from "std/fmt/colors.ts";
 import { Match } from "../match.ts";
 import { Scope } from "./scope.ts";
 import { Rule } from "./modules/mod.ts";
@@ -47,10 +46,6 @@ function grow(rule: Rule, scope: Scope): Match {
   const start = scope.stream;
   const memo = scope.memos.get(start.path, rule);
   while (memo) {
-    if (scope.options.trace) {
-      const indent = "»".padStart(scope.depth);
-      console.log(`${indent} ${underline(brightBlack("grow..."))}`);
-    }
     memo.match = m;
     const growScope = m
       .end
@@ -59,17 +54,6 @@ function grow(rule: Rule, scope: Scope): Match {
     const result = match(pattern, growScope);
     const progressed = result.end.stream.path.compareTo(m.end.stream.path) > 0;
     const { matched } = result;
-
-    if (scope.options.trace) {
-      const indent = "»".padStart(scope.depth);
-      const message = matched && progressed
-        ? underline(cyan(`progressed (${result.end.stream.path})`))
-        : matched
-        ? underline(brightBlack("no progress."))
-        : underline(brightBlack("not matched."));
-      console.log(`${indent} ${message}`);
-    }
-
     if (!matched || !progressed) {
       break;
     }

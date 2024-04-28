@@ -17,11 +17,6 @@ export function array(arrayPattern: IArrayPattern, scope: Scope) {
   if (!scope.stream.done) {
     const next = scope.stream.next();
     if (isIterable(next.value)) {
-      if (scope.options.trace) {
-        console.log(
-          `* [${next.value}] ${(next.value as [])?.length ?? "<none>"}`,
-        );
-      }
       const innerStream = new Input(
         next.value,
         scope.stream.path.push(0),
