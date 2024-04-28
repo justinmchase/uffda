@@ -11,6 +11,7 @@ export function object(args: IObjectPattern, scope: Scope) {
     const next = scope.stream.next();
     if (next.value && typeof next.value === "object") {
       let end = scope;
+      const matches: Match[] = [];
       const objValue = next.value as Record<PropertyKey, unknown>;
       for (const [key, pattern] of Object.entries<Pattern>(keys)) {
         // The pattern will define whether or not its an error for this field to exist or not
@@ -38,15 +39,16 @@ export function object(args: IObjectPattern, scope: Scope) {
         }
 
         if (!m.end.stream.next().done) {
-          return Match.Fail(scope);
+          return Match.Fail(scope, args, [m]);
         }
 
         end = end.addVariables(m.end.variables);
+        matches.push(m);
       }
-      return Match.Ok(scope, end.withInput(next), next.value);
+      return Match.Ok(scope, end.withInput(next), next.value, args, matches);
     } else {
-      return Match.Fail(scope);
+      return Match.Fail(scope, args);
     }
   }
-  return Match.Fail(scope);
+  return Match.Fail(scope, args);
 }

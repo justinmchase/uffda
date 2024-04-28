@@ -16,7 +16,7 @@ export function special(pattern: ISpecialPattern, scope: Scope): Match {
 
     if (typeof value === "function") {
       // todo: Theoretically we could support this with a native pattern, where they pass in a function as a pattern which does custom handling.
-      return Match.Fail(scope);
+      return Match.Fail(scope, pattern);
     }
 
     switch (value.kind) {
@@ -26,9 +26,9 @@ export function special(pattern: ISpecialPattern, scope: Scope): Match {
         return rule(value, scope);
       // todo: Theoretically we could support any pattern object being inlined directly if we wanted.
       default:
-        return Match.Fail(scope);
+        return Match.Fail(scope, pattern);
     }
   }
 
-  return Match.Fail(scope);
+  return Match.Fail(scope, pattern);
 }

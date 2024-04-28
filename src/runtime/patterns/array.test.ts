@@ -1,4 +1,5 @@
 import { Input } from "../../input.ts";
+import { Path } from "../../path.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { ValueType } from "./pattern.ts";
@@ -133,6 +134,36 @@ await Deno.test("runtime/patterns/array", async (t) => {
       },
       input: Input.From(["abc"]),
       value: ["a", "b", "c"],
+    }),
+  });
+
+  // P = [string, string, string]
+  await t.step({
+    name: "ARRAY09",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Array,
+        pattern: {
+          kind: PatternKind.Then,
+          patterns: [
+            { kind: PatternKind.Type, type: ValueType.String },
+            { kind: PatternKind.Type, type: ValueType.String },
+            { kind: PatternKind.Type, type: ValueType.String },
+          ],
+        },
+      },
+      input: Input.From([["a", "b", 3]]),
+      matched: false,
+      done: false,
+      errors: [
+        {
+          pattern: { kind: PatternKind.Type, type: ValueType.String },
+          span: {
+            start: Path.From(0, 2),
+            end: Path.From(0, 2),
+          },
+        },
+      ],
     }),
   });
 });

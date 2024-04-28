@@ -1,44 +1,34 @@
+import { Path } from "./path.ts";
+import { Pattern } from "./runtime/patterns/pattern.ts";
 import { Scope } from "./runtime/scope.ts";
 import { Span } from "./span.ts";
 
-type Traceable = { start: Scope; end: Scope };
-function indexOf(t: (traceable: Traceable) => Scope, scope: Scope): number {
-  const stream = scope.stream;
-  const index = stream.index;
-  const value = stream.value;
-  const memo = scope.memos.lookup(value);
-  if (!memo) {
-    return index;
-  }
-  const { match } = memo;
-  if (match.start === scope) {
-    return index;
-  }
-
-  return indexOf(t, t(match));
-}
-
-export function trace(traceable: Traceable) {
-  return {
-    start: indexOf((m) => m.start, traceable.start),
-    end: indexOf((m) => m.end, traceable.end),
-  };
-}
+export type MatchError = {
+  pattern?: Pattern;
+  span: { start: Path; end: Path };
+};
 
 export class Match {
-  public static readonly Default = (scope: Scope = Scope.Default()) =>
-    new Match(true, false, scope, scope, undefined);
+  public static readonly Default = (
+    scope: Scope = Scope.Default(),
+    pattern?: Pattern,
+  ) => new Match(true, false, scope, scope, undefined, pattern, []);
   public static readonly Ok = (
     start: Scope,
     end: Scope,
     value: unknown,
-  ) => new Match(true, false, start, end, value);
-  public static readonly Fail = (scope: Scope) =>
-    new Match(false, false, scope, scope, undefined);
+    pattern?: Pattern,
+    matches?: Match[],
+  ) => new Match(true, false, start, end, value, pattern, matches);
+  public static readonly Fail = (
+    scope: Scope,
+    pattern?: Pattern,
+    matches?: Match[],
+  ) => new Match(false, false, scope, scope, undefined, pattern, matches);
 
   // Indicates Left Recursion is detected
   public static readonly LR = (scope: Scope) =>
-    new Match(false, true, scope, scope, undefined);
+    new Match(false, true, scope, scope, undefined, undefined, []);
 
   constructor(
     public readonly matched: boolean,
@@ -46,14 +36,34 @@ export class Match {
     public readonly start: Scope,
     public readonly end: Scope,
     public readonly value: unknown,
+    public readonly pattern?: Pattern,
+    public readonly matches: Match[] = [],
   ) {
   }
 
+  public *errors(): Generator<MatchError> {
+    if (this.matches.length) {
+      const last = this.matches.splice(-1)[0];
+      yield* last.errors();
+    } else if (!this.matched) {
+      yield {
+        pattern: this.pattern,
+        span: {
+          start: this.start.stream.path,
+          end: this.end.stream.path,
+        },
+      };
+    }
+  }
+
   public span(): Span {
-    // todo: just look at the start/end path and get the first segment
-    const start = indexOf((m) => m.start, this.start);
-    const end = indexOf((m) => m.end, this.end);
-    return { start, end };
+    const start = this.start.stream.path.segments[0];
+    const end = this.end.stream.path.segments[0];
+    if (typeof start === "number" && typeof end === "number") {
+      return { start, end };
+    } else {
+      return { start: 0, end: 0 };
+    }
   }
 
   public get done() {
@@ -77,16 +87,6 @@ export class Match {
       this.start,
       this.end,
       value,
-    );
-  }
-
-  public addVariable(name: string, value: unknown) {
-    return new Match(
-      this.matched,
-      this.isLr,
-      this.start,
-      this.end.addVariables({ [name]: value }),
-      this.value,
     );
   }
 

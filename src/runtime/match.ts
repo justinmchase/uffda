@@ -32,17 +32,17 @@ export function match(pattern: Pattern, scope: Scope): Match {
     case PatternKind.And:
       return and(pattern, scope);
     case PatternKind.Any:
-      return any(scope);
+      return any(pattern, scope);
     case PatternKind.Array:
       return array(pattern, scope);
     case PatternKind.Character:
       return character(pattern, scope);
     case PatternKind.End:
-      return end(scope);
+      return end(pattern, scope);
     case PatternKind.Equal:
       return equal(pattern, scope);
     case PatternKind.Fail:
-      return fail(scope);
+      return fail(pattern, scope);
     case PatternKind.Includes:
       return includes(pattern, scope);
     case PatternKind.Not:
@@ -50,7 +50,7 @@ export function match(pattern: Pattern, scope: Scope): Match {
     case PatternKind.Object:
       return object(pattern, scope);
     case PatternKind.Ok:
-      return ok(scope);
+      return ok(pattern, scope);
     case PatternKind.Or:
       return or(pattern, scope);
     case PatternKind.Pipeline:

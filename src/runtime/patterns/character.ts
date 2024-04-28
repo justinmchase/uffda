@@ -2,23 +2,23 @@ import { Match } from "../../match.ts";
 import { Scope } from "../../mod.ts";
 import { CharacterClass, ICharacterPattern } from "./pattern.ts";
 
-export function character(args: ICharacterPattern, scope: Scope): Match {
-  const { characterClass } = args;
-  const pattern = characterClassToRegexp(characterClass);
+export function character(pattern: ICharacterPattern, scope: Scope): Match {
+  const { characterClass } = pattern;
+  const regexp = characterClassToRegexp(characterClass);
   if (!scope.stream.done) {
     const next = scope.stream.next();
     if (scope.options.trace) {
-      console.log(`* ${pattern} : <${next.value}>`);
+      console.log(`* ${regexp} : <${next.value}>`);
     }
     if (typeof next.value !== "string") {
-      return Match.Fail(scope);
+      return Match.Fail(scope, pattern);
     }
 
-    if (pattern.test(next.value)) {
-      return Match.Ok(scope, scope.withInput(next), next.value);
+    if (regexp.test(next.value)) {
+      return Match.Ok(scope, scope.withInput(next), next.value, pattern);
     }
   }
-  return Match.Fail(scope);
+  return Match.Fail(scope, pattern);
 }
 
 function characterClassToRegexp(characterClass: CharacterClass) {

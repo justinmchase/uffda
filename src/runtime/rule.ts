@@ -33,7 +33,7 @@ export function rule(rule: Rule, scope: Scope): Match {
         );
       }
       if (!Object.is(frame.rule, rule)) {
-        return Match.Fail(scope);
+        return Match.Fail(scope, rule.pattern);
       }
     }
     return memo.match.setEnd(scope.withInput(memo.match.end.stream));
@@ -43,7 +43,7 @@ export function rule(rule: Rule, scope: Scope): Match {
 function grow(rule: Rule, scope: Scope): Match {
   const { pattern } = rule;
 
-  let m = Match.Fail(scope);
+  let m = Match.Fail(scope, pattern);
   const start = scope.stream;
   const memo = scope.memos.get(start.path, rule);
   while (memo) {

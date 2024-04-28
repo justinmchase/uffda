@@ -7,8 +7,8 @@ export function not(args: INotPattern, scope: Scope): Match {
   const { pattern } = args;
   const m = match(pattern, scope);
   if (!m.matched) {
-    return Match.Ok(scope, scope, undefined);
+    return Match.Ok(scope, scope, undefined, args, [m]);
   }
 
-  return Match.Fail(scope);
+  return Match.Fail(scope, args, [m]);
 }

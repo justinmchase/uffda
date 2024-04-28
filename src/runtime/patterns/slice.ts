@@ -32,9 +32,15 @@ export function slice(args: ISlicePattern, scope: Scope) {
   }
 
   let end: Scope = scope;
-  const matches: unknown[] = [];
+  const values: unknown[] = [];
+  const matches: Match[] = [];
   while (true) {
     const m = match(pattern, end);
+    matches.push(m);
+
+    if (m.isLr) {
+      throw new Error("slice cannot contain left recursion");
+    }
 
     // The pattern must match successfully
     if (!m.matched) {
@@ -50,21 +56,21 @@ export function slice(args: ISlicePattern, scope: Scope) {
     if (m.end.stream.path.compareTo(end.stream.path) <= 0) {
       // If we've specified a minimum, then match at least that many times
       // before breaking, else match once then break
-      if (matches.length >= (min ? min : 1)) {
+      if (values.length >= (min ? min : 1)) {
         break;
       }
     }
 
     end = m.end;
-    matches.push(m.value);
-    if (max != null && matches.length >= max) {
+    values.push(m.value);
+    if (max != null && values.length >= max) {
       break;
     }
   }
 
-  if (!min || matches.length >= min) {
-    return Match.Ok(scope, end, matches);
+  if (!min || values.length >= min) {
+    return Match.Ok(scope, end, values, args, matches);
   } else {
-    return Match.Fail(scope);
+    return Match.Fail(scope, args, matches);
   }
 }

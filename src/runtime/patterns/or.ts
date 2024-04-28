@@ -5,11 +5,16 @@ import { IOrPattern } from "./pattern.ts";
 
 export function or(args: IOrPattern, scope: Scope) {
   const { patterns } = args;
+  const matches: Match[] = [];
   for (const pattern of patterns) {
     const m = match(pattern, scope);
-    if (m.matched || m.isLr) {
+    matches.push(m);
+    if (m.isLr) {
       return m;
     }
+    if (m.matched) {
+      return Match.Ok(scope, m.end, m.value, args, matches);
+    }
   }
-  return Match.Fail(scope);
+  return Match.Fail(scope, args, matches);
 }

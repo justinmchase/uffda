@@ -9,8 +9,8 @@ export function type(pattern: ITypePattern, scope: Scope): Match {
     const end = scope.stream.next();
     actualType = typeof end.value;
     if (actualType === expectedType) {
-      return Match.Ok(scope, scope.withInput(end), end.value);
+      return Match.Ok(scope, scope.withInput(end), end.value, pattern);
     }
   }
-  return Match.Fail(scope);
+  return Match.Fail(scope, pattern);
 }

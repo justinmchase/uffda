@@ -12,8 +12,8 @@ function isIterable(value: any): value is Iterable<unknown> {
   return typeof value[Symbol.iterator] === "function";
 }
 
-export function array(args: IArrayPattern, scope: Scope) {
-  const { pattern } = args;
+export function array(arrayPattern: IArrayPattern, scope: Scope) {
+  const { pattern } = arrayPattern;
   if (!scope.stream.done) {
     const next = scope.stream.next();
     if (isIterable(next.value)) {
@@ -24,20 +24,31 @@ export function array(args: IArrayPattern, scope: Scope) {
       }
       const innerStream = new Input(
         next.value,
-        next.path.push(0),
+        scope.stream.path.push(0),
       );
-      const innerScope = scope.withInput(innerStream);
+      const innerScope = scope
+        .withInput(innerStream);
+
       const m = match(pattern, innerScope);
       if (!m.matched) {
-        return Match.Fail(scope);
+        return Match.Fail(scope, arrayPattern, [m]);
       }
 
       if (!m.end.stream.done) {
-        return Match.Fail(scope);
+        return Match.Fail(scope, arrayPattern, [m]);
       }
 
-      return m;
+      return Match.Ok(
+        scope,
+        scope
+          .withInput(next)
+          .addVariables(m.end.variables),
+        m.value,
+        arrayPattern,
+        [m],
+      );
     }
   }
-  return Match.Fail(scope);
+
+  return Match.Fail(scope, arrayPattern);
 }

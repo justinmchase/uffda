@@ -8,8 +8,9 @@ import { IPipelinePattern } from "./pattern.ts";
 
 export function pipeline(args: IPipelinePattern, scope: Scope) {
   const { steps } = args;
-  let result = Match.Default(scope);
+  let result = Match.Default(scope, args);
   let nextScope = scope;
+  const matches: Match[] = [];
   for (let i = 0; i < steps.length; i++) {
     const pattern = steps[i];
 
@@ -42,15 +43,22 @@ export function pipeline(args: IPipelinePattern, scope: Scope) {
 
     nextScope = nextScope.pushPipeline(pattern);
     result = match(pattern, nextScope);
+    matches.push(result);
 
     if (!result.matched) {
-      return result;
+      return Match.Fail(scope, args, matches);
     }
 
     if (i > 0 && !result.end.stream.next().done) {
-      return Match.Fail(scope);
+      return Match.Fail(scope, args, matches);
     }
   }
 
-  return result;
+  return Match.Ok(
+    scope,
+    result.end,
+    result.value,
+    args,
+    matches,
+  );
 }

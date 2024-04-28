@@ -83,6 +83,7 @@ await Deno.test("patterns/end", async (t) => {
       },
       input: Input.From("a"),
       matched: false,
+      done: false,
     }),
   });
 });

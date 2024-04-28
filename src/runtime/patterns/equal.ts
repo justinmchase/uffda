@@ -18,8 +18,8 @@ export function equal(args: IEqualPattern, scope: Scope): Match {
     }
 
     if (next.value === value) {
-      return Match.Ok(scope, scope.withInput(next), next.value);
+      return Match.Ok(scope, scope.withInput(next), next.value, args);
     }
   }
-  return Match.Fail(scope);
+  return Match.Fail(scope, args);
 }

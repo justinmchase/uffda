@@ -8,6 +8,7 @@ import { Expression } from "./runtime/expressions/expression.ts";
 import { IModuleDeclaration } from "./runtime/declarations/module.ts";
 import { Resolver, run } from "./mod.ts";
 import { Input } from "./input.ts";
+import { MatchError } from "./mod.ts";
 
 type ExpressionTestOptions = {
   expression: Expression;
@@ -51,6 +52,7 @@ type PatternTestOptions = {
   value?: unknown;
   matched?: boolean;
   done?: boolean;
+  errors?: MatchError[];
 };
 export function patternTest(options: PatternTestOptions) {
   const {
@@ -60,6 +62,7 @@ export function patternTest(options: PatternTestOptions) {
     value = undefined,
     matched = true,
     done = true,
+    errors = undefined,
   } = options;
   return async () => {
     const s = new Scope(
@@ -69,6 +72,20 @@ export function patternTest(options: PatternTestOptions) {
       input,
     );
     const m = await match(pattern, s);
+    if (!m.matched && errors) {
+      const matchErrors = [...m.errors()];
+      assert(
+        equal(matchErrors, errors),
+        `Pattern matched value did not equal expected errors\n` +
+          `expected errors: ${
+            Deno.inspect(errors, { colors: true, depth: 10 })
+          }\n` +
+          `  actual errors: ${
+            Deno.inspect(matchErrors, { colors: true, depth: 10 })
+          }`,
+      );
+    }
+
     assert(
       equal(m.value, value),
       `Pattern matched value did not equal expected value\n` +

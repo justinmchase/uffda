@@ -12,13 +12,21 @@ export function variable(args: IVariablePattern, scope: Scope): Match {
   }
 
   if (scope.variables.has(name)) {
-    return Match.Fail(scope);
+    return Match.Fail(scope, args);
   }
 
   const m = match(pattern, scope);
-  if (m.matched) {
-    return m.addVariable(name, m.value);
-  } else {
+  if (m.isLr) {
     return m;
+  } else if (m.matched) {
+    return Match.Ok(
+      scope,
+      m.end.addVariables({ [name]: m.value }),
+      m.value,
+      args,
+      [m],
+    );
+  } else {
+    return Match.Fail(scope, args, [m]);
   }
 }

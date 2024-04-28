@@ -24,8 +24,14 @@ export function reference(pattern: IReferencePattern, scope: Scope): Match {
       }
     }
 
-    return m;
+    if (m.isLr) {
+      return m;
+    } else if (m.matched) {
+      return Match.Ok(m.start, m.end, m.value, pattern, [m]);
+    } else {
+      return Match.Fail(scope, pattern, [m]);
+    }
   } else {
-    return Match.Fail(scope);
+    return Match.Fail(scope, pattern);
   }
 }
