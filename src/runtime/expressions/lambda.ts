@@ -2,11 +2,11 @@ import { Match, MatchKind } from "../../match.ts";
 import { Input } from "../../input.ts";
 import { exec } from "../exec.ts";
 import { match } from "../match.ts";
-import { ILambdaExpression } from "./expression.ts";
+import { LambdaExpression } from "./expression.ts";
 import { fail } from "../../mod.ts";
 
 export function lambda(
-  e: ILambdaExpression,
+  e: LambdaExpression,
   m: Match,
 ): unknown {
   const { pattern, expression } = e;

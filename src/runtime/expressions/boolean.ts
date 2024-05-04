@@ -1,7 +1,7 @@
-import { IBooleanExpression } from "./expression.ts";
+import { BooleanExpression } from "./expression.ts";
 
 export function boolean(
-  expression: IBooleanExpression,
+  expression: BooleanExpression,
 ) {
   const { value } = expression;
   return value;

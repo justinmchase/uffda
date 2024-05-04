@@ -1,9 +1,9 @@
 import { MatchOk } from "../../match.ts";
 import { exec } from "../exec.ts";
-import { IMemberExpression } from "./expression.ts";
+import { MemberExpression } from "./expression.ts";
 
 export function member(
-  expression: IMemberExpression,
+  expression: MemberExpression,
   match: MatchOk,
 ): unknown {
   const { name, expression: expr } = expression;

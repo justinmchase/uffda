@@ -1,10 +1,10 @@
 import { MatchOk } from "../../match.ts";
 import { exec } from "../exec.ts";
 import { ExpressionKind } from "./expression.kind.ts";
-import { IArrayExpression } from "./expression.ts";
+import { ArrayExpression } from "./expression.ts";
 
 export function array(
-  expression: IArrayExpression,
+  expression: ArrayExpression,
   match: MatchOk,
 ): unknown {
   const { expressions } = expression;

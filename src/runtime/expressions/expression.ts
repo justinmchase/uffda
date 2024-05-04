@@ -26,120 +26,120 @@ export function isExpression(value: unknown): value is Expression {
 }
 
 export type Expression =
-  | IArrayExpression
-  | IBinaryExpression
-  | IBooleanExpression
-  | IInvocationExpression
-  | ILambdaExpression
-  | IMemberExpression
-  | INativeExpression
-  | INumberExpression
-  | IObjectExpression
-  | IReferenceExpression
-  | ISpecialReferenceExpression
-  | IStringExpression
-  | IUndefinedExpression
-  | IValueExpression;
+  | ArrayExpression
+  | BinaryExpression
+  | BooleanExpression
+  | InvocationExpression
+  | LambdaExpression
+  | MemberExpression
+  | NativeExpression
+  | NumberExpression
+  | ObjectExpression
+  | ReferenceExpression
+  | SpecialReferenceExpression
+  | StringExpression
+  | UndefinedExpression
+  | ValueExpression;
 
 export type ArrayInitializer =
-  | IArrayElementExpression
-  | IArraySpreadExpression;
+  | ArrayElementExpression
+  | ArraySpreadExpression;
 
-export interface IArrayExpression {
+export type ArrayExpression = {
   kind: ExpressionKind.Array;
   expressions: ArrayInitializer[];
-}
+};
 
-export interface IArrayElementExpression {
+export type ArrayElementExpression = {
   kind: ExpressionKind.ArrayElement;
   expression: Expression;
-}
+};
 
-export interface IArraySpreadExpression {
+export type ArraySpreadExpression = {
   kind: ExpressionKind.ArraySpread;
   expression: Expression;
-}
+};
 
-export interface IBinaryExpression {
+export type BinaryExpression = {
   kind: ExpressionKind.Binary;
   op: BinaryOperation;
   left: Expression;
   right: Expression;
-}
+};
 
-export interface IBooleanExpression {
+export type BooleanExpression = {
   kind: ExpressionKind.Boolean;
   value: boolean;
-}
+};
 
-export interface IInvocationExpression {
+export type InvocationExpression = {
   kind: ExpressionKind.Invocation;
   expression: Expression;
   args: Expression[];
-}
+};
 
-export interface ILambdaExpression {
+export type LambdaExpression = {
   kind: ExpressionKind.Lambda;
   pattern: Pattern;
   expression: Expression;
-}
+};
 
-export interface IMemberExpression {
+export type MemberExpression = {
   kind: ExpressionKind.Member;
   name: string;
   expression: Expression;
-}
+};
 
-export interface INativeExpression {
+export type NativeExpression = {
   kind: ExpressionKind.Native;
   fn: ProjectionFunction;
-}
+};
 
 export type ObjectInitializer =
-  | IObjectKeyExpression
-  | IObjectSpreadExpression;
+  | ObjectKeyExpression
+  | ObjectSpreadExpression;
 
-export interface IObjectExpression {
+export type ObjectExpression = {
   kind: ExpressionKind.Object;
   keys: ObjectInitializer[];
-}
+};
 
-export interface IObjectSpreadExpression {
+export type ObjectSpreadExpression = {
   kind: ExpressionKind.ObjectSpread;
   expression: Expression;
-}
+};
 
-export interface IObjectKeyExpression {
+export type ObjectKeyExpression = {
   kind: ExpressionKind.ObjectKey;
   name: string;
   expression: Expression;
-}
+};
 
-export interface IReferenceExpression {
+export type ReferenceExpression = {
   kind: ExpressionKind.Reference;
   name: string;
-}
+};
 
-export interface ISpecialReferenceExpression {
+export type SpecialReferenceExpression = {
   kind: ExpressionKind.Special;
   name: string;
-}
+};
 
-export interface IStringExpression {
+export type StringExpression = {
   kind: ExpressionKind.String;
   value: string;
-}
+};
 
-export interface INumberExpression {
+export type NumberExpression = {
   kind: ExpressionKind.Number;
   value: number;
-}
+};
 
-export interface IUndefinedExpression {
+export type UndefinedExpression = {
   kind: ExpressionKind.Undefined;
-}
+};
 
-export interface IValueExpression {
+export type ValueExpression = {
   kind: ExpressionKind.Value;
   value: Serializable;
-}
+};

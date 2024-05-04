@@ -1,9 +1,9 @@
 import { MatchOk } from "../../match.ts";
 import { exec } from "../exec.ts";
-import { BinaryOperation, IBinaryExpression } from "./expression.ts";
+import { BinaryExpression, BinaryOperation } from "./expression.ts";
 
 export function binary(
-  expression: IBinaryExpression,
+  expression: BinaryExpression,
   match: MatchOk,
 ): unknown {
   const { kind, left, right, op } = expression;

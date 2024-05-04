@@ -1,8 +1,8 @@
 import { MatchOk } from "../../match.ts";
-import { ISpecialReferenceExpression } from "./expression.ts";
+import { SpecialReferenceExpression } from "./expression.ts";
 
 export function special(
-  expression: ISpecialReferenceExpression,
+  expression: SpecialReferenceExpression,
   match: MatchOk,
 ): unknown {
   const { name } = expression;

@@ -1,9 +1,9 @@
 import { MatchOk } from "../../match.ts";
 import { exec } from "../exec.ts";
-import { IInvocationExpression } from "./expression.ts";
+import { InvocationExpression } from "./expression.ts";
 
 export function invocation(
-  expression: IInvocationExpression,
+  expression: InvocationExpression,
   match: MatchOk,
 ): unknown {
   const { expression: expr, args } = expression;

@@ -1,7 +1,7 @@
-import { IValueExpression } from "./expression.ts";
+import { ValueExpression } from "./expression.ts";
 
 export function value(
-  expression: IValueExpression,
+  expression: ValueExpression,
 ): unknown {
   const { value } = expression;
   return value;

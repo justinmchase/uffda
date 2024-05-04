@@ -1,7 +1,7 @@
-import { INumberExpression } from "./expression.ts";
+import { NumberExpression } from "./expression.ts";
 
 export function number(
-  expression: INumberExpression,
+  expression: NumberExpression,
 ) {
   const { value } = expression;
   return value;
