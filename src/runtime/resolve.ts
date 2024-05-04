@@ -4,11 +4,11 @@ import { Module, ModuleKind } from "./modules/mod.ts";
 import { IModuleResolvers } from "./resolvers/resolver.ts";
 import { ImportResolver, JsonResolver } from "./resolvers/mod.ts";
 
-export interface IResolverOptions {
+export type ResolverOptions = {
   declarations?: Record<string, IModuleDeclaration>;
   resolvers?: IModuleResolvers;
   trace?: boolean;
-}
+};
 
 export class Resolver {
   public static readonly DefaultResolvers: IModuleResolvers = {
@@ -20,7 +20,7 @@ export class Resolver {
   private readonly modules = new Map<string, Module>();
   private readonly declarations: Map<string, IModuleDeclaration>;
   private readonly resolvers: IModuleResolvers;
-  constructor(opts?: IResolverOptions) {
+  constructor(opts?: ResolverOptions) {
     const {
       declarations = new Map<string, IModuleDeclaration>(),
       resolvers = Resolver.DefaultResolvers,
