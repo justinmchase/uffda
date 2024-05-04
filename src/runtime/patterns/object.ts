@@ -2,10 +2,10 @@ import { error, fail, Match, MatchKind, ok } from "../../match.ts";
 import { Scope } from "../scope.ts";
 import { Input } from "../../input.ts";
 import { match } from "../match.ts";
-import { IObjectPattern, Pattern } from "./pattern.ts";
+import { ObjectPattern, Pattern } from "./pattern.ts";
 import { MatchErrorCode } from "../../match.ts";
 
-export function object(pattern: IObjectPattern, scope: Scope): Match {
+export function object(pattern: ObjectPattern, scope: Scope): Match {
   const { keys = {} } = pattern;
   if (scope.stream.done) {
     return fail(scope, pattern);

@@ -1,9 +1,9 @@
 import { Scope } from "../scope.ts";
 import { fail, Match, MatchKind, MatchOk, ok } from "../../match.ts";
 import { match } from "../match.ts";
-import { IAndPattern } from "./pattern.ts";
+import { AndPattern } from "./pattern.ts";
 
-export function and(pattern: IAndPattern, scope: Scope): Match {
+export function and(pattern: AndPattern, scope: Scope): Match {
   const { patterns } = pattern;
   const matches: MatchOk[] = [];
   for (const pattern of patterns) {

@@ -1,8 +1,8 @@
 import { error, fail, Match, MatchErrorCode, ok } from "../../match.ts";
 import { Scope } from "../scope.ts";
-import { IRegExpPattern } from "./pattern.ts";
+import { RegExpPattern } from "./pattern.ts";
 
-export function regexp(pattern: IRegExpPattern, scope: Scope): Match {
+export function regexp(pattern: RegExpPattern, scope: Scope): Match {
   if (scope.stream.done) {
     return fail(scope, pattern);
   }

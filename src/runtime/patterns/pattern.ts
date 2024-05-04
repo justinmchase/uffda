@@ -5,29 +5,29 @@ import { Serializable } from "serializable/mod.ts";
 import { Comparable } from "../../comparable.ts";
 
 export type Pattern =
-  | IAnyPattern
-  | IAndPattern
-  | IArrayPattern
-  | ICharacterPattern
-  | IEndPattern
-  | IEqualPattern
-  | IFailPattern
-  | IIncludesPattern
-  | INotPattern
-  | IObjectPattern
-  | IOkPattern
-  | IOrPattern
-  | IPipelinePattern
-  | IProjectionPattern
-  | IRangePattern
-  | IReferencePattern
-  | IRegExpPattern
-  | IRunPattern
-  | ISlicePattern
-  | ISpecialPattern
-  | IThenPattern
-  | ITypePattern
-  | IVariablePattern;
+  | AnyPattern
+  | AndPattern
+  | ArrayPattern
+  | CharacterPattern
+  | EndPattern
+  | EqualPattern
+  | FailPattern
+  | IncludesPattern
+  | NotPattern
+  | ObjectPattern
+  | OkPattern
+  | OrPattern
+  | PipelinePattern
+  | ProjectionPattern
+  | RangePattern
+  | ReferencePattern
+  | RegExpPattern
+  | RunPattern
+  | SlicePattern
+  | SpecialPattern
+  | ThenPattern
+  | TypePattern
+  | VariablePattern;
 
 export function isPattern(value: unknown): value is Pattern {
   if (value == null) return false;
@@ -91,99 +91,99 @@ export enum ValueType {
   Undefined = "undefined",
 }
 
-export interface IAnyPattern {
+export type AnyPattern = {
   kind: PatternKind.Any;
-}
-export interface IAndPattern {
+};
+export type AndPattern = {
   kind: PatternKind.And;
   patterns: Pattern[];
-}
-export interface IArrayPattern {
+};
+export type ArrayPattern = {
   kind: PatternKind.Array;
   pattern: Pattern;
-}
-export interface ICharacterPattern {
+};
+export type CharacterPattern = {
   kind: PatternKind.Character;
   characterClass: CharacterClass;
-}
-export interface IEndPattern {
+};
+export type EndPattern = {
   kind: PatternKind.End;
-}
-export interface IEqualPattern {
+};
+export type EqualPattern = {
   kind: PatternKind.Equal;
   value: Serializable;
-}
-export interface IFailPattern {
+};
+export type FailPattern = {
   kind: PatternKind.Fail;
-}
-export interface IIncludesPattern {
+};
+export type IncludesPattern = {
   kind: PatternKind.Includes;
   values: Serializable[];
-}
-export interface INotPattern {
+};
+export type NotPattern = {
   kind: PatternKind.Not;
   pattern: Pattern;
-}
-export interface IObjectPattern {
+};
+export type ObjectPattern = {
   kind: PatternKind.Object;
   keys?: Record<string, Pattern>;
-}
-export interface IOkPattern {
+};
+export type OkPattern = {
   kind: PatternKind.Ok;
-}
-export interface IOrPattern {
+};
+export type OrPattern = {
   kind: PatternKind.Or;
   patterns: Pattern[];
-}
-export interface IPipelinePattern {
+};
+export type PipelinePattern = {
   kind: PatternKind.Pipeline;
   steps: Pattern[];
-}
-export interface IProjectionPattern {
+};
+export type ProjectionPattern = {
   kind: PatternKind.Projection;
   pattern: Pattern;
   expression: Expression;
-}
-export interface IRangePattern {
+};
+export type RangePattern = {
   kind: PatternKind.Range;
   left: Comparable;
   right: Comparable;
-}
-export interface IReferencePattern {
+};
+export type ReferencePattern = {
   kind: PatternKind.Reference;
   name: string;
-}
-export interface IRegExpPattern {
+};
+export type RegExpPattern = {
   kind: PatternKind.RegExp;
   pattern: RegExp;
-}
+};
 
-export interface IRunPattern {
+export type RunPattern = {
   kind: PatternKind.Run;
   name?: string;
-}
+};
 
-export interface ISlicePattern {
+export type SlicePattern = {
   kind: PatternKind.Slice;
   pattern: Pattern;
   min?: number;
   max?: number;
-}
-export interface ISpecialPattern {
+};
+export type SpecialPattern = {
   kind: PatternKind.Special;
   name: string;
   value: Special;
-}
-export interface IThenPattern {
+};
+export type ThenPattern = {
   kind: PatternKind.Then;
   patterns: Pattern[];
-}
-export interface ITypePattern {
+};
+export type TypePattern = {
   kind: PatternKind.Type;
   type: ValueType;
-}
-export interface IVariablePattern {
+};
+export type VariablePattern = {
   kind: PatternKind.Variable;
   name: string;
   pattern: Pattern;
-}
+};

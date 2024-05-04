@@ -1,8 +1,8 @@
 import { fail, Match, ok } from "../../match.ts";
 import { Scope } from "../scope.ts";
-import { IEqualPattern } from "./pattern.ts";
+import { EqualPattern } from "./pattern.ts";
 
-export function equal(pattern: IEqualPattern, scope: Scope): Match {
+export function equal(pattern: EqualPattern, scope: Scope): Match {
   const { value } = pattern;
   if (scope.stream.done) {
     return fail(scope, pattern);

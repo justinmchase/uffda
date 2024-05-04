@@ -1,8 +1,8 @@
 import { fail, Match, ok } from "../../match.ts";
 import { Scope } from "../scope.ts";
-import { ITypePattern } from "./pattern.ts";
+import { TypePattern } from "./pattern.ts";
 
-export function type(pattern: ITypePattern, scope: Scope): Match {
+export function type(pattern: TypePattern, scope: Scope): Match {
   const { type: expectedType } = pattern;
   if (scope.stream.done) {
     return fail(scope, pattern);

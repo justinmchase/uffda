@@ -1,8 +1,8 @@
 import { error, fail, Match, MatchErrorCode, ok } from "../../match.ts";
 import { Scope } from "../scope.ts";
-import { CharacterClass, ICharacterPattern } from "./pattern.ts";
+import { CharacterClass, CharacterPattern } from "./pattern.ts";
 
-export function character(pattern: ICharacterPattern, scope: Scope): Match {
+export function character(pattern: CharacterPattern, scope: Scope): Match {
   const { characterClass } = pattern;
   const regexp = characterClassToRegexp(characterClass);
   if (scope.stream.done) {

@@ -1,9 +1,9 @@
 import { error, Match, MatchErrorCode } from "../../match.ts";
 import { Scope } from "../scope.ts";
-import { IRunPattern } from "./pattern.ts";
+import { RunPattern } from "./pattern.ts";
 import { rule } from "../rule.ts";
 
-export function run(scope: Scope, pattern: IRunPattern): Match {
+export function run(scope: Scope, pattern: RunPattern): Match {
   const { module } = scope;
   const { name = "Main" } = pattern;
 

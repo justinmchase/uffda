@@ -1,9 +1,9 @@
 import { fail, Match, MatchKind, ok } from "../../match.ts";
 import { Scope } from "../scope.ts";
 import { match } from "../match.ts";
-import { INotPattern } from "./pattern.ts";
+import { NotPattern } from "./pattern.ts";
 
-export function not(pattern: INotPattern, scope: Scope): Match {
+export function not(pattern: NotPattern, scope: Scope): Match {
   const m = match(pattern.pattern, scope);
   switch (m.kind) {
     case MatchKind.LR:

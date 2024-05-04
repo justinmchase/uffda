@@ -2,7 +2,7 @@ import { error, fail, MatchErrorCode, MatchKind, ok } from "../../match.ts";
 import { Scope } from "../scope.ts";
 import { Input } from "../../input.ts";
 import { match } from "../match.ts";
-import { IArrayPattern } from "./pattern.ts";
+import { ArrayPattern } from "./pattern.ts";
 
 // deno-lint-ignore no-explicit-any
 function isIterable(value: any): value is Iterable<unknown> {
@@ -12,7 +12,7 @@ function isIterable(value: any): value is Iterable<unknown> {
   return typeof value[Symbol.iterator] === "function";
 }
 
-export function array(pattern: IArrayPattern, scope: Scope) {
+export function array(pattern: ArrayPattern, scope: Scope) {
   if (scope.stream.done) {
     return fail(scope, pattern);
   }

@@ -1,9 +1,9 @@
 import { Comparable } from "../../comparable.ts";
 import { error, fail, Match, MatchErrorCode, ok } from "../../match.ts";
 import { Scope } from "../scope.ts";
-import { IRangePattern } from "./pattern.ts";
+import { RangePattern } from "./pattern.ts";
 
-export function range(pattern: IRangePattern, scope: Scope): Match {
+export function range(pattern: RangePattern, scope: Scope): Match {
   const { left, right } = pattern;
   if (scope.stream.done) {
     return fail(scope, pattern);

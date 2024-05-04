@@ -1,9 +1,9 @@
 import { Serializable } from "serializable/mod.ts";
 import { fail, Match, ok } from "../../match.ts";
 import { Scope } from "../scope.ts";
-import { IIncludesPattern } from "./pattern.ts";
+import { IncludesPattern } from "./pattern.ts";
 
-export function includes(pattern: IIncludesPattern, scope: Scope): Match {
+export function includes(pattern: IncludesPattern, scope: Scope): Match {
   const { values } = pattern;
   if (scope.stream.done) {
     return fail(scope, pattern);

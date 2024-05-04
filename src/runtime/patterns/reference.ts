@@ -7,10 +7,10 @@ import {
   MatchKind,
   ok,
 } from "../../match.ts";
-import { IReferencePattern } from "./pattern.ts";
+import { ReferencePattern } from "./pattern.ts";
 import { rule } from "../rule.ts";
 
-export function reference(pattern: IReferencePattern, scope: Scope): Match {
+export function reference(pattern: ReferencePattern, scope: Scope): Match {
   const { name } = pattern;
   const ref = scope.getRule(name);
   if (!ref) {

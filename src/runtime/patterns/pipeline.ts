@@ -2,9 +2,9 @@ import { fail, Match, MatchKind, ok } from "../../match.ts";
 import { Scope } from "../scope.ts";
 import { Input } from "../../input.ts";
 import { match } from "../match.ts";
-import { IPipelinePattern } from "./pattern.ts";
+import { PipelinePattern } from "./pattern.ts";
 
-export function pipeline(pattern: IPipelinePattern, scope: Scope) {
+export function pipeline(pattern: PipelinePattern, scope: Scope) {
   const { steps } = pattern;
   let last = ok(scope, scope, pattern, undefined);
   let next = scope;

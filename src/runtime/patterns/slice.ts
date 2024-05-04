@@ -8,9 +8,9 @@ import {
 } from "../../match.ts";
 import { Scope } from "../scope.ts";
 import { match } from "../match.ts";
-import { ISlicePattern } from "./pattern.ts";
+import { SlicePattern } from "./pattern.ts";
 
-export function slice(pattern: ISlicePattern, scope: Scope) {
+export function slice(pattern: SlicePattern, scope: Scope) {
   const { min, max } = pattern;
   if (min != null) {
     if (min < 0) {

@@ -2,9 +2,9 @@ import { fail, Match, MatchKind, ok } from "../../match.ts";
 import { Scope } from "../scope.ts";
 import { match } from "../match.ts";
 import { exec } from "../exec.ts";
-import { IProjectionPattern } from "./pattern.ts";
+import { ProjectionPattern } from "./pattern.ts";
 
-export function projection(pattern: IProjectionPattern, scope: Scope): Match {
+export function projection(pattern: ProjectionPattern, scope: Scope): Match {
   const m = match(pattern.pattern, scope);
   switch (m.kind) {
     case MatchKind.LR:

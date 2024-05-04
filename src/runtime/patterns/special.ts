@@ -7,13 +7,13 @@ import {
   MatchKind,
   ok,
 } from "../../match.ts";
-import { ISpecialPattern } from "./pattern.ts";
+import { SpecialPattern } from "./pattern.ts";
 import { run } from "./run.ts";
 import { ModuleKind } from "../modules/mod.ts";
 import { rule } from "../rule.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
-export function special(pattern: ISpecialPattern, scope: Scope): Match {
+export function special(pattern: SpecialPattern, scope: Scope): Match {
   const { value } = pattern;
   if (value == null) {
     return error(

@@ -1,8 +1,8 @@
 import { fail, Match, ok } from "../../match.ts";
 import { Scope } from "../scope.ts";
-import { IAnyPattern } from "./pattern.ts";
+import { AnyPattern } from "./pattern.ts";
 
-export function any(pattern: IAnyPattern, scope: Scope): Match {
+export function any(pattern: AnyPattern, scope: Scope): Match {
   if (scope.stream.done) {
     return fail(scope, pattern);
   }

@@ -8,9 +8,9 @@ import {
 } from "../../match.ts";
 import { Scope } from "../scope.ts";
 import { match } from "../match.ts";
-import { IVariablePattern } from "./pattern.ts";
+import { VariablePattern } from "./pattern.ts";
 
-export function variable(pattern: IVariablePattern, scope: Scope): Match {
+export function variable(pattern: VariablePattern, scope: Scope): Match {
   const { name } = pattern;
   if (scope.variables.has(name)) {
     return error(

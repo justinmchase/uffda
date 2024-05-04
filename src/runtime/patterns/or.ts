@@ -1,9 +1,9 @@
 import { fail, Match, MatchKind, ok } from "../../match.ts";
 import { Scope } from "../scope.ts";
 import { match } from "../match.ts";
-import { IOrPattern } from "./pattern.ts";
+import { OrPattern } from "./pattern.ts";
 
-export function or(pattern: IOrPattern, scope: Scope) {
+export function or(pattern: OrPattern, scope: Scope) {
   const { patterns } = pattern;
   const matches: Match[] = [];
   for (const pattern of patterns) {
