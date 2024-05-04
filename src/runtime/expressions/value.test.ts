@@ -1,4 +1,3 @@
-import { Match } from "../../match.ts";
 import { expressionTest } from "../../test.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import { BinaryOperation } from "./mod.ts";
@@ -7,7 +6,6 @@ await Deno.test("runtime/expressions/value", async (t) => {
   await t.step({
     name: "VALUE00",
     fn: expressionTest({
-      match: Match.Default(),
       result: 7,
       expression: {
         kind: ExpressionKind.Value,
@@ -19,7 +17,6 @@ await Deno.test("runtime/expressions/value", async (t) => {
   await t.step({
     name: "VALUE01",
     fn: expressionTest({
-      match: Match.Default(),
       result: 18,
       expression: {
         kind: ExpressionKind.Binary,

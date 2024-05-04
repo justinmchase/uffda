@@ -1,13 +1,13 @@
-import { Match } from "../../match.ts";
+import { fail, Match, MatchKind, ok } from "../../match.ts";
 import { Scope } from "../scope.ts";
 import { Input } from "../../input.ts";
 import { match } from "../match.ts";
 import { IPipelinePattern } from "./pattern.ts";
 
-export function pipeline(args: IPipelinePattern, scope: Scope) {
-  const { steps } = args;
-  let result = Match.Default(scope, args);
-  let nextScope = scope;
+export function pipeline(pattern: IPipelinePattern, scope: Scope) {
+  const { steps } = pattern;
+  let last = ok(scope, scope, pattern, undefined);
+  let next = scope;
   const matches: Match[] = [];
   for (let i = 0; i < steps.length; i++) {
     const pattern = steps[i];
@@ -20,36 +20,31 @@ export function pipeline(args: IPipelinePattern, scope: Scope) {
     // However steps beyond the first in the pipeline will operate like an entire pattern
     // match operation which will require the entire stream to be read.
 
-    if (i > 0) {
-      const iterable = result.value as Iterable<unknown>;
-      const items = iterable?.[Symbol.iterator]
-        ? iterable[Symbol.iterator]()
-        : [result.value][Symbol.iterator]();
-      const nextStream = new Input(
-        items,
-        result.end.stream.path.push(0),
-      );
-      nextScope = scope.withInput(nextStream);
+    next = next.pushPipeline(pattern);
+    const m = match(pattern, next);
+    matches.push(m);
+    switch (m.kind) {
+      case MatchKind.LR:
+      case MatchKind.Error:
+        return m;
+      case MatchKind.Fail:
+        return fail(scope, pattern, matches);
+      case MatchKind.Ok:
+        last = m;
+        break;
     }
 
-    nextScope = nextScope.pushPipeline(pattern);
-    result = match(pattern, nextScope);
-    matches.push(result);
+    const iterable = last.value as Iterable<unknown>;
+    const items = iterable?.[Symbol.iterator] ? iterable : [last.value];
+    const input = new Input(
+      items,
+      last.scope.stream.path.push(0),
+    );
+    next = scope.withInput(input);
 
-    if (!result.matched) {
-      return Match.Fail(scope, args, matches);
-    }
-
-    if (i > 0 && !result.end.stream.next().done) {
-      return Match.Fail(scope, args, matches);
-    }
+    // we do not fail if the last pattern in the pipeline does not consume the entire stream
+    // it is up to the caller to utilize the end pattern to enforce this if desired.
   }
 
-  return Match.Ok(
-    scope,
-    result.end,
-    result.value,
-    args,
-    matches,
-  );
+  return ok(scope, last.scope, pattern, last.value, matches);
 }

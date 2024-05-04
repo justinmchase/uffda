@@ -1,5 +1,3 @@
-import { black } from "std/fmt/colors.ts";
-import { Match } from "../match.ts";
 import { Scope } from "./scope.ts";
 
 export enum RuntimeErrorCode {
@@ -7,7 +5,6 @@ export enum RuntimeErrorCode {
   IndirectLeftRecursion = "E_INDIRECT_LEFT_RECURSION",
   PatternNotFound = "E_PATTERN_NOT_FOUND",
   PatternUnmatched = "E_PATTERN_UNMATCHED",
-  StreamIncomplete = "E_STREAM_INCOMPLETE",
   MatchError = "E_MATCH_ERROR",
   InvalidExpression = "E_INVALID_EXPRESSION",
   UnknownReference = "E_UNKNOWN_REFERENCE",
@@ -17,7 +14,6 @@ export enum RuntimeErrorCode {
 
 type RuntimeErrorArgs = {
   scope: Scope;
-  match: Match;
   metadata: Record<string, unknown>;
 };
 
@@ -30,12 +26,6 @@ export const RuntimeErrorMessages = {
   ) =>
     `A pattern (${name}) was referenced but not found in ${scope.module.moduleUrl}`,
   [RuntimeErrorCode.PatternUnmatched]: () => "Input failed to match pattern",
-  [RuntimeErrorCode.StreamIncomplete]: (
-    { match = Match.Default() }: RuntimeErrorArgs,
-  ) =>
-    `Pattern failed to read entire stream [${
-      black(match.end.stream.path.toString())
-    }]`,
   [RuntimeErrorCode.MatchError]: () =>
     "A pattern match operation produced one or more errors",
   [RuntimeErrorCode.InvalidExpression]: () => "An expression is invalid",
@@ -54,14 +44,12 @@ export class RuntimeError extends Error {
   public readonly metadata: Record<string, unknown>;
   constructor(
     public readonly code: RuntimeErrorCode,
-    public readonly scope?: Scope,
-    public readonly match?: Match,
+    public readonly scope: Scope,
     public options?: ErrorOptions & { metadata?: Record<string, unknown> },
   ) {
     const { metadata = {}, cause } = options ?? {};
     const args = {
       scope: scope ?? Scope.Default(),
-      match: match ?? Match.Default(),
       metadata,
     };
     super(`${code} ${RuntimeErrorMessages[code](args)}`, { cause });

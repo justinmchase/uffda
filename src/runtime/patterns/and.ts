@@ -1,38 +1,27 @@
 import { Scope } from "../scope.ts";
-import { Match } from "../../match.ts";
+import { fail, Match, MatchKind, MatchOk, ok } from "../../match.ts";
 import { match } from "../match.ts";
 import { IAndPattern } from "./pattern.ts";
 
 export function and(pattern: IAndPattern, scope: Scope): Match {
   const { patterns } = pattern;
-  if (!patterns.length) {
-    throw new Error("And pattern must have at least one pattern");
-  }
-
-  const matches: Match[] = [];
+  const matches: MatchOk[] = [];
   for (const pattern of patterns) {
     const m = match(pattern, scope);
-    matches.push(m);
-
-    if (m.isLr) {
-      return m;
+    switch (m.kind) {
+      case MatchKind.LR:
+      case MatchKind.Error:
+        return m;
+      case MatchKind.Fail:
+        return fail(scope, pattern, [...matches, m]);
+      case MatchKind.Ok:
+        matches.push(m);
+        scope = scope.addVariables(m.scope.variables);
+        break;
     }
-
-    if (!m.matched) {
-      return Match.Fail(scope, pattern, matches);
-    }
-
-    scope = scope
-      .addVariables(m.end.variables);
   }
 
-  // The last match is the one that wins dictates the value and what is consumed
-  const last = matches.slice(-1)[0];
-  return Match.Ok(
-    scope,
-    last.end,
-    last.value,
-    pattern,
-    matches,
-  );
+  // The last match is the one that dictates the value and what is consumed
+  const last = matches.slice(-1)?.[0];
+  return ok(scope, last?.scope ?? scope, pattern, last?.value, matches);
 }

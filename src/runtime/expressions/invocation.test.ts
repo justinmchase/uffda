@@ -1,4 +1,3 @@
-import { Match } from "../../match.ts";
 import { Scope } from "../scope.ts";
 import { expressionTest } from "../../test.ts";
 import { ExpressionKind } from "./expression.kind.ts";
@@ -24,18 +23,17 @@ Deno.test("runtime.expressions.invocation", async (t) => {
           },
         ],
       },
-      match: Match.Default(
-        Scope.Default()
-          .withOptions({
-            globals: new Map([
-              ["fn", (a: number, b: number) => a + b],
-            ]),
-          })
-          .addVariables({
-            a: 7,
-            b: 11,
-          }),
-      ),
+      scope: Scope
+        .Default()
+        .withOptions({
+          globals: new Map([
+            ["fn", (a: number, b: number) => a + b],
+          ]),
+        })
+        .addVariables({
+          a: 7,
+          b: 11,
+        }),
       result: 18,
     }),
   });
@@ -51,14 +49,13 @@ Deno.test("runtime.expressions.invocation", async (t) => {
         },
         args: [],
       },
-      match: Match.Default(
-        Scope.Default()
-          .withOptions({
-            globals: new Map([
-              ["fn", () => "uffda"],
-            ]),
-          }),
-      ),
+      scope: Scope
+        .Default()
+        .withOptions({
+          globals: new Map([
+            ["fn", () => "uffda"],
+          ]),
+        }),
       result: "uffda",
     }),
   });
@@ -74,18 +71,17 @@ Deno.test("runtime.expressions.invocation", async (t) => {
         },
         args: [],
       },
-      match: Match.Default(
-        Scope.Default()
-          .withOptions({
-            globals: new Map([
-              ["fn", () => "one"],
-            ]),
-          })
-          .addVariables({
-            // The locally scoped variable should resolve rather than the global
-            fn: () => "two",
-          }),
-      ),
+      scope: Scope
+        .Default()
+        .withOptions({
+          globals: new Map([
+            ["fn", () => "one"],
+          ]),
+        })
+        .addVariables({
+          // The locally scoped variable should resolve rather than the global
+          fn: () => "two",
+        }),
       result: "two",
     }),
   });

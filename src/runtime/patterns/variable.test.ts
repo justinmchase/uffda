@@ -2,6 +2,9 @@ import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { ExpressionKind } from "../expressions/mod.ts";
 import { Input } from "../../input.ts";
+import { MatchKind } from "../../match.ts";
+import { MatchErrorCode } from "../../match.ts";
+import { Path } from "../../mod.ts";
 
 Deno.test("runtime.patterns.variable", async (t) => {
   await t.step({
@@ -22,6 +25,7 @@ Deno.test("runtime.patterns.variable", async (t) => {
       },
       input: new Input([7]),
       value: 18,
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -56,6 +60,7 @@ Deno.test("runtime.patterns.variable", async (t) => {
       },
       input: Input.From([7, 11]),
       value: 18,
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -86,9 +91,12 @@ Deno.test("runtime.patterns.variable", async (t) => {
       },
       input: Input.From([{ X: 7, Y: 11 }]),
       value: 18,
+      kind: MatchKind.Ok,
     }),
   });
 
+  // Variables declared in object property patterns
+  // should be available in the rest of the scope
   await t.step({
     name: "VARIABLE03",
     fn: patternTest({
@@ -134,6 +142,7 @@ Deno.test("runtime.patterns.variable", async (t) => {
       },
       input: Input.From([{ X: [6, 7], Y: [10, 11] }]),
       value: 18,
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -141,8 +150,6 @@ Deno.test("runtime.patterns.variable", async (t) => {
     name: "VARIABLE05",
     fn: patternTest({
       input: Input.From([1, 2]),
-      matched: false,
-      done: false,
       pattern: {
         kind: PatternKind.Then,
         patterns: [
@@ -158,6 +165,11 @@ Deno.test("runtime.patterns.variable", async (t) => {
           },
         ],
       },
+      kind: MatchKind.Error,
+      code: MatchErrorCode.DuplicateVariable,
+      message: "Variable x already exists in scope",
+      start: Path.From(1),
+      end: Path.From(1),
     }),
   });
 });

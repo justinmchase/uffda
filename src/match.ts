@@ -1,112 +1,110 @@
-import { Path } from "./path.ts";
 import { Pattern } from "./runtime/patterns/pattern.ts";
 import { Scope } from "./runtime/scope.ts";
-import { Span } from "./span.ts";
+import { Span, spanFrom } from "./span.ts";
 
-export type MatchError = {
-  pattern?: Pattern;
-  span: { start: Path; end: Path };
+export enum MatchErrorCode {
+  UnknownReference = "E_UNKNOWN_REFERENCE",
+  PatternExpected = "E_PATTERN_EXPECTED",
+  IterableExpected = "E_ITERABLE_EXPECTED",
+  Type = "E_TYPE",
+  NullValue = "E_NULL_VALUE",
+  InvalidArgument = "E_INVALID_ARGUMENT",
+  DuplicateVariable = "E_DUPLICATE_VARIABLE",
+  IndirectLeftRecursion = "E_INDIRECT_LEFT_RECURSION",
+}
+
+export enum MatchKind {
+  LR = "lr",
+  Ok = "ok",
+  Fail = "fail",
+  Error = "error",
+}
+
+export type Match = MatchLR | MatchOk | MatchFail | MatchError;
+
+export type MatchLR = {
+  kind: MatchKind.LR;
+  pattern: Pattern;
+  scope: Scope;
 };
 
-export class Match {
-  public static readonly Default = (
-    scope: Scope = Scope.Default(),
-    pattern?: Pattern,
-  ) => new Match(true, false, scope, scope, undefined, pattern, []);
-  public static readonly Ok = (
-    start: Scope,
-    end: Scope,
-    value: unknown,
-    pattern?: Pattern,
-    matches?: Match[],
-  ) => new Match(true, false, start, end, value, pattern, matches);
-  public static readonly Fail = (
-    scope: Scope,
-    pattern?: Pattern,
-    matches?: Match[],
-  ) => new Match(false, false, scope, scope, undefined, pattern, matches);
+export type MatchOk = {
+  kind: MatchKind.Ok;
+  pattern: Pattern;
+  scope: Scope;
+  span: Span;
+  matches: Match[];
+  value: unknown;
+};
 
-  // Indicates Left Recursion is detected
-  public static readonly LR = (scope: Scope) =>
-    new Match(false, true, scope, scope, undefined, undefined, []);
+export type MatchFail = {
+  kind: MatchKind.Fail;
+  pattern: Pattern;
+  scope: Scope;
+  span: Span;
+  matches: Match[];
+};
 
-  constructor(
-    public readonly matched: boolean,
-    public readonly isLr: boolean,
-    public readonly start: Scope,
-    public readonly end: Scope,
-    public readonly value: unknown,
-    public readonly pattern?: Pattern,
-    public readonly matches: Match[] = [],
-  ) {
-  }
+export type MatchError = {
+  kind: MatchKind.Error;
+  pattern: Pattern;
+  scope: Scope;
+  span: Span;
+  code: MatchErrorCode;
+  message: string;
+};
 
-  public *errors(): Generator<MatchError> {
-    if (this.matches.length) {
-      const last = this.matches.splice(-1)[0];
-      yield* last.errors();
-    } else if (!this.matched) {
-      yield {
-        pattern: this.pattern,
-        span: {
-          start: this.start.stream.path,
-          end: this.end.stream.path,
-        },
-      };
-    }
-  }
+export function lr(scope: Scope, pattern: Pattern): MatchLR {
+  return {
+    kind: MatchKind.LR,
+    pattern,
+    scope,
+  };
+}
 
-  public span(): Span {
-    const start = this.start.stream.path.segments[0];
-    const end = this.end.stream.path.segments[0];
-    if (typeof start === "number" && typeof end === "number") {
-      return { start, end };
-    } else {
-      return { start: 0, end: 0 };
-    }
-  }
+export function error(
+  scope: Scope,
+  pattern: Pattern,
+  code: MatchErrorCode,
+  message: string,
+): MatchError {
+  return {
+    kind: MatchKind.Error,
+    span: spanFrom(scope, scope),
+    pattern,
+    scope,
+    code,
+    message,
+  };
+}
 
-  public get done() {
-    return this.end.stream.done;
-  }
+export function ok(
+  start: Scope,
+  end: Scope,
+  pattern: Pattern,
+  value: unknown = undefined,
+  matches: Match[] = [],
+): MatchOk {
+  return {
+    kind: MatchKind.Ok,
+    span: spanFrom(start, end),
+    pattern,
+    scope: end,
+    value,
+    matches,
+  };
+}
 
-  public endRecursion() {
-    return new Match(
-      this.matched,
-      false,
-      this.start,
-      this.end,
-      this.value,
-    );
-  }
-
-  public setValue(value: unknown) {
-    return new Match(
-      this.matched,
-      this.isLr,
-      this.start,
-      this.end,
-      value,
-    );
-  }
-
-  public pop(scope: Scope) {
-    return new Match(
-      this.matched,
-      this.isLr,
-      this.start,
-      this.end.pop(scope),
-      this.value,
-    );
-  }
-
-  public setEnd(end: Scope) {
-    return new Match(
-      this.matched,
-      this.isLr,
-      this.start,
-      end,
-      this.value,
-    );
-  }
+export function fail(
+  scope: Scope,
+  pattern: Pattern,
+  matches: Match[] = [],
+): MatchFail {
+  return {
+    kind: MatchKind.Fail,
+    span: spanFrom(scope, scope),
+    scope,
+    pattern,
+    matches,
+  };
 }

@@ -1,5 +1,5 @@
 import { Input } from "../../mod.ts";
-import { Path } from "../../path.ts";
+import { MatchKind } from "../../match.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
@@ -15,6 +15,7 @@ await Deno.test("runtime/patterns/and", async (t) => {
       },
       input: Input.From("a"),
       value: "a",
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -30,6 +31,7 @@ await Deno.test("runtime/patterns/and", async (t) => {
       },
       input: Input.From("a"),
       value: "a",
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -51,6 +53,7 @@ await Deno.test("runtime/patterns/and", async (t) => {
       },
       input: Input.From("ab"),
       value: ["a", "b"],
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -65,7 +68,7 @@ await Deno.test("runtime/patterns/and", async (t) => {
         ],
       },
       input: Input.From("a"),
-      matched: false,
+      kind: MatchKind.Fail,
       done: false,
     }),
   });
@@ -81,17 +84,8 @@ await Deno.test("runtime/patterns/and", async (t) => {
         ],
       },
       input: Input.From("b"),
-      matched: false,
+      kind: MatchKind.Fail,
       done: false,
-      errors: [
-        {
-          pattern: { kind: PatternKind.RegExp, pattern: /a/ },
-          span: {
-            start: Path.From(0),
-            end: Path.From(0),
-          },
-        },
-      ],
     }),
   });
 
@@ -106,17 +100,20 @@ await Deno.test("runtime/patterns/and", async (t) => {
         ],
       },
       input: Input.From("a"),
-      matched: false,
+      kind: MatchKind.Fail,
       done: false,
-      errors: [
-        {
-          pattern: { kind: PatternKind.RegExp, pattern: /b/ },
-          span: {
-            start: Path.From(0),
-            end: Path.From(0),
-          },
-        },
-      ],
+    }),
+  });
+  await t.step({
+    name: "AND06",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.And,
+        patterns: [],
+      },
+      input: Input.From("a"),
+      kind: MatchKind.Ok,
+      done: false,
     }),
   });
 });

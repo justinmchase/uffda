@@ -17,6 +17,7 @@ export enum PatternKind {
   Range = "range",
   Reference = "reference",
   RegExp = "regexp",
+  Run = "run",
   Slice = "slice",
   Special = "special",
   Then = "then",

@@ -1,4 +1,5 @@
 import { Input } from "../../input.ts";
+import { MatchKind } from "../../match.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { ValueType } from "./pattern.ts";
@@ -14,8 +15,9 @@ Deno.test("runtime.patterns.slice", async (t) => {
         },
       },
       input: Input.From("abc"),
-      done: false,
       value: [undefined],
+      kind: MatchKind.Ok,
+      done: false,
     }),
   });
   await t.step({
@@ -29,6 +31,7 @@ Deno.test("runtime.patterns.slice", async (t) => {
       },
       input: Input.From(""),
       value: [],
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -41,6 +44,7 @@ Deno.test("runtime.patterns.slice", async (t) => {
       },
       input: Input.From("a"),
       value: ["a"],
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -53,6 +57,7 @@ Deno.test("runtime.patterns.slice", async (t) => {
       },
       input: Input.From("abc"),
       value: ["a", "b", "c"],
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -73,6 +78,7 @@ Deno.test("runtime.patterns.slice", async (t) => {
       },
       input: Input.From("b"),
       value: [[], "b"],
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -93,6 +99,7 @@ Deno.test("runtime.patterns.slice", async (t) => {
       },
       input: Input.From("a"),
       value: ["a", []],
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -104,7 +111,8 @@ Deno.test("runtime.patterns.slice", async (t) => {
         min: 1,
       },
       input: Input.From(""),
-      matched: false,
+      kind: MatchKind.Fail,
+      done: true,
     }),
   });
   await t.step({
@@ -117,6 +125,7 @@ Deno.test("runtime.patterns.slice", async (t) => {
       },
       input: Input.From("a"),
       value: [undefined, undefined, undefined],
+      kind: MatchKind.Ok,
       done: false,
     }),
   });
@@ -133,6 +142,7 @@ Deno.test("runtime.patterns.slice", async (t) => {
       },
       input: Input.From("a"),
       value: ["a"],
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -148,6 +158,7 @@ Deno.test("runtime.patterns.slice", async (t) => {
       },
       input: Input.From("abc"),
       value: ["a", "b", "c"],
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -164,6 +175,7 @@ Deno.test("runtime.patterns.slice", async (t) => {
       },
       input: Input.From("abc"),
       value: ["a", "b", "c"],
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -179,8 +191,7 @@ Deno.test("runtime.patterns.slice", async (t) => {
         max: 3,
       },
       input: Input.From("ab"),
-      matched: false,
-      done: false,
+      kind: MatchKind.Fail,
     }),
   });
   await t.step({
@@ -197,6 +208,7 @@ Deno.test("runtime.patterns.slice", async (t) => {
       },
       input: Input.From("abcd"),
       value: ["a", "b", "c"],
+      kind: MatchKind.Ok,
       done: false,
     }),
   });

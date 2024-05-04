@@ -1,4 +1,4 @@
-import { Match } from "../match.ts";
+import { MatchOk } from "../match.ts";
 import {
   array,
   binary,
@@ -17,7 +17,7 @@ import {
   value,
 } from "./expressions/mod.ts";
 
-export function exec(expression: Expression, match: Match): unknown {
+export function exec(expression: Expression, match: MatchOk): unknown {
   switch (expression.kind) {
     case ExpressionKind.Array:
       return array(expression, match);

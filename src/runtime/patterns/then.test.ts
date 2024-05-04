@@ -1,4 +1,5 @@
 import { Input } from "../../input.ts";
+import { MatchKind } from "../../match.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
@@ -9,6 +10,7 @@ await Deno.test("patterns/end", async (t) => {
       pattern: { kind: PatternKind.Then, patterns: [] },
       input: Input.From([]),
       value: [],
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -21,6 +23,7 @@ await Deno.test("patterns/end", async (t) => {
       },
       input: Input.From("a"),
       value: ["a"],
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -36,6 +39,7 @@ await Deno.test("patterns/end", async (t) => {
       },
       input: Input.From("ab"),
       value: ["a", "b"],
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -51,6 +55,7 @@ await Deno.test("patterns/end", async (t) => {
       },
       input: Input.From("abc"),
       value: ["a", "b"],
+      kind: MatchKind.Ok,
       done: false,
     }),
   });
@@ -67,6 +72,7 @@ await Deno.test("patterns/end", async (t) => {
       },
       input: Input.From([]),
       value: [undefined],
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -82,7 +88,7 @@ await Deno.test("patterns/end", async (t) => {
         ],
       },
       input: Input.From("a"),
-      matched: false,
+      kind: MatchKind.Fail,
       done: false,
     }),
   });

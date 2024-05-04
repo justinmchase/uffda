@@ -2,6 +2,7 @@ import { patternTest } from "../../test.ts";
 import { ExpressionKind } from "../expressions/mod.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { Input } from "../../input.ts";
+import { MatchKind } from "../../match.ts";
 
 Deno.test("runtime.patterns.projection", async (t) => {
   await t.step({
@@ -17,6 +18,7 @@ Deno.test("runtime.patterns.projection", async (t) => {
       },
       input: new Input([7]),
       value: 11,
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -34,6 +36,7 @@ Deno.test("runtime.patterns.projection", async (t) => {
       input: new Input([7]),
       variables: new Map([["v0", 11]]),
       value: 11,
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -46,12 +49,13 @@ Deno.test("runtime.patterns.projection", async (t) => {
         pattern: { kind: PatternKind.Any },
         expression: {
           kind: ExpressionKind.Native,
-          fn: ({ $0 }) => (console.log($0), $0()),
+          fn: ({ $0 }) => $0(),
         },
       },
       input: new Input([7]),
       variables: new Map([["$0", $0]]),
       value: 11,
+      kind: MatchKind.Ok,
     }),
   });
 });

@@ -1,19 +1,19 @@
-import { Match } from "../../match.ts";
+import { MatchOk } from "../../match.ts";
 import { IReferenceExpression } from "./expression.ts";
 
 export function reference(
   expression: IReferenceExpression,
-  match: Match,
+  match: MatchOk,
 ): unknown {
   const { name } = expression;
   switch (name) {
     case "_":
       return match.value;
     default:
-      return match.end.variables.has(name)
-        ? match.end.variables.get(name)
-        : match.end.options.globals.has(name)
-        ? match.end.options.globals.get(name)
+      return match.scope.variables.has(name)
+        ? match.scope.variables.get(name)
+        : match.scope.options.globals.has(name)
+        ? match.scope.options.globals.get(name)
         : undefined;
   }
 }

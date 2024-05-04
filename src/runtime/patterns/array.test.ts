@@ -1,5 +1,5 @@
 import { Input } from "../../input.ts";
-import { Path } from "../../path.ts";
+import { MatchKind } from "../../match.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { ValueType } from "./pattern.ts";
@@ -16,6 +16,7 @@ await Deno.test("runtime/patterns/array", async (t) => {
         },
       },
       input: Input.From([[]]),
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -28,6 +29,7 @@ await Deno.test("runtime/patterns/array", async (t) => {
       },
       input: Input.From([["a"]]),
       value: "a",
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -46,6 +48,7 @@ await Deno.test("runtime/patterns/array", async (t) => {
       },
       input: Input.From([["a", "b"]]),
       value: ["a", "b"],
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -61,6 +64,7 @@ await Deno.test("runtime/patterns/array", async (t) => {
       },
       input: Input.From([["a", "b"]]),
       value: ["a", "b"],
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -72,9 +76,8 @@ await Deno.test("runtime/patterns/array", async (t) => {
         pattern: { kind: PatternKind.Any },
       },
       input: Input.From([["a", "b"]]),
-      value: undefined,
-      matched: false,
-      done: false,
+      value: "a",
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -90,6 +93,7 @@ await Deno.test("runtime/patterns/array", async (t) => {
       },
       input: Input.From([[["a"]]]),
       value: "a",
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -107,8 +111,7 @@ await Deno.test("runtime/patterns/array", async (t) => {
         },
       },
       input: Input.From([["a"], "b"]),
-      matched: false,
-      done: false,
+      kind: MatchKind.Fail,
     }),
   });
 
@@ -134,6 +137,7 @@ await Deno.test("runtime/patterns/array", async (t) => {
       },
       input: Input.From(["abc"]),
       value: ["a", "b", "c"],
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -153,17 +157,8 @@ await Deno.test("runtime/patterns/array", async (t) => {
         },
       },
       input: Input.From([["a", "b", 3]]),
-      matched: false,
+      kind: MatchKind.Fail,
       done: false,
-      errors: [
-        {
-          pattern: { kind: PatternKind.Type, type: ValueType.String },
-          span: {
-            start: Path.From(0, 2),
-            end: Path.From(0, 2),
-          },
-        },
-      ],
     }),
   });
 });

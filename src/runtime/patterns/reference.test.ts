@@ -1,4 +1,5 @@
 import { Input } from "../../input.ts";
+import { MatchKind } from "../../match.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 import { DeclarationKind } from "../declarations/declaration.kind.ts";
 import { PatternKind } from "./pattern.kind.ts";
@@ -31,6 +32,7 @@ Deno.test("runtime.patterns.reference", async (t) => {
       },
       input: Input.From("a"),
       value: "a",
+      kind: MatchKind.Ok,
     }),
   });
 });

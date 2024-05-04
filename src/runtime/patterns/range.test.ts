@@ -3,6 +3,9 @@ import { Comparable } from "../../comparable.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { Input } from "../../input.ts";
+import { MatchKind } from "../../match.ts";
+import { MatchErrorCode } from "../../match.ts";
+import { Path } from "../../mod.ts";
 
 class Test implements ToJson {
   constructor(public readonly value: number) {}
@@ -29,8 +32,8 @@ Deno.test("runtime.patterns.range", async (t) => {
         right: 2,
       },
       input: Input.From([1]),
-      matched: true,
       value: 1,
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -42,8 +45,8 @@ Deno.test("runtime.patterns.range", async (t) => {
         right: 0,
       },
       input: Input.From([0]),
-      matched: true,
       value: 0,
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -55,8 +58,8 @@ Deno.test("runtime.patterns.range", async (t) => {
         right: 1,
       },
       input: Input.From([1]),
-      matched: true,
       value: 1,
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -68,8 +71,8 @@ Deno.test("runtime.patterns.range", async (t) => {
         right: "a",
       },
       input: Input.From("a"),
-      matched: true,
       value: "a",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -81,8 +84,8 @@ Deno.test("runtime.patterns.range", async (t) => {
         right: "b",
       },
       input: Input.From("b"),
-      matched: true,
       value: "b",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -94,8 +97,8 @@ Deno.test("runtime.patterns.range", async (t) => {
         right: "c",
       },
       input: Input.From("b"),
-      matched: true,
       value: "b",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -107,7 +110,7 @@ Deno.test("runtime.patterns.range", async (t) => {
         right: "b",
       },
       input: Input.From("v"),
-      matched: false,
+      kind: MatchKind.Fail,
       done: false,
     }),
   });
@@ -120,7 +123,7 @@ Deno.test("runtime.patterns.range", async (t) => {
         right: 1,
       },
       input: Input.From([2]),
-      matched: false,
+      kind: MatchKind.Fail,
       done: false,
     }),
   });
@@ -134,8 +137,8 @@ Deno.test("runtime.patterns.range", async (t) => {
         right: new Test(1),
       },
       input: Input.From([test]),
-      matched: true,
       value: test,
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -147,7 +150,7 @@ Deno.test("runtime.patterns.range", async (t) => {
         right: new Test(2),
       },
       input: Input.From([test]),
-      matched: true,
+      kind: MatchKind.Ok,
       value: test,
     }),
   });
@@ -160,7 +163,7 @@ Deno.test("runtime.patterns.range", async (t) => {
         right: new Test(1),
       },
       input: Input.From([test]),
-      matched: true,
+      kind: MatchKind.Ok,
       value: test,
     }),
   });
@@ -173,7 +176,7 @@ Deno.test("runtime.patterns.range", async (t) => {
         right: new Test(0),
       },
       input: Input.From([test]),
-      matched: false,
+      kind: MatchKind.Fail,
       done: false,
     }),
   });
@@ -186,7 +189,7 @@ Deno.test("runtime.patterns.range", async (t) => {
         right: new Test(0),
       },
       input: Input.From([test]),
-      matched: false,
+      kind: MatchKind.Fail,
       done: false,
     }),
   });
@@ -199,7 +202,7 @@ Deno.test("runtime.patterns.range", async (t) => {
         right: {} as Comparable,
       },
       input: Input.From([test]),
-      matched: false,
+      kind: MatchKind.Fail,
       done: false,
     }),
   });
@@ -212,8 +215,11 @@ Deno.test("runtime.patterns.range", async (t) => {
         right: 0,
       },
       input: Input.From([undefined]),
-      matched: false,
-      done: false,
+      kind: MatchKind.Error,
+      code: MatchErrorCode.NullValue,
+      message: "expected value to be non-null",
+      start: Path.From(0),
+      end: Path.From(0),
     }),
   });
   await t.step({
@@ -225,8 +231,11 @@ Deno.test("runtime.patterns.range", async (t) => {
         right: 0,
       },
       input: Input.From([null]),
-      matched: false,
-      done: false,
+      kind: MatchKind.Error,
+      code: MatchErrorCode.NullValue,
+      message: "expected value to be non-null",
+      start: Path.From(0),
+      end: Path.From(0),
     }),
   });
   await t.step({
@@ -238,7 +247,7 @@ Deno.test("runtime.patterns.range", async (t) => {
         right: "a",
       },
       input: Input.From([0]),
-      matched: false,
+      kind: MatchKind.Fail,
       done: false,
     }),
   });
@@ -251,7 +260,7 @@ Deno.test("runtime.patterns.range", async (t) => {
         right: 0,
       },
       input: Input.From([0]),
-      matched: false,
+      kind: MatchKind.Fail,
       done: false,
     }),
   });
@@ -264,7 +273,7 @@ Deno.test("runtime.patterns.range", async (t) => {
         right: false as unknown as Comparable,
       },
       input: Input.From([true]),
-      matched: false,
+      kind: MatchKind.Fail,
       done: false,
     }),
   });

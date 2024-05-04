@@ -1,21 +1,30 @@
-import { Match } from "../../match.ts";
-import { Scope } from "../../mod.ts";
+import { error, fail, Match, MatchErrorCode, ok } from "../../match.ts";
+import { Scope } from "../scope.ts";
 import { CharacterClass, ICharacterPattern } from "./pattern.ts";
 
 export function character(pattern: ICharacterPattern, scope: Scope): Match {
   const { characterClass } = pattern;
   const regexp = characterClassToRegexp(characterClass);
-  if (!scope.stream.done) {
-    const next = scope.stream.next();
-    if (typeof next.value !== "string") {
-      return Match.Fail(scope, pattern);
-    }
-
-    if (regexp.test(next.value)) {
-      return Match.Ok(scope, scope.withInput(next), next.value, pattern);
-    }
+  if (scope.stream.done) {
+    return fail(scope, pattern);
   }
-  return Match.Fail(scope, pattern);
+
+  const next = scope.stream.next();
+  if (typeof next.value !== "string") {
+    return error(
+      scope,
+      pattern,
+      MatchErrorCode.Type,
+      `expected value to be a string but got ${typeof next.value}`,
+    );
+  }
+
+  if (!regexp.test(next.value)) {
+    return fail(scope, pattern);
+  }
+
+  const end = scope.withInput(next);
+  return ok(scope, end, pattern, next.value);
 }
 
 function characterClassToRegexp(characterClass: CharacterClass) {

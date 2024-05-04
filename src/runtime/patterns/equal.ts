@@ -1,14 +1,18 @@
-import { Match } from "../../match.ts";
+import { fail, Match, ok } from "../../match.ts";
 import { Scope } from "../scope.ts";
 import { IEqualPattern } from "./pattern.ts";
 
-export function equal(args: IEqualPattern, scope: Scope): Match {
-  const { value } = args;
-  if (!scope.stream.done) {
-    const next = scope.stream.next();
-    if (next.value === value) {
-      return Match.Ok(scope, scope.withInput(next), next.value, args);
-    }
+export function equal(pattern: IEqualPattern, scope: Scope): Match {
+  const { value } = pattern;
+  if (scope.stream.done) {
+    return fail(scope, pattern);
   }
-  return Match.Fail(scope, args);
+
+  const next = scope.stream.next();
+  const end = scope.withInput(next);
+  if (next.value === value) {
+    return ok(scope, end, pattern, next.value);
+  } else {
+    return fail(scope, pattern);
+  }
 }

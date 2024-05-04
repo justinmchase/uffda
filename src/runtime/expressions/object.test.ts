@@ -1,5 +1,3 @@
-import { Match } from "../../match.ts";
-import { Scope } from "../scope.ts";
 import { expressionTest } from "../../test.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 
@@ -7,7 +5,6 @@ await Deno.test("runtime/expressions/object", async (t) => {
   await t.step({
     name: "OBJECT00",
     fn: expressionTest({
-      match: Match.Default(Scope.Default()),
       result: { x: 7, y: 11 },
       expression: {
         kind: ExpressionKind.Object,
@@ -36,7 +33,6 @@ await Deno.test("runtime/expressions/object", async (t) => {
   await t.step({
     name: "OBJECT01",
     fn: expressionTest({
-      match: Match.Default(Scope.Default()),
       result: { x: 11 },
       expression: {
         kind: ExpressionKind.Object,
@@ -65,7 +61,6 @@ await Deno.test("runtime/expressions/object", async (t) => {
   await t.step({
     name: "OBJECT02",
     fn: expressionTest({
-      match: Match.Default(Scope.Default()),
       result: {},
       expression: {
         kind: ExpressionKind.Object,
@@ -77,7 +72,6 @@ await Deno.test("runtime/expressions/object", async (t) => {
   await t.step({
     name: "OBJECT03",
     fn: expressionTest({
-      match: Match.Default(Scope.Default()),
       result: { x: 7, y: 11 },
       expression: {
         kind: ExpressionKind.Object,
@@ -97,7 +91,6 @@ await Deno.test("runtime/expressions/object", async (t) => {
   await t.step({
     name: "OBJECT04",
     fn: expressionTest({
-      match: Match.Default(Scope.Default()),
       result: { x: 7, y: 13, z: 19 },
       expression: {
         kind: ExpressionKind.Object,
@@ -124,7 +117,6 @@ await Deno.test("runtime/expressions/object", async (t) => {
   await t.step({
     name: "OBJECT05",
     fn: expressionTest({
-      match: Match.Default(Scope.Default()),
       result: { x: 13, y: 11, z: 19 },
       expression: {
         kind: ExpressionKind.Object,

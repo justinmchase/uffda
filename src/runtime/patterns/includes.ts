@@ -1,15 +1,19 @@
 import { Serializable } from "serializable/mod.ts";
-import { Match } from "../../match.ts";
+import { fail, Match, ok } from "../../match.ts";
 import { Scope } from "../scope.ts";
 import { IIncludesPattern } from "./pattern.ts";
 
-export function includes(args: IIncludesPattern, scope: Scope) {
-  const { values } = args;
-  if (!scope.stream.done) {
-    const next = scope.stream.next();
-    if (values.includes(next.value as Serializable)) {
-      return Match.Ok(scope, scope.withInput(next), next.value, args);
-    }
+export function includes(pattern: IIncludesPattern, scope: Scope): Match {
+  const { values } = pattern;
+  if (scope.stream.done) {
+    return fail(scope, pattern);
   }
-  return Match.Fail(scope, args);
+
+  const next = scope.stream.next();
+  const end = scope.withInput(next);
+  if (values.includes(next.value as Serializable)) {
+    return ok(scope, end, pattern, next.value);
+  } else {
+    return fail(scope, pattern);
+  }
 }

@@ -15,6 +15,7 @@ export * from "./projection.ts";
 export * from "./range.ts";
 export * from "./reference.ts";
 export * from "./regexp.ts";
+export * from "./run.ts";
 export * from "./slice.ts";
 export * from "./special.ts";
 export * from "./then.ts";

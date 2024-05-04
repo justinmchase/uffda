@@ -1,19 +1,25 @@
-import { Match } from "../../match.ts";
+import { error, fail, Match, MatchErrorCode, ok } from "../../match.ts";
 import { Scope } from "../scope.ts";
 import { IRegExpPattern } from "./pattern.ts";
 
-export function regexp(regexPattern: IRegExpPattern, scope: Scope) {
-  const { pattern } = regexPattern;
-  if (!scope.stream.done) {
-    const next = scope.stream.next();
-    if (typeof next.value !== "string") {
-      return Match.Fail(scope, regexPattern);
-    }
-
-    if (pattern.test(next.value)) {
-      return Match.Ok(scope, scope.withInput(next), next.value, regexPattern);
-    }
+export function regexp(pattern: IRegExpPattern, scope: Scope): Match {
+  if (scope.stream.done) {
+    return fail(scope, pattern);
+  }
+  const next = scope.stream.next();
+  const end = scope.withInput(next);
+  if (typeof next.value !== "string") {
+    return error(
+      scope,
+      pattern,
+      MatchErrorCode.Type,
+      `expected value to be a string but got ${typeof next.value}`,
+    );
   }
 
-  return Match.Fail(scope, regexPattern);
+  if (pattern.pattern.test(next.value)) {
+    return ok(scope, end, pattern, next.value);
+  } else {
+    return fail(scope, pattern);
+  }
 }

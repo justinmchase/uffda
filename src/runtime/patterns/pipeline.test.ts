@@ -1,4 +1,5 @@
 import { Input } from "../../input.ts";
+import { MatchKind } from "../../match.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 import { DeclarationKind } from "../declarations/mod.ts";
 import { ExpressionKind } from "../expressions/mod.ts";
@@ -29,6 +30,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       },
       input: Input.From("a"),
       value: "a",
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -71,6 +73,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       },
       input: Input.From([0]),
       value: 2,
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -119,6 +122,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       },
       input: Input.From([1, 2, 3]),
       value: [4, 6, 8],
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -157,6 +161,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       },
       input: Input.From([11]),
       value: [22],
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -195,6 +200,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       },
       input: Input.From([1, 2, 3]),
       value: 6,
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -243,6 +249,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       },
       input: Input.From("abc"),
       value: "a-b-c",
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -291,6 +298,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       },
       input: Input.From("abc"),
       value: ["a", ["b"], "c"],
+      kind: MatchKind.Ok,
     }),
   });
 });

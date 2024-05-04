@@ -1,6 +1,7 @@
-import { Input, Path } from "../../mod.ts";
+import { Input } from "../../mod.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
+import { MatchKind } from "../../match.ts";
 
 await Deno.test("runtime/patterns/end", async (t) => {
   await t.step({
@@ -8,6 +9,7 @@ await Deno.test("runtime/patterns/end", async (t) => {
     fn: patternTest({
       pattern: { kind: PatternKind.End },
       input: Input.From([]),
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -16,8 +18,7 @@ await Deno.test("runtime/patterns/end", async (t) => {
     fn: patternTest({
       pattern: { kind: PatternKind.End },
       input: Input.From("a"),
-      matched: false,
-      done: false,
+      kind: MatchKind.Fail,
     }),
   });
 
@@ -31,17 +32,8 @@ await Deno.test("runtime/patterns/end", async (t) => {
         },
       },
       input: Input.From("a"),
-      matched: true,
+      kind: MatchKind.Ok,
       done: false,
-      errors: [
-        {
-          pattern: { kind: PatternKind.End },
-          span: {
-            start: Path.From(0),
-            end: Path.From(0),
-          },
-        },
-      ],
     }),
   });
 
@@ -57,17 +49,7 @@ await Deno.test("runtime/patterns/end", async (t) => {
         ],
       },
       input: Input.From("abc"),
-      matched: false,
-      done: false,
-      errors: [
-        {
-          pattern: { kind: PatternKind.End },
-          span: {
-            start: Path.From(2),
-            end: Path.From(2),
-          },
-        },
-      ],
+      kind: MatchKind.Fail,
     }),
   });
 
@@ -85,6 +67,7 @@ await Deno.test("runtime/patterns/end", async (t) => {
       },
       input: Input.From("abc"),
       value: ["a", "b", "c", undefined],
+      kind: MatchKind.Ok,
     }),
   });
 });

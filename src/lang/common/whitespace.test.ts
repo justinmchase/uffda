@@ -1,4 +1,5 @@
 import { Input } from "../../input.ts";
+import { MatchKind } from "../../mod.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
 const moduleUrl = new URL("./whitespace.ts", import.meta.url).href;
@@ -20,6 +21,7 @@ Deno.test(
         moduleUrl,
         input: Input.From(" "),
         value: " ",
+        kind: MatchKind.Ok,
       }),
     });
 
@@ -29,6 +31,7 @@ Deno.test(
         moduleUrl,
         input: Input.From(" \t "),
         value: " \t ",
+        kind: MatchKind.Ok,
       }),
     });
 
@@ -37,7 +40,8 @@ Deno.test(
       fn: moduleDeclarationTest({
         moduleUrl,
         input: Input.From(""),
-        matched: false,
+        kind: MatchKind.Fail,
+        done: true,
       }),
     });
 
@@ -46,8 +50,7 @@ Deno.test(
       fn: moduleDeclarationTest({
         moduleUrl,
         input: Input.From("\r"),
-        matched: false,
-        done: false,
+        kind: MatchKind.Fail,
       }),
     });
 
@@ -56,8 +59,7 @@ Deno.test(
       fn: moduleDeclarationTest({
         moduleUrl,
         input: Input.From("\n"),
-        matched: false,
-        done: false,
+        kind: MatchKind.Fail,
       }),
     });
   },

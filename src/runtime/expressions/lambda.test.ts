@@ -1,4 +1,3 @@
-import { Match } from "../../match.ts";
 import { Scope } from "../scope.ts";
 import { expressionTest } from "../../test.ts";
 import { PatternKind } from "../patterns/pattern.kind.ts";
@@ -9,12 +8,10 @@ await Deno.test("runtime/expressions/lambda", async (t) => {
   await t.step({
     name: "RUNTIME.LAMBDA00",
     fn: expressionTest({
-      match: Match.Default(
-        Scope.Default().addVariables({
-          a: 7,
-          b: 11,
-        }),
-      ),
+      scope: Scope.Default().addVariables({
+        a: 7,
+        b: 11,
+      }),
       result: 18,
       expression: {
         // (!any -> a + b)
@@ -48,12 +45,10 @@ await Deno.test("runtime/expressions/lambda", async (t) => {
   await t.step({
     name: "RUNTIME.LAMBDA01",
     fn: expressionTest({
-      match: Match.Default(
-        Scope.Default().addVariables({
-          a: 7,
-          b: 11,
-        }),
-      ),
+      scope: Scope.Default().addVariables({
+        a: 7,
+        b: 11,
+      }),
       result: 18,
       expression: {
         // (!any -> [native])
@@ -79,7 +74,6 @@ await Deno.test("runtime/expressions/lambda", async (t) => {
   await t.step({
     name: "RUNTIME.LAMBDA02",
     fn: expressionTest({
-      match: Match.Default(Scope.Default()),
       result: 18,
       expression: {
         // (a:any b:any -> a + b 7 11)
@@ -131,7 +125,6 @@ await Deno.test("runtime/expressions/lambda", async (t) => {
   await t.step({
     name: "RUNTIME.LAMBDA03",
     fn: expressionTest({
-      match: Match.Default(Scope.Default()),
       result: 18,
       expression: {
         // (a:any b:any -> a + b 7 11)

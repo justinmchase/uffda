@@ -1,4 +1,5 @@
 import { Input } from "../input.ts";
+import { MatchKind } from "../mod.ts";
 import { moduleDeclarationTest } from "../test.ts";
 
 const moduleUrl = new URL("./tokenizer.ts", import.meta.url).href;
@@ -16,6 +17,7 @@ Deno.test("lang.tokenizer", async (t) => {
       moduleUrl,
       input: Input.From(" "),
       value: [" "],
+      kind: MatchKind.Ok,
     }),
   });
 });

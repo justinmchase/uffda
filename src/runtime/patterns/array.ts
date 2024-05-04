@@ -1,4 +1,4 @@
-import { Match } from "../../match.ts";
+import { error, fail, MatchErrorCode, MatchKind, ok } from "../../match.ts";
 import { Scope } from "../scope.ts";
 import { Input } from "../../input.ts";
 import { match } from "../match.ts";
@@ -12,38 +12,47 @@ function isIterable(value: any): value is Iterable<unknown> {
   return typeof value[Symbol.iterator] === "function";
 }
 
-export function array(arrayPattern: IArrayPattern, scope: Scope) {
-  const { pattern } = arrayPattern;
-  if (!scope.stream.done) {
-    const next = scope.stream.next();
-    if (isIterable(next.value)) {
-      const innerStream = new Input(
-        next.value,
-        scope.stream.path.push(0),
-      );
-      const innerScope = scope
-        .withInput(innerStream);
-
-      const m = match(pattern, innerScope);
-      if (!m.matched) {
-        return Match.Fail(scope, arrayPattern, [m]);
-      }
-
-      if (!m.end.stream.done) {
-        return Match.Fail(scope, arrayPattern, [m]);
-      }
-
-      return Match.Ok(
-        scope,
-        scope
-          .withInput(next)
-          .addVariables(m.end.variables),
-        m.value,
-        arrayPattern,
-        [m],
-      );
-    }
+export function array(pattern: IArrayPattern, scope: Scope) {
+  if (scope.stream.done) {
+    return fail(scope, pattern);
   }
 
-  return Match.Fail(scope, arrayPattern);
+  const next = scope.stream.next();
+  if (next.value == null) {
+    return error(
+      scope,
+      pattern,
+      MatchErrorCode.NullValue,
+      "expected value to be non-null",
+    );
+  }
+  if (!isIterable(next.value)) {
+    return error(
+      scope,
+      pattern,
+      MatchErrorCode.IterableExpected,
+      "expected value to be iterable",
+    );
+  }
+
+  const innerStream = new Input(
+    next.value,
+    scope.stream.path.push(0),
+  );
+  const innerScope = scope
+    .withInput(innerStream);
+
+  const m = match(pattern.pattern, innerScope);
+  const end = scope
+    .withInput(next)
+    .addVariables(m.scope.variables);
+  switch (m.kind) {
+    case MatchKind.LR:
+    case MatchKind.Error:
+      return m;
+    case MatchKind.Fail:
+      return fail(scope, pattern, [m]);
+    case MatchKind.Ok:
+      return ok(scope, end, pattern, m.value, [m]);
+  }
 }

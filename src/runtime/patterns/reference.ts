@@ -1,21 +1,35 @@
 import { Scope } from "../scope.ts";
-import { Match } from "../../match.ts";
+import {
+  error,
+  fail,
+  Match,
+  MatchErrorCode,
+  MatchKind,
+  ok,
+} from "../../match.ts";
 import { IReferencePattern } from "./pattern.ts";
 import { rule } from "../rule.ts";
 
 export function reference(pattern: IReferencePattern, scope: Scope): Match {
   const { name } = pattern;
   const ref = scope.getRule(name);
-  if (ref) {
-    const m = rule(ref, scope);
-    if (m.isLr) {
+  if (!ref) {
+    return error(
+      scope,
+      pattern,
+      MatchErrorCode.UnknownReference,
+      `unknown reference: ${name}`,
+    );
+  }
+
+  const m = rule(ref, scope);
+  switch (m.kind) {
+    case MatchKind.LR:
+    case MatchKind.Error:
       return m;
-    } else if (m.matched) {
-      return Match.Ok(m.start, m.end, m.value, pattern, [m]);
-    } else {
-      return Match.Fail(scope, pattern, [m]);
-    }
-  } else {
-    return Match.Fail(scope, pattern);
+    case MatchKind.Ok:
+      return ok(scope, m.scope, pattern, m.value, [m]);
+    case MatchKind.Fail:
+      return fail(scope, pattern, [m]);
   }
 }

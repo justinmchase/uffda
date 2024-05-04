@@ -1,11 +1,11 @@
-import { Match } from "../../match.ts";
+import { MatchOk } from "../../match.ts";
 import { exec } from "../exec.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import { IArrayExpression } from "./expression.ts";
 
 export function array(
   expression: IArrayExpression,
-  match: Match,
+  match: MatchOk,
 ): unknown {
   const { expressions } = expression;
   return expressions.reduce<unknown[]>((arr, expr) => {

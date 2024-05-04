@@ -4,6 +4,7 @@ import { DeclarationKind } from "./declarations/declaration.kind.ts";
 import { ExpressionKind } from "./expressions/expression.kind.ts";
 import { PatternKind } from "./patterns/pattern.kind.ts";
 import { Input } from "../input.ts";
+import { MatchKind } from "../mod.ts";
 
 Deno.test("runtime.rule", async (t) => {
   await t.step({
@@ -26,6 +27,7 @@ Deno.test("runtime.rule", async (t) => {
           ],
         },
       },
+      kind: MatchKind.Ok,
       input: Input.From("a"),
       value: "a",
     }),
@@ -61,6 +63,7 @@ Deno.test("runtime.rule", async (t) => {
           ],
         },
       },
+      kind: MatchKind.Ok,
       input: Input.From("aa"),
       value: "a",
       done: false,
@@ -97,6 +100,7 @@ Deno.test("runtime.rule", async (t) => {
           ],
         },
       },
+      kind: MatchKind.Ok,
       input: Input.From("aaa"),
       value: [["a", "a"], "a"],
     }),
@@ -130,9 +134,8 @@ Deno.test("runtime.rule", async (t) => {
           ],
         },
       },
+      kind: MatchKind.Fail,
       input: Input.From("ab"),
-      matched: false,
-      done: false,
     }),
   });
 
@@ -166,6 +169,7 @@ Deno.test("runtime.rule", async (t) => {
           ],
         },
       },
+      kind: MatchKind.Ok,
       input: Input.From("aaa"),
       value: ["a", ["a", "a"]],
     }),
@@ -218,6 +222,7 @@ Deno.test("runtime.rule", async (t) => {
           ],
         },
       },
+      kind: MatchKind.Ok,
       input: Input.From("ab"),
       value: ["a", true],
     }),
@@ -268,6 +273,7 @@ Deno.test("runtime.rule", async (t) => {
           ],
         },
       },
+      kind: MatchKind.Ok,
       input: Input.From("a"),
       value: "a",
     }),
@@ -332,6 +338,7 @@ Deno.test("runtime.rule", async (t) => {
           ],
         },
       },
+      kind: MatchKind.Ok,
       input: Input.From("ab"),
       value: ["a", true],
     }),

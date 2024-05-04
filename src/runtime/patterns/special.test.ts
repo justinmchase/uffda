@@ -1,4 +1,7 @@
 import { Input } from "../../input.ts";
+import { MatchKind } from "../../match.ts";
+import { MatchErrorCode } from "../../mod.ts";
+import { Path } from "../../path.ts";
 import { patternTest } from "../../test.ts";
 import { Module, ModuleKind, Rule } from "../modules/mod.ts";
 import { PatternKind } from "./pattern.kind.ts";
@@ -36,6 +39,7 @@ Deno.test("runtime.patterns.special", async (t) => {
       },
       input: Input.From("a"),
       value: "a",
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -49,6 +53,7 @@ Deno.test("runtime.patterns.special", async (t) => {
       },
       input: Input.From([7]),
       value: 7,
+      kind: MatchKind.Ok,
     }),
   });
 
@@ -60,7 +65,11 @@ Deno.test("runtime.patterns.special", async (t) => {
         name: "$0",
         value: mod1,
       },
-      matched: false,
+      kind: MatchKind.Error,
+      code: MatchErrorCode.PatternExpected,
+      message: "Rule Main not found",
+      start: Path.From(0),
+      end: Path.From(0),
     }),
   });
 });

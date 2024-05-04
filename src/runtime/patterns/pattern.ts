@@ -22,6 +22,7 @@ export type Pattern =
   | IRangePattern
   | IReferencePattern
   | IRegExpPattern
+  | IRunPattern
   | ISlicePattern
   | ISpecialPattern
   | IThenPattern
@@ -156,6 +157,12 @@ export interface IRegExpPattern {
   kind: PatternKind.RegExp;
   pattern: RegExp;
 }
+
+export interface IRunPattern {
+  kind: PatternKind.Run;
+  name?: string;
+}
+
 export interface ISlicePattern {
   kind: PatternKind.Slice;
   pattern: Pattern;

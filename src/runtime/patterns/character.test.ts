@@ -2,6 +2,7 @@ import { patternTest } from "../../test.ts";
 import { CharacterClass } from "./pattern.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { Input } from "../../input.ts";
+import { MatchKind } from "../../match.ts";
 
 Deno.test("patterns/character", async (t) => {
   await t.step({
@@ -13,6 +14,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("a"),
       value: "a",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -23,7 +25,7 @@ Deno.test("patterns/character", async (t) => {
         characterClass: CharacterClass.Letter,
       },
       input: Input.From("1"),
-      matched: false,
+      kind: MatchKind.Fail,
       done: false,
     }),
   });
@@ -36,6 +38,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("A"),
       value: "A",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -47,6 +50,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("z"),
       value: "z",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -58,6 +62,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("ǅ"),
       value: "ǅ",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -69,6 +74,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("ᶭ"),
       value: "ᶭ",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -80,6 +86,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("ǂ"),
       value: "ǂ",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -91,6 +98,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("⃟"),
       value: "⃟",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -116,6 +124,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("a꙱b"),
       value: "a꙱b",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -127,6 +136,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("7"),
       value: "7",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -138,6 +148,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("0"),
       value: "0",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -149,6 +160,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("Ⅳ"),
       value: "Ⅳ",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -160,6 +172,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("¼"),
       value: "¼",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -171,6 +184,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("+"),
       value: "+",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -182,6 +196,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("+"),
       value: "+",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -193,6 +208,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("$"),
       value: "$",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -204,6 +220,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("¨"),
       value: "¨",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -215,6 +232,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("֍"),
       value: "֍",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -226,6 +244,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("."),
       value: ".",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -237,6 +256,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("("),
       value: "(",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -248,6 +268,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From(")"),
       value: ")",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -259,6 +280,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("-"),
       value: "-",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -270,6 +292,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("«"),
       value: "«",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -281,6 +304,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("﹍"),
       value: "﹍",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -292,6 +316,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("»"),
       value: "»",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -303,6 +328,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("!"),
       value: "!",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -314,6 +340,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From(" "),
       value: " ",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -325,6 +352,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From(" "),
       value: " ",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -336,6 +364,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("\u2028"),
       value: "\u2028",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -347,6 +376,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("\u2029"),
       value: "\u2029",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -358,6 +388,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("\u0000"),
       value: "\u0000",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -369,6 +400,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("\u0000"),
       value: "\u0000",
+      kind: MatchKind.Ok,
     }),
   });
   await t.step({
@@ -380,6 +412,7 @@ Deno.test("patterns/character", async (t) => {
       },
       input: Input.From("\uFEFF"),
       value: "\uFEFF",
+      kind: MatchKind.Ok,
     }),
   });
 });

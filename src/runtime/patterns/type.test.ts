@@ -1,4 +1,5 @@
 import { Input } from "../../input.ts";
+import { MatchKind } from "../../mod.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { ValueType } from "./pattern.ts";
@@ -64,8 +65,7 @@ Deno.test("runtime.patterns.type", async (t) => {
         pattern: { kind: PatternKind.Type, type },
         input: Input.From([input]),
         value: success ? input : undefined,
-        matched: success,
-        done: success,
+        kind: success ? MatchKind.Ok : MatchKind.Fail,
       }),
     });
   }

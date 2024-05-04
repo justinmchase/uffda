@@ -1,5 +1,5 @@
 import { Scope } from "./scope.ts";
-import { Match } from "../match.ts";
+import { fail, Match } from "../match.ts";
 import {
   and,
   any,
@@ -7,7 +7,7 @@ import {
   character,
   end,
   equal,
-  fail,
+  fail as failp,
   includes,
   not,
   object,
@@ -42,7 +42,7 @@ export function match(pattern: Pattern, scope: Scope): Match {
     case PatternKind.Equal:
       return equal(pattern, scope);
     case PatternKind.Fail:
-      return fail(pattern, scope);
+      return failp(pattern, scope);
     case PatternKind.Includes:
       return includes(pattern, scope);
     case PatternKind.Not:
@@ -74,6 +74,6 @@ export function match(pattern: Pattern, scope: Scope): Match {
     case PatternKind.Variable:
       return variable(pattern, scope);
     default:
-      return Match.Fail(scope);
+      return fail(scope, pattern);
   }
 }

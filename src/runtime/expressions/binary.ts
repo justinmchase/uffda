@@ -1,18 +1,25 @@
-import { Match } from "../../match.ts";
+import { MatchOk } from "../../match.ts";
 import { exec } from "../exec.ts";
-import { RuntimeError, RuntimeErrorCode } from "../runtime.error.ts";
 import { BinaryOperation, IBinaryExpression } from "./expression.ts";
 
 export function binary(
   expression: IBinaryExpression,
-  match: Match,
+  match: MatchOk,
 ): unknown {
   const { kind, left, right, op } = expression;
+  const l = exec(left, match);
+  const r = exec(right, match);
 
-  // deno-lint-ignore no-explicit-any
-  const l = exec(left, match) as any;
-  // deno-lint-ignore no-explicit-any
-  const r = exec(right, match) as any;
+  if (typeof l !== "number") {
+    throw new Error(
+      `Binary operation requires left operand to be a number, but got [${l}:${typeof l}]`,
+    );
+  }
+  if (typeof r !== "number") {
+    throw new Error(
+      `Binary operation requires right operand to be a number, but got [${r}:${typeof r}]`,
+    );
+  }
   switch (op) {
     case BinaryOperation.Add:
       return l + r;
@@ -25,16 +32,8 @@ export function binary(
     case BinaryOperation.Mod:
       return l % r;
     default:
-      throw new RuntimeError(
-        RuntimeErrorCode.InvalidExpression,
-        match.start,
-        match,
-        {
-          metadata: {
-            kind,
-            op,
-          },
-        },
+      throw new Error(
+        `Unknown binary operation [${kind}:${op}]`,
       );
   }
 }
