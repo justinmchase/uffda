@@ -1,5 +1,6 @@
 import {
-  DeclarationKind,
+  ExportDeclarationKind,
+  ImportDeclarationKind,
   ModuleDeclaration,
 } from "../runtime/declarations/mod.ts";
 import { PatternKind } from "../runtime/patterns/mod.ts";
@@ -7,10 +8,9 @@ import { PatternKind } from "../runtime/patterns/mod.ts";
 import { Whitespace } from "./common/whitespace.ts";
 
 export const Tokenizer: ModuleDeclaration = {
-  kind: DeclarationKind.Module,
   imports: [
     {
-      kind: DeclarationKind.NativeImport,
+      kind: ImportDeclarationKind.Native,
       module: Whitespace,
       moduleUrl: "./common/whitespace.ts",
       names: [
@@ -18,9 +18,14 @@ export const Tokenizer: ModuleDeclaration = {
       ],
     },
   ],
+  exports: [
+    {
+      kind: ExportDeclarationKind.Rule,
+      name: "Main",
+    },
+  ],
   rules: [
     {
-      kind: DeclarationKind.Rule,
       name: "Main",
       parameters: [],
       pattern: {

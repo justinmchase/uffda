@@ -128,12 +128,23 @@ type MatchAssertionOk = {
   done?: boolean;
 };
 
-type ModuleDeclarationTestOptions = MatchAssertion & {
+type ThrowsAssertion = {
+  throws: boolean | {
+    name?: string;
+    message?: string;
+  };
+};
+
+type ModuleDeclarationTestOptions = (ThrowsAssertion | MatchAssertion) & {
   moduleUrl: string;
   declarations?: Record<string, ModuleDeclaration>;
   input?: Input;
   variables?: Map<string, unknown>;
 };
+
+function isThrowsAssertion(value: unknown): value is ThrowsAssertion {
+  return value != null && typeof value === "object" && "throws" in value;
+}
 
 export function moduleDeclarationTest(options: ModuleDeclarationTestOptions) {
   const {
@@ -144,30 +155,61 @@ export function moduleDeclarationTest(options: ModuleDeclarationTestOptions) {
   } = options;
   return async () => {
     const resolver = new Resolver({ declarations });
-    const module = await resolver.import(new URL(moduleUrl));
-    const scope = new Scope(
-      module,
-      undefined,
-      variables,
-      new Map(),
-      input,
-      undefined,
-      undefined,
-      {
-        resolver,
-      },
-    );
+    try {
+      const module = await resolver.import(new URL(moduleUrl));
+      if (isThrowsAssertion(options)) {
+        throw new Error(`Expected to throw but didn't`);
+      }
 
-    const m = run(scope, { kind: PatternKind.Run });
-    switch (m.kind) {
-      case MatchKind.LR:
-        return assertLR(m, options);
-      case MatchKind.Error:
-        return assertError(m, options);
-      case MatchKind.Fail:
-        return assertFail(m, options);
-      case MatchKind.Ok:
-        return assertOk(m, options);
+      const scope = new Scope(
+        module,
+        undefined,
+        variables,
+        new Map(),
+        input,
+        undefined,
+        undefined,
+        {
+          resolver,
+        },
+      );
+
+      const m = run(scope, { kind: PatternKind.Run });
+      switch (m.kind) {
+        case MatchKind.LR:
+          return assertLR(m, options);
+        case MatchKind.Error:
+          return assertError(m, options);
+        case MatchKind.Fail:
+          return assertFail(m, options);
+        case MatchKind.Ok:
+          return assertOk(m, options);
+      }
+    } catch (err) {
+      const { name, message } = err;
+      if (isThrowsAssertion(options)) {
+        const { throws } = options;
+        if (throws === true) {
+          return;
+        }
+        if (throws) {
+          if (throws.name) {
+            assert(
+              equal(name, throws.name),
+              `Error name was ${name} but expected to be ${throws.name}`,
+            );
+          }
+          if (throws.message) {
+            assert(
+              equal(message, throws.message),
+              `Error message was ${message} but expected to be ${throws.message}`,
+            );
+          }
+          return;
+        }
+      }
+
+      throw err;
     }
   };
 }
@@ -182,15 +224,15 @@ function assertLR(m: MatchLR, assertion: MatchAssertion) {
 function assertError(m: MatchError, assertion: MatchAssertion) {
   assert(
     m.kind === assertion.kind,
-    `Match was ${m.kind} but expected to be ${assertion.kind}`,
-  );
-  assert(
-    m.code === assertion.code,
-    `Match error code was ${m.code} but expected to be ${assertion.code}`,
+    `Match was ${m.kind} with message ${m.message} but expected to be ${assertion.kind}`,
   );
   assert(
     m.message === assertion.message,
     `Match error message was '${m.message}' but expected to be '${assertion.message}'`,
+  );
+  assert(
+    m.code === assertion.code,
+    `Match error code was ${m.code} but expected to be ${assertion.code}`,
   );
   assert(
     equal(m.span.start, assertion.start),

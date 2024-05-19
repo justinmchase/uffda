@@ -1,6 +1,7 @@
 export default {
   kind: "module",
   imports: [],
+  exports: [],
   rules: [
     {
       kind: "rule",

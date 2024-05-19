@@ -1,17 +1,21 @@
 import {
-  DeclarationKind,
+  ExportDeclarationKind,
   ModuleDeclaration,
 } from "../../runtime/declarations/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { CharacterClass, PatternKind } from "../../runtime/patterns/mod.ts";
 
 export const Whitespace: ModuleDeclaration = {
-  kind: DeclarationKind.Module,
   imports: [],
+  exports: [
+    {
+      kind: ExportDeclarationKind.Rule,
+      name: "Whitespace",
+    },
+  ],
   rules: [
     {
       // Whitespace = (\cZs | \cCc | \cZl | \cZp)+;
-      kind: DeclarationKind.Rule,
       name: "Whitespace",
       parameters: [],
       pattern: {

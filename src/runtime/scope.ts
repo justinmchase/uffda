@@ -56,11 +56,15 @@ export class Scope {
   }
 
   public getRule(name: string): Rule | undefined {
-    return this.args.has(name)
-      ? this.args.get(name)
-      : this.module.rules.has(name)
-      ? this.module.rules.get(name)
-      : this.module.imports.get(name)?.module.rules.get(name);
+    if (this.args.has(name)) {
+      return this.args.get(name);
+    }
+
+    if (this.module.rules.has(name)) {
+      return this.module.rules.get(name);
+    }
+
+    return this.module.imports.get(name);
   }
 
   public withInput(input: Input) {

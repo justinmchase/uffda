@@ -9,9 +9,9 @@ import {
 } from "../../match.ts";
 import { SpecialPattern } from "./pattern.ts";
 import { run } from "./run.ts";
-import { ModuleKind } from "../modules/mod.ts";
 import { rule } from "../rule.ts";
 import { PatternKind } from "./pattern.kind.ts";
+import { SpecialKind } from "../modules/special.ts";
 
 export function special(pattern: SpecialPattern, scope: Scope): Match {
   const { value } = pattern;
@@ -36,18 +36,10 @@ export function special(pattern: SpecialPattern, scope: Scope): Match {
 
   const m = (() => {
     switch (value.kind) {
-      case ModuleKind.Module:
-        return run(scope.pushModule(value), { kind: PatternKind.Run });
-      case ModuleKind.Rule:
-        return rule(value, new Map(), scope);
-      // todo: Theoretically we could support any pattern object being inlined directly if we wanted.
-      default:
-        return error(
-          scope,
-          pattern,
-          MatchErrorCode.UnknownReference,
-          `Unknown special pattern kind ${value.kind}`,
-        );
+      case SpecialKind.Module:
+        return run(scope.pushModule(value.module), { kind: PatternKind.Run });
+      case SpecialKind.Rule:
+        return rule(value.rule, new Map(), scope);
     }
   })();
 

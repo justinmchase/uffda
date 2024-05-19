@@ -2,7 +2,10 @@ import { Input } from "../../input.ts";
 import { MatchErrorCode, MatchKind } from "../../match.ts";
 import { Path } from "../../path.ts";
 import { moduleDeclarationTest } from "../../test.ts";
-import { DeclarationKind } from "../declarations/declaration.kind.ts";
+import {
+  ExportDeclarationKind,
+  ImportDeclarationKind,
+} from "../declarations/mod.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
 Deno.test("runtime.patterns.reference", async (t) => {
@@ -12,17 +15,15 @@ Deno.test("runtime.patterns.reference", async (t) => {
       moduleUrl: import.meta.url,
       declarations: {
         [import.meta.url]: {
-          kind: DeclarationKind.Module,
           imports: [],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "Main" }],
           rules: [
             {
-              kind: DeclarationKind.Rule,
               name: "A",
               parameters: [],
               pattern: { kind: PatternKind.Equal, value: "a" },
             },
             {
-              kind: DeclarationKind.Rule,
               name: "Main",
               parameters: [],
               pattern: {
@@ -46,11 +47,10 @@ Deno.test("runtime.patterns.reference", async (t) => {
       moduleUrl: import.meta.url,
       declarations: {
         [import.meta.url]: {
-          kind: DeclarationKind.Module,
           imports: [],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "Main" }],
           rules: [
             {
-              kind: DeclarationKind.Rule,
               name: "A",
               parameters: [
                 { name: "T" },
@@ -62,13 +62,11 @@ Deno.test("runtime.patterns.reference", async (t) => {
               },
             },
             {
-              kind: DeclarationKind.Rule,
               name: "B",
               parameters: [],
               pattern: { kind: PatternKind.Equal, value: "a" },
             },
             {
-              kind: DeclarationKind.Rule,
               name: "Main",
               parameters: [],
               pattern: {
@@ -92,11 +90,10 @@ Deno.test("runtime.patterns.reference", async (t) => {
       moduleUrl: import.meta.url,
       declarations: {
         [import.meta.url]: {
-          kind: DeclarationKind.Module,
           imports: [],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "Main" }],
           rules: [
             {
-              kind: DeclarationKind.Rule,
               name: "A",
               parameters: [
                 { name: "T" },
@@ -108,13 +105,11 @@ Deno.test("runtime.patterns.reference", async (t) => {
               },
             },
             {
-              kind: DeclarationKind.Rule,
               name: "B",
               parameters: [],
               pattern: { kind: PatternKind.Equal, value: "a" },
             },
             {
-              kind: DeclarationKind.Rule,
               name: "Main",
               parameters: [],
               pattern: {
@@ -141,17 +136,15 @@ Deno.test("runtime.patterns.reference", async (t) => {
       moduleUrl: import.meta.url,
       declarations: {
         [import.meta.url]: {
-          kind: DeclarationKind.Module,
           imports: [],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "Main" }],
           rules: [
             {
-              kind: DeclarationKind.Rule,
               name: "A",
               parameters: [],
               pattern: { kind: PatternKind.Equal, value: "a" },
             },
             {
-              kind: DeclarationKind.Rule,
               name: "Main",
               parameters: [],
               pattern: {
@@ -178,11 +171,10 @@ Deno.test("runtime.patterns.reference", async (t) => {
       moduleUrl: import.meta.url,
       declarations: {
         [import.meta.url]: {
-          kind: DeclarationKind.Module,
           imports: [],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "Main" }],
           rules: [
             {
-              kind: DeclarationKind.Rule,
               name: "A",
               parameters: [
                 { name: "T" },
@@ -194,7 +186,6 @@ Deno.test("runtime.patterns.reference", async (t) => {
               },
             },
             {
-              kind: DeclarationKind.Rule,
               name: "Main",
               parameters: [],
               pattern: {
@@ -221,11 +212,10 @@ Deno.test("runtime.patterns.reference", async (t) => {
       moduleUrl: import.meta.url,
       declarations: {
         [import.meta.url]: {
-          kind: DeclarationKind.Module,
           imports: [],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "Main" }],
           rules: [
             {
-              kind: DeclarationKind.Rule,
               name: "A",
               parameters: [
                 { name: "T" },
@@ -237,7 +227,6 @@ Deno.test("runtime.patterns.reference", async (t) => {
               },
             },
             {
-              kind: DeclarationKind.Rule,
               name: "Main",
               parameters: [],
               pattern: {
@@ -264,23 +253,21 @@ Deno.test("runtime.patterns.reference", async (t) => {
       moduleUrl: import.meta.url,
       declarations: {
         [import.meta.url]: {
-          kind: DeclarationKind.Module,
           imports: [
             {
-              kind: DeclarationKind.ModuleImport,
+              kind: ImportDeclarationKind.Module,
               moduleUrl: "file:///a.ts",
               names: ["A"],
             },
           ],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "Main" }],
           rules: [
             {
-              kind: DeclarationKind.Rule,
               name: "B",
               parameters: [],
               pattern: { kind: PatternKind.Equal, value: "a" },
             },
             {
-              kind: DeclarationKind.Rule,
               name: "Main",
               parameters: [],
               pattern: {
@@ -292,13 +279,14 @@ Deno.test("runtime.patterns.reference", async (t) => {
           ],
         },
         ["file:///a.ts"]: {
-          kind: DeclarationKind.Module,
           imports: [],
+          exports: [
+            { kind: ExportDeclarationKind.Rule, name: "A" },
+          ],
           rules: [
             // Rule A is defined in a separate module
             // But it is still able to access rule B since it is passed as an argument for parameter T
             {
-              kind: DeclarationKind.Rule,
               name: "A",
               parameters: [
                 { name: "T" },
@@ -324,19 +312,18 @@ Deno.test("runtime.patterns.reference", async (t) => {
       moduleUrl: import.meta.url,
       declarations: {
         [import.meta.url]: {
-          kind: DeclarationKind.Module,
           imports: [
             {
-              kind: DeclarationKind.ModuleImport,
+              kind: ImportDeclarationKind.Module,
               moduleUrl: "file:///a.ts",
               names: ["A"],
             },
           ],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "Main" }],
           rules: [
             // Rule B is passed as an argument for parameter T into rule A
             // Yet rule B is still able to access rule C since it is resolving references in its context
             {
-              kind: DeclarationKind.Rule,
               name: "B",
               parameters: [],
               pattern: {
@@ -346,13 +333,11 @@ Deno.test("runtime.patterns.reference", async (t) => {
               },
             },
             {
-              kind: DeclarationKind.Rule,
               name: "C",
               parameters: [],
               pattern: { kind: PatternKind.Equal, value: "a" },
             },
             {
-              kind: DeclarationKind.Rule,
               name: "Main",
               parameters: [],
               pattern: {
@@ -364,13 +349,12 @@ Deno.test("runtime.patterns.reference", async (t) => {
           ],
         },
         ["file:///a.ts"]: {
-          kind: DeclarationKind.Module,
           imports: [],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "A" }],
           rules: [
             // Rule A is defined in a separate module
             // But it is still able to access rule B since it is passed as an argument for parameter T
             {
-              kind: DeclarationKind.Rule,
               name: "A",
               parameters: [
                 { name: "T" },
@@ -396,17 +380,16 @@ Deno.test("runtime.patterns.reference", async (t) => {
       moduleUrl: import.meta.url,
       declarations: {
         [import.meta.url]: {
-          kind: DeclarationKind.Module,
           imports: [
             {
-              kind: DeclarationKind.ModuleImport,
+              kind: ImportDeclarationKind.Module,
               moduleUrl: "file:///a.ts",
               names: ["A"],
             },
           ],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "Main" }],
           rules: [
             {
-              kind: DeclarationKind.Rule,
               name: "B",
               parameters: [],
               pattern: {
@@ -416,13 +399,11 @@ Deno.test("runtime.patterns.reference", async (t) => {
               },
             },
             {
-              kind: DeclarationKind.Rule,
               name: "C",
               parameters: [],
               pattern: { kind: PatternKind.Equal, value: "a" },
             },
             {
-              kind: DeclarationKind.Rule,
               name: "Main",
               parameters: [],
               pattern: {
@@ -434,12 +415,11 @@ Deno.test("runtime.patterns.reference", async (t) => {
           ],
         },
         ["file:///a.ts"]: {
-          kind: DeclarationKind.Module,
           imports: [],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "A" }],
           rules: [
             // Rule A is not able to access rule C since it is scoped to a different module
             {
-              kind: DeclarationKind.Rule,
               name: "A",
               parameters: [
                 { name: "T" },
@@ -468,17 +448,16 @@ Deno.test("runtime.patterns.reference", async (t) => {
       moduleUrl: import.meta.url,
       declarations: {
         [import.meta.url]: {
-          kind: DeclarationKind.Module,
           imports: [
             {
-              kind: DeclarationKind.ModuleImport,
+              kind: ImportDeclarationKind.Module,
               moduleUrl: "file:///a.ts",
               names: ["A"],
             },
           ],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "Main" }],
           rules: [
             {
-              kind: DeclarationKind.Rule,
               name: "B",
               parameters: [
                 { name: "T" },
@@ -490,13 +469,11 @@ Deno.test("runtime.patterns.reference", async (t) => {
               },
             },
             {
-              kind: DeclarationKind.Rule,
               name: "C",
               parameters: [],
               pattern: { kind: PatternKind.Equal, value: "a" },
             },
             {
-              kind: DeclarationKind.Rule,
               name: "Main",
               parameters: [],
               pattern: {
@@ -508,12 +485,11 @@ Deno.test("runtime.patterns.reference", async (t) => {
           ],
         },
         ["file:///a.ts"]: {
-          kind: DeclarationKind.Module,
           imports: [],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "A" }],
           rules: [
             // Rules can pass parameters in as arguments to other rules
             {
-              kind: DeclarationKind.Rule,
               name: "A",
               parameters: [
                 { name: "T0" },
@@ -531,6 +507,52 @@ Deno.test("runtime.patterns.reference", async (t) => {
       input: Input.From("a"),
       kind: MatchKind.Ok,
       value: "a",
+    }),
+  });
+
+  await t.step({
+    name: "REFERENCE08",
+    fn: moduleDeclarationTest({
+      moduleUrl: import.meta.url,
+      declarations: {
+        [import.meta.url]: {
+          // Importing A from a.ts but its not exported results in an error
+          imports: [{
+            kind: ImportDeclarationKind.Module,
+            moduleUrl: "file:///a.ts",
+            names: ["A"],
+          }],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "Main" }],
+          rules: [
+            {
+              name: "Main",
+              parameters: [],
+              pattern: {
+                kind: PatternKind.Reference,
+                name: "A",
+                args: [],
+              },
+            },
+          ],
+        },
+        ["file:///a.ts"]: {
+          imports: [],
+          exports: [],
+          rules: [
+            {
+              name: "A",
+              parameters: [],
+              pattern: { kind: PatternKind.Equal, value: "a" },
+            },
+          ],
+        },
+      },
+      input: Input.From("a"),
+      value: "a",
+      throws: {
+        name: "Error",
+        message: "Unknown export A from module file:///a.ts",
+      },
     }),
   });
 });

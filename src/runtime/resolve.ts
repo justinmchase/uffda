@@ -1,6 +1,10 @@
 import { extname } from "std/path/mod.ts";
-import { DeclarationKind, ModuleDeclaration } from "./declarations/mod.ts";
-import { Module, ModuleKind } from "./modules/mod.ts";
+import {
+  ExportDeclarationKind,
+  ImportDeclarationKind,
+  ModuleDeclaration,
+} from "./declarations/mod.ts";
+import { Module } from "./modules/mod.ts";
 import { IModuleResolvers } from "./resolvers/resolver.ts";
 import { ImportResolver, JsonResolver } from "./resolvers/mod.ts";
 
@@ -34,26 +38,29 @@ export class Resolver {
       return this.modules.get(moduleUrl.href)!;
     } else {
       const module: Module = {
-        kind: ModuleKind.Module,
         moduleUrl,
         imports: new Map(),
+        exports: new Map(),
         rules: new Map(),
       };
       this.modules.set(moduleUrl.href, module);
       const moduleDeclaration = await this.importModule(moduleUrl);
+
       for (const { name, pattern, parameters } of moduleDeclaration.rules) {
         module.rules.set(name, {
-          kind: ModuleKind.Rule,
           module,
           name,
           parameters,
           pattern,
         });
       }
+
       for (const i of moduleDeclaration.imports) {
         const resolvedModuleUrl = new URL(i.moduleUrl, moduleUrl);
+
+        // todo: Remove support for function imports if we can...
         if (
-          i.kind === DeclarationKind.NativeImport &&
+          i.kind === ImportDeclarationKind.Native &&
           !this.declarations.has(resolvedModuleUrl.href)
         ) {
           const importedModuleDeclaration = typeof i.module === "function"
@@ -64,13 +71,45 @@ export class Resolver {
             importedModuleDeclaration,
           );
         }
+
         const importedModule = await this.import(resolvedModuleUrl);
         for (const name of i.names) {
-          module.imports.set(name, {
-            kind: ModuleKind.Import,
-            name,
-            module: importedModule,
-          });
+          const r = importedModule.exports.get(name);
+          if (!r) {
+            throw new Error(
+              `Unknown export ${name} from module ${resolvedModuleUrl}`,
+            );
+          }
+
+          if (module.rules.has(name)) {
+            throw new Error(
+              `Import ${name} conflicts with rule declaration in ${moduleUrl}`,
+            );
+          }
+
+          module.imports.set(name, r);
+        }
+      }
+
+      for (const e of moduleDeclaration.exports) {
+        const { kind, name } = e;
+        switch (kind) {
+          case ExportDeclarationKind.Import: {
+            const resolvedImport = module.imports.get(name);
+            if (!resolvedImport) {
+              throw new Error(`Unknown import ${name}`);
+            }
+            module.exports.set(name, resolvedImport);
+            break;
+          }
+          case ExportDeclarationKind.Rule: {
+            const rule = module.rules.get(name);
+            if (!rule) {
+              throw new Error(`Unknown rule ${name}`);
+            }
+            module.exports.set(name, rule);
+            break;
+          }
         }
       }
       return module;

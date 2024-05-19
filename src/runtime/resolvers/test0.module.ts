@@ -1,14 +1,17 @@
-import { DeclarationKind } from "../declarations/declaration.kind.ts";
+import { ExportDeclarationKind } from "../declarations/mod.ts";
 import { ModuleDeclaration } from "../declarations/module.ts";
 import { PatternKind } from "../patterns/pattern.kind.ts";
 
 export default {
-  kind: DeclarationKind.Module,
   imports: [],
+  exports: [
+    { kind: ExportDeclarationKind.Rule, name: "A" },
+    { kind: ExportDeclarationKind.Rule, name: "B" },
+  ],
   rules: [
     {
-      kind: DeclarationKind.Rule,
       name: "A",
+      parameters: [],
       pattern: {
         kind: PatternKind.Range,
         left: "0",
@@ -16,8 +19,8 @@ export default {
       },
     },
     {
-      kind: DeclarationKind.Rule,
       name: "B",
+      parameters: [],
       pattern: {
         kind: PatternKind.Slice,
         pattern: {

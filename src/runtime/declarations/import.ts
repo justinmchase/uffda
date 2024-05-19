@@ -1,18 +1,22 @@
-import { DeclarationKind } from "./declaration.kind.ts";
 import { ModuleDeclaration } from "./module.ts";
 
 export type ImportDeclaration =
   | ModuleImportDeclaration
   | NativeImportDeclaration;
 
+export enum ImportDeclarationKind {
+  Module = "module",
+  Native = "native",
+}
+
 export type ModuleImportDeclaration = {
-  kind: DeclarationKind.ModuleImport;
+  kind: ImportDeclarationKind.Module;
   moduleUrl: string;
   names: string[];
 };
 
 export type NativeImportDeclaration = {
-  kind: DeclarationKind.NativeImport;
+  kind: ImportDeclarationKind.Native;
   moduleUrl: string;
   names: string[];
   module: ModuleDeclaration | (() => ModuleDeclaration);

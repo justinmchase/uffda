@@ -1,10 +1,13 @@
 import { assertEquals, assertStrictEquals } from "std/assert/mod.ts";
 import { moduleDeclarationTest } from "../test.ts";
-import { DeclarationKind } from "./declarations/declaration.kind.ts";
 import { ExpressionKind } from "./expressions/expression.kind.ts";
 import { PatternKind } from "./patterns/pattern.kind.ts";
 import { Input } from "../input.ts";
 import { MatchKind } from "../mod.ts";
+import {
+  ExportDeclarationKind,
+  ImportDeclarationKind,
+} from "./declarations/mod.ts";
 
 Deno.test("runtime.rule", async (t) => {
   await t.step({
@@ -13,11 +16,10 @@ Deno.test("runtime.rule", async (t) => {
       moduleUrl: import.meta.url,
       declarations: {
         [import.meta.url]: {
-          kind: DeclarationKind.Module,
           imports: [],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "R" }],
           rules: [
             {
-              kind: DeclarationKind.Rule,
               name: "R",
               parameters: [],
               pattern: {
@@ -40,12 +42,11 @@ Deno.test("runtime.rule", async (t) => {
       moduleUrl: import.meta.url,
       declarations: {
         [import.meta.url]: {
-          kind: DeclarationKind.Module,
           imports: [],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "a" }],
           rules: [
             {
               // a = a | 'a'
-              kind: DeclarationKind.Rule,
               name: "a",
               parameters: [],
               pattern: {
@@ -79,11 +80,10 @@ Deno.test("runtime.rule", async (t) => {
       moduleUrl: import.meta.url,
       declarations: {
         [import.meta.url]: {
-          kind: DeclarationKind.Module,
           imports: [],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "a" }],
           rules: [
             {
-              kind: DeclarationKind.Rule,
               name: "a",
               parameters: [],
               // a = a 'a' | 'a'
@@ -116,11 +116,13 @@ Deno.test("runtime.rule", async (t) => {
       moduleUrl: import.meta.url,
       declarations: {
         [import.meta.url]: {
-          kind: DeclarationKind.Module,
           imports: [],
+          exports: [
+            { kind: ExportDeclarationKind.Rule, name: "a" },
+            { kind: ExportDeclarationKind.Rule, name: "b" },
+          ],
           rules: [
             {
-              kind: DeclarationKind.Rule,
               name: "a",
               parameters: [],
               pattern: {
@@ -130,7 +132,6 @@ Deno.test("runtime.rule", async (t) => {
               },
             },
             {
-              kind: DeclarationKind.Rule,
               name: "b",
               parameters: [],
               pattern: {
@@ -153,12 +154,11 @@ Deno.test("runtime.rule", async (t) => {
       moduleUrl: import.meta.url,
       declarations: {
         [import.meta.url]: {
-          kind: DeclarationKind.Module,
           imports: [],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "a" }],
           rules: [
             {
               // a = 'a' a | 'a'
-              kind: DeclarationKind.Rule,
               name: "a",
               parameters: [],
               pattern: {
@@ -190,11 +190,13 @@ Deno.test("runtime.rule", async (t) => {
       moduleUrl: import.meta.url,
       declarations: {
         [import.meta.url]: {
-          kind: DeclarationKind.Module,
           imports: [],
+          exports: [
+            { kind: ExportDeclarationKind.Rule, name: "P0" },
+            { kind: ExportDeclarationKind.Rule, name: "P1" },
+          ],
           rules: [
             {
-              kind: DeclarationKind.Rule,
               name: "P0",
               parameters: [],
               pattern: {
@@ -209,7 +211,6 @@ Deno.test("runtime.rule", async (t) => {
               },
             },
             {
-              kind: DeclarationKind.Rule,
               name: "P1",
               parameters: [],
               pattern: {
@@ -245,11 +246,13 @@ Deno.test("runtime.rule", async (t) => {
       moduleUrl: import.meta.url,
       declarations: {
         [import.meta.url]: {
-          kind: DeclarationKind.Module,
           imports: [],
+          exports: [
+            { kind: ExportDeclarationKind.Rule, name: "P0" },
+            { kind: ExportDeclarationKind.Rule, name: "P1" },
+          ],
           rules: [
             {
-              kind: DeclarationKind.Rule,
               name: "P0",
               parameters: [],
               pattern: {
@@ -266,7 +269,6 @@ Deno.test("runtime.rule", async (t) => {
               },
             },
             {
-              kind: DeclarationKind.Rule,
               name: "P1",
               parameters: [],
               pattern: {
@@ -299,11 +301,10 @@ Deno.test("runtime.rule", async (t) => {
       moduleUrl: "file:///m1.ts",
       declarations: {
         ["file:///m0.ts"]: {
-          kind: DeclarationKind.Module,
           imports: [],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "P0" }],
           rules: [
             {
-              kind: DeclarationKind.Rule,
               name: "P0",
               parameters: [],
               pattern: {
@@ -320,17 +321,16 @@ Deno.test("runtime.rule", async (t) => {
           ],
         },
         ["file:///m1.ts"]: {
-          kind: DeclarationKind.Module,
           imports: [
             {
-              kind: DeclarationKind.ModuleImport,
+              kind: ImportDeclarationKind.Module,
               moduleUrl: "file:///m0.ts",
               names: ["P0"],
             },
           ],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "P1" }],
           rules: [
             {
-              kind: DeclarationKind.Rule,
               name: "P1",
               parameters: [],
               pattern: {

@@ -1,13 +1,21 @@
-import { DeclarationKind } from "../declarations/declaration.kind.ts";
+import {
+  ExportDeclarationKind,
+  ImportDeclarationKind,
+} from "../declarations/mod.ts";
 import { ModuleDeclaration } from "../declarations/module.ts";
 
 export default {
-  kind: DeclarationKind.Module,
   imports: [
     {
-      kind: DeclarationKind.ModuleImport,
+      kind: ImportDeclarationKind.Module,
       moduleUrl: "./test0.module.ts",
       names: ["A"],
+    },
+  ],
+  exports: [
+    {
+      kind: ExportDeclarationKind.Import,
+      name: "A",
     },
   ],
   rules: [],

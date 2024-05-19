@@ -1,7 +1,7 @@
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { moduleDeclarationTest } from "../../test.ts";
-import { DeclarationKind } from "../declarations/mod.ts";
+import { ExportDeclarationKind } from "../declarations/mod.ts";
 import { ExpressionKind } from "../expressions/mod.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
@@ -12,11 +12,10 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       moduleUrl: import.meta.url,
       declarations: {
         [import.meta.url]: {
-          kind: DeclarationKind.Module,
           imports: [],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "Test" }],
           rules: [
             {
-              kind: DeclarationKind.Rule,
               name: "Test",
               parameters: [],
               pattern: {
@@ -41,11 +40,10 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       moduleUrl: import.meta.url,
       declarations: {
         [import.meta.url]: {
-          kind: DeclarationKind.Module,
           imports: [],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "Test" }],
           rules: [
             {
-              kind: DeclarationKind.Rule,
               name: "Test",
               parameters: [],
               pattern: {
@@ -85,11 +83,10 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       moduleUrl: import.meta.url,
       declarations: {
         [import.meta.url]: {
-          kind: DeclarationKind.Module,
           imports: [],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "Test" }],
           rules: [
             {
-              kind: DeclarationKind.Rule,
               name: "Test",
               parameters: [],
               pattern: {
@@ -135,11 +132,10 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       moduleUrl: import.meta.url,
       declarations: {
         [import.meta.url]: {
-          kind: DeclarationKind.Module,
           imports: [],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "Test" }],
           rules: [
             {
-              kind: DeclarationKind.Rule,
               name: "Test",
               parameters: [],
               pattern: {
@@ -175,11 +171,10 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       moduleUrl: import.meta.url,
       declarations: {
         [import.meta.url]: {
-          kind: DeclarationKind.Module,
           imports: [],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "Test" }],
           rules: [
             {
-              kind: DeclarationKind.Rule,
               name: "Test",
               parameters: [],
               pattern: {
@@ -215,11 +210,10 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       moduleUrl: import.meta.url,
       declarations: {
         [import.meta.url]: {
-          kind: DeclarationKind.Module,
           imports: [],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "Test" }],
           rules: [
             {
-              kind: DeclarationKind.Rule,
               name: "Test",
               parameters: [],
               pattern: {
@@ -265,11 +259,10 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       moduleUrl: import.meta.url,
       declarations: {
         [import.meta.url]: {
-          kind: DeclarationKind.Module,
           imports: [],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "Test" }],
           rules: [
             {
-              kind: DeclarationKind.Rule,
               name: "Test",
               parameters: [],
               pattern: {
