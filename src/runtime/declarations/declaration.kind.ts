@@ -1,5 +1,5 @@
 export enum DeclarationKind {
-  Import = "import",
+  ModuleImport = "moduleImport",
   NativeImport = "nativeImport",
   Module = "module",
   Rule = "rule",

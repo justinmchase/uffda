@@ -190,7 +190,7 @@ export function serialize(
         rules: rules.map((r) => serialize(r)),
       };
     }
-    case DeclarationKind.Import: {
+    case DeclarationKind.ModuleImport: {
       const { kind, moduleUrl, names } = declaration;
       return {
         kind,

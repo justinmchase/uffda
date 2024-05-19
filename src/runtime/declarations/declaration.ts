@@ -1,8 +1,8 @@
-import { IModuleDeclaration } from "./module.ts";
+import { ModuleDeclaration } from "./module.ts";
 import { ImportDeclaration } from "./import.ts";
-import { IRuleDeclaration } from "./rule.ts";
+import { RuleDeclaration } from "./rule.ts";
 
 export type Declaration =
-  | IModuleDeclaration
+  | ModuleDeclaration
   | ImportDeclaration
-  | IRuleDeclaration;
+  | RuleDeclaration;

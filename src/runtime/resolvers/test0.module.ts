@@ -1,5 +1,5 @@
 import { DeclarationKind } from "../declarations/declaration.kind.ts";
-import { IModuleDeclaration } from "../declarations/module.ts";
+import { ModuleDeclaration } from "../declarations/module.ts";
 import { PatternKind } from "../patterns/pattern.kind.ts";
 
 export default {
@@ -27,4 +27,4 @@ export default {
       },
     },
   ],
-} as IModuleDeclaration;
+} as ModuleDeclaration;

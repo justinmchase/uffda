@@ -1,11 +1,11 @@
 import { extname } from "std/path/mod.ts";
-import { DeclarationKind, IModuleDeclaration } from "./declarations/mod.ts";
+import { DeclarationKind, ModuleDeclaration } from "./declarations/mod.ts";
 import { Module, ModuleKind } from "./modules/mod.ts";
 import { IModuleResolvers } from "./resolvers/resolver.ts";
 import { ImportResolver, JsonResolver } from "./resolvers/mod.ts";
 
 export type ResolverOptions = {
-  declarations?: Record<string, IModuleDeclaration>;
+  declarations?: Record<string, ModuleDeclaration>;
   resolvers?: IModuleResolvers;
   trace?: boolean;
 };
@@ -18,11 +18,11 @@ export class Resolver {
   };
 
   private readonly modules = new Map<string, Module>();
-  private readonly declarations: Map<string, IModuleDeclaration>;
+  private readonly declarations: Map<string, ModuleDeclaration>;
   private readonly resolvers: IModuleResolvers;
   constructor(opts?: ResolverOptions) {
     const {
-      declarations = new Map<string, IModuleDeclaration>(),
+      declarations = new Map<string, ModuleDeclaration>(),
       resolvers = Resolver.DefaultResolvers,
     } = opts ?? {};
     this.declarations = new Map(Object.entries(declarations));
@@ -76,7 +76,7 @@ export class Resolver {
     }
   }
 
-  private async importModule(moduleUrl: URL): Promise<IModuleDeclaration> {
+  private async importModule(moduleUrl: URL): Promise<ModuleDeclaration> {
     if (this.declarations.has(moduleUrl.href)) {
       return this.declarations.get(moduleUrl.href)!;
     } else {

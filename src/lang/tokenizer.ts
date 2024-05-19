@@ -1,12 +1,12 @@
 import {
   DeclarationKind,
-  IModuleDeclaration,
+  ModuleDeclaration,
 } from "../runtime/declarations/mod.ts";
 import { PatternKind } from "../runtime/patterns/mod.ts";
 
 import { Whitespace } from "./common/whitespace.ts";
 
-export const Tokenizer: IModuleDeclaration = {
+export const Tokenizer: ModuleDeclaration = {
   kind: DeclarationKind.Module,
   imports: [
     {

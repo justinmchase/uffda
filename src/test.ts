@@ -12,7 +12,7 @@ import { match } from "./runtime/match.ts";
 import { exec } from "./runtime/exec.ts";
 import { Pattern } from "./runtime/patterns/pattern.ts";
 import { Expression } from "./runtime/expressions/expression.ts";
-import { IModuleDeclaration } from "./runtime/declarations/module.ts";
+import { ModuleDeclaration } from "./runtime/declarations/module.ts";
 import { Input } from "./input.ts";
 import { ok, Resolver } from "./mod.ts";
 import { Path } from "./path.ts";
@@ -129,7 +129,7 @@ type MatchAssertionOk = {
 
 type ModuleDeclarationTestOptions = MatchAssertion & {
   moduleUrl: string;
-  declarations?: Record<string, IModuleDeclaration>;
+  declarations?: Record<string, ModuleDeclaration>;
   input?: Input;
   variables?: Map<string, unknown>;
 };

@@ -23,7 +23,7 @@ const testData: (
     rules: [],
   },
   {
-    kind: DeclarationKind.Import,
+    kind: DeclarationKind.ModuleImport,
     moduleUrl: ".test.json",
     names: ["test"],
   },

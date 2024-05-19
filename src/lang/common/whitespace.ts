@@ -1,11 +1,11 @@
 import {
   DeclarationKind,
-  IModuleDeclaration,
+  ModuleDeclaration,
 } from "../../runtime/declarations/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { CharacterClass, PatternKind } from "../../runtime/patterns/mod.ts";
 
-export const Whitespace: IModuleDeclaration = {
+export const Whitespace: ModuleDeclaration = {
   kind: DeclarationKind.Module,
   imports: [],
   rules: [

@@ -308,7 +308,7 @@ Deno.test("runtime.rule", async (t) => {
           kind: DeclarationKind.Module,
           imports: [
             {
-              kind: DeclarationKind.Import,
+              kind: DeclarationKind.ModuleImport,
               moduleUrl: "file:///m0.ts",
               names: ["P0"],
             },
