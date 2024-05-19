@@ -1,10 +1,9 @@
 import { DeclarationKind } from "./declaration.kind.ts";
 import { ModuleDeclaration } from "./module.ts";
 
-export type ImportDeclaration = 
+export type ImportDeclaration =
   | ModuleImportDeclaration
-  | NativeImportDeclaration
-  ;
+  | NativeImportDeclaration;
 
 export type ModuleImportDeclaration = {
   kind: DeclarationKind.ModuleImport;

@@ -6,7 +6,7 @@ export type ModuleDeclaration = {
   kind: DeclarationKind.Module;
   imports: ImportDeclaration[];
   rules: RuleDeclaration[];
-}
+};
 
 // export type ModuleDeclaration =
 //   | IModuleDeclaration
