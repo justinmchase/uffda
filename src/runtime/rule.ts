@@ -12,14 +12,18 @@ import { Rule } from "./modules/mod.ts";
 import { match } from "./match.ts";
 import { StackFrameKind } from "./stack/stackFrameKind.ts";
 
-export function rule(rule: Rule, scope: Scope): Match {
+export function rule(
+  rule: Rule,
+  args: Map<string, Rule>,
+  scope: Scope,
+): Match {
   const { module, pattern } = rule;
   let memo = scope.memos.get(scope.stream.path, rule);
   if (!memo) {
     memo = scope.memos.set(scope.stream.path, rule, lr(scope, rule.pattern));
     const subScope = scope
       .pushModule(module)
-      .pushRule(rule);
+      .pushRule(rule, args);
 
     const m = match(pattern, subScope);
     memo.match = m;

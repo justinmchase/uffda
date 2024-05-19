@@ -7,7 +7,3 @@ export type ModuleDeclaration = {
   imports: ImportDeclaration[];
   rules: RuleDeclaration[];
 };
-
-// export type ModuleDeclaration =
-//   | IModuleDeclaration
-//   | (() => IModuleDeclaration);

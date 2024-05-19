@@ -152,6 +152,7 @@ export type RangePattern = {
 export type ReferencePattern = {
   kind: PatternKind.Reference;
   name: string;
+  args: string[];
 };
 export type RegExpPattern = {
   kind: PatternKind.RegExp;

@@ -39,7 +39,7 @@ export function special(pattern: SpecialPattern, scope: Scope): Match {
       case ModuleKind.Module:
         return run(scope.pushModule(value), { kind: PatternKind.Run });
       case ModuleKind.Rule:
-        return rule(value, scope);
+        return rule(value, new Map(), scope);
       // todo: Theoretically we could support any pattern object being inlined directly if we wanted.
       default:
         return error(

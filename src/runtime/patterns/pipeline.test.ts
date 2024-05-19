@@ -18,6 +18,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
             {
               kind: DeclarationKind.Rule,
               name: "Test",
+              parameters: [],
               pattern: {
                 kind: PatternKind.Pipeline,
                 steps: [
@@ -46,6 +47,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
             {
               kind: DeclarationKind.Rule,
               name: "Test",
+              parameters: [],
               pattern: {
                 kind: PatternKind.Pipeline,
                 steps: [
@@ -89,6 +91,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
             {
               kind: DeclarationKind.Rule,
               name: "Test",
+              parameters: [],
               pattern: {
                 kind: PatternKind.Pipeline,
                 steps: [
@@ -138,6 +141,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
             {
               kind: DeclarationKind.Rule,
               name: "Test",
+              parameters: [],
               pattern: {
                 kind: PatternKind.Pipeline,
                 steps: [
@@ -177,6 +181,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
             {
               kind: DeclarationKind.Rule,
               name: "Test",
+              parameters: [],
               pattern: {
                 kind: PatternKind.Pipeline,
                 steps: [
@@ -216,6 +221,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
             {
               kind: DeclarationKind.Rule,
               name: "Test",
+              parameters: [],
               pattern: {
                 kind: PatternKind.Pipeline,
                 steps: [
@@ -265,6 +271,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
             {
               kind: DeclarationKind.Rule,
               name: "Test",
+              parameters: [],
               pattern: {
                 kind: PatternKind.Then,
                 patterns: [

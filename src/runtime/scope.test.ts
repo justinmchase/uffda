@@ -92,6 +92,7 @@ Deno.test("runtime.scope", async (t) => {
       const pattern: Pattern = {
         kind: PatternKind.Reference,
         name: "x",
+        args: [],
       };
       const m = match(pattern, scope);
       assert(m.kind === MatchKind.Error, `Expected fail but got ${m.kind}`);

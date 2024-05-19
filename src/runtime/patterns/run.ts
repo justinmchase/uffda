@@ -24,5 +24,5 @@ export function run(scope: Scope, pattern: RunPattern): Match {
     );
   }
 
-  return rule(main, scope);
+  return rule(main, new Map(), scope);
 }

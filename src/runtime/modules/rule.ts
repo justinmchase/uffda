@@ -7,4 +7,9 @@ export type Rule = {
   name: string;
   module: Module;
   pattern: Pattern;
+  parameters: RuleParameter[];
+};
+
+export type RuleParameter = {
+  name: string;
 };

@@ -4,6 +4,7 @@ import { Span, spanFrom } from "./span.ts";
 
 export enum MatchErrorCode {
   UnknownReference = "E_UNKNOWN_REFERENCE",
+  UnknownParameter = "E_UNKNOWN_PARAMETER",
   PatternExpected = "E_PATTERN_EXPECTED",
   IterableExpected = "E_ITERABLE_EXPECTED",
   Type = "E_TYPE",

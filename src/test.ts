@@ -75,6 +75,7 @@ export function patternTest(options: PatternTestOptions & MatchAssertion) {
       undefined,
       undefined,
       variables,
+      new Map(),
       input,
     );
     const m = await match(pattern, s);
@@ -148,6 +149,7 @@ export function moduleDeclarationTest(options: ModuleDeclarationTestOptions) {
       module,
       undefined,
       variables,
+      new Map(),
       input,
       undefined,
       undefined,

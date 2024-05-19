@@ -13,6 +13,7 @@ export const Whitespace: ModuleDeclaration = {
       // Whitespace = (\cZs | \cCc | \cZl | \cZp)+;
       kind: DeclarationKind.Rule,
       name: "Whitespace",
+      parameters: [],
       pattern: {
         kind: PatternKind.Projection,
         pattern: {

@@ -19,6 +19,7 @@ Deno.test("runtime.rule", async (t) => {
             {
               kind: DeclarationKind.Rule,
               name: "R",
+              parameters: [],
               pattern: {
                 kind: PatternKind.Equal,
                 value: "a",
@@ -46,12 +47,14 @@ Deno.test("runtime.rule", async (t) => {
               // a = a | 'a'
               kind: DeclarationKind.Rule,
               name: "a",
+              parameters: [],
               pattern: {
                 kind: PatternKind.Or,
                 patterns: [
                   {
                     kind: PatternKind.Reference,
                     name: "a",
+                    args: [],
                   },
                   {
                     kind: PatternKind.Equal,
@@ -82,6 +85,7 @@ Deno.test("runtime.rule", async (t) => {
             {
               kind: DeclarationKind.Rule,
               name: "a",
+              parameters: [],
               // a = a 'a' | 'a'
               pattern: {
                 kind: PatternKind.Or,
@@ -89,7 +93,7 @@ Deno.test("runtime.rule", async (t) => {
                   {
                     kind: PatternKind.Then,
                     patterns: [
-                      { kind: PatternKind.Reference, name: "a" },
+                      { kind: PatternKind.Reference, name: "a", args: [] },
                       { kind: PatternKind.Equal, value: "a" },
                     ],
                   },
@@ -118,17 +122,21 @@ Deno.test("runtime.rule", async (t) => {
             {
               kind: DeclarationKind.Rule,
               name: "a",
+              parameters: [],
               pattern: {
                 kind: PatternKind.Reference,
                 name: "b",
+                args: [],
               },
             },
             {
               kind: DeclarationKind.Rule,
               name: "b",
+              parameters: [],
               pattern: {
                 kind: PatternKind.Reference,
                 name: "a",
+                args: [],
               },
             },
           ],
@@ -152,6 +160,7 @@ Deno.test("runtime.rule", async (t) => {
               // a = 'a' a | 'a'
               kind: DeclarationKind.Rule,
               name: "a",
+              parameters: [],
               pattern: {
                 kind: PatternKind.Or,
                 patterns: [
@@ -159,7 +168,7 @@ Deno.test("runtime.rule", async (t) => {
                     kind: PatternKind.Then,
                     patterns: [
                       { kind: PatternKind.Equal, value: "a" },
-                      { kind: PatternKind.Reference, name: "a" },
+                      { kind: PatternKind.Reference, name: "a", args: [] },
                     ],
                   },
                   { kind: PatternKind.Equal, value: "a" },
@@ -187,6 +196,7 @@ Deno.test("runtime.rule", async (t) => {
             {
               kind: DeclarationKind.Rule,
               name: "P0",
+              parameters: [],
               pattern: {
                 kind: PatternKind.Projection,
                 pattern: { kind: PatternKind.Any },
@@ -201,6 +211,7 @@ Deno.test("runtime.rule", async (t) => {
             {
               kind: DeclarationKind.Rule,
               name: "P1",
+              parameters: [],
               pattern: {
                 kind: PatternKind.Then,
                 patterns: [
@@ -212,7 +223,7 @@ Deno.test("runtime.rule", async (t) => {
                   {
                     kind: PatternKind.Or,
                     patterns: [
-                      { kind: PatternKind.Reference, name: "P0" },
+                      { kind: PatternKind.Reference, name: "P0", args: [] },
                       { kind: PatternKind.Any },
                     ],
                   },
@@ -240,6 +251,7 @@ Deno.test("runtime.rule", async (t) => {
             {
               kind: DeclarationKind.Rule,
               name: "P0",
+              parameters: [],
               pattern: {
                 kind: PatternKind.Projection,
                 pattern: {
@@ -256,11 +268,13 @@ Deno.test("runtime.rule", async (t) => {
             {
               kind: DeclarationKind.Rule,
               name: "P1",
+              parameters: [],
               pattern: {
                 kind: PatternKind.Projection,
                 pattern: {
                   kind: PatternKind.Reference,
                   name: "P0",
+                  args: [],
                 },
                 expression: {
                   kind: ExpressionKind.Native,
@@ -291,6 +305,7 @@ Deno.test("runtime.rule", async (t) => {
             {
               kind: DeclarationKind.Rule,
               name: "P0",
+              parameters: [],
               pattern: {
                 kind: PatternKind.Projection,
                 pattern: { kind: PatternKind.Any },
@@ -317,6 +332,7 @@ Deno.test("runtime.rule", async (t) => {
             {
               kind: DeclarationKind.Rule,
               name: "P1",
+              parameters: [],
               pattern: {
                 kind: PatternKind.Then,
                 patterns: [
@@ -328,7 +344,7 @@ Deno.test("runtime.rule", async (t) => {
                   {
                     kind: PatternKind.Or,
                     patterns: [
-                      { kind: PatternKind.Reference, name: "P0" },
+                      { kind: PatternKind.Reference, name: "P0", args: [] },
                       { kind: PatternKind.Any },
                     ],
                   },

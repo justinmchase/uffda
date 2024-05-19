@@ -35,6 +35,7 @@ export class Scope {
     public readonly module: Module = DefaultModule(),
     public readonly parent: Scope | undefined = undefined,
     public readonly variables: Map<string, unknown> = new Map(),
+    public readonly args: Map<string, Rule> = new Map(),
     public readonly stream: Input = Input.Default(),
     public readonly memos: Memos = new Memos(),
     public readonly stack: StackFrame[] = [],
@@ -55,7 +56,9 @@ export class Scope {
   }
 
   public getRule(name: string): Rule | undefined {
-    return this.module.rules.has(name)
+    return this.args.has(name)
+      ? this.args.get(name)
+      : this.module.rules.has(name)
       ? this.module.rules.get(name)
       : this.module.imports.get(name)?.module.rules.get(name);
   }
@@ -65,6 +68,7 @@ export class Scope {
       this.module,
       this.parent,
       this.variables,
+      this.args,
       input,
       this.memos,
       this.stack,
@@ -82,6 +86,7 @@ export class Scope {
       this.module,
       this.parent,
       new Map([...this.variables, ...variables]),
+      this.args,
       this.stream,
       this.memos,
       this.stack,
@@ -89,11 +94,12 @@ export class Scope {
     );
   }
 
-  public pushRule(rule: Rule) {
+  public pushRule(rule: Rule, args: Map<string, Rule>) {
     return new Scope(
       this.module,
       this.parent,
       new Map(),
+      args,
       this.stream,
       this.memos,
       [...this.stack, { kind: StackFrameKind.Rule, rule }],
@@ -105,6 +111,7 @@ export class Scope {
     return new Scope(
       this.module,
       this.parent,
+      new Map(),
       new Map(),
       this.stream,
       this.memos,
@@ -120,6 +127,7 @@ export class Scope {
     return new Scope(
       module,
       undefined,
+      new Map(),
       new Map(),
       this.stream,
       this.memos,
@@ -139,6 +147,7 @@ export class Scope {
       scope.module,
       scope.parent,
       scope.variables,
+      scope.args,
       this.stream,
       this.memos,
       scope.stack,
@@ -151,6 +160,7 @@ export class Scope {
       this.module,
       this.parent,
       this.variables,
+      this.args,
       this.stream,
       this.memos,
       this.stack,

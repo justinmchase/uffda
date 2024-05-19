@@ -22,6 +22,7 @@ const rule: Rule = {
   kind: ModuleKind.Rule,
   name: "A",
   module: mod0,
+  parameters: [],
   pattern: {
     kind: PatternKind.Any,
   },

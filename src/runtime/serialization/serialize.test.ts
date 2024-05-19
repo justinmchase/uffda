@@ -50,6 +50,9 @@ const testData: (
   {
     kind: DeclarationKind.Rule,
     name: "test",
+    parameters: [
+      { name: "x" },
+    ],
     pattern: {
       kind: PatternKind.Any,
     },
@@ -112,6 +115,7 @@ const testData: (
   {
     kind: PatternKind.Reference,
     name: "x",
+    args: [],
   },
   {
     kind: PatternKind.RegExp,

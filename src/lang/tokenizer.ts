@@ -22,11 +22,13 @@ export const Tokenizer: ModuleDeclaration = {
     {
       kind: DeclarationKind.Rule,
       name: "Main",
+      parameters: [],
       pattern: {
         kind: PatternKind.Slice,
         pattern: {
           kind: PatternKind.Reference,
           name: "Whitespace",
+          args: [],
         },
       },
     },
