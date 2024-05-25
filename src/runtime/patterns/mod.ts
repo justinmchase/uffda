@@ -6,6 +6,7 @@ export * from "./end.ts";
 export * from "./equal.ts";
 export * from "./fail.ts";
 export * from "./includes.ts";
+export * from "./maybe.ts";
 export * from "./not.ts";
 export * from "./object.ts";
 export * from "./ok.ts";

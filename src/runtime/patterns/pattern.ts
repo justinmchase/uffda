@@ -1,5 +1,4 @@
 import { PatternKind } from "./pattern.kind.ts";
-import { Expression } from "../expressions/mod.ts";
 import { Special } from "../modules/special.ts";
 import { Serializable } from "serializable/mod.ts";
 import { Comparable } from "../../comparable.ts";
@@ -13,6 +12,7 @@ export type Pattern =
   | EqualPattern
   | FailPattern
   | IncludesPattern
+  | MaybePattern
   | NotPattern
   | ObjectPattern
   | OkPattern
@@ -118,6 +118,10 @@ export type FailPattern = {
 export type IncludesPattern = {
   kind: PatternKind.Includes;
   values: Serializable[];
+};
+export type MaybePattern = {
+  kind: PatternKind.Maybe;
+  pattern: Pattern;
 };
 export type NotPattern = {
   kind: PatternKind.Not;

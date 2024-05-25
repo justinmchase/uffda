@@ -7,7 +7,7 @@ export enum PatternKind {
   Equal = "equal",
   Fail = "fail",
   Includes = "includes",
-  Must = "must",
+  Maybe = "maybe",
   Not = "not",
   Object = "object",
   Ok = "ok",

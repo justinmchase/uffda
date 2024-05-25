@@ -9,6 +9,7 @@ import {
   equal,
   fail as failp,
   includes,
+  maybe,
   not,
   object,
   ok,
@@ -44,6 +45,8 @@ export function match(pattern: Pattern, scope: Scope): Match {
       return failp(pattern, scope);
     case PatternKind.Includes:
       return includes(pattern, scope);
+    case PatternKind.Maybe:
+      return maybe(pattern, scope);
     case PatternKind.Not:
       return not(pattern, scope);
     case PatternKind.Object:
