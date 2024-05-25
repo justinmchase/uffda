@@ -17,10 +17,9 @@
         // This will run the tests in the _current file_
         // So switch to the file you want to test before running the debugger
         "${file}",
-        "--inspect-wait"
+        "--inspect-wait",
         // Optional parameters you may need...
-        // "--allow-all",
-
+        "--allow-all"
         // "--filter",
         // "runtime.rule"
       ]

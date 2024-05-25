@@ -14,7 +14,7 @@ import { Pattern } from "./runtime/patterns/pattern.ts";
 import { Expression } from "./runtime/expressions/expression.ts";
 import { ModuleDeclaration } from "./runtime/declarations/module.ts";
 import { Input } from "./input.ts";
-import { ok, Resolver } from "./mod.ts";
+import { Match, ok, Resolver } from "./mod.ts";
 import { Path } from "./path.ts";
 import { run } from "./runtime/patterns/mod.ts";
 import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
@@ -103,9 +103,6 @@ type MatchAssertionLR = {
 };
 type MatchAssertionError = {
   kind: MatchKind.Error;
-  // pattern: Pattern;
-  // scope: Scope;
-  // span: Span;
   code: MatchErrorCode;
   message: string;
   start: Path;
@@ -113,13 +110,15 @@ type MatchAssertionError = {
 };
 type MatchAssertionFail = {
   kind: MatchKind.Fail;
-  // pattern: Pattern;
-  // scope: Scope;
-  // span: Span;
-  // matches: Match[];
   start?: Path;
   end?: Path;
   done?: boolean;
+
+  failures?: {
+    pattern: Pattern;
+    start: Path;
+    end: Path;
+  }[];
 };
 
 type MatchAssertionOk = {
@@ -214,6 +213,28 @@ export function moduleDeclarationTest(options: ModuleDeclarationTestOptions) {
   };
 }
 
+function* fails(match: Match): Iterable<MatchFail> {
+  const { kind } = match;
+  switch (kind) {
+    case MatchKind.LR:
+    case MatchKind.Error:
+      break;
+    case MatchKind.Fail: {
+      if (match.matches.length === 0) {
+        yield match;
+      } else {
+        yield* fails(match.matches.slice(-1)[0]);
+      }
+      break;
+    }
+    case MatchKind.Ok:
+      if (match.matches.length > 0) {
+        yield* fails(match.matches.slice(-1)[0]);
+      }
+      break;
+  }
+}
+
 function assertLR(m: MatchLR, assertion: MatchAssertion) {
   assert(
     m.kind === assertion.kind,
@@ -249,18 +270,36 @@ function assertFail(m: MatchFail, assertion: MatchAssertion) {
     m.kind === assertion.kind,
     `Match was ${m.kind} but expected to be ${assertion.kind}`,
   );
-  if (assertion.start) {
-    assert(
-      equal(m.span.start, assertion.start),
-      `Match error start was ${m.span.start} but expected to be ${assertion.start}`,
-    );
+
+  if (assertion.failures) {
+    const matchFailures = [...fails(m)];
+    for (let i = 0; i < matchFailures.length; i++) {
+      const fl = matchFailures[i];
+      const fr = assertion.failures[i];
+      assert(
+        equal(fl.span.start, fr.start),
+        `Match failure start was ${fl.span.start} but expected to be ${fr.start}`,
+      );
+      assert(
+        equal(fl.span.end, fr.end),
+        `Match failure end was ${fl.span.end} but expected to be ${fr.end}`,
+      );
+    }
+  } else {
+    if (assertion.start) {
+      assert(
+        equal(m.span.start, assertion.start),
+        `Match error start was ${m.span.start} but expected to be ${assertion.start}`,
+      );
+    }
+    if (assertion.end) {
+      assert(
+        equal(m.span.end, assertion.end),
+        `Match error end was ${m.span.end} but expected to be ${assertion.end}`,
+      );
+    }
   }
-  if (assertion.end) {
-    assert(
-      equal(m.span.end, assertion.end),
-      `Match error end was ${m.span.end} but expected to be ${assertion.end}`,
-    );
-  }
+
   const done = assertion.done ?? false;
   assert(
     equal(m.scope.stream.done, done),
