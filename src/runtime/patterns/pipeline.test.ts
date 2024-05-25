@@ -44,27 +44,45 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
           exports: [{ kind: ExportDeclarationKind.Rule, name: "Test" }],
           rules: [
             {
+              name: "One",
+              parameters: [],
+              pattern: {
+                kind: PatternKind.Equal,
+                value: 0
+              },
+              expression: {
+                kind: ExpressionKind.Native,
+                fn: () => 1,
+              },
+            },
+            {
+              name: "Two",
+              parameters: [],
+              pattern: {
+                kind: PatternKind.Equal,
+                value: 1
+              },
+              expression: {
+                kind: ExpressionKind.Native,
+                fn: () => 2,
+              },
+            },
+            {
               name: "Test",
               parameters: [],
               pattern: {
                 kind: PatternKind.Pipeline,
                 steps: [
                   {
-                    kind: PatternKind.Projection,
-                    pattern: { kind: PatternKind.Any },
-                    expression: {
-                      kind: ExpressionKind.Native,
-                      fn: () => 1,
-                    },
+                    kind: PatternKind.Reference,
+                    name: "One",
+                    args: [],
                   },
                   {
-                    kind: PatternKind.Projection,
-                    pattern: { kind: PatternKind.Any },
-                    expression: {
-                      kind: ExpressionKind.Native,
-                      fn: () => 2,
-                    },
-                  },
+                    kind: PatternKind.Reference,
+                    name: "Two",
+                    args: [],
+                  }
                 ],
               },
             },
@@ -85,7 +103,31 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
         [import.meta.url]: {
           imports: [],
           exports: [{ kind: ExportDeclarationKind.Rule, name: "Test" }],
-          rules: [
+          rules: [            
+            {
+              name: "PlusOne",
+              parameters: [],
+              pattern: {
+                kind: PatternKind.Slice,
+                pattern: { kind: PatternKind.Any },
+              },
+              expression: {
+                kind: ExpressionKind.Native,
+                fn: ({ _ }) => _.map((n: number) => n + 1),
+              },
+            },
+            {
+              name: "TimesTwo",
+              parameters: [],
+              pattern: {
+                kind: PatternKind.Slice,
+                pattern: { kind: PatternKind.Any },
+              },
+              expression: {
+                kind: ExpressionKind.Native,
+                fn: ({ _ }) => _.map((n: number) => n * 2),
+              },
+            },
             {
               name: "Test",
               parameters: [],
@@ -93,27 +135,15 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
                 kind: PatternKind.Pipeline,
                 steps: [
                   {
-                    kind: PatternKind.Projection,
-                    pattern: {
-                      kind: PatternKind.Slice,
-                      pattern: { kind: PatternKind.Any },
-                    },
-                    expression: {
-                      kind: ExpressionKind.Native,
-                      fn: ({ _ }) => _.map((n: number) => n + 1),
-                    },
+                    kind: PatternKind.Reference,
+                    name: "PlusOne",
+                    args: [],
                   },
                   {
-                    kind: PatternKind.Projection,
-                    pattern: {
-                      kind: PatternKind.Slice,
-                      pattern: { kind: PatternKind.Any },
-                    },
-                    expression: {
-                      kind: ExpressionKind.Native,
-                      fn: ({ _ }) => _.map((n: number) => n * 2),
-                    },
-                  },
+                    kind: PatternKind.Reference,
+                    name: "TimesTwo",
+                    args: []
+                  }
                 ],
               },
             },
@@ -136,6 +166,18 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
           exports: [{ kind: ExportDeclarationKind.Rule, name: "Test" }],
           rules: [
             {
+              name: "P",
+              parameters: [],
+              pattern: {
+                kind: PatternKind.Slice,
+                pattern: { kind: PatternKind.Any },
+              },
+              expression: {
+                kind: ExpressionKind.Native,
+                fn: ({ _ }) => _.map((n: number) => n * 2),
+              },
+            },
+            {
               name: "Test",
               parameters: [],
               pattern: {
@@ -143,15 +185,9 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
                 steps: [
                   { kind: PatternKind.Any },
                   {
-                    kind: PatternKind.Projection,
-                    pattern: {
-                      kind: PatternKind.Slice,
-                      pattern: { kind: PatternKind.Any },
-                    },
-                    expression: {
-                      kind: ExpressionKind.Native,
-                      fn: ({ _ }) => _.map((n: number) => n * 2),
-                    },
+                    kind: PatternKind.Reference,
+                    name: "P",
+                    args: [],
                   },
                 ],
               },
@@ -175,22 +211,28 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
           exports: [{ kind: ExportDeclarationKind.Rule, name: "Test" }],
           rules: [
             {
+              name: "P",
+              parameters: [],
+              pattern: {
+                kind: PatternKind.Slice,
+                pattern: { kind: PatternKind.Any },
+              },
+              expression: {
+                kind: ExpressionKind.Native,
+                fn: ({ _ }) =>
+                  _.reduce((i: number, n: number) => i + n, 0),
+              },
+            },
+            {
               name: "Test",
               parameters: [],
               pattern: {
                 kind: PatternKind.Pipeline,
                 steps: [
                   {
-                    kind: PatternKind.Projection,
-                    pattern: {
-                      kind: PatternKind.Slice,
-                      pattern: { kind: PatternKind.Any },
-                    },
-                    expression: {
-                      kind: ExpressionKind.Native,
-                      fn: ({ _ }) =>
-                        _.reduce((i: number, n: number) => i + n, 0),
-                    },
+                    kind: PatternKind.Reference,
+                    name: "P",
+                    args: [],
                   },
                 ],
               },
@@ -214,6 +256,20 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
           exports: [{ kind: ExportDeclarationKind.Rule, name: "Test" }],
           rules: [
             {
+              name: "P",
+              parameters: [],
+              pattern: {
+                kind: PatternKind.Slice,
+                min: 3,
+                max: 3,
+                pattern: { kind: PatternKind.Any },
+              },
+              expression: {
+                kind: ExpressionKind.Native,
+                fn: ({ _ }) => _.join("-"),
+              }
+            },
+            {
               name: "Test",
               parameters: [],
               pattern: {
@@ -229,17 +285,9 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
                     ],
                   },
                   {
-                    kind: PatternKind.Projection,
-                    pattern: {
-                      kind: PatternKind.Slice,
-                      min: 3,
-                      max: 3,
-                      pattern: { kind: PatternKind.Any },
-                    },
-                    expression: {
-                      kind: ExpressionKind.Native,
-                      fn: ({ _ }) => _.join("-"),
-                    },
+                    kind: PatternKind.Reference,
+                    name: "P",
+                    args: [],
                   },
                 ],
               },

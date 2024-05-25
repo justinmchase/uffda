@@ -199,15 +199,12 @@ Deno.test("runtime.rule", async (t) => {
             {
               name: "P0",
               parameters: [],
-              pattern: {
-                kind: PatternKind.Projection,
-                pattern: { kind: PatternKind.Any },
-                expression: {
-                  kind: ExpressionKind.Native,
-                  fn: (
-                    { x }: { x: undefined },
-                  ) => (assertStrictEquals(x, undefined), true),
-                },
+              pattern: { kind: PatternKind.Any },
+              expression: {
+                kind: ExpressionKind.Native,
+                fn: (
+                  { x }: { x: undefined },
+                ) => (assertStrictEquals(x, undefined), true),
               },
             },
             {
@@ -256,34 +253,28 @@ Deno.test("runtime.rule", async (t) => {
               name: "P0",
               parameters: [],
               pattern: {
-                kind: PatternKind.Projection,
-                pattern: {
-                  kind: PatternKind.Variable,
-                  name: "x",
-                  pattern: { kind: PatternKind.Any },
-                },
-                expression: {
-                  kind: ExpressionKind.Native,
-                  fn: ({ x }: { x: "a" }) => (assertEquals(x, "a"), x),
-                },
+                kind: PatternKind.Variable,
+                name: "x",
+                pattern: { kind: PatternKind.Any },
+              },
+              expression: {
+                kind: ExpressionKind.Native,
+                fn: ({ x }: { x: "a" }) => (assertEquals(x, "a"), x),
               },
             },
             {
               name: "P1",
               parameters: [],
               pattern: {
-                kind: PatternKind.Projection,
-                pattern: {
-                  kind: PatternKind.Reference,
-                  name: "P0",
-                  args: [],
-                },
-                expression: {
-                  kind: ExpressionKind.Native,
-                  fn: ({ x, _ }: { x: undefined; _: unknown }) => (
-                    assertStrictEquals(x, undefined), _
-                  ),
-                },
+                kind: PatternKind.Reference,
+                name: "P0",
+                args: [],
+              },
+              expression: {
+                kind: ExpressionKind.Native,
+                fn: ({ x, _ }: { x: undefined; _: unknown }) => (
+                  assertStrictEquals(x, undefined), _
+                ),
               },
             },
           ],
@@ -307,15 +298,12 @@ Deno.test("runtime.rule", async (t) => {
             {
               name: "P0",
               parameters: [],
-              pattern: {
-                kind: PatternKind.Projection,
-                pattern: { kind: PatternKind.Any },
-                expression: {
-                  kind: ExpressionKind.Native,
-                  fn: ({ x }: { x: undefined }) => (
-                    assertStrictEquals(x, undefined), true
-                  ),
-                },
+              pattern: { kind: PatternKind.Any },
+              expression: {
+                kind: ExpressionKind.Native,
+                fn: ({ x }: { x: undefined }) => (
+                  assertStrictEquals(x, undefined), true
+                ),
               },
             },
           ],
@@ -360,5 +348,31 @@ Deno.test("runtime.rule", async (t) => {
     }),
   });
 
+  await t.step({
+    name: "RULE08",
+    fn: moduleDeclarationTest({
+      moduleUrl: "file:///m0.ts",
+      declarations: {
+        ["file:///m0.ts"]: {
+          imports: [],
+          exports: [{ kind: ExportDeclarationKind.Rule, name: "P0" }],
+          rules: [
+            {
+              name: "P0",
+              parameters: [],
+              pattern: { kind: PatternKind.Any },
+              expression: {
+                kind: ExpressionKind.Native,
+                fn: ({ _ }) => "b"
+              },
+            },
+          ],
+        },
+      },
+      kind: MatchKind.Ok,
+      input: Input.From("a"),
+      value: "b",
+    }),
+  });
   // todo: two identical rules with different native projections should not trigger DLR?
 });

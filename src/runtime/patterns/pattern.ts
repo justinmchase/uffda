@@ -18,7 +18,6 @@ export type Pattern =
   | OkPattern
   | OrPattern
   | PipelinePattern
-  | ProjectionPattern
   | RangePattern
   | ReferencePattern
   | RegExpPattern
@@ -138,11 +137,6 @@ export type OrPattern = {
 export type PipelinePattern = {
   kind: PatternKind.Pipeline;
   steps: Pattern[];
-};
-export type ProjectionPattern = {
-  kind: PatternKind.Projection;
-  pattern: Pattern;
-  expression: Expression;
 };
 export type RangePattern = {
   kind: PatternKind.Range;

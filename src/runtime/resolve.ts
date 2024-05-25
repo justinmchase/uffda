@@ -46,12 +46,13 @@ export class Resolver {
       this.modules.set(moduleUrl.href, module);
       const moduleDeclaration = await this.importModule(moduleUrl);
 
-      for (const { name, pattern, parameters } of moduleDeclaration.rules) {
+      for (const { name, pattern, parameters, expression } of moduleDeclaration.rules) {
         module.rules.set(name, {
           module,
           name,
           parameters,
           pattern,
+          expression
         });
       }
 

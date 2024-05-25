@@ -21,37 +21,34 @@ export const Whitespace: ModuleDeclaration = {
         { name: "P" },
       ],
       pattern: {
-        kind: PatternKind.Projection,
-        pattern: {
-          kind: PatternKind.Then,
-          patterns: [
-            {
-              kind: PatternKind.Equal,
-              value: "(",
-            },
-            {
-              kind: PatternKind.Variable,
-              name: "p",
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Equal,
+            value: "(",
+          },
+          {
+            kind: PatternKind.Variable,
+            name: "p",
+            pattern: {
+              kind: PatternKind.Slice,
+              max: 1,
               pattern: {
-                kind: PatternKind.Slice,
-                max: 1,
-                pattern: {
-                  kind: PatternKind.Reference,
-                  name: "P",
-                  args: [],
-                }
-              },
+                kind: PatternKind.Reference,
+                name: "P",
+                args: [],
+              }
             },
-            {
-              kind: PatternKind.Equal,
-              value: ")",
-            },
-          ],
-        },
-        expression: {
-          kind: ExpressionKind.Native,
-          fn: ({ p }) => p[0],
-        },
+          },
+          {
+            kind: PatternKind.Equal,
+            value: ")",
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ p }) => p[0],
       },
     },
   ],

@@ -16,7 +16,6 @@ import {
   Pattern,
   PatternKind,
   pipeline,
-  projection,
   range,
   reference,
   regexp,
@@ -55,8 +54,6 @@ export function match(pattern: Pattern, scope: Scope): Match {
       return or(pattern, scope);
     case PatternKind.Pipeline:
       return pipeline(pattern, scope);
-    case PatternKind.Projection:
-      return projection(pattern, scope);
     case PatternKind.Range:
       return range(pattern, scope);
     case PatternKind.Reference:

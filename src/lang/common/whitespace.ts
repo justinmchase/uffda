@@ -19,36 +19,33 @@ export const Whitespace: ModuleDeclaration = {
       name: "Whitespace",
       parameters: [],
       pattern: {
-        kind: PatternKind.Projection,
+        kind: PatternKind.Slice,
+        min: 1,
         pattern: {
-          kind: PatternKind.Slice,
-          min: 1,
-          pattern: {
-            kind: PatternKind.Or,
-            patterns: [
-              {
-                kind: PatternKind.Character,
-                characterClass: CharacterClass.SpaceSeparator,
-              },
-              {
-                kind: PatternKind.Character,
-                characterClass: CharacterClass.LineSeparator,
-              },
-              {
-                kind: PatternKind.Character,
-                characterClass: CharacterClass.ParagraphSeparator,
-              },
-              {
-                kind: PatternKind.Equal,
-                value: "\t",
-              },
-            ],
-          },
+          kind: PatternKind.Or,
+          patterns: [
+            {
+              kind: PatternKind.Character,
+              characterClass: CharacterClass.SpaceSeparator,
+            },
+            {
+              kind: PatternKind.Character,
+              characterClass: CharacterClass.LineSeparator,
+            },
+            {
+              kind: PatternKind.Character,
+              characterClass: CharacterClass.ParagraphSeparator,
+            },
+            {
+              kind: PatternKind.Equal,
+              value: "\t",
+            },
+          ],
         },
-        expression: {
-          kind: ExpressionKind.Native,
-          fn: ({ _ }) => _.join(""),
-        },
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ _ }) => _.join(""),
       },
     },
   ],

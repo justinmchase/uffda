@@ -1,18 +1,20 @@
-import { patternTest } from "../../test.ts";
+import { moduleDeclarationTest, patternTest, ruleTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { ExpressionKind } from "../expressions/mod.ts";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { MatchErrorCode } from "../../match.ts";
 import { Path } from "../../mod.ts";
+import { ExportDeclarationKind } from "../declarations/mod.ts";
 
 Deno.test("runtime.patterns.variable", async (t) => {
   await t.step({
     name: "VARIABLE00",
-    fn: patternTest({
+    fn: ruleTest({
       // P = x:any -> x + 11
-      pattern: {
-        kind: PatternKind.Projection,
+      rule: {
+        name: "P",
+        parameters: [],
         pattern: {
           kind: PatternKind.Variable,
           name: "x",
@@ -30,10 +32,11 @@ Deno.test("runtime.patterns.variable", async (t) => {
   });
   await t.step({
     name: "VARIABLE01",
-    fn: patternTest({
+    fn: ruleTest({
       // P = x:any y:any -> x + y
-      pattern: {
-        kind: PatternKind.Projection,
+      rule: {
+        name: "P",
+        parameters: [],
         pattern: {
           kind: PatternKind.Then,
           patterns: [
@@ -66,9 +69,10 @@ Deno.test("runtime.patterns.variable", async (t) => {
 
   await t.step({
     name: "VARIABLE02",
-    fn: patternTest({
-      pattern: {
-        kind: PatternKind.Projection,
+    fn: ruleTest({
+      rule: {
+        name: "P",
+        parameters: [],
         pattern: {
           kind: PatternKind.Object,
           keys: {
@@ -99,9 +103,10 @@ Deno.test("runtime.patterns.variable", async (t) => {
   // should be available in the rest of the scope
   await t.step({
     name: "VARIABLE03",
-    fn: patternTest({
-      pattern: {
-        kind: PatternKind.Projection,
+    fn: ruleTest({
+      rule: {
+        name: "P",
+        parameters: [],
         pattern: {
           kind: PatternKind.Object,
           keys: {

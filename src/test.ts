@@ -18,6 +18,8 @@ import { Match, ok, Resolver } from "./mod.ts";
 import { Path } from "./path.ts";
 import { run } from "./runtime/patterns/mod.ts";
 import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
+import { Rule } from "./runtime/modules/rule.ts";
+import { ExportDeclarationKind, RuleDeclaration } from "./runtime/declarations/mod.ts";
 
 type ExpressionTestOptions = {
   scope?: Scope;
@@ -156,6 +158,88 @@ export function moduleDeclarationTest(options: ModuleDeclarationTestOptions) {
     const resolver = new Resolver({ declarations });
     try {
       const module = await resolver.import(new URL(moduleUrl));
+      if (isThrowsAssertion(options)) {
+        throw new Error(`Expected to throw but didn't`);
+      }
+      const scope = new Scope(
+        module,
+        undefined,
+        variables,
+        new Map(),
+        input,
+        undefined,
+        undefined,
+        {
+          resolver,
+        },
+      );
+
+      const m = run(scope, { kind: PatternKind.Run });
+      switch (m.kind) {
+        case MatchKind.LR:
+          return assertLR(m, options);
+        case MatchKind.Error:
+          return assertError(m, options);
+        case MatchKind.Fail:
+          return assertFail(m, options);
+        case MatchKind.Ok:
+          return assertOk(m, options);
+      }
+    } catch (err) {
+      const { name, message } = err;
+      if (isThrowsAssertion(options)) {
+        const { throws } = options;
+        if (throws === true) {
+          return;
+        }
+        if (throws) {
+          if (throws.name) {
+            assert(
+              equal(name, throws.name),
+              `Error name was ${name} but expected to be ${throws.name}`,
+            );
+          }
+          if (throws.message) {
+            assert(
+              equal(message, throws.message),
+              `Error message was ${message} but expected to be ${throws.message}`,
+            );
+          }
+          return;
+        }
+      }
+
+      throw err;
+    }
+  };
+}
+
+type RuleTestOptions = (ThrowsAssertion | MatchAssertion) & {
+  rule: RuleDeclaration,
+  input?: Input;
+  variables?: Map<string, unknown>;
+}
+
+export function ruleTest(options: RuleTestOptions) {
+  const {
+    rule,
+    input,
+    variables,
+  } = options;
+  return async () => {
+    const resolver = new Resolver({
+      declarations: {
+        "file:///test.ts": {
+          imports: [],
+          exports: [
+            { kind: ExportDeclarationKind.Rule, name: rule.name }
+          ],
+          rules: [rule]
+        }
+      }
+    });
+    try {
+      const module = await resolver.import(new URL("file:///test.ts"));
       if (isThrowsAssertion(options)) {
         throw new Error(`Expected to throw but didn't`);
       }

@@ -11,13 +11,14 @@ import { Scope } from "./scope.ts";
 import { Rule } from "./modules/mod.ts";
 import { match } from "./match.ts";
 import { StackFrameKind } from "./stack/stackFrameKind.ts";
+import { exec } from "./exec.ts";
 
 export function rule(
   rule: Rule,
   args: Map<string, Rule>,
   scope: Scope,
 ): Match {
-  const { module, pattern } = rule;
+  const { module, pattern, expression } = rule;
   let memo = scope.memos.get(scope.stream.path, rule);
   if (!memo) {
     memo = scope.memos.set(scope.stream.path, rule, lr(scope, rule.pattern));
@@ -34,15 +35,18 @@ export function rule(
         return m;
       case MatchKind.Fail:
         return fail(scope, rule.pattern, [m]);
-      case MatchKind.Ok:
+      case MatchKind.Ok: {
+        const value = expression ? exec(expression, m) : m.value;
         return ok(
           scope,
           scope.withInput(m.scope.stream),
           rule.pattern,
-          m.value,
+          value,
           [m],
         );
+      }
     }
+
   } else {
     const m = memo.match;
     const frame = scope.stack[scope.stack.length - 1];
