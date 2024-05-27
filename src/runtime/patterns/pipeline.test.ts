@@ -48,7 +48,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
               parameters: [],
               pattern: {
                 kind: PatternKind.Equal,
-                value: 0
+                value: 0,
               },
               expression: {
                 kind: ExpressionKind.Native,
@@ -60,7 +60,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
               parameters: [],
               pattern: {
                 kind: PatternKind.Equal,
-                value: 1
+                value: 1,
               },
               expression: {
                 kind: ExpressionKind.Native,
@@ -82,7 +82,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
                     kind: PatternKind.Reference,
                     name: "Two",
                     args: [],
-                  }
+                  },
                 ],
               },
             },
@@ -103,7 +103,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
         [import.meta.url]: {
           imports: [],
           exports: [{ kind: ExportDeclarationKind.Rule, name: "Test" }],
-          rules: [            
+          rules: [
             {
               name: "PlusOne",
               parameters: [],
@@ -142,8 +142,8 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
                   {
                     kind: PatternKind.Reference,
                     name: "TimesTwo",
-                    args: []
-                  }
+                    args: [],
+                  },
                 ],
               },
             },
@@ -219,8 +219,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
               },
               expression: {
                 kind: ExpressionKind.Native,
-                fn: ({ _ }) =>
-                  _.reduce((i: number, n: number) => i + n, 0),
+                fn: ({ _ }) => _.reduce((i: number, n: number) => i + n, 0),
               },
             },
             {
@@ -267,7 +266,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
               expression: {
                 kind: ExpressionKind.Native,
                 fn: ({ _ }) => _.join("-"),
-              }
+              },
             },
             {
               name: "Test",

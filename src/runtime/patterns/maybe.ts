@@ -16,15 +16,15 @@ export function maybe(pattern: MaybePattern, scope: Scope): Match {
         m.scope,
         pattern,
         m.value,
-        [m]
-      )
+        [m],
+      );
     case MatchKind.Fail:
       return ok(
         scope,
         scope,
         pattern,
         undefined,
-        [m]
+        [m],
       );
   }
 }

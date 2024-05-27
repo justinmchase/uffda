@@ -1,11 +1,10 @@
-import { moduleDeclarationTest, patternTest, ruleTest } from "../../test.ts";
+import { patternTest, ruleTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { ExpressionKind } from "../expressions/mod.ts";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { MatchErrorCode } from "../../match.ts";
 import { Path } from "../../mod.ts";
-import { ExportDeclarationKind } from "../declarations/mod.ts";
 
 Deno.test("runtime.patterns.variable", async (t) => {
   await t.step({

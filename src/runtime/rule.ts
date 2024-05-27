@@ -46,7 +46,6 @@ export function rule(
         );
       }
     }
-
   } else {
     const m = memo.match;
     const frame = scope.stack[scope.stack.length - 1];

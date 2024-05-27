@@ -11,15 +11,15 @@ await Deno.test("runtime/patterns/end", async (t) => {
         kind: PatternKind.Maybe,
         pattern: {
           kind: PatternKind.Equal,
-          value: "a"
-        }
+          value: "a",
+        },
       },
       input: Input.From("a"),
       kind: MatchKind.Ok,
-      value: "a"
+      value: "a",
     }),
   });
-  
+
   await t.step({
     name: "MAYBE01",
     fn: patternTest({
@@ -27,16 +27,16 @@ await Deno.test("runtime/patterns/end", async (t) => {
         kind: PatternKind.Maybe,
         pattern: {
           kind: PatternKind.Equal,
-          value: "a"
-        }
+          value: "a",
+        },
       },
       input: Input.From("b"),
       kind: MatchKind.Ok,
       value: undefined,
-      done: false
+      done: false,
     }),
   });
-  
+
   await t.step({
     name: "MAYBE02",
     fn: patternTest({
@@ -47,14 +47,14 @@ await Deno.test("runtime/patterns/end", async (t) => {
             kind: PatternKind.Maybe,
             pattern: {
               kind: PatternKind.Equal,
-              value: "a"
-            }
+              value: "a",
+            },
           },
           {
             kind: PatternKind.Equal,
-            value: "b"
-          }
-        ]
+            value: "b",
+          },
+        ],
       },
       input: Input.From("b"),
       kind: MatchKind.Ok,

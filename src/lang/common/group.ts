@@ -37,7 +37,7 @@ export const Whitespace: ModuleDeclaration = {
                 kind: PatternKind.Reference,
                 name: "P",
                 args: [],
-              }
+              },
             },
           },
           {

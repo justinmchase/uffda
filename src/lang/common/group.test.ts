@@ -37,7 +37,7 @@ Deno.test(
         moduleUrl,
         input: new Input("()"),
         kind: MatchKind.Ok,
-        value: undefined
+        value: undefined,
       }),
     });
 

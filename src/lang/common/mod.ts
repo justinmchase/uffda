@@ -3,6 +3,7 @@ import {
   ImportDeclarationKind,
   ModuleDeclaration,
 } from "../../runtime/declarations/mod.ts";
+import Letter from "./letter.ts";
 import { Whitespace } from "./whitespace.ts";
 
 export const Tokenizer: ModuleDeclaration = {
@@ -10,9 +11,17 @@ export const Tokenizer: ModuleDeclaration = {
     {
       kind: ImportDeclarationKind.Native,
       module: Whitespace,
-      moduleUrl: "./common/mod.ts",
+      moduleUrl: "./whitespace.ts",
       names: [
         "Whitespace",
+      ],
+    },
+    {
+      kind: ImportDeclarationKind.Native,
+      module: Letter,
+      moduleUrl: "./letter.ts",
+      names: [
+        "Letter",
       ],
     },
   ],
@@ -20,6 +29,10 @@ export const Tokenizer: ModuleDeclaration = {
     {
       kind: ExportDeclarationKind.Import,
       name: "Whitespace",
+    },
+    {
+      kind: ExportDeclarationKind.Import,
+      name: "Letter",
     },
   ],
   rules: [],

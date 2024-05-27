@@ -363,7 +363,7 @@ Deno.test("runtime.rule", async (t) => {
               pattern: { kind: PatternKind.Any },
               expression: {
                 kind: ExpressionKind.Native,
-                fn: ({ _ }) => "b"
+                fn: ({ _ }) => "b",
               },
             },
           ],

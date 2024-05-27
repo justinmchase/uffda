@@ -18,8 +18,10 @@ import { Match, ok, Resolver } from "./mod.ts";
 import { Path } from "./path.ts";
 import { run } from "./runtime/patterns/mod.ts";
 import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
-import { Rule } from "./runtime/modules/rule.ts";
-import { ExportDeclarationKind, RuleDeclaration } from "./runtime/declarations/mod.ts";
+import {
+  ExportDeclarationKind,
+  RuleDeclaration,
+} from "./runtime/declarations/mod.ts";
 
 type ExpressionTestOptions = {
   scope?: Scope;
@@ -215,10 +217,10 @@ export function moduleDeclarationTest(options: ModuleDeclarationTestOptions) {
 }
 
 type RuleTestOptions = (ThrowsAssertion | MatchAssertion) & {
-  rule: RuleDeclaration,
+  rule: RuleDeclaration;
   input?: Input;
   variables?: Map<string, unknown>;
-}
+};
 
 export function ruleTest(options: RuleTestOptions) {
   const {
@@ -232,11 +234,11 @@ export function ruleTest(options: RuleTestOptions) {
         "file:///test.ts": {
           imports: [],
           exports: [
-            { kind: ExportDeclarationKind.Rule, name: rule.name }
+            { kind: ExportDeclarationKind.Rule, name: rule.name },
           ],
-          rules: [rule]
-        }
-      }
+          rules: [rule],
+        },
+      },
     });
     try {
       const module = await resolver.import(new URL("file:///test.ts"));
@@ -389,18 +391,6 @@ function assertFail(m: MatchFail, assertion: MatchAssertion) {
     equal(m.scope.stream.done, done),
     `Pattern was ${done ? "" : "not "}expected to be done`,
   );
-  // todo: Find the right most leaf fails...
-  // const matchErrors = [...m.errors()];
-  // assert(
-  //   equal(matchErrors, errors),
-  //   `Pattern matched value did not equal expected errors\n` +
-  //     `expected errors: ${
-  //       Deno.inspect(errors, { colors: true, depth: 10 })
-  //     }\n` +
-  //     `  actual errors: ${
-  //       Deno.inspect(matchErrors, { colors: true, depth: 10 })
-  //     }`,
-  // );
 }
 
 function assertOk(m: MatchOk, assertion: MatchAssertion) {
