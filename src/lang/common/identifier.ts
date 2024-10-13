@@ -6,11 +6,11 @@ import {
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 import { CharacterClass } from "../../runtime/patterns/mod.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
-import { Connecting } from "./connecting.ts";
-import { Combining } from "./combining.ts";
-import { Digit } from "./digit.ts";
-import { Letter } from "./letter.ts";
-import { Formatting } from "./formatting.ts";
+import { Connecting } from "./characters/connecting.ts";
+import { Combining } from "./characters/combining.ts";
+import { Digit } from "./characters/digit.ts";
+import { Letter } from "./characters/letter.ts";
+import { Formatting } from "./characters/formatting.ts";
 
 // import ./letter.ts (Letter);
 // import ./digit.ts (Digit);
@@ -37,7 +37,7 @@ export const Identifier: ModuleDeclaration = {
     {
       kind: ImportDeclarationKind.Native,
       module: Letter,
-      moduleUrl: "./letter.ts",
+      moduleUrl: "./characters/letter.ts",
       names: [
         "Letter",
       ],
@@ -45,7 +45,7 @@ export const Identifier: ModuleDeclaration = {
     {
       kind: ImportDeclarationKind.Native,
       module: Digit,
-      moduleUrl: "./digit.ts",
+      moduleUrl: "./characters/digit.ts",
       names: [
         "Digit",
       ],
@@ -53,7 +53,7 @@ export const Identifier: ModuleDeclaration = {
     {
       kind: ImportDeclarationKind.Native,
       module: Connecting,
-      moduleUrl: "./connecting.ts",
+      moduleUrl: "./characters/connecting.ts",
       names: [
         "Connecting",
       ],
@@ -61,7 +61,7 @@ export const Identifier: ModuleDeclaration = {
     {
       kind: ImportDeclarationKind.Native,
       module: Combining,
-      moduleUrl: "./combining.ts",
+      moduleUrl: "./characters/combining.ts",
       names: [
         "Combining",
       ],
@@ -69,7 +69,7 @@ export const Identifier: ModuleDeclaration = {
     {
       kind: ImportDeclarationKind.Native,
       module: Formatting,
-      moduleUrl: "./formatting.ts",
+      moduleUrl: "./characters/formatting.ts",
       names: [
         "Formatting",
       ],

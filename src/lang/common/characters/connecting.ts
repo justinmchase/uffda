@@ -1,8 +1,8 @@
 import {
   ExportDeclarationKind,
   ModuleDeclaration,
-} from "../../runtime/declarations/mod.ts";
-import { CharacterClass, PatternKind } from "../../runtime/patterns/mod.ts";
+} from "../../../runtime/declarations/mod.ts";
+import { CharacterClass, PatternKind } from "../../../runtime/patterns/mod.ts";
 
 export const Connecting: ModuleDeclaration = {
   imports: [],

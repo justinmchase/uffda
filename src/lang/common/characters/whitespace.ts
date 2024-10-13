@@ -1,9 +1,9 @@
 import {
   ExportDeclarationKind,
   ModuleDeclaration,
-} from "../../runtime/declarations/mod.ts";
-import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
-import { CharacterClass, PatternKind } from "../../runtime/patterns/mod.ts";
+} from "../../../runtime/declarations/mod.ts";
+import { ExpressionKind } from "../../../runtime/expressions/expression.kind.ts";
+import { CharacterClass, PatternKind } from "../../../runtime/patterns/mod.ts";
 
 export const Whitespace: ModuleDeclaration = {
   imports: [],
@@ -15,7 +15,7 @@ export const Whitespace: ModuleDeclaration = {
   ],
   rules: [
     {
-      // Whitespace = (\cZs | \cCc | \cZl | \cZp)+;
+      // Whitespace = (\cZs | \cZl | \cZp)+;
       name: "Whitespace",
       parameters: [],
       pattern: {
@@ -35,10 +35,6 @@ export const Whitespace: ModuleDeclaration = {
             {
               kind: PatternKind.Character,
               characterClass: CharacterClass.ParagraphSeparator,
-            },
-            {
-              kind: PatternKind.Equal,
-              value: "\t",
             },
           ],
         },

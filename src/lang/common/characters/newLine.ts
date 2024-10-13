@@ -1,9 +1,9 @@
 import {
   ExportDeclarationKind,
   ModuleDeclaration,
-} from "../../runtime/declarations/mod.ts";
-import { ExpressionKind } from "../../runtime/expressions/mod.ts";
-import { PatternKind } from "../../runtime/patterns/mod.ts";
+} from "../../../runtime/declarations/mod.ts";
+import { ExpressionKind } from "../../../runtime/expressions/mod.ts";
+import { PatternKind } from "../../../runtime/patterns/mod.ts";
 
 export const NewLine: ModuleDeclaration = {
   imports: [],

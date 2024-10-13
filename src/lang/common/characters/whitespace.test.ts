@@ -1,6 +1,6 @@
-import { Input } from "../../input.ts";
-import { MatchKind } from "../../mod.ts";
-import { moduleDeclarationTest } from "../../test.ts";
+import { Input } from "../../../input.ts";
+import { MatchKind } from "../../../mod.ts";
+import { moduleDeclarationTest } from "../../../test.ts";
 
 const moduleUrl = new URL("./whitespace.ts", import.meta.url).href;
 
@@ -11,7 +11,7 @@ const p = await Deno.permissions.query({
 
 Deno.test(
   {
-    name: "lang.common.whitespace",
+    name: "lang.common.characters.whitespace",
     ignore: p.state !== "granted",
   },
   async (t) => {
@@ -24,19 +24,29 @@ Deno.test(
         kind: MatchKind.Ok,
       }),
     });
-
     await t.step({
       name: "WHITESPACE01",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(" \t "),
-        value: " \t ",
+        input: Input.From("   "),
+        value: "   ",
         kind: MatchKind.Ok,
       }),
     });
 
     await t.step({
       name: "WHITESPACE02",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.From(" \t"),
+        value: " ",
+        kind: MatchKind.Ok,
+        done: false,
+      }),
+    });
+
+    await t.step({
+      name: "WHITESPACE03",
       fn: moduleDeclarationTest({
         moduleUrl,
         input: Input.From(""),
@@ -46,7 +56,7 @@ Deno.test(
     });
 
     await t.step({
-      name: "WHITESPACE03",
+      name: "WHITESPACE04",
       fn: moduleDeclarationTest({
         moduleUrl,
         input: Input.From("\r"),
@@ -55,10 +65,19 @@ Deno.test(
     });
 
     await t.step({
-      name: "WHITESPACE03",
+      name: "WHITESPACE05",
       fn: moduleDeclarationTest({
         moduleUrl,
         input: Input.From("\n"),
+        kind: MatchKind.Fail,
+      }),
+    });
+
+    await t.step({
+      name: "WHITESPACE06",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.From("\t"),
         kind: MatchKind.Fail,
       }),
     });

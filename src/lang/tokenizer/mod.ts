@@ -4,35 +4,21 @@ import {
   ModuleDeclaration,
 } from "../../runtime/declarations/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
-import { PatternKind } from "../../runtime/patterns/mod.ts";
-import { Whitespace } from "../common/whitespace.ts";
-import { NewLine } from "../common/newLine.ts";
-import { Identifier } from "../common/identifier.ts";
+import { PatternKind, ValueType } from "../../runtime/patterns/mod.ts";
 
 export const Tokenizer: ModuleDeclaration = {
   imports: [
     {
-      kind: ImportDeclarationKind.Native,
-      module: Whitespace,
-      moduleUrl: "../common/whitespace.ts",
+      kind: ImportDeclarationKind.Module,
+      moduleUrl: "../common/characters/mod.ts",
       names: [
-        "Whitespace",
-      ],
-    },
-    {
-      kind: ImportDeclarationKind.Native,
-      module: NewLine,
-      moduleUrl: "../common/newLine.ts",
-      names: [
+        "Combining",
+        "Connecting",
+        "Digit",
+        "Formatting",
+        "Letter",
         "NewLine",
-      ],
-    },
-    {
-      kind: ImportDeclarationKind.Native,
-      module: Identifier,
-      moduleUrl: "../common/identifier.ts",
-      names: [
-        "Identifier",
+        "Whitespace",
       ],
     },
   ],
@@ -51,13 +37,6 @@ export const Tokenizer: ModuleDeclaration = {
         name: "Whitespace",
         args: [],
       },
-      expression: {
-        kind: ExpressionKind.Native,
-        fn: ({ _ }) => ({
-          kind: "whitespace",
-          value: _,
-        }),
-      },
     },
     {
       name: "NewLineToken",
@@ -67,28 +46,55 @@ export const Tokenizer: ModuleDeclaration = {
         name: "NewLine",
         args: [],
       },
+    },
+    {
+      name: "WordToken",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Slice,
+        min: 1,
+        pattern: {
+          kind: PatternKind.Or,
+          patterns: [
+            {
+              kind: PatternKind.Reference,
+              name: "Letter",
+              args: [],
+            },
+            {
+              kind: PatternKind.Reference,
+              name: "Connecting",
+              args: [],
+            },
+            {
+              kind: PatternKind.Reference,
+              name: "Combining",
+              args: [],
+            },
+            {
+              kind: PatternKind.Reference,
+              name: "Digit",
+              args: [],
+            },
+            {
+              kind: PatternKind.Reference,
+              name: "Formatting",
+              args: [],
+            },
+          ],
+        },
+      },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ _ }) => ({
-          kind: "newline",
-          value: _,
-        }),
+        fn: ({ _ }) => _.join(""),
       },
     },
     {
-      name: "IdentifierToken",
+      name: "PunctuationToken",
       parameters: [],
       pattern: {
-        kind: PatternKind.Reference,
-        name: "Identifier",
-        args: [],
-      },
-      expression: {
-        kind: ExpressionKind.Native,
-        fn: ({ _ }) => ({
-          kind: "identifier",
-          value: _,
-        }),
+        kind: PatternKind.Type,
+        type: ValueType.String,
       },
     },
     {
@@ -109,7 +115,12 @@ export const Tokenizer: ModuleDeclaration = {
           },
           {
             kind: PatternKind.Reference,
-            name: "IdentifierToken",
+            name: "WordToken",
+            args: [],
+          },
+          {
+            kind: PatternKind.Reference,
+            name: "PunctuationToken",
             args: [],
           },
         ],

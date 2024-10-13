@@ -1,8 +1,8 @@
-import { Input } from "../../input.ts";
-import { MatchKind } from "../../mod.ts";
-import { moduleDeclarationTest } from "../../test.ts";
+import { Input } from "../../../input.ts";
+import { MatchKind } from "../../../mod.ts";
+import { moduleDeclarationTest } from "../../../test.ts";
 
-const moduleUrl = new URL("./digit.ts", import.meta.url).href;
+const moduleUrl = new URL("./letter.ts", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -11,25 +11,25 @@ const p = await Deno.permissions.query({
 
 Deno.test(
   {
-    name: "lang.common.digit",
+    name: "lang.common.characters.letter",
     ignore: p.state !== "granted",
   },
   async (t) => {
     await t.step({
-      name: "DIGIT00",
+      name: "LETTER00",
       fn: moduleDeclarationTest({
         moduleUrl,
         input: Input.From("a"),
-        kind: MatchKind.Fail,
+        value: "a",
+        kind: MatchKind.Ok,
       }),
     });
     await t.step({
-      name: "DIGIT01",
+      name: "LETTER01",
       fn: moduleDeclarationTest({
         moduleUrl,
         input: Input.From("1"),
-        kind: MatchKind.Ok,
-        value: "1",
+        kind: MatchKind.Fail,
       }),
     });
   },

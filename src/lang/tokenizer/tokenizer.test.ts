@@ -9,57 +9,124 @@ const p = await Deno.permissions.query({
   path: moduleUrl,
 });
 
-Deno.test("lang.tokenizer", async (t) => {
-  await t.step({
-    name: "TOKENIZER00",
-    ignore: p.state !== "granted",
-    fn: moduleDeclarationTest({
-      moduleUrl,
-      input: Input.From(""),
-      value: [],
-      kind: MatchKind.Ok,
-    }),
-  });
-  await t.step({
-    name: "TOKENIZER01",
-    ignore: p.state !== "granted",
-    fn: moduleDeclarationTest({
-      moduleUrl,
-      input: Input.From(" "),
-      value: [
-        { kind: "whitespace", value: " " },
-      ],
-      kind: MatchKind.Ok,
-    }),
-  });
+Deno.test({
+  ignore: p.state !== "granted",
+  name: "lang.tokenizer",
+  fn: async (t) => {
+    await t.step({
+      name: "TOKENIZER00",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.From(""),
+        value: [],
+        kind: MatchKind.Ok,
+      }),
+    });
+    await t.step({
+      name: "TOKENIZER01",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.From(" "),
+        value: [" "],
+        kind: MatchKind.Ok,
+      }),
+    });
 
-  await t.step({
-    name: "TOKENIZER02",
-    ignore: p.state !== "granted",
-    fn: moduleDeclarationTest({
-      moduleUrl,
-      input: Input.From(" \n "),
-      value: [
-        { kind: "whitespace", value: " " },
-        { kind: "newline", value: "\n" },
-        { kind: "whitespace", value: " " },
-      ],
-      kind: MatchKind.Ok,
-    }),
-  });
+    await t.step({
+      name: "TOKENIZER02",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.From(" \n "),
+        value: [
+          " ",
+          "\n",
+          " ",
+        ],
+        kind: MatchKind.Ok,
+      }),
+    });
 
-  await t.step({
-    name: "TOKENIZER03",
-    ignore: p.state !== "granted",
-    fn: moduleDeclarationTest({
-      moduleUrl,
-      input: Input.From("abc\nxyz"),
-      value: [
-        { kind: "identifier", value: "abc" },
-        { kind: "newline", value: "\n" },
-        { kind: "identifier", value: "xyz" },
-      ],
-      kind: MatchKind.Ok,
-    }),
-  });
+    await t.step({
+      name: "TOKENIZER03",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.From("abc\nxyz"),
+        value: ["abc", "\n", "xyz"],
+        kind: MatchKind.Ok,
+      }),
+    });
+
+    await t.step({
+      name: "TOKENIZER04",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.From("abc123-123abc"),
+        value: ["abc123", "-", "123abc"],
+        kind: MatchKind.Ok,
+      }),
+    });
+
+    await t.step({
+      name: "TOKENIZER04",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.From("!@#$%^&*()_+-=[]\\{}|;':\",./<>?"),
+        value: [
+          "!",
+          "@",
+          "#",
+          "$",
+          "%",
+          "^",
+          "&",
+          "*",
+          "(",
+          ")",
+          "_",
+          "+",
+          "-",
+          "=",
+          "[",
+          "]",
+          "\\",
+          "{",
+          "}",
+          "|",
+          ";",
+          "'",
+          ":",
+          '"',
+          ",",
+          ".",
+          "/",
+          "<",
+          ">",
+          "?",
+        ],
+        kind: MatchKind.Ok,
+      }),
+    });
+
+    await t.step({
+      name: "TOKENIZER04",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.From("abc   123\t\t\txyz\r\n\n\n456"),
+        value: [
+          "abc",
+          "   ",
+          "123",
+          "\t",
+          "\t",
+          "\t",
+          "xyz",
+          "\n",
+          "\n",
+          "\n",
+          "456",
+        ],
+        kind: MatchKind.Ok,
+      }),
+    });
+  },
 });

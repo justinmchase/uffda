@@ -188,7 +188,7 @@ export function moduleDeclarationTest(options: ModuleDeclarationTestOptions) {
           return assertOk(m, options);
       }
     } catch (err) {
-      const { name, message } = err;
+      const { name, message } = err as Error;
       if (isThrowsAssertion(options)) {
         const { throws } = options;
         if (throws === true) {
@@ -271,7 +271,7 @@ export function ruleTest(options: RuleTestOptions) {
           return assertOk(m, options);
       }
     } catch (err) {
-      const { name, message } = err;
+      const { name, message } = err as Error;
       if (isThrowsAssertion(options)) {
         const { throws } = options;
         if (throws === true) {
