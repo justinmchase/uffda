@@ -1,5 +1,5 @@
-import { MatchOk } from "../../match.ts";
-import { ReferenceExpression } from "./expression.ts";
+import type { MatchOk } from "../../match.ts";
+import type { ReferenceExpression } from "./expression.ts";
 
 export function reference(
   expression: ReferenceExpression,

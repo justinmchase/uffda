@@ -1,17 +1,10 @@
-import {
-  error,
-  fail,
-  lr,
-  Match,
-  MatchErrorCode,
-  MatchKind,
-  ok,
-} from "../match.ts";
-import { Scope } from "./scope.ts";
-import { Rule } from "./modules/mod.ts";
+import { error, fail, lr, MatchErrorCode, MatchKind, ok } from "../match.ts";
 import { match } from "./match.ts";
 import { StackFrameKind } from "./stack/stackFrameKind.ts";
 import { exec } from "./exec.ts";
+import type { Match } from "../match.ts";
+import type { Rule } from "./modules/mod.ts";
+import type { Scope } from "./scope.ts";
 
 export function rule(
   rule: Rule,

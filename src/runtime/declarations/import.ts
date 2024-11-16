@@ -1,4 +1,4 @@
-import { ModuleDeclaration } from "./module.ts";
+import type { ModuleDeclaration } from "./module.ts";
 
 export type ImportDeclaration =
   | ModuleImportDeclaration

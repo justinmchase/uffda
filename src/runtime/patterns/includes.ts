@@ -1,7 +1,7 @@
-import { Serializable } from "serializable/mod.ts";
-import { fail, Match, ok } from "../../match.ts";
-import { Scope } from "../scope.ts";
-import { IncludesPattern } from "./pattern.ts";
+import type { Serializable } from "@justinmchase/serializable";
+import { fail, type Match, ok } from "../../match.ts";
+import type { Scope } from "../scope.ts";
+import type { IncludesPattern } from "./pattern.ts";
 
 export function includes(pattern: IncludesPattern, scope: Scope): Match {
   const { values } = pattern;

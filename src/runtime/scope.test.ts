@@ -1,12 +1,14 @@
-import { assert, assertEquals, assertObjectMatch } from "std/assert/mod.ts";
+import { assert, assertEquals, assertObjectMatch } from "@std/assert";
 import { match } from "./match.ts";
-import { Pattern, PatternKind } from "./patterns/mod.ts";
+import { PatternKind } from "./patterns/mod.ts";
 import { Scope } from "./scope.ts";
 import { Input } from "../input.ts";
 import { MatchKind, ok } from "../match.ts";
-import { Expression, ExpressionKind } from "./expressions/mod.ts";
 import { exec } from "./exec.ts";
 import { Path } from "../path.ts";
+import { ExpressionKind } from "./expressions/mod.ts";
+import type { Pattern } from "./patterns/mod.ts";
+import type { Expression } from "./expressions/mod.ts";
 
 Deno.test("runtime.scope", async (t) => {
   await t.step({

@@ -1,5 +1,5 @@
-import { Expression } from "../expressions/expression.ts";
-import { Pattern } from "../patterns/mod.ts";
+import type { Expression } from "../expressions/expression.ts";
+import type { Pattern } from "../patterns/mod.ts";
 
 export type RuleDeclaration = {
   name: string;

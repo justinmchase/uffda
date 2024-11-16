@@ -1,6 +1,6 @@
-import { Pattern } from "./runtime/patterns/pattern.ts";
-import { Scope } from "./runtime/scope.ts";
-import { Span, spanFrom } from "./span.ts";
+import type { Pattern } from "./runtime/patterns/pattern.ts";
+import type { Scope } from "./runtime/scope.ts";
+import { type Span, spanFrom } from "./span.ts";
 
 export enum MatchErrorCode {
   UnknownReference = "E_UNKNOWN_REFERENCE",

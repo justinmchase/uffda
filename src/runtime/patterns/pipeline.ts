@@ -1,8 +1,8 @@
-import { fail, Match, MatchKind, ok } from "../../match.ts";
-import { Scope } from "../scope.ts";
+import { fail, type Match, MatchKind, ok } from "../../match.ts";
+import type { Scope } from "../scope.ts";
 import { Input } from "../../input.ts";
 import { match } from "../match.ts";
-import { PipelinePattern } from "./pattern.ts";
+import type { PipelinePattern } from "./pattern.ts";
 
 export function pipeline(pattern: PipelinePattern, scope: Scope) {
   const { steps } = pattern;

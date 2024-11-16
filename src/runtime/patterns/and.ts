@@ -1,7 +1,7 @@
-import { Scope } from "../scope.ts";
-import { fail, Match, MatchKind, MatchOk, ok } from "../../match.ts";
+import type { Scope } from "../scope.ts";
+import { fail, type Match, MatchKind, type MatchOk, ok } from "../../match.ts";
 import { match } from "../match.ts";
-import { AndPattern } from "./pattern.ts";
+import type { AndPattern } from "./pattern.ts";
 
 export function and(pattern: AndPattern, scope: Scope): Match {
   const { patterns } = pattern;

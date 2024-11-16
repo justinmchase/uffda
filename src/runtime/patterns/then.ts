@@ -1,7 +1,7 @@
-import { fail, Match, MatchKind, ok } from "../../match.ts";
-import { Scope } from "../scope.ts";
+import { fail, type Match, MatchKind, ok } from "../../match.ts";
+import type { Scope } from "../scope.ts";
 import { match } from "../match.ts";
-import { ThenPattern } from "./pattern.ts";
+import type { ThenPattern } from "./pattern.ts";
 
 export function then(pattern: ThenPattern, scope: Scope): Match {
   const { patterns } = pattern;

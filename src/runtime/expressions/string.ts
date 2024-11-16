@@ -1,4 +1,4 @@
-import { StringExpression } from "./mod.ts";
+import type { StringExpression } from "./mod.ts";
 
 export function string(
   expression: StringExpression,

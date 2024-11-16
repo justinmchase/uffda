@@ -1,5 +1,5 @@
-import { MatchOk } from "../../match.ts";
-import { SpecialReferenceExpression } from "./expression.ts";
+import type { MatchOk } from "../../match.ts";
+import type { SpecialReferenceExpression } from "./expression.ts";
 
 export function special(
   expression: SpecialReferenceExpression,

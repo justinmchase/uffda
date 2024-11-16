@@ -1,14 +1,14 @@
 import {
   error,
   fail,
-  Match,
+  type Match,
   MatchErrorCode,
   MatchKind,
   ok,
 } from "../../match.ts";
-import { Scope } from "../scope.ts";
+import type { Scope } from "../scope.ts";
 import { match } from "../match.ts";
-import { VariablePattern } from "./pattern.ts";
+import type { VariablePattern } from "./pattern.ts";
 
 export function variable(pattern: VariablePattern, scope: Scope): Match {
   const { name } = pattern;

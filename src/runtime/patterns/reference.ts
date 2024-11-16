@@ -1,15 +1,15 @@
-import { Scope } from "../scope.ts";
+import type { Scope } from "../scope.ts";
 import {
   error,
   fail,
-  Match,
+  type Match,
   MatchErrorCode,
   MatchKind,
   ok,
 } from "../../match.ts";
-import { ReferencePattern } from "./pattern.ts";
+import type { ReferencePattern } from "./pattern.ts";
 import { rule } from "../rule.ts";
-import { Rule } from "../modules/rule.ts";
+import type { Rule } from "../modules/rule.ts";
 
 export function reference(pattern: ReferencePattern, scope: Scope): Match {
   const ref = scope.getRule(pattern.name);

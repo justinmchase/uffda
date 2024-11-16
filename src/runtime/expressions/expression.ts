@@ -1,6 +1,6 @@
-import { Serializable } from "serializable/mod.ts";
-import { Pattern } from "../patterns/pattern.ts";
 import { ExpressionKind } from "./expression.kind.ts";
+import type { Pattern } from "../patterns/pattern.ts";
+import type { Serializable } from "@justinmchase/serializable";
 import type { Special } from "../modules/mod.ts";
 
 export type ProjectionFunction = (

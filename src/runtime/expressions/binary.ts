@@ -1,6 +1,7 @@
-import { MatchOk } from "../../match.ts";
 import { exec } from "../exec.ts";
-import { BinaryExpression, BinaryOperation } from "./expression.ts";
+import { BinaryOperation } from "./expression.ts";
+import type { BinaryExpression } from "./expression.ts";
+import type { MatchOk } from "../../match.ts";
 
 export function binary(
   expression: BinaryExpression,

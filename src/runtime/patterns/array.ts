@@ -1,8 +1,8 @@
 import { error, fail, MatchErrorCode, MatchKind, ok } from "../../match.ts";
-import { Scope } from "../scope.ts";
+import type { Scope } from "../scope.ts";
 import { Input } from "../../input.ts";
 import { match } from "../match.ts";
-import { ArrayPattern } from "./pattern.ts";
+import type { ArrayPattern } from "./pattern.ts";
 
 // deno-lint-ignore no-explicit-any
 function isIterable(value: any): value is Iterable<unknown> {

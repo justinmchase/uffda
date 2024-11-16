@@ -1,9 +1,9 @@
-import { MatchOk } from "../match.ts";
+import type { MatchOk } from "../match.ts";
 import {
   array,
   binary,
   boolean,
-  Expression,
+  type Expression,
   ExpressionKind,
   invocation,
   lambda,

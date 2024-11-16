@@ -1,11 +1,11 @@
-import { ToJson } from "serializable/mod.ts";
-import { Comparable } from "../../comparable.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { MatchErrorCode } from "../../match.ts";
 import { Path } from "../../mod.ts";
+import type { ToJson } from "@justinmchase/serializable";
+import type { Comparable } from "../../comparable.ts";
 
 class Test implements ToJson {
   constructor(public readonly value: number) {}

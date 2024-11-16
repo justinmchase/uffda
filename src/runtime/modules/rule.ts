@@ -1,6 +1,6 @@
-import { Expression } from "../expressions/expression.ts";
-import { Pattern } from "../patterns/mod.ts";
-import { Module } from "./module.ts";
+import type { Expression } from "../expressions/expression.ts";
+import type { Pattern } from "../patterns/mod.ts";
+import type { Module } from "./module.ts";
 
 export type Rule = {
   name: string;

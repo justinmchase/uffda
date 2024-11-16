@@ -1,7 +1,7 @@
 import {
   ExportDeclarationKind,
   ImportDeclarationKind,
-  ModuleDeclaration,
+  type ModuleDeclaration,
 } from "../../runtime/declarations/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 import { PatternKind, ValueType } from "../../runtime/patterns/mod.ts";

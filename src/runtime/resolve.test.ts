@@ -1,4 +1,4 @@
-import { assertEquals } from "std/assert/mod.ts";
+import { assertEquals } from "@std/assert";
 import { Resolver } from "./resolve.ts";
 
 const readPermissions = await Deno.permissions.query({ name: "read" });

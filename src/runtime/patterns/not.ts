@@ -1,7 +1,7 @@
-import { fail, Match, MatchKind, ok } from "../../match.ts";
-import { Scope } from "../scope.ts";
+import { fail, type Match, MatchKind, ok } from "../../match.ts";
+import type { Scope } from "../scope.ts";
 import { match } from "../match.ts";
-import { NotPattern } from "./pattern.ts";
+import type { NotPattern } from "./pattern.ts";
 
 export function not(pattern: NotPattern, scope: Scope): Match {
   const m = match(pattern.pattern, scope);

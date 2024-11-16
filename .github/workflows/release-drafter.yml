@@ -1,0 +1,75 @@
+name: Release Drafter
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  draft-release:
+    name: Draft Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      resolved_version: ${{ steps.release.outputs.resolved_version }}
+    steps:
+      - id: release
+        uses: release-drafter/release-drafter@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-version:
+    needs: draft-release
+    name: Update Version
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ vars.AUTOMATION_APP_ID }}
+          private-key: ${{ secrets.AUTOMATION_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - uses: optum/semver-cli/setup@main
+        with:
+          version: 0.9.7
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Set Version
+        run: |
+          semver set ${{ needs.draft-release.outputs.resolved_version }}
+          if [ -z $(git status --porcelain) ];
+          then
+              echo "no changes to commit."
+              exit 0
+          fi
+
+          cat >> $GITHUB_STEP_SUMMARY<<EOF
+          # Version
+          \`\`\`
+          ${{ needs.draft-release.outputs.resolved_version }}
+          \`\`\`
+          EOF
+
+          git config user.name  bustin-base[bot]
+          git config user.email 177288331+bustin-base[bot]@users.noreply.github.com
+          gh auth setup-git
+
+          git add .
+          git commit -m '${{ needs.draft-release.outputs.resolved_version }}[no ci]'
+          git push origin main
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}

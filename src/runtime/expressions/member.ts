@@ -1,6 +1,6 @@
-import { MatchOk } from "../../match.ts";
+import type { MatchOk } from "../../match.ts";
 import { exec } from "../exec.ts";
-import { MemberExpression } from "./expression.ts";
+import type { MemberExpression } from "./expression.ts";
 
 export function member(
   expression: MemberExpression,

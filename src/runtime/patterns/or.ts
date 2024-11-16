@@ -1,7 +1,7 @@
-import { fail, Match, MatchKind, ok } from "../../match.ts";
-import { Scope } from "../scope.ts";
+import { fail, type Match, MatchKind, ok } from "../../match.ts";
+import type { Scope } from "../scope.ts";
 import { match } from "../match.ts";
-import { OrPattern } from "./pattern.ts";
+import type { OrPattern } from "./pattern.ts";
 
 export function or(pattern: OrPattern, scope: Scope) {
   const { patterns } = pattern;

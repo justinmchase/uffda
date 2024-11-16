@@ -1,6 +1,6 @@
-import { ExportDeclarationKind } from "../declarations/mod.ts";
-import { ModuleDeclaration } from "../declarations/module.ts";
 import { PatternKind } from "../patterns/pattern.kind.ts";
+import { ExportDeclarationKind } from "../declarations/export.ts";
+import type { ModuleDeclaration } from "../declarations/module.ts";
 
 export default {
   imports: [],

@@ -1,27 +1,26 @@
-import { assert, assertThrows, equal } from "std/assert/mod.ts";
+import { assert, assertThrows, equal } from "@std/assert";
 import { Scope } from "./runtime/scope.ts";
-import {
+import { match } from "./runtime/match.ts";
+import { exec } from "./runtime/exec.ts";
+import { Input } from "./input.ts";
+import { ok, Resolver } from "./mod.ts";
+import { run } from "./runtime/patterns/mod.ts";
+import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
+import { ExportDeclarationKind } from "./runtime/declarations/mod.ts";
+import { MatchKind } from "./match.ts";
+import type {
   MatchError,
   MatchErrorCode,
   MatchFail,
-  MatchKind,
   MatchLR,
   MatchOk,
 } from "./match.ts";
-import { match } from "./runtime/match.ts";
-import { exec } from "./runtime/exec.ts";
-import { Pattern } from "./runtime/patterns/pattern.ts";
-import { Expression } from "./runtime/expressions/expression.ts";
-import { ModuleDeclaration } from "./runtime/declarations/module.ts";
-import { Input } from "./input.ts";
-import { Match, ok, Resolver } from "./mod.ts";
-import { Path } from "./path.ts";
-import { run } from "./runtime/patterns/mod.ts";
-import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
-import {
-  ExportDeclarationKind,
-  RuleDeclaration,
-} from "./runtime/declarations/mod.ts";
+import type { Pattern } from "./runtime/patterns/pattern.ts";
+import type { Expression } from "./runtime/expressions/expression.ts";
+import type { ModuleDeclaration } from "./runtime/declarations/module.ts";
+import type { Match } from "./mod.ts";
+import type { Path } from "./path.ts";
+import type { RuleDeclaration } from "./runtime/declarations/mod.ts";
 
 type ExpressionTestOptions = {
   scope?: Scope;

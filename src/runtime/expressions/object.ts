@@ -1,7 +1,7 @@
-import { MatchOk } from "../../match.ts";
+import type { MatchOk } from "../../match.ts";
 import { exec } from "../exec.ts";
 import { ExpressionKind } from "./expression.kind.ts";
-import { ObjectExpression, ObjectInitializer } from "./expression.ts";
+import type { ObjectExpression, ObjectInitializer } from "./expression.ts";
 
 export function object(
   expression: ObjectExpression,

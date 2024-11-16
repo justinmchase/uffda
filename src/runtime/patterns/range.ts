@@ -1,7 +1,8 @@
-import { Comparable } from "../../comparable.ts";
-import { error, fail, Match, MatchErrorCode, ok } from "../../match.ts";
-import { Scope } from "../scope.ts";
-import { RangePattern } from "./pattern.ts";
+import { error, fail, MatchErrorCode, ok } from "../../match.ts";
+import type { Match } from "../../match.ts";
+import type { Comparable } from "../../comparable.ts";
+import type { Scope } from "../scope.ts";
+import type { RangePattern } from "./pattern.ts";
 
 export function range(pattern: RangePattern, scope: Scope): Match {
   const { left, right } = pattern;

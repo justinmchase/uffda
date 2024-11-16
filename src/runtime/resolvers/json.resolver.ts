@@ -1,5 +1,5 @@
-import { ModuleDeclaration } from "../declarations/module.ts";
-import { IModuleResolver } from "./resolver.ts";
+import type { ModuleDeclaration } from "../declarations/module.ts";
+import type { IModuleResolver } from "./resolver.ts";
 
 export class JsonResolver implements IModuleResolver {
   public readonly extension = ".json";

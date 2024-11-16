@@ -1,7 +1,7 @@
 import { PatternKind } from "./pattern.kind.ts";
-import { Special } from "../modules/special.ts";
-import { Serializable } from "serializable/mod.ts";
-import { Comparable } from "../../comparable.ts";
+import type { Serializable } from "@justinmchase/serializable";
+import type { Special } from "../modules/special.ts";
+import type { Comparable } from "../../comparable.ts";
 
 export type Pattern =
   | AnyPattern

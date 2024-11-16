@@ -1,5 +1,5 @@
-import { Module } from "./module.ts";
-import { Rule } from "./rule.ts";
+import type { Module } from "./module.ts";
+import type { Rule } from "./rule.ts";
 
 export enum SpecialKind {
   Module = "module",

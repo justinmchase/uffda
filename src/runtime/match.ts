@@ -1,5 +1,5 @@
-import { Scope } from "./scope.ts";
-import { fail, Match } from "../match.ts";
+import type { Scope } from "./scope.ts";
+import { fail, type Match } from "../match.ts";
 import {
   and,
   any,
@@ -14,7 +14,7 @@ import {
   object,
   ok,
   or,
-  Pattern,
+  type Pattern,
   PatternKind,
   pipeline,
   range,
