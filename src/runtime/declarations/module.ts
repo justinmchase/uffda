@@ -1,6 +1,6 @@
-import { ImportDeclaration } from "./import.ts";
-import { ExportDeclaration } from "./export.ts";
-import { RuleDeclaration } from "./rule.ts";
+import type { ImportDeclaration } from "./import.ts";
+import type { ExportDeclaration } from "./export.ts";
+import type { RuleDeclaration } from "./rule.ts";
 
 export type ModuleDeclaration = {
   imports: ImportDeclaration[];

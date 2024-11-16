@@ -1,14 +1,8 @@
-import {
-  error,
-  fail,
-  Match,
-  MatchErrorCode,
-  MatchKind,
-  ok,
-} from "../../match.ts";
-import { Scope } from "../scope.ts";
+import { error, fail, MatchErrorCode, MatchKind, ok } from "../../match.ts";
 import { match } from "../match.ts";
-import { SlicePattern } from "./pattern.ts";
+import type { Match } from "../../match.ts";
+import type { Scope } from "../scope.ts";
+import type { SlicePattern } from "./pattern.ts";
 
 export function slice(pattern: SlicePattern, scope: Scope) {
   const { min, max } = pattern;

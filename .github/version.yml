@@ -1,0 +1,5 @@
+on:
+  post:
+    - kind: regexp
+      file: deno.jsonc
+      pattern: '(?<="version": ").*(?=",)'

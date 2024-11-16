@@ -1,6 +1,6 @@
-import { fail, Match, ok } from "../../match.ts";
-import { Scope } from "../scope.ts";
-import { EndPattern } from "./pattern.ts";
+import { fail, type Match, ok } from "../../match.ts";
+import type { Scope } from "../scope.ts";
+import type { EndPattern } from "./pattern.ts";
 
 export function end(pattern: EndPattern, scope: Scope): Match {
   if (scope.stream.done) {

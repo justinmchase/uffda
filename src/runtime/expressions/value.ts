@@ -1,4 +1,4 @@
-import { ValueExpression } from "./expression.ts";
+import type { ValueExpression } from "./expression.ts";
 
 export function value(
   expression: ValueExpression,

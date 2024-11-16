@@ -1,5 +1,5 @@
 import { ImportDeclarationKind } from "../declarations/mod.ts";
-import { ModuleDeclaration } from "../declarations/module.ts";
+import type { ModuleDeclaration } from "../declarations/module.ts";
 import test0 from "./test0.module.ts";
 
 export default {

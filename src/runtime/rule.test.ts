@@ -1,4 +1,4 @@
-import { assertEquals, assertStrictEquals } from "std/assert/mod.ts";
+import { assertEquals, assertStrictEquals } from "@std/assert";
 import { moduleDeclarationTest } from "../test.ts";
 import { ExpressionKind } from "./expressions/expression.kind.ts";
 import { PatternKind } from "./patterns/pattern.kind.ts";

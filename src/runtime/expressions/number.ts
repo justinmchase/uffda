@@ -1,4 +1,4 @@
-import { NumberExpression } from "./expression.ts";
+import type { NumberExpression } from "./expression.ts";
 
 export function number(
   expression: NumberExpression,

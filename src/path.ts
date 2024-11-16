@@ -1,22 +1,22 @@
 type Segment = number | string;
 
 export class Path {
-  public static readonly Default = () => new Path(0);
-  public static readonly From = (...segments: Segment[]) =>
+  public static readonly Default = (): Path => new Path(0);
+  public static readonly From = (...segments: Segment[]): Path =>
     new Path(...segments);
   public readonly segments: Segment[];
   constructor(...segments: Segment[]) {
     this.segments = segments.map(Path.getValidSegment);
   }
-  public set(segment: Segment) {
+  public set(segment: Segment): Path {
     return new Path(...this.segments.slice(0, -1), segment);
   }
 
-  public push(segment: Segment) {
+  public push(segment: Segment): Path {
     return new Path(...this.segments, segment);
   }
 
-  public pop() {
+  public pop(): Path {
     return new Path(...this.segments.slice(0, -1));
   }
 
@@ -65,7 +65,7 @@ export class Path {
     return 0;
   }
 
-  public toString() {
+  public toString(): string {
     return this.segments
       .map((s) => typeof s === "string" ? `"${s}"` : `[${s}]`)
       .join(".");

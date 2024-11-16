@@ -3,8 +3,9 @@ import { MatchKind } from "../../match.ts";
 import { MatchErrorCode } from "../../mod.ts";
 import { Path } from "../../path.ts";
 import { patternTest } from "../../test.ts";
-import { Module, Rule, SpecialKind } from "../modules/mod.ts";
 import { PatternKind } from "./pattern.kind.ts";
+import { SpecialKind } from "../modules/mod.ts";
+import type { Module, Rule } from "../modules/mod.ts";
 
 const mod0: Module = {
   moduleUrl: new URL("file:///t0.ts"),

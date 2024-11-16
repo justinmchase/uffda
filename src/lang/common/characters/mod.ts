@@ -1,8 +1,6 @@
 import { ExportDeclarationKind } from "../../../runtime/declarations/export.ts";
-import {
-  ImportDeclarationKind,
-  ModuleDeclaration,
-} from "../../../runtime/declarations/mod.ts";
+import { ImportDeclarationKind } from "../../../runtime/declarations/mod.ts";
+import type { ModuleDeclaration } from "../../../runtime/declarations/mod.ts";
 
 export const Characters: ModuleDeclaration = {
   imports: [

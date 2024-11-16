@@ -1,6 +1,6 @@
-import { MatchOk } from "../../match.ts";
+import type { MatchOk } from "../../match.ts";
 import { exec } from "../exec.ts";
-import { InvocationExpression } from "./expression.ts";
+import type { InvocationExpression } from "./expression.ts";
 
 export function invocation(
   expression: InvocationExpression,

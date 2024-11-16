@@ -6,29 +6,18 @@ on:
 jobs:
   check:
     name: Checks
-    runs-on: [ubuntu-latest]
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Lcov
         run: sudo apt install lcov -y
 
       - name: Setup Deno
-        uses: denoland/setup-deno@v1
+        uses: denoland/setup-deno@v2
         with:
-          deno-version: v1.x
-
-      - name: Setup Cache
-        uses: actions/cache@v2
-        with:
-          key: ${{ runner.os }}-deno-${{ hashFiles('deps/*') }}
-          restore-keys: ${{ runner.os }}-deno-
-          path: |
-            /home/runner/.deno
-
-      - name: Cache
-        run: deno cache mod.ts
+          deno-version: v2.x
 
       - name: Lint
         continue-on-error: true
@@ -41,6 +30,9 @@ jobs:
       - name: Type Check
         continue-on-error: true
         run: deno check mod.ts
+
+      - name: Jsr
+        run: npx jsr publish --dry-run
 
       - name: Test
         # Allow read is required to run resolve tests

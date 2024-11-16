@@ -1,7 +1,7 @@
-import { Match, MatchKind } from "../../match.ts";
+import { type Match, MatchKind } from "../../match.ts";
 import { spanFrom } from "../../span.ts";
-import { Scope } from "../scope.ts";
-import { FailPattern } from "./pattern.ts";
+import type { Scope } from "../scope.ts";
+import type { FailPattern } from "./pattern.ts";
 
 export function fail(pattern: FailPattern, scope: Scope): Match {
   return {

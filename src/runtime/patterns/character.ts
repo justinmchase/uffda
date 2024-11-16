@@ -1,6 +1,8 @@
-import { error, fail, Match, MatchErrorCode, ok } from "../../match.ts";
-import { Scope } from "../scope.ts";
-import { CharacterClass, CharacterPattern } from "./pattern.ts";
+import { error, fail, MatchErrorCode, ok } from "../../match.ts";
+import { CharacterClass } from "./pattern.ts";
+import type { Match } from "../../match.ts";
+import type { CharacterPattern } from "./pattern.ts";
+import type { Scope } from "../scope.ts";
 
 export function character(pattern: CharacterPattern, scope: Scope): Match {
   const { characterClass } = pattern;

@@ -1,6 +1,6 @@
-import { fail, Match, ok } from "../../match.ts";
-import { Scope } from "../scope.ts";
-import { TypePattern } from "./pattern.ts";
+import { fail, type Match, ok } from "../../match.ts";
+import type { Scope } from "../scope.ts";
+import type { TypePattern } from "./pattern.ts";
 
 export function type(pattern: TypePattern, scope: Scope): Match {
   const { type: expectedType } = pattern;

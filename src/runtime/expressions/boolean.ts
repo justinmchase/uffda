@@ -1,4 +1,4 @@
-import { BooleanExpression } from "./expression.ts";
+import type { BooleanExpression } from "./expression.ts";
 
 export function boolean(
   expression: BooleanExpression,

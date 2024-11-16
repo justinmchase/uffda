@@ -1,6 +1,6 @@
-import { fail, Match, ok } from "../../match.ts";
-import { Scope } from "../scope.ts";
-import { AnyPattern } from "./pattern.ts";
+import { fail, type Match, ok } from "../../match.ts";
+import type { Scope } from "../scope.ts";
+import type { AnyPattern } from "./pattern.ts";
 
 export function any(pattern: AnyPattern, scope: Scope): Match {
   if (scope.stream.done) {

@@ -1,4 +1,4 @@
-import { assertEquals, assertStrictEquals } from "std/testing/asserts.ts";
+import { assertEquals, assertStrictEquals } from "@std/assert";
 import { Path } from "./path.ts";
 
 const pathComparisons = [

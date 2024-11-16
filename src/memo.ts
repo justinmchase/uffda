@@ -1,8 +1,9 @@
-import { Path } from "./path.ts";
-import { Match } from "./match.ts";
-import { Rule } from "./runtime/modules/mod.ts";
+import type { Path } from "./path.ts";
+import type { Match } from "./match.ts";
+import type { Rule } from "./runtime/modules/mod.ts";
 
 export type Memo = { match: Match };
+
 export class Memos {
   private readonly memos = new Map<Path, Map<Rule, Memo>>();
 
@@ -10,7 +11,7 @@ export class Memos {
     return this.memos.get(path)?.get(rule);
   }
 
-  public set(path: Path, rule: Rule, match: Match) {
+  public set(path: Path, rule: Rule, match: Match): Memo {
     const memo = { match };
     if (this.memos.has(path)) {
       this.memos.get(path)?.set(rule, memo);

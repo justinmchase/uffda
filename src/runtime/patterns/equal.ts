@@ -1,6 +1,6 @@
-import { fail, Match, ok } from "../../match.ts";
-import { Scope } from "../scope.ts";
-import { EqualPattern } from "./pattern.ts";
+import { fail, type Match, ok } from "../../match.ts";
+import type { Scope } from "../scope.ts";
+import type { EqualPattern } from "./pattern.ts";
 
 export function equal(pattern: EqualPattern, scope: Scope): Match {
   const { value } = pattern;

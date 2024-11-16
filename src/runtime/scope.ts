@@ -1,10 +1,15 @@
-import { Pattern } from "./patterns/mod.ts";
+import type { Pattern } from "./patterns/mod.ts";
 import { Input } from "../input.ts";
 import { Memos } from "../memo.ts";
-import { DefaultModule, Module, Rule, Special } from "./modules/mod.ts";
+import {
+  DefaultModule,
+  type Module,
+  type Rule,
+  type Special,
+} from "./modules/mod.ts";
 import { Resolver } from "./resolve.ts";
 import { globals } from "./runtime.ts";
-import { StackFrame } from "./stack/frame.ts";
+import type { StackFrame } from "./stack/frame.ts";
 import { StackFrameKind } from "./stack/stackFrameKind.ts";
 
 export type ScopeOptions = {
@@ -22,10 +27,10 @@ export const DefaultOptions: () => ScopeOptions = () => ({
 });
 
 export class Scope {
-  public static readonly Default = () => new Scope();
+  public static readonly Default = (): Scope => new Scope();
   public static readonly From = (
     input: Input | Iterable<unknown> | Iterator<unknown>,
-  ) =>
+  ): Scope =>
     Scope.Default().withInput(
       input instanceof Input ? input : Input.From(input),
     );
@@ -47,11 +52,11 @@ export class Scope {
     };
   }
 
-  public get depth() {
+  public get depth(): number {
     return this.stack.length;
   }
 
-  public getSpecial(name: string) {
+  public getSpecial(name: string): Special | undefined {
     return this.options.specials?.get(name);
   }
 
@@ -67,7 +72,7 @@ export class Scope {
     return this.module.imports.get(name);
   }
 
-  public withInput(input: Input) {
+  public withInput(input: Input): Scope {
     return new Scope(
       this.module,
       this.parent,
@@ -82,7 +87,7 @@ export class Scope {
 
   public addVariables(
     variables: Record<string, unknown> | Map<string, unknown>,
-  ) {
+  ): Scope {
     if (!(variables instanceof Map)) {
       variables = new Map(Object.entries(variables));
     }
@@ -98,7 +103,7 @@ export class Scope {
     );
   }
 
-  public pushRule(rule: Rule, args: Map<string, Rule>) {
+  public pushRule(rule: Rule, args: Map<string, Rule>): Scope {
     return new Scope(
       this.module,
       this.parent,
@@ -111,7 +116,7 @@ export class Scope {
     );
   }
 
-  public pushPipeline(pipeline: Pattern) {
+  public pushPipeline(pipeline: Pattern): Scope {
     return new Scope(
       this.module,
       this.parent,
@@ -124,7 +129,7 @@ export class Scope {
     );
   }
 
-  public pushModule(module: Module) {
+  public pushModule(module: Module): Scope {
     if (this.module === module) {
       return this;
     }
@@ -146,7 +151,7 @@ export class Scope {
   /// The scope should be the original scope from before the rule was pushed.
   /// The entire original scope is returned, except for the stream and memos.
   /// </summary>
-  public pop(scope: Scope) {
+  public pop(scope: Scope): Scope {
     return new Scope(
       scope.module,
       scope.parent,
@@ -159,7 +164,7 @@ export class Scope {
     );
   }
 
-  public withOptions(options: Partial<ScopeOptions>) {
+  public withOptions(options: Partial<ScopeOptions>): Scope {
     return new Scope(
       this.module,
       this.parent,

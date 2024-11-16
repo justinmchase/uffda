@@ -1,11 +1,11 @@
-import { extname } from "std/path/mod.ts";
+import { extname } from "@std/path";
 import {
   ExportDeclarationKind,
   ImportDeclarationKind,
-  ModuleDeclaration,
+  type ModuleDeclaration,
 } from "./declarations/mod.ts";
-import { Module } from "./modules/mod.ts";
-import { IModuleResolvers } from "./resolvers/resolver.ts";
+import type { Module } from "./modules/mod.ts";
+import type { IModuleResolvers } from "./resolvers/resolver.ts";
 import { ImportResolver, JsonResolver } from "./resolvers/mod.ts";
 
 export type ResolverOptions = {

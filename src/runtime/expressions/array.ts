@@ -1,7 +1,7 @@
-import { MatchOk } from "../../match.ts";
 import { exec } from "../exec.ts";
 import { ExpressionKind } from "./expression.kind.ts";
-import { ArrayExpression } from "./expression.ts";
+import type { MatchOk } from "../../match.ts";
+import type { ArrayExpression } from "./expression.ts";
 
 export function array(
   expression: ArrayExpression,

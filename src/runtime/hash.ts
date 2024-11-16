@@ -1,6 +1,6 @@
-import { crypto } from "std/crypto/mod.ts";
-import { encodeHex } from "std/encoding/hex.ts";
-import type { Serializable } from "serializable/mod.ts";
+import { crypto } from "@std/crypto";
+import { encodeHex } from "@std/encoding/hex";
+import type { Serializable } from "@justinmchase/serializable";
 
 export async function hash(serializable: Serializable): Promise<string> {
   const inputString = JSON.stringify(serializable);

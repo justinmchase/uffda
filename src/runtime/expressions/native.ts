@@ -1,5 +1,5 @@
-import { MatchOk } from "../../match.ts";
-import { NativeExpression } from "./expression.ts";
+import type { MatchOk } from "../../match.ts";
+import type { NativeExpression } from "./expression.ts";
 
 export function native(expression: NativeExpression, match: MatchOk): unknown {
   const variables = {

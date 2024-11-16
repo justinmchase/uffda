@@ -1,17 +1,11 @@
-import { Scope } from "../scope.ts";
-import {
-  error,
-  fail,
-  Match,
-  MatchErrorCode,
-  MatchKind,
-  ok,
-} from "../../match.ts";
-import { SpecialPattern } from "./pattern.ts";
+import { error, fail, MatchErrorCode, MatchKind, ok } from "../../match.ts";
 import { run } from "./run.ts";
 import { rule } from "../rule.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { SpecialKind } from "../modules/special.ts";
+import type { Match } from "../../match.ts";
+import type { Scope } from "../scope.ts";
+import type { SpecialPattern } from "./pattern.ts";
 
 export function special(pattern: SpecialPattern, scope: Scope): Match {
   const { value } = pattern;

@@ -4,7 +4,7 @@ import { Path } from "../../path.ts";
 import {
   ExportDeclarationKind,
   ImportDeclarationKind,
-  ModuleDeclaration,
+  type ModuleDeclaration,
 } from "../../runtime/declarations/mod.ts";
 import { PatternKind } from "../../runtime/patterns/mod.ts";
 import { moduleDeclarationTest } from "../../test.ts";

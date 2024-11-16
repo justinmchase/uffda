@@ -1,9 +1,10 @@
-import { error, fail, Match, MatchKind, ok } from "../../match.ts";
-import { Scope } from "../scope.ts";
+import { error, fail, MatchKind, ok } from "../../match.ts";
 import { Input } from "../../input.ts";
 import { match } from "../match.ts";
-import { ObjectPattern, Pattern } from "./pattern.ts";
 import { MatchErrorCode } from "../../match.ts";
+import type { Match } from "../../match.ts";
+import type { Scope } from "../scope.ts";
+import type { ObjectPattern, Pattern } from "./pattern.ts";
 
 export function object(pattern: ObjectPattern, scope: Scope): Match {
   const { keys = {} } = pattern;

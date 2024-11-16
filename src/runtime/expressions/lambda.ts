@@ -1,8 +1,8 @@
-import { Match, MatchKind } from "../../match.ts";
+import { type Match, MatchKind } from "../../match.ts";
 import { Input } from "../../input.ts";
 import { exec } from "../exec.ts";
 import { match } from "../match.ts";
-import { LambdaExpression } from "./expression.ts";
+import type { LambdaExpression } from "./expression.ts";
 import { fail } from "../../mod.ts";
 
 export function lambda(

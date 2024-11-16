@@ -1,4 +1,4 @@
-import { Rule } from "./rule.ts";
+import type { Rule } from "./rule.ts";
 
 export type Module = {
   moduleUrl: URL;

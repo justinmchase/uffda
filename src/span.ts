@@ -1,5 +1,5 @@
-import { Path } from "./mod.ts";
-import { Scope } from "./runtime/scope.ts";
+import type { Path } from "./mod.ts";
+import type { Scope } from "./runtime/scope.ts";
 
 export type Span = {
   start: Path;

@@ -1,4 +1,4 @@
-import { Serializable } from "serializable/mod.ts";
+import type { Serializable } from "@justinmchase/serializable";
 
 export type Comparable =
   & Serializable

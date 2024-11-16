@@ -2,7 +2,7 @@ import {
   ExportDeclarationKind,
   ImportDeclarationKind,
 } from "../declarations/mod.ts";
-import { ModuleDeclaration } from "../declarations/module.ts";
+import type { ModuleDeclaration } from "../declarations/module.ts";
 
 export default {
   imports: [
