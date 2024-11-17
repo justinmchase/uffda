@@ -1,8 +1,8 @@
+import { Type } from "@justinmchase/type";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
-import { ValueType } from "./pattern.ts";
 
 await Deno.test("runtime/patterns/array", async (t) => {
   await t.step({
@@ -121,15 +121,15 @@ await Deno.test("runtime/patterns/array", async (t) => {
       pattern: {
         kind: PatternKind.And,
         patterns: [
-          { kind: PatternKind.Type, type: ValueType.String },
+          { kind: PatternKind.Type, type: Type.String },
           {
             kind: PatternKind.Into,
             pattern: {
               kind: PatternKind.Then,
               patterns: [
-                { kind: PatternKind.Type, type: ValueType.String },
-                { kind: PatternKind.Type, type: ValueType.String },
-                { kind: PatternKind.Type, type: ValueType.String },
+                { kind: PatternKind.Type, type: Type.String },
+                { kind: PatternKind.Type, type: Type.String },
+                { kind: PatternKind.Type, type: Type.String },
               ],
             },
           },
@@ -150,9 +150,9 @@ await Deno.test("runtime/patterns/array", async (t) => {
         pattern: {
           kind: PatternKind.Then,
           patterns: [
-            { kind: PatternKind.Type, type: ValueType.String },
-            { kind: PatternKind.Type, type: ValueType.String },
-            { kind: PatternKind.Type, type: ValueType.String },
+            { kind: PatternKind.Type, type: Type.String },
+            { kind: PatternKind.Type, type: Type.String },
+            { kind: PatternKind.Type, type: Type.String },
           ],
         },
       },

@@ -1,8 +1,8 @@
+import { Type } from "@justinmchase/type";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
-import { ValueType } from "./pattern.ts";
 
 Deno.test("runtime.patterns.slice", async (t) => {
   await t.step({
@@ -40,7 +40,7 @@ Deno.test("runtime.patterns.slice", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Slice,
-        pattern: { kind: PatternKind.Type, type: ValueType.String },
+        pattern: { kind: PatternKind.Type, type: Type.String },
       },
       input: Input.From("a"),
       value: ["a"],
@@ -53,7 +53,7 @@ Deno.test("runtime.patterns.slice", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Slice,
-        pattern: { kind: PatternKind.Type, type: ValueType.String },
+        pattern: { kind: PatternKind.Type, type: Type.String },
       },
       input: Input.From("abc"),
       value: ["a", "b", "c"],
@@ -136,7 +136,7 @@ Deno.test("runtime.patterns.slice", async (t) => {
         kind: PatternKind.Slice,
         pattern: {
           kind: PatternKind.Type,
-          type: ValueType.String,
+          type: Type.String,
         },
         min: 1,
       },
@@ -152,7 +152,7 @@ Deno.test("runtime.patterns.slice", async (t) => {
         kind: PatternKind.Slice,
         pattern: {
           kind: PatternKind.Type,
-          type: ValueType.String,
+          type: Type.String,
         },
         min: 3,
       },
@@ -168,7 +168,7 @@ Deno.test("runtime.patterns.slice", async (t) => {
         kind: PatternKind.Slice,
         pattern: {
           kind: PatternKind.Type,
-          type: ValueType.String,
+          type: Type.String,
         },
         min: 3,
         max: 3,
@@ -185,7 +185,7 @@ Deno.test("runtime.patterns.slice", async (t) => {
         kind: PatternKind.Slice,
         pattern: {
           kind: PatternKind.Type,
-          type: ValueType.String,
+          type: Type.String,
         },
         min: 3,
         max: 3,
@@ -201,7 +201,7 @@ Deno.test("runtime.patterns.slice", async (t) => {
         kind: PatternKind.Slice,
         pattern: {
           kind: PatternKind.Type,
-          type: ValueType.String,
+          type: Type.String,
         },
         min: 3,
         max: 3,
