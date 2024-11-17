@@ -67,7 +67,7 @@ Deno.test({
     });
 
     await t.step({
-      name: "TOKENIZER04",
+      name: "TOKENIZER05",
       fn: moduleDeclarationTest({
         moduleUrl,
         input: Input.From("!@#$%^&*()_+-=[]\\{}|;':\",./<>?"),
@@ -108,7 +108,7 @@ Deno.test({
     });
 
     await t.step({
-      name: "TOKENIZER04",
+      name: "TOKENIZER06",
       fn: moduleDeclarationTest({
         moduleUrl,
         input: Input.From("abc   123\t\t\txyz\r\n\n\n456"),
@@ -124,6 +124,22 @@ Deno.test({
           "\n",
           "\n",
           "456",
+        ],
+        kind: MatchKind.Ok,
+      }),
+    });
+
+    await t.step({
+      name: "TOKENIZER07",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.From("1.2.3"),
+        value: [
+          "1",
+          ".",
+          "2",
+          ".",
+          "3",
         ],
         kind: MatchKind.Ok,
       }),

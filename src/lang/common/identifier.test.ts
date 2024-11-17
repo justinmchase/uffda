@@ -106,5 +106,14 @@ Deno.test(
         value: "abc⁠xyz",
       }),
     });
+
+    await t.step({
+      name: "IDENTIFIER09",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.From("1abc"),
+        kind: MatchKind.Fail,
+      }),
+    });
   },
 );

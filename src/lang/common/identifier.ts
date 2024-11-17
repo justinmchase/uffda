@@ -4,7 +4,6 @@ import {
   type ModuleDeclaration,
 } from "../../runtime/declarations/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
-import { CharacterClass } from "../../runtime/patterns/mod.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { Connecting } from "./characters/connecting.ts";
 import { Combining } from "./characters/combining.ts";
@@ -160,14 +159,14 @@ export const Identifier: ModuleDeclaration = {
         ],
       },
     },
-    {
-      name: "DecimalDigitCharacter",
-      parameters: [],
-      pattern: {
-        kind: PatternKind.Character,
-        characterClass: CharacterClass.DecimalDigitNumber,
-      },
-    },
+    // {
+    //   name: "DecimalDigitCharacter",
+    //   parameters: [],
+    //   pattern: {
+    //     kind: PatternKind.Character,
+    //     characterClass: CharacterClass.DecimalDigitNumber,
+    //   },
+    // },
   ],
 };
 

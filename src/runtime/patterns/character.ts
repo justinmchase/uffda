@@ -32,11 +32,11 @@ export function character(pattern: CharacterPattern, scope: Scope): Match {
 function characterClassToRegexp(characterClass: CharacterClass) {
   switch (characterClass) {
     case CharacterClass.Any:
-      return /\p{Any}/u;
+      return /^\p{Any}$/u;
     case CharacterClass.Assigned:
-      return /\p{Assigned}/u;
+      return /^\p{Assigned}$/u;
     case CharacterClass.Ascii:
-      return /\p{ASCII}/u;
+      return /^\p{ASCII}$/u;
     case CharacterClass.Letter:
     case CharacterClass.UppercaseLetter:
     case CharacterClass.LowercaseLetter:
@@ -74,7 +74,7 @@ function characterClassToRegexp(characterClass: CharacterClass) {
     case CharacterClass.Surrogate:
     case CharacterClass.PrivateUse:
     case CharacterClass.Unassigned:
-      return new RegExp(`\\p{${characterClass}}`, "u");
+      return new RegExp(`^\\p{${characterClass}}$`, "u");
     default:
       // todo: throw a better error
       throw new Error(`unknown character class ${characterClass}`);
