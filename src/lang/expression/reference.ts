@@ -34,7 +34,7 @@ export const Reference: ModuleDeclaration = {
             type: ValueType.String,
           },
           {
-            kind: PatternKind.Array,
+            kind: PatternKind.Into,
             pattern: {
               kind: PatternKind.Reference,
               name: "Identifier",

@@ -1,6 +1,6 @@
 export * from "./and.ts";
 export * from "./any.ts";
-export * from "./array.ts";
+export * from "./into.ts";
 export * from "./character.ts";
 export * from "./end.ts";
 export * from "./equal.ts";

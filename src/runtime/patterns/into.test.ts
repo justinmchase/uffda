@@ -9,7 +9,7 @@ await Deno.test("runtime/patterns/array", async (t) => {
     name: "ARRAY00",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Array,
+        kind: PatternKind.Into,
         pattern: {
           kind: PatternKind.Not,
           pattern: { kind: PatternKind.Any },
@@ -24,7 +24,7 @@ await Deno.test("runtime/patterns/array", async (t) => {
     name: "ARRAY01",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Array,
+        kind: PatternKind.Into,
         pattern: { kind: PatternKind.Any },
       },
       input: Input.From([["a"]]),
@@ -37,7 +37,7 @@ await Deno.test("runtime/patterns/array", async (t) => {
     name: "ARRAY02",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Array,
+        kind: PatternKind.Into,
         pattern: {
           kind: PatternKind.Then,
           patterns: [
@@ -56,7 +56,7 @@ await Deno.test("runtime/patterns/array", async (t) => {
     name: "ARRAY03",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Array,
+        kind: PatternKind.Into,
         pattern: {
           kind: PatternKind.Slice,
           pattern: { kind: PatternKind.Any },
@@ -72,7 +72,7 @@ await Deno.test("runtime/patterns/array", async (t) => {
     name: "ARRAY04",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Array,
+        kind: PatternKind.Into,
         pattern: { kind: PatternKind.Any },
       },
       input: Input.From([["a", "b"]]),
@@ -85,9 +85,9 @@ await Deno.test("runtime/patterns/array", async (t) => {
     name: "ARRAY05",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Array,
+        kind: PatternKind.Into,
         pattern: {
-          kind: PatternKind.Array,
+          kind: PatternKind.Into,
           pattern: { kind: PatternKind.Any },
         },
       },
@@ -101,7 +101,7 @@ await Deno.test("runtime/patterns/array", async (t) => {
     name: "ARRAY06",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Array,
+        kind: PatternKind.Into,
         pattern: {
           kind: PatternKind.Then,
           patterns: [
@@ -123,7 +123,7 @@ await Deno.test("runtime/patterns/array", async (t) => {
         patterns: [
           { kind: PatternKind.Type, type: ValueType.String },
           {
-            kind: PatternKind.Array,
+            kind: PatternKind.Into,
             pattern: {
               kind: PatternKind.Then,
               patterns: [
@@ -146,7 +146,7 @@ await Deno.test("runtime/patterns/array", async (t) => {
     name: "ARRAY09",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Array,
+        kind: PatternKind.Into,
         pattern: {
           kind: PatternKind.Then,
           patterns: [

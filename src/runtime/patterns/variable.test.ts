@@ -110,7 +110,7 @@ Deno.test("runtime.patterns.variable", async (t) => {
           kind: PatternKind.Object,
           keys: {
             X: {
-              kind: PatternKind.Array,
+              kind: PatternKind.Into,
               pattern: {
                 kind: PatternKind.Then,
                 patterns: [
@@ -124,7 +124,7 @@ Deno.test("runtime.patterns.variable", async (t) => {
               },
             },
             Y: {
-              kind: PatternKind.Array,
+              kind: PatternKind.Into,
               pattern: {
                 kind: PatternKind.Then,
                 patterns: [
