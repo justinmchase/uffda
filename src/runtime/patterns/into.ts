@@ -1,3 +1,4 @@
+import { type } from "@justinmchase/type";
 import { error, fail, MatchErrorCode, MatchKind, ok } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import { Input } from "../../input.ts";
@@ -19,12 +20,12 @@ export function into(pattern: IntoPattern, scope: Scope) {
 
   const next = scope.stream.next();
   if (!isIterable(next.value)) {
-    // const [t] = type(next.value); // todo: add type
+    const [t] = type(next.value);
     return error(
       scope,
       pattern,
       MatchErrorCode.IterableExpected,
-      "expected value to be iterable",
+      `expected value to be iterable but got type ${t}`,
     );
   }
 
