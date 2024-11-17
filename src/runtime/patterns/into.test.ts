@@ -3,13 +3,14 @@ import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
+import { MatchErrorCode, Path } from "../../mod.ts";
 
-await Deno.test("runtime/patterns/array", async (t) => {
+await Deno.test("runtime/patterns/into", async (t) => {
   await t.step({
-    name: "ARRAY00",
+    name: "INTO00",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Array,
+        kind: PatternKind.Into,
         pattern: {
           kind: PatternKind.Not,
           pattern: { kind: PatternKind.Any },
@@ -21,10 +22,10 @@ await Deno.test("runtime/patterns/array", async (t) => {
   });
 
   await t.step({
-    name: "ARRAY01",
+    name: "INTO01",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Array,
+        kind: PatternKind.Into,
         pattern: { kind: PatternKind.Any },
       },
       input: Input.From([["a"]]),
@@ -34,10 +35,10 @@ await Deno.test("runtime/patterns/array", async (t) => {
   });
 
   await t.step({
-    name: "ARRAY02",
+    name: "INTO02",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Array,
+        kind: PatternKind.Into,
         pattern: {
           kind: PatternKind.Then,
           patterns: [
@@ -53,10 +54,10 @@ await Deno.test("runtime/patterns/array", async (t) => {
   });
 
   await t.step({
-    name: "ARRAY03",
+    name: "INTO03",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Array,
+        kind: PatternKind.Into,
         pattern: {
           kind: PatternKind.Slice,
           pattern: { kind: PatternKind.Any },
@@ -69,10 +70,10 @@ await Deno.test("runtime/patterns/array", async (t) => {
   });
 
   await t.step({
-    name: "ARRAY04",
+    name: "INTO04",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Array,
+        kind: PatternKind.Into,
         pattern: { kind: PatternKind.Any },
       },
       input: Input.From([["a", "b"]]),
@@ -82,12 +83,12 @@ await Deno.test("runtime/patterns/array", async (t) => {
   });
 
   await t.step({
-    name: "ARRAY05",
+    name: "INTO05",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Array,
+        kind: PatternKind.Into,
         pattern: {
-          kind: PatternKind.Array,
+          kind: PatternKind.Into,
           pattern: { kind: PatternKind.Any },
         },
       },
@@ -98,10 +99,10 @@ await Deno.test("runtime/patterns/array", async (t) => {
   });
 
   await t.step({
-    name: "ARRAY06",
+    name: "INTO06",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Array,
+        kind: PatternKind.Into,
         pattern: {
           kind: PatternKind.Then,
           patterns: [
@@ -116,14 +117,14 @@ await Deno.test("runtime/patterns/array", async (t) => {
   });
 
   await t.step({
-    name: "ARRAY07",
+    name: "INTO07",
     fn: patternTest({
       pattern: {
         kind: PatternKind.And,
         patterns: [
           { kind: PatternKind.Type, type: Type.String },
           {
-            kind: PatternKind.Array,
+            kind: PatternKind.Into,
             pattern: {
               kind: PatternKind.Then,
               patterns: [
@@ -143,10 +144,10 @@ await Deno.test("runtime/patterns/array", async (t) => {
 
   // P = [string, string, string]
   await t.step({
-    name: "ARRAY09",
+    name: "INTO09",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Array,
+        kind: PatternKind.Into,
         pattern: {
           kind: PatternKind.Then,
           patterns: [
@@ -159,6 +160,24 @@ await Deno.test("runtime/patterns/array", async (t) => {
       input: Input.From([["a", "b", 3]]),
       kind: MatchKind.Fail,
       done: false,
+    }),
+  });
+
+  await t.step({
+    name: "INTO10",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Into,
+        pattern: {
+          kind: PatternKind.Any
+        },
+      },
+      input: Input.From([null]),
+      kind: MatchKind.Error,
+      message: "expected value to be iterable but got type null",
+      code: MatchErrorCode.IterableExpected,
+      start: Path.From(0),
+      end: Path.From(0),
     }),
   });
 });

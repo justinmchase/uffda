@@ -3,12 +3,12 @@ import { fail, type Match } from "../match.ts";
 import {
   and,
   any,
-  array,
   character,
   end,
   equal,
   fail as failp,
   includes,
+  into,
   maybe,
   not,
   object,
@@ -33,8 +33,8 @@ export function match(pattern: Pattern, scope: Scope): Match {
       return and(pattern, scope);
     case PatternKind.Any:
       return any(pattern, scope);
-    case PatternKind.Array:
-      return array(pattern, scope);
+    case PatternKind.Into:
+      return into(pattern, scope);
     case PatternKind.Character:
       return character(pattern, scope);
     case PatternKind.End:

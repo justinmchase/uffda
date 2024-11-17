@@ -7,7 +7,7 @@ import type { Type } from "@justinmchase/type";
 export type Pattern =
   | AnyPattern
   | AndPattern
-  | ArrayPattern
+  | IntoPattern
   | CharacterPattern
   | EndPattern
   | EqualPattern
@@ -87,10 +87,6 @@ export type AndPattern = {
   kind: PatternKind.And;
   patterns: Pattern[];
 };
-export type ArrayPattern = {
-  kind: PatternKind.Array;
-  pattern: Pattern;
-};
 export type CharacterPattern = {
   kind: PatternKind.Character;
   characterClass: CharacterClass;
@@ -108,6 +104,10 @@ export type FailPattern = {
 export type IncludesPattern = {
   kind: PatternKind.Includes;
   values: Serializable[];
+};
+export type IntoPattern = {
+  kind: PatternKind.Into;
+  pattern: Pattern;
 };
 export type MaybePattern = {
   kind: PatternKind.Maybe;

@@ -1,8 +1,9 @@
+import { type } from "@justinmchase/type";
 import { error, fail, MatchErrorCode, MatchKind, ok } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import { Input } from "../../input.ts";
 import { match } from "../match.ts";
-import type { ArrayPattern } from "./pattern.ts";
+import type { IntoPattern } from "./pattern.ts";
 
 // deno-lint-ignore no-explicit-any
 function isIterable(value: any): value is Iterable<unknown> {
@@ -12,26 +13,19 @@ function isIterable(value: any): value is Iterable<unknown> {
   return typeof value[Symbol.iterator] === "function";
 }
 
-export function array(pattern: ArrayPattern, scope: Scope) {
+export function into(pattern: IntoPattern, scope: Scope) {
   if (scope.stream.done) {
     return fail(scope, pattern);
   }
 
   const next = scope.stream.next();
-  if (next.value == null) {
-    return error(
-      scope,
-      pattern,
-      MatchErrorCode.NullValue,
-      "expected value to be non-null",
-    );
-  }
   if (!isIterable(next.value)) {
+    const [t] = type(next.value);
     return error(
       scope,
       pattern,
       MatchErrorCode.IterableExpected,
-      "expected value to be iterable",
+      `expected value to be iterable but got type ${t}`,
     );
   }
 

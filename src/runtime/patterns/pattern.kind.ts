@@ -1,12 +1,12 @@
 export enum PatternKind {
   And = "and",
   Any = "any",
-  Array = "array",
   Character = "character",
   End = "end",
   Equal = "equal",
   Fail = "fail",
   Includes = "includes",
+  Into = "into",
   Maybe = "maybe",
   Not = "not",
   Object = "object",
