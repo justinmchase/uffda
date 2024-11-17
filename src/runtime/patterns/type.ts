@@ -1,3 +1,4 @@
+import { type as typeCheck } from "@justinmchase/type";
 import { fail, type Match, ok } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import type { TypePattern } from "./pattern.ts";
@@ -9,7 +10,7 @@ export function type(pattern: TypePattern, scope: Scope): Match {
   }
 
   const end = scope.stream.next();
-  const actualType = typeof end.value;
+  const [actualType] = typeCheck(end.value);
   if (actualType === expectedType) {
     return ok(scope, scope.withInput(end), pattern, end.value);
   } else {

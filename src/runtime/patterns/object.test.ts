@@ -1,8 +1,8 @@
+import { Type } from "@justinmchase/type";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
-import { ValueType } from "./pattern.ts";
 
 await Deno.test("runtime/patterns/object", async (t) => {
   await t.step({
@@ -37,7 +37,7 @@ await Deno.test("runtime/patterns/object", async (t) => {
       pattern: {
         kind: PatternKind.Object,
         keys: {
-          x: { kind: PatternKind.Type, type: ValueType.String },
+          x: { kind: PatternKind.Type, type: Type.String },
         },
       },
       input: Input.From([{ x: "a" }]),
@@ -52,7 +52,7 @@ await Deno.test("runtime/patterns/object", async (t) => {
       pattern: {
         kind: PatternKind.Object,
         keys: {
-          x: { kind: PatternKind.Type, type: ValueType.String },
+          x: { kind: PatternKind.Type, type: Type.String },
         },
       },
       input: Input.From([{}]),
