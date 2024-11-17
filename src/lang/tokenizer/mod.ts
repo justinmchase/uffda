@@ -1,10 +1,11 @@
+import { Type } from "@justinmchase/type";
 import {
   ExportDeclarationKind,
   ImportDeclarationKind,
   type ModuleDeclaration,
 } from "../../runtime/declarations/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
-import { PatternKind, ValueType } from "../../runtime/patterns/mod.ts";
+import { PatternKind } from "../../runtime/patterns/mod.ts";
 
 export const Tokenizer: ModuleDeclaration = {
   imports: [
@@ -94,7 +95,7 @@ export const Tokenizer: ModuleDeclaration = {
       parameters: [],
       pattern: {
         kind: PatternKind.Type,
-        type: ValueType.String,
+        type: Type.String,
       },
     },
     {

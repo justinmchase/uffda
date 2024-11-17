@@ -1,10 +1,10 @@
+import { Type } from "@justinmchase/type";
 import { ExportDeclarationKind } from "../../runtime/declarations/export.ts";
 import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
 import type { ReferenceExpression } from "../../runtime/expressions/expression.ts";
-import { ValueType } from "../../runtime/patterns/pattern.ts";
 
 export const Reference: ModuleDeclaration = {
   imports: [
@@ -31,7 +31,7 @@ export const Reference: ModuleDeclaration = {
         patterns: [
           {
             kind: PatternKind.Type,
-            type: ValueType.String,
+            type: Type.String,
           },
           {
             kind: PatternKind.Array,

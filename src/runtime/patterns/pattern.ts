@@ -2,6 +2,7 @@ import { PatternKind } from "./pattern.kind.ts";
 import type { Serializable } from "@justinmchase/serializable";
 import type { Special } from "../modules/special.ts";
 import type { Comparable } from "../../comparable.ts";
+import type { Type } from "@justinmchase/type";
 
 export type Pattern =
   | AnyPattern
@@ -77,17 +78,6 @@ export enum CharacterClass {
   Surrogate = "Cs",
   PrivateUse = "Co",
   Unassigned = "Cn",
-}
-
-export enum ValueType {
-  BigInt = "bigint",
-  Boolean = "boolean",
-  Function = "function",
-  Number = "number",
-  Object = "object",
-  String = "string",
-  Symbol = "symbol",
-  Undefined = "undefined",
 }
 
 export type AnyPattern = {
@@ -179,7 +169,7 @@ export type ThenPattern = {
 };
 export type TypePattern = {
   kind: PatternKind.Type;
-  type: ValueType;
+  type: Type;
 };
 export type VariablePattern = {
   kind: PatternKind.Variable;

@@ -41,6 +41,7 @@
   "workspace": {
     "dependencies": [
       "jsr:@justinmchase/serializable@~0.3.13",
+      "jsr:@justinmchase/type@~0.2.4",
       "jsr:@std/assert@^1.0.8",
       "jsr:@std/crypto@^1.0.3",
       "jsr:@std/encoding@^1.0.5",
