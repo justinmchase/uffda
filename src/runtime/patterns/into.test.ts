@@ -169,7 +169,7 @@ await Deno.test("runtime/patterns/into", async (t) => {
       pattern: {
         kind: PatternKind.Into,
         pattern: {
-          kind: PatternKind.Any
+          kind: PatternKind.Any,
         },
       },
       input: Input.From([null]),
