@@ -15,7 +15,7 @@ export type Pattern =
   | IncludesPattern
   | MaybePattern
   | NotPattern
-  | ObjectPattern
+  | OverPattern
   | OkPattern
   | OrPattern
   | PipelinePattern
@@ -117,8 +117,8 @@ export type NotPattern = {
   kind: PatternKind.Not;
   pattern: Pattern;
 };
-export type ObjectPattern = {
-  kind: PatternKind.Object;
+export type OverPattern = {
+  kind: PatternKind.Over;
   keys?: Record<string, Pattern>;
 };
 export type OkPattern = {

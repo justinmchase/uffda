@@ -8,7 +8,7 @@ export * from "./fail.ts";
 export * from "./includes.ts";
 export * from "./maybe.ts";
 export * from "./not.ts";
-export * from "./object.ts";
+export * from "./over.ts";
 export * from "./ok.ts";
 export * from "./or.ts";
 export * from "./pipeline.ts";
