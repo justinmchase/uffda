@@ -5,26 +5,27 @@ import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
 import type { ReferenceExpression } from "../../runtime/expressions/expression.ts";
+import { NumberExpression } from "../../runtime/expressions/mod.ts";
 
-export const Reference: ModuleDeclaration = {
+export const Number: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "../common/identifier.ts",
+      moduleUrl: "../common/characters/digit.ts",
       names: [
-        "Identifier",
+        "Digit",
       ],
     },
   ],
   exports: [
     {
       kind: ExportDeclarationKind.Rule,
-      name: "Reference",
+      name: "Number",
     },
   ],
   rules: [
     {
-      name: "Reference",
+      name: "Number",
       parameters: [],
       pattern: {
         kind: PatternKind.And,
@@ -36,22 +37,26 @@ export const Reference: ModuleDeclaration = {
           {
             kind: PatternKind.Into,
             pattern: {
-              kind: PatternKind.Reference,
-              name: "Identifier",
-              args: [],
+              kind: PatternKind.Slice,
+              min: 1,
+              pattern: {
+                kind: PatternKind.Reference,
+                name: "Digit",
+                args: [],
+              }
             },
           },
         ],
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ _ }): ReferenceExpression => ({
-          kind: ExpressionKind.Reference,
-          name: _,
+        fn: ({ _ }): NumberExpression => ({
+          kind: ExpressionKind.Number,
+          value: parseInt(_.join(''))
         }),
       },
     },
   ],
 };
 
-export default Reference;
+export default Number;

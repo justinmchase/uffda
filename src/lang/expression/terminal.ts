@@ -4,54 +4,61 @@ import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
-import type { ReferenceExpression } from "../../runtime/expressions/expression.ts";
+import type { NumberExpression, ReferenceExpression } from "../../runtime/expressions/expression.ts";
 
-export const Reference: ModuleDeclaration = {
+type TerminalExpression =
+  | NumberExpression
+  | ReferenceExpression
+  ;
+
+export const Terminal: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "../common/identifier.ts",
+      moduleUrl: "./reference.ts",
       names: [
-        "Identifier",
+        "Reference",
+      ],
+    },
+    {
+      kind: ImportDeclarationKind.Module,
+      moduleUrl: "./number.ts",
+      names: [
+        "Number",
       ],
     },
   ],
   exports: [
     {
       kind: ExportDeclarationKind.Rule,
-      name: "Reference",
+      name: "Terminal",
     },
   ],
   rules: [
     {
-      name: "Reference",
+      name: "Terminal",
       parameters: [],
       pattern: {
-        kind: PatternKind.And,
+        kind: PatternKind.Or,
         patterns: [
           {
-            kind: PatternKind.Type,
-            type: Type.String,
+            kind: PatternKind.Reference,
+            name: "Number",
+            args: []
           },
           {
-            kind: PatternKind.Into,
-            pattern: {
-              kind: PatternKind.Reference,
-              name: "Identifier",
-              args: [],
-            },
+            kind: PatternKind.Reference,
+            name: "Reference",
+            args: [],
           },
         ],
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ _ }): ReferenceExpression => ({
-          kind: ExpressionKind.Reference,
-          name: _,
-        }),
+        fn: ({ _ }): TerminalExpression => _
       },
     },
   ],
 };
 
-export default Reference;
+export default Terminal;
