@@ -3,11 +3,16 @@ import { Path } from "./path.ts";
 export class Input {
   public static readonly Default = (): Input => Input.From([]);
   public static readonly From = (
-    items: Iterable<unknown> | Iterator<unknown>,
+    items: Iterable<unknown> | Iterator<unknown> | unknown,
   ): Input => new Input(items);
 
-  public static getIterator(value: string): StringIterator<string> {
-    return value[Symbol.iterator]();
+  public static isIterable(value: unknown): value is Iterable<unknown> {
+    return value != null &&
+      typeof (value as Iterable<unknown>)[Symbol.iterator] === "function";
+  }
+  public static isIterator(value: unknown): value is Iterator<unknown> {
+    return value != null &&
+      typeof (value as Iterator<unknown>).next === "function";
   }
 
   private _next: Input | undefined = undefined;
@@ -15,15 +20,18 @@ export class Input {
   private _items: Iterator<unknown>;
 
   constructor(
-    public readonly items: Iterable<unknown> | Iterator<unknown>,
+    public readonly items: Iterable<unknown> | Iterator<unknown> | unknown,
     public readonly path: Path = Path.Default(),
     public readonly index = 0,
     public readonly value?: unknown,
   ) {
-    if ((items as Iterable<unknown>)[Symbol.iterator] !== undefined) {
-      this._items = (items as Iterable<unknown>)[Symbol.iterator]();
+    if (Input.isIterable(items)) {
+      this._items = items[Symbol.iterator]();
+    } else if (Input.isIterator(items)) {
+      this._items = items;
     } else {
-      this._items = items as Iterator<unknown>;
+      // If you give us something non-iterable then we will wrap it in an array
+      this._items = [items][Symbol.iterator]();
     }
   }
 
