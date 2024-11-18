@@ -1,33 +1,28 @@
+import { Type, type } from "@justinmchase/type";
 import { error, fail, MatchKind, ok } from "../../match.ts";
 import { Input } from "../../input.ts";
 import { match } from "../match.ts";
 import { MatchErrorCode } from "../../match.ts";
 import type { Match } from "../../match.ts";
 import type { Scope } from "../scope.ts";
-import type { ObjectPattern, Pattern } from "./pattern.ts";
+import type { OverPattern, Pattern } from "./pattern.ts";
 
-export function object(pattern: ObjectPattern, scope: Scope): Match {
+export function over(pattern: OverPattern, scope: Scope): Match {
   const { keys = {} } = pattern;
   if (scope.stream.done) {
     return fail(scope, pattern);
   }
 
   const next = scope.stream.next();
-  if (next.value == null) {
-    return error(
-      scope,
-      pattern,
-      MatchErrorCode.NullValue,
-      "expected value to be non-null",
-    );
-  }
+  const [t] = type(next.value);
 
-  if (typeof next.value !== "object") {
+  // todo: handle maps as well...
+  if (t !== Type.Object) {
     return error(
       scope,
       pattern,
       MatchErrorCode.Type,
-      `expected value to be an object, got ${typeof next.value}`,
+      `expected value to be an object but got type ${t}`,
     );
   }
 

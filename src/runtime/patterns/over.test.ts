@@ -9,7 +9,7 @@ await Deno.test("runtime/patterns/object", async (t) => {
     name: "OBJECT00",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Object,
+        kind: PatternKind.Over,
         keys: {},
       },
       input: Input.From([{}]),
@@ -22,7 +22,7 @@ await Deno.test("runtime/patterns/object", async (t) => {
     name: "OBJECT01",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Object,
+        kind: PatternKind.Over,
         keys: {},
       },
       input: Input.From([{ x: "a" }]),
@@ -35,7 +35,7 @@ await Deno.test("runtime/patterns/object", async (t) => {
     name: "OBJECT02",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Object,
+        kind: PatternKind.Over,
         keys: {
           x: { kind: PatternKind.Type, type: Type.String },
         },
@@ -50,7 +50,7 @@ await Deno.test("runtime/patterns/object", async (t) => {
     name: "OBJECT03",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Object,
+        kind: PatternKind.Over,
         keys: {
           x: { kind: PatternKind.Type, type: Type.String },
         },
@@ -65,7 +65,7 @@ await Deno.test("runtime/patterns/object", async (t) => {
     name: "OBJECT04",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Object,
+        kind: PatternKind.Over,
         keys: {
           type: {
             kind: PatternKind.Equal,

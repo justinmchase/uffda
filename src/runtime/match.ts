@@ -11,9 +11,9 @@ import {
   into,
   maybe,
   not,
-  object,
   ok,
   or,
+  over,
   type Pattern,
   PatternKind,
   pipeline,
@@ -49,8 +49,8 @@ export function match(pattern: Pattern, scope: Scope): Match {
       return maybe(pattern, scope);
     case PatternKind.Not:
       return not(pattern, scope);
-    case PatternKind.Object:
-      return object(pattern, scope);
+    case PatternKind.Over:
+      return over(pattern, scope);
     case PatternKind.Ok:
       return ok(pattern, scope);
     case PatternKind.Or:
