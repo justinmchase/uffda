@@ -1,4 +1,4 @@
-import { type, Type } from "@justinmchase/type";
+import { Type, type } from "@justinmchase/type";
 import { exec } from "../exec.ts";
 import type { MatchOk } from "../../match.ts";
 import type { Expression, StringExpression } from "./mod.ts";
@@ -9,16 +9,16 @@ export function string(
   match: MatchOk,
 ) {
   const { values } = expression;
-  const resolved = values.map(value => {
-    const [t,v] = type(value)
+  const resolved = values.map((value) => {
+    const [t, v] = type(value);
     switch (t) {
       case Type.String:
         return v;
       case Type.Object:
         if (isExpression(v)) {
-          return `${exec(v as Expression, match)}`
+          return `${exec(v as Expression, match)}`;
         } else {
-          return `${v}`
+          return `${v}`;
         }
       case Type.Null:
       case Type.Undefined:
@@ -33,7 +33,7 @@ export function string(
       case Type.Set:
       case Type.Date:
       default:
-        return `${value}`
+        return `${value}`;
     }
   }).join("");
   return resolved;

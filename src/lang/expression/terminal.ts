@@ -3,12 +3,14 @@ import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
-import type { NumberExpression, ReferenceExpression } from "../../runtime/expressions/expression.ts";
+import type {
+  NumberExpression,
+  ReferenceExpression,
+} from "../../runtime/expressions/expression.ts";
 
 export type TerminalExpression =
   | NumberExpression
-  | ReferenceExpression
-  ;
+  | ReferenceExpression;
 
 export const Terminal: ModuleDeclaration = {
   imports: [
@@ -43,7 +45,7 @@ export const Terminal: ModuleDeclaration = {
           {
             kind: PatternKind.Reference,
             name: "Number",
-            args: []
+            args: [],
           },
           {
             kind: PatternKind.Reference,
@@ -54,7 +56,7 @@ export const Terminal: ModuleDeclaration = {
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ _ }): TerminalExpression => _
+        fn: ({ _ }): TerminalExpression => _,
       },
     },
   ],

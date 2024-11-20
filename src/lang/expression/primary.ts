@@ -8,8 +8,7 @@ import type { StringExpression } from "../../runtime/expressions/expression.ts";
 
 export type PrimaryExpression =
   | TerminalExpression
-  | StringExpression
-  ;
+  | StringExpression;
 
 export const Terminal: ModuleDeclaration = {
   imports: [
@@ -24,9 +23,9 @@ export const Terminal: ModuleDeclaration = {
       kind: ImportDeclarationKind.Module,
       moduleUrl: "./string.ts",
       names: [
-        "String"
-      ]
-    }
+        "String",
+      ],
+    },
   ],
   exports: [
     {
@@ -44,18 +43,18 @@ export const Terminal: ModuleDeclaration = {
           {
             kind: PatternKind.Reference,
             name: "Terminal",
-            args: []
+            args: [],
           },
           {
             kind: PatternKind.Reference,
             name: "String",
-            args: []
-          }
+            args: [],
+          },
         ],
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ _ }): PrimaryExpression => _
+        fn: ({ _ }): PrimaryExpression => _,
       },
     },
   ],

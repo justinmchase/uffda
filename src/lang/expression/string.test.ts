@@ -20,20 +20,20 @@ Deno.test(
       name: "STRING_EXPRESSION_00",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(["\"", "123", ".", "789", "\""]),
+        input: Input.From(['"', "123", ".", "789", '"']),
         kind: MatchKind.Ok,
         value: {
           kind: ExpressionKind.String,
-          values: ["123.789"]
+          values: ["123.789"],
         },
       }),
     });
-    
+
     await t.step({
       name: "STRING_EXPRESSION_01",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(["\"", "x", "{", "y", "}", "z", "\""]),
+        input: Input.From(['"', "x", "{", "y", "}", "z", '"']),
         kind: MatchKind.Ok,
         value: {
           kind: ExpressionKind.String,
@@ -41,66 +41,78 @@ Deno.test(
             "x",
             {
               kind: ExpressionKind.Reference,
-              name: "y"
+              name: "y",
             },
-            "z"
+            "z",
           ],
         },
       }),
     });
-    
+
     await t.step({
       name: "STRING_EXPRESSION_02",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(["\"", "x", "\\", "{", "y", "}", "z", "\""]),
+        input: Input.From(['"', "x", "\\", "{", "y", "}", "z", '"']),
         kind: MatchKind.Ok,
         value: {
           kind: ExpressionKind.String,
           values: [
-            "x{y}z"
+            "x{y}z",
           ],
         },
       }),
     });
-    
+
     await t.step({
       name: "STRING_EXPRESSION_03",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(["\"", "x", "\\", "\"", "y", "\\", "\"", "z", "\""]),
+        input: Input.From(['"', "x", "\\", '"', "y", "\\", '"', "z", '"']),
         kind: MatchKind.Ok,
         value: {
           kind: ExpressionKind.String,
           values: [
-            "x\"y\"z"
+            'x"y"z',
           ],
         },
       }),
     });
-    
+
     await t.step({
       name: "STRING_EXPRESSION_04",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(["\"", "x", "{", "\"", "y", "\"", "}", "z", "\""]),
+        input: Input.From(['"', "x", "{", '"', "y", '"', "}", "z", '"']),
         kind: MatchKind.Ok,
         value: {
           kind: ExpressionKind.String,
           values: [
             "x",
             { kind: ExpressionKind.String, values: ["y"] },
-            "z"
+            "z",
           ],
         },
       }),
     });
-    
+
     await t.step({
       name: "STRING_EXPRESSION_05",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(["\"", "x", "{", "\"", "{", "y", "}", "\"", "}", "z", "\""]), // "x{"{y}"}z"
+        input: Input.From([
+          '"',
+          "x",
+          "{",
+          '"',
+          "{",
+          "y",
+          "}",
+          '"',
+          "}",
+          "z",
+          '"',
+        ]), // "x{"{y}"}z"
         kind: MatchKind.Ok,
         value: {
           kind: ExpressionKind.String,
@@ -111,14 +123,14 @@ Deno.test(
               values: [
                 {
                   kind: ExpressionKind.Reference,
-                  name: "y"
-                }
-              ]
+                  name: "y",
+                },
+              ],
             },
-            "z"
+            "z",
           ],
         },
       }),
     });
-  }
+  },
 );

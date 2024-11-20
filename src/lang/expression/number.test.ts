@@ -34,5 +34,5 @@ Deno.test(
         value: { kind: ExpressionKind.Number, value: 123 },
       }),
     });
-  }
+  },
 );

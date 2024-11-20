@@ -156,12 +156,12 @@ Deno.test({
           "{",
           "y",
           "}",
-          "z"
+          "z",
         ],
         kind: MatchKind.Ok,
       }),
     });
-    
+
     await t.step({
       name: "TOKENIZER09",
       fn: moduleDeclarationTest({
@@ -172,7 +172,7 @@ Deno.test({
           "{",
           "y",
           "}",
-          "z"
+          "z",
         ],
         kind: MatchKind.Ok,
       }),

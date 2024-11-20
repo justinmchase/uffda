@@ -23,7 +23,7 @@ export function isExpression(value: unknown): value is Expression {
   const [t] = type(value);
   if (t !== Type.Object) return false;
   const p = value as Expression;
-  return Object.values(ExpressionKind).includes(p.kind)
+  return Object.values(ExpressionKind).includes(p.kind);
 }
 
 export type Expression =

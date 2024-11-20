@@ -12,7 +12,7 @@ await Deno.test("runtime/expressions/string", async (t) => {
       },
     }),
   });
-  
+
   await t.step({
     name: "STRING01",
     fn: expressionTest({
@@ -24,8 +24,8 @@ await Deno.test("runtime/expressions/string", async (t) => {
           { kind: ExpressionKind.Number, value: 123 },
           {
             kind: ExpressionKind.String,
-            values: ["xyz"]
-          }
+            values: ["xyz"],
+          },
         ],
       },
     }),

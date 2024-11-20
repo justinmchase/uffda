@@ -4,8 +4,7 @@ import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
-import type { ReferenceExpression } from "../../runtime/expressions/expression.ts";
-import { NumberExpression } from "../../runtime/expressions/mod.ts";
+import type { NumberExpression } from "../../runtime/expressions/mod.ts";
 
 export const Number: ModuleDeclaration = {
   imports: [
@@ -43,7 +42,7 @@ export const Number: ModuleDeclaration = {
                 kind: PatternKind.Reference,
                 name: "Digit",
                 args: [],
-              }
+              },
             },
           },
         ],
@@ -52,7 +51,7 @@ export const Number: ModuleDeclaration = {
         kind: ExpressionKind.Native,
         fn: ({ _ }): NumberExpression => ({
           kind: ExpressionKind.Number,
-          value: parseInt(_.join(''))
+          value: parseInt(_.join("")),
         }),
       },
     },

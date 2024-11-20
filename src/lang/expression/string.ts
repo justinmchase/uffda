@@ -12,9 +12,9 @@ export const String: ModuleDeclaration = {
       kind: ImportDeclarationKind.Module,
       moduleUrl: "./primary.ts",
       names: [
-        "Primary"
-      ]
-    }
+        "Primary",
+      ],
+    },
   ],
   exports: [
     {
@@ -31,18 +31,18 @@ export const String: ModuleDeclaration = {
         patterns: [
           {
             kind: PatternKind.Equal,
-            value: "\\"
+            value: "\\",
           },
           {
             kind: PatternKind.Equal,
-            value: "{"
-          }
-        ]
+            value: "{",
+          },
+        ],
       },
       expression: {
         kind: ExpressionKind.String,
-        values: ["{"]
-      }
+        values: ["{"],
+      },
     },
     {
       name: "EscapedDoubleQuote",
@@ -52,18 +52,18 @@ export const String: ModuleDeclaration = {
         patterns: [
           {
             kind: PatternKind.Equal,
-            value: "\\"
+            value: "\\",
           },
           {
             kind: PatternKind.Equal,
-            value: "\""
-          }
-        ]
+            value: '"',
+          },
+        ],
       },
       expression: {
         kind: ExpressionKind.String,
-        values: ["\""]
-      }
+        values: ['"'],
+      },
     },
     {
       name: "EscapedString",
@@ -81,8 +81,8 @@ export const String: ModuleDeclaration = {
             name: "EscapedDoubleQuote",
             args: [],
           },
-        ]
-      }
+        ],
+      },
     },
     {
       name: "StringExpression",
@@ -92,7 +92,7 @@ export const String: ModuleDeclaration = {
         patterns: [
           {
             kind: PatternKind.Equal,
-            value: "{"
+            value: "{",
           },
           {
             kind: PatternKind.Variable,
@@ -105,14 +105,14 @@ export const String: ModuleDeclaration = {
           },
           {
             kind: PatternKind.Equal,
-            value: "}"
-          }
-        ]
+            value: "}",
+          },
+        ],
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ v }) => v
-      }
+        fn: ({ v }) => v,
+      },
     },
     {
       name: "StringContent",
@@ -126,7 +126,7 @@ export const String: ModuleDeclaration = {
             {
               kind: PatternKind.Reference,
               name: "EscapedString",
-              args: []
+              args: [],
             },
             {
               kind: PatternKind.And,
@@ -135,29 +135,29 @@ export const String: ModuleDeclaration = {
                   kind: PatternKind.Not,
                   pattern: {
                     kind: PatternKind.Equal,
-                    value: "{"
-                  }
+                    value: "{",
+                  },
                 },
                 {
                   kind: PatternKind.Not,
                   pattern: {
                     kind: PatternKind.Equal,
-                    value: "\""
-                  }
+                    value: '"',
+                  },
                 },
                 {
                   kind: PatternKind.Type,
-                  type: Type.String
-                }
-              ]
-            }
-          ]
-        }
+                  type: Type.String,
+                },
+              ],
+            },
+          ],
+        },
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ _ }) => _.join("")
-      }
+        fn: ({ _ }) => _.join(""),
+      },
     },
     {
       name: "String",
@@ -167,7 +167,7 @@ export const String: ModuleDeclaration = {
         patterns: [
           {
             kind: PatternKind.Equal,
-            value: "\""
+            value: '"',
           },
           {
             kind: PatternKind.Variable,
@@ -181,20 +181,20 @@ export const String: ModuleDeclaration = {
                   {
                     kind: PatternKind.Reference,
                     name: "StringExpression",
-                    args: []
+                    args: [],
                   },
                   {
                     kind: PatternKind.Reference,
                     name: "StringContent",
                     args: [],
-                  }    
-                ]
+                  },
+                ],
               },
-            }
+            },
           },
           {
             kind: PatternKind.Equal,
-            value: "\""
+            value: '"',
           },
         ],
       },
@@ -202,7 +202,7 @@ export const String: ModuleDeclaration = {
         kind: ExpressionKind.Native,
         fn: ({ v }): StringExpression => ({
           kind: ExpressionKind.String,
-          values: v
+          values: v,
         }),
       },
     },
