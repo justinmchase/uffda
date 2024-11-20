@@ -8,7 +8,25 @@ await Deno.test("runtime/expressions/string", async (t) => {
       result: "abc",
       expression: {
         kind: ExpressionKind.String,
-        value: "abc",
+        values: ["abc"],
+      },
+    }),
+  });
+  
+  await t.step({
+    name: "STRING01",
+    fn: expressionTest({
+      result: "abc123xyz",
+      expression: {
+        kind: ExpressionKind.String,
+        values: [
+          "abc",
+          { kind: ExpressionKind.Number, value: 123 },
+          {
+            kind: ExpressionKind.String,
+            values: ["xyz"]
+          }
+        ],
       },
     }),
   });

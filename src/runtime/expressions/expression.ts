@@ -2,6 +2,7 @@ import { ExpressionKind } from "./expression.kind.ts";
 import type { Pattern } from "../patterns/pattern.ts";
 import type { Serializable } from "@justinmchase/serializable";
 import type { Special } from "../modules/mod.ts";
+import { Type, type } from "@justinmchase/type";
 
 export type ProjectionFunction = (
   // deno-lint-ignore no-explicit-any
@@ -19,10 +20,10 @@ export enum BinaryOperation {
 }
 
 export function isExpression(value: unknown): value is Expression {
-  if (value == null) return false;
-  if (typeof value !== "object") return false;
+  const [t] = type(value);
+  if (t !== Type.Object) return false;
   const p = value as Expression;
-  return Reflect.has(ExpressionKind, p.kind);
+  return Object.values(ExpressionKind).includes(p.kind)
 }
 
 export type Expression =
@@ -127,7 +128,7 @@ export type SpecialReferenceExpression = {
 
 export type StringExpression = {
   kind: ExpressionKind.String;
-  value: string;
+  values: (string | Expression)[];
 };
 
 export type NumberExpression = {
