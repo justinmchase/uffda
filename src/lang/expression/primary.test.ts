@@ -3,7 +3,7 @@ import { MatchKind } from "../../mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
-const moduleUrl = new URL("./number.ts", import.meta.url).href;
+const moduleUrl = new URL("./primary.ts", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -12,12 +12,12 @@ const p = await Deno.permissions.query({
 
 Deno.test(
   {
-    name: "lang.expression.number",
+    name: "lang.expression.primary",
     ignore: p.state !== "granted",
   },
   async (t) => {
     await t.step({
-      name: "NUMBER_EXPRESSION_00",
+      name: "PRIMARY_EXPRESSION_00",
       fn: moduleDeclarationTest({
         moduleUrl,
         input: Input.From(["1"]),
@@ -26,12 +26,22 @@ Deno.test(
       }),
     });
     await t.step({
-      name: "NUMBER_EXPRESSION_01",
+      name: "PRIMARY_EXPRESSION_01",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(["123"]),
+        input: Input.From(["abc"]),
         kind: MatchKind.Ok,
-        value: { kind: ExpressionKind.Number, value: 123 },
+        value: { kind: ExpressionKind.Reference, name: "abc" },
+      }),
+    });
+    
+    await t.step({
+      name: "PRIMARY_EXPRESSION_02",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.From(["\"", "abc", "\""]),
+        kind: MatchKind.Ok,
+        value: { kind: ExpressionKind.String, values: ["abc"] },
       }),
     });
   },

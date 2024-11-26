@@ -42,7 +42,7 @@ export function exec(expression: Expression, match: MatchOk): unknown {
     case ExpressionKind.Special:
       return special(expression, match);
     case ExpressionKind.String:
-      return string(expression);
+      return string(expression, match);
     case ExpressionKind.Undefined:
       return undefined;
     case ExpressionKind.Value:

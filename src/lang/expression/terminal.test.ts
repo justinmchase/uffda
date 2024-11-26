@@ -34,5 +34,5 @@ Deno.test(
         value: { kind: ExpressionKind.Reference, name: "abc" },
       }),
     });
-  }
+  },
 );

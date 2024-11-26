@@ -59,6 +59,20 @@ export class Resolver {
         });
       }
 
+      for (const e of moduleDeclaration.exports) {
+        const { kind, name } = e;
+        switch (kind) {
+          case ExportDeclarationKind.Rule: {
+            const rule = module.rules.get(name);
+            if (!rule) {
+              throw new Error(`Unknown rule ${name}`);
+            }
+            module.exports.set(name, rule);
+            break;
+          }
+        }
+      }
+
       for (const i of moduleDeclaration.imports) {
         const resolvedModuleUrl = new URL(i.moduleUrl, moduleUrl);
 
@@ -104,14 +118,6 @@ export class Resolver {
               throw new Error(`Unknown import ${name}`);
             }
             module.exports.set(name, resolvedImport);
-            break;
-          }
-          case ExportDeclarationKind.Rule: {
-            const rule = module.rules.get(name);
-            if (!rule) {
-              throw new Error(`Unknown rule ${name}`);
-            }
-            module.exports.set(name, rule);
             break;
           }
         }

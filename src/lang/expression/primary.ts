@@ -3,60 +3,58 @@ import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
-import type {
-  NumberExpression,
-  ReferenceExpression,
-} from "../../runtime/expressions/expression.ts";
+import type { TerminalExpression } from "./terminal.ts";
+import type { StringExpression } from "../../runtime/expressions/expression.ts";
 
-export type TerminalExpression =
-  | NumberExpression
-  | ReferenceExpression;
+export type PrimaryExpression =
+  | TerminalExpression
+  | StringExpression;
 
 export const Terminal: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./reference.ts",
+      moduleUrl: "./terminal.ts",
       names: [
-        "Reference",
+        "Terminal",
       ],
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./number.ts",
+      moduleUrl: "./string.ts",
       names: [
-        "Number",
+        "String",
       ],
     },
   ],
   exports: [
     {
       kind: ExportDeclarationKind.Rule,
-      name: "Terminal",
+      name: "Primary",
     },
   ],
   rules: [
     {
-      name: "Terminal",
+      name: "Primary",
       parameters: [],
       pattern: {
         kind: PatternKind.Or,
         patterns: [
           {
             kind: PatternKind.Reference,
-            name: "Number",
+            name: "Terminal",
             args: [],
           },
           {
             kind: PatternKind.Reference,
-            name: "Reference",
+            name: "String",
             args: [],
           },
         ],
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ _ }): TerminalExpression => _,
+        fn: ({ _ }): PrimaryExpression => _,
       },
     },
   ],

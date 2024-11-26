@@ -144,5 +144,38 @@ Deno.test({
         kind: MatchKind.Ok,
       }),
     });
+
+    await t.step({
+      name: "TOKENIZER08",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.From("x\\{y}z"),
+        value: [
+          "x",
+          "\\",
+          "{",
+          "y",
+          "}",
+          "z",
+        ],
+        kind: MatchKind.Ok,
+      }),
+    });
+
+    await t.step({
+      name: "TOKENIZER09",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.From("x{y}z"),
+        value: [
+          "x",
+          "{",
+          "y",
+          "}",
+          "z",
+        ],
+        kind: MatchKind.Ok,
+      }),
+    });
   },
 });
