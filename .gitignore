@@ -2,3 +2,4 @@
 dst
 cov_profile
 *.lcov
+package*.json

@@ -5,7 +5,7 @@ import {
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../../runtime/patterns/mod.ts";
 
-export const Whitespace: ModuleDeclaration = {
+export const Group: ModuleDeclaration = {
   imports: [],
   exports: [
     {
@@ -15,7 +15,7 @@ export const Whitespace: ModuleDeclaration = {
   ],
   rules: [
     {
-      // Group<P> = "(" p:P? ")" -> (p);
+      // Group<P> = "(" p:P? ")" -> p;
       name: "Group",
       parameters: [
         { name: "P" },
@@ -54,4 +54,4 @@ export const Whitespace: ModuleDeclaration = {
   ],
 };
 
-export default Whitespace;
+export default Group;

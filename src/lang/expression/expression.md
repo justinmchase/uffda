@@ -1,38 +1,26 @@
 Expression Language Notes
 
 ```uff
-object literal expression
-{}
+Expression = Binary
 
-array literal expression
-[]
-
-symbolicexpression
-(x y)
-(add 1 2)
-
-reference expression
-x
-
-number expression
-1
-
-ternary
-x ? y : z
-
-binary
-x+y
-x and y
-y or z
+Binary
+  = Expression "and" Expression
+  | Expression "or" Expression
+  | Unary
+  ;
 
 Unary =
-  | "not" expression:Unary -> { kind: "not" expression }
+  | "not" Expression
+  | Expression "?"
+  | Expression "+"
+  | Expression "*"
   | Primary
+  ;
 
-Primary = 
+Primary =
   | Object    // {}
   | Array     // []
-  | Symbolic  // ()
+  | Sequence  // (x)
   | String    // "abc {x} xyz"
   | Terminal
   ;
@@ -41,6 +29,8 @@ Terminal =
   | Reference // x
   | Number    // 1
   ;
+
+Sequence = "(" Expression+ ")"
 
 String = "\"" (not "\"" and string)* "\""
 
