@@ -10,17 +10,17 @@ Binary
   ;
 
 Unary =
-  | "not" expression:Expression -> { kind: "not" expression }
+  | "not" Expression
   | Expression "?"
   | Expression "+"
   | Expression "*"
   | Primary
   ;
 
-Primary = 
+Primary =
   | Object    // {}
   | Array     // []
-  | Sequence  // ()
+  | Sequence  // (x)
   | String    // "abc {x} xyz"
   | Terminal
   ;
@@ -30,7 +30,7 @@ Terminal =
   | Number    // 1
   ;
 
-Sequence = "(" List<Expression> ")"
+Sequence = "(" Expression+ ")"
 
 String = "\"" (not "\"" and string)* "\""
 
