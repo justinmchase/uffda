@@ -26,7 +26,7 @@ export const Tokenizer: ModuleDeclaration = {
   exports: [
     {
       kind: ExportDeclarationKind.Rule,
-      name: "Main",
+      name: "Tokenizer",
     },
   ],
   rules: [
@@ -128,7 +128,7 @@ export const Tokenizer: ModuleDeclaration = {
       },
     },
     {
-      name: "Main",
+      name: "Tokenizer",
       parameters: [],
       pattern: {
         kind: PatternKind.Slice,
