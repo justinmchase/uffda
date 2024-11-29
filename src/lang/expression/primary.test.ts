@@ -34,12 +34,12 @@ Deno.test(
         value: { kind: ExpressionKind.Reference, name: "abc" },
       }),
     });
-    
+
     await t.step({
       name: "PRIMARY_EXPRESSION_02",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(["\"", "abc", "\""]),
+        input: Input.From(['"', "abc", '"']),
         kind: MatchKind.Ok,
         value: { kind: ExpressionKind.String, values: ["abc"] },
       }),

@@ -26,6 +26,13 @@ export const Terminal: ModuleDeclaration = {
         "String",
       ],
     },
+    {
+      kind: ImportDeclarationKind.Module,
+      moduleUrl: "./sequence.ts",
+      names: [
+        "Sequence",
+      ],
+    },
   ],
   exports: [
     {
@@ -40,6 +47,11 @@ export const Terminal: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Or,
         patterns: [
+          {
+            kind: PatternKind.Reference,
+            name: "Sequence",
+            args: [],
+          },
           {
             kind: PatternKind.Reference,
             name: "Terminal",
