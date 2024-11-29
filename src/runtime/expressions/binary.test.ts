@@ -1,128 +1,98 @@
-import { Scope } from "../scope.ts";
 import { expressionTest } from "../../test.ts";
 import { BinaryOperation } from "./expression.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 
 await Deno.test("runtime/patterns/binary", async (t) => {
   await t.step({
-    name: "ADD00",
+    name: "AND00",
     fn: expressionTest({
-      scope: Scope.Default().addVariables({
-        a: 7,
-        b: 11,
-      }),
-      result: 18,
+      result: true,
       expression: {
         kind: ExpressionKind.Binary,
-        op: BinaryOperation.Add,
+        op: BinaryOperation.And,
         left: {
-          kind: ExpressionKind.Reference,
-          name: "a",
+          kind: ExpressionKind.Value,
+          value: true,
         },
         right: {
-          kind: ExpressionKind.Reference,
-          name: "b",
+          kind: ExpressionKind.Value,
+          value: true,
         },
       },
     }),
   });
 
   await t.step({
-    name: "ADD01",
+    name: "AND01",
     fn: expressionTest({
-      scope: Scope.Default().addVariables({
-        b: 11,
-        c: "r",
-      }),
-      throws: true,
+      result: false,
       expression: {
         kind: ExpressionKind.Binary,
-        op: BinaryOperation.Add,
+        op: BinaryOperation.And,
         left: {
-          kind: ExpressionKind.Reference,
-          name: "a",
+          kind: ExpressionKind.Value,
+          value: true,
         },
         right: {
-          kind: ExpressionKind.Reference,
-          name: "c",
+          kind: ExpressionKind.Value,
+          value: false,
         },
       },
     }),
   });
 
   await t.step({
-    name: "SUB00",
+    name: "OR00",
     fn: expressionTest({
-      scope: Scope.Default().addVariables({
-        a: 3,
-        b: 2,
-      }),
-      result: 1,
+      result: true,
       expression: {
         kind: ExpressionKind.Binary,
-        op: BinaryOperation.Subtract,
+        op: BinaryOperation.Or,
         left: {
-          kind: ExpressionKind.Reference,
-          name: "a",
+          kind: ExpressionKind.Value,
+          value: true,
         },
         right: {
-          kind: ExpressionKind.Reference,
-          name: "b",
+          kind: ExpressionKind.Value,
+          value: true,
         },
       },
     }),
   });
 
   await t.step({
-    name: "SUB01",
+    name: "OR01",
     fn: expressionTest({
-      scope: Scope.Default().addVariables({
-        a: 100,
-        b: 50,
-        c: 25,
-      }),
-      result: 75,
+      result: true,
       expression: {
         kind: ExpressionKind.Binary,
-        op: BinaryOperation.Subtract,
+        op: BinaryOperation.Or,
         left: {
-          kind: ExpressionKind.Reference,
-          name: "a",
+          kind: ExpressionKind.Value,
+          value: false,
         },
         right: {
-          kind: ExpressionKind.Binary,
-          op: BinaryOperation.Subtract,
-          left: {
-            kind: ExpressionKind.Reference,
-            name: "b",
-          },
-          right: {
-            kind: ExpressionKind.Reference,
-            name: "c",
-          },
+          kind: ExpressionKind.Value,
+          value: true,
         },
       },
     }),
   });
 
   await t.step({
-    name: "MULTIPLY00",
+    name: "OR02",
     fn: expressionTest({
-      scope: Scope.Default().addVariables({
-        a: 7,
-        b: 11,
-      }),
-      result: 77,
+      result: false,
       expression: {
         kind: ExpressionKind.Binary,
-        op: BinaryOperation.Multiply,
+        op: BinaryOperation.Or,
         left: {
-          kind: ExpressionKind.Reference,
-          name: "a",
+          kind: ExpressionKind.Value,
+          value: false,
         },
         right: {
-          kind: ExpressionKind.Reference,
-          name: "b",
+          kind: ExpressionKind.Value,
+          value: false,
         },
       },
     }),

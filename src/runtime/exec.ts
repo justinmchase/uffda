@@ -9,6 +9,7 @@ import {
   lambda,
   member,
   native,
+  not,
   number,
   object,
   reference,
@@ -33,6 +34,8 @@ export function exec(expression: Expression, match: MatchOk): unknown {
       return member(expression, match);
     case ExpressionKind.Native:
       return native(expression, match);
+    case ExpressionKind.Not:
+      return not(expression, match);
     case ExpressionKind.Number:
       return number(expression);
     case ExpressionKind.Object:

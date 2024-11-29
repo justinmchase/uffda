@@ -4,70 +4,54 @@ import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
 import type {
+  BinaryExpression,
   PrimaryExpression,
   TerminalExpression,
-} from "../../runtime/expressions/expression.ts";
+  UnaryExpression,
+} from "../../runtime/expressions/mod.ts";
 
-export const Terminal: ModuleDeclaration = {
+export const Binary: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./terminal.ts",
+      moduleUrl: "./unary.ts",
       names: [
-        "Terminal",
-      ],
-    },
-    {
-      kind: ImportDeclarationKind.Module,
-      moduleUrl: "./string.ts",
-      names: [
-        "String",
-      ],
-    },
-    {
-      kind: ImportDeclarationKind.Module,
-      moduleUrl: "./sequence.ts",
-      names: [
-        "Sequence",
+        "Unary",
       ],
     },
   ],
   exports: [
     {
       kind: ExportDeclarationKind.Rule,
-      name: "Primary",
+      name: "Binary",
     },
   ],
   rules: [
     {
-      name: "Primary",
+      name: "Binary",
       parameters: [],
       pattern: {
         kind: PatternKind.Or,
         patterns: [
           {
             kind: PatternKind.Reference,
-            name: "Sequence",
-            args: [],
-          },
-          {
-            kind: PatternKind.Reference,
-            name: "Terminal",
-            args: [],
-          },
-          {
-            kind: PatternKind.Reference,
-            name: "String",
+            name: "Unary",
             args: [],
           },
         ],
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ _ }): PrimaryExpression | TerminalExpression => _,
+        fn: (
+          { _ },
+        ):
+          | BinaryExpression
+          | UnaryExpression
+          | PrimaryExpression
+          | TerminalExpression => _,
       },
     },
   ],
 };
 
-export default Terminal;
+export default Binary;

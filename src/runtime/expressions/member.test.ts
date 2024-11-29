@@ -1,6 +1,5 @@
 import { Scope } from "../scope.ts";
 import { ExpressionKind } from "./expression.kind.ts";
-import { BinaryOperation } from "./mod.ts";
 import { expressionTest } from "../../test.ts";
 
 await Deno.test("runtime/expressions/member", async (t) => {
@@ -8,27 +7,15 @@ await Deno.test("runtime/expressions/member", async (t) => {
     name: "RUNTIME.MEMBER00",
     fn: expressionTest({
       scope: Scope.Default().addVariables({
-        a: { x: 7, y: 11 },
+        x: { y: 7 },
       }),
-      result: 18,
+      result: 7,
       expression: {
-        kind: ExpressionKind.Binary,
-        op: BinaryOperation.Add,
-        left: {
-          kind: ExpressionKind.Member,
+        kind: ExpressionKind.Member,
+        name: "y",
+        expression: {
+          kind: ExpressionKind.Reference,
           name: "x",
-          expression: {
-            kind: ExpressionKind.Reference,
-            name: "a",
-          },
-        },
-        right: {
-          kind: ExpressionKind.Member,
-          name: "y",
-          expression: {
-            kind: ExpressionKind.Reference,
-            name: "a",
-          },
         },
       },
     }),
