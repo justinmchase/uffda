@@ -8,6 +8,7 @@ export enum ExpressionKind {
   Lambda = "lambda",
   Member = "member",
   Native = "native",
+  Not = "not",
   Number = "number",
   Object = "object",
   ObjectKey = "objectKey",

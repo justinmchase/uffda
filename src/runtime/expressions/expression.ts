@@ -12,11 +12,8 @@ export type ProjectionFunction = (
 ) => any;
 
 export enum BinaryOperation {
-  Add = "add",
-  Subtract = "subtract",
-  Multiply = "multiply",
-  Divide = "divide",
-  Mod = "mod",
+  And = "and",
+  Or = "or",
 }
 
 export function isExpression(value: unknown): value is Expression {
@@ -27,20 +24,33 @@ export function isExpression(value: unknown): value is Expression {
 }
 
 export type Expression =
-  | ArrayExpression
-  | BinaryExpression
-  | BooleanExpression
-  | InvocationExpression
-  | LambdaExpression
-  | MemberExpression
   | NativeExpression
-  | NumberExpression
-  | ObjectExpression
-  | ReferenceExpression
-  | SpecialReferenceExpression
+  | BinaryExpression
+  | UnaryExpression
+  | PrimaryExpression
+  | TerminalExpression;
+
+export type BinaryExpression =
+  | AndExpression
+  | OrExpression;
+
+export type UnaryExpression = NotExpression;
+
+export type PrimaryExpression =
   | StringExpression
+  | ArrayExpression
+  | ObjectExpression
+  | LambdaExpression
+  | InvocationExpression;
+
+export type TerminalExpression =
+  | NumberExpression
+  | BooleanExpression
+  | ReferenceExpression
   | UndefinedExpression
-  | ValueExpression;
+  | MemberExpression
+  | ValueExpression
+  | SpecialReferenceExpression;
 
 export type ArrayInitializer =
   | ArrayElementExpression
@@ -61,9 +71,16 @@ export type ArraySpreadExpression = {
   expression: Expression;
 };
 
-export type BinaryExpression = {
+export type AndExpression = {
   kind: ExpressionKind.Binary;
-  op: BinaryOperation;
+  op: BinaryOperation.And;
+  left: Expression;
+  right: Expression;
+};
+
+export type OrExpression = {
+  kind: ExpressionKind.Binary;
+  op: BinaryOperation.Or;
   left: Expression;
   right: Expression;
 };
@@ -94,6 +111,11 @@ export type MemberExpression = {
 export type NativeExpression = {
   kind: ExpressionKind.Native;
   fn: ProjectionFunction;
+};
+
+export type NotExpression = {
+  kind: ExpressionKind.Not;
+  expression: Expression;
 };
 
 export type ObjectInitializer =

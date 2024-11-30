@@ -6,68 +6,46 @@ import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
 import type {
   PrimaryExpression,
   TerminalExpression,
-} from "../../runtime/expressions/expression.ts";
+  UnaryExpression,
+} from "../../runtime/expressions/mod.ts";
 
-export const Terminal: ModuleDeclaration = {
+export const Unary: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./terminal.ts",
+      moduleUrl: "./primary.ts",
       names: [
-        "Terminal",
-      ],
-    },
-    {
-      kind: ImportDeclarationKind.Module,
-      moduleUrl: "./string.ts",
-      names: [
-        "String",
-      ],
-    },
-    {
-      kind: ImportDeclarationKind.Module,
-      moduleUrl: "./sequence.ts",
-      names: [
-        "Sequence",
+        "Primary",
       ],
     },
   ],
   exports: [
     {
       kind: ExportDeclarationKind.Rule,
-      name: "Primary",
+      name: "Unary",
     },
   ],
   rules: [
     {
-      name: "Primary",
+      name: "Unary",
       parameters: [],
       pattern: {
         kind: PatternKind.Or,
         patterns: [
           {
             kind: PatternKind.Reference,
-            name: "Sequence",
-            args: [],
-          },
-          {
-            kind: PatternKind.Reference,
-            name: "Terminal",
-            args: [],
-          },
-          {
-            kind: PatternKind.Reference,
-            name: "String",
+            name: "Primary",
             args: [],
           },
         ],
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ _ }): PrimaryExpression | TerminalExpression => _,
+        fn: ({ _ }): UnaryExpression | PrimaryExpression | TerminalExpression =>
+          _,
       },
     },
   ],
 };
 
-export default Terminal;
+export default Unary;
