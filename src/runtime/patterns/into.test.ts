@@ -69,6 +69,7 @@ await Deno.test("runtime/patterns/into", async (t) => {
     }),
   });
 
+  // Into will fail if the inner pattern does not consume the entire stream.
   await t.step({
     name: "INTO04",
     fn: patternTest({
@@ -77,8 +78,7 @@ await Deno.test("runtime/patterns/into", async (t) => {
         pattern: { kind: PatternKind.Any },
       },
       input: Input.From([["a", "b"]]),
-      value: "a",
-      kind: MatchKind.Ok,
+      kind: MatchKind.Fail,
     }),
   });
 

@@ -25,11 +25,32 @@ Deno.test(
         value: { kind: ExpressionKind.Number, value: 1 },
       }),
     });
+    
     await t.step({
       name: "TERMINAL_EXPRESSION_01",
       fn: moduleDeclarationTest({
         moduleUrl,
+        input: Input.From([" ", "1", " "]),
+        kind: MatchKind.Ok,
+        value: { kind: ExpressionKind.Number, value: 1 },
+      }),
+    });
+
+    await t.step({
+      name: "TERMINAL_EXPRESSION_02",
+      fn: moduleDeclarationTest({
+        moduleUrl,
         input: Input.From(["abc"]),
+        kind: MatchKind.Ok,
+        value: { kind: ExpressionKind.Reference, name: "abc" },
+      }),
+    });
+    
+    await t.step({
+      name: "TERMINAL_EXPRESSION_03",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.From(["   ", "abc", "\t\t"]),
         kind: MatchKind.Ok,
         value: { kind: ExpressionKind.Reference, name: "abc" },
       }),

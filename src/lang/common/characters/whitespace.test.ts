@@ -29,8 +29,9 @@ Deno.test(
       fn: moduleDeclarationTest({
         moduleUrl,
         input: Input.From("   "),
-        value: "   ",
         kind: MatchKind.Ok,
+        value: " ",
+        done: false
       }),
     });
 
@@ -78,7 +79,8 @@ Deno.test(
       fn: moduleDeclarationTest({
         moduleUrl,
         input: Input.From("\t"),
-        kind: MatchKind.Fail,
+        kind: MatchKind.Ok,
+        value: "\t"
       }),
     });
   },

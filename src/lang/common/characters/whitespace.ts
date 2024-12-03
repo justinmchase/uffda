@@ -13,33 +13,36 @@ export const Whitespace: ModuleDeclaration = {
   ],
   rules: [
     {
-      // Whitespace = (\cZs | \cZl | \cZp)+;
+      // Whitespace = \cZs | \cZl | \cZp | "\t";
       name: "Whitespace",
       parameters: [],
       pattern: {
-        kind: PatternKind.Slice,
-        min: 1,
-        pattern: {
-          kind: PatternKind.Or,
-          patterns: [
-            {
-              kind: PatternKind.Character,
-              characterClass: CharacterClass.SpaceSeparator,
-            },
-            {
-              kind: PatternKind.Character,
-              characterClass: CharacterClass.LineSeparator,
-            },
-            {
-              kind: PatternKind.Character,
-              characterClass: CharacterClass.ParagraphSeparator,
-            },
-          ],
-        },
+        kind: PatternKind.Or,
+        patterns: [
+          {
+            kind: PatternKind.Character,
+            characterClass: CharacterClass.SpaceSeparator,
+          },
+          {
+            kind: PatternKind.Character,
+            characterClass: CharacterClass.LineSeparator,
+          },
+          {
+            kind: PatternKind.Character,
+            characterClass: CharacterClass.ParagraphSeparator,
+          },
+          {
+            // This is technically in the Control Character class but
+            // is commonly used as whitespace in coding so its specifically
+            // added to this pattern.
+            kind: PatternKind.Equal,
+            value: "\t"
+          }
+        ],
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ _ }) => _.join(""),
+        fn: ({ _ }) => _
       },
     },
   ],
