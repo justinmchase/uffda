@@ -5,6 +5,7 @@ import { exec } from "./exec.ts";
 import type { Match } from "../match.ts";
 import type { Rule } from "./modules/mod.ts";
 import type { Scope } from "./scope.ts";
+import type { Pattern } from "./patterns/pattern.ts";
 
 export function rule(
   rule: Rule,
@@ -12,9 +13,9 @@ export function rule(
   scope: Scope,
 ): Match {
   const { module, pattern, expression } = rule;
-  let memo = scope.memos.get(scope.stream.path, rule);
+  let { key, memo } = scope.memos.resolve(scope.stream.path, rule, [...args.values()]);
   if (!memo) {
-    memo = scope.memos.set(scope.stream.path, rule, lr(scope, rule.pattern));
+    memo = scope.memos.set(scope.stream.path, key, lr(scope, rule.pattern));
     const subScope = scope
       .pushModule(module)
       .pushRule(rule, args);
@@ -23,7 +24,7 @@ export function rule(
     memo.match = m;
     switch (m.kind) {
       case MatchKind.LR:
-        return grow(rule, subScope);
+        return grow(pattern, key, subScope);
       case MatchKind.Error:
         return m;
       case MatchKind.Fail:
@@ -77,12 +78,11 @@ export function rule(
   }
 }
 
-function grow(rule: Rule, scope: Scope): Match {
-  const { pattern } = rule;
+function grow(pattern: Pattern, key: symbol, scope: Scope): Match {
   let growing = true;
   let m: Match = fail(scope, pattern);
   const start = scope.stream;
-  const memo = scope.memos.get(start.path, rule);
+  const { memo } = scope.memos.get(start.path, key);
   if (!memo) {
     throw Error("Expected memo to be set");
   }

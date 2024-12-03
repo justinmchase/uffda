@@ -1,6 +1,5 @@
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../mod.ts";
-import { Path } from "../../path.ts";
 import {
   ExportDeclarationKind,
   ImportDeclarationKind,
@@ -9,7 +8,7 @@ import {
 import { PatternKind } from "../../runtime/patterns/mod.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
-const moduleUrl = new URL("./group.test.ts", import.meta.url).href;
+const moduleUrl = import.meta.url;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -18,98 +17,84 @@ const p = await Deno.permissions.query({
 
 Deno.test(
   {
-    name: "lang.common.group",
+    name: "lang.token",
     ignore: p.state !== "granted",
   },
   async (t) => {
     await t.step({
-      name: "GROUP00",
+      name: "TOKEN_00",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: new Input("(a)"),
+        input: new Input("x"),
         kind: MatchKind.Ok,
-        value: "a",
+        value: "x",
       }),
     });
     await t.step({
-      name: "GROUP01",
+      name: "TOKEN_01",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: new Input("()"),
+        input: new Input(["   ", "x"]),
         kind: MatchKind.Ok,
-        value: undefined,
+        value: "x",
       }),
     });
-
     await t.step({
-      name: "GROUP01",
+      name: "TOKEN_02",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: new Input("(b)"),
-        kind: MatchKind.Fail,
-        failures: [
-          {
-            pattern: { kind: PatternKind.Equal, value: "a" },
-            start: Path.From(1),
-            end: Path.From(1),
-          },
-        ],
+        input: new Input(["x", "   "]),
+        kind: MatchKind.Ok,
+        value: "x",
       }),
     });
-
     await t.step({
-      name: "GROUP02",
+      name: "TOKEN_03",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: new Input("(a"),
-        kind: MatchKind.Fail,
-        failures: [
-          {
-            pattern: { kind: PatternKind.Equal, value: ")" },
-            start: Path.From(2),
-            end: Path.From(2),
-          },
-        ],
+        input: new Input(["   ", "x", "   "]),
+        kind: MatchKind.Ok,
+        value: "x",
       }),
     });
   },
 );
 
-export const GroupTest: ModuleDeclaration = {
+export const TokenTest: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: new URL("./group.ts", import.meta.url).href,
-      names: ["Group"],
+      moduleUrl: new URL("./token.ts", import.meta.url).href,
+      names: ["Token"],
     },
   ],
   exports: [
     {
       kind: ExportDeclarationKind.Rule,
-      name: "GroupTest",
+      name: "TokenTest",
     },
   ],
   rules: [
     {
-      name: "A",
+      name: "T",
       parameters: [],
       pattern: {
         kind: PatternKind.Equal,
-        value: "a",
+        value: "x",
       },
     },
     {
-      // A = "a";
-      // GroupTest = Group<A>;
-      name: "GroupTest",
+      // T = "x";
+      // TokenTest = Token<T>;
+      name: "TokenTest",
       parameters: [],
       pattern: {
         kind: PatternKind.Reference,
-        name: "Group",
-        args: ["A"],
+        name: "Token",
+        args: ["T"],
       },
     },
   ],
 };
 
-export default GroupTest;
+export default TokenTest;
