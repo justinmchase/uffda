@@ -49,7 +49,7 @@ Deno.test(
         value: "x",
       }),
     });
-    
+
     await t.step({
       name: "SURROUND03",
       fn: moduleDeclarationTest({

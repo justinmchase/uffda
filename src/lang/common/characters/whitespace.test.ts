@@ -31,7 +31,7 @@ Deno.test(
         input: Input.From("   "),
         kind: MatchKind.Ok,
         value: " ",
-        done: false
+        done: false,
       }),
     });
 
@@ -80,7 +80,7 @@ Deno.test(
         moduleUrl,
         input: Input.From("\t"),
         kind: MatchKind.Ok,
-        value: "\t"
+        value: "\t",
       }),
     });
   },

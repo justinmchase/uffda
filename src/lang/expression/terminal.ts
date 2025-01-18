@@ -11,8 +11,8 @@ export const Terminal: ModuleDeclaration = {
       kind: ImportDeclarationKind.Module,
       moduleUrl: "../tokenizer/token.ts",
       names: [
-        "Token"
-      ]
+        "Token",
+      ],
     },
     {
       kind: ImportDeclarationKind.Module,

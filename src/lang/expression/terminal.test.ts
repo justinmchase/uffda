@@ -25,7 +25,7 @@ Deno.test(
         value: { kind: ExpressionKind.Number, value: 1 },
       }),
     });
-    
+
     await t.step({
       name: "TERMINAL_EXPRESSION_01",
       fn: moduleDeclarationTest({
@@ -45,7 +45,7 @@ Deno.test(
         value: { kind: ExpressionKind.Reference, name: "abc" },
       }),
     });
-    
+
     await t.step({
       name: "TERMINAL_EXPRESSION_03",
       fn: moduleDeclarationTest({

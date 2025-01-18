@@ -13,7 +13,9 @@ export function rule(
   scope: Scope,
 ): Match {
   const { module, pattern, expression } = rule;
-  let { key, memo } = scope.memos.resolve(scope.stream.path, rule, [...args.values()]);
+  let { key, memo } = scope.memos.resolve(scope.stream.path, rule, [
+    ...args.values(),
+  ]);
   if (!memo) {
     memo = scope.memos.set(scope.stream.path, key, lr(scope, rule.pattern));
     const subScope = scope

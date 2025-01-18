@@ -13,9 +13,10 @@ export const Token: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: new URL("../common/characters/whitespace.ts", import.meta.url).href,
-      names: ["Whitespace"]
-    }
+      moduleUrl:
+        new URL("../common/characters/whitespace.ts", import.meta.url).href,
+      names: ["Whitespace"],
+    },
   ],
   exports: [
     {
@@ -32,7 +33,7 @@ export const Token: ModuleDeclaration = {
         patterns: [
           {
             kind: PatternKind.Type,
-            type: Type.String
+            type: Type.String,
           },
           {
             kind: PatternKind.Into,
@@ -43,16 +44,16 @@ export const Token: ModuleDeclaration = {
                 kind: PatternKind.Reference,
                 name: "Whitespace",
                 args: [],
-              }
-            }
-          }
-        ]
-      }
+              },
+            },
+          },
+        ],
+      },
     },
     {
       name: "Token",
       parameters: [
-        { name: "P" }
+        { name: "P" },
       ],
       pattern: {
         kind: PatternKind.Reference,

@@ -33,7 +33,7 @@ export const Surround: ModuleDeclaration = {
               kind: PatternKind.Reference,
               name: "L",
               args: [],
-            }
+            },
           },
           {
             kind: PatternKind.Variable,
@@ -52,7 +52,7 @@ export const Surround: ModuleDeclaration = {
               kind: PatternKind.Reference,
               name: "R",
               args: [],
-            }
+            },
           },
         ],
       },

@@ -36,13 +36,13 @@ export const Whitespace: ModuleDeclaration = {
             // is commonly used as whitespace in coding so its specifically
             // added to this pattern.
             kind: PatternKind.Equal,
-            value: "\t"
-          }
+            value: "\t",
+          },
         ],
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ _ }) => _
+        fn: ({ _ }) => _,
       },
     },
   ],

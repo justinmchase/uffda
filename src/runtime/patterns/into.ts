@@ -32,7 +32,7 @@ export function into(pattern: IntoPattern, scope: Scope) {
 
   if (!m.scope.stream.done) {
     // Must consume entire stream to succeed
-    return fail(scope, pattern, [m])
+    return fail(scope, pattern, [m]);
   }
 
   const end = scope

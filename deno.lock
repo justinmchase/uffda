@@ -3,9 +3,9 @@
   "specifiers": {
     "jsr:@justinmchase/serializable@~0.3.13": "0.3.13",
     "jsr:@justinmchase/type@~0.2.4": "0.2.4",
-    "jsr:@std/assert@^1.0.8": "1.0.8",
+    "jsr:@std/assert@^1.0.10": "1.0.10",
     "jsr:@std/crypto@^1.0.3": "1.0.3",
-    "jsr:@std/encoding@^1.0.5": "1.0.5",
+    "jsr:@std/encoding@^1.0.6": "1.0.6",
     "jsr:@std/internal@^1.0.5": "1.0.5",
     "jsr:@std/path@^1.0.8": "1.0.8"
   },
@@ -19,8 +19,8 @@
     "@justinmchase/type@0.2.4": {
       "integrity": "4852b04a1f8f905110e361392cd90a9f965e45eb0872fa84987b2a987f363cf5"
     },
-    "@std/assert@1.0.8": {
-      "integrity": "ebe0bd7eb488ee39686f77003992f389a06c3da1bbd8022184804852b2fa641b",
+    "@std/assert@1.0.10": {
+      "integrity": "59b5cbac5bd55459a19045d95cc7c2ff787b4f8527c0dd195078ff6f9481fbb3",
       "dependencies": [
         "jsr:@std/internal"
       ]
@@ -28,8 +28,8 @@
     "@std/crypto@1.0.3": {
       "integrity": "a2a32f51ddef632d299e3879cd027c630dcd4d1d9a5285d6e6788072f4e51e7f"
     },
-    "@std/encoding@1.0.5": {
-      "integrity": "ecf363d4fc25bd85bd915ff6733a7e79b67e0e7806334af15f4645c569fefc04"
+    "@std/encoding@1.0.6": {
+      "integrity": "ca87122c196e8831737d9547acf001766618e78cd8c33920776c7f5885546069"
     },
     "@std/internal@1.0.5": {
       "integrity": "54a546004f769c1ac9e025abd15a76b6671ddc9687e2313b67376125650dc7ba"
@@ -42,9 +42,9 @@
     "dependencies": [
       "jsr:@justinmchase/serializable@~0.3.13",
       "jsr:@justinmchase/type@~0.2.4",
-      "jsr:@std/assert@^1.0.8",
+      "jsr:@std/assert@^1.0.10",
       "jsr:@std/crypto@^1.0.3",
-      "jsr:@std/encoding@^1.0.5",
+      "jsr:@std/encoding@^1.0.6",
       "jsr:@std/path@^1.0.8"
     ]
   }

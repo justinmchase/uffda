@@ -26,9 +26,9 @@ export const Tokenizer: ModuleDeclaration = {
       kind: ImportDeclarationKind.Module,
       moduleUrl: "./token.ts",
       names: [
-        "Token"
-      ]
-    }
+        "Token",
+      ],
+    },
   ],
   exports: [
     {
@@ -38,7 +38,7 @@ export const Tokenizer: ModuleDeclaration = {
     {
       kind: ExportDeclarationKind.Import,
       name: "Token",
-    }
+    },
   ],
   rules: [
     {
@@ -51,7 +51,7 @@ export const Tokenizer: ModuleDeclaration = {
           kind: PatternKind.Reference,
           name: "Whitespace",
           args: [],
-        }
+        },
       },
       expression: {
         kind: ExpressionKind.Native,
