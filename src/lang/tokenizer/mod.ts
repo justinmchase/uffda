@@ -32,12 +32,13 @@ export const Tokenizer: ModuleDeclaration = {
   ],
   exports: [
     {
-      kind: ExportDeclarationKind.Rule,
-      name: "Main",
-    },
-    {
       kind: ExportDeclarationKind.Import,
       name: "Token",
+    },
+    {
+      kind: ExportDeclarationKind.Rule,
+      name: "Tokenizer",
+      default: true,
     },
   ],
   rules: [
@@ -147,7 +148,7 @@ export const Tokenizer: ModuleDeclaration = {
       },
     },
     {
-      name: "Main",
+      name: "Tokenizer",
       parameters: [],
       pattern: {
         kind: PatternKind.Slice,

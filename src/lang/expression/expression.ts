@@ -19,6 +19,7 @@ export const Expression: ModuleDeclaration = {
     {
       kind: ExportDeclarationKind.Rule,
       name: "Expression",
+      default: true,
     },
   ],
   rules: [

@@ -19,6 +19,7 @@ export const Sequence: ModuleDeclaration = {
     {
       kind: ExportDeclarationKind.Rule,
       name: "Sequence",
+      default: true,
     },
   ],
   rules: [

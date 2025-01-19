@@ -1,6 +1,9 @@
 Expression Language Notes
 
 ```uff
+import "../tokenizer/token.ts" Token;
+import "./string.ts" String;
+
 Expression = Binary
 
 Binary
@@ -26,13 +29,11 @@ Primary =
   ;
 
 Terminal =
-  | Reference // x
-  | Number    // 1
+  | Token<Reference> // x
+  | Token<Number>    // 1
   ;
 
 Sequence = "(" Expression+ ")"
-
-String = "\"" (not "\"" and string)* "\""
 
 // Terminals
 Reference = string >> Identifier // x
@@ -42,4 +43,40 @@ Reference = string >> Identifier // x
 // - handle floats
 // - handle hex
 Number = string >> Digit+ -> parseInt(join("" _)) // 123
+```
+
+#### string
+
+```uff
+import "./primary.ts" Primary;
+
+// todo: should also probably suport escaped \
+EscapedCurlBegin = "\\\\" "\{" -> "\{";
+EscapedDoubleQuote = "\\\\" "\"" -> "\"";
+EscapedString =
+  | EscapedCurlyBegin
+  | EscapedDoubleQuote
+  ;
+StringExpression =
+  "\{"
+  v:Primary
+  "}"
+  -> v
+  ;
+StringContent =
+  (
+  | EscapedString
+  | (not "\{" & not "\"")
+  )+ -> (join, "", _)
+  ;
+
+export String =
+  "\""
+  v:(StringExpression | StringContent)*
+  "\""
+  -> {
+    kind: ExpressionKind.String,
+    values: v
+  }
+  ;
 ```

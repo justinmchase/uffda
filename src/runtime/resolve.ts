@@ -42,6 +42,7 @@ export class Resolver {
         imports: new Map(),
         exports: new Map(),
         rules: new Map(),
+        default: undefined,
       };
       this.modules.set(moduleUrl.href, module);
       const moduleDeclaration = await this.importModule(moduleUrl);
@@ -68,6 +69,14 @@ export class Resolver {
               throw new Error(`Unknown rule ${name}`);
             }
             module.exports.set(name, rule);
+            if (e.default) {
+              if (module.default) {
+                throw new Error(
+                  `Module ${name} cannot have multiple default exports`,
+                );
+              }
+              module.default = rule;
+            }
             break;
           }
         }
@@ -118,6 +127,14 @@ export class Resolver {
               throw new Error(`Unknown import ${name}`);
             }
             module.exports.set(name, resolvedImport);
+            if (e.default) {
+              if (module.default) {
+                throw new Error(
+                  `Module ${name} cannot have multiple default exports`,
+                );
+              }
+              module.default = resolvedImport;
+            }
             break;
           }
         }

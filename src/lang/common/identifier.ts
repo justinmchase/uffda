@@ -78,6 +78,7 @@ export const Identifier: ModuleDeclaration = {
     {
       kind: ExportDeclarationKind.Rule,
       name: "Identifier",
+      default: true,
     },
   ],
   rules: [

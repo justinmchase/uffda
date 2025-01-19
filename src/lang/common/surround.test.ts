@@ -90,6 +90,7 @@ export const SurroundTest: ModuleDeclaration = {
     {
       kind: ExportDeclarationKind.Rule,
       name: "SurroundTest",
+      default: true,
     },
   ],
   rules: [

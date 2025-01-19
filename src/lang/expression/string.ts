@@ -20,6 +20,7 @@ export const String: ModuleDeclaration = {
     {
       kind: ExportDeclarationKind.Rule,
       name: "String",
+      default: true,
     },
   ],
   rules: [
@@ -99,7 +100,7 @@ export const String: ModuleDeclaration = {
             name: "v",
             pattern: {
               kind: PatternKind.Reference,
-              name: "Primary",
+              name: "Primary", // todo: this should be Expression
               args: [],
             },
           },

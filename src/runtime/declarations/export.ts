@@ -10,9 +10,11 @@ export enum ExportDeclarationKind {
 export type ImportExportDeclaration = {
   kind: ExportDeclarationKind.Import;
   name: string;
+  default?: boolean;
 };
 
 export type RuleExportDeclaration = {
   kind: ExportDeclarationKind.Rule;
   name: string;
+  default?: boolean;
 };

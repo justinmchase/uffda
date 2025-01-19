@@ -8,6 +8,7 @@ export const Combining: ModuleDeclaration = {
     {
       kind: ExportDeclarationKind.Rule,
       name: "Combining",
+      default: true,
     },
   ],
   rules: [
