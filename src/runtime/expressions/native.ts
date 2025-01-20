@@ -6,5 +6,5 @@ export function native(expression: NativeExpression, match: MatchOk): unknown {
     _: match.value,
     ...Object.fromEntries(match.scope.variables),
   };
-  return expression.fn(variables, match.scope.options.specials);
+  return expression.fn(variables, match.scope.options.specials, match);
 }

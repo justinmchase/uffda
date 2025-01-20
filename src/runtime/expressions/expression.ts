@@ -1,15 +1,16 @@
 import { ExpressionKind } from "./expression.kind.ts";
+import { Type, type } from "@justinmchase/type";
 import type { Pattern } from "../patterns/pattern.ts";
 import type { Serializable } from "@justinmchase/serializable";
 import type { Special } from "../modules/mod.ts";
-import { Type, type } from "@justinmchase/type";
+import type { MatchOk } from "../../match.ts";
 
 export type ProjectionFunction = (
   // deno-lint-ignore no-explicit-any
   args: any,
   specials: Map<string, Special>,
-  // deno-lint-ignore no-explicit-any
-) => any;
+  match: MatchOk,
+) => unknown;
 
 export enum BinaryOperation {
   And = "and",
