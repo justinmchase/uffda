@@ -22,11 +22,22 @@ export const Tokenizer: ModuleDeclaration = {
         "Whitespace",
       ],
     },
+    {
+      kind: ImportDeclarationKind.Module,
+      moduleUrl: "./token.ts",
+      names: [
+        "Token",
+      ],
+    },
   ],
   exports: [
     {
       kind: ExportDeclarationKind.Rule,
       name: "Tokenizer",
+    },
+    {
+      kind: ExportDeclarationKind.Import,
+      name: "Token",
     },
   ],
   rules: [
@@ -34,9 +45,17 @@ export const Tokenizer: ModuleDeclaration = {
       name: "WhitespaceToken",
       parameters: [],
       pattern: {
-        kind: PatternKind.Reference,
-        name: "Whitespace",
-        args: [],
+        kind: PatternKind.Slice,
+        min: 1,
+        pattern: {
+          kind: PatternKind.Reference,
+          name: "Whitespace",
+          args: [],
+        },
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ _ }) => _.join(""),
       },
     },
     {
@@ -99,7 +118,7 @@ export const Tokenizer: ModuleDeclaration = {
       },
     },
     {
-      name: "Token",
+      name: "Tokens",
       parameters: [],
       pattern: {
         kind: PatternKind.Or,
@@ -134,7 +153,7 @@ export const Tokenizer: ModuleDeclaration = {
         kind: PatternKind.Slice,
         pattern: {
           kind: PatternKind.Reference,
-          name: "Token",
+          name: "Tokens",
           args: [],
         },
       },

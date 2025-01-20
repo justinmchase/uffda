@@ -5,53 +5,63 @@ import {
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../../runtime/patterns/mod.ts";
 
-export const Group: ModuleDeclaration = {
+export const Surround: ModuleDeclaration = {
   imports: [],
   exports: [
     {
       kind: ExportDeclarationKind.Rule,
-      name: "Group",
+      name: "Surround",
     },
   ],
   rules: [
     {
-      // Group<P> = "(" p:P? ")" -> p;
-      name: "Group",
+      // Group<L, P, R> = L? p:P R? -> p;
+      name: "Surround",
       parameters: [
+        { name: "L" },
         { name: "P" },
+        { name: "R" },
       ],
       pattern: {
         kind: PatternKind.Then,
         patterns: [
           {
-            kind: PatternKind.Equal,
-            value: "(",
+            kind: PatternKind.Slice,
+            min: 0,
+            max: 1,
+            pattern: {
+              kind: PatternKind.Reference,
+              name: "L",
+              args: [],
+            },
           },
           {
             kind: PatternKind.Variable,
             name: "p",
             pattern: {
-              kind: PatternKind.Slice,
-              max: 1,
-              pattern: {
-                kind: PatternKind.Reference,
-                name: "P",
-                args: [],
-              },
+              kind: PatternKind.Reference,
+              name: "P",
+              args: [],
             },
           },
           {
-            kind: PatternKind.Equal,
-            value: ")",
+            kind: PatternKind.Slice,
+            min: 0,
+            max: 1,
+            pattern: {
+              kind: PatternKind.Reference,
+              name: "R",
+              args: [],
+            },
           },
         ],
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ p }) => p[0],
+        fn: ({ p }) => p,
       },
     },
   ],
 };
 
-export default Group;
+export default Surround;

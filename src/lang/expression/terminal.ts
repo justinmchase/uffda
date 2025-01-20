@@ -9,6 +9,13 @@ export const Terminal: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
+      moduleUrl: "../tokenizer/token.ts",
+      names: [
+        "Token",
+      ],
+    },
+    {
+      kind: ImportDeclarationKind.Module,
       moduleUrl: "./reference.ts",
       names: [
         "Reference",
@@ -37,13 +44,13 @@ export const Terminal: ModuleDeclaration = {
         patterns: [
           {
             kind: PatternKind.Reference,
-            name: "Number",
-            args: [],
+            name: "Token",
+            args: ["Number"],
           },
           {
             kind: PatternKind.Reference,
-            name: "Reference",
-            args: [],
+            name: "Token",
+            args: ["Reference"],
           },
         ],
       },

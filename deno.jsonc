@@ -13,9 +13,9 @@
   "imports": {
     "@justinmchase/serializable": "jsr:@justinmchase/serializable@^0.3.13",
     "@justinmchase/type": "jsr:@justinmchase/type@^0.2.4",
-    "@std/assert": "jsr:@std/assert@^1.0.8",
+    "@std/assert": "jsr:@std/assert@^1.0.10",
     "@std/crypto": "jsr:@std/crypto@^1.0.3",
-    "@std/encoding": "jsr:@std/encoding@^1.0.5",
+    "@std/encoding": "jsr:@std/encoding@^1.0.6",
     "@std/path": "jsr:@std/path@^1.0.8"
   }
 }

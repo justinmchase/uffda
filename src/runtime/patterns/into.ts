@@ -29,6 +29,12 @@ export function into(pattern: IntoPattern, scope: Scope) {
     .withInput(innerStream);
 
   const m = match(pattern.pattern, innerScope);
+
+  if (!m.scope.stream.done) {
+    // Must consume entire stream to succeed
+    return fail(scope, pattern, [m]);
+  }
+
   const end = scope
     .withInput(next)
     .addVariables(m.scope.variables);
