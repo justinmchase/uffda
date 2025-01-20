@@ -8,6 +8,7 @@ export const Letter: ModuleDeclaration = {
     {
       kind: ExportDeclarationKind.Rule,
       name: "Letter",
+      default: true,
     },
   ],
   rules: [

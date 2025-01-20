@@ -72,6 +72,7 @@ export const TokenTest: ModuleDeclaration = {
     {
       kind: ExportDeclarationKind.Rule,
       name: "TokenTest",
+      default: true,
     },
   ],
   rules: [

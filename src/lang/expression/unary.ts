@@ -23,6 +23,7 @@ export const Unary: ModuleDeclaration = {
     {
       kind: ExportDeclarationKind.Rule,
       name: "Unary",
+      default: true,
     },
   ],
   rules: [

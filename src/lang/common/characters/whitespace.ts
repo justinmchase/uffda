@@ -9,6 +9,7 @@ export const Whitespace: ModuleDeclaration = {
     {
       kind: ExportDeclarationKind.Rule,
       name: "Whitespace",
+      default: true,
     },
   ],
   rules: [

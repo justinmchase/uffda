@@ -16,7 +16,11 @@ Deno.test("runtime.patterns.reference", async (t) => {
       declarations: {
         [import.meta.url]: {
           imports: [],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "Main" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "Main",
+            default: true,
+          }],
           rules: [
             {
               name: "A",
@@ -48,7 +52,11 @@ Deno.test("runtime.patterns.reference", async (t) => {
       declarations: {
         [import.meta.url]: {
           imports: [],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "Main" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "Main",
+            default: true,
+          }],
           rules: [
             {
               name: "A",
@@ -91,7 +99,11 @@ Deno.test("runtime.patterns.reference", async (t) => {
       declarations: {
         [import.meta.url]: {
           imports: [],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "Main" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "Main",
+            default: true,
+          }],
           rules: [
             {
               name: "A",
@@ -137,7 +149,11 @@ Deno.test("runtime.patterns.reference", async (t) => {
       declarations: {
         [import.meta.url]: {
           imports: [],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "Main" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "Main",
+            default: true,
+          }],
           rules: [
             {
               name: "A",
@@ -172,7 +188,11 @@ Deno.test("runtime.patterns.reference", async (t) => {
       declarations: {
         [import.meta.url]: {
           imports: [],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "Main" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "Main",
+            default: true,
+          }],
           rules: [
             {
               name: "A",
@@ -213,7 +233,11 @@ Deno.test("runtime.patterns.reference", async (t) => {
       declarations: {
         [import.meta.url]: {
           imports: [],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "Main" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "Main",
+            default: true,
+          }],
           rules: [
             {
               name: "A",
@@ -260,7 +284,11 @@ Deno.test("runtime.patterns.reference", async (t) => {
               names: ["A"],
             },
           ],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "Main" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "Main",
+            default: true,
+          }],
           rules: [
             {
               name: "B",
@@ -281,7 +309,7 @@ Deno.test("runtime.patterns.reference", async (t) => {
         ["file:///a.ts"]: {
           imports: [],
           exports: [
-            { kind: ExportDeclarationKind.Rule, name: "A" },
+            { kind: ExportDeclarationKind.Rule, name: "A", default: true },
           ],
           rules: [
             // Rule A is defined in a separate module
@@ -319,7 +347,11 @@ Deno.test("runtime.patterns.reference", async (t) => {
               names: ["A"],
             },
           ],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "Main" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "Main",
+            default: true,
+          }],
           rules: [
             // Rule B is passed as an argument for parameter T into rule A
             // Yet rule B is still able to access rule C since it is resolving references in its context
@@ -350,7 +382,11 @@ Deno.test("runtime.patterns.reference", async (t) => {
         },
         ["file:///a.ts"]: {
           imports: [],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "A" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "A",
+            default: true,
+          }],
           rules: [
             // Rule A is defined in a separate module
             // But it is still able to access rule B since it is passed as an argument for parameter T
@@ -387,7 +423,11 @@ Deno.test("runtime.patterns.reference", async (t) => {
               names: ["A"],
             },
           ],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "Main" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "Main",
+            default: true,
+          }],
           rules: [
             {
               name: "B",
@@ -416,7 +456,11 @@ Deno.test("runtime.patterns.reference", async (t) => {
         },
         ["file:///a.ts"]: {
           imports: [],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "A" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "A",
+            default: true,
+          }],
           rules: [
             // Rule A is not able to access rule C since it is scoped to a different module
             {
@@ -455,7 +499,11 @@ Deno.test("runtime.patterns.reference", async (t) => {
               names: ["A"],
             },
           ],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "Main" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "Main",
+            default: true,
+          }],
           rules: [
             {
               name: "B",

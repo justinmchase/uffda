@@ -17,7 +17,11 @@ Deno.test("runtime.rule", async (t) => {
       declarations: {
         [import.meta.url]: {
           imports: [],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "R" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "R",
+            default: true,
+          }],
           rules: [
             {
               name: "R",
@@ -43,7 +47,11 @@ Deno.test("runtime.rule", async (t) => {
       declarations: {
         [import.meta.url]: {
           imports: [],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "a" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "a",
+            default: true,
+          }],
           rules: [
             {
               // a = a | 'a'
@@ -81,7 +89,11 @@ Deno.test("runtime.rule", async (t) => {
       declarations: {
         [import.meta.url]: {
           imports: [],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "a" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "a",
+            default: true,
+          }],
           rules: [
             {
               name: "a",
@@ -119,7 +131,7 @@ Deno.test("runtime.rule", async (t) => {
           imports: [],
           exports: [
             { kind: ExportDeclarationKind.Rule, name: "a" },
-            { kind: ExportDeclarationKind.Rule, name: "b" },
+            { kind: ExportDeclarationKind.Rule, name: "b", default: true },
           ],
           rules: [
             {
@@ -155,7 +167,11 @@ Deno.test("runtime.rule", async (t) => {
       declarations: {
         [import.meta.url]: {
           imports: [],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "a" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "a",
+            default: true,
+          }],
           rules: [
             {
               // a = 'a' a | 'a'
@@ -193,7 +209,7 @@ Deno.test("runtime.rule", async (t) => {
           imports: [],
           exports: [
             { kind: ExportDeclarationKind.Rule, name: "P0" },
-            { kind: ExportDeclarationKind.Rule, name: "P1" },
+            { kind: ExportDeclarationKind.Rule, name: "P1", default: true },
           ],
           rules: [
             {
@@ -246,7 +262,7 @@ Deno.test("runtime.rule", async (t) => {
           imports: [],
           exports: [
             { kind: ExportDeclarationKind.Rule, name: "P0" },
-            { kind: ExportDeclarationKind.Rule, name: "P1" },
+            { kind: ExportDeclarationKind.Rule, name: "P1", default: true },
           ],
           rules: [
             {
@@ -293,7 +309,11 @@ Deno.test("runtime.rule", async (t) => {
       declarations: {
         ["file:///m0.ts"]: {
           imports: [],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "P0" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "P0",
+            default: true,
+          }],
           rules: [
             {
               name: "P0",
@@ -316,7 +336,11 @@ Deno.test("runtime.rule", async (t) => {
               names: ["P0"],
             },
           ],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "P1" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "P1",
+            default: true,
+          }],
           rules: [
             {
               name: "P1",
@@ -355,7 +379,11 @@ Deno.test("runtime.rule", async (t) => {
       declarations: {
         ["file:///m0.ts"]: {
           imports: [],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "P0" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "P0",
+            default: true,
+          }],
           rules: [
             {
               name: "P0",

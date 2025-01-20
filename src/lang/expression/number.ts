@@ -20,6 +20,7 @@ export const Number: ModuleDeclaration = {
     {
       kind: ExportDeclarationKind.Rule,
       name: "Number",
+      default: true,
     },
   ],
   rules: [

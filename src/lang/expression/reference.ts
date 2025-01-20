@@ -20,6 +20,7 @@ export const Reference: ModuleDeclaration = {
     {
       kind: ExportDeclarationKind.Rule,
       name: "Reference",
+      default: true,
     },
   ],
   rules: [

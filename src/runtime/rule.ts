@@ -12,12 +12,35 @@ export function rule(
   args: Map<string, Rule>,
   scope: Scope,
 ): Match {
-  const { module, pattern, expression } = rule;
+  const { module, pattern, expression, name, parameters } = rule;
+  const params = new Set<string>();
+  for (const p of parameters) {
+    params.add(p.name);
+    if (!args.has(p.name)) {
+      return error(
+        scope,
+        pattern,
+        MatchErrorCode.InvalidArgument,
+        `parameter ${p.name} not provided for rule ${name}`,
+      );
+    }
+  }
+  for (const [arg] of args) {
+    if (!params.has(arg)) {
+      return error(
+        scope,
+        pattern,
+        MatchErrorCode.InvalidArgument,
+        `argument ${arg} was not expected for rule ${name}`,
+      );
+    }
+  }
+
   let { key, memo } = scope.memos.resolve(scope.stream.path, rule, [
     ...args.values(),
   ]);
   if (!memo) {
-    memo = scope.memos.set(scope.stream.path, key, lr(scope, rule.pattern));
+    memo = scope.memos.set(scope.stream.path, key, lr(scope, pattern));
     const subScope = scope
       .pushModule(module)
       .pushRule(rule, args);

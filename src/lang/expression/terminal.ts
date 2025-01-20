@@ -33,6 +33,7 @@ export const Terminal: ModuleDeclaration = {
     {
       kind: ExportDeclarationKind.Rule,
       name: "Terminal",
+      default: true,
     },
   ],
   rules: [

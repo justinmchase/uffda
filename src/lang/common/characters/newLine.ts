@@ -9,6 +9,7 @@ export const NewLine: ModuleDeclaration = {
     {
       kind: ExportDeclarationKind.Rule,
       name: "NewLine",
+      default: true,
     },
   ],
   rules: [

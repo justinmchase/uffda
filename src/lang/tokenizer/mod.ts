@@ -32,12 +32,13 @@ export const Tokenizer: ModuleDeclaration = {
   ],
   exports: [
     {
-      kind: ExportDeclarationKind.Rule,
-      name: "Tokenizer",
-    },
-    {
       kind: ExportDeclarationKind.Import,
       name: "Token",
+    },
+    {
+      kind: ExportDeclarationKind.Rule,
+      name: "Tokenizer",
+      default: true,
     },
   ],
   rules: [
