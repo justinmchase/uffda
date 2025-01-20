@@ -8,6 +8,7 @@ export const Connecting: ModuleDeclaration = {
     {
       kind: ExportDeclarationKind.Rule,
       name: "Connecting",
+      default: true,
     },
   ],
   rules: [

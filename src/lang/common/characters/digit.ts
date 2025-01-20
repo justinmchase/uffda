@@ -8,6 +8,7 @@ export const Digit: ModuleDeclaration = {
     {
       kind: ExportDeclarationKind.Rule,
       name: "Digit",
+      default: true,
     },
   ],
   rules: [

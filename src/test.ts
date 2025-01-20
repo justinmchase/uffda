@@ -233,7 +233,11 @@ export function ruleTest(options: RuleTestOptions) {
         "file:///test.ts": {
           imports: [],
           exports: [
-            { kind: ExportDeclarationKind.Rule, name: rule.name },
+            {
+              kind: ExportDeclarationKind.Rule,
+              name: rule.name,
+              default: true,
+            },
           ],
           rules: [rule],
         },
@@ -330,7 +334,7 @@ function assertLR(m: MatchLR, assertion: MatchAssertion) {
 function assertError(m: MatchError, assertion: MatchAssertion) {
   assert(
     m.kind === assertion.kind,
-    `Match was ${m.kind} with message ${m.message} but expected to be ${assertion.kind}`,
+    `Match was [${m.kind}] with message "${m.message}" but expected to be [${assertion.kind}]`,
   );
   assert(
     m.message === assertion.message,
@@ -395,7 +399,7 @@ function assertFail(m: MatchFail, assertion: MatchAssertion) {
 function assertOk(m: MatchOk, assertion: MatchAssertion) {
   assert(
     m.kind === assertion.kind,
-    `Match was ${m.kind} but expected to be ${assertion.kind}`,
+    `Match was [${m.kind}] but expected to be ${assertion.kind}`,
   );
   assert(
     equal(m.value, assertion.value),

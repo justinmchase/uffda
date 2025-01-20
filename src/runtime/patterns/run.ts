@@ -6,22 +6,21 @@ import type { RunPattern } from "./pattern.ts";
 
 export function run(scope: Scope, pattern: RunPattern): Match {
   const { module } = scope;
-  const { name = "Main" } = pattern;
+  const { name } = pattern;
 
   // Main rule selection:
   // 1. If the caller specifies a pattern name, use that
-  // 2. Look for a rule called Main
-  // 3. Use the last rule in the module
-  const main = module.exports.has(name)
-    ? module.exports.get(name)
-    : [...module.exports.values()].slice(-1)[0];
+  // 2. Use the default pattern
+  const main = name ? module.exports.get(name) : module.default;
 
   if (!main) {
     return error(
       scope,
       pattern,
       MatchErrorCode.PatternExpected,
-      `Rule ${name} not found`,
+      name
+        ? `Rule ${name} not found`
+        : `Module does not have a default export, please specify which Rule you want to import`,
     );
   }
 

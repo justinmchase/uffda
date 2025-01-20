@@ -24,6 +24,7 @@ export const Binary: ModuleDeclaration = {
     {
       kind: ExportDeclarationKind.Rule,
       name: "Binary",
+      default: true,
     },
   ],
   rules: [

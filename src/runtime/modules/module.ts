@@ -5,6 +5,7 @@ export type Module = {
   imports: Map<string, Rule>;
   exports: Map<string, Rule>;
   rules: Map<string, Rule>;
+  default: Rule | undefined;
 };
 
 export const DefaultModule: () => Module = () => ({
@@ -12,4 +13,5 @@ export const DefaultModule: () => Module = () => ({
   imports: new Map(),
   exports: new Map(),
   rules: new Map(),
+  default: undefined,
 });

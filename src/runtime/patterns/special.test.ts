@@ -12,12 +12,14 @@ const mod0: Module = {
   imports: new Map(),
   exports: new Map(),
   rules: new Map(),
+  default: undefined,
 };
 const mod1: Module = {
   moduleUrl: new URL("file:///t1.ts"),
   imports: new Map(),
   exports: new Map(),
   rules: new Map(),
+  default: undefined,
 };
 const rule: Rule = {
   name: "A",
@@ -29,6 +31,7 @@ const rule: Rule = {
 };
 mod0.rules.set("A", rule);
 mod0.exports.set("A", rule);
+mod0.default = rule;
 
 Deno.test("runtime.patterns.special", async (t) => {
   await t.step({
@@ -78,7 +81,8 @@ Deno.test("runtime.patterns.special", async (t) => {
       },
       kind: MatchKind.Error,
       code: MatchErrorCode.PatternExpected,
-      message: "Rule Main not found",
+      message:
+        "Module does not have a default export, please specify which Rule you want to import",
       start: Path.From(0),
       end: Path.From(0),
     }),

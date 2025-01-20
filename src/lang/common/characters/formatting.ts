@@ -8,6 +8,7 @@ export const Formatting: ModuleDeclaration = {
     {
       kind: ExportDeclarationKind.Rule,
       name: "Formatting",
+      default: true,
     },
   ],
   rules: [

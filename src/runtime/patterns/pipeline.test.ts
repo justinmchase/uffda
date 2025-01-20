@@ -13,7 +13,11 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       declarations: {
         [import.meta.url]: {
           imports: [],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "Test" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "Test",
+            default: true,
+          }],
           rules: [
             {
               name: "Test",
@@ -41,7 +45,11 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       declarations: {
         [import.meta.url]: {
           imports: [],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "Test" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "Test",
+            default: true,
+          }],
           rules: [
             {
               name: "One",
@@ -102,7 +110,11 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       declarations: {
         [import.meta.url]: {
           imports: [],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "Test" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "Test",
+            default: true,
+          }],
           rules: [
             {
               name: "PlusOne",
@@ -163,7 +175,11 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       declarations: {
         [import.meta.url]: {
           imports: [],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "Test" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "Test",
+            default: true,
+          }],
           rules: [
             {
               name: "P",
@@ -208,7 +224,11 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       declarations: {
         [import.meta.url]: {
           imports: [],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "Test" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "Test",
+            default: true,
+          }],
           rules: [
             {
               name: "P",
@@ -252,7 +272,11 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       declarations: {
         [import.meta.url]: {
           imports: [],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "Test" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "Test",
+            default: true,
+          }],
           rules: [
             {
               name: "P",
@@ -307,7 +331,11 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       declarations: {
         [import.meta.url]: {
           imports: [],
-          exports: [{ kind: ExportDeclarationKind.Rule, name: "Test" }],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "Test",
+            default: true,
+          }],
           rules: [
             {
               name: "Test",
