@@ -9,16 +9,12 @@ const p = await Deno.permissions.query({
   path: moduleUrl,
 });
 
-// This test is not yet working because the output of the Tokenizer
-// is leaving whitespace but the expression language is expecting it
-// to be without whitespace.
-//
-// So for this to work we need to either add a Whitespace filter layer
-// or add whitespace handling into the expression language.
+// This test now works with the Insignificant whitespace filter
+// that removes whitespace from the tokenizer output.
 Deno.test(
   {
     name: "lang.expression",
-    ignore: true || p.state !== "granted",
+    ignore: p.state !== "granted",
   },
   async (t) => {
     await t.step({

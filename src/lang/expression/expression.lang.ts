@@ -42,6 +42,13 @@ export const ExpressionLang: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
+      moduleUrl: "../common/whitespace/insignificant.ts",
+      names: [
+        "Insignificant",
+      ],
+    },
+    {
+      kind: ImportDeclarationKind.Module,
       moduleUrl: "./expression.ts",
       names: [
         "Expression",
@@ -64,6 +71,11 @@ export const ExpressionLang: ModuleDeclaration = {
           {
             kind: PatternKind.Reference,
             name: "Tokenizer",
+            args: [],
+          },
+          {
+            kind: PatternKind.Reference,
+            name: "Insignificant",
             args: [],
           },
           {
