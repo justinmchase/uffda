@@ -32,43 +32,53 @@ export const Insignificant: ModuleDeclaration = {
           const tokens = _ as unknown[];
           const result: unknown[] = [];
           let i = 0;
-          let insideString = false;
-          let braceDepth = 0;
+
+          // Stack to track context: 'string' or 'interpolation'
+          const contextStack: string[] = [];
 
           while (i < tokens.length) {
             const token = tokens[i];
+            const currentContext = contextStack[contextStack.length - 1];
 
-            // Track when we enter/exit strings
+            // Handle quote - toggles string context
             if (token === '"') {
-              insideString = !insideString;
-              braceDepth = 0; // Reset brace depth when entering/exiting string
+              if (currentContext === "string") {
+                // Exiting a string
+                contextStack.pop();
+              } else {
+                // Entering a string (from top-level or from interpolation)
+                contextStack.push("string");
+              }
               result.push(token);
               i++;
               continue;
             }
 
-            // Track brace depth for interpolated expressions
-            if (insideString) {
-              if (token === "{") {
-                braceDepth++;
-                result.push(token);
-                i++;
-                continue;
-              } else if (token === "}") {
-                braceDepth--;
-                result.push(token);
-                i++;
-                continue;
-              }
+            // Handle braces - manage interpolation context within strings
+            if (token === "{" && currentContext === "string") {
+              contextStack.push("interpolation");
+              result.push(token);
+              i++;
+              continue;
             }
 
-            // Determine if we should filter whitespace
-            const shouldFilterWhitespace = !insideString || braceDepth > 0;
+            if (token === "}" && currentContext === "interpolation") {
+              contextStack.pop();
+              result.push(token);
+              i++;
+              continue;
+            }
+
+            // Determine if we should filter whitespace:
+            // - Top level (empty stack): filter
+            // - Inside interpolation: filter
+            // - Inside string (not interpolation): keep
+            const shouldFilterWhitespace = currentContext !== "string";
 
             if (typeof token === "string" && token.trim() === "") {
               // This is a whitespace or newline token
               if (shouldFilterWhitespace) {
-                // Skip whitespace outside strings or inside interpolated expressions
+                // Skip whitespace at top level or inside interpolated expressions
                 i++;
                 continue;
               } else {
