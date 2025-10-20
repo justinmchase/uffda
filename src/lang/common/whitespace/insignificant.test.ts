@@ -264,5 +264,46 @@ Deno.test({
         kind: MatchKind.Ok,
       }),
     });
+
+    await t.step({
+      name: "INSIGNIFICANT14 - escaped expression preserves whitespace",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.From([
+          '"',
+          "$",
+          "(",
+          "a",
+          " ",
+          "b",
+          ")",
+          "\\",
+          "$",
+          "(",
+          "a",
+          " ",
+          "b",
+          ")",
+          '"',
+        ]),
+        value: [
+          '"',
+          "$",
+          "(",
+          "a",
+          "b",
+          ")",
+          "\\",
+          "$",
+          "(",
+          "a",
+          " ",
+          "b",
+          ")",
+          '"',
+        ],
+        kind: MatchKind.Ok,
+      }),
+    });
   },
 });

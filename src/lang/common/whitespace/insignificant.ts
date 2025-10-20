@@ -83,7 +83,7 @@ export const Insignificant: ModuleDeclaration = {
           },
           {
             kind: PatternKind.Type,
-            type: Type.Unknown,
+            type: Type.String,
           },
         ],
       },
@@ -106,6 +106,51 @@ export const Insignificant: ModuleDeclaration = {
               pattern: {
                 kind: PatternKind.Or,
                 patterns: [
+                  {
+                    // Match escaped expression \$( - keep as literal, preserve whitespace
+                    kind: PatternKind.Then,
+                    patterns: [
+                      {
+                        kind: PatternKind.Equal,
+                        value: "\\",
+                      },
+                      {
+                        kind: PatternKind.Equal,
+                        value: "$",
+                      },
+                      {
+                        kind: PatternKind.Equal,
+                        value: "(",
+                      },
+                      {
+                        kind: PatternKind.Variable,
+                        name: "escaped_content",
+                        pattern: {
+                          kind: PatternKind.Slice,
+                          pattern: {
+                            kind: PatternKind.And,
+                            patterns: [
+                              {
+                                kind: PatternKind.Not,
+                                pattern: {
+                                  kind: PatternKind.Equal,
+                                  value: ")",
+                                },
+                              },
+                              {
+                                kind: PatternKind.Type,
+                                type: Type.Unknown,
+                              },
+                            ],
+                          },
+                        },
+                      },
+                      {
+                        kind: PatternKind.Equal,
+                        value: ")",
+                      },
+                    ],
+                  },
                   {
                     // Match $( and then recursively process until )
                     kind: PatternKind.Then,

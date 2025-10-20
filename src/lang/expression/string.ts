@@ -46,7 +46,7 @@ export const String: ModuleDeclaration = {
       },
       expression: {
         kind: ExpressionKind.String,
-        values: ["$("],
+        values: ["$", "("],
       },
     },
     {
