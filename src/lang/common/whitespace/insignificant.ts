@@ -33,6 +33,12 @@ export const Insignificant: ModuleDeclaration = {
           const result: unknown[] = [];
           let i = 0;
 
+          // Context constants for better maintainability
+          const CONTEXT = {
+            STRING: "string",
+            INTERPOLATION: "interpolation",
+          } as const;
+
           // Stack to track context: 'string' or 'interpolation'
           const contextStack: string[] = [];
 
@@ -42,12 +48,12 @@ export const Insignificant: ModuleDeclaration = {
 
             // Handle quote - toggles string context
             if (token === '"') {
-              if (currentContext === "string") {
+              if (currentContext === CONTEXT.STRING) {
                 // Exiting a string
                 contextStack.pop();
               } else {
                 // Entering a string (from top-level or from interpolation)
-                contextStack.push("string");
+                contextStack.push(CONTEXT.STRING);
               }
               result.push(token);
               i++;
@@ -55,14 +61,14 @@ export const Insignificant: ModuleDeclaration = {
             }
 
             // Handle braces - manage interpolation context within strings
-            if (token === "{" && currentContext === "string") {
-              contextStack.push("interpolation");
+            if (token === "{" && currentContext === CONTEXT.STRING) {
+              contextStack.push(CONTEXT.INTERPOLATION);
               result.push(token);
               i++;
               continue;
             }
 
-            if (token === "}" && currentContext === "interpolation") {
+            if (token === "}" && currentContext === CONTEXT.INTERPOLATION) {
               contextStack.pop();
               result.push(token);
               i++;
@@ -73,7 +79,7 @@ export const Insignificant: ModuleDeclaration = {
             // - Top level (empty stack): filter
             // - Inside interpolation: filter
             // - Inside string (not interpolation): keep
-            const shouldFilterWhitespace = currentContext !== "string";
+            const shouldFilterWhitespace = currentContext !== CONTEXT.STRING;
 
             if (typeof token === "string" && token.trim() === "") {
               // This is a whitespace or newline token
