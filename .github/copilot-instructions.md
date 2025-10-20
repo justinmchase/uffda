@@ -38,3 +38,13 @@ This project is a Deno-based parser generator for domain specific languages.
 - Maintain test coverage for new features
 - Follow existing code patterns and conventions
 - Use TypeScript types for better code safety
+
+## Testing Requirements
+
+- **Every code file change must include a corresponding test**
+- Tests are co-located with source files using the `*.test.ts` naming pattern
+- When modifying a file (e.g., `src/example.ts`), ensure a test file exists (e.g., `src/example.test.ts`)
+- **Every change to code must have a test that validates the change**
+- Add new test cases when adding new functionality
+- Update existing test cases when modifying functionality
+- Ensure all tests pass before committing changes
