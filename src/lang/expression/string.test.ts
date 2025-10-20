@@ -33,7 +33,7 @@ Deno.test(
       name: "STRING_EXPRESSION_01",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(['"', "x", "{", "y", "}", "z", '"']),
+        input: Input.From(['"', "x", "$", "(", "y", ")", "z", '"']),
         kind: MatchKind.Ok,
         value: {
           kind: ExpressionKind.String,
@@ -53,12 +53,12 @@ Deno.test(
       name: "STRING_EXPRESSION_02",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(['"', "x", "\\", "{", "y", "}", "z", '"']),
+        input: Input.From(['"', "x", "\\", "$", "(", "y", ")", "z", '"']),
         kind: MatchKind.Ok,
         value: {
           kind: ExpressionKind.String,
           values: [
-            "x{y}z",
+            "x$(y)z",
           ],
         },
       }),
@@ -83,7 +83,7 @@ Deno.test(
       name: "STRING_EXPRESSION_04",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(['"', "x", "{", '"', "y", '"', "}", "z", '"']),
+        input: Input.From(['"', "x", "$", "(", '"', "y", '"', ")", "z", '"']),
         kind: MatchKind.Ok,
         value: {
           kind: ExpressionKind.String,
@@ -103,16 +103,18 @@ Deno.test(
         input: Input.From([
           '"',
           "x",
-          "{",
+          "$",
+          "(",
           '"',
-          "{",
+          "$",
+          "(",
           "y",
-          "}",
+          ")",
           '"',
-          "}",
+          ")",
           "z",
           '"',
-        ]), // "x{"{y}"}z"
+        ]), // "x$("$(y)")z"
         kind: MatchKind.Ok,
         value: {
           kind: ExpressionKind.String,

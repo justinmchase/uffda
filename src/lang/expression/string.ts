@@ -25,7 +25,7 @@ export const String: ModuleDeclaration = {
   ],
   rules: [
     {
-      name: "EscapedCurlyBegin",
+      name: "EscapedDollarParen",
       parameters: [],
       pattern: {
         kind: PatternKind.Then,
@@ -36,13 +36,17 @@ export const String: ModuleDeclaration = {
           },
           {
             kind: PatternKind.Equal,
-            value: "{",
+            value: "$",
+          },
+          {
+            kind: PatternKind.Equal,
+            value: "(",
           },
         ],
       },
       expression: {
         kind: ExpressionKind.String,
-        values: ["{"],
+        values: ["$("],
       },
     },
     {
@@ -74,7 +78,7 @@ export const String: ModuleDeclaration = {
         patterns: [
           {
             kind: PatternKind.Reference,
-            name: "EscapedCurlyBegin",
+            name: "EscapedDollarParen",
             args: [],
           },
           {
@@ -93,7 +97,11 @@ export const String: ModuleDeclaration = {
         patterns: [
           {
             kind: PatternKind.Equal,
-            value: "{",
+            value: "$",
+          },
+          {
+            kind: PatternKind.Equal,
+            value: "(",
           },
           {
             kind: PatternKind.Variable,
@@ -106,7 +114,7 @@ export const String: ModuleDeclaration = {
           },
           {
             kind: PatternKind.Equal,
-            value: "}",
+            value: ")",
           },
         ],
       },
@@ -136,7 +144,7 @@ export const String: ModuleDeclaration = {
                   kind: PatternKind.Not,
                   pattern: {
                     kind: PatternKind.Equal,
-                    value: "{",
+                    value: "$",
                   },
                 },
                 {
