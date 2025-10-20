@@ -134,5 +134,131 @@ Deno.test({
         kind: MatchKind.Ok,
       }),
     });
+
+    await t.step({
+      name: "INSIGNIFICANT10 - string with whitespace preserved",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.From([
+          '"',
+          "hello",
+          " ",
+          "world",
+          '"',
+        ]),
+        value: ['"', "hello", " ", "world", '"'],
+        kind: MatchKind.Ok,
+      }),
+    });
+
+    await t.step({
+      name: "INSIGNIFICANT11 - string with interpolation",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.From([
+          '"',
+          "hello",
+          " ",
+          "{",
+          "add",
+          " ",
+          "1",
+          " ",
+          "2",
+          "}",
+          " ",
+          "world",
+          '"',
+        ]),
+        value: [
+          '"',
+          "hello",
+          " ",
+          "{",
+          "add",
+          "1",
+          "2",
+          "}",
+          " ",
+          "world",
+          '"',
+        ],
+        kind: MatchKind.Ok,
+      }),
+    });
+
+    await t.step({
+      name: "INSIGNIFICANT12 - nested string interpolation",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.From([
+          '"',
+          "x",
+          " ",
+          "{",
+          '"',
+          "y",
+          " ",
+          "z",
+          '"',
+          "}",
+          " ",
+          "w",
+          '"',
+        ]),
+        value: [
+          '"',
+          "x",
+          " ",
+          "{",
+          '"',
+          "y",
+          " ",
+          "z",
+          '"',
+          "}",
+          " ",
+          "w",
+          '"',
+        ],
+        kind: MatchKind.Ok,
+      }),
+    });
+
+    await t.step({
+      name: "INSIGNIFICANT13 - expression outside string",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.From([
+          "(",
+          "concat",
+          " ",
+          '"',
+          "hello",
+          " ",
+          "world",
+          '"',
+          " ",
+          '"',
+          "foo",
+          '"',
+          ")",
+        ]),
+        value: [
+          "(",
+          "concat",
+          '"',
+          "hello",
+          " ",
+          "world",
+          '"',
+          '"',
+          "foo",
+          '"',
+          ")",
+        ],
+        kind: MatchKind.Ok,
+      }),
+    });
   },
 });

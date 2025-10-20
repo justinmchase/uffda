@@ -29,60 +29,62 @@ export const Insignificant: ModuleDeclaration = {
       expression: {
         kind: ExpressionKind.Native,
         fn: ({ _ }) => {
-          // Filter out whitespace and newline tokens
-          // Whitespace tokens are strings that contain only whitespace characters
-          // Newline tokens are the string "\n"
-          const filtered = _.filter((token: unknown) => {
-            if (typeof token === "string") {
-              // Check if it's a whitespace-only token or newline token
-              const isWhitespace = token.trim() === "";
-              return !isWhitespace;
-            }
-            // Keep non-string tokens (these would be expression objects, etc.)
-            return true;
-          });
+          const tokens = _ as unknown[];
+          const result: unknown[] = [];
+          let i = 0;
+          let insideString = false;
+          let braceDepth = 0;
 
-          // For objects that might contain nested expressions (like StringExpression),
-          // we need to recursively process them
-          return filtered.map((item: unknown) => {
-            if (
-              typeof item === "object" && item !== null &&
-              "kind" in item && item.kind === ExpressionKind.String
-            ) {
-              // This is a StringExpression with potential interpolations
-              const stringExpr = item as {
-                kind: number;
-                values: unknown[];
-              };
-              // Process the values array to remove whitespace from interpolated expressions
-              // but keep whitespace in string content
-              return {
-                ...stringExpr,
-                values: stringExpr.values.map((value: unknown) => {
-                  // String content should be kept as is
-                  if (typeof value === "string") {
-                    return value;
-                  }
-                  // For interpolated expressions (objects), recursively filter whitespace
-                  // This handles cases like "{add 1 2}" where we want to remove whitespace around "add", "1", "2"
-                  if (
-                    typeof value === "object" && value !== null &&
-                    Array.isArray(value)
-                  ) {
-                    // If it's an array, recursively filter it
-                    return value.filter((token: unknown) => {
-                      if (typeof token === "string") {
-                        return token.trim() !== "";
-                      }
-                      return true;
-                    });
-                  }
-                  return value;
-                }),
-              };
+          while (i < tokens.length) {
+            const token = tokens[i];
+
+            // Track when we enter/exit strings
+            if (token === '"') {
+              insideString = !insideString;
+              braceDepth = 0; // Reset brace depth when entering/exiting string
+              result.push(token);
+              i++;
+              continue;
             }
-            return item;
-          });
+
+            // Track brace depth for interpolated expressions
+            if (insideString) {
+              if (token === "{") {
+                braceDepth++;
+                result.push(token);
+                i++;
+                continue;
+              } else if (token === "}") {
+                braceDepth--;
+                result.push(token);
+                i++;
+                continue;
+              }
+            }
+
+            // Determine if we should filter whitespace
+            const shouldFilterWhitespace = !insideString || braceDepth > 0;
+
+            if (typeof token === "string" && token.trim() === "") {
+              // This is a whitespace or newline token
+              if (shouldFilterWhitespace) {
+                // Skip whitespace outside strings or inside interpolated expressions
+                i++;
+                continue;
+              } else {
+                // Keep whitespace inside string content
+                result.push(token);
+                i++;
+                continue;
+              }
+            }
+
+            // Keep all non-whitespace tokens
+            result.push(token);
+            i++;
+          }
+
+          return result;
         },
       },
     },
