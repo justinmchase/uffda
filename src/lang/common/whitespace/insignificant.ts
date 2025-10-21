@@ -89,6 +89,119 @@ export const Insignificant: ModuleDeclaration = {
       },
     },
     {
+      name: "EscapedInterpolation",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Equal,
+            value: "\\",
+          },
+          {
+            kind: PatternKind.Equal,
+            value: "$",
+          },
+          {
+            kind: PatternKind.Equal,
+            value: "(",
+          },
+          {
+            kind: PatternKind.Variable,
+            name: "content",
+            pattern: {
+              kind: PatternKind.Slice,
+              pattern: {
+                kind: PatternKind.And,
+                patterns: [
+                  {
+                    kind: PatternKind.Not,
+                    pattern: {
+                      kind: PatternKind.Equal,
+                      value: ")",
+                    },
+                  },
+                  {
+                    kind: PatternKind.Type,
+                    type: Type.Unknown,
+                  },
+                ],
+              },
+            },
+          },
+          {
+            kind: PatternKind.Equal,
+            value: ")",
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ content }) => ["\\", "$", "(", ...content, ")"],
+      },
+    },
+    {
+      name: "ActualInterpolation",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Equal,
+            value: "$",
+          },
+          {
+            kind: PatternKind.Equal,
+            value: "(",
+          },
+          {
+            kind: PatternKind.Variable,
+            name: "expr",
+            pattern: {
+              kind: PatternKind.Reference,
+              name: "Insignificant",
+              args: [],
+            },
+          },
+          {
+            kind: PatternKind.Equal,
+            value: ")",
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ expr }) => ["$", "(", ...expr, ")"],
+      },
+    },
+    {
+      name: "StringContent",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.And,
+        patterns: [
+          {
+            kind: PatternKind.Not,
+            pattern: {
+              kind: PatternKind.Equal,
+              value: '"',
+            },
+          },
+          {
+            kind: PatternKind.Not,
+            pattern: {
+              kind: PatternKind.Equal,
+              value: "$",
+            },
+          },
+          {
+            kind: PatternKind.Type,
+            type: Type.Unknown,
+          },
+        ],
+      },
+    },
+    {
       name: "StringExpressionPattern",
       parameters: [],
       pattern: {
@@ -107,100 +220,19 @@ export const Insignificant: ModuleDeclaration = {
                 kind: PatternKind.Or,
                 patterns: [
                   {
-                    // Match escaped expression \$( - keep as literal, preserve whitespace
-                    kind: PatternKind.Then,
-                    patterns: [
-                      {
-                        kind: PatternKind.Equal,
-                        value: "\\",
-                      },
-                      {
-                        kind: PatternKind.Equal,
-                        value: "$",
-                      },
-                      {
-                        kind: PatternKind.Equal,
-                        value: "(",
-                      },
-                      {
-                        kind: PatternKind.Variable,
-                        name: "escaped_content",
-                        pattern: {
-                          kind: PatternKind.Slice,
-                          pattern: {
-                            kind: PatternKind.And,
-                            patterns: [
-                              {
-                                kind: PatternKind.Not,
-                                pattern: {
-                                  kind: PatternKind.Equal,
-                                  value: ")",
-                                },
-                              },
-                              {
-                                kind: PatternKind.Type,
-                                type: Type.Unknown,
-                              },
-                            ],
-                          },
-                        },
-                      },
-                      {
-                        kind: PatternKind.Equal,
-                        value: ")",
-                      },
-                    ],
+                    kind: PatternKind.Reference,
+                    name: "EscapedInterpolation",
+                    args: [],
                   },
                   {
-                    // Match $( and then recursively process until )
-                    kind: PatternKind.Then,
-                    patterns: [
-                      {
-                        kind: PatternKind.Equal,
-                        value: "$",
-                      },
-                      {
-                        kind: PatternKind.Equal,
-                        value: "(",
-                      },
-                      {
-                        kind: PatternKind.Variable,
-                        name: "expr",
-                        pattern: {
-                          kind: PatternKind.Reference,
-                          name: "Insignificant",
-                          args: [],
-                        },
-                      },
-                      {
-                        kind: PatternKind.Equal,
-                        value: ")",
-                      },
-                    ],
+                    kind: PatternKind.Reference,
+                    name: "ActualInterpolation",
+                    args: [],
                   },
                   {
-                    // Match any non-quote, non-$ character
-                    kind: PatternKind.And,
-                    patterns: [
-                      {
-                        kind: PatternKind.Not,
-                        pattern: {
-                          kind: PatternKind.Equal,
-                          value: '"',
-                        },
-                      },
-                      {
-                        kind: PatternKind.Not,
-                        pattern: {
-                          kind: PatternKind.Equal,
-                          value: "$",
-                        },
-                      },
-                      {
-                        kind: PatternKind.Type,
-                        type: Type.Unknown,
-                      },
-                    ],
+                    kind: PatternKind.Reference,
+                    name: "StringContent",
+                    args: [],
                   },
                 ],
               },
