@@ -118,6 +118,15 @@ export function fail(
  *
  * @param match The MatchFail to search
  * @returns The rightmost MatchFail in the tree
+ *
+ * @example
+ * ```ts
+ * const result = match(pattern, scope);
+ * if (result.kind === MatchKind.Fail) {
+ *   const rightmost = getRightmostFailure(result);
+ *   console.log(`Parse failed at position ${rightmost.span.start}`);
+ * }
+ * ```
  */
 export function getRightmostFailure(match: MatchFail): MatchFail {
   let rightmost = match;
