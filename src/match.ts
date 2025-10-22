@@ -1,4 +1,5 @@
 import type { Pattern } from "./runtime/patterns/pattern.ts";
+import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
 import type { Scope } from "./runtime/scope.ts";
 import { type Span, spanFrom } from "./span.ts";
 
@@ -145,4 +146,228 @@ export function getRightmostFailure(match: MatchFail): MatchFail {
   }
 
   return rightmost;
+}
+
+/**
+ * Visualizes a match failure in a human-readable format for debugging.
+ * Displays hierarchical pattern structure, values matched/not matched,
+ * pipeline steps, and source location information.
+ *
+ * @param match The Match to visualize (typically a MatchFail)
+ * @returns A formatted string representation of the failure
+ *
+ * @example
+ * ```ts
+ * const result = match(pattern, scope);
+ * if (result.kind === MatchKind.Fail) {
+ *   console.log(visualizeMatchFailure(result));
+ * }
+ * ```
+ */
+export function visualizeMatchFailure(match: Match): string {
+  const output: string[] = [];
+  const visited = new WeakSet<Match>();
+
+  output.push("=== Match Failure Visualization ===\n");
+
+  // Get module and file information if available
+  if (match.scope) {
+    const moduleUrl = match.scope.module?.moduleUrl;
+    if (moduleUrl) {
+      output.push(`Module: ${moduleUrl}\n`);
+    }
+  }
+
+  // Find and highlight the rightmost failure
+  let rightmostFailure: MatchFail | undefined;
+  if (match.kind === MatchKind.Fail) {
+    rightmostFailure = getRightmostFailure(match);
+    const pos = rightmostFailure.span.start.toString();
+    output.push(`\n🔴 Parse failed at position: ${pos}\n`);
+  }
+
+  output.push("\n--- Match Tree ---\n");
+
+  function visualizeMatch(m: Match, indent = 0, label = ""): void {
+    // Prevent infinite loops from circular references
+    if (visited.has(m)) {
+      output.push(`${"  ".repeat(indent)}${label}[circular reference]\n`);
+      return;
+    }
+    visited.add(m);
+
+    const prefix = "  ".repeat(indent);
+    const isRightmost = m === rightmostFailure;
+    const marker = isRightmost ? "👉 " : "";
+
+    // Get pattern name/kind
+    const patternName = getPatternName(m.pattern);
+
+    switch (m.kind) {
+      case MatchKind.Ok: {
+        const valueStr = formatValue(m.value);
+        output.push(
+          `${prefix}${marker}✓ ${label}${patternName} → ${valueStr}\n`,
+        );
+        if (m.matches.length > 0) {
+          for (let i = 0; i < m.matches.length; i++) {
+            const child = m.matches[i];
+            const childLabel = isPipeline(m.pattern)
+              ? `[step ${i}] `
+              : `[${i}] `;
+            visualizeMatch(child, indent + 1, childLabel);
+          }
+        }
+        break;
+      }
+      case MatchKind.Fail: {
+        const pos = m.span.start.toString();
+        output.push(
+          `${prefix}${marker}✗ ${label}${patternName} @ ${pos}\n`,
+        );
+        if (m.matches.length > 0) {
+          for (let i = 0; i < m.matches.length; i++) {
+            const child = m.matches[i];
+            const childLabel = isPipeline(m.pattern)
+              ? `[step ${i}] `
+              : `[${i}] `;
+            visualizeMatch(child, indent + 1, childLabel);
+          }
+        }
+        break;
+      }
+      case MatchKind.Error: {
+        output.push(
+          `${prefix}${marker}⚠ ${label}${patternName}: ${m.code} - ${m.message}\n`,
+        );
+        break;
+      }
+      case MatchKind.LR: {
+        output.push(
+          `${prefix}${marker}↻ ${label}${patternName} (left recursion)\n`,
+        );
+        break;
+      }
+    }
+  }
+
+  visualizeMatch(match);
+
+  // Show input context around failure point
+  if (rightmostFailure) {
+    output.push("\n--- Input Context ---\n");
+    const scope = rightmostFailure.scope;
+    if (scope.stream) {
+      const path = scope.stream.path;
+      output.push(`Position: ${path.toString()}\n`);
+
+      // Try to show the value at this position
+      if (scope.stream.value !== undefined) {
+        output.push(`Current value: ${formatValue(scope.stream.value)}\n`);
+      } else if (!scope.stream.done) {
+        output.push(`Current value: <no value>\n`);
+      } else {
+        output.push(`Current value: <end of input>\n`);
+      }
+    }
+  }
+
+  output.push("\n=== End Visualization ===");
+  return output.join("");
+}
+
+function getPatternName(pattern: Pattern): string {
+  switch (pattern.kind) {
+    case PatternKind.Reference:
+      return pattern.name;
+    case PatternKind.Pipeline:
+      return "Pipeline";
+    case PatternKind.Then:
+      return "Then";
+    case PatternKind.Or:
+      return "Or";
+    case PatternKind.And:
+      return "And";
+    case PatternKind.Maybe:
+      return "Maybe";
+    case PatternKind.Slice:
+      return "Slice";
+    case PatternKind.Equal:
+      return `Equal(${JSON.stringify(pattern.value)})`;
+    case PatternKind.Includes:
+      return "Includes";
+    case PatternKind.Range:
+      return "Range";
+    case PatternKind.RegExp:
+      return `RegExp(${pattern.pattern})`;
+    case PatternKind.Type:
+      return `Type(${pattern.type})`;
+    case PatternKind.Variable:
+      return `Variable(${pattern.name})`;
+    case PatternKind.Run:
+      return pattern.name ? `Run(${pattern.name})` : "Run";
+    case PatternKind.Character:
+      return `Character(${pattern.characterClass})`;
+    case PatternKind.Special:
+      return `Special(${pattern.name})`;
+    case PatternKind.Into:
+      return "Into";
+    case PatternKind.Over:
+      return "Over";
+    case PatternKind.Not:
+      return "Not";
+    case PatternKind.Any:
+      return "Any";
+    case PatternKind.Ok:
+      return "Ok";
+    case PatternKind.Fail:
+      return "Fail";
+    case PatternKind.End:
+      return "End";
+    default:
+      return "Unknown";
+  }
+}
+
+function isPipeline(pattern: Pattern): boolean {
+  return pattern.kind === PatternKind.Pipeline;
+}
+
+function formatValue(value: unknown): string {
+  if (value === undefined) return "<undefined>";
+  if (value === null) return "<null>";
+
+  if (typeof value === "string") {
+    return `"${value.length > 50 ? value.substring(0, 50) + "..." : value}"`;
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "[]";
+    if (value.length > 3) {
+      return `[${
+        value.slice(0, 3).map(formatValue).join(", ")
+      }, ... (${value.length} items)]`;
+    }
+    return `[${value.map(formatValue).join(", ")}]`;
+  }
+
+  if (typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    if ("kind" in obj) {
+      // Likely an expression or similar structured object
+      return JSON.stringify(value);
+    }
+    const keys = Object.keys(obj);
+    if (keys.length === 0) return "{}";
+    if (keys.length > 3) {
+      return `{${keys.slice(0, 3).join(", ")}, ... (${keys.length} keys)}`;
+    }
+    return JSON.stringify(value);
+  }
+
+  return String(value);
 }
