@@ -16,12 +16,13 @@ in the same directory. This ensures comprehensive test coverage and validates
 that your changes work correctly.
 
 1. **NEVER CANCEL builds or tests** - they complete quickly (under 2 minutes)
-2. **Format check**: `deno fmt` - Takes ~5 seconds, NEVER CANCEL
-3. **Lint check**: `deno lint` - Takes ~10 seconds, NEVER CANCEL
+2. **Install dependences**: `deno install` - Takes ~10 seconds, NEVER CANCEL
+3. **Format check**: `deno fmt` - Takes ~5 seconds, NEVER CANCEL
+4. **Lint check**: `deno lint` - Takes ~10 seconds, NEVER CANCEL
    - **KNOWN ISSUE**: 8 linting errors about import prefixes - these are
      expected and do not break functionality
    - Lint failures do not prevent the tool from working correctly
-4. **Run all tests**:
+5. **Run all tests**:
    ```bash
    deno task test
    ```

@@ -1,14 +1,14 @@
 import { assertEquals } from "@std/assert";
-import { fail, getRightmostFailure, MatchKind } from "./match.ts";
+import { fail, getRightmostFailure, MatchKind, MatchOk } from "./match.ts";
 import { Path } from "./path.ts";
 import { Scope } from "./runtime/scope.ts";
 import { Input } from "./input.ts";
-import { PatternKind } from "./runtime/patterns/pattern.ts";
+import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
+import type { FailPattern } from "./runtime/patterns/mod.ts";
 
 // Helper to create a simple test pattern
-const testPattern = {
+const testPattern: FailPattern = {
   kind: PatternKind.Fail,
-  name: "test",
 };
 
 Deno.test({
@@ -100,7 +100,7 @@ Deno.test({
         const scope0 = Scope.From(input);
         const scope1 = scope0.withInput(input.next());
 
-        const okMatch = {
+        const okMatch: MatchOk = {
           kind: MatchKind.Ok,
           pattern: testPattern,
           scope: scope1,
