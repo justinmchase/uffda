@@ -10,7 +10,7 @@ export function pipeline(pattern: PipelinePattern, scope: Scope) {
   let next = scope;
   const matches: Match[] = [];
   for (let i = 0; i < steps.length; i++) {
-    const pattern = steps[i];
+    const p = steps[i];
 
     // The first pipeline step should operate on the original scope and stream
     // Its ok if it doesn't completely consume the entire stream, there may be more
@@ -20,15 +20,15 @@ export function pipeline(pattern: PipelinePattern, scope: Scope) {
     // However steps beyond the first in the pipeline will operate like an entire pattern
     // match operation which will require the entire stream to be read.
 
-    next = next.pushPipeline(pattern);
-    const m = match(pattern, next);
+    next = next.pushPipeline(p);
+    const m = match(p, next);
     matches.push(m);
     switch (m.kind) {
       case MatchKind.LR:
       case MatchKind.Error:
         return m;
       case MatchKind.Fail:
-        return fail(scope, pattern, matches);
+        return fail(scope, p, matches);
       case MatchKind.Ok:
         last = m;
         break;

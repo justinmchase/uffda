@@ -6,6 +6,7 @@ export const Expression: ModuleDeclaration = {
     {
       kind: ImportDeclarationKind.Module,
       moduleUrl: "../tokenizer/mod.ts",
+      names: ["Tokenizer"],
     },
   ],
   exports: [],

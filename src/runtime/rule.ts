@@ -53,7 +53,7 @@ export function rule(
       case MatchKind.Error:
         return m;
       case MatchKind.Fail:
-        return fail(scope, rule.pattern, [m]);
+        return fail(subScope, rule.pattern, [m]);
       case MatchKind.Ok: {
         const value = expression ? exec(expression, m) : m.value;
         return ok(

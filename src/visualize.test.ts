@@ -25,9 +25,7 @@ Deno.test({
 
         const result = visualizeMatchFailure(match);
 
-        assertStringIncludes(result, "Match Failure Visualization");
-        assertStringIncludes(result, "Parse failed at position");
-        assertStringIncludes(result, "Fail");
+        assertStringIncludes(result, "👉 ✗ Fail");
       },
     });
 
@@ -43,9 +41,7 @@ Deno.test({
 
         const result = visualizeMatchFailure(parentMatch);
 
-        assertStringIncludes(result, "Match Failure Visualization");
-        assertStringIncludes(result, "✗");
-        assertStringIncludes(result, "[0]");
+        assertStringIncludes(result, "👉 ✗ Fail");
       },
     });
 
@@ -62,11 +58,9 @@ Deno.test({
 
         const result = visualizeMatchFailure(pipelineMatch);
 
-        assertStringIncludes(result, "Pipeline");
-        assertStringIncludes(result, "[step 0]");
-        assertStringIncludes(result, "[step 1]");
-        assertStringIncludes(result, "✓");
-        assertStringIncludes(result, "✗");
+        assertStringIncludes(result, `✓ Fail → "step1"`);
+        assertStringIncludes(result, "👉 ✗ Fail");
+        assertStringIncludes(result, `value: "e"`);
       },
     });
 

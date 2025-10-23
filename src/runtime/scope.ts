@@ -44,6 +44,7 @@ export class Scope {
     public readonly stream: Input = Input.Default(),
     public readonly memos: Memos = new Memos(),
     public readonly stack: StackFrame[] = [],
+    public readonly rule: Rule | undefined = undefined,
     options?: Partial<ScopeOptions>,
   ) {
     this.options = {
@@ -81,6 +82,7 @@ export class Scope {
       input,
       this.memos,
       this.stack,
+      this.rule,
       this.options,
     );
   }
@@ -99,6 +101,7 @@ export class Scope {
       this.stream,
       this.memos,
       this.stack,
+      this.rule,
       this.options,
     );
   }
@@ -112,6 +115,7 @@ export class Scope {
       this.stream,
       this.memos,
       [...this.stack, { kind: StackFrameKind.Rule, rule }],
+      rule,
       this.options,
     );
   }
@@ -125,6 +129,7 @@ export class Scope {
       this.stream,
       this.memos,
       [...this.stack, { kind: StackFrameKind.Pipeline, pipeline }],
+      this.rule,
       this.options,
     );
   }
@@ -143,6 +148,7 @@ export class Scope {
       this.module !== module
         ? [...this.stack, { kind: StackFrameKind.Module, module }]
         : this.stack,
+      this.rule,
       this.options,
     );
   }
@@ -160,6 +166,7 @@ export class Scope {
       this.stream,
       this.memos,
       scope.stack,
+      scope.rule,
       scope.options,
     );
   }
@@ -173,6 +180,7 @@ export class Scope {
       this.stream,
       this.memos,
       this.stack,
+      this.rule,
       {
         ...this.options,
         ...options,

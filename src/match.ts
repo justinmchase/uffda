@@ -1,8 +1,11 @@
-import { isPipeline, type Pattern } from "./runtime/patterns/pattern.ts";
+import type { Pattern } from "./runtime/patterns/pattern.ts";
 import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
 import type { Scope } from "./runtime/scope.ts";
 import { type Span, spanFrom } from "./span.ts";
-import { getType, Type } from "@justinmchase/type";
+import { Type, type } from "@justinmchase/type";
+import { StackFrameKind } from "./runtime/stack/stackFrameKind.ts";
+import type { Module, Rule } from "./runtime/modules/mod.ts";
+import type { Path } from "./path.ts";
 
 export enum MatchErrorCode {
   UnknownReference = "E_UNKNOWN_REFERENCE",
@@ -169,8 +172,6 @@ export function visualizeMatchFailure(match: Match): string {
   const output: string[] = [];
   const visited = new WeakSet<Match>();
 
-  output.push("=== Match Failure Visualization ===\n");
-
   // Get module and file information if available
   if (match.scope) {
     const moduleUrl = match.scope.module?.moduleUrl;
@@ -187,61 +188,87 @@ export function visualizeMatchFailure(match: Match): string {
     output.push(`\n🔴 Parse failed at position: ${pos}\n`);
   }
 
+  output.push("\n--- Match Stack ---\n");
+  let module: Module | undefined;
+  let rule: Rule | undefined;
+  for (const m of rightmostFailure?.scope.stack ?? []) {
+    if (m.kind === StackFrameKind.Module) {
+      module = m.module;
+    } else if (m.kind === StackFrameKind.Rule) {
+      rule = m.rule;
+      output.push(
+        `  at ${rule.name}@${module?.moduleUrl ?? "[unknown module]"}\n`,
+      );
+    }
+  }
+
   output.push("\n--- Match Tree ---\n");
 
-  function visualizeMatch(m: Match, indent = 0, label = ""): void {
+  function visualizeMatch(
+    m: Match,
+    indent = 0,
+    rule: Rule | undefined = undefined,
+  ): Path {
+    // Get pattern name/kind
+    const prefix = "  ".repeat(indent);
+    const patternName = getPatternName(m.pattern);
+    let deepest = m.scope.stream.path;
+
     // Prevent infinite loops from circular references
     if (visited.has(m)) {
-      output.push(`${"  ".repeat(indent)}${label}[circular reference]\n`);
-      return;
+      output.push(`${prefix}➰ ${patternName} [circular reference]\n`);
+      return deepest;
     }
     visited.add(m);
-
-    const prefix = "  ".repeat(indent);
-    const isRightmost = m === rightmostFailure;
-    const marker = isRightmost ? "👉 " : "";
-
-    // Get pattern name/kind
-    const patternName = getPatternName(m.pattern);
 
     switch (m.kind) {
       case MatchKind.Ok: {
         const valueStr = formatValue(m.value);
         output.push(
-          `${prefix}${marker}✓ ${label}${patternName} → ${valueStr}\n`,
+          `${prefix}✓ ${patternName} → ${valueStr}\n`,
         );
-        // Don't drill into successful matches - only show failures
         break;
       }
       case MatchKind.Fail: {
-        const pos = m.span.start.toString();
-        output.push(
-          `${prefix}${marker}✗ ${label}${patternName} @ ${pos}\n`,
-        );
-        if (m.matches.length > 0) {
-          for (let i = 0; i < m.matches.length; i++) {
-            const child = m.matches[i];
-            const childLabel = isPipeline(m.pattern)
-              ? `[step ${i}] `
-              : `[${i}] `;
-            visualizeMatch(child, indent + 1, childLabel);
+        // Rules can be left recursive, don't visualize that here
+        if (m.pattern === m.scope.rule?.pattern && m.scope.rule !== rule) {
+          output.push(
+            `${prefix}✗ ${m.scope.rule.name}\n`,
+          );
+
+          for (const child of m.matches) {
+            if (child.scope.stream.path.compareTo(deepest) >= 0) {
+              deepest = visualizeMatch(child, indent + 1, m.scope.rule);
+            }
+          }
+        } else if (m === rightmostFailure) {
+          output.push(
+            `${prefix.slice(0, -3)}👉 ✗ ${patternName}\n`,
+          );
+        } else {
+          for (const child of m.matches) {
+            if (child.scope.stream.path.compareTo(deepest) >= 0) {
+              deepest = visualizeMatch(child, indent, m.scope.rule);
+            }
           }
         }
         break;
       }
       case MatchKind.Error: {
         output.push(
-          `${prefix}${marker}⚠ ${label}${patternName}: ${m.code} - ${m.message}\n`,
+          `${prefix}⚠ ${patternName}: ${m.code} - ${m.message}\n`,
         );
         break;
       }
       case MatchKind.LR: {
         output.push(
-          `${prefix}${marker}↻ ${label}${patternName} (left recursion)\n`,
+          `${prefix}↻ ${patternName} (left recursion)\n`,
         );
         break;
       }
     }
+
+    return deepest;
   }
 
   visualizeMatch(match);
@@ -255,17 +282,14 @@ export function visualizeMatchFailure(match: Match): string {
       output.push(`Position: ${path.toString()}\n`);
 
       // Try to show the value at this position
-      if (scope.stream.value !== undefined) {
-        output.push(`Current value: ${formatValue(scope.stream.value)}\n`);
-      } else if (!scope.stream.done) {
-        output.push(`Current value: <no value>\n`);
+      const next = scope.stream.next();
+      if (next.done) {
+        output.push(`value: <end of input>\n`);
       } else {
-        output.push(`Current value: <end of input>\n`);
+        output.push(`value: ${formatValue(next.value)}\n`);
       }
     }
   }
-
-  output.push("\n=== End Visualization ===");
   return output.join("");
 }
 
@@ -274,7 +298,7 @@ function getPatternName(pattern: Pattern): string {
     case PatternKind.Reference:
       return pattern.name;
     case PatternKind.Pipeline:
-      return "Pipeline";
+      return `Pipeline`;
     case PatternKind.Then:
       return "Then";
     case PatternKind.Or:
@@ -296,7 +320,7 @@ function getPatternName(pattern: Pattern): string {
     case PatternKind.Type:
       return `Type(${pattern.type})`;
     case PatternKind.Variable:
-      return `Variable(${pattern.name})`;
+      return `Variable(${pattern.name}, ${getPatternName(pattern.pattern)})`;
     case PatternKind.Run:
       return pattern.name ? `Run(${pattern.name})` : "Run";
     case PatternKind.Character:
@@ -326,13 +350,22 @@ function formatValue(value: unknown): string {
   if (value === undefined) return "<undefined>";
   if (value === null) return "<null>";
 
-  const type = getType(value);
-
-  switch (type) {
-    case Type.String: {
-      const str = value as string;
-      return `"${str.length > 50 ? str.substring(0, 50) + "..." : str}"`;
-    }
+  const [t, v] = type(value);
+  switch (t) {
+    case Type.Null:
+      return "<null>";
+    case Type.Undefined:
+      return "<undefined>";
+    case Type.Function:
+      return `<function ${v.name ?? "anonymous"}>`;
+    case Type.Error:
+      return `<error ${v.message}>`;
+    case Type.Map:
+      return `<map>`;
+    case Type.Set:
+      return `<set>`;
+    case Type.String:
+      return JSON.stringify(v.length > 50 ? v.substring(0, 50) + "..." : v);
     case Type.Number:
     case Type.Boolean:
     case Type.BigInt:
@@ -345,9 +378,9 @@ function formatValue(value: unknown): string {
       const arr = value as unknown[];
       if (arr.length === 0) return "[]";
       if (arr.length > 3) {
-        return `[${
-          arr.slice(0, 3).map(formatValue).join(", ")
-        }, ... (${arr.length} items)]`;
+        return `[${arr.slice(0, 5).map(formatValue).join(", ")}, ... (${
+          arr.length - 5
+        } items)]`;
       }
       return `[${arr.map(formatValue).join(", ")}]`;
     }
@@ -356,7 +389,7 @@ function formatValue(value: unknown): string {
       const keys = Object.keys(obj);
       if (keys.length === 0) return "{}";
       if (keys.length > 3) {
-        return `{${keys.slice(0, 3).join(", ")}, ... (${keys.length} keys)}`;
+        return `{${keys.slice(0, 10).join(", ")}, ... (${keys.length} keys)}`;
       }
       return JSON.stringify(value);
     }

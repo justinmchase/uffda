@@ -8,7 +8,7 @@ import type {
   TerminalExpression,
 } from "../../runtime/expressions/expression.ts";
 
-export const Terminal: ModuleDeclaration = {
+export const Primary: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
@@ -71,4 +71,4 @@ export const Terminal: ModuleDeclaration = {
   ],
 };
 
-export default Terminal;
+export default Primary;
