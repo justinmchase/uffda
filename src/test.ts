@@ -170,6 +170,7 @@ export function moduleDeclarationTest(options: ModuleDeclarationTestOptions) {
         input,
         undefined,
         undefined,
+        undefined,
         {
           resolver,
         },
@@ -255,6 +256,7 @@ export function ruleTest(options: RuleTestOptions) {
         variables,
         new Map(),
         input,
+        undefined,
         undefined,
         undefined,
         {

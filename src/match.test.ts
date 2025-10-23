@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { fail, getRightmostFailure, MatchKind, MatchOk } from "./match.ts";
+import { fail, getRightmostFailure, MatchKind, type MatchOk } from "./match.ts";
 import { Path } from "./path.ts";
 import { Scope } from "./runtime/scope.ts";
 import { Input } from "./input.ts";
