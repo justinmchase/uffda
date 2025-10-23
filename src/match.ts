@@ -210,15 +210,7 @@ export function visualizeMatchFailure(match: Match): string {
         output.push(
           `${prefix}${marker}✓ ${label}${patternName} → ${valueStr}\n`,
         );
-        if (m.matches.length > 0) {
-          for (let i = 0; i < m.matches.length; i++) {
-            const child = m.matches[i];
-            const childLabel = isPipeline(m.pattern)
-              ? `[step ${i}] `
-              : `[${i}] `;
-            visualizeMatch(child, indent + 1, childLabel);
-          }
-        }
+        // Don't drill into successful matches - only show failures
         break;
       }
       case MatchKind.Fail: {
