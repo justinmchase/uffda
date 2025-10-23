@@ -1,7 +1,8 @@
-import type { Pattern } from "./runtime/patterns/pattern.ts";
+import { isPipeline, type Pattern } from "./runtime/patterns/pattern.ts";
 import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
 import type { Scope } from "./runtime/scope.ts";
 import { type Span, spanFrom } from "./span.ts";
+import { getType, Type } from "@justinmchase/type";
 
 export enum MatchErrorCode {
   UnknownReference = "E_UNKNOWN_REFERENCE",
@@ -293,13 +294,13 @@ function getPatternName(pattern: Pattern): string {
     case PatternKind.Slice:
       return "Slice";
     case PatternKind.Equal:
-      return `Equal(${JSON.stringify(pattern.value)})`;
+      return `Equal(${formatValue(pattern.value)})`;
     case PatternKind.Includes:
       return "Includes";
     case PatternKind.Range:
       return "Range";
     case PatternKind.RegExp:
-      return `RegExp(${pattern.pattern})`;
+      return `RegExp(/${pattern.pattern}/)`;
     case PatternKind.Type:
       return `Type(${pattern.type})`;
     case PatternKind.Variable:
@@ -329,45 +330,45 @@ function getPatternName(pattern: Pattern): string {
   }
 }
 
-function isPipeline(pattern: Pattern): boolean {
-  return pattern.kind === PatternKind.Pipeline;
-}
-
 function formatValue(value: unknown): string {
   if (value === undefined) return "<undefined>";
   if (value === null) return "<null>";
 
-  if (typeof value === "string") {
-    return `"${value.length > 50 ? value.substring(0, 50) + "..." : value}"`;
-  }
+  const type = getType(value);
 
-  if (typeof value === "number" || typeof value === "boolean") {
-    return String(value);
-  }
-
-  if (Array.isArray(value)) {
-    if (value.length === 0) return "[]";
-    if (value.length > 3) {
-      return `[${
-        value.slice(0, 3).map(formatValue).join(", ")
-      }, ... (${value.length} items)]`;
+  switch (type) {
+    case Type.String: {
+      const str = value as string;
+      return `"${str.length > 50 ? str.substring(0, 50) + "..." : str}"`;
     }
-    return `[${value.map(formatValue).join(", ")}]`;
-  }
-
-  if (typeof value === "object") {
-    const obj = value as Record<string, unknown>;
-    if ("kind" in obj) {
-      // Likely an expression or similar structured object
+    case Type.Number:
+    case Type.Boolean:
+    case Type.BigInt:
+      return String(value);
+    case Type.Symbol:
+      return (value as symbol).toString();
+    case Type.Date:
+      return (value as Date).toISOString();
+    case Type.Array: {
+      const arr = value as unknown[];
+      if (arr.length === 0) return "[]";
+      if (arr.length > 3) {
+        return `[${
+          arr.slice(0, 3).map(formatValue).join(", ")
+        }, ... (${arr.length} items)]`;
+      }
+      return `[${arr.map(formatValue).join(", ")}]`;
+    }
+    case Type.Object: {
+      const obj = value as Record<string, unknown>;
+      const keys = Object.keys(obj);
+      if (keys.length === 0) return "{}";
+      if (keys.length > 3) {
+        return `{${keys.slice(0, 3).join(", ")}, ... (${keys.length} keys)}`;
+      }
       return JSON.stringify(value);
     }
-    const keys = Object.keys(obj);
-    if (keys.length === 0) return "{}";
-    if (keys.length > 3) {
-      return `{${keys.slice(0, 3).join(", ")}, ... (${keys.length} keys)}`;
-    }
-    return JSON.stringify(value);
+    default:
+      return String(value);
   }
-
-  return String(value);
 }

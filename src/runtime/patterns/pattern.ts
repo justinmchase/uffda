@@ -176,3 +176,7 @@ export type VariablePattern = {
   name: string;
   pattern: Pattern;
 };
+
+export function isPipeline(pattern: Pattern): pattern is PipelinePattern {
+  return pattern.kind === PatternKind.Pipeline;
+}
