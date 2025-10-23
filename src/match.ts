@@ -185,7 +185,21 @@ export function visualizeMatchFailure(match: Match): string {
   if (match.kind === MatchKind.Fail) {
     rightmostFailure = getRightmostFailure(match);
     const pos = rightmostFailure.span.start.toString();
+    const scope = rightmostFailure.scope;
+
+    // Get the actual value at the failure position
+    let valueStr = "<no value>";
+    if (scope.stream) {
+      const next = scope.stream.next();
+      if (next.done) {
+        valueStr = "<end of input>";
+      } else {
+        valueStr = formatValue(next.value);
+      }
+    }
+
     output.push(`\n🔴 Parse failed at position: ${pos}\n`);
+    output.push(`   Found: ${valueStr}\n`);
   }
 
   output.push("\n--- Match Stack ---\n");
@@ -242,8 +256,16 @@ export function visualizeMatchFailure(match: Match): string {
             }
           }
         } else if (m === rightmostFailure) {
+          // Show what value was found at the failure point
+          let foundValue = "";
+          const next = m.scope.stream.next();
+          if (!next.done) {
+            foundValue = ` (found: ${formatValue(next.value)})`;
+          } else {
+            foundValue = " (found: <end of input>)";
+          }
           output.push(
-            `${prefix.slice(0, -3)}👉 ✗ ${patternName}\n`,
+            `${prefix.slice(0, -3)}👉 ✗ ${patternName}${foundValue}\n`,
           );
         } else {
           for (const child of m.matches) {
@@ -273,23 +295,6 @@ export function visualizeMatchFailure(match: Match): string {
 
   visualizeMatch(match);
 
-  // Show input context around failure point
-  if (rightmostFailure) {
-    output.push("\n--- Input Context ---\n");
-    const scope = rightmostFailure.scope;
-    if (scope.stream) {
-      const path = scope.stream.path;
-      output.push(`Position: ${path.toString()}\n`);
-
-      // Try to show the value at this position
-      const next = scope.stream.next();
-      if (next.done) {
-        output.push(`value: <end of input>\n`);
-      } else {
-        output.push(`value: ${formatValue(next.value)}\n`);
-      }
-    }
-  }
   return output.join("");
 }
 
