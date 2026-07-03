@@ -3,11 +3,6 @@
 This chapter defines the logical contract for conjunction-based pattern
 matching.
 
-## Conventions
-
-The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY in this document are
-to be interpreted as described in RFC 2119 and RFC 8174.
-
 ## Logical purpose
 
 The `and` pattern represents conjunction over child patterns. It is intended to
