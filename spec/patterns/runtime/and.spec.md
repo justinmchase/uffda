@@ -22,6 +22,17 @@ express constraints that are all required for a successful match.
 - Implementations SHOULD preserve failure information that helps identify which
   required condition did not hold.
 
+## Expected output
+
+- When all child patterns succeed, the `and` pattern MUST report success using
+  the output produced by the final child pattern evaluation.
+- When any child pattern fails, the `and` pattern MUST report failure output.
+
+## Side effects
+
+- The `and` pattern MUST NOT produce externally observable side effects beyond
+  its match result and resulting matching context.
+
 ## Composition intent
 
 - The `and` pattern SHOULD be used to combine orthogonal constraints into a
