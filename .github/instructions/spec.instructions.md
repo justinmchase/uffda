@@ -50,6 +50,11 @@ spec/
 ## Authoring expectations
 
 - Start each spec file with a short statement of scope.
+- Write chapters in an official, normative style similar to a focused mini RFC.
+- When using normative requirement language, interpret key words such as MUST,
+  MUST NOT, SHOULD, SHOULD NOT, and MAY as described in RFC 2119 and RFC 8174.
+- Include only the level of detail needed for contract-level behavior and
+  composition intent; avoid unnecessary implementation detail.
 - Record the rules, guarantees, or invariants that matter to readers and future
   requirement authors.
 - Keep prose implementation-agnostic when possible.
