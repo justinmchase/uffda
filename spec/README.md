@@ -18,6 +18,15 @@ spec/
   {topic}.spec.md
 ```
 
+## Top-level chapters
+
+- [patterns](./patterns.spec.md)
+- [expressions](./expressions.spec.md)
+- [runtime](./runtime.spec.md)
+- [standard library](./standard-library.spec.md)
+- [modules](./modules.spec.md)
+- [languages](./languages.spec.md)
+
 ## Authoring pattern
 
 - Keep each spec file focused on a single concern or tightly related concerns.
