@@ -26,7 +26,17 @@ express constraints that are all required for a successful match.
 
 - When all child patterns succeed, the `and` pattern MUST report success using
   the output produced by the final child pattern evaluation.
+- When an `and` pattern has no child patterns, it MUST succeed as the
+  conjunction identity case.
+- For the identity case with no child patterns, the reported success output
+  MUST be `undefined`.
 - When any child pattern fails, the `and` pattern MUST report failure output.
+
+## Error conditions
+
+- The `and` pattern itself does not introduce new error states.
+- If any child pattern reports an error, the `and` pattern MUST report that
+  error.
 
 ## Side effects
 

@@ -9,6 +9,7 @@ Each runtime pattern subtopic should define:
 - the pattern's logical purpose;
 - the pattern's behavioral expectations;
 - the pattern's expected output; and
+- the pattern's error conditions; and
 - the pattern's side effects.
 
 ## Subtopics
