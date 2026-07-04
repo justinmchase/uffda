@@ -50,3 +50,17 @@ spec/
 - When a spec change implies a more specific behavior to verify later, capture
   that follow-on work in `.github/requirements/` rather than expanding the spec
   into low-level acceptance criteria.
+
+## Pending specifications
+
+When a spec file is intentionally stubbed and its content has not yet been
+defined, add the following token immediately after the title line:
+
+```markdown
+> [!NOTE]
+> **Status: Pending** — This specification has not yet been defined.
+```
+
+This token marks the document as a known placeholder and signals to readers and
+contributors that the content is still to be written. Remove the token once the
+spec chapter contains substantive content.

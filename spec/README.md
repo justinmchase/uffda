@@ -1,5 +1,10 @@
 # Uffda specification
 
+> [!NOTE]
+> **Status: Pending** — No specification chapters have been authored yet. The
+> files and structure described below represent the intended layout; individual
+> `{topic}.spec.md` chapters are still to be written.
+
 This directory holds the Uffda specification as a set of smaller documents.
 
 ## Principles
