@@ -3,6 +3,11 @@
 This chapter defines the logical contract for wildcard matching at the current
 input position.
 
+## Conventions
+
+Normative key words in this chapter use the conventions defined in the
+[Patterns specification](../../patterns.spec.md#conventions).
+
 ## Logical purpose
 
 The `any` pattern matches exactly one available input item regardless of its
