@@ -1,6 +1,6 @@
 ---
 description: "Multi-file specification authoring for Uffda. Use when creating or editing spec documents."
-applyTo: "spec/**/*.md"
+applyTo: ".github/specifications/**/*.md"
 ---
 
 # Multi-file specification instructions
@@ -20,14 +20,14 @@ file.
 ## File layout
 
 ```text
-spec/
+.agents/specifications/
   README.md
   {topic}.spec.md
   {topic}/
     {subtopic}.spec.md
 ```
 
-- `spec/README.md` is the canonical index and explains how the spec set is
+- `.agents/specifications/README.md` is the canonical index and explains how the spec set is
   organized.
 - Each `{topic}.spec.md` file is a parent chapter file and should index its
   direct subtopic files.
@@ -42,7 +42,7 @@ spec/
 - Name files by concern, such as `grammar.spec.md`, `matching.spec.md`, or
   `runtime.spec.md`.
 - Keep parent topics and subtopics in a tree structure, for example
-  `spec/patterns.spec.md` indexing files in `spec/patterns/`.
+  `.agents/specifications/patterns.spec.md` indexing files in `.agents/specifications/patterns/`.
 - When a topic has nested concerns, create a subtopic index file that links to
   deeper files rather than embedding all content in the parent.
 - Cross-link related spec files when one topic depends on another.
@@ -63,5 +63,5 @@ spec/
 - Call out open questions explicitly instead of implying a requirement that has
   not been decided yet.
 - When a spec change implies a more specific behavior to verify later, capture
-  that follow-on work in `.github/requirements/` rather than expanding the spec
+  that follow-on work in `.agents/requirements/` rather than expanding the spec
   into low-level acceptance criteria.

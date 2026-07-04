@@ -10,7 +10,7 @@ statements.
 
 ## Authority and scope
 
-- Requirements are subordinate to the spec in `spec/`.
+- Requirements are subordinate to the spec in `.agents/specifications/`.
 - Every requirement should trace back to a spec file and section.
 - Use requirements for concrete behaviors that can later be validated with
   tests.
@@ -20,7 +20,7 @@ statements.
 ## Layout
 
 ```text
-.github/requirements/
+.agents/requirements/
   {topic}/
     {name}.requirement.md
 ```
