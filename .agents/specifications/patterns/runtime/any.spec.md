@@ -22,6 +22,12 @@ runtime type or value.
 - If no input item is available at the current position, the `any` pattern MUST
   fail.
 
+## Input consumption
+
+- An `any` pattern MUST consume exactly one input item when it succeeds.
+- An `any` pattern MUST NOT consume input when it fails.
+- An `any` pattern MUST fail without consumption at end-of-input.
+
 ## Expected output
 
 - On success, the `any` pattern MUST report the consumed input item as its

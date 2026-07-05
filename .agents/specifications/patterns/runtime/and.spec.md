@@ -17,6 +17,21 @@ express constraints that are all required for a successful match.
 - Implementations SHOULD preserve failure information that helps identify which
   required condition did not hold.
 
+## Left-recursion behavior
+
+- If any child pattern reports a left-recursion outcome, the `and` pattern MUST
+  propagate that outcome unchanged.
+- The `and` pattern MUST NOT convert a left-recursion outcome into failure or
+  success.
+
+## Input consumption
+
+- An `and` pattern MUST NOT consume input directly.
+- Any input consumption caused by child patterns MUST be governed by those
+  child patterns' own contracts.
+- When an `and` pattern fails, any consumed input MUST be accounted for by the
+  semantics of the child patterns and the matching engine's rollback rules.
+
 ## Expected output
 
 - When all child patterns succeed, the `and` pattern MUST report success using

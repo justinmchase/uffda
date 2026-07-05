@@ -8,6 +8,9 @@ Each runtime pattern subtopic should define:
 
 - the pattern's logical purpose;
 - the pattern's behavioral expectations;
+- the pattern's left-recursion behavior, when it delegates to child patterns or
+	nested matches;
+- the pattern's input consumption behavior;
 - the pattern's expected output;
 - the pattern's error conditions;
 - the pattern's side effects;
@@ -29,11 +32,11 @@ Each runtime pattern subtopic should define:
 - [or pattern](./runtime/or.spec.md)
 - [over pattern](./runtime/over.spec.md)
 - [pipeline pattern](./runtime/pipeline.spec.md)
-- [range pattern](./runtime/range.spec.md)
+- [between pattern](./runtime/between.spec.md)
 - [reference pattern](./runtime/reference.spec.md)
 - [regexp pattern](./runtime/regexp.spec.md)
 - [run pattern](./runtime/run.spec.md)
-- [slice pattern](./runtime/slice.spec.md)
+- [quantifier pattern](./runtime/quantifier.spec.md)
 - [special pattern](./runtime/special.spec.md)
 - [then pattern](./runtime/then.spec.md)
 - [type pattern](./runtime/type.spec.md)
