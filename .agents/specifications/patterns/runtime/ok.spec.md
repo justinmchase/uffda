@@ -43,3 +43,53 @@ position or input state.
   success.
 - The `ok` pattern MAY be composed with negation, alternation, and other
   control-oriented patterns to express structural matching rules.
+
+## Examples
+
+### Unconditional success at any position
+
+```
+// Pattern object
+ok
+```
+
+```
+// Grammar rule
+Epsilon = ok
+```
+
+Always succeeds with value `undefined` without consuming input, even at
+end-of-input.
+
+---
+
+### Use `not(ok)` to force unconditional failure
+
+Because `ok` always succeeds, `not(ok)` always fails. This is the idiomatic
+way to express an unconditional dead-end without using `fail` directly.
+
+```
+// Pattern object
+not(ok)
+```
+
+Always fails. Semantically equivalent to `fail` but derived from composition
+rather than as a primitive.
+
+---
+
+### Provide an identity base case in alternation
+
+Use `ok` as the final branch of an `or` to express that the entire alternation
+should succeed even when no branch matched anything meaningful.
+
+```
+// Pattern object
+or([
+  type(Type.Number),
+  type(Type.String),
+  ok   // fallthrough — succeed with undefined
+])
+```
+
+Input `[true]` reaches the `ok` branch and succeeds with `undefined`.

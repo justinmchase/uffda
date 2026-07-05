@@ -61,3 +61,51 @@ express constraints that are all required for a successful match.
   pipeline-oriented patterns to form larger composite behaviors.
 - The `and` pattern is a foundational building block and is intended to
   participate in arbitrarily complex pattern structures.
+
+## Examples
+
+### Match a value satisfying two independent constraints
+
+Assert the input item is both a string and matches a lowercase-only regex. Both
+constraints are evaluated at the same position; the last child's consumed result
+is used.
+
+```
+// Pattern object
+and([
+  type(Type.String),
+  regexp(/^[a-z]+$/)
+])
+```
+
+```
+// Grammar rule
+LowercaseWord = &type(String) /^[a-z]+$/
+```
+
+Input `["hello"]` succeeds with value `"hello"`. Input `[42]` fails at the
+`type(String)` check. Input `["Hello"]` fails at the `regexp` check.
+
+---
+
+### Guard a structural match with a type assertion
+
+Use `and` to combine a `type` guard and a structural `over` pattern. The guard
+runs first at the same position, failing fast on non-objects before the
+structural check runs.
+
+```
+// Pattern object
+and([
+  type(Type.Object),
+  over({ kind: equal("literal") })
+])
+```
+
+```
+// Grammar rule
+LiteralNode = &type(Object) { kind: "literal" }
+```
+
+Input `[{ kind: "literal", value: 42 }]` succeeds. Input `["literal"]` fails
+at the `type(Object)` check without attempting the structural match.

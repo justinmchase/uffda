@@ -67,3 +67,54 @@ pattern runs after the previous child pattern succeeds.
   every step must succeed in sequence.
 - The `then` pattern MAY be composed with alternation, traversal, and boundary
   assertions to build larger composite rules.
+
+## Examples
+
+### Match a three-character sequence
+
+```
+// Pattern object
+then([equal("a"), equal("b"), equal("c")])
+```
+
+```
+// Grammar rule
+ABC = "a" "b" "c"
+```
+
+Input `"abc"` succeeds with value `["a", "b", "c"]`. Input `"axc"` fails at
+the second step without consuming any committed result.
+
+---
+
+### Build a key-value pair match
+
+Match a string key, an equals sign, and then any value.
+
+```
+// Pattern object
+then([
+  variable("key", type(Type.String)),
+  equal("="),
+  variable("value", any)
+])
+```
+
+```
+// Grammar rule
+Pair = key:String "=" value:.
+```
+
+Input `["x", "=", 42]` succeeds with value `["x", "=", 42]`, and binds `key`
+and `value` in the resulting scope for use by a rule expression.
+
+---
+
+### Empty sequence (identity)
+
+```
+// Pattern object
+then([])
+```
+
+Always succeeds with value `[]` without consuming input.

@@ -72,3 +72,55 @@ pattern's declared bounds.
   predicate behavior.
 - `between(left, right)` reads as a self-documenting interval membership test
   and aligns with the readable style of `equal`, `includes`, and `type`.
+
+## Examples
+
+### Match a decimal digit character
+
+```
+// Pattern object
+between("0", "9")
+```
+
+```
+// Grammar rule
+DecimalDigit = "0".."9"
+```
+
+Input `"5"` succeeds with value `"5"`. Input `"a"` fails.
+
+---
+
+### Match a lowercase ASCII letter
+
+```
+// Pattern object
+between("a", "z")
+```
+
+```
+// Grammar rule
+LowercaseLetter = "a".."z"
+```
+
+Input `"m"` succeeds. Input `"A"` fails because `"A"` falls outside the
+`["a", "z"]` interval using JavaScript string comparison.
+
+---
+
+### Match a numeric value in a bounded range
+
+Match a single number from an array when that number is a valid HTTP
+status code in the success range.
+
+```
+// Pattern object
+between(200, 299)
+```
+
+```
+// Grammar rule
+SuccessStatus = 200..299
+```
+
+Input `[204]` succeeds with value `204`. Input `[404]` fails.

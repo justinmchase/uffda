@@ -50,3 +50,43 @@ current input position.
   a larger composite pattern consumes the intended complete input.
 - The `end` pattern MAY be composed with sequencing, negation, and alternation
   to express completion-sensitive grammars.
+
+## Examples
+
+### Assert a sequence consumes all input
+
+Match exactly two items and then assert no input remains.
+
+```
+// Pattern object
+then([
+  type(Type.String),
+  type(Type.Number),
+  end
+])
+```
+
+```
+// Grammar rule
+NameAndAge = String Number end
+```
+
+Input `["Alice", 30]` succeeds with value `["Alice", 30, undefined]`. Input
+`["Alice", 30, true]` fails at `end` because a third item remains.
+
+---
+
+### Use `not(end)` to assert input is not exhausted
+
+```
+// Pattern object
+not(end)
+```
+
+```
+// Grammar rule
+NotEmpty = !end
+```
+
+Input `["x"]` succeeds (there is more input). Input `[]` fails (already at
+end-of-input).

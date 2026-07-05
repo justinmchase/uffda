@@ -87,3 +87,54 @@ and maximum repetition bounds.
   2. zero-or-one (`min: 0, max: 1`),
   3. one-or-more (`min: 1`, `max` omitted),
   4. exact and bounded repetition (`min` and `max` both specified).
+
+## Examples
+
+### Zero-or-more: collect all letters
+
+```
+// Pattern object
+quantifier(character(CharacterClass.Letter))
+```
+
+```
+// Grammar rule
+Letters = \p{L}*
+```
+
+Input `"abc"` succeeds with value `["a", "b", "c"]`. Input `""` or `[]`
+succeeds with value `[]`.
+
+---
+
+### One-or-more: require at least one digit
+
+```
+// Pattern object
+quantifier(character(CharacterClass.DecimalDigitNumber), { min: 1 })
+```
+
+```
+// Grammar rule
+Integer = \p{Nd}+
+```
+
+Input `"42"` succeeds with `["4", "2"]`. Input `""` fails because the minimum
+count of `1` is not met.
+
+---
+
+### Exact count: match exactly three hex digits
+
+```
+// Pattern object
+quantifier(between("0", "9"), { min: 3, max: 3 })
+```
+
+```
+// Grammar rule
+ThreeDigits = \p{Nd}{3}
+```
+
+Input `"123"` succeeds with `["1", "2", "3"]`. Input `"12"` fails; input
+`"1234"` succeeds matching only the first three digits, leaving `"4"` unconsumed.

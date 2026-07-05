@@ -58,3 +58,37 @@ matches the pattern's declared JavaScript `RegExp` value.
   matching.
 - The `regexp` pattern MAY be composed with sequencing, alternation,
   conjunction, and traversal patterns to express regex-based grammar rules.
+
+## Examples
+
+### Match a whitespace-free word token
+
+```
+// Pattern object
+regexp(/^\S+$/)
+```
+
+```
+// Grammar rule
+Word = /^\S+$/
+```
+
+Input `"hello"` succeeds with value `"hello"`. Input `"hello world"` fails
+because the string contains whitespace.
+
+---
+
+### Match a floating-point literal string
+
+```
+// Pattern object
+regexp(/^-?\d+(\.\d+)?$/)
+```
+
+```
+// Grammar rule
+FloatLiteral = /^-?\d+(\.\d+)?$/
+```
+
+Input `"3.14"` succeeds. Input `"3."` fails (decimal point with no following
+digits). Input `[42]` (a number, not a string) produces a type error.

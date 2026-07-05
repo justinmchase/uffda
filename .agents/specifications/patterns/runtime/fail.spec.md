@@ -43,3 +43,42 @@ position or any consumed input state.
   be made impossible.
 - The `fail` pattern MAY be composed with alternation, negation, and
   higher-level control patterns to enforce structural constraints.
+
+## Examples
+
+### Mark a dead branch as explicit
+
+Use `fail` as the final branch of an `or` to make the "no match" case
+intentional and visible rather than implicit.
+
+```
+// Pattern object
+or([
+  then([equal("add"), ...]),
+  then([equal("sub"), ...]),
+  fail  // no other opcodes are valid
+])
+```
+
+```
+// Grammar rule
+Instruction = "add" AddArgs | "sub" SubArgs | fail
+```
+
+`fail` is unconditional — it always produces failure output regardless of
+the current input.
+
+---
+
+### Verify `not(fail)` always succeeds
+
+Because `fail` always fails, `not(fail)` is logically equivalent to `ok`.
+This is occasionally useful as a documentation tool to express that a
+branch is always satisfiable.
+
+```
+// Pattern object
+not(fail)
+```
+
+Always succeeds with value `undefined` without consuming input.

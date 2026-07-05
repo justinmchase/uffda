@@ -71,3 +71,33 @@ grammar evaluation.
   harness trigger module-level rule execution.
 - The `run` pattern MAY be composed with pipeline and traversal patterns when
   module-level execution is used as one stage of a larger matching flow.
+
+## Examples
+
+### Execute the module default export
+
+Start parsing from the current module's default exported rule. This is the
+idiomatic test-harness and embedding entry point.
+
+```
+// Pattern object
+run
+```
+
+If the module has a default export `Expression`, this is equivalent to calling
+`reference("Expression", [])` from outside the module.
+
+---
+
+### Execute a named export
+
+Start parsing from a specific named export rather than the default.
+
+```
+// Pattern object
+run("Tokenizer")
+```
+
+If the module exports a rule named `Tokenizer`, that rule is evaluated against
+the current input. If the named export does not exist, a pattern-expected error
+is reported.

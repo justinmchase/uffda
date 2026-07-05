@@ -78,3 +78,51 @@ child pattern's matched value to a named variable in the resulting scope.
 - The `variable` pattern MAY be composed with sequencing, conjunction,
   traversal, alternation, and binding-sensitive patterns to structure runtime
   data extraction.
+
+## Examples
+
+### Bind a matched value for use in a rule expression
+
+Capture a number and double it via the rule's expression.
+
+```
+// Pattern object + rule expression
+{
+  name: "Double",
+  pattern: variable("n", type(Type.Number)),
+  expression: native(({ n }) => n * 2)
+}
+```
+
+```
+// Grammar rule
+Double = n:Number -> n * 2
+```
+
+Input `[5]` succeeds with `n = 5`; the expression produces value `10`.
+
+---
+
+### Capture two fields in sequence
+
+Bind both operands of a binary operation so the expression can combine them.
+
+```
+// Pattern object + rule expression
+{
+  name: "Add",
+  pattern: then([
+    variable("a", type(Type.Number)),
+    equal("+"),
+    variable("b", type(Type.Number))
+  ]),
+  expression: native(({ a, b }) => a + b)
+}
+```
+
+```
+// Grammar rule
+Add = a:Number "+" b:Number -> a + b
+```
+
+Input `[3, "+", 4]` succeeds; expression produces `7`.

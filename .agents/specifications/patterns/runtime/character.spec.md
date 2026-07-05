@@ -51,9 +51,75 @@ Unicode character class.
 - The `character` pattern MUST NOT produce externally observable side effects
   beyond its match result and resulting matching context.
 
+## Supported character classes
+
+The `character` pattern recognizes Unicode general categories following the
+ICU and Unicode standard. The full set includes:
+
+- **Broad categories**: `Any`, `Letter` (L), `Mark` (M), `Number` (N),
+  `Symbol` (S), `Punctuation` (P), `Separator` (Z), `Other` (C)
+- **Subcategories of Letter**: `UppercaseLetter` (Lu), `LowercaseLetter` (Ll),
+  `TitlecaseLetter` (Lt), `ModifierLetter` (Lm), `OtherLetter` (Lo)
+- **Subcategories of Mark**: `NonSpacingMark` (Mn), `SpacingCombiningMark`
+  (Mc), `EnclosingMark` (Me)
+- **Subcategories of Number**: `DecimalDigitNumber` (Nd), `LetterNumber` (Nl),
+  `OtherNumber` (No)
+- **Subcategories of Symbol**: `MathSymbol` (Sm), `CurrencySymbol` (Sc),
+  `ModifierSymbol` (Sk), `OtherSymbol` (So)
+- **Subcategories of Punctuation**: `ConnectorPunctuation` (Pc),
+  `DashPunctuation` (Pd), `OpenPunctuation` (Ps), `ClosePunctuation` (Pe),
+  `InitialPunctuation` (Pi), `FinalPunctuation` (Pf), `OtherPunctuation` (Po)
+- **Subcategories of Separator**: `SpaceSeparator` (Zs), `LineSeparator`
+  (Zl), `ParagraphSeparator` (Zp)
+- **Subcategories of Other**: `Control` (Cc), `Format` (Cf), `Surrogate`
+  (Cs), `PrivateUse` (Co), `Unassigned` (Cn)
+- **Special**: `Assigned` (for all assigned Unicode code points)
+
 ## Composition intent
 
 - The `character` pattern SHOULD be used as a Unicode-aware primitive for
   token-like and lexical matching.
 - The `character` pattern MAY be composed with sequencing, repetition,
   alternation, and traversal-oriented patterns to build larger grammars.
+
+## Examples
+
+### Match any Unicode letter
+
+```
+// Pattern object
+character(CharacterClass.Letter)
+```
+
+```
+// Grammar rule
+Letter = \p{L}
+```
+
+Input `"A"` succeeds with value `"A"`. Input `"1"` fails.
+
+---
+
+### Match a sequence forming an identifier
+
+An identifier starts with a letter and continues with zero or more letters or
+decimal digits.
+
+```
+// Pattern object
+then([
+  character(CharacterClass.Letter),
+  quantifier(or([
+    character(CharacterClass.Letter),
+    character(CharacterClass.DecimalDigitNumber)
+  ]))
+])
+```
+
+```
+// Grammar rule
+Identifier = \p{L} (\p{L} | \p{Nd})*
+```
+
+Input `"x1"` succeeds with value `["x", ["1"]]`. Input `"1x"` fails because
+the first character is not a letter.

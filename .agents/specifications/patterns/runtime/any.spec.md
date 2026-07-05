@@ -49,3 +49,40 @@ runtime type or value.
   patterns.
 - The `any` pattern MAY be combined with sequencing, conjunction, alternation,
   and traversal-oriented patterns.
+
+## Examples
+
+### Match a single item unconditionally
+
+```
+// Pattern object
+any
+```
+
+```
+// Grammar rule
+Item = .
+```
+
+Input `["x"]` succeeds with value `"x"`. Input `[]` fails at end-of-input.
+
+---
+
+### Skip a known-position item in a sequence
+
+Consume and discard a version field before matching the payload.
+
+```
+// Pattern object
+then([
+  any,                  // skip version byte
+  type(Type.Object)     // match payload
+])
+```
+
+```
+// Grammar rule
+VersionedMessage = . Object
+```
+
+Input `[1, { data: true }]` succeeds with value `[1, { data: true }]`.

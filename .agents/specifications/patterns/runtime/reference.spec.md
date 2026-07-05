@@ -80,3 +80,42 @@ current matching context according to the
   parameterized grammar abstractions.
 - The `reference` pattern MAY be composed with sequencing, alternation,
   traversal, and pipeline patterns to build modular grammars.
+
+## Examples
+
+### Call a named rule
+
+Delegate to the `Digit` rule defined elsewhere in the same module.
+
+```
+// Pattern object
+reference("Digit", [])
+```
+
+```
+// Grammar rule
+Number = Digit+
+```
+
+Resolution fails if `Digit` is not exported by the current module, producing
+an unknown-reference error.
+
+---
+
+### Parameterized rule for a generic list
+
+Pass a rule argument to a generic `ListOf` rule so it can be reused with
+different element types.
+
+```
+// Pattern object
+reference("ListOf", ["Digit"])
+```
+
+```
+// Grammar rule
+DigitList = ListOf<Digit>
+```
+
+`ListOf` is defined as `ListOf<T> = T ("," T)*`. Passing `Digit` as the
+argument for parameter `T` produces a comma-separated digit list.

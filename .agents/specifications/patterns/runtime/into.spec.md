@@ -68,3 +68,48 @@ iterable input item, treating that item as a nested input stream.
   sequence that should be matched as its own input stream.
 - The `into` pattern MAY be composed with sequencing, traversal, and
   constraint patterns to express nested grammar structures.
+
+## Examples
+
+### Match an array containing exactly a string and a number
+
+The outer stream contains one array item; `into` steps inside it and matches
+that array as its own stream.
+
+```
+// Pattern object
+into(then([
+  type(Type.String),
+  type(Type.Number),
+  end
+]))
+```
+
+```
+// Grammar rule
+Pair = [ String Number ]
+```
+
+Input `[["Alice", 30]]` succeeds with value `["Alice", 30]`. Input
+`[["Alice"]]` fails because the nested stream is not fully consumed (only one
+item, but two are required before `end`).
+
+---
+
+### Validate a two-level nested structure
+
+Match an outer array whose single element is itself an array of strings.
+
+```
+// Pattern object
+into(into(
+  quantifier(type(Type.String), { min: 1 })
+))
+```
+
+```
+// Grammar rule
+StringMatrix = [ [ String+ ] ]
+```
+
+Input `[[["a", "b"]]]` succeeds with value `["a", "b"]`.

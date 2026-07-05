@@ -71,3 +71,46 @@ any child pattern succeeds.
   may satisfy a grammar rule.
 - The `or` pattern MAY be composed with sequencing, conjunction, traversal, and
   boundary assertions to describe branching grammars.
+
+## Examples
+
+### Match a letter or a digit
+
+```
+// Pattern object
+or([
+  character(CharacterClass.Letter),
+  character(CharacterClass.DecimalDigitNumber)
+])
+```
+
+```
+// Grammar rule
+Alphanumeric = \p{L} | \p{Nd}
+```
+
+Input `"a"` succeeds with `"a"`. Input `"5"` succeeds with `"5"`. Input `"."`
+fails because neither branch succeeds.
+
+---
+
+### Left-recursive expression grammar
+
+Direct left recursion in the first alternative is the idiomatic way to express
+left-associative binary operators. The runtime handles this via the
+[direct left recursion](../../runtime/left-recursion.spec.md) mechanism.
+
+```
+// Pattern object (rule definition)
+or([
+  then([ reference("Expr"), equal("+"), reference("Term") ]),  // left-recursive
+  reference("Term")                                             // base case
+])
+```
+
+```
+// Grammar rule
+Expr = Expr "+" Term | Term
+```
+
+Input `[1, "+", 2, "+", 3]` produces a left-associative tree.

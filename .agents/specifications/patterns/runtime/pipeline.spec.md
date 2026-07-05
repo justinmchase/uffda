@@ -72,3 +72,49 @@ step receives input derived from the previous step's matched value.
   stage consumes the previous stage's output.
 - The `pipeline` pattern MAY be nested and composed with sequencing,
   alternation, traversal, and boundary-assertion patterns.
+
+## Examples
+
+### Two-stage tokenize-then-parse pipeline
+
+The first step tokenizes raw characters; the second step parses the resulting
+token stream as an expression.
+
+```
+// Pattern object
+pipeline([
+  reference("Tokenizer"),
+  reference("Expression")
+])
+```
+
+```
+// Grammar rule
+Program = Tokenizer |> Expression
+```
+
+Input `"1 + 2"` is consumed by `Tokenizer`, which produces `[1, "+", 2]`.
+`Expression` then receives that array as its input and produces an AST.
+
+---
+
+### Numeric transformation pipeline
+
+Apply two successive transformations to a list of numbers: add one to each
+element, then double each element.
+
+```
+// Pattern object (rules with expressions)
+pipeline([
+  reference("PlusOne"),   // pattern: any*, expression: map(n => n + 1)
+  reference("TimesTwo")   // pattern: any*, expression: map(n => n * 2)
+])
+```
+
+```
+// Grammar rule
+Transform = PlusOne |> TimesTwo
+```
+
+Input `[1, 2, 3]` produces `[4, 6, 8]` — each element incremented then
+doubled.

@@ -60,3 +60,46 @@ into success with an undefined value.
   required to match.
 - The `maybe` pattern MAY be composed with sequencing, alternation, and
   traversal patterns to express optional grammar fragments.
+
+## Examples
+
+### Optional sign prefix on a number
+
+```
+// Pattern object
+then([
+  maybe(includes(["+", "-"])),
+  quantifier(character(CharacterClass.DecimalDigitNumber), { min: 1 })
+])
+```
+
+```
+// Grammar rule
+SignedInteger = ("+" | "-")? DecimalDigit+
+```
+
+Input `["-", "4", "2"]` succeeds with value `["-", ["4", "2"]]`. Input
+`["4", "2"]` succeeds with value `[undefined, ["4", "2"]]` — the absent sign
+yields `undefined`.
+
+---
+
+### Optional trailing separator
+
+Allow but do not require a comma after each element in a list.
+
+```
+// Pattern object
+then([
+  any,
+  maybe(equal(","))
+])
+```
+
+```
+// Grammar rule
+ListElement = . ","?
+```
+
+Input `["x", ","]` succeeds with value `["x", ","]`. Input `["x"]` succeeds
+with value `["x", undefined]`.

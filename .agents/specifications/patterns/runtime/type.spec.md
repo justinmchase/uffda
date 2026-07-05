@@ -54,3 +54,43 @@ matches the pattern's declared type.
   that constrains the shared value before other conjuncts inspect it.
 - The `type` pattern MAY be composed with sequencing, alternation,
   conjunction, and traversal patterns to constrain runtime value kinds.
+
+## Examples
+
+### Match a JavaScript number
+
+```
+// Pattern object
+type(Type.Number)
+```
+
+```
+// Grammar rule
+Number = type(Number)
+```
+
+Input `[42]` succeeds with value `42`. Input `["hello"]` fails because the
+runtime type is `String`, not `Number`.
+
+---
+
+### Type guard combined with structural constraint via `and`
+
+Assert the input is an object, then validate its structure. The `type` guard
+fails fast for non-objects before the more expensive `over` check runs.
+
+```
+// Pattern object
+and([
+  type(Type.Object),
+  over({ kind: equal("add"), left: any, right: any })
+])
+```
+
+```
+// Grammar rule
+AddNode = &type(Object) { kind: "add", left: ., right: . }
+```
+
+Input `[{ kind: "add", left: 1, right: 2 }]` succeeds. Input `["add"]` fails
+at `type(Object)` without attempting the structural match.

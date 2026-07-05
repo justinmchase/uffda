@@ -55,3 +55,40 @@ member of the pattern's declared literal value set.
   matching against a fixed literal set.
 - The `includes` pattern MAY be composed with sequencing, alternation,
   conjunction, and boundary assertions to express set-based grammar rules.
+
+## Examples
+
+### Match any reserved keyword
+
+```
+// Pattern object
+includes(["if", "while", "for", "return"])
+```
+
+```
+// Grammar rule
+Keyword = "if" | "while" | "for" | "return"
+```
+
+Input `"while"` succeeds with value `"while"`. Input `"foo"` fails.
+
+---
+
+### Match an arithmetic operator
+
+```
+// Pattern object
+then([
+  any,               // left operand
+  includes(["+", "-", "*", "/"]),
+  any                // right operand
+])
+```
+
+```
+// Grammar rule
+BinaryExpr = . ("+" | "-" | "*" | "/") .
+```
+
+Input `[1, "+", 2]` succeeds with value `[1, "+", 2]`. Input `[1, "^", 2]`
+fails at the `includes` step.

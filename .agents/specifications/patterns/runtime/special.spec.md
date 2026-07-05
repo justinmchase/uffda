@@ -81,3 +81,47 @@ delegate matching to a module default rule or a specific rule value.
 - The `special` pattern MAY be composed with sequencing, alternation,
   conjunction, and traversal patterns to embed reusable runtime-provided
   parsing behavior.
+
+## Examples
+
+### Dispatch to a runtime-supplied module
+
+Evaluate the default rule of a module that was resolved at runtime and
+supplied as a special value.
+
+```
+// Pattern object
+special("tokenizer", {
+  kind: SpecialKind.Module,
+  module: tokenizerModule
+})
+```
+
+The active module is temporarily switched to `tokenizerModule` and its default
+export is evaluated. On success, the scope is restored to caller-visible
+boundaries.
+
+---
+
+### Dispatch to a runtime-supplied rule via pattern interpolation
+
+Evaluate a specific rule that was resolved at runtime and passed in as a
+special value. This enables conditional or dynamic grammar composition.
+
+```
+// Pattern object
+special("customParser", {
+  kind: SpecialKind.Rule,
+  rule: customRule
+})
+```
+
+```
+// Grammar rule with pattern interpolation
+Program = Header customParser Footer
+```
+
+The supplied `customRule` is evaluated directly in the current matching
+context, scoped according to the rule's own module. This allows the grammar
+author to compose rules dynamically, similar to metaprogramming with
+string interpolation but for entire pattern rules.

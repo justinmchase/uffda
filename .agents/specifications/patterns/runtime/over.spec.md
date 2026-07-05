@@ -79,3 +79,46 @@ key-addressable input value.
   matching selected declared keys.
 - The `over` pattern MAY be composed with sequencing, alternation, conjunction,
   and traversal patterns to express keyed-structure grammar rules.
+
+## Examples
+
+### Match an AST node by kind and value type
+
+```
+// Pattern object
+over({
+  kind: equal("literal"),
+  value: type(Type.Number)
+})
+```
+
+```
+// Grammar rule
+NumberLiteral = { kind: "literal", value: Number }
+```
+
+Input `[{ kind: "literal", value: 42 }]` succeeds with value
+`{ kind: "literal", value: 42 }`. Input `[{ kind: "literal", value: "x" }]`
+fails at the `value` key check.
+
+---
+
+### Capture fields with variable bindings
+
+Match an object and capture its fields for use in an expression.
+
+```
+// Pattern object
+over({
+  x: variable("x", type(Type.Number)),
+  y: variable("y", type(Type.Number))
+})
+```
+
+```
+// Grammar rule with expression
+Point = { x: x:Number, y: y:Number } -> Math.sqrt(x*x + y*y)
+```
+
+Input `[{ x: 3, y: 4 }]` succeeds, binding `x = 3` and `y = 4`; a rule
+expression can then compute the magnitude `5`.

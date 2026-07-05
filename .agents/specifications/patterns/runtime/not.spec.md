@@ -61,3 +61,44 @@ child pattern succeeds.
   conditions.
 - The `not` pattern MAY be composed with sequencing, alternation, and
   traversal patterns to express exclusions and lookahead-like constraints.
+
+## Examples
+
+### Assert the next item is not a specific value
+
+Check that the next item is not a closing brace without consuming it. The
+`not` succeeds zero-width and leaves the input unchanged.
+
+```
+// Pattern object
+not(equal("}"))
+```
+
+```
+// Grammar rule
+NotCloseBrace = !"}"
+```
+
+Input `"x"` at current position succeeds with `undefined`. Input `"}"` fails.
+
+---
+
+### Scan past content until a sentinel
+
+Consume any item that is not a closing brace, repeating until the brace is
+found or input is exhausted.
+
+```
+// Pattern object
+quantifier(
+  then([ not(equal("}")), any ])
+)
+```
+
+```
+// Grammar rule
+BodyContent = (!"}".)*
+```
+
+Input `["a", "b", "}"]` with this pattern (inside a larger sequence that then
+consumes `}`) collects `["a", "b"]` before stopping.

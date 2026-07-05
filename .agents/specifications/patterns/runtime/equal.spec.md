@@ -51,3 +51,42 @@ equal to the pattern's declared literal value.
   strict identity with a declared literal is required.
 - The `equal` pattern MAY be composed with sequencing, alternation,
   conjunction, and boundary assertions to express precise grammar constraints.
+
+## Examples
+
+### Match an exact keyword token
+
+```
+// Pattern object
+equal("return")
+```
+
+```
+// Grammar rule
+ReturnKeyword = "return"
+```
+
+Input `"return"` succeeds with value `"return"`. Input `"returning"` fails.
+
+---
+
+### Match a sentinel in a sequence
+
+Match a key-value pair separated by the `=` character.
+
+```
+// Pattern object
+then([
+  type(Type.String),  // key
+  equal("="),
+  any                 // value
+])
+```
+
+```
+// Grammar rule
+Assignment = String "=" .
+```
+
+Input `["x", "=", 42]` succeeds with value `["x", "=", 42]`. Input
+`["x", ":", 42]` fails at the `equal("=")` step.
