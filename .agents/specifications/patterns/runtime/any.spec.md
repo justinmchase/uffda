@@ -1,0 +1,88 @@
+# Any pattern
+
+This chapter defines the logical contract for wildcard matching at the current
+input position.
+
+## Conventions
+
+Normative key words in this chapter use the conventions defined in the
+[Patterns specification](../../patterns.spec.md#conventions).
+
+## Logical purpose
+
+The `any` pattern matches exactly one available input item regardless of its
+runtime type or value.
+
+## Behavioral expectations
+
+- An `any` pattern MUST inspect the current input position.
+- If an input item is available, the `any` pattern MUST succeed.
+- On success, the `any` pattern MUST advance the resulting input position by
+  exactly one item.
+- If no input item is available at the current position, the `any` pattern MUST
+  fail.
+
+## Input consumption
+
+- An `any` pattern MUST consume exactly one input item when it succeeds.
+- An `any` pattern MUST NOT consume input when it fails.
+- An `any` pattern MUST fail without consumption at end-of-input.
+
+## Expected output
+
+- On success, the `any` pattern MUST report the consumed input item as its
+  output value.
+- On failure at end-of-input, the `any` pattern MUST report failure output.
+
+## Error conditions
+
+- The `any` pattern itself does not introduce new error states.
+
+## Side effects
+
+- The `any` pattern MUST NOT produce externally observable side effects beyond
+  its match result and resulting matching context.
+
+## Composition intent
+
+- The `any` pattern SHOULD be used as a wildcard primitive in larger composite
+  patterns.
+- The `any` pattern MAY be combined with sequencing, conjunction, alternation,
+  and traversal-oriented patterns.
+
+## Examples
+
+### Match a single item unconditionally
+
+```
+// Pattern object
+any
+```
+
+```
+// Grammar rule
+Item = .
+```
+
+Input `["x"]` succeeds with value `"x"`. Input `[]` fails at end-of-input.
+
+---
+
+### Skip a known-position item in a sequence
+
+Consume and discard a version field before matching the payload.
+
+```
+// Pattern object
+then([
+  any,                  // skip version byte
+  type(Type.Object)     // match payload
+])
+```
+
+```
+// Grammar rule
+VersionedMessage = . Object
+```
+
+Input `[1, { data: true }]` succeeds with value `[1, { data: true }]`.
