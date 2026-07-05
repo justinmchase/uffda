@@ -97,8 +97,9 @@ Program = Tokenizer |> into(Expression)
 ```
 
 Input `"1 + 2"` is consumed by `Tokenizer`, which produces `[1, "+", 2]`.
-The next stage receives that array as a scalar item; `into` steps into the
-array so `Expression` can consume the token stream and produce an AST.
+The next stage receives that array as a scalar item; `into` traverses that
+array as a new input stream so `Expression` can consume the token stream and
+produce an AST.
 
 ---
 

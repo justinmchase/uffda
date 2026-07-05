@@ -35,7 +35,7 @@ Each input item has value-surface semantics used by runtime patterns:
 
 - A **scalar item** is matched directly as one item value.
 - An **iterable item** can be traversed with `into`, which evaluates a child
-  pattern against a nested stream of the iterable's items.
+  pattern against a new input stream created from that iterable's items.
 - A **keyed item** (object or `Map`) can be traversed with `over`, which
   evaluates declared keys against nested single-item streams.
 
