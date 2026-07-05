@@ -66,6 +66,9 @@ iterable input item, treating that item as a nested input stream.
 
 - The `into` pattern SHOULD be used when a single outer value contains a nested
   sequence that should be matched as its own input stream.
+- The `into` pattern SHOULD be used as the explicit iterable adapter between
+  pipeline stages when a previous stage produced an iterable value and the next
+  stage expects an item stream.
 - The `into` pattern MAY be composed with sequencing, traversal, and
   constraint patterns to express nested grammar structures.
 

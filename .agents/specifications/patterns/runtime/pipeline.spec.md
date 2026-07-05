@@ -19,10 +19,11 @@ step receives input derived from the previous step's matched value.
 - The first step MUST be evaluated against the current matching input stream.
 - Each step after the first MUST be evaluated against a derived input stream
   built from the previous successful step's output value.
-- If a step output value is iterable, the derived input stream MUST iterate
-  that value directly.
-- If a step output value is not iterable, the derived input stream MUST wrap
-  that value as a single-item stream.
+- The derived input stream for each step after the first MUST use scalar
+  normalization and therefore contain exactly one item: the previous step's
+  output value.
+- A `pipeline` pattern MUST NOT implicitly iterate a step output value, even
+  when that value is iterable.
 - If any step fails, the `pipeline` pattern MUST fail.
 - If any step reports an error, the `pipeline` pattern MUST propagate that
   error immediately.
@@ -70,6 +71,8 @@ step receives input derived from the previous step's matched value.
 
 - The `pipeline` pattern SHOULD be used for staged transformations where each
   stage consumes the previous stage's output.
+- When a stage output is iterable and the next stage should consume its items
+  as a stream, composition SHOULD use `into` explicitly in that next stage.
 - The `pipeline` pattern MAY be nested and composed with sequencing,
   alternation, traversal, and boundary-assertion patterns.
 
@@ -84,17 +87,18 @@ token stream as an expression.
 // Pattern object
 pipeline([
   reference("Tokenizer"),
-  reference("Expression")
+  into(reference("Expression"))
 ])
 ```
 
 ```
 // Grammar rule
-Program = Tokenizer |> Expression
+Program = Tokenizer |> into(Expression)
 ```
 
 Input `"1 + 2"` is consumed by `Tokenizer`, which produces `[1, "+", 2]`.
-`Expression` then receives that array as its input and produces an AST.
+The next stage receives that array as a scalar item; `into` steps into the
+array so `Expression` can consume the token stream and produce an AST.
 
 ---
 
@@ -107,13 +111,13 @@ element, then double each element.
 // Pattern object (rules with expressions)
 pipeline([
   reference("PlusOne"),   // pattern: any*, expression: map(n => n + 1)
-  reference("TimesTwo")   // pattern: any*, expression: map(n => n * 2)
+  into(reference("TimesTwo"))   // pattern: any*, expression: map(n => n * 2)
 ])
 ```
 
 ```
 // Grammar rule
-Transform = PlusOne |> TimesTwo
+Transform = PlusOne |> into(TimesTwo)
 ```
 
 Input `[1, 2, 3]` produces `[4, 6, 8]` — each element incremented then
