@@ -27,8 +27,8 @@ file.
     {subtopic}.spec.md
 ```
 
-- `.agents/specifications/README.md` is the canonical index and explains how the spec set is
-  organized.
+- `.agents/specifications/README.md` is the canonical index and explains how the
+  spec set is organized.
 - Each `{topic}.spec.md` file is a parent chapter file and should index its
   direct subtopic files.
 - Topic subdirectories should hold subtopic chapters in separate files so each
@@ -42,7 +42,8 @@ file.
 - Name files by concern, such as `grammar.spec.md`, `matching.spec.md`, or
   `runtime.spec.md`.
 - Keep parent topics and subtopics in a tree structure, for example
-  `.agents/specifications/patterns.spec.md` indexing files in `.agents/specifications/patterns/`.
+  `.agents/specifications/patterns.spec.md` indexing files in
+  `.agents/specifications/patterns/`.
 - When a topic has nested concerns, create a subtopic index file that links to
   deeper files rather than embedding all content in the parent.
 - Cross-link related spec files when one topic depends on another.

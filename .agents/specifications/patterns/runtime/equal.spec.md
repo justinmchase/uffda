@@ -49,8 +49,8 @@ equal to the pattern's declared literal value.
 
 - The `equal` pattern SHOULD be used for exact token or sentinel matching where
   strict identity with a declared literal is required.
-- The `equal` pattern MAY be composed with sequencing, alternation,
-  conjunction, and boundary assertions to express precise grammar constraints.
+- The `equal` pattern MAY be composed with sequencing, alternation, conjunction,
+  and boundary assertions to express precise grammar constraints.
 
 ## Examples
 

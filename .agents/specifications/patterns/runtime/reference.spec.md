@@ -24,11 +24,11 @@ current matching context according to the
   unknown-reference error.
 - The number of supplied argument references MUST equal the target rule's
   parameter count.
-- If argument count does not match parameter count, the `reference` pattern
-  MUST report an invalid-argument error.
+- If argument count does not match parameter count, the `reference` pattern MUST
+  report an invalid-argument error.
 - Each supplied argument reference MUST resolve to an existing rule in scope.
-- If any supplied argument reference cannot be resolved, the `reference`
-  pattern MUST report an unknown-parameter error.
+- If any supplied argument reference cannot be resolved, the `reference` pattern
+  MUST report an unknown-parameter error.
 - A `reference` pattern MUST reject self-reference where an argument resolves to
   the same rule as the reference target.
 - If self-reference is detected in arguments, the `reference` pattern MUST
@@ -43,10 +43,10 @@ current matching context according to the
 
 ## Left-recursion behavior
 
-- If resolved rule evaluation reports a left-recursion outcome, the
-  `reference` pattern MUST propagate that outcome unchanged.
-- The `reference` pattern MUST NOT convert a left-recursion outcome into
-  failure or success.
+- If resolved rule evaluation reports a left-recursion outcome, the `reference`
+  pattern MUST propagate that outcome unchanged.
+- The `reference` pattern MUST NOT convert a left-recursion outcome into failure
+  or success.
 
 ## Input consumption
 
@@ -97,8 +97,8 @@ reference("Digit", [])
 Number = Digit+
 ```
 
-Resolution fails if `Digit` is not exported by the current module, producing
-an unknown-reference error.
+Resolution fails if `Digit` is not exported by the current module, producing an
+unknown-reference error.
 
 ---
 
@@ -117,5 +117,5 @@ reference("ListOf", ["Digit"])
 DigitList = ListOf<Digit>
 ```
 
-`ListOf` is defined as `ListOf<T> = T ("," T)*`. Passing `Digit` as the
-argument for parameter `T` produces a comma-separated digit list.
+`ListOf` is defined as `ListOf<T> = T ("," T)*`. Passing `Digit` as the argument
+for parameter `T` produces a comma-separated digit list.

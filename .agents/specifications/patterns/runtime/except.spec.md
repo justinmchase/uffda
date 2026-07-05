@@ -24,8 +24,8 @@ primitive for the common idiom of "consume any item except this".
   exactly one input item.
 - If the child pattern succeeds, the `except` pattern MUST fail without
   consuming input.
-- An `except` pattern MUST report the consumed input item as its output value
-  on success.
+- An `except` pattern MUST report the consumed input item as its output value on
+  success.
 
 ## Left-recursion behavior
 
@@ -58,18 +58,18 @@ primitive for the common idiom of "consume any item except this".
 ## Side effects
 
 - The `except` pattern MUST NOT produce externally observable side effects
-  beyond its match result and the match result of the child pattern's
-  zero-width assertion.
+  beyond its match result and the match result of the child pattern's zero-width
+  assertion.
 
 ## Composition intent
 
 - The `except` pattern SHOULD be used for scanning and content-matching
-  scenarios where input should be consumed up to (but not including) a
-  sentinel or excluded pattern.
+  scenarios where input should be consumed up to (but not including) a sentinel
+  or excluded pattern.
 - The `except` pattern SHOULD be composed with quantification (`*`, `+`) to
   match sequences of items that do not satisfy a constraint.
-- The `except` pattern MAY be composed with sequencing and alternation to
-  build lexical and syntactic patterns.
+- The `except` pattern MAY be composed with sequencing and alternation to build
+  lexical and syntactic patterns.
 
 ## Examples
 
@@ -87,9 +87,11 @@ quantifier(except(equal("\n")))
 LineContent = ~"\n"*
 ```
 
-Input `"hello world"` succeeds with value `["h", "e", "l", "l", "o", " ",
-"w", "o", "r", "l", "d"]`. Input `"hello\nworld"` matches only up to the
-newline, returning `["h", "e", "l", "l", "o"]`.
+Input `"hello world"` succeeds with value
+`["h", "e", "l", "l", "o", " ",
+"w", "o", "r", "l", "d"]`. Input
+`"hello\nworld"` matches only up to the newline, returning
+`["h", "e", "l", "l", "o"]`.
 
 ---
 
@@ -156,4 +158,3 @@ UntilZero = ~0* 0
 
 Input `[1, 2, 3, 0]` succeeds with `[[1, 2, 3], 0]`. Input `[1, 2, 3]` fails
 because the sentinel is not found.
-

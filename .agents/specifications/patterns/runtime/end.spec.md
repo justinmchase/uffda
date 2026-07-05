@@ -20,8 +20,8 @@ current input position.
   succeed.
 - If additional input items are available, the `end` pattern MUST fail.
 - The `end` pattern MUST NOT consume input.
-- On both success and failure, the resulting input position MUST remain the
-  same as the incoming input position.
+- On both success and failure, the resulting input position MUST remain the same
+  as the incoming input position.
 
 ## Input consumption
 
@@ -31,8 +31,8 @@ current input position.
 
 ## Expected output
 
-- On success, the `end` pattern MUST report success output with no consumed
-  item value.
+- On success, the `end` pattern MUST report success output with no consumed item
+  value.
 - On failure, the `end` pattern MUST report failure output.
 
 ## Error conditions
@@ -46,8 +46,8 @@ current input position.
 
 ## Composition intent
 
-- The `end` pattern SHOULD be used as an explicit boundary assertion to ensure
-  a larger composite pattern consumes the intended complete input.
+- The `end` pattern SHOULD be used as an explicit boundary assertion to ensure a
+  larger composite pattern consumes the intended complete input.
 - The `end` pattern MAY be composed with sequencing, negation, and alternation
   to express completion-sensitive grammars.
 

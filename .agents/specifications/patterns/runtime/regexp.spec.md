@@ -24,8 +24,8 @@ matches the pattern's declared JavaScript `RegExp` value.
   report a type error.
 - The `regexp` pattern MUST evaluate the declared `RegExp` against the current
   string input item using JavaScript regular-expression matching semantics.
-- If the regular expression matches the current string input item, the
-  `regexp` pattern MUST succeed.
+- If the regular expression matches the current string input item, the `regexp`
+  pattern MUST succeed.
 - If the regular expression does not match the current string input item, the
   `regexp` pattern MUST fail.
 

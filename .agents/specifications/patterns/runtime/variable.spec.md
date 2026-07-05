@@ -32,8 +32,8 @@ child pattern's matched value to a named variable in the resulting scope.
 
 - A `variable` pattern MUST propagate a child pattern's left-recursion outcome
   unchanged.
-- A `variable` pattern MUST NOT convert a left-recursion outcome into failure
-  or success.
+- A `variable` pattern MUST NOT convert a left-recursion outcome into failure or
+  success.
 
 ## Input consumption
 

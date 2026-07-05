@@ -1,7 +1,7 @@
 # Runtime left recursion
 
-This chapter defines the runtime contract for direct and indirect left
-recursion in Uffda pattern matching.
+This chapter defines the runtime contract for direct and indirect left recursion
+in Uffda pattern matching.
 
 ## Conventions
 

@@ -40,24 +40,26 @@ Each input item has value-surface semantics used by runtime patterns:
   evaluates declared keys against nested single-item streams.
 
 Composition and boundary patterns (`then`, `and`, `or`, `not`, `end`, and
-related patterns) operate over stream positions regardless of item surface.
-When the active stream has one scalar item, a multi-step sequence can only
-succeed if later steps are zero-width or delegated to nested traversal (for
-example, via `into`).
+related patterns) operate over stream positions regardless of item surface. When
+the active stream has one scalar item, a multi-step sequence can only succeed if
+later steps are zero-width or delegated to nested traversal (for example, via
+`into`).
 
 ## Open questions and recommended additions
 
 The following patterns are identified as gaps relative to a complete PEG
-foundation and general formal grammar expectations. Each is a candidate for
-a future runtime pattern subtopic. They are recorded here as open questions
+foundation and general formal grammar expectations. Each is a candidate for a
+future runtime pattern subtopic. They are recorded here as open questions
 pending decision.
 
 ### `literal` — atomic string matching
 
 Matching a multi-character string atomically (e.g., the string `"hello"`)
-currently requires `then([equal('h'), equal('e'), equal('l'), equal('l'),
-equal('o')])`. This is especially relevant for the expression language layer,
-where matching keyword or operator tokens should be a single atomic operation.
+currently requires
+`then([equal('h'), equal('e'), equal('l'), equal('l'),
+equal('o')])`. This is
+especially relevant for the expression language layer, where matching keyword or
+operator tokens should be a single atomic operation.
 
 A `literal(string)` pattern that decomposes and matches a declared string
 atomically would improve ergonomics and produce better match spans and error

@@ -12,8 +12,8 @@ existing patterns currently in the codebase during implementation:
 - `quantifier` will replace the current `slice` pattern
 - `lookahead` is a new pattern to be implemented
 
-This consolidation simplifies the pattern API and aligns implementation with
-the unified semantics defined in the specifications.
+This consolidation simplifies the pattern API and aligns implementation with the
+unified semantics defined in the specifications.
 
 ## Runtime pattern chapter structure
 

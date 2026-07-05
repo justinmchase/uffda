@@ -54,8 +54,8 @@ for all identifier-based matching.
 
 ## Expected output
 
-- On success, the `resolve` pattern MUST report the match result of the
-  resolved value or pattern.
+- On success, the `resolve` pattern MUST report the match result of the resolved
+  value or pattern.
 - On failure, the `resolve` pattern MUST report failure.
 
 ## Error conditions
@@ -71,16 +71,15 @@ for all identifier-based matching.
 ## Side effects
 
 - The `resolve` pattern MUST NOT produce externally observable side effects
-  beyond its match result and the side effects of the resolved value or
-  pattern.
+  beyond its match result and the side effects of the resolved value or pattern.
 - Variable binding (the `:name` syntax) creates a side effect in the current
   scope and MUST be validated for conflicts before match evaluation begins.
 
 ## Composition intent
 
 - The `resolve` pattern SHOULD be used whenever an identifier needs to be
-  matched against a previously captured value, a runtime-supplied pattern, or
-  a named rule.
+  matched against a previously captured value, a runtime-supplied pattern, or a
+  named rule.
 - The `resolve` pattern enables paired delimiters (matching closing delimiter
   against opening), repeated tokens, contextual matching, and rule composition.
 - The `resolve` pattern MAY be composed with sequencing, alternation, and
@@ -107,8 +106,8 @@ then([
 QuotedString = quote:("\"" | "'") ~quote* quote
 ```
 
-Input `"\"hello\""` succeeds with `quote = "\""`, consumes `hello` (any 
-character except `"`), then matches the closing `"`. Input `"\"hello'"` fails 
+Input `"\"hello\""` succeeds with `quote = "\""`, consumes `hello` (any
+character except `"`), then matches the closing `"`. Input `"\"hello'"` fails
 because the closing quote doesn't match the opening quote.
 
 ---
@@ -165,8 +164,8 @@ Or more naturally in grammar sugar:
 Pair = Expression "," Expression
 ```
 
-When a bare identifier appears in grammar syntax, it is implicitly a rule
-lookup (syntactic sugar for `resolve`).
+When a bare identifier appears in grammar syntax, it is implicitly a rule lookup
+(syntactic sugar for `resolve`).
 
 ---
 
@@ -245,4 +244,3 @@ Example = x:Word x:Number ...  // ✗ error: x already defined (duplicate bindin
 Example = x:Word y:Number ...  // ✓ ok: x and y are distinct variables
 Example2 = x:Word "," y:Word x ...  // ✓ ok: resolve(x) finds variable x
 ```
-

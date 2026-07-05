@@ -16,8 +16,8 @@ key-addressable input value.
 ## Behavioral expectations
 
 - An `over` pattern MUST inspect the current input position.
-- If no input item is available at the current position, the `over` pattern
-  MUST fail.
+- If no input item is available at the current position, the `over` pattern MUST
+  fail.
 - The current input item MUST be either a JavaScript object value or a `Map`
   value for the `over` pattern to proceed.
 - If the current input item is neither an object value nor a `Map`, the `over`
@@ -28,8 +28,8 @@ key-addressable input value.
 - For each declared key, the `over` pattern MUST evaluate the corresponding
   child pattern against a single-item input stream containing the current value
   for that key.
-- When the current input item is an object value, declared keys MUST be
-  resolved using JavaScript property-key semantics.
+- When the current input item is an object value, declared keys MUST be resolved
+  using JavaScript property-key semantics.
 - When the current input item is a `Map`, declared keys MUST be resolved using
   `Map` key semantics.
 - For `Map` values, key presence MUST be determined by `map.has(key)` and MUST
@@ -44,8 +44,8 @@ key-addressable input value.
 
 ## Left-recursion behavior
 
-- If any child pattern reports a left-recursion outcome, the `over` pattern
-  MUST propagate that outcome unchanged.
+- If any child pattern reports a left-recursion outcome, the `over` pattern MUST
+  propagate that outcome unchanged.
 - The `over` pattern MUST NOT convert a left-recursion outcome into failure or
   success.
 

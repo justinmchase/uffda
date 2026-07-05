@@ -9,8 +9,8 @@ Normative key words in this chapter use the conventions defined in the
 
 ## Logical purpose
 
-The `ok` pattern forces a match success regardless of the current input
-position or input state.
+The `ok` pattern forces a match success regardless of the current input position
+or input state.
 
 ## Behavioral expectations
 
@@ -65,8 +65,8 @@ end-of-input.
 
 ### Use `not(ok)` to force unconditional failure
 
-Because `ok` always succeeds, `not(ok)` always fails. This is the idiomatic
-way to express an unconditional dead-end without using `fail` directly.
+Because `ok` always succeeds, `not(ok)` always fails. This is the idiomatic way
+to express an unconditional dead-end without using `fail` directly.
 
 ```
 // Pattern object

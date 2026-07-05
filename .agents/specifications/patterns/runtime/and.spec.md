@@ -27,8 +27,8 @@ express constraints that are all required for a successful match.
 ## Input consumption
 
 - An `and` pattern MUST NOT consume input directly.
-- Any input consumption caused by child patterns MUST be governed by those
-  child patterns' own contracts.
+- Any input consumption caused by child patterns MUST be governed by those child
+  patterns' own contracts.
 - When an `and` pattern fails, any consumed input MUST be accounted for by the
   semantics of the child patterns and the matching engine's rollback rules.
 
@@ -38,8 +38,8 @@ express constraints that are all required for a successful match.
   the output produced by the final child pattern evaluation.
 - When an `and` pattern has no child patterns, it MUST succeed as the
   conjunction identity case.
-- For the identity case with no child patterns, the reported success output
-  MUST be `undefined`.
+- For the identity case with no child patterns, the reported success output MUST
+  be `undefined`.
 - When any child pattern fails, the `and` pattern MUST report failure output.
 
 ## Error conditions
@@ -107,5 +107,5 @@ and([
 LiteralNode = &type(Object) { kind: "literal" }
 ```
 
-Input `[{ kind: "literal", value: 42 }]` succeeds. Input `["literal"]` fails
-at the `type(Object)` check without attempting the structural match.
+Input `[{ kind: "literal", value: 42 }]` succeeds. Input `["literal"]` fails at
+the `type(Object)` check without attempting the structural match.

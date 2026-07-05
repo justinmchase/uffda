@@ -24,8 +24,8 @@ and maximum repetition bounds.
 - If both `min` and `max` are provided, `max` MUST be greater than or equal to
   `min`.
 - Invalid repetition bounds MUST report an invalid-argument error.
-- A `quantifier` pattern MUST evaluate its child pattern repeatedly in declaration
-  context until one of the following stop conditions occurs:
+- A `quantifier` pattern MUST evaluate its child pattern repeatedly in
+  declaration context until one of the following stop conditions occurs:
   1. The child pattern fails.
   2. The `max` bound is reached.
   3. The input stream is exhausted.
@@ -33,33 +33,33 @@ and maximum repetition bounds.
      repetition threshold.
 - If the child pattern reports an error, the `quantifier` pattern MUST propagate
   that error.
-- If the child pattern reports a left-recursion outcome, the `quantifier` pattern
-  MUST propagate that outcome unchanged.
+- If the child pattern reports a left-recursion outcome, the `quantifier`
+  pattern MUST propagate that outcome unchanged.
 
 ## Left-recursion behavior
 
 - A `quantifier` pattern MUST propagate a child pattern's left-recursion outcome
   unchanged.
-- A `quantifier` pattern MUST NOT convert a left-recursion outcome into failure or
-  success.
+- A `quantifier` pattern MUST NOT convert a left-recursion outcome into failure
+  or success.
 
 ## Input consumption
 
-- A `quantifier` pattern MUST consume input only through successful child pattern
-  evaluation.
-- A `quantifier` pattern MUST preserve the original input position when it fails due
-  to not meeting the minimum repetition bound.
-- When the child pattern succeeds without advancing input, the `quantifier` pattern
-  MUST apply a progress guard to prevent non-terminating repetition.
-- For non-progressing child successes, the `quantifier` pattern MUST terminate once
-  minimum repetition requirements are satisfied.
+- A `quantifier` pattern MUST consume input only through successful child
+  pattern evaluation.
+- A `quantifier` pattern MUST preserve the original input position when it fails
+  due to not meeting the minimum repetition bound.
+- When the child pattern succeeds without advancing input, the `quantifier`
+  pattern MUST apply a progress guard to prevent non-terminating repetition.
+- For non-progressing child successes, the `quantifier` pattern MUST terminate
+  once minimum repetition requirements are satisfied.
 
 ## Expected output
 
-- On success, the `quantifier` pattern MUST report an ordered array of child matched
-  values.
-- On success with zero repetitions, the `quantifier` pattern MUST report an empty
-  array.
+- On success, the `quantifier` pattern MUST report an ordered array of child
+  matched values.
+- On success with zero repetitions, the `quantifier` pattern MUST report an
+  empty array.
 - On failure from unmet minimum repetition count, the `quantifier` pattern MUST
   report failure output.
 
@@ -74,8 +74,9 @@ and maximum repetition bounds.
 
 ## Composition intent
 
-- The `quantifier` pattern SHOULD be used as the primary repetition form for child
-  patterns, including optional, Kleene-star, and bounded-repeat constructs.
+- The `quantifier` pattern SHOULD be used as the primary repetition form for
+  child patterns, including optional, Kleene-star, and bounded-repeat
+  constructs.
 - The `quantifier` pattern MAY be composed with sequencing, alternation,
   conjunction, traversal, and pipeline patterns.
 
@@ -102,8 +103,8 @@ quantifier(character(CharacterClass.Letter))
 Letters = \p{L}*
 ```
 
-Input `"abc"` succeeds with value `["a", "b", "c"]`. Input `""` or `[]`
-succeeds with value `[]`.
+Input `"abc"` succeeds with value `["a", "b", "c"]`. Input `""` or `[]` succeeds
+with value `[]`.
 
 ---
 
@@ -137,4 +138,5 @@ ThreeDigits = \p{Nd}{3}
 ```
 
 Input `"123"` succeeds with `["1", "2", "3"]`. Input `"12"` fails; input
-`"1234"` succeeds matching only the first three digits, leaving `"4"` unconsumed.
+`"1234"` succeeds matching only the first three digits, leaving `"4"`
+unconsumed.

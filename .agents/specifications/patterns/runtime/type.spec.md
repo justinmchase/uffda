@@ -16,13 +16,13 @@ matches the pattern's declared type.
 ## Behavioral expectations
 
 - A `type` pattern MUST inspect the current input position.
-- If no input item is available at the current position, the `type` pattern
-  MUST fail.
+- If no input item is available at the current position, the `type` pattern MUST
+  fail.
 - The current input item MUST be checked against the declared runtime type.
-- If the current input item's runtime type matches the declared type, the
-  `type` pattern MUST succeed.
-- If the current input item's runtime type does not match the declared type,
-  the `type` pattern MUST fail.
+- If the current input item's runtime type matches the declared type, the `type`
+  pattern MUST succeed.
+- If the current input item's runtime type does not match the declared type, the
+  `type` pattern MUST fail.
 
 ## Input consumption
 
@@ -33,7 +33,7 @@ matches the pattern's declared type.
 ## Expected output
 
 - On success, the `type` pattern MUST report the consumed input item as its
-	output value.
+  output value.
 - On failure, the `type` pattern MUST report failure output.
 
 ## Error conditions
@@ -52,8 +52,8 @@ matches the pattern's declared type.
 - The `type` pattern is especially useful inside the `and` pattern, where each
   child pattern evaluates against the same input and `type` can act as a guard
   that constrains the shared value before other conjuncts inspect it.
-- The `type` pattern MAY be composed with sequencing, alternation,
-  conjunction, and traversal patterns to constrain runtime value kinds.
+- The `type` pattern MAY be composed with sequencing, alternation, conjunction,
+  and traversal patterns to constrain runtime value kinds.
 
 ## Examples
 
@@ -92,5 +92,5 @@ and([
 AddNode = &type(Object) { kind: "add", left: ., right: . }
 ```
 
-Input `[{ kind: "add", left: 1, right: 2 }]` succeeds. Input `["add"]` fails
-at `type(Object)` without attempting the structural match.
+Input `[{ kind: "add", left: 1, right: 2 }]` succeeds. Input `["add"]` fails at
+`type(Object)` without attempting the structural match.

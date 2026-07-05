@@ -15,21 +15,21 @@ pattern runs after the previous child pattern succeeds.
 ## Behavioral expectations
 
 - A `then` pattern MUST evaluate child patterns in declaration order.
-- Each child pattern MUST be evaluated against the current matching scope at
-  the point it is reached.
+- Each child pattern MUST be evaluated against the current matching scope at the
+  point it is reached.
 - If a child pattern succeeds, the `then` pattern MUST continue to the next
   child pattern.
 - If any child pattern fails, the `then` pattern MUST fail.
 - If any child pattern reports an error, the `then` pattern MUST propagate that
   error immediately.
-- If any child pattern reports a left-recursion outcome, the `then` pattern
-  MUST propagate that outcome unchanged.
+- If any child pattern reports a left-recursion outcome, the `then` pattern MUST
+  propagate that outcome unchanged.
 - A `then` pattern with no child patterns MUST succeed.
 
 ## Left-recursion behavior
 
-- If any child pattern reports a left-recursion outcome, the `then` pattern
-  MUST propagate that outcome unchanged.
+- If any child pattern reports a left-recursion outcome, the `then` pattern MUST
+  propagate that outcome unchanged.
 - The `then` pattern MUST NOT convert a left-recursion outcome into failure or
   success.
 
@@ -82,8 +82,8 @@ then([equal("a"), equal("b"), equal("c")])
 ABC = "a" "b" "c"
 ```
 
-Input `"abc"` succeeds with value `["a", "b", "c"]`. Input `"axc"` fails at
-the second step without consuming any committed result.
+Input `"abc"` succeeds with value `["a", "b", "c"]`. Input `"axc"` fails at the
+second step without consuming any committed result.
 
 ---
 
@@ -105,8 +105,8 @@ then([
 Pair = key:String "=" value:.
 ```
 
-Input `["x", "=", 42]` succeeds with value `["x", "=", 42]`, and binds `key`
-and `value` in the resulting scope for use by a rule expression.
+Input `["x", "=", 42]` succeeds with value `["x", "=", 42]`, and binds `key` and
+`value` in the resulting scope for use by a rule expression.
 
 ---
 

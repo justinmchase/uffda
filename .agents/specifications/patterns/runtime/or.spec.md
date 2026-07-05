@@ -43,8 +43,8 @@ any child pattern succeeds.
 ## Input consumption
 
 - An `or` pattern MUST NOT consume input directly.
-- When a child pattern succeeds, the `or` pattern MUST consume exactly the
-  input consumed by that successful child pattern.
+- When a child pattern succeeds, the `or` pattern MUST consume exactly the input
+  consumed by that successful child pattern.
 - When a child pattern fails, the `or` pattern MUST continue as though no input
   had been consumed by that failing branch.
 - If every child pattern fails, the `or` pattern MUST fail without consuming

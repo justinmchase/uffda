@@ -20,9 +20,9 @@ Unicode character class.
 - A `character` pattern MUST read at most one input item.
 - The inspected input item MUST be a JavaScript string value to be eligible for
   class-based matching.
-- If the inspected item is a string and belongs to the declared character
-  class, the `character` pattern MUST succeed and advance the resulting input
-  position by exactly one item.
+- If the inspected item is a string and belongs to the declared character class,
+  the `character` pattern MUST succeed and advance the resulting input position
+  by exactly one item.
 - If the inspected item is a string but does not belong to the declared
   character class, the `character` pattern MUST fail.
 
@@ -53,15 +53,15 @@ Unicode character class.
 
 ## Supported character classes
 
-The `character` pattern recognizes Unicode general categories following the
-ICU and Unicode standard. The full set includes:
+The `character` pattern recognizes Unicode general categories following the ICU
+and Unicode standard. The full set includes:
 
-- **Broad categories**: `Any`, `Letter` (L), `Mark` (M), `Number` (N),
-  `Symbol` (S), `Punctuation` (P), `Separator` (Z), `Other` (C)
+- **Broad categories**: `Any`, `Letter` (L), `Mark` (M), `Number` (N), `Symbol`
+  (S), `Punctuation` (P), `Separator` (Z), `Other` (C)
 - **Subcategories of Letter**: `UppercaseLetter` (Lu), `LowercaseLetter` (Ll),
   `TitlecaseLetter` (Lt), `ModifierLetter` (Lm), `OtherLetter` (Lo)
-- **Subcategories of Mark**: `NonSpacingMark` (Mn), `SpacingCombiningMark`
-  (Mc), `EnclosingMark` (Me)
+- **Subcategories of Mark**: `NonSpacingMark` (Mn), `SpacingCombiningMark` (Mc),
+  `EnclosingMark` (Me)
 - **Subcategories of Number**: `DecimalDigitNumber` (Nd), `LetterNumber` (Nl),
   `OtherNumber` (No)
 - **Subcategories of Symbol**: `MathSymbol` (Sm), `CurrencySymbol` (Sc),
@@ -69,10 +69,10 @@ ICU and Unicode standard. The full set includes:
 - **Subcategories of Punctuation**: `ConnectorPunctuation` (Pc),
   `DashPunctuation` (Pd), `OpenPunctuation` (Ps), `ClosePunctuation` (Pe),
   `InitialPunctuation` (Pi), `FinalPunctuation` (Pf), `OtherPunctuation` (Po)
-- **Subcategories of Separator**: `SpaceSeparator` (Zs), `LineSeparator`
-  (Zl), `ParagraphSeparator` (Zp)
-- **Subcategories of Other**: `Control` (Cc), `Format` (Cf), `Surrogate`
-  (Cs), `PrivateUse` (Co), `Unassigned` (Cn)
+- **Subcategories of Separator**: `SpaceSeparator` (Zs), `LineSeparator` (Zl),
+  `ParagraphSeparator` (Zp)
+- **Subcategories of Other**: `Control` (Cc), `Format` (Cf), `Surrogate` (Cs),
+  `PrivateUse` (Co), `Unassigned` (Cn)
 - **Special**: `Assigned` (for all assigned Unicode code points)
 
 ## Composition intent
@@ -121,5 +121,5 @@ then([
 Identifier = \p{L} (\p{L} | \p{Nd})*
 ```
 
-Input `"x1"` succeeds with value `["x", ["1"]]`. Input `"1x"` fails because
-the first character is not a letter.
+Input `"x1"` succeeds with value `["x", ["1"]]`. Input `"1x"` fails because the
+first character is not a letter.

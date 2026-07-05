@@ -10,8 +10,8 @@ Normative key words in this chapter use the conventions defined in the
 
 ## Logical purpose
 
-The `pipeline` pattern runs an ordered sequence of step patterns where each
-step receives input derived from the previous step's matched value.
+The `pipeline` pattern runs an ordered sequence of step patterns where each step
+receives input derived from the previous step's matched value.
 
 ## Behavioral expectations
 
@@ -25,8 +25,8 @@ step receives input derived from the previous step's matched value.
 - A `pipeline` pattern MUST NOT implicitly iterate a step output value, even
   when that value is iterable.
 - If any step fails, the `pipeline` pattern MUST fail.
-- If any step reports an error, the `pipeline` pattern MUST propagate that
-  error immediately.
+- If any step reports an error, the `pipeline` pattern MUST propagate that error
+  immediately.
 - If every step succeeds, the `pipeline` pattern MUST succeed.
 - A `pipeline` pattern with no steps MUST succeed and report `undefined`.
 
@@ -71,8 +71,8 @@ step receives input derived from the previous step's matched value.
 
 - The `pipeline` pattern SHOULD be used for staged transformations where each
   stage consumes the previous stage's output.
-- When a stage output is iterable and the next stage should consume its items
-  as a stream, composition SHOULD use `into` explicitly in that next stage.
+- When a stage output is iterable and the next stage should consume its items as
+  a stream, composition SHOULD use `into` explicitly in that next stage.
 - The `pipeline` pattern MAY be nested and composed with sequencing,
   alternation, traversal, and boundary-assertion patterns.
 
@@ -96,10 +96,10 @@ pipeline([
 Program = Tokenizer |> into(Expression)
 ```
 
-Input `"1 + 2"` is consumed by `Tokenizer`, which produces `[1, "+", 2]`.
-The next stage receives that array as a scalar item; `into` traverses that
-array as a new input stream so `Expression` can consume the token stream and
-produce an AST.
+Input `"1 + 2"` is consumed by `Tokenizer`, which produces `[1, "+", 2]`. The
+next stage receives that array as a scalar item; `into` traverses that array as
+a new input stream so `Expression` can consume the token stream and produce an
+AST.
 
 ---
 
@@ -121,5 +121,4 @@ pipeline([
 Transform = PlusOne |> into(TimesTwo)
 ```
 
-Input `[1, 2, 3]` produces `[4, 6, 8]` — each element incremented then
-doubled.
+Input `[1, 2, 3]` produces `[4, 6, 8]` — each element incremented then doubled.

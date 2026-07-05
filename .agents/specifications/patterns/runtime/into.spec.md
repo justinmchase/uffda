@@ -10,14 +10,14 @@ Normative key words in this chapter use the conventions defined in the
 
 ## Logical purpose
 
-The `into` pattern applies a child pattern to the contents of a single
-iterable input item, treating that item as a nested input stream.
+The `into` pattern applies a child pattern to the contents of a single iterable
+input item, treating that item as a nested input stream.
 
 ## Behavioral expectations
 
 - An `into` pattern MUST inspect the current input position.
-- If no input item is available at the current position, the `into` pattern
-  MUST fail.
+- If no input item is available at the current position, the `into` pattern MUST
+  fail.
 - The current input item MUST be iterable for the `into` pattern to proceed.
 - If the current input item is not iterable, the `into` pattern MUST report an
   iterable-expected error.
@@ -69,8 +69,8 @@ iterable input item, treating that item as a nested input stream.
 - The `into` pattern SHOULD be used as the explicit iterable adapter between
   pipeline stages when a previous stage produced an iterable value and the next
   stage expects an item stream.
-- The `into` pattern MAY be composed with sequencing, traversal, and
-  constraint patterns to express nested grammar structures.
+- The `into` pattern MAY be composed with sequencing, traversal, and constraint
+  patterns to express nested grammar structures.
 
 ## Examples
 
@@ -93,9 +93,9 @@ into(then([
 Pair = [ String Number ]
 ```
 
-Input `[["Alice", 30]]` succeeds with value `["Alice", 30]`. Input
-`[["Alice"]]` fails because the nested stream is not fully consumed (only one
-item, but two are required before `end`).
+Input `[["Alice", 30]]` succeeds with value `["Alice", 30]`. Input `[["Alice"]]`
+fails because the nested stream is not fully consumed (only one item, but two
+are required before `end`).
 
 ---
 

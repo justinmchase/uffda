@@ -18,8 +18,8 @@ into success with an undefined value.
   position.
 - If the child pattern succeeds, the `maybe` pattern MUST succeed.
 - If the child pattern fails, the `maybe` pattern MUST still succeed.
-- If the child pattern reports an error, the `maybe` pattern MUST propagate
-  that error.
+- If the child pattern reports an error, the `maybe` pattern MUST propagate that
+  error.
 - If the child pattern reports a left-recursion outcome, the `maybe` pattern
   MUST propagate that outcome.
 
@@ -51,8 +51,8 @@ into success with an undefined value.
 
 ## Side effects
 
-- The `maybe` pattern MUST NOT produce externally observable side effects
-  beyond its match result and resulting matching context.
+- The `maybe` pattern MUST NOT produce externally observable side effects beyond
+  its match result and resulting matching context.
 
 ## Composition intent
 
@@ -101,5 +101,5 @@ then([
 ListElement = . ","?
 ```
 
-Input `["x", ","]` succeeds with value `["x", ","]`. Input `["x"]` succeeds
-with value `["x", undefined]`.
+Input `["x", ","]` succeeds with value `["x", ","]`. Input `["x"]` succeeds with
+value `["x", undefined]`.

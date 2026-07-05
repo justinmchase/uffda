@@ -58,9 +58,8 @@ pattern's declared bounds.
 
 ## Composition intent
 
-- The `between` pattern SHOULD be used for ordered value interval matching
-  where a character, number, or comparable object must fall within declared
-  bounds.
+- The `between` pattern SHOULD be used for ordered value interval matching where
+  a character, number, or comparable object must fall within declared bounds.
 - The `between` pattern MAY be composed with alternation, conjunction,
   sequencing, and quantifier patterns to express interval-based grammar rules.
 
@@ -110,8 +109,8 @@ Input `"m"` succeeds. Input `"A"` fails because `"A"` falls outside the
 
 ### Match a numeric value in a bounded range
 
-Match a single number from an array when that number is a valid HTTP
-status code in the success range.
+Match a single number from an array when that number is a valid HTTP status code
+in the success range.
 
 ```
 // Pattern object

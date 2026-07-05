@@ -1,7 +1,7 @@
 # Runtime scopes
 
-This chapter defines the runtime scope model used by pattern matching,
-rule evaluation, and expression execution.
+This chapter defines the runtime scope model used by pattern matching, rule
+evaluation, and expression execution.
 
 ## Conventions
 

@@ -9,8 +9,8 @@ Normative key words in this chapter use the conventions defined in the
 
 ## Logical purpose
 
-The `not` pattern succeeds when its child pattern fails and fails when its
-child pattern succeeds.
+The `not` pattern succeeds when its child pattern fails and fails when its child
+pattern succeeds.
 
 ## Behavioral expectations
 
@@ -33,18 +33,17 @@ child pattern succeeds.
 ## Input consumption
 
 - A `not` pattern MUST NOT consume input directly.
-- When the child pattern succeeds, the `not` pattern MUST fail without
-  consuming input.
-- When the child pattern fails, the `not` pattern MUST succeed without
-  consuming input.
+- When the child pattern succeeds, the `not` pattern MUST fail without consuming
+  input.
+- When the child pattern fails, the `not` pattern MUST succeed without consuming
+  input.
 - The `not` pattern MUST leave the input position unchanged in both outcomes.
 
 ## Expected output
 
-- When the child pattern succeeds, the `not` pattern MUST report failure
-  output.
-- When the child pattern fails, the `not` pattern MUST report `undefined` as
-  its output value.
+- When the child pattern succeeds, the `not` pattern MUST report failure output.
+- When the child pattern fails, the `not` pattern MUST report `undefined` as its
+  output value.
 
 ## Error conditions
 
@@ -59,15 +58,15 @@ child pattern succeeds.
 
 - The `not` pattern SHOULD be used to express negative predicates and guard
   conditions.
-- The `not` pattern MAY be composed with sequencing, alternation, and
-  traversal patterns to express exclusions and lookahead-like constraints.
+- The `not` pattern MAY be composed with sequencing, alternation, and traversal
+  patterns to express exclusions and lookahead-like constraints.
 
 ## Examples
 
 ### Assert the next item is not a specific value
 
-Check that the next item is not a closing brace without consuming it. The
-`not` succeeds zero-width and leaves the input unchanged.
+Check that the next item is not a closing brace without consuming it. The `not`
+succeeds zero-width and leaves the input unchanged.
 
 ```
 // Pattern object
@@ -85,8 +84,8 @@ Input `"x"` at current position succeeds with `undefined`. Input `"}"` fails.
 
 ### Scan past content until a sentinel
 
-Consume any item that is not a closing brace, repeating until the brace is
-found or input is exhausted.
+Consume any item that is not a closing brace, repeating until the brace is found
+or input is exhausted.
 
 ```
 // Pattern object

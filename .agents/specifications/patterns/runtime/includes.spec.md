@@ -10,8 +10,8 @@ Normative key words in this chapter use the conventions defined in the
 
 ## Logical purpose
 
-The `includes` pattern matches exactly one input item when that item is a
-member of the pattern's declared literal value set.
+The `includes` pattern matches exactly one input item when that item is a member
+of the pattern's declared literal value set.
 
 ## Behavioral expectations
 
@@ -23,8 +23,8 @@ member of the pattern's declared literal value set.
 - If an input item is available, the `includes` pattern MUST check whether that
   item is present in the declared value set using JavaScript array membership
   semantics.
-- If the input item is present in the declared value set, the `includes`
-  pattern MUST succeed.
+- If the input item is present in the declared value set, the `includes` pattern
+  MUST succeed.
 - If the input item is not present in the declared value set, the `includes`
   pattern MUST fail.
 
@@ -90,5 +90,5 @@ then([
 BinaryExpr = . ("+" | "-" | "*" | "/") .
 ```
 
-Input `[1, "+", 2]` succeeds with value `[1, "+", 2]`. Input `[1, "^", 2]`
-fails at the `includes` step.
+Input `[1, "+", 2]` succeeds with value `[1, "+", 2]`. Input `[1, "^", 2]` fails
+at the `includes` step.

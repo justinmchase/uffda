@@ -65,16 +65,16 @@ or([
 Instruction = "add" AddArgs | "sub" SubArgs | fail
 ```
 
-`fail` is unconditional — it always produces failure output regardless of
-the current input.
+`fail` is unconditional — it always produces failure output regardless of the
+current input.
 
 ---
 
 ### Verify `not(fail)` always succeeds
 
-Because `fail` always fails, `not(fail)` is logically equivalent to `ok`.
-This is occasionally useful as a documentation tool to express that a
-branch is always satisfiable.
+Because `fail` always fails, `not(fail)` is logically equivalent to `ok`. This
+is occasionally useful as a documentation tool to express that a branch is
+always satisfiable.
 
 ```
 // Pattern object

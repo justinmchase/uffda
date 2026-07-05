@@ -10,8 +10,8 @@ Normative key words in this chapter use the conventions defined in the
 ## Logical purpose
 
 The `lookahead` pattern asserts that a child pattern matches at the current
-input position without consuming any input. It is the and-predicate (`&e`)
-from Ford's PEG formalism and the zero-width complement to the `not` pattern's
+input position without consuming any input. It is the and-predicate (`&e`) from
+Ford's PEG formalism and the zero-width complement to the `not` pattern's
 zero-width negative assertion.
 
 ## Behavioral expectations
@@ -22,8 +22,8 @@ zero-width negative assertion.
 - If the child pattern fails, the `lookahead` pattern MUST fail.
 - If the child pattern reports an error, the `lookahead` pattern MUST propagate
   that error.
-- If the child pattern reports a left-recursion outcome, the `lookahead`
-  pattern MUST propagate that outcome unchanged.
+- If the child pattern reports a left-recursion outcome, the `lookahead` pattern
+  MUST propagate that outcome unchanged.
 
 ## Left-recursion behavior
 
@@ -58,10 +58,10 @@ zero-width negative assertion.
 
 - The `lookahead` pattern SHOULD be used to assert a condition on the upcoming
   input without committing to consuming it.
-- The `lookahead` pattern is the zero-width positive counterpart to `not`,
-  which is the zero-width negative assertion.
-- The `lookahead` pattern SHOULD be preferred over the `not(not(e))`
-  workaround, which is non-obvious and produces confusing match trees.
+- The `lookahead` pattern is the zero-width positive counterpart to `not`, which
+  is the zero-width negative assertion.
+- The `lookahead` pattern SHOULD be preferred over the `not(not(e))` workaround,
+  which is non-obvious and produces confusing match trees.
 - The `lookahead` pattern MAY be composed with `or` to dispatch on the next
   input item type or value without consuming it before the selected branch runs.
 - The `lookahead` pattern MAY be composed with sequencing to assert a boundary
@@ -76,10 +76,9 @@ zero-width negative assertion.
 ### Assert a sign token is followed by a digit
 
 Match a `+` or `-` sign only when the very next item is a number. The sign
-pattern consumes the sign; `lookahead` checks what follows without consuming
-it. This is non-redundant because the consuming pattern (`includes`) has no
-knowledge of what comes after it — the post-condition must be stated
-separately.
+pattern consumes the sign; `lookahead` checks what follows without consuming it.
+This is non-redundant because the consuming pattern (`includes`) has no
+knowledge of what comes after it — the post-condition must be stated separately.
 
 ```
 then([
@@ -89,17 +88,16 @@ then([
 ```
 
 Input `["+", 42]` succeeds with value `["+", undefined]`. Input `["+", "x"]`
-fails at the `lookahead` step after the sign has been consumed — so this
-example is best used inside an `or` branch where that partial consumption is
-acceptable, or wrapped with the parent pattern designed to handle it.
+fails at the `lookahead` step after the sign has been consumed — so this example
+is best used inside an `or` branch where that partial consumption is acceptable,
+or wrapped with the parent pattern designed to handle it.
 
 ---
 
 ### Dispatch on the next token without consuming it
 
-Use `lookahead` inside `or` to choose a branch based on the upcoming value.
-Each branch peeks at the token and then handles it with its own consuming
-pattern.
+Use `lookahead` inside `or` to choose a branch based on the upcoming value. Each
+branch peeks at the token and then handles it with its own consuming pattern.
 
 ```
 or([
@@ -108,9 +106,9 @@ or([
 ])
 ```
 
-The `lookahead` checks which operator is next without consuming it, leaving
-the operator available for `addExpression` or `subtractExpression` to consume
-as part of their own patterns.
+The `lookahead` checks which operator is next without consuming it, leaving the
+operator available for `addExpression` or `subtractExpression` to consume as
+part of their own patterns.
 
 ---
 
@@ -138,9 +136,9 @@ branch instead.
 
 ### Contrast with `not(not(e))` — the equivalent workaround
 
-`not(not(e))` produces the same zero-width positive assertion but is
-non-obvious and generates extra internal match nodes. `lookahead(e)` is the
-preferred and semantically clear form.
+`not(not(e))` produces the same zero-width positive assertion but is non-obvious
+and generates extra internal match nodes. `lookahead(e)` is the preferred and
+semantically clear form.
 
 ```
 // Equivalent but discouraged:
