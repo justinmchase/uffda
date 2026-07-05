@@ -9,6 +9,11 @@ to be interpreted as described in RFC 2119 and RFC 8174.
 
 Pattern matching operates over an ordered input stream of items.
 
+## Normalization modes
+
+This chapter replaces earlier optional-default guidance with a single required
+default behavior for unspecified normalization mode.
+
 - Runtime implementations MUST support explicit input normalization modes at
   pattern-entry boundaries.
 - A **scalar** normalization mode MUST treat the provided value as a single
@@ -17,6 +22,8 @@ Pattern matching operates over an ordered input stream of items.
   produce an input stream over that iterable's items.
 - Runtime implementations MUST use **scalar** normalization mode when one is not
   explicitly specified.
+- Runtime implementations MUST reject any normalization mode other than
+  **scalar** or **iterable** with an explicit error.
 
 Each input item has value-surface semantics used by runtime patterns:
 
