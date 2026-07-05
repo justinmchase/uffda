@@ -15,8 +15,8 @@ Pattern matching operates over an ordered input stream of items.
   input item, even when the value is iterable.
 - An **iterable** normalization mode MUST require an iterable value and MUST
   produce an input stream over that iterable's items.
-- Runtime implementations MUST use **scalar** normalization mode when one is
-  not explicitly specified.
+- Runtime implementations MUST use **scalar** normalization mode when one is not
+  explicitly specified.
 
 Each input item has value-surface semantics used by runtime patterns:
 
