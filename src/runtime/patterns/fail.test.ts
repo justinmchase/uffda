@@ -8,7 +8,7 @@ await Deno.test("runtime/patterns/fail", async (t) => {
     name: "FAIL00",
     fn: patternTest({
       pattern: { kind: PatternKind.Fail },
-      input: Input.From("a"),
+      input: Input.Iterable("a"),
       kind: MatchKind.Fail,
     }),
   });

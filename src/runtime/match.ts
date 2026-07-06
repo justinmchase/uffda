@@ -3,12 +3,15 @@ import { fail, type Match } from "../match.ts";
 import {
   and,
   any,
+  between,
   character,
   end,
   equal,
+  except,
   fail as failp,
   includes,
   into,
+  lookahead,
   maybe,
   not,
   ok,
@@ -17,11 +20,9 @@ import {
   type Pattern,
   PatternKind,
   pipeline,
-  range,
-  reference,
+  quantifier,
   regexp,
-  slice,
-  special,
+  resolve,
   then,
   type,
   variable,
@@ -33,6 +34,8 @@ export function match(pattern: Pattern, scope: Scope): Match {
       return and(pattern, scope);
     case PatternKind.Any:
       return any(pattern, scope);
+    case PatternKind.Between:
+      return between(pattern, scope);
     case PatternKind.Into:
       return into(pattern, scope);
     case PatternKind.Character:
@@ -41,10 +44,14 @@ export function match(pattern: Pattern, scope: Scope): Match {
       return end(pattern, scope);
     case PatternKind.Equal:
       return equal(pattern, scope);
+    case PatternKind.Except:
+      return except(pattern, scope);
     case PatternKind.Fail:
       return failp(pattern, scope);
     case PatternKind.Includes:
       return includes(pattern, scope);
+    case PatternKind.Lookahead:
+      return lookahead(pattern, scope);
     case PatternKind.Maybe:
       return maybe(pattern, scope);
     case PatternKind.Not:
@@ -57,16 +64,12 @@ export function match(pattern: Pattern, scope: Scope): Match {
       return or(pattern, scope);
     case PatternKind.Pipeline:
       return pipeline(pattern, scope);
-    case PatternKind.Range:
-      return range(pattern, scope);
-    case PatternKind.Reference:
-      return reference(pattern, scope);
+    case PatternKind.Quantifier:
+      return quantifier(pattern, scope);
     case PatternKind.RegExp:
       return regexp(pattern, scope);
-    case PatternKind.Slice:
-      return slice(pattern, scope);
-    case PatternKind.Special:
-      return special(pattern, scope);
+    case PatternKind.Resolve:
+      return resolve(pattern, scope);
     case PatternKind.Then:
       return then(pattern, scope);
     case PatternKind.Type:

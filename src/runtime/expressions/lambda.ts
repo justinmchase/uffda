@@ -1,5 +1,5 @@
 import { type Match, MatchKind } from "../../match.ts";
-import { Input } from "../../input.ts";
+import { Input, InputNormalizationMode } from "../../input.ts";
 import { exec } from "../exec.ts";
 import { match } from "../match.ts";
 import type { LambdaExpression } from "./expression.ts";
@@ -14,6 +14,9 @@ export function lambda(
     const stream = new Input(
       arguments,
       m.scope.stream.path.push(0), // todo: should this have a lambda segment?
+      0,
+      undefined,
+      InputNormalizationMode.Iterable,
     );
     const scope = m.scope.withInput(stream);
     const result = match(pattern, scope);

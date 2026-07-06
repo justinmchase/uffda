@@ -25,6 +25,15 @@ Uffda is a Deno-based parser generator for domain specific languages.
   `deno task test`.
 - Keep modules small and composable when adding or refactoring parser logic.
 
+## Type modeling conventions
+
+- Prefer discriminated unions that use a `kind` field with an enum discriminator
+  (for example `PatternKind`).
+- When introducing union guards, follow the existing style used by `isPattern`:
+  validate object shape and validate `kind` against the discriminator enum.
+- Avoid introducing parallel discriminator properties for the same union (for
+  example, do not add both `kind` and `type`/`mode` for the same purpose).
+
 ## Specification authority and change control
 
 Apply this strict authority order when implementing or evaluating behavior:

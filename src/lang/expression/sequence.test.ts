@@ -20,7 +20,7 @@ Deno.test(
       name: "SEQUENCE_EXPRESSION_00",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(["(", "x", ")"]),
+        input: Input.Iterable(["(", "x", ")"]),
         kind: MatchKind.Ok,
         value: {
           kind: ExpressionKind.Invocation,
@@ -36,7 +36,7 @@ Deno.test(
       name: "SEQUENCE_EXPRESSION_01",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(["(", "x", "y", "z", ")"]),
+        input: Input.Iterable(["(", "x", "y", "z", ")"]),
         kind: MatchKind.Ok,
         value: {
           kind: ExpressionKind.Invocation,
@@ -61,7 +61,18 @@ Deno.test(
       name: "SEQUENCE_EXPRESSION_02",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(["(", "(", "fn", ")", "x", "(", "y", ")", "z", ")"]),
+        input: Input.Iterable([
+          "(",
+          "(",
+          "fn",
+          ")",
+          "x",
+          "(",
+          "y",
+          ")",
+          "z",
+          ")",
+        ]),
         kind: MatchKind.Ok,
         value: {
           kind: ExpressionKind.Invocation,

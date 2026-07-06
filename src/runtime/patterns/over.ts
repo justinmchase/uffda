@@ -1,6 +1,6 @@
 import { Type, type } from "@justinmchase/type";
 import { error, fail, MatchKind, ok } from "../../match.ts";
-import { Input } from "../../input.ts";
+import { Input, InputNormalizationMode } from "../../input.ts";
 import { match } from "../match.ts";
 import { MatchErrorCode } from "../../match.ts";
 import type { Match } from "../../match.ts";
@@ -36,6 +36,9 @@ export function over(pattern: OverPattern, scope: Scope): Match {
     const propertyStream = new Input(
       value,
       next.path.push(key),
+      0,
+      undefined,
+      InputNormalizationMode.Iterable,
     );
     const propertyScope = last.withInput(propertyStream);
     const m = match(pattern, propertyScope);

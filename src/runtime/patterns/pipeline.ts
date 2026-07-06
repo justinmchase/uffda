@@ -1,6 +1,6 @@
 import { fail, type Match, MatchKind, ok } from "../../match.ts";
 import type { Scope } from "../scope.ts";
-import { Input } from "../../input.ts";
+import { Input, InputNormalizationMode } from "../../input.ts";
 import { match } from "../match.ts";
 import type { PipelinePattern } from "./pattern.ts";
 
@@ -39,6 +39,9 @@ export function pipeline(pattern: PipelinePattern, scope: Scope) {
     const input = new Input(
       items,
       last.scope.stream.path.push(0),
+      0,
+      undefined,
+      InputNormalizationMode.Iterable,
     );
     next = scope.withInput(input);
 

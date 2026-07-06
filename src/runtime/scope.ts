@@ -1,5 +1,5 @@
 import type { Pattern } from "./patterns/mod.ts";
-import { Input } from "../input.ts";
+import { Input, InputNormalizationMode } from "../input.ts";
 import { Memos } from "../memo.ts";
 import {
   DefaultModule,
@@ -19,6 +19,10 @@ export type ScopeOptions = {
   resolver: Resolver;
 };
 
+export type ScopeFromOptions = {
+  kind?: InputNormalizationMode;
+};
+
 export const DefaultOptions: () => ScopeOptions = () => ({
   globals,
   specials: new Map(),
@@ -29,10 +33,13 @@ export const DefaultOptions: () => ScopeOptions = () => ({
 export class Scope {
   public static readonly Default = (): Scope => new Scope();
   public static readonly From = (
-    input: Input | Iterable<unknown> | Iterator<unknown>,
+    input: Input | Iterable<unknown> | Iterator<unknown> | unknown,
+    options?: ScopeFromOptions,
   ): Scope =>
     Scope.Default().withInput(
-      input instanceof Input ? input : Input.From(input),
+      input instanceof Input ? input : Input.From(input, {
+        kind: options?.kind ?? InputNormalizationMode.Scalar,
+      }),
     );
 
   public readonly options: ScopeOptions;
@@ -82,6 +89,17 @@ export class Scope {
       this.memos,
       this.stack,
       this.options,
+    );
+  }
+
+  public withInputValue(
+    input: Iterable<unknown> | Iterator<unknown> | unknown,
+    options?: ScopeFromOptions,
+  ): Scope {
+    return this.withInput(
+      Input.From(input, {
+        kind: options?.kind ?? InputNormalizationMode.Scalar,
+      }),
     );
   }
 

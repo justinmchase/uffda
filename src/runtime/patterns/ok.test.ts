@@ -8,7 +8,7 @@ await Deno.test("runtime/patterns/ok", async (t) => {
     name: "OK00",
     fn: patternTest({
       pattern: { kind: PatternKind.Ok },
-      input: Input.From([]),
+      input: Input.Iterable([]),
       kind: MatchKind.Ok,
     }),
   });
@@ -17,7 +17,7 @@ await Deno.test("runtime/patterns/ok", async (t) => {
     name: "OK01",
     fn: patternTest({
       pattern: { kind: PatternKind.Ok },
-      input: Input.From("a"),
+      input: Input.Iterable("a"),
       kind: MatchKind.Ok,
       done: false,
     }),

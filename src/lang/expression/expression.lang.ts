@@ -1,11 +1,12 @@
 import { ExportDeclarationKind } from "../../runtime/declarations/export.ts";
+import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { exec } from "../../runtime/exec.ts";
 import { Scope } from "../../runtime/scope.ts";
 import { std } from "../../runtime/std/mod.ts";
-import { run } from "../../runtime/patterns/run.ts";
+import { resolve } from "../../runtime/patterns/resolve.ts";
 import { Resolver } from "../../mod.ts";
 import type { Match } from "../../mod.ts";
 import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
@@ -28,7 +29,14 @@ export async function expr(
     .pushModule(m)
     .withOptions({ globals: g });
 
-  return run(s, { kind: PatternKind.Run, name: "ExpressionLang" });
+  return resolve(
+    {
+      kind: PatternKind.Resolve,
+      targetKind: ResolveTargetKind.Run,
+      name: "ExpressionLang",
+    },
+    s,
+  );
 }
 
 export const ExpressionLang: ModuleDeclaration = {
@@ -62,12 +70,14 @@ export const ExpressionLang: ModuleDeclaration = {
         kind: PatternKind.Pipeline,
         steps: [
           {
-            kind: PatternKind.Reference,
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
             name: "Tokenizer",
             args: [],
           },
           {
-            kind: PatternKind.Reference,
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
             name: "Expression",
             args: [],
           },

@@ -1,4 +1,5 @@
 import { Type } from "@justinmchase/type";
+import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import {
   ExportDeclarationKind,
   ImportDeclarationKind,
@@ -46,10 +47,11 @@ export const Tokenizer: ModuleDeclaration = {
       name: "WhitespaceToken",
       parameters: [],
       pattern: {
-        kind: PatternKind.Slice,
+        kind: PatternKind.Quantifier,
         min: 1,
         pattern: {
-          kind: PatternKind.Reference,
+          kind: PatternKind.Resolve,
+          targetKind: ResolveTargetKind.Reference,
           name: "Whitespace",
           args: [],
         },
@@ -63,7 +65,8 @@ export const Tokenizer: ModuleDeclaration = {
       name: "NewLineToken",
       parameters: [],
       pattern: {
-        kind: PatternKind.Reference,
+        kind: PatternKind.Resolve,
+        targetKind: ResolveTargetKind.Reference,
         name: "NewLine",
         args: [],
       },
@@ -72,33 +75,38 @@ export const Tokenizer: ModuleDeclaration = {
       name: "WordToken",
       parameters: [],
       pattern: {
-        kind: PatternKind.Slice,
+        kind: PatternKind.Quantifier,
         min: 1,
         pattern: {
           kind: PatternKind.Or,
           patterns: [
             {
-              kind: PatternKind.Reference,
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
               name: "Letter",
               args: [],
             },
             {
-              kind: PatternKind.Reference,
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
               name: "Connecting",
               args: [],
             },
             {
-              kind: PatternKind.Reference,
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
               name: "Combining",
               args: [],
             },
             {
-              kind: PatternKind.Reference,
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
               name: "Digit",
               args: [],
             },
             {
-              kind: PatternKind.Reference,
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
               name: "Formatting",
               args: [],
             },
@@ -125,22 +133,26 @@ export const Tokenizer: ModuleDeclaration = {
         kind: PatternKind.Or,
         patterns: [
           {
-            kind: PatternKind.Reference,
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
             name: "WhitespaceToken",
             args: [],
           },
           {
-            kind: PatternKind.Reference,
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
             name: "NewLineToken",
             args: [],
           },
           {
-            kind: PatternKind.Reference,
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
             name: "WordToken",
             args: [],
           },
           {
-            kind: PatternKind.Reference,
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
             name: "PunctuationToken",
             args: [],
           },
@@ -151,9 +163,10 @@ export const Tokenizer: ModuleDeclaration = {
       name: "Tokenizer",
       parameters: [],
       pattern: {
-        kind: PatternKind.Slice,
+        kind: PatternKind.Quantifier,
         pattern: {
-          kind: PatternKind.Reference,
+          kind: PatternKind.Resolve,
+          targetKind: ResolveTargetKind.Reference,
           name: "Tokens",
           args: [],
         },

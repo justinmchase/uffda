@@ -7,24 +7,24 @@ import type { Type } from "@justinmchase/type";
 export type Pattern =
   | AnyPattern
   | AndPattern
+  | BetweenPattern
   | IntoPattern
   | CharacterPattern
   | EndPattern
   | EqualPattern
+  | ExceptPattern
   | FailPattern
   | IncludesPattern
+  | LookaheadPattern
   | MaybePattern
   | NotPattern
   | OverPattern
   | OkPattern
   | OrPattern
   | PipelinePattern
-  | RangePattern
-  | ReferencePattern
+  | QuantifierPattern
   | RegExpPattern
-  | RunPattern
-  | SlicePattern
-  | SpecialPattern
+  | ResolvePattern
   | ThenPattern
   | TypePattern
   | VariablePattern;
@@ -91,12 +91,21 @@ export type CharacterPattern = {
   kind: PatternKind.Character;
   characterClass: CharacterClass;
 };
+export type BetweenPattern = {
+  kind: PatternKind.Between;
+  left: Comparable;
+  right: Comparable;
+};
 export type EndPattern = {
   kind: PatternKind.End;
 };
 export type EqualPattern = {
   kind: PatternKind.Equal;
   value: Serializable;
+};
+export type ExceptPattern = {
+  kind: PatternKind.Except;
+  pattern: Pattern;
 };
 export type FailPattern = {
   kind: PatternKind.Fail;
@@ -107,6 +116,10 @@ export type IncludesPattern = {
 };
 export type IntoPattern = {
   kind: PatternKind.Into;
+  pattern: Pattern;
+};
+export type LookaheadPattern = {
+  kind: PatternKind.Lookahead;
   pattern: Pattern;
 };
 export type MaybePattern = {
@@ -132,35 +145,44 @@ export type PipelinePattern = {
   kind: PatternKind.Pipeline;
   steps: Pattern[];
 };
-export type RangePattern = {
-  kind: PatternKind.Range;
-  left: Comparable;
-  right: Comparable;
-};
-export type ReferencePattern = {
-  kind: PatternKind.Reference;
-  name: string;
-  args: string[];
+export type QuantifierPattern = {
+  kind: PatternKind.Quantifier;
+  pattern: Pattern;
+  min?: number;
+  max?: number;
 };
 export type RegExpPattern = {
   kind: PatternKind.RegExp;
   pattern: RegExp;
 };
 
-export type RunPattern = {
-  kind: PatternKind.Run;
+export enum ResolveTargetKind {
+  Reference = "reference",
+  Run = "run",
+  Special = "special",
+}
+
+export type ResolvePattern =
+  | ResolveReferencePattern
+  | ResolveRunPattern
+  | ResolveSpecialPattern;
+
+export type ResolveReferencePattern = {
+  kind: PatternKind.Resolve;
+  targetKind: ResolveTargetKind.Reference;
+  name: string;
+  args: string[];
+};
+
+export type ResolveRunPattern = {
+  kind: PatternKind.Resolve;
+  targetKind: ResolveTargetKind.Run;
   name?: string;
 };
 
-export type SlicePattern = {
-  kind: PatternKind.Slice;
-  pattern: Pattern;
-  min?: number;
-  max?: number;
-};
-export type SpecialPattern = {
-  kind: PatternKind.Special;
-  name: string;
+export type ResolveSpecialPattern = {
+  kind: PatternKind.Resolve;
+  targetKind: ResolveTargetKind.Special;
   value: Special;
 };
 export type ThenPattern = {

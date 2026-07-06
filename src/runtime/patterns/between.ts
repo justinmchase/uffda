@@ -2,9 +2,9 @@ import { error, fail, MatchErrorCode, ok } from "../../match.ts";
 import type { Match } from "../../match.ts";
 import type { Comparable } from "../../comparable.ts";
 import type { Scope } from "../scope.ts";
-import type { RangePattern } from "./pattern.ts";
+import type { BetweenPattern } from "./pattern.ts";
 
-export function range(pattern: RangePattern, scope: Scope): Match {
+export function between(pattern: BetweenPattern, scope: Scope): Match {
   const { left, right } = pattern;
   if (scope.stream.done) {
     return fail(scope, pattern);

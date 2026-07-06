@@ -17,7 +17,7 @@ Deno.test({
       name: "TOKENIZER00",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(""),
+        input: Input.Iterable(""),
         value: [],
         kind: MatchKind.Ok,
       }),
@@ -27,7 +27,7 @@ Deno.test({
       name: "TOKENIZER01",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(" "),
+        input: Input.Iterable(" "),
         value: [" "],
         kind: MatchKind.Ok,
       }),
@@ -37,7 +37,7 @@ Deno.test({
       name: "TOKENIZER02",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(" \n "),
+        input: Input.Iterable(" \n "),
         value: [
           " ",
           "\n",
@@ -51,7 +51,7 @@ Deno.test({
       name: "TOKENIZER03",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From("abc\nxyz"),
+        input: Input.Iterable("abc\nxyz"),
         value: ["abc", "\n", "xyz"],
         kind: MatchKind.Ok,
       }),
@@ -61,7 +61,7 @@ Deno.test({
       name: "TOKENIZER04",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From("abc123-123abc"),
+        input: Input.Iterable("abc123-123abc"),
         value: ["abc123", "-", "123abc"],
         kind: MatchKind.Ok,
       }),
@@ -71,7 +71,7 @@ Deno.test({
       name: "TOKENIZER05",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From("!@#$%^&*()_+-=[]\\{}|;':\",./<>?"),
+        input: Input.Iterable("!@#$%^&*()_+-=[]\\{}|;':\",./<>?"),
         value: [
           "!",
           "@",
@@ -112,7 +112,7 @@ Deno.test({
       name: "TOKENIZER06",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From("abc   123\t\t\txyz\r\n\n\n456"),
+        input: Input.Iterable("abc   123\t\t\txyz\r\n\n\n456"),
         value: [
           "abc",
           "   ",
@@ -132,7 +132,7 @@ Deno.test({
       name: "TOKENIZER07",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From("1.2.3"),
+        input: Input.Iterable("1.2.3"),
         value: [
           "1",
           ".",
@@ -148,7 +148,7 @@ Deno.test({
       name: "TOKENIZER08",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From("x\\{y}z"),
+        input: Input.Iterable("x\\{y}z"),
         value: [
           "x",
           "\\",
@@ -165,7 +165,7 @@ Deno.test({
       name: "TOKENIZER09",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From("x{y}z"),
+        input: Input.Iterable("x{y}z"),
         value: [
           "x",
           "{",

@@ -24,7 +24,7 @@ Deno.test("runtime.patterns.variable", async (t) => {
           fn: ({ x }: { x: number }) => x + 11,
         },
       },
-      input: new Input([7]),
+      input: Input.Iterable([7]),
       value: 18,
       kind: MatchKind.Ok,
     }),
@@ -60,7 +60,7 @@ Deno.test("runtime.patterns.variable", async (t) => {
           fn: ({ x, y }) => x + y,
         },
       },
-      input: Input.From([7, 11]),
+      input: Input.Iterable([7, 11]),
       value: 18,
       kind: MatchKind.Ok,
     }),
@@ -92,7 +92,7 @@ Deno.test("runtime.patterns.variable", async (t) => {
           fn: ({ x, y }) => x + y,
         },
       },
-      input: Input.From([{ X: 7, Y: 11 }]),
+      input: Input.Iterable([{ X: 7, Y: 11 }]),
       value: 18,
       kind: MatchKind.Ok,
     }),
@@ -144,7 +144,7 @@ Deno.test("runtime.patterns.variable", async (t) => {
           fn: ({ x, y }) => x + y,
         },
       },
-      input: Input.From([{ X: [6, 7], Y: [10, 11] }]),
+      input: Input.Iterable([{ X: [6, 7], Y: [10, 11] }]),
       value: 18,
       kind: MatchKind.Ok,
     }),
@@ -153,7 +153,7 @@ Deno.test("runtime.patterns.variable", async (t) => {
   await t.step({
     name: "VARIABLE05",
     fn: patternTest({
-      input: Input.From([1, 2]),
+      input: Input.Iterable([1, 2]),
       pattern: {
         kind: PatternKind.Then,
         patterns: [

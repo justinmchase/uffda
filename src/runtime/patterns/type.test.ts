@@ -75,7 +75,7 @@ Deno.test("runtime.patterns.type", async (t) => {
       name: `${String(input)} is ${type}: ${success}`,
       fn: patternTest({
         pattern: { kind: PatternKind.Type, type },
-        input: Input.From([input]),
+        input: Input.Iterable([input]),
         value: success ? input : undefined,
         kind: success ? MatchKind.Ok : MatchKind.Fail,
       }),

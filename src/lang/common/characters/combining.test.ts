@@ -20,7 +20,7 @@ Deno.test(
       fn: moduleDeclarationTest({
         moduleUrl,
         kind: MatchKind.Ok,
-        input: Input.From("\u0302"),
+        input: Input.Iterable("\u0302"),
         value: "\u0302",
       }),
     });
@@ -29,7 +29,7 @@ Deno.test(
       fn: moduleDeclarationTest({
         moduleUrl,
         kind: MatchKind.Ok,
-        input: Input.From("\u0903"),
+        input: Input.Iterable("\u0903"),
         value: "\u0903",
       }),
     });

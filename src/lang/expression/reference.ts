@@ -1,4 +1,5 @@
 import { Type } from "@justinmchase/type";
+import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { ExportDeclarationKind } from "../../runtime/declarations/export.ts";
 import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
@@ -37,7 +38,8 @@ export const Reference: ModuleDeclaration = {
           {
             kind: PatternKind.Into,
             pattern: {
-              kind: PatternKind.Reference,
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
               name: "Identifier",
               args: [],
             },

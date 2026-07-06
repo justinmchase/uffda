@@ -1,8 +1,9 @@
 import { assert, assertEquals, assertObjectMatch } from "@std/assert";
+import { ResolveTargetKind } from "./patterns/pattern.ts";
 import { match } from "./match.ts";
 import { PatternKind } from "./patterns/mod.ts";
 import { Scope } from "./scope.ts";
-import { Input } from "../input.ts";
+import { Input, InputNormalizationMode } from "../input.ts";
 import { MatchKind, ok } from "../match.ts";
 import { exec } from "./exec.ts";
 import { Path } from "../path.ts";
@@ -14,7 +15,9 @@ Deno.test("runtime.scope", async (t) => {
   await t.step({
     name: "SCOPE00",
     fn: async () => {
-      const scope = Scope.From("abc");
+      const scope = Scope.From("abc", {
+        kind: InputNormalizationMode.Iterable,
+      });
       const pattern: Pattern = {
         kind: PatternKind.Then,
         patterns: [
@@ -37,7 +40,9 @@ Deno.test("runtime.scope", async (t) => {
   await t.step({
     name: "SCOPE01",
     fn: async () => {
-      const scope = Scope.From("ab");
+      const scope = Scope.From("ab", {
+        kind: InputNormalizationMode.Iterable,
+      });
       const pattern: Pattern = {
         kind: PatternKind.Equal,
         value: "a",
@@ -58,7 +63,9 @@ Deno.test("runtime.scope", async (t) => {
   await t.step({
     name: "SCOPE02",
     fn: async () => {
-      const scope = Scope.From("abc");
+      const scope = Scope.From("abc", {
+        kind: InputNormalizationMode.Iterable,
+      });
       const pattern: Pattern = {
         kind: PatternKind.Then,
         patterns: [
@@ -85,14 +92,15 @@ Deno.test("runtime.scope", async (t) => {
       // patterns can't resolve global references
       const scope = Scope
         .Default()
-        .withInput(Input.From(""))
+        .withInput(Input.Iterable(""))
         .withOptions({
           globals: new Map([
             ["x", 7],
           ]),
         });
       const pattern: Pattern = {
-        kind: PatternKind.Reference,
+        kind: PatternKind.Resolve,
+        targetKind: ResolveTargetKind.Reference,
         name: "x",
         args: [],
       };
@@ -106,7 +114,7 @@ Deno.test("runtime.scope", async (t) => {
     fn: async () => {
       // expressions can resolve globals
       const scope = Scope.Default()
-        .withInput(Input.From("a"))
+        .withInput(Input.Iterable("a"))
         .withOptions({
           globals: new Map([
             ["x", 7],
@@ -126,7 +134,9 @@ Deno.test("runtime.scope", async (t) => {
     name: "SCOPE05",
     fn: async () => {
       // expressions can resolve globals
-      const scope = Scope.From("a");
+      const scope = Scope.From("a", {
+        kind: InputNormalizationMode.Iterable,
+      });
       const pattern: Pattern = {
         kind: PatternKind.Equal,
         value: "x",
@@ -140,6 +150,22 @@ Deno.test("runtime.scope", async (t) => {
         start: Path.From(0),
         end: Path.From(0),
       });
+    },
+  });
+
+  await t.step({
+    name: "SCOPE06",
+    fn: async () => {
+      const scope = Scope.From("abc");
+      const pattern: Pattern = {
+        kind: PatternKind.Equal,
+        value: "abc",
+      };
+      const m = await match(pattern, scope);
+      assert(m.kind === MatchKind.Ok);
+      assertEquals(m.scope.stream.done, true);
+      assertEquals(m.span.start, Path.From(0));
+      assertEquals(m.span.end, Path.From(1));
     },
   });
 });

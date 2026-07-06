@@ -1,4 +1,5 @@
 import { ExportDeclarationKind } from "../../runtime/declarations/export.ts";
+import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
@@ -37,10 +38,11 @@ export const Sequence: ModuleDeclaration = {
             kind: PatternKind.Variable,
             name: "p",
             pattern: {
-              kind: PatternKind.Slice,
+              kind: PatternKind.Quantifier,
               min: 1,
               pattern: {
-                kind: PatternKind.Reference,
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
                 name: "Primary",
                 args: [],
               },

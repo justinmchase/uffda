@@ -19,7 +19,7 @@ Deno.test(
       name: "NEWLINE00",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From("\n"),
+        input: Input.Iterable("\n"),
         value: "\n",
         kind: MatchKind.Ok,
       }),
@@ -28,7 +28,7 @@ Deno.test(
       name: "NEWLINE01",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From("\r"),
+        input: Input.Iterable("\r"),
         value: "\n",
         kind: MatchKind.Ok,
       }),
@@ -37,7 +37,7 @@ Deno.test(
       name: "NEWLINE02",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From("\r\n"),
+        input: Input.Iterable("\r\n"),
         value: "\n",
         kind: MatchKind.Ok,
       }),
@@ -46,7 +46,7 @@ Deno.test(
       name: "NEWLINE01",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From("\n\n"),
+        input: Input.Iterable("\n\n"),
         value: "\n",
         kind: MatchKind.Ok,
         done: false,

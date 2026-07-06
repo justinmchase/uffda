@@ -8,7 +8,7 @@ await Deno.test("runtime/patterns/any", async (t) => {
     name: "ANY00",
     fn: patternTest({
       pattern: { kind: PatternKind.Any },
-      input: Input.From("a"),
+      input: Input.Iterable("a"),
       value: "a",
       kind: MatchKind.Ok,
     }),
@@ -18,7 +18,7 @@ await Deno.test("runtime/patterns/any", async (t) => {
     name: "ANY01",
     fn: patternTest({
       pattern: { kind: PatternKind.Any },
-      input: Input.From(["a"]),
+      input: Input.Iterable(["a"]),
       value: "a",
       kind: MatchKind.Ok,
     }),
@@ -28,7 +28,7 @@ await Deno.test("runtime/patterns/any", async (t) => {
     name: "ANY02",
     fn: patternTest({
       pattern: { kind: PatternKind.Any },
-      input: Input.From(""),
+      input: Input.Iterable(""),
       kind: MatchKind.Fail,
       done: true,
     }),
@@ -38,7 +38,7 @@ await Deno.test("runtime/patterns/any", async (t) => {
     name: "ANY03",
     fn: patternTest({
       pattern: { kind: PatternKind.Any },
-      input: Input.From("ab"),
+      input: Input.Iterable("ab"),
       value: "a",
       kind: MatchKind.Ok,
       done: false,

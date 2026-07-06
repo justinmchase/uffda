@@ -1,4 +1,5 @@
 import { PatternKind } from "../patterns/pattern.kind.ts";
+import { ResolveTargetKind } from "../patterns/pattern.ts";
 import { ExportDeclarationKind } from "../declarations/export.ts";
 import type { ModuleDeclaration } from "../declarations/module.ts";
 
@@ -13,7 +14,7 @@ export default {
       name: "A",
       parameters: [],
       pattern: {
-        kind: PatternKind.Range,
+        kind: PatternKind.Between,
         left: "0",
         right: "9",
       },
@@ -22,9 +23,10 @@ export default {
       name: "B",
       parameters: [],
       pattern: {
-        kind: PatternKind.Slice,
+        kind: PatternKind.Quantifier,
         pattern: {
-          kind: PatternKind.Reference,
+          kind: PatternKind.Resolve,
+          targetKind: ResolveTargetKind.Reference,
           name: "A",
         },
       },

@@ -20,7 +20,7 @@ Deno.test(
       name: "REFERENCE_EXPRESSION_00",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(["x"]),
+        input: Input.Iterable(["x"]),
         kind: MatchKind.Ok,
         value: { kind: ExpressionKind.Reference, name: "x" },
       }),
@@ -29,7 +29,7 @@ Deno.test(
       name: "REFERENCE_EXPRESSION_01",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(["_abc123"]),
+        input: Input.Iterable(["_abc123"]),
         kind: MatchKind.Ok,
         value: { kind: ExpressionKind.Reference, name: "_abc123" },
       }),
@@ -38,7 +38,7 @@ Deno.test(
       name: "REFERENCE_EXPRESSION_02",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(["abc_123_xyz"]),
+        input: Input.Iterable(["abc_123_xyz"]),
         kind: MatchKind.Ok,
         value: { kind: ExpressionKind.Reference, name: "abc_123_xyz" },
       }),
@@ -47,7 +47,7 @@ Deno.test(
       name: "REFERENCE_EXPRESSION_03",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(["1abc"]),
+        input: Input.Iterable(["1abc"]),
         kind: MatchKind.Fail,
       }),
     });
