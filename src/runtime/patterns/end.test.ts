@@ -8,7 +8,7 @@ await Deno.test("runtime/patterns/end", async (t) => {
     name: "END00",
     fn: patternTest({
       pattern: { kind: PatternKind.End },
-      input: Input.From([]),
+      input: Input.Iterable([]),
       kind: MatchKind.Ok,
     }),
   });
@@ -17,7 +17,7 @@ await Deno.test("runtime/patterns/end", async (t) => {
     name: "END01",
     fn: patternTest({
       pattern: { kind: PatternKind.End },
-      input: Input.From("a"),
+      input: Input.Iterable("a"),
       kind: MatchKind.Fail,
     }),
   });
@@ -31,7 +31,7 @@ await Deno.test("runtime/patterns/end", async (t) => {
           kind: PatternKind.End,
         },
       },
-      input: Input.From("a"),
+      input: Input.Iterable("a"),
       kind: MatchKind.Ok,
       done: false,
     }),
@@ -48,7 +48,7 @@ await Deno.test("runtime/patterns/end", async (t) => {
           { kind: PatternKind.End },
         ],
       },
-      input: Input.From("abc"),
+      input: Input.Iterable("abc"),
       kind: MatchKind.Fail,
     }),
   });
@@ -65,7 +65,7 @@ await Deno.test("runtime/patterns/end", async (t) => {
           { kind: PatternKind.End },
         ],
       },
-      input: Input.From("abc"),
+      input: Input.Iterable("abc"),
       value: ["a", "b", "c", undefined],
       kind: MatchKind.Ok,
     }),

@@ -19,7 +19,7 @@ Deno.test(
       name: "DIGIT00",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From("a"),
+        input: Input.Iterable("a"),
         kind: MatchKind.Fail,
       }),
     });
@@ -27,7 +27,7 @@ Deno.test(
       name: "DIGIT01",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From("1"),
+        input: Input.Iterable("1"),
         kind: MatchKind.Ok,
         value: "1",
       }),

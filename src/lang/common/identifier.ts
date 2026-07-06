@@ -1,4 +1,5 @@
 import { ExportDeclarationKind } from "../../runtime/declarations/export.ts";
+import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import {
   ImportDeclarationKind,
   type ModuleDeclaration,
@@ -89,14 +90,16 @@ export const Identifier: ModuleDeclaration = {
         kind: PatternKind.Then,
         patterns: [
           {
-            kind: PatternKind.Reference,
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
             name: "IdentifierStartCharacter",
             args: [],
           },
           {
-            kind: PatternKind.Slice,
+            kind: PatternKind.Quantifier,
             pattern: {
-              kind: PatternKind.Reference,
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
               name: "IdentifierCharacter",
               args: [],
             },
@@ -115,7 +118,8 @@ export const Identifier: ModuleDeclaration = {
         kind: PatternKind.Or,
         patterns: [
           {
-            kind: PatternKind.Reference,
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
             name: "Letter",
             args: [],
           },
@@ -133,27 +137,32 @@ export const Identifier: ModuleDeclaration = {
         kind: PatternKind.Or,
         patterns: [
           {
-            kind: PatternKind.Reference,
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
             name: "IdentifierStartCharacter",
             args: [],
           },
           {
-            kind: PatternKind.Reference,
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
             name: "Digit",
             args: [],
           },
           {
-            kind: PatternKind.Reference,
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
             name: "Connecting",
             args: [],
           },
           {
-            kind: PatternKind.Reference,
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
             name: "Combining",
             args: [],
           },
           {
-            kind: PatternKind.Reference,
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
             name: "Formatting",
             args: [],
           },

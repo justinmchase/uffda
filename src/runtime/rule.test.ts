@@ -1,4 +1,5 @@
 import { assertEquals, assertStrictEquals } from "@std/assert";
+import { ResolveTargetKind } from "./patterns/pattern.ts";
 import { moduleDeclarationTest } from "../test.ts";
 import { ExpressionKind } from "./expressions/expression.kind.ts";
 import { PatternKind } from "./patterns/pattern.kind.ts";
@@ -35,7 +36,7 @@ Deno.test("runtime.rule", async (t) => {
         },
       },
       kind: MatchKind.Ok,
-      input: Input.From("a"),
+      input: Input.Iterable("a"),
       value: "a",
     }),
   });
@@ -61,7 +62,8 @@ Deno.test("runtime.rule", async (t) => {
                 kind: PatternKind.Or,
                 patterns: [
                   {
-                    kind: PatternKind.Reference,
+                    kind: PatternKind.Resolve,
+                    targetKind: ResolveTargetKind.Reference,
                     name: "a",
                     args: [],
                   },
@@ -76,7 +78,7 @@ Deno.test("runtime.rule", async (t) => {
         },
       },
       kind: MatchKind.Ok,
-      input: Input.From("aa"),
+      input: Input.Iterable("aa"),
       value: "a",
       done: false,
     }),
@@ -105,7 +107,12 @@ Deno.test("runtime.rule", async (t) => {
                   {
                     kind: PatternKind.Then,
                     patterns: [
-                      { kind: PatternKind.Reference, name: "a", args: [] },
+                      {
+                        kind: PatternKind.Resolve,
+                        targetKind: ResolveTargetKind.Reference,
+                        name: "a",
+                        args: [],
+                      },
                       { kind: PatternKind.Equal, value: "a" },
                     ],
                   },
@@ -117,7 +124,7 @@ Deno.test("runtime.rule", async (t) => {
         },
       },
       kind: MatchKind.Ok,
-      input: Input.From("aaa"),
+      input: Input.Iterable("aaa"),
       value: [["a", "a"], "a"],
     }),
   });
@@ -138,7 +145,8 @@ Deno.test("runtime.rule", async (t) => {
               name: "a",
               parameters: [],
               pattern: {
-                kind: PatternKind.Reference,
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
                 name: "b",
                 args: [],
               },
@@ -147,7 +155,8 @@ Deno.test("runtime.rule", async (t) => {
               name: "b",
               parameters: [],
               pattern: {
-                kind: PatternKind.Reference,
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
                 name: "a",
                 args: [],
               },
@@ -156,7 +165,7 @@ Deno.test("runtime.rule", async (t) => {
         },
       },
       kind: MatchKind.Fail,
-      input: Input.From("ab"),
+      input: Input.Iterable("ab"),
     }),
   });
 
@@ -184,7 +193,12 @@ Deno.test("runtime.rule", async (t) => {
                     kind: PatternKind.Then,
                     patterns: [
                       { kind: PatternKind.Equal, value: "a" },
-                      { kind: PatternKind.Reference, name: "a", args: [] },
+                      {
+                        kind: PatternKind.Resolve,
+                        targetKind: ResolveTargetKind.Reference,
+                        name: "a",
+                        args: [],
+                      },
                     ],
                   },
                   { kind: PatternKind.Equal, value: "a" },
@@ -195,7 +209,7 @@ Deno.test("runtime.rule", async (t) => {
         },
       },
       kind: MatchKind.Ok,
-      input: Input.From("aaa"),
+      input: Input.Iterable("aaa"),
       value: ["a", ["a", "a"]],
     }),
   });
@@ -237,7 +251,12 @@ Deno.test("runtime.rule", async (t) => {
                   {
                     kind: PatternKind.Or,
                     patterns: [
-                      { kind: PatternKind.Reference, name: "P0", args: [] },
+                      {
+                        kind: PatternKind.Resolve,
+                        targetKind: ResolveTargetKind.Reference,
+                        name: "P0",
+                        args: [],
+                      },
                       { kind: PatternKind.Any },
                     ],
                   },
@@ -248,7 +267,7 @@ Deno.test("runtime.rule", async (t) => {
         },
       },
       kind: MatchKind.Ok,
-      input: Input.From("ab"),
+      input: Input.Iterable("ab"),
       value: ["a", true],
     }),
   });
@@ -282,7 +301,8 @@ Deno.test("runtime.rule", async (t) => {
               name: "P1",
               parameters: [],
               pattern: {
-                kind: PatternKind.Reference,
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
                 name: "P0",
                 args: [],
               },
@@ -297,7 +317,7 @@ Deno.test("runtime.rule", async (t) => {
         },
       },
       kind: MatchKind.Ok,
-      input: Input.From("a"),
+      input: Input.Iterable("a"),
       value: "a",
     }),
   });
@@ -356,7 +376,12 @@ Deno.test("runtime.rule", async (t) => {
                   {
                     kind: PatternKind.Or,
                     patterns: [
-                      { kind: PatternKind.Reference, name: "P0", args: [] },
+                      {
+                        kind: PatternKind.Resolve,
+                        targetKind: ResolveTargetKind.Reference,
+                        name: "P0",
+                        args: [],
+                      },
                       { kind: PatternKind.Any },
                     ],
                   },
@@ -367,7 +392,7 @@ Deno.test("runtime.rule", async (t) => {
         },
       },
       kind: MatchKind.Ok,
-      input: Input.From("ab"),
+      input: Input.Iterable("ab"),
       value: ["a", true],
     }),
   });
@@ -398,7 +423,7 @@ Deno.test("runtime.rule", async (t) => {
         },
       },
       kind: MatchKind.Ok,
-      input: Input.From("a"),
+      input: Input.Iterable("a"),
       value: "b",
     }),
   });

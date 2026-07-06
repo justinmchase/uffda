@@ -1,4 +1,5 @@
 import { ExportDeclarationKind } from "../../runtime/declarations/export.ts";
+import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
@@ -47,17 +48,20 @@ export const Terminal: ModuleDeclaration = {
         kind: PatternKind.Or,
         patterns: [
           {
-            kind: PatternKind.Reference,
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
             name: "Sequence",
             args: [],
           },
           {
-            kind: PatternKind.Reference,
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
             name: "Terminal",
             args: [],
           },
           {
-            kind: PatternKind.Reference,
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
             name: "String",
             args: [],
           },

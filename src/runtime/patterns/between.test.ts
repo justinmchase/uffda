@@ -22,199 +22,199 @@ class Test implements ToJson {
 
 const test = new Test(1);
 
-Deno.test("runtime.patterns.range", async (t) => {
+Deno.test("runtime.patterns.between", async (t) => {
   await t.step({
-    name: "RANGE00",
+    name: "BETWEEN00",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Range,
+        kind: PatternKind.Between,
         left: 0,
         right: 2,
       },
-      input: Input.From([1]),
+      input: Input.Iterable([1]),
       value: 1,
       kind: MatchKind.Ok,
     }),
   });
   await t.step({
-    name: "RANGE01",
+    name: "BETWEEN01",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Range,
+        kind: PatternKind.Between,
         left: 0,
         right: 0,
       },
-      input: Input.From([0]),
+      input: Input.Iterable([0]),
       value: 0,
       kind: MatchKind.Ok,
     }),
   });
   await t.step({
-    name: "RANGE02",
+    name: "BETWEEN02",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Range,
+        kind: PatternKind.Between,
         left: 0,
         right: 1,
       },
-      input: Input.From([1]),
+      input: Input.Iterable([1]),
       value: 1,
       kind: MatchKind.Ok,
     }),
   });
   await t.step({
-    name: "RANGE03",
+    name: "BETWEEN03",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Range,
+        kind: PatternKind.Between,
         left: "a",
         right: "a",
       },
-      input: Input.From("a"),
+      input: Input.Iterable("a"),
       value: "a",
       kind: MatchKind.Ok,
     }),
   });
   await t.step({
-    name: "RANGE04",
+    name: "BETWEEN04",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Range,
+        kind: PatternKind.Between,
         left: "a",
         right: "b",
       },
-      input: Input.From("b"),
+      input: Input.Iterable("b"),
       value: "b",
       kind: MatchKind.Ok,
     }),
   });
   await t.step({
-    name: "RANGE05",
+    name: "BETWEEN05",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Range,
+        kind: PatternKind.Between,
         left: "a",
         right: "c",
       },
-      input: Input.From("b"),
+      input: Input.Iterable("b"),
       value: "b",
       kind: MatchKind.Ok,
     }),
   });
   await t.step({
-    name: "RANGE06",
+    name: "BETWEEN06",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Range,
+        kind: PatternKind.Between,
         left: "a",
         right: "b",
       },
-      input: Input.From("v"),
+      input: Input.Iterable("v"),
       kind: MatchKind.Fail,
       done: false,
     }),
   });
   await t.step({
-    name: "RANGE07",
+    name: "BETWEEN07",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Range,
+        kind: PatternKind.Between,
         left: 0,
         right: 1,
       },
-      input: Input.From([2]),
+      input: Input.Iterable([2]),
       kind: MatchKind.Fail,
       done: false,
     }),
   });
 
   await t.step({
-    name: "RANGE08",
+    name: "BETWEEN08",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Range,
+        kind: PatternKind.Between,
         left: new Test(1),
         right: new Test(1),
       },
-      input: Input.From([test]),
+      input: Input.Iterable([test]),
       value: test,
       kind: MatchKind.Ok,
     }),
   });
   await t.step({
-    name: "RANGE09",
+    name: "BETWEEN09",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Range,
+        kind: PatternKind.Between,
         left: new Test(1),
         right: new Test(2),
       },
-      input: Input.From([test]),
+      input: Input.Iterable([test]),
       kind: MatchKind.Ok,
       value: test,
     }),
   });
   await t.step({
-    name: "RANGE10",
+    name: "BETWEEN10",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Range,
+        kind: PatternKind.Between,
         left: new Test(0),
         right: new Test(1),
       },
-      input: Input.From([test]),
+      input: Input.Iterable([test]),
       kind: MatchKind.Ok,
       value: test,
     }),
   });
   await t.step({
-    name: "RANGE11",
+    name: "BETWEEN11",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Range,
+        kind: PatternKind.Between,
         left: new Test(0),
         right: new Test(0),
       },
-      input: Input.From([test]),
+      input: Input.Iterable([test]),
       kind: MatchKind.Fail,
       done: false,
     }),
   });
   await t.step({
-    name: "RANGE12",
+    name: "BETWEEN12",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Range,
+        kind: PatternKind.Between,
         left: {} as Comparable,
         right: new Test(0),
       },
-      input: Input.From([test]),
+      input: Input.Iterable([test]),
       kind: MatchKind.Fail,
       done: false,
     }),
   });
   await t.step({
-    name: "RANGE13",
+    name: "BETWEEN13",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Range,
+        kind: PatternKind.Between,
         left: new Test(0),
         right: {} as Comparable,
       },
-      input: Input.From([test]),
+      input: Input.Iterable([test]),
       kind: MatchKind.Fail,
       done: false,
     }),
   });
   await t.step({
-    name: "RANGE14",
+    name: "BETWEEN14",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Range,
+        kind: PatternKind.Between,
         left: 0,
         right: 0,
       },
-      input: Input.From([undefined]),
+      input: Input.Iterable([undefined]),
       kind: MatchKind.Error,
       code: MatchErrorCode.NullValue,
       message: "expected value to be non-null",
@@ -223,14 +223,14 @@ Deno.test("runtime.patterns.range", async (t) => {
     }),
   });
   await t.step({
-    name: "RANGE15",
+    name: "BETWEEN15",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Range,
+        kind: PatternKind.Between,
         left: 0,
         right: 0,
       },
-      input: Input.From([null]),
+      input: Input.Iterable([null]),
       kind: MatchKind.Error,
       code: MatchErrorCode.NullValue,
       message: "expected value to be non-null",
@@ -239,40 +239,40 @@ Deno.test("runtime.patterns.range", async (t) => {
     }),
   });
   await t.step({
-    name: "RANGE16",
+    name: "BETWEEN16",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Range,
+        kind: PatternKind.Between,
         left: 0,
         right: "a",
       },
-      input: Input.From([0]),
+      input: Input.Iterable([0]),
       kind: MatchKind.Fail,
       done: false,
     }),
   });
   await t.step({
-    name: "RANGE17",
+    name: "BETWEEN17",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Range,
+        kind: PatternKind.Between,
         left: "a",
         right: 0,
       },
-      input: Input.From([0]),
+      input: Input.Iterable([0]),
       kind: MatchKind.Fail,
       done: false,
     }),
   });
   await t.step({
-    name: "RANGE18",
+    name: "BETWEEN18",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Range,
+        kind: PatternKind.Between,
         left: true as unknown as Comparable,
         right: false as unknown as Comparable,
       },
-      input: Input.From([true]),
+      input: Input.Iterable([true]),
       kind: MatchKind.Fail,
       done: false,
     }),

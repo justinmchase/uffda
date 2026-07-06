@@ -4,6 +4,7 @@ import { MatchErrorCode } from "../../mod.ts";
 import { Path } from "../../path.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
+import { ResolveTargetKind } from "./pattern.ts";
 import { SpecialKind } from "../modules/mod.ts";
 import type { Module, Rule } from "../modules/mod.ts";
 
@@ -38,14 +39,14 @@ Deno.test("runtime.patterns.special", async (t) => {
     name: "PATTERN_SPECIAL00",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Special,
-        name: "$0",
+        kind: PatternKind.Resolve,
+        targetKind: ResolveTargetKind.Special,
         value: {
           kind: SpecialKind.Module,
           module: mod0,
         },
       },
-      input: Input.From("a"),
+      input: Input.Iterable("a"),
       value: "a",
       kind: MatchKind.Ok,
     }),
@@ -55,14 +56,14 @@ Deno.test("runtime.patterns.special", async (t) => {
     name: "PATTERN_SPECIAL01",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Special,
-        name: "$0",
+        kind: PatternKind.Resolve,
+        targetKind: ResolveTargetKind.Special,
         value: {
           kind: SpecialKind.Rule,
           rule,
         },
       },
-      input: Input.From([7]),
+      input: Input.Iterable([7]),
       value: 7,
       kind: MatchKind.Ok,
     }),
@@ -72,8 +73,8 @@ Deno.test("runtime.patterns.special", async (t) => {
     name: "PATTERN_SPECIAL02",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Special,
-        name: "$0",
+        kind: PatternKind.Resolve,
+        targetKind: ResolveTargetKind.Special,
         value: {
           kind: SpecialKind.Module,
           module: mod1,

@@ -20,7 +20,7 @@ Deno.test(
       fn: moduleDeclarationTest({
         moduleUrl,
         kind: MatchKind.Ok,
-        input: Input.From("\u200B"),
+        input: Input.Iterable("\u200B"),
         value: "\u200B",
       }),
     });

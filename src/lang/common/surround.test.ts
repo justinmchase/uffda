@@ -1,4 +1,5 @@
 import { Input } from "../../input.ts";
+import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { MatchKind } from "../../mod.ts";
 import { Path } from "../../path.ts";
 import {
@@ -26,7 +27,7 @@ Deno.test(
       name: "SURROUND00",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: new Input("(x)"),
+        input: Input.Iterable("(x)"),
         kind: MatchKind.Ok,
         value: "x",
       }),
@@ -35,7 +36,7 @@ Deno.test(
       name: "SURROUND01",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: new Input("(x"),
+        input: Input.Iterable("(x"),
         kind: MatchKind.Ok,
         value: "x",
       }),
@@ -44,7 +45,7 @@ Deno.test(
       name: "SURROUND02",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: new Input("x)"),
+        input: Input.Iterable("x)"),
         kind: MatchKind.Ok,
         value: "x",
       }),
@@ -54,7 +55,7 @@ Deno.test(
       name: "SURROUND03",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: new Input("x"),
+        input: Input.Iterable("x"),
         kind: MatchKind.Ok,
         value: "x",
       }),
@@ -64,7 +65,7 @@ Deno.test(
       name: "SURROUND04",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: new Input("()"),
+        input: Input.Iterable("()"),
         kind: MatchKind.Fail,
         failures: [
           {
@@ -126,7 +127,8 @@ export const SurroundTest: ModuleDeclaration = {
       name: "SurroundTest",
       parameters: [],
       pattern: {
-        kind: PatternKind.Reference,
+        kind: PatternKind.Resolve,
+        targetKind: ResolveTargetKind.Reference,
         name: "Surround",
         args: ["A", "B", "C"],
       },

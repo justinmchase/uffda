@@ -1,4 +1,5 @@
 import { Type } from "@justinmchase/type";
+import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { ExportDeclarationKind } from "../../runtime/declarations/export.ts";
 import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
@@ -73,12 +74,14 @@ export const String: ModuleDeclaration = {
         kind: PatternKind.Or,
         patterns: [
           {
-            kind: PatternKind.Reference,
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
             name: "EscapedCurlyBegin",
             args: [],
           },
           {
-            kind: PatternKind.Reference,
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
             name: "EscapedDoubleQuote",
             args: [],
           },
@@ -99,7 +102,8 @@ export const String: ModuleDeclaration = {
             kind: PatternKind.Variable,
             name: "v",
             pattern: {
-              kind: PatternKind.Reference,
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
               name: "Primary", // todo: this should be Expression
               args: [],
             },
@@ -119,13 +123,14 @@ export const String: ModuleDeclaration = {
       name: "StringContent",
       parameters: [],
       pattern: {
-        kind: PatternKind.Slice,
+        kind: PatternKind.Quantifier,
         min: 1,
         pattern: {
           kind: PatternKind.Or,
           patterns: [
             {
-              kind: PatternKind.Reference,
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
               name: "EscapedString",
               args: [],
             },
@@ -174,18 +179,20 @@ export const String: ModuleDeclaration = {
             kind: PatternKind.Variable,
             name: "v",
             pattern: {
-              kind: PatternKind.Slice,
+              kind: PatternKind.Quantifier,
               min: 0,
               pattern: {
                 kind: PatternKind.Or,
                 patterns: [
                   {
-                    kind: PatternKind.Reference,
+                    kind: PatternKind.Resolve,
+                    targetKind: ResolveTargetKind.Reference,
                     name: "StringExpression",
                     args: [],
                   },
                   {
-                    kind: PatternKind.Reference,
+                    kind: PatternKind.Resolve,
+                    targetKind: ResolveTargetKind.Reference,
                     name: "StringContent",
                     args: [],
                   },

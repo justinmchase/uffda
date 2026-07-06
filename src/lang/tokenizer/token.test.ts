@@ -1,4 +1,5 @@
 import { Input } from "../../input.ts";
+import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { MatchKind } from "../../mod.ts";
 import {
   ExportDeclarationKind,
@@ -25,7 +26,7 @@ Deno.test(
       name: "TOKEN_00",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: new Input("x"),
+        input: Input.Iterable("x"),
         kind: MatchKind.Ok,
         value: "x",
       }),
@@ -34,7 +35,7 @@ Deno.test(
       name: "TOKEN_01",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: new Input(["   ", "x"]),
+        input: Input.Iterable(["   ", "x"]),
         kind: MatchKind.Ok,
         value: "x",
       }),
@@ -43,7 +44,7 @@ Deno.test(
       name: "TOKEN_02",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: new Input(["x", "   "]),
+        input: Input.Iterable(["x", "   "]),
         kind: MatchKind.Ok,
         value: "x",
       }),
@@ -52,7 +53,7 @@ Deno.test(
       name: "TOKEN_03",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: new Input(["   ", "x", "   "]),
+        input: Input.Iterable(["   ", "x", "   "]),
         kind: MatchKind.Ok,
         value: "x",
       }),
@@ -90,7 +91,8 @@ export const TokenTest: ModuleDeclaration = {
       name: "TokenTest",
       parameters: [],
       pattern: {
-        kind: PatternKind.Reference,
+        kind: PatternKind.Resolve,
+        targetKind: ResolveTargetKind.Reference,
         name: "Token",
         args: ["T"],
       },

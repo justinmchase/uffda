@@ -1,4 +1,5 @@
 import { Type } from "@justinmchase/type";
+import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { ExportDeclarationKind } from "../../runtime/declarations/export.ts";
 import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
@@ -38,10 +39,11 @@ export const Token: ModuleDeclaration = {
           {
             kind: PatternKind.Into,
             pattern: {
-              kind: PatternKind.Slice,
+              kind: PatternKind.Quantifier,
               min: 0,
               pattern: {
-                kind: PatternKind.Reference,
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
                 name: "Whitespace",
                 args: [],
               },
@@ -56,7 +58,8 @@ export const Token: ModuleDeclaration = {
         { name: "P" },
       ],
       pattern: {
-        kind: PatternKind.Reference,
+        kind: PatternKind.Resolve,
+        targetKind: ResolveTargetKind.Reference,
         name: "Surround",
         args: ["W", "P", "W"],
       },

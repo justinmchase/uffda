@@ -20,7 +20,7 @@ Deno.test(
       name: "NUMBER_EXPRESSION_00",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(["1"]),
+        input: Input.Iterable(["1"]),
         kind: MatchKind.Ok,
         value: { kind: ExpressionKind.Number, value: 1 },
       }),
@@ -29,7 +29,7 @@ Deno.test(
       name: "NUMBER_EXPRESSION_01",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(["123"]),
+        input: Input.Iterable(["123"]),
         kind: MatchKind.Ok,
         value: { kind: ExpressionKind.Number, value: 123 },
       }),

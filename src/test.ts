@@ -4,8 +4,9 @@ import { match } from "./runtime/match.ts";
 import { exec } from "./runtime/exec.ts";
 import { Input } from "./input.ts";
 import { ok, Resolver } from "./mod.ts";
-import { run } from "./runtime/patterns/mod.ts";
 import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
+import { ResolveTargetKind } from "./runtime/patterns/pattern.ts";
+import { resolve } from "./runtime/patterns/resolve.ts";
 import { ExportDeclarationKind } from "./runtime/declarations/mod.ts";
 import { MatchKind } from "./match.ts";
 import type {
@@ -175,7 +176,10 @@ export function moduleDeclarationTest(options: ModuleDeclarationTestOptions) {
         },
       );
 
-      const m = run(scope, { kind: PatternKind.Run });
+      const m = resolve(
+        { kind: PatternKind.Resolve, targetKind: ResolveTargetKind.Run },
+        scope,
+      );
       switch (m.kind) {
         case MatchKind.LR:
           return assertLR(m, options);
@@ -262,7 +266,10 @@ export function ruleTest(options: RuleTestOptions) {
         },
       );
 
-      const m = run(scope, { kind: PatternKind.Run });
+      const m = resolve(
+        { kind: PatternKind.Resolve, targetKind: ResolveTargetKind.Run },
+        scope,
+      );
       switch (m.kind) {
         case MatchKind.LR:
           return assertLR(m, options);

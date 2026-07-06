@@ -1,5 +1,6 @@
 import { assertEquals } from "@std/assert";
-import { fail, getRightmostFailure, MatchKind, MatchOk } from "./match.ts";
+import { fail, getRightmostFailure, MatchKind } from "./match.ts";
+import type { MatchOk } from "./match.ts";
 import { Path } from "./path.ts";
 import { Scope } from "./runtime/scope.ts";
 import { Input } from "./input.ts";
@@ -17,7 +18,7 @@ Deno.test({
     await t.step({
       name: "RIGHTMOST00 - returns the same match when there are no children",
       fn: () => {
-        const scope = Scope.From(Input.From("test"));
+        const scope = Scope.From(Input.Iterable("test"));
         const match = fail(scope, testPattern);
 
         const result = getRightmostFailure(match);
@@ -30,7 +31,7 @@ Deno.test({
       name:
         "RIGHTMOST01 - returns the rightmost child when it has a greater start position",
       fn: () => {
-        const input = Input.From("test");
+        const input = Input.Iterable("test");
         const scope0 = Scope.From(input);
         const scope1 = scope0.withInput(input.next());
         const scope2 = scope0.withInput(input.next().next());
@@ -53,7 +54,7 @@ Deno.test({
       name:
         "RIGHTMOST02 - returns parent when all children have smaller start positions",
       fn: () => {
-        const input = Input.From("test");
+        const input = Input.Iterable("test");
         const scope0 = Scope.From(input.next().next());
         const scope1 = scope0.withInput(input);
         const scope2 = scope0.withInput(input.next());
@@ -75,7 +76,7 @@ Deno.test({
     await t.step({
       name: "RIGHTMOST03 - recursively finds rightmost in nested failures",
       fn: () => {
-        const input = Input.From("test");
+        const input = Input.Iterable("test");
         const scope0 = Scope.From(input);
         const scope1 = scope0.withInput(input.next());
         const scope2 = scope0.withInput(input.next().next());
@@ -96,7 +97,7 @@ Deno.test({
     await t.step({
       name: "RIGHTMOST04 - ignores non-fail matches",
       fn: () => {
-        const input = Input.From("test");
+        const input = Input.Iterable("test");
         const scope0 = Scope.From(input);
         const scope1 = scope0.withInput(input.next());
 
@@ -121,7 +122,7 @@ Deno.test({
     await t.step({
       name: "RIGHTMOST05 - handles complex tree with multiple branches",
       fn: () => {
-        const input = Input.From("testing");
+        const input = Input.Iterable("testing");
         const scope0 = Scope.From(input);
         const scope1 = scope0.withInput(input.next());
         const scope2 = scope0.withInput(input.next().next());
@@ -149,7 +150,7 @@ Deno.test({
     await t.step({
       name: "RIGHTMOST06 - handles match with empty children array",
       fn: () => {
-        const scope = Scope.From(Input.From("test"));
+        const scope = Scope.From(Input.Iterable("test"));
         const match = fail(scope, testPattern, []);
 
         const result = getRightmostFailure(match);
@@ -161,7 +162,7 @@ Deno.test({
     await t.step({
       name: "RIGHTMOST07 - compares paths correctly with different segments",
       fn: () => {
-        const input = Input.From({ a: "x", b: "y" });
+        const input = Input.Scalar({ a: "x", b: "y" });
         const scope0 = Scope.From(input);
         const scope1 = scope0.withInput(input.next());
 

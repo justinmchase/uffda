@@ -1,4 +1,5 @@
 import { Type } from "@justinmchase/type";
+import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { ExportDeclarationKind } from "../../runtime/declarations/export.ts";
 import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
@@ -37,10 +38,11 @@ export const Number: ModuleDeclaration = {
           {
             kind: PatternKind.Into,
             pattern: {
-              kind: PatternKind.Slice,
+              kind: PatternKind.Quantifier,
               min: 1,
               pattern: {
-                kind: PatternKind.Reference,
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
                 name: "Digit",
                 args: [],
               },

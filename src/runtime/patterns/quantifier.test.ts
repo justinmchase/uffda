@@ -4,70 +4,70 @@ import { MatchKind } from "../../match.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
-Deno.test("runtime.patterns.slice", async (t) => {
+Deno.test("runtime.patterns.quantifier", async (t) => {
   await t.step({
-    name: "SLICE00",
+    name: "QUANTIFIER00",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Slice,
+        kind: PatternKind.Quantifier,
         pattern: {
           kind: PatternKind.Ok,
         },
       },
-      input: Input.From("abc"),
+      input: Input.Iterable("abc"),
       value: [undefined],
       kind: MatchKind.Ok,
       done: false,
     }),
   });
   await t.step({
-    name: "SLICE01",
+    name: "QUANTIFIER01",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Slice,
+        kind: PatternKind.Quantifier,
         pattern: {
           kind: PatternKind.Any,
         },
       },
-      input: Input.From(""),
+      input: Input.Iterable(""),
       value: [],
       kind: MatchKind.Ok,
     }),
   });
 
   await t.step({
-    name: "SLICE02",
+    name: "QUANTIFIER02",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Slice,
+        kind: PatternKind.Quantifier,
         pattern: { kind: PatternKind.Type, type: Type.String },
       },
-      input: Input.From("a"),
+      input: Input.Iterable("a"),
       value: ["a"],
       kind: MatchKind.Ok,
     }),
   });
 
   await t.step({
-    name: "SLICE03",
+    name: "QUANTIFIER03",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Slice,
+        kind: PatternKind.Quantifier,
         pattern: { kind: PatternKind.Type, type: Type.String },
       },
-      input: Input.From("abc"),
+      input: Input.Iterable("abc"),
       value: ["a", "b", "c"],
       kind: MatchKind.Ok,
     }),
   });
   await t.step({
-    name: "SLICE04",
+    name: "QUANTIFIER04",
     fn: patternTest({
       pattern: {
         kind: PatternKind.Then,
         patterns: [
           {
-            kind: PatternKind.Slice,
+            kind: PatternKind.Quantifier,
             pattern: {
               kind: PatternKind.RegExp,
               pattern: /a/,
@@ -76,20 +76,20 @@ Deno.test("runtime.patterns.slice", async (t) => {
           { kind: PatternKind.Any },
         ],
       },
-      input: Input.From("b"),
+      input: Input.Iterable("b"),
       value: [[], "b"],
       kind: MatchKind.Ok,
     }),
   });
   await t.step({
-    name: "SLICE05",
+    name: "QUANTIFIER05",
     fn: patternTest({
       pattern: {
         kind: PatternKind.Then,
         patterns: [
           { kind: PatternKind.Any },
           {
-            kind: PatternKind.Slice,
+            kind: PatternKind.Quantifier,
             pattern: {
               kind: PatternKind.RegExp,
               pattern: /a/,
@@ -97,75 +97,75 @@ Deno.test("runtime.patterns.slice", async (t) => {
           },
         ],
       },
-      input: Input.From("a"),
+      input: Input.Iterable("a"),
       value: ["a", []],
       kind: MatchKind.Ok,
     }),
   });
   await t.step({
-    name: "SLICE06",
+    name: "QUANTIFIER06",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Slice,
+        kind: PatternKind.Quantifier,
         pattern: { kind: PatternKind.Any },
         min: 1,
       },
-      input: Input.From(""),
+      input: Input.Iterable(""),
       kind: MatchKind.Fail,
       done: true,
     }),
   });
   await t.step({
-    name: "SLICE07",
+    name: "QUANTIFIER07",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Slice,
+        kind: PatternKind.Quantifier,
         pattern: { kind: PatternKind.Ok },
         min: 3,
       },
-      input: Input.From("a"),
+      input: Input.Iterable("a"),
       value: [undefined, undefined, undefined],
       kind: MatchKind.Ok,
       done: false,
     }),
   });
   await t.step({
-    name: "SLICE08",
+    name: "QUANTIFIER08",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Slice,
+        kind: PatternKind.Quantifier,
         pattern: {
           kind: PatternKind.Type,
           type: Type.String,
         },
         min: 1,
       },
-      input: Input.From("a"),
+      input: Input.Iterable("a"),
       value: ["a"],
       kind: MatchKind.Ok,
     }),
   });
   await t.step({
-    name: "SLICE09",
+    name: "QUANTIFIER09",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Slice,
+        kind: PatternKind.Quantifier,
         pattern: {
           kind: PatternKind.Type,
           type: Type.String,
         },
         min: 3,
       },
-      input: Input.From("abc"),
+      input: Input.Iterable("abc"),
       value: ["a", "b", "c"],
       kind: MatchKind.Ok,
     }),
   });
   await t.step({
-    name: "SLICE10",
+    name: "QUANTIFIER10",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Slice,
+        kind: PatternKind.Quantifier,
         pattern: {
           kind: PatternKind.Type,
           type: Type.String,
@@ -173,16 +173,16 @@ Deno.test("runtime.patterns.slice", async (t) => {
         min: 3,
         max: 3,
       },
-      input: Input.From("abc"),
+      input: Input.Iterable("abc"),
       value: ["a", "b", "c"],
       kind: MatchKind.Ok,
     }),
   });
   await t.step({
-    name: "SLICE11",
+    name: "QUANTIFIER11",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Slice,
+        kind: PatternKind.Quantifier,
         pattern: {
           kind: PatternKind.Type,
           type: Type.String,
@@ -190,15 +190,15 @@ Deno.test("runtime.patterns.slice", async (t) => {
         min: 3,
         max: 3,
       },
-      input: Input.From("ab"),
+      input: Input.Iterable("ab"),
       kind: MatchKind.Fail,
     }),
   });
   await t.step({
-    name: "SLICE12",
+    name: "QUANTIFIER12",
     fn: patternTest({
       pattern: {
-        kind: PatternKind.Slice,
+        kind: PatternKind.Quantifier,
         pattern: {
           kind: PatternKind.Type,
           type: Type.String,
@@ -206,7 +206,7 @@ Deno.test("runtime.patterns.slice", async (t) => {
         min: 3,
         max: 3,
       },
-      input: Input.From("abcd"),
+      input: Input.Iterable("abcd"),
       value: ["a", "b", "c"],
       kind: MatchKind.Ok,
       done: false,

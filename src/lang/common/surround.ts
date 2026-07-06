@@ -4,6 +4,7 @@ import {
 } from "../../runtime/declarations/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../../runtime/patterns/mod.ts";
+import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 
 export const Surround: ModuleDeclaration = {
   imports: [],
@@ -26,11 +27,12 @@ export const Surround: ModuleDeclaration = {
         kind: PatternKind.Then,
         patterns: [
           {
-            kind: PatternKind.Slice,
+            kind: PatternKind.Quantifier,
             min: 0,
             max: 1,
             pattern: {
-              kind: PatternKind.Reference,
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
               name: "L",
               args: [],
             },
@@ -39,17 +41,19 @@ export const Surround: ModuleDeclaration = {
             kind: PatternKind.Variable,
             name: "p",
             pattern: {
-              kind: PatternKind.Reference,
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
               name: "P",
               args: [],
             },
           },
           {
-            kind: PatternKind.Slice,
+            kind: PatternKind.Quantifier,
             min: 0,
             max: 1,
             pattern: {
-              kind: PatternKind.Reference,
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
               name: "R",
               args: [],
             },

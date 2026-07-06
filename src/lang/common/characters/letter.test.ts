@@ -19,7 +19,7 @@ Deno.test(
       name: "LETTER00",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From("a"),
+        input: Input.Iterable("a"),
         value: "a",
         kind: MatchKind.Ok,
       }),
@@ -28,7 +28,7 @@ Deno.test(
       name: "LETTER01",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From("1"),
+        input: Input.Iterable("1"),
         kind: MatchKind.Fail,
       }),
     });

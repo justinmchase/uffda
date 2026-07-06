@@ -1,6 +1,6 @@
 import { type } from "@justinmchase/type";
 import { error, fail, MatchErrorCode, MatchKind, ok } from "../../match.ts";
-import { Input } from "../../input.ts";
+import { Input, InputNormalizationMode } from "../../input.ts";
 import { match } from "../match.ts";
 import type { Scope } from "../scope.ts";
 import type { IntoPattern } from "./pattern.ts";
@@ -24,6 +24,9 @@ export function into(pattern: IntoPattern, scope: Scope) {
   const innerStream = new Input(
     next.value,
     scope.stream.path.push(0),
+    0,
+    undefined,
+    InputNormalizationMode.Iterable,
   );
   const innerScope = scope
     .withInput(innerStream);

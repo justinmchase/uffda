@@ -1,4 +1,5 @@
 import { Input } from "../../input.ts";
+import { ResolveTargetKind } from "./pattern.ts";
 import { MatchKind } from "../../match.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 import { ExportDeclarationKind } from "../declarations/mod.ts";
@@ -32,7 +33,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
           ],
         },
       },
-      input: Input.From("a"),
+      input: Input.Iterable("a"),
       value: "a",
       kind: MatchKind.Ok,
     }),
@@ -82,12 +83,14 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
                 kind: PatternKind.Pipeline,
                 steps: [
                   {
-                    kind: PatternKind.Reference,
+                    kind: PatternKind.Resolve,
+                    targetKind: ResolveTargetKind.Reference,
                     name: "One",
                     args: [],
                   },
                   {
-                    kind: PatternKind.Reference,
+                    kind: PatternKind.Resolve,
+                    targetKind: ResolveTargetKind.Reference,
                     name: "Two",
                     args: [],
                   },
@@ -97,7 +100,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
           ],
         },
       },
-      input: Input.From([0]),
+      input: Input.Iterable([0]),
       value: 2,
       kind: MatchKind.Ok,
     }),
@@ -120,7 +123,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
               name: "PlusOne",
               parameters: [],
               pattern: {
-                kind: PatternKind.Slice,
+                kind: PatternKind.Quantifier,
                 pattern: { kind: PatternKind.Any },
               },
               expression: {
@@ -132,7 +135,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
               name: "TimesTwo",
               parameters: [],
               pattern: {
-                kind: PatternKind.Slice,
+                kind: PatternKind.Quantifier,
                 pattern: { kind: PatternKind.Any },
               },
               expression: {
@@ -147,12 +150,14 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
                 kind: PatternKind.Pipeline,
                 steps: [
                   {
-                    kind: PatternKind.Reference,
+                    kind: PatternKind.Resolve,
+                    targetKind: ResolveTargetKind.Reference,
                     name: "PlusOne",
                     args: [],
                   },
                   {
-                    kind: PatternKind.Reference,
+                    kind: PatternKind.Resolve,
+                    targetKind: ResolveTargetKind.Reference,
                     name: "TimesTwo",
                     args: [],
                   },
@@ -162,7 +167,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
           ],
         },
       },
-      input: Input.From([1, 2, 3]),
+      input: Input.Iterable([1, 2, 3]),
       value: [4, 6, 8],
       kind: MatchKind.Ok,
     }),
@@ -185,7 +190,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
               name: "P",
               parameters: [],
               pattern: {
-                kind: PatternKind.Slice,
+                kind: PatternKind.Quantifier,
                 pattern: { kind: PatternKind.Any },
               },
               expression: {
@@ -201,7 +206,8 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
                 steps: [
                   { kind: PatternKind.Any },
                   {
-                    kind: PatternKind.Reference,
+                    kind: PatternKind.Resolve,
+                    targetKind: ResolveTargetKind.Reference,
                     name: "P",
                     args: [],
                   },
@@ -211,7 +217,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
           ],
         },
       },
-      input: Input.From([11]),
+      input: Input.Iterable([11]),
       value: [22],
       kind: MatchKind.Ok,
     }),
@@ -234,7 +240,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
               name: "P",
               parameters: [],
               pattern: {
-                kind: PatternKind.Slice,
+                kind: PatternKind.Quantifier,
                 pattern: { kind: PatternKind.Any },
               },
               expression: {
@@ -249,7 +255,8 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
                 kind: PatternKind.Pipeline,
                 steps: [
                   {
-                    kind: PatternKind.Reference,
+                    kind: PatternKind.Resolve,
+                    targetKind: ResolveTargetKind.Reference,
                     name: "P",
                     args: [],
                   },
@@ -259,7 +266,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
           ],
         },
       },
-      input: Input.From([1, 2, 3]),
+      input: Input.Iterable([1, 2, 3]),
       value: 6,
       kind: MatchKind.Ok,
     }),
@@ -282,7 +289,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
               name: "P",
               parameters: [],
               pattern: {
-                kind: PatternKind.Slice,
+                kind: PatternKind.Quantifier,
                 min: 3,
                 max: 3,
                 pattern: { kind: PatternKind.Any },
@@ -302,13 +309,14 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
                     kind: PatternKind.Pipeline,
                     steps: [
                       {
-                        kind: PatternKind.Slice,
+                        kind: PatternKind.Quantifier,
                         pattern: { kind: PatternKind.Any },
                       },
                     ],
                   },
                   {
-                    kind: PatternKind.Reference,
+                    kind: PatternKind.Resolve,
+                    targetKind: ResolveTargetKind.Reference,
                     name: "P",
                     args: [],
                   },
@@ -318,7 +326,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
           ],
         },
       },
-      input: Input.From("abc"),
+      input: Input.Iterable("abc"),
       value: "a-b-c",
       kind: MatchKind.Ok,
     }),
@@ -354,7 +362,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
                         kind: PatternKind.Pipeline,
                         steps: [
                           {
-                            kind: PatternKind.Slice,
+                            kind: PatternKind.Quantifier,
                             pattern: { kind: PatternKind.Equal, value: "b" },
                           },
                         ],
@@ -371,7 +379,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
           ],
         },
       },
-      input: Input.From("abc"),
+      input: Input.Iterable("abc"),
       value: ["a", ["b"], "c"],
       kind: MatchKind.Ok,
     }),

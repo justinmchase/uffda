@@ -19,7 +19,7 @@ Deno.test(
       name: "WHITESPACE00",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(" "),
+        input: Input.Iterable(" "),
         value: " ",
         kind: MatchKind.Ok,
       }),
@@ -28,7 +28,7 @@ Deno.test(
       name: "WHITESPACE01",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From("   "),
+        input: Input.Iterable("   "),
         kind: MatchKind.Ok,
         value: " ",
         done: false,
@@ -39,7 +39,7 @@ Deno.test(
       name: "WHITESPACE02",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(" \t"),
+        input: Input.Iterable(" \t"),
         value: " ",
         kind: MatchKind.Ok,
         done: false,
@@ -50,7 +50,7 @@ Deno.test(
       name: "WHITESPACE03",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(""),
+        input: Input.Iterable(""),
         kind: MatchKind.Fail,
         done: true,
       }),
@@ -60,7 +60,7 @@ Deno.test(
       name: "WHITESPACE04",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From("\r"),
+        input: Input.Iterable("\r"),
         kind: MatchKind.Fail,
       }),
     });
@@ -69,7 +69,7 @@ Deno.test(
       name: "WHITESPACE05",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From("\n"),
+        input: Input.Iterable("\n"),
         kind: MatchKind.Fail,
       }),
     });
@@ -78,7 +78,7 @@ Deno.test(
       name: "WHITESPACE06",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From("\t"),
+        input: Input.Iterable("\t"),
         kind: MatchKind.Ok,
         value: "\t",
       }),

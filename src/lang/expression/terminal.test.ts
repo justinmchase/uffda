@@ -20,7 +20,7 @@ Deno.test(
       name: "TERMINAL_EXPRESSION_00",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(["1"]),
+        input: Input.Iterable(["1"]),
         kind: MatchKind.Ok,
         value: { kind: ExpressionKind.Number, value: 1 },
       }),
@@ -30,7 +30,7 @@ Deno.test(
       name: "TERMINAL_EXPRESSION_01",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From([" ", "1", " "]),
+        input: Input.Iterable([" ", "1", " "]),
         kind: MatchKind.Ok,
         value: { kind: ExpressionKind.Number, value: 1 },
       }),
@@ -40,7 +40,7 @@ Deno.test(
       name: "TERMINAL_EXPRESSION_02",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(["abc"]),
+        input: Input.Iterable(["abc"]),
         kind: MatchKind.Ok,
         value: { kind: ExpressionKind.Reference, name: "abc" },
       }),
@@ -50,7 +50,7 @@ Deno.test(
       name: "TERMINAL_EXPRESSION_03",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.From(["   ", "abc", "\t\t"]),
+        input: Input.Iterable(["   ", "abc", "\t\t"]),
         kind: MatchKind.Ok,
         value: { kind: ExpressionKind.Reference, name: "abc" },
       }),

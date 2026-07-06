@@ -2,9 +2,9 @@ import { error, fail, MatchErrorCode, MatchKind, ok } from "../../match.ts";
 import { match } from "../match.ts";
 import type { Match } from "../../match.ts";
 import type { Scope } from "../scope.ts";
-import type { SlicePattern } from "./pattern.ts";
+import type { QuantifierPattern } from "./pattern.ts";
 
-export function slice(pattern: SlicePattern, scope: Scope) {
+export function quantifier(pattern: QuantifierPattern, scope: Scope): Match {
   const { min, max } = pattern;
   if (min != null) {
     if (min < 0) {
@@ -87,15 +87,8 @@ export function slice(pattern: SlicePattern, scope: Scope) {
         break;
     }
 
-    // This prevents infinite recursion for Patterns which succeed
-    // but consume no input, such as `not` or `ok`
-    //
-    // For example (!any)* or ok+
-    //
-    // This will consume no input but it will succeed
+    // Prevent infinite loops on patterns that succeed without consuming input.
     if (m.scope.stream.path.compareTo(end.stream.path) <= 0) {
-      // If we've specified a minimum, then match at least that many times
-      // before breaking, else match once then break
       if (values.length >= (min ? min : 1)) {
         break;
       }

@@ -1,4 +1,5 @@
 import { ExportDeclarationKind } from "../../runtime/declarations/export.ts";
+import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
@@ -27,7 +28,8 @@ export const Expression: ModuleDeclaration = {
       name: "Expression",
       parameters: [],
       pattern: {
-        kind: PatternKind.Reference,
+        kind: PatternKind.Resolve,
+        targetKind: ResolveTargetKind.Reference,
         name: "Binary",
         args: [],
       },
