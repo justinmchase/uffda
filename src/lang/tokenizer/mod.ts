@@ -19,7 +19,6 @@ export const Tokenizer: ModuleDeclaration = {
         "Digit",
         "Formatting",
         "Letter",
-        "NewLine",
         "Whitespace",
       ],
     },
@@ -65,10 +64,8 @@ export const Tokenizer: ModuleDeclaration = {
       name: "NewLineToken",
       parameters: [],
       pattern: {
-        kind: PatternKind.Resolve,
-        targetKind: ResolveTargetKind.Reference,
-        name: "NewLine",
-        args: [],
+        kind: PatternKind.Equal,
+        value: "\n",
       },
     },
     {

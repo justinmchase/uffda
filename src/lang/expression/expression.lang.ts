@@ -54,6 +54,13 @@ export const ExpressionLang: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
+      moduleUrl: "../source-normalization/mod.ts",
+      names: [
+        "SourceNormalizationAndIndex",
+      ],
+    },
+    {
+      kind: ImportDeclarationKind.Module,
       moduleUrl: "../tokenizer/mod.ts",
       names: [
         "Tokenizer",
@@ -80,6 +87,12 @@ export const ExpressionLang: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Pipeline,
         steps: [
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "SourceNormalizationAndIndex",
+            args: [],
+          },
           {
             kind: PatternKind.Resolve,
             targetKind: ResolveTargetKind.Reference,
