@@ -17,7 +17,10 @@ import {
   value,
 } from "./expressions/mod.ts";
 
-export function exec(expression: Expression, match: MatchOk): unknown {
+export function exec(
+  expression: Expression,
+  match: MatchOk,
+): Promise<unknown> {
   switch (expression.kind) {
     case ExpressionKind.Array:
       return array(expression, match);

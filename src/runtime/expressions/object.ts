@@ -1,15 +1,16 @@
 import type { MatchOk } from "../../match.ts";
 import { exec } from "../exec.ts";
 import { ExpressionKind } from "./expression.kind.ts";
-import { allOrSync, type Awaitable, isThenable } from "./awaitable.ts";
 import type { ObjectExpression } from "./expression.ts";
 
-export function object(
+export async function object(
   expression: ObjectExpression,
   match: MatchOk,
-): Awaitable<unknown> {
+): Promise<unknown> {
   const { keys } = expression;
-  const values = keys.map((key) => exec(key.expression, match));
+  const values = await Promise.all(
+    keys.map((key) => exec(key.expression, match)),
+  );
   const buildObject = (resolvedValues: unknown[]) =>
     keys.reduce<Record<string, unknown>>(
       (obj, key, i) => {
@@ -27,8 +28,5 @@ export function object(
       {},
     );
 
-  const resolved = allOrSync(values);
-  return isThenable(resolved)
-    ? resolved.then(buildObject)
-    : buildObject(resolved);
+  return buildObject(values);
 }

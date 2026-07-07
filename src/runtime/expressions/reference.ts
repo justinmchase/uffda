@@ -1,10 +1,10 @@
 import type { MatchOk } from "../../match.ts";
 import type { ReferenceExpression } from "./expression.ts";
 
-export function reference(
+export async function reference(
   expression: ReferenceExpression,
   match: MatchOk,
-): unknown {
+): Promise<unknown> {
   const { name } = expression;
   switch (name) {
     case "_":

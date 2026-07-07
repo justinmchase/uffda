@@ -5,10 +5,10 @@ import { match } from "../match.ts";
 import type { LambdaExpression } from "./expression.ts";
 import { fail } from "../../mod.ts";
 
-export function lambda(
+export async function lambda(
   e: LambdaExpression,
   m: Match,
-): unknown {
+): Promise<unknown> {
   const { pattern, expression } = e;
   return async function () {
     const stream = new Input(

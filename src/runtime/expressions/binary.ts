@@ -1,13 +1,12 @@
 import { exec } from "../exec.ts";
 import { BinaryOperation } from "./expression.ts";
-import { type Awaitable, isThenable } from "./awaitable.ts";
 import type { BinaryExpression } from "./expression.ts";
 import type { MatchOk } from "../../match.ts";
 
-export function binary(
+export async function binary(
   expression: BinaryExpression,
   match: MatchOk,
-): Awaitable<unknown> {
+): Promise<unknown> {
   const { kind, left, right, op } = expression;
   const apply = (l: unknown, r: unknown) => {
     switch (op) {
@@ -20,10 +19,6 @@ export function binary(
     }
   };
 
-  const l = exec(left, match);
-  const r = exec(right, match);
-  if (isThenable(l) || isThenable(r)) {
-    return Promise.all([l, r]).then(([lv, rv]) => apply(lv, rv));
-  }
+  const [l, r] = await Promise.all([exec(left, match), exec(right, match)]);
   return apply(l, r);
 }

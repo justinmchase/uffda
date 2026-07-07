@@ -1,8 +1,8 @@
 import type { NumberExpression } from "./expression.ts";
 
-export function number(
+export async function number(
   expression: NumberExpression,
-) {
+): Promise<number> {
   const { value } = expression;
   return value;
 }

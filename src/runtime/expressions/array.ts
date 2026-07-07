@@ -1,15 +1,16 @@
 import { exec } from "../exec.ts";
-import { allOrSync, type Awaitable, isThenable } from "./awaitable.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import type { MatchOk } from "../../match.ts";
 import type { ArrayExpression } from "./expression.ts";
 
-export function array(
+export async function array(
   expression: ArrayExpression,
   match: MatchOk,
-): Awaitable<unknown> {
+): Promise<unknown> {
   const { expressions } = expression;
-  const values = expressions.map((expr) => exec(expr.expression, match));
+  const values = await Promise.all(
+    expressions.map((expr) => exec(expr.expression, match)),
+  );
   const reduceValues = (resolved: unknown[]) =>
     expressions.reduce<unknown[]>((arr, expr, i) => {
       const value = resolved[i];
@@ -23,8 +24,5 @@ export function array(
       }
     }, []);
 
-  const resolvedValues = allOrSync(values);
-  return isThenable(resolvedValues)
-    ? resolvedValues.then(reduceValues)
-    : reduceValues(resolvedValues);
+  return reduceValues(values);
 }

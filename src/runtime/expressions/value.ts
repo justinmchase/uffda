@@ -1,8 +1,8 @@
 import type { ValueExpression } from "./expression.ts";
 
-export function value(
+export async function value(
   expression: ValueExpression,
-): unknown {
+): Promise<unknown> {
   const { value } = expression;
   return value;
 }
