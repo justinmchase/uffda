@@ -18,6 +18,18 @@ Each runtime subtopic should define:
 - its error and failure boundaries;
 - its composition and extension intent;
 
+## Runtime evaluation model
+
+- Runtime evaluation in Uffda MUST be async-capable throughout pattern, rule,
+  and expression execution.
+- Runtime contracts MAY complete synchronously when no awaitable behavior is
+  encountered, but synchronous completion MUST be treated as an optimization,
+  not a separate semantic category.
+- Runtime subtopics MUST define their behavior in terms of awaitable evaluation
+  even when current implementations still expose synchronous entry points.
+- Error normalization, memoization, and left-recursion handling MUST remain
+  well-defined under awaitable evaluation.
+
 ## Subtopics
 
 - [runtime scopes](./runtime/scopes.spec.md)

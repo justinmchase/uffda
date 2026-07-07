@@ -3,13 +3,13 @@ import type { Scope } from "../scope.ts";
 import { match } from "../match.ts";
 import type { ThenPattern } from "./pattern.ts";
 
-export function then(pattern: ThenPattern, scope: Scope): Match {
+export async function then(pattern: ThenPattern, scope: Scope): Promise<Match> {
   const { patterns } = pattern;
   let end = scope;
   const matches: Match[] = [];
   const values: unknown[] = [];
   for (const pattern of patterns) {
-    const m = match(pattern, end);
+    const m = await match(pattern, end);
     matches.push(m);
 
     switch (m.kind) {

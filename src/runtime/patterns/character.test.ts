@@ -2,7 +2,8 @@ import { patternTest } from "../../test.ts";
 import { CharacterClass } from "./pattern.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { Input } from "../../input.ts";
-import { MatchKind } from "../../match.ts";
+import { MatchErrorCode, MatchKind } from "../../match.ts";
+import { Path } from "../../path.ts";
 
 Deno.test("patterns/character", async (t) => {
   await t.step({
@@ -413,6 +414,22 @@ Deno.test("patterns/character", async (t) => {
       input: Input.Iterable("\uFEFF"),
       value: "\uFEFF",
       kind: MatchKind.Ok,
+    }),
+  });
+
+  await t.step({
+    name: "CHARACTER33",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: "Bogus" as CharacterClass,
+      },
+      input: Input.Iterable("a"),
+      kind: MatchKind.Error,
+      code: MatchErrorCode.InvalidArgument,
+      message: "unknown character class Bogus",
+      start: Path.From(0),
+      end: Path.From(0),
     }),
   });
 });

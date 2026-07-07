@@ -12,6 +12,5 @@ export * from "./not.ts";
 export * from "./number.ts";
 export * from "./object.ts";
 export * from "./reference.ts";
-export * from "./special.ts";
 export * from "./string.ts";
 export * from "./value.ts";

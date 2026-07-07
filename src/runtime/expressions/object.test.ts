@@ -147,4 +147,32 @@ await Deno.test("runtime/expressions/object", async (t) => {
       },
     }),
   });
+
+  await t.step({
+    name: "OBJECT06",
+    fn: expressionTest({
+      result: { x: 7, y: 11 },
+      expression: {
+        kind: ExpressionKind.Object,
+        keys: [
+          {
+            kind: ExpressionKind.ObjectKey,
+            name: "x",
+            expression: {
+              kind: ExpressionKind.Native,
+              fn: () => Promise.resolve(7),
+            },
+          },
+          {
+            kind: ExpressionKind.ObjectKey,
+            name: "y",
+            expression: {
+              kind: ExpressionKind.Value,
+              value: 11,
+            },
+          },
+        ],
+      },
+    }),
+  });
 });

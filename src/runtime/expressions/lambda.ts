@@ -5,12 +5,12 @@ import { match } from "../match.ts";
 import type { LambdaExpression } from "./expression.ts";
 import { fail } from "../../mod.ts";
 
-export function lambda(
+export async function lambda(
   e: LambdaExpression,
   m: Match,
-): unknown {
+): Promise<unknown> {
   const { pattern, expression } = e;
-  return function () {
+  return async function () {
     const stream = new Input(
       arguments,
       m.scope.stream.path.push(0), // todo: should this have a lambda segment?
@@ -19,7 +19,7 @@ export function lambda(
       InputNormalizationMode.Iterable,
     );
     const scope = m.scope.withInput(stream);
-    const result = match(pattern, scope);
+    const result = await match(pattern, scope);
     switch (result.kind) {
       case MatchKind.LR:
       case MatchKind.Error:
@@ -27,7 +27,7 @@ export function lambda(
       case MatchKind.Fail:
         return fail(scope, pattern, [result]);
       case MatchKind.Ok:
-        return exec(expression, result);
+        return await exec(expression, result);
     }
   };
 }

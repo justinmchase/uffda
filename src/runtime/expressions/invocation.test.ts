@@ -85,4 +85,53 @@ Deno.test("runtime.expressions.invocation", async (t) => {
       result: "two",
     }),
   });
+
+  await t.step({
+    name: "INVOKE03",
+    fn: expressionTest({
+      expression: {
+        kind: ExpressionKind.Invocation,
+        expression: {
+          kind: ExpressionKind.Reference,
+          name: "fn",
+        },
+        args: [{ kind: ExpressionKind.Value, value: 7 }],
+      },
+      scope: Scope
+        .Default()
+        .withOptions({
+          globals: new Map([
+            ["fn", (v: number) => Promise.resolve(v + 1)],
+          ]),
+        }),
+      result: 8,
+    }),
+  });
+
+  await t.step({
+    name: "INVOKE04",
+    fn: expressionTest({
+      expression: {
+        kind: ExpressionKind.Invocation,
+        expression: {
+          kind: ExpressionKind.Reference,
+          name: "fn",
+        },
+        args: [
+          {
+            kind: ExpressionKind.Native,
+            fn: () => Promise.resolve(11),
+          },
+        ],
+      },
+      scope: Scope
+        .Default()
+        .withOptions({
+          globals: new Map([
+            ["fn", (v: number) => v * 2],
+          ]),
+        }),
+      result: 22,
+    }),
+  });
 });

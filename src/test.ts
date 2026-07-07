@@ -1,4 +1,4 @@
-import { assert, assertThrows, equal } from "@std/assert";
+import { assert, assertRejects, equal } from "@std/assert";
 import { Scope } from "./runtime/scope.ts";
 import { match } from "./runtime/match.ts";
 import { exec } from "./runtime/exec.ts";
@@ -8,6 +8,7 @@ import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "./runtime/patterns/pattern.ts";
 import { resolve } from "./runtime/patterns/resolve.ts";
 import { ExportDeclarationKind } from "./runtime/declarations/mod.ts";
+import { ModuleImportResultKind } from "./runtime/resolvers/resolver.ts";
 import { MatchKind } from "./match.ts";
 import type {
   MatchError,
@@ -43,9 +44,9 @@ export function expressionTest(options: ExpressionTestOptions) {
   const m = match ? match(s) : ok(s, s, { kind: PatternKind.Ok }, undefined);
   return async () => {
     if (throws) {
-      assertThrows(
-        () => {
-          exec(expression, m);
+      await assertRejects(
+        async () => {
+          await exec(expression, m);
         },
         `Expression was expected to throw`,
       );
@@ -149,6 +150,26 @@ function isThrowsAssertion(value: unknown): value is ThrowsAssertion {
   return value != null && typeof value === "object" && "throws" in value;
 }
 
+function thrownName(err: unknown): string | undefined {
+  if (err instanceof Error) {
+    return err.name;
+  }
+  if (err != null && typeof err === "object" && "kind" in err) {
+    return "Error";
+  }
+  return undefined;
+}
+
+function thrownMessage(err: unknown): string {
+  if (err instanceof Error) {
+    return err.message;
+  }
+  if (err != null && typeof err === "object" && "message" in err) {
+    return String((err as { message: unknown }).message);
+  }
+  return String(err);
+}
+
 export function moduleDeclarationTest(options: ModuleDeclarationTestOptions) {
   const {
     moduleUrl,
@@ -158,13 +179,35 @@ export function moduleDeclarationTest(options: ModuleDeclarationTestOptions) {
   } = options;
   return async () => {
     const resolver = new Resolver({ declarations });
+    const importScope = new Scope(
+      undefined,
+      undefined,
+      variables,
+      new Map(),
+      input,
+      undefined,
+      undefined,
+      { resolver },
+    );
     try {
-      const module = await resolver.import(new URL(moduleUrl));
+      const module = await resolver.import(new URL(moduleUrl), {
+        scope: importScope,
+        pattern: {
+          kind: PatternKind.Resolve,
+          targetKind: ResolveTargetKind.Run,
+        },
+      });
+      if (module.kind === ModuleImportResultKind.Error) {
+        if (isThrowsAssertion(options)) {
+          throw module.error;
+        }
+        return assertError(module.error, options);
+      }
       if (isThrowsAssertion(options)) {
         throw new Error(`Expected to throw but didn't`);
       }
       const scope = new Scope(
-        module,
+        module.module,
         undefined,
         variables,
         new Map(),
@@ -176,7 +219,7 @@ export function moduleDeclarationTest(options: ModuleDeclarationTestOptions) {
         },
       );
 
-      const m = resolve(
+      const m = await resolve(
         { kind: PatternKind.Resolve, targetKind: ResolveTargetKind.Run },
         scope,
       );
@@ -191,7 +234,8 @@ export function moduleDeclarationTest(options: ModuleDeclarationTestOptions) {
           return assertOk(m, options);
       }
     } catch (err) {
-      const { name, message } = err as Error;
+      const name = thrownName(err);
+      const message = thrownMessage(err);
       if (isThrowsAssertion(options)) {
         const { throws } = options;
         if (throws === true) {
@@ -247,14 +291,36 @@ export function ruleTest(options: RuleTestOptions) {
         },
       },
     });
+    const importScope = new Scope(
+      undefined,
+      undefined,
+      variables,
+      new Map(),
+      input,
+      undefined,
+      undefined,
+      { resolver },
+    );
     try {
-      const module = await resolver.import(new URL("file:///test.ts"));
+      const module = await resolver.import(new URL("file:///test.ts"), {
+        scope: importScope,
+        pattern: {
+          kind: PatternKind.Resolve,
+          targetKind: ResolveTargetKind.Run,
+        },
+      });
+      if (module.kind === ModuleImportResultKind.Error) {
+        if (isThrowsAssertion(options)) {
+          throw module.error;
+        }
+        return assertError(module.error, options);
+      }
       if (isThrowsAssertion(options)) {
         throw new Error(`Expected to throw but didn't`);
       }
 
       const scope = new Scope(
-        module,
+        module.module,
         undefined,
         variables,
         new Map(),
@@ -266,7 +332,7 @@ export function ruleTest(options: RuleTestOptions) {
         },
       );
 
-      const m = resolve(
+      const m = await resolve(
         { kind: PatternKind.Resolve, targetKind: ResolveTargetKind.Run },
         scope,
       );
@@ -281,7 +347,8 @@ export function ruleTest(options: RuleTestOptions) {
           return assertOk(m, options);
       }
     } catch (err) {
-      const { name, message } = err as Error;
+      const name = thrownName(err);
+      const message = thrownMessage(err);
       if (isThrowsAssertion(options)) {
         const { throws } = options;
         if (throws === true) {

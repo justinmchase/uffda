@@ -2,13 +2,12 @@ import { ExpressionKind } from "./expression.kind.ts";
 import { Type, type } from "@justinmchase/type";
 import type { Pattern } from "../patterns/pattern.ts";
 import type { Serializable } from "@justinmchase/serializable";
-import type { Special } from "../modules/mod.ts";
 import type { MatchOk } from "../../match.ts";
 
 export type ProjectionFunction = (
   // deno-lint-ignore no-explicit-any
   args: any,
-  specials: Map<string, Special>,
+  capabilities: Map<string, unknown>,
   match: MatchOk,
 ) => unknown;
 
@@ -48,10 +47,8 @@ export type TerminalExpression =
   | NumberExpression
   | BooleanExpression
   | ReferenceExpression
-  | UndefinedExpression
   | MemberExpression
-  | ValueExpression
-  | SpecialReferenceExpression;
+  | ValueExpression;
 
 export type ArrayInitializer =
   | ArrayElementExpression
@@ -144,11 +141,6 @@ export type ReferenceExpression = {
   name: string;
 };
 
-export type SpecialReferenceExpression = {
-  kind: ExpressionKind.Special;
-  name: string;
-};
-
 export type StringExpression = {
   kind: ExpressionKind.String;
   values: (string | Expression)[];
@@ -157,10 +149,6 @@ export type StringExpression = {
 export type NumberExpression = {
   kind: ExpressionKind.Number;
   value: number;
-};
-
-export type UndefinedExpression = {
-  kind: ExpressionKind.Undefined;
 };
 
 export type ValueExpression = {

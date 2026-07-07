@@ -1,15 +1,41 @@
 import type { ModuleDeclaration } from "../declarations/module.ts";
-import type { IModuleResolver } from "./resolver.ts";
+import {
+  type IModuleResolver,
+  moduleDeclarationResolutionResult,
+  type ModuleDeclarationResult,
+  moduleDeclarationResult,
+  ModuleDeclarationResultKind,
+  type ModuleResolutionContext,
+  moduleResolutionError,
+} from "./resolver.ts";
 
 export class JsonResolver implements IModuleResolver {
   public readonly extension = ".json";
-  async resolveModule(moduleUrl: URL): Promise<ModuleDeclaration> {
-    const module = await import(moduleUrl.href, { with: { type: "json" } });
-    if (!module.default) {
-      throw new Error(
-        `Imported module ${moduleUrl} must export an ModuleDeclaration as a default export`,
-      );
+  async resolveModule(
+    moduleUrl: URL,
+    context: ModuleResolutionContext,
+  ): Promise<ModuleDeclarationResult> {
+    try {
+      const module = await import(moduleUrl.href, { with: { type: "json" } });
+      if (!module.default) {
+        return moduleDeclarationResolutionResult(moduleResolutionError(
+          `Imported module ${moduleUrl} must export a ModuleDeclaration as a default export`,
+          context,
+        ));
+      }
+      return moduleDeclarationResult(module.default as ModuleDeclaration);
+    } catch (err) {
+      if (err && typeof err === "object" && "kind" in err) {
+        const result = err as { kind?: unknown; error?: unknown };
+        if (result.kind === ModuleDeclarationResultKind.Error) {
+          return result as ModuleDeclarationResult;
+        }
+      }
+      return moduleDeclarationResolutionResult(moduleResolutionError(
+        `Unable to import module declaration from ${moduleUrl}`,
+        context,
+        err,
+      ));
     }
-    return module.default;
   }
 }

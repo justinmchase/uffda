@@ -1,19 +1,24 @@
 import type { MatchOk } from "../../match.ts";
 import type { ReferenceExpression } from "./expression.ts";
 
-export function reference(
+export async function reference(
   expression: ReferenceExpression,
   match: MatchOk,
-): unknown {
+): Promise<unknown> {
   const { name } = expression;
   switch (name) {
     case "_":
       return match.value;
     default:
-      return match.scope.variables.has(name)
-        ? match.scope.variables.get(name)
-        : match.scope.options.globals.has(name)
-        ? match.scope.options.globals.get(name)
-        : undefined;
+      if (match.scope.variables.has(name)) {
+        return match.scope.variables.get(name);
+      }
+      if (match.scope.options.globals.has(name)) {
+        return match.scope.options.globals.get(name);
+      }
+      if (match.scope.options.specials.has(name)) {
+        return match.scope.options.specials.get(name);
+      }
+      throw new ReferenceError(`unknown reference: ${name}`);
   }
 }

@@ -2,16 +2,17 @@ import { error, fail, lr, MatchErrorCode, MatchKind, ok } from "../match.ts";
 import { match } from "./match.ts";
 import { StackFrameKind } from "./stack/stackFrameKind.ts";
 import { exec } from "./exec.ts";
+import type { AwaitableMatch } from "./awaitable.ts";
 import type { Match } from "../match.ts";
 import type { Rule } from "./modules/mod.ts";
 import type { Scope } from "./scope.ts";
 import type { Pattern } from "./patterns/pattern.ts";
 
-export function rule(
+export async function rule(
   rule: Rule,
   args: Map<string, Rule>,
   scope: Scope,
-): Match {
+): AwaitableMatch {
   const { module, pattern, expression, name, parameters } = rule;
   const params = new Set<string>();
   for (const p of parameters) {
@@ -45,17 +46,29 @@ export function rule(
       .pushModule(module)
       .pushRule(rule, args);
 
-    const m = match(pattern, subScope);
+    const m = await match(pattern, subScope);
     memo.match = m;
     switch (m.kind) {
       case MatchKind.LR:
-        return grow(pattern, key, subScope);
+        return await grow(pattern, key, subScope);
       case MatchKind.Error:
         return m;
       case MatchKind.Fail:
         return fail(scope, rule.pattern, [m]);
       case MatchKind.Ok: {
-        const value = expression ? exec(expression, m) : m.value;
+        let value: unknown;
+        try {
+          value = expression ? await exec(expression, m) : m.value;
+        } catch (err) {
+          const message = err instanceof Error ? err.message : `${err}`;
+          return error(
+            scope,
+            rule.pattern,
+            MatchErrorCode.ExpressionException,
+            `expression exception: ${message}`,
+            err,
+          );
+        }
         return ok(
           scope,
           scope.withInput(m.scope.stream),
@@ -103,13 +116,22 @@ export function rule(
   }
 }
 
-function grow(pattern: Pattern, key: symbol, scope: Scope): Match {
+async function grow(
+  pattern: Pattern,
+  key: symbol,
+  scope: Scope,
+): AwaitableMatch {
   let growing = true;
   let m: Match = fail(scope, pattern);
   const start = scope.stream;
   const { memo } = scope.memos.get(start.path, key);
   if (!memo) {
-    throw Error("Expected memo to be set");
+    return error(
+      scope,
+      pattern,
+      MatchErrorCode.InternalInvariant,
+      "left recursion memo missing during grow",
+    );
   }
 
   while (growing) {
@@ -118,7 +140,7 @@ function grow(pattern: Pattern, key: symbol, scope: Scope): Match {
       .scope
       .withInput(start);
 
-    const result = match(pattern, growScope);
+    const result = await match(pattern, growScope);
     const progressed =
       result.scope.stream.path.compareTo(m.scope.stream.path) > 0;
     switch (result.kind) {
@@ -144,4 +166,11 @@ function grow(pattern: Pattern, key: symbol, scope: Scope): Match {
     case MatchKind.Ok:
       return ok(scope, m.scope, pattern, m.value, [m]);
   }
+
+  return error(
+    scope,
+    pattern,
+    MatchErrorCode.InternalInvariant,
+    `unexpected match kind ${(m as { kind?: unknown }).kind} after grow`,
+  );
 }

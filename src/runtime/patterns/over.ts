@@ -7,7 +7,7 @@ import type { Match } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import type { OverPattern, Pattern } from "./pattern.ts";
 
-export function over(pattern: OverPattern, scope: Scope): Match {
+export async function over(pattern: OverPattern, scope: Scope): Promise<Match> {
   const { keys = {} } = pattern;
   if (scope.stream.done) {
     return fail(scope, pattern);
@@ -41,7 +41,7 @@ export function over(pattern: OverPattern, scope: Scope): Match {
       InputNormalizationMode.Iterable,
     );
     const propertyScope = last.withInput(propertyStream);
-    const m = match(pattern, propertyScope);
+    const m = await match(pattern, propertyScope);
     matches.push(m);
 
     switch (m.kind) {
