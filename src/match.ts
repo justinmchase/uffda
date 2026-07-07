@@ -10,8 +10,11 @@ export enum MatchErrorCode {
   Type = "E_TYPE",
   NullValue = "E_NULL_VALUE",
   InvalidArgument = "E_INVALID_ARGUMENT",
+  InternalInvariant = "E_INTERNAL_INVARIANT",
+  ModuleResolution = "E_MODULE_RESOLUTION",
   DuplicateVariable = "E_DUPLICATE_VARIABLE",
   IndirectLeftRecursion = "E_INDIRECT_LEFT_RECURSION",
+  ExpressionException = "E_EXPRESSION_EXCEPTION",
 }
 
 export enum MatchKind {
@@ -53,7 +56,14 @@ export type MatchError = {
   span: Span;
   code: MatchErrorCode;
   message: string;
+  error?: Error;
+  cause?: unknown;
 };
+
+export function isMatchError(value: unknown): value is MatchError {
+  return value != null && typeof value === "object" &&
+    (value as { kind?: unknown }).kind === MatchKind.Error;
+}
 
 export function lr(scope: Scope, pattern: Pattern): MatchLR {
   return {
@@ -68,6 +78,7 @@ export function error(
   pattern: Pattern,
   code: MatchErrorCode,
   message: string,
+  cause?: unknown,
 ): MatchError {
   return {
     kind: MatchKind.Error,
@@ -76,6 +87,8 @@ export function error(
     scope,
     code,
     message,
+    error: cause instanceof Error ? cause : undefined,
+    cause,
   };
 }
 

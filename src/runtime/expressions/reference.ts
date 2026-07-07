@@ -10,10 +10,15 @@ export function reference(
     case "_":
       return match.value;
     default:
-      return match.scope.variables.has(name)
-        ? match.scope.variables.get(name)
-        : match.scope.options.globals.has(name)
-        ? match.scope.options.globals.get(name)
-        : undefined;
+      if (match.scope.variables.has(name)) {
+        return match.scope.variables.get(name);
+      }
+      if (match.scope.options.globals.has(name)) {
+        return match.scope.options.globals.get(name);
+      }
+      if (match.scope.options.specials.has(name)) {
+        return match.scope.options.specials.get(name);
+      }
+      throw new ReferenceError(`unknown reference: ${name}`);
   }
 }

@@ -1,9 +1,13 @@
+import { assertEquals } from "@std/assert";
 import { Type } from "@justinmchase/type";
-import { Input } from "../../input.ts";
+import { Input, InputNormalizationMode } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { MatchErrorCode, Path } from "../../mod.ts";
+import { CharacterClass } from "./pattern.ts";
+import { match } from "../match.ts";
+import { Scope } from "../scope.ts";
 
 await Deno.test("runtime/patterns/into", async (t) => {
   await t.step({
@@ -179,5 +183,30 @@ await Deno.test("runtime/patterns/into", async (t) => {
       start: Path.From(0),
       end: Path.From(0),
     }),
+  });
+
+  await t.step({
+    name: "INTO11",
+    fn: async () => {
+      const pattern = {
+        kind: PatternKind.Into,
+        pattern: {
+          kind: PatternKind.Character,
+          characterClass: CharacterClass.Letter,
+        },
+      } as const;
+      const scope = Scope.From([[7]], {
+        kind: InputNormalizationMode.Iterable,
+      });
+
+      const m = await match(pattern, scope);
+      assertEquals(m.kind, MatchKind.Error);
+      if (m.kind !== MatchKind.Error) return;
+      assertEquals(m.code, MatchErrorCode.Type);
+      assertEquals(
+        m.message,
+        "expected value to be a string but got number",
+      );
+    },
   });
 });

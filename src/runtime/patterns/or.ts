@@ -3,11 +3,11 @@ import type { Scope } from "../scope.ts";
 import { match } from "../match.ts";
 import type { OrPattern } from "./pattern.ts";
 
-export function or(pattern: OrPattern, scope: Scope) {
+export async function or(pattern: OrPattern, scope: Scope): Promise<Match> {
   const { patterns } = pattern;
   const matches: Match[] = [];
   for (const pattern of patterns) {
-    const m = match(pattern, scope);
+    const m = await match(pattern, scope);
     matches.push(m);
     switch (m.kind) {
       case MatchKind.LR:

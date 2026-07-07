@@ -88,7 +88,7 @@ Deno.test("runtime.scope", async (t) => {
 
   await t.step({
     name: "SCOPE03",
-    fn: () => {
+    fn: async () => {
       // patterns can't resolve global references
       const scope = Scope
         .Default()
@@ -104,7 +104,7 @@ Deno.test("runtime.scope", async (t) => {
         name: "x",
         args: [],
       };
-      const m = match(pattern, scope);
+      const m = await match(pattern, scope);
       assert(m.kind === MatchKind.Error, `Expected fail but got ${m.kind}`);
     },
   });

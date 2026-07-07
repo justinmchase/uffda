@@ -1,14 +1,19 @@
 import { assertEquals, assertStrictEquals } from "@std/assert";
+import { Resolver } from "../mod.ts";
 import { ResolveTargetKind } from "./patterns/pattern.ts";
 import { moduleDeclarationTest } from "../test.ts";
 import { ExpressionKind } from "./expressions/expression.kind.ts";
 import { PatternKind } from "./patterns/pattern.kind.ts";
 import { Input } from "../input.ts";
-import { MatchKind } from "../mod.ts";
+import { MatchErrorCode, MatchKind, Path } from "../mod.ts";
+import { ModuleImportResultKind } from "./resolvers/resolver.ts";
+import { Scope } from "./scope.ts";
+import { resolve } from "./patterns/resolve.ts";
 import {
   ExportDeclarationKind,
   ImportDeclarationKind,
 } from "./declarations/mod.ts";
+import type { ModuleDeclaration } from "./declarations/module.ts";
 
 Deno.test("runtime.rule", async (t) => {
   await t.step({
@@ -426,6 +431,273 @@ Deno.test("runtime.rule", async (t) => {
       input: Input.Iterable("a"),
       value: "b",
     }),
+  });
+
+  await t.step({
+    name: "RULE09",
+    fn: moduleDeclarationTest({
+      moduleUrl: import.meta.url,
+      declarations: {
+        [import.meta.url]: {
+          imports: [],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "P0",
+            default: true,
+          }],
+          rules: [
+            {
+              name: "P0",
+              parameters: [],
+              pattern: { kind: PatternKind.Any },
+              expression: {
+                kind: ExpressionKind.Reference,
+                name: "missing",
+              },
+            },
+          ],
+        },
+      },
+      kind: MatchKind.Error,
+      code: MatchErrorCode.ExpressionException,
+      message: "expression exception: unknown reference: missing",
+      start: Path.From(0),
+      end: Path.From(0),
+      input: Input.Iterable("a"),
+    }),
+  });
+
+  await t.step({
+    name: "RULE10",
+    fn: async () => {
+      const declarations: Record<string, ModuleDeclaration> = {
+        [import.meta.url]: {
+          imports: [],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "P0",
+            default: true,
+          }],
+          rules: [
+            {
+              name: "P0",
+              parameters: [],
+              pattern: { kind: PatternKind.Any },
+              expression: {
+                kind: ExpressionKind.Reference,
+                name: "missing",
+              },
+            },
+          ],
+        },
+      };
+
+      const resolver = new Resolver({ declarations });
+      const importScope = new Scope(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        Input.Iterable("a"),
+        undefined,
+        undefined,
+        { resolver },
+      );
+      const module = await resolver.import(new URL(import.meta.url), {
+        scope: importScope,
+        pattern: {
+          kind: PatternKind.Resolve,
+          targetKind: ResolveTargetKind.Run,
+        },
+      });
+      assertEquals(module.kind, ModuleImportResultKind.Module);
+      if (module.kind !== ModuleImportResultKind.Module) return;
+      const scope = new Scope(
+        module.module,
+        undefined,
+        undefined,
+        undefined,
+        Input.Iterable("a"),
+        undefined,
+        undefined,
+        { resolver },
+      );
+
+      const m = await resolve(
+        { kind: PatternKind.Resolve, targetKind: ResolveTargetKind.Run },
+        scope,
+      );
+
+      assertEquals(m.kind, MatchKind.Error);
+      if (m.kind !== MatchKind.Error) return;
+      assertEquals(m.code, MatchErrorCode.ExpressionException);
+      assertEquals(
+        m.message,
+        "expression exception: unknown reference: missing",
+      );
+      assertEquals(m.error instanceof ReferenceError, true);
+      assertEquals(m.error?.message, "unknown reference: missing");
+    },
+  });
+
+  await t.step({
+    name: "RULE11",
+    fn: async () => {
+      const declarations: Record<string, ModuleDeclaration> = {
+        [import.meta.url]: {
+          imports: [],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "P0",
+            default: true,
+          }],
+          rules: [
+            {
+              name: "P0",
+              parameters: [],
+              pattern: { kind: PatternKind.Any },
+              expression: {
+                kind: ExpressionKind.Native,
+                fn: () => {
+                  throw "boom";
+                },
+              },
+            },
+          ],
+        },
+      };
+
+      const resolver = new Resolver({ declarations });
+      const importScope = new Scope(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        Input.Iterable("a"),
+        undefined,
+        undefined,
+        { resolver },
+      );
+      const module = await resolver.import(new URL(import.meta.url), {
+        scope: importScope,
+        pattern: {
+          kind: PatternKind.Resolve,
+          targetKind: ResolveTargetKind.Run,
+        },
+      });
+      assertEquals(module.kind, ModuleImportResultKind.Module);
+      if (module.kind !== ModuleImportResultKind.Module) return;
+      const scope = new Scope(
+        module.module,
+        undefined,
+        undefined,
+        undefined,
+        Input.Iterable("a"),
+        undefined,
+        undefined,
+        { resolver },
+      );
+
+      const m = await resolve(
+        { kind: PatternKind.Resolve, targetKind: ResolveTargetKind.Run },
+        scope,
+      );
+
+      assertEquals(m.kind, MatchKind.Error);
+      if (m.kind !== MatchKind.Error) return;
+      assertEquals(m.code, MatchErrorCode.ExpressionException);
+      assertEquals(m.message, "expression exception: boom");
+      assertStrictEquals(m.error, undefined);
+      assertEquals(m.cause, "boom");
+    },
+  });
+
+  await t.step({
+    name: "RULE12",
+    fn: async () => {
+      const declarations: Record<string, ModuleDeclaration> = {
+        [import.meta.url]: {
+          imports: [],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "a",
+            default: true,
+          }],
+          rules: [
+            {
+              name: "a",
+              parameters: [],
+              pattern: {
+                kind: PatternKind.Or,
+                patterns: [
+                  {
+                    kind: PatternKind.Resolve,
+                    targetKind: ResolveTargetKind.Reference,
+                    name: "a",
+                    args: [],
+                  },
+                  {
+                    kind: PatternKind.Equal,
+                    value: "a",
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      };
+
+      const resolver = new Resolver({ declarations });
+      const importScope = new Scope(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        Input.Iterable("a"),
+        undefined,
+        undefined,
+        { resolver },
+      );
+      const module = await resolver.import(new URL(import.meta.url), {
+        scope: importScope,
+        pattern: {
+          kind: PatternKind.Resolve,
+          targetKind: ResolveTargetKind.Run,
+        },
+      });
+      assertEquals(module.kind, ModuleImportResultKind.Module);
+      if (module.kind !== ModuleImportResultKind.Module) return;
+      const key = Symbol("broken-grow-memo");
+      let storedMemo: { match: unknown } | undefined;
+      const brokenMemos = {
+        resolve: () => ({ key, memo: storedMemo }),
+        set: (_path: unknown, _key: symbol, match: unknown) => {
+          storedMemo = { match };
+          return storedMemo;
+        },
+        get: () => ({ key, memo: undefined }),
+      };
+      const scope = new Scope(
+        module.module,
+        undefined,
+        undefined,
+        undefined,
+        Input.Iterable("a"),
+        brokenMemos as never,
+        undefined,
+        { resolver },
+      );
+
+      const m = await resolve(
+        { kind: PatternKind.Resolve, targetKind: ResolveTargetKind.Run },
+        scope,
+      );
+
+      assertEquals(m.kind, MatchKind.Error);
+      if (m.kind !== MatchKind.Error) return;
+      assertEquals(m.code, MatchErrorCode.InternalInvariant);
+      assertEquals(m.message, "left recursion memo missing during grow");
+    },
   });
   // todo: two identical rules with different native projections should not trigger DLR?
 });

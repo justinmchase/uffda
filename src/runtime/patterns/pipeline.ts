@@ -4,7 +4,10 @@ import { Input, InputNormalizationMode } from "../../input.ts";
 import { match } from "../match.ts";
 import type { PipelinePattern } from "./pattern.ts";
 
-export function pipeline(pattern: PipelinePattern, scope: Scope) {
+export async function pipeline(
+  pattern: PipelinePattern,
+  scope: Scope,
+): Promise<Match> {
   const { steps } = pattern;
   let last = ok(scope, scope, pattern, undefined);
   let next = scope;
@@ -21,7 +24,7 @@ export function pipeline(pattern: PipelinePattern, scope: Scope) {
     // match operation which will require the entire stream to be read.
 
     next = next.pushPipeline(pattern);
-    const m = match(pattern, next);
+    const m = await match(pattern, next);
     matches.push(m);
     switch (m.kind) {
       case MatchKind.LR:

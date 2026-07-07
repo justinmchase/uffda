@@ -7,6 +7,14 @@ import type { Scope } from "../scope.ts";
 export function character(pattern: CharacterPattern, scope: Scope): Match {
   const { characterClass } = pattern;
   const regexp = characterClassToRegexp(characterClass);
+  if (!regexp) {
+    return error(
+      scope,
+      pattern,
+      MatchErrorCode.InvalidArgument,
+      `unknown character class ${characterClass}`,
+    );
+  }
   if (scope.stream.done) {
     return fail(scope, pattern);
   }
@@ -29,7 +37,9 @@ export function character(pattern: CharacterPattern, scope: Scope): Match {
   return ok(scope, end, pattern, next.value);
 }
 
-function characterClassToRegexp(characterClass: CharacterClass) {
+function characterClassToRegexp(
+  characterClass: CharacterClass,
+): RegExp | undefined {
   switch (characterClass) {
     case CharacterClass.Any:
       return /^\p{Any}$/u;
@@ -76,7 +86,6 @@ function characterClassToRegexp(characterClass: CharacterClass) {
     case CharacterClass.Unassigned:
       return new RegExp(`^\\p{${characterClass}}$`, "u");
     default:
-      // todo: throw a better error
-      throw new Error(`unknown character class ${characterClass}`);
+      return undefined;
   }
 }

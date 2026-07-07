@@ -10,7 +10,10 @@ import type { Scope } from "../scope.ts";
 import { match } from "../match.ts";
 import type { VariablePattern } from "./pattern.ts";
 
-export function variable(pattern: VariablePattern, scope: Scope): Match {
+export async function variable(
+  pattern: VariablePattern,
+  scope: Scope,
+): Promise<Match> {
   const { name } = pattern;
   if (scope.variables.has(name)) {
     return error(
@@ -21,7 +24,7 @@ export function variable(pattern: VariablePattern, scope: Scope): Match {
     );
   }
 
-  const m = match(pattern.pattern, scope);
+  const m = await match(pattern.pattern, scope);
   switch (m.kind) {
     case MatchKind.LR:
     case MatchKind.Error:
@@ -37,4 +40,13 @@ export function variable(pattern: VariablePattern, scope: Scope): Match {
         [m],
       );
   }
+
+  return error(
+    scope,
+    pattern,
+    MatchErrorCode.InvalidArgument,
+    `unexpected match kind ${
+      (m as { kind?: unknown }).kind
+    } in variable child pattern`,
+  );
 }

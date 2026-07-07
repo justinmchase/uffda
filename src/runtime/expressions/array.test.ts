@@ -246,4 +246,30 @@ await Deno.test("runtime/expressions/array", async (t) => {
       result: [7, 11, 13],
     }),
   });
+
+  await t.step({
+    name: "RUNTIME.ARRAY07",
+    fn: expressionTest({
+      expression: {
+        kind: ExpressionKind.Array,
+        expressions: [
+          {
+            kind: ExpressionKind.ArrayElement,
+            expression: {
+              kind: ExpressionKind.Native,
+              fn: () => Promise.resolve(7),
+            },
+          },
+          {
+            kind: ExpressionKind.ArrayElement,
+            expression: {
+              kind: ExpressionKind.Value,
+              value: 11,
+            },
+          },
+        ],
+      },
+      result: [7, 11],
+    }),
+  });
 });

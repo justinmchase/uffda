@@ -33,6 +33,9 @@ Uffda is a Deno-based parser generator for domain specific languages.
   validate object shape and validate `kind` against the discriminator enum.
 - Avoid introducing parallel discriminator properties for the same union (for
   example, do not add both `kind` and `type`/`mode` for the same purpose).
+- Do not put variants in a discriminator enum unless they belong to that union.
+- Keep discriminator enums narrow enough that callers do not need to mentally
+  filter out irrelevant members.
 
 ## Specification authority and change control
 

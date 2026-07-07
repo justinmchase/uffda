@@ -6,5 +6,9 @@ export function native(expression: NativeExpression, match: MatchOk): unknown {
     _: match.value,
     ...Object.fromEntries(match.scope.variables),
   };
-  return expression.fn(variables, match.scope.options.specials, match);
+  const capabilities = new Map<string, unknown>([
+    ...match.scope.options.globals.entries(),
+    ...match.scope.options.specials.entries(),
+  ]);
+  return expression.fn(variables, capabilities, match);
 }

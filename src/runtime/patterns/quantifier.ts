@@ -4,7 +4,10 @@ import type { Match } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import type { QuantifierPattern } from "./pattern.ts";
 
-export function quantifier(pattern: QuantifierPattern, scope: Scope): Match {
+export async function quantifier(
+  pattern: QuantifierPattern,
+  scope: Scope,
+): Promise<Match> {
   const { min, max } = pattern;
   if (min != null) {
     if (min < 0) {
@@ -73,7 +76,7 @@ export function quantifier(pattern: QuantifierPattern, scope: Scope): Match {
   const matches: Match[] = [];
   let done = false;
   while (!done && !end.stream.done) {
-    const m = match(pattern.pattern, end);
+    const m = await match(pattern.pattern, end);
     matches.push(m);
     switch (m.kind) {
       case MatchKind.LR:

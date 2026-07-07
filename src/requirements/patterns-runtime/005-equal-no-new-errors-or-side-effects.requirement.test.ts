@@ -8,7 +8,7 @@ import { Scope } from "../../runtime/scope.ts";
 Deno.test("req:equal-005 - Equal introduces no new error states and no external side effects", async (t) => {
   await t.step(
     "equal outcomes are limited to ok/fail for valid scope inputs",
-    () => {
+    async () => {
       const successScope = Scope.From(["a"], {
         kind: InputNormalizationMode.Iterable,
       });
@@ -17,24 +17,29 @@ Deno.test("req:equal-005 - Equal introduces no new error states and no external 
       });
       const pattern: Pattern = { kind: PatternKind.Equal, value: "a" };
 
-      const okMatch = match(pattern, successScope);
-      const failMatch = match(pattern, failureScope);
+      const okMatch = await match(pattern, successScope);
+      const failMatch = await match(pattern, failureScope);
 
       assertEquals(okMatch.kind, MatchKind.Ok);
       assertEquals(failMatch.kind, MatchKind.Fail);
     },
   );
 
-  await t.step("equal does not mutate caller-visible variable bindings", () => {
-    const scope = Scope.From(["a"], { kind: InputNormalizationMode.Iterable });
-    const pattern: Pattern = { kind: PatternKind.Equal, value: "a" };
+  await t.step(
+    "equal does not mutate caller-visible variable bindings",
+    async () => {
+      const scope = Scope.From(["a"], {
+        kind: InputNormalizationMode.Iterable,
+      });
+      const pattern: Pattern = { kind: PatternKind.Equal, value: "a" };
 
-    const beforeSize = scope.variables.size;
-    const m = match(pattern, scope);
+      const beforeSize = scope.variables.size;
+      const m = await match(pattern, scope);
 
-    assertEquals(scope.variables.size, beforeSize);
-    if (m.kind === MatchKind.Ok) {
-      assertStrictEquals(m.scope.variables, scope.variables);
-    }
-  });
+      assertEquals(scope.variables.size, beforeSize);
+      if (m.kind === MatchKind.Ok) {
+        assertStrictEquals(m.scope.variables, scope.variables);
+      }
+    },
+  );
 });

@@ -34,6 +34,19 @@ non-left-recursive forms.
   behavior MUST reject it by fail or error according to the active evaluation
   path.
 
+## Awaitable evaluation semantics
+
+- Left-recursive evaluation MUST be defined over awaitable match results.
+- Memo entries used for left-recursive evaluation MUST be able to represent
+  in-progress awaitable growth as well as stabilized outcomes.
+- Seed creation, growth, and stabilization MUST preserve the same fixed input
+  position across awaitable evaluation steps.
+- Implementations MAY complete growth synchronously when child evaluation is
+  immediate, but that synchronous completion MUST be treated as an optimization
+  of the awaitable model.
+- Awaitable left-recursive growth MUST preserve determinism of branch order,
+  memo reuse, and progress checks.
+
 ## Pattern-matching interactions
 
 - Patterns that delegate to child patterns (for example, alternation and
@@ -43,6 +56,9 @@ non-left-recursive forms.
   non-recursive fallback branches when expressing left-associative constructs.
 - The left-recursion handling contract used by `or` MUST follow this runtime
   chapter.
+- Rule evaluation that awaits child results during left-recursive growth MUST
+  still normalize final outcomes into the same success/failure/error/LR
+  categories.
 
 ## Why this design
 
@@ -73,6 +89,13 @@ non-left-recursive forms.
 
 - Left-recursion handling MUST NOT produce externally observable side effects
   beyond match outcomes, memoization state, and defined diagnostics.
+
+## Performance intent
+
+- Implementations SHOULD preserve synchronous fast paths for immediate
+  left-recursive growth when no awaitable child behavior occurs.
+- Async-capable left-recursion support MUST NOT require gratuitous promise
+  allocation on fully synchronous evaluation paths.
 
 ## Composition intent
 

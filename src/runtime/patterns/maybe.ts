@@ -1,11 +1,14 @@
-import { type Match, ok } from "../../match.ts";
+import { error, type Match, MatchErrorCode, ok } from "../../match.ts";
 import { MatchKind } from "../../mod.ts";
 import { match } from "../match.ts";
 import type { Scope } from "../scope.ts";
 import type { MaybePattern } from "./pattern.ts";
 
-export function maybe(pattern: MaybePattern, scope: Scope): Match {
-  const m = match(pattern.pattern, scope);
+export async function maybe(
+  pattern: MaybePattern,
+  scope: Scope,
+): Promise<Match> {
+  const m = await match(pattern.pattern, scope);
   switch (m.kind) {
     case MatchKind.LR:
     case MatchKind.Error:
@@ -27,4 +30,13 @@ export function maybe(pattern: MaybePattern, scope: Scope): Match {
         [m],
       );
   }
+
+  return error(
+    scope,
+    pattern,
+    MatchErrorCode.InvalidArgument,
+    `unexpected match kind ${
+      (m as { kind?: unknown }).kind
+    } in maybe child pattern`,
+  );
 }

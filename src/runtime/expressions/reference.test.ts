@@ -31,4 +31,16 @@ await Deno.test("runtime/expressions/reference", async (t) => {
       },
     }),
   });
+
+  await t.step({
+    name: "REFERENCE02",
+    fn: expressionTest({
+      scope: Scope.Default(),
+      throws: true,
+      expression: {
+        kind: ExpressionKind.Reference,
+        name: "missing",
+      },
+    }),
+  });
 });

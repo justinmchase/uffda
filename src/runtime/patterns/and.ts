@@ -3,11 +3,11 @@ import { fail, type Match, MatchKind, type MatchOk, ok } from "../../match.ts";
 import { match } from "../match.ts";
 import type { AndPattern } from "./pattern.ts";
 
-export function and(pattern: AndPattern, scope: Scope): Match {
+export async function and(pattern: AndPattern, scope: Scope): Promise<Match> {
   const { patterns } = pattern;
   const matches: MatchOk[] = [];
   for (const pattern of patterns) {
-    const m = match(pattern, scope);
+    const m = await match(pattern, scope);
     switch (m.kind) {
       case MatchKind.LR:
       case MatchKind.Error:

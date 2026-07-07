@@ -6,11 +6,11 @@ import { MatchKind } from "../../match.ts";
 import { type Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
 import { Path } from "../../path.ts";
 
-Deno.test("req:runtime-core-004 - Runtime scope carries active input position and transitions immutably", () => {
+Deno.test("req:runtime-core-004 - Runtime scope carries active input position and transitions immutably", async () => {
   const start = Scope.From("ab", { kind: InputNormalizationMode.Iterable });
   const pattern: Pattern = { kind: PatternKind.Equal, value: "a" };
 
-  const m = match(pattern, start);
+  const m = await match(pattern, start);
   assertEquals(m.kind, MatchKind.Ok);
 
   if (m.kind !== MatchKind.Ok) return;

@@ -7,6 +7,7 @@ import { exec } from "../../runtime/exec.ts";
 import { Scope } from "../../runtime/scope.ts";
 import { std } from "../../runtime/std/mod.ts";
 import { resolve } from "../../runtime/patterns/resolve.ts";
+import { ModuleImportResultKind } from "../../runtime/resolvers/resolver.ts";
 import { Resolver } from "../../mod.ts";
 import type { Match } from "../../mod.ts";
 import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
@@ -23,19 +24,29 @@ export async function expr(
   const { globals, declarations } = opts ?? {};
   const g = globals ?? std;
   const r = new Resolver({ declarations });
-  const m = await r.import(new URL(import.meta.url));
   const s = Scope
     .From(expression)
-    .pushModule(m)
-    .withOptions({ globals: g });
+    .withOptions({ globals: g, resolver: r });
+  const m = await r.import(new URL(import.meta.url), {
+    scope: s,
+    pattern: {
+      kind: PatternKind.Resolve,
+      targetKind: ResolveTargetKind.Run,
+      name: "ExpressionLang",
+    },
+  });
+  if (m.kind === ModuleImportResultKind.Error) {
+    return m.error;
+  }
+  const scoped = s.pushModule(m.module);
 
-  return resolve(
+  return await resolve(
     {
       kind: PatternKind.Resolve,
       targetKind: ResolveTargetKind.Run,
       name: "ExpressionLang",
     },
-    s,
+    scoped,
   );
 }
 

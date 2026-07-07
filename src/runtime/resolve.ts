@@ -5,7 +5,19 @@ import {
   type ModuleDeclaration,
 } from "./declarations/mod.ts";
 import type { Module } from "./modules/mod.ts";
-import type { IModuleResolvers } from "./resolvers/resolver.ts";
+import {
+  type IModuleResolvers,
+  type ImportResult,
+  moduleDeclarationResolutionResult,
+  type ModuleDeclarationResult,
+  moduleDeclarationResult,
+  ModuleDeclarationResultKind,
+  ModuleImportResultKind,
+  type ModuleResolutionContext,
+  moduleResolutionError,
+  moduleResolutionResult,
+  moduleResult,
+} from "./resolvers/resolver.ts";
 import { ImportResolver, JsonResolver } from "./resolvers/mod.ts";
 
 export type ResolverOptions = {
@@ -33,9 +45,12 @@ export class Resolver {
     this.resolvers = resolvers;
   }
 
-  public async import(moduleUrl: URL): Promise<Module> {
+  public async import(
+    moduleUrl: URL,
+    context: ModuleResolutionContext,
+  ): Promise<ImportResult> {
     if (this.modules.has(moduleUrl.href)) {
-      return this.modules.get(moduleUrl.href)!;
+      return moduleResult(this.modules.get(moduleUrl.href)!);
     } else {
       const module: Module = {
         moduleUrl,
@@ -45,11 +60,14 @@ export class Resolver {
         default: undefined,
       };
       this.modules.set(moduleUrl.href, module);
-      const moduleDeclaration = await this.importModule(moduleUrl);
+      const moduleDeclaration = await this.importModule(moduleUrl, context);
+      if (moduleDeclaration.kind === ModuleDeclarationResultKind.Error) {
+        return moduleResolutionResult(moduleDeclaration.error);
+      }
 
       for (
         const { name, pattern, parameters, expression } of moduleDeclaration
-          .rules
+          .moduleDeclaration.rules
       ) {
         module.rules.set(name, {
           module,
@@ -60,20 +78,24 @@ export class Resolver {
         });
       }
 
-      for (const e of moduleDeclaration.exports) {
+      for (const e of moduleDeclaration.moduleDeclaration.exports) {
         const { kind, name } = e;
         switch (kind) {
           case ExportDeclarationKind.Rule: {
             const rule = module.rules.get(name);
             if (!rule) {
-              throw new Error(`Unknown rule ${name}`);
+              return moduleResolutionResult(moduleResolutionError(
+                `Unknown rule ${name}`,
+                context,
+              ));
             }
             module.exports.set(name, rule);
             if (e.default) {
               if (module.default) {
-                throw new Error(
+                return moduleResolutionResult(moduleResolutionError(
                   `Module ${name} cannot have multiple default exports`,
-                );
+                  context,
+                ));
               }
               module.default = rule;
             }
@@ -82,7 +104,7 @@ export class Resolver {
         }
       }
 
-      for (const i of moduleDeclaration.imports) {
+      for (const i of moduleDeclaration.moduleDeclaration.imports) {
         const resolvedModuleUrl = new URL(i.moduleUrl, moduleUrl);
 
         // todo: Remove support for function imports if we can...
@@ -99,39 +121,48 @@ export class Resolver {
           );
         }
 
-        const importedModule = await this.import(resolvedModuleUrl);
+        const importedModule = await this.import(resolvedModuleUrl, context);
+        if (importedModule.kind === ModuleImportResultKind.Error) {
+          return importedModule;
+        }
         for (const name of i.names) {
-          const r = importedModule.exports.get(name);
+          const r = importedModule.module.exports.get(name);
           if (!r) {
-            throw new Error(
+            return moduleResolutionResult(moduleResolutionError(
               `Unknown export ${name} from module ${resolvedModuleUrl}`,
-            );
+              context,
+            ));
           }
 
           if (module.rules.has(name)) {
-            throw new Error(
+            return moduleResolutionResult(moduleResolutionError(
               `Import ${name} conflicts with rule declaration in ${moduleUrl}`,
-            );
+              context,
+            ));
           }
 
           module.imports.set(name, r);
         }
       }
 
-      for (const e of moduleDeclaration.exports) {
+      for (const e of moduleDeclaration.moduleDeclaration.exports) {
         const { kind, name } = e;
         switch (kind) {
           case ExportDeclarationKind.Import: {
             const resolvedImport = module.imports.get(name);
             if (!resolvedImport) {
-              throw new Error(`Unknown import ${name}`);
+              return moduleResolutionResult(moduleResolutionError(
+                `Unknown import ${name}`,
+                context,
+              ));
             }
             module.exports.set(name, resolvedImport);
             if (e.default) {
               if (module.default) {
-                throw new Error(
+                return moduleResolutionResult(moduleResolutionError(
                   `Module ${name} cannot have multiple default exports`,
-                );
+                  context,
+                ));
               }
               module.default = resolvedImport;
             }
@@ -139,22 +170,32 @@ export class Resolver {
           }
         }
       }
-      return module;
+      return moduleResult(module);
     }
   }
 
-  private async importModule(moduleUrl: URL): Promise<ModuleDeclaration> {
+  private async importModule(
+    moduleUrl: URL,
+    context: ModuleResolutionContext,
+  ): Promise<ModuleDeclarationResult> {
     if (this.declarations.has(moduleUrl.href)) {
-      return this.declarations.get(moduleUrl.href)!;
+      return moduleDeclarationResult(this.declarations.get(moduleUrl.href)!);
     } else {
       const ext = extname(moduleUrl.pathname);
       const resolver = this.resolvers[ext];
       if (!resolver) {
-        // todo: Use proper errors
-        throw new Error(`Unable to resolve file of unknown extension ${ext}`);
+        return moduleDeclarationResolutionResult(
+          moduleResolutionError(
+            `Unable to resolve file of unknown extension ${ext}`,
+            context,
+          ),
+        );
       }
-      const declaration = await resolver.resolveModule(moduleUrl);
-      this.declarations.set(moduleUrl.href, declaration);
+      const declaration = await resolver.resolveModule(moduleUrl, context);
+      if (declaration.kind === ModuleDeclarationResultKind.Error) {
+        return declaration;
+      }
+      this.declarations.set(moduleUrl.href, declaration.moduleDeclaration);
       return declaration;
     }
   }

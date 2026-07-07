@@ -30,4 +30,22 @@ await Deno.test("runtime/expressions/string", async (t) => {
       },
     }),
   });
+
+  await t.step({
+    name: "STRING02",
+    fn: expressionTest({
+      result: "abc11xyz",
+      expression: {
+        kind: ExpressionKind.String,
+        values: [
+          "abc",
+          {
+            kind: ExpressionKind.Native,
+            fn: () => Promise.resolve(11),
+          },
+          "xyz",
+        ],
+      },
+    }),
+  });
 });

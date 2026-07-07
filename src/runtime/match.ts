@@ -1,5 +1,6 @@
 import type { Scope } from "./scope.ts";
-import { fail, type Match } from "../match.ts";
+import { fail } from "../match.ts";
+import type { AwaitableMatch } from "./awaitable.ts";
 import {
   and,
   any,
@@ -28,16 +29,16 @@ import {
   variable,
 } from "./patterns/mod.ts";
 
-export function match(pattern: Pattern, scope: Scope): Match {
+export async function match(pattern: Pattern, scope: Scope): AwaitableMatch {
   switch (pattern.kind) {
     case PatternKind.And:
-      return and(pattern, scope);
+      return await and(pattern, scope);
     case PatternKind.Any:
       return any(pattern, scope);
     case PatternKind.Between:
       return between(pattern, scope);
     case PatternKind.Into:
-      return into(pattern, scope);
+      return await into(pattern, scope);
     case PatternKind.Character:
       return character(pattern, scope);
     case PatternKind.End:
@@ -45,37 +46,37 @@ export function match(pattern: Pattern, scope: Scope): Match {
     case PatternKind.Equal:
       return equal(pattern, scope);
     case PatternKind.Except:
-      return except(pattern, scope);
+      return await except(pattern, scope);
     case PatternKind.Fail:
       return failp(pattern, scope);
     case PatternKind.Includes:
       return includes(pattern, scope);
     case PatternKind.Lookahead:
-      return lookahead(pattern, scope);
+      return await lookahead(pattern, scope);
     case PatternKind.Maybe:
-      return maybe(pattern, scope);
+      return await maybe(pattern, scope);
     case PatternKind.Not:
-      return not(pattern, scope);
+      return await not(pattern, scope);
     case PatternKind.Over:
-      return over(pattern, scope);
+      return await over(pattern, scope);
     case PatternKind.Ok:
       return ok(pattern, scope);
     case PatternKind.Or:
-      return or(pattern, scope);
+      return await or(pattern, scope);
     case PatternKind.Pipeline:
-      return pipeline(pattern, scope);
+      return await pipeline(pattern, scope);
     case PatternKind.Quantifier:
-      return quantifier(pattern, scope);
+      return await quantifier(pattern, scope);
     case PatternKind.RegExp:
       return regexp(pattern, scope);
     case PatternKind.Resolve:
-      return resolve(pattern, scope);
+      return await resolve(pattern, scope);
     case PatternKind.Then:
-      return then(pattern, scope);
+      return await then(pattern, scope);
     case PatternKind.Type:
       return type(pattern, scope);
     case PatternKind.Variable:
-      return variable(pattern, scope);
+      return await variable(pattern, scope);
     default:
       return fail(scope, pattern);
   }

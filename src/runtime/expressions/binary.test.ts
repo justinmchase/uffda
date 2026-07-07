@@ -97,4 +97,23 @@ await Deno.test("runtime/patterns/binary", async (t) => {
       },
     }),
   });
+
+  await t.step({
+    name: "AND02",
+    fn: expressionTest({
+      result: true,
+      expression: {
+        kind: ExpressionKind.Binary,
+        op: BinaryOperation.And,
+        left: {
+          kind: ExpressionKind.Native,
+          fn: () => Promise.resolve(true),
+        },
+        right: {
+          kind: ExpressionKind.Value,
+          value: true,
+        },
+      },
+    }),
+  });
 });

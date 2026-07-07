@@ -1,20 +1,19 @@
 import type { MatchOk } from "../../match.ts";
 import { exec } from "../exec.ts";
 import { ExpressionKind } from "./expression.kind.ts";
-import type { ObjectExpression, ObjectInitializer } from "./expression.ts";
+import { allOrSync, type Awaitable, isThenable } from "./awaitable.ts";
+import type { ObjectExpression } from "./expression.ts";
 
 export function object(
   expression: ObjectExpression,
   match: MatchOk,
-): unknown {
+): Awaitable<unknown> {
   const { keys } = expression;
-  return keys
-    .map<[ObjectInitializer, unknown]>((key) => {
-      const { expression } = key;
-      return [key, exec(expression, match)];
-    })
-    .reduce<Record<string, unknown>>(
-      (obj, [key, value]) => {
+  const values = keys.map((key) => exec(key.expression, match));
+  const buildObject = (resolvedValues: unknown[]) =>
+    keys.reduce<Record<string, unknown>>(
+      (obj, key, i) => {
+        const value = resolvedValues[i];
         const { kind } = key;
         switch (kind) {
           case ExpressionKind.ObjectKey:
@@ -27,4 +26,9 @@ export function object(
       },
       {},
     );
+
+  const resolved = allOrSync(values);
+  return isThenable(resolved)
+    ? resolved.then(buildObject)
+    : buildObject(resolved);
 }
