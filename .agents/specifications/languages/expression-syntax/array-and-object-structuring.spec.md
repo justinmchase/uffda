@@ -27,26 +27,26 @@ Normative key words in this chapter use the conventions defined in the
 
 ## Canonicalization examples
 
-- `[a, b]` -> `(array a b)`
+- `[a b]` -> `(array (elem a) (elem b))`
 - `{name: value}` -> `(object (key name value))`
 - `(set a b)` -> `(set a b)`
 - `(map (key a b))` -> `(map (key a b))`
-- `[a, ...xs]` -> `(array a (spread xs))`
+- `[a ...xs]` -> `(array (elem a) (spread xs))`
 - `{...base, name: value}` -> `(object (spread base) (key name value))`
 
 ## Valid syntax examples
 
-- `(array 1 2 3)`
+- `(array (elem 1) (elem 2) (elem 3))`
 - `(object (key name value) (key age 42))`
 - `(set a b c)`
 - `(map (key a b) (key c d))`
-- `[1, 2, 3]`
+- `[1 2 3]`
 - `{name: value, age: 42}`
 - `{...base, name: value}`
 
 ## Invalid syntax examples
 
-- `[a,,b]` (ambiguous or empty element position)
+- `[a,b]` (comma-delimited array elements are not part of this MVP surface form)
 - `{name}` (implicit key-value shorthand not supported in this layer)
 - `{...}` (missing spread operand)
 - `[{x}] = value` (destructuring assignment syntax is outside expression layer)

@@ -1,6 +1,6 @@
 # Binary operator syntax
 
-This chapter defines binary infix expression forms.
+This chapter defines binary operator policy for the expression layer.
 
 ## Conventions
 
@@ -9,34 +9,30 @@ Normative key words in this chapter use the conventions defined in the
 
 ## Syntax requirements
 
-- Binary operators MUST have explicit left and right operands.
-- Binary operator tokens MUST be reserved and MUST NOT be parsed as ordinary
-  references in binary positions.
-- `+` and `*` MUST be treated as binary infix operators in this expression
-  language layer.
-- Binary precedence/associativity rules MUST be deterministic and
-  non-conflicting for fixed token streams.
-- Binary infix surface forms MUST normalize to canonical operator-head forms for
-  downstream compilation.
+- Binary operation semantics MAY exist in the expression layer through explicit
+  invocation/operator-head forms.
+- Infix precedence-based binary syntax is deferred from MVP.
+- MVP expression parsing MUST NOT require reader-visible precedence resolution
+  for binary infix chains.
+- If infix binary syntax is introduced later, it MUST define deterministic,
+  non-conflicting precedence and associativity rules and canonicalization.
 
-## Canonicalization examples
+## Explicit-form examples
 
-- `a and b` -> `(and a b)`
-- `x + y` -> `(+ x y)`
-- `x * y` -> `(* x y)`
+- `(and a b)`
+- `(or a b)`
+- `(add x y)`
+- `(coalesce x y)`
 
 ## Valid syntax examples
 
-- `a and b`
-- `a or b`
-- `x + y`
-- `x * y`
-- `x and (y or z)`
+- `(and a b)`
+- `(or a b)`
+- `(add x y)`
+- `(coalesce x y)`
 
 ## Invalid syntax examples
 
-- `and a` (missing left operand)
-- `a and` (missing right operand)
-- `x +` (missing right operand)
-- `* y` (missing left operand)
-- `a and or b` (invalid operator sequence)
+- `a and b` (infix precedence form deferred from MVP)
+- `x + y` (infix precedence form deferred from MVP)
+- `x and (y or z)` (grouping/precedence form deferred from MVP)

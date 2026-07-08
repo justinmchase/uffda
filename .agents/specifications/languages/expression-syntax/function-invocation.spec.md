@@ -14,6 +14,9 @@ Normative key words in this chapter use the conventions defined in the
   generation.
 - Invocation argument structure MUST be unambiguous for fixed tokenizer output.
 - Invocation syntax MUST support zero or more arguments.
+- Invocation target evaluation MUST resolve to a callable value.
+- Non-callable invocation targets MUST report deterministic invocation errors;
+  scalar values MUST NOT be implicitly coerced into identity-call behavior.
 - Invocation forms MUST normalize deterministically to canonical call expression
   nodes.
 

@@ -134,4 +134,86 @@ Deno.test("runtime.expressions.invocation", async (t) => {
       result: 22,
     }),
   });
+
+  await t.step({
+    name: "INVOKE05",
+    fn: expressionTest({
+      expression: {
+        kind: ExpressionKind.Invocation,
+        expression: {
+          kind: ExpressionKind.Reference,
+          name: "fn",
+        },
+        args: [
+          {
+            kind: ExpressionKind.Value,
+            value: 1,
+          },
+          {
+            kind: ExpressionKind.InvocationSpread,
+            expression: {
+              kind: ExpressionKind.Reference,
+              name: "rest",
+            },
+          },
+        ],
+      },
+      scope: Scope
+        .Default()
+        .withOptions({
+          globals: new Map([
+            ["fn", (...args: unknown[]) => args],
+          ]),
+        })
+        .addVariables({
+          rest: [2, 3],
+        }),
+      result: [1, 2, 3],
+    }),
+  });
+
+  await t.step({
+    name: "INVOKE06",
+    fn: expressionTest({
+      expression: {
+        kind: ExpressionKind.Invocation,
+        expression: {
+          kind: ExpressionKind.Value,
+          value: 7,
+        },
+        args: [],
+      },
+      throws: true,
+    }),
+  });
+
+  await t.step({
+    name: "INVOKE07",
+    fn: expressionTest({
+      expression: {
+        kind: ExpressionKind.Invocation,
+        expression: {
+          kind: ExpressionKind.Reference,
+          name: "fn",
+        },
+        args: [
+          {
+            kind: ExpressionKind.InvocationSpread,
+            expression: {
+              kind: ExpressionKind.Value,
+              value: 11,
+            },
+          },
+        ],
+      },
+      scope: Scope
+        .Default()
+        .withOptions({
+          globals: new Map([
+            ["fn", (...args: unknown[]) => args],
+          ]),
+        }),
+      throws: true,
+    }),
+  });
 });

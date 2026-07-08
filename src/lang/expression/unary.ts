@@ -19,6 +19,13 @@ export const Unary: ModuleDeclaration = {
         "Primary",
       ],
     },
+    {
+      kind: ImportDeclarationKind.Module,
+      moduleUrl: "./not.ts",
+      names: [
+        "Not",
+      ],
+    },
   ],
   exports: [
     {
@@ -34,6 +41,12 @@ export const Unary: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Or,
         patterns: [
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "Not",
+            args: [],
+          },
           {
             kind: PatternKind.Resolve,
             targetKind: ResolveTargetKind.Reference,

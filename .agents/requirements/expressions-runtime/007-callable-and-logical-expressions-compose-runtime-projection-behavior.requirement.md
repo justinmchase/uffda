@@ -1,7 +1,7 @@
 ---
 id: expressions-runtime-007
-title: Callable, lambda, native, binary, and unary expressions compose runtime projection behavior
-spec_ref: ".agents/specifications/expressions/invocation.spec.md#behavioral-expectations; .agents/specifications/expressions/lambda.spec.md#behavioral-expectations; .agents/specifications/expressions/native.spec.md#logical-purpose; .agents/specifications/expressions/binary.spec.md#behavioral-expectations; .agents/specifications/expressions/not.spec.md#behavioral-expectations"
+title: Callable, lambda, native, spread, and unary expressions compose runtime projection behavior
+spec_ref: ".agents/specifications/expressions/invocation.spec.md#behavioral-expectations; .agents/specifications/expressions/lambda.spec.md#behavioral-expectations; .agents/specifications/expressions/native.spec.md#logical-purpose; .agents/specifications/expressions/array-spread.spec.md#behavioral-expectations; .agents/specifications/expressions/object-spread.spec.md#behavioral-expectations; .agents/specifications/expressions/not.spec.md#behavioral-expectations"
 ---
 
 # Callable and Logical Projection Composition
@@ -10,8 +10,8 @@ spec_ref: ".agents/specifications/expressions/invocation.spec.md#behavioral-expe
 
 Preconditions:
 
-- The runtime evaluates an invocation, lambda, native, binary, or unary
-  expression.
+- The runtime evaluates an invocation, lambda, native, spread-enabled aggregate,
+  or unary expression.
 
 Expected behavior:
 
@@ -21,8 +21,8 @@ Expected behavior:
   then evaluate the lambda body in the resulting scope.
 - Native expressions MAY execute host-language callables and return their result
   directly.
-- Binary expressions MUST apply declared logical operator semantics to their
-  evaluated operands.
+- Array and object expressions using spread initializers MUST preserve
+  declaration-order composition and host spread semantics.
 - Unary not expressions MUST apply logical negation semantics to their operand.
 
 Error behavior:

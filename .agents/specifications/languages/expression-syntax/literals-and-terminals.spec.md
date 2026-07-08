@@ -9,7 +9,8 @@ Normative key words in this chapter use the conventions defined in the
 
 ## Syntax requirements
 
-- Terminal syntax MUST include numeric literal and identifier/reference forms.
+- Terminal syntax MUST include numeric, boolean, and nullish literal forms, and
+  identifier/reference forms.
 - Literal and reference syntax forms MUST be lexically distinguishable for
   deterministic parsing.
 
@@ -18,6 +19,10 @@ Normative key words in this chapter use the conventions defined in the
 - `123`
 - `0`
 - `42`
+- `true`
+- `false`
+- `null`
+- `undefined`
 - `name`
 - `userName1`
 

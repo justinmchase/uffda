@@ -11,11 +11,6 @@ export type ProjectionFunction = (
   match: MatchOk,
 ) => unknown;
 
-export enum BinaryOperation {
-  And = "and",
-  Or = "or",
-}
-
 export function isExpression(value: unknown): value is Expression {
   const [t] = type(value);
   if (t !== Type.Object) return false;
@@ -25,14 +20,9 @@ export function isExpression(value: unknown): value is Expression {
 
 export type Expression =
   | NativeExpression
-  | BinaryExpression
   | UnaryExpression
   | PrimaryExpression
   | TerminalExpression;
-
-export type BinaryExpression =
-  | AndExpression
-  | OrExpression;
 
 export type UnaryExpression = NotExpression;
 
@@ -69,20 +59,6 @@ export type ArraySpreadExpression = {
   expression: Expression;
 };
 
-export type AndExpression = {
-  kind: ExpressionKind.Binary;
-  op: BinaryOperation.And;
-  left: Expression;
-  right: Expression;
-};
-
-export type OrExpression = {
-  kind: ExpressionKind.Binary;
-  op: BinaryOperation.Or;
-  left: Expression;
-  right: Expression;
-};
-
 export type BooleanExpression = {
   kind: ExpressionKind.Boolean;
   value: boolean;
@@ -91,7 +67,16 @@ export type BooleanExpression = {
 export type InvocationExpression = {
   kind: ExpressionKind.Invocation;
   expression: Expression;
-  args: Expression[];
+  args: InvocationArgument[];
+};
+
+export type InvocationArgument =
+  | Expression
+  | InvocationSpreadExpression;
+
+export type InvocationSpreadExpression = {
+  kind: ExpressionKind.InvocationSpread;
+  expression: Expression;
 };
 
 export type LambdaExpression = {

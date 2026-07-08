@@ -1,6 +1,6 @@
 # Grouping and sequence syntax
 
-This chapter defines parenthesized grouping and sequence expression forms.
+This chapter defines parenthesized sequence forms used by invocation syntax.
 
 ## Conventions
 
@@ -9,15 +9,17 @@ Normative key words in this chapter use the conventions defined in the
 
 ## Syntax requirements
 
-- Grouping syntax MUST use balanced `(` and `)` delimiters.
-- Sequence/grouping forms MUST NOT conflict with function-like or alternate
-  delimiter constructs in this layer.
+- Parenthesized sequence forms MUST use balanced `(` and `)` delimiters.
+- In MVP, parenthesized forms MUST be interpreted as invocation sequence forms,
+  not as standalone grouping-only forms.
+- Sequence forms MUST remain unambiguous with other delimiter constructs.
 
 ## Valid syntax examples
 
-- `(123)`
-- `(name)`
-- `("text")`
+- `(f)`
+- `(f x)`
+- `(f x y)`
+- `((getFactory) x)`
 
 ## Invalid syntax examples
 

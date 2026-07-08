@@ -24,7 +24,7 @@ export enum MatchKind {
   Error = "error",
 }
 
-export type Match = MatchLR | MatchOk | MatchFail | MatchError;
+export type Match<T = unknown> = MatchLR | MatchOk<T> | MatchFail | MatchError;
 
 export type MatchLR = {
   kind: MatchKind.LR;
@@ -32,13 +32,13 @@ export type MatchLR = {
   scope: Scope;
 };
 
-export type MatchOk = {
+export type MatchOk<T = unknown> = {
   kind: MatchKind.Ok;
   pattern: Pattern;
   scope: Scope;
   span: Span;
   matches: Match[];
-  value: unknown;
+  value: T;
 };
 
 export type MatchFail = {

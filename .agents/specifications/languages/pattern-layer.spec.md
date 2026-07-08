@@ -12,6 +12,18 @@ Normative key words in this chapter use the conventions defined in the
 The pattern layer provides the primary declarative matching mechanism used to
 construct language grammars and layered compiler behavior.
 
+## High-level principles
+
+- Pattern matching is the conditional and binding mechanism for grammar authors.
+- Guarding, branch selection, equality-like checks, and local variable capture
+  SHOULD be modeled as patterns rather than by introducing expression-level
+  control-flow syntax.
+- Pattern evaluation MAY be exposed to expression/projection contexts through a
+  native `match` function so patterns can be invoked like callable dynamic
+  constraints.
+- Pattern-based branching SHOULD remain separate from statement syntax such as
+  `if`, `else`, `let`, `return`, and loops in the expression layer.
+
 ## Layer requirements
 
 - Pattern-layer behavior MUST remain composable with token and expression

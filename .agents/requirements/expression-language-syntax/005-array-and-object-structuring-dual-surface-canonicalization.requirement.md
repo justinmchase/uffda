@@ -28,11 +28,11 @@ Expected behavior:
 
 Valid syntax examples:
 
-- `(array 1 2 3)`
+- `(array (elem 1) (elem 2) (elem 3))`
 - `(object (key name value))`
 - `(set a b)`
 - `(map (key a b))`
-- `[1, 2, 3]`
+- `[1 2 3]`
 - `{name: value}`
 
 Invalid syntax examples:

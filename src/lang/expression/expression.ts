@@ -10,9 +10,9 @@ export const Expression: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./binary.ts",
+      moduleUrl: "./unary.ts",
       names: [
-        "Binary",
+        "Unary",
       ],
     },
   ],
@@ -30,7 +30,7 @@ export const Expression: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Resolve,
         targetKind: ResolveTargetKind.Reference,
-        name: "Binary",
+        name: "Unary",
         args: [],
       },
       expression: {
