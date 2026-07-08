@@ -1,12 +1,12 @@
 import { assertEquals } from "@std/assert";
 import { MatchKind } from "../../match.ts";
-import { expr } from "../../lang/expression/expression.lang.ts";
+import { expressionGrammar } from "../../lang/expression/expression.lang.ts";
 import { exec } from "../../runtime/exec.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 
 Deno.test("req:expression-language-syntax-009 - Expression syntax supports explicit member access and unary not forms", async (t) => {
   await t.step("member access parses to member AST and evaluates deterministically", async () => {
-    const m = await expr("user.name", {
+    const m = await expressionGrammar("user.name", {
       globals: new Map([
         ["user", { name: "uffda" }],
       ]),
@@ -29,7 +29,7 @@ Deno.test("req:expression-language-syntax-009 - Expression syntax supports expli
   });
 
   await t.step("member chaining remains deterministic", async () => {
-    const m = await expr("user.profile.name", {
+    const m = await expressionGrammar("user.profile.name", {
       globals: new Map([
         ["user", { profile: { name: "uffda" } }],
       ]),
@@ -43,7 +43,7 @@ Deno.test("req:expression-language-syntax-009 - Expression syntax supports expli
   });
 
   await t.step("unary not parses to a canonical not AST", async () => {
-    const m = await expr("not true");
+    const m = await expressionGrammar("not true");
 
     assertEquals(m.kind, MatchKind.Ok);
     if (m.kind === MatchKind.Ok) {

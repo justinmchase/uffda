@@ -1,5 +1,5 @@
 import { MatchKind } from "../../mod.ts";
-import { expr } from "./expression.lang.ts";
+import { expressionGrammar } from "./expression.lang.ts";
 import { assertEquals } from "@std/assert";
 import { std } from "../../runtime/std/mod.ts";
 import { exec } from "../../runtime/exec.ts";
@@ -20,7 +20,7 @@ Deno.test(
     await t.step({
       name: "EXPR_LANG_00",
       fn: async () => {
-        const m = await expr("(add 1 2)");
+        const m = await expressionGrammar("(add 1 2)");
         switch (m.kind) {
           case MatchKind.Ok: {
             const value = await exec(m.value, m);
@@ -44,7 +44,7 @@ Deno.test(
     await t.step({
       name: "EXPR_LANG_01",
       fn: async () => {
-        const m = await expr("( add   1   2 )");
+        const m = await expressionGrammar("( add   1   2 )");
         switch (m.kind) {
           case MatchKind.Ok: {
             const value = await exec(m.value, m);
@@ -68,7 +68,7 @@ Deno.test(
     await t.step({
       name: "EXPR_LANG_02",
       fn: async () => {
-        const m = await expr("(coalesce null 7)");
+        const m = await expressionGrammar("(coalesce null 7)");
         switch (m.kind) {
           case MatchKind.Ok: {
             const value = await exec(m.value, m);
@@ -92,7 +92,7 @@ Deno.test(
     await t.step({
       name: "EXPR_LANG_03",
       fn: async () => {
-        const m = await expr("[1 2 true null]");
+        const m = await expressionGrammar("[1 2 true null]");
         switch (m.kind) {
           case MatchKind.Ok: {
             const value = await exec(m.value, m);
@@ -116,7 +116,7 @@ Deno.test(
     await t.step({
       name: "EXPR_LANG_04",
       fn: async () => {
-        const m = await expr("{name: 1, enabled: true, fallback: undefined}");
+        const m = await expressionGrammar("{name: 1, enabled: true, fallback: undefined}");
         switch (m.kind) {
           case MatchKind.Ok: {
             const value = await exec(m.value, m);
@@ -148,7 +148,7 @@ Deno.test(
           ...std,
           ["xs", [2, 3]],
         ]);
-        const m = await expr("[1 ...xs]", { globals });
+        const m = await expressionGrammar("[1 ...xs]", { globals });
         switch (m.kind) {
           case MatchKind.Ok: {
             const value = await exec(m.value, m);
@@ -176,7 +176,7 @@ Deno.test(
           ...std,
           ["base", { enabled: true }],
         ]);
-        const m = await expr("{...base, count: 1}", { globals });
+        const m = await expressionGrammar("{...base, count: 1}", { globals });
         switch (m.kind) {
           case MatchKind.Ok: {
             const value = await exec(m.value, m);

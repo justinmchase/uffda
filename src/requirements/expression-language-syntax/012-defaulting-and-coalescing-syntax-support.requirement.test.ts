@@ -1,6 +1,6 @@
 import { assertEquals, assertNotEquals } from "@std/assert";
 import { MatchKind } from "../../match.ts";
-import { expr } from "../../lang/expression/expression.lang.ts";
+import { expressionGrammar } from "../../lang/expression/expression.lang.ts";
 import { std } from "../../runtime/std/mod.ts";
 import { exec } from "../../runtime/exec.ts";
 
@@ -14,7 +14,7 @@ Deno.test("req:expression-language-syntax-012 - Explicit coalescing syntax suppo
         ["fallback", "ok"],
       ]);
 
-      const m = await expr("(coalesce left fallback)", { globals });
+      const m = await expressionGrammar("(coalesce left fallback)", { globals });
       assertEquals(m.kind, MatchKind.Ok);
       if (m.kind === MatchKind.Ok) {
         const value = await exec(m.value, m);
@@ -30,8 +30,8 @@ Deno.test("req:expression-language-syntax-012 - Explicit coalescing syntax suppo
       ["fallback", 11],
     ]);
 
-    const one = await expr("(coalesce left fallback)", { globals });
-    const two = await expr("(coalesce left fallback)", { globals });
+    const one = await expressionGrammar("(coalesce left fallback)", { globals });
+    const two = await expressionGrammar("(coalesce left fallback)", { globals });
 
     assertEquals(one.kind, MatchKind.Ok);
     assertEquals(two.kind, MatchKind.Ok);
@@ -47,7 +47,7 @@ Deno.test("req:expression-language-syntax-012 - Explicit coalescing syntax suppo
   await t.step(
     "infix null-coalescing syntax is deferred from MVP",
     async () => {
-      const m = await expr("(coalesce left ?? fallback)", {
+      const m = await expressionGrammar("(coalesce left ?? fallback)", {
         globals: new Map<string, unknown>([
           ...std,
           ["left", null],

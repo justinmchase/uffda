@@ -1,6 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { MatchKind } from "../../match.ts";
-import { expr } from "../../lang/expression/expression.lang.ts";
+import { expressionGrammar } from "../../lang/expression/expression.lang.ts";
+import { assertGrammarCases } from "../../lang/grammar.ts";
 import { std } from "../../runtime/std/mod.ts";
 import { exec } from "../../runtime/exec.ts";
 import type { Expression } from "../../runtime/expressions/mod.ts";
@@ -207,32 +208,23 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
     ["patch", { b: 2, a: 3 }],
   ]);
 
-  for (const c of cases) {
-    await t.step(`case ${c.id}: ${c.expr1}/${c.expr2}/${c.expr3}`, async () => {
-      const astMatch = await expr(c.syntax, { globals });
-      assertEquals(astMatch.kind, MatchKind.Ok, `syntax: ${c.syntax}`);
-      if (astMatch.kind === MatchKind.Ok) {
-        assertEquals(astMatch.value, c.expectedAst);
-        const execValue = await exec(astMatch.value, astMatch);
-        assertEquals(execValue, c.expectedValue);
-      }
+  await t.step("core combinatorial cases", async () => {
+    await assertGrammarCases({
+      parse: expressionGrammar,
+      evaluate: exec,
+      cases,
+      options: { globals },
     });
-  }
-
-  for (const c of callCases) {
-    await t.step(`call case ${c.id}: ${c.leaf}`, async () => {
-      const astMatch = await expr(c.syntax, { globals });
-      assertEquals(astMatch.kind, MatchKind.Ok, `syntax: ${c.syntax}`);
-      if (astMatch.kind === MatchKind.Ok) {
-        assertEquals(astMatch.value, c.expectedAst);
-        const execValue = await exec(astMatch.value, astMatch);
-        assertEquals(execValue, c.expectedValue);
-      }
+    await assertGrammarCases({
+      parse: expressionGrammar,
+      evaluate: exec,
+      cases: callCases,
+      options: { globals },
     });
-  }
+  });
 
   await t.step("spread S1: array spread with leading element", async () => {
-    const m = await expr("[0 ...xs]", { globals });
+    const m = await expressionGrammar("[0 ...xs]", { globals });
     assertEquals(m.kind, MatchKind.Ok);
     if (m.kind === MatchKind.Ok) {
       assertEquals(m.value, {
@@ -254,7 +246,7 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
   });
 
   await t.step("spread S2: multiple array spreads", async () => {
-    const m = await expr("[...xs ...ys]", {
+    const m = await expressionGrammar("[...xs ...ys]", {
       globals: new Map<string, unknown>([
         ...globals,
         ["xs", [1]],
@@ -282,7 +274,7 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
   });
 
   await t.step("spread S3: object spread then key", async () => {
-    const m = await expr("{...base, name: 1}", { globals });
+    const m = await expressionGrammar("{...base, name: 1}", { globals });
     assertEquals(m.kind, MatchKind.Ok);
     if (m.kind === MatchKind.Ok) {
       assertEquals(m.value, {
@@ -305,7 +297,7 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
   });
 
   await t.step("spread S4: key then object spread override", async () => {
-    const m = await expr("{name: 1, ...override}", { globals });
+    const m = await expressionGrammar("{name: 1, ...override}", { globals });
     assertEquals(m.kind, MatchKind.Ok);
     if (m.kind === MatchKind.Ok) {
       assertEquals(m.value, {
@@ -328,7 +320,7 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
   });
 
   await t.step("spread S5: object spread merge", async () => {
-    const m = await expr("{...base, ...patch}", { globals });
+    const m = await expressionGrammar("{...base, ...patch}", { globals });
     assertEquals(m.kind, MatchKind.Ok);
     if (m.kind === MatchKind.Ok) {
       assertEquals(m.value, {
@@ -350,7 +342,7 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
   });
 
   await t.step("spread S6: object spread merge with trailing key", async () => {
-    const m = await expr("{...base, ...patch, keep: true}", {
+    const m = await expressionGrammar("{...base, ...patch, keep: true}", {
       globals,
     });
     assertEquals(m.kind, MatchKind.Ok);
@@ -379,7 +371,7 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
   });
 
   await t.step("spread S7: invocation argument spread", async () => {
-    const m = await expr("(coalesce x ...y)", {
+    const m = await expressionGrammar("(coalesce x ...y)", {
       globals: new Map<string, unknown>([
         ...globals,
         ["x", null],
@@ -417,7 +409,7 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
   await t.step(
     "spread S8: invocation argument spread can prepend fixed args",
     async () => {
-      const m = await expr("(pack 1 ...y)", {
+      const m = await expressionGrammar("(pack 1 ...y)", {
         globals: new Map<string, unknown>([
           ...globals,
           ["y", [2, 3]],

@@ -1,6 +1,6 @@
 import { assertEquals, assertRejects } from "@std/assert";
 import { MatchKind } from "../../match.ts";
-import { expr } from "../../lang/expression/expression.lang.ts";
+import { expressionGrammar } from "../../lang/expression/expression.lang.ts";
 import { exec } from "../../runtime/exec.ts";
 
 Deno.test("req:expression-language-syntax-011 - Expression projection can invoke native match bridge with deterministic behavior and normalized errors", async (t) => {
@@ -11,7 +11,7 @@ Deno.test("req:expression-language-syntax-011 - Expression projection can invoke
         ["match", (a: number, b: number) => a === b],
       ]);
 
-      const m = await expr("(match 1 1)", { globals });
+      const m = await expressionGrammar("(match 1 1)", { globals });
       assertEquals(m.kind, MatchKind.Ok);
       if (m.kind === MatchKind.Ok) {
         const value = await exec(m.value, m);
@@ -27,8 +27,8 @@ Deno.test("req:expression-language-syntax-011 - Expression projection can invoke
         ["match", (a: number, b: number) => a === b],
       ]);
 
-      const left = await expr("(match 1 2)", { globals });
-      const right = await expr("(match 1 2)", { globals });
+      const left = await expressionGrammar("(match 1 2)", { globals });
+      const right = await expressionGrammar("(match 1 2)", { globals });
 
       assertEquals(left.kind, MatchKind.Ok);
       assertEquals(right.kind, MatchKind.Ok);
@@ -51,7 +51,7 @@ Deno.test("req:expression-language-syntax-011 - Expression projection can invoke
         }],
       ]);
 
-      const m = await expr("(match 1 1)", { globals });
+      const m = await expressionGrammar("(match 1 1)", { globals });
       assertEquals(m.kind, MatchKind.Ok);
       if (m.kind === MatchKind.Ok) {
         await assertRejects(async () => {
@@ -66,7 +66,7 @@ Deno.test("req:expression-language-syntax-011 - Expression projection can invoke
     async () => {
       const globals = new Map<string, unknown>([["n", 7]]);
 
-      const m = await expr("(n)", { globals });
+      const m = await expressionGrammar("(n)", { globals });
       assertEquals(m.kind, MatchKind.Ok);
       if (m.kind === MatchKind.Ok) {
         await assertRejects(async () => {

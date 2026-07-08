@@ -18,7 +18,7 @@ export type ExprOptions = {
   declarations?: Record<string, ModuleDeclaration>;
 };
 
-export async function expr(
+export async function expressionGrammar(
   expression: string,
   opts?: ExprOptions,
 ): Promise<Match<Expression>> {
