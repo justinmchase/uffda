@@ -2,59 +2,57 @@ import { ExportDeclarationKind } from "../../runtime/declarations/export.ts";
 import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
-import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
-import type {
-  BinaryExpression,
-  PrimaryExpression,
-  TerminalExpression,
-  UnaryExpression,
-} from "../../runtime/expressions/mod.ts";
 
-export const Binary: ModuleDeclaration = {
+export const Spread: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./unary.ts",
-      names: [
-        "Unary",
-      ],
+      moduleUrl: "../tokenizer/token.ts",
+      names: ["Token"],
     },
   ],
   exports: [
     {
       kind: ExportDeclarationKind.Rule,
-      name: "Binary",
+      name: "SpreadMarker",
       default: true,
     },
   ],
   rules: [
     {
-      name: "Binary",
+      name: "Dot",
+      parameters: [],
+      pattern: { kind: PatternKind.Equal, value: "." },
+    },
+    {
+      name: "SpreadMarker",
       parameters: [],
       pattern: {
-        kind: PatternKind.Or,
+        kind: PatternKind.Then,
         patterns: [
           {
             kind: PatternKind.Resolve,
             targetKind: ResolveTargetKind.Reference,
-            name: "Unary",
-            args: [],
+            name: "Token",
+            args: ["Dot"],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "Token",
+            args: ["Dot"],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "Token",
+            args: ["Dot"],
           },
         ],
-      },
-      expression: {
-        kind: ExpressionKind.Native,
-        fn: (
-          { _ },
-        ):
-          | BinaryExpression
-          | UnaryExpression
-          | PrimaryExpression
-          | TerminalExpression => _,
       },
     },
   ],
 };
 
-export default Binary;
+export default Spread;

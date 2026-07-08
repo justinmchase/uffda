@@ -5,8 +5,13 @@ import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
 import type {
+  ArrayExpression,
+  BooleanExpression,
+  MemberExpression,
+  ObjectExpression,
   PrimaryExpression,
   TerminalExpression,
+  ValueExpression,
 } from "../../runtime/expressions/expression.ts";
 
 export const Terminal: ModuleDeclaration = {
@@ -23,6 +28,41 @@ export const Terminal: ModuleDeclaration = {
       moduleUrl: "./string.ts",
       names: [
         "String",
+      ],
+    },
+    {
+      kind: ImportDeclarationKind.Module,
+      moduleUrl: "./array.ts",
+      names: [
+        "Array",
+      ],
+    },
+    {
+      kind: ImportDeclarationKind.Module,
+      moduleUrl: "./object.ts",
+      names: [
+        "Object",
+      ],
+    },
+    {
+      kind: ImportDeclarationKind.Module,
+      moduleUrl: "./member.ts",
+      names: [
+        "Member",
+      ],
+    },
+    {
+      kind: ImportDeclarationKind.Module,
+      moduleUrl: "./boolean.ts",
+      names: [
+        "Boolean",
+      ],
+    },
+    {
+      kind: ImportDeclarationKind.Module,
+      moduleUrl: "./nullish.ts",
+      names: [
+        "Nullish",
       ],
     },
     {
@@ -56,6 +96,36 @@ export const Terminal: ModuleDeclaration = {
           {
             kind: PatternKind.Resolve,
             targetKind: ResolveTargetKind.Reference,
+            name: "Array",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "Object",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "Member",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "Boolean",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "Nullish",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
             name: "Terminal",
             args: [],
           },
@@ -69,7 +139,14 @@ export const Terminal: ModuleDeclaration = {
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ _ }): PrimaryExpression | TerminalExpression => _,
+        fn: ({ _ }):
+          | ArrayExpression
+          | BooleanExpression
+          | MemberExpression
+          | ObjectExpression
+          | PrimaryExpression
+          | TerminalExpression
+          | ValueExpression => _,
       },
     },
   ],

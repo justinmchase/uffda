@@ -1,82 +1,162 @@
-Expression Language Notes
+# Expression Language Grammar
 
 ```uff
 import "../tokenizer/token.ts" Token;
-import "./string.ts" String;
+import "../common/spread.ts" SpreadMarker;
+import "./primary.ts" Primary;
 
-Expression = Binary
-
-Binary
-  = Expression "and" Expression
-  | Expression "or" Expression
-  | Unary
-  ;
+Expression = Unary;
 
 Unary =
-  | "not" Expression
-  | Expression "?"
-  | Expression "+"
-  | Expression "*"
   | Primary
   ;
 
 Primary =
-  | Object    // {}
-  | Array     // []
-  | Sequence  // (x)
-  | String    // "abc {x} xyz"
-  | Terminal
+  | Sequence   // (callee arg1 arg2 ...)
+  | Member     // object.property
+  | Not        // not value
+  | Array      // [a b c]
+  | Object     // {a: 1, b: 2}
+  | Boolean    // true | false
+  | Nullish    // null | undefined
+  | Terminal   // number | reference
+  | String     // "hello {name}"
   ;
 
 Terminal =
-  | Token<Reference> // x
-  | Token<Number>    // 1
+  | Token<Number>
+  | Token<Reference>
   ;
 
-Sequence = "(" Expression+ ")"
+Reference = string >> name:Identifier -> { kind: "reference", name };
+Number = string >> digits:Digit+ -> {
+  kind: "number",
+  value: (parseInt (join "" digits))
+};
 
-// Terminals
-Reference = string >> Identifier // x
-
-// todo:
-// - handle negatives
-// - handle floats
-// - handle hex
-Number = string >> Digit+ -> parseInt(join("" _)) // 123
-```
-
-#### string
-
-```uff
-import "./primary.ts" Primary;
-
-// todo: should also probably suport escaped \
-EscapedCurlBegin = "\\\\" "\{" -> "\{";
-EscapedDoubleQuote = "\\\\" "\"" -> "\"";
-EscapedString =
-  | EscapedCurlyBegin
-  | EscapedDoubleQuote
+Boolean =
+  | Token<"true"> -> { kind: "boolean", value: true }
+  | Token<"false"> -> { kind: "boolean", value: false }
   ;
+
+Nullish =
+  | Token<"null"> -> { kind: "value", value: null }
+  | Token<"undefined"> -> { kind: "value", value: undefined }
+  ;
+
+Array =
+  "["
+  elements:(ArrayInitializer*)
+  "]"
+  -> { kind: "array", expressions: elements }
+  ;
+
+ArrayInitializer =
+  | ArraySpread
+  | ArrayElement
+  ;
+
+ArrayElement =
+  e:Token<Primary>
+  -> { kind: "arrayElement", expression: e }
+  ;
+
+ArraySpread =
+  SpreadMarker
+  e:Token<Primary>
+  -> { kind: "arraySpread", expression: e }
+  ;
+
+Object =
+  "{"
+  keys:(ObjectPairs?)
+  "}"
+  -> { kind: "object", keys: (coalesce keys []) }
+  ;
+
+ObjectPairs =
+  first:ObjectEntry
+  rest:("," ObjectEntry)*
+  -> (append [first] rest)
+  ;
+
+ObjectEntry =
+  | ObjectSpread
+  | ObjectPair
+  ;
+
+ObjectPair =
+  k:Token<Reference>
+  ":"
+  v:Token<Primary>
+  -> { kind: "objectKey", name: (get k "name"), expression: v }
+  ;
+
+ObjectSpread =
+  SpreadMarker
+  e:Token<Primary>
+  -> { kind: "objectSpread", expression: e }
+  ;
+
+Sequence =
+  "("
+  callee:Token<Primary>
+  args:(InvocationArgument*)
+  ")"
+  -> { kind: "invocation", expression: callee, args }
+  ;
+
+InvocationArgument =
+  | InvocationSpread
+  | Token<Primary>
+  ;
+
+InvocationSpread =
+  SpreadMarker
+  e:Token<Primary>
+  -> { kind: "invocationSpread", expression: e }
+  ;
+
+Member =
+  object:Token<Primary>
+  "."
+  name:Token<Reference>
+  -> { kind: "member", expression: object, name: (get name "name") }
+  ;
+
+Not =
+  "not"
+  expression:Token<Primary>
+  -> { kind: "not", expression }
+  ;
+
+// Shared spread token from ../common/spread.ts
+SpreadMarker = Token<"."> Token<"."> Token<".">;
+
+String =
+  "\""
+  values:(StringExpression | StringContent)*
+  "\""
+  -> { kind: "string", values }
+  ;
+
 StringExpression =
-  "\{"
-  v:Primary
+  "{"
+  v:Primary   // current implementation interpolates Primary, not full Expression
   "}"
   -> v
   ;
+
 StringContent =
   (
   | EscapedString
-  | (not "\{" & not "\"")
-  )+ -> (join, "", _)
+  | (not "{" & not "\"" & string)
+  )+
+  -> join("" _)
   ;
 
-export String =
-  "\""
-  v:(StringExpression | StringContent)*
-  "\""
-  -> {
-    kind: ExpressionKind.String,
-    values: v
-  }
+EscapedString =
+  | ("\\" "{") -> "{"
+  | ("\\" "\"") -> "\""
   ;
 ```

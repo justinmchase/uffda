@@ -3,24 +3,25 @@ import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
-import { exec } from "../../runtime/exec.ts";
 import { Scope } from "../../runtime/scope.ts";
 import { std } from "../../runtime/std/mod.ts";
+import { MatchKind } from "../../match.ts";
 import { resolve } from "../../runtime/patterns/resolve.ts";
 import { ModuleImportResultKind } from "../../runtime/resolvers/resolver.ts";
 import { Resolver } from "../../mod.ts";
 import type { Match } from "../../mod.ts";
 import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
+import type { Expression } from "../../runtime/expressions/mod.ts";
 
 export type ExprOptions = {
   globals?: Map<string, unknown>;
   declarations?: Record<string, ModuleDeclaration>;
 };
 
-export async function expr(
+export async function expressionGrammar(
   expression: string,
   opts?: ExprOptions,
-): Promise<Match> {
+): Promise<Match<Expression>> {
   const { globals, declarations } = opts ?? {};
   const g = globals ?? std;
   const r = new Resolver({ declarations });
@@ -40,7 +41,7 @@ export async function expr(
   }
   const scoped = s.pushModule(m.module);
 
-  return await resolve(
+  const parsed = await resolve(
     {
       kind: PatternKind.Resolve,
       targetKind: ResolveTargetKind.Run,
@@ -48,10 +49,26 @@ export async function expr(
     },
     scoped,
   );
+
+  if (parsed.kind === MatchKind.Ok) {
+    return {
+      ...parsed,
+      value: parsed.value as Expression,
+    };
+  }
+
+  return parsed;
 }
 
 export const ExpressionLang: ModuleDeclaration = {
   imports: [
+    {
+      kind: ImportDeclarationKind.Module,
+      moduleUrl: "../source-normalization/mod.ts",
+      names: [
+        "SourceNormalizationAndIndex",
+      ],
+    },
     {
       kind: ImportDeclarationKind.Module,
       moduleUrl: "../tokenizer/mod.ts",
@@ -83,6 +100,12 @@ export const ExpressionLang: ModuleDeclaration = {
           {
             kind: PatternKind.Resolve,
             targetKind: ResolveTargetKind.Reference,
+            name: "SourceNormalizationAndIndex",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
             name: "Tokenizer",
             args: [],
           },
@@ -96,7 +119,7 @@ export const ExpressionLang: ModuleDeclaration = {
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ _ }, _specials, match) => exec(_, match),
+        fn: ({ _ }): Expression => _ as Expression,
       },
     },
   ],

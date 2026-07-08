@@ -2,7 +2,6 @@ import { assert, assertEquals } from "@std/assert";
 import { ok } from "../../mod.ts";
 import { Scope } from "../../runtime/scope.ts";
 import { exec } from "../../runtime/exec.ts";
-import { BinaryOperation } from "../../runtime/expressions/expression.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 
@@ -13,17 +12,18 @@ Deno.test("req:expressions-runtime-008 - Composite expression evaluation preserv
   await t.step(
     "exec returns a promise for composite expressions with immediate children",
     async () => {
-      const binaryResult = exec(
+      const stringImmediateResult = exec(
         {
-          kind: ExpressionKind.Binary,
-          op: BinaryOperation.And,
-          left: { kind: ExpressionKind.Value, value: true },
-          right: { kind: ExpressionKind.Value, value: true },
+          kind: ExpressionKind.String,
+          values: [
+            "a",
+            { kind: ExpressionKind.Value, value: 1 },
+          ],
         },
         match,
       );
-      assert(binaryResult instanceof Promise);
-      assertEquals(await binaryResult, true);
+      assert(stringImmediateResult instanceof Promise);
+      assertEquals(await stringImmediateResult, "a1");
 
       const arrayResult = exec(
         {
@@ -70,20 +70,27 @@ Deno.test("req:expressions-runtime-008 - Composite expression evaluation preserv
   await t.step(
     "exec returns a promise for composite expressions with awaitable children",
     async () => {
-      const binaryResult = exec(
+      const arrayAwaitableResult = exec(
         {
-          kind: ExpressionKind.Binary,
-          op: BinaryOperation.Or,
-          left: {
-            kind: ExpressionKind.Native,
-            fn: () => Promise.resolve(false),
-          },
-          right: { kind: ExpressionKind.Value, value: true },
+          kind: ExpressionKind.Array,
+          expressions: [
+            {
+              kind: ExpressionKind.ArrayElement,
+              expression: {
+                kind: ExpressionKind.Native,
+                fn: () => Promise.resolve(7),
+              },
+            },
+            {
+              kind: ExpressionKind.ArrayElement,
+              expression: { kind: ExpressionKind.Value, value: 11 },
+            },
+          ],
         },
         match,
       );
-      assert(binaryResult instanceof Promise);
-      assertEquals(await binaryResult, true);
+      assert(arrayAwaitableResult instanceof Promise);
+      assertEquals(await arrayAwaitableResult, [7, 11]);
 
       const stringResult = exec(
         {

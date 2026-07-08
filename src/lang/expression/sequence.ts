@@ -4,15 +4,33 @@ import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
-import type { InvocationExpression } from "../../runtime/expressions/expression.ts";
+import type {
+  Expression,
+  InvocationExpression,
+  InvocationSpreadExpression,
+} from "../../runtime/expressions/expression.ts";
 
 export const Sequence: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
+      moduleUrl: "../tokenizer/token.ts",
+      names: [
+        "Token",
+      ],
+    },
+    {
+      kind: ImportDeclarationKind.Module,
       moduleUrl: "./primary.ts",
       names: [
         "Primary",
+      ],
+    },
+    {
+      kind: ImportDeclarationKind.Module,
+      moduleUrl: "../common/spread.ts",
+      names: [
+        "SpreadMarker",
       ],
     },
   ],
@@ -25,45 +43,137 @@ export const Sequence: ModuleDeclaration = {
   ],
   rules: [
     {
+      name: "OpenParen",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Equal,
+        value: "(",
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: () => "(",
+      },
+    },
+    {
+      name: "CloseParen",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Equal,
+        value: ")",
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: () => ")",
+      },
+    },
+    {
+      name: "InvocationSpread",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "SpreadMarker",
+            args: [],
+          },
+          {
+            kind: PatternKind.Variable,
+            name: "expression",
+            pattern: {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "Token",
+              args: ["Primary"],
+            },
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ expression }): InvocationSpreadExpression => ({
+          kind: ExpressionKind.InvocationSpread,
+          expression: expression as Expression,
+        }),
+      },
+    },
+    {
+      name: "InvocationArgument",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Or,
+        patterns: [
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "InvocationSpread",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "Token",
+            args: ["Primary"],
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ _ }): Expression | InvocationSpreadExpression => _,
+      },
+    },
+    {
       name: "Sequence",
       parameters: [],
       pattern: {
         kind: PatternKind.Then,
         patterns: [
           {
-            kind: PatternKind.Equal,
-            value: "(",
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "Token",
+            args: ["OpenParen"],
           },
           {
             kind: PatternKind.Variable,
-            name: "p",
+            name: "expression",
+            pattern: {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "Token",
+              args: ["Primary"],
+            },
+          },
+          {
+            kind: PatternKind.Variable,
+            name: "args",
             pattern: {
               kind: PatternKind.Quantifier,
-              min: 1,
+              min: 0,
               pattern: {
                 kind: PatternKind.Resolve,
                 targetKind: ResolveTargetKind.Reference,
-                name: "Primary",
+                name: "InvocationArgument",
                 args: [],
               },
             },
           },
           {
-            kind: PatternKind.Equal,
-            value: ")",
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "Token",
+            args: ["CloseParen"],
           },
         ],
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ p }): InvocationExpression => {
-          const [expression, ...args] = p;
-          return {
-            kind: ExpressionKind.Invocation,
-            expression,
-            args,
-          };
-        },
+        fn: ({ expression, args }): InvocationExpression => ({
+          kind: ExpressionKind.Invocation,
+          expression,
+          args,
+        }),
       },
     },
   ],

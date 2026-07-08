@@ -105,5 +105,43 @@ Deno.test(
         },
       }),
     });
+
+    await t.step({
+      name: "SEQUENCE_EXPRESSION_03",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.Iterable([
+          "(",
+          "coalesce",
+          "x",
+          ".",
+          ".",
+          ".",
+          "y",
+          ")",
+        ]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: ExpressionKind.Invocation,
+          expression: {
+            kind: ExpressionKind.Reference,
+            name: "coalesce",
+          },
+          args: [
+            {
+              kind: ExpressionKind.Reference,
+              name: "x",
+            },
+            {
+              kind: ExpressionKind.InvocationSpread,
+              expression: {
+                kind: ExpressionKind.Reference,
+                name: "y",
+              },
+            },
+          ],
+        },
+      }),
+    });
   },
 );

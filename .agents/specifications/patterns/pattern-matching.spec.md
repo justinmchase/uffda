@@ -12,7 +12,13 @@ Normative key words in this chapter use the conventions defined in the
 
 Pattern matching is the process by which a pattern is evaluated against the
 current runtime scope and input position to determine whether it recognizes the
-current input according to the pattern's declared semantics.
+current input according to the pattern's declared semantics. At the
+language-design level, pattern matching is also the primary branching and
+binding mechanism; expression-layer conditionals are not the default way to
+express that behavior.
+
+Pattern-based branching MAY be invoked from projection contexts through a native
+`match` function so patterns can act like callable dynamic constraints.
 
 ## Matching model
 

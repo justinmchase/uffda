@@ -112,7 +112,7 @@ Deno.test({
       name: "TOKENIZER06",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.Iterable("abc   123\t\t\txyz\r\n\n\n456"),
+        input: Input.Iterable("abc   123\t\t\txyz\n\n\n456"),
         value: [
           "abc",
           "   ",

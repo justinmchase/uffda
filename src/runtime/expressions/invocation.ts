@@ -1,5 +1,6 @@
 import type { MatchOk } from "../../match.ts";
 import { exec } from "../exec.ts";
+import { ExpressionKind } from "./expression.kind.ts";
 import type { InvocationExpression } from "./expression.ts";
 
 export async function invocation(
@@ -19,6 +20,22 @@ export async function invocation(
   };
 
   const fn = await exec(expr, match);
-  const resolvedArgs = await Promise.all(args.map((arg) => exec(arg, match)));
+  const values = await Promise.all(
+    args.map((arg) =>
+      exec(
+        arg.kind === ExpressionKind.InvocationSpread ? arg.expression : arg,
+        match,
+      )
+    ),
+  );
+
+  const resolvedArgs = args.reduce<unknown[]>((all, arg, i) => {
+    const value = values[i];
+    if (arg.kind === ExpressionKind.InvocationSpread) {
+      return [...all, ...(value as [])];
+    }
+    return [...all, value];
+  }, []);
+
   return invoke(fn, resolvedArgs);
 }
