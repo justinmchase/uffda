@@ -50,7 +50,7 @@ export enum CharacterClass {
   Mark = "M",
   NonSpacingMark = "Mn",
   SpacingCombiningMark = "Mc",
-  EnclosingMark = "Mn",
+  EnclosingMark = "Me",
   Number = "N",
   DecimalDigitNumber = "Nd",
   LetterNumber = "Nl",
@@ -171,7 +171,7 @@ export type ResolveReferencePattern = {
   kind: PatternKind.Resolve;
   targetKind: ResolveTargetKind.Reference;
   name: string;
-  args: string[];
+  args: Pattern[];
 };
 
 export type ResolveRunPattern = {

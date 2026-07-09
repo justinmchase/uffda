@@ -14,10 +14,11 @@ export async function rule(
   scope: Scope,
 ): AwaitableMatch {
   const { module, pattern, expression, name, parameters } = rule;
+  const mergedArgs = new Map([...(rule.closureArgs ?? new Map()), ...args]);
   const params = new Set<string>();
   for (const p of parameters) {
     params.add(p.name);
-    if (!args.has(p.name)) {
+    if (!mergedArgs.has(p.name)) {
       return error(
         scope,
         pattern,
@@ -38,13 +39,13 @@ export async function rule(
   }
 
   let { key, memo } = scope.memos.resolve(scope.stream.path, rule, [
-    ...args.values(),
+    ...mergedArgs.values(),
   ]);
   if (!memo) {
     memo = scope.memos.set(scope.stream.path, key, lr(scope, pattern));
     const subScope = scope
       .pushModule(module)
-      .pushRule(rule, args);
+      .pushRule(rule, mergedArgs);
 
     const m = await match(pattern, subScope);
     memo.match = m;

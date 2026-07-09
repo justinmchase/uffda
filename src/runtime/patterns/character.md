@@ -3,7 +3,7 @@
 The character pattern matches string characters against well-defined unicode
 character classes.
 
-The syntax will be `\c{Abb.}` such as `\cL`, `\cA`
+The syntax will be `\cAbb.` such as `\cL`, `\cA`
 
 https://unicode.org/reports/tr18/#General_Category_Property
 

@@ -142,4 +142,267 @@ Deno.test("runtime.patterns.resolve", async (t) => {
       end: Path.From(0),
     }),
   });
+
+  await t.step({
+    name: "RESOLVE_PATTERN04",
+    fn: moduleDeclarationTest({
+      moduleUrl: import.meta.url,
+      declarations: {
+        [import.meta.url]: {
+          imports: [],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "Main",
+            default: true,
+          }],
+          rules: [
+            {
+              name: "Wrap",
+              parameters: [{ name: "P" }],
+              pattern: {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "P",
+                args: [],
+              },
+            },
+            {
+              name: "Main",
+              parameters: [],
+              pattern: {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "Wrap",
+                args: [
+                  {
+                    kind: PatternKind.Equal,
+                    value: "a",
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+      input: Input.Iterable("a"),
+      kind: MatchKind.Ok,
+      value: "a",
+    }),
+  });
+
+  await t.step({
+    name: "RESOLVE_PATTERN05",
+    fn: moduleDeclarationTest({
+      moduleUrl: import.meta.url,
+      declarations: {
+        [import.meta.url]: {
+          imports: [],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "Main",
+            default: true,
+          }],
+          rules: [
+            {
+              name: "Wrap",
+              parameters: [{ name: "P" }],
+              pattern: {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "P",
+                args: [],
+              },
+            },
+            {
+              name: "Inner",
+              parameters: [{ name: "Q" }],
+              pattern: {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "Q",
+                args: [],
+              },
+            },
+            {
+              name: "Main",
+              parameters: [],
+              pattern: {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "Wrap",
+                args: [
+                  {
+                    kind: PatternKind.Resolve,
+                    targetKind: ResolveTargetKind.Reference,
+                    name: "Inner",
+                    args: [
+                      {
+                        kind: PatternKind.Equal,
+                        value: "a",
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+      input: Input.Iterable("a"),
+      kind: MatchKind.Ok,
+      value: "a",
+    }),
+  });
+
+  await t.step({
+    name: "RESOLVE_PATTERN06",
+    fn: moduleDeclarationTest({
+      moduleUrl: import.meta.url,
+      declarations: {
+        [import.meta.url]: {
+          imports: [],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "Main",
+            default: true,
+          }],
+          rules: [
+            {
+              name: "Wrap",
+              parameters: [{ name: "Q" }],
+              pattern: {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "Q",
+                args: [],
+              },
+            },
+            {
+              name: "Relay",
+              parameters: [{ name: "P" }],
+              pattern: {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "Wrap",
+                args: [
+                  {
+                    kind: PatternKind.Resolve,
+                    targetKind: ResolveTargetKind.Reference,
+                    name: "P",
+                    args: [],
+                  },
+                ],
+              },
+            },
+            {
+              name: "Main",
+              parameters: [],
+              pattern: {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "Relay",
+                args: [
+                  {
+                    kind: PatternKind.Equal,
+                    value: "a",
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+      input: Input.Iterable("a"),
+      kind: MatchKind.Ok,
+      value: "a",
+    }),
+  });
+
+  await t.step({
+    name: "RESOLVE_PATTERN07",
+    fn: moduleDeclarationTest({
+      moduleUrl: import.meta.url,
+      declarations: {
+        [import.meta.url]: {
+          imports: [],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "Main",
+            default: true,
+          }],
+          rules: [
+            {
+              name: "Wrap",
+              parameters: [{ name: "Q" }],
+              pattern: {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "Q",
+                args: [],
+              },
+            },
+            {
+              name: "Inner",
+              parameters: [{ name: "R" }],
+              pattern: {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "Wrap",
+                args: [
+                  {
+                    kind: PatternKind.Resolve,
+                    targetKind: ResolveTargetKind.Reference,
+                    name: "R",
+                    args: [],
+                  },
+                ],
+              },
+            },
+            {
+              name: "Relay",
+              parameters: [{ name: "P" }],
+              pattern: {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "Wrap",
+                args: [
+                  {
+                    kind: PatternKind.Resolve,
+                    targetKind: ResolveTargetKind.Reference,
+                    name: "Inner",
+                    args: [
+                      {
+                        kind: PatternKind.Resolve,
+                        targetKind: ResolveTargetKind.Reference,
+                        name: "P",
+                        args: [],
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+            {
+              name: "Main",
+              parameters: [],
+              pattern: {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "Relay",
+                args: [
+                  {
+                    kind: PatternKind.Equal,
+                    value: "a",
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+      input: Input.Iterable("a"),
+      kind: MatchKind.Ok,
+      value: "a",
+    }),
+  });
 });

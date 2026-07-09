@@ -14,7 +14,9 @@ Deno.test("req:expression-language-syntax-012 - Explicit coalescing syntax suppo
         ["fallback", "ok"],
       ]);
 
-      const m = await expressionGrammar("(coalesce left fallback)", { globals });
+      const m = await expressionGrammar("(coalesce left fallback)", {
+        globals,
+      });
       assertEquals(m.kind, MatchKind.Ok);
       if (m.kind === MatchKind.Ok) {
         const value = await exec(m.value, m);
@@ -30,8 +32,12 @@ Deno.test("req:expression-language-syntax-012 - Explicit coalescing syntax suppo
       ["fallback", 11],
     ]);
 
-    const one = await expressionGrammar("(coalesce left fallback)", { globals });
-    const two = await expressionGrammar("(coalesce left fallback)", { globals });
+    const one = await expressionGrammar("(coalesce left fallback)", {
+      globals,
+    });
+    const two = await expressionGrammar("(coalesce left fallback)", {
+      globals,
+    });
 
     assertEquals(one.kind, MatchKind.Ok);
     assertEquals(two.kind, MatchKind.Ok);

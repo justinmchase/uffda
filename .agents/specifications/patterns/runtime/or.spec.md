@@ -86,7 +86,7 @@ or([
 
 ```
 // Grammar rule
-Alphanumeric = \p{L} | \p{Nd}
+Alphanumeric = \cL | \cNd
 ```
 
 Input `"a"` succeeds with `"a"`. Input `"5"` succeeds with `"5"`. Input `"."`

@@ -1,5 +1,10 @@
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../mod.ts";
+import { ExportDeclarationKind } from "../../runtime/declarations/export.ts";
+import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
+import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
+import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
+import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
 const moduleUrl = new URL("./mod.ts", import.meta.url).href;
@@ -8,6 +13,35 @@ const p = await Deno.permissions.query({
   name: "read",
   path: moduleUrl,
 });
+
+const tokenizerNoWhitespaceModule: ModuleDeclaration = {
+  imports: [
+    {
+      kind: ImportDeclarationKind.Module,
+      moduleUrl,
+      names: ["TokenizerNoWhitespace"],
+    },
+  ],
+  exports: [
+    {
+      kind: ExportDeclarationKind.Rule,
+      name: "Main",
+      default: true,
+    },
+  ],
+  rules: [
+    {
+      name: "Main",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Resolve,
+        targetKind: ResolveTargetKind.Reference,
+        name: "TokenizerNoWhitespace",
+        args: [],
+      },
+    },
+  ],
+};
 
 Deno.test({
   ignore: p.state !== "granted",
@@ -173,6 +207,21 @@ Deno.test({
           "}",
           "z",
         ],
+        kind: MatchKind.Ok,
+      }),
+    });
+
+    await t.step({
+      name: "TOKENIZER10",
+      fn: moduleDeclarationTest({
+        moduleUrl:
+          new URL("./tokenizer-no-whitespace.ts", import.meta.url).href,
+        declarations: {
+          [new URL("./tokenizer-no-whitespace.ts", import.meta.url).href]:
+            tokenizerNoWhitespaceModule,
+        },
+        input: Input.Iterable(" any or fail\n"),
+        value: ["any", "or", "fail"],
         kind: MatchKind.Ok,
       }),
     });

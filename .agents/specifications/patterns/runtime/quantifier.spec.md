@@ -100,7 +100,7 @@ quantifier(character(CharacterClass.Letter))
 
 ```
 // Grammar rule
-Letters = \p{L}*
+Letters = \cL*
 ```
 
 Input `"abc"` succeeds with value `["a", "b", "c"]`. Input `""` or `[]` succeeds
@@ -117,7 +117,7 @@ quantifier(character(CharacterClass.DecimalDigitNumber), { min: 1 })
 
 ```
 // Grammar rule
-Integer = \p{Nd}+
+Integer = \cNd+
 ```
 
 Input `"42"` succeeds with `["4", "2"]`. Input `""` fails because the minimum
@@ -134,7 +134,7 @@ quantifier(between("0", "9"), { min: 3, max: 3 })
 
 ```
 // Grammar rule
-ThreeDigits = \p{Nd}{3}
+ThreeDigits = \cNd{3}
 ```
 
 Input `"123"` succeeds with `["1", "2", "3"]`. Input `"12"` fails; input

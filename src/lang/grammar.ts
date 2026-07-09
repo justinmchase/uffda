@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { MatchKind, type Match, type MatchOk } from "../match.ts";
+import { type Match, MatchKind, type MatchOk } from "../match.ts";
 
 export type GrammarParse<TAst, TOptions> = (
   source: string,
@@ -66,7 +66,10 @@ export async function assertGrammarCases<TAst, TResult, TOptions>(options: {
   } = options;
 
   for (const testCase of cases) {
-    const match = await parse(testCase.syntax, testCase.options ?? defaultOptions);
+    const match = await parse(
+      testCase.syntax,
+      testCase.options ?? defaultOptions,
+    );
     assertEquals(match.kind, MatchKind.Ok, `syntax: ${testCase.syntax}`);
     if (match.kind === MatchKind.Ok) {
       assertEquals(match.value, testCase.expectedAst);

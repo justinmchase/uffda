@@ -8,6 +8,7 @@ export type Rule = {
   pattern: Pattern;
   parameters: RuleParameter[];
   expression?: Expression;
+  closureArgs?: Map<string, Rule>;
 };
 
 export type RuleParameter = {

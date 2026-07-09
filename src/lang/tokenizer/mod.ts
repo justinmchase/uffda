@@ -37,6 +37,10 @@ export const Tokenizer: ModuleDeclaration = {
     },
     {
       kind: ExportDeclarationKind.Rule,
+      name: "TokenizerNoWhitespace",
+    },
+    {
+      kind: ExportDeclarationKind.Rule,
       name: "Tokenizer",
       default: true,
     },
@@ -167,6 +171,59 @@ export const Tokenizer: ModuleDeclaration = {
           name: "Tokens",
           args: [],
         },
+      },
+    },
+    {
+      name: "NonWhitespaceToken",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Except,
+        pattern: {
+          kind: PatternKind.Or,
+          patterns: [
+            {
+              kind: PatternKind.Equal,
+              value: "\n",
+            },
+            {
+              kind: PatternKind.And,
+              patterns: [
+                {
+                  kind: PatternKind.Type,
+                  type: Type.String,
+                },
+                {
+                  kind: PatternKind.Into,
+                  pattern: {
+                    kind: PatternKind.Quantifier,
+                    min: 1,
+                    pattern: {
+                      kind: PatternKind.Resolve,
+                      targetKind: ResolveTargetKind.Reference,
+                      name: "Whitespace",
+                      args: [],
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      },
+    },
+    {
+      name: "TokenizerNoWhitespace",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Resolve,
+        targetKind: ResolveTargetKind.Reference,
+        name: "Tokenizer",
+        args: [],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ _ }) =>
+          (_ as string[]).filter((token) => token.trim().length > 0),
       },
     },
   ],

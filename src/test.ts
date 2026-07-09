@@ -9,7 +9,7 @@ import { ResolveTargetKind } from "./runtime/patterns/pattern.ts";
 import { resolve } from "./runtime/patterns/resolve.ts";
 import { ExportDeclarationKind } from "./runtime/declarations/mod.ts";
 import { ModuleImportResultKind } from "./runtime/resolvers/resolver.ts";
-import { MatchKind } from "./match.ts";
+import { getRightmostFailure, MatchKind } from "./match.ts";
 import type {
   MatchError,
   MatchErrorCode,
@@ -398,40 +398,84 @@ function* fails(match: Match): Iterable<MatchFail> {
   }
 }
 
+function spanText(match: MatchFail | MatchOk | MatchError): string {
+  return `${match.span.start.toString()} -> ${match.span.end.toString()}`;
+}
+
+function matchDebug(match: Match): string {
+  const lines: string[] = [
+    "Match debug:",
+    `  kind: ${match.kind}`,
+    `  pattern: ${match.pattern.kind}`,
+  ];
+
+  if (match.kind !== MatchKind.LR) {
+    lines.push(`  span: ${spanText(match)}`);
+    lines.push(`  stream done: ${match.scope.stream.done}`);
+  }
+
+  if (match.kind === MatchKind.Fail || match.kind === MatchKind.Ok) {
+    lines.push(`  child matches: ${match.matches.length}`);
+  }
+
+  if (match.kind === MatchKind.Fail) {
+    const rightmost = getRightmostFailure(match);
+    lines.push(`  rightmost failure pattern: ${rightmost.pattern.kind}`);
+    lines.push(`  rightmost failure span: ${spanText(rightmost)}`);
+  }
+
+  if (match.kind === MatchKind.Error) {
+    lines.push(`  code: ${match.code}`);
+    lines.push(`  message: ${match.message}`);
+  }
+
+  return `\n${lines.join("\n")}`;
+}
+
 function assertLR(m: MatchLR, assertion: MatchAssertion) {
   assert(
     m.kind === assertion.kind,
-    `Match was ${m.kind} but expected to be ${assertion.kind}`,
+    `Match was ${m.kind} but expected to be ${assertion.kind}${matchDebug(m)}`,
   );
 }
 
 function assertError(m: MatchError, assertion: MatchAssertion) {
   assert(
     m.kind === assertion.kind,
-    `Match was [${m.kind}] with message "${m.message}" but expected to be [${assertion.kind}]`,
+    `Match was [${m.kind}] with message "${m.message}" but expected to be [${assertion.kind}]${
+      matchDebug(m)
+    }`,
   );
   assert(
     m.message === assertion.message,
-    `Match error message was '${m.message}' but expected to be '${assertion.message}'`,
+    `Match error message was '${m.message}' but expected to be '${assertion.message}'${
+      matchDebug(m)
+    }`,
   );
   assert(
     m.code === assertion.code,
-    `Match error code was ${m.code} but expected to be ${assertion.code}`,
+    `Match error code was ${m.code} but expected to be ${assertion.code}${
+      matchDebug(m)
+    }`,
   );
   assert(
     equal(m.span.start, assertion.start),
-    `Match error start was ${m.span.start} but expected to be ${assertion.start}`,
+    `Match error start was ${m.span.start} but expected to be ${assertion.start}${
+      matchDebug(m)
+    }`,
   );
   assert(
     equal(m.span.end, assertion.end),
-    `Match error end was ${m.span.end} but expected to be ${assertion.end}`,
+    `Match error end was ${m.span.end} but expected to be ${assertion.end}${
+      matchDebug(m)
+    }`,
   );
 }
 
 function assertFail(m: MatchFail, assertion: MatchAssertion) {
   assert(
     m.kind === assertion.kind,
-    `Match was ${m.kind} but expected to be ${assertion.kind}`,
+    `Match was ${m.kind} but expected to be ${assertion.kind}${matchDebug(m)}`,
   );
 
   if (assertion.failures) {
@@ -441,24 +485,32 @@ function assertFail(m: MatchFail, assertion: MatchAssertion) {
       const fr = assertion.failures[i];
       assert(
         equal(fl.span.start, fr.start),
-        `Match failure start was ${fl.span.start} but expected to be ${fr.start}`,
+        `Match failure start was ${fl.span.start} but expected to be ${fr.start}${
+          matchDebug(m)
+        }`,
       );
       assert(
         equal(fl.span.end, fr.end),
-        `Match failure end was ${fl.span.end} but expected to be ${fr.end}`,
+        `Match failure end was ${fl.span.end} but expected to be ${fr.end}${
+          matchDebug(m)
+        }`,
       );
     }
   } else {
     if (assertion.start) {
       assert(
         equal(m.span.start, assertion.start),
-        `Match error start was ${m.span.start} but expected to be ${assertion.start}`,
+        `Match error start was ${m.span.start} but expected to be ${assertion.start}${
+          matchDebug(m)
+        }`,
       );
     }
     if (assertion.end) {
       assert(
         equal(m.span.end, assertion.end),
-        `Match error end was ${m.span.end} but expected to be ${assertion.end}`,
+        `Match error end was ${m.span.end} but expected to be ${assertion.end}${
+          matchDebug(m)
+        }`,
       );
     }
   }
@@ -466,14 +518,16 @@ function assertFail(m: MatchFail, assertion: MatchAssertion) {
   const done = assertion.done ?? false;
   assert(
     equal(m.scope.stream.done, done),
-    `Pattern was ${done ? "" : "not "}expected to be done`,
+    `Pattern was ${done ? "" : "not "}expected to be done${matchDebug(m)}`,
   );
 }
 
 function assertOk(m: MatchOk, assertion: MatchAssertion) {
   assert(
     m.kind === assertion.kind,
-    `Match was [${m.kind}] but expected to be ${assertion.kind}`,
+    `Match was [${m.kind}] but expected to be ${assertion.kind}${
+      matchDebug(m)
+    }`,
   );
   assert(
     equal(m.value, assertion.value),
@@ -481,11 +535,12 @@ function assertOk(m: MatchOk, assertion: MatchAssertion) {
       `expected value: ${
         Deno.inspect(assertion.value, { colors: true, depth: 10 })
       }\n` +
-      `  actual value: ${Deno.inspect(m.value, { colors: true, depth: 10 })}`,
+      `  actual value: ${Deno.inspect(m.value, { colors: true, depth: 10 })}` +
+      `${matchDebug(m)}`,
   );
   const done = assertion.done ?? true;
   assert(
     equal(m.scope.stream.done, done),
-    `Pattern was ${done ? "" : "not "}expected to be done`,
+    `Pattern was ${done ? "" : "not "}expected to be done${matchDebug(m)}`,
   );
 }

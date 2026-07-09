@@ -4,7 +4,10 @@ import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
-import type { Expression, NotExpression } from "../../runtime/expressions/expression.ts";
+import type {
+  Expression,
+  NotExpression,
+} from "../../runtime/expressions/expression.ts";
 
 export const Not: ModuleDeclaration = {
   imports: [

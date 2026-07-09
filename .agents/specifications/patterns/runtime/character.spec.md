@@ -93,7 +93,7 @@ character(CharacterClass.Letter)
 
 ```
 // Grammar rule
-Letter = \p{L}
+Letter = \cL
 ```
 
 Input `"A"` succeeds with value `"A"`. Input `"1"` fails.
@@ -118,7 +118,7 @@ then([
 
 ```
 // Grammar rule
-Identifier = \p{L} (\p{L} | \p{Nd})*
+Identifier = \cL (\cL | \cNd)*
 ```
 
 Input `"x1"` succeeds with value `["x", ["1"]]`. Input `"1x"` fails because the

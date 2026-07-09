@@ -116,7 +116,9 @@ Deno.test(
     await t.step({
       name: "EXPR_LANG_04",
       fn: async () => {
-        const m = await expressionGrammar("{name: 1, enabled: true, fallback: undefined}");
+        const m = await expressionGrammar(
+          "{name: 1, enabled: true, fallback: undefined}",
+        );
         switch (m.kind) {
           case MatchKind.Ok: {
             const value = await exec(m.value, m);

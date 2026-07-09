@@ -39,6 +39,10 @@ construct language grammars and layered compiler behavior.
 - Pattern failure and error surfaces MUST remain distinguishable for diagnostics
   and language-tooling workflows.
 
+## Pattern syntax sub-specs
+
+- [pattern syntax contracts](./pattern-syntax.spec.md)
+
 ## Composition intent
 
 - Pattern-layer contracts SHOULD be reusable for non-Uffda top-level languages

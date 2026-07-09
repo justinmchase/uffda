@@ -15,8 +15,7 @@ Preconditions:
 Expected behavior:
 
 - Member access MUST use explicit postfix dot syntax.
-- Member access MUST project a named property from an evaluated base
-  expression.
+- Member access MUST project a named property from an evaluated base expression.
 - Member access MUST remain unambiguous with spread syntax.
 
 Valid syntax examples:

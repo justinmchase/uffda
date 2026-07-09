@@ -5,28 +5,31 @@ import { exec } from "../../runtime/exec.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 
 Deno.test("req:expression-language-syntax-009 - Expression syntax supports explicit member access and unary not forms", async (t) => {
-  await t.step("member access parses to member AST and evaluates deterministically", async () => {
-    const m = await expressionGrammar("user.name", {
-      globals: new Map([
-        ["user", { name: "uffda" }],
-      ]),
-    });
-
-    assertEquals(m.kind, MatchKind.Ok);
-    if (m.kind === MatchKind.Ok) {
-      assertEquals(m.value, {
-        kind: ExpressionKind.Member,
-        expression: {
-          kind: ExpressionKind.Reference,
-          name: "user",
-        },
-        name: "name",
+  await t.step(
+    "member access parses to member AST and evaluates deterministically",
+    async () => {
+      const m = await expressionGrammar("user.name", {
+        globals: new Map([
+          ["user", { name: "uffda" }],
+        ]),
       });
 
-      const value = await exec(m.value, m);
-      assertEquals(value, "uffda");
-    }
-  });
+      assertEquals(m.kind, MatchKind.Ok);
+      if (m.kind === MatchKind.Ok) {
+        assertEquals(m.value, {
+          kind: ExpressionKind.Member,
+          expression: {
+            kind: ExpressionKind.Reference,
+            name: "user",
+          },
+          name: "name",
+        });
+
+        const value = await exec(m.value, m);
+        assertEquals(value, "uffda");
+      }
+    },
+  );
 
   await t.step("member chaining remains deterministic", async () => {
     const m = await expressionGrammar("user.profile.name", {

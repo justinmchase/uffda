@@ -4,14 +4,25 @@ import type { AwaitableMatch } from "../awaitable.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { SpecialKind } from "../modules/special.ts";
 import type { Rule } from "../modules/rule.ts";
+import type { Module } from "../modules/module.ts";
 import type { Scope } from "../scope.ts";
 import type {
+  Pattern,
   ResolvePattern,
   ResolveReferencePattern,
   ResolveRunPattern,
   ResolveSpecialPattern,
 } from "./pattern.ts";
 import { ResolveTargetKind } from "./pattern.ts";
+
+function argumentRule(pattern: Pattern, module: Module, index: number): Rule {
+  return {
+    name: `$arg${index}`,
+    module,
+    parameters: [],
+    pattern,
+  };
+}
 
 async function resolveReference(
   pattern: ResolveReferencePattern,
@@ -38,23 +49,18 @@ async function resolveReference(
 
   const args = new Map<string, Rule>();
   for (let i = 0; i < pattern.args.length; i++) {
-    const argName = pattern.args[i];
+    const argPattern = pattern.args[i];
     const paramName = ref.parameters[i].name;
-    const r = scope.getRule(argName);
-    if (!r) {
-      return error(
-        scope,
-        pattern,
-        MatchErrorCode.UnknownParameter,
-        `unknown argument reference: ${argName}`,
-      );
-    }
-    if (r === ref) {
+    const r = {
+      ...argumentRule(argPattern, scope.module, i),
+      closureArgs: new Map(scope.args),
+    };
+    if (r.pattern === ref.pattern) {
       return error(
         scope,
         pattern,
         MatchErrorCode.InvalidArgument,
-        `invalid self reference: ${argName}`,
+        `invalid self reference in argument ${i}`,
       );
     }
     args.set(paramName, r);
