@@ -53,8 +53,11 @@ Uffda language-definition layer.
 
 ## Uffda layer integration gates
 
-- [ ] Uffda language-definition entrypoints enforce full-input consumption.
+- [x] Uffda language-definition entrypoints enforce full-input consumption.
+  - Implemented: pattern and expression entrypoint wrappers now reject trailing
+    source after an otherwise valid body.
 - [ ] Uffda declarations can round-trip authored syntax to canonical pattern and
       expression trees.
+  - Deferred: revisit after full language surface is built.
 - [ ] Spec and requirement alignment for declaration syntax, imports, rule
       signatures, and expression projection.

@@ -198,5 +198,13 @@ Deno.test(
         }
       },
     });
+
+    await t.step({
+      name: "EXPR_LANG_07",
+      fn: async () => {
+        const m = await expressionGrammar("(add 1 2) trailing");
+        assertEquals(m.kind, MatchKind.Fail);
+      },
+    });
   },
 );

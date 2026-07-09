@@ -26,7 +26,7 @@ Deno.test("req:source-normalization-runtime-003 - Expression language pipeline r
 
   assertEquals(steps, [
     "SourceNormalizationAndIndex",
-    "Tokenizer",
-    "Expression",
+    "TokenizerNoWhitespace",
+    "ExpressionComplete",
   ]);
 });
