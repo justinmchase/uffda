@@ -4,8 +4,8 @@ This chapter defines rule declaration keyword contracts for Uffda modules.
 
 ## Logical purpose
 
-Rule declarations define named rule entries that bind one declared pattern
-body with an optional projection expression.
+Rule declarations define named rule entries that bind one declared pattern body
+with an optional projection expression.
 
 ## Core contracts
 
@@ -13,6 +13,8 @@ body with an optional projection expression.
 - A rule declaration MAY include a projection clause.
 - Rule declarations without a projection clause MUST remain valid.
 - Rule declarations MUST use the `rule` declaration keyword.
+- Rule declarations MUST use `=` to separate the declared name from the pattern
+  body.
 
 ## Integration contracts
 
@@ -21,5 +23,5 @@ body with an optional projection expression.
 
 ## Canonical starter forms
 
-- Without projection: `rule RuleName any;`
-- With projection: `rule RuleName any -> 1;`
+- Without projection: `rule RuleName = any;`
+- With projection: `rule RuleName = any -> 1;`

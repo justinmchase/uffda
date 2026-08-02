@@ -74,10 +74,10 @@ Deno.test(
     );
 
     await t.step(
-      "variable projects a binding node",
+      "capture projects a variable binding node",
       moduleDeclarationTest({
         moduleUrl,
-        input: Input.Scalar("variable x any"),
+        input: Input.Scalar("x:any"),
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Variable,
@@ -88,10 +88,10 @@ Deno.test(
     );
 
     await t.step(
-      "quantifier preserves bounds",
+      "postfix repetition preserves bounds",
       moduleDeclarationTest({
         moduleUrl,
-        input: Input.Scalar("quantifier any (1, 3)"),
+        input: Input.Scalar("any*1..3"),
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Quantifier,
@@ -169,7 +169,7 @@ Deno.test(
       moduleDeclarationTest({
         moduleUrl,
         input: Input.Scalar(
-          '|\n  "literal"\n|\n  any\n  |>\n  [end]\n  |>\n  ok\n|\n  {\n    name: string,\n    aliases: [quantifier any (1,)],\n  }',
+          '|\n  "literal"\n|\n  any\n  |>\n  [end]\n  |>\n  ok\n|\n  {\n    name: string,\n    aliases: [any+],\n  }',
         ),
         kind: MatchKind.Ok,
         value: {

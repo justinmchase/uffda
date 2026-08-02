@@ -9,6 +9,8 @@ import { Type } from "@justinmchase/type";
 import { assertEquals } from "@std/assert";
 import { patternGrammar } from "./pattern.lang.ts";
 import { moduleDeclarationTest } from "../../test.ts";
+import { executeModuleDeclaration } from "../../runtime/module.execute.ts";
+import { PatternLang } from "./pattern.lang.ts";
 
 const moduleUrl = new URL("./pattern.lang.ts", import.meta.url).href;
 
@@ -33,6 +35,27 @@ Deno.test(
         }
       },
     });
+
+    await t.step(
+      "PATTERN_TOKENS_00 parses an existing token array",
+      async () => {
+        const m = await executeModuleDeclaration(PatternLang, {
+          moduleUrl: new URL("./pattern.lang.ts", import.meta.url),
+          entryRuleName: "PatternTokens",
+          input: ["any", "|", "fail"],
+        });
+        assertEquals(m.kind, MatchKind.Ok);
+        if (m.kind === MatchKind.Ok) {
+          assertEquals(m.value, {
+            kind: PatternKind.Or,
+            patterns: [
+              { kind: PatternKind.Any },
+              { kind: PatternKind.Fail },
+            ],
+          });
+        }
+      },
+    );
 
     await t.step({
       name: "PATTERN_LANG_00",
@@ -486,7 +509,7 @@ Deno.test(
       fn: moduleDeclarationTest({
         moduleUrl,
         input: Input.Scalar(
-          '|\n  "literal"\n|\n  any\n  |>\n  [end]\n  |>\n  ok\n|\n  {\n    name: string,\n    aliases: [quantifier any (1,)],\n  }',
+          '|\n  "literal"\n|\n  any\n  |>\n  [end]\n  |>\n  ok\n|\n  {\n    name: string,\n    aliases: [any+],\n  }',
         ),
         kind: MatchKind.Ok,
         value: {

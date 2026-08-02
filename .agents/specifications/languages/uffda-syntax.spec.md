@@ -35,6 +35,7 @@ Normative key words in this chapter use the conventions defined in the
 - [rule declaration syntax](./uffda-syntax/rule-declarations.spec.md)
 - [rule declaration keyword forms](./uffda-syntax/pattern-declarations.spec.md)
 - [canonical executable examples](./uffda-syntax/canonical-examples.spec.md)
+- [canonical Morse language](./uffda-syntax/morse-language.spec.md)
 
 ## Integration contracts
 

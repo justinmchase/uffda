@@ -1,3 +1,6 @@
+import type { Expression } from "../../runtime/expressions/expression.ts";
+import type { Pattern } from "../../runtime/patterns/pattern.ts";
+
 export type UffdaImportSyntaxDeclaration = {
   kind: "import";
   moduleUrl: string;
@@ -12,8 +15,8 @@ export type UffdaExportSyntaxDeclaration = {
 export type UffdaRuleSyntaxDeclaration = {
   kind: "rule";
   name: string;
-  pattern: unknown;
-  projection?: unknown;
+  pattern: Pattern;
+  projection?: Expression;
 };
 
 export type UffdaSyntaxDeclaration =

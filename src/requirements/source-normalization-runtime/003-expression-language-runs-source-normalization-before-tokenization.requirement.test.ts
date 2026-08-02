@@ -19,9 +19,10 @@ Deno.test("req:source-normalization-runtime-003 - Expression language pipeline r
 
   const pattern = expressionLangRule.pattern as PipelinePattern;
   const steps = pattern.steps.map((step) => {
-    if (step.kind !== PatternKind.Resolve) return "";
-    if (step.targetKind !== ResolveTargetKind.Reference) return "";
-    return step.name;
+    const resolved = step.kind === PatternKind.Into ? step.pattern : step;
+    if (resolved.kind !== PatternKind.Resolve) return "";
+    if (resolved.targetKind !== ResolveTargetKind.Reference) return "";
+    return resolved.name;
   });
 
   assertEquals(steps, [

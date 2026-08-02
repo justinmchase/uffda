@@ -7,35 +7,47 @@ import "../common/identifier.ts" Identifier;
 Pattern = Or -> Or;
 
 Or =
-  ("|"?)
+  "|"?
   first:And
-  rest:(OrTail?)
+  rest:OrTail?
   -> { kind: "or", patterns: (append [first] (coalesce rest [])) }
   ;
 
 OrTail =
   "|"
   next:And
-  tail:(OrTail?)
+  tail:OrTail?
   -> (append [next] (coalesce tail []))
   ;
 
 And =
-  first:Then
-  rest:(AndTail?)
+  first:Pipe
+  rest:AndTail?
   -> { kind: "and", patterns: (append [first] (coalesce rest [])) }
   ;
 
 AndTail =
   "&"
-  next:Then
-  tail:(AndTail?)
+  next:Pipe
+  tail:AndTail?
   -> (append [next] (coalesce tail []))
+  ;
+
+Pipe =
+  first:Then
+  rest:PipeTail*
+  -> { kind: "pipeline", steps: (append [first] rest) }
+  ;
+
+PipeTail =
+  "|" ">"
+  next:Then
+  -> next
   ;
 
 Then =
   first:Prefix
-  rest:(Prefix*)
+  rest:Prefix*
   -> { kind: "then", patterns: (append [first] rest) }
   ;
 
@@ -56,7 +68,48 @@ Prefix =
   | "except"
     pattern:Prefix
     -> { kind: "except", pattern }
+  | Capture
+  | Postfix
+  ;
+
+Capture =
+  name:Token<Identifier>
+  ":"
+  pattern:Prefix
+  -> { kind: "variable", name, pattern }
+  ;
+
+Postfix =
+  | pattern:Atomic
+    "*"
+    bounds:RepetitionBounds?
+    -> {
+      kind: "quantifier",
+      pattern,
+      min: (get (coalesce bounds {}) "min"),
+      max: (get (coalesce bounds {}) "max")
+    }
+  | pattern:Atomic
+    "+"
+    -> { kind: "quantifier", pattern, min: 1 }
+  | pattern:Atomic
+    "?"
+    -> { kind: "maybe", pattern }
   | Atomic
+  ;
+
+RepetitionBounds =
+  | min:Integer
+    "."
+    "."
+    max:Integer?
+    -> { min, max }
+  | "."
+    "."
+    max:Integer
+    -> { min: 0, max }
+  | min:Integer
+    -> { min }
   ;
 
 Atomic =
@@ -79,10 +132,7 @@ Atomic =
   | value:AtomicLiteral
     -> { kind: "equal", value }
   | Resolve
-  | Variable
-  | Quantifier
   | Over
-  | Pipeline
   | Group
   ;
 
@@ -173,7 +223,7 @@ Literal =
 
 Resolve =
   name:ResolveName
-  args:(ResolveArgs?)
+  args:ResolveArgs?
   -> { kind: "resolve", targetKind: "reference", name, args: (coalesce args []) }
   ;
 
@@ -186,15 +236,15 @@ ResolveName =
 
 ResolveArgs =
   "<"
-  values:(ResolveArgumentList?)
+  values:ResolveArgumentList?
   ">"
   -> values
   ;
 
 ResolveArgumentList =
   first:ResolveArgument
-  rest:(ResolveArgumentTail*)
-  trailing:(","?)
+  rest:ResolveArgumentTail*
+  trailing:","?
   -> (append [first] rest)
   ;
 
@@ -208,37 +258,9 @@ ResolveArgument =
   | Token<Identifier>
   ;
 
-Variable =
-  "variable"
-  name:Token<Identifier>
-  pattern:Prefix
-  -> { kind: "variable", name, pattern }
-  ;
-
-Quantifier =
-  "quantifier"
-  pattern:Prefix
-  bounds:(QuantifierBounds?)
-  -> {
-    kind: "quantifier",
-    pattern,
-    min: (get (coalesce bounds {}) "min"),
-    max: (get (coalesce bounds {}) "max")
-  }
-  ;
-
-QuantifierBounds =
-  "("
-  min:Integer?
-  ","
-  max:Integer?
-  ")"
-  -> { min, max }
-  ;
-
 Over =
   "{"
-  keys:(OverEntries?)
+  keys:OverEntries?
   "}"
   -> { kind: "over", keys: (coalesce keys []) }
   ;
@@ -334,7 +356,7 @@ Example =
     ok
   | {
       name: string,
-      aliases: [quantifier any (1,)],
+      aliases: [any+],
     }
   ;
 ```

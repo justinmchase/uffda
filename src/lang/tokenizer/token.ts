@@ -61,7 +61,26 @@ export const Token: ModuleDeclaration = {
         kind: PatternKind.Resolve,
         targetKind: ResolveTargetKind.Reference,
         name: "Surround",
-        args: ["W", "P", "W"],
+        args: [
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "W",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "P",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "W",
+            args: [],
+          },
+        ],
       },
     },
   ],

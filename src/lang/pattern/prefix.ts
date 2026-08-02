@@ -176,15 +176,11 @@ export const Prefix: ModuleDeclaration = {
       },
     },
     {
-      name: "Variable",
+      name: "Capture",
       parameters: [],
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          {
-            kind: PatternKind.Equal,
-            value: "variable",
-          },
           {
             kind: PatternKind.Variable,
             name: "name",
@@ -196,12 +192,16 @@ export const Prefix: ModuleDeclaration = {
             },
           },
           {
+            kind: PatternKind.Equal,
+            value: ":",
+          },
+          {
             kind: PatternKind.Variable,
             name: "pattern",
             pattern: {
               kind: PatternKind.Resolve,
               targetKind: ResolveTargetKind.Reference,
-              name: "Atomic",
+              name: "Prefix",
               args: [],
             },
           },
@@ -214,58 +214,6 @@ export const Prefix: ModuleDeclaration = {
           name,
           pattern,
         }),
-      },
-    },
-    {
-      name: "Quantifier",
-      parameters: [],
-      pattern: {
-        kind: PatternKind.Then,
-        patterns: [
-          {
-            kind: PatternKind.Equal,
-            value: "quantifier",
-          },
-          {
-            kind: PatternKind.Variable,
-            name: "pattern",
-            pattern: {
-              kind: PatternKind.Resolve,
-              targetKind: ResolveTargetKind.Reference,
-              name: "Atomic",
-              args: [],
-            },
-          },
-          {
-            kind: PatternKind.Variable,
-            name: "bounds",
-            pattern: {
-              kind: PatternKind.Quantifier,
-              min: 0,
-              max: 1,
-              pattern: {
-                kind: PatternKind.Resolve,
-                targetKind: ResolveTargetKind.Reference,
-                name: "QuantifierBounds",
-                args: [],
-              },
-            },
-          },
-        ],
-      },
-      expression: {
-        kind: ExpressionKind.Native,
-        fn: ({ pattern, bounds }) => {
-          const quantifierBounds = Array.isArray(bounds) && bounds.length > 0
-            ? bounds[0] as { min?: number; max?: number }
-            : undefined;
-          return {
-            kind: PatternKind.Quantifier,
-            pattern,
-            min: quantifierBounds?.min,
-            max: quantifierBounds?.max,
-          };
-        },
       },
     },
     {
@@ -283,33 +231,18 @@ export const Prefix: ModuleDeclaration = {
       },
     },
     {
-      name: "QuantifierBounds",
+      name: "RepetitionRangeTail",
       parameters: [],
       pattern: {
         kind: PatternKind.Then,
         patterns: [
           {
             kind: PatternKind.Equal,
-            value: "(",
-          },
-          {
-            kind: PatternKind.Variable,
-            name: "min",
-            pattern: {
-              kind: PatternKind.Quantifier,
-              min: 0,
-              max: 1,
-              pattern: {
-                kind: PatternKind.Resolve,
-                targetKind: ResolveTargetKind.Reference,
-                name: "BoundNumber",
-                args: [],
-              },
-            },
+            value: ".",
           },
           {
             kind: PatternKind.Equal,
-            value: ",",
+            value: ".",
           },
           {
             kind: PatternKind.Variable,
@@ -326,22 +259,271 @@ export const Prefix: ModuleDeclaration = {
               },
             },
           },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ max }) => ({
+          max: Array.isArray(max) && max.length > 0
+            ? max[0] as number
+            : undefined,
+        }),
+      },
+    },
+    {
+      name: "LowerRepetitionBounds",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
           {
-            kind: PatternKind.Equal,
-            value: ")",
+            kind: PatternKind.Variable,
+            name: "min",
+            pattern: {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "BoundNumber",
+              args: [],
+            },
+          },
+          {
+            kind: PatternKind.Variable,
+            name: "range",
+            pattern: {
+              kind: PatternKind.Quantifier,
+              min: 0,
+              max: 1,
+              pattern: {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "RepetitionRangeTail",
+                args: [],
+              },
+            },
           },
         ],
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ min, max }) => ({
-          min: Array.isArray(min) && min.length > 0
-            ? min[0] as number
-            : undefined,
-          max: Array.isArray(max) && max.length > 0
-            ? max[0] as number
+        fn: ({ min, range }) => ({
+          min: min as number,
+          max: Array.isArray(range) && range.length > 0
+            ? (range[0] as { max?: number }).max
             : undefined,
         }),
+      },
+    },
+    {
+      name: "UpperRepetitionBounds",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Equal,
+            value: ".",
+          },
+          {
+            kind: PatternKind.Equal,
+            value: ".",
+          },
+          {
+            kind: PatternKind.Variable,
+            name: "max",
+            pattern: {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "BoundNumber",
+              args: [],
+            },
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ max }) => ({ min: 0, max: max as number }),
+      },
+    },
+    {
+      name: "RepetitionBounds",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Or,
+        patterns: [
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "LowerRepetitionBounds",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "UpperRepetitionBounds",
+            args: [],
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ _ }) => _,
+      },
+    },
+    {
+      name: "Star",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Variable,
+            name: "pattern",
+            pattern: {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "Atomic",
+              args: [],
+            },
+          },
+          {
+            kind: PatternKind.Equal,
+            value: "*",
+          },
+          {
+            kind: PatternKind.Variable,
+            name: "bounds",
+            pattern: {
+              kind: PatternKind.Quantifier,
+              min: 0,
+              max: 1,
+              pattern: {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "RepetitionBounds",
+                args: [],
+              },
+            },
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ pattern, bounds }) => {
+          const repetitionBounds = Array.isArray(bounds) && bounds.length > 0
+            ? bounds[0] as { min?: number; max?: number }
+            : {};
+          for (const [name, value] of Object.entries(repetitionBounds)) {
+            if (value != null && (!Number.isInteger(value) || value < 0)) {
+              throw new RangeError(
+                `repetition ${name} must be a non-negative integer but is ${value}`,
+              );
+            }
+          }
+          if (
+            repetitionBounds.min != null && repetitionBounds.max != null &&
+            repetitionBounds.max < repetitionBounds.min
+          ) {
+            throw new RangeError(
+              `repetition maximum ${repetitionBounds.max} is less than minimum ${repetitionBounds.min}`,
+            );
+          }
+          return {
+            kind: PatternKind.Quantifier,
+            pattern,
+            min: repetitionBounds.min,
+            max: repetitionBounds.max,
+          };
+        },
+      },
+    },
+    {
+      name: "Plus",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Variable,
+            name: "pattern",
+            pattern: {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "Atomic",
+              args: [],
+            },
+          },
+          { kind: PatternKind.Equal, value: "+" },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ pattern }) => ({
+          kind: PatternKind.Quantifier,
+          pattern,
+          min: 1,
+          max: undefined,
+        }),
+      },
+    },
+    {
+      name: "Optional",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Variable,
+            name: "pattern",
+            pattern: {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "Atomic",
+              args: [],
+            },
+          },
+          { kind: PatternKind.Equal, value: "?" },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ pattern }) => ({ kind: PatternKind.Maybe, pattern }),
+      },
+    },
+    {
+      name: "Postfix",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Or,
+        patterns: [
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "Star",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "Plus",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "Optional",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "Atomic",
+            args: [],
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ _ }) => _,
       },
     },
     {
@@ -383,19 +565,13 @@ export const Prefix: ModuleDeclaration = {
           {
             kind: PatternKind.Resolve,
             targetKind: ResolveTargetKind.Reference,
-            name: "Variable",
+            name: "Capture",
             args: [],
           },
           {
             kind: PatternKind.Resolve,
             targetKind: ResolveTargetKind.Reference,
-            name: "Quantifier",
-            args: [],
-          },
-          {
-            kind: PatternKind.Resolve,
-            targetKind: ResolveTargetKind.Reference,
-            name: "Atomic",
+            name: "Postfix",
             args: [],
           },
         ],

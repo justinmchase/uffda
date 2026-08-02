@@ -130,7 +130,26 @@ export const SurroundTest: ModuleDeclaration = {
         kind: PatternKind.Resolve,
         targetKind: ResolveTargetKind.Reference,
         name: "Surround",
-        args: ["A", "B", "C"],
+        args: [
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "A",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "B",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "C",
+            args: [],
+          },
+        ],
       },
     },
   ],

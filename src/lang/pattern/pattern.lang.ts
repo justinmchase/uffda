@@ -52,8 +52,25 @@ export const PatternLang: ModuleDeclaration = {
       name: "PatternLang",
       default: true,
     },
+    {
+      kind: ExportDeclarationKind.Rule,
+      name: "PatternTokens",
+    },
   ],
   rules: [
+    {
+      name: "PatternTokens",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Into,
+        pattern: {
+          kind: PatternKind.Resolve,
+          targetKind: ResolveTargetKind.Reference,
+          name: "Pattern",
+          args: [],
+        },
+      },
+    },
     {
       name: "PatternLang",
       parameters: [],
@@ -73,16 +90,22 @@ export const PatternLang: ModuleDeclaration = {
                   args: [],
                 },
                 {
-                  kind: PatternKind.Resolve,
-                  targetKind: ResolveTargetKind.Reference,
-                  name: "TokenizerNoWhitespace",
-                  args: [],
+                  kind: PatternKind.Into,
+                  pattern: {
+                    kind: PatternKind.Resolve,
+                    targetKind: ResolveTargetKind.Reference,
+                    name: "TokenizerNoWhitespace",
+                    args: [],
+                  },
                 },
                 {
-                  kind: PatternKind.Resolve,
-                  targetKind: ResolveTargetKind.Reference,
-                  name: "Pattern",
-                  args: [],
+                  kind: PatternKind.Into,
+                  pattern: {
+                    kind: PatternKind.Resolve,
+                    targetKind: ResolveTargetKind.Reference,
+                    name: "Pattern",
+                    args: [],
+                  },
                 },
               ],
             },

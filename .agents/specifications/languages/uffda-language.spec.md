@@ -32,26 +32,61 @@ layers into author-facing language/module declarations.
 
 - [Uffda syntax contracts](./uffda-syntax.spec.md)
 
+## Compilation sub-specs
+
+- [Uffda runtime compilation](./uffda-runtime-compilation.spec.md)
+
 ## Composition intent
 
 - Uffda language-definition contracts SHOULD remain explicit enough that
   alternative top-level language definitions can interoperate with shared lower
   layers.
 
-# Last Context before running out of tokens
+## Delivery milestones
 
-Once we have tokens again this should be the start of the new conversation.
+### Milestone 1: Specify runtime compilation
 
-> I don't think you're understanding, I think you need essentially a whole new language layer, you're writing a ton of imperitive code but what you actually need to do is to setup a new language called something like uffda runtime compiler.
+- Define the Uffda syntax AST to runtime `ModuleDeclaration` boundary.
+- Require compilation to be expressed as an executable Uffda language whose
+  rules transform structured AST input through pattern matching.
+- Define target reuse, diagnostic provenance, and host-integration boundaries.
+- Derive focused requirement documents from the compilation contracts.
 
-> you should not be for looping over declarations, rather you need a new grammar which is expecting not strings but uffda grammar AST as input and then uses patterns following the same techniques as the other languages to transform those objects into the runtime Module AST which can then be executed.
+### Milestone 2: Establish the compiler language
 
-## Rough Context
+- Add an `UffdaRuntimeCompiler` module declaration with a structured AST entry
+  rule.
+- Compile a manually constructed `UffdaSyntaxModule` into an exact runtime
+  `ModuleDeclaration` fixture.
+- Cover unsupported AST variants and malformed compiler input.
 
-- I've asked the ai to take the uffda lang output and "run" it.
-- The uffda lang AST is not directly executable. It needs to be down compiled into into the runtime executable form.
-- The AI is currently just writing some imperitive code to do this transformation, I am trying to ask it to make a new pattern language for doing this instead since transformation of objects into another structure is fundamentally a pattern matching operation.
-- At a higher level this compilation process is going to be very fundamental to uffda and we need to set precedence right now, every DSL will parse higher and higher levels of abstract syntax into an AST and then the compilation process should take it down layers of abstraction, all the way down to an actual interpretted runtime or even down to artifacts that can be handed off to external compilers (e.g. C#, C++, javascript, etc.)
-- Compiling to uffda runtime should be a viable target for any uffda based dsl
-- Canonical language examples it generated so far are super weak
-- Add a canonical MorseLang where `rule Dit = "-";` and `rule Dot = ".";` have it translate morse into text
+### Milestone 3: Compile declaration families
+
+- Transform import, export, and rule declarations through dedicated compiler
+  rules.
+- Transform declaration sequences through pattern composition rather than host
+  language iteration and variant dispatch.
+- Preserve declaration identity, ordering, and source provenance.
+
+### Milestone 4: Replace imperative compilation
+
+- Route `compileUffdaSyntaxModule` through `UffdaRuntimeCompiler`.
+- Keep host functions limited to resolving and executing the compiler language
+  and unwrapping its match result.
+- Remove token reparsing and imperative declaration transformation from the host
+  compilation path.
+
+### Milestone 5: Validate the complete pipeline
+
+- Validate source parsing, AST compilation, module resolution, and runtime
+  execution as separate boundaries and as one end-to-end path.
+- Add requirement coverage for deterministic compiler failures and source-path
+  diagnostics.
+
+### Milestone 6: Add a canonical Morse language
+
+- Define a non-trivial `MorseLang` fixture that compiles and translates Morse
+  input into text.
+- Use the canonical `=` rule binding form.
+- Use the fixture to demonstrate that compiling to the Uffda runtime is a
+  reusable target for Uffda-based DSLs.

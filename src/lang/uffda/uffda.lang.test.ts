@@ -3,7 +3,7 @@ import { MatchKind } from "../../mod.ts";
 import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
-import { uffdaGrammar, UffdaLang } from "./uffda.lang.ts";
+import { uffdaGrammar, UffdaLang, UffdaRuntimeCompiler } from "./uffda.lang.ts";
 import { RuleDeclarationRules } from "./rule.rules.ts";
 
 Deno.test({
@@ -144,13 +144,19 @@ Deno.test({
         assertEquals(names.includes("ImportDeclarationSyntax"), true);
         assertEquals(names.includes("ExportDeclarationSyntax"), true);
         assertEquals(names.includes("RuleDeclarationSyntax"), true);
+        assertEquals(
+          UffdaRuntimeCompiler.rules.some((r) =>
+            r.name === "UffdaRuntimeCompiler"
+          ),
+          true,
+        );
       },
     });
 
     await t.step({
       name: "UFFDA_LANG_04 parses one rule pattern body per declaration",
       fn: async () => {
-        const one = await uffdaGrammar("rule P any;");
+        const one = await uffdaGrammar("rule P = any;");
         assertEquals(one.kind, MatchKind.Ok);
         if (one.kind === MatchKind.Ok) {
           assertEquals(one.value.declarations.length, 1);
@@ -166,30 +172,55 @@ Deno.test({
           }
         }
 
-        const notOne = await uffdaGrammar("rule P any end;");
-        assertEquals(notOne.kind, MatchKind.Fail);
+        const sequence = await uffdaGrammar('rule P = "." "." end;');
+        assertEquals(sequence.kind, MatchKind.Ok);
+        if (sequence.kind === MatchKind.Ok) {
+          assertEquals(sequence.value.declarations[0], {
+            kind: "rule",
+            name: "P",
+            pattern: {
+              kind: PatternKind.Then,
+              patterns: [
+                { kind: PatternKind.Equal, value: "." },
+                { kind: PatternKind.Equal, value: "." },
+                { kind: PatternKind.End },
+              ],
+            },
+            projection: undefined,
+          });
+        }
       },
     });
 
     await t.step({
       name: "UFFDA_LANG_05 projection clauses are optional",
       fn: async () => {
-        const withoutProjection = await uffdaGrammar("rule P any;");
+        const withoutProjection = await uffdaGrammar("rule P = any;");
         assertEquals(withoutProjection.kind, MatchKind.Ok);
 
-        const withProjection = await uffdaGrammar("rule P any -> 1;");
+        const withProjection = await uffdaGrammar("rule P = any -> 1;");
         assertEquals(withProjection.kind, MatchKind.Ok);
+
+        const multiTokenProjection = await uffdaGrammar(
+          "rule P = any -> [1 2];",
+        );
+        assertEquals(multiTokenProjection.kind, MatchKind.Ok);
+
+        const quotedDelimiters = await uffdaGrammar(
+          'rule P = ";" "->" -> ";";',
+        );
+        assertEquals(quotedDelimiters.kind, MatchKind.Ok);
       },
     });
 
     await t.step({
       name: "UFFDA_LANG_06 imports must appear before rules",
       fn: async () => {
-        const valid = await uffdaGrammar('import "./a.ts" A; rule P any;');
+        const valid = await uffdaGrammar('import "./a.ts" A; rule P = any;');
         assertEquals(valid.kind, MatchKind.Ok);
 
         const invalid = await uffdaGrammar(
-          'rule P any; import "./a.ts" A;',
+          'rule P = any; import "./a.ts" A;',
         );
         assertEquals(invalid.kind, MatchKind.Fail);
       },
@@ -198,11 +229,11 @@ Deno.test({
     await t.step({
       name: "UFFDA_LANG_07 declarations are separated by semicolons",
       fn: async () => {
-        const valid = await uffdaGrammar('import "./a.ts" A; rule P any;');
+        const valid = await uffdaGrammar('import "./a.ts" A; rule P = any;');
         assertEquals(valid.kind, MatchKind.Ok);
 
         const missingSeparator = await uffdaGrammar(
-          'import "./a.ts" A rule P any;',
+          'import "./a.ts" A rule P = any;',
         );
         assertEquals(missingSeparator.kind, MatchKind.Fail);
       },
@@ -222,28 +253,24 @@ Deno.test({
           throw new Error("Expected integration rules to be declared");
         }
 
-        assertEquals(patternRule.pattern.kind, PatternKind.Or);
-        if (patternRule.pattern.kind === PatternKind.Or) {
-          const delegated = patternRule.pattern.patterns.find((p) =>
+        assertEquals(patternRule.pattern.kind, PatternKind.Pipeline);
+        if (patternRule.pattern.kind === PatternKind.Pipeline) {
+          const delegated = patternRule.pattern.steps.find((p) =>
             p.kind === PatternKind.Resolve &&
             p.targetKind === ResolveTargetKind.Reference &&
-            p.name === "PatternLang"
+            p.name === "PatternTokens"
           );
           assertEquals(Boolean(delegated), true);
         }
 
-        assertEquals(projectionRule.pattern.kind, PatternKind.Resolve);
-        if (projectionRule.pattern.kind === PatternKind.Resolve) {
-          assertEquals(
-            projectionRule.pattern.targetKind,
-            ResolveTargetKind.Reference,
+        assertEquals(projectionRule.pattern.kind, PatternKind.Pipeline);
+        if (projectionRule.pattern.kind === PatternKind.Pipeline) {
+          const delegated = projectionRule.pattern.steps.find((p) =>
+            p.kind === PatternKind.Resolve &&
+            p.targetKind === ResolveTargetKind.Reference &&
+            p.name === "ExpressionTokens"
           );
-        }
-        if (
-          projectionRule.pattern.kind === PatternKind.Resolve &&
-          projectionRule.pattern.targetKind === ResolveTargetKind.Reference
-        ) {
-          assertEquals(projectionRule.pattern.name, "ExpressionLang");
+          assertEquals(Boolean(delegated), true);
         }
       },
     });

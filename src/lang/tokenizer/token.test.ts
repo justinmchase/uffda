@@ -94,7 +94,12 @@ export const TokenTest: ModuleDeclaration = {
         kind: PatternKind.Resolve,
         targetKind: ResolveTargetKind.Reference,
         name: "Token",
-        args: ["T"],
+        args: [{
+          kind: PatternKind.Resolve,
+          targetKind: ResolveTargetKind.Reference,
+          name: "T",
+          args: [],
+        }],
       },
     },
   ],

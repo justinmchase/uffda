@@ -105,11 +105,10 @@ Deno.test({
       name: "TOKENIZER05",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.Iterable("!@#$%^&*()_+-=[]\\{}|;':\",./<>?"),
+        input: Input.Iterable("!@$%^&*()_+-=[]\\{}|;':\",./<>?"),
         value: [
           "!",
           "@",
-          "#",
           "$",
           "%",
           "^",
@@ -138,6 +137,16 @@ Deno.test({
           ">",
           "?",
         ],
+        kind: MatchKind.Ok,
+      }),
+    });
+
+    await t.step({
+      name: "TOKENIZER05A",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.Iterable('"#" # comment\n*'),
+        value: ['"', "#", '"', " ", "\n", "*"],
         kind: MatchKind.Ok,
       }),
     });
@@ -222,6 +231,23 @@ Deno.test({
         },
         input: Input.Iterable(" any or fail\n"),
         value: ["any", "or", "fail"],
+        kind: MatchKind.Ok,
+      }),
+    });
+
+    await t.step({
+      name: "TOKENIZER11",
+      fn: moduleDeclarationTest({
+        moduleUrl:
+          new URL("./tokenizer-no-whitespace.ts", import.meta.url).href,
+        declarations: {
+          [new URL("./tokenizer-no-whitespace.ts", import.meta.url).href]:
+            tokenizerNoWhitespaceModule,
+        },
+        input: Input.Iterable(
+          '#123 punctuation !@*\nany # trailing\n"# quoted \\" hash"\nend',
+        ),
+        value: ["any", '"', "#", "quoted", "\\", '"', "hash", '"', "end"],
         kind: MatchKind.Ok,
       }),
     });

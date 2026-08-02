@@ -1,3 +1,4 @@
+import { Type } from "@justinmchase/type";
 import { Input } from "../../input.ts";
 import { ResolveTargetKind } from "./pattern.ts";
 import { MatchKind } from "../../match.ts";
@@ -156,10 +157,13 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
                     args: [],
                   },
                   {
-                    kind: PatternKind.Resolve,
-                    targetKind: ResolveTargetKind.Reference,
-                    name: "TimesTwo",
-                    args: [],
+                    kind: PatternKind.Into,
+                    pattern: {
+                      kind: PatternKind.Resolve,
+                      targetKind: ResolveTargetKind.Reference,
+                      name: "TimesTwo",
+                      args: [],
+                    },
                   },
                 ],
               },
@@ -273,7 +277,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
   });
 
   await t.step({
-    name: "PIPELINE05",
+    name: "PIPELINE06",
     fn: moduleDeclarationTest({
       moduleUrl: import.meta.url,
       declarations: {
@@ -315,10 +319,13 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
                     ],
                   },
                   {
-                    kind: PatternKind.Resolve,
-                    targetKind: ResolveTargetKind.Reference,
-                    name: "P",
-                    args: [],
+                    kind: PatternKind.Into,
+                    pattern: {
+                      kind: PatternKind.Resolve,
+                      targetKind: ResolveTargetKind.Reference,
+                      name: "P",
+                      args: [],
+                    },
                   },
                 ],
               },
@@ -381,6 +388,43 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       },
       input: Input.Iterable("abc"),
       value: ["a", ["b"], "c"],
+      kind: MatchKind.Ok,
+    }),
+  });
+
+  await t.step({
+    name: "PIPELINE07 preserves outer stream after transformed stages",
+    fn: moduleDeclarationTest({
+      moduleUrl: import.meta.url,
+      declarations: {
+        [import.meta.url]: {
+          imports: [],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "Test",
+            default: true,
+          }],
+          rules: [{
+            name: "Test",
+            parameters: [],
+            pattern: {
+              kind: PatternKind.Then,
+              patterns: [
+                {
+                  kind: PatternKind.Pipeline,
+                  steps: [
+                    { kind: PatternKind.Equal, value: "a" },
+                    { kind: PatternKind.Type, type: Type.String },
+                  ],
+                },
+                { kind: PatternKind.Equal, value: "b" },
+              ],
+            },
+          }],
+        },
+      },
+      input: Input.Iterable("ab"),
+      value: ["a", "b"],
       kind: MatchKind.Ok,
     }),
   });

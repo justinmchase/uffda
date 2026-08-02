@@ -51,6 +51,10 @@ export const ExpressionLang: ModuleDeclaration = {
       kind: ExportDeclarationKind.Rule,
       name: "ExpressionLang",
     },
+    {
+      kind: ExportDeclarationKind.Rule,
+      name: "ExpressionTokens",
+    },
   ],
   rules: [
     {
@@ -80,6 +84,19 @@ export const ExpressionLang: ModuleDeclaration = {
       },
     },
     {
+      name: "ExpressionTokens",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Into,
+        pattern: {
+          kind: PatternKind.Resolve,
+          targetKind: ResolveTargetKind.Reference,
+          name: "ExpressionComplete",
+          args: [],
+        },
+      },
+    },
+    {
       name: "ExpressionLang",
       parameters: [],
       pattern: {
@@ -92,16 +109,22 @@ export const ExpressionLang: ModuleDeclaration = {
             args: [],
           },
           {
-            kind: PatternKind.Resolve,
-            targetKind: ResolveTargetKind.Reference,
-            name: "TokenizerNoWhitespace",
-            args: [],
+            kind: PatternKind.Into,
+            pattern: {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "TokenizerNoWhitespace",
+              args: [],
+            },
           },
           {
-            kind: PatternKind.Resolve,
-            targetKind: ResolveTargetKind.Reference,
-            name: "ExpressionComplete",
-            args: [],
+            kind: PatternKind.Into,
+            pattern: {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "ExpressionComplete",
+              args: [],
+            },
           },
         ],
       },

@@ -2,6 +2,7 @@ import { ExportDeclarationKind } from "../../runtime/declarations/export.ts";
 import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
+import type { Expression } from "../../runtime/expressions/expression.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { Type } from "@justinmchase/type";
@@ -12,12 +13,12 @@ export const RuleDeclarationRules: ModuleDeclaration = {
     {
       kind: ImportDeclarationKind.Module,
       moduleUrl: "../pattern/pattern.lang.ts",
-      names: ["PatternLang"],
+      names: ["PatternTokens"],
     },
     {
       kind: ImportDeclarationKind.Module,
       moduleUrl: "../expression/expression.lang.ts",
-      names: ["ExpressionLang"],
+      names: ["ExpressionTokens"],
     },
     {
       kind: ImportDeclarationKind.Module,
@@ -80,18 +81,18 @@ export const RuleDeclarationRules: ModuleDeclaration = {
       name: "RulePatternBody",
       parameters: [],
       pattern: {
-        kind: PatternKind.Or,
-        patterns: [
+        kind: PatternKind.Pipeline,
+        steps: [
           {
             kind: PatternKind.Resolve,
             targetKind: ResolveTargetKind.Reference,
-            name: "PatternLang",
+            name: "RulePatternToken",
             args: [],
           },
           {
             kind: PatternKind.Resolve,
             targetKind: ResolveTargetKind.Reference,
-            name: "RulePatternToken",
+            name: "PatternTokens",
             args: [],
           },
         ],
@@ -105,10 +106,21 @@ export const RuleDeclarationRules: ModuleDeclaration = {
       name: "RuleProjectionExpression",
       parameters: [],
       pattern: {
-        kind: PatternKind.Resolve,
-        targetKind: ResolveTargetKind.Reference,
-        name: "ExpressionLang",
-        args: [],
+        kind: PatternKind.Pipeline,
+        steps: [
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "RuleProjectionToken",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "ExpressionTokens",
+            args: [],
+          },
+        ],
       },
       expression: {
         kind: ExpressionKind.Native,
@@ -131,75 +143,212 @@ export const RuleDeclarationRules: ModuleDeclaration = {
       name: "RuleProjectionToken",
       parameters: [],
       pattern: {
-        kind: PatternKind.Type,
-        type: Type.String,
+        kind: PatternKind.Quantifier,
+        min: 1,
+        pattern: {
+          kind: PatternKind.Or,
+          patterns: [
+            {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "RuleQuotedTokenSequence",
+              args: [],
+            },
+            {
+              kind: PatternKind.And,
+              patterns: [
+                {
+                  kind: PatternKind.Not,
+                  pattern: { kind: PatternKind.Equal, value: ";" },
+                },
+                { kind: PatternKind.Type, type: Type.String },
+              ],
+            },
+          ],
+        },
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ _ }) => _,
+        fn: ({ _ }) => (_ as unknown[]).flat(),
+      },
+    },
+    {
+      name: "RuleQuotedTokenSequence",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          { kind: PatternKind.Equal, value: '"' },
+          {
+            kind: PatternKind.Variable,
+            name: "content",
+            pattern: {
+              kind: PatternKind.Quantifier,
+              pattern: {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "RuleQuotedTokenContent",
+                args: [],
+              },
+            },
+          },
+          { kind: PatternKind.Equal, value: '"' },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ content }): unknown[] => [
+          '"',
+          ...(content as unknown[]).flat(),
+          '"',
+        ],
+      },
+    },
+    {
+      name: "RuleQuotedTokenContent",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Or,
+        patterns: [
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "RuleEscapedQuotedTokens",
+            args: [],
+          },
+          {
+            kind: PatternKind.And,
+            patterns: [
+              {
+                kind: PatternKind.Not,
+                pattern: { kind: PatternKind.Equal, value: '"' },
+              },
+              { kind: PatternKind.Type, type: Type.String },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      name: "RuleEscapedQuotedTokens",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          { kind: PatternKind.Equal, value: "\\" },
+          {
+            kind: PatternKind.Variable,
+            name: "escaped",
+            pattern: {
+              kind: PatternKind.Or,
+              patterns: [
+                { kind: PatternKind.Equal, value: '"' },
+                { kind: PatternKind.Equal, value: "{" },
+              ],
+            },
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ escaped }): unknown[] => ["\\", escaped],
       },
     },
     {
       name: "RulePatternTokenUntilSemicolon",
       parameters: [],
       pattern: {
-        kind: PatternKind.And,
-        patterns: [
-          {
-            kind: PatternKind.Not,
-            pattern: {
-              kind: PatternKind.Equal,
-              value: ";",
+        kind: PatternKind.Quantifier,
+        min: 1,
+        pattern: {
+          kind: PatternKind.Or,
+          patterns: [
+            {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "RuleQuotedTokenSequence",
+              args: [],
             },
-          },
-          {
-            kind: PatternKind.Type,
-            type: Type.String,
-          },
-        ],
+            {
+              kind: PatternKind.And,
+              patterns: [
+                {
+                  kind: PatternKind.Not,
+                  pattern: { kind: PatternKind.Equal, value: ";" },
+                },
+                { kind: PatternKind.Type, type: Type.String },
+              ],
+            },
+          ],
+        },
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ _ }) => _,
+        fn: ({ _ }) => (_ as unknown[]).flat(),
       },
     },
     {
       name: "RulePatternTokenUntilProjection",
       parameters: [],
       pattern: {
-        kind: PatternKind.And,
-        patterns: [
-          {
-            kind: PatternKind.Not,
-            pattern: {
-              kind: PatternKind.Equal,
-              value: "-",
+        kind: PatternKind.Quantifier,
+        min: 1,
+        pattern: {
+          kind: PatternKind.Or,
+          patterns: [
+            {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "RuleQuotedTokenSequence",
+              args: [],
             },
-          },
-          {
-            kind: PatternKind.Type,
-            type: Type.String,
-          },
-        ],
+            {
+              kind: PatternKind.And,
+              patterns: [
+                {
+                  kind: PatternKind.Not,
+                  pattern: { kind: PatternKind.Equal, value: ";" },
+                },
+                {
+                  kind: PatternKind.Not,
+                  pattern: {
+                    kind: PatternKind.Then,
+                    patterns: [
+                      { kind: PatternKind.Equal, value: "-" },
+                      { kind: PatternKind.Equal, value: ">" },
+                    ],
+                  },
+                },
+                { kind: PatternKind.Type, type: Type.String },
+              ],
+            },
+          ],
+        },
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ _ }) => _,
+        fn: ({ _ }) => (_ as unknown[]).flat(),
       },
     },
     {
       name: "RulePatternBodyWithoutProjection",
       parameters: [],
       pattern: {
-        kind: PatternKind.Quantifier,
-        min: 1,
-        max: 1,
-        pattern: {
-          kind: PatternKind.Resolve,
-          targetKind: ResolveTargetKind.Reference,
-          name: "RulePatternTokenUntilSemicolon",
-          args: [],
-        },
+        kind: PatternKind.Pipeline,
+        steps: [
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "RulePatternTokenUntilSemicolon",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "PatternTokens",
+            args: [],
+          },
+        ],
       },
       expression: {
         kind: ExpressionKind.Native,
@@ -210,15 +359,21 @@ export const RuleDeclarationRules: ModuleDeclaration = {
       name: "RulePatternBodyBeforeProjection",
       parameters: [],
       pattern: {
-        kind: PatternKind.Quantifier,
-        min: 1,
-        max: 1,
-        pattern: {
-          kind: PatternKind.Resolve,
-          targetKind: ResolveTargetKind.Reference,
-          name: "RulePatternTokenUntilProjection",
-          args: [],
-        },
+        kind: PatternKind.Pipeline,
+        steps: [
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "RulePatternTokenUntilProjection",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "PatternTokens",
+            args: [],
+          },
+        ],
       },
       expression: {
         kind: ExpressionKind.Native,
@@ -229,21 +384,68 @@ export const RuleDeclarationRules: ModuleDeclaration = {
       name: "RuleDeclarationSyntax",
       parameters: [],
       pattern: {
-        kind: PatternKind.Or,
+        kind: PatternKind.Then,
         patterns: [
           {
-            kind: PatternKind.Resolve,
-            targetKind: ResolveTargetKind.Reference,
-            name: "RuleDeclarationWithProjection",
-            args: [],
+            kind: PatternKind.Equal,
+            value: "rule",
           },
           {
-            kind: PatternKind.Resolve,
-            targetKind: ResolveTargetKind.Reference,
-            name: "RuleDeclarationWithoutProjection",
-            args: [],
+            kind: PatternKind.Variable,
+            name: "name",
+            pattern: {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "IdentifierToken",
+              args: [],
+            },
+          },
+          {
+            kind: PatternKind.Equal,
+            value: "=",
+          },
+          {
+            kind: PatternKind.Variable,
+            name: "pattern",
+            pattern: {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "RulePatternBodyBeforeProjection",
+              args: [],
+            },
+          },
+          {
+            kind: PatternKind.Variable,
+            name: "projection",
+            pattern: {
+              kind: PatternKind.Quantifier,
+              min: 0,
+              max: 1,
+              pattern: {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "RuleProjectionTail",
+                args: [],
+              },
+            },
+          },
+          {
+            kind: PatternKind.Equal,
+            value: ";",
           },
         ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ name, pattern, projection }): UffdaRuleSyntaxDeclaration => {
+          const projections = projection as Expression[];
+          return {
+            kind: "rule",
+            name: name as string,
+            pattern,
+            projection: projections.length > 0 ? projections[0] : undefined,
+          };
+        },
       },
     },
     {
@@ -265,6 +467,10 @@ export const RuleDeclarationRules: ModuleDeclaration = {
               name: "IdentifierToken",
               args: [],
             },
+          },
+          {
+            kind: PatternKind.Equal,
+            value: "=",
           },
           {
             kind: PatternKind.Variable,
@@ -311,6 +517,10 @@ export const RuleDeclarationRules: ModuleDeclaration = {
               name: "IdentifierToken",
               args: [],
             },
+          },
+          {
+            kind: PatternKind.Equal,
+            value: "=",
           },
           {
             kind: PatternKind.Variable,
@@ -366,21 +576,10 @@ export const RuleDeclarationRules: ModuleDeclaration = {
             kind: PatternKind.Variable,
             name: "projection",
             pattern: {
-              kind: PatternKind.Or,
-              patterns: [
-                {
-                  kind: PatternKind.Resolve,
-                  targetKind: ResolveTargetKind.Reference,
-                  name: "RuleProjectionExpression",
-                  args: [],
-                },
-                {
-                  kind: PatternKind.Resolve,
-                  targetKind: ResolveTargetKind.Reference,
-                  name: "RuleProjectionToken",
-                  args: [],
-                },
-              ],
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "RuleProjectionExpression",
+              args: [],
             },
           },
         ],

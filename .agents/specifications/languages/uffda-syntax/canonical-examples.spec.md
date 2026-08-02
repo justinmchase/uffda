@@ -19,11 +19,21 @@ across parsing, module compilation, and runtime execution.
 ## Canonical examples
 
 - Identity example:
-  - Source: `rule Main any;`
+  - Source: `export Main; rule Main = any;`
+  - Entry rule: `Main`
   - Input: `"z"`
   - Output: `"z"`
 
 - Projection example:
-  - Source: `rule One any -> 1;`
+  - Source: `export rule One = any -> 1;`
+  - Entry rule: `One`
   - Input: `"z"`
   - Output: `1`
+
+- Morse language example:
+  - The module uses `=` between each rule name and pattern body.
+  - Every encoded symbol ends with `/` in the input character stream.
+  - Source fixture: `MorseLang` in `src/lang/uffda/morse.lang.ts`.
+  - Entry rule: `Morse`
+  - Input: `".../---/.../"`
+  - Output: `"SOS"`

@@ -1,7 +1,10 @@
+import { assertEquals } from "@std/assert";
 import { Type } from "@justinmchase/type";
 import { Input } from "../../input.ts";
-import { MatchKind } from "../../match.ts";
+import { getRightmostFailure, MatchKind } from "../../match.ts";
 import { patternTest } from "../../test.ts";
+import { match } from "../match.ts";
+import { Scope } from "../scope.ts";
 import { PatternKind } from "./pattern.kind.ts";
 
 await Deno.test("runtime/patterns/object", async (t) => {
@@ -82,4 +85,24 @@ await Deno.test("runtime/patterns/object", async (t) => {
       kind: MatchKind.Ok,
     }),
   });
+
+  await t.step(
+    "OBJECT05 preserves the source object property path",
+    async () => {
+      const result = await match({
+        kind: PatternKind.Over,
+        keys: {
+          x: { kind: PatternKind.Equal, value: "expected" },
+        },
+      }, Scope.From({ x: "actual" }));
+
+      assertEquals(result.kind, MatchKind.Fail);
+      if (result.kind === MatchKind.Fail) {
+        assertEquals(
+          getRightmostFailure(result).span.start.toString(),
+          '[0]."x"',
+        );
+      }
+    },
+  );
 });

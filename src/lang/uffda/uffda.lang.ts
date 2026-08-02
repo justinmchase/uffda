@@ -61,7 +61,7 @@ export const UffdaLang: ModuleDeclaration = {
     {
       kind: ImportDeclarationKind.Module,
       moduleUrl: "./export.rules.ts",
-      names: ["ExportDeclarationSyntax"],
+      names: ["ExportDeclarationSyntax", "ExportNameList"],
     },
     {
       kind: ImportDeclarationKind.Module,
@@ -112,6 +112,20 @@ export const UffdaLang: ModuleDeclaration = {
           },
           {
             kind: PatternKind.Variable,
+            name: "exports",
+            pattern: {
+              kind: PatternKind.Quantifier,
+              min: 0,
+              pattern: {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "ExportDeclarationSyntax",
+                args: [],
+              },
+            },
+          },
+          {
+            kind: PatternKind.Variable,
             name: "rules",
             pattern: {
               kind: PatternKind.Quantifier,
@@ -128,10 +142,11 @@ export const UffdaLang: ModuleDeclaration = {
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ imports, rules }): UffdaSyntaxModule => ({
+        fn: ({ imports, exports, rules }): UffdaSyntaxModule => ({
           kind: "module",
           declarations: [
             ...(imports as UffdaSyntaxDeclaration[]),
+            ...(exports as UffdaSyntaxDeclaration[][]).flat(),
             ...(rules as UffdaSyntaxDeclaration[]),
           ],
         }),
@@ -156,16 +171,22 @@ export const UffdaLang: ModuleDeclaration = {
                   args: [],
                 },
                 {
-                  kind: PatternKind.Resolve,
-                  targetKind: ResolveTargetKind.Reference,
-                  name: "TokenizerNoWhitespace",
-                  args: [],
+                  kind: PatternKind.Into,
+                  pattern: {
+                    kind: PatternKind.Resolve,
+                    targetKind: ResolveTargetKind.Reference,
+                    name: "TokenizerNoWhitespace",
+                    args: [],
+                  },
                 },
                 {
-                  kind: PatternKind.Resolve,
-                  targetKind: ResolveTargetKind.Reference,
-                  name: "ModuleBody",
-                  args: [],
+                  kind: PatternKind.Into,
+                  pattern: {
+                    kind: PatternKind.Resolve,
+                    targetKind: ResolveTargetKind.Reference,
+                    name: "ModuleBody",
+                    args: [],
+                  },
                 },
               ],
             },
@@ -186,8 +207,15 @@ export const UffdaLang: ModuleDeclaration = {
 export default UffdaLang;
 
 export {
-  type CompileUffdaModuleOptions,
   compileUffdaSyntaxModule,
   executeUffdaSource,
   type ExecuteUffdaSourceOptions,
+  UffdaCompilationError,
 } from "./execute.ts";
+export {
+  diagnoseUffdaRuntimeCompilerFailure,
+  runUffdaRuntimeCompiler,
+  UffdaRuntimeCompiler,
+  type UffdaRuntimeCompilerDiagnostic,
+} from "./runtime.compiler.ts";
+export { MorseLang } from "./morse.lang.ts";

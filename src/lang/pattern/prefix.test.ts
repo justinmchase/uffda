@@ -18,7 +18,7 @@ Deno.test({
       name: "PREFIX_00",
       fn: moduleDeclarationTest({
         moduleUrl,
-        input: Input.Iterable(["quantifier", "any", "(", "1", ",", "3", ")"]),
+        input: Input.Iterable(["any", "*", "1", ".", ".", "3"]),
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Quantifier,

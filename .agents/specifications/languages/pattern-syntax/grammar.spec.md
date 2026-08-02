@@ -62,6 +62,36 @@ The grammar MUST be able to express the following pattern families:
   operators.
 - The grammar MAY allow a leading `|` before the first alternation branch.
 
+## Binding and repetition
+
+- Variable capture MUST use `name:P`, where `name` is an identifier and `P` is
+  the captured child pattern.
+- Capture MUST bind less tightly than postfix repetition and more tightly than
+  ordered sequence composition.
+- A keyed object entry such as `{ field: x:P }` MUST parse its first colon as
+  the field separator and its second colon as the nested variable capture.
+- Repetition MUST use postfix syntax on a primary or explicitly grouped child:
+  - `P*` means zero or more matches.
+  - `P*min` means at least `min` matches.
+  - `P*min..max` means between `min` and `max` matches, inclusively.
+  - `P*..max` means between zero and `max` matches, inclusively.
+  - `P+` is the canonical shorthand for `P*1`.
+  - `P?` maps to the scalar `maybe` pattern and MUST remain distinct from
+    `P*..1`, whose result is an array.
+- Bounds MUST be non-negative integers, a bounded maximum MUST be greater than
+  or equal to its minimum, and an open range with neither bound MUST be
+  rejected.
+- Repetition suffixes MUST NOT be chained.
+- Bounds immediately following `*` MUST belong to that repetition regardless of
+  intervening whitespace. Authors MUST group an unbounded repetition before
+  sequencing it with a numeric literal, as in `(P*) 1`.
+
+## Precedence
+
+From tightest to loosest, pattern syntax MUST apply primary/grouping, postfix
+repetition, prefix operators and capture, ordered sequence, pipeline,
+conjunction, and alternation.
+
 ## Worked examples
 
 The following style is valid when leading `|` alternation is enabled:
@@ -87,7 +117,7 @@ Message =
     ok
   | {
       name: string,
-      aliases: [quantifier any (1,)],
+      aliases: [any+],
     }
   ;
 ```

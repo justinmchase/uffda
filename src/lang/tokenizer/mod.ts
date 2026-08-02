@@ -172,6 +172,40 @@ export const Tokenizer: ModuleDeclaration = {
           args: [],
         },
       },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ _ }) => {
+          const tokens = _ as string[];
+          const semanticTokens: string[] = [];
+          let inComment = false;
+          let inString = false;
+          let escaped = false;
+
+          for (const token of tokens) {
+            if (inComment) {
+              if (token === "\n") {
+                inComment = false;
+                semanticTokens.push(token);
+              }
+              continue;
+            }
+
+            if (!inString && token === "#") {
+              inComment = true;
+              continue;
+            }
+
+            if (token === '"' && !escaped) {
+              inString = !inString;
+            }
+
+            semanticTokens.push(token);
+            escaped = inString && token === "\\" && !escaped;
+          }
+
+          return semanticTokens;
+        },
+      },
     },
     {
       name: "NonWhitespaceToken",

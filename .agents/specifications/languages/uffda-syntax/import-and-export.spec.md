@@ -48,8 +48,9 @@ visible symbols for Uffda modules.
   - `export A B C;`
   - `export B = A;`
 - Exported rule declarations MUST accept canonical starter forms:
-  - `export rule A any;`
-  - `export rule A any -> 1;`
+  - `export rule A = any;`
+  - `export rule A = any -> 1;`
+- `export rule A = P;` MUST normalize identically to `export A; rule A = P;`.
 
 ## Subtopics
 

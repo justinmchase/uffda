@@ -35,7 +35,7 @@ export async function over(pattern: OverPattern, scope: Scope): Promise<Match> {
     const value = [keyValue];
     const propertyStream = new Input(
       value,
-      next.path.push(key),
+      scope.stream.path.push(key),
       0,
       undefined,
       InputNormalizationMode.Iterable,

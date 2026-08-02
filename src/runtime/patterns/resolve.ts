@@ -51,19 +51,38 @@ async function resolveReference(
   for (let i = 0; i < pattern.args.length; i++) {
     const argPattern = pattern.args[i];
     const paramName = ref.parameters[i].name;
-    const r = {
-      ...argumentRule(argPattern, scope.module, i),
-      closureArgs: new Map(scope.args),
-    };
-    if (r.pattern === ref.pattern) {
+    let argument: Rule;
+    if (
+      argPattern.kind === PatternKind.Resolve &&
+      argPattern.targetKind === ResolveTargetKind.Reference &&
+      argPattern.args.length === 0
+    ) {
+      const namedArgument = scope.getRule(argPattern.name);
+      if (!namedArgument) {
+        return error(
+          scope,
+          pattern,
+          MatchErrorCode.UnknownParameter,
+          `unknown argument reference: ${argPattern.name}`,
+        );
+      }
+      argument = namedArgument;
+    } else {
+      argument = {
+        ...argumentRule(argPattern, scope.module, i),
+        closureArgs: new Map(scope.args),
+      };
+    }
+
+    if (argument === ref || argument.pattern === ref.pattern) {
       return error(
         scope,
         pattern,
         MatchErrorCode.InvalidArgument,
-        `invalid self reference in argument ${i}`,
+        `invalid self reference: ${ref.name}`,
       );
     }
-    args.set(paramName, r);
+    args.set(paramName, argument);
   }
 
   const m = await rule(ref, args, scope);

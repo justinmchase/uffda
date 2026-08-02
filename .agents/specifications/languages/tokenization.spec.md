@@ -50,6 +50,18 @@ that can be consumed by expression, pattern, and language-definition layers.
 - For fixed input and fixed normalization map, token boundaries SHOULD be
   reconstructable against source-unit indexes without heuristic repair.
 
+## Comment trivia
+
+- Outside quoted strings, `#` MUST begin a line comment that extends to the next
+  canonical newline or end of input.
+- A `#` inside a quoted string MUST remain ordinary string content.
+- Comment text MUST NOT be emitted as semantic tokens to downstream expression,
+  pattern, or declaration parsers.
+- Removing a line comment MUST preserve the canonical newline boundary and its
+  source provenance for diagnostics and optional trivia consumers.
+- Recognition of `#` comments MUST be unconditional and MUST NOT depend on the
+  character that follows `#`.
+
 ## Interpolation boundary requirements
 
 - Tokenization MUST preserve interpolation delimiter boundaries used by

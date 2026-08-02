@@ -47,7 +47,12 @@ export const Not: ModuleDeclaration = {
               kind: PatternKind.Resolve,
               targetKind: ResolveTargetKind.Reference,
               name: "Token",
-              args: ["Primary"],
+              args: [{
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "Primary",
+                args: [],
+              }],
             },
           },
         ],

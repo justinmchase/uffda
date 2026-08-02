@@ -13,6 +13,8 @@ optional projection expression.
 - Rule declarations MUST begin with one of the supported declaration headers:
   - `rule`
   - `export rule`
+- Rule declarations MUST place `=` between the rule identity (and any parameter
+  list) and the pattern body.
 - Rule declarations MAY include ordered parameter lists.
 - Rule declarations MUST include a pattern body slot parsed through
   `PatternLang`.
@@ -20,6 +22,9 @@ optional projection expression.
   `ExpressionLang`.
 - Rule declaration syntax MUST conform to the module declaration keyword model
   where `rule` and `export rule` select rule-declaration body parsing.
+- An exported rule declaration MUST normalize to the same ordered syntax
+  declarations as a standalone export immediately followed by the equivalent
+  rule declaration.
 
 ## Integration contracts
 

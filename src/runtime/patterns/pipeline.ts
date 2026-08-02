@@ -11,6 +11,7 @@ export async function pipeline(
   const { steps } = pattern;
   let last = ok(scope, scope, pattern, undefined);
   let next = scope;
+  let outerEnd = scope;
   const matches: Match[] = [];
   for (let i = 0; i < steps.length; i++) {
     const pattern = steps[i];
@@ -34,17 +35,18 @@ export async function pipeline(
         return fail(scope, pattern, matches);
       case MatchKind.Ok:
         last = m;
+        if (i === 0) {
+          outerEnd = m.scope;
+        }
         break;
     }
 
-    const iterable = last.value as Iterable<unknown>;
-    const items = iterable?.[Symbol.iterator] ? iterable : [last.value];
     const input = new Input(
-      items,
+      last.value,
       last.scope.stream.path.push(0),
       0,
       undefined,
-      InputNormalizationMode.Iterable,
+      InputNormalizationMode.Scalar,
     );
     next = scope.withInput(input);
 
@@ -52,5 +54,11 @@ export async function pipeline(
     // it is up to the caller to utilize the end pattern to enforce this if desired.
   }
 
-  return ok(scope, last.scope, pattern, last.value, matches);
+  return ok(
+    scope,
+    outerEnd.addVariables(last.scope.variables),
+    pattern,
+    last.value,
+    matches,
+  );
 }

@@ -3,6 +3,9 @@ import { expressionGrammar } from "./expression.lang.ts";
 import { assertEquals } from "@std/assert";
 import { std } from "../../runtime/std/mod.ts";
 import { exec } from "../../runtime/exec.ts";
+import { executeModuleDeclaration } from "../../runtime/module.execute.ts";
+import { ExpressionLang } from "./expression.lang.ts";
+import type { Expression } from "../../runtime/expressions/expression.ts";
 
 const moduleUrl = new URL("./expression.ts", import.meta.url).href;
 
@@ -17,6 +20,19 @@ Deno.test(
     ignore: p.state !== "granted",
   },
   async (t) => {
+    await t.step("EXPR_TOKENS_00 parses an existing token array", async () => {
+      const m = await executeModuleDeclaration(ExpressionLang, {
+        moduleUrl: new URL("./expression.lang.ts", import.meta.url),
+        entryRuleName: "ExpressionTokens",
+        input: ["[", "1", "2", "]"],
+      });
+      assertEquals(m.kind, MatchKind.Ok);
+      if (m.kind === MatchKind.Ok) {
+        const value = await exec(m.value as Expression, m);
+        assertEquals(value, [1, 2]);
+      }
+    });
+
     await t.step({
       name: "EXPR_LANG_00",
       fn: async () => {

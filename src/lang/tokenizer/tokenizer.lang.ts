@@ -50,10 +50,13 @@ export const TokenizerLang: ModuleDeclaration = {
             args: [],
           },
           {
-            kind: PatternKind.Resolve,
-            targetKind: ResolveTargetKind.Reference,
-            name: "Tokenizer",
-            args: [],
+            kind: PatternKind.Into,
+            pattern: {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "Tokenizer",
+              args: [],
+            },
           },
         ],
       },

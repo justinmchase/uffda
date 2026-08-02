@@ -21,6 +21,10 @@ export const Combining: ModuleDeclaration = {
         patterns: [
           {
             kind: PatternKind.Character,
+            characterClass: CharacterClass.NonSpacingMark,
+          },
+          {
+            kind: PatternKind.Character,
             characterClass: CharacterClass.EnclosingMark,
           },
           {

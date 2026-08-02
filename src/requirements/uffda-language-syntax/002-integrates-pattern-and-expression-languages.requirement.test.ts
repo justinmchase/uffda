@@ -9,8 +9,8 @@ Deno.test("req:uffda-language-syntax-002 - Uffda syntax integrates PatternLang a
     .filter((i) => i.kind === ImportDeclarationKind.Module)
     .flatMap((i) => i.names);
 
-  assertEquals(importedNames.includes("PatternLang"), true);
-  assertEquals(importedNames.includes("ExpressionLang"), true);
+  assertEquals(importedNames.includes("PatternTokens"), true);
+  assertEquals(importedNames.includes("ExpressionTokens"), true);
 
   const patternRule = RuleDeclarationRules.rules.find((r) =>
     r.name === "RulePatternBody"
@@ -23,27 +23,23 @@ Deno.test("req:uffda-language-syntax-002 - Uffda syntax integrates PatternLang a
     throw new Error("Expected integration rules to be declared");
   }
 
-  assertEquals(patternRule.pattern.kind, PatternKind.Or);
-  if (patternRule.pattern.kind === PatternKind.Or) {
-    const delegated = patternRule.pattern.patterns.find((p) =>
+  assertEquals(patternRule.pattern.kind, PatternKind.Pipeline);
+  if (patternRule.pattern.kind === PatternKind.Pipeline) {
+    const delegated = patternRule.pattern.steps.find((p) =>
       p.kind === PatternKind.Resolve &&
       p.targetKind === ResolveTargetKind.Reference &&
-      p.name === "PatternLang"
+      p.name === "PatternTokens"
     );
     assertEquals(Boolean(delegated), true);
   }
 
-  assertEquals(projectionRule.pattern.kind, PatternKind.Resolve);
-  if (projectionRule.pattern.kind === PatternKind.Resolve) {
-    assertEquals(
-      projectionRule.pattern.targetKind,
-      ResolveTargetKind.Reference,
+  assertEquals(projectionRule.pattern.kind, PatternKind.Pipeline);
+  if (projectionRule.pattern.kind === PatternKind.Pipeline) {
+    const delegated = projectionRule.pattern.steps.find((p) =>
+      p.kind === PatternKind.Resolve &&
+      p.targetKind === ResolveTargetKind.Reference &&
+      p.name === "ExpressionTokens"
     );
-  }
-  if (
-    projectionRule.pattern.kind === PatternKind.Resolve &&
-    projectionRule.pattern.targetKind === ResolveTargetKind.Reference
-  ) {
-    assertEquals(projectionRule.pattern.name, "ExpressionLang");
+    assertEquals(Boolean(delegated), true);
   }
 });
