@@ -13,16 +13,21 @@ Preconditions:
 - `MorseLang` is authored as a valid Uffda module using canonical `=` rule
   bindings and inline exported-rule syntax.
 - Every encoded symbol in the input ends with `/`.
-- Morse input is provided as an iterable character stream.
+- Morse or uppercase supported text input is provided as an iterable character
+  stream.
 
 Expected behavior:
 
 - `MorseLang` MUST parse through `UffdaLang`.
 - Its syntax tree MUST compile through `UffdaRuntimeCompiler`.
-- The compiled module MUST decode all letters `A` through `Z`, figures `0`
-  through `9`, and punctuation `.,?'!/()&:;=+-_"$@`.
+- The compiled module MUST encode and decode all letters `A` through `Z`,
+  figures `0` through `9`, and punctuation `.,?'!/()&:;=+-_"$@`.
+- The compiled module MUST preserve space separators and control characters
+  through an encode/decode round trip.
 - The compiled module MUST translate `.../---/.../` to `SOS` through standard
   runtime module execution.
+- The compiled module MUST round trip a multi-paragraph public-domain prose
+  excerpt from text to Morse and back to the original text.
 
 Postconditions:
 

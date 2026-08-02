@@ -6,6 +6,83 @@ export rule Morse =
   end                 # Reject a valid prefix followed by an unknown Morse sequence.
   -> (join x "");     # Comments may trail a complete declaration.
 
+export rule Text =
+  x:TextSymbol+
+  end
+  -> (join x "");
+
+rule TextSymbol =
+	| EncodeA | EncodeB | EncodeC | EncodeD | EncodeE | EncodeF | EncodeG
+	| EncodeH | EncodeI | EncodeJ | EncodeK | EncodeL | EncodeM | EncodeN
+	| EncodeO | EncodeP | EncodeQ | EncodeR | EncodeS | EncodeT | EncodeU
+	| EncodeV | EncodeW | EncodeX | EncodeY | EncodeZ
+	| EncodeDigit0 | EncodeDigit1 | EncodeDigit2 | EncodeDigit3 | EncodeDigit4
+	| EncodeDigit5 | EncodeDigit6 | EncodeDigit7 | EncodeDigit8 | EncodeDigit9
+	| EncodePeriod | EncodeComma | EncodeQuestionMark | EncodeApostrophe
+	| EncodeExclamationMark | EncodeSlash | EncodeOpenParenthesis
+	| EncodeCloseParenthesis | EncodeAmpersand | EncodeColon | EncodeSemicolon
+	| EncodeEquals | EncodePlus | EncodeHyphen | EncodeUnderscore
+	| EncodeQuotationMark | EncodeDollarSign | EncodeAtSign | Whitespace;
+
+rule Whitespace = x:(\\cZs | \\cCc) -> x;
+
+rule EncodeA = "A" -> ".-/";
+rule EncodeB = "B" -> "-.../";
+rule EncodeC = "C" -> "-.-./";
+rule EncodeD = "D" -> "-../";
+rule EncodeE = "E" -> "./";
+rule EncodeF = "F" -> "..-./";
+rule EncodeG = "G" -> "--./";
+rule EncodeH = "H" -> "..../";
+rule EncodeI = "I" -> "../";
+rule EncodeJ = "J" -> ".---/";
+rule EncodeK = "K" -> "-.-/";
+rule EncodeL = "L" -> ".-../";
+rule EncodeM = "M" -> "--/";
+rule EncodeN = "N" -> "-./";
+rule EncodeO = "O" -> "---/";
+rule EncodeP = "P" -> ".--./";
+rule EncodeQ = "Q" -> "--.-/";
+rule EncodeR = "R" -> ".-./";
+rule EncodeS = "S" -> ".../";
+rule EncodeT = "T" -> "-/";
+rule EncodeU = "U" -> "..-/";
+rule EncodeV = "V" -> "...-/";
+rule EncodeW = "W" -> ".--/";
+rule EncodeX = "X" -> "-..-/";
+rule EncodeY = "Y" -> "-.--/";
+rule EncodeZ = "Z" -> "--../";
+
+rule EncodeDigit0 = "0" -> "-----/";
+rule EncodeDigit1 = "1" -> ".----/";
+rule EncodeDigit2 = "2" -> "..---/";
+rule EncodeDigit3 = "3" -> "...--/";
+rule EncodeDigit4 = "4" -> "....-/";
+rule EncodeDigit5 = "5" -> "...../";
+rule EncodeDigit6 = "6" -> "-..../";
+rule EncodeDigit7 = "7" -> "--.../";
+rule EncodeDigit8 = "8" -> "---../";
+rule EncodeDigit9 = "9" -> "----./";
+
+rule EncodePeriod = "." -> ".-.-.-/";
+rule EncodeComma = "," -> "--..--/";
+rule EncodeQuestionMark = "?" -> "..--../";
+rule EncodeApostrophe = "'" -> ".----./";
+rule EncodeExclamationMark = "!" -> "-.-.--/";
+rule EncodeSlash = "/" -> "-..-./";
+rule EncodeOpenParenthesis = "(" -> "-.--./";
+rule EncodeCloseParenthesis = ")" -> "-.--.-/";
+rule EncodeAmpersand = "&" -> ".-.../";
+rule EncodeColon = ":" -> "---.../";
+rule EncodeSemicolon = ";" -> "-.-.-./";
+rule EncodeEquals = "=" -> "-...-/";
+rule EncodePlus = "+" -> ".-.-./";
+rule EncodeHyphen = "-" -> "-....-/";
+rule EncodeUnderscore = "_" -> "..--.-/";
+rule EncodeQuotationMark = "\\\"" -> ".-..-./";
+rule EncodeDollarSign = "$" -> "...-..-/";
+rule EncodeAtSign = "@" -> ".--.-./";
+
 # A leading pipe keeps a long alternation aligned and easy to extend.
 rule Symbol =
 	| A | B | C | D | E | F | G | H | I | J | K | L | M
@@ -15,7 +92,7 @@ rule Symbol =
 	| Period | Comma | QuestionMark | Apostrophe | ExclamationMark
 	| Slash | OpenParenthesis | CloseParenthesis | Ampersand | Colon
 	| Semicolon | Equals | Plus | Hyphen | Underscore | QuotationMark
-	| DollarSign | AtSign;
+	| DollarSign | AtSign | Whitespace;
 
 # Letters use a trailing slash so prefix-related Morse codes stay unambiguous.
 rule A = "." "-" "/" -> "A";

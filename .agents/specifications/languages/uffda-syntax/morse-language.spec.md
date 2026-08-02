@@ -10,20 +10,24 @@ Normative key words in this chapter use the conventions defined in the
 
 ## Symbol repertoire
 
-- `MorseLang` MUST decode the International Morse letters `A` through `Z`.
-- `MorseLang` MUST decode the figures `0` through `9`.
-- `MorseLang` MUST decode these punctuation symbols: `.` `,` `?` `'` `!` `/` `(`
-  `)` `&` `:` `;` `=` `+` `-` `_` `"` `$` `@`.
+- `MorseLang` MUST encode and decode the International Morse letters `A` through
+  `Z`.
+- `MorseLang` MUST encode and decode the figures `0` through `9`.
+- `MorseLang` MUST encode and decode these punctuation symbols: `.` `,` `?` `'`
+  `!` `/` `(` `)` `&` `:` `;` `=` `+` `-` `_` `"` `$` `@`.
 - Symbol encodings MUST follow the International Morse code table standardized
   by Recommendation ITU-R M.1677.
 
 ## Input contract
 
-- Morse input MUST be supplied as an iterable stream of `.` `-` and `/`
-  characters.
+- The `Morse` entry MUST accept an iterable stream of Morse symbols and decode
+  it to text.
+- The `Text` entry MUST accept uppercase supported text and encode it to Morse.
 - Every encoded symbol MUST end with `/` so prefix-related codes remain
   unambiguous.
 - The final encoded symbol MUST also end with `/`.
+- Space separators and control characters MUST pass through encoding and
+  decoding unchanged so text layout can round trip exactly.
 
 ## Compilation contract
 
@@ -31,5 +35,5 @@ Normative key words in this chapter use the conventions defined in the
   declarations and inline exported-rule syntax.
 - It MUST parse through `UffdaLang`, compile through `UffdaRuntimeCompiler`, and
   execute through the standard runtime module path.
-- Its authored source MUST express decoding through Uffda rules and expressions,
-  without host-language symbol-table or translation helpers.
+- Its authored source MUST express encoding and decoding through Uffda rules and
+  expressions, without host-language symbol-table or translation helpers.
