@@ -1,6 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { PatternKind } from "./pattern.kind.ts";
 import { type ResolveReferencePattern, ResolveTargetKind } from "./pattern.ts";
+import { isPattern } from "./pattern.ts";
 
 Deno.test("runtime.patterns supports literal reference resolve patterns", () => {
   const pattern: ResolveReferencePattern = {
@@ -11,4 +12,6 @@ Deno.test("runtime.patterns supports literal reference resolve patterns", () => 
   };
 
   assertEquals(pattern.name, "Value");
+  assertEquals(isPattern(pattern), true);
+  assertEquals(isPattern({ kind: "unknown" }), false);
 });

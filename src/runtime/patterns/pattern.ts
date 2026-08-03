@@ -33,8 +33,8 @@ export function isPattern(value: unknown): value is Pattern {
   if (value == null) return false;
   if (typeof value !== "object") return false;
 
-  const p = value as Pattern;
-  return Reflect.has(PatternKind, p.kind);
+  const pattern = value as { kind?: unknown };
+  return Object.values(PatternKind).includes(pattern.kind as PatternKind);
 }
 
 export enum CharacterClass {

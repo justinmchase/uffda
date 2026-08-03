@@ -6,6 +6,7 @@
     ".": "./mod.ts"
   },
   "tasks": {
+    "cli": "deno run --allow-read --allow-write --allow-env=INIT_CWD,PWD ./src/cli/main.ts",
     "test": "deno test --allow-read --parallel",
     "test:watch": "deno test --allow-read --watch --parallel",
     "pre": "deno fmt && deno lint --fix && deno task test && npx jsr publish --dry-run --allow-dirty"
