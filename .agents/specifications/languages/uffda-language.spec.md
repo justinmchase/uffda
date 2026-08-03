@@ -90,3 +90,23 @@ layers into author-facing language/module declarations.
 - Use the canonical `=` rule binding form.
 - Use the fixture to demonstrate that compiling to the Uffda runtime is a
   reusable target for Uffda-based DSLs.
+
+### Milestone 7: Visualize match failures
+
+- Add a deterministic, cycle-safe text visualization for runtime match failures.
+- Identify unexpected input, pattern expectations, named rule hierarchy, and
+  module provenance.
+- Show successful pipeline outputs and the failed pipeline step for malformed
+  expression-language source.
+
+### Milestone 8: Deliver the Uffda CLI and interactive workbench
+
+- Define and deliver a deterministic CLI surface for file/folder compilation,
+  stream operation, and language-selection flags.
+- Emit JSON-serializable AST artifacts and runtime-oriented envelopes.
+- Deliver an interactive editor-like workbench with dynamic visualization and
+  file I/O orchestration.
+- Package the CLI as a `deno compile` product and publish release binaries via
+  GitHub Releases.
+- Define compatibility, diagnostics, and release gates for operator-facing CLI
+  stability.

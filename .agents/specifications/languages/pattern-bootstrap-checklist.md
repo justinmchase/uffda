@@ -41,13 +41,13 @@ Uffda language-definition layer.
 - [x] Test-harness failure diagnostics for faster triage.
   - Implemented: shared test assertions now include structured match context and
     rightmost-failure span details in failure messages.
-- Deferred: utility/CLI-style visualization work until the interactive parser UI
-  app phase.
 
-- [ ] Match result dump utility.
-  - Deterministic text or JSON tree of match graph including failure path.
-- [ ] Rightmost-failure and expectation summary.
-  - Surface best failure location plus expected tokens or forms.
+- [x] Match result dump utility.
+  - Implemented: `visualizeMatchFailure` emits a deterministic, cycle-safe text
+    hierarchy focused on the source failure path.
+- [x] Rightmost-failure and expectation summary.
+  - Implemented: diagnostics surface the source failure location, unexpected
+    input, expected forms, rule chain, and module provenance.
 - [ ] Visualizer prototype.
   - Convert match tree into Mermaid-compatible output for rapid debugging.
 

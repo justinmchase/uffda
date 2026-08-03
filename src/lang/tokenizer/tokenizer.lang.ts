@@ -5,7 +5,7 @@ import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { MatchKind } from "../../match.ts";
 import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
-import type { SourceDocument } from "../source-normalization/mod.ts";
+import type { SourceDocument } from "../source/mod.ts";
 
 export type TokenizerLangValue = {
   source: SourceDocument;
@@ -16,9 +16,9 @@ export const TokenizerLang: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "../source-normalization/mod.ts",
+      moduleUrl: "../source/mod.ts",
       names: [
-        "SourceNormalizationAndIndex",
+        "Source",
       ],
     },
     {
@@ -46,7 +46,7 @@ export const TokenizerLang: ModuleDeclaration = {
           {
             kind: PatternKind.Resolve,
             targetKind: ResolveTargetKind.Reference,
-            name: "SourceNormalizationAndIndex",
+            name: "Source",
             args: [],
           },
           {
@@ -66,7 +66,7 @@ export const TokenizerLang: ModuleDeclaration = {
           const sourceMatch = match.matches[0];
           if (!sourceMatch || sourceMatch.kind !== MatchKind.Ok) {
             throw new TypeError(
-              "TokenizerLang expects SourceNormalizationAndIndex to succeed",
+              "TokenizerLang expects Source to succeed",
             );
           }
 

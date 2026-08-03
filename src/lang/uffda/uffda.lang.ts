@@ -36,8 +36,8 @@ export const UffdaLang: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "../source-normalization/mod.ts",
-      names: ["SourceNormalizationAndIndex"],
+      moduleUrl: "../source/mod.ts",
+      names: ["Source"],
     },
     {
       kind: ImportDeclarationKind.Module,
@@ -167,7 +167,7 @@ export const UffdaLang: ModuleDeclaration = {
                 {
                   kind: PatternKind.Resolve,
                   targetKind: ResolveTargetKind.Reference,
-                  name: "SourceNormalizationAndIndex",
+                  name: "Source",
                   args: [],
                 },
                 {
@@ -218,4 +218,3 @@ export {
   UffdaRuntimeCompiler,
   type UffdaRuntimeCompilerDiagnostic,
 } from "./runtime.compiler.ts";
-export { MorseLang } from "./morse.lang.ts";

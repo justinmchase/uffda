@@ -62,6 +62,19 @@ that can be consumed by expression, pattern, and language-definition layers.
 - Recognition of `#` comments MUST be unconditional and MUST NOT depend on the
   character that follows `#`.
 
+## Structured tokens and trivia
+
+- The tokenizer SHOULD expose a lossless structured token stream for tooling
+  consumers in addition to the semantic token stream used by parsers.
+- Structured tokens MUST preserve token kind, text, normalized source span, and
+  original source span.
+- Comments and whitespace MUST be representable as trivia without becoming
+  semantic parser tokens.
+- Trivia attachment policy (leading, trailing, or detached) MUST be explicit and
+  deterministic.
+- Comment recognition and string-literal boundaries SHOULD be expressed through
+  tokenizer patterns rather than a host-language state machine.
+
 ## Interpolation boundary requirements
 
 - Tokenization MUST preserve interpolation delimiter boundaries used by
@@ -95,3 +108,13 @@ that can be consumed by expression, pattern, and language-definition layers.
 
 - Tokenization contracts SHOULD be reusable by consumers that do not use Uffda
   language-definition layers.
+
+## Delivery milestone: Tokenizer trivia and source spans
+
+- Introduce structured tokens with normalized and original source spans.
+- Preserve comments and whitespace as lossless trivia while retaining the
+  current semantic token stream for parser compatibility.
+- Replace host-language comment/string filtering with composable Uffda lexer
+  patterns.
+- Verify that expression, pattern, and Uffda grammar results remain unchanged
+  for existing inputs.

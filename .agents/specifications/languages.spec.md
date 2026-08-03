@@ -35,6 +35,7 @@ RFC 8174.
 - [uffda language-definition layer](./languages/uffda-language.spec.md)
 - [compiler and bootstrap progression layer](./languages/compiler-bootstrap.spec.md)
 - [debuggability and source-context fidelity](./languages/debuggability.spec.md)
+- [command-line interface and interactive workbench](./languages/cli.spec.md)
 
 ## Composition intent
 

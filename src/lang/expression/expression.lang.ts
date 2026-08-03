@@ -26,9 +26,9 @@ export const ExpressionLang: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "../source-normalization/mod.ts",
+      moduleUrl: "../source/mod.ts",
       names: [
-        "SourceNormalizationAndIndex",
+        "Source",
       ],
     },
     {
@@ -105,7 +105,7 @@ export const ExpressionLang: ModuleDeclaration = {
           {
             kind: PatternKind.Resolve,
             targetKind: ResolveTargetKind.Reference,
-            name: "SourceNormalizationAndIndex",
+            name: "Source",
             args: [],
           },
           {

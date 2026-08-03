@@ -1,11 +1,12 @@
 import { MatchKind } from "../../mod.ts";
 import { expressionGrammar } from "./expression.lang.ts";
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertStringIncludes } from "@std/assert";
 import { std } from "../../runtime/std/mod.ts";
 import { exec } from "../../runtime/exec.ts";
 import { executeModuleDeclaration } from "../../runtime/module.execute.ts";
 import { ExpressionLang } from "./expression.lang.ts";
 import type { Expression } from "../../runtime/expressions/expression.ts";
+import { visualizeMatchFailure } from "../../match.visualize.ts";
 
 const moduleUrl = new URL("./expression.ts", import.meta.url).href;
 
@@ -220,6 +221,29 @@ Deno.test(
       fn: async () => {
         const m = await expressionGrammar("(add 1 2) trailing");
         assertEquals(m.kind, MatchKind.Fail);
+      },
+    });
+
+    await t.step({
+      name: "EXPR_LANG_08 visualizes the unexpected expression token",
+      fn: async () => {
+        const m = await expressionGrammar("(add 1 #)");
+        assertEquals(m.kind, MatchKind.Fail);
+
+        const visualization = visualizeMatchFailure(m);
+        assertStringIncludes(visualization, 'Unexpected: "#"');
+        assertStringIncludes(visualization, "source offset 7");
+        assertStringIncludes(
+          visualization,
+          "[2] OK into -> resolve TokenizerNoWhitespace",
+        );
+        assertStringIncludes(visualization, 'output: [ "(", "add", "1" ]');
+        assertStringIncludes(
+          visualization,
+          "[3] FAIL into -> resolve ExpressionComplete",
+        );
+        assertStringIncludes(visualization, "expression.lang.ts");
+        assertStringIncludes(visualization, "Failure tree:");
       },
     });
   },

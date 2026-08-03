@@ -1,4 +1,3 @@
-export const MorseLang = `
 # MorseLang is authored in Uffda and compiled through the normal runtime path.
 # 123 Comments are unconditional, even when their text starts with a number.
 export rule Morse =
@@ -24,7 +23,7 @@ rule TextSymbol =
 	| EncodeEquals | EncodePlus | EncodeHyphen | EncodeUnderscore
 	| EncodeQuotationMark | EncodeDollarSign | EncodeAtSign | Whitespace;
 
-rule Whitespace = x:(\\cZs | \\cCc) -> x;
+rule Whitespace = x:(\cZs | \cCc) -> x;
 
 rule EncodeA = "A" -> ".-/";
 rule EncodeB = "B" -> "-.../";
@@ -79,7 +78,7 @@ rule EncodeEquals = "=" -> "-...-/";
 rule EncodePlus = "+" -> ".-.-./";
 rule EncodeHyphen = "-" -> "-....-/";
 rule EncodeUnderscore = "_" -> "..--.-/";
-rule EncodeQuotationMark = "\\\"" -> ".-..-./";
+rule EncodeQuotationMark = "\"" -> ".-..-./";
 rule EncodeDollarSign = "$" -> "...-..-/";
 rule EncodeAtSign = "@" -> ".--.-./";
 
@@ -150,7 +149,6 @@ rule Equals = "-" "." "." "." "-" "/" -> "=";
 rule Plus = "." "-" "." "-" "." "/" -> "+";
 rule Hyphen = "-" "." "." "." "." "-" "/" -> "-";
 rule Underscore = "." "." "-" "-" "." "-" "/" -> "_";
-rule QuotationMark = "." "-" "." "." "-" "." "/" -> "\\\"";
+rule QuotationMark = "." "-" "." "." "-" "." "/" -> "\"";
 rule DollarSign = "." "." "." "-" "." "." "-" "/" -> "$";
 rule AtSign = "." "-" "-" "." "-" "." "/" -> "@";
-`;

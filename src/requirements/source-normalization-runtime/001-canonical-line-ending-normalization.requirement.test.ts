@@ -1,8 +1,8 @@
 import { assertEquals } from "@std/assert";
-import { normalizeSource } from "../../lang/source-normalization/mod.ts";
+import { normalizeSource } from "../../lang/source/mod.ts";
 
-Deno.test("req:source-normalization-runtime-001 - Source normalization canonicalizes line endings and preserves offset provenance", () => {
-  const doc = normalizeSource("a\r\nb\rc\n");
+Deno.test("req:source-normalization-runtime-001 - Source normalization canonicalizes line endings and preserves offset provenance", async () => {
+  const doc = await normalizeSource("a\r\nb\rc\n");
 
   assertEquals(doc.text, "a\nb\nc\n");
   assertEquals(doc.normalizationMap, [0, 1, 3, 4, 5, 6, 7]);

@@ -21,7 +21,7 @@ deno task cli exec -e '(echo "Hello, world!")'
 ```
 
 ```text
-Hello,world!
+Hello, world!
 ```
 
 ### Useful commands

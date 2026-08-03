@@ -1,16 +1,16 @@
 import { assertEquals } from "@std/assert";
-import { buildLineStarts, normalizeSource, normalizeText } from "./mod.ts";
+import { buildLineStarts, normalizeSource } from "./mod.ts";
 
-Deno.test("lang.source-normalization - normalizes CRLF and CR into LF", () => {
-  const normalized = normalizeText("a\r\nb\rc\n");
+Deno.test("lang.source - normalizes CRLF and CR into LF", async () => {
+  const normalized = await normalizeSource("a\r\nb\rc\n");
 
   assertEquals(normalized.text, "a\nb\nc\n");
   assertEquals(normalized.normalizationMap, [0, 1, 3, 4, 5, 6, 7]);
 });
 
-Deno.test("lang.source-normalization - computes deterministic source document", () => {
-  const one = normalizeSource("ab\r\nc");
-  const two = normalizeSource("ab\r\nc");
+Deno.test("lang.source - computes deterministic source document", async () => {
+  const one = await normalizeSource("ab\r\nc");
+  const two = await normalizeSource("ab\r\nc");
 
   assertEquals(one.documentId, two.documentId);
   assertEquals(one.text, "ab\nc");
@@ -31,6 +31,6 @@ Deno.test("lang.source-normalization - computes deterministic source document", 
   assertEquals(newline.originalOffsetStart, 2);
 });
 
-Deno.test("lang.source-normalization - line starts include trailing empty line", () => {
+Deno.test("lang.source - line starts include trailing empty line", () => {
   assertEquals(buildLineStarts("a\n"), [0, 2]);
 });

@@ -1,9 +1,9 @@
 import { assertEquals } from "@std/assert";
-import { normalizeSource } from "../../lang/source-normalization/mod.ts";
+import { normalizeSource } from "../../lang/source/mod.ts";
 
-Deno.test("req:source-normalization-runtime-002 - Source normalization produces deterministic line and unit indexes covering normalized text", () => {
-  const one = normalizeSource("ab\r\nc");
-  const two = normalizeSource("ab\r\nc");
+Deno.test("req:source-normalization-runtime-002 - Source normalization produces deterministic line and unit indexes covering normalized text", async () => {
+  const one = await normalizeSource("ab\r\nc");
+  const two = await normalizeSource("ab\r\nc");
 
   assertEquals(one.documentId, two.documentId);
   assertEquals(one.lineStarts, [0, 3]);

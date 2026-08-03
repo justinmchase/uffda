@@ -1,7 +1,11 @@
 import { assertEquals } from "@std/assert";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
-import { executeUffdaSource, MorseLang } from "../../lang/uffda/uffda.lang.ts";
+import { executeUffdaSource } from "../../lang/uffda/uffda.lang.ts";
+
+const MorseLang = await Deno.readTextFile(
+  new URL("../../../examples/morse/morse.uff", import.meta.url),
+);
 
 Deno.test("req:uffda-runtime-compilation-006 - source-authored Morse targets the Uffda runtime", async () => {
   const repertoire = [
