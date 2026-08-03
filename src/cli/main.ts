@@ -15,6 +15,7 @@ import {
   parseCliMatchInput,
 } from "./match.ts";
 import { parseSourceToAst } from "./stream.ts";
+import { runWorkbenchProtocol } from "./workbench.ts";
 
 export type CliRunResult = {
   exitCode: number;
@@ -119,7 +120,7 @@ function rootUsageText(): string {
     "  match       Match one pattern source unit or pattern AST against input.",
     "  parse       Parse one selected-language source unit to an AST.",
     "  run         Run one Uffda module source unit or module AST.",
-    "  workbench   Launch interactive workbench mode (planned).",
+    "  workbench   Run an interactive JSON-lines workbench session.",
     "",
     "Global options:",
     "  --help, -h             Show usage for the current command or command root.",
@@ -132,7 +133,7 @@ function rootUsageText(): string {
     "  uffda parse --lang expression ./hello.expr | uffda exec --ast",
     "  uffda exec -e '(echo \"hello\")'",
     "  uffda match ./word.pattern --input hello",
-    "  uffda match -e 'number' --input 42 --json",
+    "  uffda match -e 'number' --input-json 42 --json",
     "  uffda run ./app.uff --entry Main",
     "  uffda workbench",
     "",
@@ -209,10 +210,13 @@ function runUsageText(): string {
 
 function workbenchUsageText(): string {
   return [
-    "Usage: uffda workbench [options]",
+    "Usage: uffda workbench < commands.jsonl",
     "",
-    "Status:",
-    "  Workbench mode is planned and not wired yet.",
+    "Protocol:",
+    "  Reads one JSON command per line and emits one JSON response per line.",
+    '  Start with {"action":"start","language":"pattern","source":"any"}.',
+    "  Actions: status, set-source, set-language, compile, open, save,",
+    "  export-ast, and end.",
     "",
   ].join("\n");
 }
@@ -522,6 +526,13 @@ export async function runCli(
     return {
       exitCode: CliExitCode.Usage,
       stderr: toJson({ ok: false, error: result.error }),
+    };
+  }
+
+  if (contract.mode === CliMode.Interactive) {
+    return {
+      exitCode: CliExitCode.Ok,
+      stdout: await runWorkbenchProtocol(stdinSource, contract.cwd),
     };
   }
 

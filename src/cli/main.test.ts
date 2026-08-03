@@ -295,10 +295,23 @@ Deno.test("cli.main runCli validates mode support and compile routing", async (t
     },
   );
 
-  await t.step("reports usage for not-yet-wired modes", async () => {
-    const result = await runCli(["workbench"], "/workspace/project", false);
-    assertEquals(result.exitCode, CliExitCode.Usage);
-    assert(result.stderr?.includes("is not wired yet"));
+  await t.step("runs the workbench command protocol", async () => {
+    const result = await runCli(
+      ["workbench"],
+      "/workspace/project",
+      false,
+      '{"action":"start","language":"pattern","source":"any"}\n' +
+        '{"action":"end"}\n',
+    );
+
+    assertEquals(result.exitCode, CliExitCode.Ok);
+    const responses = (result.stdout ?? "").trim().split("\n").map((line) =>
+      JSON.parse(line)
+    ) as Array<{ event: string }>;
+    assertEquals(responses.map((response) => response.event), [
+      "started",
+      "ended",
+    ]);
   });
 
   await t.step({

@@ -1,4 +1,4 @@
-# Uffda 🦕
+# Uffda
 
 Uffda is a parser generator for domain specific languages.
 
@@ -6,6 +6,59 @@ It is different from many parser generators in that the syntax is expressive
 enough to support parsing strings as well as objects, arrays or any other value
 type. The result of this capability is that the entire compiler pipeline can be
 expressed in pattern matching operations.
+
+## CLI
+
+Run the CLI from a checkout with `deno task cli`. Use `--help` for the command
+overview or command-specific help such as `deno task cli match --help`.
+
+### Hello World
+
+Evaluate an expression directly with `-e`:
+
+```sh
+deno task cli exec -e '(echo "Hello, world!")'
+```
+
+```text
+Hello,world!
+```
+
+### Useful commands
+
+Parse source to a raw AST, then execute it explicitly as an AST pipeline:
+
+```sh
+deno task cli parse --lang expression -e '(echo "Hello, world!")' |
+  deno task cli exec --ast
+```
+
+Match text with `--input`, or match one decoded JSON value with `--input-json`.
+Add `--json` when a script needs machine-readable results and diagnostics:
+
+```sh
+deno task cli match -e 'any' --input hello
+deno task cli match -e 'number' --input-json 42 --json
+```
+
+Run a Uffda module with its first export, or select an exported rule with
+`--entry`:
+
+```sh
+deno task cli run ./app.uff --entry Main
+```
+
+The initial workbench is a newline-delimited JSON protocol. It keeps an
+in-memory document, recompiles after edits, and supports `open`, `save`, and
+`export-ast` commands:
+
+```sh
+printf '%s\n' \
+  '{"action":"start","language":"pattern","source":"any"}' \
+  '{"action":"set-source","source":"number"}' \
+  '{"action":"end"}' |
+  deno task cli workbench
+```
 
 ## Development
 
@@ -15,15 +68,6 @@ This is a deno library.
 
 ```sh
 deno test --watch --parallel
-```
-
-#### cli
-
-```sh
-deno run --allow-env --allow-read --allow-write \
-  main.ts compile \
-  --src src \
-  --dst dst
 ```
 
 ### References

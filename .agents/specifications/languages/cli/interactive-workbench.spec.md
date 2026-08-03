@@ -23,6 +23,16 @@ Normative key words in this chapter use the conventions defined in the
   current compile/diagnostic results.
 - Session operations MUST be deterministic for a fixed command sequence.
 
+## Initial command protocol
+
+- The initial workbench transport MUST accept newline-delimited JSON command
+  objects and emit one JSON response for each command.
+- The protocol MUST support explicit session start and end operations.
+- The protocol MUST expose selected language, active source, source provenance,
+  and current compile result or diagnostic in its responses.
+- A future TUI MAY provide richer interaction while preserving this protocol's
+  deterministic session semantics.
+
 ## Editing and incremental compilation
 
 - Workbench mode MUST support in-memory source editing operations.
