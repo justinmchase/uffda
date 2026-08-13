@@ -17,6 +17,10 @@
     "@std/assert": "jsr:@std/assert@^1.0.10",
     "@std/crypto": "jsr:@std/crypto@^1.0.3",
     "@std/encoding": "jsr:@std/encoding@^1.0.6",
-    "@std/path": "jsr:@std/path@^1.0.8"
+    "@std/path": "jsr:@std/path@^1.0.8",
+    "@tui/inputs": "jsr:@tui/inputs@0.0.1",
+    "@tui/nice": "jsr:@tui/nice@0.6.1",
+    "@tui/signals": "jsr:@tui/signals@0.0.10",
+    "@tui/tui": "jsr:@tui/tui@3.0.0-dev.10"
   }
 }

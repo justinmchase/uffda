@@ -1,15 +1,40 @@
 {
-  "version": "4",
+  "version": "5",
   "specifiers": {
+    "jsr:@beast/compat@~0.1.2": "0.1.2",
+    "jsr:@crayon/color-support@2.1.0": "2.1.0",
+    "jsr:@crayon/crayon@4.0.0-alpha.4": "4.0.0-alpha.4",
     "jsr:@justinmchase/serializable@~0.3.13": "0.3.13",
     "jsr:@justinmchase/type@~0.2.4": "0.2.4",
     "jsr:@std/assert@^1.0.10": "1.0.10",
     "jsr:@std/crypto@^1.0.3": "1.0.3",
     "jsr:@std/encoding@^1.0.6": "1.0.6",
     "jsr:@std/internal@^1.0.5": "1.0.5",
-    "jsr:@std/path@^1.0.8": "1.0.8"
+    "jsr:@std/path@^1.0.8": "1.0.8",
+    "jsr:@tui/inputs@0": "0.0.1",
+    "jsr:@tui/inputs@0.0.1": "0.0.1",
+    "jsr:@tui/nice@0.6.1": "0.6.1",
+    "jsr:@tui/nice@~0.6.1": "0.6.1",
+    "jsr:@tui/signals@0": "0.0.10",
+    "jsr:@tui/signals@0.0.10": "0.0.10",
+    "jsr:@tui/signals@^0.0.10": "0.0.10",
+    "jsr:@tui/strings@0": "0.1.2",
+    "jsr:@tui/strings@0.1.2": "0.1.2",
+    "jsr:@tui/tui@3.0.0-dev.10": "3.0.0-dev.10"
   },
   "jsr": {
+    "@beast/compat@0.1.2": {
+      "integrity": "f7837b100e3f4518e114f823570a1a1a2e49efaa7ed41de12eb5e079749f573f"
+    },
+    "@crayon/color-support@2.1.0": {
+      "integrity": "7901b177733e10526b78c2ca4f784550d6f7a38b992913f23ebcfc26ffee1398",
+      "dependencies": [
+        "jsr:@beast/compat"
+      ]
+    },
+    "@crayon/crayon@4.0.0-alpha.4": {
+      "integrity": "812afa0488d6b2a3691d23540493b2280e627ed0aa88ed8161625327b24467b2"
+    },
     "@justinmchase/serializable@0.3.13": {
       "integrity": "fdddf4a87ec11c75ee528f6c530f3e4209c072ec089f2fc11392e15b197ef93c",
       "dependencies": [
@@ -36,6 +61,33 @@
     },
     "@std/path@1.0.8": {
       "integrity": "548fa456bb6a04d3c1a1e7477986b6cffbce95102d0bb447c67c4ee70e0364be"
+    },
+    "@tui/inputs@0.0.1": {
+      "integrity": "4310f1d6de2d5b25b0ca5030b4849535bda3e5c20ff1bce8dbfa1b753a315efd"
+    },
+    "@tui/nice@0.6.1": {
+      "integrity": "7db3e7b68744d9b085967d54ea78d58feb78f3f056f912309799e4b6c5e7eb0f",
+      "dependencies": [
+        "jsr:@tui/signals@0",
+        "jsr:@tui/strings@0"
+      ]
+    },
+    "@tui/signals@0.0.10": {
+      "integrity": "8fc07c63f63045f052db4d237c055e3c989d5606143b710ba01a3b3f97e099e9"
+    },
+    "@tui/strings@0.1.2": {
+      "integrity": "bebbc352ca541e0b76bb7b7c42883e50ef419da5a4563ad0b9d349d6218ea648"
+    },
+    "@tui/tui@3.0.0-dev.10": {
+      "integrity": "85ff76741b03bf89fa9bc79038b1e55958d4624534f9369b5e5260c1b68ab19d",
+      "dependencies": [
+        "jsr:@crayon/color-support",
+        "jsr:@crayon/crayon",
+        "jsr:@tui/inputs@0",
+        "jsr:@tui/nice@~0.6.1",
+        "jsr:@tui/signals@^0.0.10",
+        "jsr:@tui/strings@0"
+      ]
     }
   },
   "workspace": {
@@ -45,7 +97,11 @@
       "jsr:@std/assert@^1.0.10",
       "jsr:@std/crypto@^1.0.3",
       "jsr:@std/encoding@^1.0.6",
-      "jsr:@std/path@^1.0.8"
+      "jsr:@std/path@^1.0.8",
+      "jsr:@tui/inputs@0.0.1",
+      "jsr:@tui/nice@0.6.1",
+      "jsr:@tui/signals@0.0.10",
+      "jsr:@tui/tui@3.0.0-dev.10"
     ]
   }
 }

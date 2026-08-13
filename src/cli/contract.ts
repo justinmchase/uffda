@@ -396,7 +396,8 @@ export function resolveCliProcessContract(
     );
   }
 
-  const mode = commandMode ?? flagMode ?? CliMode.Compile;
+  const mode = commandMode ?? flagMode ??
+    (argv.length === 0 ? CliMode.Interactive : CliMode.Compile);
   const command = parsed.commandToken ?? commandFromMode(mode);
 
   if (mode !== CliMode.Compile && parsed.inputPaths.length > 1) {

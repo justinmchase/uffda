@@ -3,6 +3,7 @@ import { dirname, join } from "@std/path";
 import { CliExitCode } from "./contract.ts";
 import { resolveProcessCwd, runCli, shouldReadStdin } from "./main.ts";
 import { resolveCliProcessContract } from "./contract.ts";
+import { workbenchBanner } from "./workbench.ts";
 
 const writePermission = await Deno.permissions.query({
   name: "write",
@@ -287,11 +288,32 @@ Deno.test("cli.main runCli validates mode support and compile routing", async (t
   await t.step(
     "reports usage when compile mode has no input paths",
     async () => {
-      const result = await runCli([], "/workspace/project", false);
+      const result = await runCli(["compile"], "/workspace/project", false);
       assertEquals(result.exitCode, CliExitCode.Usage);
       assert(
         result.stderr?.includes("requires at least one file or folder path"),
       );
+    },
+  );
+
+  await t.step(
+    "runs the workbench when invoked with no arguments",
+    async () => {
+      const result = await runCli(
+        [],
+        "/workspace/project",
+        false,
+        '{"action":"start"}\n{"action":"end"}\n',
+      );
+
+      assertEquals(result.exitCode, CliExitCode.Ok);
+      const responses = (result.stdout ?? "").trim().split("\n").map((line) =>
+        JSON.parse(line)
+      ) as Array<{ event: string }>;
+      assertEquals(responses.map((response) => response.event), [
+        "started",
+        "ended",
+      ]);
     },
   );
 
@@ -313,6 +335,21 @@ Deno.test("cli.main runCli validates mode support and compile routing", async (t
       "ended",
     ]);
   });
+
+  await t.step(
+    "displays the ascii art banner when workbench runs",
+    async () => {
+      const result = await runCli(
+        ["workbench"],
+        "/workspace/project",
+        false,
+        '{"action":"start"}\n{"action":"end"}\n',
+      );
+
+      assertEquals(result.exitCode, CliExitCode.Ok);
+      assertEquals(result.stderr, `${workbenchBanner()}\n`);
+    },
+  );
 
   await t.step({
     name: "parses and executes source files",

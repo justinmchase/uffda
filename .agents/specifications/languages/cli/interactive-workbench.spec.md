@@ -23,15 +23,30 @@ Normative key words in this chapter use the conventions defined in the
   current compile/diagnostic results.
 - Session operations MUST be deterministic for a fixed command sequence.
 
-## Initial command protocol
+## Terminal interface and protocol
 
-- The initial workbench transport MUST accept newline-delimited JSON command
-  objects and emit one JSON response for each command.
-- The protocol MUST support explicit session start and end operations.
-- The protocol MUST expose selected language, active source, source provenance,
-  and current compile result or diagnostic in its responses.
-- A future TUI MAY provide richer interaction while preserving this protocol's
-  deterministic session semantics.
+- When standard input is a terminal, `workbench` MUST open a fullscreen terminal
+  application instead of requiring line-oriented JSON commands.
+- The terminal application MUST open on a landing screen presenting the ascii
+  art banner and a prompt to select a workspace folder.
+- Once a workspace folder is selected, the terminal application MUST provide
+  three modes: file selection, file editor, and preview.
+- File selection MUST render the workspace folder contents as an expandable
+  tree; selecting a folder MUST toggle its expansion and selecting a file MUST
+  switch to the file editor with that file open.
+- The file editor and preview modes MUST NOT be reachable until a file has been
+  selected.
+- `Shift+Tab` MUST toggle between the file editor and preview modes once a file
+  is open; `Esc` MUST step back toward file selection and, from file selection,
+  back to the workspace landing screen.
+- Editing input MUST trigger recompilation; the preview mode MUST reflect the
+  current compilation or diagnostic outcome as read-only output.
+- The terminal interface MUST support `Ctrl+S` to save an opened file; `Ctrl+C`
+  MUST exit and restore the terminal.
+- When standard input is not a terminal (piped), `workbench` MUST accept
+  newline-delimited JSON command objects and emit one JSON response for each
+  command, for automation.
+- Both interfaces MUST preserve the same deterministic session semantics.
 
 ## Editing and incremental compilation
 
@@ -45,6 +60,9 @@ Normative key words in this chapter use the conventions defined in the
 
 - Workbench mode MUST provide dynamic visualizations for successful and failed
   compilation paths.
+- The command protocol MUST provide a visualization operation that renders the
+  current compilation state in text-first form, including selected language,
+  source provenance, and AST or diagnostic outcome.
 - Match-failure visualization SHOULD integrate the runtime diagnostic renderer
   contract.
 - Visualization output MUST remain inspectable in text-first environments even

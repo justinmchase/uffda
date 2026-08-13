@@ -1,9 +1,22 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertStringIncludes } from "@std/assert";
 import {
   CliWorkbench,
   CliWorkbenchFailureCode,
   runWorkbenchProtocol,
+  workbenchBanner,
 } from "./workbench.ts";
+
+Deno.test("cli.workbench renders an eleven-line ascii art banner", () => {
+  const banner = workbenchBanner();
+  const rows = banner.split("\n");
+
+  assertEquals(rows.length, 11);
+  assertEquals(new Set(rows.map((row) => row.length)).size, 1);
+  assertStringIncludes(
+    banner,
+    "a parser generator for domain specific languages",
+  );
+});
 
 Deno.test("cli.workbench manages deterministic in-memory sessions", async (t) => {
   const files = new Map<string, string>([
@@ -112,5 +125,51 @@ Deno.test("cli.workbench manages deterministic in-memory sessions", async (t) =>
     assertEquals(responses[0].session.source, "any");
     assertEquals(responses[2].session.active, false);
     assertEquals(responses[2].session.source, "any");
+  });
+
+  await t.step("visualizes successful and failed compilation", async () => {
+    const workbench = new CliWorkbench("/workspace/project", fileSystem);
+    await workbench.execute({
+      action: "start",
+      language: "pattern",
+      source: "any",
+    });
+
+    const success = await workbench.execute({ action: "visualize" });
+    assertEquals(success.ok, true);
+    if (!success.ok) return;
+    assertStringIncludes(
+      success.session.visualization ?? "",
+      "Status: succeeded",
+    );
+    assertStringIncludes(success.session.visualization ?? "", '"kind": "any"');
+
+    await workbench.execute({ action: "set-source", source: "(" });
+    const failure = await workbench.execute({ action: "visualize" });
+    assertEquals(failure.ok, true);
+    if (!failure.ok) return;
+    assertStringIncludes(failure.session.visualization ?? "", "Status: failed");
+    assertStringIncludes(failure.session.visualization ?? "", "Phase: parse");
+  });
+
+  await t.step("renders match failure visualization", async () => {
+    const workbench = new CliWorkbench("/workspace/project", fileSystem);
+    await workbench.execute({
+      action: "start",
+      language: "pattern",
+      source: '"expected"',
+    });
+
+    const result = await workbench.execute({
+      action: "match",
+      input: "actual",
+    });
+    assertEquals(result.ok, true);
+    if (!result.ok) return;
+    assertStringIncludes(result.session.visualization ?? "", "Match failure");
+    assertStringIncludes(
+      result.session.visualization ?? "",
+      'Expected: "expected"',
+    );
   });
 });

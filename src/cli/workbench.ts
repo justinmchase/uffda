@@ -1,5 +1,11 @@
 import { isAbsolute, resolve } from "@std/path";
+import { InputNormalizationMode } from "../input.ts";
+import { MatchKind } from "../match.ts";
+import { visualizeMatchFailure } from "../match.visualize.ts";
 import { CliLanguage } from "./contract.ts";
+import { match } from "../runtime/match.ts";
+import { isPattern } from "../runtime/patterns/pattern.ts";
+import { Scope } from "../runtime/scope.ts";
 import { type CliStreamResult, parseSourceToAst } from "./stream.ts";
 
 export enum CliWorkbenchFailureCode {
@@ -7,13 +13,84 @@ export enum CliWorkbenchFailureCode {
   SessionInactive = "CLI_WORKBENCH_SESSION_INACTIVE",
   FileIo = "CLI_WORKBENCH_FILE_IO",
   ExportUnavailable = "CLI_WORKBENCH_EXPORT_UNAVAILABLE",
+  MatchUnavailable = "CLI_WORKBENCH_MATCH_UNAVAILABLE",
 }
 
 export type CliWorkbenchFailure = {
   code: CliWorkbenchFailureCode;
-  phase: "protocol" | "session" | "file" | "export";
+  phase: "protocol" | "session" | "file" | "export" | "match";
   message: string;
 };
+
+const BANNER_LETTERS: Record<string, string[]> = {
+  U: [
+    "█       █",
+    "█       █",
+    "█       █",
+    "█       █",
+    "█       █",
+    "█       █",
+    "█       █",
+    " █     █ ",
+    "  █████  ",
+  ],
+  F: [
+    "█████████",
+    "█        ",
+    "█        ",
+    "█        ",
+    "███████  ",
+    "█        ",
+    "█        ",
+    "█        ",
+    "█        ",
+  ],
+  D: [
+    "████████ ",
+    "█       █",
+    "█       █",
+    "█       █",
+    "█       █",
+    "█       █",
+    "█       █",
+    "█       █",
+    "████████ ",
+  ],
+  A: [
+    "   ███   ",
+    "  █   █  ",
+    " █     █ ",
+    "█       █",
+    "█████████",
+    "█       █",
+    "█       █",
+    "█       █",
+    "█       █",
+  ],
+};
+
+const BANNER_SUBTITLE = "a parser generator for domain specific languages";
+const BANNER_LETTER_HEIGHT = 9;
+const BANNER_LETTER_WIDTH = 9;
+const BANNER_WIDTH = BANNER_LETTER_WIDTH * 5 + 4;
+
+function centered(text: string, width: number): string {
+  if (text.length >= width) return text.slice(0, width);
+  const left = Math.floor((width - text.length) / 2);
+  return " ".repeat(left) + text + " ".repeat(width - text.length - left);
+}
+
+export function workbenchBanner(): string {
+  const rows: string[] = [];
+  for (let row = 0; row < BANNER_LETTER_HEIGHT; row++) {
+    rows.push(
+      [..."UFFDA"].map((letter) => BANNER_LETTERS[letter][row]).join(" "),
+    );
+  }
+  rows.push("─".repeat(BANNER_WIDTH));
+  rows.push(centered(BANNER_SUBTITLE, BANNER_WIDTH));
+  return rows.join("\n");
+}
 
 export type CliWorkbenchFileSystem = {
   readTextFile(path: string): Promise<string>;
@@ -26,6 +103,7 @@ export type CliWorkbenchSession = {
   source: string;
   sourcePath: string;
   compilation?: CliStreamResult;
+  visualization?: string;
 };
 
 export type CliWorkbenchResponse =
@@ -37,6 +115,8 @@ type WorkbenchCommand = {
   language?: CliLanguage;
   source?: string;
   path?: string;
+  input?: unknown;
+  jsonInput?: boolean;
 };
 
 function failure(
@@ -140,6 +220,11 @@ export class CliWorkbench {
       case "compile":
         await this.#compile();
         return success("compiled", this.#session);
+      case "visualize":
+        this.#session.visualization = visualization(this.#session);
+        return success("visualized", this.#session);
+      case "match":
+        return await this.#match(command);
       case "open":
         return await this.#open(command);
       case "save":
@@ -280,6 +365,51 @@ export class CliWorkbench {
     }
   }
 
+  async #match(command: WorkbenchCommand): Promise<CliWorkbenchResponse> {
+    if (this.#session.language !== CliLanguage.Pattern) {
+      return failure(
+        this.#session,
+        CliWorkbenchFailureCode.MatchUnavailable,
+        "match",
+        "match requires a pattern-language workbench session.",
+      );
+    }
+    if (command.input === undefined) {
+      return failure(
+        this.#session,
+        CliWorkbenchFailureCode.InvalidCommand,
+        "protocol",
+        "match requires an input value.",
+      );
+    }
+    if (
+      !this.#session.compilation?.ok ||
+      !isPattern(this.#session.compilation.ast)
+    ) {
+      return failure(
+        this.#session,
+        CliWorkbenchFailureCode.MatchUnavailable,
+        "match",
+        "Compile a valid pattern before matching.",
+      );
+    }
+
+    const result = await match(
+      this.#session.compilation.ast,
+      Scope.From(command.input, {
+        kind: command.jsonInput
+          ? InputNormalizationMode.Scalar
+          : InputNormalizationMode.Iterable,
+      }),
+    );
+    this.#session.visualization = result.kind === MatchKind.Fail
+      ? visualizeMatchFailure(result)
+      : result.kind === MatchKind.Ok
+      ? matchVisualization(result.kind, result.value)
+      : matchVisualization(result.kind);
+    return success("matched", this.#session);
+  }
+
   async #compile(): Promise<void> {
     this.#session.compilation = await parseSourceToAst(
       this.#session.source,
@@ -295,6 +425,39 @@ export class CliWorkbench {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function visualization(session: CliWorkbenchSession): string {
+  const heading = [
+    "Compilation",
+    `Language: ${session.language}`,
+    `Source: ${session.sourcePath}`,
+  ];
+  if (!session.compilation) {
+    return [...heading, "Status: not compiled"].join("\n");
+  }
+  if (!session.compilation.ok) {
+    return [
+      ...heading,
+      "Status: failed",
+      `Phase: ${session.compilation.error.phase}`,
+      `Diagnostic: ${session.compilation.error.message}`,
+    ].join("\n");
+  }
+  return [
+    ...heading,
+    "Status: succeeded",
+    "AST:",
+    JSON.stringify(session.compilation.ast, null, 2),
+  ].join("\n");
+}
+
+function matchVisualization(kind: MatchKind, value?: unknown): string {
+  return [
+    "Match",
+    `Outcome: ${kind}`,
+    kind === MatchKind.Ok ? `Value: ${Deno.inspect(value)}` : "",
+  ].filter((line) => line.length > 0).join("\n");
 }
 
 export async function runWorkbenchProtocol(

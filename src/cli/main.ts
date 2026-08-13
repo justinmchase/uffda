@@ -15,7 +15,8 @@ import {
   parseCliMatchInput,
 } from "./match.ts";
 import { parseSourceToAst } from "./stream.ts";
-import { runWorkbenchProtocol } from "./workbench.ts";
+import { runWorkbenchProtocol, workbenchBanner } from "./workbench.ts";
+import { launchWorkbenchTui } from "./workbench.tui.ts";
 
 export type CliRunResult = {
   exitCode: number;
@@ -114,13 +115,15 @@ function rootUsageText(): string {
   return [
     "Usage: uffda <command> [options] [paths...]",
     "",
+    "Running uffda with no arguments starts the workbench.",
+    "",
     "Commands:",
     "  compile     Compile source files to AST artifacts.",
     "  exec        Execute one expression source unit or expression AST.",
     "  match       Match one pattern source unit or pattern AST against input.",
     "  parse       Parse one selected-language source unit to an AST.",
     "  run         Run one Uffda module source unit or module AST.",
-    "  workbench   Run an interactive JSON-lines workbench session.",
+    "  workbench   Launch the interactive terminal workbench.",
     "",
     "Global options:",
     "  --help, -h             Show usage for the current command or command root.",
@@ -210,13 +213,19 @@ function runUsageText(): string {
 
 function workbenchUsageText(): string {
   return [
-    "Usage: uffda workbench < commands.jsonl",
+    "Usage: uffda workbench [source-path]",
     "",
-    "Protocol:",
-    "  Reads one JSON command per line and emits one JSON response per line.",
-    '  Start with {"action":"start","language":"pattern","source":"any"}.',
-    "  Actions: status, set-source, set-language, compile, open, save,",
-    "  export-ast, and end.",
+    "Terminal application:",
+    "  When standard input is a terminal, opens a landing screen to select a",
+    "  workspace folder, then file selection, editor, and preview modes.",
+    "  Enter opens/expands; Shift+Tab toggles editor/preview; Esc steps back.",
+    "  Ctrl+S saves the open file; Ctrl+C quits.",
+    "",
+    "Piped automation:",
+    "  When standard input is piped, reads one JSON command per line and",
+    '  emits one JSON response per line. Start with {"action":"start"}.',
+    "  Actions: status, set-source, set-language, compile, visualize, match,",
+    "  open, save, export-ast, and end.",
     "",
   ].join("\n");
 }
@@ -533,6 +542,7 @@ export async function runCli(
     return {
       exitCode: CliExitCode.Ok,
       stdout: await runWorkbenchProtocol(stdinSource, contract.cwd),
+      stderr: `${workbenchBanner()}\n`,
     };
   }
 
@@ -568,6 +578,15 @@ if (import.meta.main) {
     processCwd,
     stdinAttached,
   });
+
+  if (
+    resolution.ok && resolution.contract.mode === CliMode.Interactive &&
+    !stdinAttached
+  ) {
+    await launchWorkbenchTui(resolution.contract);
+    Deno.exit(CliExitCode.Ok);
+  }
+
   const result = await runCli(
     Deno.args,
     processCwd,
@@ -576,11 +595,11 @@ if (import.meta.main) {
       ? await new Response(Deno.stdin.readable).text()
       : "",
   );
-  if (result.stdout) {
-    Deno.stdout.writeSync(new TextEncoder().encode(result.stdout));
-  }
   if (result.stderr) {
     Deno.stderr.writeSync(new TextEncoder().encode(result.stderr));
+  }
+  if (result.stdout) {
+    Deno.stdout.writeSync(new TextEncoder().encode(result.stdout));
   }
   Deno.exit(result.exitCode);
 }

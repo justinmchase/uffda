@@ -29,6 +29,18 @@ Deno.test("cli.contract resolves command model and process contracts determinist
     );
   });
 
+  await t.step("defaults to interactive workbench with no arguments", () => {
+    const resolution = resolveCliProcessContract({
+      argv: [],
+      processCwd: cwd,
+    });
+
+    assertEquals(resolution.ok, true);
+    if (!resolution.ok) return;
+    assertEquals(resolution.contract.mode, CliMode.Interactive);
+    assertEquals(resolution.contract.command, "workbench");
+  });
+
   await t.step("recognizes parse as a stdin command", () => {
     const resolution = resolveCliProcessContract({
       argv: ["parse"],
