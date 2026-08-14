@@ -64,10 +64,15 @@ that can be consumed by expression, pattern, and language-definition layers.
 
 ## Structured tokens and trivia
 
-- The tokenizer SHOULD expose a lossless structured token stream for tooling
-  consumers in addition to the semantic token stream used by parsers.
-- Structured tokens MUST preserve token kind, text, normalized source span, and
-  original source span.
+- Token rule projections MUST contain only token kind and text. Source spans
+  MUST NOT appear on AST or token values.
+- Every successful, failed, and error Match result MUST carry a normalized
+  source span and an original source span derived from the matched stream and
+  any attached source-normalization map.
+- Rule expressions MUST NOT read, write, or copy source spans; provenance is
+  attached by the runtime Match constructors.
+- The tokenizer SHOULD expose lossless token kind/text including comment and
+  whitespace trivia, in addition to the semantic token texts used by parsers.
 - Comments and whitespace MUST be representable as trivia without becoming
   semantic parser tokens.
 - Trivia attachment policy (leading, trailing, or detached) MUST be explicit and
@@ -111,7 +116,8 @@ that can be consumed by expression, pattern, and language-definition layers.
 
 ## Delivery milestone: Tokenizer trivia and source spans
 
-- Introduce structured tokens with normalized and original source spans.
+- Attach normalized and original source spans to every Match result in the
+  runtime. Do not embed spans in rule projections.
 - Preserve comments and whitespace as lossless trivia while retaining the
   current semantic token stream for parser compatibility.
 - Replace host-language comment/string filtering with composable Uffda lexer

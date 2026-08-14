@@ -19,6 +19,9 @@ precise authored source locations.
 - Every language layer MUST preserve source context sufficiently to report exact
   failure location and origin through layered transformations.
 - Tokenization MUST preserve stable source spans for token outputs.
+- Match results MUST expose normalized and original source spans for every
+  successful, failed, and error outcome. Rule projections MUST NOT embed those
+  spans in AST values.
 - Intermediate language artifacts SHOULD retain source-provenance metadata where
   layer transitions could otherwise lose diagnostic fidelity.
 

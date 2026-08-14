@@ -1,5 +1,5 @@
 import { assert, assertEquals } from "@std/assert";
-import { ok } from "../../mod.ts";
+import { ok } from "../../match.ts";
 import { Scope } from "../../runtime/scope.ts";
 import { exec } from "../../runtime/exec.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";

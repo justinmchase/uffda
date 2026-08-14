@@ -31,9 +31,36 @@ function assertNormalizationMode(
   return mode;
 }
 
+export type SourceProvenance = {
+  normalizationMap: readonly number[];
+};
+
 type InputFromOptions = {
   kind?: InputNormalizationMode;
+  provenance?: SourceProvenance;
 };
+
+export function sourceProvenanceFrom(
+  value: unknown,
+): SourceProvenance | undefined {
+  if (value == null || typeof value !== "object") {
+    return undefined;
+  }
+  const record = value as {
+    documentId?: unknown;
+    normalizationMap?: unknown;
+  };
+  if (typeof record.documentId !== "string") {
+    return undefined;
+  }
+  if (!Array.isArray(record.normalizationMap)) {
+    return undefined;
+  }
+  if (!record.normalizationMap.every((offset) => typeof offset === "number")) {
+    return undefined;
+  }
+  return { normalizationMap: record.normalizationMap };
+}
 
 export class Input {
   public static readonly Default = (): Input =>
@@ -49,6 +76,8 @@ export class Input {
       0,
       undefined,
       options?.kind ?? InputNormalizationMode.Scalar,
+      false,
+      options?.provenance,
     );
 
   public static readonly Scalar = (value: unknown): Input =>
@@ -79,6 +108,7 @@ export class Input {
     public readonly kind: InputNormalizationMode =
       InputNormalizationMode.Scalar,
     private readonly trustedIterator = false,
+    public readonly provenance?: SourceProvenance,
   ) {
     if (trustedIterator) {
       if (!Input.isIterator(items)) {
@@ -88,6 +118,13 @@ export class Input {
       }
       this._items = items;
       return;
+    }
+
+    if (
+      provenance === undefined &&
+      kind === InputNormalizationMode.Iterable
+    ) {
+      this.provenance = sourceProvenanceFrom(items);
     }
 
     const mode = assertNormalizationMode(kind);
@@ -132,6 +169,7 @@ export class Input {
         value,
         this.kind,
         true,
+        this.provenance,
       );
     }
     return this._next;

@@ -1,8 +1,7 @@
 import { Type, type } from "@justinmchase/type";
-import { error, fail, MatchKind, ok } from "../../match.ts";
+import { error, fail, MatchErrorCode, MatchKind, ok } from "../../match.ts";
 import { Input, InputNormalizationMode } from "../../input.ts";
 import { match } from "../match.ts";
-import { MatchErrorCode } from "../../match.ts";
 import type { Match } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import type { OverPattern, Pattern } from "./pattern.ts";

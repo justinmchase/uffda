@@ -6,10 +6,12 @@ import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { MatchKind } from "../../match.ts";
 import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
 import type { SourceDocument } from "../source/mod.ts";
+import { type TokenValue, toSemanticTexts } from "./structured.ts";
 
 export type TokenizerLangValue = {
   source: SourceDocument;
-  tokens: unknown;
+  /** Parser-compatible semantic token texts (comments omitted). */
+  tokens: string[];
 };
 
 export const TokenizerLang: ModuleDeclaration = {
@@ -70,9 +72,10 @@ export const TokenizerLang: ModuleDeclaration = {
             );
           }
 
+          const source = sourceMatch.value as SourceDocument;
           return {
-            source: sourceMatch.value as SourceDocument,
-            tokens: _,
+            source,
+            tokens: toSemanticTexts(_ as TokenValue[]),
           };
         },
       },

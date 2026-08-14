@@ -1,14 +1,8 @@
-import { type Match, MatchKind } from "../../match.ts";
-import { spanFrom } from "../../span.ts";
+import { fail as matchFail } from "../../match.ts";
+import type { Match } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import type { FailPattern } from "./pattern.ts";
 
 export function fail(pattern: FailPattern, scope: Scope): Match {
-  return {
-    kind: MatchKind.Fail,
-    pattern,
-    scope,
-    span: spanFrom(scope, scope),
-    matches: [],
-  };
+  return matchFail(scope, pattern);
 }

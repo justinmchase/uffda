@@ -7,6 +7,24 @@ import {
 } from "../../runtime/declarations/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 import { PatternKind } from "../../runtime/patterns/mod.ts";
+import {
+  foldLineComments,
+  isTokenValue,
+  StructuredTokenKind,
+  type TokenValue,
+  toSemanticNoWhitespaceTexts,
+} from "./structured.ts";
+
+export type { TokenValue } from "./structured.ts";
+export {
+  foldLineComments,
+  isSemanticNoWhitespaceToken,
+  isTokenValue,
+  isTriviaToken,
+  StructuredTokenKind,
+  toSemanticNoWhitespaceTexts,
+  toSemanticTexts,
+} from "./structured.ts";
 
 export const Tokenizer: ModuleDeclaration = {
   imports: [
@@ -61,7 +79,10 @@ export const Tokenizer: ModuleDeclaration = {
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ _ }) => _.join(""),
+        fn: ({ _ }): TokenValue => ({
+          kind: StructuredTokenKind.Whitespace,
+          text: (_ as string[]).join(""),
+        }),
       },
     },
     {
@@ -70,6 +91,13 @@ export const Tokenizer: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Equal,
         value: "\n",
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ _ }): TokenValue => ({
+          kind: StructuredTokenKind.NewLine,
+          text: _ as string,
+        }),
       },
     },
     {
@@ -116,7 +144,10 @@ export const Tokenizer: ModuleDeclaration = {
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ _ }) => _.join(""),
+        fn: ({ _ }): TokenValue => ({
+          kind: StructuredTokenKind.Word,
+          text: (_ as string[]).join(""),
+        }),
       },
     },
     {
@@ -125,6 +156,13 @@ export const Tokenizer: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Type,
         type: Type.String,
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ _ }): TokenValue => ({
+          kind: StructuredTokenKind.Punctuation,
+          text: _ as string,
+        }),
       },
     },
     {
@@ -174,36 +212,14 @@ export const Tokenizer: ModuleDeclaration = {
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ _ }) => {
-          const tokens = _ as string[];
-          const semanticTokens: string[] = [];
-          let inComment = false;
-          let inString = false;
-          let escaped = false;
-
-          for (const token of tokens) {
-            if (inComment) {
-              if (token === "\n") {
-                inComment = false;
-                semanticTokens.push(token);
-              }
-              continue;
-            }
-
-            if (!inString && token === "#") {
-              inComment = true;
-              continue;
-            }
-
-            if (token === '"' && !escaped) {
-              inString = !inString;
-            }
-
-            semanticTokens.push(token);
-            escaped = inString && token === "\\" && !escaped;
+        fn: ({ _ }): TokenValue[] => {
+          const raw = _ as unknown[];
+          if (!raw.every(isTokenValue)) {
+            throw new TypeError(
+              "Tokenizer expected token values from Tokens rules",
+            );
           }
-
-          return semanticTokens;
+          return foldLineComments(raw);
         },
       },
     },
@@ -256,8 +272,10 @@ export const Tokenizer: ModuleDeclaration = {
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ _ }) =>
-          (_ as string[]).filter((token) => token.trim().length > 0),
+        fn: ({ _ }) => {
+          const tokens = _ as TokenValue[];
+          return toSemanticNoWhitespaceTexts(tokens);
+        },
       },
     },
   ],

@@ -9,13 +9,13 @@ import {
   end,
   equal,
   except,
-  fail as failp,
+  fail as failPattern,
   includes,
   into,
   lookahead,
   maybe,
   not,
-  ok,
+  ok as okPattern,
   or,
   over,
   type Pattern,
@@ -48,7 +48,7 @@ export async function match(pattern: Pattern, scope: Scope): AwaitableMatch {
     case PatternKind.Except:
       return await except(pattern, scope);
     case PatternKind.Fail:
-      return failp(pattern, scope);
+      return failPattern(pattern, scope);
     case PatternKind.Includes:
       return includes(pattern, scope);
     case PatternKind.Lookahead:
@@ -60,7 +60,7 @@ export async function match(pattern: Pattern, scope: Scope): AwaitableMatch {
     case PatternKind.Over:
       return await over(pattern, scope);
     case PatternKind.Ok:
-      return ok(pattern, scope);
+      return okPattern(pattern, scope);
     case PatternKind.Or:
       return await or(pattern, scope);
     case PatternKind.Pipeline:
