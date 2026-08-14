@@ -38,8 +38,9 @@ source and inspecting outcomes without embedding Uffda programmatically.
 - Match mode: pattern matching from source or pattern AST input against explicit
   subject input.
 - Run mode: Uffda module execution from source or module AST input.
-- Language-selection mode: full Uffda, pattern language, and expression language
-  selection via flags, with full Uffda as default.
+- Language-selection mode: `parse` selects full Uffda, pattern, or expression
+  via `--lang` (full Uffda default); `exec`/`match`/`run` own their languages;
+  `compile` always targets Uffda module AST artifacts.
 - Interactive workbench mode: a stateful editor-like interface with dynamic
   visualization and file input/output orchestration.
 
@@ -159,8 +160,12 @@ be human-readable and include the relevant source excerpt and input path.
 
 ### Milestone 5: Language-selection flags and default behavior
 
-- Support `full-uffda`, `pattern`, and `expression` compile modes.
-- Default to full Uffda when no language-selection flag is supplied.
+- Support language selection on `parse` via `--lang` for `uffda`, `pattern`, and
+  `expression`.
+- Default to full Uffda when `parse` is invoked without `--lang`.
+- `exec`, `match`, and `run` MUST select expression, pattern, and Uffda module
+  language respectively and MUST reject `--lang`.
+- `compile` MUST emit Uffda module AST artifacts and MUST reject `--lang`.
 - Define deterministic diagnostics for unsupported flag combinations.
 
 ### Milestone 6: Diagnostics, logging, and machine formats

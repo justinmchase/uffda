@@ -14,7 +14,8 @@ Preconditions:
 
 Expected behavior:
 
-- Command families MUST resolve to compile, parse, exec, or interactive mode.
+- Command families MUST resolve to compile, parse, exec, match, run, or
+  interactive mode.
 - Successful invocation-contract resolution MUST map to exit code `0`.
 - Usage/flag-validation failures MUST map to a stable usage exit code.
 - Configuration failures MUST map to a stable configuration exit code.

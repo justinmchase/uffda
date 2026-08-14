@@ -83,14 +83,23 @@ Deno.test("cli.contract resolves command model and process contracts determinist
   });
 
   await t.step("rejects language overrides for language-owned commands", () => {
-    const resolution = resolveCliProcessContract({
-      argv: ["exec", "--lang", "expression"],
-      processCwd: cwd,
-    });
+    for (
+      const argv of [
+        ["exec", "--lang", "expression"],
+        ["match", "--lang", "pattern"],
+        ["run", "--lang", "uffda"],
+        ["compile", "--lang", "pattern", "source.uff"],
+      ]
+    ) {
+      const resolution = resolveCliProcessContract({
+        argv,
+        processCwd: cwd,
+      });
 
-    assertEquals(resolution.ok, false);
-    if (resolution.ok) return;
-    assertEquals(resolution.exitCode, CliExitCode.Usage);
+      assertEquals(resolution.ok, false);
+      if (resolution.ok) return;
+      assertEquals(resolution.exitCode, CliExitCode.Usage);
+    }
   });
 
   await t.step("rejects operational input selectors in compile mode", () => {

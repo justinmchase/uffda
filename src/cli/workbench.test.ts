@@ -152,6 +152,32 @@ Deno.test("cli.workbench manages deterministic in-memory sessions", async (t) =>
     assertStringIncludes(failure.session.visualization ?? "", "Phase: parse");
   });
 
+  await t.step(
+    "open then visualize reflects the opened file compilation",
+    async () => {
+      const workbench = new CliWorkbench("/workspace/project", fileSystem);
+      await workbench.execute({ action: "start", language: "pattern" });
+      const opened = await workbench.execute({
+        action: "open",
+        path: "input.pattern",
+      });
+      assertEquals(opened.ok, true);
+      if (!opened.ok) return;
+
+      const visualized = await workbench.execute({ action: "visualize" });
+      assertEquals(visualized.ok, true);
+      if (!visualized.ok) return;
+      assertStringIncludes(
+        visualized.session.visualization ?? "",
+        "Status: succeeded",
+      );
+      assertStringIncludes(
+        visualized.session.visualization ?? "",
+        "input.pattern",
+      );
+    },
+  );
+
   await t.step("renders match failure visualization", async () => {
     const workbench = new CliWorkbench("/workspace/project", fileSystem);
     await workbench.execute({

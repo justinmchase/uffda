@@ -48,9 +48,21 @@ Run a Uffda module with its first export, or select an exported rule with
 deno task cli run ./app.uff --entry Main
 ```
 
-The initial workbench is a newline-delimited JSON protocol. It keeps an
-in-memory document, recompiles after edits, and supports `open`, `save`, and
-`export-ast` commands:
+### Workbench
+
+On a terminal, `workbench` opens a fullscreen TUI: pick a workspace folder,
+browse files, edit source, and toggle a compile/diagnostics preview with
+`Shift+Tab`. Pass a source path to skip the landing screen and open that file
+directly:
+
+```sh
+deno task cli workbench
+deno task cli workbench ./examples/main.uff
+```
+
+When standard input is piped, the same session uses a newline-delimited JSON
+protocol for automation (`open`, `save`, `export-ast`, `visualize`, `match`, and
+related actions):
 
 ```sh
 printf '%s\n' \

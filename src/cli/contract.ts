@@ -445,7 +445,10 @@ export function resolveCliProcessContract(
   }
 
   if (
-    (mode === CliMode.Exec || mode === CliMode.Match || mode === CliMode.Run) &&
+    (
+      mode === CliMode.Compile || mode === CliMode.Exec ||
+      mode === CliMode.Match || mode === CliMode.Run
+    ) &&
     parsed.languageSpecified
   ) {
     return usage(

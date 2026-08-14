@@ -9,7 +9,7 @@ import {
 
 Deno.test("req:cli-command-model-001 - CLI command model and process contract are deterministic", async (t) => {
   await t.step(
-    "command families resolve to compile, parse, exec, and interactive",
+    "command families resolve to compile, parse, exec, match, run, and interactive",
     () => {
       const compile = resolveCliProcessContract({
         argv: ["compile", "main.uff"],
@@ -19,6 +19,18 @@ Deno.test("req:cli-command-model-001 - CLI command model and process contract ar
         argv: ["parse"],
         processCwd: "/repo",
       });
+      const exec = resolveCliProcessContract({
+        argv: ["exec", "-e", "1"],
+        processCwd: "/repo",
+      });
+      const match = resolveCliProcessContract({
+        argv: ["match", "-e", "any", "--input", "x"],
+        processCwd: "/repo",
+      });
+      const run = resolveCliProcessContract({
+        argv: ["run", "app.uff"],
+        processCwd: "/repo",
+      });
       const interactive = resolveCliProcessContract({
         argv: ["workbench"],
         processCwd: "/repo",
@@ -26,11 +38,20 @@ Deno.test("req:cli-command-model-001 - CLI command model and process contract ar
 
       assertEquals(compile.ok, true);
       assertEquals(parse.ok, true);
+      assertEquals(exec.ok, true);
+      assertEquals(match.ok, true);
+      assertEquals(run.ok, true);
       assertEquals(interactive.ok, true);
-      if (!compile.ok || !parse.ok || !interactive.ok) return;
+      if (
+        !compile.ok || !parse.ok || !exec.ok || !match.ok || !run.ok ||
+        !interactive.ok
+      ) return;
 
       assertEquals(compile.contract.mode, CliMode.Compile);
       assertEquals(parse.contract.mode, CliMode.Parse);
+      assertEquals(exec.contract.mode, CliMode.Exec);
+      assertEquals(match.contract.mode, CliMode.Match);
+      assertEquals(run.contract.mode, CliMode.Run);
       assertEquals(interactive.contract.mode, CliMode.Interactive);
     },
   );

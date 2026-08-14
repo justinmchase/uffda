@@ -5,6 +5,7 @@ import {
   type FileEntry,
   flattenEntries,
   renderWorkbenchScreen,
+  scrollStartForFocus,
   type WorkbenchRenderState,
 } from "./workbench.tui.ts";
 
@@ -152,6 +153,12 @@ Deno.test("cli.workbench.tui flattenEntries lists expanded directories inline", 
   ]);
 });
 
+Deno.test("cli.workbench.tui scrollStartForFocus keeps the focus line visible", () => {
+  assertEquals(scrollStartForFocus(0, 5, 3), 0);
+  assertEquals(scrollStartForFocus(8, 5, 20), 6);
+  assertEquals(scrollStartForFocus(19, 5, 20), 15);
+});
+
 Deno.test("cli.workbench.tui renderWorkbenchScreen renders a fixed-size frame per screen", async (t) => {
   await t.step("renders the landing screen with the banner and prompt", () => {
     const state = baseState({ screen: "landing" });
@@ -224,15 +231,58 @@ Deno.test("cli.workbench.tui renderWorkbenchScreen renders a fixed-size frame pe
     );
   });
 
-  await t.step("renders read-only preview output", () => {
+  await t.step("scrolls the editor so the cursor line stays visible", () => {
+    const lines = Array.from({ length: 40 }, (_, i) => `line-${i}`);
+    const source = lines.join("\n");
+    const cursorLine = 30;
+    const cursor = lines.slice(0, cursorLine).join("\n").length + 1;
+    const state = baseState({
+      mode: "editor",
+      openFilePath: "/workspace/long.uff",
+      editor: { source, cursor },
+      status: "compiled",
+    });
+
+    const screen = renderWorkbenchScreen(state, 40, 10);
+    const rows = visibleRows(screen);
+    assertStringIncludes(rows.join("\n"), "line-30");
+    assertEquals(rows.some((row) => row.includes("line-0")), false);
+  });
+
+  await t.step("renders read-only preview output with scroll offset", () => {
+    const visualization = Array.from({ length: 20 }, (_, i) => `viz-${i}`)
+      .join("\n");
     const state = baseState({
       mode: "preview",
       openFilePath: "/workspace/main.uff",
-      visualization: "Compilation\nStatus: succeeded",
+      visualization,
+      previewScroll: 5,
     });
 
-    const screen = renderWorkbenchScreen(state, 60, 12);
-    assertStringIncludes(screen, "Status: succeeded");
+    const screen = renderWorkbenchScreen(state, 60, 10);
+    const rows = visibleRows(screen);
+    assertStringIncludes(rows.join("\n"), "viz-5");
+    assertEquals(rows.some((row) => row.includes("viz-0")), false);
+    assertStringIncludes(screen, "↑↓ scroll");
     assertStringIncludes(screen, "Shift+Tab editor");
   });
+
+  await t.step(
+    "path-bypass style state opens directly in editor mode",
+    () => {
+      const state = baseState({
+        mode: "editor",
+        workspaceRoot: "/workspace",
+        openFilePath: "/workspace/main.uff",
+        editor: { source: "export Main; rule Main = ok;", cursor: 0 },
+        status: "compiled",
+      });
+      const screen = renderWorkbenchScreen(state, 80, 12);
+      const plain = stripAnsi(screen);
+      assertStringIncludes(plain, "Editor: /workspace/main.uff");
+      assertStringIncludes(plain, "export Main");
+      assertEquals(state.mode, "editor");
+      assertEquals(state.screen, "workspace");
+    },
+  );
 });

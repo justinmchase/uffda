@@ -1,7 +1,6 @@
 import { dirname, resolve } from "@std/path";
 import { Style } from "@tui/nice";
 import { signal } from "@tui/signals";
-import { tui } from "@tui/tui";
 import type { KeyPress } from "@tui/inputs";
 import type { CliLanguage, CliProcessContract } from "./contract.ts";
 import { CliWorkbench, workbenchBanner } from "./workbench.ts";
@@ -148,8 +147,21 @@ export type WorkbenchRenderState = {
   editor: WorkbenchEditorState;
   language: CliLanguage;
   visualization?: string;
+  previewScroll?: number;
   status: string;
 };
+
+/** Keep `focusLine` visible inside a body of `bodyHeight` rows. */
+export function scrollStartForFocus(
+  focusLine: number,
+  bodyHeight: number,
+  totalLines: number,
+): number {
+  if (totalLines <= bodyHeight) return 0;
+  const maxStart = Math.max(0, totalLines - bodyHeight);
+  const ideal = focusLine - Math.floor(bodyHeight / 2);
+  return Math.max(0, Math.min(ideal, maxStart));
+}
 
 // deno-lint-ignore no-control-regex -- matches ANSI escape sequences
 const ANSI_PATTERN = /\x1b\[[0-9;]*m/g;
@@ -272,14 +284,16 @@ function renderEditor(
   const bodyHeight = Math.max(1, height - 2);
   const lines = linesOf(state.editor.source);
   const position = cursorPosition(state.editor);
+  const start = scrollStartForFocus(position.line, bodyHeight, lines.length);
   const rows: string[] = [];
   for (let row = 0; row < bodyHeight; row++) {
-    const marker = row === position.line ? ">" : " ";
+    const lineIndex = start + row;
+    const marker = lineIndex === position.line ? ">" : " ";
     const plain = fit(
-      `${marker}${String(row + 1).padStart(4)} ${lines[row] ?? ""}`,
+      `${marker}${String(lineIndex + 1).padStart(4)} ${lines[lineIndex] ?? ""}`,
       width,
     );
-    if (row === position.line) {
+    if (lineIndex === position.line) {
       const column = Math.min(
         EDITOR_GUTTER_WIDTH + position.column,
         width - 1,
@@ -305,11 +319,15 @@ function renderPreview(
   );
   const bodyHeight = Math.max(1, height - 2);
   const lines = (state.visualization ?? "Compilation pending").split("\n");
+  const maxStart = Math.max(0, lines.length - bodyHeight);
+  const start = Math.max(0, Math.min(state.previewScroll ?? 0, maxStart));
   const rows: string[] = [];
   for (let row = 0; row < bodyHeight; row++) {
-    rows.push(white(fit(lines[row] ?? "", width)));
+    rows.push(white(fit(lines[start + row] ?? "", width)));
   }
-  const footer = white("Shift+Tab editor   Esc files   Ctrl+C quit");
+  const footer = white(
+    "↑↓ scroll   Shift+Tab editor   Esc files   Ctrl+C quit",
+  );
   return finalize([header, ...rows, footer], width, height);
 }
 
@@ -371,12 +389,16 @@ type AppState = {
   cursorIndex: number;
   openFilePath?: string;
   editor: WorkbenchEditorState;
+  previewScroll: number;
   status: string;
 };
 
 export async function launchWorkbenchTui(
   contract: CliProcessContract,
 ): Promise<void> {
+  // Lazy-load so unit tests can import render helpers without a TTY-backed
+  // @tui/tui singleton (its constructor calls Deno.consoleSize()).
+  const { tui } = await import("@tui/tui");
   const workbench = new CliWorkbench(contract.cwd);
   await workbench.execute({ action: "start", language: contract.language });
 
@@ -387,6 +409,7 @@ export async function launchWorkbenchTui(
     tree: [],
     cursorIndex: 0,
     editor: { source: "", cursor: 0 },
+    previewScroll: 0,
     status: "ready",
   };
 
@@ -402,6 +425,7 @@ export async function launchWorkbenchTui(
     editor: state.editor,
     language: workbench.session.language,
     visualization: workbench.session.visualization,
+    previewScroll: state.previewScroll,
     status: state.status,
   });
   const currentScreen = () => {
@@ -422,6 +446,17 @@ export async function launchWorkbenchTui(
     root.contentHeight = undefined;
   };
   let editGeneration = 0;
+  let compiling = false;
+  let recompileTimer: ReturnType<typeof setTimeout> | undefined;
+  const RECOMPILE_DEBOUNCE_MS = 300;
+
+  const refreshVisualization = async (): Promise<void> => {
+    await workbench.execute({ action: "visualize" });
+    state.previewScroll = 0;
+    state.status = workbench.session.compilation?.ok
+      ? "compiled"
+      : "parse error";
+  };
 
   const openWorkspace = (workspaceRoot: string) => {
     state.workspaceRoot = workspaceRoot;
@@ -434,6 +469,10 @@ export async function launchWorkbenchTui(
   };
 
   const openFile = async (path: string): Promise<void> => {
+    if (recompileTimer !== undefined) {
+      clearTimeout(recompileTimer);
+      recompileTimer = undefined;
+    }
     const result = await workbench.execute({ action: "open", path });
     if (result.ok) {
       state.openFilePath = path;
@@ -442,28 +481,64 @@ export async function launchWorkbenchTui(
         cursor: workbench.session.source.length,
       };
       state.mode = "editor";
-      state.status = workbench.session.compilation?.ok
-        ? "compiled"
-        : "parse error";
+      await refreshVisualization();
     } else {
       state.status = result.error.message;
     }
   };
 
   const recompile = async (): Promise<void> => {
-    const generation = ++editGeneration;
-    const source = state.editor.source;
-    await workbench.execute({ action: "set-source", source });
-    await workbench.execute({ action: "visualize" });
-    // Fast typing can overlap recompiles; only the latest one may apply,
-    // so the shown status always matches the currently displayed source.
-    if (generation !== editGeneration) return;
-    state.status = workbench.session.compilation?.ok
-      ? "compiled"
-      : "parse error";
+    editGeneration++;
+    if (compiling) return;
+    compiling = true;
+    try {
+      // Coalesce overlapping edits: always compile the latest editor buffer.
+      while (true) {
+        const seen = editGeneration;
+        const source = state.editor.source;
+        await workbench.execute({ action: "set-source", source });
+        await workbench.execute({ action: "visualize" });
+        if (seen !== editGeneration) continue;
+        state.previewScroll = 0;
+        state.status = workbench.session.compilation?.ok
+          ? "compiled"
+          : "parse error";
+        redraw();
+        return;
+      }
+    } finally {
+      compiling = false;
+    }
+  };
+
+  const scheduleRecompile = (): void => {
+    state.status = "pending";
+    if (recompileTimer !== undefined) clearTimeout(recompileTimer);
+    recompileTimer = setTimeout(() => {
+      recompileTimer = undefined;
+      void recompile();
+    }, RECOMPILE_DEBOUNCE_MS);
+  };
+
+  const flushRecompile = async (): Promise<void> => {
+    if (recompileTimer !== undefined) {
+      clearTimeout(recompileTimer);
+      recompileTimer = undefined;
+    }
+    await recompile();
   };
 
   const saveFile = async (): Promise<void> => {
+    // Ensure the on-disk write matches the editor buffer even if a prior
+    // recompile was superseded by a newer edit generation.
+    if (recompileTimer !== undefined) {
+      clearTimeout(recompileTimer);
+      recompileTimer = undefined;
+    }
+    await workbench.execute({
+      action: "set-source",
+      source: state.editor.source,
+    });
     const result = await workbench.execute({ action: "save" });
     state.status = result.ok ? "saved" : result.error.message;
   };
@@ -514,9 +589,12 @@ export async function launchWorkbenchTui(
       }
 
       if (keyPress.key === "tab" && keyPress.shift) {
-        if (state.mode === "editor") state.mode = "preview";
-        else if (state.mode === "preview") state.mode = "editor";
-        else if (state.mode === "files" && state.openFilePath !== undefined) {
+        if (state.mode === "editor") {
+          await flushRecompile();
+          state.mode = "preview";
+        } else if (state.mode === "preview") {
+          state.mode = "editor";
+        } else if (state.mode === "files" && state.openFilePath !== undefined) {
           state.mode = "editor";
         }
         redraw();
@@ -567,6 +645,24 @@ export async function launchWorkbenchTui(
         return;
       }
 
+      if (state.mode === "preview") {
+        const lines = (workbench.session.visualization ?? "").split("\n");
+        if (keyPress.key === "up") {
+          state.previewScroll = Math.max(0, state.previewScroll - 1);
+          redraw();
+          return;
+        }
+        if (keyPress.key === "down") {
+          state.previewScroll = Math.min(
+            Math.max(0, lines.length - 1),
+            state.previewScroll + 1,
+          );
+          redraw();
+          return;
+        }
+        return;
+      }
+
       if (state.mode === "editor") {
         if (keyPress.ctrl && keyPress.key === "s") {
           await saveFile();
@@ -575,13 +671,17 @@ export async function launchWorkbenchTui(
         }
         const next = applyEditorKey(state.editor, keyPress);
         if (next === state.editor) return;
+        const sourceChanged = next.source !== state.editor.source;
         state.editor = next;
-        await recompile();
+        // Paint the keystroke immediately; compile after a short idle pause.
+        if (sourceChanged) scheduleRecompile();
         redraw();
       }
     })();
   });
 
+  // @tui/tui handles Ctrl+C by exiting raw mode and restoring the primary
+  // buffer via its sanitizers before render() resolves.
   await tui.render(() => root);
   await workbench.execute({ action: "end" });
 }

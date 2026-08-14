@@ -10,14 +10,19 @@ Normative key words in this chapter use the conventions defined in the
 
 ## Language-mode selection
 
-- The CLI MUST support full Uffda language compilation mode.
-- The CLI MUST support pattern language compilation mode.
-- The CLI MUST support expression language compilation mode.
-- Full Uffda mode MUST be the default when no language-selection flag is
-  supplied.
+- The `parse` command MUST support full Uffda, pattern, and expression language
+  modes via `--lang`.
+- Full Uffda mode MUST be the default when `parse` is invoked without `--lang`.
 - If multiple mutually exclusive language flags are supplied, the CLI MUST fail
   with deterministic diagnostics.
 - Parse command parsing and diagnostics MUST use the selected language mode.
+- The `exec` command MUST select the expression language and MUST reject
+  `--lang`.
+- The `match` command MUST select the pattern language and MUST reject `--lang`.
+- The `run` command MUST select the full Uffda module language and MUST reject
+  `--lang`.
+- The `compile` command MUST compile full Uffda modules into AST artifacts and
+  MUST reject `--lang`.
 
 ## Output kind selection
 
