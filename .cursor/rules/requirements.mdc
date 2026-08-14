@@ -1,6 +1,7 @@
 ---
-description: "Requirement authoring for Uffda. Use when creating or editing requirement documents."
-applyTo: ".agents/requirements/**/*.md"
+description: Requirement authoring for Uffda
+globs: .agents/requirements/**/*.md
+alwaysApply: false
 ---
 
 # Requirement authoring instructions

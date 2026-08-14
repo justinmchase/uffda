@@ -5,15 +5,15 @@ statements.
 
 ## Relationship to the spec
 
-- Specs in `spec/` define the higher-level contract.
-- Requirements in `.github/requirements/` derive from those specs.
+- Specs in `.agents/specifications/` define the higher-level contract.
+- Requirements in `.agents/requirements/` derive from those specs.
 - Each requirement should cite the spec file and section it refines.
 - If a requirement conflicts with the spec, the spec wins until it is updated.
 
 ## Layout
 
 ```text
-.github/requirements/
+.agents/requirements/
   {topic}/
     {name}.requirement.md
 ```

@@ -1,11 +1,12 @@
----
-description: "General repository conventions for Uffda. Use when writing code, specs, requirements, or contributor docs."
-applyTo: "**"
----
-
-# Repository instructions
+# Uffda agent instructions
 
 Uffda is a Deno-based parser generator for domain specific languages.
+
+These instructions apply to all agent tooling (Cursor, Copilot, and others).
+Path-scoped authoring guidance also lives in:
+
+- `.cursor/rules/` (Cursor)
+- `.github/instructions/` (GitHub Copilot)
 
 ## Runtime and dependency conventions
 
@@ -19,10 +20,14 @@ Uffda is a Deno-based parser generator for domain specific languages.
 
 ## Project conventions
 
+- Entry point: `mod.ts`
 - Place implementation code under `src/`.
 - Keep tests next to the modules they cover using the `.test.ts` suffix.
+- For every source file you create or modify under `src/`, create or update the
+  corresponding `*.test.ts` file in the same directory.
 - Follow the existing Deno validation path: `deno fmt`, `deno lint`, and
   `deno task test`.
+- Prefer `deno task pre` before committing.
 - Keep modules small and composable when adding or refactoring parser logic.
 
 ## Type modeling conventions
@@ -57,9 +62,20 @@ Apply this strict authority order when implementing or evaluating behavior:
 
 ## Specification layout
 
-- The spec is split across multiple smaller Markdown files under
-  `.agents/specifications/`.
-- `.agents/specifications/README.md` is the entry point and index for the spec
-  set.
-- Normative spec chapters use the `{topic}.spec.md` naming pattern.
+- Specs live under `.agents/specifications/`.
+- `.agents/specifications/README.md` is the entry point and index.
+- Normative chapters use the `{topic}.spec.md` naming pattern.
+- Requirements live under `.agents/requirements/` as `{name}.requirement.md`.
 - Requirement documents should reference the spec file and section they refine.
+
+## Validation
+
+After making changes, run:
+
+```sh
+deno fmt
+deno lint
+deno task test
+```
+
+Do not cancel these commands; they normally finish quickly.

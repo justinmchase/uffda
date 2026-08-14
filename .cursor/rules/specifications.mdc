@@ -1,6 +1,7 @@
 ---
-description: "Multi-file specification authoring for Uffda. Use when creating or editing spec documents."
-applyTo: ".agents/specifications/**/*.md"
+description: Multi-file specification authoring for Uffda
+globs: .agents/specifications/**/*.md
+alwaysApply: false
 ---
 
 # Multi-file specification instructions

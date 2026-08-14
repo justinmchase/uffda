@@ -7,15 +7,17 @@ This directory holds the Uffda specification as a set of smaller documents.
 - Specs are higher level than requirements.
 - Specs define the contract for the parser generator, matching model, and
   runtime behavior.
-- Requirements will live under `.github/requirements/` and should refine
-  individual parts of these specs into directly testable statements.
+- Requirements live under `.agents/requirements/` and should refine individual
+  parts of these specs into directly testable statements.
 
 ## Layout
 
 ```text
-spec/
+.agents/specifications/
   README.md
   {topic}.spec.md
+  {topic}/
+    {subtopic}.spec.md
 ```
 
 ## Top-level chapters
@@ -39,6 +41,7 @@ spec/
 
 ## Expected future flow
 
-1. Define or update the relevant high-level spec chapter in `spec/`.
-2. Add or update derived requirement files in `.github/requirements/`.
+1. Define or update the relevant high-level spec chapter in
+   `.agents/specifications/`.
+2. Add or update derived requirement files in `.agents/requirements/`.
 3. Implement and test behavior against those requirements.
