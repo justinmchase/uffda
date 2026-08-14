@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertStringIncludes } from "@std/assert";
 import { CliLanguage } from "./contract.ts";
 import { CliStreamFailureCode, compileStdinToArtifact } from "./stream.ts";
 
@@ -24,6 +24,12 @@ Deno.test("cli.stream parses one stdin source unit into a raw AST", async (t) =>
     assertEquals(result.error.phase, "parse");
     assertEquals(result.error.sourcePath, "<stdin>");
     assertEquals(result.error.language, CliLanguage.FullUffda);
+    assertEquals(result.error.location?.line, 0);
+    assertEquals(
+      result.error.location?.offset,
+      "export Main; rule Main =".length,
+    );
+    assertStringIncludes(result.error.message, "while matching");
   });
 
   await t.step(

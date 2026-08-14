@@ -437,12 +437,17 @@ function visualization(session: CliWorkbenchSession): string {
     return [...heading, "Status: not compiled"].join("\n");
   }
   if (!session.compilation.ok) {
+    const { error } = session.compilation;
+    const location = error.location
+      ? `Location: ${error.location.line + 1}:${error.location.column + 1}`
+      : undefined;
     return [
       ...heading,
       "Status: failed",
-      `Phase: ${session.compilation.error.phase}`,
-      `Diagnostic: ${session.compilation.error.message}`,
-    ].join("\n");
+      `Phase: ${error.phase}`,
+      location,
+      `Diagnostic: ${error.message}`,
+    ].filter((line): line is string => line !== undefined).join("\n");
   }
   return [
     ...heading,

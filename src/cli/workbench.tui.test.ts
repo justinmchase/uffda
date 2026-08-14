@@ -2,6 +2,7 @@ import { assertEquals, assertStringIncludes } from "@std/assert";
 import { CliLanguage } from "./contract.ts";
 import {
   applyEditorKey,
+  buildEditorDisplayRows,
   type FileEntry,
   flattenEntries,
   renderWorkbenchScreen,
@@ -268,6 +269,34 @@ Deno.test("cli.workbench.tui renderWorkbenchScreen renders a fixed-size frame pe
   });
 
   await t.step(
+    "renders an inline caret diagnostic under the failing line",
+    () => {
+      const state = baseState({
+        mode: "editor",
+        openFilePath: "/workspace/main.uff",
+        editor: { source: "export Main; rule Main =", cursor: 0 },
+        status: "parse error",
+        diagnostic: {
+          line: 0,
+          column: 24,
+          message: "unexpected end of input while matching into",
+        },
+      });
+
+      const screen = renderWorkbenchScreen(state, 80, 12);
+      const plain = stripAnsi(screen);
+      assertStringIncludes(plain, "export Main; rule Main =");
+      assertStringIncludes(plain, "^");
+      assertStringIncludes(
+        plain,
+        "unexpected end of input while matching into",
+      );
+      assertStringIncludes(screen, "\x1b[48;5;52m");
+      assertStringIncludes(screen, "\x1b[1;91m");
+    },
+  );
+
+  await t.step(
     "path-bypass style state opens directly in editor mode",
     () => {
       const state = baseState({
@@ -285,4 +314,23 @@ Deno.test("cli.workbench.tui renderWorkbenchScreen renders a fixed-size frame pe
       assertEquals(state.screen, "workspace");
     },
   );
+});
+
+Deno.test("cli.workbench.tui buildEditorDisplayRows inserts diagnostic rows", () => {
+  const rows = buildEditorDisplayRows("alpha\nbeta", {
+    line: 0,
+    column: 3,
+    message: "bad token",
+  });
+  assertEquals(rows.map((row) => row.kind), [
+    "source",
+    "diagnostic-caret",
+    "diagnostic-message",
+    "source",
+  ]);
+  assertEquals(rows[1], { kind: "diagnostic-caret", column: 3 });
+  assertEquals(rows[2], {
+    kind: "diagnostic-message",
+    message: "bad token",
+  });
 });
