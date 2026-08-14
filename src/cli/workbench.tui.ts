@@ -135,6 +135,52 @@ export function flattenEntries(
 export type WorkbenchScreenKind = "landing" | "workspace";
 export type WorkbenchMode = "files" | "editor" | "preview";
 
+export type EditorInlineDiagnostic = {
+  /** 0-based source line. */
+  line: number;
+  /** 0-based column within the source line. */
+  column: number;
+  message: string;
+};
+
+export type EditorDisplayRow =
+  | { kind: "source"; lineIndex: number; text: string }
+  | { kind: "diagnostic-caret"; column: number }
+  | { kind: "diagnostic-message"; message: string };
+
+export function buildEditorDisplayRows(
+  source: string,
+  diagnostic?: EditorInlineDiagnostic,
+): EditorDisplayRow[] {
+  const lines = linesOf(source);
+  const rows: EditorDisplayRow[] = [];
+  const diagLine = diagnostic
+    ? Math.max(0, Math.min(diagnostic.line, Math.max(0, lines.length - 1)))
+    : undefined;
+
+  for (let i = 0; i < lines.length; i++) {
+    rows.push({ kind: "source", lineIndex: i, text: lines[i] });
+    if (diagLine === i && diagnostic) {
+      const column = Math.max(
+        0,
+        Math.min(diagnostic.column, lines[i].length),
+      );
+      rows.push({ kind: "diagnostic-caret", column });
+      rows.push({ kind: "diagnostic-message", message: diagnostic.message });
+    }
+  }
+
+  if (lines.length === 0) {
+    rows.push({ kind: "source", lineIndex: 0, text: "" });
+    if (diagnostic) {
+      rows.push({ kind: "diagnostic-caret", column: 0 });
+      rows.push({ kind: "diagnostic-message", message: diagnostic.message });
+    }
+  }
+
+  return rows;
+}
+
 export type WorkbenchRenderState = {
   screen: WorkbenchScreenKind;
   mode: WorkbenchMode;
@@ -148,6 +194,7 @@ export type WorkbenchRenderState = {
   language: CliLanguage;
   visualization?: string;
   previewScroll?: number;
+  diagnostic?: EditorInlineDiagnostic;
   status: string;
 };
 
@@ -171,6 +218,9 @@ const ANSI_SELECTED = "\x1b[1;97;44m";
 // Explicit colors (not reverse-video) so the cursor is unmistakable
 // regardless of the terminal's default foreground/background theme.
 const ANSI_CURSOR = "\x1b[30;103m";
+const ANSI_DIAG_BG = "\x1b[48;5;52m";
+const ANSI_DIAG_CARET = "\x1b[1;91m";
+const ANSI_DIAG_TEXT = "\x1b[97m";
 
 function visibleLength(text: string): number {
   return text.replace(ANSI_PATTERN, "").length;
@@ -273,6 +323,25 @@ function renderFiles(
 
 const EDITOR_GUTTER_WIDTH = 6; // marker(1) + line number padStart(4) + space(1)
 
+function paintDiagnosticRow(plain: string): string {
+  return `${ANSI_DIAG_BG}${ANSI_DIAG_TEXT}${plain}${ANSI_RESET}`;
+}
+
+function renderDiagnosticCaret(column: number, width: number): string {
+  const caretColumn = EDITOR_GUTTER_WIDTH + Math.max(0, column);
+  const prefix = " ".repeat(Math.min(caretColumn, Math.max(0, width - 1)));
+  const plain = fit(`${prefix}^`, width);
+  const caretAt = Math.min(caretColumn, width - 1);
+  const before = plain.slice(0, caretAt);
+  const after = plain.slice(caretAt + 1);
+  return `${ANSI_DIAG_BG}${before}${ANSI_DIAG_CARET}^${ANSI_RESET}${ANSI_DIAG_BG}${ANSI_DIAG_TEXT}${after}${ANSI_RESET}`;
+}
+
+function renderDiagnosticMessage(message: string, width: number): string {
+  const plain = fit(`${" ".repeat(EDITOR_GUTTER_WIDTH)}${message}`, width);
+  return paintDiagnosticRow(plain);
+}
+
 function renderEditor(
   state: WorkbenchRenderState,
   width: number,
@@ -282,18 +351,44 @@ function renderEditor(
     `Editor: ${state.openFilePath ?? "<no file>"} — ${state.status}`,
   );
   const bodyHeight = Math.max(1, height - 2);
-  const lines = linesOf(state.editor.source);
+  const displayRows = buildEditorDisplayRows(
+    state.editor.source,
+    state.status === "pending" ? undefined : state.diagnostic,
+  );
   const position = cursorPosition(state.editor);
-  const start = scrollStartForFocus(position.line, bodyHeight, lines.length);
+  const cursorDisplayIndex = Math.max(
+    0,
+    displayRows.findIndex((row) =>
+      row.kind === "source" && row.lineIndex === position.line
+    ),
+  );
+  const start = scrollStartForFocus(
+    cursorDisplayIndex,
+    bodyHeight,
+    displayRows.length,
+  );
   const rows: string[] = [];
   for (let row = 0; row < bodyHeight; row++) {
-    const lineIndex = start + row;
-    const marker = lineIndex === position.line ? ">" : " ";
+    const display = displayRows[start + row];
+    if (!display) {
+      rows.push(fit("", width));
+      continue;
+    }
+    if (display.kind === "diagnostic-caret") {
+      rows.push(renderDiagnosticCaret(display.column, width));
+      continue;
+    }
+    if (display.kind === "diagnostic-message") {
+      rows.push(renderDiagnosticMessage(display.message, width));
+      continue;
+    }
+
+    const marker = display.lineIndex === position.line ? ">" : " ";
     const plain = fit(
-      `${marker}${String(lineIndex + 1).padStart(4)} ${lines[lineIndex] ?? ""}`,
+      `${marker}${String(display.lineIndex + 1).padStart(4)} ${display.text}`,
       width,
     );
-    if (lineIndex === position.line) {
+    if (display.lineIndex === position.line) {
       const column = Math.min(
         EDITOR_GUTTER_WIDTH + position.column,
         width - 1,
@@ -426,6 +521,15 @@ export async function launchWorkbenchTui(
     language: workbench.session.language,
     visualization: workbench.session.visualization,
     previewScroll: state.previewScroll,
+    diagnostic: workbench.session.compilation &&
+        !workbench.session.compilation.ok &&
+        workbench.session.compilation.error.location
+      ? {
+        line: workbench.session.compilation.error.location.line,
+        column: workbench.session.compilation.error.location.column,
+        message: workbench.session.compilation.error.message,
+      }
+      : undefined,
     status: state.status,
   });
   const currentScreen = () => {
