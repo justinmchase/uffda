@@ -17,8 +17,10 @@ Preconditions:
 
 Expected behavior:
 
-- Authored `.uff` modules under `src/lang/` that Checks (or `deno task
-  compile:lang`) compiles MUST be accepted by that published `uffda compile`.
+- Authored `.uff` modules under `src/lang/` that Checks (or
+  `deno task
+  compile:lang`) compiles MUST be accepted by that published
+  `uffda compile`.
 - Those compile steps MUST invoke the installed published CLI with a quoted glob
   such as `'src/lang/**/*.uff'` (CLI expands paths in-process; not shell
   globstar, and not `./src/cli/main.ts`).
