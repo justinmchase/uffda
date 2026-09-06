@@ -44,9 +44,14 @@ Normative key words in this chapter use the conventions defined in the
 - Draft release notes MUST document the manual `workflow_dispatch` path used to
   re-attach CLI binaries.
 - The `release-binaries` workflow MUST accept both `repository_dispatch` and
-  `workflow_dispatch`, compile the target matrix from `main`, attach or replace
-  binaries plus checksums and the Linux install script on the latest draft
-  release, and fail when no draft release exists.
+  `workflow_dispatch`, compile the target matrix from a pinned `main` revision,
+  attach or replace binaries plus checksums and the Linux install script on the
+  latest draft release, and fail when no draft release exists.
+- While the release remains a draft, `release-binaries` MUST create or move
+  `refs/tags/<version>` (and the release `target_commitish`) to that pinned
+  build revision so publishing freezes the commit that was actually compiled.
+  Published releases are immutable; the workflow MUST refuse to move tags on
+  non-draft releases.
 - Publishing a draft release makes those assets the latest stable install
   target; JSR package publishing MAY continue on `release: published`.
 - Release entries MUST include version tag, artifact list, and checksums for

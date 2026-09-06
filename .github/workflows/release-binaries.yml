@@ -1,8 +1,12 @@
 name: Release Binaries
 
-# Compile the CLI from main and attach (replace) release assets on the latest
-# draft GitHub Release. Triggered by Release Drafter via repository_dispatch, or
-# manually via workflow_dispatch.
+# Compile the CLI from a pinned main revision and attach (replace) release
+# assets on the latest draft GitHub Release. Also pins refs/tags/<version> to
+# that same revision so publishing does not freeze a stale tag as the next
+# Release Drafter changelog baseline.
+#
+# Triggered by Release Drafter via repository_dispatch, or manually via
+# workflow_dispatch.
 on:
   workflow_dispatch:
   repository_dispatch:
@@ -22,6 +26,7 @@ jobs:
     outputs:
       tag: ${{ steps.draft.outputs.tag }}
       version: ${{ steps.draft.outputs.version }}
+      sha: ${{ steps.draft.outputs.sha }}
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
@@ -47,6 +52,7 @@ jobs:
           tag="${tag#v}"
           version="${tag}"
           file_version="$(tr -d '[:space:]' < VERSION)"
+          sha="$(git rev-parse HEAD)"
 
           if [[ "${file_version}" != "${version}" ]]; then
             echo "WARNING: VERSION=${file_version} does not match draft tag ${version}." >&2
@@ -55,11 +61,13 @@ jobs:
 
           echo "tag=${tag}" >> "$GITHUB_OUTPUT"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
           {
             echo "### Draft release"
             echo
             echo "- Tag: \`${tag}\`"
-            echo "- Source branch: \`main\` @ \`${GITHUB_SHA}\`"
+            echo "- Build commit: \`${sha}\`"
+            echo "- Source branch: \`main\`"
             echo "- VERSION file: \`${file_version}\`"
           } >> "${GITHUB_STEP_SUMMARY}"
 
@@ -78,10 +86,10 @@ jobs:
           - x86_64-apple-darwin
           - aarch64-apple-darwin
     steps:
-      - name: Checkout main
+      - name: Checkout build commit
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ needs.prepare.outputs.sha }}
 
       - name: Setup Deno
         uses: denoland/setup-deno@v2
@@ -126,10 +134,10 @@ jobs:
       tag: ${{ needs.prepare.outputs.tag }}
       version: ${{ needs.prepare.outputs.version }}
     steps:
-      - name: Checkout main
+      - name: Checkout build commit
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ needs.prepare.outputs.sha }}
 
       - name: Download compiled binaries
         uses: actions/download-artifact@v4
@@ -176,6 +184,48 @@ jobs:
           } >> "${GITHUB_STEP_SUMMARY}"
           ls -la
 
+      - name: Pin draft tag to build commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ needs.prepare.outputs.tag }}"
+          sha="${{ needs.prepare.outputs.sha }}"
+
+          is_draft="$(gh release view "${tag}" --json isDraft --jq .isDraft)"
+          if [[ "${is_draft}" != "true" ]]; then
+            echo "Release ${tag} is not a draft; refusing to move tag (releases are immutable)." >&2
+            exit 1
+          fi
+
+          # Release Drafter sets tag_name on the draft but does not keep
+          # refs/tags/<version> pointed at the built revision. Publishing an
+          # existing stale tag would freeze the wrong SHA as the changelog
+          # baseline for the next release. Pin the draft tag to this build now.
+          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${tag}" >/dev/null 2>&1; then
+            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/${tag}" \
+              -f sha="${sha}" \
+              -F force=true
+            echo "Updated refs/tags/${tag} -> ${sha}"
+          else
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f ref="refs/tags/${tag}" \
+              -f sha="${sha}"
+            echo "Created refs/tags/${tag} -> ${sha}"
+          fi
+
+          release_id="$(gh release view "${tag}" --json databaseId --jq .databaseId)"
+          gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${release_id}" \
+            -f target_commitish="${sha}" \
+            -f tag_name="${tag}"
+          {
+            echo "### Draft tag provenance"
+            echo
+            echo "- \`refs/tags/${tag}\` -> \`${sha}\`"
+            echo "- Release \`target_commitish\` set to the same commit"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
       - name: Replace assets on draft release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -208,10 +258,10 @@ jobs:
     needs: [prepare, attach]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout build commit
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ needs.prepare.outputs.sha }}
 
       - name: Install draft CLI
         id: setup

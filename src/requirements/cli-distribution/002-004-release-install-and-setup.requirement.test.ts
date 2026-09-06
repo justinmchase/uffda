@@ -18,6 +18,18 @@ Deno.test(
 );
 
 Deno.test(
+  "req:cli-distribution-002 - release-binaries pins draft tag to build commit",
+  async () => {
+    const yaml = await Deno.readTextFile(
+      join(repoRoot, ".github", "workflows", "release-binaries.yml"),
+    );
+    assertEquals(yaml.includes("Pin draft tag to build commit"), true);
+    assertEquals(yaml.includes("git/refs/tags/"), true);
+    assertEquals(yaml.includes("target_commitish"), true);
+  },
+);
+
+Deno.test(
   "req:cli-distribution-003 - linux install script is checked in",
   async () => {
     assertEquals(installScriptFileName(), "install.sh");
