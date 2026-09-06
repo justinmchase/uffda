@@ -99,12 +99,8 @@ runs:
           asset="${asset}.exe"
         fi
 
-        asset_api_url="$(python3 -c "import json,sys; release=json.load(open(sys.argv[1])); name=sys.argv[2];
-matches=[i['url'] for i in release.get('assets',[]) if i.get('name')==name];
-assert matches, 'No release asset named '+name; print(matches[0])" "${release_json}" "${asset}")"
-        sums_api_url="$(python3 -c "import json,sys; release=json.load(open(sys.argv[1])); name=sys.argv[2];
-matches=[i['url'] for i in release.get('assets',[]) if i.get('name')==name];
-assert matches, 'No release asset named '+name; print(matches[0])" "${release_json}" "SHA256SUMS")"
+        asset_api_url="$(python3 -c "import json,sys; release=json.load(open(sys.argv[1])); name=sys.argv[2]; matches=[i['url'] for i in release.get('assets',[]) if i.get('name')==name]; assert matches, 'No release asset named '+name; print(matches[0])" "${release_json}" "${asset}")"
+        sums_api_url="$(python3 -c "import json,sys; release=json.load(open(sys.argv[1])); name=sys.argv[2]; matches=[i['url'] for i in release.get('assets',[]) if i.get('name')==name]; assert matches, 'No release asset named '+name; print(matches[0])" "${release_json}" "SHA256SUMS")"
 
         download_asset() {
           local url="$1"
