@@ -12,7 +12,7 @@ Deno.test(
   async () => {
     assertEquals(checksumFileName(), "SHA256SUMS");
     await Deno.stat(
-      join(repoRoot, ".github", "workflows", "attach-draft-cli-binaries.yml"),
+      join(repoRoot, ".github", "workflows", "release-binaries.yml"),
     );
   },
 );

@@ -1,4 +1,4 @@
-name: Attach Draft CLI Binaries
+name: Release Binaries
 
 # Compile the CLI from main and attach (replace) release assets on the latest
 # draft GitHub Release. Triggered by Release Drafter via repository_dispatch, or
@@ -6,7 +6,7 @@ name: Attach Draft CLI Binaries
 on:
   workflow_dispatch:
   repository_dispatch:
-    types: [attach-draft-cli-binaries]
+    types: [release-binaries]
 
 permissions:
   contents: write

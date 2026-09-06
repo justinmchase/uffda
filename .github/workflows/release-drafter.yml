@@ -95,13 +95,13 @@ jobs:
           set -euo pipefail
           version="${{ needs.draft-release.outputs.resolved_version }}"
           gh api --method POST "repos/${GITHUB_REPOSITORY}/dispatches" \
-            -f event_type='attach-draft-cli-binaries' \
+            -f event_type='release-binaries' \
             -f "client_payload[version]=${version}" \
             -f "client_payload[reason]=release-drafter"
           {
-            echo "## Attach CLI binaries"
+            echo "## Release binaries"
             echo
-            echo "Dispatched \`repository_dispatch\` event \`attach-draft-cli-binaries\` for draft \`${version}\`."
+            echo "Dispatched \`repository_dispatch\` event \`release-binaries\` for draft \`${version}\`."
             echo
-            echo "You can also re-run [Attach Draft CLI Binaries](https://github.com/${GITHUB_REPOSITORY}/actions/workflows/attach-draft-cli-binaries.yml) manually."
+            echo "You can also re-run [Release Binaries](https://github.com/${GITHUB_REPOSITORY}/actions/workflows/release-binaries.yml) manually."
           } >> "$GITHUB_STEP_SUMMARY"

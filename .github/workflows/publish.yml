@@ -1,7 +1,6 @@
 name: Publish
 # JSR package publish on release publish. CLI binaries are attached to the draft
-# release earlier via Attach Draft CLI Binaries (repository_dispatch /
-# workflow_dispatch).
+# release earlier via Release Binaries (repository_dispatch / workflow_dispatch).
 on:
   workflow_dispatch:
   release:

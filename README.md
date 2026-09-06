@@ -37,8 +37,8 @@ binaries and `SHA256SUMS` under `dist/cli/`).
 Release tags are bare SemVer (for example `0.1.2`), matching Release Drafter.
 
 1. Merge to `main` so Release Drafter updates the draft release, bumps version
-   files, and dispatches `attach-draft-cli-binaries`.
-2. The **Attach Draft CLI Binaries** workflow compiles all Deno targets and
+   files, and dispatches `release-binaries`.
+2. The **Release Binaries** workflow compiles all Deno targets and
    attaches/replaces `uffda-*`, `SHA256SUMS`, and `install.sh` on the latest
    draft (re-run it manually from Actions if you need to rebuild).
 3. Publish the draft release when ready. That makes it the latest install target
