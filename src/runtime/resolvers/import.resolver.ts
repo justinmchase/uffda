@@ -15,7 +15,10 @@ export class ImportResolver implements IModuleResolver {
     context: ModuleResolutionContext,
   ): Promise<ModuleDeclarationResult> {
     try {
-      const module = await import(moduleUrl.href);
+      const module = await import(
+        // Runtime module URLs are resolved dynamically; JSR cannot rewrite them.
+        moduleUrl.href
+      );
       if (!module.default) {
         return moduleDeclarationResolutionResult(moduleResolutionError(
           `Imported module ${moduleUrl} must export a ModuleDeclaration as a default export`,

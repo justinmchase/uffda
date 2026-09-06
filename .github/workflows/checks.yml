@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Lcov
         run: sudo apt install lcov -y
@@ -25,15 +25,12 @@ jobs:
           version: latest
 
       - name: Lint
-        continue-on-error: true
         run: deno lint
 
       - name: Format
-        continue-on-error: true
         run: deno fmt --check
 
       - name: Type Check
-        continue-on-error: true
         run: deno check mod.ts
 
       - name: Jsr

@@ -16,7 +16,11 @@ export class JsonResolver implements IModuleResolver {
     context: ModuleResolutionContext,
   ): Promise<ModuleDeclarationResult> {
     try {
-      const module = await import(moduleUrl.href, { with: { type: "json" } });
+      const module = await import(
+        // Runtime JSON module URLs are resolved dynamically; JSR cannot rewrite them.
+        moduleUrl.href,
+        { with: { type: "json" } }
+      );
       if (!module.default) {
         return moduleDeclarationResolutionResult(moduleResolutionError(
           `Imported module ${moduleUrl} must export a ModuleDeclaration as a default export`,

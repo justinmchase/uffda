@@ -1,8 +1,7 @@
 import type { BooleanExpression } from "./expression.ts";
 
-export async function boolean(
+export function boolean(
   expression: BooleanExpression,
 ): Promise<boolean> {
-  const { value } = expression;
-  return value;
+  return Promise.resolve(expression.value);
 }

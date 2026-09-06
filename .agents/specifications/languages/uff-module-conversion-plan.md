@@ -192,8 +192,8 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ## First candidate (next session)
 
-**`common/characters/letter`** — `export rule Letter = \cL | \cNl;`, no
-imports, no expressions. Expected G0–G3: all pass.
+**`common/characters/letter`** — `export rule Letter = \cL | \cNl;`, no imports,
+no expressions. Expected G0–G3: all pass.
 
 Completed: `digit`, `connecting`, `formatting`.
 

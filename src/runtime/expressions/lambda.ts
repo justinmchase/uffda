@@ -11,12 +11,12 @@ export type LambdaCallable = (...args: unknown[]) => Promise<unknown>;
  * arguments; the callable matches them against the lambda pattern and then
  * evaluates the body expression.
  */
-export async function lambda(
+export function lambda(
   e: LambdaExpression,
   m: MatchOk,
 ): Promise<LambdaCallable> {
   const { pattern, expression } = e;
-  return async (...args: unknown[]) => {
+  return Promise.resolve(async (...args: unknown[]) => {
     const stream = new Input(
       args,
       m.scope.stream.path.push(0), // todo: should this have a lambda segment?
@@ -35,5 +35,5 @@ export async function lambda(
       case MatchKind.Ok:
         return await exec(expression, result);
     }
-  };
+  });
 }
