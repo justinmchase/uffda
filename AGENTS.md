@@ -12,6 +12,12 @@ Path-scoped authoring guidance also lives in:
 
 - Prefer Deno-native and Web Platform APIs over Node.js APIs.
 - Default to ESM TypeScript.
+- **Scripting language hard rule:** the only acceptable scripting languages in
+  this repository are TypeScript and Deno. Python (and other non-Deno scripting
+  languages) are completely hard-blocked, including in GitHub Actions, composite
+  actions, install helpers, and one-liners. Shell may orchestrate
+  Deno/`gh`/`curl` commands, but non-trivial logic MUST live in TypeScript run
+  with Deno.
 - Add third-party imports through the `imports` field in `deno.jsonc` before
   using them in source files.
 - Prefer JSR packages first. Use npm packages only when there is a clear need.
