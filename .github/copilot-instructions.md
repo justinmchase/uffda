@@ -43,6 +43,10 @@ that your changes work correctly.
 - Maintain test coverage for new features
 - Follow existing code patterns and conventions
 - Use TypeScript types for better code safety
+- **Scripting language hard rule:** only TypeScript and Deno are acceptable.
+  Python and other non-Deno scripting languages are hard-blocked, including in
+  GitHub Actions. Shell may orchestrate Deno/`gh`/`curl`, but non-trivial logic
+  must be TypeScript run with Deno.
 
 ## Testing Requirements
 
