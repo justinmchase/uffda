@@ -16,7 +16,7 @@ async function write(path: string, content: string): Promise<void> {
 
 Deno.test({
   name:
-    "req:cli-compile-001 - file and folder compile emits deterministic AST artifacts with per-unit outcomes",
+    "req:cli-compile-001 - file and glob compile emits deterministic AST artifacts with per-unit outcomes",
   ignore: writePermission.state !== "granted",
   fn: async () => {
     const root = await Deno.makeTempDir({ prefix: "uffda-cli-requirement-" });
@@ -26,10 +26,11 @@ Deno.test({
     await write(join(src, "z", "ok.uff"), "export Main; rule Main = any;");
     await write(join(src, "a", "bad.uff"), "export Main; rule Main =");
     await write(join(src, "a", "ok.uff"), "export Main; rule Main = any;");
+    await write(join(src, "a", "skip.ts"), "export const x = 1;\n");
 
     const result = await compileSourcesToAstArtifacts({
       cwd: src,
-      sourcePaths: ["."],
+      sourcePaths: ["**/*.uff"],
       outputDir: out,
     });
 
