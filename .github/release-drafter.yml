@@ -32,8 +32,8 @@ template: |
 
   ## CLI binaries
 
-  This is a **draft** release. After the version bump lands on `main`, attach or
-  replace compiled CLI binaries by running the workflow dispatch:
+  This is a **draft** release. CLI binaries are attached automatically when
+  Release Drafter dispatches `attach-draft-cli-binaries`, or you can re-run:
 
   1. Open [Attach Draft CLI Binaries](https://github.com/justinmchase/uffda/actions/workflows/attach-draft-cli-binaries.yml)
   2. Click **Run workflow** (branch: `main`)

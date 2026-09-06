@@ -39,11 +39,14 @@ Normative key words in this chapter use the conventions defined in the
   `0.1.2`). Installers MAY accept an optional `v` prefix and MUST resolve to the
   published tag.
 - Merging to `main` MUST update a draft GitHub Release (Release Drafter).
-- Draft release notes MUST document the `workflow_dispatch` path used to attach
-  CLI binaries.
-- A manually dispatched workflow MUST compile the target matrix from `main`,
-  attach or replace binaries plus checksums and the Linux install script on the
-  latest draft release, and fail when no draft release exists.
+- After the draft is updated, Release Drafter MUST emit a `repository_dispatch`
+  event that triggers CLI binary attachment for the latest draft.
+- Draft release notes MUST document the manual `workflow_dispatch` path used to
+  re-attach CLI binaries.
+- The attach workflow MUST accept both `repository_dispatch` and
+  `workflow_dispatch`, compile the target matrix from `main`, attach or replace
+  binaries plus checksums and the Linux install script on the latest draft
+  release, and fail when no draft release exists.
 - Publishing a draft release makes those assets the latest stable install
   target; JSR package publishing MAY continue on `release: published`.
 - Release entries MUST include version tag, artifact list, and checksums for
