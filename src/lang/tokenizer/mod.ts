@@ -8,7 +8,6 @@ import {
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 import { PatternKind } from "../../runtime/patterns/mod.ts";
 import {
-  foldLineComments,
   isTokenValue,
   StructuredTokenKind,
   type TokenValue,
@@ -17,7 +16,6 @@ import {
 
 export type { TokenValue } from "./structured.ts";
 export {
-  foldLineComments,
   isSemanticNoWhitespaceToken,
   isTokenValue,
   isTriviaToken,
@@ -25,6 +23,14 @@ export {
   toSemanticNoWhitespaceTexts,
   toSemanticTexts,
 } from "./structured.ts";
+
+function flattenTokens(value: unknown): TokenValue[] {
+  if (isTokenValue(value)) return [value];
+  if (Array.isArray(value)) return value.flatMap(flattenTokens);
+  throw new TypeError(
+    "Tokenizer expected token values from Tokens rules",
+  );
+}
 
 export const Tokenizer: ModuleDeclaration = {
   imports: [
@@ -166,11 +172,229 @@ export const Tokenizer: ModuleDeclaration = {
       },
     },
     {
+      name: "DQuoteToken",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Equal,
+        value: '"',
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ _ }): TokenValue => ({
+          kind: StructuredTokenKind.Punctuation,
+          text: _ as string,
+        }),
+      },
+    },
+    {
+      name: "CommentToken",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Equal,
+            value: "#",
+          },
+          {
+            kind: PatternKind.Quantifier,
+            pattern: {
+              kind: PatternKind.Except,
+              pattern: {
+                kind: PatternKind.Equal,
+                value: "\n",
+              },
+            },
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ _ }): TokenValue => {
+          const [hash, rest] = _ as [string, string[]];
+          return {
+            kind: StructuredTokenKind.Comment,
+            text: hash + rest.join(""),
+          };
+        },
+      },
+    },
+    {
+      name: "EscapeTokens",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Equal,
+            value: "\\",
+          },
+          {
+            kind: PatternKind.Or,
+            patterns: [
+              {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "WhitespaceToken",
+                args: [],
+              },
+              {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "NewLineToken",
+                args: [],
+              },
+              {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "WordToken",
+                args: [],
+              },
+              {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "PunctuationToken",
+                args: [],
+              },
+            ],
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ _ }): TokenValue[] => {
+          const [, escaped] = _ as [string, TokenValue];
+          return [
+            {
+              kind: StructuredTokenKind.Punctuation,
+              text: "\\",
+            },
+            escaped,
+          ];
+        },
+      },
+    },
+    {
+      name: "StringPunctuationToken",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Except,
+        pattern: {
+          kind: PatternKind.Equal,
+          value: '"',
+        },
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ _ }): TokenValue => ({
+          kind: StructuredTokenKind.Punctuation,
+          text: _ as string,
+        }),
+      },
+    },
+    {
+      name: "StringInterior",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Or,
+        patterns: [
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "EscapeTokens",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "WhitespaceToken",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "NewLineToken",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "WordToken",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "StringPunctuationToken",
+            args: [],
+          },
+        ],
+      },
+    },
+    {
+      name: "QuotedStringTokens",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "DQuoteToken",
+            args: [],
+          },
+          {
+            kind: PatternKind.Quantifier,
+            pattern: {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "StringInterior",
+              args: [],
+            },
+          },
+          {
+            kind: PatternKind.Maybe,
+            pattern: {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "DQuoteToken",
+              args: [],
+            },
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ _ }): TokenValue[] => {
+          const [open, interior, close] = _ as [
+            TokenValue,
+            unknown[],
+            TokenValue | undefined,
+          ];
+          const tokens = [open, ...flattenTokens(interior)];
+          if (close) tokens.push(close);
+          return tokens;
+        },
+      },
+    },
+    {
       name: "Tokens",
       parameters: [],
       pattern: {
         kind: PatternKind.Or,
         patterns: [
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "QuotedStringTokens",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "CommentToken",
+            args: [],
+          },
           {
             kind: PatternKind.Resolve,
             targetKind: ResolveTargetKind.Reference,
@@ -212,15 +436,7 @@ export const Tokenizer: ModuleDeclaration = {
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ _ }): TokenValue[] => {
-          const raw = _ as unknown[];
-          if (!raw.every(isTokenValue)) {
-            throw new TypeError(
-              "Tokenizer expected token values from Tokens rules",
-            );
-          }
-          return foldLineComments(raw);
-        },
+        fn: ({ _ }): TokenValue[] => flattenTokens(_),
       },
     },
     {

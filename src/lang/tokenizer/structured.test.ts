@@ -3,7 +3,6 @@ import { MatchKind, ok } from "../../match.ts";
 import { Scope } from "../../runtime/scope.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import {
-  foldLineComments,
   itemSpansFromTokenizerMatch,
   StructuredTokenKind,
   type TokenValue,
@@ -14,43 +13,16 @@ function tok(kind: StructuredTokenKind, text: string): TokenValue {
   return { kind, text };
 }
 
-Deno.test("lang.tokenizer.structured foldLineComments preserves quoted hashes", () => {
-  const folded = foldLineComments([
-    tok(StructuredTokenKind.Punctuation, '"'),
-    tok(StructuredTokenKind.Punctuation, "#"),
-    tok(StructuredTokenKind.Punctuation, '"'),
-    tok(StructuredTokenKind.Whitespace, " "),
-    tok(StructuredTokenKind.Punctuation, "#"),
-    tok(StructuredTokenKind.Word, "x"),
-    tok(StructuredTokenKind.NewLine, "\n"),
-  ]);
-
-  assertEquals(folded.map((token) => [token.kind, token.text]), [
-    [StructuredTokenKind.Punctuation, '"'],
-    [StructuredTokenKind.Punctuation, "#"],
-    [StructuredTokenKind.Punctuation, '"'],
-    [StructuredTokenKind.Whitespace, " "],
-    [StructuredTokenKind.Comment, "#x"],
-    [StructuredTokenKind.NewLine, "\n"],
-  ]);
-});
-
 Deno.test("lang.tokenizer.structured semantic texts omit comments", () => {
-  const folded = foldLineComments([
-    tok(StructuredTokenKind.Word, "any"),
-    tok(StructuredTokenKind.Whitespace, " "),
-    tok(StructuredTokenKind.Punctuation, "#"),
-    tok(StructuredTokenKind.Word, "no"),
-    tok(StructuredTokenKind.NewLine, "\n"),
-  ]);
-
-  assertEquals(toSemanticTexts(folded), ["any", " ", "\n"]);
-  assertEquals(folded.map((token) => token.kind), [
-    StructuredTokenKind.Word,
-    StructuredTokenKind.Whitespace,
-    StructuredTokenKind.Comment,
-    StructuredTokenKind.NewLine,
-  ]);
+  assertEquals(
+    toSemanticTexts([
+      tok(StructuredTokenKind.Word, "any"),
+      tok(StructuredTokenKind.Whitespace, " "),
+      tok(StructuredTokenKind.Comment, "#no"),
+      tok(StructuredTokenKind.NewLine, "\n"),
+    ]),
+    ["any", " ", "\n"],
+  );
 });
 
 Deno.test("lang.tokenizer.structured itemSpansFromTokenizerMatch keeps semantic spans", () => {

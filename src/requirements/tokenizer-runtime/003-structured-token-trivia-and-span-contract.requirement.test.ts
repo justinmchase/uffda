@@ -144,11 +144,6 @@ Deno.test("req:tokenizer-runtime-003 - match results carry trivia-compatible tok
         original: { start: 0, end: 1 },
       },
       {
-        text: "hi",
-        normalized: { start: 4, end: 6 },
-        original: { start: 5, end: 7 },
-      },
-      {
         text: "b",
         normalized: { start: 7, end: 8 },
         original: { start: 9, end: 10 },
@@ -156,16 +151,10 @@ Deno.test("req:tokenizer-runtime-003 - match results carry trivia-compatible tok
     ],
   );
 
-  const hash = tokenMatches.find((node) => {
-    const token = node.value as TokenValue;
-    return token.kind === StructuredTokenKind.Punctuation && token.text === "#";
-  });
-  const space = tokenMatches.find((node) => {
-    const token = node.value as TokenValue;
-    return token.kind === StructuredTokenKind.Whitespace && token.text === " ";
-  });
-  assertEquals(hash?.normalizedSpan, { start: 2, end: 3 });
-  assertEquals(hash?.originalSpan, { start: 3, end: 4 });
-  assertEquals(space?.normalizedSpan, { start: 3, end: 4 });
-  assertEquals(space?.originalSpan, { start: 4, end: 5 });
+  const comment = tokenMatches.find((node) =>
+    (node.value as TokenValue).kind === StructuredTokenKind.Comment
+  );
+  assertEquals((comment?.value as TokenValue | undefined)?.text, "# hi");
+  assertEquals(comment?.normalizedSpan, { start: 2, end: 6 });
+  assertEquals(comment?.originalSpan, { start: 3, end: 7 });
 });

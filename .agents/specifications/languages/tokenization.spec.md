@@ -77,7 +77,7 @@ that can be consumed by expression, pattern, and language-definition layers.
   semantic parser tokens.
 - Trivia attachment policy (leading, trailing, or detached) MUST be explicit and
   deterministic.
-- Comment recognition and string-literal boundaries SHOULD be expressed through
+- Comment recognition and string-literal boundaries MUST be expressed through
   tokenizer patterns rather than a host-language state machine.
 
 ## Interpolation boundary requirements
@@ -123,6 +123,6 @@ that can be consumed by expression, pattern, and language-definition layers.
 - Propagate token and normalization provenance through `pipeline` and `into` so
   diagnostics can use `Match.originalSpan` without heuristic repair. (delivered)
 - Replace host-language comment/string filtering with composable Uffda lexer
-  patterns. (remaining)
+  patterns. (delivered)
 - Verify that expression, pattern, and Uffda grammar results remain unchanged
   for existing inputs. (delivered)
