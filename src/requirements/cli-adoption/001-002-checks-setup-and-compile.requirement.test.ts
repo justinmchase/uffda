@@ -34,6 +34,12 @@ Deno.test(
     );
     assertEquals(
       yaml.includes(
+        "./src/lang/common/characters/formatting.uff",
+      ),
+      true,
+    );
+    assertEquals(
+      yaml.includes(
         "./bin/ast/src/lang/common/characters/digit.uffda.ast.json",
       ),
       true,
@@ -41,6 +47,12 @@ Deno.test(
     assertEquals(
       yaml.includes(
         "./bin/ast/src/lang/common/characters/connecting.uffda.ast.json",
+      ),
+      true,
+    );
+    assertEquals(
+      yaml.includes(
+        "./bin/ast/src/lang/common/characters/formatting.uffda.ast.json",
       ),
       true,
     );

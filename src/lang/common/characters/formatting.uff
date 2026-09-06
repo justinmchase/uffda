@@ -1,0 +1,2 @@
+# Formatting matches a single Unicode format character.
+export rule Formatting = \cCf;

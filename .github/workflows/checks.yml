@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Lcov
         run: sudo apt install lcov -y
@@ -25,15 +25,12 @@ jobs:
           version: latest
 
       - name: Lint
-        continue-on-error: true
         run: deno lint
 
       - name: Format
-        continue-on-error: true
         run: deno fmt --check
 
       - name: Type Check
-        continue-on-error: true
         run: deno check mod.ts
 
       - name: Jsr
@@ -47,9 +44,11 @@ jobs:
           uffda compile \
             ./src/lang/common/characters/digit.uff \
             ./src/lang/common/characters/connecting.uff \
+            ./src/lang/common/characters/formatting.uff \
             --out-dir ./bin
           test -f ./bin/ast/src/lang/common/characters/digit.uffda.ast.json
           test -f ./bin/ast/src/lang/common/characters/connecting.uffda.ast.json
+          test -f ./bin/ast/src/lang/common/characters/formatting.uffda.ast.json
 
       - name: Test
         # Allow read is required to run resolve tests. Language `.uff` modules

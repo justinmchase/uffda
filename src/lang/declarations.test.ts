@@ -28,4 +28,10 @@ Deno.test("lang.declarations registers built-in language modules", () => {
     ],
     undefined,
   );
+  assertEquals(
+    builtInLanguageDeclarations[
+      new URL("./common/characters/formatting.uff", import.meta.url).href
+    ],
+    undefined,
+  );
 });

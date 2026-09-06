@@ -27,7 +27,7 @@ export const Characters: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./formatting.ts",
+      moduleUrl: "./formatting.uff",
       names: [
         "Formatting",
       ],

@@ -2,7 +2,7 @@ import { Input } from "../../../input.ts";
 import { MatchKind } from "../../../mod.ts";
 import { moduleDeclarationTest } from "../../../test.ts";
 
-const moduleUrl = new URL("./formatting.ts", import.meta.url).href;
+const moduleUrl = new URL("./formatting.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -19,6 +19,7 @@ Deno.test(
       name: "FORMATTING00",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Formatting",
         kind: MatchKind.Ok,
         input: Input.Iterable("\u200B"),
         value: "\u200B",
