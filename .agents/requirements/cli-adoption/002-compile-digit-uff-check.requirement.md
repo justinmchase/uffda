@@ -16,12 +16,11 @@ Preconditions:
 
 Expected behavior:
 
-- Checks MUST compile those `.uff` sources with `uffda compile` into `./bin/`.
+- Checks MUST compile those `.uff` sources with the installed `uffda compile`
+  into `./bin/` (not the in-tree Deno CLI entrypoint).
 - The compile MUST emit deterministic AST JSON artifacts under `./bin/ast/`.
-- Until a published CLI includes deno-compile-safe language declaration loading,
-  Checks MAY fall back once to the in-tree CLI for the same compile command.
 
 Postconditions:
 
 - CI proves the published CLI install path can drive language-module
-  compilation, starting with one converted module.
+  compilation, starting with converted Phase 0 character modules.

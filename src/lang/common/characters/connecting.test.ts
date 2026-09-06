@@ -2,7 +2,7 @@ import { Input } from "../../../input.ts";
 import { MatchKind } from "../../../mod.ts";
 import { moduleDeclarationTest } from "../../../test.ts";
 
-const moduleUrl = new URL("./connecting.ts", import.meta.url).href;
+const moduleUrl = new URL("./connecting.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -19,6 +19,7 @@ Deno.test(
       name: "CONNECTING",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Connecting",
         kind: MatchKind.Ok,
         input: Input.Iterable("‿"),
         value: "‿",

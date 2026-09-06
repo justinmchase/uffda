@@ -22,5 +22,7 @@ Expected behavior:
 
 Postconditions:
 
-- Digit is the first language-folder module with an authored `.uff` source used
-  as a compile-check input.
+- Digit is the first language-folder module replaced by authored `.uff` source.
+- Dependents import `./digit.uff` (or equivalent); the TypeScript twin is gone.
+- Runtime loads Digit from `./bin` via `.uff` remapping (not
+  `builtInLanguageDeclarations`).

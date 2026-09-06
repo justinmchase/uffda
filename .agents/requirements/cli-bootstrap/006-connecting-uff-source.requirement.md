@@ -21,4 +21,8 @@ Expected behavior:
 
 Postconditions:
 
-- Connecting is converted alongside Digit as Phase 0 character leaves.
+- Connecting is converted alongside Digit as a Phase 0 character leaf.
+- Dependents import `./connecting.uff` (or equivalent); the TypeScript twin is
+  gone.
+- Runtime loads Connecting from `./bin` via `.uff` remapping (not
+  `builtInLanguageDeclarations`).

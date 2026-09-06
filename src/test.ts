@@ -1,4 +1,5 @@
 import { assert, assertRejects, equal } from "@std/assert";
+import { resolve as resolvePath } from "@std/path";
 import { Scope } from "./runtime/scope.ts";
 import { match } from "./runtime/match.ts";
 import { exec } from "./runtime/exec.ts";
@@ -9,6 +10,7 @@ import { ResolveTargetKind } from "./runtime/patterns/pattern.ts";
 import { resolve } from "./runtime/patterns/resolve.ts";
 import { ExportDeclarationKind } from "./runtime/declarations/mod.ts";
 import { ModuleImportResultKind } from "./runtime/resolvers/resolver.ts";
+import { DEFAULT_ARTIFACT_ROOT } from "./runtime/resolvers/artifact_path.ts";
 import { getRightmostFailure, MatchKind } from "./match.ts";
 import type {
   MatchError,
@@ -144,6 +146,12 @@ type ModuleDeclarationTestOptions = (ThrowsAssertion | MatchAssertion) & {
   declarations?: Record<string, ModuleDeclaration>;
   input?: Input;
   variables?: Map<string, unknown>;
+  /** Named export to run; omit to use the module default export. */
+  entryRuleName?: string;
+  /** Working directory for `.uff` → `./bin` remapping. Defaults to `Deno.cwd()`. */
+  cwd?: string;
+  /** Artifact root for compiled `.uff` modules. Defaults to `<cwd>/bin`. */
+  artifactRoot?: string;
 };
 
 function isThrowsAssertion(value: unknown): value is ThrowsAssertion {
@@ -176,9 +184,13 @@ export function moduleDeclarationTest(options: ModuleDeclarationTestOptions) {
     declarations,
     input,
     variables,
+    entryRuleName,
   } = options;
   return async () => {
-    const resolver = new Resolver({ declarations });
+    const cwd = options.cwd ?? Deno.cwd();
+    const artifactRoot = options.artifactRoot ??
+      resolvePath(cwd, DEFAULT_ARTIFACT_ROOT);
+    const resolver = new Resolver({ declarations, cwd, artifactRoot });
     const importScope = new Scope(
       undefined,
       undefined,
@@ -195,6 +207,7 @@ export function moduleDeclarationTest(options: ModuleDeclarationTestOptions) {
         pattern: {
           kind: PatternKind.Resolve,
           targetKind: ResolveTargetKind.Run,
+          name: entryRuleName,
         },
       });
       if (module.kind === ModuleImportResultKind.Error) {
@@ -220,7 +233,11 @@ export function moduleDeclarationTest(options: ModuleDeclarationTestOptions) {
       );
 
       const m = await resolve(
-        { kind: PatternKind.Resolve, targetKind: ResolveTargetKind.Run },
+        {
+          kind: PatternKind.Resolve,
+          targetKind: ResolveTargetKind.Run,
+          name: entryRuleName,
+        },
         scope,
       );
       switch (m.kind) {

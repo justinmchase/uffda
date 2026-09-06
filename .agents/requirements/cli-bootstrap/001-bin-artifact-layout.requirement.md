@@ -29,7 +29,8 @@ Postconditions:
 
 ## Status
 
-Milestone 11 in progress. Authored modules so far:
+Milestone 11 in progress. Replaced modules so far:
 `src/lang/common/characters/digit.uff` and
-`src/lang/common/characters/connecting.uff`; remaining language modules still
-load from TypeScript until conversion completes.
+`src/lang/common/characters/connecting.uff` (TypeScript twins removed;
+dependents import `.uff` and load from `./bin`). Remaining language modules
+still load from TypeScript until conversion completes.

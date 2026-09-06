@@ -11,8 +11,6 @@
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 
 import Combining from "./common/characters/combining.ts";
-import Connecting from "./common/characters/connecting.ts";
-import Digit from "./common/characters/digit.ts";
 import Formatting from "./common/characters/formatting.ts";
 import Letter from "./common/characters/letter.ts";
 import Characters from "./common/characters/mod.ts";
@@ -69,8 +67,6 @@ function entry(
 export const builtInLanguageDeclarations: Record<string, ModuleDeclaration> =
   Object.fromEntries([
     entry("./common/characters/combining.ts", Combining),
-    entry("./common/characters/connecting.ts", Connecting),
-    entry("./common/characters/digit.ts", Digit),
     entry("./common/characters/formatting.ts", Formatting),
     entry("./common/characters/letter.ts", Letter),
     entry("./common/characters/mod.ts", Characters),

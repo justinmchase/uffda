@@ -44,6 +44,8 @@ Deno.test(
       ),
       true,
     );
+    assertEquals(yaml.includes("uffda compile"), true);
+    assertEquals(yaml.includes("src/cli/main.ts compile"), false);
   },
 );
 

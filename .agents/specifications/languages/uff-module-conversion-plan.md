@@ -2,16 +2,35 @@
 
 Status: living plan. Convert **one module at a time**. Before each conversion,
 re-check the three gates below and record the outcome in the per-module section
-(or a follow-up PR note). Do not delete a `.ts` twin until the module loads via
-`.uff` → `./bin` remapping and dependents import the `.uff` URL.
+(or a follow-up PR note). Conversion **replaces** the `.ts` module: dependents
+import the `.uff` URL, registry entries for that module are dropped, and the
+`.ts` file is deleted once `.uff` → `./bin` remapping works in tests and CI.
 
 CLI baseline for this effort: **uffda 0.1.3** (published), with
 compile-then-import and draft-tag pinning on `main`.
+
+## Bootstrap compiler constraint
+
+Compile always uses the **latest published** CLI (version N), never the in-tree
+CLI. Authored `.uff` MAY use only features that CLI N already accepts (syntax,
+character classes, projections, std, imports, etc.). In-tree language/runtime
+work for N+1 does not unlock `.uff` authoring until it ships.
+
+See
+[Published-compiler feature surface](./compiler-bootstrap.spec.md#published-compiler-feature-surface).
 
 ## Conversion gates (must pass in `.ts` first)
 
 Before authoring `.uff` for a module, the TypeScript `ModuleDeclaration` MUST
 already satisfy:
+
+### G0 — Published CLI surface
+
+- The intended `.uff` text MUST compile with the installed latest `uffda`
+  (`uffda compile … --out-dir ./bin`).
+- Do not author against unreleased PatternLang / ExpressionLang / std changes.
+- If a needed feature is missing from N, ship it in a release first, then
+  convert.
 
 ### G1 — Pattern surface
 
@@ -83,16 +102,16 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ### Phase 0 — Character leaves (prove `.uff` + bin + import)
 
-| # | Module                         | G1                    | G2               | G3                  | Notes                                                 | Ready?                              |
-| - | ------------------------------ | --------------------- | ---------------- | ------------------- | ----------------------------------------------------- | ----------------------------------- |
-| 0 | `common/characters/digit`      | OK `\cNd`             | none             | none                | Done (`digit.uff`)                                    | done                                |
-| 1 | `common/characters/connecting` | OK `\cPc`             | none             | none                | Done (`connecting.uff`); `.ts` twin kept for registry | done                                |
-| 2 | `common/characters/formatting` | OK `\cCf`             | none             | none                | Clone digit                                           | **yes** — **next**                  |
-| 3 | `common/characters/letter`     | OK `\cL\|\cNl`        | none             | none                | Or of classes                                         | **yes**                             |
-| 4 | `common/characters/combining`  | OK `\cMn\|\cMe\|\cMc` | none             | none                | Or of classes                                         | **yes**                             |
-| 5 | `common/characters/whitespace` | OK                    | Native identity  | OK (no parse)       | Drop Native or `-> _` / omit                          | **yes** after trivial `.ts` cleanup |
-| 6 | `common/characters/newLine`    | OK                    | Native `-> "\n"` | OK project constant | Projection literal only                               | **yes**                             |
-| 7 | `common/characters/mod`        | n/a                   | n/a              | n/a                 | Re-exports; needs children                            | after 1–6                           |
+| # | Module                         | G1                    | G2               | G3                  | Notes                                      | Ready?                              |
+| - | ------------------------------ | --------------------- | ---------------- | ------------------- | ------------------------------------------ | ----------------------------------- |
+| 0 | `common/characters/digit`      | OK `\cNd`             | none             | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done                                |
+| 1 | `common/characters/connecting` | OK `\cPc`             | none             | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done                                |
+| 2 | `common/characters/formatting` | OK `\cCf`             | none             | none                | Clone digit                                | **yes** — **next**                  |
+| 3 | `common/characters/letter`     | OK `\cL\|\cNl`        | none             | none                | Or of classes                              | **yes**                             |
+| 4 | `common/characters/combining`  | OK `\cMn\|\cMe\|\cMc` | none             | none                | Or of classes                              | **yes**                             |
+| 5 | `common/characters/whitespace` | OK                    | Native identity  | OK (no parse)       | Drop Native or `-> _` / omit               | **yes** after trivial `.ts` cleanup |
+| 6 | `common/characters/newLine`    | OK                    | Native `-> "\n"` | OK project constant | Projection literal only                    | **yes**                             |
+| 7 | `common/characters/mod`        | n/a                   | n/a              | n/a                 | Re-exports; needs children                 | after 1–6                           |
 
 ### Phase 1 — Common helpers
 
@@ -162,13 +181,14 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 ## Per-conversion checklist (use every time)
 
 1. Open the `.ts` module; list PatternKinds and every Native `fn`.
-2. Score G1 / G2 / G3 explicitly (pass / fail + note).
-3. If any gate fails: fix in `.ts` (and std/spec if needed) **before** `.uff`.
-4. Author `.uff`; compile with `uffda compile … --out-dir ./bin`.
-5. Point imports / registry at `.uff`; run tests + compile-then-import.
-6. Delete `.ts` only when nothing references it (registry, Native embeds,
-   tests).
-7. Update this plan’s Ready? column and CI compile list.
+2. Score G0 / G1 / G2 / G3 explicitly (pass / fail + note). G0 = compiles with
+   installed latest `uffda`, not in-tree CLI.
+3. If any gate fails: fix in `.ts` (and std/spec if needed) **before** `.uff`;
+   if G0 fails for missing CLI features, publish those features first.
+4. Author `.uff`; compile with installed `uffda compile … --out-dir ./bin`.
+5. Point imports / registry at `.uff`; delete the `.ts` twin; run tests +
+   compile-then-import (tests load from `./bin`).
+6. Update this plan’s Ready? column and CI compile list.
 
 ## First candidate (next session)
 
