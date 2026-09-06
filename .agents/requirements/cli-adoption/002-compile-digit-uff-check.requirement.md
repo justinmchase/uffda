@@ -12,19 +12,16 @@ Preconditions:
 
 - Phase 0 character `.uff` sources under `src/lang/common/characters/` are
   authored Uffda sources.
-- The Checks workflow has installed an Uffda CLI (for version reporting and for
-  compile once a repair release is published).
+- The Checks workflow has installed an Uffda CLI.
 
 Expected behavior:
 
-- Checks MUST compile language `.uff` sources into `./bin/` using a quoted glob
-  such as `'src/lang/**/*.uff'`.
-- During the 0.1.4 bootstrap-repair window (`.uff` imports without `.uff`-keyed
-  registry entries), Checks MAY compile with the in-tree CLI. After the repair
-  release ships, Checks MUST use installed `uffda compile`.
+- Checks MUST compile language `.uff` sources with the installed `uffda compile`
+  into `./bin/` using a quoted glob such as `'src/lang/**/*.uff'` (not the
+  in-tree Deno CLI entrypoint).
 - The compile MUST emit deterministic AST JSON artifacts under `./bin/ast/`.
 
 Postconditions:
 
-- CI proves language-module compilation into `./bin/` for converted Phase 0
-  character modules.
+- CI proves the published CLI install path can drive language-module compilation
+  for converted Phase 0 character modules.
