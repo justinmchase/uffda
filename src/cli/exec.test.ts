@@ -9,7 +9,7 @@ import {
   executeCliAst,
   executeCliExpression,
   executeCliModule,
-  moduleUrlForCliSource,
+  moduleUrlForCliOrigin,
   parseCliAst,
 } from "./exec.ts";
 
@@ -58,18 +58,38 @@ Deno.test("cli.exec executes raw module and expression AST inputs", async (t) =>
   });
 
   await t.step(
-    "moduleUrlForCliSource uses real paths and cwd for sentinels",
+    "moduleUrlForCliOrigin distinguishes file, stdin, and eval",
     () => {
       assertEquals(
-        moduleUrlForCliSource("/repo", "<stdin>").href,
-        toFileUrl("/repo/module.uff").href,
+        moduleUrlForCliOrigin("/repo", { kind: "stdin" }).href,
+        toFileUrl("/repo/__stdin__.uff").href,
       );
       assertEquals(
-        moduleUrlForCliSource("/repo", "/repo/src/main.uff").href,
+        moduleUrlForCliOrigin("/repo", { kind: "eval" }).href,
+        toFileUrl("/repo/__eval__.uff").href,
+      );
+      assertEquals(
+        moduleUrlForCliOrigin("/repo", {
+          kind: "file",
+          absolutePath: "/repo/src/main.uff",
+        }).href,
         toFileUrl("/repo/src/main.uff").href,
       );
     },
   );
+
+  await t.step("moduleUrlForCliOrigin rejects relative file paths", () => {
+    let threw = false;
+    try {
+      moduleUrlForCliOrigin("/repo", {
+        kind: "file",
+        absolutePath: "src/main.uff",
+      });
+    } catch (error) {
+      threw = error instanceof TypeError;
+    }
+    assertEquals(threw, true);
+  });
 
   await t.step(
     "executeCliModule resolves relative .uff imports via artifactRoot",
@@ -100,7 +120,10 @@ Deno.test("cli.exec executes raw module and expression AST inputs", async (t) =>
         const result = await executeCliModule(parsed.value, "Root", {
           cwd,
           artifactRoot,
-          moduleUrl: moduleUrlForCliSource(cwd, rootPath),
+          moduleUrl: moduleUrlForCliOrigin(cwd, {
+            kind: "file",
+            absolutePath: rootPath,
+          }),
         });
         assertEquals(result, { ok: true, value: 7 });
       } finally {

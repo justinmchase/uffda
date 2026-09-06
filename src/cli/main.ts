@@ -9,9 +9,10 @@ import {
 } from "./contract.ts";
 import { compileSourcesToAstArtifacts } from "./compile.ts";
 import {
+  type CliModuleOrigin,
   executeCliExpression,
   executeCliModule,
-  moduleUrlForCliSource,
+  moduleUrlForCliOrigin,
   parseCliAst,
 } from "./exec.ts";
 import {
@@ -279,7 +280,9 @@ export function resolveProcessCwd(
 
 type CommandInput = {
   source: string;
+  /** Diagnostic label: absolute file path, `<stdin>`, or `<eval>`. */
   sourcePath: string;
+  moduleOrigin: CliModuleOrigin;
 };
 
 async function readCommandInput(
@@ -287,16 +290,28 @@ async function readCommandInput(
   stdinSource: string,
 ): Promise<CommandInput> {
   if (contract.inlineSource !== undefined) {
-    return { source: contract.inlineSource, sourcePath: "<eval>" };
+    return {
+      source: contract.inlineSource,
+      sourcePath: "<eval>",
+      moduleOrigin: { kind: "eval" },
+    };
   }
 
   const inputPath = contract.inputPaths[0];
   if (inputPath === undefined || inputPath === "-") {
-    return { source: stdinSource, sourcePath: "<stdin>" };
+    return {
+      source: stdinSource,
+      sourcePath: "<stdin>",
+      moduleOrigin: { kind: "stdin" },
+    };
   }
 
   const sourcePath = resolve(contract.cwd, inputPath);
-  return { source: await Deno.readTextFile(sourcePath), sourcePath };
+  return {
+    source: await Deno.readTextFile(sourcePath),
+    sourcePath,
+    moduleOrigin: { kind: "file", absolutePath: sourcePath },
+  };
 }
 
 async function readMatchInput(
@@ -324,7 +339,13 @@ async function readOperationAst(
   stdinSource: string,
   language: CliLanguage,
 ): Promise<
-  | { ok: true; ast: unknown; source: string; sourcePath: string }
+  | {
+    ok: true;
+    ast: unknown;
+    source: string;
+    sourcePath: string;
+    moduleOrigin: CliModuleOrigin;
+  }
   | { ok: false; result: CliRunResult }
 > {
   let input: CommandInput;
@@ -349,6 +370,7 @@ async function readOperationAst(
         ast: parsed.ast,
         source: input.source,
         sourcePath: input.sourcePath,
+        moduleOrigin: input.moduleOrigin,
       }
       : {
         ok: false,
@@ -370,6 +392,7 @@ async function readOperationAst(
       ast: parsed.ast,
       source: input.source,
       sourcePath: input.sourcePath,
+      moduleOrigin: input.moduleOrigin,
     }
     : {
       ok: false,
@@ -495,7 +518,7 @@ export async function runCli(
     const result = await executeCliExpression(parsed.ast, {
       cwd: contract.cwd,
       artifactRoot: contract.outputRootDir,
-      moduleUrl: moduleUrlForCliSource(contract.cwd, parsed.sourcePath),
+      moduleUrl: moduleUrlForCliOrigin(contract.cwd, parsed.moduleOrigin),
     });
     if (!result.ok) {
       return {
@@ -567,7 +590,7 @@ export async function runCli(
     const result = await executeCliModule(parsed.ast, contract.entryRuleName, {
       cwd: contract.cwd,
       artifactRoot: contract.outputRootDir,
-      moduleUrl: moduleUrlForCliSource(contract.cwd, parsed.sourcePath),
+      moduleUrl: moduleUrlForCliOrigin(contract.cwd, parsed.moduleOrigin),
     });
     if (result.ok) return operationResult(result.value, contract.jsonOutput);
     return {

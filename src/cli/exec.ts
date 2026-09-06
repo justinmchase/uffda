@@ -7,7 +7,7 @@ import { executeModuleDeclaration } from "../runtime/module.execute.ts";
 import { type Expression, isExpression } from "../runtime/expressions/mod.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 import { std } from "../runtime/std/mod.ts";
-import { join, toFileUrl } from "@std/path";
+import { isAbsolute, join, toFileUrl } from "@std/path";
 
 export enum CliExecFailureCode {
   InvalidJson = "CLI_EXEC_INVALID_JSON",
@@ -89,29 +89,45 @@ function executionFailure(match: Match): CliExecFailure {
 export type CliExecOptions = {
   cwd?: string;
   artifactRoot?: string;
-  /**
-   * Logical module URL for relative import resolution. Defaults to a synthetic
-   * file under `cwd` when omitted so stdin/eval still resolve `./foo.uff`
-   * against the process working directory.
-   */
+  /** Logical module URL for relative import resolution. */
   moduleUrl?: URL;
 };
 
-function resolveCliModuleUrl(options?: CliExecOptions): URL | undefined {
-  if (options?.moduleUrl) return options.moduleUrl;
-  if (!options?.cwd) return undefined;
-  return toFileUrl(join(options.cwd, "module.uff"));
-}
+/**
+ * Where CLI module/expression source came from. Used to pick a stable module
+ * URL for relative `import "./foo.uff"` resolution.
+ *
+ * - `file`: real absolute source path (relative imports resolve next to it)
+ * - `stdin` / `eval`: ephemeral sources with no directory; relative imports
+ *   resolve against `cwd` via a distinct synthetic file URL under that cwd
+ */
+export type CliModuleOrigin =
+  | { kind: "file"; absolutePath: string }
+  | { kind: "stdin" }
+  | { kind: "eval" };
 
 /**
- * Map a CLI input source path to the module URL used for relative imports.
- * Sentinel paths (`<stdin>`, `<eval>`, …) use a synthetic file under `cwd`.
+ * Map a CLI source origin to the module URL used for relative imports.
  */
-export function moduleUrlForCliSource(cwd: string, sourcePath: string): URL {
-  if (sourcePath.startsWith("<")) {
-    return toFileUrl(join(cwd, "module.uff"));
+export function moduleUrlForCliOrigin(
+  cwd: string,
+  origin: CliModuleOrigin,
+): URL {
+  switch (origin.kind) {
+    case "file": {
+      if (!isAbsolute(origin.absolutePath)) {
+        throw new TypeError(
+          `CliModuleOrigin.file requires an absolute path, got: ${origin.absolutePath}`,
+        );
+      }
+      return toFileUrl(origin.absolutePath);
+    }
+    case "stdin":
+      // No source directory; cwd is the only meaningful import base.
+      return toFileUrl(join(cwd, "__stdin__.uff"));
+    case "eval":
+      return toFileUrl(join(cwd, "__eval__.uff"));
   }
-  return toFileUrl(sourcePath);
 }
 
 export async function executeCliAst(
@@ -150,7 +166,7 @@ export async function executeCliAst(
 
   const execution = await executeModuleDeclaration(declaration, {
     entryRuleName: defaultEntryRuleName(syntaxModule),
-    moduleUrl: resolveCliModuleUrl(options),
+    moduleUrl: options?.moduleUrl,
     cwd: options?.cwd,
     artifactRoot: options?.artifactRoot,
     scopeOptions: {
@@ -211,7 +227,7 @@ export async function executeCliModule(
 
   const execution = await executeModuleDeclaration(declaration, {
     entryRuleName: entryRuleName ?? defaultEntryRuleName(value),
-    moduleUrl: resolveCliModuleUrl(options),
+    moduleUrl: options?.moduleUrl,
     cwd: options?.cwd,
     artifactRoot: options?.artifactRoot,
     scopeOptions: {
