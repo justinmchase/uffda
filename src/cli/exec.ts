@@ -85,7 +85,15 @@ function executionFailure(match: Match): CliExecFailure {
   }
 }
 
-export async function executeCliAst(value: unknown): Promise<CliExecResult> {
+export type CliExecOptions = {
+  cwd?: string;
+  artifactRoot?: string;
+};
+
+export async function executeCliAst(
+  value: unknown,
+  options?: CliExecOptions,
+): Promise<CliExecResult> {
   const syntaxModule = isUffdaSyntaxModule(value)
     ? value
     : isExpression(value)
@@ -118,6 +126,8 @@ export async function executeCliAst(value: unknown): Promise<CliExecResult> {
 
   const execution = await executeModuleDeclaration(declaration, {
     entryRuleName: defaultEntryRuleName(syntaxModule),
+    cwd: options?.cwd,
+    artifactRoot: options?.artifactRoot,
     scopeOptions: {
       globals: new Map([...std, ["echo", (output: unknown) => output]]),
     },
@@ -129,6 +139,7 @@ export async function executeCliAst(value: unknown): Promise<CliExecResult> {
 
 export async function executeCliExpression(
   value: unknown,
+  options?: CliExecOptions,
 ): Promise<CliExecResult> {
   if (!isExpression(value)) {
     return {
@@ -140,12 +151,13 @@ export async function executeCliExpression(
       },
     };
   }
-  return await executeCliAst(value);
+  return await executeCliAst(value, options);
 }
 
 export async function executeCliModule(
   value: unknown,
   entryRuleName?: string,
+  options?: CliExecOptions,
 ): Promise<CliExecResult> {
   if (!isUffdaSyntaxModule(value)) {
     return {
@@ -174,6 +186,8 @@ export async function executeCliModule(
 
   const execution = await executeModuleDeclaration(declaration, {
     entryRuleName: entryRuleName ?? defaultEntryRuleName(value),
+    cwd: options?.cwd,
+    artifactRoot: options?.artifactRoot,
     scopeOptions: {
       globals: new Map([...std, ["echo", (output: unknown) => output]]),
     },

@@ -1,0 +1,51 @@
+import { assertEquals } from "@std/assert";
+import { fromFileUrl, join } from "@std/path";
+
+const repoRoot = fromFileUrl(new URL("../../../", import.meta.url));
+
+Deno.test(
+  "req:cli-adoption-001 - checks workflow uses uffda-setup with latest",
+  async () => {
+    const yaml = await Deno.readTextFile(
+      join(repoRoot, ".github", "workflows", "checks.yml"),
+    );
+    assertEquals(yaml.includes("uses: ./.github/actions/uffda-setup"), true);
+    assertEquals(yaml.includes("version: latest"), true);
+  },
+);
+
+Deno.test(
+  "req:cli-adoption-002 - checks compile digit.uff into ./bin",
+  async () => {
+    const yaml = await Deno.readTextFile(
+      join(repoRoot, ".github", "workflows", "checks.yml"),
+    );
+    assertEquals(
+      yaml.includes(
+        "uffda compile ./src/lang/common/characters/digit.uff --out-dir ./bin",
+      ),
+      true,
+    );
+    assertEquals(
+      yaml.includes(
+        "./bin/ast/src/lang/common/characters/digit.uffda.ast.json",
+      ),
+      true,
+    );
+  },
+);
+
+Deno.test(
+  "req:cli-adoption-002 - checks runs bootstrap import after compile",
+  async () => {
+    const yaml = await Deno.readTextFile(
+      join(repoRoot, ".github", "workflows", "checks.yml"),
+    );
+    assertEquals(
+      yaml.includes(
+        "005-ci-compile-then-import.requirement.test.ts",
+      ),
+      true,
+    );
+  },
+);

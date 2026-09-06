@@ -1,5 +1,6 @@
 .env
 .uffda
+bin
 dst
 dist
 cov_profile

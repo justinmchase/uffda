@@ -1,0 +1,2 @@
+# Digit matches a single Unicode decimal digit character.
+export rule Digit = \cNd;

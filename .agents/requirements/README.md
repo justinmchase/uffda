@@ -21,4 +21,4 @@ statements.
 Use topic folders that follow the spec structure when practical.
 
 Active topic folders include language-layer requirements plus CLI topics such as
-`cli-distribution/` (M9) and `cli-bootstrap/` (M11 stubs).
+`cli-distribution/` (M9), `cli-adoption/` (M10), and `cli-bootstrap/` (M11).

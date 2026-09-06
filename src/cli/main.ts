@@ -473,7 +473,10 @@ export async function runCli(
     );
     if (!parsed.ok) return parsed.result;
 
-    const result = await executeCliExpression(parsed.ast);
+    const result = await executeCliExpression(parsed.ast, {
+      cwd: contract.cwd,
+      artifactRoot: contract.outputRootDir,
+    });
     if (!result.ok) {
       return {
         exitCode: CliExitCode.Usage,
@@ -541,7 +544,10 @@ export async function runCli(
     );
     if (!parsed.ok) return parsed.result;
 
-    const result = await executeCliModule(parsed.ast, contract.entryRuleName);
+    const result = await executeCliModule(parsed.ast, contract.entryRuleName, {
+      cwd: contract.cwd,
+      artifactRoot: contract.outputRootDir,
+    });
     if (result.ok) return operationResult(result.value, contract.jsonOutput);
     return {
       exitCode: CliExitCode.Usage,

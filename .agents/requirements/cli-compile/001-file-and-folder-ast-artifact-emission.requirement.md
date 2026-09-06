@@ -17,7 +17,9 @@ Expected behavior:
 
 - File inputs MUST emit one AST artifact per file.
 - Folder inputs MUST recursively discover source files.
-- Artifacts MUST be JSON-serializable and include source-path provenance.
+- Artifacts MUST be JSON-serializable raw syntax AST modules.
+- Source-path provenance MUST remain available through the compile result (see
+  `cli-compile-004`).
 
 Postconditions:
 

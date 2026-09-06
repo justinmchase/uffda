@@ -61,6 +61,24 @@ and surfaced to runtime pattern execution.
   and validated using the same declaration contract as `.ts`/`.js` sources.
 - JSON parsing or import failures MUST surface as module-resolution errors.
 
+### Uffda source imports (`.uff`)
+
+- Runtime resolution MUST support logical module URLs ending in `.uff`.
+- A `.uff` import MUST NOT load or parse the `.uff` source text at resolution
+  time.
+- A `.uff` import MUST remap to the mirrored compiled syntax-AST JSON artifact
+  under the configured artifact root (default `./bin`), using the same
+  deterministic path layout as CLI compile emission under
+  `<artifact-root>/ast/`.
+- The runtime MUST load that JSON artifact and lower it to a module declaration
+  through the Uffda runtime compiler (the same lowering used for `run --ast`).
+- Module cache identity MUST remain the logical `.uff` URL; the artifact path is
+  a load target only.
+- Missing or unreadable artifacts, invalid syntax-AST JSON, and lowering
+  failures MUST surface as module-resolution errors.
+- Direct `.ts`, `.js`, and `.json` imports MUST continue to resolve to their
+  actual paths without artifact remapping.
+
 ### Native declaration imports
 
 - Module import declarations MAY specify native imports that provide module

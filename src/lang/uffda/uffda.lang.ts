@@ -28,7 +28,13 @@ export async function uffdaGrammar(
     source,
     moduleUrl: new URL(import.meta.url),
     entryRuleName: "UffdaLang",
-    grammarOptions: opts,
+    grammarOptions: {
+      ...opts,
+      declarations: {
+        ...opts?.declarations,
+        [new URL(import.meta.url).href]: UffdaLang,
+      },
+    },
   });
 }
 

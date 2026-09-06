@@ -24,8 +24,11 @@ Postconditions:
 
 - Released CLI binaries do not depend on TypeScript language module sources for
   language definitions.
+- Authors import compiled modules with `import "./foo.uff"` once artifacts exist
+  under the configured root (see `cli-bootstrap-004`).
 
 ## Status
 
-Stub for Milestone 11. Implementation follows after CLI distribution and CI
-adoption.
+Milestone 11 in progress. The first authored module is
+`src/lang/common/characters/digit.uff`; remaining language modules still load
+from TypeScript until conversion completes.
