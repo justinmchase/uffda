@@ -297,6 +297,84 @@ Deno.test(
     });
 
     await t.step({
+      name: "PATTERN_LANG_14C",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.Scalar('"\\t"'),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Equal,
+          value: "\t",
+        },
+      }),
+    });
+
+    await t.step({
+      name: "PATTERN_LANG_14D",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.Scalar('"\\n"'),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Equal,
+          value: "\n",
+        },
+      }),
+    });
+
+    await t.step({
+      name: "PATTERN_LANG_14E",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.Scalar('"\\r"'),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Equal,
+          value: "\r",
+        },
+      }),
+    });
+
+    await t.step({
+      name: "PATTERN_LANG_14F",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.Scalar('"\\\\"'),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Equal,
+          value: "\\",
+        },
+      }),
+    });
+
+    await t.step({
+      name: "PATTERN_LANG_14G",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.Scalar('"\\""'),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Equal,
+          value: '"',
+        },
+      }),
+    });
+
+    await t.step({
+      name: "PATTERN_LANG_14H",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.Scalar('"\\tab"'),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Equal,
+          value: "\tab",
+        },
+      }),
+    });
+
+    await t.step({
       name: "PATTERN_LANG_15",
       fn: moduleDeclarationTest({
         moduleUrl,

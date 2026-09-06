@@ -220,6 +220,63 @@ export const Tokenizer: ModuleDeclaration = {
       },
     },
     {
+      name: "EscapeFollower",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Or,
+        patterns: [
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "Whitespace",
+            args: [],
+          },
+          {
+            kind: PatternKind.Equal,
+            value: "\n",
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "Letter",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "Connecting",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "Combining",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "Digit",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "Formatting",
+            args: [],
+          },
+          {
+            kind: PatternKind.Type,
+            type: Type.String,
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ _ }): string => _ as string,
+      },
+    },
+    {
       name: "EscapeTokens",
       parameters: [],
       pattern: {
@@ -230,46 +287,26 @@ export const Tokenizer: ModuleDeclaration = {
             value: "\\",
           },
           {
-            kind: PatternKind.Or,
-            patterns: [
-              {
-                kind: PatternKind.Resolve,
-                targetKind: ResolveTargetKind.Reference,
-                name: "WhitespaceToken",
-                args: [],
-              },
-              {
-                kind: PatternKind.Resolve,
-                targetKind: ResolveTargetKind.Reference,
-                name: "NewLineToken",
-                args: [],
-              },
-              {
-                kind: PatternKind.Resolve,
-                targetKind: ResolveTargetKind.Reference,
-                name: "WordToken",
-                args: [],
-              },
-              {
-                kind: PatternKind.Resolve,
-                targetKind: ResolveTargetKind.Reference,
-                name: "PunctuationToken",
-                args: [],
-              },
-            ],
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "EscapeFollower",
+            args: [],
           },
         ],
       },
       expression: {
         kind: ExpressionKind.Native,
         fn: ({ _ }): TokenValue[] => {
-          const [, escaped] = _ as [string, TokenValue];
+          const [, escaped] = _ as [string, string];
           return [
             {
               kind: StructuredTokenKind.Punctuation,
               text: "\\",
             },
-            escaped,
+            {
+              kind: StructuredTokenKind.Punctuation,
+              text: escaped,
+            },
           ];
         },
       },

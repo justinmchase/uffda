@@ -28,6 +28,84 @@ Deno.test({
     });
 
     await t.step({
+      name: "LITERALS_00A",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.Iterable(['"', "\\", "t", '"']),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Equal,
+          value: "\t",
+        },
+      }),
+    });
+
+    await t.step({
+      name: "LITERALS_00B",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.Iterable(['"', "\\", "n", '"']),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Equal,
+          value: "\n",
+        },
+      }),
+    });
+
+    await t.step({
+      name: "LITERALS_00C",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.Iterable(['"', "\\", "r", '"']),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Equal,
+          value: "\r",
+        },
+      }),
+    });
+
+    await t.step({
+      name: "LITERALS_00D",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.Iterable(['"', "\\", "\\", '"']),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Equal,
+          value: "\\",
+        },
+      }),
+    });
+
+    await t.step({
+      name: "LITERALS_00E",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.Iterable(['"', "\\", '"', '"']),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Equal,
+          value: '"',
+        },
+      }),
+    });
+
+    await t.step({
+      name: "LITERALS_00F",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.Iterable(['"', "\\", "t", "ab", '"']),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Equal,
+          value: "\tab",
+        },
+      }),
+    });
+
+    await t.step({
       name: "LITERALS_01",
       fn: moduleDeclarationTest({
         moduleUrl,

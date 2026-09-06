@@ -272,5 +272,36 @@ Deno.test({
         kind: MatchKind.Ok,
       }),
     });
+
+    await t.step({
+      name: "TOKENIZER12",
+      fn: moduleDeclarationTest({
+        moduleUrl:
+          new URL("./tokenizer-no-whitespace.ts", import.meta.url).href,
+        declarations: {
+          [new URL("./tokenizer-no-whitespace.ts", import.meta.url).href]:
+            tokenizerNoWhitespaceModule,
+        },
+        input: Input.Iterable('"\\t\\n\\r\\\\\\"\\tab"'),
+        value: [
+          '"',
+          "\\",
+          "t",
+          "\\",
+          "n",
+          "\\",
+          "r",
+          "\\",
+          "\\",
+          "\\",
+          '"',
+          "\\",
+          "t",
+          "ab",
+          '"',
+        ],
+        kind: MatchKind.Ok,
+      }),
+    });
   },
 });

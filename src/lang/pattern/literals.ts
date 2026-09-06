@@ -88,6 +88,90 @@ export const Literals: ModuleDeclaration = {
       },
     },
     {
+      name: "EscapedPatternStringBackslash",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Equal,
+            value: "\\",
+          },
+          {
+            kind: PatternKind.Equal,
+            value: "\\",
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: () => "\\",
+      },
+    },
+    {
+      name: "EscapedPatternStringTab",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Equal,
+            value: "\\",
+          },
+          {
+            kind: PatternKind.Equal,
+            value: "t",
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: () => "\t",
+      },
+    },
+    {
+      name: "EscapedPatternStringNewline",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Equal,
+            value: "\\",
+          },
+          {
+            kind: PatternKind.Equal,
+            value: "n",
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: () => "\n",
+      },
+    },
+    {
+      name: "EscapedPatternStringReturn",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Equal,
+            value: "\\",
+          },
+          {
+            kind: PatternKind.Equal,
+            value: "r",
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: () => "\r",
+      },
+    },
+    {
       name: "PatternStringToken",
       parameters: [],
       pattern: {
@@ -97,6 +181,30 @@ export const Literals: ModuleDeclaration = {
             kind: PatternKind.Resolve,
             targetKind: ResolveTargetKind.Reference,
             name: "EscapedPatternStringQuote",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "EscapedPatternStringBackslash",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "EscapedPatternStringTab",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "EscapedPatternStringNewline",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "EscapedPatternStringReturn",
             args: [],
           },
           {

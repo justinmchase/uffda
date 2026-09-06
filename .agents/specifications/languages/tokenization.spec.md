@@ -80,7 +80,15 @@ that can be consumed by expression, pattern, and language-definition layers.
 - Comment recognition and string-literal boundaries MUST be expressed through
   tokenizer patterns rather than a host-language state machine.
 
-## Interpolation boundary requirements
+## Escape sequences in quoted strings
+
+- Inside a quoted string, `\` MUST introduce an escape that consumes exactly one
+  following source character (not a greedy word or whitespace run).
+- The escape introducer and its single follower MUST both remain visible to
+  no-whitespace semantic consumers (for example as punctuation texts) so
+  PatternLang can interpret `\t`, `\n`, `\r`, `\\`, and `\"`.
+- Unescaped whitespace and newlines inside quotes remain trivia and MUST NOT
+  appear in the no-whitespace semantic stream.
 
 - Tokenization MUST preserve interpolation delimiter boundaries used by
   downstream expression parsing (for example `"`, `$`, `{`, `}`, `.`, and `:`).
