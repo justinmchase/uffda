@@ -58,6 +58,7 @@ Normative key words in this chapter use the conventions defined in the
 ## Subtopics
 
 - [pattern grammar](./pattern-syntax/grammar.spec.md)
+- [pattern string literals](./pattern-syntax/string-literals.spec.md)
 
 ## Composition intent
 
