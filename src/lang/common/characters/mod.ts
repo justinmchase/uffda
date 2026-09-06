@@ -34,7 +34,7 @@ export const Characters: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./letter.ts",
+      moduleUrl: "./letter.uff",
       names: [
         "Letter",
       ],
