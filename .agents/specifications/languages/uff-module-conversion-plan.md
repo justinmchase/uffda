@@ -106,8 +106,8 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 | - | ------------------------------ | --------------------- | ---------------- | ------------------- | ------------------------------------------ | ----------------------------------- |
 | 0 | `common/characters/digit`      | OK `\cNd`             | none             | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done                                |
 | 1 | `common/characters/connecting` | OK `\cPc`             | none             | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done                                |
-| 2 | `common/characters/formatting` | OK `\cCf`             | none             | none                | Clone digit                                | **yes** — **next**                  |
-| 3 | `common/characters/letter`     | OK `\cL\|\cNl`        | none             | none                | Or of classes                              | **yes**                             |
+| 2 | `common/characters/formatting` | OK `\cCf`             | none             | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done                                |
+| 3 | `common/characters/letter`     | OK `\cL\|\cNl`        | none             | none                | Or of classes                              | **yes** — **next**                  |
 | 4 | `common/characters/combining`  | OK `\cMn\|\cMe\|\cMc` | none             | none                | Or of classes                              | **yes**                             |
 | 5 | `common/characters/whitespace` | OK                    | Native identity  | OK (no parse)       | Drop Native or `-> _` / omit               | **yes** after trivial `.ts` cleanup |
 | 6 | `common/characters/newLine`    | OK                    | Native `-> "\n"` | OK project constant | Projection literal only                    | **yes**                             |
@@ -192,10 +192,10 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ## First candidate (next session)
 
-**`common/characters/formatting`** — `export rule Formatting = \cCf;`, no
-imports, no expressions. Expected G1–G3: all pass.
+**`common/characters/letter`** — `export rule Letter = \cL | \cNl;`, no
+imports, no expressions. Expected G0–G3: all pass.
 
-Completed: `digit`, `connecting`.
+Completed: `digit`, `connecting`, `formatting`.
 
 ## References
 
