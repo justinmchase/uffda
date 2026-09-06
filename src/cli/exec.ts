@@ -7,6 +7,7 @@ import { executeModuleDeclaration } from "../runtime/module.execute.ts";
 import { type Expression, isExpression } from "../runtime/expressions/mod.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 import { std } from "../runtime/std/mod.ts";
+import { join, toFileUrl } from "@std/path";
 
 export enum CliExecFailureCode {
   InvalidJson = "CLI_EXEC_INVALID_JSON",
@@ -88,7 +89,30 @@ function executionFailure(match: Match): CliExecFailure {
 export type CliExecOptions = {
   cwd?: string;
   artifactRoot?: string;
+  /**
+   * Logical module URL for relative import resolution. Defaults to a synthetic
+   * file under `cwd` when omitted so stdin/eval still resolve `./foo.uff`
+   * against the process working directory.
+   */
+  moduleUrl?: URL;
 };
+
+function resolveCliModuleUrl(options?: CliExecOptions): URL | undefined {
+  if (options?.moduleUrl) return options.moduleUrl;
+  if (!options?.cwd) return undefined;
+  return toFileUrl(join(options.cwd, "module.uff"));
+}
+
+/**
+ * Map a CLI input source path to the module URL used for relative imports.
+ * Sentinel paths (`<stdin>`, `<eval>`, …) use a synthetic file under `cwd`.
+ */
+export function moduleUrlForCliSource(cwd: string, sourcePath: string): URL {
+  if (sourcePath.startsWith("<")) {
+    return toFileUrl(join(cwd, "module.uff"));
+  }
+  return toFileUrl(sourcePath);
+}
 
 export async function executeCliAst(
   value: unknown,
@@ -126,6 +150,7 @@ export async function executeCliAst(
 
   const execution = await executeModuleDeclaration(declaration, {
     entryRuleName: defaultEntryRuleName(syntaxModule),
+    moduleUrl: resolveCliModuleUrl(options),
     cwd: options?.cwd,
     artifactRoot: options?.artifactRoot,
     scopeOptions: {
@@ -186,6 +211,7 @@ export async function executeCliModule(
 
   const execution = await executeModuleDeclaration(declaration, {
     entryRuleName: entryRuleName ?? defaultEntryRuleName(value),
+    moduleUrl: resolveCliModuleUrl(options),
     cwd: options?.cwd,
     artifactRoot: options?.artifactRoot,
     scopeOptions: {

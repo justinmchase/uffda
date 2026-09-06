@@ -8,7 +8,12 @@ import {
   resolveCliProcessContract,
 } from "./contract.ts";
 import { compileSourcesToAstArtifacts } from "./compile.ts";
-import { executeCliExpression, executeCliModule, parseCliAst } from "./exec.ts";
+import {
+  executeCliExpression,
+  executeCliModule,
+  moduleUrlForCliSource,
+  parseCliAst,
+} from "./exec.ts";
 import {
   isCliMatchFailure,
   matchCliPattern,
@@ -319,7 +324,7 @@ async function readOperationAst(
   stdinSource: string,
   language: CliLanguage,
 ): Promise<
-  | { ok: true; ast: unknown; source: string }
+  | { ok: true; ast: unknown; source: string; sourcePath: string }
   | { ok: false; result: CliRunResult }
 > {
   let input: CommandInput;
@@ -338,13 +343,20 @@ async function readOperationAst(
 
   if (contract.astInput) {
     const parsed = parseCliAst(input.source);
-    return parsed.ok ? { ok: true, ast: parsed.ast, source: input.source } : {
-      ok: false,
-      result: {
-        exitCode: CliExitCode.Usage,
-        stderr: toJson({ ok: false, error: parsed.error }),
-      },
-    };
+    return parsed.ok
+      ? {
+        ok: true,
+        ast: parsed.ast,
+        source: input.source,
+        sourcePath: input.sourcePath,
+      }
+      : {
+        ok: false,
+        result: {
+          exitCode: CliExitCode.Usage,
+          stderr: toJson({ ok: false, error: parsed.error }),
+        },
+      };
   }
 
   const parsed = await parseSourceToAst(
@@ -352,13 +364,20 @@ async function readOperationAst(
     language,
     input.sourcePath,
   );
-  return parsed.ok ? { ok: true, ast: parsed.ast, source: input.source } : {
-    ok: false,
-    result: {
-      exitCode: CliExitCode.Usage,
-      stderr: toJson({ ok: false, error: parsed.error }),
-    },
-  };
+  return parsed.ok
+    ? {
+      ok: true,
+      ast: parsed.ast,
+      source: input.source,
+      sourcePath: input.sourcePath,
+    }
+    : {
+      ok: false,
+      result: {
+        exitCode: CliExitCode.Usage,
+        stderr: toJson({ ok: false, error: parsed.error }),
+      },
+    };
 }
 
 function operationResult(value: unknown, jsonOutput = false): CliRunResult {
@@ -476,6 +495,7 @@ export async function runCli(
     const result = await executeCliExpression(parsed.ast, {
       cwd: contract.cwd,
       artifactRoot: contract.outputRootDir,
+      moduleUrl: moduleUrlForCliSource(contract.cwd, parsed.sourcePath),
     });
     if (!result.ok) {
       return {
@@ -547,6 +567,7 @@ export async function runCli(
     const result = await executeCliModule(parsed.ast, contract.entryRuleName, {
       cwd: contract.cwd,
       artifactRoot: contract.outputRootDir,
+      moduleUrl: moduleUrlForCliSource(contract.cwd, parsed.sourcePath),
     });
     if (result.ok) return operationResult(result.value, contract.jsonOutput);
     return {

@@ -1,12 +1,15 @@
 import { assertEquals } from "@std/assert";
+import { join, toFileUrl } from "@std/path";
 import { expressionGrammar } from "../lang/expression/expression.lang.ts";
 import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
 import { MatchKind } from "../match.ts";
+import { compileSourcesToAstArtifacts } from "./compile.ts";
 import {
   CliExecFailureCode,
   executeCliAst,
   executeCliExpression,
   executeCliModule,
+  moduleUrlForCliSource,
   parseCliAst,
 } from "./exec.ts";
 
@@ -53,4 +56,56 @@ Deno.test("cli.exec executes raw module and expression AST inputs", async (t) =>
     if (result.ok) return;
     assertEquals(result.error.code, CliExecFailureCode.InvalidJson);
   });
+
+  await t.step(
+    "moduleUrlForCliSource uses real paths and cwd for sentinels",
+    () => {
+      assertEquals(
+        moduleUrlForCliSource("/repo", "<stdin>").href,
+        toFileUrl("/repo/module.uff").href,
+      );
+      assertEquals(
+        moduleUrlForCliSource("/repo", "/repo/src/main.uff").href,
+        toFileUrl("/repo/src/main.uff").href,
+      );
+    },
+  );
+
+  await t.step(
+    "executeCliModule resolves relative .uff imports via artifactRoot",
+    async () => {
+      const cwd = await Deno.makeTempDir({ prefix: "uffda-cli-exec-uff-" });
+      const artifactRoot = join(cwd, "bin");
+      try {
+        const leafPath = join(cwd, "leaf.uff");
+        const rootPath = join(cwd, "root.uff");
+        await Deno.writeTextFile(leafPath, "export rule Leaf = ok -> 7;\n");
+        await Deno.writeTextFile(
+          rootPath,
+          `import "./leaf.uff" Leaf;\nexport rule Root = Leaf;\n`,
+        );
+
+        const compiled = await compileSourcesToAstArtifacts({
+          cwd,
+          sourcePaths: [leafPath, rootPath],
+          outputDir: join(artifactRoot, "ast"),
+          overwrite: true,
+        });
+        assertEquals(compiled.ok, true, JSON.stringify(compiled.failures));
+
+        const parsed = await uffdaGrammar(await Deno.readTextFile(rootPath));
+        assertEquals(parsed.kind, MatchKind.Ok);
+        if (parsed.kind !== MatchKind.Ok) return;
+
+        const result = await executeCliModule(parsed.value, "Root", {
+          cwd,
+          artifactRoot,
+          moduleUrl: moduleUrlForCliSource(cwd, rootPath),
+        });
+        assertEquals(result, { ok: true, value: 7 });
+      } finally {
+        await Deno.remove(cwd, { recursive: true });
+      }
+    },
+  );
 });
