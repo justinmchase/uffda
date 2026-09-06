@@ -28,6 +28,11 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Setup Deno
+      uses: denoland/setup-deno@v2
+      with:
+        deno-version: v2.x
+
     - name: Install Uffda CLI
       id: install
       shell: bash
@@ -53,90 +58,31 @@ runs:
             ;;
         esac
 
-        api="https://api.github.com/repos/${INPUT_REPOSITORY}/releases"
-        auth_header=()
-        if [[ -n "${GH_TOKEN}" ]]; then
-          auth_header=(-H "Authorization: Bearer ${GH_TOKEN}")
-        fi
-
         tmpdir="$(mktemp -d)"
-        release_json="${tmpdir}/release.json"
+        mapfile -t resolved < <(
+          deno run -A "${{ github.action_path }}/resolve_release.ts" \
+            --repository "${INPUT_REPOSITORY}" \
+            --version "${INPUT_VERSION}" \
+            --target "${target}" \
+            --token "${GH_TOKEN}" \
+            --outdir "${tmpdir}"
+        )
+        tag_name="${resolved[0]}"
+        version="${resolved[1]}"
+        asset="${resolved[2]}"
+        asset_path="${resolved[3]}"
+        sums_path="${resolved[4]}"
 
-        fetch_json() {
-          local url="$1"
-          local out="$2"
-          if curl -fsSL "${auth_header[@]}" \
-            -H "Accept: application/vnd.github+json" \
-            "${url}" -o "${out}"; then
-            return 0
-          fi
-          return 1
-        }
-
-        if [[ "${INPUT_VERSION}" == "latest" ]]; then
-          if ! fetch_json "${api}/latest" "${release_json}"; then
-            echo "Unable to resolve latest published release for ${INPUT_REPOSITORY}" >&2
-            exit 1
-          fi
-        else
-          bare="${INPUT_VERSION#v}"
-          if ! fetch_json "${api}/tags/${bare}" "${release_json}" &&
-            ! fetch_json "${api}/tags/v${bare}" "${release_json}"; then
-            # Draft releases are not exposed by /releases/tags/{tag}.
-            if ! fetch_json "${api}?per_page=100" "${tmpdir}/releases.json"; then
-              echo "Unable to list releases for ${INPUT_REPOSITORY}" >&2
-              exit 1
-            fi
-            python3 -c "import json,sys; releases=json.load(open(sys.argv[1])); bare=sys.argv[2]; candidates={bare,'v'+bare}; match=next((r for r in releases if r.get('tag_name') in candidates), None); assert match is not None, 'Unable to resolve release tag '+bare; json.dump(match, open(sys.argv[3],'w'))" \
-              "${tmpdir}/releases.json" "${bare}" "${release_json}"
-          fi
-        fi
-
-        tag_name="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["tag_name"])' "${release_json}")"
-        version="${tag_name#v}"
-        asset="uffda-${version}-${target}"
-        if [[ "${target}" == *windows* ]]; then
-          asset="${asset}.exe"
-        fi
-
-        asset_api_url="$(python3 -c "import json,sys; release=json.load(open(sys.argv[1])); name=sys.argv[2]; matches=[i['url'] for i in release.get('assets',[]) if i.get('name')==name]; assert matches, 'No release asset named '+name; print(matches[0])" "${release_json}" "${asset}")"
-        sums_api_url="$(python3 -c "import json,sys; release=json.load(open(sys.argv[1])); name=sys.argv[2]; matches=[i['url'] for i in release.get('assets',[]) if i.get('name')==name]; assert matches, 'No release asset named '+name; print(matches[0])" "${release_json}" "SHA256SUMS")"
-
-        download_asset() {
-          local url="$1"
-          local out="$2"
-          local attempt
-          for attempt in 1 2 3 4 5; do
-            if curl -fsSL "${auth_header[@]}" \
-              -H "Accept: application/octet-stream" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              "${url}" -o "${out}"; then
-              return 0
-            fi
-            sleep "${attempt}"
-          done
-          return 1
-        }
-
-        if ! download_asset "${asset_api_url}" "${tmpdir}/${asset}"; then
-          echo "Failed to download ${asset}" >&2
-          exit 1
-        fi
-        if ! download_asset "${sums_api_url}" "${tmpdir}/SHA256SUMS"; then
-          echo "Failed to download SHA256SUMS" >&2
-          exit 1
-        fi
-
-        expected="$(awk -v name="${asset}" '$2 == name { print $1; exit }' "${tmpdir}/SHA256SUMS")"
+        expected="$(awk -v name="${asset}" '$2 == name { print $1; exit }' "${sums_path}")"
         if [[ -z "${expected}" ]]; then
           echo "No checksum entry for ${asset}" >&2
           exit 1
         fi
 
         if command -v sha256sum >/dev/null 2>&1; then
-          actual="$(sha256sum "${tmpdir}/${asset}" | awk '{ print $1 }')"
+          actual="$(sha256sum "${asset_path}" | awk '{ print $1 }')"
         else
-          actual="$(shasum -a 256 "${tmpdir}/${asset}" | awk '{ print $1 }')"
+          actual="$(shasum -a 256 "${asset_path}" | awk '{ print $1 }')"
         fi
         if [[ "${actual}" != "${expected}" ]]; then
           echo "Checksum mismatch for ${asset}" >&2
@@ -150,11 +96,11 @@ runs:
         else
           install_path="${bin_dir}/uffda"
         fi
-        cp "${tmpdir}/${asset}" "${install_path}"
+        cp "${asset_path}" "${install_path}"
         chmod +x "${install_path}"
 
         echo "${bin_dir}" >> "${GITHUB_PATH}"
         echo "version=${version}" >> "${GITHUB_OUTPUT}"
         echo "target=${target}" >> "${GITHUB_OUTPUT}"
         echo "path=${install_path}" >> "${GITHUB_OUTPUT}"
-        echo "Installed uffda ${version} (${target}) at ${install_path}"
+        echo "Installed uffda ${version} (${target}) from ${tag_name} at ${install_path}"

@@ -36,16 +36,14 @@ jobs:
         run: |
           set -euo pipefail
 
-          draft_json="$(
+          tag="$(
             gh release list --limit 50 --json tagName,isDraft,createdAt \
-              --jq '[.[] | select(.isDraft == true)] | sort_by(.createdAt) | reverse | .[0] // empty'
+              --jq '[.[] | select(.isDraft == true)] | sort_by(.createdAt) | reverse | .[0].tagName // empty'
           )"
-          if [[ -z "${draft_json}" || "${draft_json}" == "null" ]]; then
+          if [[ -z "${tag}" || "${tag}" == "null" ]]; then
             echo "No draft release found. Merge to main so Release Drafter can create one." >&2
             exit 1
           fi
-
-          tag="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1])["tagName"])' "${draft_json}")"
           tag="${tag#v}"
           version="${tag}"
           file_version="$(tr -d '[:space:]' < VERSION)"
