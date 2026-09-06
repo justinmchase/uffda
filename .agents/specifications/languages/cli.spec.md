@@ -30,7 +30,7 @@ source and inspecting outcomes without embedding Uffda programmatically.
 
 ## Required mode families
 
-- Compile mode: file and folder compilation into Uffda syntax AST artifacts,
+- Compile mode: file and glob compilation into Uffda syntax AST artifacts,
   including JSON serialization suitable for runtime consumption.
 - Parse mode: source input from standard input and syntax AST emission to
   standard output.
@@ -128,9 +128,9 @@ be human-readable and include the relevant source excerpt and input path.
 - Define mode selection precedence when multiple mode flags are present.
 - Define how resolver configuration and working-directory context are resolved.
 
-### Milestone 2: File and folder compilation to AST JSON
+### Milestone 2: File and glob compilation to AST JSON
 
-- Support single-file and recursive folder compilation inputs.
+- Support single-file and glob-pattern compilation inputs.
 - Emit Uffda syntax AST artifacts that are serializable to JSON files.
 - Define output path policies, overwrite behavior, and collision handling.
 
@@ -203,8 +203,8 @@ be human-readable and include the relevant source excerpt and input path.
 
 - Wire repository workflows to install the CLI through `uffda-setup`.
 - Define backward-compatibility policy for commands, flags, and JSON output.
-- Establish end-to-end validation matrix for file, folder, stream, and
-  interactive modes across language selections.
+- Establish end-to-end validation matrix for file, glob, stream, and interactive
+  modes across language selections.
 - Define release criteria for CLI stability, documentation completeness, and
   operator-facing migration notes.
 

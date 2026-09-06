@@ -79,7 +79,7 @@ Deno.test("cli.main runCli validates mode support and compile routing", async (t
     assertEquals(result.exitCode, CliExitCode.Ok);
     assert(
       result.stdout?.includes(
-        "Usage: uffda compile [options] <file-or-folder>",
+        "Usage: uffda compile [options] <file-or-glob>",
       ),
     );
   });
@@ -297,7 +297,9 @@ Deno.test("cli.main runCli validates mode support and compile routing", async (t
       const result = await runCli(["compile"], "/workspace/project", false);
       assertEquals(result.exitCode, CliExitCode.Usage);
       assert(
-        result.stderr?.includes("requires at least one file or folder path"),
+        result.stderr?.includes(
+          "requires at least one file path or glob pattern",
+        ),
       );
     },
   );

@@ -101,7 +101,7 @@ layers into author-facing language/module declarations.
 
 ### Milestone 8: Deliver the Uffda CLI and interactive workbench
 
-- Define and deliver a deterministic CLI surface for file/folder compilation,
+- Define and deliver a deterministic CLI surface for file/glob compilation,
   stream operation, and language-selection flags.
 - Emit JSON-serializable AST artifacts and runtime-oriented envelopes.
 - Deliver an interactive editor-like workbench with dynamic visualization and

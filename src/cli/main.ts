@@ -139,7 +139,7 @@ function rootUsageText(): string {
     "  --mode <value>         compile | exec | match | parse | run | interactive",
     "",
     "Examples:",
-    "  uffda compile ./src",
+    "  uffda compile 'src/**/*.uff'",
     "  uffda parse --lang expression ./hello.expr | uffda exec --ast",
     "  uffda exec -e '(echo \"hello\")'",
     "  uffda match ./word.pattern --input hello",
@@ -152,7 +152,7 @@ function rootUsageText(): string {
 
 function compileUsageText(): string {
   return [
-    "Usage: uffda compile [options] <file-or-folder> [...more paths]",
+    "Usage: uffda compile [options] <file-or-glob> [...more paths]",
     "",
     "Compile options:",
     "  --help, -h       Show compile command usage.",
@@ -163,7 +163,7 @@ function compileUsageText(): string {
     "",
     "Examples:",
     "  uffda compile ./file.uff",
-    "  uffda compile ./src",
+    "  uffda compile 'src/**/*.uff'",
     "",
   ].join("\n");
 }
@@ -615,7 +615,7 @@ export async function runCli(
 
   if (contract.inputPaths.length === 0) {
     return usageError(
-      "Compile mode requires at least one file or folder path.",
+      "Compile mode requires at least one file path or glob pattern.",
     );
   }
 

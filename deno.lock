@@ -9,8 +9,11 @@
     "jsr:@std/assert@^1.0.10": "1.0.10",
     "jsr:@std/crypto@^1.0.3": "1.0.3",
     "jsr:@std/encoding@^1.0.6": "1.0.6",
-    "jsr:@std/internal@^1.0.5": "1.0.5",
+    "jsr:@std/fs@^1.0.19": "1.0.24",
+    "jsr:@std/internal@^1.0.14": "1.0.14",
+    "jsr:@std/internal@^1.0.5": "1.0.14",
     "jsr:@std/path@^1.0.8": "1.0.8",
+    "jsr:@std/path@^1.1.5": "1.1.5",
     "jsr:@tui/inputs@0": "0.0.1",
     "jsr:@tui/inputs@0.0.1": "0.0.1",
     "jsr:@tui/nice@0.6.1": "0.6.1",
@@ -47,7 +50,7 @@
     "@std/assert@1.0.10": {
       "integrity": "59b5cbac5bd55459a19045d95cc7c2ff787b4f8527c0dd195078ff6f9481fbb3",
       "dependencies": [
-        "jsr:@std/internal"
+        "jsr:@std/internal@^1.0.5"
       ]
     },
     "@std/crypto@1.0.3": {
@@ -56,11 +59,27 @@
     "@std/encoding@1.0.6": {
       "integrity": "ca87122c196e8831737d9547acf001766618e78cd8c33920776c7f5885546069"
     },
+    "@std/fs@1.0.24": {
+      "integrity": "f3061b45b81673a2bece689da041df32d174be064c89eb6397fb5718d3fb7877",
+      "dependencies": [
+        "jsr:@std/internal@^1.0.14",
+        "jsr:@std/path@^1.1.5"
+      ]
+    },
     "@std/internal@1.0.5": {
       "integrity": "54a546004f769c1ac9e025abd15a76b6671ddc9687e2313b67376125650dc7ba"
     },
+    "@std/internal@1.0.14": {
+      "integrity": "291516b3d4c35024d6ffbc0a9df5bf4c64116e05b50012cf846710152d2ffdf7"
+    },
     "@std/path@1.0.8": {
       "integrity": "548fa456bb6a04d3c1a1e7477986b6cffbce95102d0bb447c67c4ee70e0364be"
+    },
+    "@std/path@1.1.5": {
+      "integrity": "ccea00982ea28c36becaf6e62f855406c76a8c32d462f66f415bbb7d83a271bc",
+      "dependencies": [
+        "jsr:@std/internal@^1.0.14"
+      ]
     },
     "@tui/inputs@0.0.1": {
       "integrity": "4310f1d6de2d5b25b0ca5030b4849535bda3e5c20ff1bce8dbfa1b753a315efd"
@@ -97,6 +116,7 @@
       "jsr:@std/assert@^1.0.10",
       "jsr:@std/crypto@^1.0.3",
       "jsr:@std/encoding@^1.0.6",
+      "jsr:@std/fs@^1.0.19",
       "jsr:@std/path@^1.0.8",
       "jsr:@tui/inputs@0.0.1",
       "jsr:@tui/nice@0.6.1",
