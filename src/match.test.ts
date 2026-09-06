@@ -1,8 +1,8 @@
 import { assertEquals } from "@std/assert";
-import { fail, getRightmostFailure, MatchKind } from "./match.ts";
-import type { MatchOk } from "./match.ts";
+import { fail, getRightmostFailure, MatchKind, ok } from "./match.ts";
 import { Path } from "./path.ts";
 import { Scope } from "./runtime/scope.ts";
+import { match } from "./runtime/match.ts";
 import { Input } from "./input.ts";
 import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
 import type { FailPattern } from "./runtime/patterns/mod.ts";
@@ -101,14 +101,7 @@ Deno.test({
         const scope0 = Scope.From(input);
         const scope1 = scope0.withInput(input.next());
 
-        const okMatch: MatchOk = {
-          kind: MatchKind.Ok,
-          pattern: testPattern,
-          scope: scope1,
-          span: { start: Path.From(1), end: Path.From(1) },
-          matches: [],
-          value: undefined,
-        };
+        const okMatch = ok(scope1, scope1, testPattern);
         const failMatch = fail(scope0, testPattern);
         const parentMatch = fail(scope0, testPattern, [okMatch, failMatch]);
 
@@ -174,6 +167,61 @@ Deno.test({
 
         assertEquals(result, child2);
         assertEquals(result.span.start.compareTo(child1.span.start) > 0, true);
+      },
+    });
+  },
+});
+
+Deno.test({
+  name: "match/source-spans",
+  fn: async (t) => {
+    await t.step({
+      name: "OK match attaches identity source spans from stream offsets",
+      fn: async () => {
+        const scope = Scope.From(Input.Iterable("ab"));
+        const result = await match({ kind: PatternKind.Any }, scope);
+        assertEquals(result.kind, MatchKind.Ok);
+        if (result.kind !== MatchKind.Ok) return;
+        assertEquals(result.value, "a");
+        assertEquals(result.normalizedSpan, { start: 0, end: 1 });
+        assertEquals(result.originalSpan, { start: 0, end: 1 });
+      },
+    });
+
+    await t.step({
+      name: "FAIL match attaches zero-width source spans at the current offset",
+      fn: () => {
+        const scope = Scope.From(Input.Iterable("ab"));
+        const result = fail(scope, testPattern);
+        assertEquals(result.normalizedSpan, { start: 0, end: 0 });
+        assertEquals(result.originalSpan, { start: 0, end: 0 });
+      },
+    });
+
+    await t.step({
+      name: "OK match maps original spans through Input provenance",
+      fn: async () => {
+        const source = {
+          documentId: "source:test",
+          text: "a\nb",
+          normalizationMap: [0, 1, 3, 4],
+          [Symbol.iterator](): Iterator<string> {
+            return this.text[Symbol.iterator]();
+          },
+        };
+        const scope = Scope.From(Input.Iterable(source));
+        const result = await match({
+          kind: PatternKind.Then,
+          patterns: [
+            { kind: PatternKind.Any },
+            { kind: PatternKind.Any },
+          ],
+        }, scope);
+        assertEquals(result.kind, MatchKind.Ok);
+        if (result.kind !== MatchKind.Ok) return;
+        // "a\n" occupies normalized 0-2, original 0-3 (\r\n collapsed)
+        assertEquals(result.normalizedSpan, { start: 0, end: 2 });
+        assertEquals(result.originalSpan, { start: 0, end: 3 });
       },
     });
   },

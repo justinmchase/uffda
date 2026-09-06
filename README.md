@@ -12,6 +12,38 @@ expressed in pattern matching operations.
 Run the CLI from a checkout with `deno task cli`. Use `--help` for the command
 overview or command-specific help such as `deno task cli match --help`.
 
+### Install a release binary
+
+Linux hosts can install from GitHub Releases:
+
+```sh
+curl -fsSL https://github.com/justinmchase/uffda/releases/latest/download/install.sh | bash
+```
+
+GitHub Actions workflows should use the in-repo setup action, which selects the
+matching binary for the runner OS and architecture:
+
+```yaml
+- uses: justinmchase/uffda/.github/actions/uffda-setup@main
+  with:
+    version: latest
+```
+
+Cross-compile every Deno target locally with `deno task compile:cli` (writes
+binaries and `SHA256SUMS` under `dist/cli/`).
+
+### Publish a CLI release
+
+Release tags are bare SemVer (for example `0.1.2`), matching Release Drafter.
+
+1. Merge to `main` so Release Drafter updates the draft release, bumps version
+   files, and dispatches `release-binaries`.
+2. The **Release Binaries** workflow compiles all Deno targets and
+   attaches/replaces `uffda-*`, `SHA256SUMS`, and `install.sh` on the latest
+   draft (re-run it manually from Actions if you need to rebuild).
+3. Publish the draft release when ready. That makes it the latest install target
+   for `install.sh` / `uffda-setup` and triggers JSR publish.
+
 ### Hello World
 
 Evaluate an expression directly with `-e`:

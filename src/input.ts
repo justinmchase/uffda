@@ -31,9 +31,41 @@ function assertNormalizationMode(
   return mode;
 }
 
+export type SourceProvenance = {
+  normalizationMap?: readonly number[];
+  /**
+   * When the stream items are tokens (or other projections of source), maps
+   * each item index to character spans in normalized and original source.
+   */
+  itemSpans?: readonly import("./span.ts").ItemSourceSpan[];
+};
+
 type InputFromOptions = {
   kind?: InputNormalizationMode;
+  provenance?: SourceProvenance;
 };
+
+export function sourceProvenanceFrom(
+  value: unknown,
+): SourceProvenance | undefined {
+  if (value == null || typeof value !== "object") {
+    return undefined;
+  }
+  const record = value as {
+    documentId?: unknown;
+    normalizationMap?: unknown;
+  };
+  if (typeof record.documentId !== "string") {
+    return undefined;
+  }
+  if (!Array.isArray(record.normalizationMap)) {
+    return undefined;
+  }
+  if (!record.normalizationMap.every((offset) => typeof offset === "number")) {
+    return undefined;
+  }
+  return { normalizationMap: record.normalizationMap as number[] };
+}
 
 export class Input {
   public static readonly Default = (): Input =>
@@ -49,6 +81,8 @@ export class Input {
       0,
       undefined,
       options?.kind ?? InputNormalizationMode.Scalar,
+      false,
+      options?.provenance,
     );
 
   public static readonly Scalar = (value: unknown): Input =>
@@ -79,6 +113,7 @@ export class Input {
     public readonly kind: InputNormalizationMode =
       InputNormalizationMode.Scalar,
     private readonly trustedIterator = false,
+    public readonly provenance?: SourceProvenance,
   ) {
     if (trustedIterator) {
       if (!Input.isIterator(items)) {
@@ -88,6 +123,13 @@ export class Input {
       }
       this._items = items;
       return;
+    }
+
+    if (
+      provenance === undefined &&
+      kind === InputNormalizationMode.Iterable
+    ) {
+      this.provenance = sourceProvenanceFrom(items);
     }
 
     const mode = assertNormalizationMode(kind);
@@ -118,6 +160,14 @@ export class Input {
     return this._done!;
   }
 
+  /**
+   * Whether this position is already known to be past the last item.
+   * Unlike {@link done}, this does not advance the stream.
+   */
+  public get isEof(): boolean {
+    return this._done === true;
+  }
+
   public next(): Input {
     if (!this._next) {
       const { value, done } = this._items.next();
@@ -132,6 +182,7 @@ export class Input {
         value,
         this.kind,
         true,
+        this.provenance,
       );
     }
     return this._next;

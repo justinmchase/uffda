@@ -1,0 +1,147 @@
+name: Setup Uffda CLI
+description: Install the Uffda CLI binary from GitHub Releases for the runner OS/arch.
+inputs:
+  version:
+    description: >
+      Release tag or SemVer to install (for example 0.1.2 or v0.1.2).
+      Use latest to install the newest GitHub Release.
+    required: false
+    default: latest
+  repository:
+    description: GitHub repository that publishes Uffda release binaries.
+    required: false
+    default: justinmchase/uffda
+  github-token:
+    description: Optional token for GitHub API rate limits.
+    required: false
+    default: ${{ github.token }}
+outputs:
+  version:
+    description: Installed CLI version without a leading v.
+    value: ${{ steps.install.outputs.version }}
+  target:
+    description: Deno compile target that was installed.
+    value: ${{ steps.install.outputs.target }}
+  path:
+    description: Absolute path to the installed uffda binary.
+    value: ${{ steps.install.outputs.path }}
+runs:
+  using: composite
+  steps:
+    - name: Install Uffda CLI
+      id: install
+      shell: bash
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
+        INPUT_REPOSITORY: ${{ inputs.repository }}
+        GH_TOKEN: ${{ inputs.github-token }}
+        RUNNER_OS: ${{ runner.os }}
+        RUNNER_ARCH: ${{ runner.arch }}
+      run: |
+        set -euo pipefail
+
+        case "${RUNNER_OS}-${RUNNER_ARCH}" in
+          Linux-X64) target="x86_64-unknown-linux-gnu" ;;
+          Linux-ARM64) target="aarch64-unknown-linux-gnu" ;;
+          Windows-X64) target="x86_64-pc-windows-msvc" ;;
+          Windows-ARM64) target="aarch64-pc-windows-msvc" ;;
+          macOS-X64) target="x86_64-apple-darwin" ;;
+          macOS-ARM64) target="aarch64-apple-darwin" ;;
+          *)
+            echo "Unsupported runner platform: ${RUNNER_OS}/${RUNNER_ARCH}" >&2
+            exit 1
+            ;;
+        esac
+
+        api="https://api.github.com/repos/${INPUT_REPOSITORY}/releases"
+        auth_header=()
+        if [[ -n "${GH_TOKEN}" ]]; then
+          auth_header=(-H "Authorization: Bearer ${GH_TOKEN}")
+        fi
+
+        tmpdir="$(mktemp -d)"
+        release_json="${tmpdir}/release.json"
+
+        fetch_release() {
+          local url="$1"
+          if curl -fsSL "${auth_header[@]}" "${url}" -o "${release_json}"; then
+            return 0
+          fi
+          return 1
+        }
+
+        if [[ "${INPUT_VERSION}" == "latest" ]]; then
+          if ! fetch_release "${api}/latest"; then
+            echo "Unable to resolve latest release for ${INPUT_REPOSITORY}" >&2
+            exit 1
+          fi
+        else
+          bare="${INPUT_VERSION#v}"
+          if ! fetch_release "${api}/tags/${bare}" &&
+            ! fetch_release "${api}/tags/v${bare}"; then
+            echo "Unable to resolve release tag ${INPUT_VERSION}" >&2
+            exit 1
+          fi
+        fi
+
+        tag_name="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["tag_name"])' "${release_json}")"
+        version="${tag_name#v}"
+        asset="uffda-${version}-${target}"
+        if [[ "${target}" == *windows* ]]; then
+          asset="${asset}.exe"
+        fi
+        base="https://github.com/${INPUT_REPOSITORY}/releases/download/${tag_name}"
+
+        download_with_retry() {
+          local url="$1"
+          local out="$2"
+          local attempt
+          for attempt in 1 2 3 4 5; do
+            if curl -fsSL "${auth_header[@]}" "${url}" -o "${out}"; then
+              return 0
+            fi
+            sleep "${attempt}"
+          done
+          return 1
+        }
+
+        if ! download_with_retry "${base}/${asset}" "${tmpdir}/${asset}"; then
+          echo "Failed to download ${asset}" >&2
+          exit 1
+        fi
+        if ! download_with_retry "${base}/SHA256SUMS" "${tmpdir}/SHA256SUMS"; then
+          echo "Failed to download SHA256SUMS" >&2
+          exit 1
+        fi
+
+        expected="$(awk -v name="${asset}" '$2 == name { print $1; exit }' "${tmpdir}/SHA256SUMS")"
+        if [[ -z "${expected}" ]]; then
+          echo "No checksum entry for ${asset}" >&2
+          exit 1
+        fi
+
+        if command -v sha256sum >/dev/null 2>&1; then
+          actual="$(sha256sum "${tmpdir}/${asset}" | awk '{ print $1 }')"
+        else
+          actual="$(shasum -a 256 "${tmpdir}/${asset}" | awk '{ print $1 }')"
+        fi
+        if [[ "${actual}" != "${expected}" ]]; then
+          echo "Checksum mismatch for ${asset}" >&2
+          exit 1
+        fi
+
+        bin_dir="${RUNNER_TEMP}/uffda/bin"
+        mkdir -p "${bin_dir}"
+        if [[ "${target}" == *windows* ]]; then
+          install_path="${bin_dir}/uffda.exe"
+        else
+          install_path="${bin_dir}/uffda"
+        fi
+        cp "${tmpdir}/${asset}" "${install_path}"
+        chmod +x "${install_path}"
+
+        echo "${bin_dir}" >> "${GITHUB_PATH}"
+        echo "version=${version}" >> "${GITHUB_OUTPUT}"
+        echo "target=${target}" >> "${GITHUB_OUTPUT}"
+        echo "path=${install_path}" >> "${GITHUB_OUTPUT}"
+        echo "Installed uffda ${version} (${target}) at ${install_path}"

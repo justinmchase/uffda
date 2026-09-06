@@ -189,29 +189,43 @@ be human-readable and include the relevant source excerpt and input path.
   interactive interface.
 - Support focused inspection of AST nodes, spans, and module/rule provenance.
 
-### Milestone 9: Interactive file I/O orchestration and automation hooks
+### Milestone 9: Distribute the CLI
 
-- Provide explicit file import/export actions for source and artifacts.
-- Support watch-style workflows for selected files/folders with deterministic
-  debounce/refresh semantics.
-- Define non-interactive hooks for automation to drive interactive capabilities
-  where feasible.
+- Define deterministic `deno compile` profiles for the full Deno target matrix.
+- Publish compiled binaries and checksums to GitHub Releases for each tagged CLI
+  release.
+- Publish a Linux install script that installs the correct Linux binary from the
+  release.
+- Provide a reusable `uffda-setup` GitHub Action that installs the matching
+  binary by runner platform and architecture.
 
-### Milestone 10: Hardening, compatibility, and release gates
+### Milestone 10: CI adopts the published CLI and release gates
 
+- Wire repository workflows to install the CLI through `uffda-setup`.
 - Define backward-compatibility policy for commands, flags, and JSON output.
 - Establish end-to-end validation matrix for file, folder, stream, and
   interactive modes across language selections.
 - Define release criteria for CLI stability, documentation completeness, and
   operator-facing migration notes.
 
-### Milestone 11: Deno compile distribution and GitHub Releases deployment
+### Milestone 11: Self-hosting bootstrap
 
-- Define deterministic `deno compile` build profiles for supported target
-  platforms.
-- Define artifact naming conventions that include version and target metadata.
-- Publish compiled binaries and checksums to GitHub Releases for each tagged CLI
-  release.
-- Define release-manifest metadata and provenance expectations for downstream
-  operators.
-- Define rollback and reissue policy for faulty compiled release artifacts.
+- Convert TypeScript and JSON language modules into `.uff` sources.
+- Compile those sources into deterministic JSON artifacts under `./bin/`.
+- Build the next CLI so it imports language definitions from `./bin/` rather
+  than TypeScript language module sources.
+- Require full-circle tests: compiled outputs (or a CLI built from them) MUST
+  compile the same Uffda sources again successfully, with additional regression
+  coverage as needed.
+
+### Deferred: Interactive file I/O automation hooks
+
+Watch-style file I/O orchestration and debounce/refresh automation remain
+desirable CLI polish after bootstrap. They are deferred behind Milestones 9–11
+and are not a blocker for distribution or self-hosting:
+
+- Explicit file import/export actions for source and artifacts.
+- Watch-style workflows for selected files/folders with deterministic
+  debounce/refresh semantics.
+- Non-interactive hooks for automation to drive interactive capabilities where
+  feasible.

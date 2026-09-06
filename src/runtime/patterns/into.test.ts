@@ -1,7 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { Type } from "@justinmchase/type";
 import { Input, InputNormalizationMode } from "../../input.ts";
-import { MatchKind } from "../../match.ts";
+import { getRightmostFailure, MatchKind } from "../../match.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { MatchErrorCode, Path } from "../../mod.ts";
@@ -207,6 +207,75 @@ await Deno.test("runtime/patterns/into", async (t) => {
         m.message,
         "expected value to be a string but got number",
       );
+    },
+  });
+
+  await t.step({
+    name: "INTO12 preserves itemSpans for nested token streams",
+    fn: async () => {
+      const itemSpans = [
+        {
+          normalized: { start: 0, end: 1 },
+          original: { start: 5, end: 6 },
+        },
+        {
+          normalized: { start: 1, end: 2 },
+          original: { start: 6, end: 7 },
+        },
+      ];
+      const scope = Scope.From(
+        Input.From([["!"]], {
+          kind: InputNormalizationMode.Iterable,
+          provenance: { itemSpans },
+        }),
+      );
+      const m = await match(
+        {
+          kind: PatternKind.Into,
+          pattern: { kind: PatternKind.Equal, value: "b" },
+        },
+        scope,
+      );
+      assertEquals(m.kind, MatchKind.Fail);
+      if (m.kind !== MatchKind.Fail) return;
+      const rightmost = getRightmostFailure(m);
+      assertEquals(rightmost.originalSpan.start, 5);
+      assertEquals(rightmost.normalizedSpan.start, 0);
+    },
+  });
+
+  await t.step({
+    name: "INTO13 maps string items through parent itemSpans",
+    fn: async () => {
+      const itemSpans = [
+        {
+          normalized: { start: 0, end: 2 },
+          original: { start: 20, end: 22 },
+        },
+      ];
+      const scope = Scope.From(
+        Input.From(["ab"], {
+          kind: InputNormalizationMode.Iterable,
+          provenance: { itemSpans },
+        }),
+      );
+      const m = await match(
+        {
+          kind: PatternKind.Into,
+          pattern: {
+            kind: PatternKind.Then,
+            patterns: [
+              { kind: PatternKind.Equal, value: "a" },
+              { kind: PatternKind.Equal, value: "c" },
+            ],
+          },
+        },
+        scope,
+      );
+      assertEquals(m.kind, MatchKind.Fail);
+      if (m.kind !== MatchKind.Fail) return;
+      const rightmost = getRightmostFailure(m);
+      assertEquals(rightmost.originalSpan.start, 21);
     },
   });
 });

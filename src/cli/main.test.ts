@@ -64,6 +64,12 @@ Deno.test("cli.main runCli validates mode support and compile routing", async (t
     assert(result.stdout?.includes("Commands:"));
   });
 
+  await t.step("prints version when --version is requested", async () => {
+    const result = await runCli(["--version"], "/workspace/project", false);
+    assertEquals(result.exitCode, CliExitCode.Ok);
+    assert((result.stdout?.trim().length ?? 0) > 0);
+  });
+
   await t.step("prints command help for compile context", async () => {
     const result = await runCli(
       ["compile", "--help"],

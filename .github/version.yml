@@ -3,3 +3,9 @@ on:
     - kind: regexp
       file: deno.jsonc
       pattern: '(?<="version": ").*(?=",)'
+    - kind: regexp
+      file: VERSION
+      pattern: ".+"
+    - kind: regexp
+      file: src/version.ts
+      pattern: '(?<=export const version = ").*(?=";)'

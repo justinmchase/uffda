@@ -55,7 +55,7 @@ export function locationFromOffset(
   };
 }
 
-function guessSourceOffset(match: Match, source: string): number {
+function sourceOffsetFromMatch(match: Match, source: string): number {
   if (match.kind !== MatchKind.Fail && match.kind !== MatchKind.Error) {
     return source.length;
   }
@@ -63,34 +63,14 @@ function guessSourceOffset(match: Match, source: string): number {
   const focus = match.kind === MatchKind.Fail
     ? getRightmostFailure(match)
     : match;
-  const stream = focus.scope.stream;
-  const value = stream.value;
 
-  if (typeof value === "string" && value.length > 0) {
-    const starts: number[] = [];
-    let from = 0;
-    while (from <= source.length) {
-      const at = source.indexOf(value, from);
-      if (at === -1) break;
-      starts.push(at);
-      from = at + Math.max(1, value.length);
-    }
-    if (starts.length === 1) return starts[0];
-    if (starts.length > 1) {
-      const pick = Math.min(Math.max(stream.index, 0), starts.length - 1);
-      return starts[pick];
-    }
-  }
-
-  // Direct character-stream failures use a single numeric path segment.
-  const leaf = focus.span.start.segments.at(-1);
+  const offset = focus.originalSpan.start;
   if (
-    focus.span.start.segments.length === 1 &&
-    typeof leaf === "number" &&
-    leaf >= 0 &&
-    leaf <= source.length
+    typeof offset === "number" &&
+    offset >= 0 &&
+    offset <= source.length
   ) {
-    return leaf;
+    return offset;
   }
 
   return source.length;
@@ -146,7 +126,7 @@ function toParseFailure(
       message: parseFailureMessage(match),
       location: locationFromOffset(
         sourceText,
-        guessSourceOffset(match, sourceText),
+        sourceOffsetFromMatch(match, sourceText),
       ),
     },
   };

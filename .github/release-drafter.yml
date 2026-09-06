@@ -29,3 +29,15 @@ template: |
   ## Changes
 
   $CHANGES
+
+  ## CLI binaries
+
+  This is a **draft** release. CLI binaries are attached automatically when
+  Release Drafter dispatches `release-binaries`, or you can re-run:
+
+  1. Open [Release Binaries](https://github.com/justinmchase/uffda/actions/workflows/release-binaries.yml)
+  2. Click **Run workflow** (branch: `main`)
+  3. Confirm assets (`uffda-*`, `SHA256SUMS`, `install.sh`) appear on this draft
+
+  Publishing this release makes it the latest stable CLI install target for
+  `install.sh` and `uffda-setup`.

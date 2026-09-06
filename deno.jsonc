@@ -7,6 +7,7 @@
   },
   "tasks": {
     "cli": "deno run --allow-read --allow-write --allow-env=INIT_CWD,PWD ./src/cli/main.ts",
+    "compile:cli": "deno run --allow-read --allow-write --allow-run --allow-env ./scripts/compile-cli.ts",
     "test": "deno test --allow-read --parallel",
     "test:watch": "deno test --allow-read --watch --parallel",
     "pre": "deno fmt && deno lint --fix && deno task test && npx jsr publish --dry-run --allow-dirty"
@@ -22,5 +23,10 @@
     "@tui/nice": "jsr:@tui/nice@0.6.1",
     "@tui/signals": "jsr:@tui/signals@0.0.10",
     "@tui/tui": "jsr:@tui/tui@3.0.0-dev.10"
+  },
+  "fmt": {
+    "exclude": [
+      "./src/runtime/resolvers/test.bad.module.json"
+    ]
   }
 }

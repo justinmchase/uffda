@@ -67,6 +67,19 @@ receives input derived from the previous step's matched value.
 - The `pipeline` pattern MUST NOT produce externally observable side effects
   beyond its match result and resulting matching context.
 
+## Source provenance
+
+- When a step output is used to build the next derived input stream, the
+  `pipeline` pattern MUST retain reconstructable source provenance from the
+  prior step match and parent stream whenever that provenance is available.
+- For string outputs, derived streams SHOULD carry a normalization map anchored
+  at the prior step's original source span.
+- For string-array outputs that represent token streams, derived streams SHOULD
+  carry per-item source spans so later failures can resolve to authored offsets.
+- Provenance loss at a pipeline step boundary is a contract regression relative
+  to the language-layer debuggability requirements unless a higher-authority
+  chapter explicitly allows it.
+
 ## Composition intent
 
 - The `pipeline` pattern SHOULD be used for staged transformations where each

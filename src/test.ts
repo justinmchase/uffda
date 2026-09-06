@@ -411,6 +411,12 @@ function matchDebug(match: Match): string {
 
   if (match.kind !== MatchKind.LR) {
     lines.push(`  span: ${spanText(match)}`);
+    lines.push(
+      `  normalizedSpan: ${match.normalizedSpan.start} -> ${match.normalizedSpan.end}`,
+    );
+    lines.push(
+      `  originalSpan: ${match.originalSpan.start} -> ${match.originalSpan.end}`,
+    );
     lines.push(`  stream done: ${match.scope.stream.done}`);
   }
 

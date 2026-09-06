@@ -1,6 +1,13 @@
 import type { Pattern } from "./runtime/patterns/pattern.ts";
 import type { Scope } from "./runtime/scope.ts";
-import { type Span, spanFrom } from "./span.ts";
+import {
+  type SourceSpan,
+  sourceSpansFrom,
+  type Span,
+  spanFrom,
+} from "./span.ts";
+
+export type { SourceSpan } from "./span.ts";
 
 export enum MatchErrorCode {
   UnknownReference = "E_UNKNOWN_REFERENCE",
@@ -37,6 +44,8 @@ export type MatchOk<T = unknown> = {
   pattern: Pattern;
   scope: Scope;
   span: Span;
+  normalizedSpan: SourceSpan;
+  originalSpan: SourceSpan;
   matches: Match[];
   value: T;
 };
@@ -46,6 +55,8 @@ export type MatchFail = {
   pattern: Pattern;
   scope: Scope;
   span: Span;
+  normalizedSpan: SourceSpan;
+  originalSpan: SourceSpan;
   matches: Match[];
 };
 
@@ -54,6 +65,8 @@ export type MatchError = {
   pattern: Pattern;
   scope: Scope;
   span: Span;
+  normalizedSpan: SourceSpan;
+  originalSpan: SourceSpan;
   code: MatchErrorCode;
   message: string;
   error?: Error;
@@ -80,9 +93,12 @@ export function error(
   message: string,
   cause?: unknown,
 ): MatchError {
+  const { normalizedSpan, originalSpan } = sourceSpansFrom(scope, scope);
   return {
     kind: MatchKind.Error,
     span: spanFrom(scope, scope),
+    normalizedSpan,
+    originalSpan,
     pattern,
     scope,
     code,
@@ -99,9 +115,12 @@ export function ok(
   value: unknown = undefined,
   matches: Match[] = [],
 ): MatchOk {
+  const { normalizedSpan, originalSpan } = sourceSpansFrom(start, end);
   return {
     kind: MatchKind.Ok,
     span: spanFrom(start, end),
+    normalizedSpan,
+    originalSpan,
     pattern,
     scope: end,
     value,
@@ -114,9 +133,12 @@ export function fail(
   pattern: Pattern,
   matches: Match[] = [],
 ): MatchFail {
+  const { normalizedSpan, originalSpan } = sourceSpansFrom(scope, scope);
   return {
     kind: MatchKind.Fail,
     span: spanFrom(scope, scope),
+    normalizedSpan,
+    originalSpan,
     scope,
     pattern,
     matches,
@@ -141,21 +163,30 @@ export function fail(
  * }
  * ```
  */
+/**
+ * Finds the "rightmost" failure in a MatchFail tree.
+ * The rightmost failure is defined as the failure with the greatest start span.
+ * This is useful for debugging match failures, as the rightmost failure typically
+ * indicates where the problem occurred.
+ *
+ * Failed alternatives recorded under Ok parents (for example Or) are included.
+ */
 export function getRightmostFailure(match: MatchFail): MatchFail {
   let rightmost = match;
 
-  // Recursively search through all child matches
-  for (const child of match.matches) {
-    if (child.kind === MatchKind.Fail) {
-      // Recursively get the rightmost failure from this child
-      const childRightmost = getRightmostFailure(child);
-
-      // Compare start positions and keep the rightmost one
-      if (childRightmost.span.start.compareTo(rightmost.span.start) > 0) {
-        rightmost = childRightmost;
+  const visit = (node: Match): void => {
+    if (node.kind === MatchKind.Fail) {
+      if (node.span.start.compareTo(rightmost.span.start) > 0) {
+        rightmost = node;
       }
+      for (const child of node.matches) visit(child);
+      return;
     }
-  }
+    if (node.kind === MatchKind.Ok) {
+      for (const child of node.matches) visit(child);
+    }
+  };
 
+  for (const child of match.matches) visit(child);
   return rightmost;
 }

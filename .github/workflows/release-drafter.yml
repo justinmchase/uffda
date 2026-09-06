@@ -11,6 +11,11 @@ on:
 jobs:
   draft-release:
     name: Draft Release
+    # Skip the version-bump bot commit to avoid a second draft/dispatch cycle.
+    if: >
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'push' &&
+       !contains(github.event.head_commit.message, '[no ci]'))
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -19,7 +24,7 @@ jobs:
       resolved_version: ${{ steps.release.outputs.resolved_version }}
     steps:
       - id: release
-        uses: release-drafter/release-drafter@v6
+        uses: release-drafter/release-drafter@v7
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -49,11 +54,13 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
 
       - name: Set Version
+        id: set-version
         run: |
           semver set ${{ needs.draft-release.outputs.resolved_version }}
           if [ -z $(git status --porcelain) ];
           then
               echo "no changes to commit."
+              echo "changed=false" >> "$GITHUB_OUTPUT"
               exit 0
           fi
 
@@ -71,5 +78,24 @@ jobs:
           git add .
           git commit -m '${{ needs.draft-release.outputs.resolved_version }}[no ci]'
           git push origin main
+          echo "changed=true" >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Dispatch attach draft CLI binaries
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          set -euo pipefail
+          version="${{ needs.draft-release.outputs.resolved_version }}"
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/dispatches" \
+            -f event_type='release-binaries' \
+            -f "client_payload[version]=${version}" \
+            -f "client_payload[reason]=release-drafter"
+          {
+            echo "## Release binaries"
+            echo
+            echo "Dispatched \`repository_dispatch\` event \`release-binaries\` for draft \`${version}\`."
+            echo
+            echo "You can also re-run [Release Binaries](https://github.com/${GITHUB_REPOSITORY}/actions/workflows/release-binaries.yml) manually."
+          } >> "$GITHUB_STEP_SUMMARY"
