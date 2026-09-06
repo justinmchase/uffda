@@ -1,0 +1,2 @@
+# Letter matches a Unicode letter or letter-number character.
+export rule Letter = \cL | \cNl;

@@ -45,10 +45,12 @@ jobs:
             ./src/lang/common/characters/digit.uff \
             ./src/lang/common/characters/connecting.uff \
             ./src/lang/common/characters/formatting.uff \
+            ./src/lang/common/characters/letter.uff \
             --out-dir ./bin
           test -f ./bin/ast/src/lang/common/characters/digit.uffda.ast.json
           test -f ./bin/ast/src/lang/common/characters/connecting.uffda.ast.json
           test -f ./bin/ast/src/lang/common/characters/formatting.uffda.ast.json
+          test -f ./bin/ast/src/lang/common/characters/letter.uffda.ast.json
 
       - name: Test
         # Allow read is required to run resolve tests. Language `.uff` modules

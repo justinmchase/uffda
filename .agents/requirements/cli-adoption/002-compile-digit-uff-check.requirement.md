@@ -11,8 +11,8 @@ spec_ref: ".agents/specifications/languages/cli.spec.md#milestone-10-ci-adopts-t
 Preconditions:
 
 - `src/lang/common/characters/digit.uff` (and other Phase 0 character `.uff`
-  sources such as `connecting.uff` and `formatting.uff`) are authored Uffda
-  sources.
+  sources such as `connecting.uff`, `formatting.uff`, and `letter.uff`) are
+  authored Uffda sources.
 - The Checks workflow has installed an Uffda CLI.
 
 Expected behavior:

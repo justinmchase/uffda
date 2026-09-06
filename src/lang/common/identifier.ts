@@ -7,9 +7,8 @@ import {
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { Combining } from "./characters/combining.ts";
-import { Letter } from "./characters/letter.ts";
 
-// import ./letter.ts (Letter);
+// import ./letter.uff (Letter);
 // import ./digit.uff (Digit);
 // import ./connecting.uff (Connecting);
 // import ./combining.ts (Combining);
@@ -32,9 +31,8 @@ import { Letter } from "./characters/letter.ts";
 export const Identifier: ModuleDeclaration = {
   imports: [
     {
-      kind: ImportDeclarationKind.Native,
-      module: Letter,
-      moduleUrl: "./characters/letter.ts",
+      kind: ImportDeclarationKind.Module,
+      moduleUrl: "./characters/letter.uff",
       names: [
         "Letter",
       ],

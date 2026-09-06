@@ -2,13 +2,15 @@ import { assertEquals } from "@std/assert";
 import { builtInLanguageDeclarations } from "./declarations.ts";
 
 Deno.test("lang.declarations registers built-in language modules", () => {
-  const letterUrl = new URL("./common/characters/letter.ts", import.meta.url)
-    .href;
+  const combiningUrl = new URL(
+    "./common/characters/combining.ts",
+    import.meta.url,
+  ).href;
   const patternLangUrl = new URL("./pattern/pattern.lang.ts", import.meta.url)
     .href;
   assertEquals(
-    builtInLanguageDeclarations[letterUrl]?.rules[0]?.name,
-    "Letter",
+    builtInLanguageDeclarations[combiningUrl]?.rules[0]?.name,
+    "Combining",
   );
   assertEquals(
     builtInLanguageDeclarations[patternLangUrl]?.exports.some((item) =>
@@ -31,6 +33,12 @@ Deno.test("lang.declarations registers built-in language modules", () => {
   assertEquals(
     builtInLanguageDeclarations[
       new URL("./common/characters/formatting.uff", import.meta.url).href
+    ],
+    undefined,
+  );
+  assertEquals(
+    builtInLanguageDeclarations[
+      new URL("./common/characters/letter.uff", import.meta.url).href
     ],
     undefined,
   );

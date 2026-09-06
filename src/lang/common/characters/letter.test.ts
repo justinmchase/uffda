@@ -2,7 +2,7 @@ import { Input } from "../../../input.ts";
 import { MatchKind } from "../../../mod.ts";
 import { moduleDeclarationTest } from "../../../test.ts";
 
-const moduleUrl = new URL("./letter.ts", import.meta.url).href;
+const moduleUrl = new URL("./letter.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -19,6 +19,7 @@ Deno.test(
       name: "LETTER00",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Letter",
         input: Input.Iterable("a"),
         value: "a",
         kind: MatchKind.Ok,
@@ -28,6 +29,7 @@ Deno.test(
       name: "LETTER01",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Letter",
         input: Input.Iterable("1"),
         kind: MatchKind.Fail,
       }),
