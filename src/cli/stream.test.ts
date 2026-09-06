@@ -33,6 +33,34 @@ Deno.test("cli.stream parses one stdin source unit into a raw AST", async (t) =>
   });
 
   await t.step(
+    "points incomplete CRLF input at the original source offset",
+    async () => {
+      const source = "export Main;\r\nrule Main =";
+      const result = await compileStdinToArtifact(source);
+
+      assertEquals(result.ok, false);
+      if (result.ok) return;
+      assertEquals(result.error.location?.offset, source.length);
+      assertEquals(result.error.location?.line, 1);
+      assertEquals(result.error.location?.column, "rule Main =".length);
+    },
+  );
+
+  await t.step(
+    "points mid-source pattern failures at the original token offset",
+    async () => {
+      const source = "export Main; rule Main = !!!;";
+      const result = await compileStdinToArtifact(source);
+
+      assertEquals(result.ok, false);
+      if (result.ok) return;
+      assertEquals(result.error.location?.offset, source.indexOf("!"));
+      assertEquals(result.error.location?.line, 0);
+      assertEquals(result.error.location?.column, source.indexOf("!"));
+    },
+  );
+
+  await t.step(
     "treats empty input as an explicit empty module AST",
     async () => {
       const result = await compileStdinToArtifact("");
@@ -65,6 +93,21 @@ Deno.test("cli.stream parses one stdin source unit into a raw AST", async (t) =>
       assertEquals(result.ok, true);
       if (!result.ok) return;
       assertEquals(result.ast.kind, "array");
+    },
+  );
+
+  await t.step(
+    "points incomplete expression failures at the original offset",
+    async () => {
+      const source = "[1 ";
+      const result = await compileStdinToArtifact(
+        source,
+        CliLanguage.Expression,
+      );
+
+      assertEquals(result.ok, false);
+      if (result.ok) return;
+      assertEquals(result.error.location?.offset, 2);
     },
   );
 });

@@ -1,7 +1,7 @@
 ---
 id: pipeline-001
 title: Pipeline feeds each step from previous step output
-spec_ref: ".agents/specifications/patterns/runtime/pipeline.spec.md"
+spec_ref: ".agents/specifications/patterns/runtime/pipeline.spec.md; .agents/specifications/patterns/runtime/pipeline.spec.md#source-provenance"
 ---
 
 # Pipeline Core Semantics

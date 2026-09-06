@@ -117,10 +117,12 @@ that can be consumed by expression, pattern, and language-definition layers.
 ## Delivery milestone: Tokenizer trivia and source spans
 
 - Attach normalized and original source spans to every Match result in the
-  runtime. Do not embed spans in rule projections.
+  runtime. Do not embed spans in rule projections. (delivered)
 - Preserve comments and whitespace as lossless trivia while retaining the
-  current semantic token stream for parser compatibility.
+  current semantic token stream for parser compatibility. (delivered)
+- Propagate token and normalization provenance through `pipeline` and `into` so
+  diagnostics can use `Match.originalSpan` without heuristic repair. (delivered)
 - Replace host-language comment/string filtering with composable Uffda lexer
-  patterns.
+  patterns. (remaining)
 - Verify that expression, pattern, and Uffda grammar results remain unchanged
-  for existing inputs.
+  for existing inputs. (delivered)

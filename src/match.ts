@@ -163,21 +163,30 @@ export function fail(
  * }
  * ```
  */
+/**
+ * Finds the "rightmost" failure in a MatchFail tree.
+ * The rightmost failure is defined as the failure with the greatest start span.
+ * This is useful for debugging match failures, as the rightmost failure typically
+ * indicates where the problem occurred.
+ *
+ * Failed alternatives recorded under Ok parents (for example Or) are included.
+ */
 export function getRightmostFailure(match: MatchFail): MatchFail {
   let rightmost = match;
 
-  // Recursively search through all child matches
-  for (const child of match.matches) {
-    if (child.kind === MatchKind.Fail) {
-      // Recursively get the rightmost failure from this child
-      const childRightmost = getRightmostFailure(child);
-
-      // Compare start positions and keep the rightmost one
-      if (childRightmost.span.start.compareTo(rightmost.span.start) > 0) {
-        rightmost = childRightmost;
+  const visit = (node: Match): void => {
+    if (node.kind === MatchKind.Fail) {
+      if (node.span.start.compareTo(rightmost.span.start) > 0) {
+        rightmost = node;
       }
+      for (const child of node.matches) visit(child);
+      return;
     }
-  }
+    if (node.kind === MatchKind.Ok) {
+      for (const child of node.matches) visit(child);
+    }
+  };
 
+  for (const child of match.matches) visit(child);
   return rightmost;
 }

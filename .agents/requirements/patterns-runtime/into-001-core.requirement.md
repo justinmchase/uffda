@@ -1,7 +1,7 @@
 ---
 id: into-001
 title: Into evaluates child pattern against a nested iterable stream
-spec_ref: ".agents/specifications/patterns/runtime/into.spec.md"
+spec_ref: ".agents/specifications/patterns/runtime/into.spec.md; .agents/specifications/patterns/runtime/into.spec.md#source-provenance"
 ---
 
 # Into Core Semantics

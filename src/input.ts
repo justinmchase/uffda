@@ -32,7 +32,12 @@ function assertNormalizationMode(
 }
 
 export type SourceProvenance = {
-  normalizationMap: readonly number[];
+  normalizationMap?: readonly number[];
+  /**
+   * When the stream items are tokens (or other projections of source), maps
+   * each item index to character spans in normalized and original source.
+   */
+  itemSpans?: readonly import("./span.ts").ItemSourceSpan[];
 };
 
 type InputFromOptions = {
@@ -59,7 +64,7 @@ export function sourceProvenanceFrom(
   if (!record.normalizationMap.every((offset) => typeof offset === "number")) {
     return undefined;
   }
-  return { normalizationMap: record.normalizationMap };
+  return { normalizationMap: record.normalizationMap as number[] };
 }
 
 export class Input {
@@ -153,6 +158,14 @@ export class Input {
       this.next();
     }
     return this._done!;
+  }
+
+  /**
+   * Whether this position is already known to be past the last item.
+   * Unlike {@link done}, this does not advance the stream.
+   */
+  public get isEof(): boolean {
+    return this._done === true;
   }
 
   public next(): Input {

@@ -140,5 +140,21 @@ Deno.test({
         );
       },
     });
+
+    await t.step({
+      name: "INPUT10 isEof does not advance the stream",
+      fn: () => {
+        const start = Input.Iterable(["x"]);
+        assertEquals(start.isEof, false);
+        assertEquals(start.done, false);
+        const atItem = start.next();
+        assertEquals(atItem.isEof, false);
+        assertEquals(atItem.value, "x");
+        const eof = atItem.next();
+        assertEquals(eof.isEof, true);
+        assertEquals(eof.done, true);
+        assertEquals(eof.value, "x");
+      },
+    });
   },
 });

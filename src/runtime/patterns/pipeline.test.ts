@@ -1,11 +1,14 @@
+import { assertEquals } from "@std/assert";
 import { Type } from "@justinmchase/type";
-import { Input } from "../../input.ts";
+import { Input, InputNormalizationMode } from "../../input.ts";
 import { ResolveTargetKind } from "./pattern.ts";
-import { MatchKind } from "../../match.ts";
+import { getRightmostFailure, MatchKind } from "../../match.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 import { ExportDeclarationKind } from "../declarations/mod.ts";
 import { ExpressionKind } from "../expressions/mod.ts";
 import { PatternKind } from "./pattern.kind.ts";
+import { match } from "../match.ts";
+import { Scope } from "../scope.ts";
 
 Deno.test("runtime.patterns.pipeline", async (t) => {
   await t.step({
@@ -427,5 +430,90 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       value: ["a", "b"],
       kind: MatchKind.Ok,
     }),
+  });
+
+  await t.step({
+    name: "PIPELINE08 carries string originalSpan into next step provenance",
+    fn: async () => {
+      const itemSpans = [
+        {
+          normalized: { start: 0, end: 3 },
+          original: { start: 40, end: 43 },
+        },
+      ];
+      const scope = Scope.From(
+        Input.From(["abc"], {
+          kind: InputNormalizationMode.Iterable,
+          provenance: { itemSpans },
+        }),
+      );
+      const m = await match(
+        {
+          kind: PatternKind.Pipeline,
+          steps: [
+            { kind: PatternKind.Equal, value: "abc" },
+            {
+              kind: PatternKind.Into,
+              pattern: {
+                kind: PatternKind.Then,
+                patterns: [
+                  { kind: PatternKind.Equal, value: "a" },
+                  { kind: PatternKind.Equal, value: "x" },
+                ],
+              },
+            },
+          ],
+        },
+        scope,
+      );
+      assertEquals(m.kind, MatchKind.Fail);
+      if (m.kind !== MatchKind.Fail) return;
+      assertEquals(getRightmostFailure(m).originalSpan.start, 41);
+    },
+  });
+
+  await t.step({
+    name: "PIPELINE09 slices parent itemSpans for string-array stages",
+    fn: async () => {
+      const itemSpans = [
+        {
+          normalized: { start: 0, end: 1 },
+          original: { start: 10, end: 11 },
+        },
+        {
+          normalized: { start: 1, end: 2 },
+          original: { start: 11, end: 12 },
+        },
+        {
+          normalized: { start: 2, end: 3 },
+          original: { start: 12, end: 13 },
+        },
+      ];
+      const scope = Scope.From(
+        Input.From(["a", "!", "c"], {
+          kind: InputNormalizationMode.Iterable,
+          provenance: { itemSpans },
+        }),
+      );
+      const m = await match(
+        {
+          kind: PatternKind.Pipeline,
+          steps: [
+            {
+              kind: PatternKind.Quantifier,
+              pattern: { kind: PatternKind.Any },
+            },
+            {
+              kind: PatternKind.Into,
+              pattern: { kind: PatternKind.Equal, value: "x" },
+            },
+          ],
+        },
+        scope,
+      );
+      assertEquals(m.kind, MatchKind.Fail);
+      if (m.kind !== MatchKind.Fail) return;
+      assertEquals(getRightmostFailure(m).originalSpan.start, 10);
+    },
   });
 });
