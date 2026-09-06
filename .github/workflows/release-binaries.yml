@@ -120,7 +120,7 @@ jobs:
           sha256sum "${out_dir}/${asset}" | tee "${out_dir}/${asset}.sha256"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: uffda-${{ matrix.target }}
           path: dist/cli/*
@@ -140,7 +140,7 @@ jobs:
           ref: ${{ needs.prepare.outputs.sha }}
 
       - name: Download compiled binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: dist/cli
           merge-multiple: true

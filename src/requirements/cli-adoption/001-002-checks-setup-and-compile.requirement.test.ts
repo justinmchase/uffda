@@ -21,6 +21,8 @@ Deno.test(
       join(repoRoot, ".github", "workflows", "checks.yml"),
     );
     assertEquals(yaml.includes("src/lang/**/*.uff"), true);
+    assertEquals(yaml.includes("uffda compile"), true);
+    assertEquals(yaml.includes("deno task cli compile"), false);
     assertEquals(
       yaml.includes(
         "./bin/ast/src/lang/common/characters/digit.uffda.ast.json",

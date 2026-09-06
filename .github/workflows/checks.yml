@@ -41,11 +41,8 @@ jobs:
           set -euo pipefail
           uffda --version
           rm -rf ./bin
-          # 0.1.4 cannot compile: Identifier imports .uff leaves that were not
-          # registered under .uff URLs. This PR restores bootstrap registry
-          # entries; until 0.1.5 ships, compile with the in-tree CLI (same
-          # glob surface). Flip back to `uffda compile` after that release.
-          deno task cli compile 'src/lang/**/*.uff' --out-dir ./bin
+          # Glob expansion is handled by the CLI (quote so the shell does not expand).
+          uffda compile 'src/lang/**/*.uff' --out-dir ./bin
           test -f ./bin/ast/src/lang/common/characters/digit.uffda.ast.json
           test -f ./bin/ast/src/lang/common/characters/connecting.uffda.ast.json
           test -f ./bin/ast/src/lang/common/characters/formatting.uffda.ast.json
