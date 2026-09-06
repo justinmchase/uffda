@@ -103,16 +103,16 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ### Phase 0 — Character leaves (prove `.uff` + bin + import)
 
-| # | Module                         | G1                    | G2               | G3                  | Notes                                      | Ready?                              |
-| - | ------------------------------ | --------------------- | ---------------- | ------------------- | ------------------------------------------ | ----------------------------------- |
-| 0 | `common/characters/digit`      | OK `\cNd`             | none             | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done                                |
-| 1 | `common/characters/connecting` | OK `\cPc`             | none             | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done                                |
-| 2 | `common/characters/formatting` | OK `\cCf`             | none             | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done                                |
-| 3 | `common/characters/letter`     | OK `\cL\|\cNl`        | none             | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done                                |
-| 4 | `common/characters/combining`  | OK `\cMn\|\cMe\|\cMc` | none             | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done                                |
-| 5 | `common/characters/whitespace` | OK                    | Native identity  | OK (no parse)       | Drop Native or `-> _` / omit               | **yes** — **next**                  |
-| 6 | `common/characters/newLine`    | OK                    | Native `-> "\n"` | OK project constant | Projection literal only                    | **yes**                             |
-| 7 | `common/characters/mod`        | n/a                   | n/a              | n/a                 | Re-exports; needs children                 | after 1–6                           |
+| # | Module                         | G1                    | G2               | G3                  | Notes                                      | Ready?             |
+| - | ------------------------------ | --------------------- | ---------------- | ------------------- | ------------------------------------------ | ------------------ |
+| 0 | `common/characters/digit`      | OK `\cNd`             | none             | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done               |
+| 1 | `common/characters/connecting` | OK `\cPc`             | none             | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done               |
+| 2 | `common/characters/formatting` | OK `\cCf`             | none             | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done               |
+| 3 | `common/characters/letter`     | OK `\cL\|\cNl`        | none             | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done               |
+| 4 | `common/characters/combining`  | OK `\cMn\|\cMe\|\cMc` | none             | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done               |
+| 5 | `common/characters/whitespace` | OK                    | Native identity  | OK (no parse)       | Drop Native or `-> _` / omit               | **yes** — **next** |
+| 6 | `common/characters/newLine`    | OK                    | Native `-> "\n"` | OK project constant | Projection literal only                    | **yes**            |
+| 7 | `common/characters/mod`        | n/a                   | n/a              | n/a                 | Re-exports; needs children                 | after 1–6          |
 
 ### Phase 1 — Common helpers
 
