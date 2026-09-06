@@ -29,3 +29,15 @@ template: |
   ## Changes
 
   $CHANGES
+
+  ## CLI binaries
+
+  This is a **draft** release. After the version bump lands on `main`, attach or
+  replace compiled CLI binaries by running the workflow dispatch:
+
+  1. Open [Attach Draft CLI Binaries](https://github.com/justinmchase/uffda/actions/workflows/attach-draft-cli-binaries.yml)
+  2. Click **Run workflow** (branch: `main`)
+  3. Confirm assets (`uffda-*`, `SHA256SUMS`, `install.sh`) appear on this draft
+
+  Publishing this release makes it the latest stable CLI install target for
+  `install.sh` and `uffda-setup`.

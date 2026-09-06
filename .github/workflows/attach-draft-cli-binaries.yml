@@ -1,0 +1,236 @@
+name: Attach Draft CLI Binaries
+
+# Compile the CLI from main and attach (replace) release assets on the latest
+# draft GitHub Release. Run manually from the Actions tab after a merge updates
+# the Release Drafter draft.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    name: Resolve latest draft release
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.draft.outputs.tag }}
+      version: ${{ steps.draft.outputs.version }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Resolve latest draft release
+        id: draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          draft_json="$(
+            gh release list --limit 50 --json tagName,isDraft,createdAt \
+              --jq '[.[] | select(.isDraft == true)] | sort_by(.createdAt) | reverse | .[0] // empty'
+          )"
+          if [[ -z "${draft_json}" || "${draft_json}" == "null" ]]; then
+            echo "No draft release found. Merge to main so Release Drafter can create one." >&2
+            exit 1
+          fi
+
+          tag="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1])["tagName"])' "${draft_json}")"
+          tag="${tag#v}"
+          version="${tag}"
+          file_version="$(tr -d '[:space:]' < VERSION)"
+
+          if [[ "${file_version}" != "${version}" ]]; then
+            echo "WARNING: VERSION=${file_version} does not match draft tag ${version}." >&2
+            echo "Using the draft tag for artifact names; prefer waiting for the version bump commit on main." >&2
+          fi
+
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Draft release"
+            echo
+            echo "- Tag: \`${tag}\`"
+            echo "- Source branch: \`main\` @ \`${GITHUB_SHA}\`"
+            echo "- VERSION file: \`${file_version}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  compile:
+    name: Compile ${{ matrix.target }}
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - x86_64-pc-windows-msvc
+          - aarch64-pc-windows-msvc
+          - x86_64-apple-darwin
+          - aarch64-apple-darwin
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Compile CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ needs.prepare.outputs.version }}"
+          target="${{ matrix.target }}"
+          out_dir="dist/cli"
+          mkdir -p "${out_dir}"
+          if [[ "${target}" == *windows* ]]; then
+            asset="uffda-${version}-${target}.exe"
+          else
+            asset="uffda-${version}-${target}"
+          fi
+          echo "Building ${asset}"
+          deno compile \
+            --target "${target}" \
+            --output "${out_dir}/${asset}" \
+            --allow-read \
+            --allow-write \
+            --allow-env=INIT_CWD,PWD \
+            ./src/cli/main.ts
+          sha256sum "${out_dir}/${asset}" | tee "${out_dir}/${asset}.sha256"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: uffda-${{ matrix.target }}
+          path: dist/cli/*
+          if-no-files-found: error
+
+  attach:
+    name: Attach assets to draft release
+    needs: [prepare, compile]
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ needs.prepare.outputs.tag }}
+      version: ${{ needs.prepare.outputs.version }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Download compiled binaries
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/cli
+          merge-multiple: true
+
+      - name: Assemble checksums and install script
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ needs.prepare.outputs.version }}"
+          cd dist/cli
+          rm -f *.sha256
+          : > SHA256SUMS
+          for target in \
+            x86_64-unknown-linux-gnu \
+            aarch64-unknown-linux-gnu \
+            x86_64-pc-windows-msvc \
+            aarch64-pc-windows-msvc \
+            x86_64-apple-darwin \
+            aarch64-apple-darwin
+          do
+            if [[ "${target}" == *windows* ]]; then
+              asset="uffda-${version}-${target}.exe"
+            else
+              asset="uffda-${version}-${target}"
+            fi
+            if [[ ! -f "${asset}" ]]; then
+              echo "Missing required asset ${asset}" >&2
+              exit 1
+            fi
+            sha256sum "${asset}" >> SHA256SUMS
+          done
+          cp "${GITHUB_WORKSPACE}/scripts/install.sh" ./install.sh
+          chmod +x ./install.sh
+          sha256sum install.sh >> SHA256SUMS
+          {
+            echo "### CLI draft assets"
+            echo
+            echo "\`\`\`"
+            ls -1
+            echo "\`\`\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+          ls -la
+
+      - name: Replace assets on draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ needs.prepare.outputs.tag }}"
+
+          # Confirm the target is still a draft before replacing assets.
+          is_draft="$(gh release view "${tag}" --json isDraft --jq .isDraft)"
+          if [[ "${is_draft}" != "true" ]]; then
+            echo "Release ${tag} is not a draft; refusing to replace assets." >&2
+            exit 1
+          fi
+
+          # Remove previously attached CLI assets so --clobber replacements stay tidy
+          # even when GitHub rejects duplicate names in edge cases.
+          mapfile -t existing < <(
+            gh release view "${tag}" --json assets --jq '.assets[].name' || true
+          )
+          for name in "${existing[@]:-}"; do
+            case "${name}" in
+              uffda-*|SHA256SUMS|install.sh)
+                gh release delete-asset "${tag}" "${name}" --yes || true
+                ;;
+            esac
+          done
+
+          gh release upload "${tag}" dist/cli/* --clobber
+          echo "Attached/replaced CLI assets on draft release ${tag}"
+
+  smoke:
+    name: Smoke install via uffda-setup
+    needs: [prepare, attach]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Install draft CLI
+        id: setup
+        uses: ./.github/actions/uffda-setup
+        with:
+          version: ${{ needs.prepare.outputs.tag }}
+          repository: ${{ github.repository }}
+          github-token: ${{ github.token }}
+
+      - name: Verify installed CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="${{ needs.prepare.outputs.version }}"
+          actual="$(uffda --version | tr -d '[:space:]')"
+          # Artifact names use the draft tag; the embedded binary version comes from
+          # src/version.ts on main and should match after the version bump lands.
+          if [[ "${actual}" != "${expected}" ]]; then
+            echo "WARNING: uffda --version is ${actual}, draft tag is ${expected}" >&2
+          fi
+          uffda --help >/dev/null
+          echo "Smoke OK: uffda ${actual} (${{ steps.setup.outputs.target }})"

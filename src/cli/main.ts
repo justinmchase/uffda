@@ -17,6 +17,7 @@ import {
 import { parseSourceToAst } from "./stream.ts";
 import { runWorkbenchProtocol, workbenchBanner } from "./workbench.ts";
 import { launchWorkbenchTui } from "./workbench.tui.ts";
+import { version } from "../version.ts";
 
 export type CliRunResult = {
   exitCode: number;
@@ -127,6 +128,7 @@ function rootUsageText(): string {
     "",
     "Global options:",
     "  --help, -h             Show usage for the current command or command root.",
+    "  --version, -V          Print the CLI version and exit.",
     "  --lang <value>         uffda | pattern | expression (parse and workbench)",
     "  --mode <value>         compile | exec | match | parse | run | interactive",
     "",
@@ -422,6 +424,10 @@ export function shouldReadStdin(
     (inputPaths.length === 0 || inputPaths[0] === "-");
 }
 
+function hasVersionFlag(argv: string[]): boolean {
+  return argv.includes("--version") || argv.includes("-V");
+}
+
 export async function runCli(
   argv: string[],
   processCwd: string,
@@ -432,6 +438,13 @@ export async function runCli(
     return {
       exitCode: CliExitCode.Ok,
       stdout: usageText(resolveHelpTarget(argv)),
+    };
+  }
+
+  if (hasVersionFlag(argv)) {
+    return {
+      exitCode: CliExitCode.Ok,
+      stdout: `${version}\n`,
     };
   }
 

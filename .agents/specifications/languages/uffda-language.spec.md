@@ -106,7 +106,11 @@ layers into author-facing language/module declarations.
 - Emit JSON-serializable AST artifacts and runtime-oriented envelopes.
 - Deliver an interactive editor-like workbench with dynamic visualization and
   file I/O orchestration.
-- Package the CLI as a `deno compile` product and publish release binaries via
-  GitHub Releases.
+- Distribute the CLI as a `deno compile` product across the full target matrix,
+  publish GitHub Release binaries with checksums and a Linux install script, and
+  provide an `uffda-setup` GitHub Action for CI installation.
+- Adopt the published CLI in repository workflows, then self-host by compiling
+  `.uff` sources into `./bin/` artifacts that the next CLI loads, gated by
+  full-circle compile-self tests.
 - Define compatibility, diagnostics, and release gates for operator-facing CLI
   stability.

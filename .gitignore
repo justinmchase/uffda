@@ -1,6 +1,7 @@
 .env
 .uffda
 dst
+dist
 cov_profile
 *.lcov
 package*.json

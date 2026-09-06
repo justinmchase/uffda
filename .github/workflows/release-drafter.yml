@@ -62,6 +62,12 @@ jobs:
           \`\`\`
           ${{ needs.draft-release.outputs.resolved_version }}
           \`\`\`
+
+          ## Attach CLI binaries
+
+          After this version bump is on \`main\`, run
+          [Attach Draft CLI Binaries](https://github.com/${{ github.repository }}/actions/workflows/attach-draft-cli-binaries.yml)
+          via **Run workflow** to compile and attach/replace assets on the draft release.
           EOF
 
           git config user.name  bustin-base[bot]
