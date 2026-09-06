@@ -16,7 +16,7 @@ async function write(path: string, content: string): Promise<void> {
 
 Deno.test({
   name:
-    "cli.compile compiles files and folders into deterministic AST JSON artifacts",
+    "cli.compile compiles files and globs into deterministic AST JSON artifacts",
   ignore: writePermission.state !== "granted",
   fn: async (t) => {
     await t.step("single file compile writes one artifact", async () => {
@@ -53,7 +53,7 @@ Deno.test({
     });
 
     await t.step(
-      "folder compile is recursive and deterministic with partial failures",
+      "glob compile is recursive and deterministic with partial failures",
       async () => {
         const root = await Deno.makeTempDir({ prefix: "uffda-cli-compile-" });
         const src = join(root, "src");
@@ -62,10 +62,11 @@ Deno.test({
         await write(join(src, "b", "ok.uff"), "export Main; rule Main = any;");
         await write(join(src, "a", "bad.uff"), "export Main; rule Main =");
         await write(join(src, "a", "ok.uff"), "export Main; rule Main = any;");
+        await write(join(src, "a", "skip.ts"), "export const x = 1;\n");
 
         const result = await compileSourcesToAstArtifacts({
           cwd: src,
-          sourcePaths: ["."],
+          sourcePaths: ["**/*.uff"],
           outputDir: out,
         });
 
@@ -93,6 +94,48 @@ Deno.test({
         );
       },
     );
+
+    await t.step("directory inputs are rejected", async () => {
+      const root = await Deno.makeTempDir({ prefix: "uffda-cli-compile-" });
+      const src = join(root, "src");
+      const out = join(root, "out");
+      await write(join(src, "main.uff"), "export Main; rule Main = any;");
+
+      const result = await compileSourcesToAstArtifacts({
+        cwd: root,
+        sourcePaths: ["src"],
+        outputDir: out,
+      });
+
+      assertEquals(result.ok, false);
+      assertEquals(result.failures.length, 1);
+      assertEquals(
+        result.failures[0].code,
+        CliCompileFailureCode.SourceNotReadable,
+      );
+      assert(
+        result.failures[0].message.includes("Directories are not supported"),
+      );
+    });
+
+    await t.step("empty glob match fails deterministically", async () => {
+      const root = await Deno.makeTempDir({ prefix: "uffda-cli-compile-" });
+      const out = join(root, "out");
+
+      const result = await compileSourcesToAstArtifacts({
+        cwd: root,
+        sourcePaths: ["**/*.uff"],
+        outputDir: out,
+      });
+
+      assertEquals(result.ok, false);
+      assertEquals(result.failures.length, 1);
+      assertEquals(
+        result.failures[0].code,
+        CliCompileFailureCode.SourceNotFound,
+      );
+      assertEquals(result.failures[0].sourcePath, "**/*.uff");
+    });
 
     await t.step(
       "overwrite policy blocks then permits artifact replacement",

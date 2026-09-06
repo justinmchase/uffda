@@ -1,18 +1,22 @@
 # Compile, parse, and operation modes
 
-This chapter defines file/folder compilation and STDIN/STDOUT stream behavior
-for the Uffda CLI.
+This chapter defines file/glob compilation and STDIN/STDOUT stream behavior for
+the Uffda CLI.
 
 ## Conventions
 
 Normative key words in this chapter use the conventions defined in the
 [CLI specification](../cli.spec.md#conventions).
 
-## File and folder compile contracts
+## File and glob compile contracts
 
 - File compile mode MUST accept one or more explicit file paths.
-- Folder compile mode MUST support deterministic recursive traversal.
-- Traversal ordering MUST be deterministic for a fixed file tree.
+- Compile mode MUST accept glob patterns and expand them in-process (not via
+  shell globbing) to a deterministic set of matching files.
+- Directory paths without glob metacharacters MUST be rejected; callers MUST
+  pass an explicit file or a glob such as `src/**/*.uff`.
+- Expansion ordering MUST be deterministic for a fixed file tree and pattern
+  set.
 - Compile output MUST include sufficient metadata to map emitted artifacts back
   to source file paths.
 
@@ -64,8 +68,8 @@ Normative key words in this chapter use the conventions defined in the
 
 ## Failure and exit behavior
 
-- If one or more compilation units fail in folder mode, the CLI MUST produce
-  deterministic per-unit failure diagnostics.
+- If one or more compilation units fail for a multi-path or glob compile, the
+  CLI MUST produce deterministic per-unit failure diagnostics.
 - Exit status MUST indicate whether any input unit failed.
 - Partial success behavior MUST be explicit and reproducible.
 

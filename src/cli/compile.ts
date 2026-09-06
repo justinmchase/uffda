@@ -1,4 +1,6 @@
+import { expandGlob } from "@std/fs/expand-glob";
 import { dirname, isAbsolute, join, resolve } from "@std/path";
+import { isGlob } from "@std/path/is-glob";
 import { type Match, MatchKind } from "../match.ts";
 import {
   uffdaGrammar,
@@ -79,23 +81,21 @@ function parseFailureMessage(match: Match): string {
   return "unexpected parser outcome";
 }
 
-async function collectFiles(path: string): Promise<string[]> {
+async function expandGlobPattern(
+  cwd: string,
+  pattern: string,
+): Promise<string[]> {
   const files: string[] = [];
-  const entries: Deno.DirEntry[] = [];
-  for await (const entry of Deno.readDir(path)) {
-    entries.push(entry);
-  }
-  entries.sort((a, b) => a.name.localeCompare(b.name));
-
-  for (const entry of entries) {
-    const nextPath = join(path, entry.name);
+  for await (
+    const entry of expandGlob(pattern, {
+      root: cwd,
+      includeDirs: false,
+    })
+  ) {
     if (entry.isFile) {
-      files.push(nextPath);
-    } else if (entry.isDirectory) {
-      files.push(...(await collectFiles(nextPath)));
+      files.push(entry.path);
     }
   }
-
   return files;
 }
 
@@ -106,22 +106,42 @@ async function expandSourcePaths(
   const files: string[] = [];
   const failures: CliCompileFailure[] = [];
 
-  const resolved = sourcePaths.map((sourcePath) =>
-    isAbsolute(sourcePath) ? sourcePath : resolve(cwd, sourcePath)
-  ).sort((a, b) => a.localeCompare(b));
+  for (const sourcePath of sourcePaths) {
+    if (isGlob(sourcePath)) {
+      const matched = await expandGlobPattern(cwd, sourcePath);
+      if (matched.length === 0) {
+        failures.push({
+          code: CliCompileFailureCode.SourceNotFound,
+          sourcePath,
+          message: `Glob matched no files: ${sourcePath}`,
+        });
+        continue;
+      }
+      files.push(...matched);
+      continue;
+    }
 
-  for (const absolutePath of resolved) {
+    const absolutePath = isAbsolute(sourcePath)
+      ? sourcePath
+      : resolve(cwd, sourcePath);
     try {
       const stat = await Deno.stat(absolutePath);
       if (stat.isFile) {
         files.push(absolutePath);
       } else if (stat.isDirectory) {
-        files.push(...(await collectFiles(absolutePath)));
+        failures.push({
+          code: CliCompileFailureCode.SourceNotReadable,
+          sourcePath: toStableSourcePath(cwd, absolutePath),
+          message:
+            `Directories are not supported as compile inputs; use a glob pattern (for example '${
+              sourcePath.replace(/\/$/, "")
+            }/**/*.uff')`,
+        });
       } else {
         failures.push({
           code: CliCompileFailureCode.SourceNotReadable,
           sourcePath: toStableSourcePath(cwd, absolutePath),
-          message: `Source path is neither file nor directory: ${absolutePath}`,
+          message: `Source path is not a file: ${absolutePath}`,
         });
       }
     } catch (error) {
