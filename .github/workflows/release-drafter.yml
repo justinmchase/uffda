@@ -28,12 +28,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - id: autolabeler
-        if: ${{ github.event_name == 'pull_request' }}
-        uses: release-drafter/release-drafter/autolabeler@v7
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   update-version:
     needs: draft-release
     name: Update Version
