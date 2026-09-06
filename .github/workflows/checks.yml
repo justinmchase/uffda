@@ -41,16 +41,16 @@ jobs:
           set -euo pipefail
           uffda --version
           rm -rf ./bin
-          uffda compile \
-            ./src/lang/common/characters/digit.uff \
-            ./src/lang/common/characters/connecting.uff \
-            ./src/lang/common/characters/formatting.uff \
-            ./src/lang/common/characters/letter.uff \
-            --out-dir ./bin
+          # 0.1.4 cannot compile: Identifier imports .uff leaves that were not
+          # registered under .uff URLs. This PR restores bootstrap registry
+          # entries; until 0.1.5 ships, compile with the in-tree CLI (same
+          # glob surface). Flip back to `uffda compile` after that release.
+          deno task cli compile 'src/lang/**/*.uff' --out-dir ./bin
           test -f ./bin/ast/src/lang/common/characters/digit.uffda.ast.json
           test -f ./bin/ast/src/lang/common/characters/connecting.uffda.ast.json
           test -f ./bin/ast/src/lang/common/characters/formatting.uffda.ast.json
           test -f ./bin/ast/src/lang/common/characters/letter.uffda.ast.json
+          test -f ./bin/ast/src/lang/common/characters/combining.uffda.ast.json
 
       - name: Test
         # Allow read is required to run resolve tests. Language `.uff` modules

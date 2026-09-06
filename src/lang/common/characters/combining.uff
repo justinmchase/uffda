@@ -1,0 +1,2 @@
+# Combining matches a Unicode non-spacing, enclosing, or spacing combining mark.
+export rule Combining = \cMn | \cMe | \cMc;

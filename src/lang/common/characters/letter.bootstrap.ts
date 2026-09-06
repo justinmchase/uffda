@@ -2,34 +2,33 @@ import { ExportDeclarationKind } from "../../../runtime/declarations/mod.ts";
 import { CharacterClass, PatternKind } from "../../../runtime/patterns/mod.ts";
 import type { ModuleDeclaration } from "../../../runtime/declarations/mod.ts";
 
-export const Combining: ModuleDeclaration = {
+/**
+ * Host-side declaration registered under `./letter.uff` so published CLIs can
+ * load Letter without `./bin` during bootstrap compile.
+ */
+export const Letter: ModuleDeclaration = {
   imports: [],
   exports: [
     {
       kind: ExportDeclarationKind.Rule,
-      name: "Combining",
+      name: "Letter",
       default: true,
     },
   ],
   rules: [
     {
-      // Combining = \cMn | \cMc;
-      name: "Combining",
+      name: "Letter",
       parameters: [],
       pattern: {
         kind: PatternKind.Or,
         patterns: [
           {
             kind: PatternKind.Character,
-            characterClass: CharacterClass.NonSpacingMark,
+            characterClass: CharacterClass.Letter,
           },
           {
             kind: PatternKind.Character,
-            characterClass: CharacterClass.EnclosingMark,
-          },
-          {
-            kind: PatternKind.Character,
-            characterClass: CharacterClass.SpacingCombiningMark,
+            characterClass: CharacterClass.LetterNumber,
           },
         ],
       },
@@ -37,4 +36,4 @@ export const Combining: ModuleDeclaration = {
   ],
 };
 
-export default Combining;
+export default Letter;

@@ -71,9 +71,10 @@ replaced). `_.flat().join("")`, `parseInt`, match-span indexing are usually
 
 - **G4 — Imports:** Prefer `ImportDeclarationKind.Module` with `.uff` URLs once
   children are converted; eliminate `ImportDeclarationKind.Native` embeds.
-- **G5 — Registry:** Update `builtInLanguageDeclarations` / grammar injection to
-  key the logical `.uff` URL (or drop the entry once Resolver loads from
-  `./bin`).
+- **G5 — Registry:** Keep `builtInLanguageDeclarations` keyed by the logical
+  `.uff` URL via a host `*.bootstrap.ts` declaration so published CLIs can
+  compile without a pre-existing `./bin`. Remapping tests omit registry entries
+  to prove artifact loading.
 - **G6 — Tests:** Existing `*.test.ts` must keep passing; add compile +
   `.uff`-import smoke where useful.
 - **G7 — CI:** Extend Checks compile-then-import as modules land under `./bin`.
@@ -108,8 +109,8 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 | 1 | `common/characters/connecting` | OK `\cPc`             | none             | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done                                |
 | 2 | `common/characters/formatting` | OK `\cCf`             | none             | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done                                |
 | 3 | `common/characters/letter`     | OK `\cL\|\cNl`        | none             | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done                                |
-| 4 | `common/characters/combining`  | OK `\cMn\|\cMe\|\cMc` | none             | none                | Or of classes                              | **yes** — **next**                  |
-| 5 | `common/characters/whitespace` | OK                    | Native identity  | OK (no parse)       | Drop Native or `-> _` / omit               | **yes** after trivial `.ts` cleanup |
+| 4 | `common/characters/combining`  | OK `\cMn\|\cMe\|\cMc` | none             | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done                                |
+| 5 | `common/characters/whitespace` | OK                    | Native identity  | OK (no parse)       | Drop Native or `-> _` / omit               | **yes** — **next**                  |
 | 6 | `common/characters/newLine`    | OK                    | Native `-> "\n"` | OK project constant | Projection literal only                    | **yes**                             |
 | 7 | `common/characters/mod`        | n/a                   | n/a              | n/a                 | Re-exports; needs children                 | after 1–6                           |
 
@@ -192,11 +193,10 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ## First candidate (next session)
 
-**`common/characters/combining`** —
-`export rule Combining = \cMn | \cMe | \cMc;`, no imports, no expressions.
-Expected G0–G3: all pass.
+**`common/characters/whitespace`** — drop or replace Native identity projection,
+then author `.uff`. Expected G0–G3: pass after trivial `.ts` cleanup.
 
-Completed: `digit`, `connecting`, `formatting`, `letter`.
+Completed: `digit`, `connecting`, `formatting`, `letter`, `combining`.
 
 ## References
 

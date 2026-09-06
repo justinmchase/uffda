@@ -6,12 +6,11 @@ import {
 } from "../../runtime/declarations/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
-import { Combining } from "./characters/combining.ts";
 
 // import ./letter.uff (Letter);
 // import ./digit.uff (Digit);
 // import ./connecting.uff (Connecting);
-// import ./combining.ts (Combining);
+// import ./combining.uff (Combining);
 // import ./formatting.uff (Formatting);
 // Identifier =
 //   | IdentifierStartCharacter
@@ -52,9 +51,8 @@ export const Identifier: ModuleDeclaration = {
       ],
     },
     {
-      kind: ImportDeclarationKind.Native,
-      module: Combining,
-      moduleUrl: "./characters/combining.ts",
+      kind: ImportDeclarationKind.Module,
+      moduleUrl: "./characters/combining.uff",
       names: [
         "Combining",
       ],

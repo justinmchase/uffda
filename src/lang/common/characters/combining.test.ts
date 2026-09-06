@@ -2,7 +2,7 @@ import { Input } from "../../../input.ts";
 import { MatchKind } from "../../../mod.ts";
 import { moduleDeclarationTest } from "../../../test.ts";
 
-const moduleUrl = new URL("./combining.ts", import.meta.url).href;
+const moduleUrl = new URL("./combining.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -19,6 +19,7 @@ Deno.test(
       name: "COMBINING00",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Combining",
         kind: MatchKind.Ok,
         input: Input.Iterable("\u0302"),
         value: "\u0302",
@@ -28,6 +29,7 @@ Deno.test(
       name: "COMBINING01",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Combining",
         kind: MatchKind.Ok,
         input: Input.Iterable("\u0903"),
         value: "\u0903",

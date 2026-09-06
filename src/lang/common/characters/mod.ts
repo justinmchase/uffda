@@ -6,7 +6,7 @@ export const Characters: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./combining.ts",
+      moduleUrl: "./combining.uff",
       names: [
         "Combining",
       ],
