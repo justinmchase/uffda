@@ -19,6 +19,11 @@ jobs:
         with:
           deno-version: v2.x
 
+      - name: Setup Uffda CLI
+        uses: ./.github/actions/uffda-setup
+        with:
+          version: latest
+
       - name: Lint
         continue-on-error: true
         run: deno lint
@@ -36,7 +41,27 @@ jobs:
 
       - name: Test
         # Allow read is required to run resolve tests
-        run: deno test --allow-read --parallel --coverage=cov_profile
+        run: deno test --allow-read --allow-write --parallel --coverage=cov_profile
+
+      - name: Compile language module
+        run: |
+          set -euo pipefail
+          uffda --version
+          # Prefer the published CLI. Older releases cannot compile under
+          # deno-compile module loading; fall back once so this registry fix can
+          # land and the next published CLI becomes the permanent path.
+          if ! uffda compile ./src/lang/common/characters/digit.uff --out-dir ./bin; then
+            echo "Published CLI could not compile; using in-tree CLI for transition."
+            deno task cli compile ./src/lang/common/characters/digit.uff --out-dir ./bin
+          fi
+          test -f ./bin/ast/src/lang/common/characters/digit.uffda.ast.json
+
+      - name: Bootstrap import from ./bin
+        run: |
+          set -euo pipefail
+          # Proves workflow-produced ./bin is what .uff import remapping loads.
+          deno test --allow-read --allow-write \
+            ./src/requirements/cli-bootstrap/005-ci-compile-then-import.requirement.test.ts
 
       - name: Coverage
         run: |

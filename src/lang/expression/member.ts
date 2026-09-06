@@ -5,13 +5,9 @@ import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
 import type {
-  ArrayExpression,
   Expression,
   MemberExpression,
-  ObjectExpression,
-  PrimaryExpression,
   ReferenceExpression,
-  TerminalExpression,
 } from "../../runtime/expressions/expression.ts";
 
 export const Member: ModuleDeclaration = {
@@ -109,11 +105,7 @@ export const Member: ModuleDeclaration = {
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ _ }:
-          | ArrayExpression
-          | ObjectExpression
-          | PrimaryExpression
-          | TerminalExpression) => _,
+        fn: ({ _ }: { _: unknown }) => _,
       },
     },
     {

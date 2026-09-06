@@ -58,9 +58,13 @@ Deno.test({
 
     const sample = JSON.parse(
       await Deno.readTextFile(join(out, "a/ok.uffda.ast.json")),
-    ) as { kind: string; version: string; sourcePath: string };
-    assertEquals(sample.kind, "uffda-ast-artifact");
-    assertEquals(sample.version, "v1");
-    assertEquals(sample.sourcePath, "a/ok.uff");
+    ) as { kind: string; declarations: unknown[] };
+    assertEquals(sample.kind, "module");
+    assert(Array.isArray(sample.declarations));
+    assertEquals(
+      result.successes.find((unit) => unit.sourcePath === "a/ok.uff")
+        ?.sourcePath,
+      "a/ok.uff",
+    );
   },
 });

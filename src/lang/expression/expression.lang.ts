@@ -18,7 +18,13 @@ export async function expressionGrammar(
     source: expression,
     moduleUrl: new URL(import.meta.url),
     entryRuleName: "ExpressionLang",
-    grammarOptions: opts,
+    grammarOptions: {
+      ...opts,
+      declarations: {
+        ...opts?.declarations,
+        [new URL(import.meta.url).href]: ExpressionLang,
+      },
+    },
   });
 }
 

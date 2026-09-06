@@ -33,6 +33,10 @@ self-hosting while maintaining deterministic and diagnosable behavior.
   artifacts for the compiled product.
 - Artifact paths and names under `./bin/` MUST be deterministic for a fixed
   source tree and compiler version.
+- Runtime module imports that name a `.uff` source MUST resolve through that
+  artifact remapping (logical `.uff` URL → mirrored
+  `./bin/ast/.../*.uffda.ast.json`), not by reading `.uff` source text. See the
+  [modules specification](../modules.spec.md#uffda-source-imports-uff).
 
 ## Full-circle validation requirements
 

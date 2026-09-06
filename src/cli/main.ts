@@ -8,7 +8,13 @@ import {
   resolveCliProcessContract,
 } from "./contract.ts";
 import { compileSourcesToAstArtifacts } from "./compile.ts";
-import { executeCliExpression, executeCliModule, parseCliAst } from "./exec.ts";
+import {
+  type CliModuleOrigin,
+  executeCliExpression,
+  executeCliModule,
+  moduleUrlForCliOrigin,
+  parseCliAst,
+} from "./exec.ts";
 import {
   isCliMatchFailure,
   matchCliPattern,
@@ -274,7 +280,9 @@ export function resolveProcessCwd(
 
 type CommandInput = {
   source: string;
+  /** Diagnostic label: absolute file path, `<stdin>`, or `<eval>`. */
   sourcePath: string;
+  moduleOrigin: CliModuleOrigin;
 };
 
 async function readCommandInput(
@@ -282,16 +290,28 @@ async function readCommandInput(
   stdinSource: string,
 ): Promise<CommandInput> {
   if (contract.inlineSource !== undefined) {
-    return { source: contract.inlineSource, sourcePath: "<eval>" };
+    return {
+      source: contract.inlineSource,
+      sourcePath: "<eval>",
+      moduleOrigin: { kind: "eval" },
+    };
   }
 
   const inputPath = contract.inputPaths[0];
   if (inputPath === undefined || inputPath === "-") {
-    return { source: stdinSource, sourcePath: "<stdin>" };
+    return {
+      source: stdinSource,
+      sourcePath: "<stdin>",
+      moduleOrigin: { kind: "stdin" },
+    };
   }
 
   const sourcePath = resolve(contract.cwd, inputPath);
-  return { source: await Deno.readTextFile(sourcePath), sourcePath };
+  return {
+    source: await Deno.readTextFile(sourcePath),
+    sourcePath,
+    moduleOrigin: { kind: "file", absolutePath: sourcePath },
+  };
 }
 
 async function readMatchInput(
@@ -319,7 +339,13 @@ async function readOperationAst(
   stdinSource: string,
   language: CliLanguage,
 ): Promise<
-  | { ok: true; ast: unknown; source: string }
+  | {
+    ok: true;
+    ast: unknown;
+    source: string;
+    sourcePath: string;
+    moduleOrigin: CliModuleOrigin;
+  }
   | { ok: false; result: CliRunResult }
 > {
   let input: CommandInput;
@@ -338,13 +364,21 @@ async function readOperationAst(
 
   if (contract.astInput) {
     const parsed = parseCliAst(input.source);
-    return parsed.ok ? { ok: true, ast: parsed.ast, source: input.source } : {
-      ok: false,
-      result: {
-        exitCode: CliExitCode.Usage,
-        stderr: toJson({ ok: false, error: parsed.error }),
-      },
-    };
+    return parsed.ok
+      ? {
+        ok: true,
+        ast: parsed.ast,
+        source: input.source,
+        sourcePath: input.sourcePath,
+        moduleOrigin: input.moduleOrigin,
+      }
+      : {
+        ok: false,
+        result: {
+          exitCode: CliExitCode.Usage,
+          stderr: toJson({ ok: false, error: parsed.error }),
+        },
+      };
   }
 
   const parsed = await parseSourceToAst(
@@ -352,13 +386,21 @@ async function readOperationAst(
     language,
     input.sourcePath,
   );
-  return parsed.ok ? { ok: true, ast: parsed.ast, source: input.source } : {
-    ok: false,
-    result: {
-      exitCode: CliExitCode.Usage,
-      stderr: toJson({ ok: false, error: parsed.error }),
-    },
-  };
+  return parsed.ok
+    ? {
+      ok: true,
+      ast: parsed.ast,
+      source: input.source,
+      sourcePath: input.sourcePath,
+      moduleOrigin: input.moduleOrigin,
+    }
+    : {
+      ok: false,
+      result: {
+        exitCode: CliExitCode.Usage,
+        stderr: toJson({ ok: false, error: parsed.error }),
+      },
+    };
 }
 
 function operationResult(value: unknown, jsonOutput = false): CliRunResult {
@@ -473,7 +515,11 @@ export async function runCli(
     );
     if (!parsed.ok) return parsed.result;
 
-    const result = await executeCliExpression(parsed.ast);
+    const result = await executeCliExpression(parsed.ast, {
+      cwd: contract.cwd,
+      artifactRoot: contract.outputRootDir,
+      moduleUrl: moduleUrlForCliOrigin(contract.cwd, parsed.moduleOrigin),
+    });
     if (!result.ok) {
       return {
         exitCode: CliExitCode.Usage,
@@ -541,7 +587,11 @@ export async function runCli(
     );
     if (!parsed.ok) return parsed.result;
 
-    const result = await executeCliModule(parsed.ast, contract.entryRuleName);
+    const result = await executeCliModule(parsed.ast, contract.entryRuleName, {
+      cwd: contract.cwd,
+      artifactRoot: contract.outputRootDir,
+      moduleUrl: moduleUrlForCliOrigin(contract.cwd, parsed.moduleOrigin),
+    });
     if (result.ok) return operationResult(result.value, contract.jsonOutput);
     return {
       exitCode: CliExitCode.Usage,

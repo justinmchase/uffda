@@ -55,9 +55,15 @@ export async function parseGrammar<TAst>(options: {
     grammarOptions,
   } = options;
   const { globals, declarations } = grammarOptions ?? {};
+  const { builtInLanguageDeclarations } = await import("./declarations.ts");
 
   const g = globals ?? std;
-  const r = new Resolver({ declarations });
+  const r = new Resolver({
+    declarations: {
+      ...builtInLanguageDeclarations,
+      ...declarations,
+    },
+  });
   const s = Scope
     .From(source)
     .withOptions({ globals: g, resolver: r });

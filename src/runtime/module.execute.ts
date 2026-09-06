@@ -16,6 +16,8 @@ export type ExecuteModuleDeclarationOptions = {
   inputKind?: InputNormalizationMode;
   variables?: Map<string, unknown> | Record<string, unknown>;
   scopeOptions?: Partial<ScopeOptions>;
+  cwd?: string;
+  artifactRoot?: string;
 };
 
 export async function executeModuleDeclaration(
@@ -27,7 +29,11 @@ export async function executeModuleDeclaration(
     ...(options?.declarations ?? {}),
     [moduleUrl.href]: moduleDeclaration,
   };
-  const resolver = new Resolver({ declarations });
+  const resolver = new Resolver({
+    declarations,
+    cwd: options?.cwd,
+    artifactRoot: options?.artifactRoot,
+  });
 
   let scope = options?.input === undefined
     ? Scope.Default()

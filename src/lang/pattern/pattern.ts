@@ -3,8 +3,10 @@ import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
-import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
-import type { Pattern } from "../../runtime/patterns/pattern.ts";
+import {
+  type Pattern as PatternAst,
+  ResolveTargetKind,
+} from "../../runtime/patterns/pattern.ts";
 
 export const Pattern: ModuleDeclaration = {
   imports: [
@@ -33,7 +35,7 @@ export const Pattern: ModuleDeclaration = {
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ _ }): Pattern => _ as Pattern,
+        fn: ({ _ }): PatternAst => _ as PatternAst,
       },
     },
   ],

@@ -18,7 +18,13 @@ export async function patternGrammar(
     source: pattern,
     moduleUrl: new URL(import.meta.url),
     entryRuleName: "PatternLang",
-    grammarOptions: opts,
+    grammarOptions: {
+      ...opts,
+      declarations: {
+        ...opts?.declarations,
+        [new URL(import.meta.url).href]: PatternLang,
+      },
+    },
   });
 }
 

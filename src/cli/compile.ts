@@ -1,16 +1,13 @@
-import {
-  dirname,
-  extname,
-  isAbsolute,
-  join,
-  relative,
-  resolve,
-} from "@std/path";
+import { dirname, isAbsolute, join, resolve } from "@std/path";
 import { type Match, MatchKind } from "../match.ts";
 import {
   uffdaGrammar,
   type UffdaSyntaxModule,
 } from "../lang/uffda/uffda.lang.ts";
+import {
+  outputNameForSource,
+  toStableSourcePath,
+} from "../runtime/resolvers/artifact_path.ts";
 
 export enum CliCompileFailureCode {
   InvalidContext = "CLI_COMPILE_INVALID_CONTEXT",
@@ -68,18 +65,6 @@ type PlannedSource = {
   sourcePath: string;
   outputPath: string;
 };
-
-function toStableSourcePath(cwd: string, absolutePath: string): string {
-  const rel = relative(cwd, absolutePath);
-  return rel === "" ? "." : rel.replaceAll("\\", "/");
-}
-
-function outputNameForSource(sourcePath: string): string {
-  const ext = extname(sourcePath);
-  return ext === ""
-    ? `${sourcePath}.uffda.ast.json`
-    : `${sourcePath.slice(0, -ext.length)}.uffda.ast.json`;
-}
 
 function parseFailureMessage(match: Match): string {
   if (match.kind === MatchKind.Error) {
