@@ -29,6 +29,7 @@ Postconditions:
 
 ## Status
 
-Milestone 11 in progress. The first authored module is
-`src/lang/common/characters/digit.uff`; remaining language modules still load
-from TypeScript until conversion completes.
+Milestone 11 in progress. Authored modules so far:
+`src/lang/common/characters/digit.uff` and
+`src/lang/common/characters/connecting.uff`; remaining language modules still
+load from TypeScript until conversion completes.

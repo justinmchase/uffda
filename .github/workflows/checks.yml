@@ -43,18 +43,23 @@ jobs:
         # Allow read is required to run resolve tests
         run: deno test --allow-read --allow-write --parallel --coverage=cov_profile
 
-      - name: Compile language module
+      - name: Compile language modules
         run: |
           set -euo pipefail
           uffda --version
+          sources=(
+            ./src/lang/common/characters/digit.uff
+            ./src/lang/common/characters/connecting.uff
+          )
           # Prefer the published CLI. Older releases cannot compile under
           # deno-compile module loading; fall back once so this registry fix can
           # land and the next published CLI becomes the permanent path.
-          if ! uffda compile ./src/lang/common/characters/digit.uff --out-dir ./bin; then
+          if ! uffda compile "${sources[@]}" --out-dir ./bin; then
             echo "Published CLI could not compile; using in-tree CLI for transition."
-            deno task cli compile ./src/lang/common/characters/digit.uff --out-dir ./bin
+            deno task cli compile "${sources[@]}" --out-dir ./bin
           fi
           test -f ./bin/ast/src/lang/common/characters/digit.uffda.ast.json
+          test -f ./bin/ast/src/lang/common/characters/connecting.uffda.ast.json
 
       - name: Bootstrap import from ./bin
         run: |

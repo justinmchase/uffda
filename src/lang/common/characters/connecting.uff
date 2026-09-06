@@ -1,0 +1,2 @@
+# Connecting matches a single Unicode connector-punctuation character.
+export rule Connecting = \cPc;

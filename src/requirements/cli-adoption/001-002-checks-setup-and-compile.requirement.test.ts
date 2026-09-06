@@ -22,13 +22,25 @@ Deno.test(
     );
     assertEquals(
       yaml.includes(
-        "uffda compile ./src/lang/common/characters/digit.uff --out-dir ./bin",
+        "./src/lang/common/characters/digit.uff",
+      ),
+      true,
+    );
+    assertEquals(
+      yaml.includes(
+        "./src/lang/common/characters/connecting.uff",
       ),
       true,
     );
     assertEquals(
       yaml.includes(
         "./bin/ast/src/lang/common/characters/digit.uffda.ast.json",
+      ),
+      true,
+    );
+    assertEquals(
+      yaml.includes(
+        "./bin/ast/src/lang/common/characters/connecting.uffda.ast.json",
       ),
       true,
     );

@@ -70,3 +70,6 @@ self-hosting while maintaining deterministic and diagnosable behavior.
   share lower Uffda layers but define alternate top-level languages.
 - Distribution of CLI binaries used for bootstrapping is defined in the
   [distribution and release](./cli/distribution-and-release.spec.md) chapter.
+- Operational conversion order and per-module readiness gates for replacing
+  TypeScript language modules with `.uff` sources are recorded in
+  [uff-module-conversion-plan.md](./uff-module-conversion-plan.md).
