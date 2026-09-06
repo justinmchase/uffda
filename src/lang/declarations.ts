@@ -5,12 +5,21 @@
  * the ephemeral compile root. Pre-registering declarations keeps grammar loading
  * working for both `deno run` and `deno compile` products.
  *
+ * Converted `.uff` character leaves are registered under their logical `.uff`
+ * URLs via `*.bootstrap.ts` host declarations so the published CLI can compile
+ * without requiring `./bin` first. Remapping tests omit these entries to prove
+ * `./bin` loading.
+ *
  * Language entry modules (`*.lang.ts`) are registered by their grammar helpers
  * to avoid an import cycle through `grammar.ts`.
  */
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 
-import Combining from "./common/characters/combining.ts";
+import Combining from "./common/characters/combining.bootstrap.ts";
+import Connecting from "./common/characters/connecting.bootstrap.ts";
+import Digit from "./common/characters/digit.bootstrap.ts";
+import Formatting from "./common/characters/formatting.bootstrap.ts";
+import Letter from "./common/characters/letter.bootstrap.ts";
 import Characters from "./common/characters/mod.ts";
 import NewLine from "./common/characters/newLine.ts";
 import Whitespace from "./common/characters/whitespace.ts";
@@ -64,7 +73,11 @@ function entry(
 
 export const builtInLanguageDeclarations: Record<string, ModuleDeclaration> =
   Object.fromEntries([
-    entry("./common/characters/combining.ts", Combining),
+    entry("./common/characters/combining.uff", Combining),
+    entry("./common/characters/connecting.uff", Connecting),
+    entry("./common/characters/digit.uff", Digit),
+    entry("./common/characters/formatting.uff", Formatting),
+    entry("./common/characters/letter.uff", Letter),
     entry("./common/characters/mod.ts", Characters),
     entry("./common/characters/newLine.ts", NewLine),
     entry("./common/characters/whitespace.ts", Whitespace),

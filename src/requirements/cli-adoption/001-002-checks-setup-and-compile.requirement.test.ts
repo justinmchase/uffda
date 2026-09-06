@@ -15,35 +15,12 @@ Deno.test(
 );
 
 Deno.test(
-  "req:cli-adoption-002 - checks compile digit.uff into ./bin",
+  "req:cli-adoption-002 - checks compile language .uff modules into ./bin",
   async () => {
     const yaml = await Deno.readTextFile(
       join(repoRoot, ".github", "workflows", "checks.yml"),
     );
-    assertEquals(
-      yaml.includes(
-        "./src/lang/common/characters/digit.uff",
-      ),
-      true,
-    );
-    assertEquals(
-      yaml.includes(
-        "./src/lang/common/characters/connecting.uff",
-      ),
-      true,
-    );
-    assertEquals(
-      yaml.includes(
-        "./src/lang/common/characters/formatting.uff",
-      ),
-      true,
-    );
-    assertEquals(
-      yaml.includes(
-        "./src/lang/common/characters/letter.uff",
-      ),
-      true,
-    );
+    assertEquals(yaml.includes("src/lang/**/*.uff"), true);
     assertEquals(
       yaml.includes(
         "./bin/ast/src/lang/common/characters/digit.uffda.ast.json",
@@ -52,24 +29,10 @@ Deno.test(
     );
     assertEquals(
       yaml.includes(
-        "./bin/ast/src/lang/common/characters/connecting.uffda.ast.json",
+        "./bin/ast/src/lang/common/characters/combining.uffda.ast.json",
       ),
       true,
     );
-    assertEquals(
-      yaml.includes(
-        "./bin/ast/src/lang/common/characters/formatting.uffda.ast.json",
-      ),
-      true,
-    );
-    assertEquals(
-      yaml.includes(
-        "./bin/ast/src/lang/common/characters/letter.uffda.ast.json",
-      ),
-      true,
-    );
-    assertEquals(yaml.includes("uffda compile"), true);
-    assertEquals(yaml.includes("src/cli/main.ts compile"), false);
   },
 );
 

@@ -2,14 +2,17 @@ import { assertEquals } from "@std/assert";
 import { builtInLanguageDeclarations } from "./declarations.ts";
 
 Deno.test("lang.declarations registers built-in language modules", () => {
-  const combiningUrl = new URL(
-    "./common/characters/combining.ts",
+  const digitUff = new URL("./common/characters/digit.uff", import.meta.url)
+    .href;
+  const combiningUff = new URL(
+    "./common/characters/combining.uff",
     import.meta.url,
   ).href;
   const patternLangUrl = new URL("./pattern/pattern.lang.ts", import.meta.url)
     .href;
+  assertEquals(builtInLanguageDeclarations[digitUff]?.rules[0]?.name, "Digit");
   assertEquals(
-    builtInLanguageDeclarations[combiningUrl]?.rules[0]?.name,
+    builtInLanguageDeclarations[combiningUff]?.rules[0]?.name,
     "Combining",
   );
   assertEquals(
@@ -17,29 +20,5 @@ Deno.test("lang.declarations registers built-in language modules", () => {
       item.name === "PatternLang"
     ),
     true,
-  );
-  assertEquals(
-    builtInLanguageDeclarations[
-      new URL("./common/characters/digit.uff", import.meta.url).href
-    ],
-    undefined,
-  );
-  assertEquals(
-    builtInLanguageDeclarations[
-      new URL("./common/characters/connecting.uff", import.meta.url).href
-    ],
-    undefined,
-  );
-  assertEquals(
-    builtInLanguageDeclarations[
-      new URL("./common/characters/formatting.uff", import.meta.url).href
-    ],
-    undefined,
-  );
-  assertEquals(
-    builtInLanguageDeclarations[
-      new URL("./common/characters/letter.uff", import.meta.url).href
-    ],
-    undefined,
   );
 });
