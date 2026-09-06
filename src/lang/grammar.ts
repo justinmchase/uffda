@@ -1,10 +1,12 @@
 import { assertEquals } from "@std/assert";
+import { resolve as resolvePath } from "@std/path";
 import { type Match, MatchKind, type MatchOk } from "../match.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "../runtime/patterns/pattern.ts";
 import { Scope } from "../runtime/scope.ts";
 import { std } from "../runtime/std/mod.ts";
 import { resolve } from "../runtime/patterns/resolve.ts";
+import { DEFAULT_ARTIFACT_ROOT } from "../runtime/resolvers/artifact_path.ts";
 import { ModuleImportResultKind } from "../runtime/resolvers/resolver.ts";
 import { Resolver } from "../mod.ts";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
@@ -58,11 +60,14 @@ export async function parseGrammar<TAst>(options: {
   const { builtInLanguageDeclarations } = await import("./declarations.ts");
 
   const g = globals ?? std;
+  const cwd = Deno.cwd();
   const r = new Resolver({
     declarations: {
       ...builtInLanguageDeclarations,
       ...declarations,
     },
+    cwd,
+    artifactRoot: resolvePath(cwd, DEFAULT_ARTIFACT_ROOT),
   });
   const s = Scope
     .From(source)

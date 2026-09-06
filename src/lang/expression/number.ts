@@ -11,7 +11,7 @@ export const Number: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "../common/characters/digit.ts",
+      moduleUrl: "../common/characters/digit.uff",
       names: [
         "Digit",
       ],

@@ -6,15 +6,13 @@ import {
 } from "../../runtime/declarations/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
-import { Connecting } from "./characters/connecting.ts";
 import { Combining } from "./characters/combining.ts";
-import { Digit } from "./characters/digit.ts";
 import { Letter } from "./characters/letter.ts";
 import { Formatting } from "./characters/formatting.ts";
 
 // import ./letter.ts (Letter);
-// import ./digit.ts (Digit);
-// import ./connecting.ts (Connecting);
+// import ./digit.uff (Digit);
+// import ./connecting.uff (Connecting);
 // import ./combining.ts (Combining);
 // import ./formatting.ts (Formatting);
 // Identifier =
@@ -43,17 +41,15 @@ export const Identifier: ModuleDeclaration = {
       ],
     },
     {
-      kind: ImportDeclarationKind.Native,
-      module: Digit,
-      moduleUrl: "./characters/digit.ts",
+      kind: ImportDeclarationKind.Module,
+      moduleUrl: "./characters/digit.uff",
       names: [
         "Digit",
       ],
     },
     {
-      kind: ImportDeclarationKind.Native,
-      module: Connecting,
-      moduleUrl: "./characters/connecting.ts",
+      kind: ImportDeclarationKind.Module,
+      moduleUrl: "./characters/connecting.uff",
       names: [
         "Connecting",
       ],

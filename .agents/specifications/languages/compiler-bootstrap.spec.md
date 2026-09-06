@@ -23,6 +23,19 @@ self-hosting while maintaining deterministic and diagnosable behavior.
   binary MUST come from compiled artifacts rather than TypeScript module sources
   that define those languages.
 
+## Published-compiler feature surface
+
+- Language and CLI `.uff` sources that are compiled during bootstrap MUST be
+  accepted by the latest published CLI (version N).
+- Authors MUST NOT rely on syntax, std callables, pattern forms, or compiler
+  behavior that exist only in the in-tree (version N+1) sources until those
+  capabilities have shipped in a published CLI.
+- New language features MUST land in a published release before any `.uff`
+  module in the tree depends on them for compile-time acceptance.
+- Local and CI compile steps for authored `.uff` modules MUST invoke that
+  published `uffda` install path, not the in-tree CLI entrypoint, for the
+  bootstrap compile that produces `./bin/`.
+
 ## Artifact layout requirements
 
 - Authored language and CLI sources for self-hosting MUST be expressible as
@@ -54,6 +67,9 @@ self-hosting while maintaining deterministic and diagnosable behavior.
 
 - Bootstrap progression MUST allow the current stable published CLI to compile
   the next language-layer and CLI version.
+- That next version’s authored `.uff` sources MUST remain within the feature
+  surface of the publishing CLI used to compile them (see
+  [Published-compiler feature surface](#published-compiler-feature-surface)).
 - Layer contracts MUST remain versionable so source and diagnostic provenance
   can be preserved across compiler upgrades from version N to N+1.
 
@@ -70,3 +86,6 @@ self-hosting while maintaining deterministic and diagnosable behavior.
   share lower Uffda layers but define alternate top-level languages.
 - Distribution of CLI binaries used for bootstrapping is defined in the
   [distribution and release](./cli/distribution-and-release.spec.md) chapter.
+- Operational conversion order and per-module readiness gates for replacing
+  TypeScript language modules with `.uff` sources are recorded in
+  [uff-module-conversion-plan.md](./uff-module-conversion-plan.md).

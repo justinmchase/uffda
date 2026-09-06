@@ -13,14 +13,14 @@ export const Characters: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./connecting.ts",
+      moduleUrl: "./connecting.uff",
       names: [
         "Connecting",
       ],
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./digit.ts",
+      moduleUrl: "./digit.uff",
       names: [
         "Digit",
       ],

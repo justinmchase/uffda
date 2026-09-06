@@ -34,6 +34,8 @@ RFC 8174.
 - [pattern layer contracts](./languages/pattern-layer.spec.md)
 - [uffda language-definition layer](./languages/uffda-language.spec.md)
 - [compiler and bootstrap progression layer](./languages/compiler-bootstrap.spec.md)
+- [`.ts` → `.uff` language module conversion plan](./languages/uff-module-conversion-plan.md)
+  (living plan; convert one module at a time after G1–G3 review)
 - [debuggability and source-context fidelity](./languages/debuggability.spec.md)
 - [command-line interface and interactive workbench](./languages/cli.spec.md)
 

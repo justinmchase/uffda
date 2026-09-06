@@ -10,18 +10,17 @@ spec_ref: ".agents/specifications/languages/cli.spec.md#milestone-10-ci-adopts-t
 
 Preconditions:
 
-- `src/lang/common/characters/digit.uff` is an authored Uffda source for the
-  Digit language module.
+- `src/lang/common/characters/digit.uff` (and other Phase 0 character `.uff`
+  sources such as `connecting.uff`) are authored Uffda sources.
 - The Checks workflow has installed an Uffda CLI.
 
 Expected behavior:
 
-- Checks MUST compile `digit.uff` with `uffda compile` into `./bin/`.
-- The compile MUST emit a deterministic AST JSON artifact under `./bin/ast/`.
-- Until a published CLI includes deno-compile-safe language declaration loading,
-  Checks MAY fall back once to the in-tree CLI for the same compile command.
+- Checks MUST compile those `.uff` sources with the installed `uffda compile`
+  into `./bin/` (not the in-tree Deno CLI entrypoint).
+- The compile MUST emit deterministic AST JSON artifacts under `./bin/ast/`.
 
 Postconditions:
 
 - CI proves the published CLI install path can drive language-module
-  compilation, starting with one converted module.
+  compilation, starting with converted Phase 0 character modules.

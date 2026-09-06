@@ -22,7 +22,13 @@ Deno.test(
     );
     assertEquals(
       yaml.includes(
-        "uffda compile ./src/lang/common/characters/digit.uff --out-dir ./bin",
+        "./src/lang/common/characters/digit.uff",
+      ),
+      true,
+    );
+    assertEquals(
+      yaml.includes(
+        "./src/lang/common/characters/connecting.uff",
       ),
       true,
     );
@@ -32,6 +38,14 @@ Deno.test(
       ),
       true,
     );
+    assertEquals(
+      yaml.includes(
+        "./bin/ast/src/lang/common/characters/connecting.uffda.ast.json",
+      ),
+      true,
+    );
+    assertEquals(yaml.includes("uffda compile"), true);
+    assertEquals(yaml.includes("src/cli/main.ts compile"), false);
   },
 );
 
