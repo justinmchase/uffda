@@ -7,21 +7,22 @@ enough to support parsing strings as well as objects, arrays or any other value
 type. The result of this capability is that the entire compiler pipeline can be
 expressed in pattern matching operations.
 
-## CLI
+## Install
 
-Run the CLI from a checkout with `deno task cli`. Use `--help` for the command
-overview or command-specific help such as `deno task cli match --help`.
-
-### Install a release binary
-
-Linux hosts can install from GitHub Releases:
+Linux (x86_64 or aarch64):
 
 ```sh
 curl -fsSL https://github.com/justinmchase/uffda/releases/latest/download/install.sh | bash
 ```
 
-GitHub Actions workflows should use the in-repo setup action, which selects the
-matching binary for the runner OS and architecture:
+That installs `uffda` to `~/.local/bin` by default. Ensure that directory is on
+your `PATH`, then verify:
+
+```sh
+uffda --version
+```
+
+GitHub Actions:
 
 ```yaml
 - uses: justinmchase/uffda/.github/actions/uffda-setup@main
@@ -29,8 +30,17 @@ matching binary for the runner OS and architecture:
     version: latest
 ```
 
-Cross-compile every Deno target locally with `deno task compile:cli` (writes
-binaries and `SHA256SUMS` under `dist/cli/`).
+From a source checkout (Deno required):
+
+```sh
+deno task cli --version
+```
+
+## CLI
+
+Run the installed binary with `uffda`, or from a checkout with `deno task cli`.
+Use `--help` for the command overview or command-specific help such as
+`uffda match --help`.
 
 ### Publish a CLI release
 
@@ -49,7 +59,7 @@ Release tags are bare SemVer (for example `0.1.2`), matching Release Drafter.
 Evaluate an expression directly with `-e`:
 
 ```sh
-deno task cli exec -e '(echo "Hello, world!")'
+uffda exec -e '(echo "Hello, world!")'
 ```
 
 ```text
@@ -61,23 +71,23 @@ Hello, world!
 Parse source to a raw AST, then execute it explicitly as an AST pipeline:
 
 ```sh
-deno task cli parse --lang expression -e '(echo "Hello, world!")' |
-  deno task cli exec --ast
+uffda parse --lang expression -e '(echo "Hello, world!")' |
+  uffda exec --ast
 ```
 
 Match text with `--input`, or match one decoded JSON value with `--input-json`.
 Add `--json` when a script needs machine-readable results and diagnostics:
 
 ```sh
-deno task cli match -e 'any' --input hello
-deno task cli match -e 'number' --input-json 42 --json
+uffda match -e 'any' --input hello
+uffda match -e 'number' --input-json 42 --json
 ```
 
 Run a Uffda module with its first export, or select an exported rule with
 `--entry`:
 
 ```sh
-deno task cli run ./app.uff --entry Main
+uffda run ./app.uff --entry Main
 ```
 
 ### Workbench
