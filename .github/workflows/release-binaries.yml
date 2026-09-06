@@ -8,6 +8,10 @@ on:
   repository_dispatch:
     types: [release-binaries]
 
+concurrency:
+  group: release-binaries
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -189,21 +193,17 @@ jobs:
             exit 1
           fi
 
-          # Remove previously attached CLI assets so --clobber replacements stay tidy
-          # even when GitHub rejects duplicate names in edge cases.
-          mapfile -t existing < <(
-            gh release view "${tag}" --json assets --jq '.assets[].name' || true
-          )
-          for name in "${existing[@]:-}"; do
-            case "${name}" in
-              uffda-*|SHA256SUMS|install.sh)
-                gh release delete-asset "${tag}" "${name}" --yes || true
-                ;;
-            esac
+          # Retry uploads; concurrent runs or transient upload API errors can 404.
+          for attempt in 1 2 3; do
+            if gh release upload "${tag}" dist/cli/* --clobber; then
+              echo "Attached/replaced CLI assets on draft release ${tag}"
+              exit 0
+            fi
+            echo "Upload attempt ${attempt} failed; retrying..." >&2
+            sleep $((attempt * 2))
           done
-
-          gh release upload "${tag}" dist/cli/* --clobber
-          echo "Attached/replaced CLI assets on draft release ${tag}"
+          echo "Failed to upload CLI assets to draft release ${tag}" >&2
+          exit 1
 
   smoke:
     name: Smoke install via uffda-setup
