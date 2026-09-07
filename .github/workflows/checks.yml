@@ -20,9 +20,11 @@ jobs:
           deno-version: v2.x
 
       - name: Setup Uffda CLI
+        # Pin to 0.1.7 until 0.1.9+ ships with `deno compile --include ./bin`.
+        # Published 0.1.8 cannot resolve converted .uff language modules.
         uses: ./.github/actions/uffda-setup
         with:
-          version: latest
+          version: "0.1.7"
 
       - name: Lint
         run: deno lint

@@ -34,5 +34,12 @@ Deno.test(
       ),
     );
     assertEquals(roots.includes("Deno.build.standalone"), true);
+
+    const checks = await Deno.readTextFile(
+      join(repoRoot, ".github", "workflows", "checks.yml"),
+    );
+    // Bootstrap compile must use a working published CLI (0.1.7 until include
+    // ships). Avoid accidentally re-pinning to broken 0.1.8/latest too early.
+    assertEquals(checks.includes('version: "0.1.7"'), true);
   },
 );

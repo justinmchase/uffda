@@ -22,6 +22,8 @@ Expected behavior:
   extract root’s embedded `./bin` (not the consumer process cwd).
 - In-tree runs MUST continue remapping against the workspace `./bin` after
   `compile:lang`.
+- Until a release that includes `--include ./bin` is published, Checks MUST pin
+  bootstrap compile to the last working published CLI (currently `0.1.7`).
 
 Postconditions:
 
