@@ -63,6 +63,10 @@ jobs:
           test -f ./bin/ast/src/lang/expression/array.uffda.ast.json
           test -f ./bin/ast/src/lang/expression/object.uffda.ast.json
           test -f ./bin/ast/src/lang/expression/sequence.uffda.ast.json
+          test -f ./bin/ast/src/lang/expression/primary.uffda.ast.json
+          test -f ./bin/ast/src/lang/expression/unary.uffda.ast.json
+          test -f ./bin/ast/src/lang/expression/expression.uffda.ast.json
+          test -f ./bin/ast/src/lang/pattern/atoms.uffda.ast.json
 
       - name: Test
         # Allow read is required to run resolve tests. Language `.uff` modules

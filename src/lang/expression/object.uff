@@ -2,7 +2,7 @@
 # ObjectExpression. Variable bindings are single-letter (published CLI PatternLang).
 import "../tokenizer/token.uff" Token;
 import "./reference.uff" Reference;
-import "./primary.ts" Primary;
+import "./primary.uff" Primary;
 import "../common/spread.uff" SpreadMarker;
 
 export Object;

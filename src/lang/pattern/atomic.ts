@@ -10,7 +10,7 @@ export const Atomic: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./atoms.ts",
+      moduleUrl: "./atoms.uff",
       names: ["Atoms"],
     },
     {

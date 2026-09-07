@@ -11,7 +11,7 @@ export const String: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./primary.ts",
+      moduleUrl: "./primary.uff",
       names: [
         "Primary",
       ],

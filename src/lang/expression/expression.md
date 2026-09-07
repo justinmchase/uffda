@@ -3,7 +3,7 @@
 ```uff
 import "../tokenizer/token.uff" Token;
 import "../common/spread.uff" SpreadMarker;
-import "./primary.ts" Primary;
+import "./primary.uff" Primary;
 
 Expression = Unary;
 

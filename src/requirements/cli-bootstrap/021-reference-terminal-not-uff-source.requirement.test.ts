@@ -26,7 +26,7 @@ Deno.test(
 
     const not = await Deno.readTextFile(join(expression, "not.uff"));
     assertEquals(not.includes("export Not"), true);
-    assertEquals(not.includes('import "./primary.ts" Primary'), true);
+    assertEquals(not.includes('import "./primary.uff" Primary'), true);
     assertEquals(not.includes("e:Token<Primary>"), true);
     assertEquals(not.includes('-> { kind: "not", expression: e }'), true);
   },

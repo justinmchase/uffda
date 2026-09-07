@@ -1,0 +1,10 @@
+# Unary is Not or Primary.
+import "./primary.uff" Primary;
+import "./not.uff" Not;
+
+export Unary;
+
+rule Unary =
+  | Not
+  | Primary
+  ;
