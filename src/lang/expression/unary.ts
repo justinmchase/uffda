@@ -21,7 +21,7 @@ export const Unary: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./not.ts",
+      moduleUrl: "./not.uff",
       names: [
         "Not",
       ],

@@ -21,7 +21,7 @@ export const Object: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./reference.ts",
+      moduleUrl: "./reference.uff",
       names: ["Reference"],
     },
     {

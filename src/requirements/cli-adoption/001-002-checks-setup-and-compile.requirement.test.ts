@@ -94,6 +94,24 @@ Deno.test(
       ),
       true,
     );
+    assertEquals(
+      yaml.includes(
+        "./bin/ast/src/lang/expression/reference.uffda.ast.json",
+      ),
+      true,
+    );
+    assertEquals(
+      yaml.includes(
+        "./bin/ast/src/lang/expression/terminal.uffda.ast.json",
+      ),
+      true,
+    );
+    assertEquals(
+      yaml.includes(
+        "./bin/ast/src/lang/expression/not.uffda.ast.json",
+      ),
+      true,
+    );
   },
 );
 

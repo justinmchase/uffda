@@ -34,12 +34,12 @@ export const Member: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./terminal.ts",
+      moduleUrl: "./terminal.uff",
       names: ["Terminal"],
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./reference.ts",
+      moduleUrl: "./reference.uff",
       names: ["Reference"],
     },
   ],

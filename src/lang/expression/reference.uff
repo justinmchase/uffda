@@ -1,0 +1,8 @@
+# Reference matches a string Identifier and projects a ReferenceExpression.
+import "../common/identifier.uff" Identifier;
+
+export Reference;
+
+rule Reference =
+  string & [Identifier]
+  -> { kind: "reference", name: _ };

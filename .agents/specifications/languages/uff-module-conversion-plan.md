@@ -132,9 +132,9 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 | 12 | `expression/number`          | OK       | **B3** parseInt+join | Digits matched by pattern; Native parses — fix with std | **no** until B3                  |
 | 13 | `expression/boolean`         | OK       | object proj          | OK                                                      | done                             |
 | 14 | `expression/nullish`         | OK       | Value proj           | OK                                                      | done                             |
-| 15 | `expression/reference`       | OK       | Reference wrap       | OK                                                      | nearly                           |
-| 16 | `expression/terminal`        | OK       | identity             | OK                                                      | nearly                           |
-| 17 | `expression/not`             | OK       | Not wrap             | OK                                                      | nearly                           |
+| 15 | `expression/reference`       | OK       | Reference wrap       | OK                                                      | done                             |
+| 16 | `expression/terminal`        | OK       | identity             | OK                                                      | done                             |
+| 17 | `expression/not`             | OK       | Not wrap             | OK                                                      | done                             |
 | 18 | `expression/array`           | OK       | Array AST proj       | OK                                                      | nearly                           |
 | 19 | `expression/object`          | OK       | Object AST proj      | OK                                                      | nearly                           |
 | 20 | `expression/sequence`        | OK       | Invocation AST       | OK                                                      | nearly                           |
@@ -195,10 +195,11 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ## First candidate (next session)
 
-**Phase 2 — `expression/reference`**, then `terminal` / `not`.
+**Phase 2 — `expression/array` / `object` / `sequence`** (AST object
+projections; still Native today). Skip `number`/`string` until B3/B2.
+`pattern/atoms` is also near-ready if expression leaves stall.
 
-Phase 0–1 complete. Phase 2: `boolean` and `nullish` done; `number`/`string`
-still blocked on B3/B2.
+Phase 0–1 complete. Phase 2: boolean, nullish, reference, terminal, not done.
 
 ## References
 
