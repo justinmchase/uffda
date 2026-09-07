@@ -23,7 +23,7 @@ export const Literals: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "../expression/nullish.ts",
+      moduleUrl: "../expression/nullish.uff",
       names: ["Nullish"],
     },
     {

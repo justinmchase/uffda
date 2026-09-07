@@ -88,6 +88,12 @@ Deno.test(
       ),
       true,
     );
+    assertEquals(
+      yaml.includes(
+        "./bin/ast/src/lang/expression/nullish.uffda.ast.json",
+      ),
+      true,
+    );
   },
 );
 

@@ -22,6 +22,8 @@ Deno.test("lang.declarations registers built-in language modules", () => {
   assertEquals(builtInLanguageDeclarations[spreadUff], undefined);
   const booleanUff = new URL("./expression/boolean.uff", import.meta.url).href;
   assertEquals(builtInLanguageDeclarations[booleanUff], undefined);
+  const nullishUff = new URL("./expression/nullish.uff", import.meta.url).href;
+  assertEquals(builtInLanguageDeclarations[nullishUff], undefined);
   assertEquals(
     builtInLanguageDeclarations[patternLangUrl]?.exports.some((item) =>
       item.name === "PatternLang"

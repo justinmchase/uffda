@@ -131,7 +131,7 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 | -- | ---------------------------- | -------- | -------------------- | ------------------------------------------------------- | -------------------------------- |
 | 12 | `expression/number`          | OK       | **B3** parseInt+join | Digits matched by pattern; Native parses — fix with std | **no** until B3                  |
 | 13 | `expression/boolean`         | OK       | object proj          | OK                                                      | done                             |
-| 14 | `expression/nullish`         | OK       | Value proj           | OK                                                      | nearly                           |
+| 14 | `expression/nullish`         | OK       | Value proj           | OK                                                      | done                             |
 | 15 | `expression/reference`       | OK       | Reference wrap       | OK                                                      | nearly                           |
 | 16 | `expression/terminal`        | OK       | identity             | OK                                                      | nearly                           |
 | 17 | `expression/not`             | OK       | Not wrap             | OK                                                      | nearly                           |
@@ -195,11 +195,10 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ## First candidate (next session)
 
-**Phase 2 — `expression/nullish`** (same Native→serializable projection shape as
-boolean). Then `reference` / `terminal` / `not`.
+**Phase 2 — `expression/reference`**, then `terminal` / `not`.
 
-Phase 0–1 complete. Phase 2 started: `boolean` done; `number`/`string` still
-blocked on B3/B2.
+Phase 0–1 complete. Phase 2: `boolean` and `nullish` done; `number`/`string`
+still blocked on B3/B2.
 
 ## References
 
