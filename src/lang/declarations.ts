@@ -21,7 +21,6 @@ import Expression from "./expression/expression.ts";
 import ExpressionLang from "./expression/expression.lang.ts";
 import Member from "./expression/member.ts";
 import Not from "./expression/not.ts";
-import Nullish from "./expression/nullish.ts";
 import NumberModule from "./expression/number.ts";
 import ObjectModule from "./expression/object.ts";
 import Primary from "./expression/primary.ts";
@@ -66,7 +65,6 @@ export const builtInLanguageDeclarations: Record<string, ModuleDeclaration> =
     entry("./expression/expression.lang.ts", ExpressionLang),
     entry("./expression/member.ts", Member),
     entry("./expression/not.ts", Not),
-    entry("./expression/nullish.ts", Nullish),
     entry("./expression/number.ts", NumberModule),
     entry("./expression/object.ts", ObjectModule),
     entry("./expression/primary.ts", Primary),

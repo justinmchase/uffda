@@ -60,7 +60,7 @@ export const Terminal: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./nullish.ts",
+      moduleUrl: "./nullish.uff",
       names: [
         "Nullish",
       ],
