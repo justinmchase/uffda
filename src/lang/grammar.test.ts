@@ -2,7 +2,9 @@ import { assertEquals } from "@std/assert";
 import { MatchKind } from "../match.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 import type { Pattern } from "../runtime/patterns/pattern.ts";
+import { expressionGrammar } from "./expression/expression.lang.ts";
 import { parseGrammar } from "./grammar.ts";
+import { exec } from "../runtime/exec.ts";
 
 Deno.test({
   name: "lang.grammar.parseGrammar",
@@ -33,6 +35,21 @@ Deno.test({
         });
 
         assertEquals(m.kind, MatchKind.Fail);
+      },
+    });
+
+    await t.step({
+      name: "GRAMMAR_02 merges caller globals over std without dropping std",
+      fn: async () => {
+        // Identifier projections need std.join/flat while caller globals supply
+        // expression locals such as `user`.
+        const m = await expressionGrammar("user", {
+          globals: new Map([["user", "ok"]]),
+        });
+        assertEquals(m.kind, MatchKind.Ok);
+        if (m.kind === MatchKind.Ok) {
+          assertEquals(await exec(m.value, m), "ok");
+        }
       },
     });
   },

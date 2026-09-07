@@ -10,7 +10,7 @@ export const SharedRules: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "../common/identifier.ts",
+      moduleUrl: "../common/identifier.uff",
       names: ["Identifier"],
     },
   ],

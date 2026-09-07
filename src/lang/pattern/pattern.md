@@ -2,7 +2,7 @@
 
 ```uff
 import "../tokenizer/token.ts" Token;
-import "../common/identifier.ts" Identifier;
+import "../common/identifier.uff" Identifier;
 
 Pattern = Or -> Or;
 

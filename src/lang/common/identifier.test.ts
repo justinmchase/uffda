@@ -2,7 +2,7 @@ import { Input } from "../../input.ts";
 import { MatchKind } from "../../mod.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
-const moduleUrl = new URL("./identifier.ts", import.meta.url).href;
+const moduleUrl = new URL("./identifier.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -19,6 +19,7 @@ Deno.test(
       name: "IDENTIFIER00",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Identifier",
         input: Input.Iterable("abc"),
         kind: MatchKind.Ok,
         value: "abc",
@@ -29,6 +30,7 @@ Deno.test(
       name: "IDENTIFIER01",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Identifier",
         input: Input.Iterable("_Abc"),
         kind: MatchKind.Ok,
         value: "_Abc",
@@ -39,6 +41,7 @@ Deno.test(
       name: "IDENTIFIER02",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Identifier",
         input: Input.Iterable("A_b_c_"),
         kind: MatchKind.Ok,
         value: "A_b_c_",
@@ -49,6 +52,7 @@ Deno.test(
       name: "IDENTIFIER03",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Identifier",
         input: Input.Iterable(
           "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_",
         ),
@@ -57,11 +61,11 @@ Deno.test(
           "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_",
       }),
     });
-
     await t.step({
       name: "IDENTIFIER04",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Identifier",
         input: Input.Iterable("1abc"),
         kind: MatchKind.Fail,
       }),
@@ -71,6 +75,7 @@ Deno.test(
       name: "IDENTIFIER05",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Identifier",
         input: Input.Iterable("ab̃c"), // \cMn
         kind: MatchKind.Ok,
         value: "ab̃c",
@@ -81,6 +86,7 @@ Deno.test(
       name: "IDENTIFIER06",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Identifier",
         input: Input.Iterable("abःc"), // \cMc
         kind: MatchKind.Ok,
         value: "abःc",
@@ -91,6 +97,7 @@ Deno.test(
       name: "IDENTIFIER07",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Identifier",
         input: Input.Iterable("ab⁀c"), // \cPc
         kind: MatchKind.Ok,
         value: "ab⁀c",
@@ -101,6 +108,7 @@ Deno.test(
       name: "IDENTIFIER08",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Identifier",
         input: Input.Iterable("abc⁠xyz"), // \cCf
         kind: MatchKind.Ok,
         value: "abc⁠xyz",
@@ -111,6 +119,7 @@ Deno.test(
       name: "IDENTIFIER09",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Identifier",
         input: Input.Iterable("1abc"),
         kind: MatchKind.Fail,
       }),
