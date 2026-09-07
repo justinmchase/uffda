@@ -83,7 +83,7 @@ export const SurroundTest: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: new URL("./surround.ts", import.meta.url).href,
+      moduleUrl: new URL("./surround.uff", import.meta.url).href,
       names: ["Surround"],
     },
   ],
