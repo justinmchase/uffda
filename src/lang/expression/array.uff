@@ -1,0 +1,30 @@
+# Array matches `[` … `]` with element/spread initializers and projects an
+# ArrayExpression. Variable bindings are single-letter (published CLI PatternLang).
+import "../tokenizer/token.uff" Token;
+import "./primary.ts" Primary;
+import "../common/spread.uff" SpreadMarker;
+
+export Array;
+
+rule OpenBracket = "[" -> "[";
+rule CloseBracket = "]" -> "]";
+
+rule ArrayElement =
+  Token<Primary>
+  -> { kind: "arrayElement", expression: _ };
+
+rule ArraySpread =
+  SpreadMarker
+  e:Token<Primary>
+  -> { kind: "arraySpread", expression: e };
+
+rule ArrayInitializer =
+  | ArraySpread
+  | ArrayElement
+  ;
+
+rule Array =
+  Token<OpenBracket>
+  e:ArrayInitializer*
+  Token<CloseBracket>
+  -> { kind: "array", expressions: e };

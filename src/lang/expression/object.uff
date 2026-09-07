@@ -1,0 +1,47 @@
+# Object matches `{` … `}` with key/spread entries and projects an
+# ObjectExpression. Variable bindings are single-letter (published CLI PatternLang).
+import "../tokenizer/token.uff" Token;
+import "./reference.uff" Reference;
+import "./primary.ts" Primary;
+import "../common/spread.uff" SpreadMarker;
+
+export Object;
+
+rule OpenBrace = "{";
+rule CloseBrace = "}";
+rule Colon = ":" -> ":";
+rule Comma = "," -> ",";
+
+rule ObjectPair =
+  k:Token<Reference>
+  Token<Colon>
+  v:Token<Primary>
+  -> { kind: "objectKey", name: k.name, expression: v };
+
+rule ObjectSpread =
+  SpreadMarker
+  e:Token<Primary>
+  -> { kind: "objectSpread", expression: e };
+
+rule ObjectEntry =
+  | ObjectSpread
+  | ObjectPair
+  ;
+
+rule ObjectPairTail =
+  Token<Comma>
+  p:ObjectEntry
+  -> p;
+
+rule ObjectPairs =
+  ObjectEntry
+  ObjectPairTail*
+  -> (flat _);
+
+rule OptPairs = ObjectPairs?;
+
+rule Object =
+  Token<OpenBrace>
+  k:OptPairs
+  Token<CloseBrace>
+  -> { kind: "object", keys: (flat (coalesce k [])) };

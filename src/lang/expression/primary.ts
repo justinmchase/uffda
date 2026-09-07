@@ -32,14 +32,14 @@ export const Terminal: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./array.ts",
+      moduleUrl: "./array.uff",
       names: [
         "Array",
       ],
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./object.ts",
+      moduleUrl: "./object.uff",
       names: [
         "Object",
       ],
@@ -67,7 +67,7 @@ export const Terminal: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./sequence.ts",
+      moduleUrl: "./sequence.uff",
       names: [
         "Sequence",
       ],

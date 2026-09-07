@@ -3,7 +3,7 @@ import { MatchKind } from "../../mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
-const moduleUrl = new URL("./array.ts", import.meta.url).href;
+const moduleUrl = new URL("./array.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -20,6 +20,7 @@ Deno.test(
       name: "ARRAY_EXPRESSION_00",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Array",
         input: Input.Iterable(["[", "]"]),
         kind: MatchKind.Ok,
         value: {
@@ -33,6 +34,7 @@ Deno.test(
       name: "ARRAY_EXPRESSION_01",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Array",
         input: Input.Iterable(["[", "1", "2", "3", "]"]),
         kind: MatchKind.Ok,
         value: {
@@ -59,6 +61,7 @@ Deno.test(
       name: "ARRAY_EXPRESSION_02",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Array",
         input: Input.Iterable(["[", ".", ".", ".", "xs", "1", "]"]),
         kind: MatchKind.Ok,
         value: {
