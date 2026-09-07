@@ -1,0 +1,4 @@
+# Surround optionally matches left and right delimiters around a payload.
+export rule Surround<L, P, R> =
+  L? p:P R?
+  -> p;

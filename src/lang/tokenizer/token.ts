@@ -9,7 +9,7 @@ export const Token: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: new URL("../common/surround.ts", import.meta.url).href,
+      moduleUrl: new URL("../common/surround.uff", import.meta.url).href,
       names: ["Surround"],
     },
     {

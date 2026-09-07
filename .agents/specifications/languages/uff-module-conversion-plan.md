@@ -96,7 +96,7 @@ file:
 | B7  | Match-tree semantic text walk                                | tokenizer.lang                              | Same as B6                                                       |
 | B8  | Validation `throw` in projection                             | prefix bounds                               | Fail in pattern, not expression                                  |
 | B9  | Pattern stack import cycles                                  | resolve/structure ↔ pattern                 | Convert as a layer with temporary TS bridges                     |
-| B10 | Parametric rules (`Surround<L,P,R>`, `Token<P>`)             | surround, token                             | Declaration syntax in-tree; needs published CLI N+1              |
+| B10 | Parametric rules (`Surround<L,P,R>`, `Token<P>`)             | surround, token                             | Declaration syntax shipped in 0.1.11                             |
 | B11 | PatternLang + ExpressionLang string escapes (`\t`, `\n`, …)  | whitespace, newLine (done)                  | Shipped; expression escapes enable `-> "\n"`                     |
 
 ## Phase order (dependency leaves first)
@@ -118,12 +118,12 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ### Phase 1 — Common helpers
 
-| #  | Module              | G1             | G2                   | G3                       | Ready?                                  |
-| -- | ------------------- | -------------- | -------------------- | ------------------------ | --------------------------------------- |
-| 8  | `common/identifier` | OK             | `(join (flat _) "")` | Projection of chars (OK) | done                                    |
-| 9  | `common/surround`   | params **B10** | `-> p` (Reference)   | OK                       | **no** until B10 ships in published CLI |
-| 10 | `tokenizer/token`   | needs surround | none special         | OK                       | after 9                                 |
-| 11 | `common/spread`     | needs token    | none                 | OK                       | after 10                                |
+| #  | Module              | G1             | G2                   | G3                       | Ready?   |
+| -- | ------------------- | -------------- | -------------------- | ------------------------ | -------- |
+| 8  | `common/identifier` | OK             | `(join (flat _) "")` | Projection of chars (OK) | done     |
+| 9  | `common/surround`   | OK (params)    | `-> p`               | OK                       | done     |
+| 10 | `tokenizer/token`   | needs surround | none special         | OK                       | after 9  |
+| 11 | `common/spread`     | needs token    | none                 | OK                       | after 10 |
 
 ### Phase 2 — Expression stack (bottom-up)
 
@@ -195,12 +195,10 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ## First candidate (next session)
 
-**Phase 1 — `common/surround`** after the next published CLI includes rule
-parameter declaration syntax (`rule Name<P…> = …`). In-tree B10 unlock is
-landed; convert `.uff` once `uffda compile` accepts it. Until then, do not skip
-ahead to Token/boolean (they depend on surround).
+**Phase 1 — `tokenizer/token`** (depends on converted Surround). Then
+`common/spread`.
 
-Phase 0 complete. Phase 1 started: `identifier` done via std `flat` + `join`.
+Phase 0 complete. Phase 1: `identifier` and `surround` done.
 
 ## References
 

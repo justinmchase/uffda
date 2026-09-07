@@ -64,6 +64,12 @@ Deno.test(
       ),
       true,
     );
+    assertEquals(
+      yaml.includes(
+        "./bin/ast/src/lang/common/surround.uffda.ast.json",
+      ),
+      true,
+    );
   },
 );
 
