@@ -1,7 +1,7 @@
 # Expression Language Grammar
 
 ```uff
-import "../tokenizer/token.ts" Token;
+import "../tokenizer/token.uff" Token;
 import "../common/spread.ts" SpreadMarker;
 import "./primary.ts" Primary;
 

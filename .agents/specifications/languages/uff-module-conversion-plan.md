@@ -118,12 +118,12 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ### Phase 1 — Common helpers
 
-| #  | Module              | G1             | G2                   | G3                       | Ready?   |
-| -- | ------------------- | -------------- | -------------------- | ------------------------ | -------- |
-| 8  | `common/identifier` | OK             | `(join (flat _) "")` | Projection of chars (OK) | done     |
-| 9  | `common/surround`   | OK (params)    | `-> p`               | OK                       | done     |
-| 10 | `tokenizer/token`   | needs surround | none special         | OK                       | after 9  |
-| 11 | `common/spread`     | needs token    | none                 | OK                       | after 10 |
+| #  | Module              | G1          | G2                   | G3                       | Ready?   |
+| -- | ------------------- | ----------- | -------------------- | ------------------------ | -------- |
+| 8  | `common/identifier` | OK          | `(join (flat _) "")` | Projection of chars (OK) | done     |
+| 9  | `common/surround`   | OK (params) | `-> p`               | OK                       | done     |
+| 10 | `tokenizer/token`   | OK          | none                 | OK                       | done     |
+| 11 | `common/spread`     | needs token | none                 | OK                       | after 10 |
 
 ### Phase 2 — Expression stack (bottom-up)
 
@@ -195,10 +195,9 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ## First candidate (next session)
 
-**Phase 1 — `tokenizer/token`** (depends on converted Surround). Then
-`common/spread`.
+**Phase 1 — `common/spread`** (depends on converted Token).
 
-Phase 0 complete. Phase 1: `identifier` and `surround` done.
+Phase 0 complete. Phase 1: `identifier`, `surround`, and `token` done.
 
 ## References
 

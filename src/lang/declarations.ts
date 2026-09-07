@@ -46,7 +46,6 @@ import Structure from "./pattern/structure.ts";
 import Then from "./pattern/then.ts";
 import Source from "./source/mod.ts";
 import Tokenizer from "./tokenizer/mod.ts";
-import Token from "./tokenizer/token.ts";
 import TokenizerLang from "./tokenizer/tokenizer.lang.ts";
 import ExportRules from "./uffda/export.rules.ts";
 import ImportRules from "./uffda/import.rules.ts";
@@ -94,7 +93,6 @@ export const builtInLanguageDeclarations: Record<string, ModuleDeclaration> =
     entry("./pattern/then.ts", Then),
     entry("./source/mod.ts", Source),
     entry("./tokenizer/mod.ts", Tokenizer),
-    entry("./tokenizer/token.ts", Token),
     entry("./tokenizer/tokenizer.lang.ts", TokenizerLang),
     entry("./uffda/export.rules.ts", ExportRules),
     entry("./uffda/import.rules.ts", ImportRules),
