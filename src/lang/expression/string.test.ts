@@ -80,6 +80,32 @@ Deno.test(
     });
 
     await t.step({
+      name: "STRING_EXPRESSION_03A",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.Iterable(['"', "\\", "t", "\\", "n", "\\", "r", '"']),
+        kind: MatchKind.Ok,
+        value: {
+          kind: ExpressionKind.String,
+          values: ["\t\n\r"],
+        },
+      }),
+    });
+
+    await t.step({
+      name: "STRING_EXPRESSION_03B",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.Iterable(['"', "\\", "\\", '"']),
+        kind: MatchKind.Ok,
+        value: {
+          kind: ExpressionKind.String,
+          values: ["\\"],
+        },
+      }),
+    });
+
+    await t.step({
       name: "STRING_EXPRESSION_04",
       fn: moduleDeclarationTest({
         moduleUrl,

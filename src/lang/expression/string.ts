@@ -68,6 +68,90 @@ export const String: ModuleDeclaration = {
       },
     },
     {
+      name: "EscapedBackslash",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Equal,
+            value: "\\",
+          },
+          {
+            kind: PatternKind.Equal,
+            value: "\\",
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.String,
+        values: ["\\"],
+      },
+    },
+    {
+      name: "EscapedTab",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Equal,
+            value: "\\",
+          },
+          {
+            kind: PatternKind.Equal,
+            value: "t",
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.String,
+        values: ["\t"],
+      },
+    },
+    {
+      name: "EscapedNewline",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Equal,
+            value: "\\",
+          },
+          {
+            kind: PatternKind.Equal,
+            value: "n",
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.String,
+        values: ["\n"],
+      },
+    },
+    {
+      name: "EscapedReturn",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Equal,
+            value: "\\",
+          },
+          {
+            kind: PatternKind.Equal,
+            value: "r",
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.String,
+        values: ["\r"],
+      },
+    },
+    {
       name: "EscapedString",
       parameters: [],
       pattern: {
@@ -83,6 +167,30 @@ export const String: ModuleDeclaration = {
             kind: PatternKind.Resolve,
             targetKind: ResolveTargetKind.Reference,
             name: "EscapedDoubleQuote",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "EscapedBackslash",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "EscapedTab",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "EscapedNewline",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "EscapedReturn",
             args: [],
           },
         ],

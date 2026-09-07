@@ -13,6 +13,9 @@ Normative key words in this chapter use the conventions defined in the
 - Interpolation syntax MUST preserve explicit delimiter boundaries (`{` and `}`)
   for downstream expression parsing.
 - A literal opening curly in string content MUST be escaped as `\{`.
+- The following escapes MUST be recognized in string content and MUST project
+  the corresponding character: `\t` (tab), `\n` (LF), `\r` (CR), `\\`
+  (backslash), and `\"` (quote).
 - String interpolation MUST support expression payloads including object-like
   interpolation structures used for meta-programming.
 - Interpolation syntax MUST remain low-sugar and explicit; implicit template
@@ -23,6 +26,8 @@ Normative key words in this chapter use the conventions defined in the
 - `"hello"`
 - `"hello {name}"`
 - `"{user.name}"`
+- `"\t\n\r"` (tab, LF, and CR via escapes)
+- `"\\"` and `"\""` (literal backslash and quote)
 - `"\{{example}}"` (escaped literal `{` followed by `{example}` interpolation,
   followed by literal `}`)
 - `"{ {name: user.name} }"` (object interpolation payload with explicit
