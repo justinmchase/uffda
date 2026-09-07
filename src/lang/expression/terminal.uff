@@ -1,0 +1,11 @@
+# Terminal matches a Number or Reference token and projects the inner expression.
+import "../tokenizer/token.uff" Token;
+import "./reference.uff" Reference;
+import "./number.ts" Number;
+
+export Terminal;
+
+rule Terminal =
+  | Token<Number>
+  | Token<Reference>
+  -> _;

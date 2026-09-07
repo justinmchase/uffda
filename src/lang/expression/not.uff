@@ -1,0 +1,10 @@
+# Not matches `not` followed by a Primary token and projects a NotExpression.
+import "../tokenizer/token.uff" Token;
+import "./primary.ts" Primary;
+
+export Not;
+
+rule Not =
+  "not"
+  e:Token<Primary>
+  -> { kind: "not", expression: e };

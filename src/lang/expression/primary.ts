@@ -18,7 +18,7 @@ export const Terminal: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./terminal.ts",
+      moduleUrl: "./terminal.uff",
       names: [
         "Terminal",
       ],

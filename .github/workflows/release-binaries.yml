@@ -104,6 +104,9 @@ jobs:
           test -f ./bin/ast/src/lang/common/spread.uffda.ast.json
           test -f ./bin/ast/src/lang/expression/boolean.uffda.ast.json
           test -f ./bin/ast/src/lang/expression/nullish.uffda.ast.json
+          test -f ./bin/ast/src/lang/expression/reference.uffda.ast.json
+          test -f ./bin/ast/src/lang/expression/terminal.uffda.ast.json
+          test -f ./bin/ast/src/lang/expression/not.uffda.ast.json
 
       - name: Upload language bin artifacts
         uses: actions/upload-artifact@v7

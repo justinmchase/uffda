@@ -3,7 +3,7 @@ import { MatchKind } from "../../mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
-const moduleUrl = new URL("./terminal.ts", import.meta.url).href;
+const moduleUrl = new URL("./terminal.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -20,6 +20,7 @@ Deno.test(
       name: "TERMINAL_EXPRESSION_00",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Terminal",
         input: Input.Iterable(["1"]),
         kind: MatchKind.Ok,
         value: { kind: ExpressionKind.Number, value: 1 },
@@ -30,6 +31,7 @@ Deno.test(
       name: "TERMINAL_EXPRESSION_01",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Terminal",
         input: Input.Iterable([" ", "1", " "]),
         kind: MatchKind.Ok,
         value: { kind: ExpressionKind.Number, value: 1 },
@@ -40,6 +42,7 @@ Deno.test(
       name: "TERMINAL_EXPRESSION_02",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Terminal",
         input: Input.Iterable(["abc"]),
         kind: MatchKind.Ok,
         value: { kind: ExpressionKind.Reference, name: "abc" },
@@ -50,6 +53,7 @@ Deno.test(
       name: "TERMINAL_EXPRESSION_03",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Terminal",
         input: Input.Iterable(["   ", "abc", "\t\t"]),
         kind: MatchKind.Ok,
         value: { kind: ExpressionKind.Reference, name: "abc" },

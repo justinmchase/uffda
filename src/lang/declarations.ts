@@ -20,14 +20,11 @@ import ArrayModule from "./expression/array.ts";
 import Expression from "./expression/expression.ts";
 import ExpressionLang from "./expression/expression.lang.ts";
 import Member from "./expression/member.ts";
-import Not from "./expression/not.ts";
 import NumberModule from "./expression/number.ts";
 import ObjectModule from "./expression/object.ts";
 import Primary from "./expression/primary.ts";
-import Reference from "./expression/reference.ts";
 import Sequence from "./expression/sequence.ts";
 import StringModule from "./expression/string.ts";
-import Terminal from "./expression/terminal.ts";
 import Unary from "./expression/unary.ts";
 import And from "./pattern/and.ts";
 import Atomic from "./pattern/atomic.ts";
@@ -64,14 +61,11 @@ export const builtInLanguageDeclarations: Record<string, ModuleDeclaration> =
     entry("./expression/expression.ts", Expression),
     entry("./expression/expression.lang.ts", ExpressionLang),
     entry("./expression/member.ts", Member),
-    entry("./expression/not.ts", Not),
     entry("./expression/number.ts", NumberModule),
     entry("./expression/object.ts", ObjectModule),
     entry("./expression/primary.ts", Primary),
-    entry("./expression/reference.ts", Reference),
     entry("./expression/sequence.ts", Sequence),
     entry("./expression/string.ts", StringModule),
-    entry("./expression/terminal.ts", Terminal),
     entry("./expression/unary.ts", Unary),
     entry("./pattern/and.ts", And),
     entry("./pattern/atomic.ts", Atomic),
