@@ -41,6 +41,12 @@ Deno.test(
       ),
       true,
     );
+    assertEquals(
+      yaml.includes(
+        "./bin/ast/src/lang/common/characters/newLine.uffda.ast.json",
+      ),
+      true,
+    );
   },
 );
 

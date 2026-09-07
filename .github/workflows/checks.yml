@@ -49,6 +49,7 @@ jobs:
           test -f ./bin/ast/src/lang/common/characters/letter.uffda.ast.json
           test -f ./bin/ast/src/lang/common/characters/combining.uffda.ast.json
           test -f ./bin/ast/src/lang/common/characters/whitespace.uffda.ast.json
+          test -f ./bin/ast/src/lang/common/characters/newLine.uffda.ast.json
 
       - name: Test
         # Allow read is required to run resolve tests. Language `.uff` modules

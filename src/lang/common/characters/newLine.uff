@@ -1,0 +1,2 @@
+# NewLine matches CRLF, CR, or LF and always projects LF.
+export rule NewLine = "\r" "\n" | "\r" | "\n" -> "\n";
