@@ -71,9 +71,46 @@ jobs:
             echo "- VERSION file: \`${file_version}\`"
           } >> "${GITHUB_STEP_SUMMARY}"
 
+  compile-lang:
+    name: Compile language ./bin
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout build commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Setup Uffda CLI
+        # Need a working published CLI to produce ./bin for embedding.
+        # 0.1.9 binaries omitted --include; pin until a fixed release lands.
+        uses: ./.github/actions/uffda-setup
+        with:
+          version: "0.1.7"
+
+      - name: Compile language modules into ./bin
+        run: |
+          set -euo pipefail
+          uffda --version
+          deno task compile:lang
+          test -f ./bin/ast/src/lang/common/characters/digit.uffda.ast.json
+          test -f ./bin/ast/src/lang/common/identifier.uffda.ast.json
+
+      - name: Upload language bin artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: language-bin
+          path: bin/
+          if-no-files-found: error
+
   compile:
     name: Compile ${{ matrix.target }}
-    needs: prepare
+    needs: [prepare, compile-lang]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
@@ -96,6 +133,12 @@ jobs:
         with:
           deno-version: v2.x
 
+      - name: Download language bin artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: language-bin
+          path: bin
+
       - name: Compile CLI
         shell: bash
         run: |
@@ -110,9 +153,11 @@ jobs:
             asset="uffda-${version}-${target}"
           fi
           echo "Building ${asset}"
+          test -f ./bin/ast/src/lang/common/characters/digit.uffda.ast.json
           deno compile \
             --target "${target}" \
             --output "${out_dir}/${asset}" \
+            --include ./bin \
             --allow-read \
             --allow-write \
             --allow-env=INIT_CWD,PWD \

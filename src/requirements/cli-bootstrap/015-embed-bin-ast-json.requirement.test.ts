@@ -41,5 +41,12 @@ Deno.test(
     // Bootstrap compile must use a working published CLI (0.1.7 until include
     // ships). Avoid accidentally re-pinning to broken 0.1.8/latest too early.
     assertEquals(checks.includes('version: "0.1.7"'), true);
+
+    const releaseBinaries = await Deno.readTextFile(
+      join(repoRoot, ".github", "workflows", "release-binaries.yml"),
+    );
+    assertEquals(releaseBinaries.includes("--include ./bin"), true);
+    assertEquals(releaseBinaries.includes("deno task compile:lang"), true);
+    assertEquals(releaseBinaries.includes("name: language-bin"), true);
   },
 );
