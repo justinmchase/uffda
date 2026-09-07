@@ -381,6 +381,136 @@ export const RuleDeclarationRules: ModuleDeclaration = {
       },
     },
     {
+      name: "RuleParameterName",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Resolve,
+        targetKind: ResolveTargetKind.Reference,
+        name: "IdentifierToken",
+        args: [],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ _ }): { name: string } => ({ name: _ as string }),
+      },
+    },
+    {
+      name: "RuleParameterNameTail",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Equal,
+            value: ",",
+          },
+          {
+            kind: PatternKind.Variable,
+            name: "value",
+            pattern: {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "RuleParameterName",
+              args: [],
+            },
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ value }) => value,
+      },
+    },
+    {
+      name: "RuleParameterNameList",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Variable,
+            name: "first",
+            pattern: {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "RuleParameterName",
+              args: [],
+            },
+          },
+          {
+            kind: PatternKind.Variable,
+            name: "rest",
+            pattern: {
+              kind: PatternKind.Quantifier,
+              min: 0,
+              pattern: {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "RuleParameterNameTail",
+                args: [],
+              },
+            },
+          },
+          {
+            kind: PatternKind.Variable,
+            name: "trailing",
+            pattern: {
+              kind: PatternKind.Quantifier,
+              min: 0,
+              max: 1,
+              pattern: {
+                kind: PatternKind.Equal,
+                value: ",",
+              },
+            },
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ first, rest }) => [first, ...(rest as { name: string }[])],
+      },
+    },
+    {
+      name: "RuleParameterList",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Equal,
+            value: "<",
+          },
+          {
+            kind: PatternKind.Variable,
+            name: "parameters",
+            pattern: {
+              kind: PatternKind.Quantifier,
+              min: 0,
+              max: 1,
+              pattern: {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "RuleParameterNameList",
+                args: [],
+              },
+            },
+          },
+          {
+            kind: PatternKind.Equal,
+            value: ">",
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ parameters }) =>
+          Array.isArray(parameters) && parameters.length > 0
+            ? parameters[0] as { name: string }[]
+            : [],
+      },
+    },
+    {
       name: "RuleDeclarationSyntax",
       parameters: [],
       pattern: {
@@ -398,6 +528,21 @@ export const RuleDeclarationRules: ModuleDeclaration = {
               targetKind: ResolveTargetKind.Reference,
               name: "IdentifierToken",
               args: [],
+            },
+          },
+          {
+            kind: PatternKind.Variable,
+            name: "parameters",
+            pattern: {
+              kind: PatternKind.Quantifier,
+              min: 0,
+              max: 1,
+              pattern: {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "RuleParameterList",
+                args: [],
+              },
             },
           },
           {
@@ -437,11 +582,17 @@ export const RuleDeclarationRules: ModuleDeclaration = {
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ name, pattern, projection }): UffdaRuleSyntaxDeclaration => {
+        fn: (
+          { name, parameters, pattern, projection },
+        ): UffdaRuleSyntaxDeclaration => {
           const projections = projection as Expression[];
+          const params = Array.isArray(parameters) && parameters.length > 0
+            ? parameters[0] as { name: string }[]
+            : [];
           return {
             kind: "rule",
             name: name as string,
+            parameters: params,
             pattern,
             projection: projections.length > 0 ? projections[0] : undefined,
           };
@@ -469,6 +620,21 @@ export const RuleDeclarationRules: ModuleDeclaration = {
             },
           },
           {
+            kind: PatternKind.Variable,
+            name: "parameters",
+            pattern: {
+              kind: PatternKind.Quantifier,
+              min: 0,
+              max: 1,
+              pattern: {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "RuleParameterList",
+                args: [],
+              },
+            },
+          },
+          {
             kind: PatternKind.Equal,
             value: "=",
           },
@@ -490,12 +656,18 @@ export const RuleDeclarationRules: ModuleDeclaration = {
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ name, pattern }): UffdaRuleSyntaxDeclaration => ({
-          kind: "rule",
-          name: name as string,
-          pattern,
-          projection: undefined,
-        }),
+        fn: ({ name, parameters, pattern }): UffdaRuleSyntaxDeclaration => {
+          const params = Array.isArray(parameters) && parameters.length > 0
+            ? parameters[0] as { name: string }[]
+            : [];
+          return {
+            kind: "rule",
+            name: name as string,
+            parameters: params,
+            pattern,
+            projection: undefined,
+          };
+        },
       },
     },
     {
@@ -516,6 +688,21 @@ export const RuleDeclarationRules: ModuleDeclaration = {
               targetKind: ResolveTargetKind.Reference,
               name: "IdentifierToken",
               args: [],
+            },
+          },
+          {
+            kind: PatternKind.Variable,
+            name: "parameters",
+            pattern: {
+              kind: PatternKind.Quantifier,
+              min: 0,
+              max: 1,
+              pattern: {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "RuleParameterList",
+                args: [],
+              },
             },
           },
           {
@@ -550,12 +737,20 @@ export const RuleDeclarationRules: ModuleDeclaration = {
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ name, pattern, projection }): UffdaRuleSyntaxDeclaration => ({
-          kind: "rule",
-          name: name as string,
-          pattern,
-          projection,
-        }),
+        fn: (
+          { name, parameters, pattern, projection },
+        ): UffdaRuleSyntaxDeclaration => {
+          const params = Array.isArray(parameters) && parameters.length > 0
+            ? parameters[0] as { name: string }[]
+            : [];
+          return {
+            kind: "rule",
+            name: name as string,
+            parameters: params,
+            pattern,
+            projection,
+          };
+        },
       },
     },
     {

@@ -9,7 +9,12 @@ Deno.test("req:uffda-runtime-compilation-004 - compilation and execution remain 
     kind: "module",
     declarations: [
       { kind: "export", name: "Main" },
-      { kind: "rule", name: "Main", pattern: { kind: PatternKind.Any } },
+      {
+        kind: "rule",
+        name: "Main",
+        parameters: [],
+        pattern: { kind: PatternKind.Any },
+      },
     ],
   });
 

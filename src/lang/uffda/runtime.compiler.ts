@@ -347,6 +347,12 @@ export const UffdaRuntimeCompiler: ModuleDeclaration = {
           name: "pattern",
           pattern: { kind: PatternKind.Type, type: Type.Object },
         },
+        parameters: {
+          kind: PatternKind.Variable,
+          name: "parameters",
+          // Absent on older artifacts; treat as empty.
+          pattern: { kind: PatternKind.Any },
+        },
         projection: {
           kind: PatternKind.Variable,
           name: "projection",
@@ -356,12 +362,16 @@ export const UffdaRuntimeCompiler: ModuleDeclaration = {
     },
     expression: {
       kind: ExpressionKind.Native,
-      fn: ({ name, pattern, projection }): ModuleDeclaration => ({
+      fn: ({ name, pattern, parameters, projection }): ModuleDeclaration => ({
         imports: [],
         exports: [],
         rules: [{
           name: name as string,
-          parameters: [],
+          parameters: Array.isArray(parameters)
+            ? (parameters as { name: string }[]).map((p) => ({
+              name: p.name,
+            }))
+            : [],
           pattern: pattern as Pattern,
           expression: projection as Expression | undefined,
         }],

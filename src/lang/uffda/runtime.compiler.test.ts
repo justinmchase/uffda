@@ -46,12 +46,14 @@ Deno.test("lang.uffda.runtime-compiler compiles declaration families", async () 
       {
         kind: "rule",
         name: "Main",
+        parameters: [],
         pattern: { kind: PatternKind.Any },
         projection: { kind: ExpressionKind.Value, value: "compiled" },
       },
       {
         kind: "rule",
         name: "Stop",
+        parameters: [],
         pattern: { kind: PatternKind.Equal, value: "." },
       },
     ],

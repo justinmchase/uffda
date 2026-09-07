@@ -25,3 +25,4 @@ with an optional projection expression.
 
 - Without projection: `rule RuleName = any;`
 - With projection: `rule RuleName = any -> 1;`
+- With parameters: `rule Surround<L, P, R> = L? p:P R? -> p;`

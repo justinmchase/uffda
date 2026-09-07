@@ -1,6 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { MatchKind } from "../../mod.ts";
 import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
+import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { uffdaGrammar, UffdaLang, UffdaRuntimeCompiler } from "./uffda.lang.ts";
@@ -168,6 +169,7 @@ Deno.test({
           assertEquals(declaration.kind, "rule");
           if (declaration.kind === "rule") {
             assertEquals(declaration.name, "P");
+            assertEquals(declaration.parameters, []);
             assertEquals(declaration.projection, undefined);
           }
         }
@@ -178,6 +180,7 @@ Deno.test({
           assertEquals(sequence.value.declarations[0], {
             kind: "rule",
             name: "P",
+            parameters: [],
             pattern: {
               kind: PatternKind.Then,
               patterns: [
@@ -188,6 +191,44 @@ Deno.test({
             },
             projection: undefined,
           });
+        }
+      },
+    });
+
+    await t.step({
+      name: "UFFDA_LANG_04A parses ordered rule parameter lists",
+      fn: async () => {
+        const empty = await uffdaGrammar("rule Wrap<> = any;");
+        assertEquals(empty.kind, MatchKind.Ok);
+        if (empty.kind === MatchKind.Ok) {
+          assertEquals(empty.value.declarations[0], {
+            kind: "rule",
+            name: "Wrap",
+            parameters: [],
+            pattern: { kind: PatternKind.Any },
+            projection: undefined,
+          });
+        }
+
+        const params = await uffdaGrammar(
+          "rule Surround<L, P, R> = L? p:P R? -> p;",
+        );
+        assertEquals(params.kind, MatchKind.Ok);
+        if (params.kind === MatchKind.Ok) {
+          const declaration = params.value.declarations[0];
+          assertEquals(declaration.kind, "rule");
+          if (declaration.kind === "rule") {
+            assertEquals(declaration.name, "Surround");
+            assertEquals(declaration.parameters, [
+              { name: "L" },
+              { name: "P" },
+              { name: "R" },
+            ]);
+            assertEquals(declaration.projection, {
+              kind: ExpressionKind.Reference,
+              name: "p",
+            });
+          }
         }
       },
     });

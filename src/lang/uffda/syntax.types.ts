@@ -12,9 +12,15 @@ export type UffdaExportSyntaxDeclaration = {
   name: string;
 };
 
+export type UffdaRuleParameterSyntax = {
+  name: string;
+};
+
 export type UffdaRuleSyntaxDeclaration = {
   kind: "rule";
   name: string;
+  /** Formal parameters; empty when the declaration has no `<…>` list. */
+  parameters: UffdaRuleParameterSyntax[];
   pattern: Pattern;
   projection?: Expression;
 };

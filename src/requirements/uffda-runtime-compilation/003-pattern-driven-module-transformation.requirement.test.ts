@@ -12,8 +12,18 @@ Deno.test("req:uffda-runtime-compilation-003 - compiler rules transform declarat
       { kind: "import", moduleUrl: "./a.ts", names: ["A"] },
       { kind: "import", moduleUrl: "./b.ts", names: ["B"] },
       { kind: "export", name: "First" },
-      { kind: "rule", name: "First", pattern: { kind: PatternKind.Any } },
-      { kind: "rule", name: "Second", pattern: { kind: PatternKind.End } },
+      {
+        kind: "rule",
+        name: "First",
+        parameters: [],
+        pattern: { kind: PatternKind.Any },
+      },
+      {
+        kind: "rule",
+        name: "Second",
+        parameters: [],
+        pattern: { kind: PatternKind.End },
+      },
     ],
   });
 
