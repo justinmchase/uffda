@@ -2,7 +2,7 @@ import { Input } from "../../input.ts";
 import { MatchKind } from "../../mod.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
-const moduleUrl = new URL("./spread.ts", import.meta.url).href;
+const moduleUrl = new URL("./spread.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -19,6 +19,7 @@ Deno.test(
       name: "SPREAD_00",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "SpreadMarker",
         input: Input.Iterable([".", ".", "."]),
         kind: MatchKind.Ok,
         value: [".", ".", "."],
@@ -29,6 +30,7 @@ Deno.test(
       name: "SPREAD_01",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "SpreadMarker",
         input: Input.Iterable([".", "."]),
         kind: MatchKind.Fail,
       }),

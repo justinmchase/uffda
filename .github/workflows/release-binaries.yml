@@ -101,6 +101,7 @@ jobs:
           test -f ./bin/ast/src/lang/common/identifier.uffda.ast.json
           test -f ./bin/ast/src/lang/common/surround.uffda.ast.json
           test -f ./bin/ast/src/lang/tokenizer/token.uffda.ast.json
+          test -f ./bin/ast/src/lang/common/spread.uffda.ast.json
 
       - name: Upload language bin artifacts
         uses: actions/upload-artifact@v7

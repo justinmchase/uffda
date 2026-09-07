@@ -2,7 +2,7 @@
 
 ```uff
 import "../tokenizer/token.uff" Token;
-import "../common/spread.ts" SpreadMarker;
+import "../common/spread.uff" SpreadMarker;
 import "./primary.ts" Primary;
 
 Expression = Unary;
@@ -130,7 +130,7 @@ Not =
   -> { kind: "not", expression }
   ;
 
-// Shared spread token from ../common/spread.ts
+// Shared spread token from ../common/spread.uff
 SpreadMarker = Token<"."> Token<"."> Token<".">;
 
 String =
