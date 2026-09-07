@@ -1,4 +1,5 @@
 import { assertEquals, assertRejects } from "@std/assert";
+import { Input } from "../../input.ts";
 import { MatchKind } from "../../mod.ts";
 import { ExportDeclarationKind } from "../../runtime/declarations/export.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
@@ -14,7 +15,12 @@ Deno.test("lang.uffda.execute compiles through UffdaRuntimeCompiler", async () =
     kind: "module",
     declarations: [
       { kind: "export", name: "Main" },
-      { kind: "rule", name: "Main", pattern: { kind: PatternKind.Any } },
+      {
+        kind: "rule",
+        name: "Main",
+        parameters: [],
+        pattern: { kind: PatternKind.Any },
+      },
     ],
   });
 
@@ -60,14 +66,23 @@ Deno.test("lang.uffda.execute parses compiles and runs canonical any rule", asyn
   }
 });
 
-Deno.test("lang.uffda.execute parses compiles and runs canonical projection rule", async () => {
-  const m = await executeUffdaSource("export One; rule One = any -> 1;", {
-    entryRuleName: "One",
-    input: "z",
-  });
-
-  assertEquals(m.kind, MatchKind.Ok);
-  if (m.kind === MatchKind.Ok) {
-    assertEquals(m.value, 1);
+Deno.test("lang.uffda.execute parses compiles and runs parametric surround rule", async () => {
+  const source =
+    `export rule Surround<L, P, R> = L? p:P R? -> p; export Main; rule Open = "("; rule Close = ")"; rule X = "x"; rule Main = Surround<Open, X, Close>;`;
+  for (const input of ["(x)", "(x", "x)", "x"]) {
+    const m = await executeUffdaSource(source, {
+      entryRuleName: "Main",
+      input: Input.Iterable(input),
+    });
+    assertEquals(m.kind, MatchKind.Ok, `input ${JSON.stringify(input)}`);
+    if (m.kind === MatchKind.Ok) {
+      assertEquals(m.value, "x");
+    }
   }
+
+  const fail = await executeUffdaSource(source, {
+    entryRuleName: "Main",
+    input: Input.Iterable("()"),
+  });
+  assertEquals(fail.kind, MatchKind.Fail);
 });

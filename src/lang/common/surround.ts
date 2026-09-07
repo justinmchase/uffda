@@ -61,8 +61,8 @@ export const Surround: ModuleDeclaration = {
         ],
       },
       expression: {
-        kind: ExpressionKind.Native,
-        fn: ({ p }) => p,
+        kind: ExpressionKind.Reference,
+        name: "p",
       },
     },
   ],

@@ -14,6 +14,7 @@ Deno.test("lang.uffda.export-rules parses direct export names", async () => {
       {
         kind: "rule",
         name: "Main",
+        parameters: [],
         pattern: { kind: PatternKind.Any },
         projection: undefined,
       },
