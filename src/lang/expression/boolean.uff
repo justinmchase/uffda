@@ -1,0 +1,11 @@
+# Boolean matches true/false tokens and projects a BooleanExpression.
+import "../tokenizer/token.uff" Token;
+
+export Boolean;
+
+rule TrueKeyword = "true" -> true;
+rule FalseKeyword = "false" -> false;
+rule Boolean =
+  | Token<TrueKeyword>
+  | Token<FalseKeyword>
+  -> { kind: "boolean", value: _ };

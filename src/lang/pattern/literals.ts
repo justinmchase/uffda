@@ -18,7 +18,7 @@ export const Literals: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "../expression/boolean.ts",
+      moduleUrl: "../expression/boolean.uff",
       names: ["Boolean"],
     },
     {

@@ -55,6 +55,7 @@ jobs:
           test -f ./bin/ast/src/lang/common/surround.uffda.ast.json
           test -f ./bin/ast/src/lang/tokenizer/token.uffda.ast.json
           test -f ./bin/ast/src/lang/common/spread.uffda.ast.json
+          test -f ./bin/ast/src/lang/expression/boolean.uffda.ast.json
 
       - name: Test
         # Allow read is required to run resolve tests. Language `.uff` modules

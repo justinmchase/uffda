@@ -53,7 +53,7 @@ export const Terminal: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./boolean.ts",
+      moduleUrl: "./boolean.uff",
       names: [
         "Boolean",
       ],

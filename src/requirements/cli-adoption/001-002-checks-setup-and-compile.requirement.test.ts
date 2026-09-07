@@ -82,6 +82,12 @@ Deno.test(
       ),
       true,
     );
+    assertEquals(
+      yaml.includes(
+        "./bin/ast/src/lang/expression/boolean.uffda.ast.json",
+      ),
+      true,
+    );
   },
 );
 

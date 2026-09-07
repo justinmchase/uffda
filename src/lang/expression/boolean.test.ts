@@ -3,7 +3,7 @@ import { MatchKind } from "../../mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
-const moduleUrl = new URL("./boolean.ts", import.meta.url).href;
+const moduleUrl = new URL("./boolean.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -20,6 +20,7 @@ Deno.test(
       name: "BOOLEAN_EXPRESSION_00",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Boolean",
         input: Input.Iterable(["true"]),
         kind: MatchKind.Ok,
         value: { kind: ExpressionKind.Boolean, value: true },
@@ -30,6 +31,7 @@ Deno.test(
       name: "BOOLEAN_EXPRESSION_01",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Boolean",
         input: Input.Iterable(["false"]),
         kind: MatchKind.Ok,
         value: { kind: ExpressionKind.Boolean, value: false },
