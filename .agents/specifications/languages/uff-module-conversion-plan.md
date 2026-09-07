@@ -84,19 +84,19 @@ replaced). `_.flat().join("")`, `parseInt`, match-span indexing are usually
 These unlock many modules; schedule explicitly rather than rediscovering per
 file:
 
-| ID  | Blocker                                                      | Needed by                            | Direction                                                |
-| --- | ------------------------------------------------------------ | ------------------------------------ | -------------------------------------------------------- |
-| B1  | Replace Native with serializable projections                 | ~45 modules                          | ExpressionLang object/invocation forms + std             |
-| B2  | List flatten + join (`_.flat().join("")`)                    | identifier, string, tokenizer, rules | std `flat`/`join` or reshape Then so `_` is already flat |
-| B3  | Digit string → number                                        | expression/number, prefix bounds     | std `int`/`number` or pattern that yields number         |
-| B4  | Length-1 list collapse (`patterns.length===1 ? p : wrapper`) | then/pipe/and/or                     | Always emit wrapper (behavior review) or std helper      |
-| B5  | Quantifier optional-array unwrap                             | many                                 | Pattern/coalesce convention in `.ts` first               |
-| B6  | Host match spans / checksum / line index                     | source/mod                           | New std/host builtins or keep hybrid                     |
-| B7  | Match-tree semantic text walk                                | tokenizer.lang                       | Same as B6                                               |
-| B8  | Validation `throw` in projection                             | prefix bounds                        | Fail in pattern, not expression                          |
-| B9  | Pattern stack import cycles                                  | resolve/structure ↔ pattern          | Convert as a layer with temporary TS bridges             |
-| B10 | Parametric rules (`Surround<L,P,R>`, `Token<P>`)             | surround, token                      | Confirm Uffda rule-parameter syntax                      |
-| B11 | PatternLang + ExpressionLang string escapes (`\t`, `\n`, …)  | whitespace, newLine (done)           | Shipped; expression escapes enable `-> "\n"`             |
+| ID  | Blocker                                                      | Needed by                                   | Direction                                                        |
+| --- | ------------------------------------------------------------ | ------------------------------------------- | ---------------------------------------------------------------- |
+| B1  | Replace Native with serializable projections                 | ~45 modules                                 | ExpressionLang object/invocation forms + std                     |
+| B2  | List flatten + join (`_.flat().join("")`)                    | identifier (done), string, tokenizer, rules | std `flat`/`join` — `flat` added; remaining callers still Native |
+| B3  | Digit string → number                                        | expression/number, prefix bounds            | std `int`/`number` or pattern that yields number                 |
+| B4  | Length-1 list collapse (`patterns.length===1 ? p : wrapper`) | then/pipe/and/or                            | Always emit wrapper (behavior review) or std helper              |
+| B5  | Quantifier optional-array unwrap                             | many                                        | Pattern/coalesce convention in `.ts` first                       |
+| B6  | Host match spans / checksum / line index                     | source/mod                                  | New std/host builtins or keep hybrid                             |
+| B7  | Match-tree semantic text walk                                | tokenizer.lang                              | Same as B6                                                       |
+| B8  | Validation `throw` in projection                             | prefix bounds                               | Fail in pattern, not expression                                  |
+| B9  | Pattern stack import cycles                                  | resolve/structure ↔ pattern                 | Convert as a layer with temporary TS bridges                     |
+| B10 | Parametric rules (`Surround<L,P,R>`, `Token<P>`)             | surround, token                             | Confirm Uffda rule-parameter syntax                              |
+| B11 | PatternLang + ExpressionLang string escapes (`\t`, `\n`, …)  | whitespace, newLine (done)                  | Shipped; expression escapes enable `-> "\n"`                     |
 
 ## Phase order (dependency leaves first)
 
@@ -117,12 +117,12 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ### Phase 1 — Common helpers
 
-| #  | Module              | G1             | G2                   | G3                                         | Ready?                     |
-| -- | ------------------- | -------------- | -------------------- | ------------------------------------------ | -------------------------- |
-| 8  | `common/identifier` | OK             | **B2** `flat().join` | Projection of chars (OK) if flatten is std | **no** until B2            |
-| 9  | `common/surround`   | params **B10** | Native `-> p`        | OK                                         | **no** until B10 confirmed |
-| 10 | `tokenizer/token`   | needs surround | none special         | OK                                         | after 9                    |
-| 11 | `common/spread`     | needs token    | none                 | OK                                         | after 10                   |
+| #  | Module              | G1             | G2                   | G3                       | Ready?                     |
+| -- | ------------------- | -------------- | -------------------- | ------------------------ | -------------------------- |
+| 8  | `common/identifier` | OK             | `(join (flat _) "")` | Projection of chars (OK) | done                       |
+| 9  | `common/surround`   | params **B10** | Native `-> p`        | OK                       | **no** until B10 confirmed |
+| 10 | `tokenizer/token`   | needs surround | none special         | OK                       | after 9                    |
+| 11 | `common/spread`     | needs token    | none                 | OK                       | after 10                   |
 
 ### Phase 2 — Expression stack (bottom-up)
 
@@ -194,11 +194,11 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ## First candidate (next session)
 
-**Phase 1 — `common/identifier`** (blocked on B2 `flat().join`) or confirm B10
-for `surround` if tackling helpers next.
+**Phase 1 — `common/surround`** (blocked on B10 parametric rules) or skip to
+Phase 2 near-ready modules such as `expression/boolean` / `nullish` /
+`reference` once Native wrappers are replaced with serializable projections.
 
-Phase 0 complete: `digit`, `connecting`, `formatting`, `letter`, `combining`,
-`whitespace`, `newLine`, `mod`.
+Phase 0 complete. Phase 1 started: `identifier` done via std `flat` + `join`.
 
 ## References
 
@@ -206,5 +206,5 @@ Phase 0 complete: `digit`, `connecting`, `formatting`, `letter`, `combining`,
 - Spec: `.agents/specifications/modules.spec.md` (`.uff` import remapping)
 - Checklist: `.agents/specifications/languages/pattern-bootstrap-checklist.md`
 - Example: `src/lang/common/characters/digit.uff`
-- Std: `src/runtime/std/mod.ts` (`add`, `coalesce`, `filter`, `format`, `id`,
-  `join`, `json`, `map`, `pack`)
+- Std: `src/runtime/std/mod.ts` (`add`, `coalesce`, `filter`, `flat`, `format`,
+  `id`, `join`, `json`, `map`, `pack`)

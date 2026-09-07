@@ -11,7 +11,7 @@ export const Reference: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "../common/identifier.ts",
+      moduleUrl: "../common/identifier.uff",
       names: [
         "Identifier",
       ],

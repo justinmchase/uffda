@@ -28,7 +28,7 @@ export const Literals: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "../common/identifier.ts",
+      moduleUrl: "../common/identifier.uff",
       names: ["Identifier"],
     },
   ],

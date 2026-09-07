@@ -19,7 +19,7 @@ export const Prefix: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "../common/identifier.ts",
+      moduleUrl: "../common/identifier.uff",
       names: ["Identifier"],
     },
     {

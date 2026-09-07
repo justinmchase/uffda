@@ -1,0 +1,20 @@
+# Identifier matches a Unicode identifier and projects a joined string.
+import "./characters/letter.uff" Letter;
+import "./characters/digit.uff" Digit;
+import "./characters/connecting.uff" Connecting;
+import "./characters/combining.uff" Combining;
+import "./characters/formatting.uff" Formatting;
+
+export rule Identifier =
+  IdentifierStartCharacter IdentifierCharacter*
+  -> (join (flat _) "");
+
+rule IdentifierStartCharacter = Letter | "_";
+
+rule IdentifierCharacter =
+  | IdentifierStartCharacter
+  | Digit
+  | Connecting
+  | Combining
+  | Formatting
+  ;

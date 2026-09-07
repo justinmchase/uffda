@@ -53,6 +53,12 @@ Deno.test(
       ),
       true,
     );
+    assertEquals(
+      yaml.includes(
+        "./bin/ast/src/lang/common/identifier.uffda.ast.json",
+      ),
+      true,
+    );
   },
 );
 

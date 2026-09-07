@@ -59,7 +59,9 @@ export async function parseGrammar<TAst>(options: {
   const { globals, declarations } = grammarOptions ?? {};
   const { builtInLanguageDeclarations } = await import("./declarations.ts");
 
-  const g = globals ?? std;
+  // Caller globals override std entries with the same name; std remains available
+  // for serializable projections such as `(join (flat _) "")`.
+  const g = new Map([...std, ...(globals ?? [])]);
   const cwd = Deno.cwd();
   const r = new Resolver({
     declarations: {
