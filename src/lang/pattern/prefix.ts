@@ -9,7 +9,7 @@ export const Prefix: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./atomic.ts",
+      moduleUrl: "./atomic.uff",
       names: ["Atomic"],
     },
     {

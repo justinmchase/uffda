@@ -17,7 +17,7 @@ export const RuleDeclarationRules: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "../expression/expression.lang.ts",
+      moduleUrl: "../expression/expression.lang.uff",
       names: ["ExpressionTokens"],
     },
     {

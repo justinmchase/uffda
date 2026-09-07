@@ -114,6 +114,8 @@ jobs:
           test -f ./bin/ast/src/lang/expression/unary.uffda.ast.json
           test -f ./bin/ast/src/lang/expression/expression.uffda.ast.json
           test -f ./bin/ast/src/lang/pattern/atoms.uffda.ast.json
+          test -f ./bin/ast/src/lang/expression/expression.lang.uffda.ast.json
+          test -f ./bin/ast/src/lang/pattern/atomic.uffda.ast.json
 
       - name: Upload language bin artifacts
         uses: actions/upload-artifact@v7
