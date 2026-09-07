@@ -86,6 +86,43 @@ Deno.test("lang.uffda.runtime-compiler compiles declaration families", async () 
   }
 });
 
+Deno.test(
+  "lang.uffda.runtime-compiler re-exports imports as ExportDeclarationKind.Import",
+  async () => {
+    const syntaxModule: UffdaSyntaxModule = {
+      kind: "module",
+      declarations: [
+        {
+          kind: "import",
+          moduleUrl: "./digit.uff",
+          names: ["Digit"],
+        },
+        {
+          kind: "export",
+          name: "Digit",
+        },
+      ],
+    };
+
+    const match = await runUffdaRuntimeCompiler(syntaxModule);
+    assertEquals(match.kind, MatchKind.Ok);
+    if (match.kind === MatchKind.Ok) {
+      assertEquals(match.value, {
+        imports: [{
+          kind: ImportDeclarationKind.Module,
+          moduleUrl: "./digit.uff",
+          names: ["Digit"],
+        }],
+        exports: [{
+          kind: ExportDeclarationKind.Import,
+          name: "Digit",
+        }],
+        rules: [],
+      });
+    }
+  },
+);
+
 Deno.test("lang.uffda.runtime-compiler rejects unsupported declarations", async () => {
   const match = await executeModuleDeclaration(UffdaRuntimeCompiler, {
     input: {
