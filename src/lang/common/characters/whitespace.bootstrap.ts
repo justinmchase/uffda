@@ -1,8 +1,11 @@
-import { ExpressionKind } from "../../../runtime/expressions/expression.kind.ts";
-import { ExportDeclarationKind } from "../../../runtime/declarations/export.ts";
+import { ExportDeclarationKind } from "../../../runtime/declarations/mod.ts";
 import { CharacterClass, PatternKind } from "../../../runtime/patterns/mod.ts";
 import type { ModuleDeclaration } from "../../../runtime/declarations/mod.ts";
 
+/**
+ * Host-side declaration registered under `./whitespace.uff` so published CLIs
+ * can load Whitespace without `./bin` during bootstrap compile.
+ */
 export const Whitespace: ModuleDeclaration = {
   imports: [],
   exports: [
@@ -14,7 +17,6 @@ export const Whitespace: ModuleDeclaration = {
   ],
   rules: [
     {
-      // Whitespace = \cZs | \cZl | \cZp | "\t";
       name: "Whitespace",
       parameters: [],
       pattern: {
@@ -33,17 +35,10 @@ export const Whitespace: ModuleDeclaration = {
             characterClass: CharacterClass.ParagraphSeparator,
           },
           {
-            // This is technically in the Control Character class but
-            // is commonly used as whitespace in coding so its specifically
-            // added to this pattern.
             kind: PatternKind.Equal,
             value: "\t",
           },
         ],
-      },
-      expression: {
-        kind: ExpressionKind.Native,
-        fn: ({ _ }) => _,
       },
     },
   ],

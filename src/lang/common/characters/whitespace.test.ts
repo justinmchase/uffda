@@ -2,7 +2,7 @@ import { Input } from "../../../input.ts";
 import { MatchKind } from "../../../mod.ts";
 import { moduleDeclarationTest } from "../../../test.ts";
 
-const moduleUrl = new URL("./whitespace.ts", import.meta.url).href;
+const moduleUrl = new URL("./whitespace.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -19,6 +19,7 @@ Deno.test(
       name: "WHITESPACE00",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Whitespace",
         input: Input.Iterable(" "),
         value: " ",
         kind: MatchKind.Ok,
@@ -28,6 +29,7 @@ Deno.test(
       name: "WHITESPACE01",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Whitespace",
         input: Input.Iterable("   "),
         kind: MatchKind.Ok,
         value: " ",
@@ -39,6 +41,7 @@ Deno.test(
       name: "WHITESPACE02",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Whitespace",
         input: Input.Iterable(" \t"),
         value: " ",
         kind: MatchKind.Ok,
@@ -50,6 +53,7 @@ Deno.test(
       name: "WHITESPACE03",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Whitespace",
         input: Input.Iterable(""),
         kind: MatchKind.Fail,
         done: true,
@@ -60,6 +64,7 @@ Deno.test(
       name: "WHITESPACE04",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Whitespace",
         input: Input.Iterable("\r"),
         kind: MatchKind.Fail,
       }),
@@ -69,6 +74,7 @@ Deno.test(
       name: "WHITESPACE05",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Whitespace",
         input: Input.Iterable("\n"),
         kind: MatchKind.Fail,
       }),
@@ -78,6 +84,7 @@ Deno.test(
       name: "WHITESPACE06",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Whitespace",
         input: Input.Iterable("\t"),
         kind: MatchKind.Ok,
         value: "\t",

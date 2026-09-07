@@ -111,8 +111,8 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 | 2 | `common/characters/formatting` | OK `\cCf`             | none             | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done                      |
 | 3 | `common/characters/letter`     | OK `\cL\|\cNl`        | none             | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done                      |
 | 4 | `common/characters/combining`  | OK `\cMn\|\cMe\|\cMc` | none             | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done                      |
-| 5 | `common/characters/whitespace` | OK                    | Native identity  | OK (no parse)       | Needs Equal `"\t"` (B11) then publish      | **blocked** (B11 publish) |
-| 6 | `common/characters/newLine`    | OK                    | Native `-> "\n"` | OK project constant | Needs Equal `"\r"`/`"\n"` + project (B11)  | **blocked** (B11 publish) |
+| 5 | `common/characters/whitespace` | OK                    | none (dropped)   | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done                      |
+| 6 | `common/characters/newLine`    | OK                    | Native `-> "\n"` | OK project constant | Needs Equal `"\r"`/`"\n"` + project (B11)  | **yes** — **next**        |
 | 7 | `common/characters/mod`        | n/a                   | n/a              | n/a                 | Re-exports; needs children                 | after 1–6                 |
 
 ### Phase 1 — Common helpers
@@ -194,13 +194,12 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ## First candidate (next session)
 
-**Publish B11, then convert `whitespace`.**
+**`common/characters/newLine`** — replace Native projection with a string
+literal (`-> "\n"`), then author `.uff`. Expected G0–G3: pass with published
+CLI that includes B11 escapes.
 
-In-tree PatternLang now interprets `\t` `\n` `\r` `\\` `\"` in string literals
-(tokenizer emits single-char semantic escape followers). Whitespace conversion
-still waits until that surface ships in a published CLI (G0).
-
-Completed: `digit`, `connecting`, `formatting`, `letter`, `combining`.
+Completed: `digit`, `connecting`, `formatting`, `letter`, `combining`,
+`whitespace`.
 
 ## References
 
