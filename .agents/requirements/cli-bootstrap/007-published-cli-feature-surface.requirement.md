@@ -11,7 +11,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#published
 Preconditions:
 
 - Bootstrap compiles language `.uff` sources with the latest published Uffda CLI
-  (version N).
+  (version N). That CLI already has language version N baked into the binary.
 - In-tree sources may already contain unreleased language or std changes for
   version N+1.
 
@@ -26,10 +26,9 @@ Expected behavior:
   globstar, and not `./src/cli/main.ts`).
 - A module MUST NOT be converted to `.uff` until every construct it needs is
   available in the published CLI feature surface (G0).
-- Converted `.uff` leaves that the grammar imports MUST remain registered under
-  their logical `.uff` URLs in `builtInLanguageDeclarations` (via
-  `*.bootstrap.ts`) so a published CLI can compile without a pre-existing
-  `./bin`.
+- Converted `.uff` modules MUST NOT keep host TypeScript twins or
+  `*.bootstrap.ts` registry stubs. Runtime loads them only via `.uff` → `./bin`
+  remapping after compile.
 
 Postconditions:
 

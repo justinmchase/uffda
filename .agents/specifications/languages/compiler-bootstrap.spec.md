@@ -19,6 +19,9 @@ self-hosting while maintaining deterministic and diagnosable behavior.
   next version of Uffda.
 - The published CLI product MUST consist of the runtime, the language layers,
   and the CLI compiler wrapper that imports those languages.
+- The installed CLI (version N) MUST compile authored `.uff` using the language
+  stack already baked into that binary. It MUST NOT require host TypeScript
+  twins or `*.bootstrap.ts` stubs of in-tree `.uff` sources.
 - After self-hosting lands, language definitions consumed by a released CLI
   binary MUST come from compiled artifacts rather than TypeScript module sources
   that define those languages.

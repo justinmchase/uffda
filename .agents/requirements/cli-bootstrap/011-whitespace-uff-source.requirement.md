@@ -26,5 +26,5 @@ Postconditions:
 
 - Whitespace is converted as a Phase 0 character leaf.
 - Dependents import `./whitespace.uff`; the TypeScript twin is gone.
-- `builtInLanguageDeclarations` keys the logical `.uff` URL via
-  `whitespace.bootstrap.ts` for published-CLI grammar loading.
+- Runtime loads Whitespace from `./bin` via `.uff` remapping (not
+  `builtInLanguageDeclarations`).

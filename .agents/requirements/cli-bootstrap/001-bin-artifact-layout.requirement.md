@@ -30,8 +30,7 @@ Postconditions:
 ## Status
 
 Milestone 11 in progress. Replaced modules so far: `digit`, `connecting`,
-`formatting`, `letter`, and `combining` under `src/lang/common/characters/`
-(TypeScript twins removed; `.uff`-keyed `*.bootstrap.ts` registry entries keep
-published-CLI grammar loading working; dependents import `.uff` and tests also
-prove `./bin` remapping). Remaining language modules still load from TypeScript
-until conversion completes.
+`formatting`, `letter`, `combining`, `whitespace`, and `newLine` under
+`src/lang/common/characters/` (TypeScript twins removed; runtime loads via
+`.uff` → `./bin` remapping after published-CLI compile). Remaining language
+modules still load from TypeScript until conversion completes.
