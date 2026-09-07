@@ -6,8 +6,26 @@ re-check the three gates below and record the outcome in the per-module section
 import the `.uff` URL, registry entries for that module are dropped, and the
 `.ts` file is deleted once `.uff` → `./bin` remapping works in tests and CI.
 
-CLI baseline for this effort: **uffda 0.1.3** (published), with
-compile-then-import and draft-tag pinning on `main`.
+## End state
+
+**Every** module under `src/lang/` that today is a TypeScript
+`ModuleDeclaration` MUST eventually be authored `.uff` loaded from `./bin`,
+including stack roots and language entry modules:
+
+- Expression stack through `expression/expression.lang`
+- Pattern stack through `pattern/pattern.lang`
+- Tokenizer stack through `tokenizer/mod`, `tokenizer/structured`, and
+  `tokenizer/tokenizer.lang`
+- Uffda surface through `uffda/*.rules` and `uffda/uffda.lang`
+- Remaining leaves (`source/mod`, etc.) once their blockers (B6+) ship
+
+Temporary TypeScript bridges are allowed only while a parent still imports an
+unconverted child. Permanent host-only language modules are not the goal;
+when a module needs spans/checksums/walks, add std or pattern surface (B6/B7)
+and then convert.
+
+CLI baseline for this effort: **latest published** `uffda` (see Releases), with
+compile-then-import on `main`.
 
 ## Bootstrap compiler constraint
 
@@ -91,9 +109,11 @@ file:
 | B2  | List flatten + join (`_.flat().join("")`)                    | identifier (done), string, tokenizer, rules | std `flat`/`join` — `flat` added; remaining callers still Native |
 | B3  | Digit string → number                                        | expression/number, prefix bounds            | std `int`/`number` or pattern that yields number                 |
 | B4  | Length-1 list collapse (`patterns.length===1 ? p : wrapper`) | then/pipe/and/or                            | Always emit wrapper (behavior review) or std helper              |
-| B5  | Quantifier optional-array unwrap                             | many                                        | Pattern/coalesce convention in `.ts` first                       |
-| B6  | Host match spans / checksum / line index                     | source/mod                                  | New std/host builtins or keep hybrid                             |
-| B7  | Match-tree semantic text walk                                | tokenizer.lang                              | Same as B6                                                       |
+| B5  | Quantifier optional-array unwrap                             | many                                        | `(flat (coalesce k []))` / star rewrite; more sugar later        |
+| B6  | Host match spans / checksum / line index                     | source/mod, tokenizer                       | New std/host builtins — then convert (not permanent hybrid)      |
+| B7  | Match-tree semantic text walk                                | tokenizer.lang                              | Same as B6 — required before tokenizer.lang `.uff`               |
+| B12 | Multi-letter variable bindings in PatternLang                | readable `.uff` (esp. `*.lang`)             | Published CLI today accepts only single-letter `name:P`          |
+| B13 | Expression string proj of `"{"` / `"}"`                      | object braces, similar tokens               | `-> "{"` parses as object literal; use bare Equal or `-> _`      |
 | B8  | Validation `throw` in projection                             | prefix bounds                               | Fail in pattern, not expression                                  |
 | B9  | Pattern stack import cycles                                  | resolve/structure ↔ pattern                 | Convert as a layer with temporary TS bridges                     |
 | B10 | Parametric rules (`Surround<L,P,R>`, `Token<P>`)             | surround, token                             | Declaration syntax shipped in 0.1.11                             |
@@ -143,7 +163,7 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 | 23 | `expression/primary`         | OK       | identity             | OK                                                      | after children                   |
 | 24 | `expression/unary`           | OK       | identity             | OK                                                      | after children                   |
 | 25 | `expression/expression`      | OK       | identity             | OK                                                      | after children                   |
-| 26 | `expression/expression.lang` | pipeline | unwrap               | OK                                                      | after expression                 |
+| 26 | `expression/expression.lang` | pipeline | unwrap               | OK                                                      | after expression — **must** convert |
 
 ### Phase 3 — Pattern stack
 
@@ -160,7 +180,7 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 | 35 | `pattern/and`          | OK                                    | **B4**                        | OK                                          | after B4                        |
 | 36 | `pattern/or`           | OK                                    | **B4**                        | OK                                          | after B4                        |
 | 37 | `pattern/pattern`      | OK                                    | identity                      | OK                                          | after or                        |
-| 38 | `pattern/pattern.lang` | pipeline                              | unwrap                        | OK                                          | after pattern                   |
+| 38 | `pattern/pattern.lang` | pipeline                              | unwrap                        | OK                                          | after pattern — **must** convert |
 
 ### Phase 4 — Uffda language surface
 
@@ -173,13 +193,17 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 | 43 | `uffda/uffda.lang`       | after import/export/rule                            |
 | 44 | `uffda/runtime.compiler` | after syntax objects stable; list-merge projections |
 
-### Phase 5 — Host pipelines (last / hybrid allowed)
+### Phase 5 — Tokenizer / source (last; convert after B6/B7)
 
-| #  | Module                     | Ready?                           |
-| -- | -------------------------- | -------------------------------- |
-| 45 | `tokenizer/mod`            | hard; joins + token-kind objects |
-| 46 | `source/mod`               | **blocked** (B6)                 |
-| 47 | `tokenizer/tokenizer.lang` | **blocked** (B7)                 |
+These are still in-scope for full `.uff` conversion. Do not leave them as
+permanent TypeScript language modules once builtins exist.
+
+| #  | Module                     | Ready?                                        |
+| -- | -------------------------- | --------------------------------------------- |
+| 45 | `tokenizer/mod`            | hard; joins + token-kind objects (B2)         |
+| 46 | `tokenizer/structured`     | after token/mod projections                   |
+| 47 | `source/mod`               | **blocked** (B6) — then convert               |
+| 48 | `tokenizer/tokenizer.lang` | **blocked** (B7) — then convert (**must**)    |
 
 ## Per-conversion checklist (use every time)
 
@@ -195,12 +219,15 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ## First candidate (next session)
 
-**Phase 2 — `expression/member` / `primary`** (after array/object/sequence), or
-`pattern/atoms` if expression mid-stack stalls. Skip `number`/`string` until
-B3/B2.
+Keep driving Phase 2 to `expression.lang`, then Phase 3 to `pattern.lang`, then
+tokenizer/`tokenizer.lang`. Parallel track: ship B2/B3/B12/B13 so mid-stack and
+`*.lang` modules stay readable.
+
+Near-term: **`expression/member` / `primary`**, or `pattern/atoms` if expression
+mid-stack stalls. Skip `number`/`string` until B3/B2.
 
 Phase 0–1 complete. Phase 2: boolean, nullish, reference, terminal, not, array,
-object, sequence done.
+object, sequence done (pending merge).
 
 ## References
 
