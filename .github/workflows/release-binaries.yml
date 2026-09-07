@@ -187,6 +187,8 @@ jobs:
       - name: Download compiled binaries
         uses: actions/download-artifact@v8
         with:
+          # Only CLI target artifacts — not language-bin (./bin AST tree).
+          pattern: uffda-*
           path: dist/cli
           merge-multiple: true
 
@@ -287,8 +289,19 @@ jobs:
           fi
 
           # Retry uploads; concurrent runs or transient upload API errors can 404.
+          # Upload files only — never directories (e.g. stray language AST trees).
+          mapfile -t assets < <(
+            find dist/cli -maxdepth 1 -type f \( \
+              -name 'uffda-*' -o -name 'SHA256SUMS' -o -name 'install.sh' \
+            ) | sort
+          )
+          if [[ "${#assets[@]}" -eq 0 ]]; then
+            echo "No CLI assets found under dist/cli" >&2
+            ls -la dist/cli >&2 || true
+            exit 1
+          fi
           for attempt in 1 2 3; do
-            if gh release upload "${tag}" dist/cli/* --clobber; then
+            if gh release upload "${tag}" "${assets[@]}" --clobber; then
               echo "Attached/replaced CLI assets on draft release ${tag}"
               exit 0
             fi

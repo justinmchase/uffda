@@ -48,5 +48,6 @@ Deno.test(
     assertEquals(releaseBinaries.includes("--include ./bin"), true);
     assertEquals(releaseBinaries.includes("deno task compile:lang"), true);
     assertEquals(releaseBinaries.includes("name: language-bin"), true);
+    assertEquals(releaseBinaries.includes("pattern: uffda-*"), true);
   },
 );
