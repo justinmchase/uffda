@@ -135,9 +135,9 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 | 15 | `expression/reference`       | OK       | Reference wrap       | OK                                                      | done                             |
 | 16 | `expression/terminal`        | OK       | identity             | OK                                                      | done                             |
 | 17 | `expression/not`             | OK       | Not wrap             | OK                                                      | done                             |
-| 18 | `expression/array`           | OK       | Array AST proj       | OK                                                      | nearly                           |
-| 19 | `expression/object`          | OK       | Object AST proj      | OK                                                      | nearly                           |
-| 20 | `expression/sequence`        | OK       | Invocation AST       | OK                                                      | nearly                           |
+| 18 | `expression/array`           | OK       | Array AST proj       | OK                                                      | done                             |
+| 19 | `expression/object`          | OK       | Object AST proj      | OK (`flat` unwrap)                                      | done                             |
+| 20 | `expression/sequence`        | OK       | Invocation AST       | OK                                                      | done                             |
 | 21 | `expression/string`          | OK       | **B2** join content  | Content via patterns; join is proj                      | **no** until B2                  |
 | 22 | `expression/member`          | OK       | left-fold segments   | Fold is proj (OK) if expressible                        | medium — needs fold/`pack` story |
 | 23 | `expression/primary`         | OK       | identity             | OK                                                      | after children                   |
@@ -195,11 +195,12 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ## First candidate (next session)
 
-**Phase 2 — `expression/array` / `object` / `sequence`** (AST object
-projections; still Native today). Skip `number`/`string` until B3/B2.
-`pattern/atoms` is also near-ready if expression leaves stall.
+**Phase 2 — `expression/member` / `primary`** (after array/object/sequence), or
+`pattern/atoms` if expression mid-stack stalls. Skip `number`/`string` until
+B3/B2.
 
-Phase 0–1 complete. Phase 2: boolean, nullish, reference, terminal, not done.
+Phase 0–1 complete. Phase 2: boolean, nullish, reference, terminal, not, array,
+object, sequence done.
 
 ## References
 

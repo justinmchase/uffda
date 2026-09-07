@@ -1,0 +1,27 @@
+# Sequence matches `(callee args…)` and projects an InvocationExpression.
+# Variable bindings are single-letter (published CLI PatternLang).
+import "../tokenizer/token.uff" Token;
+import "./primary.ts" Primary;
+import "../common/spread.uff" SpreadMarker;
+
+export Sequence;
+
+rule OpenParen = "(" -> "(";
+rule CloseParen = ")" -> ")";
+
+rule InvocationSpread =
+  SpreadMarker
+  e:Token<Primary>
+  -> { kind: "invocationSpread", expression: e };
+
+rule InvocationArgument =
+  | InvocationSpread
+  | Token<Primary>
+  ;
+
+rule Sequence =
+  Token<OpenParen>
+  e:Token<Primary>
+  a:InvocationArgument*
+  Token<CloseParen>
+  -> { kind: "invocation", expression: e, args: a };

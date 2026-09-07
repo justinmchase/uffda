@@ -46,9 +46,9 @@ Nullish =
 
 Array =
   "["
-  elements:(ArrayInitializer*)
+  e:ArrayInitializer*
   "]"
-  -> { kind: "array", expressions: elements }
+  -> { kind: "array", expressions: e }
   ;
 
 ArrayInitializer =
@@ -57,8 +57,8 @@ ArrayInitializer =
   ;
 
 ArrayElement =
-  e:Token<Primary>
-  -> { kind: "arrayElement", expression: e }
+  Token<Primary>
+  -> { kind: "arrayElement", expression: _ }
   ;
 
 ArraySpread =
@@ -69,15 +69,21 @@ ArraySpread =
 
 Object =
   "{"
-  keys:(ObjectPairs?)
+  k:ObjectPairs?
   "}"
-  -> { kind: "object", keys: (coalesce keys []) }
+  -> { kind: "object", keys: (flat (coalesce k [])) }
   ;
 
 ObjectPairs =
-  first:ObjectEntry
-  rest:("," ObjectEntry)*
-  -> (append [first] rest)
+  ObjectEntry
+  ObjectPairTail*
+  -> (flat _)
+  ;
+
+ObjectPairTail =
+  ","
+  p:ObjectEntry
+  -> p
   ;
 
 ObjectEntry =
@@ -89,7 +95,7 @@ ObjectPair =
   k:Token<Reference>
   ":"
   v:Token<Primary>
-  -> { kind: "objectKey", name: (get k "name"), expression: v }
+  -> { kind: "objectKey", name: k.name, expression: v }
   ;
 
 ObjectSpread =
@@ -100,10 +106,10 @@ ObjectSpread =
 
 Sequence =
   "("
-  callee:Token<Primary>
-  args:(InvocationArgument*)
+  e:Token<Primary>
+  a:InvocationArgument*
   ")"
-  -> { kind: "invocation", expression: callee, args }
+  -> { kind: "invocation", expression: e, args: a }
   ;
 
 InvocationArgument =
