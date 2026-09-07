@@ -1,0 +1,9 @@
+# Number matches a digit string token and projects a NumberExpression.
+import "../common/characters/digit.uff" Digit;
+
+export Number;
+
+rule Number =
+  string
+  & [Digit+]
+  -> { kind: "number", value: (int (join (flat _) "")) };

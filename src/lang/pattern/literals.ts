@@ -13,7 +13,7 @@ export const Literals: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "../expression/number.ts",
+      moduleUrl: "../expression/number.uff",
       names: ["Number"],
     },
     {

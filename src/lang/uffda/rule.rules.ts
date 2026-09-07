@@ -22,7 +22,7 @@ export const RuleDeclarationRules: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./shared.rules.ts",
+      moduleUrl: "./shared.rules.uff",
       names: ["IdentifierToken"],
     },
   ],

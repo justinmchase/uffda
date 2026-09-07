@@ -1,7 +1,7 @@
 # Terminal matches a Number or Reference token and projects the inner expression.
 import "../tokenizer/token.uff" Token;
 import "./reference.uff" Reference;
-import "./number.ts" Number;
+import "./number.uff" Number;
 
 export Terminal;
 

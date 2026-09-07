@@ -19,7 +19,7 @@ Deno.test(
 
     const terminal = await Deno.readTextFile(join(expression, "terminal.uff"));
     assertEquals(terminal.includes("export Terminal"), true);
-    assertEquals(terminal.includes('import "./number.ts" Number'), true);
+    assertEquals(terminal.includes('import "./number.uff" Number'), true);
     assertEquals(terminal.includes('import "./reference.uff" Reference'), true);
     assertEquals(terminal.includes("Token<Number>"), true);
     assertEquals(terminal.includes("Token<Reference>"), true);
