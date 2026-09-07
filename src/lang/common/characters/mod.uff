@@ -1,0 +1,9 @@
+# Characters re-exports the Phase 0 character-leaf modules.
+import "./combining.uff" Combining;
+import "./connecting.uff" Connecting;
+import "./digit.uff" Digit;
+import "./formatting.uff" Formatting;
+import "./letter.uff" Letter;
+import "./newLine.uff" NewLine;
+import "./whitespace.uff" Whitespace;
+export Combining Connecting Digit Formatting Letter NewLine Whitespace;

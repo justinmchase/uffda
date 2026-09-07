@@ -2,87 +2,56 @@ import { ExportDeclarationKind } from "../../../runtime/declarations/export.ts";
 import { ImportDeclarationKind } from "../../../runtime/declarations/mod.ts";
 import type { ModuleDeclaration } from "../../../runtime/declarations/mod.ts";
 
+/**
+ * Host-side declaration registered under `./mod.uff` so published CLIs can load
+ * the Characters barrel without `./bin` during bootstrap compile.
+ */
 export const Characters: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
       moduleUrl: "./combining.uff",
-      names: [
-        "Combining",
-      ],
+      names: ["Combining"],
     },
     {
       kind: ImportDeclarationKind.Module,
       moduleUrl: "./connecting.uff",
-      names: [
-        "Connecting",
-      ],
+      names: ["Connecting"],
     },
     {
       kind: ImportDeclarationKind.Module,
       moduleUrl: "./digit.uff",
-      names: [
-        "Digit",
-      ],
+      names: ["Digit"],
     },
     {
       kind: ImportDeclarationKind.Module,
       moduleUrl: "./formatting.uff",
-      names: [
-        "Formatting",
-      ],
+      names: ["Formatting"],
     },
     {
       kind: ImportDeclarationKind.Module,
       moduleUrl: "./letter.uff",
-      names: [
-        "Letter",
-      ],
+      names: ["Letter"],
     },
     {
       kind: ImportDeclarationKind.Module,
       moduleUrl: "./newLine.uff",
-      names: [
-        "NewLine",
-      ],
+      names: ["NewLine"],
     },
     {
       kind: ImportDeclarationKind.Module,
       moduleUrl: "./whitespace.uff",
-      names: [
-        "Whitespace",
-      ],
+      names: ["Whitespace"],
     },
   ],
   exports: [
-    {
-      kind: ExportDeclarationKind.Import,
-      name: "Combining",
-    },
-    {
-      kind: ExportDeclarationKind.Import,
-      name: "Connecting",
-    },
-    {
-      kind: ExportDeclarationKind.Import,
-      name: "Digit",
-    },
-    {
-      kind: ExportDeclarationKind.Import,
-      name: "Formatting",
-    },
-    {
-      kind: ExportDeclarationKind.Import,
-      name: "Letter",
-    },
-    {
-      kind: ExportDeclarationKind.Import,
-      name: "NewLine",
-    },
-    {
-      kind: ExportDeclarationKind.Import,
-      name: "Whitespace",
-    },
+    { kind: ExportDeclarationKind.Import, name: "Combining" },
+    { kind: ExportDeclarationKind.Import, name: "Connecting" },
+    { kind: ExportDeclarationKind.Import, name: "Digit" },
+    { kind: ExportDeclarationKind.Import, name: "Formatting" },
+    { kind: ExportDeclarationKind.Import, name: "Letter" },
+    { kind: ExportDeclarationKind.Import, name: "NewLine" },
+    { kind: ExportDeclarationKind.Import, name: "Whitespace" },
   ],
   rules: [],
 };

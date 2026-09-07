@@ -84,19 +84,19 @@ replaced). `_.flat().join("")`, `parseInt`, match-span indexing are usually
 These unlock many modules; schedule explicitly rather than rediscovering per
 file:
 
-| ID  | Blocker                                                      | Needed by                            | Direction                                                                         |
-| --- | ------------------------------------------------------------ | ------------------------------------ | --------------------------------------------------------------------------------- |
-| B1  | Replace Native with serializable projections                 | ~45 modules                          | ExpressionLang object/invocation forms + std                                      |
-| B2  | List flatten + join (`_.flat().join("")`)                    | identifier, string, tokenizer, rules | std `flat`/`join` or reshape Then so `_` is already flat                          |
-| B3  | Digit string → number                                        | expression/number, prefix bounds     | std `int`/`number` or pattern that yields number                                  |
-| B4  | Length-1 list collapse (`patterns.length===1 ? p : wrapper`) | then/pipe/and/or                     | Always emit wrapper (behavior review) or std helper                               |
-| B5  | Quantifier optional-array unwrap                             | many                                 | Pattern/coalesce convention in `.ts` first                                        |
-| B6  | Host match spans / checksum / line index                     | source/mod                           | New std/host builtins or keep hybrid                                              |
-| B7  | Match-tree semantic text walk                                | tokenizer.lang                       | Same as B6                                                                        |
-| B8  | Validation `throw` in projection                             | prefix bounds                        | Fail in pattern, not expression                                                   |
-| B9  | Pattern stack import cycles                                  | resolve/structure ↔ pattern          | Convert as a layer with temporary TS bridges                                      |
-| B10 | Parametric rules (`Surround<L,P,R>`, `Token<P>`)             | surround, token                      | Confirm Uffda rule-parameter syntax                                               |
-| B11 | PatternLang + ExpressionLang string escapes (`\t`, `\n`, …)  | whitespace (done), newLine           | Pattern escapes shipped in 0.1.6; expression escapes still required for `-> "\n"` |
+| ID  | Blocker                                                      | Needed by                            | Direction                                                |
+| --- | ------------------------------------------------------------ | ------------------------------------ | -------------------------------------------------------- |
+| B1  | Replace Native with serializable projections                 | ~45 modules                          | ExpressionLang object/invocation forms + std             |
+| B2  | List flatten + join (`_.flat().join("")`)                    | identifier, string, tokenizer, rules | std `flat`/`join` or reshape Then so `_` is already flat |
+| B3  | Digit string → number                                        | expression/number, prefix bounds     | std `int`/`number` or pattern that yields number         |
+| B4  | Length-1 list collapse (`patterns.length===1 ? p : wrapper`) | then/pipe/and/or                     | Always emit wrapper (behavior review) or std helper      |
+| B5  | Quantifier optional-array unwrap                             | many                                 | Pattern/coalesce convention in `.ts` first               |
+| B6  | Host match spans / checksum / line index                     | source/mod                           | New std/host builtins or keep hybrid                     |
+| B7  | Match-tree semantic text walk                                | tokenizer.lang                       | Same as B6                                               |
+| B8  | Validation `throw` in projection                             | prefix bounds                        | Fail in pattern, not expression                          |
+| B9  | Pattern stack import cycles                                  | resolve/structure ↔ pattern          | Convert as a layer with temporary TS bridges             |
+| B10 | Parametric rules (`Surround<L,P,R>`, `Token<P>`)             | surround, token                      | Confirm Uffda rule-parameter syntax                      |
+| B11 | PatternLang + ExpressionLang string escapes (`\t`, `\n`, …)  | whitespace, newLine (done)           | Shipped; expression escapes enable `-> "\n"`             |
 
 ## Phase order (dependency leaves first)
 
@@ -104,16 +104,16 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ### Phase 0 — Character leaves (prove `.uff` + bin + import)
 
-| # | Module                         | G1                    | G2             | G3                  | Notes                                      | Ready?             |
-| - | ------------------------------ | --------------------- | -------------- | ------------------- | ------------------------------------------ | ------------------ |
-| 0 | `common/characters/digit`      | OK `\cNd`             | none           | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done               |
-| 1 | `common/characters/connecting` | OK `\cPc`             | none           | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done               |
-| 2 | `common/characters/formatting` | OK `\cCf`             | none           | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done               |
-| 3 | `common/characters/letter`     | OK `\cL\|\cNl`        | none           | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done               |
-| 4 | `common/characters/combining`  | OK `\cMn\|\cMe\|\cMc` | none           | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done               |
-| 5 | `common/characters/whitespace` | OK                    | none (dropped) | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done               |
-| 6 | `common/characters/newLine`    | OK                    | `-> "\n"`      | OK project constant | Replaced `.ts`; loads via `.uff` → `./bin` | done               |
-| 7 | `common/characters/mod`        | n/a                   | n/a            | n/a                 | Re-exports; needs children                 | **yes** — **next** |
+| # | Module                         | G1                    | G2             | G3                  | Notes                                      | Ready? |
+| - | ------------------------------ | --------------------- | -------------- | ------------------- | ------------------------------------------ | ------ |
+| 0 | `common/characters/digit`      | OK `\cNd`             | none           | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done   |
+| 1 | `common/characters/connecting` | OK `\cPc`             | none           | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done   |
+| 2 | `common/characters/formatting` | OK `\cCf`             | none           | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done   |
+| 3 | `common/characters/letter`     | OK `\cL\|\cNl`        | none           | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done   |
+| 4 | `common/characters/combining`  | OK `\cMn\|\cMe\|\cMc` | none           | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done   |
+| 5 | `common/characters/whitespace` | OK                    | none (dropped) | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done   |
+| 6 | `common/characters/newLine`    | OK                    | `-> "\n"`      | OK project constant | Replaced `.ts`; loads via `.uff` → `./bin` | done   |
+| 7 | `common/characters/mod`        | n/a                   | n/a            | n/a                 | Replaced `.ts`; loads via `.uff` → `./bin` | done   |
 
 ### Phase 1 — Common helpers
 
@@ -194,11 +194,11 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ## First candidate (next session)
 
-**`common/characters/mod`** — re-export barrel only; point remaining imports at
-`.uff` children and drop any stale `.ts` twin once NewLine is converted.
+**Phase 1 — `common/identifier`** (blocked on B2 `flat().join`) or confirm B10
+for `surround` if tackling helpers next.
 
-Completed: `digit`, `connecting`, `formatting`, `letter`, `combining`,
-`whitespace`, `newLine`.
+Phase 0 complete: `digit`, `connecting`, `formatting`, `letter`, `combining`,
+`whitespace`, `newLine`, `mod`.
 
 ## References
 
