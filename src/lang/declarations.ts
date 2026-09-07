@@ -16,7 +16,6 @@
  */
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 
-import Spread from "./common/spread.ts";
 import ArrayModule from "./expression/array.ts";
 import BooleanModule from "./expression/boolean.ts";
 import Expression from "./expression/expression.ts";
@@ -63,7 +62,6 @@ function entry(
 
 export const builtInLanguageDeclarations: Record<string, ModuleDeclaration> =
   Object.fromEntries([
-    entry("./common/spread.ts", Spread),
     entry("./expression/array.ts", ArrayModule),
     entry("./expression/boolean.ts", BooleanModule),
     entry("./expression/expression.ts", Expression),

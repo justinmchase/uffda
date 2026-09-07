@@ -76,6 +76,12 @@ Deno.test(
       ),
       true,
     );
+    assertEquals(
+      yaml.includes(
+        "./bin/ast/src/lang/common/spread.uffda.ast.json",
+      ),
+      true,
+    );
   },
 );
 

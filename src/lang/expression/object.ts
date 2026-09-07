@@ -31,7 +31,7 @@ export const Object: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "../common/spread.ts",
+      moduleUrl: "../common/spread.uff",
       names: ["SpreadMarker"],
     },
   ],
