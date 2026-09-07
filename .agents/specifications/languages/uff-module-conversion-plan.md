@@ -20,9 +20,9 @@ including stack roots and language entry modules:
 - Remaining leaves (`source/mod`, etc.) once their blockers (B6+) ship
 
 Temporary TypeScript bridges are allowed only while a parent still imports an
-unconverted child. Permanent host-only language modules are not the goal;
-when a module needs spans/checksums/walks, add std or pattern surface (B6/B7)
-and then convert.
+unconverted child. Permanent host-only language modules are not the goal; when a
+module needs spans/checksums/walks, add std or pattern surface (B6/B7) and then
+convert.
 
 CLI baseline for this effort: **latest published** `uffda` (see Releases), with
 compile-then-import on `main`.
@@ -112,12 +112,12 @@ file:
 | B5  | Quantifier optional-array unwrap                             | many                                        | `(flat (coalesce k []))` / star rewrite; more sugar later        |
 | B6  | Host match spans / checksum / line index                     | source/mod, tokenizer                       | New std/host builtins — then convert (not permanent hybrid)      |
 | B7  | Match-tree semantic text walk                                | tokenizer.lang                              | Same as B6 — required before tokenizer.lang `.uff`               |
-| B12 | Multi-letter variable bindings in PatternLang                | readable `.uff` (esp. `*.lang`)             | Published CLI today accepts only single-letter `name:P`          |
-| B13 | Expression string proj of `"{"` / `"}"`                      | object braces, similar tokens               | `-> "{"` parses as object literal; use bare Equal or `-> _`      |
 | B8  | Validation `throw` in projection                             | prefix bounds                               | Fail in pattern, not expression                                  |
 | B9  | Pattern stack import cycles                                  | resolve/structure ↔ pattern                 | Convert as a layer with temporary TS bridges                     |
 | B10 | Parametric rules (`Surround<L,P,R>`, `Token<P>`)             | surround, token                             | Declaration syntax shipped in 0.1.11                             |
 | B11 | PatternLang + ExpressionLang string escapes (`\t`, `\n`, …)  | whitespace, newLine (done)                  | Shipped; expression escapes enable `-> "\n"`                     |
+| B12 | Multi-letter variable bindings in PatternLang                | readable `.uff` (esp. `*.lang`)             | Published CLI today accepts only single-letter `name:P`          |
+| B13 | Expression string proj of `"{"` / `"}"`                      | object braces, similar tokens               | `-> "{"` parses as object literal; use bare Equal or `-> _`      |
 
 ## Phase order (dependency leaves first)
 
@@ -147,39 +147,39 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ### Phase 2 — Expression stack (bottom-up)
 
-| #  | Module                       | G1       | G2                   | G3                                                      | Ready?                           |
-| -- | ---------------------------- | -------- | -------------------- | ------------------------------------------------------- | -------------------------------- |
-| 12 | `expression/number`          | OK       | **B3** parseInt+join | Digits matched by pattern; Native parses — fix with std | **no** until B3                  |
-| 13 | `expression/boolean`         | OK       | object proj          | OK                                                      | done                             |
-| 14 | `expression/nullish`         | OK       | Value proj           | OK                                                      | done                             |
-| 15 | `expression/reference`       | OK       | Reference wrap       | OK                                                      | done                             |
-| 16 | `expression/terminal`        | OK       | identity             | OK                                                      | done                             |
-| 17 | `expression/not`             | OK       | Not wrap             | OK                                                      | done                             |
-| 18 | `expression/array`           | OK       | Array AST proj       | OK                                                      | done                             |
-| 19 | `expression/object`          | OK       | Object AST proj      | OK (`flat` unwrap)                                      | done                             |
-| 20 | `expression/sequence`        | OK       | Invocation AST       | OK                                                      | done                             |
-| 21 | `expression/string`          | OK       | **B2** join content  | Content via patterns; join is proj                      | **no** until B2                  |
-| 22 | `expression/member`          | OK       | left-fold segments   | Fold is proj (OK) if expressible                        | medium — needs fold/`pack` story |
-| 23 | `expression/primary`         | OK       | identity             | OK                                                      | after children                   |
-| 24 | `expression/unary`           | OK       | identity             | OK                                                      | after children                   |
-| 25 | `expression/expression`      | OK       | identity             | OK                                                      | after children                   |
+| #  | Module                       | G1       | G2                   | G3                                                      | Ready?                              |
+| -- | ---------------------------- | -------- | -------------------- | ------------------------------------------------------- | ----------------------------------- |
+| 12 | `expression/number`          | OK       | **B3** parseInt+join | Digits matched by pattern; Native parses — fix with std | **no** until B3                     |
+| 13 | `expression/boolean`         | OK       | object proj          | OK                                                      | done                                |
+| 14 | `expression/nullish`         | OK       | Value proj           | OK                                                      | done                                |
+| 15 | `expression/reference`       | OK       | Reference wrap       | OK                                                      | done                                |
+| 16 | `expression/terminal`        | OK       | identity             | OK                                                      | done                                |
+| 17 | `expression/not`             | OK       | Not wrap             | OK                                                      | done                                |
+| 18 | `expression/array`           | OK       | Array AST proj       | OK                                                      | done                                |
+| 19 | `expression/object`          | OK       | Object AST proj      | OK (`flat` unwrap)                                      | done                                |
+| 20 | `expression/sequence`        | OK       | Invocation AST       | OK                                                      | done                                |
+| 21 | `expression/string`          | OK       | **B2** join content  | Content via patterns; join is proj                      | **no** until B2                     |
+| 22 | `expression/member`          | OK       | left-fold segments   | Fold is proj (OK) if expressible                        | medium — needs fold/`pack` story    |
+| 23 | `expression/primary`         | OK       | identity             | OK                                                      | after children                      |
+| 24 | `expression/unary`           | OK       | identity             | OK                                                      | after children                      |
+| 25 | `expression/expression`      | OK       | identity             | OK                                                      | after children                      |
 | 26 | `expression/expression.lang` | pipeline | unwrap               | OK                                                      | after expression — **must** convert |
 
 ### Phase 3 — Pattern stack
 
-| #  | Module                 | G1                                    | G2                            | G3                                          | Ready?                          |
-| -- | ---------------------- | ------------------------------------- | ----------------------------- | ------------------------------------------- | ------------------------------- |
-| 27 | `pattern/atoms`        | OK                                    | object `{kind:"any"}`         | OK proj                                     | nearly                          |
-| 28 | `pattern/literals`     | heavy CharacterClass/includes/between | many Natives                  | mostly AST wrap; audit string/number unwrap | hard; after expr number/boolean |
-| 29 | `pattern/resolve`      | **B9** cycle                          | optional-arg unpack           | OK                                          | hard                            |
-| 30 | `pattern/structure`    | **B9** cycle                          | Over AST                      | OK                                          | hard                            |
-| 31 | `pattern/atomic`       | OK                                    | identity                      | OK                                          | after 27–30                     |
-| 32 | `pattern/prefix`       | OK                                    | **B8** throw/validate; **B5** | Bounds validation must move to patterns     | **blocked** until B8            |
-| 33 | `pattern/then`         | OK                                    | **B4**                        | OK                                          | after B4                        |
-| 34 | `pattern/pipe`         | OK                                    | **B4**                        | OK                                          | after B4                        |
-| 35 | `pattern/and`          | OK                                    | **B4**                        | OK                                          | after B4                        |
-| 36 | `pattern/or`           | OK                                    | **B4**                        | OK                                          | after B4                        |
-| 37 | `pattern/pattern`      | OK                                    | identity                      | OK                                          | after or                        |
+| #  | Module                 | G1                                    | G2                            | G3                                          | Ready?                           |
+| -- | ---------------------- | ------------------------------------- | ----------------------------- | ------------------------------------------- | -------------------------------- |
+| 27 | `pattern/atoms`        | OK                                    | object `{kind:"any"}`         | OK proj                                     | nearly                           |
+| 28 | `pattern/literals`     | heavy CharacterClass/includes/between | many Natives                  | mostly AST wrap; audit string/number unwrap | hard; after expr number/boolean  |
+| 29 | `pattern/resolve`      | **B9** cycle                          | optional-arg unpack           | OK                                          | hard                             |
+| 30 | `pattern/structure`    | **B9** cycle                          | Over AST                      | OK                                          | hard                             |
+| 31 | `pattern/atomic`       | OK                                    | identity                      | OK                                          | after 27–30                      |
+| 32 | `pattern/prefix`       | OK                                    | **B8** throw/validate; **B5** | Bounds validation must move to patterns     | **blocked** until B8             |
+| 33 | `pattern/then`         | OK                                    | **B4**                        | OK                                          | after B4                         |
+| 34 | `pattern/pipe`         | OK                                    | **B4**                        | OK                                          | after B4                         |
+| 35 | `pattern/and`          | OK                                    | **B4**                        | OK                                          | after B4                         |
+| 36 | `pattern/or`           | OK                                    | **B4**                        | OK                                          | after B4                         |
+| 37 | `pattern/pattern`      | OK                                    | identity                      | OK                                          | after or                         |
 | 38 | `pattern/pattern.lang` | pipeline                              | unwrap                        | OK                                          | after pattern — **must** convert |
 
 ### Phase 4 — Uffda language surface
@@ -198,12 +198,12 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 These are still in-scope for full `.uff` conversion. Do not leave them as
 permanent TypeScript language modules once builtins exist.
 
-| #  | Module                     | Ready?                                        |
-| -- | -------------------------- | --------------------------------------------- |
-| 45 | `tokenizer/mod`            | hard; joins + token-kind objects (B2)         |
-| 46 | `tokenizer/structured`     | after token/mod projections                   |
-| 47 | `source/mod`               | **blocked** (B6) — then convert               |
-| 48 | `tokenizer/tokenizer.lang` | **blocked** (B7) — then convert (**must**)    |
+| #  | Module                     | Ready?                                     |
+| -- | -------------------------- | ------------------------------------------ |
+| 45 | `tokenizer/mod`            | hard; joins + token-kind objects (B2)      |
+| 46 | `tokenizer/structured`     | after token/mod projections                |
+| 47 | `source/mod`               | **blocked** (B6) — then convert            |
+| 48 | `tokenizer/tokenizer.lang` | **blocked** (B7) — then convert (**must**) |
 
 ## Per-conversion checklist (use every time)
 
