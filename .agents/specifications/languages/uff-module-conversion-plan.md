@@ -130,7 +130,7 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 | #  | Module                       | G1       | G2                   | G3                                                      | Ready?                           |
 | -- | ---------------------------- | -------- | -------------------- | ------------------------------------------------------- | -------------------------------- |
 | 12 | `expression/number`          | OK       | **B3** parseInt+join | Digits matched by pattern; Native parses — fix with std | **no** until B3                  |
-| 13 | `expression/boolean`         | OK       | object proj          | OK                                                      | nearly — replace Native wrappers |
+| 13 | `expression/boolean`         | OK       | object proj          | OK                                                      | done                             |
 | 14 | `expression/nullish`         | OK       | Value proj           | OK                                                      | nearly                           |
 | 15 | `expression/reference`       | OK       | Reference wrap       | OK                                                      | nearly                           |
 | 16 | `expression/terminal`        | OK       | identity             | OK                                                      | nearly                           |
@@ -195,11 +195,11 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ## First candidate (next session)
 
-**Phase 2 — near-ready expression leaves** such as `expression/boolean` /
-`nullish` / `reference` once Native wrappers are replaced with serializable
-projections. `expression/number` remains blocked on B3.
+**Phase 2 — `expression/nullish`** (same Native→serializable projection shape as
+boolean). Then `reference` / `terminal` / `not`.
 
-Phase 0–1 complete: characters, identifier, surround, token, and spread.
+Phase 0–1 complete. Phase 2 started: `boolean` done; `number`/`string` still
+blocked on B3/B2.
 
 ## References
 
