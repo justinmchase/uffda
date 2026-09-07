@@ -47,6 +47,12 @@ Deno.test(
       ),
       true,
     );
+    assertEquals(
+      yaml.includes(
+        "./bin/ast/src/lang/common/characters/mod.uffda.ast.json",
+      ),
+      true,
+    );
   },
 );
 

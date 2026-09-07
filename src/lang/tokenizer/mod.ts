@@ -36,7 +36,7 @@ export const Tokenizer: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "../common/characters/mod.ts",
+      moduleUrl: "../common/characters/mod.uff",
       names: [
         "Combining",
         "Connecting",
