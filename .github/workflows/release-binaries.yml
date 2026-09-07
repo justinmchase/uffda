@@ -290,11 +290,14 @@ jobs:
 
           # Retry uploads; concurrent runs or transient upload API errors can 404.
           # Upload files only — never directories (e.g. stray language AST trees).
-          mapfile -t assets < <(
-            find dist/cli -maxdepth 1 -type f \( \
-              -name 'uffda-*' -o -name 'SHA256SUMS' -o -name 'install.sh' \
-            ) | sort
-          )
+          assets=()
+          for path in dist/cli/*; do
+            [[ -f "${path}" ]] || continue
+            base="$(basename "${path}")"
+            case "${base}" in
+              uffda-*|SHA256SUMS|install.sh) assets+=("${path}") ;;
+            esac
+          done
           if [[ "${#assets[@]}" -eq 0 ]]; then
             echo "No CLI assets found under dist/cli" >&2
             ls -la dist/cli >&2 || true
