@@ -41,7 +41,7 @@ export const Characters: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./newLine.ts",
+      moduleUrl: "./newLine.uff",
       names: [
         "NewLine",
       ],

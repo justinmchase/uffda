@@ -3,6 +3,10 @@ import { ExpressionKind } from "../../../runtime/expressions/mod.ts";
 import { PatternKind } from "../../../runtime/patterns/mod.ts";
 import type { ModuleDeclaration } from "../../../runtime/declarations/mod.ts";
 
+/**
+ * Host-side declaration registered under `./newLine.uff` so published CLIs
+ * can load NewLine without `./bin` during bootstrap compile.
+ */
 export const NewLine: ModuleDeclaration = {
   imports: [],
   exports: [
@@ -14,7 +18,6 @@ export const NewLine: ModuleDeclaration = {
   ],
   rules: [
     {
-      // NewLine = '\r' '\n' | '\r' | '\n' -> '\n';
       name: "NewLine",
       parameters: [],
       pattern: {
@@ -44,8 +47,8 @@ export const NewLine: ModuleDeclaration = {
         ],
       },
       expression: {
-        kind: ExpressionKind.Native,
-        fn: () => "\n",
+        kind: ExpressionKind.String,
+        values: ["\n"],
       },
     },
   ],

@@ -21,7 +21,7 @@ import Digit from "./common/characters/digit.bootstrap.ts";
 import Formatting from "./common/characters/formatting.bootstrap.ts";
 import Letter from "./common/characters/letter.bootstrap.ts";
 import Characters from "./common/characters/mod.ts";
-import NewLine from "./common/characters/newLine.ts";
+import NewLine from "./common/characters/newLine.bootstrap.ts";
 import Whitespace from "./common/characters/whitespace.bootstrap.ts";
 import Identifier from "./common/identifier.ts";
 import Spread from "./common/spread.ts";
@@ -79,7 +79,7 @@ export const builtInLanguageDeclarations: Record<string, ModuleDeclaration> =
     entry("./common/characters/formatting.uff", Formatting),
     entry("./common/characters/letter.uff", Letter),
     entry("./common/characters/mod.ts", Characters),
-    entry("./common/characters/newLine.ts", NewLine),
+    entry("./common/characters/newLine.uff", NewLine),
     entry("./common/characters/whitespace.uff", Whitespace),
     entry("./common/identifier.ts", Identifier),
     entry("./common/spread.ts", Spread),

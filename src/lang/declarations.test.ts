@@ -12,6 +12,10 @@ Deno.test("lang.declarations registers built-in language modules", () => {
     "./common/characters/whitespace.uff",
     import.meta.url,
   ).href;
+  const newLineUff = new URL(
+    "./common/characters/newLine.uff",
+    import.meta.url,
+  ).href;
   const patternLangUrl = new URL("./pattern/pattern.lang.ts", import.meta.url)
     .href;
   assertEquals(builtInLanguageDeclarations[digitUff]?.rules[0]?.name, "Digit");
@@ -22,6 +26,10 @@ Deno.test("lang.declarations registers built-in language modules", () => {
   assertEquals(
     builtInLanguageDeclarations[whitespaceUff]?.rules[0]?.name,
     "Whitespace",
+  );
+  assertEquals(
+    builtInLanguageDeclarations[newLineUff]?.rules[0]?.name,
+    "NewLine",
   );
   assertEquals(
     builtInLanguageDeclarations[patternLangUrl]?.exports.some((item) =>
