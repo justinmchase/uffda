@@ -96,7 +96,7 @@ file:
 | B8  | Validation `throw` in projection                             | prefix bounds                        | Fail in pattern, not expression                                                   |
 | B9  | Pattern stack import cycles                                  | resolve/structure ↔ pattern          | Convert as a layer with temporary TS bridges                                      |
 | B10 | Parametric rules (`Surround<L,P,R>`, `Token<P>`)             | surround, token                      | Confirm Uffda rule-parameter syntax                                               |
-| B11 | PatternLang + ExpressionLang string escapes (`\t`, `\n`, …)  | whitespace (done), newLine           | Pattern escapes shipped in 0.1.6; expression escapes still required for `-> "\n"` |
+| B11 | PatternLang + ExpressionLang string escapes (`\t`, `\n`, …)  | whitespace, newLine (done)           | Shipped; expression escapes enable `-> "\n"` |
 
 ## Phase order (dependency leaves first)
 
@@ -113,7 +113,7 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 | 4 | `common/characters/combining`  | OK `\cMn\|\cMe\|\cMc` | none           | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done               |
 | 5 | `common/characters/whitespace` | OK                    | none (dropped) | none                | Replaced `.ts`; loads via `.uff` → `./bin` | done               |
 | 6 | `common/characters/newLine`    | OK                    | `-> "\n"`      | OK project constant | Replaced `.ts`; loads via `.uff` → `./bin` | done               |
-| 7 | `common/characters/mod`        | n/a                   | n/a            | n/a                 | Re-exports; needs children                 | **yes** — **next** |
+| 7 | `common/characters/mod`        | n/a                   | n/a            | n/a                 | Replaced `.ts`; loads via `.uff` → `./bin` | done               |
 
 ### Phase 1 — Common helpers
 
@@ -194,11 +194,11 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ## First candidate (next session)
 
-**`common/characters/mod`** — re-export barrel only; point remaining imports at
-`.uff` children and drop any stale `.ts` twin once NewLine is converted.
+**Phase 1 — `common/identifier`** (blocked on B2 `flat().join`) or confirm B10
+for `surround` if tackling helpers next.
 
-Completed: `digit`, `connecting`, `formatting`, `letter`, `combining`,
-`whitespace`, `newLine`.
+Phase 0 complete: `digit`, `connecting`, `formatting`, `letter`, `combining`,
+`whitespace`, `newLine`, `mod`.
 
 ## References
 

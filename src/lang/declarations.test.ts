@@ -31,6 +31,14 @@ Deno.test("lang.declarations registers built-in language modules", () => {
     builtInLanguageDeclarations[newLineUff]?.rules[0]?.name,
     "NewLine",
   );
+  const charactersUff = new URL("./common/characters/mod.uff", import.meta.url)
+    .href;
+  assertEquals(
+    builtInLanguageDeclarations[charactersUff]?.exports.some((item) =>
+      item.name === "Digit"
+    ),
+    true,
+  );
   assertEquals(
     builtInLanguageDeclarations[patternLangUrl]?.exports.some((item) =>
       item.name === "PatternLang"

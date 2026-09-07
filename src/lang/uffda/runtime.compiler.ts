@@ -129,7 +129,36 @@ export const UffdaRuntimeCompiler: ModuleDeclaration = {
     },
     expression: {
       kind: ExpressionKind.Native,
-      fn: ({ module }): ModuleDeclaration => module as ModuleDeclaration,
+      fn: ({ module }): ModuleDeclaration => {
+        const compiled = module as ModuleDeclaration;
+        const ruleNames = new Set(compiled.rules.map((rule) => rule.name));
+        const importedNames = new Set(
+          compiled.imports.flatMap((item) => item.names),
+        );
+        return {
+          imports: compiled.imports,
+          rules: compiled.rules,
+          exports: compiled.exports.map((item) => {
+            if (
+              item.kind === ExportDeclarationKind.Rule &&
+              !ruleNames.has(item.name) &&
+              importedNames.has(item.name)
+            ) {
+              return item.default
+                ? {
+                  kind: ExportDeclarationKind.Import,
+                  name: item.name,
+                  default: true,
+                }
+                : {
+                  kind: ExportDeclarationKind.Import,
+                  name: item.name,
+                };
+            }
+            return item;
+          }),
+        };
+      },
     },
   }, {
     name: "CompileDeclarations",
