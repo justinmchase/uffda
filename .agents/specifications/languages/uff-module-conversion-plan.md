@@ -147,23 +147,23 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ### Phase 2 — Expression stack (bottom-up)
 
-| #  | Module                       | G1       | G2                   | G3                                                      | Ready?                              |
-| -- | ---------------------------- | -------- | -------------------- | ------------------------------------------------------- | ----------------------------------- |
-| 12 | `expression/number`          | OK       | **B3** parseInt+join | Digits matched by pattern; Native parses — fix with std | **no** until B3                     |
-| 13 | `expression/boolean`         | OK       | object proj          | OK                                                      | done                                |
-| 14 | `expression/nullish`         | OK       | Value proj           | OK                                                      | done                                |
-| 15 | `expression/reference`       | OK       | Reference wrap       | OK                                                      | done                                |
-| 16 | `expression/terminal`        | OK       | identity             | OK                                                      | done                                |
-| 17 | `expression/not`             | OK       | Not wrap             | OK                                                      | done                                |
-| 18 | `expression/array`           | OK       | Array AST proj       | OK                                                      | done                                |
-| 19 | `expression/object`          | OK       | Object AST proj      | OK (`flat` unwrap)                                      | done                                |
-| 20 | `expression/sequence`        | OK       | Invocation AST       | OK                                                      | done                                |
-| 21 | `expression/string`          | OK       | **B2** join content  | Content via patterns; join is proj                      | **no** until B2                     |
-| 22 | `expression/member`          | OK       | left-fold segments   | Fold is proj (OK) if expressible                        | **no** until fold/reduce std        |
-| 23 | `expression/primary`         | OK       | identity             | OK                                                      | done                                |
-| 24 | `expression/unary`           | OK       | identity             | OK                                                      | done                                |
-| 25 | `expression/expression`      | OK       | identity             | OK                                                      | done                                |
-| 26 | `expression/expression.lang` | pipeline | unwrap               | OK                                                      | after expression — **must** convert |
+| #  | Module                       | G1       | G2                   | G3                                                      | Ready?                       |
+| -- | ---------------------------- | -------- | -------------------- | ------------------------------------------------------- | ---------------------------- |
+| 12 | `expression/number`          | OK       | **B3** parseInt+join | Digits matched by pattern; Native parses — fix with std | **no** until B3              |
+| 13 | `expression/boolean`         | OK       | object proj          | OK                                                      | done                         |
+| 14 | `expression/nullish`         | OK       | Value proj           | OK                                                      | done                         |
+| 15 | `expression/reference`       | OK       | Reference wrap       | OK                                                      | done                         |
+| 16 | `expression/terminal`        | OK       | identity             | OK                                                      | done                         |
+| 17 | `expression/not`             | OK       | Not wrap             | OK                                                      | done                         |
+| 18 | `expression/array`           | OK       | Array AST proj       | OK                                                      | done                         |
+| 19 | `expression/object`          | OK       | Object AST proj      | OK (`flat` unwrap)                                      | done                         |
+| 20 | `expression/sequence`        | OK       | Invocation AST       | OK                                                      | done                         |
+| 21 | `expression/string`          | OK       | **B2** join content  | Content via patterns; join is proj                      | **no** until B2              |
+| 22 | `expression/member`          | OK       | left-fold segments   | Fold is proj (OK) if expressible                        | **no** until fold/reduce std |
+| 23 | `expression/primary`         | OK       | identity             | OK                                                      | done                         |
+| 24 | `expression/unary`           | OK       | identity             | OK                                                      | done                         |
+| 25 | `expression/expression`      | OK       | identity             | OK                                                      | done                         |
+| 26 | `expression/expression.lang` | pipeline | unwrap               | OK                                                      | done                         |
 
 ### Phase 3 — Pattern stack
 
@@ -173,7 +173,7 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 | 28 | `pattern/literals`     | heavy CharacterClass/includes/between | many Natives                  | mostly AST wrap; audit string/number unwrap | hard; after expr number/boolean  |
 | 29 | `pattern/resolve`      | **B9** cycle                          | optional-arg unpack           | OK                                          | hard                             |
 | 30 | `pattern/structure`    | **B9** cycle                          | Over AST                      | OK                                          | hard                             |
-| 31 | `pattern/atomic`       | OK                                    | identity                      | OK                                          | after 27–30                      |
+| 31 | `pattern/atomic`       | OK                                    | identity                      | OK                                          | done                             |
 | 32 | `pattern/prefix`       | OK                                    | **B8** throw/validate; **B5** | Bounds validation must move to patterns     | **blocked** until B8             |
 | 33 | `pattern/then`         | OK                                    | **B4**                        | OK                                          | after B4                         |
 | 34 | `pattern/pipe`         | OK                                    | **B4**                        | OK                                          | after B4                         |
@@ -219,15 +219,14 @@ permanent TypeScript language modules once builtins exist.
 
 ## First candidate (next session)
 
-Keep driving toward `expression.lang` (still needs Source/Tokenizer bridges) and
-pattern stack after atoms. Parallel: ship fold/reduce for `member`, B2/B3 for
-`string`/`number`, B12 for readable bindings.
+Expression stack root `expression.lang` is converted (host helper remains).
+Next: pattern mid-stack (`literals` hard), or ship B14 fold for `member`, B2/B3
+for `string`/`number`, B12 for multi-letter vars.
 
-Near-term: **`expression.lang`** (pipeline + unwrap), or `pattern/atomic` after
-atoms. Skip `member` until fold/reduce std; skip `number`/`string` until B3/B2.
+Near-term: **`pattern/literals` audit**, or std fold for `member`. Skip
+`number`/`string` until B3/B2.
 
-Phase 0–1 complete. Phase 2 mid-stack: primary, unary, expression, and
-`pattern/atoms` done in this batch. Member still TS.
+Phase 0–2 leaves through expression.lang and pattern/atoms+atomic done.
 
 ## References
 

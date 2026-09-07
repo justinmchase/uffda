@@ -1,19 +1,52 @@
-import { MatchKind } from "../../mod.ts";
+import { MatchKind, Resolver } from "../../mod.ts";
 import { expressionGrammar } from "./expression.lang.ts";
 import { assertEquals, assertStringIncludes } from "@std/assert";
 import { std } from "../../runtime/std/mod.ts";
 import { exec } from "../../runtime/exec.ts";
-import { executeModuleDeclaration } from "../../runtime/module.execute.ts";
-import { ExpressionLang } from "./expression.lang.ts";
 import type { Expression } from "../../runtime/expressions/expression.ts";
 import { visualizeMatchFailure } from "../../match.visualize.ts";
+import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
+import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
+import { Scope } from "../../runtime/scope.ts";
+import { ModuleImportResultKind } from "../../runtime/resolvers/resolver.ts";
+import { resolve } from "../../runtime/patterns/resolve.ts";
 
-const moduleUrl = new URL("./expression.lang.ts", import.meta.url).href;
+const moduleUrl = new URL("./expression.lang.uff", import.meta.url);
 
 const p = await Deno.permissions.query({
   name: "read",
-  path: moduleUrl,
+  path: moduleUrl.href,
 });
+
+async function runExpressionLangRule(
+  entryRuleName: string,
+  input: Iterable<unknown>,
+) {
+  const resolver = new Resolver({
+    cwd: Deno.cwd(),
+    artifactRoot: `${Deno.cwd()}/bin`,
+  });
+  const scope = Scope.From(input).withOptions({ resolver });
+  const imported = await resolver.import(moduleUrl, {
+    scope,
+    pattern: {
+      kind: PatternKind.Resolve,
+      targetKind: ResolveTargetKind.Run,
+      name: entryRuleName,
+    },
+  });
+  if (imported.kind === ModuleImportResultKind.Error) {
+    throw imported.error;
+  }
+  return await resolve(
+    {
+      kind: PatternKind.Resolve,
+      targetKind: ResolveTargetKind.Run,
+      name: entryRuleName,
+    },
+    scope.pushModule(imported.module),
+  );
+}
 
 Deno.test(
   {
@@ -22,11 +55,12 @@ Deno.test(
   },
   async (t) => {
     await t.step("EXPR_TOKENS_00 parses an existing token array", async () => {
-      const m = await executeModuleDeclaration(ExpressionLang, {
-        moduleUrl: new URL("./expression.lang.ts", import.meta.url),
-        entryRuleName: "ExpressionTokens",
-        input: ["[", "1", "2", "]"],
-      });
+      const m = await runExpressionLangRule("ExpressionTokens", [
+        "[",
+        "1",
+        "2",
+        "]",
+      ]);
       assertEquals(m.kind, MatchKind.Ok);
       if (m.kind === MatchKind.Ok) {
         const value = await exec(m.value as Expression, m);
@@ -242,7 +276,7 @@ Deno.test(
           visualization,
           "[3] FAIL into -> resolve ExpressionComplete",
         );
-        assertStringIncludes(visualization, "expression.lang.ts");
+        assertStringIncludes(visualization, "expression.lang.uff");
         assertStringIncludes(visualization, "Failure tree:");
       },
     });

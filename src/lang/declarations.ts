@@ -16,12 +16,10 @@
  */
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 
-import ExpressionLang from "./expression/expression.lang.ts";
 import Member from "./expression/member.ts";
 import NumberModule from "./expression/number.ts";
 import StringModule from "./expression/string.ts";
 import And from "./pattern/and.ts";
-import Atomic from "./pattern/atomic.ts";
 import Literals from "./pattern/literals.ts";
 import Or from "./pattern/or.ts";
 import PatternDeclaration from "./pattern/pattern.ts";
@@ -50,12 +48,10 @@ function entry(
 
 export const builtInLanguageDeclarations: Record<string, ModuleDeclaration> =
   Object.fromEntries([
-    entry("./expression/expression.lang.ts", ExpressionLang),
     entry("./expression/member.ts", Member),
     entry("./expression/number.ts", NumberModule),
     entry("./expression/string.ts", StringModule),
     entry("./pattern/and.ts", And),
-    entry("./pattern/atomic.ts", Atomic),
     entry("./pattern/literals.ts", Literals),
     entry("./pattern/or.ts", Or),
     entry("./pattern/pattern.ts", PatternDeclaration),

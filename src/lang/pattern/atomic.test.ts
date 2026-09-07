@@ -4,7 +4,7 @@ import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
-const moduleUrl = new URL("./atomic.ts", import.meta.url).href;
+const moduleUrl = new URL("./atomic.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -19,6 +19,7 @@ Deno.test({
       name: "ATOMIC_00",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Atomic",
         input: Input.Iterable(["foo"]),
         kind: MatchKind.Ok,
         value: {
