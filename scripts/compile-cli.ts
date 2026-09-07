@@ -51,6 +51,7 @@ async function sha256Hex(path: string): Promise<string> {
 async function compileTarget(
   target: DenoCompileTarget,
   outputPath: string,
+  repoRoot: string,
 ): Promise<void> {
   const entry = fromFileUrl(new URL("../src/cli/main.ts", import.meta.url));
   const args = [
@@ -59,6 +60,10 @@ async function compileTarget(
     target,
     "--output",
     outputPath,
+    // Embed compiled language AST JSON so standalone CLIs can remap `.uff`
+    // imports without a consumer workspace `./bin` tree.
+    "--include",
+    "./bin",
     "--allow-read",
     "--allow-write",
     "--allow-env=INIT_CWD,PWD",
@@ -66,6 +71,7 @@ async function compileTarget(
   ];
   const command = new Deno.Command(Deno.execPath(), {
     args,
+    cwd: repoRoot,
     stdout: "inherit",
     stderr: "inherit",
   });
@@ -77,6 +83,23 @@ async function compileTarget(
 
 async function main(): Promise<void> {
   const { version, outDir } = parseArgs(Deno.args);
+  const repoRoot = dirname(fromFileUrl(import.meta.url)).replace(
+    /[/\\]scripts$/,
+    "",
+  );
+  const binDir = join(repoRoot, "bin");
+  try {
+    const binStat = await Deno.stat(binDir);
+    if (!binStat.isDirectory) {
+      throw new Error(`Expected ${binDir} to be a directory`);
+    }
+  } catch (err) {
+    throw new Error(
+      `Missing ${binDir}. Run \`deno task compile:lang\` before compile:cli.`,
+      { cause: err },
+    );
+  }
+
   await Deno.mkdir(outDir, { recursive: true });
 
   const checksumLines: string[] = [];
@@ -84,7 +107,7 @@ async function main(): Promise<void> {
     const fileName = artifactFileName(version, target);
     const outputPath = join(outDir, fileName);
     console.log(`Compiling ${fileName}...`);
-    await compileTarget(target, outputPath);
+    await compileTarget(target, outputPath, repoRoot);
     const hash = await sha256Hex(outputPath);
     checksumLines.push(`${hash}  ${fileName}`);
   }

@@ -7,8 +7,8 @@
   },
   "tasks": {
     "cli": "deno run --allow-read --allow-write --allow-env=INIT_CWD,PWD ./src/cli/main.ts",
-    "compile:cli": "deno run --allow-read --allow-write --allow-run --allow-env ./scripts/compile-cli.ts",
     "compile:lang": "rm -rf ./bin && uffda compile 'src/lang/**/*.uff' --out-dir ./bin",
+    "compile:cli": "deno task compile:lang && deno run --allow-read --allow-write --allow-run --allow-env ./scripts/compile-cli.ts",
     "test": "deno task compile:lang && deno test --allow-read --allow-write --parallel",
     "test:watch": "deno task compile:lang && deno test --allow-read --allow-write --watch --parallel",
     "pre": "deno fmt && deno lint --fix && deno task test && npx jsr publish --dry-run --allow-dirty"

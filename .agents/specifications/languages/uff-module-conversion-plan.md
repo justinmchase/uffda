@@ -72,9 +72,10 @@ replaced). `_.flat().join("")`, `parseInt`, match-span indexing are usually
 - **G4 — Imports:** Prefer `ImportDeclarationKind.Module` with `.uff` URLs once
   children are converted; eliminate `ImportDeclarationKind.Native` embeds.
 - **G5 — Artifacts only:** Converted `.uff` modules MUST NOT retain TypeScript
-  twins or `*.bootstrap.ts` host stubs in `builtInLanguageDeclarations`. The
-  published CLI (N) compiles with its baked-in language stack; in-tree runtime
-  loads logical `.uff` URLs from `./bin` after `compile:lang`.
+  twins or `*.bootstrap.ts` host stubs in the in-tree registry. The published
+  CLI (N) embeds `./bin` AST JSON via `deno compile --include` and remaps
+  logical `.uff` URLs from the binary extract root; in-tree runtime loads from
+  workspace `./bin` after `compile:lang`.
 - **G6 — Tests:** Existing `*.test.ts` must keep passing; add compile +
   `.uff`-import smoke where useful.
 - **G7 — CI:** Extend Checks compile-then-import as modules land under `./bin`.
