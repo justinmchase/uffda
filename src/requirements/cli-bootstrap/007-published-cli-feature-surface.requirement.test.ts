@@ -17,5 +17,20 @@ Deno.test(
     assertEquals(checks.includes("uffda compile"), true);
     assertEquals(checks.includes("src/lang/**/*.uff"), true);
     assertEquals(checks.includes("deno task cli compile"), false);
+
+    const charactersDir = join(
+      repoRoot,
+      "src",
+      "lang",
+      "common",
+      "characters",
+    );
+    let bootstrapTwins = 0;
+    for await (const entry of Deno.readDir(charactersDir)) {
+      if (entry.isFile && entry.name.endsWith(".bootstrap.ts")) {
+        bootstrapTwins += 1;
+      }
+    }
+    assertEquals(bootstrapTwins, 0);
   },
 );

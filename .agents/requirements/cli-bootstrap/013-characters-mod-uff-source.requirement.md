@@ -25,5 +25,5 @@ Expected behavior:
 Postconditions:
 
 - The Characters barrel is converted; dependents import `./mod.uff`.
-- `builtInLanguageDeclarations` keys the logical `.uff` URL via
-  `mod.bootstrap.ts`.
+- Runtime loads Characters from `./bin` via `.uff` remapping (not
+  `builtInLanguageDeclarations`).

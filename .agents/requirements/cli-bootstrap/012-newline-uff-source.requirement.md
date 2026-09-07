@@ -25,5 +25,5 @@ Postconditions:
 
 - NewLine is converted as a Phase 0 character leaf.
 - Dependents import `./newLine.uff`; the TypeScript twin is gone.
-- `builtInLanguageDeclarations` keys the logical `.uff` URL via
-  `newLine.bootstrap.ts` for published-CLI grammar loading.
+- Runtime loads NewLine from `./bin` via `.uff` remapping (not
+  `builtInLanguageDeclarations`).

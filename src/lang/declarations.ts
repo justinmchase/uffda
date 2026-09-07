@@ -2,27 +2,20 @@
  * Built-in language ModuleDeclarations keyed by absolute module URL.
  *
  * Deno-compiled CLI binaries cannot dynamically `import()` language modules from
- * the ephemeral compile root. Pre-registering declarations keeps grammar loading
- * working for both `deno run` and `deno compile` products.
+ * the ephemeral compile root. Pre-registering remaining TypeScript language
+ * modules keeps grammar loading working for both `deno run` and `deno compile`
+ * products.
  *
- * Converted `.uff` character leaves are registered under their logical `.uff`
- * URLs via `*.bootstrap.ts` host declarations so the published CLI can compile
- * without requiring `./bin` first. Remapping tests omit these entries to prove
- * `./bin` loading.
+ * Converted `.uff` modules are NOT registered here. The installed CLI (version
+ * N) already has the previous language stack baked in for `uffda compile`.
+ * In-tree runtime loads logical `.uff` URLs via `./bin` remapping after
+ * `compile:lang` (see artifact resolvers).
  *
  * Language entry modules (`*.lang.ts`) are registered by their grammar helpers
  * to avoid an import cycle through `grammar.ts`.
  */
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 
-import Combining from "./common/characters/combining.bootstrap.ts";
-import Connecting from "./common/characters/connecting.bootstrap.ts";
-import Digit from "./common/characters/digit.bootstrap.ts";
-import Formatting from "./common/characters/formatting.bootstrap.ts";
-import Letter from "./common/characters/letter.bootstrap.ts";
-import Characters from "./common/characters/mod.bootstrap.ts";
-import NewLine from "./common/characters/newLine.bootstrap.ts";
-import Whitespace from "./common/characters/whitespace.bootstrap.ts";
 import Identifier from "./common/identifier.ts";
 import Spread from "./common/spread.ts";
 import Surround from "./common/surround.ts";
@@ -73,14 +66,6 @@ function entry(
 
 export const builtInLanguageDeclarations: Record<string, ModuleDeclaration> =
   Object.fromEntries([
-    entry("./common/characters/combining.uff", Combining),
-    entry("./common/characters/connecting.uff", Connecting),
-    entry("./common/characters/digit.uff", Digit),
-    entry("./common/characters/formatting.uff", Formatting),
-    entry("./common/characters/letter.uff", Letter),
-    entry("./common/characters/mod.uff", Characters),
-    entry("./common/characters/newLine.uff", NewLine),
-    entry("./common/characters/whitespace.uff", Whitespace),
     entry("./common/identifier.ts", Identifier),
     entry("./common/spread.ts", Spread),
     entry("./common/surround.ts", Surround),
