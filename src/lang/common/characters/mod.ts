@@ -48,7 +48,7 @@ export const Characters: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./whitespace.ts",
+      moduleUrl: "./whitespace.uff",
       names: [
         "Whitespace",
       ],

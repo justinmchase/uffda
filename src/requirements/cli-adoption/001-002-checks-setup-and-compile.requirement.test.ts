@@ -35,6 +35,12 @@ Deno.test(
       ),
       true,
     );
+    assertEquals(
+      yaml.includes(
+        "./bin/ast/src/lang/common/characters/whitespace.uffda.ast.json",
+      ),
+      true,
+    );
   },
 );
 

@@ -15,7 +15,7 @@ export const Token: ModuleDeclaration = {
     {
       kind: ImportDeclarationKind.Module,
       moduleUrl:
-        new URL("../common/characters/whitespace.ts", import.meta.url).href,
+        new URL("../common/characters/whitespace.uff", import.meta.url).href,
       names: ["Whitespace"],
     },
   ],
