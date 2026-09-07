@@ -11,7 +11,7 @@ Deno.test(
 
     const primary = await Deno.readTextFile(join(expression, "primary.uff"));
     assertEquals(primary.includes("export Primary"), true);
-    assertEquals(primary.includes('import "./member.uff" Member'), true);
+    assertEquals(primary.includes('import "./member.ts" Member'), true);
     assertEquals(primary.includes('import "./string.ts" String'), true);
 
     const unary = await Deno.readTextFile(join(expression, "unary.uff"));
