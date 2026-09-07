@@ -16,8 +16,6 @@
  */
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 
-import Member from "./expression/member.ts";
-import NumberModule from "./expression/number.ts";
 import StringModule from "./expression/string.ts";
 import And from "./pattern/and.ts";
 import Literals from "./pattern/literals.ts";
@@ -35,7 +33,6 @@ import TokenizerLang from "./tokenizer/tokenizer.lang.ts";
 import ExportRules from "./uffda/export.rules.ts";
 import ImportRules from "./uffda/import.rules.ts";
 import RuleRules from "./uffda/rule.rules.ts";
-import SharedRules from "./uffda/shared.rules.ts";
 
 const here = import.meta.url;
 
@@ -48,8 +45,6 @@ function entry(
 
 export const builtInLanguageDeclarations: Record<string, ModuleDeclaration> =
   Object.fromEntries([
-    entry("./expression/member.ts", Member),
-    entry("./expression/number.ts", NumberModule),
     entry("./expression/string.ts", StringModule),
     entry("./pattern/and.ts", And),
     entry("./pattern/literals.ts", Literals),
@@ -67,5 +62,4 @@ export const builtInLanguageDeclarations: Record<string, ModuleDeclaration> =
     entry("./uffda/export.rules.ts", ExportRules),
     entry("./uffda/import.rules.ts", ImportRules),
     entry("./uffda/rule.rules.ts", RuleRules),
-    entry("./uffda/shared.rules.ts", SharedRules),
   ]);

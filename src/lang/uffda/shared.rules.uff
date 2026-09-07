@@ -1,0 +1,17 @@
+# Shared Uffda tokens: identifiers excluding reserved keywords.
+import "../common/identifier.uff" Identifier;
+
+export IdentifierToken;
+export ReservedKeywordToken;
+
+rule ReservedKeywordToken =
+  | "import"
+  | "export"
+  | "rule"
+  ;
+
+rule IdentifierToken =
+  string
+  & (not ReservedKeywordToken)
+  & [Identifier]
+  ;

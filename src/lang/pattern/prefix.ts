@@ -24,7 +24,7 @@ export const Prefix: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "../expression/number.ts",
+      moduleUrl: "../expression/number.uff",
       names: ["Number"],
     },
   ],

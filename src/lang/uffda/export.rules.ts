@@ -14,7 +14,7 @@ export const ExportRules: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./shared.rules.ts",
+      moduleUrl: "./shared.rules.uff",
       names: ["IdentifierToken"],
     },
     {

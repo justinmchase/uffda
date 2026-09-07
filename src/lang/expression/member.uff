@@ -1,0 +1,26 @@
+# Member matches base.tail+.tail and left-folds into MemberExpression AST.
+import "../tokenizer/token.uff" Token;
+import "./sequence.uff" Sequence;
+import "./array.uff" Array;
+import "./object.uff" Object;
+import "./terminal.uff" Terminal;
+import "./reference.uff" Reference;
+
+export Member;
+
+rule MemberTarget =
+  | Token<Sequence>
+  | Token<Array>
+  | Token<Object>
+  | Token<Terminal>
+  ;
+
+rule MemberTail =
+  "."
+  n:Token<Reference>
+  -> n;
+
+rule Member =
+  b:Token<MemberTarget>
+  s:MemberTail+
+  -> (memberChain b s);

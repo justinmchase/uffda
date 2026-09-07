@@ -69,6 +69,9 @@ jobs:
           test -f ./bin/ast/src/lang/pattern/atoms.uffda.ast.json
           test -f ./bin/ast/src/lang/expression/expression.lang.uffda.ast.json
           test -f ./bin/ast/src/lang/pattern/atomic.uffda.ast.json
+          test -f ./bin/ast/src/lang/uffda/shared.rules.uffda.ast.json
+          test -f ./bin/ast/src/lang/expression/number.uffda.ast.json
+          test -f ./bin/ast/src/lang/expression/member.uffda.ast.json
 
       - name: Test
         # Allow read is required to run resolve tests. Language `.uff` modules

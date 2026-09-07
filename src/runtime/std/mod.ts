@@ -4,9 +4,11 @@ import { filter } from "./filter.ts";
 import { flat } from "./flat.ts";
 import { format } from "./format.ts";
 import { id } from "./id.ts";
+import { int } from "./int.ts";
 import { join } from "./join.ts";
 import { json } from "./json.ts";
 import { map } from "./map.ts";
+import { memberChain } from "./memberChain.ts";
 import { pack } from "./pack.ts";
 
 export const std = new Map<string, unknown>([
@@ -16,8 +18,10 @@ export const std = new Map<string, unknown>([
   ["flat", flat],
   ["format", format],
   ["id", id],
+  ["int", int],
   ["join", join],
   ["json", json],
   ["map", map],
+  ["memberChain", memberChain],
   ["pack", pack],
 ]);
