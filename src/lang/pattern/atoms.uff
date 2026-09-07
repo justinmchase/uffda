@@ -1,0 +1,14 @@
+# Atoms are PatternLang keywords that project bare pattern kinds.
+export Atoms;
+
+rule Any = "any" -> { kind: "any" };
+rule End = "end" -> { kind: "end" };
+rule Ok = "ok" -> { kind: "ok" };
+rule Fail = "fail" -> { kind: "fail" };
+
+rule Atoms =
+  | Any
+  | End
+  | Ok
+  | Fail
+  ;

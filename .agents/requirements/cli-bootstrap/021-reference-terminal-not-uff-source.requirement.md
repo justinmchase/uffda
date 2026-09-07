@@ -23,7 +23,7 @@ Expected behavior:
   is converted.
 - `src/lang/expression/not.uff` MUST export `Not` as
   `"not" e:Token<Primary> -> { kind: "not", expression: e }`, importing
-  `./primary.ts` until Primary is converted.
+  `./primary.uff` (Primary is converted).
 - Compiling those files with the bootstrap compile path MUST succeed and emit
   AST JSON under `./bin/`.
 

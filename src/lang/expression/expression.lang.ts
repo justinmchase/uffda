@@ -46,7 +46,7 @@ export const ExpressionLang: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./expression.ts",
+      moduleUrl: "./expression.uff",
       names: [
         "Expression",
       ],

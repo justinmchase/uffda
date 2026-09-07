@@ -8,7 +8,7 @@ import { ExpressionLang } from "./expression.lang.ts";
 import type { Expression } from "../../runtime/expressions/expression.ts";
 import { visualizeMatchFailure } from "../../match.visualize.ts";
 
-const moduleUrl = new URL("./expression.ts", import.meta.url).href;
+const moduleUrl = new URL("./expression.lang.ts", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",

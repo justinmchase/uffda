@@ -117,7 +117,7 @@ file:
 | B10 | Parametric rules (`Surround<L,P,R>`, `Token<P>`)             | surround, token                             | Declaration syntax shipped in 0.1.11                             |
 | B11 | PatternLang + ExpressionLang string escapes (`\t`, `\n`, …)  | whitespace, newLine (done)                  | Shipped; expression escapes enable `-> "\n"`                     |
 | B12 | Multi-letter variable bindings in PatternLang                | readable `.uff` (esp. `*.lang`)             | Published CLI today accepts only single-letter `name:P`          |
-| B13 | Expression string proj of `"{"` / `"}"`                      | object braces, similar tokens               | `-> "{"` parses as object literal; use bare Equal or `-> _`      |
+| B14 | Left-fold / reduce over segment lists                        | expression/member                           | std `fold`/`reduce` or single-segment rewrite + tests            |
 
 ## Phase order (dependency leaves first)
 
@@ -159,17 +159,17 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 | 19 | `expression/object`          | OK       | Object AST proj      | OK (`flat` unwrap)                                      | done                                |
 | 20 | `expression/sequence`        | OK       | Invocation AST       | OK                                                      | done                                |
 | 21 | `expression/string`          | OK       | **B2** join content  | Content via patterns; join is proj                      | **no** until B2                     |
-| 22 | `expression/member`          | OK       | left-fold segments   | Fold is proj (OK) if expressible                        | medium — needs fold/`pack` story    |
-| 23 | `expression/primary`         | OK       | identity             | OK                                                      | after children                      |
-| 24 | `expression/unary`           | OK       | identity             | OK                                                      | after children                      |
-| 25 | `expression/expression`      | OK       | identity             | OK                                                      | after children                      |
+| 22 | `expression/member`          | OK       | left-fold segments   | Fold is proj (OK) if expressible                        | **no** until fold/reduce std        |
+| 23 | `expression/primary`         | OK       | identity             | OK                                                      | done                                |
+| 24 | `expression/unary`           | OK       | identity             | OK                                                      | done                                |
+| 25 | `expression/expression`      | OK       | identity             | OK                                                      | done                                |
 | 26 | `expression/expression.lang` | pipeline | unwrap               | OK                                                      | after expression — **must** convert |
 
 ### Phase 3 — Pattern stack
 
 | #  | Module                 | G1                                    | G2                            | G3                                          | Ready?                           |
 | -- | ---------------------- | ------------------------------------- | ----------------------------- | ------------------------------------------- | -------------------------------- |
-| 27 | `pattern/atoms`        | OK                                    | object `{kind:"any"}`         | OK proj                                     | nearly                           |
+| 27 | `pattern/atoms`        | OK                                    | object `{kind:"any"}`         | OK proj                                     | done                             |
 | 28 | `pattern/literals`     | heavy CharacterClass/includes/between | many Natives                  | mostly AST wrap; audit string/number unwrap | hard; after expr number/boolean  |
 | 29 | `pattern/resolve`      | **B9** cycle                          | optional-arg unpack           | OK                                          | hard                             |
 | 30 | `pattern/structure`    | **B9** cycle                          | Over AST                      | OK                                          | hard                             |
@@ -219,15 +219,15 @@ permanent TypeScript language modules once builtins exist.
 
 ## First candidate (next session)
 
-Keep driving Phase 2 to `expression.lang`, then Phase 3 to `pattern.lang`, then
-tokenizer/`tokenizer.lang`. Parallel track: ship B2/B3/B12/B13 so mid-stack and
-`*.lang` modules stay readable.
+Keep driving toward `expression.lang` (still needs Source/Tokenizer bridges) and
+pattern stack after atoms. Parallel: ship fold/reduce for `member`, B2/B3 for
+`string`/`number`, B12 for readable bindings.
 
-Near-term: **`expression/member` / `primary`**, or `pattern/atoms` if expression
-mid-stack stalls. Skip `number`/`string` until B3/B2.
+Near-term: **`expression.lang`** (pipeline + unwrap), or `pattern/atomic` after
+atoms. Skip `member` until fold/reduce std; skip `number`/`string` until B3/B2.
 
-Phase 0–1 complete. Phase 2: boolean, nullish, reference, terminal, not, array,
-object, sequence done (pending merge).
+Phase 0–1 complete. Phase 2 mid-stack: primary, unary, expression, and
+`pattern/atoms` done in this batch. Member still TS.
 
 ## References
 
