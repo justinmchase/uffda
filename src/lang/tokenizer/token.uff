@@ -1,0 +1,8 @@
+# Token wraps a payload pattern with optional whitespace string tokens.
+import "../common/surround.uff" Surround;
+import "../common/characters/whitespace.uff" Whitespace;
+
+export Token;
+
+rule W = string & [Whitespace*];
+rule Token<P> = Surround<W, P, W>;

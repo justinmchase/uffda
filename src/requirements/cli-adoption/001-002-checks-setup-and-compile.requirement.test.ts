@@ -70,6 +70,12 @@ Deno.test(
       ),
       true,
     );
+    assertEquals(
+      yaml.includes(
+        "./bin/ast/src/lang/tokenizer/token.uffda.ast.json",
+      ),
+      true,
+    );
   },
 );
 

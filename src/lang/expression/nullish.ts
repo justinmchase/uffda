@@ -10,7 +10,7 @@ export const Nullish: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "../tokenizer/token.ts",
+      moduleUrl: "../tokenizer/token.uff",
       names: ["Token"],
     },
   ],

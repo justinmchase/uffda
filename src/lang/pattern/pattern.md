@@ -1,7 +1,7 @@
 # Pattern Language Grammar
 
 ```uff
-import "../tokenizer/token.ts" Token;
+import "../tokenizer/token.uff" Token;
 import "../common/identifier.uff" Identifier;
 
 Pattern = Or -> Or;

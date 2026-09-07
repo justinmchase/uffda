@@ -65,7 +65,7 @@ export const TokenTest: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: new URL("./token.ts", import.meta.url).href,
+      moduleUrl: new URL("./token.uff", import.meta.url).href,
       names: ["Token"],
     },
   ],

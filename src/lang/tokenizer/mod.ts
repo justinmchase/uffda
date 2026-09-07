@@ -48,7 +48,7 @@ export const Tokenizer: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./token.ts",
+      moduleUrl: "./token.uff",
       names: [
         "Token",
       ],
