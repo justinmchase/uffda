@@ -16,8 +16,9 @@ Preconditions:
 Expected behavior:
 
 - The `checks` workflow MUST install the Uffda CLI through `uffda-setup`.
-- The setup step MUST request the `latest` published release unless a pin is
-  explicitly documented.
+- The setup step MUST request the `latest` published release, or a pinned
+  published SemVer when `latest` cannot compile the current tree (documented
+  chicken-egg pin).
 - After setup, the workflow MUST be able to invoke `uffda` on `PATH`.
 
 Postconditions:

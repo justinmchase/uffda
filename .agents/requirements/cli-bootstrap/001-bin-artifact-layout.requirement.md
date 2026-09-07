@@ -22,8 +22,9 @@ Expected behavior:
 
 Postconditions:
 
-- Released CLI binaries do not depend on TypeScript language module sources for
-  language definitions.
+- Released CLI binaries embed compiled `./bin` AST JSON via
+  `deno compile --include` and remap logical `.uff` imports from that embedded
+  tree when running as a standalone product.
 - Authors import compiled modules with `import "./foo.uff"` once artifacts exist
   under the configured root (see `cli-bootstrap-004`).
 

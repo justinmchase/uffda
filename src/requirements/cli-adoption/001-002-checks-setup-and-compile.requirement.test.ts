@@ -4,13 +4,18 @@ import { fromFileUrl, join } from "@std/path";
 const repoRoot = fromFileUrl(new URL("../../../", import.meta.url));
 
 Deno.test(
-  "req:cli-adoption-001 - checks workflow uses uffda-setup with latest",
+  "req:cli-adoption-001 - checks workflow uses uffda-setup with a published CLI",
   async () => {
     const yaml = await Deno.readTextFile(
       join(repoRoot, ".github", "workflows", "checks.yml"),
     );
     assertEquals(yaml.includes("uses: ./.github/actions/uffda-setup"), true);
-    assertEquals(yaml.includes("version: latest"), true);
+    // Prefer latest; allow a pinned published SemVer when latest cannot compile
+    // the current tree (bootstrap chicken-egg after a bad release).
+    assertEquals(
+      /version:\s*(latest|"?\d+\.\d+\.\d+"?)/.test(yaml),
+      true,
+    );
   },
 );
 

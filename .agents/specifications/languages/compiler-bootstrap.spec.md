@@ -22,6 +22,10 @@ self-hosting while maintaining deterministic and diagnosable behavior.
 - The installed CLI (version N) MUST compile authored `.uff` using the language
   stack already baked into that binary. It MUST NOT require host TypeScript
   twins or `*.bootstrap.ts` stubs of in-tree `.uff` sources.
+- Converted `.uff` language modules that the published CLI needs at parse time
+  MUST be embedded as compiled `./bin` AST JSON via `deno compile --include`,
+  and remapped from the binary extract root when `Deno.build.standalone` is
+  true.
 - After self-hosting lands, language definitions consumed by a released CLI
   binary MUST come from compiled artifacts rather than TypeScript module sources
   that define those languages.

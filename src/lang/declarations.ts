@@ -6,10 +6,10 @@
  * modules keeps grammar loading working for both `deno run` and `deno compile`
  * products.
  *
- * Converted `.uff` modules are NOT registered here. The installed CLI (version
- * N) already has the previous language stack baked in for `uffda compile`.
- * In-tree runtime loads logical `.uff` URLs via `./bin` remapping after
- * `compile:lang` (see artifact resolvers).
+ * Converted `.uff` modules are NOT registered here. The published CLI embeds
+ * compiled `./bin` AST JSON (`deno compile --include`) and resolves logical
+ * `.uff` URLs through artifact remapping. In-tree runs use the same remapping
+ * against a workspace `./bin` after `compile:lang`.
  *
  * Language entry modules (`*.lang.ts`) are registered by their grammar helpers
  * to avoid an import cycle through `grammar.ts`.
