@@ -28,9 +28,9 @@ Expected behavior:
   extract root’s embedded `./bin` (not the consumer process cwd).
 - In-tree runs MUST continue remapping against the workspace `./bin` after
   `compile:lang`.
-- Until a release that includes `--include ./bin` is published and verified,
-  Checks and release bootstrap compile MUST pin to the last working published
-  CLI (currently `0.1.7`).
+- Checks and release bootstrap compile MUST install a published CLI via
+  `uffda-setup` (normally `latest`; pin a SemVer only when recovering from a bad
+  release).
 
 Postconditions:
 

@@ -88,10 +88,9 @@ jobs:
 
       - name: Setup Uffda CLI
         # Need a working published CLI to produce ./bin for embedding.
-        # 0.1.9 binaries omitted --include; pin until a fixed release lands.
         uses: ./.github/actions/uffda-setup
         with:
-          version: "0.1.7"
+          version: latest
 
       - name: Compile language modules into ./bin
         run: |
