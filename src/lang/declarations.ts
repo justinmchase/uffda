@@ -25,6 +25,7 @@ import PatternDeclaration from "./pattern/pattern.ts";
 import PatternLang from "./pattern/pattern.lang.ts";
 import Pipe from "./pattern/pipe.ts";
 import Prefix from "./pattern/prefix.ts";
+import Projection from "./pattern/projection.ts";
 import Resolve from "./pattern/resolve.ts";
 import Structure from "./pattern/structure.ts";
 import Then from "./pattern/then.ts";
@@ -55,6 +56,7 @@ export const builtInLanguageDeclarations: Record<string, ModuleDeclaration> =
     entry("./pattern/pattern.lang.ts", PatternLang),
     entry("./pattern/pipe.ts", Pipe),
     entry("./pattern/prefix.ts", Prefix),
+    entry("./pattern/projection.ts", Projection),
     entry("./pattern/resolve.ts", Resolve),
     entry("./pattern/structure.ts", Structure),
     entry("./pattern/then.ts", Then),

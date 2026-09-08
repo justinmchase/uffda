@@ -222,19 +222,23 @@ permanent TypeScript language modules once builtins exist.
 
 ## First candidate (next session)
 
-**Pause** language-module bootstrap conversion that depends on left-folds. Next
-workstream: restore nested `PatternKind.Projection` (runtime, then PatternLang),
-publish a CLI that includes it, then convert `expression/member` via DLR +
-Projection per
+**Unblock:** publish 0.1.14 with `pattern/projection.ts` registered in
+`builtInLanguageDeclarations`. Published 0.1.13 omitted that entry, so every
+`.uff` compile fails with `E_MODULE_RESOLUTION` for `projection.ts`. Until that
+release, Checks / local `compile:lang` MUST use published **0.1.12** (still
+accepts the current converted `.uff` surface), not 0.1.13.
+
+Then convert `expression/member` via DLR + nested Projection per
 [pattern idioms for map and reduce](./pattern-idioms-map-reduce.spec.md) and
-[projection](../patterns/runtime/projection.spec.md).
+[projection](../patterns/runtime/projection.spec.md), and restore Checks to
+`latest`.
 
 Do not block Member on ExpressionLang lambda syntax, std `reduce`, or
 `recursive rule` sugar ([#98](https://github.com/justinmchase/uffda/issues/98)).
 `expression/string` remains blocked on B15.
 
 Number and shared.rules are converted; member stays TypeScript until a
-**published** CLI accepts nested `->`.
+**working** published CLI accepts nested `->` (0.1.14+).
 
 ## References
 

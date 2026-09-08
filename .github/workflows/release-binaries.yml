@@ -88,9 +88,10 @@ jobs:
 
       - name: Setup Uffda CLI
         # Need a working published CLI to produce ./bin for embedding.
+        # 0.1.13 cannot resolve pattern/projection.ts; pin until 0.1.14 ships.
         uses: ./.github/actions/uffda-setup
         with:
-          version: latest
+          version: 0.1.12
 
       - name: Compile language modules into ./bin
         run: |
