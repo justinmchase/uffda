@@ -16,7 +16,6 @@
  */
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 
-import StringModule from "./expression/string.ts";
 import And from "./pattern/and.ts";
 import Literals from "./pattern/literals.ts";
 import Or from "./pattern/or.ts";
@@ -46,7 +45,6 @@ function entry(
 
 export const builtInLanguageDeclarations: Record<string, ModuleDeclaration> =
   Object.fromEntries([
-    entry("./expression/string.ts", StringModule),
     entry("./pattern/and.ts", And),
     entry("./pattern/literals.ts", Literals),
     entry("./pattern/or.ts", Or),

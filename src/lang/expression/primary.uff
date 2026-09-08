@@ -1,6 +1,6 @@
 # Primary is the expression leaf alternatives before unary wrapping.
 import "./terminal.uff" Terminal;
-import "./string.ts" String;
+import "./string.uff" String;
 import "./array.uff" Array;
 import "./object.uff" Object;
 import "./member.uff" Member;

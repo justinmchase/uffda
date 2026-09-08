@@ -64,6 +64,7 @@ jobs:
           test -f ./bin/ast/src/lang/expression/object.uffda.ast.json
           test -f ./bin/ast/src/lang/expression/sequence.uffda.ast.json
           test -f ./bin/ast/src/lang/expression/member.uffda.ast.json
+          test -f ./bin/ast/src/lang/expression/string.uffda.ast.json
           test -f ./bin/ast/src/lang/expression/primary.uffda.ast.json
           test -f ./bin/ast/src/lang/expression/unary.uffda.ast.json
           test -f ./bin/ast/src/lang/expression/expression.uffda.ast.json
