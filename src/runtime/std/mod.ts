@@ -8,6 +8,7 @@ import { int } from "./int.ts";
 import { join } from "./join.ts";
 import { json } from "./json.ts";
 import { map } from "./map.ts";
+import { one } from "./one.ts";
 import { pack } from "./pack.ts";
 
 export const std = new Map<string, unknown>([
@@ -21,5 +22,6 @@ export const std = new Map<string, unknown>([
   ["join", join],
   ["json", json],
   ["map", map],
+  ["one", one],
   ["pack", pack],
 ]);

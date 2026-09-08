@@ -12,7 +12,7 @@ export const Pattern: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./or.ts",
+      moduleUrl: "./or.uff",
       names: ["Or"],
     },
   ],

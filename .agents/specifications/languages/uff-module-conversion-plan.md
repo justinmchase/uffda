@@ -109,7 +109,7 @@ file:
 | B1  | Replace Native with serializable projections                 | ~45 modules                                                             | ExpressionLang object/invocation forms + std                                                                                                                                          |
 | B2  | List flatten + join (`_.flat().join("")`)                    | identifier (done), string (done), import.rules (done), tokenizer, rules | std `flat`/`join` — shipped                                                                                                                                                           |
 | B3  | Digit string → number                                        | expression/number (done)                                                | std `int` shipped with number.uff                                                                                                                                                     |
-| B4  | Length-1 list collapse (`patterns.length===1 ? p : wrapper`) | then/pipe/and/or                                                        | Always emit wrapper (behavior review) or std helper                                                                                                                                   |
+| B4  | Length-1 list collapse (`patterns.length===1 ? p : wrapper`) | then/pipe/and/or (done)                                                 | Closed via std `one` + `Tail*` (not `Tail+\|child`; unsafe under PatternLang LR)                                                                                                      |
 | B5  | Quantifier optional-array unwrap                             | many                                                                    | `(flat (coalesce k []))` / star rewrite; more sugar later                                                                                                                             |
 | B6  | Host match spans / checksum / line index                     | source/mod, tokenizer                                                   | New std/host builtins — then convert (not permanent hybrid)                                                                                                                           |
 | B7  | Match-tree semantic text walk                                | tokenizer.lang                                                          | Same as B6 — required before tokenizer.lang `.uff`                                                                                                                                    |
@@ -178,10 +178,10 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 | 30 | `pattern/structure`    | **B9** cycle                          | Over AST                      | OK                                          | hard                             |
 | 31 | `pattern/atomic`       | OK                                    | identity                      | OK                                          | done                             |
 | 32 | `pattern/prefix`       | OK                                    | **B8** throw/validate; **B5** | Bounds validation must move to patterns     | **blocked** until B8             |
-| 33 | `pattern/then`         | OK                                    | **B4**                        | OK                                          | after B4                         |
-| 34 | `pattern/pipe`         | OK                                    | **B4**                        | OK                                          | after B4                         |
-| 35 | `pattern/and`          | OK                                    | **B4**                        | OK                                          | after B4                         |
-| 36 | `pattern/or`           | OK                                    | **B4**                        | OK                                          | after B4                         |
+| 33 | `pattern/then`         | OK                                    | std `one` + `*`               | OK                                          | done                             |
+| 34 | `pattern/pipe`         | OK                                    | std `one` + `*`               | OK                                          | done                             |
+| 35 | `pattern/and`          | OK                                    | std `one` + `*`               | OK                                          | done                             |
+| 36 | `pattern/or`           | OK                                    | std `one` + `*`               | OK                                          | done                             |
 | 37 | `pattern/pattern`      | OK                                    | identity                      | OK                                          | after or                         |
 | 38 | `pattern/pattern.lang` | pipeline                              | unwrap                        | OK                                          | after pattern — **must** convert |
 
@@ -222,9 +222,10 @@ permanent TypeScript language modules once builtins exist.
 
 ## First candidate (next session)
 
-`uffda/export.rules` is converted (per-item `ExportName` + `pack` for inline
-exports). Next: `uffda/rule.rules` after remaining pattern-stack blockers, or
-Phase 3 modules after B4/B8/B9.
+B4 is closed: `then` / `pipe` / `and` / `or` use std `one` with `Tail*`. Next:
+`pattern/pattern` (thin), then `pattern/pattern.lang`, or `uffda/rule.rules`
+once pattern.lang converts. Still blocked: prefix (B8), resolve/structure (B9),
+literals (hard).
 
 Optional `recursive rule` sugar remains deferred
 ([#98](https://github.com/justinmchase/uffda/issues/98)).
@@ -238,5 +239,5 @@ Optional `recursive rule` sugar remains deferred
 - Checklist: `.agents/specifications/languages/pattern-bootstrap-checklist.md`
 - Example: `src/lang/common/characters/digit.uff`
 - Std: `src/runtime/std/mod.ts` (`add`, `coalesce`, `filter`, `flat`, `format`,
-  `id`, `int`, `join`, `json`, `map`, `pack`)
+  `id`, `int`, `join`, `json`, `map`, `one`, `pack`)
 - Follow-up: https://github.com/justinmchase/uffda/issues/98 (`recursive rule`)

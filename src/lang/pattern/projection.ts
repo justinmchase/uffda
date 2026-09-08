@@ -11,7 +11,7 @@ export const Projection: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./pipe.ts",
+      moduleUrl: "./pipe.uff",
       names: ["Pipe"],
     },
     {

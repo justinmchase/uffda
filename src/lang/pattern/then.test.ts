@@ -3,7 +3,7 @@ import { MatchKind } from "../../mod.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
-const moduleUrl = new URL("./then.ts", import.meta.url).href;
+const moduleUrl = new URL("./then.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -18,6 +18,7 @@ Deno.test({
       name: "THEN_00",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Then",
         input: Input.Iterable(["any", "fail"]),
         kind: MatchKind.Ok,
         value: {

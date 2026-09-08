@@ -1,0 +1,11 @@
+# Then matches one or more Prefix patterns as a Then AST.
+# Uses std one for length-1 collapse (B4); Tail* is required because Then sits
+# in the PatternLang import cycle where Tail+ | child backtracking is unsafe.
+import "./prefix.ts" Prefix;
+
+export Then;
+
+rule Then =
+  Prefix
+  Prefix*
+  -> (one (flat _) "then");
