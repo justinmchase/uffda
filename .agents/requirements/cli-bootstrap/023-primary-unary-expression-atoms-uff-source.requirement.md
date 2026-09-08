@@ -11,8 +11,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 Preconditions:
 
 - Expression leaves used by Primary (`terminal`, `boolean`, `nullish`, `array`,
-  `object`, `sequence`, `number`, `member`) are converted; `string` may remain
-  TypeScript until B15.
+  `object`, `sequence`, `number`, `member`, `string`) are converted.
 - `pattern/atoms` has no language-module imports.
 
 Expected behavior:
@@ -33,4 +32,3 @@ Postconditions:
 - `expression.lang` imports `./expression.uff`; `atomic` imports `./atoms.uff`.
 - Runtime loads them from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).
-- `expression/string` remains TypeScript until B15.

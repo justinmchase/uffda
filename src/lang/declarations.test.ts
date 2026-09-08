@@ -34,6 +34,8 @@ Deno.test("lang.declarations registers built-in language modules", () => {
   assertEquals(builtInLanguageDeclarations[notUff], undefined);
   const memberUff = new URL("./expression/member.uff", import.meta.url).href;
   assertEquals(builtInLanguageDeclarations[memberUff], undefined);
+  const stringUff = new URL("./expression/string.uff", import.meta.url).href;
+  assertEquals(builtInLanguageDeclarations[stringUff], undefined);
   const projectionUrl = new URL("./pattern/projection.ts", import.meta.url)
     .href;
   assertEquals(

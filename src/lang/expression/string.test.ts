@@ -3,7 +3,7 @@ import { MatchKind } from "../../mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
-const moduleUrl = new URL("./string.ts", import.meta.url).href;
+const moduleUrl = new URL("./string.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -20,6 +20,7 @@ Deno.test(
       name: "STRING_EXPRESSION_00",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "String",
         input: Input.Iterable(['"', "123", ".", "789", '"']),
         kind: MatchKind.Ok,
         value: {
@@ -33,6 +34,7 @@ Deno.test(
       name: "STRING_EXPRESSION_01",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "String",
         input: Input.Iterable(['"', "x", "{", "y", "}", "z", '"']),
         kind: MatchKind.Ok,
         value: {
@@ -53,6 +55,7 @@ Deno.test(
       name: "STRING_EXPRESSION_02",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "String",
         input: Input.Iterable(['"', "x", "\\", "{", "y", "}", "z", '"']),
         kind: MatchKind.Ok,
         value: {
@@ -68,6 +71,7 @@ Deno.test(
       name: "STRING_EXPRESSION_03",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "String",
         input: Input.Iterable(['"', "x", "\\", '"', "y", "\\", '"', "z", '"']),
         kind: MatchKind.Ok,
         value: {
@@ -83,6 +87,7 @@ Deno.test(
       name: "STRING_EXPRESSION_03A",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "String",
         input: Input.Iterable(['"', "\\", "t", "\\", "n", "\\", "r", '"']),
         kind: MatchKind.Ok,
         value: {
@@ -96,6 +101,7 @@ Deno.test(
       name: "STRING_EXPRESSION_03B",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "String",
         input: Input.Iterable(['"', "\\", "\\", '"']),
         kind: MatchKind.Ok,
         value: {
@@ -109,6 +115,7 @@ Deno.test(
       name: "STRING_EXPRESSION_04",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "String",
         input: Input.Iterable(['"', "x", "{", '"', "y", '"', "}", "z", '"']),
         kind: MatchKind.Ok,
         value: {
@@ -126,6 +133,7 @@ Deno.test(
       name: "STRING_EXPRESSION_05",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "String",
         input: Input.Iterable([
           '"',
           "x",

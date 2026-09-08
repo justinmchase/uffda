@@ -1,0 +1,42 @@
+# String matches quoted literals with escapes and {Primary} interpolations.
+# Needs published CLI with B15 (`\\` in multi-rule modules) — 0.1.15+.
+# Variable bindings are single-letter (published CLI PatternLang).
+# Project `{` via binding (B13: `-> "{"` parses as an object literal).
+import "./primary.uff" Primary;
+
+export String;
+
+rule EscapedCurlyBegin = "\\" c:"{" -> c;
+rule EscapedDoubleQuote = "\\" "\"" -> "\"";
+rule EscapedBackslash = "\\" "\\" -> "\\";
+rule EscapedTab = "\\" "t" -> "\t";
+rule EscapedNewline = "\\" "n" -> "\n";
+rule EscapedReturn = "\\" "r" -> "\r";
+
+rule EscapedString =
+  | EscapedCurlyBegin
+  | EscapedDoubleQuote
+  | EscapedBackslash
+  | EscapedTab
+  | EscapedNewline
+  | EscapedReturn
+  ;
+
+rule StringExpression =
+  "{" v:Primary "}" -> v;
+
+rule StringContent =
+  (
+    | EscapedString
+    | ((not "{") & (not "\"") & string)
+  )+
+  -> (join _ "");
+
+rule String =
+  "\""
+  v:(
+    | StringExpression
+    | StringContent
+  )*
+  "\""
+  -> { kind: "string", values: v };

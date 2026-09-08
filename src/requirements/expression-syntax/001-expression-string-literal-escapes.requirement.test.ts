@@ -7,11 +7,11 @@ Deno.test(
   "req:expression-syntax-001 - expression string escape rules exist",
   async () => {
     const source = await Deno.readTextFile(
-      join(repoRoot, "src/lang/expression/string.ts"),
+      join(repoRoot, "src/lang/expression/string.uff"),
     );
-    assertEquals(source.includes('name: "EscapedTab"'), true);
-    assertEquals(source.includes('name: "EscapedNewline"'), true);
-    assertEquals(source.includes('name: "EscapedReturn"'), true);
-    assertEquals(source.includes('name: "EscapedBackslash"'), true);
+    assertEquals(source.includes("rule EscapedTab"), true);
+    assertEquals(source.includes("rule EscapedNewline"), true);
+    assertEquals(source.includes("rule EscapedReturn"), true);
+    assertEquals(source.includes("rule EscapedBackslash"), true);
   },
 );
