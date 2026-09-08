@@ -11,6 +11,7 @@ import {
   type Pattern,
   ResolveTargetKind,
 } from "../../runtime/patterns/pattern.ts";
+import { std } from "../../runtime/std/mod.ts";
 import type { UffdaSyntaxModule } from "./syntax.types.ts";
 
 export type UffdaRuntimeCompilerDiagnostic = {
@@ -86,6 +87,9 @@ export async function runUffdaRuntimeCompiler(
 ): Promise<Match<ModuleDeclaration>> {
   return await executeModuleDeclaration(UffdaRuntimeCompiler, {
     input: syntaxModule,
+    scopeOptions: {
+      globals: new Map(std),
+    },
   }) as Match<ModuleDeclaration>;
 }
 
@@ -128,37 +132,12 @@ export const UffdaRuntimeCompiler: ModuleDeclaration = {
       ],
     },
     expression: {
-      kind: ExpressionKind.Native,
-      fn: ({ module }): ModuleDeclaration => {
-        const compiled = module as ModuleDeclaration;
-        const ruleNames = new Set(compiled.rules.map((rule) => rule.name));
-        const importedNames = new Set(
-          compiled.imports.flatMap((item) => item.names),
-        );
-        return {
-          imports: compiled.imports,
-          rules: compiled.rules,
-          exports: compiled.exports.map((item) => {
-            if (
-              item.kind === ExportDeclarationKind.Rule &&
-              !ruleNames.has(item.name) &&
-              importedNames.has(item.name)
-            ) {
-              return item.default
-                ? {
-                  kind: ExportDeclarationKind.Import,
-                  name: item.name,
-                  default: true,
-                }
-                : {
-                  kind: ExportDeclarationKind.Import,
-                  name: item.name,
-                };
-            }
-            return item;
-          }),
-        };
+      kind: ExpressionKind.Invocation,
+      expression: {
+        kind: ExpressionKind.Reference,
+        name: "normalizeModule",
       },
+      args: [{ kind: ExpressionKind.Reference, name: "module" }],
     },
   }, {
     name: "CompileDeclarations",

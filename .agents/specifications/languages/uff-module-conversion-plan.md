@@ -121,6 +121,7 @@ file:
 | B13 | Expression string proj of `"{"` / `"}"`                      | object braces, string escapes                                           | `-> "{"` parses as object literal; use bare Equal, `-> _`, or bind `c:"{" -> c`                                                                                                       |
 | B14 | Left-fold over lists without domain helpers                  | expression/member (done), similar AST folds                             | DLR + nested [Projection](../../patterns/runtime/projection.spec.md); closed for Member (not std `reduce`+lambda; sugar later [#98](https://github.com/justinmchase/uffda/issues/98)) |
 | B15 | `"\\"` in multi-rule `.uff` modules                          | expression/string (done)                                                | Rule-body quote scanner treats `\\` as escapable; shipped in 0.1.15                                                                                                                   |
+| B16 | `.uff` load → `compileUffdaSyntaxModule` → runtime compiler  | `uffda/runtime.compiler`                                                | Compiler cannot load as `.uff` through the normal artifact path (infinite recursion). Needs a pre-lowered ModuleDeclaration artifact or builtin registration — then convert.          |
 
 ## Phase order (dependency leaves first)
 
@@ -187,14 +188,14 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ### Phase 4 — Uffda language surface
 
-| #  | Module                   | Ready?                                              |
-| -- | ------------------------ | --------------------------------------------------- |
-| 39 | `uffda/shared.rules`     | done                                                |
-| 40 | `uffda/import.rules`     | done                                                |
-| 41 | `uffda/export.rules`     | done                                                |
-| 42 | `uffda/rule.rules`       | done                                                |
-| 43 | `uffda/uffda.lang`       | done                                                |
-| 44 | `uffda/runtime.compiler` | after syntax objects stable; list-merge projections |
+| #  | Module                   | Ready?                                                         |
+| -- | ------------------------ | -------------------------------------------------------------- |
+| 39 | `uffda/shared.rules`     | done                                                           |
+| 40 | `uffda/import.rules`     | done                                                           |
+| 41 | `uffda/export.rules`     | done                                                           |
+| 42 | `uffda/rule.rules`       | done                                                           |
+| 43 | `uffda/uffda.lang`       | done                                                           |
+| 44 | `uffda/runtime.compiler` | **blocked (B16)** bootstrap cycle; `normalizeModule` for entry |
 
 ### Phase 5 — Tokenizer / source (last; convert after B6/B7)
 
@@ -222,9 +223,11 @@ permanent TypeScript language modules once builtins exist.
 
 ## First candidate (next session)
 
-`uffda/uffda.lang` is converted. Next: `uffda/runtime.compiler` (still Native
-list-merge / compile projections). Still blocked: prefix (B8), resolve/structure
-(B9), literals (hard).
+`uffda/runtime.compiler` is blocked on **B16** (`.uff` load recursively compiles
+via the runtime compiler). Entry re-export rewrite uses std `normalizeModule`.
+Next convertible: Phase 5 `tokenizer/mod` (B2 done), or implement B16
+(pre-lowered module artifact) then finish `runtime.compiler`. Still blocked:
+prefix (B8), resolve/structure (B9), literals (hard), B6/B7.
 
 Optional `recursive rule` sugar remains deferred
 ([#98](https://github.com/justinmchase/uffda/issues/98)).
@@ -238,5 +241,5 @@ Optional `recursive rule` sugar remains deferred
 - Checklist: `.agents/specifications/languages/pattern-bootstrap-checklist.md`
 - Example: `src/lang/common/characters/digit.uff`
 - Std: `src/runtime/std/mod.ts` (`add`, `coalesce`, `filter`, `flat`, `format`,
-  `id`, `int`, `join`, `json`, `map`, `one`, `pack`)
+  `id`, `int`, `join`, `json`, `map`, `normalizeModule`, `one`, `pack`)
 - Follow-up: https://github.com/justinmchase/uffda/issues/98 (`recursive rule`)
