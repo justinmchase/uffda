@@ -8,7 +8,6 @@ import { int } from "./int.ts";
 import { join } from "./join.ts";
 import { json } from "./json.ts";
 import { map } from "./map.ts";
-import { normalizeModule } from "./normalize_module.ts";
 import { one } from "./one.ts";
 import { pack } from "./pack.ts";
 
@@ -23,7 +22,6 @@ export const std = new Map<string, unknown>([
   ["join", join],
   ["json", json],
   ["map", map],
-  ["normalizeModule", normalizeModule],
   ["one", one],
   ["pack", pack],
 ]);

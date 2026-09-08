@@ -20,8 +20,6 @@ Expected behavior:
   local rule.
 - A bare `export Name` MUST remain `ExportDeclarationKind.Rule` when `Name` is
   declared as a local rule.
-- Re-export classification MUST be performed by std `normalizeModule` (not an
-  inline Native Set/`map` in the compiler entry projection).
 
 Postconditions:
 

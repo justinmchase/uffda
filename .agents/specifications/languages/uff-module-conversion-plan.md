@@ -188,14 +188,14 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ### Phase 4 — Uffda language surface
 
-| #  | Module                   | Ready?                                                         |
-| -- | ------------------------ | -------------------------------------------------------------- |
-| 39 | `uffda/shared.rules`     | done                                                           |
-| 40 | `uffda/import.rules`     | done                                                           |
-| 41 | `uffda/export.rules`     | done                                                           |
-| 42 | `uffda/rule.rules`       | done                                                           |
-| 43 | `uffda/uffda.lang`       | done                                                           |
-| 44 | `uffda/runtime.compiler` | **blocked (B16)** bootstrap cycle; `normalizeModule` for entry |
+| #  | Module                   | Ready?                                                    |
+| -- | ------------------------ | --------------------------------------------------------- |
+| 39 | `uffda/shared.rules`     | done                                                      |
+| 40 | `uffda/import.rules`     | done                                                      |
+| 41 | `uffda/export.rules`     | done                                                      |
+| 42 | `uffda/rule.rules`       | done                                                      |
+| 43 | `uffda/uffda.lang`       | done                                                      |
+| 44 | `uffda/runtime.compiler` | **blocked (B16)** — `.uff` load ↔ compile bootstrap cycle |
 
 ### Phase 5 — Tokenizer / source (last; convert after B6/B7)
 
@@ -241,5 +241,5 @@ Optional `recursive rule` sugar remains deferred
 - Checklist: `.agents/specifications/languages/pattern-bootstrap-checklist.md`
 - Example: `src/lang/common/characters/digit.uff`
 - Std: `src/runtime/std/mod.ts` (`add`, `coalesce`, `filter`, `flat`, `format`,
-  `id`, `int`, `join`, `json`, `map`, `normalizeModule`, `one`, `pack`)
+  `id`, `int`, `join`, `json`, `map`, `one`, `pack`)
 - Follow-up: https://github.com/justinmchase/uffda/issues/98 (`recursive rule`)
