@@ -1,0 +1,25 @@
+# Member matches `base.name…` as left-associative MemberExpression nodes via DLR.
+# Both arms require at least one `.name` so bare targets fall through Primary to
+# Boolean/Nullish/Terminal (same as the former segments min:1 semantics).
+# Nested Projection requires a published CLI with Projection (0.1.14+).
+# Variable bindings are single-letter (published CLI PatternLang).
+import "../tokenizer/token.uff" Token;
+import "./sequence.uff" Sequence;
+import "./array.uff" Array;
+import "./object.uff" Object;
+import "./terminal.uff" Terminal;
+import "./reference.uff" Reference;
+
+export Member;
+
+rule MemberTarget =
+  | Token<Sequence>
+  | Token<Array>
+  | Token<Object>
+  | Token<Terminal>
+  ;
+
+rule Member =
+  (e:Member "." n:Token<Reference> -> { kind: "member", expression: e, name: n.name })
+  | (b:Token<MemberTarget> "." n:Token<Reference> -> { kind: "member", expression: b, name: n.name })
+  ;
