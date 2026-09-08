@@ -39,9 +39,9 @@ Deno.test(
       join(repoRoot, ".github", "workflows", "checks.yml"),
     );
     // Prefer latest; allow a pinned published SemVer when latest cannot compile
-    // the current tree (0.1.13 Projection registry miss).
+    // the current tree (bootstrap chicken-egg after a bad release).
     assertEquals(
-      /version:\s*(latest|"?0\.1\.12"?|"?\d+\.\d+\.\d+"?)/.test(checks),
+      /version:\s*(latest|"?\d+\.\d+\.\d+"?)/.test(checks),
       true,
     );
 
@@ -49,9 +49,7 @@ Deno.test(
       join(repoRoot, ".github", "workflows", "release-binaries.yml"),
     );
     assertEquals(
-      /version:\s*(latest|"?0\.1\.12"?|"?\d+\.\d+\.\d+"?)/.test(
-        releaseBinaries,
-      ),
+      /version:\s*(latest|"?\d+\.\d+\.\d+"?)/.test(releaseBinaries),
       true,
     );
     assertEquals(releaseBinaries.includes("--include ./bin"), true);

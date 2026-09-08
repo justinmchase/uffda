@@ -3,7 +3,7 @@ import "./terminal.uff" Terminal;
 import "./string.ts" String;
 import "./array.uff" Array;
 import "./object.uff" Object;
-import "./member.ts" Member;
+import "./member.uff" Member;
 import "./boolean.uff" Boolean;
 import "./nullish.uff" Nullish;
 import "./sequence.uff" Sequence;

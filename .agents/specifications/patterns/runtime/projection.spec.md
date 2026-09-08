@@ -95,7 +95,7 @@ remains available for whole-body rule projection):
 ```text
 rule Member =
   (e:Member "." n:Token<Reference> -> { kind: "member", expression: e, name: n.name })
-  | Token<MemberTarget>
+  | (b:Token<MemberTarget> "." n:Token<Reference> -> { kind: "member", expression: b, name: n.name })
   ;
 ```
 

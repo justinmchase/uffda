@@ -11,9 +11,8 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 Preconditions:
 
 - Expression leaves used by Primary (`terminal`, `boolean`, `nullish`, `array`,
-  `object`, `sequence`, `number`) are converted; `member`/`string` may remain
-  TypeScript until published nested Projection for Member (B14) and B15
-  (string).
+  `object`, `sequence`, `number`, `member`) are converted; `string` may remain
+  TypeScript until B15.
 - `pattern/atoms` has no language-module imports.
 
 Expected behavior:
@@ -34,6 +33,4 @@ Postconditions:
 - `expression.lang` imports `./expression.uff`; `atomic` imports `./atoms.uff`.
 - Runtime loads them from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).
-- `expression/member` remains TypeScript until nested Projection ships in a
-  published CLI and a DLR + Projection left-fold is validated; MUST NOT wait on
-  ExpressionLang lambda literals or std `reduce`.
+- `expression/string` remains TypeScript until B15.

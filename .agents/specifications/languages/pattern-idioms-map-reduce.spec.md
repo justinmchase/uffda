@@ -137,7 +137,7 @@ projection, so the projected arm MUST be grouped:
 ```text
 rule Member =
   (e:Member "." n:Token<Reference> -> { kind: "member", expression: e, name: n.name })
-  | Token<MemberTarget>
+  | (b:Token<MemberTarget> "." n:Token<Reference> -> { kind: "member", expression: b, name: n.name })
   ;
 ```
 
@@ -149,16 +149,15 @@ expression loops, because each growth step observes the projection result. See
 [projection](../patterns/runtime/projection.spec.md) and
 [runtime left recursion](../runtime/left-recursion.spec.md).
 
-This requires nested `PatternKind.Projection` in a **published** CLI before
-`expression/member` can convert under bootstrap G0. Optional `recursive rule`
-sugar is deferred: [issue #98](https://github.com/justinmchase/uffda/issues/98).
+This requires nested `PatternKind.Projection` in a published CLI (0.1.14+).
+Optional `recursive rule` sugar is deferred:
+[issue #98](https://github.com/justinmchase/uffda/issues/98).
 
 ### Conversion implication
 
-`expression/member` and similar AST left-folds MUST remain blocked until nested
-projection (runtime + PatternLang) ships in a published CLI, then SHOULD convert
-via DLR + Projection. They MUST NOT wait on ExpressionLang lambda syntax or std
-`reduce`. See blocker B14 in the
+`expression/member` is converted via DLR + nested Projection. Similar AST
+left-folds SHOULD follow the same idiom. They MUST NOT wait on ExpressionLang
+lambda syntax or std `reduce`. See blocker B14 in the
 [module conversion plan](./uff-module-conversion-plan.md).
 
 ## When expression-side fold may still apply
