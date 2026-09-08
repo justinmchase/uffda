@@ -1,0 +1,13 @@
+# Pipe matches Then steps joined by `|>` as a Pipeline AST.
+# Uses std one for length-1 collapse (B4).
+import "./then.uff" Then;
+
+export Pipe;
+
+rule PipeTail =
+  "|" ">" t:Then -> t;
+
+rule Pipe =
+  Then
+  PipeTail*
+  -> (one (flat _) { kind: "pipeline", steps: (flat _) });

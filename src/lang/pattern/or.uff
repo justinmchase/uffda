@@ -1,0 +1,18 @@
+# Or matches And patterns joined by `|` as an Or AST.
+# Optional leading `|` is allowed. Uses std one for length-1 collapse (B4).
+import "./and.uff" And;
+
+export Or;
+
+rule OrTail =
+  "|" a:And -> a;
+
+rule Or =
+  "|"?
+  o:(
+    And
+    OrTail*
+    -> (one (flat _) { kind: "or", patterns: (flat _) })
+  )
+  -> o
+  ;

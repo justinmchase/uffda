@@ -3,7 +3,7 @@ import { MatchKind } from "../../mod.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
-const moduleUrl = new URL("./or.ts", import.meta.url).href;
+const moduleUrl = new URL("./or.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -18,6 +18,7 @@ Deno.test({
       name: "OR_00",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Or",
         input: Input.Iterable(["any", "|", "fail"]),
         kind: MatchKind.Ok,
         value: {
@@ -34,6 +35,7 @@ Deno.test({
       name: "OR_01",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Or",
         input: Input.Iterable(["|", "any", "|", "fail"]),
         kind: MatchKind.Ok,
         value: {
