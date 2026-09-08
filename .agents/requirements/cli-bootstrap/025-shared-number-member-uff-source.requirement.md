@@ -28,5 +28,3 @@ Postconditions:
 - Dependents import the `.uff` URLs; TypeScript twins are gone.
 - Runtime loads them from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).
-- `expression/string` remains TypeScript until B15 (`"\\"` + object/string
-  projection in one module).

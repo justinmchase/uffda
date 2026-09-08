@@ -104,23 +104,23 @@ replaced). `_.flat().join("")`, `parseInt`, match-span indexing are usually
 These unlock many modules; schedule explicitly rather than rediscovering per
 file:
 
-| ID  | Blocker                                                      | Needed by                                          | Direction                                                                                                                                                                             |
-| --- | ------------------------------------------------------------ | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| B1  | Replace Native with serializable projections                 | ~45 modules                                        | ExpressionLang object/invocation forms + std                                                                                                                                          |
-| B2  | List flatten + join (`_.flat().join("")`)                    | identifier (done), string (done), tokenizer, rules | std `flat`/`join` — shipped                                                                                                                                                           |
-| B3  | Digit string → number                                        | expression/number (done)                           | std `int` shipped with number.uff                                                                                                                                                     |
-| B4  | Length-1 list collapse (`patterns.length===1 ? p : wrapper`) | then/pipe/and/or                                   | Always emit wrapper (behavior review) or std helper                                                                                                                                   |
-| B5  | Quantifier optional-array unwrap                             | many                                               | `(flat (coalesce k []))` / star rewrite; more sugar later                                                                                                                             |
-| B6  | Host match spans / checksum / line index                     | source/mod, tokenizer                              | New std/host builtins — then convert (not permanent hybrid)                                                                                                                           |
-| B7  | Match-tree semantic text walk                                | tokenizer.lang                                     | Same as B6 — required before tokenizer.lang `.uff`                                                                                                                                    |
-| B8  | Validation `throw` in projection                             | prefix bounds                                      | Fail in pattern, not expression                                                                                                                                                       |
-| B9  | Pattern stack import cycles                                  | resolve/structure ↔ pattern                        | Convert as a layer with temporary TS bridges                                                                                                                                          |
-| B10 | Parametric rules (`Surround<L,P,R>`, `Token<P>`)             | surround, token                                    | Declaration syntax shipped in 0.1.11                                                                                                                                                  |
-| B11 | PatternLang + ExpressionLang string escapes (`\t`, `\n`, …)  | whitespace, newLine (done)                         | Shipped; expression escapes enable `-> "\n"`                                                                                                                                          |
-| B12 | Multi-letter variable bindings in PatternLang                | readable `.uff` (esp. `*.lang`)                    | Published CLI today accepts only single-letter `name:P`                                                                                                                               |
-| B13 | Expression string proj of `"{"` / `"}"`                      | object braces, string escapes                      | `-> "{"` parses as object literal; use bare Equal, `-> _`, or bind `c:"{" -> c`                                                                                                       |
-| B14 | Left-fold over lists without domain helpers                  | expression/member (done), similar AST folds        | DLR + nested [Projection](../../patterns/runtime/projection.spec.md); closed for Member (not std `reduce`+lambda; sugar later [#98](https://github.com/justinmchase/uffda/issues/98)) |
-| B15 | `"\\"` in multi-rule `.uff` modules                          | expression/string (done)                           | Rule-body quote scanner treats `\\` as escapable; shipped in 0.1.15                                                                                                                   |
+| ID  | Blocker                                                      | Needed by                                                               | Direction                                                                                                                                                                             |
+| --- | ------------------------------------------------------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B1  | Replace Native with serializable projections                 | ~45 modules                                                             | ExpressionLang object/invocation forms + std                                                                                                                                          |
+| B2  | List flatten + join (`_.flat().join("")`)                    | identifier (done), string (done), import.rules (done), tokenizer, rules | std `flat`/`join` — shipped                                                                                                                                                           |
+| B3  | Digit string → number                                        | expression/number (done)                                                | std `int` shipped with number.uff                                                                                                                                                     |
+| B4  | Length-1 list collapse (`patterns.length===1 ? p : wrapper`) | then/pipe/and/or                                                        | Always emit wrapper (behavior review) or std helper                                                                                                                                   |
+| B5  | Quantifier optional-array unwrap                             | many                                                                    | `(flat (coalesce k []))` / star rewrite; more sugar later                                                                                                                             |
+| B6  | Host match spans / checksum / line index                     | source/mod, tokenizer                                                   | New std/host builtins — then convert (not permanent hybrid)                                                                                                                           |
+| B7  | Match-tree semantic text walk                                | tokenizer.lang                                                          | Same as B6 — required before tokenizer.lang `.uff`                                                                                                                                    |
+| B8  | Validation `throw` in projection                             | prefix bounds                                                           | Fail in pattern, not expression                                                                                                                                                       |
+| B9  | Pattern stack import cycles                                  | resolve/structure ↔ pattern                                             | Convert as a layer with temporary TS bridges                                                                                                                                          |
+| B10 | Parametric rules (`Surround<L,P,R>`, `Token<P>`)             | surround, token                                                         | Declaration syntax shipped in 0.1.11                                                                                                                                                  |
+| B11 | PatternLang + ExpressionLang string escapes (`\t`, `\n`, …)  | whitespace, newLine (done)                                              | Shipped; expression escapes enable `-> "\n"`                                                                                                                                          |
+| B12 | Multi-letter variable bindings in PatternLang                | readable `.uff` (esp. `*.lang`)                                         | Published CLI today accepts only single-letter `name:P`                                                                                                                               |
+| B13 | Expression string proj of `"{"` / `"}"`                      | object braces, string escapes                                           | `-> "{"` parses as object literal; use bare Equal, `-> _`, or bind `c:"{" -> c`                                                                                                       |
+| B14 | Left-fold over lists without domain helpers                  | expression/member (done), similar AST folds                             | DLR + nested [Projection](../../patterns/runtime/projection.spec.md); closed for Member (not std `reduce`+lambda; sugar later [#98](https://github.com/justinmchase/uffda/issues/98)) |
+| B15 | `"\\"` in multi-rule `.uff` modules                          | expression/string (done)                                                | Rule-body quote scanner treats `\\` as escapable; shipped in 0.1.15                                                                                                                   |
 
 ## Phase order (dependency leaves first)
 
@@ -190,7 +190,7 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 | #  | Module                   | Ready?                                              |
 | -- | ------------------------ | --------------------------------------------------- |
 | 39 | `uffda/shared.rules`     | done                                                |
-| 40 | `uffda/import.rules`     | after B2 (path join) + shared                       |
+| 40 | `uffda/import.rules`     | done                                                |
 | 41 | `uffda/export.rules`     | after shared/rules                                  |
 | 42 | `uffda/rule.rules`       | after pattern.lang + expression.lang + B2           |
 | 43 | `uffda/uffda.lang`       | after import/export/rule                            |
@@ -222,9 +222,9 @@ permanent TypeScript language modules once builtins exist.
 
 ## First candidate (next session)
 
-Phase 2 expression leaves through `string` and `member` are converted. Continue
-with remaining Phase 3 pattern-stack modules (after B4/B8/B9 as needed), or
-`uffda/import.rules` once path-join projections are ready.
+`uffda/import.rules` is converted. Next likely candidates: `uffda/export.rules`
+(needs map over export names or equivalent), or Phase 3 pattern modules after
+B4/B8/B9.
 
 Optional `recursive rule` sugar remains deferred
 ([#98](https://github.com/justinmchase/uffda/issues/98)).
