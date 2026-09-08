@@ -33,6 +33,9 @@ Path-scoped authoring guidance also lives in:
   corresponding `*.test.ts` file in the same directory.
 - Follow the existing Deno validation path: `deno fmt`, `deno lint`, and
   `deno task test`.
+- **Before pushing** any commit that changes code (`.ts`, `.uff`, etc.) or
+  Markdown (`.md`, `.mdc`), run `deno fmt` and include the formatting updates in
+  the commit. CI runs `deno fmt --check` and will fail on unformatted files.
 - Prefer `deno task pre` before committing.
 - Keep modules small and composable when adding or refactoring parser logic.
 
@@ -76,7 +79,8 @@ Apply this strict authority order when implementing or evaluating behavior:
 
 ## Validation
 
-After making changes, run:
+After making changes—and **before pushing** when those changes include code or
+Markdown—run:
 
 ```sh
 deno fmt
@@ -84,4 +88,5 @@ deno lint
 deno task test
 ```
 
-Do not cancel these commands; they normally finish quickly.
+Do not cancel these commands; they normally finish quickly. Confirm
+`deno fmt --check` is clean before `git push`.
