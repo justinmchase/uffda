@@ -9,7 +9,7 @@ import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
 const moduleUrl =
-  new URL("../../lang/pattern/pattern.lang.ts", import.meta.url).href;
+  new URL("../../lang/pattern/pattern.lang.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -27,6 +27,7 @@ Deno.test(
       "resolve projects a reference target",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("foo"),
         kind: MatchKind.Ok,
         value: {
@@ -42,6 +43,7 @@ Deno.test(
       "resolve arguments project nested pattern nodes",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar('foo<"bar">'),
         kind: MatchKind.Ok,
         value: {
@@ -62,6 +64,7 @@ Deno.test(
       "escaped resolve identifiers allow keyword names",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("@any"),
         kind: MatchKind.Ok,
         value: {
@@ -77,6 +80,7 @@ Deno.test(
       "capture projects a variable binding node",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("x:any"),
         kind: MatchKind.Ok,
         value: {
@@ -91,6 +95,7 @@ Deno.test(
       "postfix repetition preserves bounds",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("any*1..3"),
         kind: MatchKind.Ok,
         value: {
@@ -106,6 +111,7 @@ Deno.test(
       "membership and between project collection and range nodes",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("in[x y]"),
         kind: MatchKind.Ok,
         value: {
@@ -119,6 +125,7 @@ Deno.test(
       "between projects an ordered bound node",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("1..5"),
         kind: MatchKind.Ok,
         value: {
@@ -133,6 +140,7 @@ Deno.test(
       "over projects keyed child patterns",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("{name: any, enabled: \\cL, }"),
         kind: MatchKind.Ok,
         value: {
@@ -152,6 +160,7 @@ Deno.test(
       "pipeline projects ordered steps",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("any |> end"),
         kind: MatchKind.Ok,
         value: {
@@ -168,6 +177,7 @@ Deno.test(
       "canonical multiline authoring composes alternatives pipelines and keyed forms",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar(
           '|\n  "literal"\n|\n  any\n  |>\n  [end]\n  |>\n  ok\n|\n  {\n    name: string,\n    aliases: [any+],\n  }',
         ),

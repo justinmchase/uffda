@@ -14,7 +14,7 @@ Deno.test({
       fn: async () => {
         const m = await parseGrammar<Pattern>({
           source: "any",
-          moduleUrl: new URL("./pattern/pattern.lang.ts", import.meta.url),
+          moduleUrl: new URL("./pattern/pattern.lang.uff", import.meta.url),
           entryRuleName: "PatternLang",
         });
 
@@ -30,7 +30,7 @@ Deno.test({
       fn: async () => {
         const m = await parseGrammar<Pattern>({
           source: "any )",
-          moduleUrl: new URL("./pattern/pattern.lang.ts", import.meta.url),
+          moduleUrl: new URL("./pattern/pattern.lang.uff", import.meta.url),
           entryRuleName: "PatternLang",
         });
 

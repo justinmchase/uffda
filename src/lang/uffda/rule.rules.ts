@@ -12,7 +12,7 @@ export const RuleDeclarationRules: ModuleDeclaration = {
   imports: [
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "../pattern/pattern.lang.ts",
+      moduleUrl: "../pattern/pattern.lang.uff",
       names: ["PatternTokens"],
     },
     {

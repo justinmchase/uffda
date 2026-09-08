@@ -9,10 +9,8 @@ import { Type } from "@justinmchase/type";
 import { assertEquals } from "@std/assert";
 import { patternGrammar } from "./pattern.lang.ts";
 import { moduleDeclarationTest } from "../../test.ts";
-import { executeModuleDeclaration } from "../../runtime/module.execute.ts";
-import { PatternLang } from "./pattern.lang.ts";
 
-const moduleUrl = new URL("./pattern.lang.ts", import.meta.url).href;
+const moduleUrl = new URL("./pattern.lang.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -36,31 +34,28 @@ Deno.test(
       },
     });
 
-    await t.step(
-      "PATTERN_TOKENS_00 parses an existing token array",
-      async () => {
-        const m = await executeModuleDeclaration(PatternLang, {
-          moduleUrl: new URL("./pattern.lang.ts", import.meta.url),
-          entryRuleName: "PatternTokens",
-          input: ["any", "|", "fail"],
-        });
-        assertEquals(m.kind, MatchKind.Ok);
-        if (m.kind === MatchKind.Ok) {
-          assertEquals(m.value, {
-            kind: PatternKind.Or,
-            patterns: [
-              { kind: PatternKind.Any },
-              { kind: PatternKind.Fail },
-            ],
-          });
-        }
-      },
-    );
+    await t.step({
+      name: "PATTERN_TOKENS_00 parses an existing token array",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "PatternTokens",
+        input: Input.Scalar(["any", "|", "fail"]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Or,
+          patterns: [
+            { kind: PatternKind.Any },
+            { kind: PatternKind.Fail },
+          ],
+        },
+      }),
+    });
 
     await t.step({
       name: "PATTERN_LANG_00",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("any"),
         kind: MatchKind.Ok,
         value: { kind: PatternKind.Any },
@@ -71,6 +66,7 @@ Deno.test(
       name: "PATTERN_LANG_01",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("not any"),
         kind: MatchKind.Ok,
         value: {
@@ -84,6 +80,7 @@ Deno.test(
       name: "PATTERN_LANG_02",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("any | fail"),
         kind: MatchKind.Ok,
         value: {
@@ -100,6 +97,7 @@ Deno.test(
       name: "PATTERN_LANG_03",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("any & fail | ok"),
         kind: MatchKind.Ok,
         value: {
@@ -122,6 +120,7 @@ Deno.test(
       name: "PATTERN_LANG_04",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("| any | fail | ok"),
         kind: MatchKind.Ok,
         value: {
@@ -139,6 +138,7 @@ Deno.test(
       name: "PATTERN_LANG_05",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("any and fail"),
         kind: MatchKind.Fail,
       }),
@@ -148,6 +148,7 @@ Deno.test(
       name: "PATTERN_LANG_06",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("any or fail"),
         kind: MatchKind.Fail,
       }),
@@ -157,6 +158,7 @@ Deno.test(
       name: "PATTERN_LANG_10",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("string"),
         kind: MatchKind.Ok,
         value: {
@@ -170,6 +172,7 @@ Deno.test(
       name: "PATTERN_LANG_11",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("\\cL"),
         kind: MatchKind.Ok,
         value: {
@@ -183,6 +186,7 @@ Deno.test(
       name: "PATTERN_LANG_12",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("foo"),
         kind: MatchKind.Ok,
         value: {
@@ -198,6 +202,7 @@ Deno.test(
       name: "PATTERN_LANG_13",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("@any"),
         kind: MatchKind.Ok,
         value: {
@@ -213,6 +218,7 @@ Deno.test(
       name: "PATTERN_LANG_13A",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar('foo<"bar">'),
         kind: MatchKind.Ok,
         value: {
@@ -233,6 +239,7 @@ Deno.test(
       name: "PATTERN_LANG_13B",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar('foo<bar<"baz">>'),
         kind: MatchKind.Ok,
         value: {
@@ -260,6 +267,7 @@ Deno.test(
       name: "PATTERN_LANG_14",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("in[x y]"),
         kind: MatchKind.Ok,
         value: {
@@ -273,6 +281,7 @@ Deno.test(
       name: "PATTERN_LANG_14A",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("1..5"),
         kind: MatchKind.Ok,
         value: {
@@ -287,6 +296,7 @@ Deno.test(
       name: "PATTERN_LANG_14B",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar('"hello"'),
         kind: MatchKind.Ok,
         value: {
@@ -300,6 +310,7 @@ Deno.test(
       name: "PATTERN_LANG_14C",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar('"\\t"'),
         kind: MatchKind.Ok,
         value: {
@@ -313,6 +324,7 @@ Deno.test(
       name: "PATTERN_LANG_14D",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar('"\\n"'),
         kind: MatchKind.Ok,
         value: {
@@ -326,6 +338,7 @@ Deno.test(
       name: "PATTERN_LANG_14E",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar('"\\r"'),
         kind: MatchKind.Ok,
         value: {
@@ -339,6 +352,7 @@ Deno.test(
       name: "PATTERN_LANG_14F",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar('"\\\\"'),
         kind: MatchKind.Ok,
         value: {
@@ -352,6 +366,7 @@ Deno.test(
       name: "PATTERN_LANG_14G",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar('"\\""'),
         kind: MatchKind.Ok,
         value: {
@@ -365,6 +380,7 @@ Deno.test(
       name: "PATTERN_LANG_14H",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar('"\\tab"'),
         kind: MatchKind.Ok,
         value: {
@@ -378,6 +394,7 @@ Deno.test(
       name: "PATTERN_LANG_15",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("any |> end"),
         kind: MatchKind.Ok,
         value: {
@@ -394,6 +411,7 @@ Deno.test(
       name: "PATTERN_LANG_16",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("{name: any, enabled: end, }"),
         kind: MatchKind.Ok,
         value: {
@@ -410,6 +428,7 @@ Deno.test(
       name: "PATTERN_LANG_17",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar('includes [1 "x"]'),
         kind: MatchKind.Fail,
       }),
@@ -419,6 +438,7 @@ Deno.test(
       name: "PATTERN_LANG_18",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar('"{foo}"'),
         kind: MatchKind.Ok,
         value: {
@@ -432,6 +452,7 @@ Deno.test(
       name: "PATTERN_LANG_19",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("not\nany"),
         kind: MatchKind.Ok,
         value: {
@@ -445,6 +466,7 @@ Deno.test(
       name: "PATTERN_LANG_20",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar('foo\n<\n"bar"\n>'),
         kind: MatchKind.Ok,
         value: {
@@ -465,6 +487,7 @@ Deno.test(
       name: "PATTERN_LANG_21",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("|\nany\n|\nfail\n|\nok"),
         kind: MatchKind.Ok,
         value: {
@@ -482,6 +505,7 @@ Deno.test(
       name: "PATTERN_LANG_22",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("{\nname: any,\nenabled: end,\n}"),
         kind: MatchKind.Ok,
         value: {
@@ -498,6 +522,7 @@ Deno.test(
       name: "PATTERN_LANG_23",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("any |> [end] |> ok"),
         kind: MatchKind.Ok,
         value: {
@@ -518,6 +543,7 @@ Deno.test(
       name: "PATTERN_LANG_24",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("over {name: any}"),
         kind: MatchKind.Fail,
       }),
@@ -527,6 +553,7 @@ Deno.test(
       name: "PATTERN_LANG_25",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("pipeline { any; end; }"),
         kind: MatchKind.Fail,
       }),
@@ -536,6 +563,7 @@ Deno.test(
       name: "PATTERN_LANG_26",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("into end"),
         kind: MatchKind.Fail,
       }),
@@ -545,6 +573,7 @@ Deno.test(
       name: "PATTERN_LANG_27",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("any |> (end | fail)"),
         kind: MatchKind.Ok,
         value: {
@@ -567,6 +596,7 @@ Deno.test(
       name: "PATTERN_LANG_28",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("(any |> [end])"),
         kind: MatchKind.Ok,
         value: {
@@ -586,6 +616,7 @@ Deno.test(
       name: "PATTERN_LANG_29",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar(
           '|\n  "literal"\n|\n  any\n  |>\n  [end]\n  |>\n  ok\n|\n  {\n    name: string,\n    aliases: [any+],\n  }',
         ),

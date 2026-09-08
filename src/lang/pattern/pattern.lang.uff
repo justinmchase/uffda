@@ -1,0 +1,20 @@
+# PatternLang pipelines Source → tokens → PatternComplete.
+import "../source/mod.ts" Source;
+import "../tokenizer/mod.ts" TokenizerNoWhitespace;
+import "./pattern.uff" Pattern;
+
+export PatternLang;
+export PatternTokens;
+
+rule PatternComplete =
+  p:Pattern
+  end
+  -> p;
+
+rule PatternTokens = [PatternComplete];
+
+rule PatternLang =
+  Source
+  |> [TokenizerNoWhitespace]
+  |> [PatternComplete]
+  ;

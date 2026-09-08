@@ -5,7 +5,7 @@ import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
 const moduleUrl =
-  new URL("../../lang/pattern/pattern.lang.ts", import.meta.url).href;
+  new URL("../../lang/pattern/pattern.lang.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -23,6 +23,7 @@ Deno.test(
       "line breaks behave like spaces between prefix tokens",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("not\nany"),
         kind: MatchKind.Ok,
         value: {
@@ -36,6 +37,7 @@ Deno.test(
       "line breaks behave like spaces around resolve arguments",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar('foo\n<\n"bar"\n>'),
         kind: MatchKind.Ok,
         value: {
@@ -56,6 +58,7 @@ Deno.test(
       "line breaks preserve multiline alternatives and object-like forms",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar(
           "{\nname: |\n  any\n  | fail,\nenabled: end,\n}",
         ),
@@ -80,6 +83,7 @@ Deno.test(
       "line breaks behave like spaces around pipeline operators",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("any\n|>\n[\nend\n]\n|>\nok"),
         kind: MatchKind.Ok,
         value: {

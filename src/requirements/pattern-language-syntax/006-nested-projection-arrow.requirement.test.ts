@@ -5,7 +5,7 @@ import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
 const moduleUrl =
-  new URL("../../lang/pattern/pattern.lang.ts", import.meta.url).href;
+  new URL("../../lang/pattern/pattern.lang.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -23,6 +23,7 @@ Deno.test(
       "any -> 1 projects a projection node",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("any -> 1"),
         kind: MatchKind.Ok,
         value: {
@@ -37,6 +38,7 @@ Deno.test(
       "sequence binds tighter than projection",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("any fail -> 1"),
         kind: MatchKind.Ok,
         value: {
@@ -57,6 +59,7 @@ Deno.test(
       "projection binds tighter than or",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("any -> 1 | fail"),
         kind: MatchKind.Ok,
         value: {
@@ -77,6 +80,7 @@ Deno.test(
       "grouped projection under or is accepted",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("(any -> 1) | fail"),
         kind: MatchKind.Ok,
         value: {
