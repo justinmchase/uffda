@@ -57,7 +57,7 @@ export const UffdaLang: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./import.rules.ts",
+      moduleUrl: "./import.rules.uff",
       names: [
         "ImportDeclarationSyntax",
         "ImportNameList",

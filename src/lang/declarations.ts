@@ -31,7 +31,6 @@ import Source from "./source/mod.ts";
 import Tokenizer from "./tokenizer/mod.ts";
 import TokenizerLang from "./tokenizer/tokenizer.lang.ts";
 import ExportRules from "./uffda/export.rules.ts";
-import ImportRules from "./uffda/import.rules.ts";
 import RuleRules from "./uffda/rule.rules.ts";
 
 const here = import.meta.url;
@@ -60,6 +59,5 @@ export const builtInLanguageDeclarations: Record<string, ModuleDeclaration> =
     entry("./tokenizer/mod.ts", Tokenizer),
     entry("./tokenizer/tokenizer.lang.ts", TokenizerLang),
     entry("./uffda/export.rules.ts", ExportRules),
-    entry("./uffda/import.rules.ts", ImportRules),
     entry("./uffda/rule.rules.ts", RuleRules),
   ]);
