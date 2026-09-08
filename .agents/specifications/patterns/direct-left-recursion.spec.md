@@ -57,9 +57,13 @@ non-left-recursive forms.
 - Sequencing within a directly left-recursive branch SHOULD place the
   self-reference in the leading position that creates the left-associative
   structure.
-- Pattern authors MAY use additional composed patterns around a directly
-  left-recursive branch as long as those patterns preserve the distinction
-  between left-recursion outcomes and ordinary match outcomes.
+- Pattern authors MAY wrap a directly left-recursive branch in a
+  [projection](./runtime/projection.spec.md) pattern so each growth step carries
+  a projected value (for example a nested AST node) rather than the raw child
+  match value.
+- Pattern authors MUST NOT rely on splitting recursive and base arms into
+  separate rules solely to attach different projections; that shape becomes
+  unsupported indirect left recursion.
 
 ## Scope and input-position invariants
 

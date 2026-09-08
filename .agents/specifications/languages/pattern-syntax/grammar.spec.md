@@ -21,8 +21,11 @@ resolution, or expression evaluation.
 - The grammar MUST NOT include declaration wrappers such as `PatternDeclaration`
   headers, import statements, export statements, or module scaffolding.
 - The grammar MUST NOT redefine expression syntax.
-- Expressions MAY be referenced only by higher layers that combine pattern
-  bodies with expression-bearing declaration forms.
+- The grammar MAY include expression **slots** at projection forms (`P -> E`),
+  where `E` is parsed by ExpressionLang and the form normalizes to the
+  [projection](../../patterns/runtime/projection.spec.md) runtime pattern.
+- Expressions outside projection slots remain the responsibility of higher
+  layers that combine pattern bodies with expression-bearing declaration forms.
 
 ## Canonical form
 
@@ -89,8 +92,25 @@ The grammar MUST be able to express the following pattern families:
 ## Precedence
 
 From tightest to loosest, pattern syntax MUST apply primary/grouping, postfix
-repetition, prefix operators and capture, ordered sequence, pipeline,
-conjunction, and alternation.
+repetition, prefix operators and capture, ordered sequence, pipeline, projection
+(`->`), conjunction, and alternation.
+
+## Projection forms
+
+- Projection MUST use the spelling `P -> E`, where `P` is a pattern and `E` is
+  an ExpressionLang expression slot.
+- `P -> E` MUST normalize to a projection pattern with child `P` and expression
+  `E`.
+- Ordered sequence MUST bind more tightly than projection, so `A B -> E` MUST
+  mean projecting the sequence `(A B)`.
+- Projection MUST bind more tightly than `|` and `&`, so in PatternLang
+  `P -> E | Q` MUST normalize to alternation of a projected `P` with `Q`.
+  Authors MAY still write `(P -> E) | Q` for clarity.
+- In Uffda rule declarations, depth-0 `->` remains the whole-body projection
+  delimiter. Nested projections inside a rule pattern body MUST appear inside
+  grouping (`(…)`, `[…]`, or `{…}`) so they are not cut as the rule-level
+  projection.
+- Projection MUST remain distinct from pipeline (`|>`).
 
 ## Worked examples
 

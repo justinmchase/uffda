@@ -137,9 +137,7 @@ async function grow(
 
   while (growing) {
     memo.match = m;
-    const growScope = m
-      .scope
-      .withInput(start);
+    const growScope = scope.withInput(start);
 
     const result = await match(pattern, growScope);
     const progressed =

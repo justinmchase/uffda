@@ -32,6 +32,7 @@ RFC 8174.
 - [tokenization and token model boundaries](./languages/tokenization.spec.md)
 - [expression layer contracts](./languages/expression-layer.spec.md)
 - [pattern layer contracts](./languages/pattern-layer.spec.md)
+- [pattern idioms for map and reduce](./languages/pattern-idioms-map-reduce.spec.md)
 - [uffda language-definition layer](./languages/uffda-language.spec.md)
 - [compiler and bootstrap progression layer](./languages/compiler-bootstrap.spec.md)
 - [`.ts` → `.uff` language module conversion plan](./languages/uff-module-conversion-plan.md)

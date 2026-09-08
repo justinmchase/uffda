@@ -13,9 +13,10 @@ Normative key words in this chapter use the conventions defined in the
 - This chapter covers only the pattern body itself.
 - Pattern declarations, import statements, export statements, and other
   higher-level wrapper syntax are out of scope for this chapter.
-- Expression syntax is also out of scope for this chapter; when a higher layer
-  embeds expressions inside a pattern declaration, that embedding is governed by
-  the higher layer rather than by the pattern grammar itself.
+- Expression syntax is out of scope for this chapter except as opaque slots at
+  projection forms (`P -> E`); ExpressionLang defines those slots. Higher layers
+  that embed additional expression-bearing declaration forms remain responsible
+  for those embeddings.
 
 ## Layer position and integration
 

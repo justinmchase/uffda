@@ -3,6 +3,7 @@ import type { Serializable } from "@justinmchase/serializable";
 import type { Special } from "../modules/special.ts";
 import type { Comparable } from "../../comparable.ts";
 import type { Type } from "@justinmchase/type";
+import type { Expression } from "../expressions/expression.ts";
 
 export type Pattern =
   | AnyPattern
@@ -22,6 +23,7 @@ export type Pattern =
   | OkPattern
   | OrPattern
   | PipelinePattern
+  | ProjectionPattern
   | QuantifierPattern
   | RegExpPattern
   | ResolvePattern
@@ -144,6 +146,11 @@ export type OrPattern = {
 export type PipelinePattern = {
   kind: PatternKind.Pipeline;
   steps: Pattern[];
+};
+export type ProjectionPattern = {
+  kind: PatternKind.Projection;
+  pattern: Pattern;
+  expression: Expression;
 };
 export type QuantifierPattern = {
   kind: PatternKind.Quantifier;

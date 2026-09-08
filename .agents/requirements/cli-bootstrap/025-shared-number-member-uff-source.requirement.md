@@ -28,7 +28,9 @@ Postconditions:
 - Dependents import the `.uff` URLs; TypeScript twins are gone.
 - Runtime loads them from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).
-- `expression/member` remains TypeScript until ExpressionLang has lambda
-  literals and std `reduce` (no domain-specific fold helpers).
+- `expression/member` remains TypeScript until nested Projection ships in a
+  published CLI and a DLR + Projection left-fold is validated for the
+  member-chain AST; MUST NOT wait on ExpressionLang lambda literals or std
+  `reduce`, and MUST NOT introduce domain-specific fold helpers.
 - `expression/string` remains TypeScript until B15 (`"\\"` + object/string
   projection in one module).

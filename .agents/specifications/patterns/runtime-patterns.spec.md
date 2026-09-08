@@ -49,6 +49,7 @@ Each runtime pattern subtopic should define:
 - [or pattern](./runtime/or.spec.md)
 - [over pattern](./runtime/over.spec.md)
 - [pipeline pattern](./runtime/pipeline.spec.md)
+- [projection pattern](./runtime/projection.spec.md)
 - [quantifier pattern](./runtime/quantifier.spec.md)
 - [regexp pattern](./runtime/regexp.spec.md)
 - [resolve pattern](./runtime/resolve.spec.md)

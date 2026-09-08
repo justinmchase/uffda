@@ -73,12 +73,13 @@ already satisfy:
 Expressions MUST **project** matched values into AST/values. They MUST NOT
 re-implement matching/parsing that belongs in patterns:
 
-| Smell in Native                                                            | Prefer                                                 |
-| -------------------------------------------------------------------------- | ------------------------------------------------------ |
-| Split / scan / classify strings                                            | Character / equal / into / quantifier patterns         |
-| Inspect object shape / discriminators to “parse”                           | `over {…}`, typed into, resolve rules                  |
-| Conditional structure from “what matched” when patterns could discriminate | Separate alternatives with distinct projections        |
-| Walk match trees / spans                                                   | Pattern pipeline that already yields structured values |
+| Smell in Native                                                            | Prefer                                                                                                           |
+| -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Split / scan / classify strings                                            | Character / equal / into / quantifier patterns                                                                   |
+| Inspect object shape / discriminators to “parse”                           | `over {…}`, typed into, resolve rules                                                                            |
+| Conditional structure from “what matched” when patterns could discriminate | Separate alternatives with distinct projections                                                                  |
+| Walk match trees / spans                                                   | Pattern pipeline that already yields structured values                                                           |
+| Collect segments then left-fold in Native / `reduce` / `for`               | Direct left recursion (or equivalent pattern fold); see [map/reduce idioms](./pattern-idioms-map-reduce.spec.md) |
 
 Identity `({ _ }) => _` and pure AST wrappers
 `({ pattern }) => ({ kind: "not", pattern })` are projections (OK once Native is
@@ -103,23 +104,23 @@ replaced). `_.flat().join("")`, `parseInt`, match-span indexing are usually
 These unlock many modules; schedule explicitly rather than rediscovering per
 file:
 
-| ID  | Blocker                                                      | Needed by                                   | Direction                                                   |
-| --- | ------------------------------------------------------------ | ------------------------------------------- | ----------------------------------------------------------- |
-| B1  | Replace Native with serializable projections                 | ~45 modules                                 | ExpressionLang object/invocation forms + std                |
-| B2  | List flatten + join (`_.flat().join("")`)                    | identifier (done), string, tokenizer, rules | std `flat`/`join` — `flat`/`join` added; string still B15   |
-| B3  | Digit string → number                                        | expression/number (done)                    | std `int` shipped with number.uff                           |
-| B4  | Length-1 list collapse (`patterns.length===1 ? p : wrapper`) | then/pipe/and/or                            | Always emit wrapper (behavior review) or std helper         |
-| B5  | Quantifier optional-array unwrap                             | many                                        | `(flat (coalesce k []))` / star rewrite; more sugar later   |
-| B6  | Host match spans / checksum / line index                     | source/mod, tokenizer                       | New std/host builtins — then convert (not permanent hybrid) |
-| B7  | Match-tree semantic text walk                                | tokenizer.lang                              | Same as B6 — required before tokenizer.lang `.uff`          |
-| B8  | Validation `throw` in projection                             | prefix bounds                               | Fail in pattern, not expression                             |
-| B9  | Pattern stack import cycles                                  | resolve/structure ↔ pattern                 | Convert as a layer with temporary TS bridges                |
-| B10 | Parametric rules (`Surround<L,P,R>`, `Token<P>`)             | surround, token                             | Declaration syntax shipped in 0.1.11                        |
-| B11 | PatternLang + ExpressionLang string escapes (`\t`, `\n`, …)  | whitespace, newLine (done)                  | Shipped; expression escapes enable `-> "\n"`                |
-| B12 | Multi-letter variable bindings in PatternLang                | readable `.uff` (esp. `*.lang`)             | Published CLI today accepts only single-letter `name:P`     |
-| B13 | Expression string proj of `"{"` / `"}"`                      | object braces, similar tokens               | `-> "{"` parses as object literal; use bare Equal or `-> _` |
-| B14 | Left-fold over lists without domain helpers                  | expression/member, similar AST folds        | std `reduce` + ExpressionLang lambda literals (not `for`)   |
-| B15 | `"\\"` pattern + object/string projection in one module      | expression/string                           | Published CLI parse fails when both appear; split or fix    |
+| ID  | Blocker                                                      | Needed by                                   | Direction                                                                                                                                                                                                                 |
+| --- | ------------------------------------------------------------ | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B1  | Replace Native with serializable projections                 | ~45 modules                                 | ExpressionLang object/invocation forms + std                                                                                                                                                                              |
+| B2  | List flatten + join (`_.flat().join("")`)                    | identifier (done), string, tokenizer, rules | std `flat`/`join` — `flat`/`join` added; string still B15                                                                                                                                                                 |
+| B3  | Digit string → number                                        | expression/number (done)                    | std `int` shipped with number.uff                                                                                                                                                                                         |
+| B4  | Length-1 list collapse (`patterns.length===1 ? p : wrapper`) | then/pipe/and/or                            | Always emit wrapper (behavior review) or std helper                                                                                                                                                                       |
+| B5  | Quantifier optional-array unwrap                             | many                                        | `(flat (coalesce k []))` / star rewrite; more sugar later                                                                                                                                                                 |
+| B6  | Host match spans / checksum / line index                     | source/mod, tokenizer                       | New std/host builtins — then convert (not permanent hybrid)                                                                                                                                                               |
+| B7  | Match-tree semantic text walk                                | tokenizer.lang                              | Same as B6 — required before tokenizer.lang `.uff`                                                                                                                                                                        |
+| B8  | Validation `throw` in projection                             | prefix bounds                               | Fail in pattern, not expression                                                                                                                                                                                           |
+| B9  | Pattern stack import cycles                                  | resolve/structure ↔ pattern                 | Convert as a layer with temporary TS bridges                                                                                                                                                                              |
+| B10 | Parametric rules (`Surround<L,P,R>`, `Token<P>`)             | surround, token                             | Declaration syntax shipped in 0.1.11                                                                                                                                                                                      |
+| B11 | PatternLang + ExpressionLang string escapes (`\t`, `\n`, …)  | whitespace, newLine (done)                  | Shipped; expression escapes enable `-> "\n"`                                                                                                                                                                              |
+| B12 | Multi-letter variable bindings in PatternLang                | readable `.uff` (esp. `*.lang`)             | Published CLI today accepts only single-letter `name:P`                                                                                                                                                                   |
+| B13 | Expression string proj of `"{"` / `"}"`                      | object braces, similar tokens               | `-> "{"` parses as object literal; use bare Equal or `-> _`                                                                                                                                                               |
+| B14 | Left-fold over lists without domain helpers                  | expression/member, similar AST folds        | DLR + nested [Projection](../../patterns/runtime/projection.spec.md); **blocked until Projection ships in a published CLI** (not std `reduce`+lambda; sugar later [#98](https://github.com/justinmchase/uffda/issues/98)) |
+| B15 | `"\\"` pattern + object/string projection in one module      | expression/string                           | Published CLI parse fails when both appear; split or fix                                                                                                                                                                  |
 
 ## Phase order (dependency leaves first)
 
@@ -149,23 +150,23 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ### Phase 2 — Expression stack (bottom-up)
 
-| #  | Module                       | G1       | G2                            | G3                                   | Ready?                         |
-| -- | ---------------------------- | -------- | ----------------------------- | ------------------------------------ | ------------------------------ |
-| 12 | `expression/number`          | OK       | `(int (join (flat _) ""))`    | Digits matched by pattern; `int` std | done                           |
-| 13 | `expression/boolean`         | OK       | object proj                   | OK                                   | done                           |
-| 14 | `expression/nullish`         | OK       | Value proj                    | OK                                   | done                           |
-| 15 | `expression/reference`       | OK       | Reference wrap                | OK                                   | done                           |
-| 16 | `expression/terminal`        | OK       | identity                      | OK                                   | done                           |
-| 17 | `expression/not`             | OK       | Not wrap                      | OK                                   | done                           |
-| 18 | `expression/array`           | OK       | Array AST proj                | OK                                   | done                           |
-| 19 | `expression/object`          | OK       | Object AST proj               | OK (`flat` unwrap)                   | done                           |
-| 20 | `expression/sequence`        | OK       | Invocation AST                | OK                                   | done                           |
-| 21 | `expression/string`          | OK       | join + escapes                | OK                                   | **no** until B15               |
-| 22 | `expression/member`          | OK       | left-fold via `reduce`+lambda | OK                                   | **no** until lambda + `reduce` |
-| 23 | `expression/primary`         | OK       | identity                      | OK                                   | done                           |
-| 24 | `expression/unary`           | OK       | identity                      | OK                                   | done                           |
-| 25 | `expression/expression`      | OK       | identity                      | OK                                   | done                           |
-| 26 | `expression/expression.lang` | pipeline | unwrap                        | OK                                   | done                           |
+| #  | Module                       | G1       | G2                         | G3                                   | Ready?                                      |
+| -- | ---------------------------- | -------- | -------------------------- | ------------------------------------ | ------------------------------------------- |
+| 12 | `expression/number`          | OK       | `(int (join (flat _) ""))` | Digits matched by pattern; `int` std | done                                        |
+| 13 | `expression/boolean`         | OK       | object proj                | OK                                   | done                                        |
+| 14 | `expression/nullish`         | OK       | Value proj                 | OK                                   | done                                        |
+| 15 | `expression/reference`       | OK       | Reference wrap             | OK                                   | done                                        |
+| 16 | `expression/terminal`        | OK       | identity                   | OK                                   | done                                        |
+| 17 | `expression/not`             | OK       | Not wrap                   | OK                                   | done                                        |
+| 18 | `expression/array`           | OK       | Array AST proj             | OK                                   | done                                        |
+| 19 | `expression/object`          | OK       | Object AST proj            | OK (`flat` unwrap)                   | done                                        |
+| 20 | `expression/sequence`        | OK       | Invocation AST             | OK                                   | done                                        |
+| 21 | `expression/string`          | OK       | join + escapes             | OK                                   | **no** until B15                            |
+| 22 | `expression/member`          | OK       | DLR + nested Projection    | OK                                   | **no** until B14 (published Projection CLI) |
+| 23 | `expression/primary`         | OK       | identity                   | OK                                   | done                                        |
+| 24 | `expression/unary`           | OK       | identity                   | OK                                   | done                                        |
+| 25 | `expression/expression`      | OK       | identity                   | OK                                   | done                                        |
+| 26 | `expression/expression.lang` | pipeline | unwrap                     | OK                                   | done                                        |
 
 ### Phase 3 — Pattern stack
 
@@ -221,17 +222,28 @@ permanent TypeScript language modules once builtins exist.
 
 ## First candidate (next session)
 
-Pause module conversion. Next: design ExpressionLang **lambda** syntax and add
-std **`reduce`** (functional map/reduce only — no `for`/`foreach`). Then convert
-`expression/member`. `expression/string` still blocked on B15.
+**Pause** language-module bootstrap conversion that depends on left-folds. Next
+workstream: restore nested `PatternKind.Projection` (runtime, then PatternLang),
+publish a CLI that includes it, then convert `expression/member` via DLR +
+Projection per
+[pattern idioms for map and reduce](./pattern-idioms-map-reduce.spec.md) and
+[projection](../patterns/runtime/projection.spec.md).
 
-Number and shared.rules are converted; member stays TypeScript until then.
+Do not block Member on ExpressionLang lambda syntax, std `reduce`, or
+`recursive rule` sugar ([#98](https://github.com/justinmchase/uffda/issues/98)).
+`expression/string` remains blocked on B15.
+
+Number and shared.rules are converted; member stays TypeScript until a
+**published** CLI accepts nested `->`.
 
 ## References
 
 - Spec: `.agents/specifications/languages/compiler-bootstrap.spec.md`
 - Spec: `.agents/specifications/modules.spec.md` (`.uff` import remapping)
+- Spec: `.agents/specifications/languages/pattern-idioms-map-reduce.spec.md`
+- Spec: `.agents/specifications/patterns/runtime/projection.spec.md`
 - Checklist: `.agents/specifications/languages/pattern-bootstrap-checklist.md`
 - Example: `src/lang/common/characters/digit.uff`
 - Std: `src/runtime/std/mod.ts` (`add`, `coalesce`, `filter`, `flat`, `format`,
   `id`, `int`, `join`, `json`, `map`, `pack`)
+- Follow-up: https://github.com/justinmchase/uffda/issues/98 (`recursive rule`)
