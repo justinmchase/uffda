@@ -1,0 +1,34 @@
+# Export declaration syntax: `export rule …` or `export Name Rest*;`.
+# Per-item ExportName projection avoids map/lambda (pattern idioms).
+# Inline export packs [export-decl, rule-decl] via std pack.
+# Variable bindings are single-letter (published CLI PatternLang).
+import "./shared.rules.uff" IdentifierToken;
+import "./rule.rules.ts" RuleDeclarationSyntax;
+
+export ExportDeclarationSyntax;
+export ExportNameList;
+
+rule ExportName =
+  n:IdentifierToken
+  -> { kind: "export", name: n };
+
+rule ExportNameList =
+  ExportName
+  ExportName*
+  -> (flat _);
+
+rule InlineExportedRuleDeclarationSyntax =
+  "export"
+  r:RuleDeclarationSyntax
+  -> (pack { kind: "export", name: r.name } r);
+
+rule StandaloneExportDeclarationSyntax =
+  "export"
+  n:ExportNameList
+  ";"
+  -> n;
+
+rule ExportDeclarationSyntax =
+  | InlineExportedRuleDeclarationSyntax
+  | StandaloneExportDeclarationSyntax
+  ;
