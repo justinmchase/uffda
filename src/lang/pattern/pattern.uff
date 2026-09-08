@@ -1,0 +1,6 @@
+# Pattern is currently Or (future top-level pattern sugar can land here).
+import "./or.uff" Or;
+
+export Pattern;
+
+rule Pattern = Or;

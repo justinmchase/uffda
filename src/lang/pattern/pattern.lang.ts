@@ -46,7 +46,7 @@ export const PatternLang: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./pattern.ts",
+      moduleUrl: "./pattern.uff",
       names: [
         "Pattern",
       ],

@@ -14,7 +14,7 @@ export const Prefix: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./pattern.ts",
+      moduleUrl: "./pattern.uff",
       names: ["Pattern"],
     },
     {

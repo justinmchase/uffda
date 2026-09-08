@@ -43,8 +43,8 @@ Deno.test(
     const projection = await Deno.readTextFile(join(pattern, "projection.ts"));
     assertEquals(projection.includes('moduleUrl: "./pipe.uff"'), true);
 
-    const patternMod = await Deno.readTextFile(join(pattern, "pattern.ts"));
-    assertEquals(patternMod.includes('moduleUrl: "./or.uff"'), true);
+    const patternMod = await Deno.readTextFile(join(pattern, "pattern.uff"));
+    assertEquals(patternMod.includes('import "./or.uff" Or'), true);
 
     const stdMod = await Deno.readTextFile(
       join(repoRoot, "src", "runtime", "std", "mod.ts"),
