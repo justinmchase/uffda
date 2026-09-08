@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-028
 title: ExportRules module has authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/pattern-idioms-map-reduce.spec.md#map-as-quantified-item-projection; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/pattern-idioms-map-reduce.spec.md#map-as-pattern; .agents/specifications/languages/uff-module-conversion-plan.md"
 ---
 
 # ExportRules Uff Source
