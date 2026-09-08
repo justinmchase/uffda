@@ -182,7 +182,7 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 | 34 | `pattern/pipe`         | OK                                    | std `one` + `*`               | OK                                          | done                             |
 | 35 | `pattern/and`          | OK                                    | std `one` + `*`               | OK                                          | done                             |
 | 36 | `pattern/or`           | OK                                    | std `one` + `*`               | OK                                          | done                             |
-| 37 | `pattern/pattern`      | OK                                    | identity                      | OK                                          | after or                         |
+| 37 | `pattern/pattern`      | OK                                    | identity                      | OK                                          | done                             |
 | 38 | `pattern/pattern.lang` | pipeline                              | unwrap                        | OK                                          | after pattern — **must** convert |
 
 ### Phase 4 — Uffda language surface
@@ -222,10 +222,9 @@ permanent TypeScript language modules once builtins exist.
 
 ## First candidate (next session)
 
-B4 is closed: `then` / `pipe` / `and` / `or` use `(one (flat _) { kind: … })`
-with `Tail*`. Next: `pattern/pattern` (thin), then `pattern/pattern.lang`, or
-`uffda/rule.rules` once pattern.lang converts. Still blocked: prefix (B8),
-resolve/structure (B9), literals (hard).
+`pattern/pattern` is converted (`rule Pattern = Or`). Next:
+`pattern/pattern.lang` (**must**), then `uffda/rule.rules`. Still blocked:
+prefix (B8), resolve/structure (B9), literals (hard).
 
 Optional `recursive rule` sugar remains deferred
 ([#98](https://github.com/justinmchase/uffda/issues/98)).

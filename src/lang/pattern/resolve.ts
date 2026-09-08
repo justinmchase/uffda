@@ -16,7 +16,7 @@ export const Resolve: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./pattern.ts",
+      moduleUrl: "./pattern.uff",
       names: ["Pattern"],
     },
   ],
