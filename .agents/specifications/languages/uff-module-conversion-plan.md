@@ -120,9 +120,7 @@ file:
 | B12 | Multi-letter variable bindings in PatternLang                | readable `.uff` (esp. `*.lang`)             | Published CLI today accepts only single-letter `name:P`                                                                                                                               |
 | B13 | Expression string proj of `"{"` / `"}"`                      | object braces, similar tokens               | `-> "{"` parses as object literal; use bare Equal or `-> _`                                                                                                                           |
 | B14 | Left-fold over lists without domain helpers                  | expression/member (done), similar AST folds | DLR + nested [Projection](../../patterns/runtime/projection.spec.md); closed for Member (not std `reduce`+lambda; sugar later [#98](https://github.com/justinmchase/uffda/issues/98)) |
-
-| B15 | `"\\"` pattern + object/string projection in one module |
-expression/string | Published CLI parse fails when both appear; split or fix |
+| B15 | `"\\"` in multi-rule `.uff` modules                          | expression/string                           | Rule-body quote scanner omitted `\\` escape (fixed in-tree; needs published CLI before string `.uff`)                                                                                 |
 
 ## Phase order (dependency leaves first)
 
@@ -152,24 +150,23 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ### Phase 2 — Expression stack (bottom-up)
 
-| #  | Module                 | G1 | G2                         | G3                                   | Ready?           |
-| -- | ---------------------- | -- | -------------------------- | ------------------------------------ | ---------------- |
-| 12 | `expression/number`    | OK | `(int (join (flat _) ""))` | Digits matched by pattern; `int` std | done             |
-| 13 | `expression/boolean`   | OK | object proj                | OK                                   | done             |
-| 14 | `expression/nullish`   | OK | Value proj                 | OK                                   | done             |
-| 15 | `expression/reference` | OK | Reference wrap             | OK                                   | done             |
-| 16 | `expression/terminal`  | OK | identity                   | OK                                   | done             |
-| 17 | `expression/not`       | OK | Not wrap                   | OK                                   | done             |
-| 18 | `expression/array`     | OK | Array AST proj             | OK                                   | done             |
-| 19 | `expression/object`    | OK | Object AST proj            | OK (`flat` unwrap)                   | done             |
-| 20 | `expression/sequence`  | OK | Invocation AST             | OK                                   | done             |
-| 21 | `expression/string`    | OK | join + escapes             | OK                                   | **no** until B15 |
-| 22 | `expression/member`    | OK | DLR + nested Projection    | OK                                   | done             |
-
-| 23 | `expression/primary` | OK | identity | OK | done | | 24 |
-`expression/unary` | OK | identity | OK | done | | 25 | `expression/expression`
-| OK | identity | OK | done | | 26 | `expression/expression.lang` | pipeline |
-unwrap | OK | done |
+| #  | Module                       | G1       | G2                         | G3                                   | Ready?           |
+| -- | ---------------------------- | -------- | -------------------------- | ------------------------------------ | ---------------- |
+| 12 | `expression/number`          | OK       | `(int (join (flat _) ""))` | Digits matched by pattern; `int` std | done             |
+| 13 | `expression/boolean`         | OK       | object proj                | OK                                   | done             |
+| 14 | `expression/nullish`         | OK       | Value proj                 | OK                                   | done             |
+| 15 | `expression/reference`       | OK       | Reference wrap             | OK                                   | done             |
+| 16 | `expression/terminal`        | OK       | identity                   | OK                                   | done             |
+| 17 | `expression/not`             | OK       | Not wrap                   | OK                                   | done             |
+| 18 | `expression/array`           | OK       | Array AST proj             | OK                                   | done             |
+| 19 | `expression/object`          | OK       | Object AST proj            | OK (`flat` unwrap)                   | done             |
+| 20 | `expression/sequence`        | OK       | Invocation AST             | OK                                   | done             |
+| 21 | `expression/string`          | OK       | join + escapes             | OK                                   | **no** until B15 |
+| 22 | `expression/member`          | OK       | DLR + nested Projection    | OK                                   | done             |
+| 23 | `expression/primary`         | OK       | identity                   | OK                                   | done             |
+| 24 | `expression/unary`           | OK       | identity                   | OK                                   | done             |
+| 25 | `expression/expression`      | OK       | identity                   | OK                                   | done             |
+| 26 | `expression/expression.lang` | pipeline | unwrap                     | OK                                   | done             |
 
 ### Phase 3 — Pattern stack
 
@@ -225,12 +222,12 @@ permanent TypeScript language modules once builtins exist.
 
 ## First candidate (next session)
 
-**Next:** convert `expression/string` once B15 is resolved (`"\\"` +
-object/string projection in one module).
+**Unblock string (B15):** the rule-body quote scanner now treats `\\` as an
+escapable follower (in-tree). Publish that CLI, then convert
+`expression/string`.
 
 Member is converted via DLR + nested Projection
-(`src/lang/expression/member.uff`) using published CLI 0.1.14+. Checks and
-release bootstrap use `latest` again. Optional `recursive rule` sugar remains
+(`src/lang/expression/member.uff`). Optional `recursive rule` sugar remains
 deferred ([#98](https://github.com/justinmchase/uffda/issues/98)).
 
 ## References

@@ -251,6 +251,18 @@ Deno.test({
           'rule P = ";" "->" -> ";";',
         );
         assertEquals(quotedDelimiters.kind, MatchKind.Ok);
+
+        // B15: `"\\"` must close correctly so a later rule's quotes do not
+        // get swallowed by an open string from a prior rule.
+        const backslashThenOtherRule = await uffdaGrammar(
+          'rule Slash = "\\\\"; rule Other = "x" -> { kind: "ok" };',
+        );
+        assertEquals(backslashThenOtherRule.kind, MatchKind.Ok);
+
+        const backslashInProjectionThenOther = await uffdaGrammar(
+          'rule A = any -> "\\\\"; rule B = "x";',
+        );
+        assertEquals(backslashInProjectionThenOther.kind, MatchKind.Ok);
       },
     });
 

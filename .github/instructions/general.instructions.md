@@ -29,6 +29,10 @@ Uffda is a Deno-based parser generator for domain specific languages.
 - Keep tests next to the modules they cover using the `.test.ts` suffix.
 - Follow the existing Deno validation path: `deno fmt`, `deno lint`, and
   `deno task test`.
+- **Before pushing** any commit that changes code (`.ts`, `.uff`, etc.) or
+  Markdown (`.md`, `.mdc`), run `deno fmt` and include the formatting updates in
+  the commit. CI runs `deno fmt --check` and will fail on unformatted files.
+- Prefer `deno task pre` before committing.
 - Keep modules small and composable when adding or refactoring parser logic.
 
 ## Type modeling conventions
@@ -69,3 +73,17 @@ Apply this strict authority order when implementing or evaluating behavior:
   set.
 - Normative spec chapters use the `{topic}.spec.md` naming pattern.
 - Requirement documents should reference the spec file and section they refine.
+
+## Validation
+
+After making changes—and **before pushing** when those changes include code or
+Markdown—run:
+
+```sh
+deno fmt
+deno lint
+deno task test
+```
+
+Confirm `deno fmt --check` is clean before `git push`. CI runs
+`deno fmt --check` and will fail on unformatted files.
