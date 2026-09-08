@@ -126,6 +126,7 @@ jobs:
           test -f ./bin/ast/src/lang/uffda/import.rules.uffda.ast.json
           test -f ./bin/ast/src/lang/uffda/export.rules.uffda.ast.json
           test -f ./bin/ast/src/lang/uffda/rule.rules.uffda.ast.json
+          test -f ./bin/ast/src/lang/uffda/uffda.lang.uffda.ast.json
           test -f ./bin/ast/src/lang/expression/number.uffda.ast.json
 
       - name: Upload language bin artifacts

@@ -1,15 +1,24 @@
 import { assertEquals } from "@std/assert";
 import { MatchKind } from "../../mod.ts";
-import { uffdaGrammar, UffdaLang } from "../../lang/uffda/uffda.lang.ts";
-import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
+import { uffdaGrammar } from "../../lang/uffda/uffda.lang.ts";
+import { fromFileUrl, join } from "@std/path";
 
 Deno.test("req:uffda-language-syntax-001 - Uffda language entrypoint is declared and enforces full-input consumption", async () => {
-  const rule = UffdaLang.rules.find((r) => r.name === "UffdaLang");
-  if (!rule) {
-    throw new Error("Expected UffdaLang rule to be declared");
-  }
-
-  assertEquals(rule.pattern.kind, PatternKind.Then);
+  const uffdaLang = await Deno.readTextFile(
+    join(
+      fromFileUrl(new URL("../../../", import.meta.url)),
+      "src",
+      "lang",
+      "uffda",
+      "uffda.lang.uff",
+    ),
+  );
+  assertEquals(uffdaLang.includes("export UffdaLang"), true);
+  assertEquals(uffdaLang.includes("rule UffdaLang"), true);
+  assertEquals(uffdaLang.includes("end"), true);
+  assertEquals(uffdaLang.includes("Source"), true);
+  assertEquals(uffdaLang.includes("TokenizerNoWhitespace"), true);
+  assertEquals(uffdaLang.includes("[ModuleBody]"), true);
 
   const empty = await uffdaGrammar("");
   assertEquals(empty.kind, MatchKind.Ok);

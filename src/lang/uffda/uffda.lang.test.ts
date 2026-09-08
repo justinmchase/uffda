@@ -1,10 +1,11 @@
 import { assertEquals } from "@std/assert";
 import { MatchKind } from "../../mod.ts";
-import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
-import { uffdaGrammar, UffdaLang, UffdaRuntimeCompiler } from "./uffda.lang.ts";
+import { uffdaGrammar, UffdaRuntimeCompiler } from "./uffda.lang.ts";
 import { fromFileUrl, join } from "@std/path";
+
+const uffdaDir = fromFileUrl(new URL(".", import.meta.url));
 
 Deno.test({
   name: "lang.uffda.uffda-lang",
@@ -137,13 +138,22 @@ Deno.test({
 
     await t.step({
       name: "UFFDA_LANG_02 includes carved syntactic element rules",
-      fn: () => {
-        const names = UffdaLang.imports
-          .filter((i) => i.kind === ImportDeclarationKind.Module)
-          .flatMap((i) => i.names);
-        assertEquals(names.includes("ImportDeclarationSyntax"), true);
-        assertEquals(names.includes("ExportDeclarationSyntax"), true);
-        assertEquals(names.includes("RuleDeclarationSyntax"), true);
+      fn: async () => {
+        const uffdaLang = await Deno.readTextFile(
+          join(uffdaDir, "uffda.lang.uff"),
+        );
+        assertEquals(
+          uffdaLang.includes("ImportDeclarationSyntax"),
+          true,
+        );
+        assertEquals(
+          uffdaLang.includes("ExportDeclarationSyntax"),
+          true,
+        );
+        assertEquals(
+          uffdaLang.includes("RuleDeclarationSyntax"),
+          true,
+        );
         assertEquals(
           UffdaRuntimeCompiler.rules.some((r) =>
             r.name === "UffdaRuntimeCompiler"

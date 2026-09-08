@@ -21,14 +21,14 @@ Deno.test(
     assertEquals(exportRules.includes("ExpressionKind.Native"), false);
 
     const uffdaLang = await Deno.readTextFile(
-      join(repoRoot, "src", "lang", "uffda", "uffda.lang.ts"),
+      join(repoRoot, "src", "lang", "uffda", "uffda.lang.uff"),
     );
     assertEquals(
-      uffdaLang.includes('moduleUrl: "./export.rules.uff"'),
+      uffdaLang.includes('import "./export.rules.uff" ExportDeclarationSyntax'),
       true,
     );
     assertEquals(
-      uffdaLang.includes('moduleUrl: "./export.rules.ts"'),
+      uffdaLang.includes('import "./export.rules.ts"'),
       false,
     );
   },

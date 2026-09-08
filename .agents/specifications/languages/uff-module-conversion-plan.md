@@ -193,7 +193,7 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 | 40 | `uffda/import.rules`     | done                                                |
 | 41 | `uffda/export.rules`     | done                                                |
 | 42 | `uffda/rule.rules`       | done                                                |
-| 43 | `uffda/uffda.lang`       | after import/export/rule                            |
+| 43 | `uffda/uffda.lang`       | done                                                |
 | 44 | `uffda/runtime.compiler` | after syntax objects stable; list-merge projections |
 
 ### Phase 5 — Tokenizer / source (last; convert after B6/B7)
@@ -222,9 +222,9 @@ permanent TypeScript language modules once builtins exist.
 
 ## First candidate (next session)
 
-`uffda/rule.rules` is converted. Next: `uffda/uffda.lang` (still Native
-list-merge projections). Still blocked: prefix (B8), resolve/structure (B9),
-literals (hard).
+`uffda/uffda.lang` is converted. Next: `uffda/runtime.compiler` (still Native
+list-merge / compile projections). Still blocked: prefix (B8), resolve/structure
+(B9), literals (hard).
 
 Optional `recursive rule` sugar remains deferred
 ([#98](https://github.com/justinmchase/uffda/issues/98)).

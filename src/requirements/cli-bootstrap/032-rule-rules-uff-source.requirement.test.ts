@@ -22,14 +22,14 @@ Deno.test(
     assertEquals(ruleRules.includes("flat(Infinity)"), false);
 
     const uffdaLang = await Deno.readTextFile(
-      join(repoRoot, "src", "lang", "uffda", "uffda.lang.ts"),
+      join(repoRoot, "src", "lang", "uffda", "uffda.lang.uff"),
     );
     assertEquals(
-      uffdaLang.includes('moduleUrl: "./rule.rules.uff"'),
+      uffdaLang.includes('import "./rule.rules.uff" RuleDeclarationSyntax'),
       true,
     );
     assertEquals(
-      uffdaLang.includes('moduleUrl: "./rule.rules.ts"'),
+      uffdaLang.includes('import "./rule.rules.ts"'),
       false,
     );
 

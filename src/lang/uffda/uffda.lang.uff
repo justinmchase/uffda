@@ -1,0 +1,27 @@
+# UffdaLang pipelines Source → tokens → ModuleBody.
+# ModuleBody merges import / export / rule lists. Std flat is depth-1, and each
+# ExportDeclarationSyntax value may already be a list (name list or inline
+# export+rule pack), so flatten e before concatenating with i and r.
+# `(flat [i e r])` alone would leave those export sublists nested.
+import "../source/mod.ts" Source;
+import "../tokenizer/mod.ts" TokenizerNoWhitespace;
+import "./import.rules.uff" ImportDeclarationSyntax;
+import "./export.rules.uff" ExportDeclarationSyntax;
+import "./rule.rules.uff" RuleDeclarationSyntax;
+
+export UffdaLang;
+
+rule ModuleBody =
+  i:ImportDeclarationSyntax*
+  e:ExportDeclarationSyntax*
+  r:RuleDeclarationSyntax*
+  -> { kind: "module", declarations: (flat [i (flat e) r]) };
+
+rule UffdaLang =
+  m:(
+    Source
+    |> [TokenizerNoWhitespace]
+    |> [ModuleBody]
+  )
+  end
+  -> m;
