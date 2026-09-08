@@ -24,8 +24,6 @@ import Structure from "./pattern/structure.ts";
 import Source from "./source/mod.ts";
 import Tokenizer from "./tokenizer/mod.ts";
 import TokenizerLang from "./tokenizer/tokenizer.lang.ts";
-import RuleRules from "./uffda/rule.rules.ts";
-
 const here = import.meta.url;
 
 function entry(
@@ -45,5 +43,4 @@ export const builtInLanguageDeclarations: Record<string, ModuleDeclaration> =
     entry("./source/mod.ts", Source),
     entry("./tokenizer/mod.ts", Tokenizer),
     entry("./tokenizer/tokenizer.lang.ts", TokenizerLang),
-    entry("./uffda/rule.rules.ts", RuleRules),
   ]);

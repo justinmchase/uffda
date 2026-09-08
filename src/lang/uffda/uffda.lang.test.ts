@@ -3,9 +3,8 @@ import { MatchKind } from "../../mod.ts";
 import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
-import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { uffdaGrammar, UffdaLang, UffdaRuntimeCompiler } from "./uffda.lang.ts";
-import { RuleDeclarationRules } from "./rule.rules.ts";
+import { fromFileUrl, join } from "@std/path";
 
 Deno.test({
   name: "lang.uffda.uffda-lang",
@@ -294,37 +293,27 @@ Deno.test({
 
     await t.step({
       name: "UFFDA_LANG_03 integrates PatternLang and ExpressionLang slots",
-      fn: () => {
-        const patternRule = RuleDeclarationRules.rules.find((r) =>
-          r.name === "RulePatternBody"
+      fn: async () => {
+        const ruleRules = await Deno.readTextFile(
+          join(
+            fromFileUrl(new URL(".", import.meta.url)),
+            "rule.rules.uff",
+          ),
         );
-        const projectionRule = RuleDeclarationRules.rules.find((r) =>
-          r.name === "RuleProjectionExpression"
+        assertEquals(
+          ruleRules.includes(
+            'import "../pattern/pattern.lang.uff" PatternTokens',
+          ),
+          true,
         );
-
-        if (!patternRule || !projectionRule) {
-          throw new Error("Expected integration rules to be declared");
-        }
-
-        assertEquals(patternRule.pattern.kind, PatternKind.Pipeline);
-        if (patternRule.pattern.kind === PatternKind.Pipeline) {
-          const delegated = patternRule.pattern.steps.find((p) =>
-            p.kind === PatternKind.Resolve &&
-            p.targetKind === ResolveTargetKind.Reference &&
-            p.name === "PatternTokens"
-          );
-          assertEquals(Boolean(delegated), true);
-        }
-
-        assertEquals(projectionRule.pattern.kind, PatternKind.Pipeline);
-        if (projectionRule.pattern.kind === PatternKind.Pipeline) {
-          const delegated = projectionRule.pattern.steps.find((p) =>
-            p.kind === PatternKind.Resolve &&
-            p.targetKind === ResolveTargetKind.Reference &&
-            p.name === "ExpressionTokens"
-          );
-          assertEquals(Boolean(delegated), true);
-        }
+        assertEquals(
+          ruleRules.includes(
+            'import "../expression/expression.lang.uff" ExpressionTokens',
+          ),
+          true,
+        );
+        assertEquals(ruleRules.includes("|> PatternTokens"), true);
+        assertEquals(ruleRules.includes("|> ExpressionTokens"), true);
       },
     });
   },

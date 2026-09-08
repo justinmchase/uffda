@@ -3,7 +3,7 @@
 # Inline export packs [export-decl, rule-decl] via std pack.
 # Variable bindings are single-letter (published CLI PatternLang).
 import "./shared.rules.uff" IdentifierToken;
-import "./rule.rules.ts" RuleDeclarationSyntax;
+import "./rule.rules.uff" RuleDeclarationSyntax;
 
 export ExportDeclarationSyntax;
 export ExportNameList;

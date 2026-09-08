@@ -29,10 +29,10 @@ Deno.test(
     assertEquals(helper.includes("ExportDeclarationKind"), false);
 
     const ruleRules = await Deno.readTextFile(
-      join(repoRoot, "src", "lang", "uffda", "rule.rules.ts"),
+      join(repoRoot, "src", "lang", "uffda", "rule.rules.uff"),
     );
     assertEquals(
-      ruleRules.includes('moduleUrl: "../pattern/pattern.lang.uff"'),
+      ruleRules.includes('import "../pattern/pattern.lang.uff" PatternTokens'),
       true,
     );
   },

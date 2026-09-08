@@ -1,45 +1,27 @@
 import { assertEquals } from "@std/assert";
-import { RuleDeclarationRules } from "../../lang/uffda/rule.rules.ts";
-import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
-import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
-import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
+import { fromFileUrl, join } from "@std/path";
 
-Deno.test("req:uffda-language-syntax-002 - Uffda syntax integrates PatternLang and ExpressionLang for rule bodies", () => {
-  const importedNames = RuleDeclarationRules.imports
-    .filter((i) => i.kind === ImportDeclarationKind.Module)
-    .flatMap((i) => i.names);
+const repoRoot = fromFileUrl(new URL("../../../", import.meta.url));
 
-  assertEquals(importedNames.includes("PatternTokens"), true);
-  assertEquals(importedNames.includes("ExpressionTokens"), true);
-
-  const patternRule = RuleDeclarationRules.rules.find((r) =>
-    r.name === "RulePatternBody"
-  );
-  const projectionRule = RuleDeclarationRules.rules.find((r) =>
-    r.name === "RuleProjectionExpression"
-  );
-
-  if (!patternRule || !projectionRule) {
-    throw new Error("Expected integration rules to be declared");
-  }
-
-  assertEquals(patternRule.pattern.kind, PatternKind.Pipeline);
-  if (patternRule.pattern.kind === PatternKind.Pipeline) {
-    const delegated = patternRule.pattern.steps.find((p) =>
-      p.kind === PatternKind.Resolve &&
-      p.targetKind === ResolveTargetKind.Reference &&
-      p.name === "PatternTokens"
+Deno.test(
+  "req:uffda-language-syntax-002 - Uffda syntax integrates PatternLang and ExpressionLang for rule bodies",
+  async () => {
+    const ruleRules = await Deno.readTextFile(
+      join(repoRoot, "src", "lang", "uffda", "rule.rules.uff"),
     );
-    assertEquals(Boolean(delegated), true);
-  }
 
-  assertEquals(projectionRule.pattern.kind, PatternKind.Pipeline);
-  if (projectionRule.pattern.kind === PatternKind.Pipeline) {
-    const delegated = projectionRule.pattern.steps.find((p) =>
-      p.kind === PatternKind.Resolve &&
-      p.targetKind === ResolveTargetKind.Reference &&
-      p.name === "ExpressionTokens"
+    assertEquals(
+      ruleRules.includes('import "../pattern/pattern.lang.uff" PatternTokens'),
+      true,
     );
-    assertEquals(Boolean(delegated), true);
-  }
-});
+    assertEquals(
+      ruleRules.includes(
+        'import "../expression/expression.lang.uff" ExpressionTokens',
+      ),
+      true,
+    );
+    assertEquals(ruleRules.includes("|> PatternTokens"), true);
+    assertEquals(ruleRules.includes("|> ExpressionTokens"), true);
+    assertEquals(ruleRules.includes("ExpressionKind.Native"), false);
+  },
+);

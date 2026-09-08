@@ -1,0 +1,207 @@
+# Rule declaration syntax: carve pattern/projection token spans, then
+# PatternTokens / ExpressionTokens. Nested chunks project with pack+flat
+# (depth-1) instead of host Array.flat. Bindings are single-letter (B12).
+# Brace tokens project via bindings (B13: `-> "{"` parses as an object).
+import "../pattern/pattern.lang.uff" PatternTokens;
+import "../expression/expression.lang.uff" ExpressionTokens;
+import "./shared.rules.uff" IdentifierToken;
+
+export RulePatternBody;
+export RuleProjectionExpression;
+export RulePatternToken;
+export RuleProjectionToken;
+export RulePatternTokenUntilSemicolon;
+export RulePatternTokenUntilProjection;
+export RulePatternBodyWithoutProjection;
+export RulePatternBodyBeforeProjection;
+export RuleDeclarationSyntax;
+export RuleDeclarationWithoutProjection;
+export RuleDeclarationWithProjection;
+export RuleProjectionTail;
+
+rule RulePatternBody =
+  RulePatternToken
+  |> PatternTokens;
+
+rule RuleProjectionExpression =
+  RuleProjectionToken
+  |> ExpressionTokens;
+
+rule RulePatternToken = string;
+
+rule RuleEscapedQuotedTokens =
+  "\\"
+  e:("\"" | "{" | "\\")
+  -> (pack "\\" e);
+
+rule RuleQuotedTokenContent =
+  | RuleEscapedQuotedTokens
+  | ((not "\"") & string)
+  ;
+
+rule RuleQuotedTokenSequence =
+  "\""
+  c:RuleQuotedTokenContent*
+  "\""
+  -> (flat (pack "\"" (flat c) "\""));
+
+rule RuleProjectionToken =
+  (
+    | RuleQuotedTokenSequence
+    | ((not ";") & string)
+  )+
+  -> (flat _);
+
+rule RulePatternTokenUntilSemicolon =
+  (
+    | RuleQuotedTokenSequence
+    | ((not ";") & string)
+  )+
+  -> (flat _);
+
+rule RulePatternChunkNestedParen =
+  "("
+  c:RulePatternChunkNested*
+  ")"
+  -> (flat (pack "(" (flat c) ")"));
+
+rule RulePatternChunkNestedBracket =
+  "["
+  c:RulePatternChunkNested*
+  "]"
+  -> (flat (pack "[" (flat c) "]"));
+
+rule RulePatternChunkNestedBrace =
+  o:"{"
+  c:RulePatternChunkNested*
+  e:"}"
+  -> (flat (pack o (flat c) e));
+
+rule RulePatternChunkNested =
+  | RuleQuotedTokenSequence
+  | RulePatternChunkNestedParen
+  | RulePatternChunkNestedBracket
+  | RulePatternChunkNestedBrace
+  | (
+    (not ")")
+    & (not "]")
+    & (not "}")
+    & string
+  )
+  ;
+
+rule RulePatternChunkAtDepth0Paren =
+  "("
+  c:RulePatternChunkNested*
+  ")"
+  -> (flat (pack "(" (flat c) ")"));
+
+rule RulePatternChunkAtDepth0Bracket =
+  "["
+  c:RulePatternChunkNested*
+  "]"
+  -> (flat (pack "[" (flat c) "]"));
+
+rule RulePatternChunkAtDepth0Brace =
+  o:"{"
+  c:RulePatternChunkNested*
+  e:"}"
+  -> (flat (pack o (flat c) e));
+
+rule RulePatternChunkAtDepth0 =
+  | RuleQuotedTokenSequence
+  | RulePatternChunkAtDepth0Paren
+  | RulePatternChunkAtDepth0Bracket
+  | RulePatternChunkAtDepth0Brace
+  | (
+    (not ";")
+    & (not ("-" ">"))
+    & string
+  )
+  ;
+
+rule RulePatternTokenUntilProjection =
+  RulePatternChunkAtDepth0+
+  -> (flat _);
+
+rule RulePatternBodyWithoutProjection =
+  RulePatternTokenUntilSemicolon
+  |> PatternTokens;
+
+rule RulePatternBodyBeforeProjection =
+  RulePatternTokenUntilProjection
+  |> PatternTokens;
+
+rule RuleParameterName =
+  n:IdentifierToken
+  -> { name: n };
+
+rule RuleParameterNameTail =
+  ","
+  v:RuleParameterName
+  -> v;
+
+rule RuleParameterNameList =
+  f:RuleParameterName
+  r:RuleParameterNameTail*
+  ","?
+  -> (flat (pack f r));
+
+rule RuleParameterList =
+  "<"
+  p:RuleParameterNameList?
+  ">"
+  -> (flat (coalesce p []));
+
+rule RuleProjectionTail =
+  "-"
+  ">"
+  p:RuleProjectionExpression
+  -> p;
+
+rule RuleDeclarationSyntax =
+  "rule"
+  n:IdentifierToken
+  p:RuleParameterList?
+  "="
+  t:RulePatternBodyBeforeProjection
+  j:RuleProjectionTail?
+  ";"
+  -> {
+    kind: "rule",
+    name: n,
+    parameters: (flat (coalesce p [])),
+    pattern: t,
+    projection: (coalesce j undefined)
+  };
+
+rule RuleDeclarationWithoutProjection =
+  "rule"
+  n:IdentifierToken
+  p:RuleParameterList?
+  "="
+  t:RulePatternBodyWithoutProjection
+  ";"
+  -> {
+    kind: "rule",
+    name: n,
+    parameters: (flat (coalesce p [])),
+    pattern: t,
+    projection: undefined
+  };
+
+rule RuleDeclarationWithProjection =
+  "rule"
+  n:IdentifierToken
+  p:RuleParameterList?
+  "="
+  t:RulePatternBodyBeforeProjection
+  j:RuleProjectionTail
+  ";"
+  -> {
+    kind: "rule",
+    name: n,
+    parameters: (flat (coalesce p [])),
+    pattern: t,
+    projection: j
+  };
