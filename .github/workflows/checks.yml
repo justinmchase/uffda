@@ -21,8 +21,10 @@ jobs:
 
       - name: Setup Uffda CLI
         uses: ./.github/actions/uffda-setup
+        # 0.1.13 cannot resolve pattern/projection.ts (registry miss). Pin to
+        # 0.1.12 until 0.1.14 ships the fix, then restore `latest`.
         with:
-          version: latest
+          version: 0.1.12
 
       - name: Lint
         run: deno lint
