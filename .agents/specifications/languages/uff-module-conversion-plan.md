@@ -223,8 +223,8 @@ permanent TypeScript language modules once builtins exist.
 ## First candidate (next session)
 
 `uffda/uffda.lang` is converted. Next: `uffda/runtime.compiler` (still Native
-list-merge / compile projections). Still blocked: prefix (B8),
-resolve/structure (B9), literals (hard).
+list-merge / compile projections). Still blocked: prefix (B8), resolve/structure
+(B9), literals (hard).
 
 Optional `recursive rule` sugar remains deferred
 ([#98](https://github.com/justinmchase/uffda/issues/98)).
