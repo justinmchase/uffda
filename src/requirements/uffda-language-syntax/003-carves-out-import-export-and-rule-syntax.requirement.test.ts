@@ -1,15 +1,19 @@
 import { assertEquals } from "@std/assert";
-import { UffdaLang } from "../../lang/uffda/uffda.lang.ts";
-import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
+import { fromFileUrl, join } from "@std/path";
 
-Deno.test("req:uffda-language-syntax-003 - Uffda syntax carves out import export and rule declaration forms", () => {
-  const ruleNames = UffdaLang.imports
-    .filter((i) => i.kind === ImportDeclarationKind.Module)
-    .flatMap((i) => i.names);
+const repoRoot = fromFileUrl(new URL("../../../", import.meta.url));
 
-  assertEquals(ruleNames.includes("ImportDeclarationSyntax"), true);
-  assertEquals(ruleNames.includes("ExportDeclarationSyntax"), true);
-  assertEquals(ruleNames.includes("RuleDeclarationSyntax"), true);
-  assertEquals(UffdaLang.rules.some((r) => r.name === "ModuleBody"), true);
-  assertEquals(ruleNames.includes("RuleProjectionTail"), true);
+Deno.test("req:uffda-language-syntax-003 - Uffda syntax carves out import export and rule declaration forms", async () => {
+  const uffdaLang = await Deno.readTextFile(
+    join(repoRoot, "src", "lang", "uffda", "uffda.lang.uff"),
+  );
+  assertEquals(uffdaLang.includes("ImportDeclarationSyntax"), true);
+  assertEquals(uffdaLang.includes("ExportDeclarationSyntax"), true);
+  assertEquals(uffdaLang.includes("RuleDeclarationSyntax"), true);
+  assertEquals(uffdaLang.includes("rule ModuleBody"), true);
+
+  const ruleRules = await Deno.readTextFile(
+    join(repoRoot, "src", "lang", "uffda", "rule.rules.uff"),
+  );
+  assertEquals(ruleRules.includes("export RuleProjectionTail"), true);
 });
