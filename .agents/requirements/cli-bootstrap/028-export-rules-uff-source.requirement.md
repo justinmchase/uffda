@@ -11,8 +11,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 Preconditions:
 
 - `uffda/shared.rules` is converted and exports `IdentifierToken`.
-- `uffda/rule.rules` still provides `RuleDeclarationSyntax` (may remain
-  TypeScript).
+- `uffda/rule.rules` provides `RuleDeclarationSyntax` as authored `.uff`.
 - Std provides `flat` and `pack`.
 
 Expected behavior:

@@ -71,7 +71,7 @@ export const UffdaLang: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./rule.rules.ts",
+      moduleUrl: "./rule.rules.uff",
       names: [
         "RulePatternBody",
         "RuleProjectionExpression",
