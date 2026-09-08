@@ -65,6 +65,9 @@ non-left-recursive forms.
   for later growth. Transforming left-associative AST folds MUST use nested
   projection (or whole-body projection desugared to the same mechanism), not
   solely a post-grow rule-level expression that never runs during growth.
+- When direct-left-recursive growth succeeds, the caller-visible scope MUST
+  match non-LR rule success: retain the caller's bindings and advanced input
+  stream, and MUST NOT expose rule-local bindings created during growth.
 
 ## Why this design
 

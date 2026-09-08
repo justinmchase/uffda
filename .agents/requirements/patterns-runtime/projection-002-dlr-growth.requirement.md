@@ -32,3 +32,6 @@ Postconditions:
   `reduce`, or ExpressionLang lambdas.
 - Authored `.uff` that depends on nested Projection MUST wait until that feature
   ships in a published CLI (bootstrap G0).
+- Successful DLR growth MUST NOT leak rule-local variable bindings into the
+  caller scope, and MUST preserve caller bindings the same way non-LR rule
+  success does.

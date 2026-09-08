@@ -50,8 +50,34 @@ export async function rule(
     const m = await match(pattern, subScope);
     memo.match = m;
     switch (m.kind) {
-      case MatchKind.LR:
-        return await grow(pattern, key, subScope);
+      case MatchKind.LR: {
+        const grown = await grow(pattern, key, subScope);
+        switch (grown.kind) {
+          case MatchKind.LR:
+          case MatchKind.Error:
+            return grown;
+          case MatchKind.Fail:
+            return fail(scope, rule.pattern, [grown]);
+          case MatchKind.Ok:
+            // Match the non-LR Ok path: expose only the caller scope plus the
+            // advanced stream so inner growth bindings do not leak outward.
+            return ok(
+              scope,
+              scope.withInput(grown.scope.stream),
+              rule.pattern,
+              grown.value,
+              [grown],
+            );
+        }
+        return error(
+          scope,
+          rule.pattern,
+          MatchErrorCode.InternalInvariant,
+          `unexpected match kind ${
+            (grown as { kind?: unknown }).kind
+          } after left-recursion growth`,
+        );
+      }
       case MatchKind.Error:
         return m;
       case MatchKind.Fail:
