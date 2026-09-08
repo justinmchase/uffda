@@ -120,7 +120,7 @@ file:
 | B12 | Multi-letter variable bindings in PatternLang                | readable `.uff` (esp. `*.lang`)             | Published CLI today accepts only single-letter `name:P`                                                                                                                                                                   |
 | B13 | Expression string proj of `"{"` / `"}"`                      | object braces, similar tokens               | `-> "{"` parses as object literal; use bare Equal or `-> _`                                                                                                                                                               |
 | B14 | Left-fold over lists without domain helpers                  | expression/member, similar AST folds        | DLR + nested [Projection](../../patterns/runtime/projection.spec.md); **blocked until Projection ships in a published CLI** (not std `reduce`+lambda; sugar later [#98](https://github.com/justinmchase/uffda/issues/98)) |
-| B15 | `"\\"` pattern + object/string projection in one module      | expression/string                           | Published CLI parse fails when both appear; split or fix                                                                                                                                                                  |
+| B15 | `"\\"` in multi-rule `.uff` modules                          | expression/string                           | Rule-body quote scanner omitted `\\` escape (fixed in-tree; needs published CLI before string `.uff`)                                                                                                                     |
 
 ## Phase order (dependency leaves first)
 
@@ -222,23 +222,14 @@ permanent TypeScript language modules once builtins exist.
 
 ## First candidate (next session)
 
-**Unblock:** publish 0.1.14 with `pattern/projection.ts` registered in
-`builtInLanguageDeclarations`. Published 0.1.13 omitted that entry, so every
-`.uff` compile fails with `E_MODULE_RESOLUTION` for `projection.ts`. Until that
-release, Checks / local `compile:lang` MUST use published **0.1.12** (still
-accepts the current converted `.uff` surface), not 0.1.13.
+**Unblock string (B15):** the rule-body quote scanner now treats `\\` as an
+escapable follower (in-tree). Publish that CLI, then convert
+`expression/string`.
 
-Then convert `expression/member` via DLR + nested Projection per
-[pattern idioms for map and reduce](./pattern-idioms-map-reduce.spec.md) and
-[projection](../patterns/runtime/projection.spec.md), and restore Checks to
-`latest`.
-
-Do not block Member on ExpressionLang lambda syntax, std `reduce`, or
-`recursive rule` sugar ([#98](https://github.com/justinmchase/uffda/issues/98)).
-`expression/string` remains blocked on B15.
-
-Number and shared.rules are converted; member stays TypeScript until a
-**working** published CLI accepts nested `->` (0.1.14+).
+Member conversion is open on
+[#102](https://github.com/justinmchase/uffda/pull/102) (needs merge). Optional
+`recursive rule` sugar remains deferred
+([#98](https://github.com/justinmchase/uffda/issues/98)).
 
 ## References
 

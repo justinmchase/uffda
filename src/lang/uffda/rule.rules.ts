@@ -244,6 +244,10 @@ export const RuleDeclarationRules: ModuleDeclaration = {
               patterns: [
                 { kind: PatternKind.Equal, value: '"' },
                 { kind: PatternKind.Equal, value: "{" },
+                // Backslash must be escapable so `"\\"` closes correctly.
+                // Without this, `"\\"` is read as `\` + escaped `"`, the string
+                // stays open, and a later quote in another rule breaks the module.
+                { kind: PatternKind.Equal, value: "\\" },
               ],
             },
           },
