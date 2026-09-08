@@ -288,41 +288,204 @@ export const RuleDeclarationRules: ModuleDeclaration = {
       },
     },
     {
+      name: "RulePatternChunkNested",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Or,
+        patterns: [
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "RuleQuotedTokenSequence",
+            args: [],
+          },
+          {
+            kind: PatternKind.Then,
+            patterns: [
+              { kind: PatternKind.Equal, value: "(" },
+              {
+                kind: PatternKind.Quantifier,
+                min: 0,
+                pattern: {
+                  kind: PatternKind.Resolve,
+                  targetKind: ResolveTargetKind.Reference,
+                  name: "RulePatternChunkNested",
+                  args: [],
+                },
+              },
+              { kind: PatternKind.Equal, value: ")" },
+            ],
+          },
+          {
+            kind: PatternKind.Then,
+            patterns: [
+              { kind: PatternKind.Equal, value: "[" },
+              {
+                kind: PatternKind.Quantifier,
+                min: 0,
+                pattern: {
+                  kind: PatternKind.Resolve,
+                  targetKind: ResolveTargetKind.Reference,
+                  name: "RulePatternChunkNested",
+                  args: [],
+                },
+              },
+              { kind: PatternKind.Equal, value: "]" },
+            ],
+          },
+          {
+            kind: PatternKind.Then,
+            patterns: [
+              { kind: PatternKind.Equal, value: "{" },
+              {
+                kind: PatternKind.Quantifier,
+                min: 0,
+                pattern: {
+                  kind: PatternKind.Resolve,
+                  targetKind: ResolveTargetKind.Reference,
+                  name: "RulePatternChunkNested",
+                  args: [],
+                },
+              },
+              { kind: PatternKind.Equal, value: "}" },
+            ],
+          },
+          {
+            kind: PatternKind.And,
+            patterns: [
+              {
+                kind: PatternKind.Not,
+                pattern: { kind: PatternKind.Equal, value: ")" },
+              },
+              {
+                kind: PatternKind.Not,
+                pattern: { kind: PatternKind.Equal, value: "]" },
+              },
+              {
+                kind: PatternKind.Not,
+                pattern: { kind: PatternKind.Equal, value: "}" },
+              },
+              { kind: PatternKind.Type, type: Type.String },
+            ],
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ _ }): unknown => {
+          const value = _ as unknown;
+          return Array.isArray(value)
+            ? (value as unknown[]).flat(Infinity)
+            : value;
+        },
+      },
+    },
+    {
+      name: "RulePatternChunkAtDepth0",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Or,
+        patterns: [
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "RuleQuotedTokenSequence",
+            args: [],
+          },
+          {
+            kind: PatternKind.Then,
+            patterns: [
+              { kind: PatternKind.Equal, value: "(" },
+              {
+                kind: PatternKind.Quantifier,
+                min: 0,
+                pattern: {
+                  kind: PatternKind.Resolve,
+                  targetKind: ResolveTargetKind.Reference,
+                  name: "RulePatternChunkNested",
+                  args: [],
+                },
+              },
+              { kind: PatternKind.Equal, value: ")" },
+            ],
+          },
+          {
+            kind: PatternKind.Then,
+            patterns: [
+              { kind: PatternKind.Equal, value: "[" },
+              {
+                kind: PatternKind.Quantifier,
+                min: 0,
+                pattern: {
+                  kind: PatternKind.Resolve,
+                  targetKind: ResolveTargetKind.Reference,
+                  name: "RulePatternChunkNested",
+                  args: [],
+                },
+              },
+              { kind: PatternKind.Equal, value: "]" },
+            ],
+          },
+          {
+            kind: PatternKind.Then,
+            patterns: [
+              { kind: PatternKind.Equal, value: "{" },
+              {
+                kind: PatternKind.Quantifier,
+                min: 0,
+                pattern: {
+                  kind: PatternKind.Resolve,
+                  targetKind: ResolveTargetKind.Reference,
+                  name: "RulePatternChunkNested",
+                  args: [],
+                },
+              },
+              { kind: PatternKind.Equal, value: "}" },
+            ],
+          },
+          {
+            kind: PatternKind.And,
+            patterns: [
+              {
+                kind: PatternKind.Not,
+                pattern: { kind: PatternKind.Equal, value: ";" },
+              },
+              {
+                kind: PatternKind.Not,
+                pattern: {
+                  kind: PatternKind.Then,
+                  patterns: [
+                    { kind: PatternKind.Equal, value: "-" },
+                    { kind: PatternKind.Equal, value: ">" },
+                  ],
+                },
+              },
+              { kind: PatternKind.Type, type: Type.String },
+            ],
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ _ }): unknown => {
+          const value = _ as unknown;
+          return Array.isArray(value)
+            ? (value as unknown[]).flat(Infinity)
+            : value;
+        },
+      },
+    },
+    {
       name: "RulePatternTokenUntilProjection",
       parameters: [],
       pattern: {
         kind: PatternKind.Quantifier,
         min: 1,
         pattern: {
-          kind: PatternKind.Or,
-          patterns: [
-            {
-              kind: PatternKind.Resolve,
-              targetKind: ResolveTargetKind.Reference,
-              name: "RuleQuotedTokenSequence",
-              args: [],
-            },
-            {
-              kind: PatternKind.And,
-              patterns: [
-                {
-                  kind: PatternKind.Not,
-                  pattern: { kind: PatternKind.Equal, value: ";" },
-                },
-                {
-                  kind: PatternKind.Not,
-                  pattern: {
-                    kind: PatternKind.Then,
-                    patterns: [
-                      { kind: PatternKind.Equal, value: "-" },
-                      { kind: PatternKind.Equal, value: ">" },
-                    ],
-                  },
-                },
-                { kind: PatternKind.Type, type: Type.String },
-              ],
-            },
-          ],
+          kind: PatternKind.Resolve,
+          targetKind: ResolveTargetKind.Reference,
+          name: "RulePatternChunkAtDepth0",
+          args: [],
         },
       },
       expression: {

@@ -59,6 +59,15 @@ non-left-recursive forms.
 - Rule evaluation that awaits child results during left-recursive growth MUST
   still normalize final outcomes into the same success/failure/error/LR
   categories.
+- When growth evaluates a pattern tree that includes
+  [projection](../patterns/runtime/projection.spec.md) patterns, each successful
+  growth step MUST carry the projected expression result as the match value used
+  for later growth. Transforming left-associative AST folds MUST use nested
+  projection (or whole-body projection desugared to the same mechanism), not
+  solely a post-grow rule-level expression that never runs during growth.
+- When direct-left-recursive growth succeeds, the caller-visible scope MUST
+  match non-LR rule success: retain the caller's bindings and advanced input
+  stream, and MUST NOT expose rule-local bindings created during growth.
 
 ## Why this design
 

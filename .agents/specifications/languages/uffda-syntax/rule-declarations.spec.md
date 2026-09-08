@@ -26,8 +26,17 @@ optional projection expression.
   which already exist independently of declaration syntax.
 - Rule declarations MUST include a pattern body slot parsed through
   `PatternLang`.
-- Rule declarations MAY include a projection expression slot parsed through
-  `ExpressionLang`.
+- Rule declarations MAY include a trailing whole-body projection expression slot
+  parsed through `ExpressionLang` (`rule Name = P -> E;`).
+- Whole-body rule projection MUST remain group-less: authors MUST NOT be
+  required to wrap the entire pattern body in `(…)` solely to attach a
+  rule-level projection.
+- Whole-body rule projection SHOULD normalize so its observable result matches
+  wrapping the pattern body in a
+  [projection](../../patterns/runtime/projection.spec.md) pattern (desugar to
+  Projection or equivalent), including when the body is directly left-recursive.
+- Nested projection forms inside the PatternLang body (`P -> E`) MUST coexist
+  with an optional trailing rule-level projection slot.
 - Rule declaration syntax MUST conform to the module declaration keyword model
   where `rule` and `export rule` select rule-declaration body parsing.
 - An exported rule declaration MUST normalize to the same ordered syntax
@@ -43,6 +52,9 @@ optional projection expression.
 - Projection slots in rule declarations MUST delegate parsing to
   `ExpressionLang` rather than duplicating expression grammar in the Uffda
   layer.
+- Nested pattern-body projections are PatternLang projection forms; trailing
+  rule-level projections are declaration-layer slots that SHOULD desugar to the
+  same runtime projection mechanism.
 - The canonical syntax tree MUST preserve pattern/projection slot boundaries so
   downstream compilers can distinguish matcher logic from projection logic.
 

@@ -12,7 +12,8 @@ Preconditions:
 
 - Expression leaves used by Primary (`terminal`, `boolean`, `nullish`, `array`,
   `object`, `sequence`, `number`) are converted; `member`/`string` may remain
-  TypeScript until lambda+`reduce` (Member) and B15 (string).
+  TypeScript until published nested Projection for Member (B14) and B15
+  (string).
 - `pattern/atoms` has no language-module imports.
 
 Expected behavior:
@@ -33,4 +34,6 @@ Postconditions:
 - `expression.lang` imports `./expression.uff`; `atomic` imports `./atoms.uff`.
 - Runtime loads them from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).
-- `expression/member` remains TypeScript until lambda literals + std `reduce`.
+- `expression/member` remains TypeScript until nested Projection ships in a
+  published CLI and a DLR + Projection left-fold is validated; MUST NOT wait on
+  ExpressionLang lambda literals or std `reduce`.

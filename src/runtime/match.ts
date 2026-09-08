@@ -21,6 +21,7 @@ import {
   type Pattern,
   PatternKind,
   pipeline,
+  projection,
   quantifier,
   regexp,
   resolve,
@@ -65,6 +66,8 @@ export async function match(pattern: Pattern, scope: Scope): AwaitableMatch {
       return await or(pattern, scope);
     case PatternKind.Pipeline:
       return await pipeline(pattern, scope);
+    case PatternKind.Projection:
+      return await projection(pattern, scope);
     case PatternKind.Quantifier:
       return await quantifier(pattern, scope);
     case PatternKind.RegExp:

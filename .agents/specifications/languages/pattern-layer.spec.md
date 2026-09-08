@@ -43,6 +43,12 @@ construct language grammars and layered compiler behavior.
 
 - [pattern syntax contracts](./pattern-syntax.spec.md)
 
+## Authoring idioms
+
+- [pattern idioms for map and reduce](./pattern-idioms-map-reduce.spec.md)
+  (quantified projecting rules, specialized aggregators, pipeline/`into`, and
+  DLR left-folds instead of expression-side map/reduce)
+
 ## Composition intent
 
 - Pattern-layer contracts SHOULD be reusable for non-Uffda top-level languages
