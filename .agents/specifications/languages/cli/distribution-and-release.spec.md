@@ -63,6 +63,16 @@ Normative key words in this chapter use the conventions defined in the
   command/flag/output changes.
 - Binary release assets MUST NOT depend on JSR install for operator or CI usage.
 
+## JSR package contract
+
+- The JSR package published from this repository MUST include the library export
+  graph rooted at `mod.ts`.
+- Agent documentation (`.agents/`), editor/CI metadata (`.cursor/`, `.github/`),
+  and requirement test trees (`src/requirements/`) MUST be excluded from the JSR
+  package via `publish.exclude` in `deno.jsonc`.
+- Excluded paths MUST keep every published file path under the length limits
+  enforced by the JSR tarball verify step (ustar-compatible packing).
+
 ## CI setup action contract
 
 - The repository MUST provide a reusable GitHub Action (for example
