@@ -16,7 +16,8 @@ Deno.test(
     assertEquals(ruleRules.includes("|> ExpressionTokens"), true);
     assertEquals(ruleRules.includes("(flat (pack"), true);
     assertEquals(ruleRules.includes("(flat (coalesce"), true);
-    assertEquals(ruleRules.includes("(coalesce j undefined)"), true);
+    assertEquals(ruleRules.includes("projection: j"), true);
+    assertEquals(ruleRules.includes("(coalesce j undefined)"), false);
     assertEquals(ruleRules.includes("ExpressionKind.Native"), false);
     assertEquals(ruleRules.includes("flat(Infinity)"), false);
 

@@ -24,8 +24,8 @@ Expected behavior:
   `ExpressionTokens` via `|>`.
 - Nested chunk rules MUST project with depth-1 `(flat (pack …))` (no Native
   `flat(Infinity)` / `Array.isArray`).
-- Optional parameter lists and projections MUST use `(flat (coalesce …))` and
-  `(coalesce j undefined)` (authored `?` is Maybe, not a length-1 array).
+- Optional parameter lists MUST use `(flat (coalesce p []))`. Optional
+  projection is a Maybe binding (`j`), so project `j` directly.
 - Compiling that file with the bootstrap compile path MUST succeed and emit AST
   JSON under `./bin/`.
 

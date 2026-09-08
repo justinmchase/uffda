@@ -172,7 +172,7 @@ rule RuleDeclarationSyntax =
     name: n,
     parameters: (flat (coalesce p [])),
     pattern: t,
-    projection: (coalesce j undefined)
+    projection: j
   };
 
 rule RuleDeclarationWithoutProjection =
