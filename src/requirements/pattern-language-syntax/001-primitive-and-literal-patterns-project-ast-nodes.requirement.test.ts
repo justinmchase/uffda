@@ -6,7 +6,7 @@ import { Type } from "@justinmchase/type";
 import { moduleDeclarationTest } from "../../test.ts";
 
 const moduleUrl =
-  new URL("../../lang/pattern/pattern.lang.ts", import.meta.url).href;
+  new URL("../../lang/pattern/pattern.lang.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -24,6 +24,7 @@ Deno.test(
       "any projects an any node",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("any"),
         kind: MatchKind.Ok,
         value: { kind: PatternKind.Any },
@@ -34,6 +35,7 @@ Deno.test(
       "equal projects a literal value node",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar('"hello"'),
         kind: MatchKind.Ok,
         value: {
@@ -47,6 +49,7 @@ Deno.test(
       "type projects a typed node",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("string"),
         kind: MatchKind.Ok,
         value: {
@@ -60,6 +63,7 @@ Deno.test(
       "character projects a character-class node",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("\\cL"),
         kind: MatchKind.Ok,
         value: {

@@ -6,7 +6,7 @@ import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
 const moduleUrl =
-  new URL("../../lang/pattern/pattern.lang.ts", import.meta.url).href;
+  new URL("../../lang/pattern/pattern.lang.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -24,6 +24,7 @@ Deno.test(
       "capture binds a postfix repetition result",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("x:any*1..2"),
         kind: MatchKind.Ok,
         value: {
@@ -43,6 +44,7 @@ Deno.test(
       "keyed fields can contain captures",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("{ field: x:any }"),
         kind: MatchKind.Ok,
         value: {
@@ -73,6 +75,7 @@ Deno.test(
         `${source} preserves its repetition bounds`,
         moduleDeclarationTest({
           moduleUrl,
+          entryRuleName: "PatternLang",
           input: Input.Scalar(source),
           kind: MatchKind.Ok,
           value: {
@@ -89,6 +92,7 @@ Deno.test(
       "question mark remains scalar maybe syntax",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("any?"),
         kind: MatchKind.Ok,
         value: {
@@ -102,6 +106,7 @@ Deno.test(
       "capture binds less tightly than grouping",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("x:(any end)"),
         kind: MatchKind.Ok,
         value: {
@@ -146,6 +151,7 @@ Deno.test(
         `${source} is rejected`,
         moduleDeclarationTest({
           moduleUrl,
+          entryRuleName: "PatternLang",
           input: Input.Scalar(source),
           kind: MatchKind.Fail,
         }),

@@ -17,12 +17,16 @@ Deno.test(
         "prefix.ts",
         "structure.ts",
         "resolve.ts",
-        "pattern.lang.ts",
       ]
     ) {
       const source = await Deno.readTextFile(join(pattern, file));
       assertEquals(source.includes('moduleUrl: "./pattern.uff"'), true);
       assertEquals(source.includes('moduleUrl: "./pattern.ts"'), false);
     }
+
+    const patternLang = await Deno.readTextFile(
+      join(pattern, "pattern.lang.uff"),
+    );
+    assertEquals(patternLang.includes('import "./pattern.uff" Pattern'), true);
   },
 );

@@ -17,7 +17,6 @@
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 
 import Literals from "./pattern/literals.ts";
-import PatternLang from "./pattern/pattern.lang.ts";
 import Prefix from "./pattern/prefix.ts";
 import Projection from "./pattern/projection.ts";
 import Resolve from "./pattern/resolve.ts";
@@ -39,7 +38,6 @@ function entry(
 export const builtInLanguageDeclarations: Record<string, ModuleDeclaration> =
   Object.fromEntries([
     entry("./pattern/literals.ts", Literals),
-    entry("./pattern/pattern.lang.ts", PatternLang),
     entry("./pattern/prefix.ts", Prefix),
     entry("./pattern/projection.ts", Projection),
     entry("./pattern/resolve.ts", Resolve),

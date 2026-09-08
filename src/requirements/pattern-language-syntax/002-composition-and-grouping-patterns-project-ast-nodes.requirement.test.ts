@@ -4,7 +4,7 @@ import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
 const moduleUrl =
-  new URL("../../lang/pattern/pattern.lang.ts", import.meta.url).href;
+  new URL("../../lang/pattern/pattern.lang.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -22,6 +22,7 @@ Deno.test(
       "not projects a unary not node",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("not any"),
         kind: MatchKind.Ok,
         value: {
@@ -35,6 +36,7 @@ Deno.test(
       "symbolic or respects alternative order",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("any | fail"),
         kind: MatchKind.Ok,
         value: {
@@ -51,6 +53,7 @@ Deno.test(
       "symbolic and binds tighter than symbolic or",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("any & fail | ok"),
         kind: MatchKind.Ok,
         value: {
@@ -73,6 +76,7 @@ Deno.test(
       "leading pipe supports vertically aligned alternatives",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("| any | fail | ok"),
         kind: MatchKind.Ok,
         value: {
@@ -90,6 +94,7 @@ Deno.test(
       "keyword and is rejected when input must be fully consumed",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("any and fail"),
         kind: MatchKind.Fail,
       }),
@@ -99,6 +104,7 @@ Deno.test(
       "keyword or is rejected when input must be fully consumed",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("any or fail"),
         kind: MatchKind.Fail,
       }),
@@ -108,6 +114,7 @@ Deno.test(
       "grouping preserves the nested pattern value",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("(any | fail)"),
         kind: MatchKind.Ok,
         value: {
@@ -124,6 +131,7 @@ Deno.test(
       "bracketed child projects an into node",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("[end]"),
         kind: MatchKind.Ok,
         value: {
@@ -137,6 +145,7 @@ Deno.test(
       "canonical grouping can wrap pipeline and lower-precedence children",
       moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "PatternLang",
         input: Input.Scalar("any |> (end | fail)"),
         kind: MatchKind.Ok,
         value: {

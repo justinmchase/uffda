@@ -9,8 +9,6 @@ Deno.test("lang.declarations registers built-in language modules", () => {
   const identifierUff = new URL("./common/identifier.uff", import.meta.url)
     .href;
   const surroundUff = new URL("./common/surround.uff", import.meta.url).href;
-  const patternLangUrl = new URL("./pattern/pattern.lang.ts", import.meta.url)
-    .href;
   // Converted .uff modules load from ./bin, not the host registry.
   assertEquals(builtInLanguageDeclarations[digitUff], undefined);
   assertEquals(builtInLanguageDeclarations[charactersUff], undefined);
@@ -42,7 +40,16 @@ Deno.test("lang.declarations registers built-in language modules", () => {
   const exportRulesUff = new URL("./uffda/export.rules.uff", import.meta.url)
     .href;
   assertEquals(builtInLanguageDeclarations[exportRulesUff], undefined);
-  for (const name of ["then", "pipe", "and", "or", "pattern"] as const) {
+  for (
+    const name of [
+      "then",
+      "pipe",
+      "and",
+      "or",
+      "pattern",
+      "pattern.lang",
+    ] as const
+  ) {
     const uff = new URL(`./pattern/${name}.uff`, import.meta.url).href;
     assertEquals(builtInLanguageDeclarations[uff], undefined);
   }
@@ -51,12 +58,6 @@ Deno.test("lang.declarations registers built-in language modules", () => {
   assertEquals(
     builtInLanguageDeclarations[projectionUrl]?.exports.some((item) =>
       item.name === "Projection"
-    ),
-    true,
-  );
-  assertEquals(
-    builtInLanguageDeclarations[patternLangUrl]?.exports.some((item) =>
-      item.name === "PatternLang"
     ),
     true,
   );
