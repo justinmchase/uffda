@@ -9,21 +9,35 @@ Deno.test(
   async () => {
     const thenSrc = await Deno.readTextFile(join(pattern, "then.uff"));
     assertEquals(thenSrc.includes("export Then"), true);
-    assertEquals(thenSrc.includes('(one (flat _) "then")'), true);
+    assertEquals(
+      thenSrc.includes('(one (flat _) { kind: "then", patterns: (flat _) })'),
+      true,
+    );
     assertEquals(thenSrc.includes("patterns.length"), false);
 
     const pipeSrc = await Deno.readTextFile(join(pattern, "pipe.uff"));
     assertEquals(pipeSrc.includes("export Pipe"), true);
-    assertEquals(pipeSrc.includes('(one (flat _) "pipeline" "steps")'), true);
+    assertEquals(
+      pipeSrc.includes(
+        '(one (flat _) { kind: "pipeline", steps: (flat _) })',
+      ),
+      true,
+    );
 
     const andSrc = await Deno.readTextFile(join(pattern, "and.uff"));
     assertEquals(andSrc.includes("export And"), true);
-    assertEquals(andSrc.includes('(one (flat _) "and")'), true);
+    assertEquals(
+      andSrc.includes('(one (flat _) { kind: "and", patterns: (flat _) })'),
+      true,
+    );
     assertEquals(andSrc.includes("AndTail*"), true);
 
     const orSrc = await Deno.readTextFile(join(pattern, "or.uff"));
     assertEquals(orSrc.includes("export Or"), true);
-    assertEquals(orSrc.includes('(one (flat _) "or")'), true);
+    assertEquals(
+      orSrc.includes('(one (flat _) { kind: "or", patterns: (flat _) })'),
+      true,
+    );
     assertEquals(orSrc.includes('"|"?'), true);
 
     const projection = await Deno.readTextFile(join(pattern, "projection.ts"));

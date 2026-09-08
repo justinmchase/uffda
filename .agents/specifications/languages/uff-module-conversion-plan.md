@@ -109,7 +109,7 @@ file:
 | B1  | Replace Native with serializable projections                 | ~45 modules                                                             | ExpressionLang object/invocation forms + std                                                                                                                                          |
 | B2  | List flatten + join (`_.flat().join("")`)                    | identifier (done), string (done), import.rules (done), tokenizer, rules | std `flat`/`join` — shipped                                                                                                                                                           |
 | B3  | Digit string → number                                        | expression/number (done)                                                | std `int` shipped with number.uff                                                                                                                                                     |
-| B4  | Length-1 list collapse (`patterns.length===1 ? p : wrapper`) | then/pipe/and/or (done)                                                 | Closed via std `one` + `Tail*` (not `Tail+\|child`; unsafe under PatternLang LR)                                                                                                      |
+| B4  | Length-1 list collapse (`patterns.length===1 ? p : wrapper`) | then/pipe/and/or (done)                                                 | Closed via `(one list full)` + `Tail*` (not `Tail+\|child`; unsafe under PatternLang LR)                                                                                              |
 | B5  | Quantifier optional-array unwrap                             | many                                                                    | `(flat (coalesce k []))` / star rewrite; more sugar later                                                                                                                             |
 | B6  | Host match spans / checksum / line index                     | source/mod, tokenizer                                                   | New std/host builtins — then convert (not permanent hybrid)                                                                                                                           |
 | B7  | Match-tree semantic text walk                                | tokenizer.lang                                                          | Same as B6 — required before tokenizer.lang `.uff`                                                                                                                                    |
@@ -222,10 +222,10 @@ permanent TypeScript language modules once builtins exist.
 
 ## First candidate (next session)
 
-B4 is closed: `then` / `pipe` / `and` / `or` use std `one` with `Tail*`. Next:
-`pattern/pattern` (thin), then `pattern/pattern.lang`, or `uffda/rule.rules`
-once pattern.lang converts. Still blocked: prefix (B8), resolve/structure (B9),
-literals (hard).
+B4 is closed: `then` / `pipe` / `and` / `or` use `(one (flat _) { kind: … })`
+with `Tail*`. Next: `pattern/pattern` (thin), then `pattern/pattern.lang`, or
+`uffda/rule.rules` once pattern.lang converts. Still blocked: prefix (B8),
+resolve/structure (B9), literals (hard).
 
 Optional `recursive rule` sugar remains deferred
 ([#98](https://github.com/justinmchase/uffda/issues/98)).

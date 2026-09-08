@@ -8,4 +8,4 @@ export Then;
 rule Then =
   Prefix
   Prefix*
-  -> (one (flat _) "then");
+  -> (one (flat _) { kind: "then", patterns: (flat _) });

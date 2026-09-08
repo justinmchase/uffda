@@ -17,17 +17,19 @@ Preconditions:
 Expected behavior:
 
 - Length-1 collapse (blocker B4) MUST use std `one` with `Tail*` quantifiers,
-  not Native `patterns.length === 1 ? p : wrapper`.
+  not Native `patterns.length === 1 ? p : wrapper`. Form:
+  `(one (flat _) { kind: "and", patterns: (flat _) })` — when the list has one
+  element return it; otherwise return the full wrapper (parameter two).
 - Authors MUST NOT use `Tail+ | child` for these four modules: they participate
   in the PatternLang import cycle, where that shape fails under left recursion.
 - `src/lang/pattern/then.uff` MUST export `Then` projecting
-  `(one (flat _) "then")`.
+  `(one (flat _) { kind: "then", patterns: (flat _) })`.
 - `src/lang/pattern/pipe.uff` MUST export `Pipe` projecting
-  `(one (flat _) "pipeline" "steps")`.
+  `(one (flat _) { kind: "pipeline", steps: (flat _) })`.
 - `src/lang/pattern/and.uff` MUST export `And` projecting
-  `(one (flat _) "and")`.
+  `(one (flat _) { kind: "and", patterns: (flat _) })`.
 - `src/lang/pattern/or.uff` MUST export `Or` with optional leading `|` and
-  `(one (flat _) "or")`.
+  `(one (flat _) { kind: "or", patterns: (flat _) })`.
 - Compiling those files with the bootstrap compile path MUST succeed and emit
   AST JSON under `./bin/`.
 

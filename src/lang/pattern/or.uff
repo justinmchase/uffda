@@ -12,7 +12,7 @@ rule Or =
   o:(
     And
     OrTail*
-    -> (one (flat _) "or")
+    -> (one (flat _) { kind: "or", patterns: (flat _) })
   )
   -> o
   ;

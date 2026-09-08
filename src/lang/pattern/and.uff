@@ -10,4 +10,4 @@ rule AndTail =
 rule And =
   Projection
   AndTail*
-  -> (one (flat _) "and");
+  -> (one (flat _) { kind: "and", patterns: (flat _) });
