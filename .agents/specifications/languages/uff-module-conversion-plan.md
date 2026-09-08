@@ -191,7 +191,7 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 | -- | ------------------------ | --------------------------------------------------- |
 | 39 | `uffda/shared.rules`     | done                                                |
 | 40 | `uffda/import.rules`     | done                                                |
-| 41 | `uffda/export.rules`     | after shared/rules                                  |
+| 41 | `uffda/export.rules`     | done                                                |
 | 42 | `uffda/rule.rules`       | after pattern.lang + expression.lang + B2           |
 | 43 | `uffda/uffda.lang`       | after import/export/rule                            |
 | 44 | `uffda/runtime.compiler` | after syntax objects stable; list-merge projections |
@@ -222,9 +222,9 @@ permanent TypeScript language modules once builtins exist.
 
 ## First candidate (next session)
 
-`uffda/import.rules` is converted. Next likely candidates: `uffda/export.rules`
-(needs map over export names or equivalent), or Phase 3 pattern modules after
-B4/B8/B9.
+`uffda/export.rules` is converted (per-item `ExportName` + `pack` for inline
+exports). Next: `uffda/rule.rules` after remaining pattern-stack blockers, or
+Phase 3 modules after B4/B8/B9.
 
 Optional `recursive rule` sugar remains deferred
 ([#98](https://github.com/justinmchase/uffda/issues/98)).

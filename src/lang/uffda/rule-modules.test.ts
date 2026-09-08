@@ -13,7 +13,7 @@ Deno.test("lang.uffda.rule-modules compose into UffdaLang", async () => {
   const importModuleUrls = new Set(imports.map((i) => i.moduleUrl));
   assertEquals(importModuleUrls.has("./shared.rules.uff"), true);
   assertEquals(importModuleUrls.has("./import.rules.uff"), true);
-  assertEquals(importModuleUrls.has("./export.rules.ts"), true);
+  assertEquals(importModuleUrls.has("./export.rules.uff"), true);
   assertEquals(importModuleUrls.has("./rule.rules.ts"), true);
 
   const importedNames = new Set(imports.flatMap((i) => i.names));
@@ -31,4 +31,10 @@ Deno.test("lang.uffda.rule-modules compose into UffdaLang", async () => {
   assertEquals(importRules.includes("export ImportDeclarationSyntax"), true);
   assertEquals(importRules.includes("export ImportNameList"), true);
   assertEquals(importRules.includes("export ImportModuleSpecifier"), true);
+  assertEquals(importedNames.has("ExportDeclarationSyntax"), true);
+  const exportRules = await Deno.readTextFile(
+    join(repoRoot, "src", "lang", "uffda", "export.rules.uff"),
+  );
+  assertEquals(exportRules.includes("export ExportDeclarationSyntax"), true);
+  assertEquals(exportRules.includes("export ExportNameList"), true);
 });
