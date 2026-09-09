@@ -1,0 +1,42 @@
+---
+description: Compiler bootstrap, previous-CLI chicken/egg break, and bin artifact rules
+alwaysApply: true
+---
+
+# Compiler bootstrap and recursion break
+
+Normative detail:
+`.agents/specifications/languages/compiler-bootstrap.spec.md`.
+
+## Chicken / egg (do not “fix” with hacks)
+
+Compiling `runtime.compiler.uff` (and other language `.uff`) into `./bin`
+must **not** load that same module from workspace `./bin` via
+`Resolver.import` / `runUffdaRuntimeCompiler`. That path is recursive.
+
+**Break the cycle:**
+
+1. **Bootstrap compile** (`deno task compile:lang`) uses the **previous
+   published `uffda` CLI** to parse `.uff` (its embedded languages work when
+   workspace `./bin` is empty). Then the same task’s **lower stage** runs the
+   previous published `UffdaRuntimeCompiler` and writes **ModuleDeclarations**
+   (`imports` / `exports` / `rules`) under `./bin`.
+2. In-tree `uffda compile` (`src/cli/compile.ts`) is the same pipeline once the
+   workspace already has languages available: parse → previous published
+   compiler → ModuleDeclaration JSON.
+3. **Runtime resolve** only reads that JSON. It must not re-lower or call the
+   runtime compiler again. No recursion.
+
+## Forbidden
+
+- Committing compiler JSON or seeds under `src/`
+- Host JS or domain std helpers to paper over missing projection/`./bin` load
+- Special-casing `RUNTIME_COMPILER_*` artifact paths instead of normal resolve
+- Using in-tree `compile` alone to fill an empty `./bin` (grammar loads from
+  `./bin` — that is the chicken/egg; use previous CLI)
+
+## When the published CLI lacks a feature
+
+Publish a CLI that adds the feature, then compile with it. Do not park
+artifacts in `src/`. After this pipeline ships in a release, bootstrap SHOULD
+prefer that published `uffda compile` as the single previous-CLI step.

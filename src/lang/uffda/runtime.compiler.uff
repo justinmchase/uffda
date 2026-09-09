@@ -1,0 +1,129 @@
+# Lowers UffdaSyntaxModule objects to runtime ModuleDeclarations.
+# Over keys use bare `{…}` (PatternLang). Re-export classification is a
+# projection pipeline (AttachNameSets → FinalizeExports) using generic std
+# `to_set`/`pluck`/`has`/`eq`/`when`/`not` — not a host JS rewrite and not a
+# domain std. Host loads this module via Resolver.import on the `.uff` URL.
+# Variable bindings are single-letter (B12).
+# NormalizeExport is an inline nested projection on `any` (not a named rule and
+# not `x:any`): rule frames clear variables, and quantified Variables duplicate
+# across export items. Use `_` for the item value; `t`/`s` stay in Into scope.
+# Unary `not expr` is not a Primary; negation inside calls uses std `(not …)`.
+export UffdaRuntimeCompiler;
+
+rule CompileEmptyDeclarations =
+  end
+  -> { imports: [], exports: [], rules: [] };
+
+rule CompileImportDeclaration =
+  {
+    kind: "import",
+    moduleUrl: u:string,
+    names: n:[string+]
+  }
+  -> {
+    imports: [{ kind: "module", moduleUrl: u, names: n }],
+    exports: [],
+    rules: []
+  };
+
+rule CompileExportDeclaration =
+  {
+    kind: "export",
+    name: n:string
+  }
+  -> {
+    imports: [],
+    exports: [{ kind: "rule", name: n }],
+    rules: []
+  };
+
+rule CompileRuleDeclaration =
+  {
+    kind: "rule",
+    name: n:string,
+    pattern: t:object,
+    parameters: p:any,
+    projection: j:any
+  }
+  -> {
+    imports: [],
+    exports: [],
+    rules: [{
+      name: n,
+      parameters: (flat (coalesce p [])),
+      pattern: t,
+      expression: j
+    }]
+  };
+
+rule CompileDeclaration =
+  | CompileImportDeclaration
+  | CompileExportDeclaration
+  | CompileRuleDeclaration
+  ;
+
+rule CompileDeclarationSequence =
+  d:CompileDeclaration
+  r:CompileDeclarations
+  -> {
+    imports: (flat [d.imports r.imports]),
+    exports: (flat [d.exports r.exports]),
+    rules: (flat [d.rules r.rules])
+  };
+
+rule CompileDeclarations =
+  | CompileDeclarationSequence
+  | CompileEmptyDeclarations
+  ;
+
+rule AttachNameSets =
+  {
+    imports: i:any,
+    rules: r:any,
+    exports: e:any
+  }
+  -> {
+    imports: i,
+    rules: r,
+    t: (to_set (pluck r "name")),
+    s: (to_set (flat (pluck i "names"))),
+    exports: e
+  };
+
+rule FinalizeExports =
+  {
+    imports: i:any,
+    rules: r:any,
+    t: t:any,
+    s: s:any,
+    exports: e:[(
+      any
+      -> (when (eq _.kind "rule")
+           (when (not (has t _.name))
+             (when (has s _.name)
+               { ..._, kind: "import" }
+               _)
+             _)
+           _)
+    )*]
+  }
+  -> { imports: i, rules: r, exports: e };
+
+rule NormalizeModule =
+  AttachNameSets
+  |> FinalizeExports
+  ;
+
+rule CompileSyntaxModule =
+  {
+    kind: "module",
+    declarations: m:[CompileDeclarations]
+  }
+  end
+  -> m
+  ;
+
+rule UffdaRuntimeCompiler =
+  CompileSyntaxModule
+  |> NormalizeModule
+  ;

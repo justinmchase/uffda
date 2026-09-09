@@ -22,14 +22,17 @@ Normative key words in this chapter use the conventions defined in the
 
 ## AST artifact contracts
 
-- Compile outputs MUST represent the Uffda syntax AST in JSON-serializable
-  structures.
+- Compile outputs MUST represent runtime ModuleDeclarations in JSON-serializable
+  structures (`imports`, `exports`, `rules`).
 - Artifact emission MUST support one artifact per source unit and MUST define
   naming/path conventions deterministically.
-- Each emitted JSON file MUST contain the raw syntax AST, without CLI-specific
-  compiler, module identity, version, or source-path metadata.
+- Each emitted JSON file MUST contain the ModuleDeclaration produced by the
+  compile pipeline (parse → previous published `UffdaRuntimeCompiler` → write),
+  without CLI-specific module identity, version, or source-path metadata.
 - Compile results and diagnostics MUST retain source-path provenance separately
-  from the emitted AST.
+  from the emitted ModuleDeclaration.
+- Compile MUST NOT emit raw syntax ASTs (`kind: "module"` + `declarations`) as
+  the on-disk artifact; lowering is a stage of compile, not a post-pass.
 
 ## Parse contracts
 

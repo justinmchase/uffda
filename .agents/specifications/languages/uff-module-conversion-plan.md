@@ -44,8 +44,11 @@ already satisfy:
 
 ### G0 — Published CLI surface
 
-- The intended `.uff` text MUST compile with the installed latest `uffda`
-  (`uffda compile … --out-dir ./bin`).
+- The intended `.uff` text MUST stay within the installed latest published CLI
+  feature surface (syntax / std / forms already in version N).
+- Produce `./bin` via `deno task compile:lang` (parse → previous published
+  compiler → ModuleDeclaration). Prefer published `uffda compile` once that CLI
+  includes the same pipeline.
 - Do not author against unreleased PatternLang / ExpressionLang / std changes.
 - If a needed feature is missing from N, ship it in a release first, then
   convert.
@@ -91,10 +94,14 @@ replaced). `_.flat().join("")`, `parseInt`, match-span indexing are usually
 - **G4 — Imports:** Prefer `ImportDeclarationKind.Module` with `.uff` URLs once
   children are converted; eliminate `ImportDeclarationKind.Native` embeds.
 - **G5 — Artifacts only:** Converted `.uff` modules MUST NOT retain TypeScript
-  twins or `*.bootstrap.ts` host stubs in the in-tree registry. The published
-  CLI (N) embeds `./bin` AST JSON via `deno compile --include` and remaps
-  logical `.uff` URLs from the binary extract root; in-tree runtime loads from
-  workspace `./bin` after `compile:lang`.
+  twins or `*.bootstrap.ts` host stubs in the in-tree registry. Compiler output
+  JSON MUST NOT be committed under `src/` (only under `./bin/` via
+  `compile:lang`). Compile is one pipeline (parse → previous published compiler
+  → ModuleDeclaration); no finalize/seed under `src/`. If the published CLI
+  lacks a needed feature, publish a new CLI and compile with it. The published
+  CLI (N) embeds `./bin` ModuleDeclaration JSON via `deno compile --include` and
+  remaps logical `.uff` URLs from the binary extract root; in-tree runtime loads
+  from workspace `./bin` after `compile:lang`.
 - **G6 — Tests:** Existing `*.test.ts` must keep passing; add compile +
   `.uff`-import smoke where useful.
 - **G7 — CI:** Extend Checks compile-then-import as modules land under `./bin`.
@@ -121,6 +128,7 @@ file:
 | B13 | Expression string proj of `"{"` / `"}"`                      | object braces, string escapes                                           | `-> "{"` parses as object literal; use bare Equal, `-> _`, or bind `c:"{" -> c`                                                                                                       |
 | B14 | Left-fold over lists without domain helpers                  | expression/member (done), similar AST folds                             | DLR + nested [Projection](../../patterns/runtime/projection.spec.md); closed for Member (not std `reduce`+lambda; sugar later [#98](https://github.com/justinmchase/uffda/issues/98)) |
 | B15 | `"\\"` in multi-rule `.uff` modules                          | expression/string (done)                                                | Rule-body quote scanner treats `\\` as escapable; shipped in 0.1.15                                                                                                                   |
+| B16 | `.uff` load → runtime compiler                               | `uffda/runtime.compiler`                                                | Closed: compile emits ModuleDeclarations to `./bin`; Resolver.import loads JSON only; host uses Resolver.import on `.uff`.                                                            |
 
 ## Phase order (dependency leaves first)
 
@@ -187,14 +195,14 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ### Phase 4 — Uffda language surface
 
-| #  | Module                   | Ready?                                              |
-| -- | ------------------------ | --------------------------------------------------- |
-| 39 | `uffda/shared.rules`     | done                                                |
-| 40 | `uffda/import.rules`     | done                                                |
-| 41 | `uffda/export.rules`     | done                                                |
-| 42 | `uffda/rule.rules`       | done                                                |
-| 43 | `uffda/uffda.lang`       | done                                                |
-| 44 | `uffda/runtime.compiler` | after syntax objects stable; list-merge projections |
+| #  | Module                   | Ready?                        |
+| -- | ------------------------ | ----------------------------- |
+| 39 | `uffda/shared.rules`     | done                          |
+| 40 | `uffda/import.rules`     | done                          |
+| 41 | `uffda/export.rules`     | done                          |
+| 42 | `uffda/rule.rules`       | done                          |
+| 43 | `uffda/uffda.lang`       | done                          |
+| 44 | `uffda/runtime.compiler` | done (Resolver.import `.uff`) |
 
 ### Phase 5 — Tokenizer / source (last; convert after B6/B7)
 
@@ -215,16 +223,17 @@ permanent TypeScript language modules once builtins exist.
    installed latest `uffda`, not in-tree CLI.
 3. If any gate fails: fix in `.ts` (and std/spec if needed) **before** `.uff`;
    if G0 fails for missing CLI features, publish those features first.
-4. Author `.uff`; compile with installed `uffda compile … --out-dir ./bin`.
+4. Author `.uff`; compile via `deno task compile:lang` (or published
+   `uffda compile` once that CLI includes the ModuleDeclaration pipeline).
 5. Point imports / registry at `.uff`; delete the `.ts` twin; run tests +
    compile-then-import (tests load from `./bin`).
 6. Update this plan’s Ready? column and CI compile list.
 
 ## First candidate (next session)
 
-`uffda/uffda.lang` is converted. Next: `uffda/runtime.compiler` (still Native
-list-merge / compile projections). Still blocked: prefix (B8), resolve/structure
-(B9), literals (hard).
+`uffda/runtime.compiler` is converted (`.uff` + `Resolver.import` host). Next:
+Phase 5 `tokenizer/mod` (B2 done; still large). Still blocked: prefix (B8),
+resolve/structure (B9), literals (hard), B6/B7 for source / tokenizer.lang.
 
 Optional `recursive rule` sugar remains deferred
 ([#98](https://github.com/justinmchase/uffda/issues/98)).

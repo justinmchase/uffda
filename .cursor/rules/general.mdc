@@ -7,6 +7,10 @@ alwaysApply: true
 
 Uffda is a Deno-based parser generator for domain specific languages.
 
+**Compiler bootstrap:** see `.cursor/rules/compiler-bootstrap.mdc` (always
+applied). `compile:lang` = previous published `uffda` (parse) → previous
+compiler (lower) → ModuleDeclaration under `./bin`; resolve loads JSON only.
+
 ## Runtime and dependency conventions
 
 - Prefer Deno-native and Web Platform APIs over Node.js APIs.

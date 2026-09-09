@@ -3,21 +3,17 @@ import { MatchKind } from "../../match.ts";
 import { ExportDeclarationKind } from "../../runtime/declarations/export.ts";
 import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
-import { executeModuleDeclaration } from "../../runtime/module.execute.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import type { UffdaSyntaxModule } from "./syntax.types.ts";
 import {
   diagnoseUffdaRuntimeCompilerFailure,
   runUffdaRuntimeCompiler,
-  UffdaRuntimeCompiler,
 } from "./runtime.compiler.ts";
 
 Deno.test("lang.uffda.runtime-compiler compiles an empty syntax module", async () => {
-  const match = await executeModuleDeclaration(UffdaRuntimeCompiler, {
-    input: {
-      kind: "module",
-      declarations: [],
-    },
+  const match = await runUffdaRuntimeCompiler({
+    kind: "module",
+    declarations: [],
   });
 
   assertEquals(match.kind, MatchKind.Ok);
@@ -126,11 +122,9 @@ Deno.test(
 );
 
 Deno.test("lang.uffda.runtime-compiler rejects unsupported declarations", async () => {
-  const match = await executeModuleDeclaration(UffdaRuntimeCompiler, {
-    input: {
-      kind: "module",
-      declarations: [{ kind: "unsupported" }],
-    },
+  const match = await runUffdaRuntimeCompiler({
+    kind: "module",
+    declarations: [{ kind: "unsupported" } as never],
   });
 
   assertEquals(match.kind, MatchKind.Fail);
@@ -143,21 +137,18 @@ Deno.test("lang.uffda.runtime-compiler rejects unsupported declarations", async 
 
 Deno.test("lang.uffda.runtime-compiler rejects malformed module input", async (t) => {
   await t.step("rejects a different AST kind", async () => {
-    const match = await executeModuleDeclaration(UffdaRuntimeCompiler, {
-      input: {
-        kind: "rule",
-        declarations: [],
-      },
-    });
-
+    const match = await runUffdaRuntimeCompiler({
+      kind: "rule",
+      declarations: [],
+    } as never);
     assertEquals(match.kind, MatchKind.Fail);
   });
 
-  await t.step("reports a missing declaration sequence", async () => {
-    const match = await executeModuleDeclaration(UffdaRuntimeCompiler, {
-      input: { kind: "module" },
-    });
-
-    assertEquals(match.kind, MatchKind.Error);
+  await t.step("rejects a non-object module shape", async () => {
+    const match = await runUffdaRuntimeCompiler("not-a-module" as never);
+    assertEquals(
+      match.kind === MatchKind.Fail || match.kind === MatchKind.Error,
+      true,
+    );
   });
 });

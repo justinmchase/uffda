@@ -2,7 +2,7 @@ import { assertEquals } from "@std/assert";
 import { MatchKind } from "../../mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
-import { uffdaGrammar, UffdaRuntimeCompiler } from "./uffda.lang.ts";
+import { uffdaGrammar } from "./uffda.lang.ts";
 import { fromFileUrl, join } from "@std/path";
 
 const uffdaDir = fromFileUrl(new URL(".", import.meta.url));
@@ -154,10 +154,11 @@ Deno.test({
           uffdaLang.includes("RuleDeclarationSyntax"),
           true,
         );
+        const runtimeCompiler = await Deno.readTextFile(
+          join(uffdaDir, "runtime.compiler.uff"),
+        );
         assertEquals(
-          UffdaRuntimeCompiler.rules.some((r) =>
-            r.name === "UffdaRuntimeCompiler"
-          ),
+          runtimeCompiler.includes("export UffdaRuntimeCompiler"),
           true,
         );
       },

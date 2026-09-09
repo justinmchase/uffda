@@ -33,6 +33,5 @@ export {
 export {
   diagnoseUffdaRuntimeCompilerFailure,
   runUffdaRuntimeCompiler,
-  UffdaRuntimeCompiler,
   type UffdaRuntimeCompilerDiagnostic,
 } from "./runtime.compiler.ts";

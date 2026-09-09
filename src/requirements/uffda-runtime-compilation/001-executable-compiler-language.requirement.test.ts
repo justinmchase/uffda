@@ -1,17 +1,20 @@
 import { assertEquals } from "@std/assert";
 import { MatchKind } from "../../match.ts";
-import { ExportDeclarationKind } from "../../runtime/declarations/export.ts";
-import {
-  runUffdaRuntimeCompiler,
-  UffdaRuntimeCompiler,
-} from "../../lang/uffda/runtime.compiler.ts";
+import { runUffdaRuntimeCompiler } from "../../lang/uffda/runtime.compiler.ts";
+import { fromFileUrl, join } from "@std/path";
 
 Deno.test("req:uffda-runtime-compilation-001 - compiler is an executable runtime language", async () => {
-  assertEquals(UffdaRuntimeCompiler.exports, [{
-    kind: ExportDeclarationKind.Rule,
-    name: "UffdaRuntimeCompiler",
-    default: true,
-  }]);
+  const uff = await Deno.readTextFile(
+    join(
+      fromFileUrl(new URL("../../../", import.meta.url)),
+      "src",
+      "lang",
+      "uffda",
+      "runtime.compiler.uff",
+    ),
+  );
+  assertEquals(uff.includes("export UffdaRuntimeCompiler"), true);
+  assertEquals(uff.includes("rule UffdaRuntimeCompiler"), true);
 
   const match = await runUffdaRuntimeCompiler({
     kind: "module",

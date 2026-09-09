@@ -6,11 +6,20 @@ const repoRoot = fromFileUrl(new URL("../../../", import.meta.url));
 Deno.test(
   "req:uffda-runtime-compilation-007 - runtime compiler normalizes re-exports",
   async () => {
-    const source = await Deno.readTextFile(
+    const uff = await Deno.readTextFile(
+      join(repoRoot, "src/lang/uffda/runtime.compiler.uff"),
+    );
+    assertEquals(uff.includes("NormalizeModule"), true);
+    assertEquals(uff.includes("FinalizeExports"), true);
+    assertEquals(uff.includes('(to_set (pluck r "name"))'), true);
+    assertEquals(uff.includes('{ ..._, kind: "import" }'), true);
+    assertEquals(uff.includes("(not (has t _.name))"), true);
+    assertEquals(uff.includes("ExpressionKind.Native"), false);
+    assertEquals(uff.includes("normalizeModule"), false);
+
+    const host = await Deno.readTextFile(
       join(repoRoot, "src/lang/uffda/runtime.compiler.ts"),
     );
-    assertEquals(source.includes("ExportDeclarationKind.Import"), true);
-    assertEquals(source.includes("importedNames"), true);
-    assertEquals(source.includes("ruleNames"), true);
+    assertEquals(host.includes("normalizeRuntimeExports"), false);
   },
 );

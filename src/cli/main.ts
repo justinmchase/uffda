@@ -159,7 +159,7 @@ function compileUsageText(): string {
     "  --out-dir <path> Output root directory (replaces .uffda).",
     "",
     "Output:",
-    "  Writes Uffda module AST artifacts under <out-dir>/ast (default: .uffda/ast).",
+    "  Writes ModuleDeclaration JSON under <out-dir>/ast (default: .uffda/ast).",
     "",
     "Examples:",
     "  uffda compile ./file.uff",

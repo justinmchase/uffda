@@ -6,10 +6,12 @@ import {
   uffdaGrammar,
   type UffdaSyntaxModule,
 } from "../lang/uffda/uffda.lang.ts";
+import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 import {
   outputNameForSource,
   toStableSourcePath,
 } from "../runtime/resolvers/artifact_path.ts";
+import { lowerUffdaSyntaxModule } from "./lower_uffda_syntax.ts";
 
 export enum CliCompileFailureCode {
   InvalidContext = "CLI_COMPILE_INVALID_CONTEXT",
@@ -31,7 +33,10 @@ export type CliCompileFailure = {
 export type CliCompileUnitSuccess = {
   sourcePath: string;
   outputPath: string;
+  /** Syntax AST before the lower stage (provenance for diagnostics). */
   ast: UffdaSyntaxModule;
+  /** ModuleDeclaration written to the artifact. */
+  module: ModuleDeclaration;
 };
 
 export type CliCompileUnitResult =
@@ -40,6 +45,7 @@ export type CliCompileUnitResult =
     sourcePath: string;
     outputPath: string;
     ast: UffdaSyntaxModule;
+    module: ModuleDeclaration;
   }
   | {
     ok: false;
@@ -324,10 +330,30 @@ export async function compileSourcesToAstArtifacts(
       continue;
     }
 
+    let module: ModuleDeclaration;
+    try {
+      module = await lowerUffdaSyntaxModule(parsed.value);
+    } catch (error) {
+      const failure: CliCompileFailure = {
+        code: CliCompileFailureCode.ParseFailure,
+        sourcePath: plan.sourcePath,
+        outputPath: plan.outputPath,
+        message: `Unable to lower syntax module ${plan.sourcePath}: ${error}`,
+      };
+      failures.push(failure);
+      units.push({
+        ok: false,
+        sourcePath: plan.sourcePath,
+        outputPath: plan.outputPath,
+        failure,
+      });
+      continue;
+    }
+
     try {
       await Deno.writeTextFile(
         plan.outputPath,
-        `${JSON.stringify(parsed.value, null, 2)}\n`,
+        `${JSON.stringify(module, null, 2)}\n`,
       );
     } catch (error) {
       const failure: CliCompileFailure = {
@@ -350,6 +376,7 @@ export async function compileSourcesToAstArtifacts(
       sourcePath: plan.sourcePath,
       outputPath: plan.outputPath,
       ast: parsed.value,
+      module,
     };
     successes.push(success);
     units.push({
@@ -357,6 +384,7 @@ export async function compileSourcesToAstArtifacts(
       sourcePath: success.sourcePath,
       outputPath: success.outputPath,
       ast: success.ast,
+      module: success.module,
     });
   }
 

@@ -1,4 +1,5 @@
 import type { UffdaSyntaxModule } from "../../lang/uffda/syntax.types.ts";
+import { isModuleDeclaration } from "../declarations/is_module_declaration.ts";
 import {
   type IModuleResolver,
   moduleDeclarationResolutionResult,
@@ -21,8 +22,12 @@ function isUffdaSyntaxModule(value: unknown): value is UffdaSyntaxModule {
 }
 
 /**
- * Resolves logical `.uff` module URLs by loading the mirrored compiled syntax-AST
- * JSON under `<artifactRoot>/ast/...` and lowering it to a ModuleDeclaration.
+ * Resolves logical `.uff` module URLs by loading the mirrored compiled JSON
+ * under `<artifactRoot>/ast/...`.
+ *
+ * Artifacts are ModuleDeclarations produced by the compile pipeline (parse →
+ * previous published UffdaRuntimeCompiler → write). Resolve only loads JSON —
+ * it does not call the runtime compiler again.
  */
 export class UffArtifactResolver implements IModuleResolver {
   public readonly extension = ".uff";
@@ -61,32 +66,27 @@ export class UffArtifactResolver implements IModuleResolver {
       parsed = JSON.parse(text);
     } catch (err) {
       return moduleDeclarationResolutionResult(moduleResolutionError(
-        `Unable to parse syntax AST artifact at ${artifactPath}`,
+        `Unable to parse module artifact at ${artifactPath}`,
         context,
         err,
       ));
     }
 
-    if (!isUffdaSyntaxModule(parsed)) {
+    if (isModuleDeclaration(parsed)) {
+      return moduleDeclarationResult(parsed);
+    }
+
+    if (isUffdaSyntaxModule(parsed)) {
       return moduleDeclarationResolutionResult(moduleResolutionError(
-        `Artifact at ${artifactPath} is not a Uffda syntax module AST`,
+        `Artifact at ${artifactPath} is a syntax AST; recompile with a CLI ` +
+          `that emits ModuleDeclarations (imports/exports/rules)`,
         context,
       ));
     }
 
-    try {
-      // Dynamic import avoids a static cycle: runtime → lang → grammar → Resolver.
-      const { compileUffdaSyntaxModule } = await import(
-        "../../lang/uffda/execute.ts"
-      );
-      const declaration = await compileUffdaSyntaxModule(parsed);
-      return moduleDeclarationResult(declaration);
-    } catch (err) {
-      return moduleDeclarationResolutionResult(moduleResolutionError(
-        `Unable to lower syntax AST artifact at ${artifactPath} to a module declaration`,
-        context,
-        err,
-      ));
-    }
+    return moduleDeclarationResolutionResult(moduleResolutionError(
+      `Artifact at ${artifactPath} is not a ModuleDeclaration`,
+      context,
+    ));
   }
 }

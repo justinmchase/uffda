@@ -8,6 +8,15 @@ Path-scoped authoring guidance also lives in:
 - `.cursor/rules/` (Cursor)
 - `.github/instructions/` (GitHub Copilot)
 
+**Compiler bootstrap / recursion break** (always apply): see
+`.cursor/rules/compiler-bootstrap.mdc`,
+`.github/instructions/compiler-bootstrap.instructions.md`, and
+`.agents/specifications/languages/compiler-bootstrap.spec.md`. `compile:lang` =
+previous published `uffda compile` (parse) → previous published
+`UffdaRuntimeCompiler` (lower) → ModuleDeclaration JSON under `./bin`. Resolve
+only loads that JSON. Never re-lower on import or seed compiler JSON under
+`src/`.
+
 ## Runtime and dependency conventions
 
 - Prefer Deno-native and Web Platform APIs over Node.js APIs.
