@@ -1,0 +1,14 @@
+# CompileUffdaSource pipelines raw .uff source text all the way down to a
+# ModuleDeclaration: text |> UffdaLang (parse to syntax module) |>
+# UffdaRuntimeCompiler (lower syntax module to ModuleDeclaration). Expressing
+# the parse+lower pipeline as pattern-match rules avoids gluing the two
+# stages together imperatively in TypeScript.
+import "./uffda.lang.uff" UffdaLang;
+import "./runtime.compiler.uff" UffdaRuntimeCompiler;
+
+export CompileUffdaSource;
+
+rule CompileUffdaSource =
+  UffdaLang
+  |> UffdaRuntimeCompiler
+  ;

@@ -25,6 +25,7 @@ export async function uffdaGrammar(
 }
 
 export {
+  compileUffdaSource,
   compileUffdaSyntaxModule,
   executeUffdaSource,
   type ExecuteUffdaSourceOptions,
