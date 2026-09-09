@@ -11,7 +11,10 @@ import {
 } from "./value_source.ts";
 
 Deno.test("runtime.patterns.value_source", async (t) => {
-  const pattern: EqualPattern = { kind: PatternKind.Equal, value: "x" };
+  const pattern: EqualPattern = {
+    kind: PatternKind.Equal,
+    value: { kind: ValueSourceKind.Literal, value: "x" },
+  };
 
   await t.step("isValueSource recognizes wrapped forms only", () => {
     assertEquals(
@@ -23,12 +26,22 @@ Deno.test("runtime.patterns.value_source", async (t) => {
       true,
     );
     assertEquals(isValueSource("a"), false);
-    assertEquals(isValueSource({ kind: PatternKind.Equal, value: 1 }), false);
+    assertEquals(
+      isValueSource({
+        kind: PatternKind.Equal,
+        value: { kind: ValueSourceKind.Literal, value: 1 },
+      }),
+      false,
+    );
   });
 
-  await t.step("resolveValueSource returns bare literals", () => {
+  await t.step("resolveValueSource returns literal sources", () => {
     const scope = Scope.From(Input.Default());
-    const resolved = resolveValueSource(7, scope, pattern);
+    const resolved = resolveValueSource(
+      { kind: ValueSourceKind.Literal, value: 7 },
+      scope,
+      pattern,
+    );
     assertEquals(resolved, { kind: "ok", value: 7 });
   });
 

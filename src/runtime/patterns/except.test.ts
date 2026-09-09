@@ -3,6 +3,7 @@ import { Input, InputNormalizationMode } from "../../input.ts";
 import { MatchErrorCode, MatchKind } from "../../match.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
+import { lit } from "./value_source.ts";
 import { match } from "../match.ts";
 import { Scope } from "../scope.ts";
 
@@ -12,7 +13,7 @@ Deno.test("runtime.patterns.except", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Except,
-        pattern: { kind: PatternKind.Equal, value: "a" },
+        pattern: { kind: PatternKind.Equal, value: lit("a") },
       },
       input: Input.Iterable("a"),
       kind: MatchKind.Fail,
@@ -25,7 +26,7 @@ Deno.test("runtime.patterns.except", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Except,
-        pattern: { kind: PatternKind.Equal, value: "a" },
+        pattern: { kind: PatternKind.Equal, value: lit("a") },
       },
       input: Input.Iterable("b"),
       kind: MatchKind.Ok,

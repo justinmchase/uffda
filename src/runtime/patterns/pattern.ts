@@ -2,13 +2,15 @@ import { PatternKind } from "./pattern.kind.ts";
 import type { Special } from "../modules/special.ts";
 import type { Type } from "@justinmchase/type";
 import type { Expression } from "../expressions/expression.ts";
-import type { ValueOperand, ValueSource } from "./value_source.ts";
+import type { ValueSource } from "./value_source.ts";
 
-export type { ValueOperand, ValueSource } from "./value_source.ts";
+export type { ValueSource } from "./value_source.ts";
 export {
   isValueSource,
+  lit,
   resolveValueSource,
   ValueSourceKind,
+  varRef,
 } from "./value_source.ts";
 
 export type Pattern =
@@ -101,15 +103,15 @@ export type CharacterPattern = {
 };
 export type BetweenPattern = {
   kind: PatternKind.Between;
-  left: ValueOperand;
-  right: ValueOperand;
+  left: ValueSource;
+  right: ValueSource;
 };
 export type EndPattern = {
   kind: PatternKind.End;
 };
 export type EqualPattern = {
   kind: PatternKind.Equal;
-  value: ValueOperand;
+  value: ValueSource;
 };
 export type ExceptPattern = {
   kind: PatternKind.Except;
@@ -120,7 +122,7 @@ export type FailPattern = {
 };
 export type IncludesPattern = {
   kind: PatternKind.Includes;
-  values: ValueOperand[];
+  values: ValueSource[];
 };
 export type IntoPattern = {
   kind: PatternKind.Into;
@@ -161,8 +163,8 @@ export type ProjectionPattern = {
 export type QuantifierPattern = {
   kind: PatternKind.Quantifier;
   pattern: Pattern;
-  min?: number | ValueSource;
-  max?: number | ValueSource;
+  min?: ValueSource;
+  max?: ValueSource;
 };
 export type RegExpPattern = {
   kind: PatternKind.RegExp;

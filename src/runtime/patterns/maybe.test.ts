@@ -1,6 +1,7 @@
 import { Input } from "../../mod.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
+import { lit } from "./value_source.ts";
 import { MatchKind } from "../../match.ts";
 
 await Deno.test("runtime/patterns/end", async (t) => {
@@ -9,10 +10,7 @@ await Deno.test("runtime/patterns/end", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Maybe,
-        pattern: {
-          kind: PatternKind.Equal,
-          value: "a",
-        },
+        pattern: { kind: PatternKind.Equal, value: lit("a") },
       },
       input: Input.Iterable("a"),
       kind: MatchKind.Ok,
@@ -25,10 +23,7 @@ await Deno.test("runtime/patterns/end", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Maybe,
-        pattern: {
-          kind: PatternKind.Equal,
-          value: "a",
-        },
+        pattern: { kind: PatternKind.Equal, value: lit("a") },
       },
       input: Input.Iterable("b"),
       kind: MatchKind.Ok,
@@ -45,15 +40,9 @@ await Deno.test("runtime/patterns/end", async (t) => {
         patterns: [
           {
             kind: PatternKind.Maybe,
-            pattern: {
-              kind: PatternKind.Equal,
-              value: "a",
-            },
+            pattern: { kind: PatternKind.Equal, value: lit("a") },
           },
-          {
-            kind: PatternKind.Equal,
-            value: "b",
-          },
+          { kind: PatternKind.Equal, value: lit("b") },
         ],
       },
       input: Input.Iterable("b"),

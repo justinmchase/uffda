@@ -15,9 +15,12 @@ Preconditions:
 
 Expected behavior:
 
-- `$name` MUST parse as `"$"` + Identifier and project a variable value source.
+- `$name` MUST parse as `"$"` + Identifier and project
+  `{ kind: "value.variable", name }`.
+- Bare literals and identifier equals MUST project
+  `{ kind: "value.literal", value }` (never a bare serializable operand).
 - Bare `$name` MUST normalize to an `equal` pattern whose value operand is that
-  value source (match input equal to the bound value).
+  `value.variable` source (match input equal to the bound value).
 - `$name` MUST be accepted as between bounds and includes list elements.
 - `$name` MUST NOT mean pattern resolve / “run the value as a pattern.” Bare
   identifiers in pattern position remain resolve; `$` marks value binding.
@@ -26,4 +29,4 @@ Expected behavior:
 
 Postconditions:
 
-- Value-source syntax is grammatical in value-operand positions.
+- Value-source syntax projects only tagged ValueSource nodes.

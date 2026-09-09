@@ -3,31 +3,21 @@ import { match } from "../match.ts";
 import type { Match } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import type { QuantifierPattern } from "./pattern.ts";
-import {
-  isValueSource,
-  resolveValueSource,
-  type ValueSource,
-} from "./value_source.ts";
+import { resolveValueSource, type ValueSource } from "./value_source.ts";
 
 function resolveBound(
-  bound: number | ValueSource | undefined,
+  bound: ValueSource | undefined,
   scope: Scope,
   pattern: QuantifierPattern,
 ): { kind: "ok"; value: number | undefined } | { kind: "error"; match: Match } {
   if (bound == null) {
     return { kind: "ok", value: undefined };
   }
-  if (typeof bound === "number") {
-    return { kind: "ok", value: bound };
+  const resolved = resolveValueSource(bound, scope, pattern);
+  if (resolved.kind === "error") {
+    return resolved;
   }
-  if (isValueSource(bound)) {
-    const resolved = resolveValueSource(bound, scope, pattern);
-    if (resolved.kind === "error") {
-      return resolved;
-    }
-    return { kind: "ok", value: resolved.value as number };
-  }
-  return { kind: "ok", value: bound };
+  return { kind: "ok", value: resolved.value as number };
 }
 
 export async function quantifier(

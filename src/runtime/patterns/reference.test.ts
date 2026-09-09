@@ -8,6 +8,7 @@ import {
   ImportDeclarationKind,
 } from "../declarations/mod.ts";
 import { PatternKind } from "./pattern.kind.ts";
+import { lit } from "./value_source.ts";
 
 Deno.test("runtime.patterns.reference", async (t) => {
   await t.step({
@@ -26,7 +27,7 @@ Deno.test("runtime.patterns.reference", async (t) => {
             {
               name: "A",
               parameters: [],
-              pattern: { kind: PatternKind.Equal, value: "a" },
+              pattern: { kind: PatternKind.Equal, value: lit("a") },
             },
             {
               name: "Main",
@@ -75,7 +76,7 @@ Deno.test("runtime.patterns.reference", async (t) => {
             {
               name: "B",
               parameters: [],
-              pattern: { kind: PatternKind.Equal, value: "a" },
+              pattern: { kind: PatternKind.Equal, value: lit("a") },
             },
             {
               name: "Main",
@@ -129,7 +130,7 @@ Deno.test("runtime.patterns.reference", async (t) => {
             {
               name: "B",
               parameters: [],
-              pattern: { kind: PatternKind.Equal, value: "a" },
+              pattern: { kind: PatternKind.Equal, value: lit("a") },
             },
             {
               name: "Main",
@@ -169,7 +170,7 @@ Deno.test("runtime.patterns.reference", async (t) => {
             {
               name: "A",
               parameters: [],
-              pattern: { kind: PatternKind.Equal, value: "a" },
+              pattern: { kind: PatternKind.Equal, value: lit("a") },
             },
             {
               name: "Main",
@@ -324,7 +325,7 @@ Deno.test("runtime.patterns.reference", async (t) => {
             {
               name: "B",
               parameters: [],
-              pattern: { kind: PatternKind.Equal, value: "a" },
+              pattern: { kind: PatternKind.Equal, value: lit("a") },
             },
             {
               name: "Main",
@@ -406,7 +407,7 @@ Deno.test("runtime.patterns.reference", async (t) => {
             {
               name: "C",
               parameters: [],
-              pattern: { kind: PatternKind.Equal, value: "a" },
+              pattern: { kind: PatternKind.Equal, value: lit("a") },
             },
             {
               name: "Main",
@@ -488,7 +489,7 @@ Deno.test("runtime.patterns.reference", async (t) => {
             {
               name: "C",
               parameters: [],
-              pattern: { kind: PatternKind.Equal, value: "a" },
+              pattern: { kind: PatternKind.Equal, value: lit("a") },
             },
             {
               name: "Main",
@@ -574,7 +575,7 @@ Deno.test("runtime.patterns.reference", async (t) => {
             {
               name: "C",
               parameters: [],
-              pattern: { kind: PatternKind.Equal, value: "a" },
+              pattern: { kind: PatternKind.Equal, value: lit("a") },
             },
             {
               name: "Main",
@@ -666,7 +667,7 @@ Deno.test("runtime.patterns.reference", async (t) => {
             {
               name: "A",
               parameters: [],
-              pattern: { kind: PatternKind.Equal, value: "a" },
+              pattern: { kind: PatternKind.Equal, value: lit("a") },
             },
           ],
         },

@@ -1,7 +1,7 @@
 # Prefix operators, capture, and postfix repetition (* / + / ?).
 # Star bounds are separate arms (not optional unwrap + Native validation):
 # digit BoundNumber is already non-negative; max < min is left to Quantifier
-# runtime (B8).
+# runtime (B8). Quantifier min/max are ValueSource literals (B17).
 import "./atomic.uff" Atomic;
 import "./pattern.uff" Pattern;
 import "../common/identifier.uff" Identifier;
@@ -19,7 +19,12 @@ rule StarMinMax =
   "."
   "."
   m:BoundNumber
-  -> { kind: "quantifier", pattern: p, min: n, max: m };
+  -> {
+    kind: "quantifier",
+    pattern: p,
+    min: { kind: "value.literal", value: n },
+    max: { kind: "value.literal", value: m }
+  };
 
 rule StarMinOpen =
   p:Atomic
@@ -27,7 +32,12 @@ rule StarMinOpen =
   n:BoundNumber
   "."
   "."
-  -> { kind: "quantifier", pattern: p, min: n, max: undefined };
+  -> {
+    kind: "quantifier",
+    pattern: p,
+    min: { kind: "value.literal", value: n },
+    max: undefined
+  };
 
 rule StarMaxOnly =
   p:Atomic
@@ -35,13 +45,23 @@ rule StarMaxOnly =
   "."
   "."
   m:BoundNumber
-  -> { kind: "quantifier", pattern: p, min: 0, max: m };
+  -> {
+    kind: "quantifier",
+    pattern: p,
+    min: { kind: "value.literal", value: 0 },
+    max: { kind: "value.literal", value: m }
+  };
 
 rule StarMinOnly =
   p:Atomic
   "*"
   n:BoundNumber
-  -> { kind: "quantifier", pattern: p, min: n, max: undefined };
+  -> {
+    kind: "quantifier",
+    pattern: p,
+    min: { kind: "value.literal", value: n },
+    max: undefined
+  };
 
 rule StarBare =
   p:Atomic
@@ -59,7 +79,12 @@ rule Star =
 rule Plus =
   p:Atomic
   "+"
-  -> { kind: "quantifier", pattern: p, min: 1, max: undefined };
+  -> {
+    kind: "quantifier",
+    pattern: p,
+    min: { kind: "value.literal", value: 1 },
+    max: undefined
+  };
 
 rule Optional =
   p:Atomic

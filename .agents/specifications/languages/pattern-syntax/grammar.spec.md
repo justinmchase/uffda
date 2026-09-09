@@ -96,22 +96,25 @@ The grammar MUST be able to express the following pattern families:
 
 ## Value sources
 
-- A **value source** is either a compile-time literal or a contextual reference
-  `$name`, where `name` is an identifier.
-- `$name` denotes the match-scope **variable binding** named `name` (the
-  captured value), not a pattern or rule to run.
+- A **value source** is a tagged operand with an explicit `kind`:
+  - `value.literal` — compile-time constant (`{ kind: "value.literal", value }`)
+  - `value.variable` — contextual `$name` (`{ kind: "value.variable", name }`)
+- Value operands in the pattern AST MUST NOT be bare serializable values. Syntax
+  (or an explicit host constructor such as `lit(...)`) MUST choose the kind;
+  matchers MUST NOT infer literal vs variable by duck-typing operand shape.
+- `$name` parses as `"$"` + Identifier and projects `value.variable`.
+- Bare literals and identifier string equals project `value.literal`.
 - Value sources MUST be accepted only in value-operand positions:
-  - bare equal literals
+  - bare equal
   - `between` left and right bounds (`L..R`)
   - `includes` membership elements (`in[...]`)
   - quantifier `min` / `max` bounds (surface `$` forms in `prefix.uff` after a
     published CLI that parses them)
-- Positions that expect a **rule/pattern resolve** MUST NOT treat `$name` as
-  resolve. `$name` always denotes a value binding. Bare `$name` as a primary
-  MUST normalize to `equal` with a variable value source (match input against
-  the bound value), not to `resolve`.
+- `$name` always denotes a value binding. Bare `$name` as a primary MUST
+  normalize to `equal` with a `value.variable` operand (match input against the
+  bound value), not to `resolve`.
 - Bare identifiers retain existing meanings: pattern position → resolve; literal
-  value position → identifier string equal-value.
+  value position → identifier string as `value.literal`.
 
 ## Precedence
 

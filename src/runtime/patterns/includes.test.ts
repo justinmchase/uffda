@@ -2,7 +2,7 @@ import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
-import { ValueSourceKind } from "./value_source.ts";
+import { lit, ValueSourceKind } from "./value_source.ts";
 
 await Deno.test("runtime/patterns/includes", async (t) => {
   await t.step({
@@ -10,7 +10,7 @@ await Deno.test("runtime/patterns/includes", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Includes,
-        values: ["x"],
+        values: [lit("x")],
       },
       input: Input.Iterable("x"),
       value: "x",
@@ -23,7 +23,7 @@ await Deno.test("runtime/patterns/includes", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Includes,
-        values: ["x", "y", "z"],
+        values: [lit("x"), lit("y"), lit("z")],
       },
       input: Input.Iterable("y"),
       value: "y",
@@ -36,7 +36,7 @@ await Deno.test("runtime/patterns/includes", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Includes,
-        values: ["x", "y", "z"],
+        values: [lit("x"), lit("y"), lit("z")],
       },
       input: Input.Iterable("a"),
       kind: MatchKind.Fail,
@@ -50,7 +50,7 @@ await Deno.test("runtime/patterns/includes", async (t) => {
         kind: PatternKind.Includes,
         values: [
           { kind: ValueSourceKind.Variable, name: "a" },
-          { kind: ValueSourceKind.Literal, value: "y" },
+          lit("y"),
         ],
       },
       variables: new Map([["a", "x"]]),

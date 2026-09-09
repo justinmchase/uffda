@@ -1,6 +1,7 @@
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../mod.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
+import { ValueSourceKind } from "../../runtime/patterns/value_source.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
 const moduleUrl = new URL("./prefix.uff", import.meta.url).href;
@@ -24,8 +25,8 @@ Deno.test({
         value: {
           kind: PatternKind.Quantifier,
           pattern: { kind: PatternKind.Any },
-          min: 1,
-          max: 3,
+          min: { kind: ValueSourceKind.Literal, value: 1 },
+          max: { kind: ValueSourceKind.Literal, value: 3 },
         },
       }),
     });
@@ -56,7 +57,7 @@ Deno.test({
         value: {
           kind: PatternKind.Quantifier,
           pattern: { kind: PatternKind.Any },
-          min: 1,
+          min: { kind: ValueSourceKind.Literal, value: 1 },
           max: undefined,
         },
       }),
@@ -72,8 +73,8 @@ Deno.test({
         value: {
           kind: PatternKind.Quantifier,
           pattern: { kind: PatternKind.Any },
-          min: 0,
-          max: 2,
+          min: { kind: ValueSourceKind.Literal, value: 0 },
+          max: { kind: ValueSourceKind.Literal, value: 2 },
         },
       }),
     });

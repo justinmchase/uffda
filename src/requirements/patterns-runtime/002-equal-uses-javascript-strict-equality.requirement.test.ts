@@ -1,4 +1,5 @@
 import { assertEquals } from "@std/assert";
+import { lit } from "../../runtime/patterns/value_source.ts";
 import { InputNormalizationMode } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { match } from "../../runtime/match.ts";
@@ -10,7 +11,7 @@ Deno.test("req:equal-002 - Equal compares the current item using JavaScript stri
     "strict equality matches identical primitive value",
     async () => {
       const scope = Scope.From([7], { kind: InputNormalizationMode.Iterable });
-      const pattern: Pattern = { kind: PatternKind.Equal, value: 7 };
+      const pattern: Pattern = { kind: PatternKind.Equal, value: lit(7) };
 
       const m = await match(pattern, scope);
       assertEquals(m.kind, MatchKind.Ok);
@@ -19,7 +20,7 @@ Deno.test("req:equal-002 - Equal compares the current item using JavaScript stri
 
   await t.step("strict equality rejects type-coercive near match", async () => {
     const scope = Scope.From(["7"], { kind: InputNormalizationMode.Iterable });
-    const pattern: Pattern = { kind: PatternKind.Equal, value: 7 };
+    const pattern: Pattern = { kind: PatternKind.Equal, value: lit(7) };
 
     const m = await match(pattern, scope);
     assertEquals(m.kind, MatchKind.Fail);
@@ -35,7 +36,7 @@ Deno.test("req:equal-002 - Equal compares the current item using JavaScript stri
       const scopeFail = Scope.From([{ x: 1 }], {
         kind: InputNormalizationMode.Iterable,
       });
-      const pattern: Pattern = { kind: PatternKind.Equal, value: shared };
+      const pattern: Pattern = { kind: PatternKind.Equal, value: lit(shared) };
 
       const okMatch = await match(pattern, scopeOk);
       const failMatch = await match(pattern, scopeFail);

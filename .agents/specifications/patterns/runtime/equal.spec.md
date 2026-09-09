@@ -17,9 +17,10 @@ value source resolved from the match scope).
 ## Behavioral expectations
 
 - An `equal` pattern MUST inspect the current input position.
-- Before comparing, an `equal` pattern MUST resolve its value operand. A
-  contextual `$name` MUST read the binding named `name` from the current
-  variable environment. An unbound `$name` MUST report an unknown-reference
+- Before comparing, an `equal` pattern MUST resolve its value operand. The
+  operand MUST be a tagged ValueSource (`value.literal` or `value.variable`). A
+  contextual `value.variable` MUST read the binding named `name` from the
+  current variable environment. An unbound name MUST report an unknown-reference
   error.
 - If no input item is available at the current position, the `equal` pattern
   MUST fail.

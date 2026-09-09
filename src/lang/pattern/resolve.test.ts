@@ -1,6 +1,7 @@
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../mod.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
+import { lit } from "../../runtime/patterns/value_source.ts";
 import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
@@ -84,10 +85,7 @@ Deno.test({
           targetKind: ResolveTargetKind.Reference,
           name: "foo",
           args: [
-            {
-              kind: PatternKind.Equal,
-              value: "bar",
-            },
+            { kind: PatternKind.Equal, value: lit("bar") },
           ],
         },
       }),

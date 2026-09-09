@@ -1,6 +1,7 @@
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
+import { lit } from "../../runtime/patterns/value_source.ts";
 import { patternTest } from "../../test.ts";
 
 Deno.test("req:quantifier-001 - Quantifier repeats child pattern within declared bounds with progress guarantees", async (t) => {
@@ -10,8 +11,8 @@ Deno.test("req:quantifier-001 - Quantifier repeats child pattern within declared
       pattern: {
         kind: PatternKind.Quantifier,
         pattern: { kind: PatternKind.Any },
-        min: 2,
-        max: 2,
+        min: lit(2),
+        max: lit(2),
       },
       input: Input.Iterable("ab"),
       kind: MatchKind.Ok,
@@ -24,8 +25,8 @@ Deno.test("req:quantifier-001 - Quantifier repeats child pattern within declared
     patternTest({
       pattern: {
         kind: PatternKind.Quantifier,
-        pattern: { kind: PatternKind.Equal, value: "x" },
-        min: 1,
+        pattern: { kind: PatternKind.Equal, value: lit("x") },
+        min: lit(1),
       },
       input: Input.Iterable("a"),
       kind: MatchKind.Fail,

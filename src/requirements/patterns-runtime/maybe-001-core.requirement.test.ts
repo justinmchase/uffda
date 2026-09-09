@@ -1,6 +1,7 @@
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
+import { lit } from "../../runtime/patterns/value_source.ts";
 import { patternTest } from "../../test.ts";
 
 Deno.test("req:maybe-001 - Maybe always succeeds and consumes only when child succeeds", async (t) => {
@@ -9,7 +10,7 @@ Deno.test("req:maybe-001 - Maybe always succeeds and consumes only when child su
     patternTest({
       pattern: {
         kind: PatternKind.Maybe,
-        pattern: { kind: PatternKind.Equal, value: "a" },
+        pattern: { kind: PatternKind.Equal, value: lit("a") },
       },
       input: Input.Iterable("a"),
       kind: MatchKind.Ok,
@@ -22,7 +23,7 @@ Deno.test("req:maybe-001 - Maybe always succeeds and consumes only when child su
     patternTest({
       pattern: {
         kind: PatternKind.Maybe,
-        pattern: { kind: PatternKind.Equal, value: "x" },
+        pattern: { kind: PatternKind.Equal, value: lit("x") },
       },
       input: Input.Iterable("a"),
       kind: MatchKind.Ok,

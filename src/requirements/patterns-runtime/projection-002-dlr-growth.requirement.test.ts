@@ -3,6 +3,7 @@ import { MatchKind } from "../../match.ts";
 import { ExportDeclarationKind } from "../../runtime/declarations/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
+import { lit } from "../../runtime/patterns/value_source.ts";
 import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
@@ -41,7 +42,7 @@ Deno.test("req:projection-002 - DLR growth observes transforming Projection on t
                             args: [],
                           },
                         },
-                        { kind: PatternKind.Equal, value: "." },
+                        { kind: PatternKind.Equal, value: lit(".") },
                         {
                           kind: PatternKind.Variable,
                           name: "n",
@@ -113,7 +114,7 @@ Deno.test("req:projection-002 - DLR growth observes transforming Projection on t
                             args: [],
                           },
                         },
-                        { kind: PatternKind.Equal, value: "." },
+                        { kind: PatternKind.Equal, value: lit(".") },
                         {
                           kind: PatternKind.Variable,
                           name: "n",
@@ -151,12 +152,12 @@ Deno.test("req:projection-002 - DLR growth observes transforming Projection on t
                   {
                     kind: PatternKind.Variable,
                     name: "e",
-                    pattern: { kind: PatternKind.Equal, value: "tail" },
+                    pattern: { kind: PatternKind.Equal, value: lit("tail") },
                   },
                   {
                     kind: PatternKind.Variable,
                     name: "n",
-                    pattern: { kind: PatternKind.Equal, value: "end" },
+                    pattern: { kind: PatternKind.Equal, value: lit("end") },
                   },
                 ],
               },
@@ -212,7 +213,7 @@ Deno.test("req:projection-002 - DLR growth observes transforming Projection on t
                             args: [],
                           },
                         },
-                        { kind: PatternKind.Equal, value: "." },
+                        { kind: PatternKind.Equal, value: lit(".") },
                         {
                           kind: PatternKind.Variable,
                           name: "n",
@@ -242,7 +243,7 @@ Deno.test("req:projection-002 - DLR growth observes transforming Projection on t
                   {
                     kind: PatternKind.Variable,
                     name: "x",
-                    pattern: { kind: PatternKind.Equal, value: "prep" },
+                    pattern: { kind: PatternKind.Equal, value: lit("prep") },
                   },
                   {
                     kind: PatternKind.Variable,

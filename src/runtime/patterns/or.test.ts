@@ -2,6 +2,7 @@ import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
+import { lit } from "./value_source.ts";
 
 await Deno.test("runtime/patterns/or", async (t) => {
   await t.step({
@@ -38,8 +39,8 @@ await Deno.test("runtime/patterns/or", async (t) => {
       pattern: {
         kind: PatternKind.Or,
         patterns: [
-          { kind: PatternKind.Equal, value: 1 },
-          { kind: PatternKind.Equal, value: 2 },
+          { kind: PatternKind.Equal, value: lit(1) },
+          { kind: PatternKind.Equal, value: lit(2) },
         ],
       },
       input: Input.Iterable([2]),
@@ -54,8 +55,8 @@ await Deno.test("runtime/patterns/or", async (t) => {
       pattern: {
         kind: PatternKind.Or,
         patterns: [
-          { kind: PatternKind.Equal, value: 1 },
-          { kind: PatternKind.Equal, value: 2 },
+          { kind: PatternKind.Equal, value: lit(1) },
+          { kind: PatternKind.Equal, value: lit(2) },
         ],
       },
       input: Input.Iterable([3]),
@@ -70,7 +71,7 @@ await Deno.test("runtime/patterns/or", async (t) => {
       pattern: {
         kind: PatternKind.Or,
         patterns: [
-          { kind: PatternKind.Equal, value: 1 },
+          { kind: PatternKind.Equal, value: lit(1) },
         ],
       },
       input: Input.Iterable([1, 2]),
@@ -89,22 +90,22 @@ await Deno.test("runtime/patterns/or", async (t) => {
           {
             kind: PatternKind.Then,
             patterns: [
-              { kind: PatternKind.Equal, value: 0 },
+              { kind: PatternKind.Equal, value: lit(0) },
             ],
           },
           {
             kind: PatternKind.Then,
             patterns: [
-              { kind: PatternKind.Equal, value: 1 },
-              { kind: PatternKind.Equal, value: 0 },
+              { kind: PatternKind.Equal, value: lit(1) },
+              { kind: PatternKind.Equal, value: lit(0) },
             ],
           },
           {
             kind: PatternKind.Then,
             patterns: [
-              { kind: PatternKind.Equal, value: 1 },
-              { kind: PatternKind.Equal, value: 2 },
-              { kind: PatternKind.Equal, value: 0 },
+              { kind: PatternKind.Equal, value: lit(1) },
+              { kind: PatternKind.Equal, value: lit(2) },
+              { kind: PatternKind.Equal, value: lit(0) },
             ],
           },
         ],

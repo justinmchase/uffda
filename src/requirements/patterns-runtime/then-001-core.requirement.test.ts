@@ -1,6 +1,7 @@
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
+import { lit } from "../../runtime/patterns/value_source.ts";
 import { patternTest } from "../../test.ts";
 
 Deno.test("req:then-001 - Then composes child patterns sequentially", async (t) => {
@@ -10,8 +11,8 @@ Deno.test("req:then-001 - Then composes child patterns sequentially", async (t) 
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "a" },
-          { kind: PatternKind.Equal, value: "b" },
+          { kind: PatternKind.Equal, value: lit("a") },
+          { kind: PatternKind.Equal, value: lit("b") },
         ],
       },
       input: Input.Iterable("ab"),
@@ -26,8 +27,8 @@ Deno.test("req:then-001 - Then composes child patterns sequentially", async (t) 
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "a" },
-          { kind: PatternKind.Equal, value: "x" },
+          { kind: PatternKind.Equal, value: lit("a") },
+          { kind: PatternKind.Equal, value: lit("x") },
         ],
       },
       input: Input.Iterable("ab"),

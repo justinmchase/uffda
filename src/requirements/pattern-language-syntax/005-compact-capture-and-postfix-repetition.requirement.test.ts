@@ -3,6 +3,7 @@ import { Input } from "../../input.ts";
 import { MatchKind } from "../../mod.ts";
 import { patternGrammar } from "../../lang/pattern/pattern.lang.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
+import { ValueSourceKind } from "../../runtime/patterns/value_source.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
 const moduleUrl =
@@ -33,8 +34,8 @@ Deno.test(
           pattern: {
             kind: PatternKind.Quantifier,
             pattern: { kind: PatternKind.Any },
-            min: 1,
-            max: 2,
+            min: { kind: ValueSourceKind.Literal, value: 1 },
+            max: { kind: ValueSourceKind.Literal, value: 2 },
           },
         },
       }),
@@ -81,8 +82,12 @@ Deno.test(
           value: {
             kind: PatternKind.Quantifier,
             pattern: { kind: PatternKind.Any },
-            min,
-            max,
+            min: min === undefined
+              ? undefined
+              : { kind: ValueSourceKind.Literal, value: min },
+            max: max === undefined
+              ? undefined
+              : { kind: ValueSourceKind.Literal, value: max },
           },
         }),
       );
@@ -132,8 +137,8 @@ Deno.test(
         assertEquals(match.value, {
           kind: PatternKind.Quantifier,
           pattern: { kind: PatternKind.Any },
-          min: 2,
-          max: 1,
+          min: { kind: ValueSourceKind.Literal, value: 2 },
+          max: { kind: ValueSourceKind.Literal, value: 1 },
         });
       },
     );

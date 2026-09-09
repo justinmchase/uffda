@@ -1,5 +1,5 @@
 import { Type } from "@justinmchase/type";
-import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
+import { lit, ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import {
   ExportDeclarationKind,
   ImportDeclarationKind,
@@ -75,7 +75,7 @@ export const Tokenizer: ModuleDeclaration = {
       parameters: [],
       pattern: {
         kind: PatternKind.Quantifier,
-        min: 1,
+        min: lit(1),
         pattern: {
           kind: PatternKind.Resolve,
           targetKind: ResolveTargetKind.Reference,
@@ -94,10 +94,7 @@ export const Tokenizer: ModuleDeclaration = {
     {
       name: "NewLineToken",
       parameters: [],
-      pattern: {
-        kind: PatternKind.Equal,
-        value: "\n",
-      },
+      pattern: { kind: PatternKind.Equal, value: lit("\n") },
       expression: {
         kind: ExpressionKind.Native,
         fn: ({ _ }): TokenValue => ({
@@ -111,7 +108,7 @@ export const Tokenizer: ModuleDeclaration = {
       parameters: [],
       pattern: {
         kind: PatternKind.Quantifier,
-        min: 1,
+        min: lit(1),
         pattern: {
           kind: PatternKind.Or,
           patterns: [
@@ -174,10 +171,7 @@ export const Tokenizer: ModuleDeclaration = {
     {
       name: "DQuoteToken",
       parameters: [],
-      pattern: {
-        kind: PatternKind.Equal,
-        value: '"',
-      },
+      pattern: { kind: PatternKind.Equal, value: lit('"') },
       expression: {
         kind: ExpressionKind.Native,
         fn: ({ _ }): TokenValue => ({
@@ -192,18 +186,12 @@ export const Tokenizer: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          {
-            kind: PatternKind.Equal,
-            value: "#",
-          },
+          { kind: PatternKind.Equal, value: lit("#") },
           {
             kind: PatternKind.Quantifier,
             pattern: {
               kind: PatternKind.Except,
-              pattern: {
-                kind: PatternKind.Equal,
-                value: "\n",
-              },
+              pattern: { kind: PatternKind.Equal, value: lit("\n") },
             },
           },
         ],
@@ -231,10 +219,7 @@ export const Tokenizer: ModuleDeclaration = {
             name: "Whitespace",
             args: [],
           },
-          {
-            kind: PatternKind.Equal,
-            value: "\n",
-          },
+          { kind: PatternKind.Equal, value: lit("\n") },
           {
             kind: PatternKind.Resolve,
             targetKind: ResolveTargetKind.Reference,
@@ -282,10 +267,7 @@ export const Tokenizer: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          {
-            kind: PatternKind.Equal,
-            value: "\\",
-          },
+          { kind: PatternKind.Equal, value: lit("\\") },
           {
             kind: PatternKind.Resolve,
             targetKind: ResolveTargetKind.Reference,
@@ -316,10 +298,7 @@ export const Tokenizer: ModuleDeclaration = {
       parameters: [],
       pattern: {
         kind: PatternKind.Except,
-        pattern: {
-          kind: PatternKind.Equal,
-          value: '"',
-        },
+        pattern: { kind: PatternKind.Equal, value: lit('"') },
       },
       expression: {
         kind: ExpressionKind.Native,
@@ -484,10 +463,7 @@ export const Tokenizer: ModuleDeclaration = {
         pattern: {
           kind: PatternKind.Or,
           patterns: [
-            {
-              kind: PatternKind.Equal,
-              value: "\n",
-            },
+            { kind: PatternKind.Equal, value: lit("\n") },
             {
               kind: PatternKind.And,
               patterns: [
@@ -499,7 +475,7 @@ export const Tokenizer: ModuleDeclaration = {
                   kind: PatternKind.Into,
                   pattern: {
                     kind: PatternKind.Quantifier,
-                    min: 1,
+                    min: lit(1),
                     pattern: {
                       kind: PatternKind.Resolve,
                       targetKind: ResolveTargetKind.Reference,

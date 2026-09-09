@@ -1,5 +1,5 @@
 import { assert, assertEquals, assertObjectMatch } from "@std/assert";
-import { ResolveTargetKind } from "./patterns/pattern.ts";
+import { lit, ResolveTargetKind } from "./patterns/pattern.ts";
 import { match } from "./match.ts";
 import { PatternKind } from "./patterns/mod.ts";
 import { Scope } from "./scope.ts";
@@ -43,10 +43,7 @@ Deno.test("runtime.scope", async (t) => {
       const scope = Scope.From("ab", {
         kind: InputNormalizationMode.Iterable,
       });
-      const pattern: Pattern = {
-        kind: PatternKind.Equal,
-        value: "a",
-      };
+      const pattern: Pattern = { kind: PatternKind.Equal, value: lit("a") };
       const m = await match(pattern, scope);
       assert(m.kind === MatchKind.Ok);
       const done = m.scope.stream.done;
@@ -137,10 +134,7 @@ Deno.test("runtime.scope", async (t) => {
       const scope = Scope.From("a", {
         kind: InputNormalizationMode.Iterable,
       });
-      const pattern: Pattern = {
-        kind: PatternKind.Equal,
-        value: "x",
-      };
+      const pattern: Pattern = { kind: PatternKind.Equal, value: lit("x") };
       const m = await match(pattern, scope);
       assert(m.kind === MatchKind.Fail);
       const done = m.scope.stream.done;
@@ -157,10 +151,7 @@ Deno.test("runtime.scope", async (t) => {
     name: "SCOPE06",
     fn: async () => {
       const scope = Scope.From("abc");
-      const pattern: Pattern = {
-        kind: PatternKind.Equal,
-        value: "abc",
-      };
+      const pattern: Pattern = { kind: PatternKind.Equal, value: lit("abc") };
       const m = await match(pattern, scope);
       assert(m.kind === MatchKind.Ok);
       assertEquals(m.scope.stream.done, true);

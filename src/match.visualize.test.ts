@@ -3,6 +3,7 @@ import { Input } from "./input.ts";
 import { fail, MatchKind, ok } from "./match.ts";
 import { visualizeMatchFailure } from "./match.visualize.ts";
 import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
+import { lit } from "./runtime/patterns/value_source.ts";
 import type { PipelinePattern } from "./runtime/patterns/pattern.ts";
 import { Scope } from "./runtime/scope.ts";
 
@@ -10,7 +11,7 @@ Deno.test("match.visualize renders pipeline failures and terminates on cycles", 
   await t.step("renders expected input and prior pipeline output", () => {
     const scope = Scope.From(Input.Iterable("#"));
     const first = { kind: PatternKind.Any } as const;
-    const second = { kind: PatternKind.Equal, value: "expected" } as const;
+    const second = { kind: PatternKind.Equal, value: lit("expected") } as const;
     const pipeline: PipelinePattern = {
       kind: PatternKind.Pipeline,
       steps: [first, second],

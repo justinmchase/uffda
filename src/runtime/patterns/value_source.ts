@@ -19,10 +19,19 @@ export type VariableValueSource = {
   name: string;
 };
 
+/**
+ * Deterministic value operand for equal / between / includes / quantifier bounds.
+ * Always carries an explicit `kind`; never a bare serializable.
+ */
 export type ValueSource = LiteralValueSource | VariableValueSource;
 
-/** Value operand: wrapped ValueSource or legacy bare serializable literal. */
-export type ValueOperand = Serializable | ValueSource;
+export function lit(value: Serializable): LiteralValueSource {
+  return { kind: ValueSourceKind.Literal, value };
+}
+
+export function varRef(name: string): VariableValueSource {
+  return { kind: ValueSourceKind.Variable, name };
+}
 
 export function isValueSource(value: unknown): value is ValueSource {
   if (value == null || typeof value !== "object") return false;
@@ -41,30 +50,34 @@ export type ResolvedValueSource =
   | { kind: "error"; match: Match };
 
 /**
- * Resolve a value operand against the current match scope.
- * Bare serializable values (legacy hand-built AST) are treated as literals.
+ * Resolve a value source against the current match scope.
+ * Syntax/AST construction MUST choose the kind; this only interprets it.
  */
 export function resolveValueSource(
-  source: ValueOperand,
+  source: ValueSource,
   scope: Scope,
   pattern: Pattern,
 ): ResolvedValueSource {
-  if (!isValueSource(source)) {
-    return { kind: "ok", value: source };
+  switch (source.kind) {
+    case ValueSourceKind.Literal:
+      return { kind: "ok", value: source.value };
+    case ValueSourceKind.Variable: {
+      if (!scope.variables.has(source.name)) {
+        return {
+          kind: "error",
+          match: error(
+            scope,
+            pattern,
+            MatchErrorCode.UnknownReference,
+            `Unknown value reference $${source.name}`,
+          ),
+        };
+      }
+      return { kind: "ok", value: scope.variables.get(source.name) };
+    }
+    default: {
+      const _exhaustive: never = source;
+      return _exhaustive;
+    }
   }
-  if (source.kind === ValueSourceKind.Literal) {
-    return { kind: "ok", value: source.value };
-  }
-  if (!scope.variables.has(source.name)) {
-    return {
-      kind: "error",
-      match: error(
-        scope,
-        pattern,
-        MatchErrorCode.UnknownReference,
-        `Unknown value reference $${source.name}`,
-      ),
-    };
-  }
-  return { kind: "ok", value: scope.variables.get(source.name) };
 }

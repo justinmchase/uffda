@@ -3,6 +3,7 @@ import { MatchErrorCode, MatchKind } from "../../match.ts";
 import { Path } from "../../path.ts";
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
+import { lit } from "../../runtime/patterns/value_source.ts";
 import { patternTest } from "../../test.ts";
 
 Deno.test("req:projection-001 - Projection succeeds with the expression result and preserves non-Ok child outcomes", async (t) => {
@@ -32,7 +33,7 @@ Deno.test("req:projection-001 - Projection succeeds with the expression result a
     patternTest({
       pattern: {
         kind: PatternKind.Projection,
-        pattern: { kind: PatternKind.Equal, value: "x" },
+        pattern: { kind: PatternKind.Equal, value: lit("x") },
         expression: {
           kind: ExpressionKind.Native,
           fn: () => {
@@ -76,13 +77,13 @@ Deno.test("req:projection-001 - Projection succeeds with the expression result a
         patterns: [
           {
             kind: PatternKind.Projection,
-            pattern: { kind: PatternKind.Equal, value: "a" },
+            pattern: { kind: PatternKind.Equal, value: lit("a") },
             expression: {
               kind: ExpressionKind.Native,
               fn: () => ({ kind: "a" }),
             },
           },
-          { kind: PatternKind.Equal, value: "b" },
+          { kind: PatternKind.Equal, value: lit("b") },
         ],
       },
       input: Input.Iterable(["b"]),

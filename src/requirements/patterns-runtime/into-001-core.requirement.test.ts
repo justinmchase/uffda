@@ -2,6 +2,7 @@ import { Input } from "../../input.ts";
 import { MatchErrorCode, MatchKind } from "../../match.ts";
 import { Path } from "../../path.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
+import { lit } from "../../runtime/patterns/value_source.ts";
 import { patternTest } from "../../test.ts";
 
 Deno.test("req:into-001 - Into evaluates child pattern against a nested iterable stream", async (t) => {
@@ -13,8 +14,8 @@ Deno.test("req:into-001 - Into evaluates child pattern against a nested iterable
         pattern: {
           kind: PatternKind.Then,
           patterns: [
-            { kind: PatternKind.Equal, value: "a" },
-            { kind: PatternKind.Equal, value: "b" },
+            { kind: PatternKind.Equal, value: lit("a") },
+            { kind: PatternKind.Equal, value: lit("b") },
           ],
         },
       },

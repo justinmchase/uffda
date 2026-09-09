@@ -5,7 +5,7 @@ import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import type { Pattern } from "../../runtime/patterns/pattern.ts";
-import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
+import { lit, ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 
 export const Resolve: ModuleDeclaration = {
   imports: [
@@ -34,39 +34,39 @@ export const Resolve: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Or,
         patterns: [
-          { kind: PatternKind.Equal, value: "and" },
-          { kind: PatternKind.Equal, value: "any" },
-          { kind: PatternKind.Equal, value: "array" },
-          { kind: PatternKind.Equal, value: "bigint" },
-          { kind: PatternKind.Equal, value: "boolean" },
-          { kind: PatternKind.Equal, value: "date" },
-          { kind: PatternKind.Equal, value: "end" },
-          { kind: PatternKind.Equal, value: "error" },
-          { kind: PatternKind.Equal, value: "except" },
-          { kind: PatternKind.Equal, value: "fail" },
-          { kind: PatternKind.Equal, value: "false" },
-          { kind: PatternKind.Equal, value: "function" },
-          { kind: PatternKind.Equal, value: "in" },
-          { kind: PatternKind.Equal, value: "includes" },
-          { kind: PatternKind.Equal, value: "into" },
-          { kind: PatternKind.Equal, value: "lookahead" },
-          { kind: PatternKind.Equal, value: "map" },
-          { kind: PatternKind.Equal, value: "maybe" },
-          { kind: PatternKind.Equal, value: "not" },
-          { kind: PatternKind.Equal, value: "null" },
-          { kind: PatternKind.Equal, value: "number" },
-          { kind: PatternKind.Equal, value: "object" },
-          { kind: PatternKind.Equal, value: "ok" },
-          { kind: PatternKind.Equal, value: "or" },
-          { kind: PatternKind.Equal, value: "over" },
-          { kind: PatternKind.Equal, value: "pipeline" },
-          { kind: PatternKind.Equal, value: "quantifier" },
-          { kind: PatternKind.Equal, value: "set" },
-          { kind: PatternKind.Equal, value: "string" },
-          { kind: PatternKind.Equal, value: "symbol" },
-          { kind: PatternKind.Equal, value: "true" },
-          { kind: PatternKind.Equal, value: "undefined" },
-          { kind: PatternKind.Equal, value: "variable" },
+          { kind: PatternKind.Equal, value: lit("and") },
+          { kind: PatternKind.Equal, value: lit("any") },
+          { kind: PatternKind.Equal, value: lit("array") },
+          { kind: PatternKind.Equal, value: lit("bigint") },
+          { kind: PatternKind.Equal, value: lit("boolean") },
+          { kind: PatternKind.Equal, value: lit("date") },
+          { kind: PatternKind.Equal, value: lit("end") },
+          { kind: PatternKind.Equal, value: lit("error") },
+          { kind: PatternKind.Equal, value: lit("except") },
+          { kind: PatternKind.Equal, value: lit("fail") },
+          { kind: PatternKind.Equal, value: lit("false") },
+          { kind: PatternKind.Equal, value: lit("function") },
+          { kind: PatternKind.Equal, value: lit("in") },
+          { kind: PatternKind.Equal, value: lit("includes") },
+          { kind: PatternKind.Equal, value: lit("into") },
+          { kind: PatternKind.Equal, value: lit("lookahead") },
+          { kind: PatternKind.Equal, value: lit("map") },
+          { kind: PatternKind.Equal, value: lit("maybe") },
+          { kind: PatternKind.Equal, value: lit("not") },
+          { kind: PatternKind.Equal, value: lit("null") },
+          { kind: PatternKind.Equal, value: lit("number") },
+          { kind: PatternKind.Equal, value: lit("object") },
+          { kind: PatternKind.Equal, value: lit("ok") },
+          { kind: PatternKind.Equal, value: lit("or") },
+          { kind: PatternKind.Equal, value: lit("over") },
+          { kind: PatternKind.Equal, value: lit("pipeline") },
+          { kind: PatternKind.Equal, value: lit("quantifier") },
+          { kind: PatternKind.Equal, value: lit("set") },
+          { kind: PatternKind.Equal, value: lit("string") },
+          { kind: PatternKind.Equal, value: lit("symbol") },
+          { kind: PatternKind.Equal, value: lit("true") },
+          { kind: PatternKind.Equal, value: lit("undefined") },
+          { kind: PatternKind.Equal, value: lit("variable") },
         ],
       },
     },
@@ -141,10 +141,7 @@ export const Resolve: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          {
-            kind: PatternKind.Equal,
-            value: "@",
-          },
+          { kind: PatternKind.Equal, value: lit("@") },
           {
             kind: PatternKind.Variable,
             name: "name",
@@ -184,7 +181,7 @@ export const Resolve: ModuleDeclaration = {
         patterns: [
           {
             kind: PatternKind.Equal,
-            value: ",",
+            value: lit(","),
           },
           {
             kind: PatternKind.Variable,
@@ -224,7 +221,7 @@ export const Resolve: ModuleDeclaration = {
             name: "rest",
             pattern: {
               kind: PatternKind.Quantifier,
-              min: 0,
+              min: lit(0),
               pattern: {
                 kind: PatternKind.Resolve,
                 targetKind: ResolveTargetKind.Reference,
@@ -238,11 +235,11 @@ export const Resolve: ModuleDeclaration = {
             name: "trailing",
             pattern: {
               kind: PatternKind.Quantifier,
-              min: 0,
-              max: 1,
+              min: lit(0),
+              max: lit(1),
               pattern: {
                 kind: PatternKind.Equal,
-                value: ",",
+                value: lit(","),
               },
             },
           },
@@ -259,17 +256,14 @@ export const Resolve: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          {
-            kind: PatternKind.Equal,
-            value: "<",
-          },
+          { kind: PatternKind.Equal, value: lit("<") },
           {
             kind: PatternKind.Variable,
             name: "args",
             pattern: {
               kind: PatternKind.Quantifier,
-              min: 0,
-              max: 1,
+              min: lit(0),
+              max: lit(1),
               pattern: {
                 kind: PatternKind.Resolve,
                 targetKind: ResolveTargetKind.Reference,
@@ -278,10 +272,7 @@ export const Resolve: ModuleDeclaration = {
               },
             },
           },
-          {
-            kind: PatternKind.Equal,
-            value: ">",
-          },
+          { kind: PatternKind.Equal, value: lit(">") },
         ],
       },
       expression: {
@@ -311,8 +302,8 @@ export const Resolve: ModuleDeclaration = {
             name: "args",
             pattern: {
               kind: PatternKind.Quantifier,
-              min: 0,
-              max: 1,
+              min: lit(0),
+              max: lit(1),
               pattern: {
                 kind: PatternKind.Resolve,
                 targetKind: ResolveTargetKind.Reference,

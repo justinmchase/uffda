@@ -59,7 +59,7 @@ Deno.test({
           kind: PatternKind.Includes,
           values: [
             { kind: ValueSourceKind.Variable, name: "a" },
-            "y",
+            { kind: ValueSourceKind.Literal, value: "y" },
           ],
         },
       }),

@@ -4,7 +4,7 @@ import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
-import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
+import { lit, ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import type { Pattern } from "../../runtime/patterns/pattern.ts";
 
 export const Structure: ModuleDeclaration = {
@@ -34,10 +34,7 @@ export const Structure: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          {
-            kind: PatternKind.Equal,
-            value: "(",
-          },
+          { kind: PatternKind.Equal, value: lit("(") },
           {
             kind: PatternKind.Variable,
             name: "pattern",
@@ -48,10 +45,7 @@ export const Structure: ModuleDeclaration = {
               args: [],
             },
           },
-          {
-            kind: PatternKind.Equal,
-            value: ")",
-          },
+          { kind: PatternKind.Equal, value: lit(")") },
         ],
       },
       expression: {
@@ -87,10 +81,7 @@ export const Structure: ModuleDeclaration = {
               ],
             },
           },
-          {
-            kind: PatternKind.Equal,
-            value: ":",
-          },
+          { kind: PatternKind.Equal, value: lit(":") },
           {
             kind: PatternKind.Variable,
             name: "pattern",
@@ -116,7 +107,7 @@ export const Structure: ModuleDeclaration = {
         patterns: [
           {
             kind: PatternKind.Equal,
-            value: ",",
+            value: lit(","),
           },
           {
             kind: PatternKind.Variable,
@@ -156,7 +147,7 @@ export const Structure: ModuleDeclaration = {
             name: "rest",
             pattern: {
               kind: PatternKind.Quantifier,
-              min: 0,
+              min: lit(0),
               pattern: {
                 kind: PatternKind.Resolve,
                 targetKind: ResolveTargetKind.Reference,
@@ -193,11 +184,11 @@ export const Structure: ModuleDeclaration = {
             name: "trailing",
             pattern: {
               kind: PatternKind.Quantifier,
-              min: 0,
-              max: 1,
+              min: lit(0),
+              max: lit(1),
               pattern: {
                 kind: PatternKind.Equal,
-                value: ",",
+                value: lit(","),
               },
             },
           },
@@ -214,17 +205,14 @@ export const Structure: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          {
-            kind: PatternKind.Equal,
-            value: "{",
-          },
+          { kind: PatternKind.Equal, value: lit("{") },
           {
             kind: PatternKind.Variable,
             name: "keys",
             pattern: {
               kind: PatternKind.Quantifier,
-              min: 0,
-              max: 1,
+              min: lit(0),
+              max: lit(1),
               pattern: {
                 kind: PatternKind.Resolve,
                 targetKind: ResolveTargetKind.Reference,
@@ -233,10 +221,7 @@ export const Structure: ModuleDeclaration = {
               },
             },
           },
-          {
-            kind: PatternKind.Equal,
-            value: "}",
-          },
+          { kind: PatternKind.Equal, value: lit("}") },
         ],
       },
       expression: {

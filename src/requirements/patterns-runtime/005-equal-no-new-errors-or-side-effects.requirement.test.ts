@@ -1,4 +1,5 @@
 import { assertEquals, assertStrictEquals } from "@std/assert";
+import { lit } from "../../runtime/patterns/value_source.ts";
 import { InputNormalizationMode } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { match } from "../../runtime/match.ts";
@@ -15,7 +16,7 @@ Deno.test("req:equal-005 - Equal introduces no new error states and no external 
       const failureScope = Scope.From(["b"], {
         kind: InputNormalizationMode.Iterable,
       });
-      const pattern: Pattern = { kind: PatternKind.Equal, value: "a" };
+      const pattern: Pattern = { kind: PatternKind.Equal, value: lit("a") };
 
       const okMatch = await match(pattern, successScope);
       const failMatch = await match(pattern, failureScope);
@@ -31,7 +32,7 @@ Deno.test("req:equal-005 - Equal introduces no new error states and no external 
       const scope = Scope.From(["a"], {
         kind: InputNormalizationMode.Iterable,
       });
-      const pattern: Pattern = { kind: PatternKind.Equal, value: "a" };
+      const pattern: Pattern = { kind: PatternKind.Equal, value: lit("a") };
 
       const beforeSize = scope.variables.size;
       const m = await match(pattern, scope);

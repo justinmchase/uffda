@@ -1,4 +1,5 @@
 import { assertEquals } from "@std/assert";
+import { lit } from "../../runtime/patterns/value_source.ts";
 import { Input, InputNormalizationMode } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { match } from "../../runtime/match.ts";
@@ -17,10 +18,10 @@ Deno.test("req:composition-001 - Composition isolates failing exploratory branch
             kind: PatternKind.Then,
             patterns: [
               { kind: PatternKind.Any },
-              { kind: PatternKind.Equal, value: "z" },
+              { kind: PatternKind.Equal, value: lit("z") },
             ],
           },
-          { kind: PatternKind.Equal, value: "a" },
+          { kind: PatternKind.Equal, value: lit("a") },
         ],
       },
       input: Input.Iterable("a"),
@@ -45,7 +46,7 @@ Deno.test("req:composition-001 - Composition isolates failing exploratory branch
                 name: "x",
                 pattern: { kind: PatternKind.Any },
               },
-              { kind: PatternKind.Equal, value: "z" },
+              { kind: PatternKind.Equal, value: lit("z") },
             ],
           },
           {

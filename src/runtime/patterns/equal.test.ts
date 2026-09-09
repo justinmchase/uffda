@@ -3,16 +3,13 @@ import { MatchErrorCode, MatchKind } from "../../match.ts";
 import { Path } from "../../mod.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
-import { ValueSourceKind } from "./value_source.ts";
+import { lit, ValueSourceKind } from "./value_source.ts";
 
 await Deno.test("runtime/patterns/equal", async (t) => {
   await t.step({
     name: "EQUAL00",
     fn: patternTest({
-      pattern: {
-        kind: PatternKind.Equal,
-        value: "a",
-      },
+      pattern: { kind: PatternKind.Equal, value: lit("a") },
       input: Input.Iterable("a"),
       value: "a",
       kind: MatchKind.Ok,
@@ -22,10 +19,7 @@ await Deno.test("runtime/patterns/equal", async (t) => {
   await t.step({
     name: "EQUAL00",
     fn: patternTest({
-      pattern: {
-        kind: PatternKind.Equal,
-        value: 7,
-      },
+      pattern: { kind: PatternKind.Equal, value: lit(7) },
       input: Input.Iterable([7]),
       value: 7,
       kind: MatchKind.Ok,
@@ -35,10 +29,7 @@ await Deno.test("runtime/patterns/equal", async (t) => {
   await t.step({
     name: "EQUAL00",
     fn: patternTest({
-      pattern: {
-        kind: PatternKind.Equal,
-        value: 7,
-      },
+      pattern: { kind: PatternKind.Equal, value: lit(7) },
       input: Input.Iterable([11]),
       kind: MatchKind.Fail,
       done: false,
@@ -50,7 +41,7 @@ await Deno.test("runtime/patterns/equal", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Equal,
-        value: { kind: ValueSourceKind.Literal, value: "a" },
+        value: lit("a"),
       },
       input: Input.Iterable("a"),
       value: "a",

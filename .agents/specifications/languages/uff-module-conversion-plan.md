@@ -266,15 +266,22 @@ Agreed design:
    match-scope variable binding (the captured **value**). Bare `$name` as a
    primary normalizes to `equal` against that value. It MUST NOT mean “run the
    bound value as a pattern/rule.”
-2. **Value sources** on equal, between, includes, and quantifier `min`/`max`.
+2. **Value sources are tagged.** Operands are only
+   `{ kind: "value.literal", value }` or `{ kind: "value.variable", name }` —
+   never bare `Serializable`. Syntax chooses the kind; runtime only switches on
+   `kind`.
 3. **Resolve at match time** from `scope.variables`. Unbound →
    `UnknownReference`.
 4. **Syntax `$name`** (`"$"` + Identifier). Bare id stays resolve (pattern) or
-   identifier string (literal value).
+   identifier string as `value.literal`.
 
 **Ship order:** in-tree runtime + `literals.ts` (this work) → publish → then `$`
-bounds in `prefix.uff` via `compile:lang`. Quantifier numeral `max < min`
-remains runtime-authoritative (B8). Infinity deferred.
+bounds in `prefix.uff` via `compile:lang`. Until the published CLI emits tagged
+operands, `compile:lang` / `uffda compile` MAY run a one-way ModuleDeclaration
+migration that wraps legacy bare equal/between/includes/quantifier operands as
+`value.literal` (old format had no `$name`). That migration is not runtime
+inference. Quantifier numeral `max < min` remains runtime-authoritative (B8).
+Infinity deferred.
 
 ## References
 

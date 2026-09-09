@@ -2,6 +2,7 @@ import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { ExportDeclarationKind } from "../../runtime/declarations/mod.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
+import { lit } from "../../runtime/patterns/value_source.ts";
 import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
@@ -34,10 +35,10 @@ Deno.test("req:direct-left-recursion-001 - Direct left recursion is supported wi
                         name: "a",
                         args: [],
                       },
-                      { kind: PatternKind.Equal, value: "a" },
+                      { kind: PatternKind.Equal, value: lit("a") },
                     ],
                   },
-                  { kind: PatternKind.Equal, value: "a" },
+                  { kind: PatternKind.Equal, value: lit("a") },
                 ],
               },
             },

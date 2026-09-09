@@ -2,6 +2,7 @@ import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
+import { lit } from "./value_source.ts";
 
 Deno.test("runtime.patterns.lookahead", async (t) => {
   await t.step({
@@ -9,7 +10,7 @@ Deno.test("runtime.patterns.lookahead", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Lookahead,
-        pattern: { kind: PatternKind.Equal, value: "a" },
+        pattern: { kind: PatternKind.Equal, value: lit("a") },
       },
       input: Input.Iterable("a"),
       kind: MatchKind.Ok,
@@ -23,7 +24,7 @@ Deno.test("runtime.patterns.lookahead", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Lookahead,
-        pattern: { kind: PatternKind.Equal, value: "a" },
+        pattern: { kind: PatternKind.Equal, value: lit("a") },
       },
       input: Input.Iterable("b"),
       kind: MatchKind.Fail,

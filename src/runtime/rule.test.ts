@@ -4,6 +4,7 @@ import { ResolveTargetKind } from "./patterns/pattern.ts";
 import { moduleDeclarationTest } from "../test.ts";
 import { ExpressionKind } from "./expressions/expression.kind.ts";
 import { PatternKind } from "./patterns/pattern.kind.ts";
+import { lit } from "./patterns/value_source.ts";
 import { Input } from "../input.ts";
 import { MatchErrorCode, MatchKind, Path } from "../mod.ts";
 import { ModuleImportResultKind } from "./resolvers/resolver.ts";
@@ -32,10 +33,7 @@ Deno.test("runtime.rule", async (t) => {
             {
               name: "R",
               parameters: [],
-              pattern: {
-                kind: PatternKind.Equal,
-                value: "a",
-              },
+              pattern: { kind: PatternKind.Equal, value: lit("a") },
             },
           ],
         },
@@ -72,10 +70,7 @@ Deno.test("runtime.rule", async (t) => {
                     name: "a",
                     args: [],
                   },
-                  {
-                    kind: PatternKind.Equal,
-                    value: "a",
-                  },
+                  { kind: PatternKind.Equal, value: lit("a") },
                 ],
               },
             },
@@ -118,10 +113,10 @@ Deno.test("runtime.rule", async (t) => {
                         name: "a",
                         args: [],
                       },
-                      { kind: PatternKind.Equal, value: "a" },
+                      { kind: PatternKind.Equal, value: lit("a") },
                     ],
                   },
-                  { kind: PatternKind.Equal, value: "a" },
+                  { kind: PatternKind.Equal, value: lit("a") },
                 ],
               },
             },
@@ -197,7 +192,7 @@ Deno.test("runtime.rule", async (t) => {
                   {
                     kind: PatternKind.Then,
                     patterns: [
-                      { kind: PatternKind.Equal, value: "a" },
+                      { kind: PatternKind.Equal, value: lit("a") },
                       {
                         kind: PatternKind.Resolve,
                         targetKind: ResolveTargetKind.Reference,
@@ -206,7 +201,7 @@ Deno.test("runtime.rule", async (t) => {
                       },
                     ],
                   },
-                  { kind: PatternKind.Equal, value: "a" },
+                  { kind: PatternKind.Equal, value: lit("a") },
                 ],
               },
             },
@@ -636,10 +631,7 @@ Deno.test("runtime.rule", async (t) => {
                     name: "a",
                     args: [],
                   },
-                  {
-                    kind: PatternKind.Equal,
-                    value: "a",
-                  },
+                  { kind: PatternKind.Equal, value: lit("a") },
                 ],
               },
             },
@@ -720,7 +712,7 @@ Deno.test("runtime.rule", async (t) => {
               // R projects away the raw token so rematches must not revive it.
               name: "R",
               parameters: [],
-              pattern: { kind: PatternKind.Equal, value: "a" },
+              pattern: { kind: PatternKind.Equal, value: lit("a") },
               expression: {
                 kind: ExpressionKind.Native,
                 fn: () => "projected",
@@ -743,7 +735,7 @@ Deno.test("runtime.rule", async (t) => {
                         name: "R",
                         args: [],
                       },
-                      { kind: PatternKind.Equal, value: "x" },
+                      { kind: PatternKind.Equal, value: lit("x") },
                     ],
                   },
                   {

@@ -91,7 +91,7 @@ Postfix =
     }
   | pattern:Atomic
     "+"
-    -> { kind: "quantifier", pattern, min: 1 }
+    -> { kind: "quantifier", pattern, min: { kind: "value.literal", value: 1 } }
   | pattern:Atomic
     "?"
     -> { kind: "maybe", pattern }
@@ -210,6 +210,7 @@ AtomicLiteral =
   | NumberLiteral
   | BooleanLiteral
   | NullishLiteral
+  -> { kind: "value.literal", value }
   ;
 
 ContextualValue =
@@ -228,6 +229,7 @@ Literal =
   | ContextualValue
   | AtomicLiteral
   | Token<Identifier>
+    -> { kind: "value.literal", value: name }
   ;
 
 Resolve =

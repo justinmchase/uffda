@@ -1,4 +1,5 @@
 import { assertEquals } from "@std/assert";
+import { lit } from "../../runtime/patterns/value_source.ts";
 import { InputNormalizationMode } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { Path } from "../../path.ts";
@@ -11,7 +12,7 @@ Deno.test("req:equal-004 - Equal failure does not consume input and reports fail
     const scope = Scope.From(["a", "b"], {
       kind: InputNormalizationMode.Iterable,
     });
-    const pattern: Pattern = { kind: PatternKind.Equal, value: "x" };
+    const pattern: Pattern = { kind: PatternKind.Equal, value: lit("x") };
 
     const m = await match(pattern, scope);
     assertEquals(m.kind, MatchKind.Fail);
@@ -22,7 +23,7 @@ Deno.test("req:equal-004 - Equal failure does not consume input and reports fail
   await t.step("end-of-input failure also preserves position", async () => {
     const root = Scope.From(["a"], { kind: InputNormalizationMode.Iterable });
     const end = root.withInput(root.stream.next());
-    const pattern: Pattern = { kind: PatternKind.Equal, value: "x" };
+    const pattern: Pattern = { kind: PatternKind.Equal, value: lit("x") };
 
     const m = await match(pattern, end);
     assertEquals(m.kind, MatchKind.Fail);
