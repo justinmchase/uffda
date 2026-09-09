@@ -699,5 +699,69 @@ Deno.test("runtime.rule", async (t) => {
       assertEquals(m.message, "left recursion memo missing during grow");
     },
   });
+
+  await t.step({
+    name: "RULE13",
+    fn: moduleDeclarationTest({
+      moduleUrl: import.meta.url + "#memo-post-expression",
+      declarations: {
+        [import.meta.url + "#memo-post-expression"]: {
+          imports: [],
+          exports: [
+            { kind: ExportDeclarationKind.Rule, name: "R" },
+            {
+              kind: ExportDeclarationKind.Rule,
+              name: "Main",
+              default: true,
+            },
+          ],
+          rules: [
+            {
+              // R projects away the raw token so rematches must not revive it.
+              name: "R",
+              parameters: [],
+              pattern: { kind: PatternKind.Equal, value: "a" },
+              expression: {
+                kind: ExpressionKind.Native,
+                fn: () => "projected",
+              },
+            },
+            {
+              // (R "x") | R — first arm matches R then fails on "x"; second arm
+              // rematches R at the same position and must see the projection.
+              name: "Main",
+              parameters: [],
+              pattern: {
+                kind: PatternKind.Or,
+                patterns: [
+                  {
+                    kind: PatternKind.Then,
+                    patterns: [
+                      {
+                        kind: PatternKind.Resolve,
+                        targetKind: ResolveTargetKind.Reference,
+                        name: "R",
+                        args: [],
+                      },
+                      { kind: PatternKind.Equal, value: "x" },
+                    ],
+                  },
+                  {
+                    kind: PatternKind.Resolve,
+                    targetKind: ResolveTargetKind.Reference,
+                    name: "R",
+                    args: [],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+      kind: MatchKind.Ok,
+      input: Input.Iterable("a"),
+      value: "projected",
+    }),
+  });
   // todo: two identical rules with different native projections should not trigger DLR?
 });

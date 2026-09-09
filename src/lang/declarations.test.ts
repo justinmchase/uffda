@@ -57,17 +57,10 @@ Deno.test("lang.declarations registers built-in language modules", () => {
       "or",
       "pattern",
       "pattern.lang",
+      "projection",
     ] as const
   ) {
     const uff = new URL(`./pattern/${name}.uff`, import.meta.url).href;
     assertEquals(builtInLanguageDeclarations[uff], undefined);
   }
-  const projectionUrl = new URL("./pattern/projection.ts", import.meta.url)
-    .href;
-  assertEquals(
-    builtInLanguageDeclarations[projectionUrl]?.exports.some((item) =>
-      item.name === "Projection"
-    ),
-    true,
-  );
 });

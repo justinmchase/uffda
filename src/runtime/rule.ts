@@ -3,17 +3,47 @@ import { match } from "./match.ts";
 import { StackFrameKind } from "./stack/stackFrameKind.ts";
 import { exec } from "./exec.ts";
 import type { AwaitableMatch } from "./awaitable.ts";
-import type { Match } from "../match.ts";
+import type { Match, MatchOk } from "../match.ts";
 import type { Rule } from "./modules/mod.ts";
 import type { Scope } from "./scope.ts";
 import type { Pattern } from "./patterns/pattern.ts";
+
+async function finishRuleSuccess(
+  rule: Rule,
+  patternMatch: MatchOk,
+  callerScope: Scope,
+): AwaitableMatch {
+  const { pattern, expression } = rule;
+  let value: unknown;
+  try {
+    value = expression
+      ? await exec(expression, patternMatch)
+      : patternMatch.value;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : `${err}`;
+    return error(
+      callerScope,
+      pattern,
+      MatchErrorCode.ExpressionException,
+      `expression exception: ${message}`,
+      err,
+    );
+  }
+  return ok(
+    callerScope,
+    callerScope.withInput(patternMatch.scope.stream),
+    pattern,
+    value,
+    [patternMatch],
+  );
+}
 
 export async function rule(
   rule: Rule,
   args: Map<string, Rule>,
   scope: Scope,
 ): AwaitableMatch {
-  const { module, pattern, expression, name, parameters } = rule;
+  const { module, pattern, name, parameters } = rule;
   const mergedArgs = new Map([...(rule.closureArgs ?? new Map()), ...args]);
   const params = new Set<string>();
   for (const p of parameters) {
@@ -48,26 +78,28 @@ export async function rule(
       .pushRule(rule, mergedArgs);
 
     const m = await match(pattern, subScope);
-    memo.match = m;
     switch (m.kind) {
       case MatchKind.LR: {
         const grown = await grow(pattern, key, subScope);
         switch (grown.kind) {
           case MatchKind.LR:
           case MatchKind.Error:
+            memo.match = grown;
             return grown;
-          case MatchKind.Fail:
-            return fail(scope, rule.pattern, [grown]);
-          case MatchKind.Ok:
+          case MatchKind.Fail: {
+            const failed = fail(scope, rule.pattern, [grown]);
+            memo.match = failed;
+            return failed;
+          }
+          case MatchKind.Ok: {
             // Match the non-LR Ok path: expose only the caller scope plus the
             // advanced stream so inner growth bindings do not leak outward.
-            return ok(
-              scope,
-              scope.withInput(grown.scope.stream),
-              rule.pattern,
-              grown.value,
-              [grown],
-            );
+            // Apply rule-level projection to the stabilized growth result, then
+            // memoize that caller-visible value for later non-growth reuse.
+            const finished = await finishRuleSuccess(rule, grown, scope);
+            memo.match = finished;
+            return finished;
+          }
         }
         return error(
           scope,
@@ -79,30 +111,19 @@ export async function rule(
         );
       }
       case MatchKind.Error:
+        memo.match = m;
         return m;
-      case MatchKind.Fail:
-        return fail(scope, rule.pattern, [m]);
+      case MatchKind.Fail: {
+        const failed = fail(scope, rule.pattern, [m]);
+        memo.match = failed;
+        return failed;
+      }
       case MatchKind.Ok: {
-        let value: unknown;
-        try {
-          value = expression ? await exec(expression, m) : m.value;
-        } catch (err) {
-          const message = err instanceof Error ? err.message : `${err}`;
-          return error(
-            scope,
-            rule.pattern,
-            MatchErrorCode.ExpressionException,
-            `expression exception: ${message}`,
-            err,
-          );
-        }
-        return ok(
-          scope,
-          scope.withInput(m.scope.stream),
-          rule.pattern,
-          value,
-          [m],
-        );
+        const finished = await finishRuleSuccess(rule, m, scope);
+        // Store the post-expression success so Or backtracking that re-enters
+        // this rule at the same position observes the projected value.
+        memo.match = finished;
+        return finished;
       }
     }
   } else {
@@ -127,7 +148,6 @@ export async function rule(
         } else {
           // Otherwise end the LR and continue
           return m;
-          // return ok(scope, scope.withInput(m.scope.stream), rule.pattern, undefined, [memo.match])
         }
       case MatchKind.Fail:
         return fail(scope, rule.pattern, [m]);

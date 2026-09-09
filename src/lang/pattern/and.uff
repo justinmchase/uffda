@@ -1,6 +1,6 @@
 # And matches Projection patterns joined by `&` as an And AST.
 # Uses std one for length-1 collapse (B4); Tail* is required under PatternLang LR.
-import "./projection.ts" Projection;
+import "./projection.uff" Projection;
 
 export And;
 

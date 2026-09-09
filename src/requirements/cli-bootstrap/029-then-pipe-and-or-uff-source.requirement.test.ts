@@ -31,6 +31,7 @@ Deno.test(
       true,
     );
     assertEquals(andSrc.includes("AndTail*"), true);
+    assertEquals(andSrc.includes('import "./projection.uff" Projection'), true);
 
     const orSrc = await Deno.readTextFile(join(pattern, "or.uff"));
     assertEquals(orSrc.includes("export Or"), true);
@@ -39,9 +40,6 @@ Deno.test(
       true,
     );
     assertEquals(orSrc.includes('"|"?'), true);
-
-    const projection = await Deno.readTextFile(join(pattern, "projection.ts"));
-    assertEquals(projection.includes('moduleUrl: "./pipe.uff"'), true);
 
     const patternMod = await Deno.readTextFile(join(pattern, "pattern.uff"));
     assertEquals(patternMod.includes('import "./or.uff" Or'), true);

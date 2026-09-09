@@ -33,5 +33,6 @@ Each runtime subtopic should define:
 ## Subtopics
 
 - [runtime scopes](./runtime/scopes.spec.md)
+- [runtime rules](./runtime/rules.spec.md)
 - [runtime left recursion](./runtime/left-recursion.spec.md)
 - [match diagnostics](./runtime/match-diagnostics.spec.md)

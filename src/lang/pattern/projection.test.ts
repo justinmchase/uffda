@@ -4,7 +4,7 @@ import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
-const moduleUrl = new URL("./projection.ts", import.meta.url).href;
+const moduleUrl = new URL("./projection.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -19,6 +19,7 @@ Deno.test({
       name: "PROJECTION_LANG_00",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Projection",
         input: Input.Iterable(["any"]),
         kind: MatchKind.Ok,
         value: { kind: PatternKind.Any },
@@ -29,6 +30,7 @@ Deno.test({
       name: "PROJECTION_LANG_01",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Projection",
         input: Input.Iterable(["any", "-", ">", "1"]),
         kind: MatchKind.Ok,
         value: {

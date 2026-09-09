@@ -1,0 +1,14 @@
+# Projection is Pipe with an optional `-> Expression` tail as a Projection AST.
+# With-projection arm first so `P -> E` does not stop at bare Pipe.
+import "./pipe.uff" Pipe;
+import "../expression/expression.uff" Expression;
+
+export Projection;
+
+rule ProjectionTail =
+  "-" ">" e:Expression -> e;
+
+rule Projection =
+  | (p:Pipe t:ProjectionTail -> { kind: "projection", pattern: p, expression: t })
+  | Pipe
+  ;
