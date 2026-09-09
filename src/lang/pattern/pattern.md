@@ -131,6 +131,8 @@ Atomic =
     -> { kind: "includes", values }
   | value:AtomicLiteral
     -> { kind: "equal", value }
+  | value:ContextualValue
+    -> { kind: "equal", value }
   | Resolve
   | Over
   | Group
@@ -210,6 +212,12 @@ AtomicLiteral =
   | NullishLiteral
   ;
 
+ContextualValue =
+  "$"
+  name:Token<Identifier>
+  -> { kind: "value.variable", name }
+  ;
+
 LiteralList =
   first:Literal
   rest:(Literal*)
@@ -217,6 +225,7 @@ LiteralList =
   ;
 
 Literal =
+  | ContextualValue
   | AtomicLiteral
   | Token<Identifier>
   ;

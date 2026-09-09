@@ -7,6 +7,7 @@ import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import {
   CharacterClass,
   ResolveTargetKind,
+  ValueSourceKind,
 } from "../../runtime/patterns/pattern.ts";
 
 export const Literals: ModuleDeclaration = {
@@ -323,6 +324,33 @@ export const Literals: ModuleDeclaration = {
       },
     },
     {
+      name: "ContextualValue",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          { kind: PatternKind.Equal, value: "$" },
+          {
+            kind: PatternKind.Variable,
+            name: "name",
+            pattern: {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "IdentifierToken",
+              args: [],
+            },
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ name }) => ({
+          kind: ValueSourceKind.Variable,
+          name,
+        }),
+      },
+    },
+    {
       name: "AtomicLiteralValue",
       parameters: [],
       pattern: {
@@ -365,6 +393,12 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Or,
         patterns: [
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "ContextualValue",
+            args: [],
+          },
           {
             kind: PatternKind.Resolve,
             targetKind: ResolveTargetKind.Reference,
@@ -1219,10 +1253,21 @@ export const Literals: ModuleDeclaration = {
         kind: PatternKind.Variable,
         name: "value",
         pattern: {
-          kind: PatternKind.Resolve,
-          targetKind: ResolveTargetKind.Reference,
-          name: "AtomicLiteralValue",
-          args: [],
+          kind: PatternKind.Or,
+          patterns: [
+            {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "ContextualValue",
+              args: [],
+            },
+            {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "AtomicLiteralValue",
+              args: [],
+            },
+          ],
         },
       },
       expression: {

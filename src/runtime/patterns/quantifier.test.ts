@@ -3,6 +3,7 @@ import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
+import { ValueSourceKind } from "./value_source.ts";
 
 Deno.test("runtime.patterns.quantifier", async (t) => {
   await t.step({
@@ -208,6 +209,26 @@ Deno.test("runtime.patterns.quantifier", async (t) => {
       },
       input: Input.Iterable("abcd"),
       value: ["a", "b", "c"],
+      kind: MatchKind.Ok,
+      done: false,
+    }),
+  });
+
+  await t.step({
+    name: "QUANTIFIER_VALUE_SOURCE_BOUNDS",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Quantifier,
+        pattern: {
+          kind: PatternKind.Type,
+          type: Type.String,
+        },
+        min: { kind: ValueSourceKind.Variable, name: "n" },
+        max: { kind: ValueSourceKind.Variable, name: "n" },
+      },
+      variables: new Map([["n", 2]]),
+      input: Input.Iterable("abcd"),
+      value: ["a", "b"],
       kind: MatchKind.Ok,
       done: false,
     }),

@@ -1,6 +1,7 @@
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../mod.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
+import { ValueSourceKind } from "../../runtime/patterns/value_source.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
 const moduleUrl = new URL("./literals.ts", import.meta.url).href;
@@ -128,6 +129,33 @@ Deno.test({
           kind: PatternKind.Between,
           left: 1,
           right: 5,
+        },
+      }),
+    });
+
+    await t.step({
+      name: "LITERALS_VALUE_SOURCE_EQUAL",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.Iterable(["$", "x"]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Equal,
+          value: { kind: ValueSourceKind.Variable, name: "x" },
+        },
+      }),
+    });
+
+    await t.step({
+      name: "LITERALS_VALUE_SOURCE_BETWEEN",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.Iterable(["$", "a", ".", ".", "$", "b"]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Between,
+          left: { kind: ValueSourceKind.Variable, name: "a" },
+          right: { kind: ValueSourceKind.Variable, name: "b" },
         },
       }),
     });

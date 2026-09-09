@@ -11,15 +11,20 @@ Normative key words in this chapter use the conventions defined in the
 ## Logical purpose
 
 The `equal` pattern matches exactly one input item when that item is strictly
-equal to the pattern's declared literal value.
+equal to the pattern's declared value operand (a literal or a contextual `$name`
+value source resolved from the match scope).
 
 ## Behavioral expectations
 
 - An `equal` pattern MUST inspect the current input position.
+- Before comparing, an `equal` pattern MUST resolve its value operand. A
+  contextual `$name` MUST read the binding named `name` from the current
+  variable environment. An unbound `$name` MUST report an unknown-reference
+  error.
 - If no input item is available at the current position, the `equal` pattern
   MUST fail.
 - If an input item is available, the `equal` pattern MUST compare that item to
-  the declared literal value using JavaScript strict equality semantics (`===`).
+  the resolved value using JavaScript strict equality semantics (`===`).
 - If the comparison succeeds, the `equal` pattern MUST succeed and advance the
   resulting input position by exactly one item.
 - If the comparison fails, the `equal` pattern MUST fail.

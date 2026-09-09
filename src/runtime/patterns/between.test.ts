@@ -1,5 +1,6 @@
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
+import { ValueSourceKind } from "./value_source.ts";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { MatchErrorCode } from "../../match.ts";
@@ -275,6 +276,21 @@ Deno.test("runtime.patterns.between", async (t) => {
       input: Input.Iterable([true]),
       kind: MatchKind.Fail,
       done: false,
+    }),
+  });
+
+  await t.step({
+    name: "BETWEEN_VALUE_SOURCE_VARIABLE",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Between,
+        left: { kind: ValueSourceKind.Variable, name: "lo" },
+        right: { kind: ValueSourceKind.Variable, name: "hi" },
+      },
+      variables: new Map([["lo", 0], ["hi", 2]]),
+      input: Input.Iterable([1]),
+      value: 1,
+      kind: MatchKind.Ok,
     }),
   });
 });

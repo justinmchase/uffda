@@ -25,3 +25,4 @@ export * from "./variable.ts";
 
 export * from "./pattern.kind.ts";
 export * from "./pattern.ts";
+export * from "./value_source.ts";

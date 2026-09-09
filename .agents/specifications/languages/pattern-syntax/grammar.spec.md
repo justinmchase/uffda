@@ -83,6 +83,8 @@ The grammar MUST be able to express the following pattern families:
     `P*..1`, whose result is an array.
 - Bounds numerals MUST be non-negative integers (authored via digit
   `BoundNumber` forms).
+- Value operands on equal, between, includes, and (after publish) quantifier
+  bounds MAY be contextual `$name` references. See Value sources.
 - An open range with neither bound (`P*..`) MUST be rejected at parse time.
 - A maximum less than its minimum MAY parse to a Quantifier AST; the
   [quantifier](../../patterns/runtime/quantifier.spec.md) runtime MUST reject
@@ -91,6 +93,25 @@ The grammar MUST be able to express the following pattern families:
 - Bounds immediately following `*` MUST belong to that repetition regardless of
   intervening whitespace. Authors MUST group an unbounded repetition before
   sequencing it with a numeric literal, as in `(P*) 1`.
+
+## Value sources
+
+- A **value source** is either a compile-time literal or a contextual reference
+  `$name`, where `name` is an identifier.
+- `$name` denotes the match-scope **variable binding** named `name` (the
+  captured value), not a pattern or rule to run.
+- Value sources MUST be accepted only in value-operand positions:
+  - bare equal literals
+  - `between` left and right bounds (`L..R`)
+  - `includes` membership elements (`in[...]`)
+  - quantifier `min` / `max` bounds (surface `$` forms in `prefix.uff` after a
+    published CLI that parses them)
+- Positions that expect a **rule/pattern resolve** MUST NOT treat `$name` as
+  resolve. `$name` always denotes a value binding. Bare `$name` as a primary
+  MUST normalize to `equal` with a variable value source (match input against
+  the bound value), not to `resolve`.
+- Bare identifiers retain existing meanings: pattern position → resolve; literal
+  value position → identifier string equal-value.
 
 ## Precedence
 

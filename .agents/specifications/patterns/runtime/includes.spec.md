@@ -11,10 +11,13 @@ Normative key words in this chapter use the conventions defined in the
 ## Logical purpose
 
 The `includes` pattern matches exactly one input item when that item is a member
-of the pattern's declared literal value set.
+of the pattern's declared value set. Set elements MAY be literals or contextual
+`$name` value sources resolved from the match scope.
 
 ## Behavioral expectations
 
+- An `includes` pattern MUST resolve each value-source element before membership
+  testing. An unbound `$name` MUST report an unknown-reference error.
 - An `includes` pattern MUST inspect the current input position.
 - If the declared value set is empty, the `includes` pattern MUST fail for any
   available input item.
