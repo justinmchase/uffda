@@ -2,39 +2,24 @@ import { MatchKind } from "../match.ts";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 import { executeModuleDeclaration } from "../runtime/module.execute.ts";
 import type { UffdaSyntaxModule } from "../lang/uffda/syntax.types.ts";
+import { UffdaRuntimeCompiler as PreviousUffdaRuntimeCompiler } from "./previous_uffda_runtime_compiler.ts";
 
 /**
  * Compile-pipeline lower stage: run the previous published UffdaRuntimeCompiler
  * on a syntax AST to produce a ModuleDeclaration.
  *
- * Uses the previous package (not Resolver.import of in-tree
- * runtime.compiler.uff from ./bin) so compiling that module cannot recurse.
+ * Uses the frozen previous compiler snapshot (not Resolver.import of in-tree
+ * runtime.compiler.uff from ./bin) so compiling that module cannot recurse and
+ * so `deno compile` binaries can lower offline.
  * See compiler-bootstrap.spec.md § Compile pipeline and recursion break.
  */
-const PREVIOUS_COMPILER_URL =
-  "https://jsr.io/@justinmchase/uffda/0.1.15/src/lang/uffda/runtime.compiler.ts";
-
-let previousCompiler:
-  | Promise<ModuleDeclaration>
-  | ModuleDeclaration
-  | undefined;
-
-async function previousUffdaRuntimeCompiler(): Promise<ModuleDeclaration> {
-  if (!previousCompiler) {
-    previousCompiler = (async () => {
-      const mod = await import(PREVIOUS_COMPILER_URL);
-      return mod.UffdaRuntimeCompiler as ModuleDeclaration;
-    })();
-  }
-  return await previousCompiler;
-}
+const previousCompiler = PreviousUffdaRuntimeCompiler as ModuleDeclaration;
 
 /** Lower a Uffda syntax AST to a runtime ModuleDeclaration. */
 export async function lowerUffdaSyntaxModule(
   syntaxModule: UffdaSyntaxModule,
 ): Promise<ModuleDeclaration> {
-  const compiler = await previousUffdaRuntimeCompiler();
-  const match = await executeModuleDeclaration(compiler, {
+  const match = await executeModuleDeclaration(previousCompiler, {
     input: syntaxModule,
     entryRuleName: "UffdaRuntimeCompiler",
   });

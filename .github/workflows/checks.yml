@@ -22,7 +22,9 @@ jobs:
       - name: Setup Uffda CLI
         uses: ./.github/actions/uffda-setup
         with:
-          version: latest
+          # 0.1.16 standalone compile cannot lower (dynamic JSR import). Use
+          # 0.1.15 for bootstrap parse until 0.1.17+ ships with a static embed.
+          version: "0.1.15"
 
       - name: Lint
         run: deno lint
