@@ -19,9 +19,10 @@ Expected behavior:
 - Authored `.uff` modules under `src/lang/` MUST stay within the published CLI
   (version N) **feature surface** (syntax / std / pattern forms already shipped)
   — see G0.
-- `compile:lang` MUST invoke the previous published `uffda compile` for parse
-  (quoted glob such as `'src/lang/**/*.uff'`), then the compile-pipeline lower
-  stage (previous published `UffdaRuntimeCompiler`) to ModuleDeclarations.
+- `compile:lang` MUST invoke the previous published `uffda compile` directly for
+  the full parse + lower pipeline in one step (quoted glob such as
+  `'src/lang/**/*.uff'`), producing ModuleDeclaration JSON without any in-tree
+  TypeScript lower stage or frozen compiler snapshot.
 - Compile MUST NOT leave syntax ASTs as final `./bin` artifacts and MUST NOT
   commit seeds under `src/`.
 - A module MUST NOT be converted to `.uff` until every construct it needs is
@@ -35,5 +36,6 @@ Postconditions:
 - Self-hosting conversion cannot race ahead of published language-feature
   capability.
 - New syntax/std must publish before dependent `.uff` conversion.
-- The runtime-compiler chicken/egg is broken by previous-CLI parse +
-  previous-compiler lower, not by recursive `./bin` import or `src/` seeds.
+- The runtime-compiler chicken/egg is broken by a single previous-published-CLI
+  step (parse + lower in one process), not by recursive `./bin` import or `src/`
+  seeds.

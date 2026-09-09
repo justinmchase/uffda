@@ -11,7 +11,7 @@ import {
   outputNameForSource,
   toStableSourcePath,
 } from "../runtime/resolvers/artifact_path.ts";
-import { lowerUffdaSyntaxModule } from "./lower_uffda_syntax.ts";
+import { compileUffdaSyntaxModule } from "../lang/uffda/execute.ts";
 
 export enum CliCompileFailureCode {
   InvalidContext = "CLI_COMPILE_INVALID_CONTEXT",
@@ -332,7 +332,7 @@ export async function compileSourcesToAstArtifacts(
 
     let module: ModuleDeclaration;
     try {
-      module = await lowerUffdaSyntaxModule(parsed.value);
+      module = await compileUffdaSyntaxModule(parsed.value);
     } catch (error) {
       const failure: CliCompileFailure = {
         code: CliCompileFailureCode.ParseFailure,
