@@ -14,7 +14,6 @@ Deno.test(
 
     for (
       const file of [
-        "prefix.ts",
         "structure.ts",
         "resolve.ts",
       ]
@@ -23,6 +22,9 @@ Deno.test(
       assertEquals(source.includes('moduleUrl: "./pattern.uff"'), true);
       assertEquals(source.includes('moduleUrl: "./pattern.ts"'), false);
     }
+
+    const prefixSrc = await Deno.readTextFile(join(pattern, "prefix.uff"));
+    assertEquals(prefixSrc.includes('import "./pattern.uff" Pattern'), true);
 
     const patternLang = await Deno.readTextFile(
       join(pattern, "pattern.lang.uff"),

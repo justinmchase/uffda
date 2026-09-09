@@ -120,7 +120,7 @@ file:
 | B5  | Quantifier optional-array unwrap                             | many                                                                    | `(flat (coalesce k []))` / star rewrite; more sugar later                                                                                                                             |
 | B6  | Host match spans / checksum / line index                     | source/mod, tokenizer                                                   | New std/host builtins — then convert (not permanent hybrid)                                                                                                                           |
 | B7  | Match-tree semantic text walk                                | tokenizer.lang                                                          | Same as B6 — required before tokenizer.lang `.uff`                                                                                                                                    |
-| B8  | Validation `throw` in projection                             | prefix bounds                                                           | Fail in pattern, not expression                                                                                                                                                       |
+| B8  | Validation `throw` in projection                             | prefix bounds                                                           | Closed: Star arms + runtime Quantifier; no Native throw                                                                                                                               |
 | B9  | Pattern stack import cycles                                  | resolve/structure ↔ pattern                                             | Convert as a layer with temporary TS bridges                                                                                                                                          |
 | B10 | Parametric rules (`Surround<L,P,R>`, `Token<P>`)             | surround, token                                                         | Declaration syntax shipped in 0.1.11                                                                                                                                                  |
 | B11 | PatternLang + ExpressionLang string escapes (`\t`, `\n`, …)  | whitespace, newLine (done)                                              | Shipped; expression escapes enable `-> "\n"`                                                                                                                                          |
@@ -178,21 +178,21 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ### Phase 3 — Pattern stack
 
-| #   | Module                 | G1                                    | G2                            | G3                                          | Ready?                          |
-| --- | ---------------------- | ------------------------------------- | ----------------------------- | ------------------------------------------- | ------------------------------- |
-| 27  | `pattern/atoms`        | OK                                    | object `{kind:"any"}`         | OK proj                                     | done                            |
-| 28  | `pattern/literals`     | heavy CharacterClass/includes/between | many Natives                  | mostly AST wrap; audit string/number unwrap | hard; after expr number/boolean |
-| 29  | `pattern/resolve`      | **B9** cycle                          | optional-arg unpack           | OK                                          | hard                            |
-| 30  | `pattern/structure`    | **B9** cycle                          | Over AST                      | OK                                          | hard                            |
-| 31  | `pattern/atomic`       | OK                                    | identity                      | OK                                          | done                            |
-| 32  | `pattern/prefix`       | OK                                    | **B8** throw/validate; **B5** | Bounds validation must move to patterns     | **blocked** until B8            |
-| 33  | `pattern/then`         | OK                                    | std `one` + `*`               | OK                                          | done                            |
-| 34  | `pattern/pipe`         | OK                                    | std `one` + `*`               | OK                                          | done                            |
-| 34a | `pattern/projection`   | OK                                    | object proj / identity        | `(Pipe Tail) \| Pipe` (rules-001)           | done                            |
-| 35  | `pattern/and`          | OK                                    | std `one` + `*`               | OK                                          | done                            |
-| 36  | `pattern/or`           | OK                                    | std `one` + `*`               | OK                                          | done                            |
-| 37  | `pattern/pattern`      | OK                                    | identity                      | OK                                          | done                            |
-| 38  | `pattern/pattern.lang` | pipeline                              | unwrap                        | OK                                          | done                            |
+| #   | Module                 | G1                                    | G2                     | G3                                          | Ready?                          |
+| --- | ---------------------- | ------------------------------------- | ---------------------- | ------------------------------------------- | ------------------------------- |
+| 27  | `pattern/atoms`        | OK                                    | object `{kind:"any"}`  | OK proj                                     | done                            |
+| 28  | `pattern/literals`     | heavy CharacterClass/includes/between | many Natives           | mostly AST wrap; audit string/number unwrap | hard; after expr number/boolean |
+| 29  | `pattern/resolve`      | **B9** cycle                          | optional-arg unpack    | OK                                          | hard                            |
+| 30  | `pattern/structure`    | **B9** cycle                          | Over AST               | OK                                          | hard                            |
+| 31  | `pattern/atomic`       | OK                                    | identity               | OK                                          | done                            |
+| 32  | `pattern/prefix`       | OK                                    | object AST wraps       | Star arms; no throw (B8)                    | done                            |
+| 33  | `pattern/then`         | OK                                    | std `one` + `*`        | OK                                          | done                            |
+| 34  | `pattern/pipe`         | OK                                    | std `one` + `*`        | OK                                          | done                            |
+| 34a | `pattern/projection`   | OK                                    | object proj / identity | `(Pipe Tail) \| Pipe` (rules-001)           | done                            |
+| 35  | `pattern/and`          | OK                                    | std `one` + `*`        | OK                                          | done                            |
+| 36  | `pattern/or`           | OK                                    | std `one` + `*`        | OK                                          | done                            |
+| 37  | `pattern/pattern`      | OK                                    | identity               | OK                                          | done                            |
+| 38  | `pattern/pattern.lang` | pipeline                              | unwrap                 | OK                                          | done                            |
 
 ### Phase 4 — Uffda language surface
 
@@ -232,10 +232,10 @@ permanent TypeScript language modules once builtins exist.
 
 ## First candidate (next session)
 
-`pattern/projection` is converted. Next: close **B8** so `pattern/prefix` can
-convert (bounds validation must fail in pattern, not throw from Native). Still
-blocked/hard: resolve/structure (B9), literals, Phase 5 tokenizer/mod (large),
-B6/B7 for source / tokenizer.lang.
+`pattern/prefix` is converted (B8 closed). Next hard leaves: `pattern/literals`,
+or `pattern/resolve`+`structure` (B9). Phase 5: `tokenizer/mod` (large); B6/B7
+still block `source` / `tokenizer.lang`. Optional: ExpressionLang `Infinity`
+literal if we want `0..Infinity` between forms / explicit unbounded max.
 
 Optional `recursive rule` sugar remains deferred
 ([#98](https://github.com/justinmchase/uffda/issues/98)).

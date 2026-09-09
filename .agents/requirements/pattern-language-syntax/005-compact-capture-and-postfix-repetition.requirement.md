@@ -18,12 +18,14 @@ Expected behavior:
 - `x:P` MUST normalize to a variable pattern named `x` whose child is `P`.
 - `{ field: x:P }` MUST normalize to a keyed `field` pattern containing that
   variable pattern.
-- `P*`, `P*min`, `P*min..max`, and `P*..max` MUST normalize to quantifier
-  patterns with the corresponding inclusive bounds.
+- `P*`, `P*min`, `P*min..max`, `P*min..`, and `P*..max` MUST normalize to
+  quantifier patterns with the corresponding inclusive bounds.
 - `P+` MUST normalize to a quantifier with minimum one.
 - `P?` MUST normalize to a maybe pattern rather than a quantifier.
-- Invalid or chained repetition suffixes MUST not produce a successful complete
-  pattern parse.
+- Invalid or chained repetition suffixes (`P*..`, `P**`, …) MUST not produce a
+  successful complete pattern parse.
+- Descending bounds such as `P*2..1` MAY parse successfully; quantifier
+  evaluation MUST reject them at match time.
 
 Postconditions:
 

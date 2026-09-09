@@ -58,6 +58,7 @@ Deno.test("lang.declarations registers built-in language modules", () => {
       "pattern",
       "pattern.lang",
       "projection",
+      "prefix",
     ] as const
   ) {
     const uff = new URL(`./pattern/${name}.uff`, import.meta.url).href;
