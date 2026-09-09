@@ -41,10 +41,10 @@ self-hosting while maintaining deterministic and diagnosable behavior.
   module in the tree depends on them for compile-time acceptance.
 - Authored `.uff` modules MUST stay within that published feature surface.
 - Local and CI bootstrap of `./bin` (`deno task compile:lang`) MUST use the
-  previous published `uffda compile` for parse (quoted glob such as
-  `'src/lang/**/*.uff'`), then the compile-pipeline lower stage to
-  ModuleDeclarations. After a published CLI includes that full pipeline,
-  bootstrap SHOULD prefer that single previous-CLI compile step.
+  previous published `uffda compile` for the full parse + lower pipeline in one
+  step (quoted glob such as `'src/lang/**/*.uff'`), producing ModuleDeclaration
+  JSON directly. No separate in-tree lower stage or frozen compiler snapshot is
+  needed once the published CLI includes that pipeline (0.1.17+).
 
 ## Compile pipeline and recursion break
 
@@ -57,24 +57,26 @@ workspace `./bin`, so an empty `./bin` cannot be filled by in-tree parse alone.
 - `uffda compile` MUST be a single product pipeline: parse authored `.uff` to a
   syntax module, then run `UffdaRuntimeCompiler` as the next stage, then write
   the resulting **ModuleDeclaration** JSON (`imports` / `exports` / `rules`).
-- That lower stage MUST use the **previous published** compiler (the compiler
-  language already shipped in the previous package), not the in-tree
-  `runtime.compiler.uff` resolved from the workspace `./bin` tree being written.
-- Bootstrap of workspace `./bin` (`deno task compile:lang`) MUST use the
-  **previous published `uffda` CLI** for the parse/emit half (embedded languages
-  in that binary), then run the same lower stage to ModuleDeclarations. It MUST
-  NOT leave syntax ASTs as the final artifacts and MUST NOT commit seeds under
-  `src/`.
+  The published CLI binary embeds this whole pipeline (0.1.17+), so invoking it
+  externally (`uffda compile 'src/lang/**/*.uff' --out-dir ./bin`) already
+  performs both stages.
+- Bootstrap of workspace `./bin` (`deno task compile:lang`) MUST shell out to
+  the **previous published `uffda` CLI** for the full parse + lower pipeline
+  (embedded languages and compiler in that binary). It MUST NOT leave syntax
+  ASTs as the final artifacts and MUST NOT commit seeds under `src/`.
+- Once workspace `./bin` is populated, in-tree `uffda compile`
+  (`src/cli/compile.ts`) MAY lower using `Resolver.import` of
+  `runtime.compiler.uff` (`compileUffdaSyntaxModule` in
+  `src/lang/uffda/execute.ts`), reading the ModuleDeclaration that the previous
+  published CLI already produced under `./bin`. This is not the recursive case:
+  the artifact being read was produced by an earlier, separate invocation of the
+  previous published CLI, not by the in-tree compile call that is reading it.
 - Runtime resolution of logical `.uff` URLs MUST load the mirrored
   ModuleDeclaration JSON only. It MUST NOT re-run the runtime compiler or parse
   `.uff` source text on import.
 - Authors MUST NOT introduce host workarounds that park compiler JSON under
   `src/` or special-case the runtime compiler artifact path outside normal
   resolve.
-
-After a release includes the full product pipeline, bootstrap SHOULD prefer that
-published `uffda compile` as the previous-CLI step (see
-[Published-compiler feature surface](#published-compiler-feature-surface)).
 
 ## Artifact layout requirements
 

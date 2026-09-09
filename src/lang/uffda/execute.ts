@@ -4,6 +4,7 @@ import {
   type ExecuteModuleDeclarationOptions,
 } from "../../runtime/module.execute.ts";
 import { type Match, MatchKind } from "../../match.ts";
+import { parseGrammar } from "../grammar.ts";
 import {
   diagnoseUffdaRuntimeCompilerFailure,
   runUffdaRuntimeCompiler,
@@ -37,6 +38,22 @@ export async function compileUffdaSyntaxModule(
     throw new Error(`Uffda runtime compilation failed with ${compiled.kind}`);
   }
   throw new UffdaCompilationError(diagnostic, compiled);
+}
+
+/**
+ * Parses and lowers raw `.uff` source text directly to a ModuleDeclaration in
+ * one pattern-match pipeline (`CompileUffdaSource` in `./compile.uff`: text
+ * `|>` UffdaLang `|>` UffdaRuntimeCompiler), instead of gluing `uffdaGrammar`
+ * and `compileUffdaSyntaxModule` together imperatively in TypeScript.
+ */
+export async function compileUffdaSource(
+  source: string,
+): Promise<Match<ModuleDeclaration>> {
+  return await parseGrammar<ModuleDeclaration>({
+    source,
+    moduleUrl: new URL("./compile.uff", import.meta.url),
+    entryRuleName: "CompileUffdaSource",
+  });
 }
 
 export type ExecuteUffdaSourceOptions = ExecuteModuleDeclarationOptions;

@@ -2,16 +2,12 @@ import { expandGlob } from "@std/fs/expand-glob";
 import { dirname, isAbsolute, join, resolve } from "@std/path";
 import { isGlob } from "@std/path/is-glob";
 import { type Match, MatchKind } from "../match.ts";
-import {
-  uffdaGrammar,
-  type UffdaSyntaxModule,
-} from "../lang/uffda/uffda.lang.ts";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 import {
   outputNameForSource,
   toStableSourcePath,
 } from "../runtime/resolvers/artifact_path.ts";
-import { lowerUffdaSyntaxModule } from "./lower_uffda_syntax.ts";
+import { compileUffdaSource } from "../lang/uffda/execute.ts";
 
 export enum CliCompileFailureCode {
   InvalidContext = "CLI_COMPILE_INVALID_CONTEXT",
@@ -33,8 +29,6 @@ export type CliCompileFailure = {
 export type CliCompileUnitSuccess = {
   sourcePath: string;
   outputPath: string;
-  /** Syntax AST before the lower stage (provenance for diagnostics). */
-  ast: UffdaSyntaxModule;
   /** ModuleDeclaration written to the artifact. */
   module: ModuleDeclaration;
 };
@@ -44,7 +38,6 @@ export type CliCompileUnitResult =
     ok: true;
     sourcePath: string;
     outputPath: string;
-    ast: UffdaSyntaxModule;
     module: ModuleDeclaration;
   }
   | {
@@ -312,13 +305,13 @@ export async function compileSourcesToAstArtifacts(
       continue;
     }
 
-    const parsed = await uffdaGrammar(sourceText);
-    if (parsed.kind !== MatchKind.Ok) {
+    const compiled = await compileUffdaSource(sourceText);
+    if (compiled.kind !== MatchKind.Ok) {
       const failure: CliCompileFailure = {
         code: CliCompileFailureCode.ParseFailure,
         sourcePath: plan.sourcePath,
         outputPath: plan.outputPath,
-        message: parseFailureMessage(parsed),
+        message: parseFailureMessage(compiled),
       };
       failures.push(failure);
       units.push({
@@ -329,26 +322,7 @@ export async function compileSourcesToAstArtifacts(
       });
       continue;
     }
-
-    let module: ModuleDeclaration;
-    try {
-      module = await lowerUffdaSyntaxModule(parsed.value);
-    } catch (error) {
-      const failure: CliCompileFailure = {
-        code: CliCompileFailureCode.ParseFailure,
-        sourcePath: plan.sourcePath,
-        outputPath: plan.outputPath,
-        message: `Unable to lower syntax module ${plan.sourcePath}: ${error}`,
-      };
-      failures.push(failure);
-      units.push({
-        ok: false,
-        sourcePath: plan.sourcePath,
-        outputPath: plan.outputPath,
-        failure,
-      });
-      continue;
-    }
+    const module: ModuleDeclaration = compiled.value;
 
     try {
       await Deno.writeTextFile(
@@ -375,7 +349,6 @@ export async function compileSourcesToAstArtifacts(
     const success: CliCompileUnitSuccess = {
       sourcePath: plan.sourcePath,
       outputPath: plan.outputPath,
-      ast: parsed.value,
       module,
     };
     successes.push(success);
@@ -383,7 +356,6 @@ export async function compileSourcesToAstArtifacts(
       ok: true,
       sourcePath: success.sourcePath,
       outputPath: success.outputPath,
-      ast: success.ast,
       module: success.module,
     });
   }

@@ -4,10 +4,12 @@ import { MatchKind } from "../../mod.ts";
 import { ExportDeclarationKind } from "../../runtime/declarations/export.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import {
+  compileUffdaSource,
   compileUffdaSyntaxModule,
   executeUffdaSource,
   UffdaCompilationError,
 } from "./execute.ts";
+import { uffdaGrammar } from "./uffda.lang.ts";
 import type { UffdaSyntaxModule } from "./syntax.types.ts";
 
 Deno.test("lang.uffda.execute compiles through UffdaRuntimeCompiler", async () => {
@@ -85,4 +87,25 @@ Deno.test("lang.uffda.execute parses compiles and runs parametric surround rule"
     input: Input.Iterable("()"),
   });
   assertEquals(fail.kind, MatchKind.Fail);
+});
+
+Deno.test("lang.uffda.execute compileUffdaSource matches uffdaGrammar + compileUffdaSyntaxModule", async () => {
+  const source = "export Main; rule Main = any;";
+
+  const single = await compileUffdaSource(source);
+  assertEquals(single.kind, MatchKind.Ok);
+
+  const parsed = await uffdaGrammar(source);
+  assertEquals(parsed.kind, MatchKind.Ok);
+  if (parsed.kind !== MatchKind.Ok) return;
+  const twoStep = await compileUffdaSyntaxModule(parsed.value);
+
+  if (single.kind === MatchKind.Ok) {
+    assertEquals(single.value, twoStep);
+  }
+});
+
+Deno.test("lang.uffda.execute compileUffdaSource surfaces parse failures", async () => {
+  const failed = await compileUffdaSource("rule Main = ;");
+  assertEquals(failed.kind === MatchKind.Ok, false);
 });

@@ -22,9 +22,7 @@ jobs:
       - name: Setup Uffda CLI
         uses: ./.github/actions/uffda-setup
         with:
-          # 0.1.16 standalone compile cannot lower (dynamic JSR import). Use
-          # 0.1.15 for bootstrap parse until 0.1.17+ ships with a static embed.
-          version: "0.1.15"
+          version: latest
 
       - name: Lint
         run: deno lint
@@ -41,8 +39,9 @@ jobs:
       - name: Compile language modules
         run: |
           set -euo pipefail
-          # In-tree compile pipeline: parse → previous published compiler →
-          # ModuleDeclaration under ./bin (see compiler-bootstrap.spec.md).
+          # Bootstrap ./bin using the previous published `uffda compile` CLI,
+          # which parses and lowers .uff to ModuleDeclaration JSON in one step
+          # (see compiler-bootstrap.spec.md).
           deno task compile:lang
           test -f ./bin/ast/src/lang/common/characters/digit.uffda.ast.json
           test -f ./bin/ast/src/lang/common/characters/connecting.uffda.ast.json
