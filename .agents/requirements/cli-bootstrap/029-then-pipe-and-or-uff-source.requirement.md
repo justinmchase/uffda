@@ -10,8 +10,9 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- Pattern stack leaf used by these modules (`prefix`) may remain TypeScript.
-  `projection` is converted (see cli-bootstrap-035).
+- Pattern stack leaves used by these modules may remain TypeScript where not yet
+  converted (`resolve`, `structure`, `literals`). `prefix` and `projection` are
+  converted.
 - Std provides `flat` and `one` for assembling and collapsing pattern lists.
 
 Expected behavior:

@@ -1,0 +1,116 @@
+# Prefix operators, capture, and postfix repetition (* / + / ?).
+# Star bounds are separate arms (not optional unwrap + Native validation):
+# digit BoundNumber is already non-negative; max < min is left to Quantifier
+# runtime (B8).
+import "./atomic.uff" Atomic;
+import "./pattern.uff" Pattern;
+import "../common/identifier.uff" Identifier;
+import "../expression/number.uff" Number;
+
+export Prefix;
+
+rule BoundNumber =
+  n:Number -> n.value;
+
+rule StarMinMax =
+  p:Atomic
+  "*"
+  n:BoundNumber
+  "."
+  "."
+  m:BoundNumber
+  -> { kind: "quantifier", pattern: p, min: n, max: m };
+
+rule StarMinOpen =
+  p:Atomic
+  "*"
+  n:BoundNumber
+  "."
+  "."
+  -> { kind: "quantifier", pattern: p, min: n, max: undefined };
+
+rule StarMaxOnly =
+  p:Atomic
+  "*"
+  "."
+  "."
+  m:BoundNumber
+  -> { kind: "quantifier", pattern: p, min: 0, max: m };
+
+rule StarMinOnly =
+  p:Atomic
+  "*"
+  n:BoundNumber
+  -> { kind: "quantifier", pattern: p, min: n, max: undefined };
+
+rule StarBare =
+  p:Atomic
+  "*"
+  -> { kind: "quantifier", pattern: p, min: undefined, max: undefined };
+
+rule Star =
+  | StarMinMax
+  | StarMinOpen
+  | StarMaxOnly
+  | StarMinOnly
+  | StarBare
+  ;
+
+rule Plus =
+  p:Atomic
+  "+"
+  -> { kind: "quantifier", pattern: p, min: 1, max: undefined };
+
+rule Optional =
+  p:Atomic
+  "?"
+  -> { kind: "maybe", pattern: p };
+
+rule Postfix =
+  | Star
+  | Plus
+  | Optional
+  | Atomic
+  ;
+
+rule Not =
+  "not"
+  p:Prefix
+  -> { kind: "not", pattern: p };
+
+rule Maybe =
+  "maybe"
+  p:Prefix
+  -> { kind: "maybe", pattern: p };
+
+rule Lookahead =
+  "lookahead"
+  p:Prefix
+  -> { kind: "lookahead", pattern: p };
+
+rule Into =
+  "["
+  p:Pattern
+  "]"
+  -> { kind: "into", pattern: p };
+
+rule Except =
+  "except"
+  p:Prefix
+  -> { kind: "except", pattern: p };
+
+rule Capture =
+  n:Identifier
+  ":"
+  p:Prefix
+  -> { kind: "variable", name: n, pattern: p };
+
+rule Prefix =
+  | Not
+  | Maybe
+  | Lookahead
+  | Into
+  | Except
+  | Capture
+  | Postfix
+  ;

@@ -17,7 +17,6 @@
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 
 import Literals from "./pattern/literals.ts";
-import Prefix from "./pattern/prefix.ts";
 import Resolve from "./pattern/resolve.ts";
 import Structure from "./pattern/structure.ts";
 import Source from "./source/mod.ts";
@@ -35,7 +34,6 @@ function entry(
 export const builtInLanguageDeclarations: Record<string, ModuleDeclaration> =
   Object.fromEntries([
     entry("./pattern/literals.ts", Literals),
-    entry("./pattern/prefix.ts", Prefix),
     entry("./pattern/resolve.ts", Resolve),
     entry("./pattern/structure.ts", Structure),
     entry("./source/mod.ts", Source),

@@ -1,6 +1,6 @@
 import { assertEquals } from "@std/assert";
 import { Input } from "../../input.ts";
-import { MatchErrorCode, MatchKind } from "../../mod.ts";
+import { MatchKind } from "../../mod.ts";
 import { patternGrammar } from "../../lang/pattern/pattern.lang.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { moduleDeclarationTest } from "../../test.ts";
@@ -123,16 +123,20 @@ Deno.test(
       }),
     );
 
-    await t.step("descending bounds are rejected", async () => {
-      const match = await patternGrammar("any*2..1");
-      assertEquals(match.kind, MatchKind.Error);
-      if (match.kind !== MatchKind.Error) return;
-      assertEquals(match.code, MatchErrorCode.ExpressionException);
-      assertEquals(
-        match.message,
-        "expression exception: repetition maximum 1 is less than minimum 2",
-      );
-    });
+    await t.step(
+      "descending bounds parse; quantifier rejects at use",
+      async () => {
+        const match = await patternGrammar("any*2..1");
+        assertEquals(match.kind, MatchKind.Ok);
+        if (match.kind !== MatchKind.Ok) return;
+        assertEquals(match.value, {
+          kind: PatternKind.Quantifier,
+          pattern: { kind: PatternKind.Any },
+          min: 2,
+          max: 1,
+        });
+      },
+    );
 
     await t.step("fractional bounds are rejected", async () => {
       const match = await patternGrammar("any*1.5");

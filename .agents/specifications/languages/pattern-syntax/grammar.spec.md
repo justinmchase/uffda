@@ -81,9 +81,12 @@ The grammar MUST be able to express the following pattern families:
   - `P+` is the canonical shorthand for `P*1`.
   - `P?` maps to the scalar `maybe` pattern and MUST remain distinct from
     `P*..1`, whose result is an array.
-- Bounds MUST be non-negative integers, a bounded maximum MUST be greater than
-  or equal to its minimum, and an open range with neither bound MUST be
-  rejected.
+- Bounds numerals MUST be non-negative integers (authored via digit
+  `BoundNumber` forms).
+- An open range with neither bound (`P*..`) MUST be rejected at parse time.
+- A maximum less than its minimum MAY parse to a Quantifier AST; the
+  [quantifier](../../patterns/runtime/quantifier.spec.md) runtime MUST reject
+  that pattern when it is evaluated.
 - Repetition suffixes MUST NOT be chained.
 - Bounds immediately following `*` MUST belong to that repetition regardless of
   intervening whitespace. Authors MUST group an unbounded repetition before
