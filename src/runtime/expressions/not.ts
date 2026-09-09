@@ -1,4 +1,5 @@
-import { exec, type MatchOk } from "../../mod.ts";
+import type { MatchOk } from "../../match.ts";
+import { exec } from "../exec.ts";
 import type { NotExpression } from "./expression.ts";
 
 export async function not(

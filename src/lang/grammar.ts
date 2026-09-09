@@ -7,7 +7,7 @@ import { std } from "../runtime/std/mod.ts";
 import { resolve } from "../runtime/patterns/resolve.ts";
 import { languageArtifactRoots } from "../runtime/resolvers/language_artifact_roots.ts";
 import { ModuleImportResultKind } from "../runtime/resolvers/resolver.ts";
-import { Resolver } from "../mod.ts";
+import { Resolver } from "../runtime/resolve.ts";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 
 export type GrammarParse<TAst, TOptions> = (

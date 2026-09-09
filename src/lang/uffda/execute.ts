@@ -3,7 +3,7 @@ import {
   executeModuleDeclaration,
   type ExecuteModuleDeclarationOptions,
 } from "../../runtime/module.execute.ts";
-import { type Match, MatchKind } from "../../mod.ts";
+import { type Match, MatchKind } from "../../match.ts";
 import {
   diagnoseUffdaRuntimeCompilerFailure,
   runUffdaRuntimeCompiler,

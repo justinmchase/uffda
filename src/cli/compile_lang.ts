@@ -4,8 +4,12 @@
  *
  * 1. Previous published `uffda compile` parses .uff using languages embedded in
  *    that CLI (workspace ./bin may be empty — in-tree grammar cannot).
- * 2. Lower stage: previous published UffdaRuntimeCompiler turns each syntax AST
- *    into a ModuleDeclaration in place.
+ *    Pin to 0.1.15 until 0.1.17+ (this fix) is published: 0.1.16's binary
+ *    cannot lower (dynamic JSR import).
+ * 2. Lower stage: frozen previous UffdaRuntimeCompiler → ModuleDeclaration.
+ *
+ * After 0.1.17+ is the installed previous CLI, this task can collapse to a
+ * single `uffda compile` (that binary already emits ModuleDeclarations).
  *
  * Resolve later only loads that JSON (no recursion). See
  * compiler-bootstrap.spec.md § Compile pipeline and recursion break.

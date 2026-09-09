@@ -1,5 +1,10 @@
-import { error, type Match, MatchErrorCode, ok } from "../../match.ts";
-import { MatchKind } from "../../mod.ts";
+import {
+  error,
+  type Match,
+  MatchErrorCode,
+  MatchKind,
+  ok,
+} from "../../match.ts";
 import { match } from "../match.ts";
 import type { Scope } from "../scope.ts";
 import type { MaybePattern } from "./pattern.ts";
