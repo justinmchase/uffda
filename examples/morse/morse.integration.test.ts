@@ -1,7 +1,6 @@
 import { assertEquals } from "@std/assert";
 import { dirname, fromFileUrl, join, resolve } from "@std/path";
 import { Input } from "../../src/input.ts";
-import { compileUffdaSyntaxModule } from "../../src/lang/uffda/uffda.lang.ts";
 import { MatchKind } from "../../src/match.ts";
 import { executeModuleDeclaration } from "../../src/runtime/module.execute.ts";
 import { compileSourcesToAstArtifacts } from "../../src/cli/compile.ts";
@@ -60,12 +59,9 @@ Deno.test({
     const artifactText = await Deno.readTextFile(
       compiled.successes[0].outputPath,
     );
-    const ast = JSON.parse(artifactText) as Parameters<
-      typeof compileUffdaSyntaxModule
-    >[0];
-    assertEquals(ast.kind, "module");
+    const declaration = JSON.parse(artifactText);
+    assertEquals(Array.isArray(declaration.rules), true);
 
-    const declaration = await compileUffdaSyntaxModule(ast);
     const sourceText = normalizeMorseInput(MOBY_DICK_EXCERPT);
 
     const encoded = await executeModuleDeclaration(declaration, {

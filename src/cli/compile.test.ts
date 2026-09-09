@@ -45,11 +45,13 @@ Deno.test({
       const onDisk = JSON.parse(
         await Deno.readTextFile(join(out, "main.uffda.ast.json")),
       ) as {
-        kind: string;
-        declarations: unknown[];
+        imports: unknown[];
+        exports: unknown[];
+        rules: unknown[];
       };
-      assertEquals(onDisk.kind, "module");
-      assertEquals(onDisk.declarations.length, 2);
+      assertEquals(Array.isArray(onDisk.imports), true);
+      assertEquals(Array.isArray(onDisk.exports), true);
+      assertEquals(onDisk.rules.length >= 1, true);
     });
 
     await t.step(
@@ -171,7 +173,8 @@ Deno.test({
         assertEquals(allowed.ok, true);
 
         const onDisk = await Deno.readTextFile(artifactPath);
-        assert(onDisk.includes('"kind": "module"'));
+        assert(onDisk.includes('"name": "Main"'));
+        assert(onDisk.includes('"rules"'));
       },
     );
   },

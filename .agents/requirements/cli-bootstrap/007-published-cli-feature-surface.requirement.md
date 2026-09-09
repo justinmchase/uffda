@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-007
 title: Authored .uff sources stay within the published CLI feature surface
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#published-compiler-feature-surface; .agents/specifications/languages/uff-module-conversion-plan.md#bootstrap-compiler-constraint"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#published-compiler-feature-surface; .agents/specifications/languages/compiler-bootstrap.spec.md#compile-pipeline-and-recursion-break; .agents/specifications/languages/uff-module-conversion-plan.md#bootstrap-compiler-constraint"
 ---
 
 # Published CLI Feature Surface For Authored Uff
@@ -10,20 +10,20 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#published
 
 Preconditions:
 
-- Bootstrap compiles language `.uff` sources with the latest published Uffda CLI
-  (version N). That CLI already has language version N baked into the binary.
+- Bootstrap produces `./bin` via `deno task compile:lang`.
 - In-tree sources may already contain unreleased language or std changes for
   version N+1.
 
 Expected behavior:
 
-- Authored `.uff` modules under `src/lang/` that Checks (or
-  `deno task
-  compile:lang`) compiles MUST be accepted by that published
-  `uffda compile`.
-- Those compile steps MUST invoke the installed published CLI with a quoted glob
-  such as `'src/lang/**/*.uff'` (CLI expands paths in-process; not shell
-  globstar, and not `./src/cli/main.ts`).
+- Authored `.uff` modules under `src/lang/` MUST stay within the published CLI
+  (version N) **feature surface** (syntax / std / pattern forms already shipped)
+  — see G0.
+- `compile:lang` MUST invoke the previous published `uffda compile` for parse
+  (quoted glob such as `'src/lang/**/*.uff'`), then the compile-pipeline lower
+  stage (previous published `UffdaRuntimeCompiler`) to ModuleDeclarations.
+- Compile MUST NOT leave syntax ASTs as final `./bin` artifacts and MUST NOT
+  commit seeds under `src/`.
 - A module MUST NOT be converted to `.uff` until every construct it needs is
   available in the published CLI feature surface (G0).
 - Converted `.uff` modules MUST NOT keep host TypeScript twins or
@@ -35,3 +35,5 @@ Postconditions:
 - Self-hosting conversion cannot race ahead of published language-feature
   capability.
 - New syntax/std must publish before dependent `.uff` conversion.
+- The runtime-compiler chicken/egg is broken by previous-CLI parse +
+  previous-compiler lower, not by recursive `./bin` import or `src/` seeds.

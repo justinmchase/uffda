@@ -44,6 +44,11 @@ Deno.test("lang.declarations registers built-in language modules", () => {
   assertEquals(builtInLanguageDeclarations[ruleRulesUff], undefined);
   const uffdaLangUff = new URL("./uffda/uffda.lang.uff", import.meta.url).href;
   assertEquals(builtInLanguageDeclarations[uffdaLangUff], undefined);
+  const runtimeCompilerUff = new URL(
+    "./uffda/runtime.compiler.uff",
+    import.meta.url,
+  ).href;
+  assertEquals(builtInLanguageDeclarations[runtimeCompilerUff], undefined);
   for (
     const name of [
       "then",

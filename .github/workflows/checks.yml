@@ -39,10 +39,9 @@ jobs:
       - name: Compile language modules
         run: |
           set -euo pipefail
-          uffda --version
-          rm -rf ./bin
-          # Glob expansion is handled by the CLI (quote so the shell does not expand).
-          uffda compile 'src/lang/**/*.uff' --out-dir ./bin
+          # In-tree compile pipeline: parse → previous published compiler →
+          # ModuleDeclaration under ./bin (see compiler-bootstrap.spec.md).
+          deno task compile:lang
           test -f ./bin/ast/src/lang/common/characters/digit.uffda.ast.json
           test -f ./bin/ast/src/lang/common/characters/connecting.uffda.ast.json
           test -f ./bin/ast/src/lang/common/characters/formatting.uffda.ast.json
@@ -82,6 +81,7 @@ jobs:
           test -f ./bin/ast/src/lang/uffda/export.rules.uffda.ast.json
           test -f ./bin/ast/src/lang/uffda/rule.rules.uffda.ast.json
           test -f ./bin/ast/src/lang/uffda/uffda.lang.uffda.ast.json
+          test -f ./bin/ast/src/lang/uffda/runtime.compiler.uffda.ast.json
           test -f ./bin/ast/src/lang/expression/number.uffda.ast.json
 
       - name: Test

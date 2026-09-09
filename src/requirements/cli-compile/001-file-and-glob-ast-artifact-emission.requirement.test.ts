@@ -59,9 +59,11 @@ Deno.test({
 
     const sample = JSON.parse(
       await Deno.readTextFile(join(out, "a/ok.uffda.ast.json")),
-    ) as { kind: string; declarations: unknown[] };
-    assertEquals(sample.kind, "module");
-    assert(Array.isArray(sample.declarations));
+    ) as { imports: unknown[]; exports: unknown[]; rules: unknown[] };
+    assert(Array.isArray(sample.imports));
+    assert(Array.isArray(sample.exports));
+    assert(Array.isArray(sample.rules));
+    assert(sample.rules.length >= 1);
     assertEquals(
       result.successes.find((unit) => unit.sourcePath === "a/ok.uff")
         ?.sourcePath,

@@ -39,15 +39,57 @@ self-hosting while maintaining deterministic and diagnosable behavior.
   capabilities have shipped in a published CLI.
 - New language features MUST land in a published release before any `.uff`
   module in the tree depends on them for compile-time acceptance.
-- Local and CI compile steps for authored `.uff` modules MUST invoke that
-  published `uffda` install path, not the in-tree CLI entrypoint, for the
-  bootstrap compile that produces `./bin/`.
+- Authored `.uff` modules MUST stay within that published feature surface.
+- Local and CI bootstrap of `./bin` (`deno task compile:lang`) MUST use the
+  previous published `uffda compile` for parse (quoted glob such as
+  `'src/lang/**/*.uff'`), then the compile-pipeline lower stage to
+  ModuleDeclarations. After a published CLI includes that full pipeline,
+  bootstrap SHOULD prefer that single previous-CLI compile step.
+
+## Compile pipeline and recursion break
+
+The chicken/egg for a self-hosted runtime compiler is: compiling
+`runtime.compiler.uff` into workspace `./bin` must not load that same artifact
+through `Resolver.import` / `runUffdaRuntimeCompiler` while producing it. A
+second chicken/egg is that in-tree `uffdaGrammar` resolves `uffda.lang.uff` from
+workspace `./bin`, so an empty `./bin` cannot be filled by in-tree parse alone.
+
+- `uffda compile` MUST be a single product pipeline: parse authored `.uff` to a
+  syntax module, then run `UffdaRuntimeCompiler` as the next stage, then write
+  the resulting **ModuleDeclaration** JSON (`imports` / `exports` / `rules`).
+- That lower stage MUST use the **previous published** compiler (the compiler
+  language already shipped in the previous package), not the in-tree
+  `runtime.compiler.uff` resolved from the workspace `./bin` tree being written.
+- Bootstrap of workspace `./bin` (`deno task compile:lang`) MUST use the
+  **previous published `uffda` CLI** for the parse/emit half (embedded languages
+  in that binary), then run the same lower stage to ModuleDeclarations. It MUST
+  NOT leave syntax ASTs as the final artifacts and MUST NOT commit seeds under
+  `src/`.
+- Runtime resolution of logical `.uff` URLs MUST load the mirrored
+  ModuleDeclaration JSON only. It MUST NOT re-run the runtime compiler or parse
+  `.uff` source text on import.
+- Authors MUST NOT introduce host workarounds that park compiler JSON under
+  `src/` or special-case the runtime compiler artifact path outside normal
+  resolve.
+
+After a release includes the full product pipeline, bootstrap SHOULD prefer that
+published `uffda compile` as the previous-CLI step (see
+[Published-compiler feature surface](#published-compiler-feature-surface)).
 
 ## Artifact layout requirements
 
 - Authored language and CLI sources for self-hosting MUST be expressible as
   `.uff` modules.
-- Compiling those sources with the Uffda CLI MUST emit JSON artifacts under
+- Language source trees under `src/` MUST contain authored `.uff` sources and
+  thin TypeScript hosts only. Compiler output JSON (ModuleDeclarations and
+  similar artifacts) MUST NOT be committed under `src/`; those artifacts MUST
+  live under `./bin/` (or another designated artifact root), produced by the
+  compile pipeline above.
+- When the published CLI lacks a feature needed to compile the next sources,
+  authors MUST publish a new CLI that adds that feature and then compile with it
+  — not by checking compiler output into `src/` and not by splitting lowering
+  out of the compile pipeline.
+- Compiling those sources MUST emit ModuleDeclaration JSON artifacts under
   `./bin/`.
 - The next CLI binary MUST load language definitions from those `./bin/` JSON
   artifacts for the compiled product.

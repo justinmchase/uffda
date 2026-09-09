@@ -16,9 +16,8 @@ Deno.test("req:source-normalization-runtime-003 - Expression language pipeline r
     "expression.lang.uffda.ast.json",
   );
   const ast = JSON.parse(await Deno.readTextFile(astPath));
-  const expressionLangRule = ast.declarations.find(
-    (d: { kind?: string; name?: string }) =>
-      d.kind === "rule" && d.name === "ExpressionLang",
+  const expressionLangRule = ast.rules.find(
+    (d: { name?: string }) => d.name === "ExpressionLang",
   );
 
   if (!expressionLangRule) {
