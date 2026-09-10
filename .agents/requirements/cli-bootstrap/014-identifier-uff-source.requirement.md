@@ -17,6 +17,9 @@ Expected behavior:
 
 - `src/lang/common/identifier.uff` MUST declare and export `Identifier` with
   projection `(join (flat _) "")`, with no Native projection.
+- It MUST also export `IdToken` as `string & [Identifier]` for token-stream
+  identifier matching (PatternLang / ExpressionLang). Uffda’s `IdentifierToken`
+  remains separate and MAY compose `IdToken` with reserved- keyword exclusion.
 - Compiling that file with the bootstrap compile path MUST succeed and emit AST
   JSON under `./bin/`.
 

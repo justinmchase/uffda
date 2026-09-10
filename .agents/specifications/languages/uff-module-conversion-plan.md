@@ -179,21 +179,21 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 
 ### Phase 3 — Pattern stack
 
-| #   | Module                 | G1                                    | G2                     | G3                                          | Ready?                           |
-| --- | ---------------------- | ------------------------------------- | ---------------------- | ------------------------------------------- | -------------------------------- |
-| 27  | `pattern/atoms`        | OK                                    | object `{kind:"any"}`  | OK proj                                     | done                             |
-| 28  | `pattern/literals`     | heavy CharacterClass/includes/between | many Natives           | mostly AST wrap; audit string/number unwrap | hard; after B17 + CharacterClass |
-| 29  | `pattern/resolve`      | OK (B9 layer)                         | flat+coalesce          | OK                                          | done                             |
-| 30  | `pattern/structure`    | OK (B9 layer)                         | from_entries Over keys | OK                                          | done                             |
-| 31  | `pattern/atomic`       | OK                                    | identity               | OK                                          | done                             |
-| 32  | `pattern/prefix`       | OK                                    | object AST wraps       | Star arms; no throw (B8)                    | done                             |
-| 33  | `pattern/then`         | OK                                    | std `one` + `*`        | OK                                          | done                             |
-| 34  | `pattern/pipe`         | OK                                    | std `one` + `*`        | OK                                          | done                             |
-| 34a | `pattern/projection`   | OK                                    | object proj / identity | `(Pipe Tail) \| Pipe` (rules-001)           | done                             |
-| 35  | `pattern/and`          | OK                                    | std `one` + `*`        | OK                                          | done                             |
-| 36  | `pattern/or`           | OK                                    | std `one` + `*`        | OK                                          | done                             |
-| 37  | `pattern/pattern`      | OK                                    | identity               | OK                                          | done                             |
-| 38  | `pattern/pattern.lang` | pipeline                              | unwrap                 | OK                                          | done                             |
+| #   | Module                 | G1            | G2                     | G3                                 | Ready? |
+| --- | ---------------------- | ------------- | ---------------------- | ---------------------------------- | ------ |
+| 27  | `pattern/atoms`        | OK            | object `{kind:"any"}`  | OK proj                            | done   |
+| 28  | `pattern/literals`     | OK            | serializable projs     | character_class.uff + literals.uff | done   |
+| 29  | `pattern/resolve`      | OK (B9 layer) | flat+coalesce          | OK                                 | done   |
+| 30  | `pattern/structure`    | OK (B9 layer) | from_entries Over keys | OK                                 | done   |
+| 31  | `pattern/atomic`       | OK            | identity               | OK                                 | done   |
+| 32  | `pattern/prefix`       | OK            | object AST wraps       | Star arms; no throw (B8)           | done   |
+| 33  | `pattern/then`         | OK            | std `one` + `*`        | OK                                 | done   |
+| 34  | `pattern/pipe`         | OK            | std `one` + `*`        | OK                                 | done   |
+| 34a | `pattern/projection`   | OK            | object proj / identity | `(Pipe Tail) \| Pipe` (rules-001)  | done   |
+| 35  | `pattern/and`          | OK            | std `one` + `*`        | OK                                 | done   |
+| 36  | `pattern/or`           | OK            | std `one` + `*`        | OK                                 | done   |
+| 37  | `pattern/pattern`      | OK            | identity               | OK                                 | done   |
+| 38  | `pattern/pattern.lang` | pipeline      | unwrap                 | OK                                 | done   |
 
 ### Phase 4 — Uffda language surface
 
@@ -233,8 +233,8 @@ permanent TypeScript language modules once builtins exist.
 
 ## First candidate (next session)
 
-Hard leaf: `pattern/literals` (CharacterClass/Natives). Phase 5:
-`tokenizer/mod`; B6/B7 still block `source` / `tokenizer.lang`.
+Phase 5: `tokenizer/mod`; B6/B7 still block `source` / `tokenizer.lang`. Pattern
+stack leaves are converted.
 
 Optional `recursive rule` sugar remains deferred
 ([#98](https://github.com/justinmchase/uffda/issues/98)).

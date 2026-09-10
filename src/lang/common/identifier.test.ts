@@ -116,11 +116,22 @@ Deno.test(
     });
 
     await t.step({
-      name: "IDENTIFIER09",
+      name: "IDTOKEN00",
       fn: moduleDeclarationTest({
         moduleUrl,
-        entryRuleName: "Identifier",
-        input: Input.Iterable("1abc"),
+        entryRuleName: "IdToken",
+        input: Input.Iterable(["abc"]),
+        kind: MatchKind.Ok,
+        value: "abc",
+      }),
+    });
+
+    await t.step({
+      name: "IDTOKEN01",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "IdToken",
+        input: Input.Iterable([1]),
         kind: MatchKind.Fail,
       }),
     });

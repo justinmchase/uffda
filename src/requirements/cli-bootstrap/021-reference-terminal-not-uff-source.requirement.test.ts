@@ -11,7 +11,11 @@ Deno.test(
       join(expression, "reference.uff"),
     );
     assertEquals(reference.includes("export Reference"), true);
-    assertEquals(reference.includes("string & [Identifier]"), true);
+    assertEquals(
+      reference.includes('import "../common/identifier.uff" IdToken'),
+      true,
+    );
+    assertEquals(reference.includes("IdToken"), true);
     assertEquals(
       reference.includes('-> { kind: "reference", name: _ }'),
       true,

@@ -4,7 +4,7 @@ import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ValueSourceKind } from "../../runtime/patterns/value_source.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
-const moduleUrl = new URL("./literals.ts", import.meta.url).href;
+const moduleUrl = new URL("./literals.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -19,6 +19,7 @@ Deno.test({
       name: "LITERALS_00",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Literals",
         input: Input.Iterable(['"', "hello", '"']),
         kind: MatchKind.Ok,
         value: {
@@ -32,6 +33,7 @@ Deno.test({
       name: "LITERALS_00A",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Literals",
         input: Input.Iterable(['"', "\\", "t", '"']),
         kind: MatchKind.Ok,
         value: {
@@ -45,6 +47,7 @@ Deno.test({
       name: "LITERALS_00B",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Literals",
         input: Input.Iterable(['"', "\\", "n", '"']),
         kind: MatchKind.Ok,
         value: {
@@ -58,6 +61,7 @@ Deno.test({
       name: "LITERALS_00C",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Literals",
         input: Input.Iterable(['"', "\\", "r", '"']),
         kind: MatchKind.Ok,
         value: {
@@ -71,6 +75,7 @@ Deno.test({
       name: "LITERALS_00D",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Literals",
         input: Input.Iterable(['"', "\\", "\\", '"']),
         kind: MatchKind.Ok,
         value: {
@@ -84,6 +89,7 @@ Deno.test({
       name: "LITERALS_00E",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Literals",
         input: Input.Iterable(['"', "\\", '"', '"']),
         kind: MatchKind.Ok,
         value: {
@@ -97,6 +103,7 @@ Deno.test({
       name: "LITERALS_00F",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Literals",
         input: Input.Iterable(['"', "\\", "t", "ab", '"']),
         kind: MatchKind.Ok,
         value: {
@@ -110,6 +117,7 @@ Deno.test({
       name: "LITERALS_01",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Literals",
         input: Input.Iterable(["in", "[", "x", "y", "]"]),
         kind: MatchKind.Ok,
         value: {
@@ -126,6 +134,7 @@ Deno.test({
       name: "LITERALS_02",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Literals",
         input: Input.Iterable(["1", ".", ".", "5"]),
         kind: MatchKind.Ok,
         value: {
@@ -140,6 +149,7 @@ Deno.test({
       name: "LITERALS_VALUE_SOURCE_EQUAL",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Literals",
         input: Input.Iterable(["$", "x"]),
         kind: MatchKind.Ok,
         value: {
@@ -153,6 +163,7 @@ Deno.test({
       name: "LITERALS_VALUE_SOURCE_BETWEEN",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Literals",
         input: Input.Iterable(["$", "a", ".", ".", "$", "b"]),
         kind: MatchKind.Ok,
         value: {
@@ -167,6 +178,7 @@ Deno.test({
       name: "LITERALS_VALUE_SOURCE_BETWEEN_OPEN_UPPER",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Literals",
         input: Input.Iterable(["$", "a", ".", "."]),
         kind: MatchKind.Ok,
         value: {
@@ -181,6 +193,7 @@ Deno.test({
       name: "LITERALS_VALUE_SOURCE_BETWEEN_OPEN_LOWER",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Literals",
         input: Input.Iterable([".", ".", "$", "b"]),
         kind: MatchKind.Ok,
         value: {

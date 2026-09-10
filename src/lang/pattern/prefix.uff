@@ -4,13 +4,11 @@
 # on Quantifier runtime. Avoid capture names min/max/name — they fail to parse.
 import "./atomic.uff" Atomic;
 import "./pattern.uff" Pattern;
-import "../common/identifier.uff" Identifier;
+import "../common/identifier.uff" IdToken;
 import "../expression/number.uff" Number;
 
 export Prefix;
 export Star;
-
-rule IdToken = string & [Identifier];
 
 rule BoundNum =
   n:Number -> n.value;
@@ -182,7 +180,7 @@ rule Except =
   -> { kind: "except", pattern: p };
 
 rule Capture =
-  n:Identifier
+  n:IdToken
   ":"
   p:Prefix
   -> { kind: "variable", name: n, pattern: p };

@@ -1,8 +1,8 @@
 # Reference matches a string Identifier and projects a ReferenceExpression.
-import "../common/identifier.uff" Identifier;
+import "../common/identifier.uff" IdToken;
 
 export Reference;
 
 rule Reference =
-  string & [Identifier]
+  IdToken
   -> { kind: "reference", name: _ };
