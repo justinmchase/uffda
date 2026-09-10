@@ -30,7 +30,7 @@ import { units } from "./units.ts";
 import { when } from "./when.ts";
 
 /**
- * Runtime std globals available to ExpressionLang invocations.
+ * Default runtime globals available to ExpressionLang invocations.
  *
  * Prefer general-purpose helpers here (`flat`, `join`, `one`, …).
  *
@@ -41,7 +41,7 @@ import { when } from "./when.ts";
  * (https://github.com/justinmchase/uffda/issues/124). Do not grow more
  * stack-specific globals without considering that path.
  */
-export const std = new Map<string, unknown>([
+export const defaultGlobals = new Map<string, unknown>([
   ["add", add],
   ["checksum", checksum],
   ["coalesce", coalesce],

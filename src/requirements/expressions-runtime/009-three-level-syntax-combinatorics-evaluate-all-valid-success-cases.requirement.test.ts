@@ -2,7 +2,7 @@ import { assertEquals } from "@std/assert";
 import { MatchKind } from "../../match.ts";
 import { expressionGrammar } from "../../lang/expression/expression.lang.ts";
 import { assertGrammarCases } from "../../lang/grammar.ts";
-import { std } from "../../runtime/std/mod.ts";
+import { defaultGlobals } from "../../runtime/globals/mod.ts";
 import { exec } from "../../runtime/exec.ts";
 import type { Expression } from "../../runtime/expressions/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
@@ -197,7 +197,7 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
   assertEquals(callCases.length, 8);
 
   const globals = new Map<string, unknown>([
-    ...std,
+    ...defaultGlobals,
     ["ref", { from: "reference" }],
     ["id", (v: unknown) => v],
     ["pack", (...values: unknown[]) => values],
@@ -248,7 +248,7 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
   await t.step("spread S2: multiple array spreads", async () => {
     const m = await expressionGrammar("[...xs ...ys]", {
       globals: new Map<string, unknown>([
-        ...globals,
+        ...defaultGlobals,
         ["xs", [1]],
         ["ys", [2, 3]],
       ]),
@@ -373,7 +373,7 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
   await t.step("spread S7: invocation argument spread", async () => {
     const m = await expressionGrammar("(coalesce x ...y)", {
       globals: new Map<string, unknown>([
-        ...globals,
+        ...defaultGlobals,
         ["x", null],
         ["y", [7]],
       ]),
@@ -411,7 +411,7 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
     async () => {
       const m = await expressionGrammar("(pack 1 ...y)", {
         globals: new Map<string, unknown>([
-          ...globals,
+          ...defaultGlobals,
           ["y", [2, 3]],
         ]),
       });

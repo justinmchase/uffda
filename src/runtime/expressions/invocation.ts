@@ -2,7 +2,7 @@ import type { MatchOk } from "../../match.ts";
 import { exec } from "../exec.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import type { InvocationExpression } from "./expression.ts";
-import { isMatchAware } from "../std/match_aware.ts";
+import { isMatchAware } from "../globals/match_aware.ts";
 
 export async function invocation(
   expression: InvocationExpression,

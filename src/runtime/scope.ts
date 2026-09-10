@@ -55,9 +55,12 @@ export class Scope {
     public readonly stack: StackFrame[] = [],
     options?: Partial<ScopeOptions>,
   ) {
+    const defaults = DefaultOptions();
     this.options = {
-      ...DefaultOptions(),
-      ...options,
+      trace: options?.trace ?? defaults.trace,
+      specials: options?.specials ?? defaults.specials,
+      globals: options?.globals ?? defaults.globals,
+      resolver: options?.resolver ?? defaults.resolver,
     };
   }
 
@@ -210,8 +213,10 @@ export class Scope {
       this.memos,
       this.stack,
       {
-        ...this.options,
-        ...options,
+        trace: options.trace ?? this.options.trace,
+        specials: options.specials ?? this.options.specials,
+        globals: options.globals ?? this.options.globals,
+        resolver: options.resolver ?? this.options.resolver,
       },
     );
   }

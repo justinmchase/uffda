@@ -6,7 +6,7 @@ import { type Match, MatchKind } from "../match.ts";
 import { executeModuleDeclaration } from "../runtime/module.execute.ts";
 import { type Expression, isExpression } from "../runtime/expressions/mod.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
-import { std } from "../runtime/std/mod.ts";
+import { globals } from "../runtime/runtime.ts";
 import { isAbsolute, join, toFileUrl } from "@std/path";
 
 export enum CliExecFailureCode {
@@ -171,7 +171,7 @@ export async function executeCliAst(
     cwd: options?.cwd,
     artifactRoot: options?.artifactRoot,
     scopeOptions: {
-      globals: new Map([...std, ["echo", (output: unknown) => output]]),
+      globals: new Map([...globals, ["echo", (output: unknown) => output]]),
     },
   });
   return execution.kind === MatchKind.Ok
@@ -232,7 +232,7 @@ export async function executeCliModule(
     cwd: options?.cwd,
     artifactRoot: options?.artifactRoot,
     scopeOptions: {
-      globals: new Map([...std, ["echo", (output: unknown) => output]]),
+      globals: new Map([...globals, ["echo", (output: unknown) => output]]),
     },
   });
   return execution.kind === MatchKind.Ok

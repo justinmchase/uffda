@@ -45,7 +45,7 @@ Deno.test(
     assertEquals(patternMod.includes('import "./or.uff" Or'), true);
 
     const stdMod = await Deno.readTextFile(
-      join(repoRoot, "src", "runtime", "std", "mod.ts"),
+      join(repoRoot, "src", "runtime", "globals", "mod.ts"),
     );
     assertEquals(stdMod.includes('["one", one]'), true);
   },
