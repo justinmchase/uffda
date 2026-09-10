@@ -29,6 +29,18 @@ import { to_set } from "./to_set.ts";
 import { units } from "./units.ts";
 import { when } from "./when.ts";
 
+/**
+ * Runtime std globals available to ExpressionLang invocations.
+ *
+ * Prefer general-purpose helpers here (`flat`, `join`, `one`, …).
+ *
+ * B6/B7 also registered source/tokenizer domain helpers as bootstrap
+ * precursors so language modules can convert without Native. Several of those
+ * (`source_document`, `units`, `semantic_texts`, …) are provisional in this
+ * map; the intended long-term home is author-defined `func` declarations
+ * (https://github.com/justinmchase/uffda/issues/124). Do not grow more
+ * stack-specific globals without considering that path.
+ */
 export const std = new Map<string, unknown>([
   ["add", add],
   ["checksum", checksum],

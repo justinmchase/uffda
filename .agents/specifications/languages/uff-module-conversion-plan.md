@@ -111,25 +111,46 @@ replaced). `_.flat().join("")`, `parseInt`, match-span indexing are usually
 These unlock many modules; schedule explicitly rather than rediscovering per
 file:
 
-| ID  | Blocker                                                      | Needed by                                                                | Direction                                                                                                                                                                                                                            |
-| --- | ------------------------------------------------------------ | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| B1  | Replace Native with serializable projections                 | ~45 modules                                                              | ExpressionLang object/invocation forms + std                                                                                                                                                                                         |
-| B2  | List flatten + join (`_.flat().join("")`)                    | identifier (done), string (done), import.rules (done), tokenizer, rules  | std `flat`/`join` — shipped                                                                                                                                                                                                          |
-| B3  | Digit string → number                                        | expression/number (done)                                                 | std `int` shipped with number.uff                                                                                                                                                                                                    |
-| B4  | Length-1 list collapse (`patterns.length===1 ? p : wrapper`) | then/pipe/and/or (done)                                                  | Closed via `(one list full)` + `Tail*` (not `Tail+\|child`; unsafe under PatternLang LR)                                                                                                                                             |
-| B5  | Quantifier optional-array unwrap                             | many                                                                     | `(flat (coalesce k []))` / star rewrite; more sugar later                                                                                                                                                                            |
-| B6  | Host match spans / checksum / line index                     | source/mod, tokenizer                                                    | **Shipped precursors** — std `checksum`/`line_starts`/`units`/`document_id`/`normalized_unit`/`normalization_map`/`source_document` + match-aware `match_leaf_offset`; TS `source/mod` retargeted; convert `.uff` after publish (G0) |
-| B7  | Match-tree semantic text walk                                | tokenizer.lang                                                           | **Shipped precursors** — std `semantic_texts` / `semantic_no_whitespace_texts`; TS `tokenizer.lang` + `TokenizerNoWhitespace` retargeted; convert `.uff` after publish (G0)                                                          |
-| B8  | Validation `throw` in projection                             | prefix bounds                                                            | Closed: Star arms + runtime Quantifier; no Native throw                                                                                                                                                                              |
-| B9  | Pattern stack import cycles                                  | resolve/structure ↔ pattern                                              | Closed: convert as a layer; `.uff`↔`.uff` cycle OK via Resolver cache; Atomic retargeted                                                                                                                                             |
-| B10 | Parametric rules (`Surround<L,P,R>`, `Token<P>`)             | surround, token                                                          | Declaration syntax shipped in 0.1.11                                                                                                                                                                                                 |
-| B11 | PatternLang + ExpressionLang string escapes (`\t`, `\n`, …)  | whitespace, newLine (done)                                               | Shipped; expression escapes enable `-> "\n"`                                                                                                                                                                                         |
-| B12 | Multi-letter variable bindings in PatternLang                | readable `.uff` (esp. `*.lang`)                                          | Published CLI today accepts only single-letter `name:P`                                                                                                                                                                              |
-| B13 | Expression string proj of `"{"` / `"}"`                      | object braces, string escapes                                            | `-> "{"` parses as object literal; use bare Equal, `-> _`, or bind `c:"{" -> c`                                                                                                                                                      |
-| B14 | Left-fold over lists without domain helpers                  | expression/member (done), similar AST folds                              | DLR + nested [Projection](../../patterns/runtime/projection.spec.md); closed for Member (not std `reduce`+lambda; sugar later [#98](https://github.com/justinmchase/uffda/issues/98))                                                |
-| B15 | `"\\"` in multi-rule `.uff` modules                          | expression/string (done)                                                 | Rule-body quote scanner treats `\\` as escapable; shipped in 0.1.15                                                                                                                                                                  |
-| B16 | `.uff` load → runtime compiler                               | `uffda/runtime.compiler`                                                 | Closed: compile emits ModuleDeclarations to `./bin`; Resolver.import loads JSON only; host uses Resolver.import on `.uff`.                                                                                                           |
-| B17 | Contextual `$name` ValueSource                               | literals equal/between/includes; prefix `P*$n`; relational object checks | Closed for `$name`; open between + prefix digit StarMinMax (`$n..`) shipped                                                                                                                                                          |
+| ID  | Blocker                                                      | Needed by                                                                | Direction                                                                                                                                                                                                                                                          |
+| --- | ------------------------------------------------------------ | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| B1  | Replace Native with serializable projections                 | ~45 modules                                                              | ExpressionLang object/invocation forms + std                                                                                                                                                                                                                       |
+| B2  | List flatten + join (`_.flat().join("")`)                    | identifier (done), string (done), import.rules (done), tokenizer, rules  | std `flat`/`join` — shipped                                                                                                                                                                                                                                        |
+| B3  | Digit string → number                                        | expression/number (done)                                                 | std `int` shipped with number.uff                                                                                                                                                                                                                                  |
+| B4  | Length-1 list collapse (`patterns.length===1 ? p : wrapper`) | then/pipe/and/or (done)                                                  | Closed via `(one list full)` + `Tail*` (not `Tail+\|child`; unsafe under PatternLang LR)                                                                                                                                                                           |
+| B5  | Quantifier optional-array unwrap                             | many                                                                     | `(flat (coalesce k []))` / star rewrite; more sugar later                                                                                                                                                                                                          |
+| B6  | Host match spans / checksum / line index                     | source/mod, tokenizer                                                    | **Shipped precursors** (0.1.23) — std helpers; TS retargeted; convert `.uff` with G0. Several helpers are **provisional domain globals** — see [Provisional domain std](#provisional-domain-std-b6b7) and [#124](https://github.com/justinmchase/uffda/issues/124) |
+| B7  | Match-tree semantic text walk                                | tokenizer.lang                                                           | **Shipped precursors** (0.1.23) — `semantic_texts` / `semantic_no_whitespace_texts`; same provisional-std note / [#124](https://github.com/justinmchase/uffda/issues/124)                                                                                          |
+| B8  | Validation `throw` in projection                             | prefix bounds                                                            | Closed: Star arms + runtime Quantifier; no Native throw                                                                                                                                                                                                            |
+| B9  | Pattern stack import cycles                                  | resolve/structure ↔ pattern                                              | Closed: convert as a layer; `.uff`↔`.uff` cycle OK via Resolver cache; Atomic retargeted                                                                                                                                                                           |
+| B10 | Parametric rules (`Surround<L,P,R>`, `Token<P>`)             | surround, token                                                          | Declaration syntax shipped in 0.1.11                                                                                                                                                                                                                               |
+| B11 | PatternLang + ExpressionLang string escapes (`\t`, `\n`, …)  | whitespace, newLine (done)                                               | Shipped; expression escapes enable `-> "\n"`                                                                                                                                                                                                                       |
+| B12 | Multi-letter variable bindings in PatternLang                | readable `.uff` (esp. `*.lang`)                                          | Published CLI today accepts only single-letter `name:P`                                                                                                                                                                                                            |
+| B13 | Expression string proj of `"{"` / `"}"`                      | object braces, string escapes                                            | `-> "{"` parses as object literal; use bare Equal, `-> _`, or bind `c:"{" -> c`                                                                                                                                                                                    |
+| B14 | Left-fold over lists without domain helpers                  | expression/member (done), similar AST folds                              | DLR + nested [Projection](../../patterns/runtime/projection.spec.md); closed for Member (not std `reduce`+lambda; sugar later [#98](https://github.com/justinmchase/uffda/issues/98))                                                                              |
+| B15 | `"\\"` in multi-rule `.uff` modules                          | expression/string (done)                                                 | Rule-body quote scanner treats `\\` as escapable; shipped in 0.1.15                                                                                                                                                                                                |
+| B16 | `.uff` load → runtime compiler                               | `uffda/runtime.compiler`                                                 | Closed: compile emits ModuleDeclarations to `./bin`; Resolver.import loads JSON only; host uses Resolver.import on `.uff`.                                                                                                                                         |
+| B17 | Contextual `$name` ValueSource                               | literals equal/between/includes; prefix `P*$n`; relational object checks | Closed for `$name`; open between + prefix digit StarMinMax (`$n..`) shipped                                                                                                                                                                                        |
+
+## Provisional domain std (B6/B7)
+
+B6/B7 helpers ship as **global std** so Phase 5 can convert without permanent
+`Native`. That is intentional short-term debt: several helpers encode
+source/tokenizer contracts rather than general expression utilities.
+
+**Likely migrate out of global std** once author-defined `func` declarations
+exist ([#124](https://github.com/justinmchase/uffda/issues/124)):
+
+- `document_id`, `source_document`
+- `units`, `line_starts`, `normalization_map`, `normalized_unit`
+- `semantic_texts`, `semantic_no_whitespace_texts`
+
+**Closer to lasting std / runtime** (still review later):
+
+- `checksum`
+- `match_leaf_offset` and match-aware invocation
+
+Do not add more stack-specific globals without checking whether `func` (or a
+module-local helper story) is the better home.
 
 ## Phase order (dependency leaves first)
 
@@ -233,11 +254,14 @@ permanent TypeScript language modules once builtins exist.
 
 ## First candidate (next session)
 
-Phase 5: `tokenizer/mod` next; then publish CLI with B6/B7 stds and convert
-`source/mod` + `tokenizer/tokenizer.lang`. Pattern stack leaves are converted.
+Phase 5: `tokenizer/mod` next; then convert `source/mod` +
+`tokenizer/tokenizer.lang` with published B6/B7 stds (0.1.23+). Pattern stack
+leaves are converted.
 
 Optional `recursive rule` sugar remains deferred
-([#98](https://github.com/justinmchase/uffda/issues/98)).
+([#98](https://github.com/justinmchase/uffda/issues/98)). Author-defined `func`
+declarations for migrating provisional domain std are tracked in
+([#124](https://github.com/justinmchase/uffda/issues/124)).
 
 ## References
 
@@ -247,9 +271,9 @@ Optional `recursive rule` sugar remains deferred
 - Spec: `.agents/specifications/patterns/runtime/projection.spec.md`
 - Checklist: `.agents/specifications/languages/pattern-bootstrap-checklist.md`
 - Example: `src/lang/common/characters/digit.uff`
-- Std: `src/runtime/std/mod.ts` (`add`, `checksum`, `coalesce`, `document_id`,
-  `filter`, `flat`, `format`, `from_entries`, `id`, `int`, `join`, `json`,
-  `line_starts`, `map`, `match_leaf_offset`, `normalization_map`,
-  `normalized_unit`, `one`, `pack`, `semantic_no_whitespace_texts`,
-  `semantic_texts`, `source_document`, `units`, …)
+- Std: `src/runtime/std/mod.ts` (general helpers plus provisional B6/B7 domain
+  globals — see [Provisional domain std](#provisional-domain-std-b6b7) /
+  [#124](https://github.com/justinmchase/uffda/issues/124))
 - Follow-up: https://github.com/justinmchase/uffda/issues/98 (`recursive rule`)
+- Follow-up: https://github.com/justinmchase/uffda/issues/124 (`func`
+  declarations)
