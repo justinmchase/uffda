@@ -2,6 +2,7 @@ import type { MatchOk } from "../../match.ts";
 import { exec } from "../exec.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import type { InvocationExpression } from "./expression.ts";
+import { isMatchAware } from "../std/match_aware.ts";
 
 export async function invocation(
   expression: InvocationExpression,
@@ -15,6 +16,9 @@ export async function invocation(
           (expr as unknown as Record<string, unknown>)?.name
         })`,
       );
+    }
+    if (isMatchAware(fn)) {
+      return fn(match, ...a);
     }
     return fn(...a);
   };

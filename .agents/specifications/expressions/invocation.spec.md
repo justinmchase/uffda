@@ -21,6 +21,22 @@ the resulting callable value.
 - Local-scope references used by the target expression SHOULD resolve before
   globals according to reference-expression behavior.
 
+## Match-aware invocation
+
+Some std callables need the current successful match (for example span leaf
+offsets) without authors threading Match values through projections.
+
+- The runtime MUST recognize match-aware callables via an explicit host
+  allowlist marker on the function value (not via special-case name tables in
+  language modules).
+- When the evaluated target is match-aware, invocation MUST call it as
+  `fn(match, ...evaluatedArgs)` where `match` is the current successful
+  `MatchOk`.
+- When the evaluated target is not match-aware, invocation MUST call it as
+  `fn(...evaluatedArgs)` with no injected match.
+- Authors MUST write match-aware calls without supplying the match argument
+  themselves (for example `(match_leaf_offset "start")`).
+
 ## Error conditions
 
 - Target or argument child-expression exceptions MUST propagate unchanged.

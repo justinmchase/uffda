@@ -1,6 +1,10 @@
 import type { Match, MatchOk } from "../../match.ts";
 import { MatchKind } from "../../match.ts";
 import type { ItemSourceSpan, SourceSpan } from "../../span.ts";
+import {
+  semantic_no_whitespace_texts,
+  semantic_texts,
+} from "../../runtime/std/semantic_texts.ts";
 
 export enum StructuredTokenKind {
   Whitespace = "whitespace",
@@ -37,16 +41,14 @@ export function isSemanticNoWhitespaceToken(token: TokenValue): boolean {
     token.kind === StructuredTokenKind.Punctuation;
 }
 
+/** @deprecated Prefer std `semantic_texts`. */
 export function toSemanticTexts(tokens: TokenValue[]): string[] {
-  return tokens
-    .filter((token) => token.kind !== StructuredTokenKind.Comment)
-    .map((token) => token.text);
+  return semantic_texts(tokens);
 }
 
+/** @deprecated Prefer std `semantic_no_whitespace_texts`. */
 export function toSemanticNoWhitespaceTexts(tokens: TokenValue[]): string[] {
-  return tokens
-    .filter(isSemanticNoWhitespaceToken)
-    .map((token) => token.text);
+  return semantic_no_whitespace_texts(tokens);
 }
 
 type SpannedToken = TokenValue & {
