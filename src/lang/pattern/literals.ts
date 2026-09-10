@@ -1340,7 +1340,7 @@ export const Literals: ModuleDeclaration = {
       },
     },
     {
-      name: "BetweenPattern",
+      name: "BetweenClosed",
       parameters: [],
       pattern: {
         kind: PatternKind.Then,
@@ -1372,6 +1372,95 @@ export const Literals: ModuleDeclaration = {
       expression: {
         kind: ExpressionKind.Native,
         fn: ({ left, right }) => ({ kind: PatternKind.Between, left, right }),
+      },
+    },
+    {
+      name: "BetweenOpenUpper",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Variable,
+            name: "left",
+            pattern: {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "Literal",
+              args: [],
+            },
+          },
+          { kind: PatternKind.Equal, value: lit(".") },
+          { kind: PatternKind.Equal, value: lit(".") },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ left }) => ({
+          kind: PatternKind.Between,
+          left,
+          right: undefined,
+        }),
+      },
+    },
+    {
+      name: "BetweenOpenLower",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          { kind: PatternKind.Equal, value: lit(".") },
+          { kind: PatternKind.Equal, value: lit(".") },
+          {
+            kind: PatternKind.Variable,
+            name: "right",
+            pattern: {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "Literal",
+              args: [],
+            },
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ right }) => ({
+          kind: PatternKind.Between,
+          left: undefined,
+          right,
+        }),
+      },
+    },
+    {
+      name: "BetweenPattern",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Or,
+        patterns: [
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "BetweenClosed",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "BetweenOpenUpper",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "BetweenOpenLower",
+            args: [],
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ _ }) => _,
       },
     },
     {

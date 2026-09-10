@@ -102,8 +102,10 @@ export type CharacterPattern = {
 };
 export type BetweenPattern = {
   kind: PatternKind.Between;
-  left: ValueSource;
-  right: ValueSource;
+  /** When omitted, the interval is open below (`..R`). */
+  left?: ValueSource;
+  /** When omitted, the interval is open above (`L..`). */
+  right?: ValueSource;
 };
 export type EndPattern = {
   kind: PatternKind.End;

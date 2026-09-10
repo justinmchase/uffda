@@ -23,6 +23,9 @@ Expected behavior:
   `value.variable` source (match input equal to the bound value).
 - `$name` MUST be accepted as between bounds, includes list elements, and
   quantifier `min` / `max` bounds (`P*$n`, `P*$min..$max`, and mixed forms).
+- Open-upper between (`L..`) and open-lower between (`..R`), including `$name..`
+  / `..$name`, MUST project with the omitted bound as `undefined`.
+- Bare `..` (neither bound) MUST NOT parse as a between pattern.
 - `$name` MUST NOT mean pattern resolve / “run the value as a pattern.” Bare
   identifiers in pattern position remain resolve; `$` marks value binding.
 - Capture of an equal-to-variable form (`x:$w`) MAY parse as capture of an equal

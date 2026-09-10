@@ -24,4 +24,24 @@ Deno.test("req:between-001 - Between matches one item within inclusive bounds", 
       done: false,
     }),
   );
+
+  await t.step(
+    "open-upper between succeeds at or above left",
+    patternTest({
+      pattern: { kind: PatternKind.Between, left: lit(2) },
+      input: Input.Iterable([2]),
+      kind: MatchKind.Ok,
+      value: 2,
+    }),
+  );
+
+  await t.step(
+    "open-lower between succeeds at or below right",
+    patternTest({
+      pattern: { kind: PatternKind.Between, right: lit(2) },
+      input: Input.Iterable([2]),
+      kind: MatchKind.Ok,
+      value: 2,
+    }),
+  );
 });

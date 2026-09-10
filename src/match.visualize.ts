@@ -73,11 +73,17 @@ function shortPattern(pattern: Pattern): string {
   }
 }
 
+function formatOptionalValueSource(
+  source: ValueSource | undefined,
+): string {
+  return source == null ? "" : formatValueSource(source);
+}
+
 function describePattern(pattern: Pattern): string {
   switch (pattern.kind) {
     case PatternKind.Between:
-      return `between ${formatValueSource(pattern.left)} and ${
-        formatValueSource(pattern.right)
+      return `between ${formatOptionalValueSource(pattern.left)}..${
+        formatOptionalValueSource(pattern.right)
       }`;
     case PatternKind.Includes:
       return `includes ${formatValueSources(pattern.values)}`;
@@ -95,8 +101,8 @@ function describePattern(pattern: Pattern): string {
 function expectation(pattern: Pattern): string | undefined {
   switch (pattern.kind) {
     case PatternKind.Between:
-      return `${formatValueSource(pattern.left)} through ${
-        formatValueSource(pattern.right)
+      return `${formatOptionalValueSource(pattern.left)}..${
+        formatOptionalValueSource(pattern.right)
       }`;
     case PatternKind.Character:
       return `character class ${pattern.characterClass}`;

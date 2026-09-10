@@ -6,16 +6,32 @@ import type { BetweenPattern } from "./pattern.ts";
 import { resolveValueSource } from "./value_source.ts";
 
 export function between(pattern: BetweenPattern, scope: Scope): Match {
-  const leftResolved = resolveValueSource(pattern.left, scope, pattern);
-  if (leftResolved.kind === "error") {
-    return leftResolved.match;
+  if (pattern.left == null && pattern.right == null) {
+    return error(
+      scope,
+      pattern,
+      MatchErrorCode.InvalidArgument,
+      "between requires at least one bound (L..R, L.., or ..R)",
+    );
   }
-  const rightResolved = resolveValueSource(pattern.right, scope, pattern);
-  if (rightResolved.kind === "error") {
-    return rightResolved.match;
+
+  let left: Comparable | undefined;
+  if (pattern.left != null) {
+    const leftResolved = resolveValueSource(pattern.left, scope, pattern);
+    if (leftResolved.kind === "error") {
+      return leftResolved.match;
+    }
+    left = leftResolved.value as Comparable;
   }
-  const left = leftResolved.value as Comparable;
-  const right = rightResolved.value as Comparable;
+
+  let right: Comparable | undefined;
+  if (pattern.right != null) {
+    const rightResolved = resolveValueSource(pattern.right, scope, pattern);
+    if (rightResolved.kind === "error") {
+      return rightResolved.match;
+    }
+    right = rightResolved.value as Comparable;
+  }
 
   if (scope.stream.done) {
     return fail(scope, pattern);
@@ -34,27 +50,40 @@ export function between(pattern: BetweenPattern, scope: Scope): Match {
   }
 
   const tv = typeof value;
-  const tl = typeof left;
-  const tr = typeof right;
-  if (tv !== tl || tv !== tr) {
+  if (left != null && tv !== typeof left) {
+    return fail(scope, pattern);
+  }
+  if (right != null && tv !== typeof right) {
     return fail(scope, pattern);
   }
 
   let inRange = false;
-  if (typeof left === "object" && typeof right === "object") {
-    if (
-      typeof left.compareTo !== "function" ||
-      typeof right.compareTo !== "function"
-    ) {
-      return fail(scope, pattern);
+  if (tv === "object") {
+    if (left != null) {
+      if (typeof left !== "object" || typeof left.compareTo !== "function") {
+        return fail(scope, pattern);
+      }
     }
-    inRange = left.compareTo(value) >= 0 && right.compareTo(value) <= 0;
+    if (right != null) {
+      if (
+        typeof right !== "object" ||
+        typeof right.compareTo !== "function"
+      ) {
+        return fail(scope, pattern);
+      }
+    }
+    const aboveLeft = left == null || left.compareTo(value) >= 0;
+    const belowRight = right == null || right.compareTo(value) <= 0;
+    inRange = aboveLeft && belowRight;
   } else {
     switch (tv) {
       case "string":
-      case "number":
-        inRange = left <= value && value <= right;
+      case "number": {
+        const aboveLeft = left == null || left <= value;
+        const belowRight = right == null || value <= right;
+        inRange = aboveLeft && belowRight;
         break;
+      }
       default:
         return fail(scope, pattern);
     }

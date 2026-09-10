@@ -162,5 +162,33 @@ Deno.test({
         },
       }),
     });
+
+    await t.step({
+      name: "LITERALS_VALUE_SOURCE_BETWEEN_OPEN_UPPER",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.Iterable(["$", "a", ".", "."]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Between,
+          left: { kind: ValueSourceKind.Variable, name: "a" },
+          right: undefined,
+        },
+      }),
+    });
+
+    await t.step({
+      name: "LITERALS_VALUE_SOURCE_BETWEEN_OPEN_LOWER",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.Iterable([".", ".", "$", "b"]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Between,
+          left: undefined,
+          right: { kind: ValueSourceKind.Variable, name: "b" },
+        },
+      }),
+    });
   },
 });

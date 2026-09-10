@@ -82,6 +82,46 @@ Deno.test({
     );
 
     await t.step(
+      "between accepts open upper bound",
+      moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "PatternLang",
+        input: Input.Scalar("$a.."),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Between,
+          left: { kind: ValueSourceKind.Variable, name: "a" },
+          right: undefined,
+        },
+      }),
+    );
+
+    await t.step(
+      "between accepts open lower bound",
+      moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "PatternLang",
+        input: Input.Scalar("..$b"),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Between,
+          left: undefined,
+          right: { kind: ValueSourceKind.Variable, name: "b" },
+        },
+      }),
+    );
+
+    await t.step(
+      "bare open between is rejected",
+      moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "PatternLang",
+        input: Input.Scalar(".."),
+        kind: MatchKind.Fail,
+      }),
+    );
+
+    await t.step(
       "bare identifier remains resolve, not a value source",
       moduleDeclarationTest({
         moduleUrl,

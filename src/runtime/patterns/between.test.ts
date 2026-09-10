@@ -293,4 +293,71 @@ Deno.test("runtime.patterns.between", async (t) => {
       kind: MatchKind.Ok,
     }),
   });
+
+  await t.step({
+    name: "BETWEEN_OPEN_UPPER",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Between,
+        left: lit(2),
+      },
+      input: Input.Iterable([5]),
+      value: 5,
+      kind: MatchKind.Ok,
+    }),
+  });
+
+  await t.step({
+    name: "BETWEEN_OPEN_UPPER_FAILS_BELOW",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Between,
+        left: lit(2),
+      },
+      input: Input.Iterable([1]),
+      kind: MatchKind.Fail,
+      done: false,
+    }),
+  });
+
+  await t.step({
+    name: "BETWEEN_OPEN_LOWER",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Between,
+        right: lit(2),
+      },
+      input: Input.Iterable([1]),
+      value: 1,
+      kind: MatchKind.Ok,
+    }),
+  });
+
+  await t.step({
+    name: "BETWEEN_OPEN_LOWER_FAILS_ABOVE",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Between,
+        right: lit(2),
+      },
+      input: Input.Iterable([3]),
+      kind: MatchKind.Fail,
+      done: false,
+    }),
+  });
+
+  await t.step({
+    name: "BETWEEN_BOTH_BOUNDS_REQUIRED",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Between,
+      },
+      input: Input.Iterable([1]),
+      kind: MatchKind.Error,
+      code: MatchErrorCode.InvalidArgument,
+      message: "between requires at least one bound (L..R, L.., or ..R)",
+      start: Path.From(0),
+      end: Path.From(0),
+    }),
+  });
 });
