@@ -1,5 +1,5 @@
 # PatternLang pipelines Source → tokens → PatternComplete.
-import "../source/mod.ts" Source;
+import "../source/mod.uff" Source;
 import "../tokenizer/mod.uff" TokenizerNoWhitespace;
 import "./pattern.uff" Pattern;
 

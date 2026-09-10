@@ -232,12 +232,12 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 These are still in-scope for full `.uff` conversion. Do not leave them as
 permanent TypeScript language modules once builtins exist.
 
-| #  | Module                     | Ready?                                              |
-| -- | -------------------------- | --------------------------------------------------- |
-| 45 | `tokenizer/mod`            | done (0.1.24 G0; structured.ts host helpers remain) |
-| 46 | `tokenizer/structured`     | host TS helpers only (not a ModuleDeclaration)      |
-| 47 | `source/mod`               | precursors shipped (B6) — convert next              |
-| 48 | `tokenizer/tokenizer.lang` | precursors shipped (B7) — convert after source      |
+| #  | Module                     | Ready?                                         |
+| -- | -------------------------- | ---------------------------------------------- |
+| 45 | `tokenizer/mod`            | done                                           |
+| 46 | `tokenizer/structured`     | host TS helpers only (not a ModuleDeclaration) |
+| 47 | `source/mod`               | done (0.1.24 G0; host helpers in mod.ts)       |
+| 48 | `tokenizer/tokenizer.lang` | done (0.1.24 G0; type-only .ts twin)           |
 
 ## Per-conversion checklist (use every time)
 
@@ -254,8 +254,9 @@ permanent TypeScript language modules once builtins exist.
 
 ## First candidate (next session)
 
-Phase 5: convert `source/mod` next (B6 std), then `tokenizer/tokenizer.lang`
-(B7). `tokenizer/mod` is done; `structured.ts` stays as host type/span helpers.
+Phase 5 complete for language ModuleDeclarations: `tokenizer/mod`, `source/mod`,
+and `tokenizer/tokenizer.lang` are `.uff`. Host-only helpers remain in
+`structured.ts` / thin `mod.ts` / type-only `tokenizer.lang.ts`.
 
 Optional `recursive rule` sugar remains deferred
 ([#98](https://github.com/justinmchase/uffda/issues/98)). Author-defined `func`

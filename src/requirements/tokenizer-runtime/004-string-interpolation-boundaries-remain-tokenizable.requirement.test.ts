@@ -10,7 +10,7 @@ import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { ModuleImportResultKind } from "../../runtime/resolvers/resolver.ts";
 
 const moduleUrl =
-  new URL("../../lang/tokenizer/tokenizer.lang.ts", import.meta.url)
+  new URL("../../lang/tokenizer/tokenizer.lang.uff", import.meta.url)
     .href;
 
 Deno.test("req:tokenizer-runtime-004 - String interpolation boundaries remain independently tokenizable", async () => {
@@ -33,6 +33,7 @@ Deno.test("req:tokenizer-runtime-004 - String interpolation boundaries remain in
     pattern: {
       kind: PatternKind.Resolve,
       targetKind: ResolveTargetKind.Run,
+      name: "TokenizerLang",
     },
   });
 
@@ -57,6 +58,7 @@ Deno.test("req:tokenizer-runtime-004 - String interpolation boundaries remain in
         {
           kind: PatternKind.Resolve,
           targetKind: ResolveTargetKind.Run,
+          name: "TokenizerLang",
         },
         {
           kind: PatternKind.End,

@@ -15,7 +15,7 @@ import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { ModuleImportResultKind } from "../../runtime/resolvers/resolver.ts";
 
 const moduleUrl =
-  new URL("../../lang/tokenizer/tokenizer.lang.ts", import.meta.url)
+  new URL("../../lang/tokenizer/tokenizer.lang.uff", import.meta.url)
     .href;
 
 function tokenKey(node: MatchOk): string {
@@ -70,6 +70,7 @@ Deno.test("req:tokenizer-runtime-003 - match results carry trivia-compatible tok
     pattern: {
       kind: PatternKind.Resolve,
       targetKind: ResolveTargetKind.Run,
+      name: "TokenizerLang",
     },
   });
 
@@ -94,6 +95,7 @@ Deno.test("req:tokenizer-runtime-003 - match results carry trivia-compatible tok
         {
           kind: PatternKind.Resolve,
           targetKind: ResolveTargetKind.Run,
+          name: "TokenizerLang",
         },
         {
           kind: PatternKind.End,

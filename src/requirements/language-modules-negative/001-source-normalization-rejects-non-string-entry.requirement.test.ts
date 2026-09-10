@@ -2,12 +2,12 @@ import { Input } from "../../input.ts";
 import { MatchKind } from "../../mod.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
-const moduleUrl = new URL("../../lang/source/mod.ts", import.meta.url)
-  .href;
+const moduleUrl = new URL("../../lang/source/mod.uff", import.meta.url).href;
 
 Deno.test("req:language-modules-negative-001 - Source-normalization module rejects non-string source entry values", async () => {
   await moduleDeclarationTest({
     moduleUrl,
+    entryRuleName: "Source",
     input: Input.Scalar(123),
     kind: MatchKind.Fail,
   })();

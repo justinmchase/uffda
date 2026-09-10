@@ -1,0 +1,76 @@
+# Source normalization: CRLF/CR → LF with provenance, then line/unit indexes.
+# Uses provisional B6 std helpers (#124).
+export NormalizedText;
+export LineIndex;
+export UnitIndex;
+export SourceDocument;
+export rule Source =
+  NormalizedText
+  |> LineIndex
+  |> UnitIndex
+  |> SourceDocument
+  ;
+
+rule CrLfUnit =
+  "\r" "\n"
+  -> (normalized_unit "\n" (match_leaf_offset "start") (match_leaf_offset "end"));
+
+rule CrUnit =
+  "\r"
+  -> (normalized_unit "\n" (match_leaf_offset "start") (match_leaf_offset "end"));
+
+rule SourceUnit =
+  except "\r"
+  -> (normalized_unit _ (match_leaf_offset "start") (match_leaf_offset "end"));
+
+rule NormalizedUnit =
+  | CrLfUnit
+  | CrUnit
+  | SourceUnit
+  ;
+
+rule NormalizedText =
+  string & [NormalizedUnit*]
+  -> {
+    kind: "NormalizedText",
+    text: (join (pluck _ "value") ""),
+    normalizationMap: (normalization_map _)
+  };
+
+rule LineIndex =
+  {
+    kind: "NormalizedText",
+    text: t:string,
+    normalizationMap: m:array
+  }
+  -> {
+    kind: "LineIndex",
+    text: t,
+    normalizationMap: m,
+    lineStarts: (line_starts t)
+  };
+
+rule UnitIndex =
+  {
+    kind: "LineIndex",
+    text: t:string,
+    normalizationMap: m:array,
+    lineStarts: s:array
+  }
+  -> {
+    kind: "UnitIndex",
+    text: t,
+    normalizationMap: m,
+    lineStarts: s,
+    units: (units t s m)
+  };
+
+rule SourceDocument =
+  {
+    kind: "UnitIndex",
+    text: t:string,
+    normalizationMap: m:array,
+    lineStarts: s:array,
+    units: u:array
+  }
+  -> (source_document t s u m);
