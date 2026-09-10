@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-024
 title: ExpressionLang and Atomic modules have authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements"
 ---
 
 # ExpressionLang / Atomic Uff Sources
@@ -10,10 +10,10 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- `expression/expression` is converted to `.uff`.
-- `pattern/atoms` is converted; Atomic imports authored `.uff` for `literals`,
-  `resolve`, and `structure`.
-- `source/mod` and `tokenizer/mod` may remain TypeScript bridges.
+- `expression/expression` is authored as `.uff`.
+- `pattern/atoms` is authored as `.uff`; Atomic imports authored `.uff` for
+  `literals`, `resolve`, and `structure`.
+- `source/mod` and `tokenizer/mod` are authored as `.uff`.
 
 Expected behavior:
 

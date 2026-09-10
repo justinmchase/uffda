@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-028
 title: ExportRules module has authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/pattern-idioms-map-reduce.spec.md#map-as-pattern; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/pattern-idioms-map-reduce.spec.md#map-as-pattern"
 ---
 
 # ExportRules Uff Source
@@ -10,7 +10,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- `uffda/shared.rules` is converted and exports `IdentifierToken`.
+- `uffda/shared.rules` is authored as `.uff` and exports `IdentifierToken`.
 - `uffda/rule.rules` provides `RuleDeclarationSyntax` as authored `.uff`.
 - Std provides `flat` and `pack`.
 

@@ -1,7 +1,7 @@
 ---
 id: cli-adoption-002
 title: Checks compile authored language .uff modules into bin
-spec_ref: ".agents/specifications/languages/cli.spec.md#milestone-10-ci-adopts-the-published-cli-and-release-gates; .agents/specifications/languages/compiler-bootstrap.spec.md#compile-pipeline-and-recursion-break; .agents/specifications/languages/cli.spec.md#milestone-11-self-hosting-bootstrap"
+spec_ref: ".agents/specifications/languages/cli.spec.md#status; .agents/specifications/languages/compiler-bootstrap.spec.md#compile-pipeline-and-recursion-break; .agents/specifications/languages/compiler-bootstrap.spec.md#composition-intent"
 ---
 
 # Compile Language Uff Check

@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-006
 title: Connecting language module has authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements"
 ---
 
 # Connecting Uff Source
@@ -10,7 +10,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- Character-leaf modules convert to `.uff` one at a time after G1–G3 review.
+- The published CLI accepts the character-class syntax used by this module.
 
 Expected behavior:
 
@@ -21,7 +21,7 @@ Expected behavior:
 
 Postconditions:
 
-- Connecting is converted alongside Digit as a Phase 0 character leaf.
+- Connecting is authored as `.uff`.
 - Dependents import `./connecting.uff` (or equivalent); the TypeScript twin is
   gone.
 - Runtime loads Connecting from `./bin` via `.uff` remapping (not

@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-037
 title: Resolve and Structure modules have authored .uff source (B9)
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements"
 ---
 
 # Resolve / Structure Uff Source (B9)
@@ -10,8 +10,8 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- `pattern/pattern` is converted and exports `Pattern`.
-- `common/identifier` is converted.
+- `pattern/pattern` is authored as `.uff` and exports `Pattern`.
+- `common/identifier` is authored as `.uff`.
 - Std helpers `flat`, `coalesce`, `pack`, and `from_entries` are available at
   match time.
 

@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-021
 title: Reference, Terminal, and Not expression modules have authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements"
 ---
 
 # Reference / Terminal / Not Uff Sources
@@ -10,8 +10,8 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- `common/identifier` and `tokenizer/token` are converted to `.uff`.
-- `expression/number` and `expression/primary` are converted to `.uff`.
+- `common/identifier` and `tokenizer/token` are authored as `.uff`.
+- `expression/number` and `expression/primary` are authored as `.uff`.
 
 Expected behavior:
 
@@ -27,7 +27,7 @@ Expected behavior:
 
 Postconditions:
 
-- Reference, Terminal, and Not are converted as Phase 2 expression leaves.
+- Reference, Terminal, and Not are authored as `.uff`.
 - Dependents import the `.uff` URLs; TypeScript twins are gone.
 - Runtime loads them from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).

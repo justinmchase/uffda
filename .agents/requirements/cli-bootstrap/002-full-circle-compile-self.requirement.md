@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-002
 title: Full-circle compile-self validation gates bootstrap
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#full-circle-validation-requirements; .agents/specifications/languages/cli.spec.md#milestone-11-self-hosting-bootstrap"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#full-circle-validation-requirements; .agents/specifications/languages/compiler-bootstrap.spec.md#composition-intent"
 ---
 
 # Full-Circle Compile-Self Tests

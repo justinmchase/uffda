@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-036
 title: Prefix module has authored .uff source (B8)
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md; .agents/specifications/languages/pattern-syntax/grammar.spec.md#binding-and-repetition; .agents/specifications/patterns/runtime/quantifier.spec.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/pattern-syntax/grammar.spec.md#binding-and-repetition; .agents/specifications/patterns/runtime/quantifier.spec.md"
 ---
 
 # Prefix Uff Source (B8)
@@ -11,7 +11,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 Preconditions:
 
 - `pattern/atomic`, `pattern/pattern`, `common/identifier`, and
-  `expression/number` are converted.
+  `expression/number` are authored as `.uff`.
 - Quantifier runtime rejects invalid `min`/`max` at match time.
 
 Expected behavior:

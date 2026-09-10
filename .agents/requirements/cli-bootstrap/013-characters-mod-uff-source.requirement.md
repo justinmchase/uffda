@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-013
 title: Characters barrel module has authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements"
 ---
 
 # Characters Uff Barrel
@@ -10,7 +10,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- Phase 0 character leaves are converted to `.uff`.
+- Character leaves are authored as `.uff`.
 - The runtime compiler lowers bare `export Name` of an imported name to
   `ExportDeclarationKind.Import`.
 
@@ -24,6 +24,6 @@ Expected behavior:
 
 Postconditions:
 
-- The Characters barrel is converted; dependents import `./mod.uff`.
+- The Characters barrel is authored as `.uff`; dependents import `./mod.uff`.
 - Runtime loads Characters from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).

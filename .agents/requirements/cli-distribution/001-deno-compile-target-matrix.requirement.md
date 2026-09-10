@@ -1,7 +1,7 @@
 ---
 id: cli-distribution-001
 title: Deno compile publishes the full target matrix
-spec_ref: ".agents/specifications/languages/cli/distribution-and-release.spec.md#target-platform-contract; .agents/specifications/languages/cli.spec.md#milestone-9-distribute-the-cli"
+spec_ref: ".agents/specifications/languages/cli/distribution-and-release.spec.md#target-platform-contract; .agents/specifications/languages/cli/distribution-and-release.spec.md"
 ---
 
 # Deno Compile Target Matrix

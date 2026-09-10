@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-026
-title: Member conversion must use DLR with nested Projection
-spec_ref: ".agents/specifications/languages/pattern-idioms-map-reduce.spec.md#general-left-fold-as-direct-left-recursion; .agents/specifications/patterns/runtime/projection.spec.md; .agents/specifications/languages/uff-module-conversion-plan.md; .agents/specifications/runtime/left-recursion.spec.md"
+title: Member left-fold must use DLR with nested Projection
+spec_ref: ".agents/specifications/languages/pattern-idioms-map-reduce.spec.md#general-left-fold-as-direct-left-recursion; .agents/specifications/patterns/runtime/projection.spec.md; .agents/specifications/runtime/left-recursion.spec.md"
 ---
 
 # Member Pattern Left-Fold
@@ -32,6 +32,4 @@ Postconditions:
 - Dependents import `./member.uff`; the TypeScript twin is gone.
 - Runtime loads Member from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).
-- Member conversion aligns with conversion gate G3 and blocker B14 as closed in
-  the module conversion plan.
 - Similar left-associative AST folds SHOULD follow the same pattern-fold idiom.

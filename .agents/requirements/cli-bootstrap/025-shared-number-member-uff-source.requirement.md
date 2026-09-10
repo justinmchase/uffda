@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-025
 title: SharedRules and Number modules have authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements"
 ---
 
 # SharedRules / Number Uff Sources
@@ -10,7 +10,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- `common/identifier` and `common/characters/digit` are converted.
+- `common/identifier` and `common/characters/digit` are authored as `.uff`.
 - Std provides `int` for serializable number projections.
 
 Expected behavior:

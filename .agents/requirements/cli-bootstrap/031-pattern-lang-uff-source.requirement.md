@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-031
 title: PatternLang module has authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements"
 ---
 
 # PatternLang Uff Source
@@ -10,7 +10,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- `pattern/pattern` is converted.
+- `pattern/pattern` is authored as `.uff`.
 - `expression/expression.lang` already demonstrates the Source → tokenize →
   complete pipeline shape in `.uff`.
 

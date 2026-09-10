@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-039
 title: Tokenizer language module has authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md; .agents/specifications/languages/tokenization.spec.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/tokenization.spec.md"
 ---
 
 # Tokenizer Uff Source
@@ -13,7 +13,7 @@ Preconditions:
 - Published CLI includes B2 (`flat`/`join`), B7
   (`semantic_no_whitespace_texts`), and B15 multi-rule `"\\"` scanning
   (0.1.24+).
-- `common/characters/mod` and `tokenizer/token` are converted to `.uff`.
+- `common/characters/mod` and `tokenizer/token` are authored as `.uff`.
 
 Expected behavior:
 
@@ -25,7 +25,7 @@ Expected behavior:
 
 Postconditions:
 
-- Tokenizer is converted as Phase 5 module #45.
+- Tokenizer is authored as `.uff`.
 - Dependents import `../tokenizer/mod.uff`; the TypeScript ModuleDeclaration
   twin is gone.
 - Runtime loads Tokenizer from `./bin` via `.uff` remapping (not

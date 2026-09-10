@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-027
 title: ImportRules module has authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements"
 ---
 
 # ImportRules Uff Source
@@ -10,7 +10,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- `uffda/shared.rules` is converted and exports `IdentifierToken`.
+- `uffda/shared.rules` is authored as `.uff` and exports `IdentifierToken`.
 - Std provides `join` and `flat` for path and name-list projections (B2).
 
 Expected behavior:

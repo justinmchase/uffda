@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-003
 title: Digit language module has authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/cli.spec.md#milestone-11-self-hosting-bootstrap"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/compiler-bootstrap.spec.md#composition-intent"
 ---
 
 # Digit Uff Source
@@ -10,8 +10,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- Self-hosting begins by converting TypeScript language modules into `.uff`
-  sources one module at a time.
+- Language modules are authored as `.uff` sources.
 
 Expected behavior:
 
@@ -22,7 +21,7 @@ Expected behavior:
 
 Postconditions:
 
-- Digit is the first language-folder module replaced by authored `.uff` source.
+- Digit is authored as `.uff`.
 - Dependents import `./digit.uff` (or equivalent); the TypeScript twin is gone.
 - Runtime loads Digit from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).

@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-041
 title: TokenizerLang language module has authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md; .agents/specifications/languages/tokenization.spec.md#semantic-token-text-helpers-bootstrap-precursors"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/tokenization.spec.md#semantic-token-text-helpers-bootstrap-precursors"
 ---
 
 # TokenizerLang Uff Source
@@ -10,7 +10,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- `source/mod` and `tokenizer/mod` are converted to `.uff`.
+- `source/mod` and `tokenizer/mod` are authored as `.uff`.
 - Published CLI includes B7 `semantic_texts` (0.1.24+).
 
 Expected behavior:
@@ -22,6 +22,6 @@ Expected behavior:
 
 Postconditions:
 
-- TokenizerLang is converted as Phase 5 module #48.
+- TokenizerLang is authored as `.uff`.
 - Dependents import `tokenizer.lang.uff`; the ModuleDeclaration twin is gone.
 - Host `tokenizer.lang.ts` MAY remain for the `TokenizerLangValue` type only.
