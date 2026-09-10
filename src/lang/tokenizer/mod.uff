@@ -89,7 +89,7 @@ rule Tokens =
 # project tokens down to word/punctuation text, omitting whitespace and
 # comments (#124).
 func IsWordOrPunctuation<{kind: k:string}> =
-  (has (to_set ["word" "punctuation"]) k);
+  (has ["word" "punctuation"] k);
 
 func TokenText<{text: t:string}> = t;
 
