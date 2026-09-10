@@ -1,7 +1,6 @@
 import { assertEquals } from "@std/assert";
 import { checksum } from "../../runtime/globals/checksum.ts";
 import { document_id } from "../../runtime/globals/document_id.ts";
-import { line_starts } from "../../runtime/globals/line_starts.ts";
 import {
   normalization_map,
   normalized_unit,
@@ -14,7 +13,7 @@ Deno.test("req:source-normalization-runtime-004 - std helpers assemble SourceDoc
   assertEquals(checksum("hello"), "4f9f2cab");
 
   const text = "a\nb";
-  const starts = line_starts(text);
+  const starts = [0, 2];
   const map = normalization_map([
     normalized_unit("a", 0, 1),
     normalized_unit("\n", 1, 2),

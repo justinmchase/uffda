@@ -1,5 +1,4 @@
 # Source normalization: CRLF/CR → LF with provenance, then line/unit indexes.
-# Uses provisional B6 std helpers (#124).
 export NormalizedText;
 export LineIndex;
 export UnitIndex;
@@ -36,6 +35,17 @@ rule NormalizedText =
     text: (join (pluck _ "value") ""),
     normalizationMap: (normalization_map _)
   };
+
+# `line_starts` is module-local: it is only needed by LineIndex and is not
+# part of the general globals toolbox (#124).
+func LineStart<p:{index:number, value:string}> =
+  (when (eq p.value "\n") (add p.index 1) null);
+
+func NotNull<v:any> =
+  (not (eq v null));
+
+func line_starts<s:string> =
+  [0 ...(filter (map (enumerate s) LineStart) NotNull)];
 
 rule LineIndex =
   {

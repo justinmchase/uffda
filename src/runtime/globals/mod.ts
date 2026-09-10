@@ -3,6 +3,7 @@ import { checksum } from "./checksum.ts";
 import { coalesce } from "./coalesce.ts";
 import { document_id } from "./document_id.ts";
 import { eq } from "./eq.ts";
+import { enumerate } from "./enumerate.ts";
 import { filter } from "./filter.ts";
 import { flat } from "./flat.ts";
 import { format } from "./format.ts";
@@ -12,7 +13,6 @@ import { id } from "./id.ts";
 import { int } from "./int.ts";
 import { join } from "./join.ts";
 import { json } from "./json.ts";
-import { line_starts } from "./line_starts.ts";
 import { map } from "./map.ts";
 import { match_leaf_offset } from "./match_leaf_offset.ts";
 import { not } from "./not.ts";
@@ -47,6 +47,7 @@ export const defaultGlobals = new Map<string, unknown>([
   ["coalesce", coalesce],
   ["document_id", document_id],
   ["eq", eq],
+  ["enumerate", enumerate],
   ["filter", filter],
   ["flat", flat],
   ["format", format],
@@ -56,7 +57,6 @@ export const defaultGlobals = new Map<string, unknown>([
   ["int", int],
   ["join", join],
   ["json", json],
-  ["line_starts", line_starts],
   ["map", map],
   ["match_leaf_offset", match_leaf_offset],
   ["normalization_map", normalization_map],
