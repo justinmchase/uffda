@@ -17,7 +17,6 @@
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 
 import Source from "./source/mod.ts";
-import Tokenizer from "./tokenizer/mod.ts";
 import TokenizerLang from "./tokenizer/tokenizer.lang.ts";
 const here = import.meta.url;
 
@@ -31,6 +30,5 @@ function entry(
 export const builtInLanguageDeclarations: Record<string, ModuleDeclaration> =
   Object.fromEntries([
     entry("./source/mod.ts", Source),
-    entry("./tokenizer/mod.ts", Tokenizer),
     entry("./tokenizer/tokenizer.lang.ts", TokenizerLang),
   ]);

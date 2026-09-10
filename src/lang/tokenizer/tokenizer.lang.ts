@@ -25,7 +25,7 @@ export const TokenizerLang: ModuleDeclaration = {
     },
     {
       kind: ImportDeclarationKind.Module,
-      moduleUrl: "./mod.ts",
+      moduleUrl: "./mod.uff",
       names: [
         "Tokenizer",
       ],

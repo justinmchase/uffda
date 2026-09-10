@@ -1,6 +1,6 @@
 # ExpressionLang pipelines Source → tokens → ExpressionComplete.
 import "../source/mod.ts" Source;
-import "../tokenizer/mod.ts" TokenizerNoWhitespace;
+import "../tokenizer/mod.uff" TokenizerNoWhitespace;
 import "./expression.uff" Expression;
 
 export ExpressionLang;

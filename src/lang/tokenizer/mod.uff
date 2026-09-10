@@ -1,0 +1,92 @@
+# Tokenizer: structured tokens with comment/string trivia, then semantic views.
+# Uses provisional std semantic_no_whitespace_texts (B7 / #124).
+#
+# Declare the `"\\"` pattern before other quoted rule bodies so the multi-rule
+# quote scanner (B15) does not break on later backslash literals.
+import "../common/characters/mod.uff" Combining Connecting Digit Formatting Letter Whitespace;
+import "./token.uff" Token;
+
+export Token;
+export TokenizerNoWhitespace;
+export rule Tokenizer =
+  Tokens*
+  -> (flat _ 2)
+  ;
+
+rule SlashPunctuationToken =
+  b:"\\"
+  -> { kind: "punctuation", text: b };
+
+rule EscapeFollower =
+  | Whitespace
+  | "\n"
+  | Letter
+  | Connecting
+  | Combining
+  | Digit
+  | Formatting
+  | string
+  ;
+
+rule EscapeCharPunctuationToken =
+  e:EscapeFollower
+  -> { kind: "punctuation", text: e };
+
+rule EscapeTokens =
+  SlashPunctuationToken EscapeCharPunctuationToken;
+
+rule WhitespaceToken =
+  Whitespace+
+  -> { kind: "whitespace", text: (join (flat _) "") };
+
+rule NewLineToken =
+  "\n"
+  -> { kind: "newline", text: _ };
+
+rule WordToken =
+  (Letter | Connecting | Combining | Digit | Formatting)+
+  -> { kind: "word", text: (join (flat _) "") };
+
+rule PunctuationToken =
+  string
+  -> { kind: "punctuation", text: _ };
+
+rule DQuoteToken =
+  "\""
+  -> { kind: "punctuation", text: _ };
+
+rule CommentToken =
+  "#" (except "\n")*
+  -> { kind: "comment", text: (join (flat _) "") };
+
+rule StringPunctuationToken =
+  (not "\"") & string
+  -> { kind: "punctuation", text: _ };
+
+rule StringInterior =
+  | EscapeTokens
+  | WhitespaceToken
+  | NewLineToken
+  | WordToken
+  | StringPunctuationToken
+  ;
+
+rule QuotedStringTokens =
+  o:DQuoteToken
+  i:StringInterior*
+  c:DQuoteToken?
+  -> (flat [o i (coalesce c [])] 2);
+
+rule Tokens =
+  | QuotedStringTokens
+  | CommentToken
+  | WhitespaceToken
+  | NewLineToken
+  | WordToken
+  | PunctuationToken
+  ;
+
+rule TokenizerNoWhitespace =
+  Tokenizer
+  -> (semantic_no_whitespace_texts _)
+  ;

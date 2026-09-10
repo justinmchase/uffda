@@ -4,7 +4,7 @@
 # export+rule pack), so flatten e before concatenating with i and r.
 # `(flat [i e r])` alone would leave those export sublists nested.
 import "../source/mod.ts" Source;
-import "../tokenizer/mod.ts" TokenizerNoWhitespace;
+import "../tokenizer/mod.uff" TokenizerNoWhitespace;
 import "./import.rules.uff" ImportDeclarationSyntax;
 import "./export.rules.uff" ExportDeclarationSyntax;
 import "./rule.rules.uff" RuleDeclarationSyntax;

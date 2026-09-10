@@ -8,7 +8,7 @@ import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 import { StructuredTokenKind, type TokenValue } from "./structured.ts";
 
-const moduleUrl = new URL("./mod.ts", import.meta.url).href;
+const moduleUrl = new URL("./mod.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -56,6 +56,7 @@ Deno.test({
       name: "TOKENIZER00",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Tokenizer",
         input: Input.Iterable(""),
         value: [],
         kind: MatchKind.Ok,
@@ -66,6 +67,7 @@ Deno.test({
       name: "TOKENIZER01",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Tokenizer",
         input: Input.Iterable(" "),
         value: [tok(StructuredTokenKind.Whitespace, " ")],
         kind: MatchKind.Ok,
@@ -76,6 +78,7 @@ Deno.test({
       name: "TOKENIZER02",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Tokenizer",
         input: Input.Iterable(" \n "),
         value: [
           tok(StructuredTokenKind.Whitespace, " "),
@@ -90,6 +93,7 @@ Deno.test({
       name: "TOKENIZER03",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Tokenizer",
         input: Input.Iterable("abc\nxyz"),
         value: [
           tok(StructuredTokenKind.Word, "abc"),
@@ -104,6 +108,7 @@ Deno.test({
       name: "TOKENIZER04",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Tokenizer",
         input: Input.Iterable("abc123-123abc"),
         value: [
           tok(StructuredTokenKind.Word, "abc123"),
@@ -118,6 +123,7 @@ Deno.test({
       name: "TOKENIZER05",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Tokenizer",
         input: Input.Iterable("!@$%^&*()_+-=[]\\{}|;':\",./<>?"),
         value: [
           tok(StructuredTokenKind.Punctuation, "!"),
@@ -158,6 +164,7 @@ Deno.test({
       name: "TOKENIZER05A",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Tokenizer",
         input: Input.Iterable('"#" # comment\n*'),
         value: [
           tok(StructuredTokenKind.Punctuation, '"'),
@@ -176,6 +183,7 @@ Deno.test({
       name: "TOKENIZER06",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Tokenizer",
         input: Input.Iterable("abc   123\t\t\txyz\n\n\n456"),
         value: [
           tok(StructuredTokenKind.Word, "abc"),
@@ -196,6 +204,7 @@ Deno.test({
       name: "TOKENIZER07",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Tokenizer",
         input: Input.Iterable("1.2.3"),
         value: [
           tok(StructuredTokenKind.Word, "1"),
@@ -212,6 +221,7 @@ Deno.test({
       name: "TOKENIZER08",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Tokenizer",
         input: Input.Iterable("x\\{y}z"),
         value: [
           tok(StructuredTokenKind.Word, "x"),
@@ -229,6 +239,7 @@ Deno.test({
       name: "TOKENIZER09",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Tokenizer",
         input: Input.Iterable("x{y}z"),
         value: [
           tok(StructuredTokenKind.Word, "x"),
