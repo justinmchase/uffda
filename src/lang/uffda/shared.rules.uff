@@ -8,6 +8,7 @@ rule ReservedKeywordToken =
   | "import"
   | "export"
   | "rule"
+  | "func"
   ;
 
 rule IdentifierToken =

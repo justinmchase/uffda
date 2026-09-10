@@ -13,6 +13,7 @@ const mod0: Module = {
   imports: new Map(),
   exports: new Map(),
   rules: new Map(),
+  funcs: new Map(),
   default: undefined,
 };
 const mod1: Module = {
@@ -20,6 +21,7 @@ const mod1: Module = {
   imports: new Map(),
   exports: new Map(),
   rules: new Map(),
+  funcs: new Map(),
   default: undefined,
 };
 const rule: Rule = {

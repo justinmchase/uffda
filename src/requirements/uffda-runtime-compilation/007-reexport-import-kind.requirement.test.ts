@@ -12,8 +12,10 @@ Deno.test(
     assertEquals(uff.includes("NormalizeModule"), true);
     assertEquals(uff.includes("FinalizeExports"), true);
     assertEquals(uff.includes('(to_set (pluck r "name"))'), true);
+    assertEquals(uff.includes('(to_set (pluck f "name"))'), true);
     assertEquals(uff.includes('{ ..._, kind: "import" }'), true);
-    assertEquals(uff.includes("(not (has t _.name))"), true);
+    assertEquals(uff.includes('{ ..._, kind: "func" }'), true);
+    assertEquals(uff.includes("CompileFuncDeclaration"), true);
     assertEquals(uff.includes("ExpressionKind.Native"), false);
     assertEquals(uff.includes("normalizeModule"), false);
 

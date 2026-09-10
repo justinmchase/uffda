@@ -16,7 +16,7 @@ form one Uffda module.
 
 ## Declaration envelope
 
-- Top-level declarations MUST be classified as import, export, or rule
+- Top-level declarations MUST be classified as import, export, rule, or func
   declarations.
 - Every top-level declaration MUST begin with a distinct declaration keyword
   token that identifies its declaration family.

@@ -23,6 +23,7 @@ Deno.test("lang.uffda.runtime-compiler compiles an empty syntax module", async (
       imports: [],
       exports: [],
       rules: [],
+      funcs: [],
     });
   }
 });
@@ -81,6 +82,7 @@ Deno.test("lang.uffda.runtime-compiler compiles declaration families", async () 
         pattern: { kind: PatternKind.Equal, value: lit(".") },
         expression: undefined,
       }],
+      funcs: [],
     });
   }
 });
@@ -117,6 +119,7 @@ Deno.test(
           name: "Digit",
         }],
         rules: [],
+        funcs: [],
       });
     }
   },

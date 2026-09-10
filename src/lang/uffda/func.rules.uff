@@ -1,0 +1,100 @@
+# Func declaration syntax: expression body only (no rule-style ->).
+# Parameter lists are PatternLang patterns in angle brackets, e.g.
+# `<a:number b:string>` or `<a:any*>`. The list is one pattern (typically Then).
+# Omitted or empty `<>` means End (no arguments). Variable bindings are
+# single-letter (B12).
+import "../pattern/pattern.lang.uff" PatternTokens;
+import "../expression/expression.lang.uff" ExpressionTokens;
+import "./shared.rules.uff" IdentifierToken;
+
+export FuncDeclarationSyntax;
+export FuncExpressionBody;
+export FuncParameterList;
+
+rule FuncExpressionBody =
+  FuncExpressionToken
+  |> ExpressionTokens;
+
+rule FuncEscapedQuotedTokens =
+  "\\"
+  e:("\"" | "{" | "\\")
+  -> (pack "\\" e);
+
+rule FuncQuotedTokenContent =
+  | FuncEscapedQuotedTokens
+  | ((not "\"") & string)
+  ;
+
+rule FuncQuotedTokenSequence =
+  "\""
+  c:FuncQuotedTokenContent*
+  "\""
+  -> (flat (pack "\"" (flat c) "\""));
+
+rule FuncExpressionToken =
+  (
+    | FuncQuotedTokenSequence
+    | ((not ";") & string)
+  )+
+  -> (flat _);
+
+rule FuncParameterChunkNestedAngle =
+  "<"
+  c:FuncParameterChunk*
+  ">"
+  -> (flat (pack "<" (flat c) ">"));
+
+rule FuncParameterChunkNestedParen =
+  "("
+  c:FuncParameterChunk*
+  ")"
+  -> (flat (pack "(" (flat c) ")"));
+
+rule FuncParameterChunkNestedBracket =
+  "["
+  c:FuncParameterChunk*
+  "]"
+  -> (flat (pack "[" (flat c) "]"));
+
+rule FuncParameterChunkNestedBrace =
+  o:"{"
+  c:FuncParameterChunk*
+  e:"}"
+  -> (flat (pack o (flat c) e));
+
+rule FuncParameterChunk =
+  | FuncQuotedTokenSequence
+  | FuncParameterChunkNestedAngle
+  | FuncParameterChunkNestedParen
+  | FuncParameterChunkNestedBracket
+  | FuncParameterChunkNestedBrace
+  | ((not ">") & string)
+  ;
+
+rule FuncParameterToken =
+  FuncParameterChunk+
+  -> (flat _);
+
+rule FuncParameterPatterns =
+  FuncParameterToken
+  |> PatternTokens;
+
+rule FuncParameterList =
+  "<"
+  p:FuncParameterPatterns?
+  ">"
+  -> (coalesce p { kind: "end" });
+
+rule FuncDeclarationSyntax =
+  "func"
+  n:IdentifierToken
+  p:FuncParameterList?
+  "="
+  e:FuncExpressionBody
+  ";"
+  -> {
+    kind: "func",
+    name: n,
+    pattern: (coalesce p { kind: "end" }),
+    expression: e
+  };

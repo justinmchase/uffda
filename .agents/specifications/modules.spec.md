@@ -16,10 +16,13 @@ and surfaced to runtime pattern execution.
 
 ## Module declaration model
 
-- A module declaration MUST include imports, exports, and rules.
+- A module declaration MUST include imports, exports, rules, and funcs.
+- Missing `funcs` on artifacts produced by older compilers MUST be treated as an
+  empty funcs list.
 - Rule declarations in a module MUST be addressable by declared rule name.
-- Exports MUST refer only to names that are valid rule exports or valid resolved
-  imports.
+- Func declarations in a module MUST be addressable by declared func name.
+- Exports MUST refer only to names that are valid rule exports, valid func
+  exports, or valid resolved imports.
 - A module MAY define a single default export.
 - A module MUST NOT define multiple default exports.
 
@@ -39,8 +42,8 @@ and surfaced to runtime pattern execution.
   runtime module instance.
 - Module imports MUST be resolved relative to the importing module URL.
 - Imported names MUST be validated against the imported module's exported names.
-- Import names that conflict with rule declarations in the importing module MUST
-  be rejected as module-resolution errors.
+- Import names that conflict with rule or func declarations in the importing
+  module MUST be rejected as module-resolution errors.
 
 ## Supported module sources
 
@@ -91,7 +94,9 @@ and surfaced to runtime pattern execution.
 ## Export and visibility behavior
 
 - Rule exports MUST expose runtime rules declared in the module.
-- Import exports MUST expose names previously resolved from module imports.
+- Func exports MUST expose runtime funcs declared in the module.
+- Import exports MUST expose names previously resolved from module imports
+  (rules or funcs).
 - Unknown exported names MUST fail resolution as module-resolution errors.
 - Unknown imported names MUST fail resolution as module-resolution errors.
 

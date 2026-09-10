@@ -25,10 +25,19 @@ export type UffdaRuleSyntaxDeclaration = {
   projection?: Expression;
 };
 
+export type UffdaFuncSyntaxDeclaration = {
+  kind: "func";
+  name: string;
+  /** Args pattern (End when no parameter list); typically Then of captures. */
+  pattern: Pattern;
+  expression: Expression;
+};
+
 export type UffdaSyntaxDeclaration =
   | UffdaImportSyntaxDeclaration
   | UffdaExportSyntaxDeclaration
-  | UffdaRuleSyntaxDeclaration;
+  | UffdaRuleSyntaxDeclaration
+  | UffdaFuncSyntaxDeclaration;
 
 export type UffdaSyntaxModule = {
   kind: "module";

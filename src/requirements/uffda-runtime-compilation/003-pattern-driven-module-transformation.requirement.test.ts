@@ -54,6 +54,7 @@ Deno.test("req:uffda-runtime-compilation-003 - compiler rules transform declarat
         pattern: { kind: PatternKind.End },
         expression: undefined,
       }],
+      funcs: [],
     });
   }
 });

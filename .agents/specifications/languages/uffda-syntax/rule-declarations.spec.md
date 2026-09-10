@@ -7,6 +7,9 @@ This chapter defines Uffda rule declaration forms.
 Rule declarations bind rule names and parameters to a pattern body and an
 optional projection expression.
 
+Rules and funcs share a Pattern → Expression idea but differ in required slots
+and invocation site. See [rules and funcs](./rules-and-funcs.spec.md).
+
 ## Core rule contracts
 
 - Rule declarations MUST include a stable rule identity (name).
