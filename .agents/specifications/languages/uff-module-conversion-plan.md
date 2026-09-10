@@ -254,11 +254,14 @@ permanent TypeScript language modules once builtins exist.
 
 ## First candidate (next session)
 
-Phase 5: `tokenizer/mod` next; then publish CLI with B6/B7 stds and convert
-`source/mod` + `tokenizer/tokenizer.lang`. Pattern stack leaves are converted.
+Phase 5: `tokenizer/mod` next; then convert `source/mod` +
+`tokenizer/tokenizer.lang` with published B6/B7 stds (0.1.23+). Pattern stack
+leaves are converted.
 
 Optional `recursive rule` sugar remains deferred
-([#98](https://github.com/justinmchase/uffda/issues/98)).
+([#98](https://github.com/justinmchase/uffda/issues/98)). Author-defined `func`
+declarations for migrating provisional domain std are tracked in
+([#124](https://github.com/justinmchase/uffda/issues/124)).
 
 ## References
 
