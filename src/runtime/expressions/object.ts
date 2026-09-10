@@ -1,4 +1,5 @@
 import type { MatchOk } from "../../match.ts";
+import { Type, type } from "@justinmchase/type";
 import { exec } from "../exec.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import type { ObjectExpression } from "./expression.ts";
@@ -6,8 +7,8 @@ import type { ObjectExpression } from "./expression.ts";
 function assertPropertyKey(
   value: unknown,
 ): asserts value is PropertyKey {
-  const t = typeof value;
-  if (t !== "string" && t !== "number" && t !== "symbol") {
+  const [t] = type(value);
+  if (t !== Type.String && t !== Type.Number && t !== Type.Symbol) {
     throw new Error(
       `Object computed key must resolve to a string, number or symbol, got ${t}`,
     );
