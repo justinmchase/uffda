@@ -1,7 +1,7 @@
 # Resolve matches Name or Name<Pattern…> and projects a resolve reference AST.
 # Optional arg lists use flat+coalesce (B5) instead of Native unpack. Cycles with
 # Pattern via Atomic are expected (B9); Resolver import caching breaks recursion.
-import "../common/identifier.uff" Identifier;
+import "../common/identifier.uff" IdToken;
 import "./pattern.uff" Pattern;
 
 export Resolve;
@@ -41,8 +41,6 @@ rule ReservedKeyword =
   | "undefined"
   | "variable"
   ;
-
-rule IdToken = string & [Identifier];
 
 rule EscapedIdentifierToken =
   "@"

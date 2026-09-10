@@ -15,6 +15,8 @@ Deno.test(
   async () => {
     const source = await Deno.readTextFile(identifierUff);
     assertEquals(source.includes("export rule Identifier"), true);
+    assertEquals(source.includes("export rule IdToken"), true);
+    assertEquals(source.includes("string & [Identifier]"), true);
     assertEquals(source.includes('(join (flat _) "")'), true);
   },
 );

@@ -11,7 +11,8 @@ Deno.test(
     );
     assertEquals(shared.includes("export IdentifierToken"), true);
     assertEquals(shared.includes("export ReservedKeywordToken"), true);
-    assertEquals(shared.includes("& (not ReservedKeywordToken)"), true);
+    assertEquals(shared.includes("(not ReservedKeywordToken)"), true);
+    assertEquals(shared.includes("IdToken"), true);
 
     const number = await Deno.readTextFile(
       join(repoRoot, "src", "lang", "expression", "number.uff"),

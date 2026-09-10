@@ -1,15 +1,13 @@
 # Literals: types, character classes, between, includes, and bare equal.
 # Value sources use tagged value.literal / value.variable (B17). String escapes
 # mirror expression/string without interpolation. Bindings are single-letter (B12).
-import "../common/identifier.uff" Identifier;
+import "../common/identifier.uff" IdToken;
 import "../expression/number.uff" Number;
 import "../expression/boolean.uff" Boolean;
 import "../expression/nullish.uff" Nullish;
 import "./character_class.uff" CharacterClass;
 
 export Literals;
-
-rule IdToken = string & [Identifier];
 
 rule EscapedPatternStringQuote = "\\" "\"" -> "\"";
 rule EscapedPatternStringBackslash = "\\" "\\" -> "\\";

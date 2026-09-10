@@ -2,12 +2,10 @@
 # Over builds keys via std from_entries (no host Object native). Cycles with
 # Pattern via Atomic are expected (B9); Resolver import caching breaks
 # recursion.
-import "../common/identifier.uff" Identifier;
+import "../common/identifier.uff" IdToken;
 import "./pattern.uff" Pattern;
 
 export Structure;
-
-rule IdToken = string & [Identifier];
 
 rule Group =
   "("

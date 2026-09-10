@@ -22,6 +22,8 @@ Deno.test("lang.uffda.rule-modules compose into UffdaLang", async () => {
 
   const shared = await Deno.readTextFile(join(uffdaDir, "shared.rules.uff"));
   assertEquals(shared.includes("export IdentifierToken"), true);
+  assertEquals(shared.includes("IdToken"), true);
+  assertEquals(shared.includes("string & [Identifier]"), false);
   assertEquals(shared.includes("export ReservedKeywordToken"), true);
 
   const importRules = await Deno.readTextFile(
