@@ -9,8 +9,9 @@ Uffda is a Deno-based parser generator for domain specific languages.
 
 **Compiler bootstrap:** see
 `.github/instructions/compiler-bootstrap.instructions.md`. `compile:lang` =
-previous published `uffda` (parse) → previous compiler (lower) →
-ModuleDeclaration under `./bin`; resolve loads JSON only.
+previous published `uffda compile` only → ModuleDeclaration under `./bin`;
+resolve loads JSON only. Never post-process `./bin` after compile; wrong AST
+shape → publish → install → recompile.
 
 ## Runtime and dependency conventions
 
