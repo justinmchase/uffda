@@ -10,6 +10,20 @@ export rule Source =
   |> SourceDocument
   ;
 
+# `normalized_unit`/`normalization_map` are module-local: they are only
+# needed by NormalizedUnit's arms and NormalizedText's projection, and are
+# not part of the general globals toolbox (#124).
+func normalized_unit<value:string start:number end:number> =
+  { value: value, originalOffsetStart: start, originalOffsetEnd: end };
+
+func LastOriginalOffsetEnd<{originalOffsetEnd: u:number}> = u;
+
+func normalization_map<items:array> =
+  [
+    ...(pluck items "originalOffsetStart")
+    (LastOriginalOffsetEnd (last items { originalOffsetEnd: 0 }))
+  ];
+
 rule CrLfUnit =
   "\r" "\n"
   -> (normalized_unit "\n" (match_leaf_offset "start") (match_leaf_offset "end"));
@@ -38,8 +52,8 @@ rule NormalizedText =
 
 # `line_starts` is module-local: it is only needed by LineIndex and is not
 # part of the general globals toolbox (#124).
-func LineStart<p:{index:number, value:string}> =
-  (when (eq p.value "\n") (add p.index 1) null);
+func LineStart<{index: i:number, value: v:string}> =
+  (when (eq v "\n") (add i 1) null);
 
 func NotNull<v:any> =
   (not (eq v null));

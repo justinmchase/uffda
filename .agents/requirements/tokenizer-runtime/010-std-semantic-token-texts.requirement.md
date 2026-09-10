@@ -1,17 +1,18 @@
 ---
 id: tokenizer-runtime-010
-title: Std semantic text helpers omit comments and optional whitespace
-spec_ref: ".agents/specifications/languages/tokenization.spec.md#semantic-token-text-helpers-bootstrap-precursors"
+title: Semantic token text funcs omit comments and optional whitespace
+spec_ref: ".agents/specifications/languages/tokenization.spec.md#semantic-token-text-helpers"
 ---
 
-# Semantic Token Text Std Helpers
+# Semantic Token Text Funcs
 
 ## Requirement
 
 Preconditions:
 
-- The runtime std globals include `semantic_texts` and
-  `semantic_no_whitespace_texts`.
+- `tokenizer.lang.uff` declares a module-local `semantic_texts` func.
+- `tokenizer/mod.uff` declares a module-local `semantic_no_whitespace_texts`
+  func.
 - Structured token values expose `kind` and `text` only.
 
 Expected behavior:
@@ -20,9 +21,9 @@ Expected behavior:
   whitespace and newline texts.
 - `semantic_no_whitespace_texts` MUST retain only `"word"` and `"punctuation"`
   texts.
-- Helpers MUST NOT read Match spans.
+- Funcs MUST NOT read Match spans.
 
 Error behavior:
 
-- Non-array inputs MUST throw TypeError.
-- Entries without a string `text` MUST throw TypeError.
+- Non-array inputs MUST fail the func's argument pattern match.
+- Entries without a string `text` field MUST fail argument pattern matching.

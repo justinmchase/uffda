@@ -1,5 +1,4 @@
 # TokenizerLang: Source → structured tokens → semantic texts (comments omitted).
-# Uses provisional B7 std semantic_texts (#124).
 import "../source/mod.uff" Source;
 import "./mod.uff" Tokenizer;
 
@@ -10,3 +9,13 @@ export rule TokenizerLang =
     source: s,
     tokens: (semantic_texts _)
   };
+
+# `semantic_texts` is module-local: it is only needed here to project tokens
+# down to their text, omitting comments (#124).
+func IsNotComment<{kind: k:string}> =
+  (not (eq k "comment"));
+
+func TokenText<{text: t:string}> = t;
+
+func semantic_texts<tokens:array> =
+  (map (filter tokens IsNotComment) TokenText);

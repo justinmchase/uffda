@@ -6,24 +6,11 @@ import {
   itemSpansFromTokenizerMatch,
   StructuredTokenKind,
   type TokenValue,
-  toSemanticTexts,
 } from "./structured.ts";
 
 function tok(kind: StructuredTokenKind, text: string): TokenValue {
   return { kind, text };
 }
-
-Deno.test("lang.tokenizer.structured semantic texts omit comments", () => {
-  assertEquals(
-    toSemanticTexts([
-      tok(StructuredTokenKind.Word, "any"),
-      tok(StructuredTokenKind.Whitespace, " "),
-      tok(StructuredTokenKind.Comment, "#no"),
-      tok(StructuredTokenKind.NewLine, "\n"),
-    ]),
-    ["any", " ", "\n"],
-  );
-});
 
 Deno.test("lang.tokenizer.structured itemSpansFromTokenizerMatch keeps semantic spans", () => {
   const scope = Scope.Default();

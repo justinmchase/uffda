@@ -1,10 +1,6 @@
 import type { Match, MatchOk } from "../../match.ts";
 import { MatchKind } from "../../match.ts";
 import type { ItemSourceSpan, SourceSpan } from "../../span.ts";
-import {
-  semantic_no_whitespace_texts,
-  semantic_texts,
-} from "../../runtime/globals/semantic_texts.ts";
 
 export enum StructuredTokenKind {
   Whitespace = "whitespace",
@@ -39,16 +35,6 @@ export function isTriviaToken(token: TokenValue): boolean {
 export function isSemanticNoWhitespaceToken(token: TokenValue): boolean {
   return token.kind === StructuredTokenKind.Word ||
     token.kind === StructuredTokenKind.Punctuation;
-}
-
-/** @deprecated Prefer globals `semantic_texts`. */
-export function toSemanticTexts(tokens: TokenValue[]): string[] {
-  return semantic_texts(tokens);
-}
-
-/** @deprecated Prefer globals `semantic_no_whitespace_texts`. */
-export function toSemanticNoWhitespaceTexts(tokens: TokenValue[]): string[] {
-  return semantic_no_whitespace_texts(tokens);
 }
 
 type SpannedToken = TokenValue & {
