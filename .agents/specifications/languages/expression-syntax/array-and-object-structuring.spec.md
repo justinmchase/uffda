@@ -21,6 +21,9 @@ Normative key words in this chapter use the conventions defined in the
   canonical internal structuring representation.
 - Structuring syntax MUST support spread-style composition in arrays and
   objects.
+- Object structuring MUST support computed (expression-valued) property keys in
+  both the canonical and sugar surface forms, per
+  [object computed-key initializer](../../expressions/object-computed-key.spec.md).
 - Set and map structuring MUST be expressed in canonical low-sugar forms.
 - Destructuring syntax MUST NOT be defined in expression structuring forms;
   destructuring belongs to pattern/binding layers.
@@ -29,6 +32,7 @@ Normative key words in this chapter use the conventions defined in the
 
 - `[a b]` -> `(array (elem a) (elem b))`
 - `{name: value}` -> `(object (key name value))`
+- `{[keyExpr]: value}` -> `(object (computed-key keyExpr value))`
 - `(set a b)` -> `(set a b)`
 - `(map (key a b))` -> `(map (key a b))`
 - `[a ...xs]` -> `(array (elem a) (spread xs))`
@@ -43,6 +47,7 @@ Normative key words in this chapter use the conventions defined in the
 - `[1 2 3]`
 - `{name: value, age: 42}`
 - `{...base, name: value}`
+- `{[key]: value}`
 
 ## Invalid syntax examples
 

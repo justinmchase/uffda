@@ -9,6 +9,8 @@ export Object;
 
 rule OpenBrace = "{";
 rule CloseBrace = "}";
+rule OpenBracket = "[" -> "[";
+rule CloseBracket = "]" -> "]";
 rule Colon = ":" -> ":";
 rule Comma = "," -> ",";
 
@@ -18,6 +20,14 @@ rule ObjectPair =
   v:Token<Primary>
   -> { kind: "objectKey", name: k.name, expression: v };
 
+rule ObjectComputedKey =
+  Token<OpenBracket>
+  k:Token<Primary>
+  Token<CloseBracket>
+  Token<Colon>
+  v:Token<Primary>
+  -> { kind: "objectComputedKey", keyExpression: k, expression: v };
+
 rule ObjectSpread =
   SpreadMarker
   e:Token<Primary>
@@ -25,6 +35,7 @@ rule ObjectSpread =
 
 rule ObjectEntry =
   | ObjectSpread
+  | ObjectComputedKey
   | ObjectPair
   ;
 

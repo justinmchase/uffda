@@ -21,6 +21,7 @@ import { one } from "./one.ts";
 import { pack } from "./pack.ts";
 import { pluck } from "./pluck.ts";
 import { source_document } from "./source_document.ts";
+import { symbol } from "./symbol.ts";
 import { to_set } from "./to_set.ts";
 import { units } from "./units.ts";
 import { when } from "./when.ts";
@@ -61,6 +62,7 @@ export const defaultGlobals = new Map<string, unknown>([
   ["pack", pack],
   ["pluck", pluck],
   ["source_document", source_document],
+  ["symbol", symbol],
   ["to_set", to_set],
   ["units", units],
   ["when", when],

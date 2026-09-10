@@ -15,6 +15,9 @@ Object expressions construct key-value objects from object initializer entries.
 
 - An object expression MUST evaluate initializer entries in declaration order.
 - Object-key initializers MUST assign one named property.
+- Object-computed-key initializers MUST assign one property whose key is the
+  result of evaluating an expression, per
+  [object computed-key initializer](./object-computed-key.spec.md).
 - Object-spread initializers MUST merge properties from an evaluated object-like
   value according to runtime spread semantics.
 - Later assignments MAY override earlier properties when names collide.

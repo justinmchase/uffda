@@ -103,6 +103,7 @@ export type NotExpression = {
 
 export type ObjectInitializer =
   | ObjectKeyExpression
+  | ObjectComputedKeyExpression
   | ObjectSpreadExpression;
 
 export type ObjectExpression = {
@@ -118,6 +119,12 @@ export type ObjectSpreadExpression = {
 export type ObjectKeyExpression = {
   kind: ExpressionKind.ObjectKey;
   name: string;
+  expression: Expression;
+};
+
+export type ObjectComputedKeyExpression = {
+  kind: ExpressionKind.ObjectComputedKey;
+  keyExpression: Expression;
   expression: Expression;
 };
 

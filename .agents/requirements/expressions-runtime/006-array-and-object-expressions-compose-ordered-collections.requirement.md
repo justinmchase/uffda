@@ -1,7 +1,7 @@
 ---
 id: expressions-runtime-006
 title: Array and object expressions compose child values in declaration order
-spec_ref: ".agents/specifications/expressions/array.spec.md#behavioral-expectations; .agents/specifications/expressions/object.spec.md#behavioral-expectations; .agents/specifications/expressions/array-element.spec.md#behavioral-expectations; .agents/specifications/expressions/array-spread.spec.md#behavioral-expectations; .agents/specifications/expressions/object-key.spec.md#behavioral-expectations; .agents/specifications/expressions/object-spread.spec.md#behavioral-expectations"
+spec_ref: ".agents/specifications/expressions/array.spec.md#behavioral-expectations; .agents/specifications/expressions/object.spec.md#behavioral-expectations; .agents/specifications/expressions/array-element.spec.md#behavioral-expectations; .agents/specifications/expressions/array-spread.spec.md#behavioral-expectations; .agents/specifications/expressions/object-key.spec.md#behavioral-expectations; .agents/specifications/expressions/object-computed-key.spec.md#behavioral-expectations; .agents/specifications/expressions/object-spread.spec.md#behavioral-expectations"
 ---
 
 # Array and Object Composition
@@ -20,6 +20,8 @@ Expected behavior:
 - Array spread initializers MUST expand evaluated iterable values into the
   resulting array.
 - Object key initializers MUST assign the evaluated value to the declared key.
+- Object computed-key initializers MUST assign the evaluated value to the
+  evaluated key expression's result.
 - Object spread initializers MUST merge evaluated object properties into the
   resulting object.
 
@@ -28,3 +30,5 @@ Error behavior:
 - Child-expression errors MUST propagate unchanged.
 - Non-spreadable child values MUST report runtime spread errors according to the
   host runtime behavior.
+- Object computed-key initializers whose resolved key is not a `string`,
+  `number`, or `symbol` MUST throw an evaluation exception.
