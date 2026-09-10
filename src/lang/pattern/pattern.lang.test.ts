@@ -3,6 +3,7 @@ import { MatchKind } from "../../mod.ts";
 import {
   CharacterClass,
   ResolveTargetKind,
+  ValueSourceKind,
 } from "../../runtime/patterns/pattern.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { Type } from "@justinmchase/type";
@@ -228,7 +229,7 @@ Deno.test(
           args: [
             {
               kind: PatternKind.Equal,
-              value: "bar",
+              value: { kind: ValueSourceKind.Literal, value: "bar" },
             },
           ],
         },
@@ -254,7 +255,7 @@ Deno.test(
               args: [
                 {
                   kind: PatternKind.Equal,
-                  value: "baz",
+                  value: { kind: ValueSourceKind.Literal, value: "baz" },
                 },
               ],
             },
@@ -272,7 +273,10 @@ Deno.test(
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Includes,
-          values: ["x", "y"],
+          values: [{ kind: ValueSourceKind.Literal, value: "x" }, {
+            kind: ValueSourceKind.Literal,
+            value: "y",
+          }],
         },
       }),
     });
@@ -286,8 +290,8 @@ Deno.test(
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Between,
-          left: 1,
-          right: 5,
+          left: { kind: ValueSourceKind.Literal, value: 1 },
+          right: { kind: ValueSourceKind.Literal, value: 5 },
         },
       }),
     });
@@ -301,7 +305,7 @@ Deno.test(
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Equal,
-          value: "hello",
+          value: { kind: ValueSourceKind.Literal, value: "hello" },
         },
       }),
     });
@@ -315,7 +319,7 @@ Deno.test(
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Equal,
-          value: "\t",
+          value: { kind: ValueSourceKind.Literal, value: "\t" },
         },
       }),
     });
@@ -329,7 +333,7 @@ Deno.test(
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Equal,
-          value: "\n",
+          value: { kind: ValueSourceKind.Literal, value: "\n" },
         },
       }),
     });
@@ -343,7 +347,7 @@ Deno.test(
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Equal,
-          value: "\r",
+          value: { kind: ValueSourceKind.Literal, value: "\r" },
         },
       }),
     });
@@ -357,7 +361,7 @@ Deno.test(
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Equal,
-          value: "\\",
+          value: { kind: ValueSourceKind.Literal, value: "\\" },
         },
       }),
     });
@@ -371,7 +375,7 @@ Deno.test(
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Equal,
-          value: '"',
+          value: { kind: ValueSourceKind.Literal, value: '"' },
         },
       }),
     });
@@ -385,7 +389,7 @@ Deno.test(
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Equal,
-          value: "\tab",
+          value: { kind: ValueSourceKind.Literal, value: "\tab" },
         },
       }),
     });
@@ -443,7 +447,10 @@ Deno.test(
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Equal,
-          value: "{foo}",
+          value: {
+            kind: ValueSourceKind.Literal,
+            value: "{foo}",
+          },
         },
       }),
     });
@@ -476,7 +483,7 @@ Deno.test(
           args: [
             {
               kind: PatternKind.Equal,
-              value: "bar",
+              value: { kind: ValueSourceKind.Literal, value: "bar" },
             },
           ],
         },
@@ -626,7 +633,7 @@ Deno.test(
           patterns: [
             {
               kind: PatternKind.Equal,
-              value: "literal",
+              value: { kind: ValueSourceKind.Literal, value: "literal" },
             },
             {
               kind: PatternKind.Pipeline,
@@ -651,7 +658,7 @@ Deno.test(
                   pattern: {
                     kind: PatternKind.Quantifier,
                     pattern: { kind: PatternKind.Any },
-                    min: 1,
+                    min: { kind: ValueSourceKind.Literal, value: 1 },
                     max: undefined,
                   },
                 },

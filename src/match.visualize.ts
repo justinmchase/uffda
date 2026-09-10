@@ -2,6 +2,10 @@ import { type Match, MatchKind } from "./match.ts";
 import type { Path } from "./path.ts";
 import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
 import type { Pattern } from "./runtime/patterns/pattern.ts";
+import {
+  type ValueSource,
+  ValueSourceKind,
+} from "./runtime/patterns/value_source.ts";
 import { StackFrameKind } from "./runtime/stack/stackFrameKind.ts";
 
 type MatchNode = {
@@ -24,6 +28,23 @@ function currentValue(match: Match): unknown {
   return match.scope.stream.next().value;
 }
 
+function formatValueSource(source: ValueSource): string {
+  switch (source.kind) {
+    case ValueSourceKind.Variable:
+      return `$${source.name}`;
+    case ValueSourceKind.Literal:
+      return formatValue(source.value);
+    default: {
+      const _exhaustive: never = source;
+      return formatValue(_exhaustive);
+    }
+  }
+}
+
+function formatValueSources(sources: ValueSource[]): string {
+  return `[${sources.map(formatValueSource).join(", ")}]`;
+}
+
 function formatValue(value: unknown): string {
   const inspected = Deno.inspect(value, {
     colors: false,
@@ -42,7 +63,7 @@ function shortPattern(pattern: Pattern): string {
         ? `resolve ${pattern.name}`
         : `resolve ${pattern.targetKind}`;
     case PatternKind.Equal:
-      return `equal ${formatValue(pattern.value)}`;
+      return `equal ${formatValueSource(pattern.value)}`;
     case PatternKind.Character:
       return `character ${pattern.characterClass}`;
     case PatternKind.Type:
@@ -55,11 +76,11 @@ function shortPattern(pattern: Pattern): string {
 function describePattern(pattern: Pattern): string {
   switch (pattern.kind) {
     case PatternKind.Between:
-      return `between ${formatValue(pattern.left)} and ${
-        formatValue(pattern.right)
+      return `between ${formatValueSource(pattern.left)} and ${
+        formatValueSource(pattern.right)
       }`;
     case PatternKind.Includes:
-      return `includes ${formatValue(pattern.values)}`;
+      return `includes ${formatValueSources(pattern.values)}`;
     case PatternKind.Into:
       return `into -> ${shortPattern(pattern.pattern)}`;
     case PatternKind.Variable:
@@ -74,19 +95,19 @@ function describePattern(pattern: Pattern): string {
 function expectation(pattern: Pattern): string | undefined {
   switch (pattern.kind) {
     case PatternKind.Between:
-      return `${formatValue(pattern.left)} through ${
-        formatValue(pattern.right)
+      return `${formatValueSource(pattern.left)} through ${
+        formatValueSource(pattern.right)
       }`;
     case PatternKind.Character:
       return `character class ${pattern.characterClass}`;
     case PatternKind.End:
       return "end of input";
     case PatternKind.Equal:
-      return formatValue(pattern.value);
+      return formatValueSource(pattern.value);
     case PatternKind.Fail:
       return "explicit failure";
     case PatternKind.Includes:
-      return `one of ${formatValue(pattern.values)}`;
+      return `one of ${formatValueSources(pattern.values)}`;
     case PatternKind.RegExp:
       return `${pattern.pattern}`;
     case PatternKind.Type:

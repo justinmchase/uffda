@@ -4,6 +4,7 @@ import { Input, InputNormalizationMode } from "../../input.ts";
 import { getRightmostFailure, MatchKind } from "../../match.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
+import { lit } from "./value_source.ts";
 import { MatchErrorCode, Path } from "../../mod.ts";
 import { CharacterClass } from "./pattern.ts";
 import { match } from "../match.ts";
@@ -232,7 +233,7 @@ await Deno.test("runtime/patterns/into", async (t) => {
       const m = await match(
         {
           kind: PatternKind.Into,
-          pattern: { kind: PatternKind.Equal, value: "b" },
+          pattern: { kind: PatternKind.Equal, value: lit("b") },
         },
         scope,
       );
@@ -265,8 +266,8 @@ await Deno.test("runtime/patterns/into", async (t) => {
           pattern: {
             kind: PatternKind.Then,
             patterns: [
-              { kind: PatternKind.Equal, value: "a" },
-              { kind: PatternKind.Equal, value: "c" },
+              { kind: PatternKind.Equal, value: lit("a") },
+              { kind: PatternKind.Equal, value: lit("c") },
             ],
           },
         },

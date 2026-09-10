@@ -91,7 +91,7 @@ Postfix =
     }
   | pattern:Atomic
     "+"
-    -> { kind: "quantifier", pattern, min: 1 }
+    -> { kind: "quantifier", pattern, min: { kind: "value.literal", value: 1 } }
   | pattern:Atomic
     "?"
     -> { kind: "maybe", pattern }
@@ -130,6 +130,8 @@ Atomic =
     "]"
     -> { kind: "includes", values }
   | value:AtomicLiteral
+    -> { kind: "equal", value }
+  | value:ContextualValue
     -> { kind: "equal", value }
   | Resolve
   | Over
@@ -208,6 +210,13 @@ AtomicLiteral =
   | NumberLiteral
   | BooleanLiteral
   | NullishLiteral
+  -> { kind: "value.literal", value }
+  ;
+
+ContextualValue =
+  "$"
+  name:Token<Identifier>
+  -> { kind: "value.variable", name }
   ;
 
 LiteralList =
@@ -217,8 +226,10 @@ LiteralList =
   ;
 
 Literal =
+  | ContextualValue
   | AtomicLiteral
   | Token<Identifier>
+    -> { kind: "value.literal", value: name }
   ;
 
 Resolve =

@@ -3,9 +3,28 @@ import type { Match } from "../../match.ts";
 import type { Comparable } from "../../comparable.ts";
 import type { Scope } from "../scope.ts";
 import type { BetweenPattern } from "./pattern.ts";
+import { resolvePatternValueOperand } from "./value_source.ts";
 
 export function between(pattern: BetweenPattern, scope: Scope): Match {
-  const { left, right } = pattern;
+  const leftResolved = resolvePatternValueOperand(
+    pattern.left,
+    scope,
+    pattern,
+  );
+  if (leftResolved.kind === "error") {
+    return leftResolved.match;
+  }
+  const rightResolved = resolvePatternValueOperand(
+    pattern.right,
+    scope,
+    pattern,
+  );
+  if (rightResolved.kind === "error") {
+    return rightResolved.match;
+  }
+  const left = leftResolved.value as Comparable;
+  const right = rightResolved.value as Comparable;
+
   if (scope.stream.done) {
     return fail(scope, pattern);
   }

@@ -4,6 +4,7 @@ import { Type } from "@justinmchase/type";
 import {
   CharacterClass,
   ResolveTargetKind,
+  ValueSourceKind,
 } from "../../runtime/patterns/pattern.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { moduleDeclarationTest } from "../../test.ts";
@@ -53,7 +54,7 @@ Deno.test(
           args: [
             {
               kind: PatternKind.Equal,
-              value: "bar",
+              value: { kind: ValueSourceKind.Literal, value: "bar" },
             },
           ],
         },
@@ -101,8 +102,8 @@ Deno.test(
         value: {
           kind: PatternKind.Quantifier,
           pattern: { kind: PatternKind.Any },
-          min: 1,
-          max: 3,
+          min: { kind: ValueSourceKind.Literal, value: 1 },
+          max: { kind: ValueSourceKind.Literal, value: 3 },
         },
       }),
     );
@@ -116,7 +117,10 @@ Deno.test(
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Includes,
-          values: ["x", "y"],
+          values: [{ kind: ValueSourceKind.Literal, value: "x" }, {
+            kind: ValueSourceKind.Literal,
+            value: "y",
+          }],
         },
       }),
     );
@@ -130,8 +134,8 @@ Deno.test(
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Between,
-          left: 1,
-          right: 5,
+          left: { kind: ValueSourceKind.Literal, value: 1 },
+          right: { kind: ValueSourceKind.Literal, value: 5 },
         },
       }),
     );
@@ -187,7 +191,7 @@ Deno.test(
           patterns: [
             {
               kind: PatternKind.Equal,
-              value: "literal",
+              value: { kind: ValueSourceKind.Literal, value: "literal" },
             },
             {
               kind: PatternKind.Pipeline,
@@ -212,7 +216,7 @@ Deno.test(
                   pattern: {
                     kind: PatternKind.Quantifier,
                     pattern: { kind: PatternKind.Any },
-                    min: 1,
+                    min: { kind: ValueSourceKind.Literal, value: 1 },
                     max: undefined,
                   },
                 },

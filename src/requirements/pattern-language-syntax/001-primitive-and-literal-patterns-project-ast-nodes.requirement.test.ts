@@ -1,6 +1,9 @@
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../mod.ts";
-import { CharacterClass } from "../../runtime/patterns/pattern.ts";
+import {
+  CharacterClass,
+  ValueSourceKind,
+} from "../../runtime/patterns/pattern.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { Type } from "@justinmchase/type";
 import { moduleDeclarationTest } from "../../test.ts";
@@ -40,7 +43,7 @@ Deno.test(
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Equal,
-          value: "hello",
+          value: { kind: ValueSourceKind.Literal, value: "hello" },
         },
       }),
     );

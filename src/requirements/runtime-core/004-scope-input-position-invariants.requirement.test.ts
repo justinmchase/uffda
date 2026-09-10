@@ -1,4 +1,5 @@
 import { assertEquals } from "@std/assert";
+import { lit } from "../../runtime/patterns/value_source.ts";
 import { match } from "../../runtime/match.ts";
 import { Scope } from "../../runtime/scope.ts";
 import { InputNormalizationMode } from "../../input.ts";
@@ -8,7 +9,7 @@ import { Path } from "../../path.ts";
 
 Deno.test("req:runtime-core-004 - Runtime scope carries active input position and transitions immutably", async () => {
   const start = Scope.From("ab", { kind: InputNormalizationMode.Iterable });
-  const pattern: Pattern = { kind: PatternKind.Equal, value: "a" };
+  const pattern: Pattern = { kind: PatternKind.Equal, value: lit("a") };
 
   const m = await match(pattern, start);
   assertEquals(m.kind, MatchKind.Ok);

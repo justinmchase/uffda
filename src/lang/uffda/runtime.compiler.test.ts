@@ -4,6 +4,7 @@ import { ExportDeclarationKind } from "../../runtime/declarations/export.ts";
 import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
+import { lit } from "../../runtime/patterns/value_source.ts";
 import type { UffdaSyntaxModule } from "./syntax.types.ts";
 import {
   diagnoseUffdaRuntimeCompilerFailure,
@@ -50,7 +51,7 @@ Deno.test("lang.uffda.runtime-compiler compiles declaration families", async () 
         kind: "rule",
         name: "Stop",
         parameters: [],
-        pattern: { kind: PatternKind.Equal, value: "." },
+        pattern: { kind: PatternKind.Equal, value: lit(".") },
       },
     ],
   };
@@ -77,7 +78,7 @@ Deno.test("lang.uffda.runtime-compiler compiles declaration families", async () 
       }, {
         name: "Stop",
         parameters: [],
-        pattern: { kind: PatternKind.Equal, value: "." },
+        pattern: { kind: PatternKind.Equal, value: lit(".") },
         expression: undefined,
       }],
     });

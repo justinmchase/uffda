@@ -1,4 +1,5 @@
 import { assertEquals } from "@std/assert";
+import { lit } from "../../runtime/patterns/value_source.ts";
 import { InputNormalizationMode } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { Path } from "../../path.ts";
@@ -10,7 +11,7 @@ Deno.test("req:equal-003 - Equal success consumes exactly one item and reports t
   const scope = Scope.From(["a", "b"], {
     kind: InputNormalizationMode.Iterable,
   });
-  const pattern: Pattern = { kind: PatternKind.Equal, value: "a" };
+  const pattern: Pattern = { kind: PatternKind.Equal, value: lit("a") };
 
   const m = await match(pattern, scope);
   assertEquals(m.kind, MatchKind.Ok);

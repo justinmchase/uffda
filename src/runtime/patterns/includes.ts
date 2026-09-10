@@ -2,9 +2,18 @@ import type { Serializable } from "@justinmchase/serializable";
 import { fail, type Match, ok } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import type { IncludesPattern } from "./pattern.ts";
+import { resolvePatternValueOperand } from "./value_source.ts";
 
 export function includes(pattern: IncludesPattern, scope: Scope): Match {
-  const { values } = pattern;
+  const values: Serializable[] = [];
+  for (const source of pattern.values) {
+    const resolved = resolvePatternValueOperand(source, scope, pattern);
+    if (resolved.kind === "error") {
+      return resolved.match;
+    }
+    values.push(resolved.value as Serializable);
+  }
+
   if (scope.stream.done) {
     return fail(scope, pattern);
   }

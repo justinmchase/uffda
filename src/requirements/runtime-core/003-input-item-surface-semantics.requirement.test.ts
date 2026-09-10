@@ -1,4 +1,5 @@
 import { assert, assertEquals } from "@std/assert";
+import { lit } from "../../runtime/patterns/value_source.ts";
 import { InputNormalizationMode } from "../../input.ts";
 import { match } from "../../runtime/match.ts";
 import { Scope } from "../../runtime/scope.ts";
@@ -8,7 +9,7 @@ import { type Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
 Deno.test("req:runtime-core-003 - Input item surfaces drive direct, iterable, and keyed traversal semantics", async (t) => {
   await t.step("scalar item is matched directly as one item", async () => {
     const scope = Scope.From("abc");
-    const pattern: Pattern = { kind: PatternKind.Equal, value: "abc" };
+    const pattern: Pattern = { kind: PatternKind.Equal, value: lit("abc") };
     const m = await match(pattern, scope);
 
     assertEquals(m.kind, MatchKind.Ok);
@@ -28,8 +29,8 @@ Deno.test("req:runtime-core-003 - Input item surfaces drive direct, iterable, an
         pattern: {
           kind: PatternKind.Then,
           patterns: [
-            { kind: PatternKind.Equal, value: "a" },
-            { kind: PatternKind.Equal, value: "b" },
+            { kind: PatternKind.Equal, value: lit("a") },
+            { kind: PatternKind.Equal, value: lit("b") },
           ],
         },
       };
@@ -46,7 +47,7 @@ Deno.test("req:runtime-core-003 - Input item surfaces drive direct, iterable, an
     const pattern: Pattern = {
       kind: PatternKind.Over,
       keys: {
-        x: { kind: PatternKind.Equal, value: "a" },
+        x: { kind: PatternKind.Equal, value: lit("a") },
       },
     };
 

@@ -1,6 +1,7 @@
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
+import { lit } from "../../runtime/patterns/value_source.ts";
 import { patternTest } from "../../test.ts";
 
 Deno.test("req:or-001 - Or succeeds with the first successful child and preserves input on full failure", async (t) => {
@@ -10,8 +11,8 @@ Deno.test("req:or-001 - Or succeeds with the first successful child and preserve
       pattern: {
         kind: PatternKind.Or,
         patterns: [
-          { kind: PatternKind.Equal, value: "x" },
-          { kind: PatternKind.Equal, value: "a" },
+          { kind: PatternKind.Equal, value: lit("x") },
+          { kind: PatternKind.Equal, value: lit("a") },
         ],
       },
       input: Input.Iterable("a"),
@@ -26,8 +27,8 @@ Deno.test("req:or-001 - Or succeeds with the first successful child and preserve
       pattern: {
         kind: PatternKind.Or,
         patterns: [
-          { kind: PatternKind.Equal, value: "x" },
-          { kind: PatternKind.Equal, value: "y" },
+          { kind: PatternKind.Equal, value: lit("x") },
+          { kind: PatternKind.Equal, value: lit("y") },
         ],
       },
       input: Input.Iterable("a"),

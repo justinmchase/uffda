@@ -3,12 +3,38 @@ import { match } from "../match.ts";
 import type { Match } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import type { QuantifierPattern } from "./pattern.ts";
+import { resolvePatternValueOperand } from "./value_source.ts";
+
+function resolveBound(
+  bound: unknown,
+  scope: Scope,
+  pattern: QuantifierPattern,
+): { kind: "ok"; value: number | undefined } | { kind: "error"; match: Match } {
+  if (bound == null) {
+    return { kind: "ok", value: undefined };
+  }
+  const resolved = resolvePatternValueOperand(bound, scope, pattern);
+  if (resolved.kind === "error") {
+    return resolved;
+  }
+  return { kind: "ok", value: resolved.value as number };
+}
 
 export async function quantifier(
   pattern: QuantifierPattern,
   scope: Scope,
 ): Promise<Match> {
-  const { min, max } = pattern;
+  const minResolved = resolveBound(pattern.min, scope, pattern);
+  if (minResolved.kind === "error") {
+    return minResolved.match;
+  }
+  const maxResolved = resolveBound(pattern.max, scope, pattern);
+  if (maxResolved.kind === "error") {
+    return maxResolved.match;
+  }
+  const min = minResolved.value;
+  const max = maxResolved.value;
+
   if (min != null) {
     if (min < 0) {
       return error(

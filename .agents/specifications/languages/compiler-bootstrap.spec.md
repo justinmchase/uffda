@@ -102,6 +102,35 @@ workspace `./bin`, so an empty `./bin` cannot be filled by in-tree parse alone.
   `./bin/ast/.../*.uffda.ast.json`), not by reading `.uff` source text. See the
   [modules specification](../modules.spec.md#uffda-source-imports-uff).
 
+## Bin artifact integrity (no post-compile hacks)
+
+`./bin` ModuleDeclaration JSON MUST be exactly what the published
+`uffda
+compile` wrote. Authors and agents MUST NOT “fix” stale or incomplete
+artifacts with host-side rewriters.
+
+- `deno task compile:lang` MUST be only previous published
+  `uffda compile 'src/lang/**/*.uff' --out-dir ./bin` (plus clearing `./bin`
+  beforehand as the task already does). It MUST NOT chain Deno scripts, jq
+  transforms, AST walkers, or other steps that mutate compiled JSON after
+  compile.
+- Authors MUST NOT add repository scripts or `compile.ts` hooks whose purpose is
+  to patch, migrate, wrap, or rewrite fields inside built `./bin` output.
+- When a language/runtime change requires a different shape of compiled AST (for
+  example tagged value operands instead of bare literals), authors MUST:
+  1. Land the emitter change in the compiler / PatternLang / ExpressionLang,
+  2. **Publish** a CLI that includes that emitter,
+  3. **Install** that published CLI,
+  4. Run `compile:lang` again so **that** compiler regenerates `./bin`.
+- Temporary **runtime** compatibility for artifacts still produced by an older
+  published CLI (for example accepting legacy primitive equal operands until
+  recompile) MAY exist for a single publish bridge. That compatibility MUST NOT
+  rewrite `./bin` files, MUST NOT be wired into `compile:lang`, and MUST be
+  removed in a follow-up once the new CLI has regenerated artifacts.
+- Authors MUST NOT treat “post-process the bin” or “infer missing tags at load
+  by duck-typing arbitrary objects” as substitutes for the publish → install →
+  recompile cycle.
+
 ## Full-circle validation requirements
 
 - Bootstrap workflows MUST include a full-circle test: compile Uffda sources

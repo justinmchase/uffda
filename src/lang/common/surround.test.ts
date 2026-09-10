@@ -1,5 +1,5 @@
 import { Input } from "../../input.ts";
-import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
+import { lit, ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { MatchKind } from "../../mod.ts";
 import { Path } from "../../path.ts";
 import {
@@ -69,7 +69,7 @@ Deno.test(
         kind: MatchKind.Fail,
         failures: [
           {
-            pattern: { kind: PatternKind.Equal, value: "(" },
+            pattern: { kind: PatternKind.Equal, value: lit("(") },
             start: Path.From(1),
             end: Path.From(1),
           },
@@ -98,26 +98,17 @@ export const SurroundTest: ModuleDeclaration = {
     {
       name: "A",
       parameters: [],
-      pattern: {
-        kind: PatternKind.Equal,
-        value: "(",
-      },
+      pattern: { kind: PatternKind.Equal, value: lit("(") },
     },
     {
       name: "B",
       parameters: [],
-      pattern: {
-        kind: PatternKind.Equal,
-        value: "x",
-      },
+      pattern: { kind: PatternKind.Equal, value: lit("x") },
     },
     {
       name: "C",
       parameters: [],
-      pattern: {
-        kind: PatternKind.Equal,
-        value: ")",
-      },
+      pattern: { kind: PatternKind.Equal, value: lit(")") },
     },
     {
       // A = "(";

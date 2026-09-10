@@ -3,6 +3,7 @@ import { MatchKind } from "../../match.ts";
 import { ExportDeclarationKind } from "../../runtime/declarations/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
+import { lit } from "../../runtime/patterns/value_source.ts";
 import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
@@ -25,7 +26,7 @@ Deno.test(
           {
             name: "R",
             parameters: [],
-            pattern: { kind: PatternKind.Equal, value: "a" },
+            pattern: { kind: PatternKind.Equal, value: lit("a") },
             expression: {
               kind: ExpressionKind.Native,
               fn: () => "projected",
@@ -46,7 +47,7 @@ Deno.test(
                       name: "R",
                       args: [],
                     },
-                    { kind: PatternKind.Equal, value: "x" },
+                    { kind: PatternKind.Equal, value: lit("x") },
                   ],
                 },
                 {

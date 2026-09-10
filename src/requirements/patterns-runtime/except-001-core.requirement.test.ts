@@ -2,6 +2,7 @@ import { assertEquals } from "@std/assert";
 import { Input, InputNormalizationMode } from "../../input.ts";
 import { MatchErrorCode, MatchKind } from "../../match.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
+import { lit } from "../../runtime/patterns/value_source.ts";
 import { patternTest } from "../../test.ts";
 import { match } from "../../runtime/match.ts";
 import { Scope } from "../../runtime/scope.ts";
@@ -12,7 +13,7 @@ Deno.test("req:except-001 - Except is a zero-width negative assertion followed b
     patternTest({
       pattern: {
         kind: PatternKind.Except,
-        pattern: { kind: PatternKind.Equal, value: "x" },
+        pattern: { kind: PatternKind.Equal, value: lit("x") },
       },
       input: Input.Iterable("a"),
       kind: MatchKind.Ok,
@@ -25,7 +26,7 @@ Deno.test("req:except-001 - Except is a zero-width negative assertion followed b
     patternTest({
       pattern: {
         kind: PatternKind.Except,
-        pattern: { kind: PatternKind.Equal, value: "a" },
+        pattern: { kind: PatternKind.Equal, value: lit("a") },
       },
       input: Input.Iterable("a"),
       kind: MatchKind.Fail,

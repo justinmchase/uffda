@@ -1,5 +1,5 @@
 import { PatternKind } from "../patterns/pattern.kind.ts";
-import { ResolveTargetKind } from "../patterns/pattern.ts";
+import { lit, ResolveTargetKind } from "../patterns/pattern.ts";
 import { ExportDeclarationKind } from "../declarations/export.ts";
 import type { ModuleDeclaration } from "../declarations/module.ts";
 
@@ -15,8 +15,8 @@ export default {
       parameters: [],
       pattern: {
         kind: PatternKind.Between,
-        left: "0",
-        right: "9",
+        left: lit("0"),
+        right: lit("9"),
       },
     },
     {

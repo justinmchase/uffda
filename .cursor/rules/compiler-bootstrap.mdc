@@ -37,10 +37,22 @@ must **not** load that same module from workspace `./bin` via
 - Special-casing `RUNTIME_COMPILER_*` artifact paths instead of normal resolve
 - Using in-tree `compile` alone to fill an empty `./bin` (grammar loads from
   `./bin` — that is the chicken/egg; use previous CLI)
+- **Post-compile bin mutation:** scripts, `compile.ts` hooks, or tasks that
+  rewrite / migrate / wrap fields in `./bin` JSON after `uffda compile`.
+  `compile:lang` MUST stay a single previous-CLI `uffda compile` (plus clearing
+  `./bin`). Do not duck-type or patch built artifacts to paper over an old
+  emitter.
 
-## When the published CLI lacks a feature
+## When the published CLI lacks a feature (or emits the wrong AST shape)
 
-Publish a CLI that adds the feature, then compile with it. Do not park
-artifacts in `src/`. The published `uffda compile` pipeline (parse + lower in
-one step) has shipped (0.1.17+); `compile:lang` uses that single previous-CLI
-step directly and no wrapper script under `src/cli/` is needed.
+Publish a CLI that adds the feature (or the corrected emitter), **install it**,
+then run `compile:lang` so **that** compiler regenerates `./bin`. Do not park
+artifacts in `src/` and do not post-process bin output.
+
+The published `uffda compile` pipeline (parse + lower in one step) has shipped
+(0.1.17+); `compile:lang` uses that single previous-CLI step directly and no
+wrapper script under `src/cli/` is needed.
+
+A one-release **runtime** bridge for older artifacts MAY exist so the new CLI
+can boot long enough to recompile; it MUST NOT rewrite `./bin` and MUST be
+removed after install + `compile:lang` with the new CLI.

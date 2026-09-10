@@ -3,6 +3,7 @@ import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
+import { lit, ValueSourceKind } from "./value_source.ts";
 
 Deno.test("runtime.patterns.quantifier", async (t) => {
   await t.step({
@@ -108,7 +109,7 @@ Deno.test("runtime.patterns.quantifier", async (t) => {
       pattern: {
         kind: PatternKind.Quantifier,
         pattern: { kind: PatternKind.Any },
-        min: 1,
+        min: lit(1),
       },
       input: Input.Iterable(""),
       kind: MatchKind.Fail,
@@ -121,7 +122,7 @@ Deno.test("runtime.patterns.quantifier", async (t) => {
       pattern: {
         kind: PatternKind.Quantifier,
         pattern: { kind: PatternKind.Ok },
-        min: 3,
+        min: lit(3),
       },
       input: Input.Iterable("a"),
       value: [undefined, undefined, undefined],
@@ -138,7 +139,7 @@ Deno.test("runtime.patterns.quantifier", async (t) => {
           kind: PatternKind.Type,
           type: Type.String,
         },
-        min: 1,
+        min: lit(1),
       },
       input: Input.Iterable("a"),
       value: ["a"],
@@ -154,7 +155,7 @@ Deno.test("runtime.patterns.quantifier", async (t) => {
           kind: PatternKind.Type,
           type: Type.String,
         },
-        min: 3,
+        min: lit(3),
       },
       input: Input.Iterable("abc"),
       value: ["a", "b", "c"],
@@ -170,8 +171,8 @@ Deno.test("runtime.patterns.quantifier", async (t) => {
           kind: PatternKind.Type,
           type: Type.String,
         },
-        min: 3,
-        max: 3,
+        min: lit(3),
+        max: lit(3),
       },
       input: Input.Iterable("abc"),
       value: ["a", "b", "c"],
@@ -187,8 +188,8 @@ Deno.test("runtime.patterns.quantifier", async (t) => {
           kind: PatternKind.Type,
           type: Type.String,
         },
-        min: 3,
-        max: 3,
+        min: lit(3),
+        max: lit(3),
       },
       input: Input.Iterable("ab"),
       kind: MatchKind.Fail,
@@ -203,11 +204,31 @@ Deno.test("runtime.patterns.quantifier", async (t) => {
           kind: PatternKind.Type,
           type: Type.String,
         },
-        min: 3,
-        max: 3,
+        min: lit(3),
+        max: lit(3),
       },
       input: Input.Iterable("abcd"),
       value: ["a", "b", "c"],
+      kind: MatchKind.Ok,
+      done: false,
+    }),
+  });
+
+  await t.step({
+    name: "QUANTIFIER_VALUE_SOURCE_BOUNDS",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Quantifier,
+        pattern: {
+          kind: PatternKind.Type,
+          type: Type.String,
+        },
+        min: { kind: ValueSourceKind.Variable, name: "n" },
+        max: { kind: ValueSourceKind.Variable, name: "n" },
+      },
+      variables: new Map([["n", 2]]),
+      input: Input.Iterable("abcd"),
+      value: ["a", "b"],
       kind: MatchKind.Ok,
       done: false,
     }),

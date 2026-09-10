@@ -6,7 +6,9 @@ import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import {
   CharacterClass,
+  lit,
   ResolveTargetKind,
+  ValueSourceKind,
 } from "../../runtime/patterns/pattern.ts";
 
 export const Literals: ModuleDeclaration = {
@@ -72,14 +74,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          {
-            kind: PatternKind.Equal,
-            value: "\\",
-          },
-          {
-            kind: PatternKind.Equal,
-            value: '"',
-          },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit('"') },
         ],
       },
       expression: {
@@ -93,14 +89,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          {
-            kind: PatternKind.Equal,
-            value: "\\",
-          },
-          {
-            kind: PatternKind.Equal,
-            value: "\\",
-          },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("\\") },
         ],
       },
       expression: {
@@ -114,14 +104,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          {
-            kind: PatternKind.Equal,
-            value: "\\",
-          },
-          {
-            kind: PatternKind.Equal,
-            value: "t",
-          },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("t") },
         ],
       },
       expression: {
@@ -135,14 +119,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          {
-            kind: PatternKind.Equal,
-            value: "\\",
-          },
-          {
-            kind: PatternKind.Equal,
-            value: "n",
-          },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("n") },
         ],
       },
       expression: {
@@ -156,14 +134,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          {
-            kind: PatternKind.Equal,
-            value: "\\",
-          },
-          {
-            kind: PatternKind.Equal,
-            value: "r",
-          },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("r") },
         ],
       },
       expression: {
@@ -212,10 +184,7 @@ export const Literals: ModuleDeclaration = {
             patterns: [
               {
                 kind: PatternKind.Not,
-                pattern: {
-                  kind: PatternKind.Equal,
-                  value: '"',
-                },
+                pattern: { kind: PatternKind.Equal, value: lit('"') },
               },
               {
                 kind: PatternKind.Type,
@@ -236,16 +205,13 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          {
-            kind: PatternKind.Equal,
-            value: '"',
-          },
+          { kind: PatternKind.Equal, value: lit('"') },
           {
             kind: PatternKind.Variable,
             name: "parts",
             pattern: {
               kind: PatternKind.Quantifier,
-              min: 0,
+              min: lit(0),
               pattern: {
                 kind: PatternKind.Resolve,
                 targetKind: ResolveTargetKind.Reference,
@@ -254,10 +220,7 @@ export const Literals: ModuleDeclaration = {
               },
             },
           },
-          {
-            kind: PatternKind.Equal,
-            value: '"',
-          },
+          { kind: PatternKind.Equal, value: lit('"') },
         ],
       },
       expression: {
@@ -323,6 +286,33 @@ export const Literals: ModuleDeclaration = {
       },
     },
     {
+      name: "ContextualValue",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          { kind: PatternKind.Equal, value: lit("$") },
+          {
+            kind: PatternKind.Variable,
+            name: "name",
+            pattern: {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "IdentifierToken",
+              args: [],
+            },
+          },
+        ],
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ name }) => ({
+          kind: ValueSourceKind.Variable,
+          name,
+        }),
+      },
+    },
+    {
       name: "AtomicLiteralValue",
       parameters: [],
       pattern: {
@@ -360,6 +350,42 @@ export const Literals: ModuleDeclaration = {
       },
     },
     {
+      name: "AtomicLiteralSource",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Variable,
+        name: "value",
+        pattern: {
+          kind: PatternKind.Resolve,
+          targetKind: ResolveTargetKind.Reference,
+          name: "AtomicLiteralValue",
+          args: [],
+        },
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ value }) => ({ kind: ValueSourceKind.Literal, value }),
+      },
+    },
+    {
+      name: "IdentifierLiteralSource",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Variable,
+        name: "value",
+        pattern: {
+          kind: PatternKind.Resolve,
+          targetKind: ResolveTargetKind.Reference,
+          name: "IdentifierValue",
+          args: [],
+        },
+      },
+      expression: {
+        kind: ExpressionKind.Native,
+        fn: ({ value }) => ({ kind: ValueSourceKind.Literal, value }),
+      },
+    },
+    {
       name: "Literal",
       parameters: [],
       pattern: {
@@ -368,13 +394,19 @@ export const Literals: ModuleDeclaration = {
           {
             kind: PatternKind.Resolve,
             targetKind: ResolveTargetKind.Reference,
-            name: "AtomicLiteralValue",
+            name: "ContextualValue",
             args: [],
           },
           {
             kind: PatternKind.Resolve,
             targetKind: ResolveTargetKind.Reference,
-            name: "IdentifierValue",
+            name: "AtomicLiteralSource",
+            args: [],
+          },
+          {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "IdentifierLiteralSource",
             args: [],
           },
         ],
@@ -387,7 +419,7 @@ export const Literals: ModuleDeclaration = {
     {
       name: "TypeArray",
       parameters: [],
-      pattern: { kind: PatternKind.Equal, value: "array" },
+      pattern: { kind: PatternKind.Equal, value: lit("array") },
       expression: {
         kind: ExpressionKind.Native,
         fn: () => ({ kind: PatternKind.Type, type: ValueType.Array }),
@@ -396,7 +428,7 @@ export const Literals: ModuleDeclaration = {
     {
       name: "TypeBigInt",
       parameters: [],
-      pattern: { kind: PatternKind.Equal, value: "bigint" },
+      pattern: { kind: PatternKind.Equal, value: lit("bigint") },
       expression: {
         kind: ExpressionKind.Native,
         fn: () => ({ kind: PatternKind.Type, type: ValueType.BigInt }),
@@ -405,7 +437,7 @@ export const Literals: ModuleDeclaration = {
     {
       name: "TypeBoolean",
       parameters: [],
-      pattern: { kind: PatternKind.Equal, value: "boolean" },
+      pattern: { kind: PatternKind.Equal, value: lit("boolean") },
       expression: {
         kind: ExpressionKind.Native,
         fn: () => ({ kind: PatternKind.Type, type: ValueType.Boolean }),
@@ -414,7 +446,7 @@ export const Literals: ModuleDeclaration = {
     {
       name: "TypeDate",
       parameters: [],
-      pattern: { kind: PatternKind.Equal, value: "date" },
+      pattern: { kind: PatternKind.Equal, value: lit("date") },
       expression: {
         kind: ExpressionKind.Native,
         fn: () => ({ kind: PatternKind.Type, type: ValueType.Date }),
@@ -423,7 +455,7 @@ export const Literals: ModuleDeclaration = {
     {
       name: "TypeError",
       parameters: [],
-      pattern: { kind: PatternKind.Equal, value: "error" },
+      pattern: { kind: PatternKind.Equal, value: lit("error") },
       expression: {
         kind: ExpressionKind.Native,
         fn: () => ({ kind: PatternKind.Type, type: ValueType.Error }),
@@ -432,7 +464,7 @@ export const Literals: ModuleDeclaration = {
     {
       name: "TypeFunction",
       parameters: [],
-      pattern: { kind: PatternKind.Equal, value: "function" },
+      pattern: { kind: PatternKind.Equal, value: lit("function") },
       expression: {
         kind: ExpressionKind.Native,
         fn: () => ({ kind: PatternKind.Type, type: ValueType.Function }),
@@ -441,7 +473,7 @@ export const Literals: ModuleDeclaration = {
     {
       name: "TypeMap",
       parameters: [],
-      pattern: { kind: PatternKind.Equal, value: "map" },
+      pattern: { kind: PatternKind.Equal, value: lit("map") },
       expression: {
         kind: ExpressionKind.Native,
         fn: () => ({ kind: PatternKind.Type, type: ValueType.Map }),
@@ -450,7 +482,7 @@ export const Literals: ModuleDeclaration = {
     {
       name: "TypeNumber",
       parameters: [],
-      pattern: { kind: PatternKind.Equal, value: "number" },
+      pattern: { kind: PatternKind.Equal, value: lit("number") },
       expression: {
         kind: ExpressionKind.Native,
         fn: () => ({ kind: PatternKind.Type, type: ValueType.Number }),
@@ -459,7 +491,7 @@ export const Literals: ModuleDeclaration = {
     {
       name: "TypeObject",
       parameters: [],
-      pattern: { kind: PatternKind.Equal, value: "object" },
+      pattern: { kind: PatternKind.Equal, value: lit("object") },
       expression: {
         kind: ExpressionKind.Native,
         fn: () => ({ kind: PatternKind.Type, type: ValueType.Object }),
@@ -468,7 +500,7 @@ export const Literals: ModuleDeclaration = {
     {
       name: "TypeSet",
       parameters: [],
-      pattern: { kind: PatternKind.Equal, value: "set" },
+      pattern: { kind: PatternKind.Equal, value: lit("set") },
       expression: {
         kind: ExpressionKind.Native,
         fn: () => ({ kind: PatternKind.Type, type: ValueType.Set }),
@@ -477,7 +509,7 @@ export const Literals: ModuleDeclaration = {
     {
       name: "TypeString",
       parameters: [],
-      pattern: { kind: PatternKind.Equal, value: "string" },
+      pattern: { kind: PatternKind.Equal, value: lit("string") },
       expression: {
         kind: ExpressionKind.Native,
         fn: () => ({ kind: PatternKind.Type, type: ValueType.String }),
@@ -486,7 +518,7 @@ export const Literals: ModuleDeclaration = {
     {
       name: "TypeSymbol",
       parameters: [],
-      pattern: { kind: PatternKind.Equal, value: "symbol" },
+      pattern: { kind: PatternKind.Equal, value: lit("symbol") },
       expression: {
         kind: ExpressionKind.Native,
         fn: () => ({ kind: PatternKind.Type, type: ValueType.Symbol }),
@@ -498,8 +530,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cA" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cA") },
         ],
       },
       expression: {
@@ -516,8 +548,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cAc" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cAc") },
         ],
       },
       expression: {
@@ -534,8 +566,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cAs" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cAs") },
         ],
       },
       expression: {
@@ -552,8 +584,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cC" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cC") },
         ],
       },
       expression: {
@@ -570,8 +602,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cCc" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cCc") },
         ],
       },
       expression: {
@@ -588,8 +620,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cCf" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cCf") },
         ],
       },
       expression: {
@@ -606,8 +638,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cCn" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cCn") },
         ],
       },
       expression: {
@@ -624,8 +656,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cCo" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cCo") },
         ],
       },
       expression: {
@@ -642,8 +674,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cCs" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cCs") },
         ],
       },
       expression: {
@@ -660,8 +692,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cL" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cL") },
         ],
       },
       expression: {
@@ -678,8 +710,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cLl" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cLl") },
         ],
       },
       expression: {
@@ -696,8 +728,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cLm" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cLm") },
         ],
       },
       expression: {
@@ -714,8 +746,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cLo" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cLo") },
         ],
       },
       expression: {
@@ -732,8 +764,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cLt" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cLt") },
         ],
       },
       expression: {
@@ -750,8 +782,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cLu" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cLu") },
         ],
       },
       expression: {
@@ -768,8 +800,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cM" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cM") },
         ],
       },
       expression: {
@@ -786,8 +818,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cMc" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cMc") },
         ],
       },
       expression: {
@@ -804,8 +836,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cMe" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cMe") },
         ],
       },
       expression: {
@@ -822,8 +854,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cMn" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cMn") },
         ],
       },
       expression: {
@@ -840,8 +872,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cN" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cN") },
         ],
       },
       expression: {
@@ -858,8 +890,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cNd" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cNd") },
         ],
       },
       expression: {
@@ -876,8 +908,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cNl" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cNl") },
         ],
       },
       expression: {
@@ -894,8 +926,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cNo" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cNo") },
         ],
       },
       expression: {
@@ -912,8 +944,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cP" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cP") },
         ],
       },
       expression: {
@@ -930,8 +962,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cPc" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cPc") },
         ],
       },
       expression: {
@@ -948,8 +980,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cPd" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cPd") },
         ],
       },
       expression: {
@@ -966,8 +998,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cPe" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cPe") },
         ],
       },
       expression: {
@@ -984,8 +1016,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cPf" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cPf") },
         ],
       },
       expression: {
@@ -1002,8 +1034,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cPi" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cPi") },
         ],
       },
       expression: {
@@ -1020,8 +1052,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cPo" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cPo") },
         ],
       },
       expression: {
@@ -1038,8 +1070,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cPs" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cPs") },
         ],
       },
       expression: {
@@ -1056,8 +1088,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cS" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cS") },
         ],
       },
       expression: {
@@ -1074,8 +1106,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cSc" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cSc") },
         ],
       },
       expression: {
@@ -1092,8 +1124,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cSk" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cSk") },
         ],
       },
       expression: {
@@ -1110,8 +1142,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cSm" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cSm") },
         ],
       },
       expression: {
@@ -1128,8 +1160,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cSo" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cSo") },
         ],
       },
       expression: {
@@ -1146,8 +1178,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cZ" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cZ") },
         ],
       },
       expression: {
@@ -1164,8 +1196,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cZl" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cZl") },
         ],
       },
       expression: {
@@ -1182,8 +1214,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cZp" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cZp") },
         ],
       },
       expression: {
@@ -1200,8 +1232,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "\\" },
-          { kind: PatternKind.Equal, value: "cZs" },
+          { kind: PatternKind.Equal, value: lit("\\") },
+          { kind: PatternKind.Equal, value: lit("cZs") },
         ],
       },
       expression: {
@@ -1219,10 +1251,21 @@ export const Literals: ModuleDeclaration = {
         kind: PatternKind.Variable,
         name: "value",
         pattern: {
-          kind: PatternKind.Resolve,
-          targetKind: ResolveTargetKind.Reference,
-          name: "AtomicLiteralValue",
-          args: [],
+          kind: PatternKind.Or,
+          patterns: [
+            {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "ContextualValue",
+              args: [],
+            },
+            {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "AtomicLiteralSource",
+              args: [],
+            },
+          ],
         },
       },
       expression: {
@@ -1251,7 +1294,7 @@ export const Literals: ModuleDeclaration = {
             name: "rest",
             pattern: {
               kind: PatternKind.Quantifier,
-              min: 0,
+              min: lit(0),
               pattern: {
                 kind: PatternKind.Resolve,
                 targetKind: ResolveTargetKind.Reference,
@@ -1273,8 +1316,8 @@ export const Literals: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          { kind: PatternKind.Equal, value: "in" },
-          { kind: PatternKind.Equal, value: "[" },
+          { kind: PatternKind.Equal, value: lit("in") },
+          { kind: PatternKind.Equal, value: lit("[") },
           {
             kind: PatternKind.Variable,
             name: "values",
@@ -1285,7 +1328,7 @@ export const Literals: ModuleDeclaration = {
               args: [],
             },
           },
-          { kind: PatternKind.Equal, value: "]" },
+          { kind: PatternKind.Equal, value: lit("]") },
         ],
       },
       expression: {
@@ -1312,8 +1355,8 @@ export const Literals: ModuleDeclaration = {
               args: [],
             },
           },
-          { kind: PatternKind.Equal, value: "." },
-          { kind: PatternKind.Equal, value: "." },
+          { kind: PatternKind.Equal, value: lit(".") },
+          { kind: PatternKind.Equal, value: lit(".") },
           {
             kind: PatternKind.Variable,
             name: "right",

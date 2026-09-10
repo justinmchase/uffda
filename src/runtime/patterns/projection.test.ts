@@ -1,6 +1,7 @@
 import { patternTest } from "../../test.ts";
 import { ExpressionKind } from "../expressions/mod.ts";
 import { PatternKind } from "./pattern.kind.ts";
+import { lit } from "./value_source.ts";
 import { Input } from "../../input.ts";
 import { MatchErrorCode, MatchKind } from "../../match.ts";
 import { Path } from "../../path.ts";
@@ -49,7 +50,7 @@ Deno.test("runtime.patterns.projection", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Projection,
-        pattern: { kind: PatternKind.Equal, value: "nope" },
+        pattern: { kind: PatternKind.Equal, value: lit("nope") },
         expression: {
           kind: ExpressionKind.Native,
           fn: () => 11,

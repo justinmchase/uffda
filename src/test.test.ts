@@ -3,6 +3,7 @@ import { Input } from "./input.ts";
 import { MatchKind } from "./match.ts";
 import { Path } from "./path.ts";
 import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
+import { lit } from "./runtime/patterns/value_source.ts";
 import { patternTest } from "./test.ts";
 
 Deno.test({
@@ -12,10 +13,7 @@ Deno.test({
       name: "includes rightmost failure details for failing pattern assertions",
       fn: async () => {
         const run = patternTest({
-          pattern: {
-            kind: PatternKind.Equal,
-            value: "x",
-          },
+          pattern: { kind: PatternKind.Equal, value: lit("x") },
           input: Input.Scalar("y"),
           kind: MatchKind.Fail,
           start: Path.From(1),

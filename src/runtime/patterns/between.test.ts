@@ -1,5 +1,6 @@
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
+import { lit, ValueSourceKind } from "./value_source.ts";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { MatchErrorCode } from "../../match.ts";
@@ -28,8 +29,8 @@ Deno.test("runtime.patterns.between", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Between,
-        left: 0,
-        right: 2,
+        left: lit(0),
+        right: lit(2),
       },
       input: Input.Iterable([1]),
       value: 1,
@@ -41,8 +42,8 @@ Deno.test("runtime.patterns.between", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Between,
-        left: 0,
-        right: 0,
+        left: lit(0),
+        right: lit(0),
       },
       input: Input.Iterable([0]),
       value: 0,
@@ -54,8 +55,8 @@ Deno.test("runtime.patterns.between", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Between,
-        left: 0,
-        right: 1,
+        left: lit(0),
+        right: lit(1),
       },
       input: Input.Iterable([1]),
       value: 1,
@@ -67,8 +68,8 @@ Deno.test("runtime.patterns.between", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Between,
-        left: "a",
-        right: "a",
+        left: lit("a"),
+        right: lit("a"),
       },
       input: Input.Iterable("a"),
       value: "a",
@@ -80,8 +81,8 @@ Deno.test("runtime.patterns.between", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Between,
-        left: "a",
-        right: "b",
+        left: lit("a"),
+        right: lit("b"),
       },
       input: Input.Iterable("b"),
       value: "b",
@@ -93,8 +94,8 @@ Deno.test("runtime.patterns.between", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Between,
-        left: "a",
-        right: "c",
+        left: lit("a"),
+        right: lit("c"),
       },
       input: Input.Iterable("b"),
       value: "b",
@@ -106,8 +107,8 @@ Deno.test("runtime.patterns.between", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Between,
-        left: "a",
-        right: "b",
+        left: lit("a"),
+        right: lit("b"),
       },
       input: Input.Iterable("v"),
       kind: MatchKind.Fail,
@@ -119,8 +120,8 @@ Deno.test("runtime.patterns.between", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Between,
-        left: 0,
-        right: 1,
+        left: lit(0),
+        right: lit(1),
       },
       input: Input.Iterable([2]),
       kind: MatchKind.Fail,
@@ -133,8 +134,8 @@ Deno.test("runtime.patterns.between", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Between,
-        left: new Test(1),
-        right: new Test(1),
+        left: lit(new Test(1)),
+        right: lit(new Test(1)),
       },
       input: Input.Iterable([test]),
       value: test,
@@ -146,8 +147,8 @@ Deno.test("runtime.patterns.between", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Between,
-        left: new Test(1),
-        right: new Test(2),
+        left: lit(new Test(1)),
+        right: lit(new Test(2)),
       },
       input: Input.Iterable([test]),
       kind: MatchKind.Ok,
@@ -159,8 +160,8 @@ Deno.test("runtime.patterns.between", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Between,
-        left: new Test(0),
-        right: new Test(1),
+        left: lit(new Test(0)),
+        right: lit(new Test(1)),
       },
       input: Input.Iterable([test]),
       kind: MatchKind.Ok,
@@ -172,8 +173,8 @@ Deno.test("runtime.patterns.between", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Between,
-        left: new Test(0),
-        right: new Test(0),
+        left: lit(new Test(0)),
+        right: lit(new Test(0)),
       },
       input: Input.Iterable([test]),
       kind: MatchKind.Fail,
@@ -185,8 +186,8 @@ Deno.test("runtime.patterns.between", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Between,
-        left: {} as Comparable,
-        right: new Test(0),
+        left: lit({} as Comparable),
+        right: lit(new Test(0)),
       },
       input: Input.Iterable([test]),
       kind: MatchKind.Fail,
@@ -198,8 +199,8 @@ Deno.test("runtime.patterns.between", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Between,
-        left: new Test(0),
-        right: {} as Comparable,
+        left: lit(new Test(0)),
+        right: lit({} as Comparable),
       },
       input: Input.Iterable([test]),
       kind: MatchKind.Fail,
@@ -211,8 +212,8 @@ Deno.test("runtime.patterns.between", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Between,
-        left: 0,
-        right: 0,
+        left: lit(0),
+        right: lit(0),
       },
       input: Input.Iterable([undefined]),
       kind: MatchKind.Error,
@@ -227,8 +228,8 @@ Deno.test("runtime.patterns.between", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Between,
-        left: 0,
-        right: 0,
+        left: lit(0),
+        right: lit(0),
       },
       input: Input.Iterable([null]),
       kind: MatchKind.Error,
@@ -243,8 +244,8 @@ Deno.test("runtime.patterns.between", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Between,
-        left: 0,
-        right: "a",
+        left: lit(0),
+        right: lit("a"),
       },
       input: Input.Iterable([0]),
       kind: MatchKind.Fail,
@@ -256,8 +257,8 @@ Deno.test("runtime.patterns.between", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Between,
-        left: "a",
-        right: 0,
+        left: lit("a"),
+        right: lit(0),
       },
       input: Input.Iterable([0]),
       kind: MatchKind.Fail,
@@ -269,12 +270,27 @@ Deno.test("runtime.patterns.between", async (t) => {
     fn: patternTest({
       pattern: {
         kind: PatternKind.Between,
-        left: true as unknown as Comparable,
-        right: false as unknown as Comparable,
+        left: lit(true as unknown as Comparable),
+        right: lit(false as unknown as Comparable),
       },
       input: Input.Iterable([true]),
       kind: MatchKind.Fail,
       done: false,
+    }),
+  });
+
+  await t.step({
+    name: "BETWEEN_VALUE_SOURCE_VARIABLE",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Between,
+        left: { kind: ValueSourceKind.Variable, name: "lo" },
+        right: { kind: ValueSourceKind.Variable, name: "hi" },
+      },
+      variables: new Map([["lo", 0], ["hi", 2]]),
+      input: Input.Iterable([1]),
+      value: 1,
+      kind: MatchKind.Ok,
     }),
   });
 });

@@ -4,6 +4,7 @@ import { Path } from "../../path.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 import { ExportDeclarationKind } from "../declarations/mod.ts";
 import { PatternKind } from "./pattern.kind.ts";
+import { lit } from "./value_source.ts";
 import { ResolveTargetKind } from "./pattern.ts";
 
 Deno.test("runtime.patterns.resolve", async (t) => {
@@ -23,7 +24,7 @@ Deno.test("runtime.patterns.resolve", async (t) => {
             {
               name: "A",
               parameters: [],
-              pattern: { kind: PatternKind.Equal, value: "a" },
+              pattern: { kind: PatternKind.Equal, value: lit("a") },
             },
             {
               name: "Main",
@@ -174,10 +175,7 @@ Deno.test("runtime.patterns.resolve", async (t) => {
                 targetKind: ResolveTargetKind.Reference,
                 name: "Wrap",
                 args: [
-                  {
-                    kind: PatternKind.Equal,
-                    value: "a",
-                  },
+                  { kind: PatternKind.Equal, value: lit("a") },
                 ],
               },
             },
@@ -236,10 +234,7 @@ Deno.test("runtime.patterns.resolve", async (t) => {
                     targetKind: ResolveTargetKind.Reference,
                     name: "Inner",
                     args: [
-                      {
-                        kind: PatternKind.Equal,
-                        value: "a",
-                      },
+                      { kind: PatternKind.Equal, value: lit("a") },
                     ],
                   },
                 ],
@@ -302,10 +297,7 @@ Deno.test("runtime.patterns.resolve", async (t) => {
                 targetKind: ResolveTargetKind.Reference,
                 name: "Relay",
                 args: [
-                  {
-                    kind: PatternKind.Equal,
-                    value: "a",
-                  },
+                  { kind: PatternKind.Equal, value: lit("a") },
                 ],
               },
             },
@@ -390,10 +382,7 @@ Deno.test("runtime.patterns.resolve", async (t) => {
                 targetKind: ResolveTargetKind.Reference,
                 name: "Relay",
                 args: [
-                  {
-                    kind: PatternKind.Equal,
-                    value: "a",
-                  },
+                  { kind: PatternKind.Equal, value: lit("a") },
                 ],
               },
             },

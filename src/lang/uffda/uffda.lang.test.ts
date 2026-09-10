@@ -2,6 +2,7 @@ import { assertEquals } from "@std/assert";
 import { MatchKind } from "../../mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
+import { lit } from "../../runtime/patterns/value_source.ts";
 import { uffdaGrammar } from "./uffda.lang.ts";
 import { fromFileUrl, join } from "@std/path";
 
@@ -194,8 +195,8 @@ Deno.test({
             pattern: {
               kind: PatternKind.Then,
               patterns: [
-                { kind: PatternKind.Equal, value: "." },
-                { kind: PatternKind.Equal, value: "." },
+                { kind: PatternKind.Equal, value: lit(".") },
+                { kind: PatternKind.Equal, value: lit(".") },
                 { kind: PatternKind.End },
               ],
             },

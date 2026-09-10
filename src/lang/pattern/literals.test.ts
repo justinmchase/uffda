@@ -1,6 +1,7 @@
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../mod.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
+import { ValueSourceKind } from "../../runtime/patterns/value_source.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
 const moduleUrl = new URL("./literals.ts", import.meta.url).href;
@@ -22,7 +23,7 @@ Deno.test({
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Equal,
-          value: "hello",
+          value: { kind: ValueSourceKind.Literal, value: "hello" },
         },
       }),
     });
@@ -35,7 +36,7 @@ Deno.test({
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Equal,
-          value: "\t",
+          value: { kind: ValueSourceKind.Literal, value: "\t" },
         },
       }),
     });
@@ -48,7 +49,7 @@ Deno.test({
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Equal,
-          value: "\n",
+          value: { kind: ValueSourceKind.Literal, value: "\n" },
         },
       }),
     });
@@ -61,7 +62,7 @@ Deno.test({
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Equal,
-          value: "\r",
+          value: { kind: ValueSourceKind.Literal, value: "\r" },
         },
       }),
     });
@@ -74,7 +75,7 @@ Deno.test({
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Equal,
-          value: "\\",
+          value: { kind: ValueSourceKind.Literal, value: "\\" },
         },
       }),
     });
@@ -87,7 +88,7 @@ Deno.test({
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Equal,
-          value: '"',
+          value: { kind: ValueSourceKind.Literal, value: '"' },
         },
       }),
     });
@@ -100,7 +101,7 @@ Deno.test({
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Equal,
-          value: "\tab",
+          value: { kind: ValueSourceKind.Literal, value: "\tab" },
         },
       }),
     });
@@ -113,7 +114,10 @@ Deno.test({
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Includes,
-          values: ["x", "y"],
+          values: [{ kind: ValueSourceKind.Literal, value: "x" }, {
+            kind: ValueSourceKind.Literal,
+            value: "y",
+          }],
         },
       }),
     });
@@ -126,8 +130,35 @@ Deno.test({
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Between,
-          left: 1,
-          right: 5,
+          left: { kind: ValueSourceKind.Literal, value: 1 },
+          right: { kind: ValueSourceKind.Literal, value: 5 },
+        },
+      }),
+    });
+
+    await t.step({
+      name: "LITERALS_VALUE_SOURCE_EQUAL",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.Iterable(["$", "x"]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Equal,
+          value: { kind: ValueSourceKind.Variable, name: "x" },
+        },
+      }),
+    });
+
+    await t.step({
+      name: "LITERALS_VALUE_SOURCE_BETWEEN",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        input: Input.Iterable(["$", "a", ".", ".", "$", "b"]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Between,
+          left: { kind: ValueSourceKind.Variable, name: "a" },
+          right: { kind: ValueSourceKind.Variable, name: "b" },
         },
       }),
     });

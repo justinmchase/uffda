@@ -322,7 +322,7 @@ export async function compileSourcesToAstArtifacts(
       });
       continue;
     }
-    const module: ModuleDeclaration = compiled.value;
+    const module = compiled.value;
 
     try {
       await Deno.writeTextFile(

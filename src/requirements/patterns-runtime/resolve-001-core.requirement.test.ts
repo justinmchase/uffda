@@ -8,6 +8,7 @@ import {
   SpecialKind,
 } from "../../runtime/modules/mod.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
+import { lit } from "../../runtime/patterns/value_source.ts";
 import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { moduleDeclarationTest, patternTest } from "../../test.ts";
 
@@ -45,7 +46,7 @@ Deno.test("req:resolve-001 - Resolve handles reference, run, and special targets
             {
               name: "A",
               parameters: [],
-              pattern: { kind: PatternKind.Equal, value: "a" },
+              pattern: { kind: PatternKind.Equal, value: lit("a") },
             },
             {
               name: "Main",
@@ -116,7 +117,7 @@ Deno.test("req:resolve-001 - Resolve handles reference, run, and special targets
           rules: [{
             name: "Main",
             parameters: [],
-            pattern: { kind: PatternKind.Equal, value: "a" },
+            pattern: { kind: PatternKind.Equal, value: lit("a") },
           }],
         },
       },

@@ -1,5 +1,5 @@
 import { Input } from "../../input.ts";
-import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
+import { lit, ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { MatchKind } from "../../mod.ts";
 import {
   ExportDeclarationKind,
@@ -80,10 +80,7 @@ export const TokenTest: ModuleDeclaration = {
     {
       name: "T",
       parameters: [],
-      pattern: {
-        kind: PatternKind.Equal,
-        value: "x",
-      },
+      pattern: { kind: PatternKind.Equal, value: lit("x") },
     },
     {
       // T = "x";

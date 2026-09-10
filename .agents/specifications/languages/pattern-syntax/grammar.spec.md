@@ -83,6 +83,8 @@ The grammar MUST be able to express the following pattern families:
     `P*..1`, whose result is an array.
 - Bounds numerals MUST be non-negative integers (authored via digit
   `BoundNumber` forms).
+- Value operands on equal, between, includes, and (after publish) quantifier
+  bounds MAY be contextual `$name` references. See Value sources.
 - An open range with neither bound (`P*..`) MUST be rejected at parse time.
 - A maximum less than its minimum MAY parse to a Quantifier AST; the
   [quantifier](../../patterns/runtime/quantifier.spec.md) runtime MUST reject
@@ -91,6 +93,28 @@ The grammar MUST be able to express the following pattern families:
 - Bounds immediately following `*` MUST belong to that repetition regardless of
   intervening whitespace. Authors MUST group an unbounded repetition before
   sequencing it with a numeric literal, as in `(P*) 1`.
+
+## Value sources
+
+- A **value source** is a tagged operand with an explicit `kind`:
+  - `value.literal` — compile-time constant (`{ kind: "value.literal", value }`)
+  - `value.variable` — contextual `$name` (`{ kind: "value.variable", name }`)
+- Value operands in the pattern AST MUST NOT be bare serializable values. Syntax
+  (or an explicit host constructor such as `lit(...)`) MUST choose the kind;
+  matchers MUST NOT infer literal vs variable by duck-typing operand shape.
+- `$name` parses as `"$"` + Identifier and projects `value.variable`.
+- Bare literals and identifier string equals project `value.literal`.
+- Value sources MUST be accepted only in value-operand positions:
+  - bare equal
+  - `between` left and right bounds (`L..R`)
+  - `includes` membership elements (`in[...]`)
+  - quantifier `min` / `max` bounds (surface `$` forms in `prefix.uff` after a
+    published CLI that parses them)
+- `$name` always denotes a value binding. Bare `$name` as a primary MUST
+  normalize to `equal` with a `value.variable` operand (match input against the
+  bound value), not to `resolve`.
+- Bare identifiers retain existing meanings: pattern position → resolve; literal
+  value position → identifier string as `value.literal`.
 
 ## Precedence
 

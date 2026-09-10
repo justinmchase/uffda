@@ -16,6 +16,9 @@ and maximum repetition bounds.
 
 ## Behavioral expectations
 
+- A `quantifier` pattern MUST resolve `min` and `max` when they are contextual
+  `$name` value sources before validating bounds. An unbound `$name` MUST report
+  an unknown-reference error.
 - A `quantifier` pattern MUST validate `min` and `max` arguments before child
   evaluation.
 - If `min` is provided, it MUST be an integer greater than or equal to zero.

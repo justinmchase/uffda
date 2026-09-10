@@ -6,6 +6,7 @@ import { patternTest } from "../../test.ts";
 import { match } from "../match.ts";
 import { Scope } from "../scope.ts";
 import { PatternKind } from "./pattern.kind.ts";
+import { lit } from "./value_source.ts";
 
 await Deno.test("runtime/patterns/object", async (t) => {
   await t.step({
@@ -70,14 +71,8 @@ await Deno.test("runtime/patterns/object", async (t) => {
       pattern: {
         kind: PatternKind.Over,
         keys: {
-          type: {
-            kind: PatternKind.Equal,
-            value: "x",
-          },
-          value: {
-            kind: PatternKind.Equal,
-            value: "y",
-          },
+          type: { kind: PatternKind.Equal, value: lit("x") },
+          value: { kind: PatternKind.Equal, value: lit("y") },
         },
       },
       input: Input.Iterable([{ type: "x", value: "y" }]),
@@ -92,7 +87,7 @@ await Deno.test("runtime/patterns/object", async (t) => {
       const result = await match({
         kind: PatternKind.Over,
         keys: {
-          x: { kind: PatternKind.Equal, value: "expected" },
+          x: { kind: PatternKind.Equal, value: lit("expected") },
         },
       }, Scope.From({ x: "actual" }));
 

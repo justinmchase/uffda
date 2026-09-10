@@ -12,10 +12,13 @@ Normative key words in this chapter use the conventions defined in the
 
 The `between` pattern matches exactly one input item when that item's value
 falls within the inclusive closed interval `[left, right]` defined by the
-pattern's declared bounds.
+pattern's declared bounds. Bounds MAY be literals or contextual `$name` value
+sources resolved from the match scope.
 
 ## Behavioral expectations
 
+- A `between` pattern MUST resolve its `left` and `right` value sources before
+  comparing. An unbound `$name` MUST report an unknown-reference error.
 - A `between` pattern MUST inspect the current input position.
 - If no input item is available at the current position, the `between` pattern
   MUST fail.

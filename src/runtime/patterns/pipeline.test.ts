@@ -7,6 +7,7 @@ import { moduleDeclarationTest } from "../../test.ts";
 import { ExportDeclarationKind } from "../declarations/mod.ts";
 import { ExpressionKind } from "../expressions/mod.ts";
 import { PatternKind } from "./pattern.kind.ts";
+import { lit } from "./value_source.ts";
 import { match } from "../match.ts";
 import { Scope } from "../scope.ts";
 
@@ -59,10 +60,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
             {
               name: "One",
               parameters: [],
-              pattern: {
-                kind: PatternKind.Equal,
-                value: 0,
-              },
+              pattern: { kind: PatternKind.Equal, value: lit(0) },
               expression: {
                 kind: ExpressionKind.Native,
                 fn: () => 1,
@@ -71,10 +69,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
             {
               name: "Two",
               parameters: [],
-              pattern: {
-                kind: PatternKind.Equal,
-                value: 1,
-              },
+              pattern: { kind: PatternKind.Equal, value: lit(1) },
               expression: {
                 kind: ExpressionKind.Native,
                 fn: () => 2,
@@ -297,8 +292,8 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
               parameters: [],
               pattern: {
                 kind: PatternKind.Quantifier,
-                min: 3,
-                max: 3,
+                min: lit(3),
+                max: lit(3),
                 pattern: { kind: PatternKind.Any },
               },
               expression: {
@@ -361,10 +356,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
               pattern: {
                 kind: PatternKind.Then,
                 patterns: [
-                  {
-                    kind: PatternKind.Equal,
-                    value: "a",
-                  },
+                  { kind: PatternKind.Equal, value: lit("a") },
                   {
                     kind: PatternKind.Pipeline,
                     steps: [
@@ -373,16 +365,16 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
                         steps: [
                           {
                             kind: PatternKind.Quantifier,
-                            pattern: { kind: PatternKind.Equal, value: "b" },
+                            pattern: {
+                              kind: PatternKind.Equal,
+                              value: lit("b"),
+                            },
                           },
                         ],
                       },
                     ],
                   },
-                  {
-                    kind: PatternKind.Equal,
-                    value: "c",
-                  },
+                  { kind: PatternKind.Equal, value: lit("c") },
                 ],
               },
             },
@@ -416,11 +408,11 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
                 {
                   kind: PatternKind.Pipeline,
                   steps: [
-                    { kind: PatternKind.Equal, value: "a" },
+                    { kind: PatternKind.Equal, value: lit("a") },
                     { kind: PatternKind.Type, type: Type.String },
                   ],
                 },
-                { kind: PatternKind.Equal, value: "b" },
+                { kind: PatternKind.Equal, value: lit("b") },
               ],
             },
           }],
@@ -451,14 +443,14 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
         {
           kind: PatternKind.Pipeline,
           steps: [
-            { kind: PatternKind.Equal, value: "abc" },
+            { kind: PatternKind.Equal, value: lit("abc") },
             {
               kind: PatternKind.Into,
               pattern: {
                 kind: PatternKind.Then,
                 patterns: [
-                  { kind: PatternKind.Equal, value: "a" },
-                  { kind: PatternKind.Equal, value: "x" },
+                  { kind: PatternKind.Equal, value: lit("a") },
+                  { kind: PatternKind.Equal, value: lit("x") },
                 ],
               },
             },
@@ -505,7 +497,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
             },
             {
               kind: PatternKind.Into,
-              pattern: { kind: PatternKind.Equal, value: "x" },
+              pattern: { kind: PatternKind.Equal, value: lit("x") },
             },
           ],
         },

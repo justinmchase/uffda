@@ -12,10 +12,10 @@ Path-scoped authoring guidance also lives in:
 `.cursor/rules/compiler-bootstrap.mdc`,
 `.github/instructions/compiler-bootstrap.instructions.md`, and
 `.agents/specifications/languages/compiler-bootstrap.spec.md`. `compile:lang` =
-previous published `uffda compile` (parse) → previous published
-`UffdaRuntimeCompiler` (lower) → ModuleDeclaration JSON under `./bin`. Resolve
-only loads that JSON. Never re-lower on import or seed compiler JSON under
-`src/`.
+previous published `uffda compile` only → ModuleDeclaration JSON under `./bin`.
+Resolve only loads that JSON. Never re-lower on import, seed compiler JSON under
+`src/`, or post-process / migrate / rewrite `./bin` after compile. Wrong AST
+shape → publish emitter → install → `compile:lang` again.
 
 ## Runtime and dependency conventions
 

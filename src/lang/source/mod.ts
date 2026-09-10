@@ -4,7 +4,7 @@ import { ExportDeclarationKind } from "../../runtime/declarations/export.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { executeModuleDeclaration } from "../../runtime/module.execute.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
-import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
+import { lit, ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
 
 export type SourceUnit = {
@@ -207,14 +207,8 @@ export const Source: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Then,
         patterns: [
-          {
-            kind: PatternKind.Equal,
-            value: "\r",
-          },
-          {
-            kind: PatternKind.Equal,
-            value: "\n",
-          },
+          { kind: PatternKind.Equal, value: lit("\r") },
+          { kind: PatternKind.Equal, value: lit("\n") },
         ],
       },
       expression: {
@@ -226,10 +220,7 @@ export const Source: ModuleDeclaration = {
     {
       name: "CrUnit",
       parameters: [],
-      pattern: {
-        kind: PatternKind.Equal,
-        value: "\r",
-      },
+      pattern: { kind: PatternKind.Equal, value: lit("\r") },
       expression: {
         kind: ExpressionKind.Native,
         fn: (_variables, _capabilities, match): NormalizedUnit =>
@@ -241,10 +232,7 @@ export const Source: ModuleDeclaration = {
       parameters: [],
       pattern: {
         kind: PatternKind.Except,
-        pattern: {
-          kind: PatternKind.Equal,
-          value: "\r",
-        },
+        pattern: { kind: PatternKind.Equal, value: lit("\r") },
       },
       expression: {
         kind: ExpressionKind.Native,
@@ -296,7 +284,7 @@ export const Source: ModuleDeclaration = {
             kind: PatternKind.Into,
             pattern: {
               kind: PatternKind.Quantifier,
-              min: 0,
+              min: lit(0),
               pattern: {
                 kind: PatternKind.Resolve,
                 targetKind: ResolveTargetKind.Reference,
@@ -328,10 +316,7 @@ export const Source: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Over,
         keys: {
-          kind: {
-            kind: PatternKind.Equal,
-            value: "NormalizedText",
-          },
+          kind: { kind: PatternKind.Equal, value: lit("NormalizedText") },
           text: {
             kind: PatternKind.Type,
             type: Type.String,
@@ -362,10 +347,7 @@ export const Source: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Over,
         keys: {
-          kind: {
-            kind: PatternKind.Equal,
-            value: "LineIndex",
-          },
+          kind: { kind: PatternKind.Equal, value: lit("LineIndex") },
           text: {
             kind: PatternKind.Type,
             type: Type.String,
@@ -405,10 +387,7 @@ export const Source: ModuleDeclaration = {
       pattern: {
         kind: PatternKind.Over,
         keys: {
-          kind: {
-            kind: PatternKind.Equal,
-            value: "UnitIndex",
-          },
+          kind: { kind: PatternKind.Equal, value: lit("UnitIndex") },
           text: {
             kind: PatternKind.Type,
             type: Type.String,
