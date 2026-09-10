@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-005
 title: CI compile-then-import gate for Digit .uff
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/modules.spec.md#uffda-source-imports-uff; .agents/specifications/languages/cli.spec.md#milestone-10-ci-adopts-the-published-cli-and-release-gates"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/modules.spec.md#uffda-source-imports-uff; .agents/specifications/languages/cli.spec.md#status"
 ---
 
 # CI Compile-Then-Import Gate

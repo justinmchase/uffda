@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-019
 title: Boolean expression module has authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements"
 ---
 
 # Boolean Uff Source
@@ -10,7 +10,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- `tokenizer/token` is converted to `.uff`.
+- `tokenizer/token` is authored as `.uff`.
 
 Expected behavior:
 
@@ -23,7 +23,7 @@ Expected behavior:
 
 Postconditions:
 
-- Boolean is converted as a Phase 2 expression leaf.
+- Boolean is authored as `.uff`.
 - Dependents import `./boolean.uff` (or `../expression/boolean.uff`); the
   TypeScript twin is gone.
 - Runtime loads Boolean from `./bin` via `.uff` remapping (not

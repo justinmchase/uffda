@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-038
 title: Literals and CharacterClass modules have authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md; .agents/specifications/languages/pattern-syntax/string-literals.spec.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/pattern-syntax/string-literals.spec.md"
 ---
 
 # Literals / CharacterClass Uff Source
@@ -10,8 +10,8 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- Expression `number`, `boolean`, and `nullish` modules are converted.
-- `common/identifier` is converted.
+- Expression `number`, `boolean`, and `nullish` modules are authored as `.uff`.
+- `common/identifier` is authored as `.uff`.
 - ValueSource tagging (B17), string escapes (B11/B15), and `join`/`flat`/`pack`
   std helpers are available.
 

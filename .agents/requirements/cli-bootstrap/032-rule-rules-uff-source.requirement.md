@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-032
 title: RuleRules module has authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements"
 ---
 
 # RuleRules Uff Source
@@ -10,8 +10,8 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- `pattern/pattern.lang` and `expression/expression.lang` are converted and
-  export `PatternTokens` / `ExpressionTokens`.
+- `pattern/pattern.lang` and `expression/expression.lang` are authored as `.uff`
+  and export `PatternTokens` / `ExpressionTokens`.
 - `uffda/shared.rules` exports `IdentifierToken`.
 - Std provides `flat`, `pack`, `coalesce`, and `one`.
 

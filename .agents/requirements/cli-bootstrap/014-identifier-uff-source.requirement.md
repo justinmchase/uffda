@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-014
 title: Identifier language module has authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements"
 ---
 
 # Identifier Uff Source
@@ -10,7 +10,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- Phase 0 character leaves that Identifier imports are converted to `.uff`.
+- Character leaves that Identifier imports are authored as `.uff`.
 - Runtime std provides `flat` and `join` for serializable projections (B2).
 
 Expected behavior:
@@ -25,7 +25,7 @@ Expected behavior:
 
 Postconditions:
 
-- Identifier is converted as a Phase 1 common helper.
+- Identifier is authored as `.uff`.
 - Dependents import `../common/identifier.uff`; the TypeScript twin is gone.
 - Runtime loads Identifier from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).

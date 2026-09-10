@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-008
 title: Formatting language module has authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements"
 ---
 
 # Formatting Uff Source
@@ -10,7 +10,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- Character-leaf modules convert to `.uff` one at a time after G0–G3 review.
+- The published CLI accepts the character-class syntax used by this module.
 - The published CLI accepts `\cCf` character-class syntax.
 
 Expected behavior:
@@ -22,8 +22,7 @@ Expected behavior:
 
 Postconditions:
 
-- Formatting is converted as a Phase 0 character leaf alongside Digit and
-  Connecting.
+- Formatting is authored as `.uff`.
 - Dependents import `./formatting.uff` (or equivalent); the TypeScript twin is
   gone.
 - Runtime loads Formatting from `./bin` via `.uff` remapping (not

@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-035
 title: Projection module has authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md; .agents/specifications/languages/pattern-syntax/grammar.spec.md; .agents/specifications/runtime/rules.spec.md#memoization"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/pattern-syntax/grammar.spec.md; .agents/specifications/runtime/rules.spec.md#memoization"
 ---
 
 # Projection Uff Source
@@ -10,8 +10,8 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- `pattern/pipe` and `expression/expression` are converted and export `Pipe` /
-  `Expression`.
+- `pattern/pipe` and `expression/expression` are authored as `.uff` and export
+  `Pipe` / `Expression`.
 - Runtime rule memoization stores post-expression success values (rules-001), so
   `(Pipe Tail) | Pipe` rematches observe Pipe's projected value.
 

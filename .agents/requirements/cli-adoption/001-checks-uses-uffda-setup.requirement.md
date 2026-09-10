@@ -1,7 +1,7 @@
 ---
 id: cli-adoption-001
 title: Checks workflow installs the published CLI via uffda-setup
-spec_ref: ".agents/specifications/languages/cli.spec.md#milestone-10-ci-adopts-the-published-cli-and-release-gates; .agents/specifications/languages/cli/distribution-and-release.spec.md#ci-setup-action-contract"
+spec_ref: ".agents/specifications/languages/cli.spec.md#status; .agents/specifications/languages/cli/distribution-and-release.spec.md#ci-setup-action-contract"
 ---
 
 # Checks Uses Uffda Setup

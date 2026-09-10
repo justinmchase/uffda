@@ -119,113 +119,19 @@ be human-readable and include the relevant source excerpt and input path.
 - The interactive mode SHOULD reuse the same deterministic compiler and
   diagnostic pathways as non-interactive mode.
 
-## Delivery milestones
+## Status
 
-### Milestone 1: CLI command model and process contract
+Required CLI mode families above are shipped: compile, parse, exec, match, run,
+workbench, binary distribution, `uffda-setup`, and self-hosted language modules
+under `./bin`.
 
-- Define command topology, global options, exit-code policy, and deterministic
-  error-shape contracts.
-- Define mode selection precedence when multiple mode flags are present.
-- Define how resolver configuration and working-directory context are resolved.
+Deferred polish (not release blockers):
 
-### Milestone 2: File and glob compilation to AST JSON
+- Watch-style file I/O orchestration and debounce/refresh automation.
+- Explicit import/export actions for source and artifacts beyond current
+  workbench protocol commands.
+- Richer match-tree visualizer output (for example Mermaid) for debugging.
 
-- Support single-file and glob-pattern compilation inputs.
-- Emit Uffda syntax AST artifacts that are serializable to JSON files.
-- Define output path policies, overwrite behavior, and collision handling.
-
-### Milestone 3: Raw syntax AST artifacts
-
-- Emit raw Uffda syntax AST JSON without CLI-specific transport metadata.
-- Preserve source provenance in compile results and diagnostics rather than in
-  syntax AST payloads.
-
-### Milestone 4: Parse and exec standard-input workflows
-
-- Support source ingestion through the `parse` command and raw AST execution
-  through the `exec` command.
-- Support direct emission to STDOUT for ASTs, execution results, or diagnostics
-  based on command behavior.
-- Define payload framing and output-shape contracts to avoid ambiguous mixed
-  output.
-
-### Milestone 4.1: Language-owned operational commands
-
-- Define `exec` for expressions, `match` for patterns, and `run` for Uffda
-  modules.
-- Support source paths, standard input, and inline source consistently across
-  parse and operational commands.
-- Require explicit `--ast` selection for raw AST JSON input so source and JSON
-  payloads are never inferred by content.
-
-### Milestone 5: Language-selection flags and default behavior
-
-- Support language selection on `parse` via `--lang` for `uffda`, `pattern`, and
-  `expression`.
-- Default to full Uffda when `parse` is invoked without `--lang`.
-- `exec`, `match`, and `run` MUST select expression, pattern, and Uffda module
-  language respectively and MUST reject `--lang`.
-- `compile` MUST emit Uffda module AST artifacts and MUST reject `--lang`.
-- Define deterministic diagnostics for unsupported flag combinations.
-
-### Milestone 6: Diagnostics, logging, and machine formats
-
-- Support human-readable and machine-readable diagnostics (for example JSON).
-- Ensure diagnostics include source span, module provenance, and phase
-  boundaries.
-- Define verbosity levels that do not change semantic outcomes.
-
-### Milestone 7: Interactive workbench foundation
-
-- Introduce a stateful interactive process with document/session lifecycle.
-- Support in-memory editing, incremental recompile triggers, and persistent file
-  open/save flows.
-- Define deterministic command protocol for workbench actions.
-
-### Milestone 8: Dynamic visualizer and inspection workflows
-
-- Provide dynamic visualization for parse, compile, and failure states.
-- Surface match-failure visualizations and pipeline phase boundaries in the
-  interactive interface.
-- Support focused inspection of AST nodes, spans, and module/rule provenance.
-
-### Milestone 9: Distribute the CLI
-
-- Define deterministic `deno compile` profiles for the full Deno target matrix.
-- Publish compiled binaries and checksums to GitHub Releases for each tagged CLI
-  release.
-- Publish a Linux install script that installs the correct Linux binary from the
-  release.
-- Provide a reusable `uffda-setup` GitHub Action that installs the matching
-  binary by runner platform and architecture.
-
-### Milestone 10: CI adopts the published CLI and release gates
-
-- Wire repository workflows to install the CLI through `uffda-setup`.
-- Define backward-compatibility policy for commands, flags, and JSON output.
-- Establish end-to-end validation matrix for file, glob, stream, and interactive
-  modes across language selections.
-- Define release criteria for CLI stability, documentation completeness, and
-  operator-facing migration notes.
-
-### Milestone 11: Self-hosting bootstrap
-
-- Convert TypeScript and JSON language modules into `.uff` sources.
-- Compile those sources into deterministic JSON artifacts under `./bin/`.
-- Build the next CLI so it imports language definitions from `./bin/` rather
-  than TypeScript language module sources.
-- Require full-circle tests: compiled outputs (or a CLI built from them) MUST
-  compile the same Uffda sources again successfully, with additional regression
-  coverage as needed.
-
-### Deferred: Interactive file I/O automation hooks
-
-Watch-style file I/O orchestration and debounce/refresh automation remain
-desirable CLI polish after bootstrap. They are deferred behind Milestones 9–11
-and are not a blocker for distribution or self-hosting:
-
-- Explicit file import/export actions for source and artifacts.
-- Watch-style workflows for selected files/folders with deterministic
-  debounce/refresh semantics.
-- Non-interactive hooks for automation to drive interactive capabilities where
-  feasible.
+Normative distribution and release contracts live in
+[distribution and release](./cli/distribution-and-release.spec.md). Bootstrap
+contracts live in [compiler-bootstrap](./compiler-bootstrap.spec.md).

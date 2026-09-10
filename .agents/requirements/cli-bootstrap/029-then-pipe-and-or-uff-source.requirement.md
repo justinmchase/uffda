@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-029
 title: Then, Pipe, And, and Or modules have authored .uff source (B4)
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements"
 ---
 
 # Then / Pipe / And / Or Uff Sources (B4)
@@ -10,7 +10,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- Pattern stack leaves used by these modules are converted (`prefix`,
+- Pattern stack leaves used by these modules are authored as `.uff` (`prefix`,
   `projection`, `resolve`, `structure`, `literals`).
 - Std provides `flat` and `one` for assembling and collapsing pattern lists.
 

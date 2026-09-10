@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-033
 title: UffdaLang module has authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements"
 ---
 
 # UffdaLang Uff Source
@@ -11,7 +11,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 Preconditions:
 
 - `uffda/import.rules`, `uffda/export.rules`, and `uffda/rule.rules` are
-  converted.
+  authored as `.uff`.
 - Std provides `flat`.
 
 Expected behavior:

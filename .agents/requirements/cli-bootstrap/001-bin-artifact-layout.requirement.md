@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-001
 title: Compiled language artifacts land under bin
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/cli.spec.md#milestone-11-self-hosting-bootstrap"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/compiler-bootstrap.spec.md#composition-intent"
 ---
 
 # Bin Artifact Layout

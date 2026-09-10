@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-011
 title: Whitespace language module has authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements"
 ---
 
 # Whitespace Uff Source
@@ -10,7 +10,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- Character-leaf modules convert to `.uff` one at a time after G0–G3 review.
+- The published CLI accepts the character-class syntax used by this module.
 - The published CLI accepts `\cZs | \cZl | \cZp` character-class syntax and
   string Equal literals such as `"\t"` (B11).
 
@@ -24,7 +24,7 @@ Expected behavior:
 
 Postconditions:
 
-- Whitespace is converted as a Phase 0 character leaf.
+- Whitespace is authored as `.uff`.
 - Dependents import `./whitespace.uff`; the TypeScript twin is gone.
 - Runtime loads Whitespace from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).

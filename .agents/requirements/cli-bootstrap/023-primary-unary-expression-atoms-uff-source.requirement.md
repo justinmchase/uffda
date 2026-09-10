@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-023
 title: Primary, Unary, Expression, and Atoms modules have authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements"
 ---
 
 # Primary / Unary / Expression / Atoms Uff Sources
@@ -11,7 +11,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 Preconditions:
 
 - Expression leaves used by Primary (`terminal`, `boolean`, `nullish`, `array`,
-  `object`, `sequence`, `number`, `member`, `string`) are converted.
+  `object`, `sequence`, `number`, `member`, `string`) are authored as `.uff`.
 - `pattern/atoms` has no language-module imports.
 
 Expected behavior:

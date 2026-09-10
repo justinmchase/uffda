@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-022
 title: Array, Object, and Sequence expression modules have authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements"
 ---
 
 # Array / Object / Sequence Uff Sources
@@ -10,9 +10,9 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- `tokenizer/token`, `common/spread`, and `expression/reference` are converted
-  to `.uff`.
-- `expression/primary` may remain TypeScript until later Phase 2 conversions.
+- `tokenizer/token`, `common/spread`, and `expression/reference` are authored as
+  `.uff` to `.uff`.
+- Expression stack modules are authored as `.uff`.
 - Published CLI PatternLang variable bindings are single-letter identifiers.
 
 Expected behavior:
@@ -35,7 +35,7 @@ Expected behavior:
 
 Postconditions:
 
-- Array, Object, and Sequence are converted as Phase 2 expression modules.
+- Array, Object, and Sequence are authored as `.uff`.
 - Dependents import the `.uff` URLs; TypeScript twins are gone.
 - Runtime loads them from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).

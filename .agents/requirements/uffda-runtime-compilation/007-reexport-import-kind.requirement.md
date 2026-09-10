@@ -1,7 +1,7 @@
 ---
 id: uffda-runtime-compilation-007
 title: Bare export of an imported name lowers to Import export kind
-spec_ref: ".agents/specifications/languages/uffda-syntax/exports.spec.md#core-contracts; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/uffda-syntax/exports.spec.md#core-contracts"
 ---
 
 # Re-export Import Kind

@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-018
 title: Spread language module has authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements"
 ---
 
 # Spread Uff Source
@@ -10,7 +10,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- `tokenizer/token` is converted to `.uff`.
+- `tokenizer/token` is authored as `.uff`.
 
 Expected behavior:
 
@@ -21,7 +21,7 @@ Expected behavior:
 
 Postconditions:
 
-- Spread is converted as a Phase 1 common helper.
+- Spread is authored as `.uff`.
 - Dependents import `../common/spread.uff`; the TypeScript twin is gone.
 - Runtime loads Spread from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).

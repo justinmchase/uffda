@@ -11,15 +11,13 @@ Normative key words in this chapter use the conventions defined in the
 
 ## Scope
 
-- This chapter is idiomatic guidance for language-module authoring and `.ts` →
-  `.uff` conversion.
+- This chapter is idiomatic guidance for language-module authoring in `.uff`.
 - It does NOT define a new runtime pattern kind or a standard-library `match`
   bridge.
 - Related contracts: [pattern layer](./pattern-layer.spec.md),
   [pipeline](../patterns/runtime/pipeline.spec.md),
   [into](../patterns/runtime/into.spec.md),
-  [left recursion](../runtime/left-recursion.spec.md),
-  [module conversion plan](./uff-module-conversion-plan.md).
+  [left recursion](../runtime/left-recursion.spec.md).
 
 ## Principle
 
@@ -29,7 +27,7 @@ Normative key words in this chapter use the conventions defined in the
 - Rule projections (`-> …`) SHOULD only shape values that patterns have already
   matched and bound.
 - Authors MUST NOT move scan, classify, or left-fold work into Native or
-  expression loops when an equivalent pattern form exists (conversion gate G3).
+  expression loops when an equivalent pattern form exists.
 
 ## Map as pattern
 
@@ -153,12 +151,12 @@ This requires nested `PatternKind.Projection` in a published CLI (0.1.14+).
 Optional `recursive rule` sugar is deferred:
 [issue #98](https://github.com/justinmchase/uffda/issues/98).
 
-### Conversion implication
+### Authoring implication
 
-`expression/member` is converted via DLR + nested Projection. Similar AST
-left-folds SHOULD follow the same idiom. They MUST NOT wait on ExpressionLang
-lambda syntax or std `reduce`. See blocker B14 in the
-[module conversion plan](./uff-module-conversion-plan.md).
+Left-associative AST folds such as `expression/member` SHOULD use DLR with
+nested Projection. They MUST NOT wait on ExpressionLang lambda syntax or std
+`reduce`. Optional `recursive rule` sugar remains deferred
+([issue #98](https://github.com/justinmchase/uffda/issues/98)).
 
 ## When expression-side fold may still apply
 
@@ -178,7 +176,7 @@ Member-style grammar folds.
 - Implementing a standard-library `match` that re-invokes the pattern runtime
   from expressions.
 - Implementing std `reduce` or ExpressionLang lambda syntax as prerequisites for
-  Member conversion.
+  Member-style left folds.
 - Implementing `recursive rule` sugar
   ([issue #98](https://github.com/justinmchase/uffda/issues/98)).
 - Changing quantifier semantics.

@@ -26,9 +26,9 @@ self-hosting while maintaining deterministic and diagnosable behavior.
   MUST be embedded as compiled `./bin` AST JSON via `deno compile --include`,
   and remapped from the binary extract root when `Deno.build.standalone` is
   true.
-- After self-hosting lands, language definitions consumed by a released CLI
-  binary MUST come from compiled artifacts rather than TypeScript module sources
-  that define those languages.
+- After self-hosting, language definitions consumed by a released CLI binary
+  MUST come from compiled artifacts rather than TypeScript module sources that
+  define those languages.
 
 ## Published-compiler feature surface
 
@@ -166,6 +166,7 @@ artifacts with host-side rewriters.
   share lower Uffda layers but define alternate top-level languages.
 - Distribution of CLI binaries used for bootstrapping is defined in the
   [distribution and release](./cli/distribution-and-release.spec.md) chapter.
-- Operational conversion order and per-module readiness gates for replacing
-  TypeScript language modules with `.uff` sources are recorded in
-  [uff-module-conversion-plan.md](./uff-module-conversion-plan.md).
+- Default language modules under `src/lang/` MUST be authored as `.uff` and
+  loaded from compiled `./bin` ModuleDeclaration JSON. Thin TypeScript hosts MAY
+  remain only for non-declaration helpers (for example types or host-side walks
+  that are not ModuleDeclarations).

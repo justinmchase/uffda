@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-016
 title: Surround language module has authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements"
 ---
 
 # Surround Uff Source
@@ -22,7 +22,7 @@ Expected behavior:
 
 Postconditions:
 
-- Surround is converted as a Phase 1 common helper.
+- Surround is authored as `.uff`.
 - Dependents import `../common/surround.uff`; the TypeScript twin is gone.
 - Runtime loads Surround from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).

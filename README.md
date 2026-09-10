@@ -1,11 +1,14 @@
 # Uffda
 
-Uffda is a parser generator for domain specific languages.
+Uffda is a Deno-based parser generator for domain-specific languages.
 
-It is different from many parser generators in that the syntax is expressive
-enough to support parsing strings as well as objects, arrays or any other value
-type. The result of this capability is that the entire compiler pipeline can be
-expressed in pattern matching operations.
+Patterns can match strings **and** structured values (objects, arrays, and other
+data). That means the whole compiler pipeline—tokenization, parsing, projection,
+and lowering—can be expressed as pattern matching.
+
+Language modules under `src/lang/` are authored as `.uff` and compiled to
+`./bin` ModuleDeclaration JSON. The published CLI embeds those artifacts, so
+bootstrap uses the previous release to compile the next one.
 
 ## Install
 
@@ -15,11 +18,12 @@ Linux (x86_64 or aarch64):
 curl -fsSL https://github.com/justinmchase/uffda/releases/latest/download/install.sh | bash
 ```
 
-That installs `uffda` to `~/.local/bin` by default. Ensure that directory is on
-your `PATH`, then verify:
+Installs `uffda` to `~/.local/bin` by default. Put that directory on your
+`PATH`, then:
 
 ```sh
 uffda --version
+uffda --help
 ```
 
 GitHub Actions:
@@ -33,102 +37,111 @@ GitHub Actions:
 From a source checkout (Deno required):
 
 ```sh
-deno task cli --version
+deno task cli --help
 ```
 
 ## CLI
 
-Run the installed binary with `uffda`, or from a checkout with `deno task cli`.
-Use `--help` for the command overview or command-specific help such as
-`uffda match --help`.
+Running `uffda` with no arguments opens the workbench. Commands:
 
-### Publish a CLI release
+| Command     | Purpose                                               |
+| ----------- | ----------------------------------------------------- |
+| `compile`   | Compile `.uff` modules to ModuleDeclaration JSON      |
+| `parse`     | Parse source to a raw AST (`--lang` selects language) |
+| `exec`      | Evaluate an expression (source or `--ast`)            |
+| `match`     | Match a pattern against `--input` / `--input-json`    |
+| `run`       | Run a Uffda module (`--entry` selects an export)      |
+| `workbench` | Interactive TUI editor / JSON automation protocol     |
 
-Release tags are bare SemVer (for example `0.1.2`), matching Release Drafter.
+Languages for `parse` / `workbench`: `uffda` (default), `pattern`, `expression`.
 
-1. Merge to `main` so Release Drafter updates the draft release, bumps version
-   files, and dispatches `release-binaries`.
-2. The **Release Binaries** workflow compiles all Deno targets and
-   attaches/replaces `uffda-*`, `SHA256SUMS`, and `install.sh` on the latest
-   draft (re-run it manually from Actions if you need to rebuild).
-3. Publish the draft release when ready. That makes it the latest install target
-   for `install.sh` / `uffda-setup` and triggers JSR publish.
-
-### Hello World
-
-Evaluate an expression directly with `-e`:
+### Quick start
 
 ```sh
+# Expression eval
 uffda exec -e '(echo "Hello, world!")'
-```
 
-```text
-Hello, world!
-```
-
-### Useful commands
-
-Parse source to a raw AST, then execute it explicitly as an AST pipeline:
-
-```sh
-uffda parse --lang expression -e '(echo "Hello, world!")' |
-  uffda exec --ast
-```
-
-Match text with `--input`, or match one decoded JSON value with `--input-json`.
-Add `--json` when a script needs machine-readable results and diagnostics:
-
-```sh
+# Pattern match (text or JSON subject)
 uffda match -e 'any' --input hello
 uffda match -e 'number' --input-json 42 --json
-```
 
-Run a Uffda module with its first export, or select an exported rule with
-`--entry`:
+# Parse → exec pipeline
+uffda parse --lang expression -e '(echo "Hello, world!")' |
+  uffda exec --ast
 
-```sh
+# Compile a module; run selects an export (first export by default)
+uffda compile ./examples/morse/morse.uff
 uffda run ./app.uff --entry Main
 ```
 
-### Workbench
+See [`examples/morse/morse.uff`](./examples/morse/morse.uff) for a full grammar.
+Use `--help` on any command for flags (`uffda match --help`, …).
 
-On a terminal, `workbench` opens a fullscreen TUI: pick a workspace folder,
-browse files, edit source, and toggle a compile/diagnostics preview with
-`Shift+Tab`. Pass a source path to skip the landing screen and open that file
-directly:
+### Compile layout
 
 ```sh
-deno task cli workbench
-deno task cli workbench ./examples/main.uff
+uffda compile 'src/**/*.uff'
+uffda compile ./file.uff --out-dir ./out
 ```
 
-When standard input is piped, the same session uses a newline-delimited JSON
-protocol for automation (`open`, `save`, `export-ast`, `visualize`, `match`, and
-related actions):
+Writes ModuleDeclaration JSON under `<out-dir>/ast` (default `.uffda/ast`). In
+this repo, `deno task compile:lang` builds workspace `./bin` with the **previous
+published** CLI (bootstrap recursion break).
+
+### Workbench
+
+Fullscreen TUI: browse a folder, edit source, toggle compile/diagnostics with
+`Shift+Tab`. Pass a path to open a file directly:
+
+```sh
+uffda workbench
+uffda workbench ./examples/morse/morse.uff
+```
+
+Piped stdin uses a newline-delimited JSON protocol (`open`, `save`,
+`export-ast`, `visualize`, `match`, …):
 
 ```sh
 printf '%s\n' \
   '{"action":"start","language":"pattern","source":"any"}' \
   '{"action":"set-source","source":"number"}' \
   '{"action":"end"}' |
-  deno task cli workbench
+  uffda workbench
 ```
+
+## Library
+
+JSR package `@justinmchase/uffda` — entry `mod.ts`. Prefer Deno / Web Platform
+APIs. Specs live under `.agents/specifications/`; requirements under
+`.agents/requirements/`.
+
+Example grammar: [`examples/morse/morse.uff`](./examples/morse/morse.uff).
 
 ## Development
 
-This is a deno library.
-
-#### test
-
 ```sh
-deno test --watch --parallel
+deno task pre          # fmt, lint, test, jsr dry-run
+deno task test         # compile:lang then deno test
+deno task compile:lang # previous published uffda → ./bin
+deno task cli --help   # in-tree CLI
 ```
 
-### References
+### Maintainers: publish a CLI release
 
-This project is based on a previous project I made called Meta# which was a C#
-implementation of the ideas written in the OMeta paper by
-[Alessandro Warth](http://www.tinlizzie.org/~awarth/).
+Release tags are bare SemVer (for example `0.2.0`), matching Release Drafter.
+
+1. Merge to `main` so Release Drafter updates the draft, bumps version files,
+   and dispatches `release-binaries`.
+2. Confirm `uffda-*`, `SHA256SUMS`, and `install.sh` on the draft (re-run
+   **Release Binaries** from Actions if needed).
+3. Publish the draft. That becomes the latest install target and triggers JSR
+   publish.
+
+## References
+
+Based on ideas from OMeta
+([Alessandro Warth](http://www.tinlizzie.org/~awarth/)) and an earlier C#
+project, Meta#.
 
 > OMeta’s key insight is the realization that all of the passes in a traditional
 > compiler are essentially pattern matching operations

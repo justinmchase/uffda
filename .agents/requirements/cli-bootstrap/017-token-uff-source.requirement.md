@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-017
 title: Token language module has authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements"
 ---
 
 # Token Uff Source
@@ -10,7 +10,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- `common/surround` and `common/characters/whitespace` are converted to `.uff`.
+- `common/surround` and `common/characters/whitespace` are authored as `.uff`.
 - Published CLI supports parametric rule declarations (B10).
 
 Expected behavior:
@@ -23,7 +23,7 @@ Expected behavior:
 
 Postconditions:
 
-- Token is converted as a Phase 1 common helper.
+- Token is authored as `.uff`.
 - Dependents import `../tokenizer/token.uff`; the TypeScript twin is gone.
 - Runtime loads Token from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).

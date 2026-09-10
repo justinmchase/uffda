@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-034
 title: RuntimeCompiler module has authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements"
 ---
 
 # RuntimeCompiler Uff Source
@@ -10,7 +10,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- `uffda/uffda.lang` is converted.
+- `uffda/uffda.lang` is authored as `.uff`.
 - Std provides `flat` and `coalesce` for declaration list merge / optional
   parameters, plus generic `to_set`/`pluck`/`has`/`eq`/`when`/`not` for
   re-export classification in projection.

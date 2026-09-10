@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-009
 title: Letter language module has authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements"
 ---
 
 # Letter Uff Source
@@ -10,7 +10,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- Character-leaf modules convert to `.uff` one at a time after G0–G3 review.
+- The published CLI accepts the character-class syntax used by this module.
 - The published CLI accepts `\cL | \cNl` character-class syntax.
 
 Expected behavior:
@@ -22,7 +22,7 @@ Expected behavior:
 
 Postconditions:
 
-- Letter is converted as a Phase 0 character leaf.
+- Letter is authored as `.uff`.
 - Dependents import `./letter.uff` (or equivalent); the TypeScript twin is gone.
 - Runtime loads Letter from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).

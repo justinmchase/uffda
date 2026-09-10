@@ -1,7 +1,7 @@
 ---
 id: uffda-language-syntax-011
 title: Rule-body quote scanner treats backslash as escapable
-spec_ref: ".agents/specifications/languages/uff-module-conversion-plan.md; .agents/specifications/languages/pattern-syntax/string-literals.spec.md"
+spec_ref: "; .agents/specifications/languages/pattern-syntax/string-literals.spec.md"
 ---
 
 # Rule Body Backslash Escape In Quoted Spans

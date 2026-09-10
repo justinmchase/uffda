@@ -31,7 +31,7 @@ Postconditions:
 - Member-style DLR folds do not require rule-level-only projection, std
   `reduce`, or ExpressionLang lambdas.
 - Authored `.uff` that depends on nested Projection MUST wait until that feature
-  ships in a published CLI (bootstrap G0).
+  ships in a published CLI.
 - Successful DLR growth MUST NOT leak rule-local variable bindings into the
   caller scope, and MUST preserve caller bindings the same way non-LR rule
   success does.

@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-012
 title: NewLine language module has authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements"
 ---
 
 # NewLine Uff Source
@@ -10,7 +10,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- Character-leaf modules convert to `.uff` one at a time after G0–G3 review.
+- The published CLI accepts the character-class syntax used by this module.
 - The published CLI accepts pattern Equal `"\r"` / `"\n"` and expression
   projection `-> "\n"` (B11).
 
@@ -23,7 +23,7 @@ Expected behavior:
 
 Postconditions:
 
-- NewLine is converted as a Phase 0 character leaf.
+- NewLine is authored as `.uff`.
 - Dependents import `./newLine.uff`; the TypeScript twin is gone.
 - Runtime loads NewLine from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).

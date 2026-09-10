@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-040
 title: Source language module has authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md; .agents/specifications/languages/source-normalization.spec.md#standard-library-helpers-bootstrap-precursors"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/source-normalization.spec.md#standard-library-helpers-bootstrap-precursors"
 ---
 
 # Source Uff Source
@@ -27,6 +27,6 @@ Expected behavior:
 
 Postconditions:
 
-- Source is converted as Phase 5 module #47.
+- Source is authored as `.uff`.
 - Dependents import `../source/mod.uff`; the ModuleDeclaration twin is gone.
 - Host `mod.ts` MAY remain for `normalizeSource` and type re-exports only.

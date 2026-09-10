@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-030
 title: Pattern module has authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/uff-module-conversion-plan.md"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements"
 ---
 
 # Pattern Uff Source
@@ -10,7 +10,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- `pattern/or` is converted and exports `Or`.
+- `pattern/or` is authored as `.uff` and exports `Or`.
 
 Expected behavior:
 
