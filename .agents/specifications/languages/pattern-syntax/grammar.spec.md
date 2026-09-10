@@ -107,15 +107,21 @@ The grammar MUST be able to express the following pattern families:
 - Bare literals and identifier string equals project `value.literal`.
 - Value sources MUST be accepted only in value-operand positions:
   - bare equal
-  - `between` left and right bounds (`L..R`)
+  - `between` bounds: closed `L..R`, open-upper `L..`, open-lower `..R` (bare
+    `..` MUST be rejected)
   - `includes` membership elements (`in[...]`)
   - quantifier `min` / `max` bounds (`P*$n`, `P*$min..$max`, mixed literal /
     `$name` forms in `prefix.uff`)
 - `$name` always denotes a value binding. Bare `$name` as a primary MUST
-  normalize to `equal` with a `value.variable` operand (match input against the
+  normalize to `equal` with a `value.variable` operand (match input equal to the
   bound value), not to `resolve`.
 - Bare identifiers retain existing meanings: pattern position → resolve; literal
   value position → identifier string as `value.literal`.
+- Open between forms MUST project omitted bounds as `undefined`:
+  - `L..` → `{ kind: "between", left, right: undefined }`
+  - `..R` → `{ kind: "between", left: undefined, right }`
+  - Arms MUST prefer closed `L..R`, then `L..`, then `..R`, so `1..3` stays
+    closed. Bare `..` MUST NOT match any between arm.
 
 ## Precedence
 

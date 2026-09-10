@@ -129,7 +129,7 @@ file:
 | B14 | Left-fold over lists without domain helpers                  | expression/member (done), similar AST folds                              | DLR + nested [Projection](../../patterns/runtime/projection.spec.md); closed for Member (not std `reduce`+lambda; sugar later [#98](https://github.com/justinmchase/uffda/issues/98)) |
 | B15 | `"\\"` in multi-rule `.uff` modules                          | expression/string (done)                                                 | Rule-body quote scanner treats `\\` as escapable; shipped in 0.1.15                                                                                                                   |
 | B16 | `.uff` load → runtime compiler                               | `uffda/runtime.compiler`                                                 | Closed: compile emits ModuleDeclarations to `./bin`; Resolver.import loads JSON only; host uses Resolver.import on `.uff`.                                                            |
-| B17 | Contextual `$name` ValueSource                               | literals equal/between/includes; prefix `P*$n`; relational object checks | Closed for syntax + runtime; optional ExpressionLang `Infinity` follow-up                                                                                                             |
+| B17 | Contextual `$name` ValueSource                               | literals equal/between/includes; prefix `P*$n`; relational object checks | Closed for `$name`; open between (`L..` / `..R`) unlocks prefix min≤max next                                                                                                          |
 
 ## Phase order (dependency leaves first)
 
@@ -233,13 +233,13 @@ permanent TypeScript language modules once builtins exist.
 
 ## First candidate (next session)
 
-**B17 status:** closed — tagged ValueSource runtime, PatternLang emit, and `$`
-quantifier bounds in `prefix.uff` (0.1.20+ compile baseline).
+**Open between:** `L..R`, `L..`, and `..R` (reject bare `..`) unlock prefix
+StarMinMax constraints such as `m:(BoundNum |> (number & $n..))` after publish.
+Avoid capture names `min`/`max`/`name` in authored `.uff` — they fail to parse.
 
 Hard leaves: `pattern/literals` CharacterClass/Natives, or
 `pattern/resolve`+`structure` (B9). Phase 5: `tokenizer/mod`; B6/B7 still block
-`source` / `tokenizer.lang`. Optional: ExpressionLang `Infinity` for
-`$min..Infinity` / open between forms.
+`source` / `tokenizer.lang`.
 
 Optional `recursive rule` sugar remains deferred
 ([#98](https://github.com/justinmchase/uffda/issues/98)).

@@ -124,6 +124,14 @@ Atomic =
     "."
     right:Literal
     -> { kind: "between", left, right }
+  | left:Literal
+    "."
+    "."
+    -> { kind: "between", left, right: undefined }
+  | "."
+    "."
+    right:Literal
+    -> { kind: "between", left: undefined, right }
   | "in"
     "["
     values:LiteralList

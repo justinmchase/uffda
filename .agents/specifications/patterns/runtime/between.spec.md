@@ -11,31 +11,38 @@ Normative key words in this chapter use the conventions defined in the
 ## Logical purpose
 
 The `between` pattern matches exactly one input item when that item's value
-falls within the inclusive closed interval `[left, right]` defined by the
-pattern's declared bounds. Bounds MAY be literals or contextual `$name` value
-sources resolved from the match scope.
+falls within an inclusive interval defined by the pattern's declared bounds.
+Bounds MAY be literals or contextual `$name` value sources resolved from the
+match scope. Either bound MAY be omitted for a half-open interval: `L..` means
+`[left, +∞)` and `..R` means `(-∞, right]`. Omitting both bounds is invalid.
 
 ## Behavioral expectations
 
-- A `between` pattern MUST resolve its `left` and `right` value sources before
-  comparing. An unbound `$name` MUST report an unknown-reference error.
+- A `between` pattern MUST require at least one of `left` or `right`. If both
+  are absent, it MUST report an invalid-argument error.
+- A `between` pattern MUST resolve each present bound before comparing. An
+  unbound `$name` MUST report an unknown-reference error.
 - A `between` pattern MUST inspect the current input position.
 - If no input item is available at the current position, the `between` pattern
   MUST fail.
 - If the current input item is null or undefined, the `between` pattern MUST
   report a null-value error.
-- The types of the left bound, right bound, and input value MUST all be
-  identical for a range comparison to proceed.
-- If the types are not identical, the `between` pattern MUST fail.
+- For each present bound, its type MUST match the input value's type. If the
+  types are not identical, the `between` pattern MUST fail.
 - For string and number values, the `between` pattern MUST compare the input
   value against the bounds using native JavaScript ordering semantics.
 - For object values implementing a `compareTo` method, the `between` pattern
   MUST compare using the object's `compareTo` ordering.
 - For object values that do not implement `compareTo`, the `between` pattern
   MUST fail.
-- If the input value is within the closed interval `[left, right]` inclusive,
-  the `between` pattern MUST succeed.
-- If the input value is outside that interval, the `between` pattern MUST fail.
+- When both bounds are present, if the input value is within the closed interval
+  `[left, right]` inclusive, the `between` pattern MUST succeed.
+- When only `left` is present, if the input value is greater than or equal to
+  `left`, the `between` pattern MUST succeed.
+- When only `right` is present, if the input value is less than or equal to
+  `right`, the `between` pattern MUST succeed.
+- If the input value is outside the declared interval, the `between` pattern
+  MUST fail.
 
 ## Input consumption
 

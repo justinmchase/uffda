@@ -15,8 +15,10 @@ Preconditions:
 Expected behavior:
 
 - Between MUST inspect the current item at P and compare inclusively to bounds.
-- Between MUST succeed only when value is within `[left, right]` and consume one
-  item.
+- Between MUST succeed only when value is within `[left, right]`, `[left, +∞)`
+  when only `left` is set, or `(-∞, right]` when only `right` is set, and
+  consume one item.
+- Between MUST reject patterns with neither bound.
 - Between MUST fail without consumption when value is out of bounds or
   unavailable.
 
