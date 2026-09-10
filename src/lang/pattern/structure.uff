@@ -1,0 +1,51 @@
+# Structure matches grouping `(P)` and object-like Over `{ k:P, … }`.
+# Over builds keys via std from_entries (no host Object native). Cycles with
+# Pattern via Atomic are expected (B9); Resolver import caching breaks
+# recursion.
+import "../common/identifier.uff" Identifier;
+import "./pattern.uff" Pattern;
+
+export Structure;
+
+rule IdToken = string & [Identifier];
+
+rule Group =
+  "("
+  p:Pattern
+  ")"
+  -> p;
+
+rule OverEntry =
+  n:IdToken
+  ":"
+  p:Pattern
+  -> { name: n, pattern: p };
+
+rule OverEntryTail =
+  ","
+  e:OverEntry
+  -> e;
+
+rule OverEntries =
+  f:OverEntry
+  r:OverEntryTail*
+  -> (flat (pack f r));
+
+rule OverEntriesWithTrailing =
+  e:OverEntries
+  ","?
+  -> e;
+
+rule Over =
+  "{"
+  k:OverEntriesWithTrailing?
+  "}"
+  -> {
+    kind: "over",
+    keys: (from_entries (flat (coalesce k [])))
+  };
+
+rule Structure =
+  | Group
+  | Over
+  ;

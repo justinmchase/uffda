@@ -5,7 +5,7 @@ import { lit } from "../../runtime/patterns/value_source.ts";
 import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
-const moduleUrl = new URL("./resolve.ts", import.meta.url).href;
+const moduleUrl = new URL("./resolve.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -20,6 +20,7 @@ Deno.test({
       name: "RESOLVE_00",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Resolve",
         input: Input.Iterable(["foo"]),
         kind: MatchKind.Ok,
         value: {
@@ -35,6 +36,7 @@ Deno.test({
       name: "RESOLVE_01",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Resolve",
         input: Input.Iterable(["@", "any"]),
         kind: MatchKind.Ok,
         value: {
@@ -50,6 +52,7 @@ Deno.test({
       name: "RESOLVE_02",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Resolve",
         input: Input.Iterable(["foo", "<", "bar", ",", "@", "or", ",", ">"]),
         kind: MatchKind.Ok,
         value: {
@@ -78,6 +81,7 @@ Deno.test({
       name: "RESOLVE_03",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Resolve",
         input: Input.Iterable(["foo", "<", '"', "bar", '"', ">"]),
         kind: MatchKind.Ok,
         value: {

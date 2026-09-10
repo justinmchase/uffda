@@ -1,0 +1,84 @@
+# Resolve matches Name or Name<Pattern…> and projects a resolve reference AST.
+# Optional arg lists use flat+coalesce (B5) instead of Native unpack. Cycles with
+# Pattern via Atomic are expected (B9); Resolver import caching breaks recursion.
+import "../common/identifier.uff" Identifier;
+import "./pattern.uff" Pattern;
+
+export Resolve;
+
+rule ReservedKeyword =
+  | "and"
+  | "any"
+  | "array"
+  | "bigint"
+  | "boolean"
+  | "date"
+  | "end"
+  | "error"
+  | "except"
+  | "fail"
+  | "false"
+  | "function"
+  | "in"
+  | "includes"
+  | "into"
+  | "lookahead"
+  | "map"
+  | "maybe"
+  | "not"
+  | "null"
+  | "number"
+  | "object"
+  | "ok"
+  | "or"
+  | "over"
+  | "pipeline"
+  | "quantifier"
+  | "set"
+  | "string"
+  | "symbol"
+  | "true"
+  | "undefined"
+  | "variable"
+  ;
+
+rule IdToken = string & [Identifier];
+
+rule EscapedIdentifierToken =
+  "@"
+  n:IdToken
+  -> n;
+
+rule ResolveName =
+  | EscapedIdentifierToken
+  | ((not ReservedKeyword) & IdToken)
+  ;
+
+rule ResolveArg = Pattern;
+
+rule ResolveArgTail =
+  ","
+  v:ResolveArg
+  -> v;
+
+rule ResolveArgList =
+  f:ResolveArg
+  r:ResolveArgTail*
+  ","?
+  -> (flat (pack f r));
+
+rule ResolveArgs =
+  "<"
+  a:ResolveArgList?
+  ">"
+  -> (flat (coalesce a []));
+
+rule Resolve =
+  n:ResolveName
+  a:ResolveArgs?
+  -> {
+    kind: "resolve",
+    targetKind: "reference",
+    name: n,
+    args: (flat (coalesce a []))
+  };

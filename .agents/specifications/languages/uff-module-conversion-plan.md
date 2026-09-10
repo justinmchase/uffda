@@ -121,7 +121,7 @@ file:
 | B6  | Host match spans / checksum / line index                     | source/mod, tokenizer                                                    | New std/host builtins — then convert (not permanent hybrid)                                                                                                                           |
 | B7  | Match-tree semantic text walk                                | tokenizer.lang                                                           | Same as B6 — required before tokenizer.lang `.uff`                                                                                                                                    |
 | B8  | Validation `throw` in projection                             | prefix bounds                                                            | Closed: Star arms + runtime Quantifier; no Native throw                                                                                                                               |
-| B9  | Pattern stack import cycles                                  | resolve/structure ↔ pattern                                              | Convert as a layer with temporary TS bridges                                                                                                                                          |
+| B9  | Pattern stack import cycles                                  | resolve/structure ↔ pattern                                              | Closed: convert as a layer; `.uff`↔`.uff` cycle OK via Resolver cache; Atomic retargeted                                                                                              |
 | B10 | Parametric rules (`Surround<L,P,R>`, `Token<P>`)             | surround, token                                                          | Declaration syntax shipped in 0.1.11                                                                                                                                                  |
 | B11 | PatternLang + ExpressionLang string escapes (`\t`, `\n`, …)  | whitespace, newLine (done)                                               | Shipped; expression escapes enable `-> "\n"`                                                                                                                                          |
 | B12 | Multi-letter variable bindings in PatternLang                | readable `.uff` (esp. `*.lang`)                                          | Published CLI today accepts only single-letter `name:P`                                                                                                                               |
@@ -183,8 +183,8 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 | --- | ---------------------- | ------------------------------------- | ---------------------- | ------------------------------------------- | -------------------------------- |
 | 27  | `pattern/atoms`        | OK                                    | object `{kind:"any"}`  | OK proj                                     | done                             |
 | 28  | `pattern/literals`     | heavy CharacterClass/includes/between | many Natives           | mostly AST wrap; audit string/number unwrap | hard; after B17 + CharacterClass |
-| 29  | `pattern/resolve`      | **B9** cycle                          | optional-arg unpack    | OK                                          | hard                             |
-| 30  | `pattern/structure`    | **B9** cycle                          | Over AST               | OK                                          | hard                             |
+| 29  | `pattern/resolve`      | OK (B9 layer)                         | flat+coalesce          | OK                                          | done                             |
+| 30  | `pattern/structure`    | OK (B9 layer)                         | from_entries Over keys | OK                                          | done                             |
 | 31  | `pattern/atomic`       | OK                                    | identity               | OK                                          | done                             |
 | 32  | `pattern/prefix`       | OK                                    | object AST wraps       | Star arms; no throw (B8)                    | done                             |
 | 33  | `pattern/then`         | OK                                    | std `one` + `*`        | OK                                          | done                             |
@@ -233,13 +233,8 @@ permanent TypeScript language modules once builtins exist.
 
 ## First candidate (next session)
 
-**Open between:** `L..R`, `L..`, and `..R` (reject bare `..`) unlock prefix
-StarMinMax constraints such as `m:(BoundNum |> (number & $n..))` after publish.
-Avoid capture names `min`/`max`/`name` in authored `.uff` — they fail to parse.
-
-Hard leaves: `pattern/literals` CharacterClass/Natives, or
-`pattern/resolve`+`structure` (B9). Phase 5: `tokenizer/mod`; B6/B7 still block
-`source` / `tokenizer.lang`.
+Hard leaf: `pattern/literals` (CharacterClass/Natives). Phase 5:
+`tokenizer/mod`; B6/B7 still block `source` / `tokenizer.lang`.
 
 Optional `recursive rule` sugar remains deferred
 ([#98](https://github.com/justinmchase/uffda/issues/98)).
