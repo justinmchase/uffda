@@ -66,6 +66,22 @@ Deno.test({
     );
 
     await t.step(
+      "quantifier accepts $name bounds",
+      moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "PatternLang",
+        input: Input.Scalar("any*$min..$max"),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Quantifier,
+          pattern: { kind: PatternKind.Any },
+          min: { kind: ValueSourceKind.Variable, name: "min" },
+          max: { kind: ValueSourceKind.Variable, name: "max" },
+        },
+      }),
+    );
+
+    await t.step(
       "bare identifier remains resolve, not a value source",
       moduleDeclarationTest({
         moduleUrl,

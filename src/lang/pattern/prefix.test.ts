@@ -78,5 +78,37 @@ Deno.test({
         },
       }),
     });
+
+    await t.step({
+      name: "PREFIX_04_star_min_variable",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "Prefix",
+        input: Input.Iterable(["any", "*", "$", "n"]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Quantifier,
+          pattern: { kind: PatternKind.Any },
+          min: { kind: ValueSourceKind.Variable, name: "n" },
+          max: undefined,
+        },
+      }),
+    });
+
+    await t.step({
+      name: "PREFIX_05_star_minmax_variables",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "Prefix",
+        input: Input.Iterable(["any", "*", "$", "min", ".", ".", "$", "max"]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Quantifier,
+          pattern: { kind: PatternKind.Any },
+          min: { kind: ValueSourceKind.Variable, name: "min" },
+          max: { kind: ValueSourceKind.Variable, name: "max" },
+        },
+      }),
+    });
   },
 });

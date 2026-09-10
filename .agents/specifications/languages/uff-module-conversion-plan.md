@@ -129,7 +129,7 @@ file:
 | B14 | Left-fold over lists without domain helpers                  | expression/member (done), similar AST folds                              | DLR + nested [Projection](../../patterns/runtime/projection.spec.md); closed for Member (not std `reduce`+lambda; sugar later [#98](https://github.com/justinmchase/uffda/issues/98)) |
 | B15 | `"\\"` in multi-rule `.uff` modules                          | expression/string (done)                                                 | Rule-body quote scanner treats `\\` as escapable; shipped in 0.1.15                                                                                                                   |
 | B16 | `.uff` load → runtime compiler                               | `uffda/runtime.compiler`                                                 | Closed: compile emits ModuleDeclarations to `./bin`; Resolver.import loads JSON only; host uses Resolver.import on `.uff`.                                                            |
-| B17 | Contextual `$name` ValueSource                               | literals equal/between/includes; prefix `P*$n`; relational object checks | Runtime + `literals.ts` first; `$` in `prefix.uff` after publish; Infinity follow-up                                                                                                  |
+| B17 | Contextual `$name` ValueSource                               | literals equal/between/includes; prefix `P*$n`; relational object checks | Closed for syntax + runtime; optional ExpressionLang `Infinity` follow-up                                                                                                             |
 
 ## Phase order (dependency leaves first)
 
@@ -233,14 +233,13 @@ permanent TypeScript language modules once builtins exist.
 
 ## First candidate (next session)
 
-**B17 status:** emitter + runtime shipped in 0.1.19. After install of 0.1.19,
-`compile:lang` regenerates tagged `./bin`. Legacy primitive operand bridge
-removed.
+**B17 status:** closed — tagged ValueSource runtime, PatternLang emit, and `$`
+quantifier bounds in `prefix.uff` (0.1.20+ compile baseline).
 
 Hard leaves: `pattern/literals` CharacterClass/Natives, or
 `pattern/resolve`+`structure` (B9). Phase 5: `tokenizer/mod`; B6/B7 still block
 `source` / `tokenizer.lang`. Optional: ExpressionLang `Infinity` for
-`$min..Infinity` between forms; `$` quantifier bounds in `prefix.uff`.
+`$min..Infinity` / open between forms.
 
 Optional `recursive rule` sugar remains deferred
 ([#98](https://github.com/justinmchase/uffda/issues/98)).

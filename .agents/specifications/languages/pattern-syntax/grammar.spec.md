@@ -82,9 +82,10 @@ The grammar MUST be able to express the following pattern families:
   - `P?` maps to the scalar `maybe` pattern and MUST remain distinct from
     `P*..1`, whose result is an array.
 - Bounds numerals MUST be non-negative integers (authored via digit
-  `BoundNumber` forms).
-- Value operands on equal, between, includes, and (after publish) quantifier
-  bounds MAY be contextual `$name` references. See Value sources.
+  `BoundLiteral` forms) or contextual `$name` (`BoundVariable`). See Value
+  sources.
+- Value operands on equal, between, includes, and quantifier bounds MAY be
+  contextual `$name` references. See Value sources.
 - An open range with neither bound (`P*..`) MUST be rejected at parse time.
 - A maximum less than its minimum MAY parse to a Quantifier AST; the
   [quantifier](../../patterns/runtime/quantifier.spec.md) runtime MUST reject
@@ -108,8 +109,8 @@ The grammar MUST be able to express the following pattern families:
   - bare equal
   - `between` left and right bounds (`L..R`)
   - `includes` membership elements (`in[...]`)
-  - quantifier `min` / `max` bounds (surface `$` forms in `prefix.uff` after a
-    published CLI that parses them)
+  - quantifier `min` / `max` bounds (`P*$n`, `P*$min..$max`, mixed literal /
+    `$name` forms in `prefix.uff`)
 - `$name` always denotes a value binding. Bare `$name` as a primary MUST
   normalize to `equal` with a `value.variable` operand (match input against the
   bound value), not to `resolve`.
