@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { buildLineStarts, normalizeSource } from "./mod.ts";
+import { normalizeSource } from "./mod.ts";
 
 Deno.test("lang.source - normalizes CRLF and CR into LF", async () => {
   const normalized = await normalizeSource("a\r\nb\rc\n");
@@ -31,6 +31,7 @@ Deno.test("lang.source - computes deterministic source document", async () => {
   assertEquals(newline.originalOffsetStart, 2);
 });
 
-Deno.test("lang.source - line starts include trailing empty line", () => {
-  assertEquals(buildLineStarts("a\n"), [0, 2]);
+Deno.test("lang.source - line starts include trailing empty line", async () => {
+  const normalized = await normalizeSource("a\n");
+  assertEquals(normalized.lineStarts, [0, 2]);
 });
