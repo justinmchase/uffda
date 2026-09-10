@@ -3,7 +3,7 @@ import { match } from "../match.ts";
 import type { Match } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import type { QuantifierPattern } from "./pattern.ts";
-import { resolveValueOperand } from "./value_source.ts";
+import { resolvePatternValueOperand } from "./value_source.ts";
 
 function resolveBound(
   bound: unknown,
@@ -13,7 +13,7 @@ function resolveBound(
   if (bound == null) {
     return { kind: "ok", value: undefined };
   }
-  const resolved = resolveValueOperand(bound, scope, pattern);
+  const resolved = resolvePatternValueOperand(bound, scope, pattern);
   if (resolved.kind === "error") {
     return resolved;
   }

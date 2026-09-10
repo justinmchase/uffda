@@ -5,10 +5,10 @@ import { Scope } from "../scope.ts";
 import type { EqualPattern } from "./pattern.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import {
-  coerceValueOperand,
   isValueSource,
+  legacyPrimitiveOperand,
   lit,
-  resolveValueOperand,
+  resolvePatternValueOperand,
   resolveValueSource,
   ValueSourceKind,
 } from "./value_source.ts";
@@ -38,17 +38,10 @@ Deno.test("runtime.patterns.value_source", async (t) => {
     );
   });
 
-  await t.step("coerceValueOperand wraps legacy primitives only", () => {
-    assertEquals(coerceValueOperand("*"), lit("*"));
-    assertEquals(coerceValueOperand(3), lit(3));
-    assertEquals(coerceValueOperand(true), lit(true));
-    assertEquals(coerceValueOperand(null), lit(null));
-    assertEquals(coerceValueOperand(undefined), undefined);
-    assertEquals(coerceValueOperand({ kind: "equal", value: "x" }), undefined);
-    assertEquals(
-      coerceValueOperand({ kind: ValueSourceKind.Variable, name: "n" }),
-      { kind: ValueSourceKind.Variable, name: "n" },
-    );
+  await t.step("legacyPrimitiveOperand wraps primitives only", () => {
+    assertEquals(legacyPrimitiveOperand("*"), lit("*"));
+    assertEquals(legacyPrimitiveOperand(3), lit(3));
+    assertEquals(legacyPrimitiveOperand({ foo: 1 }), undefined);
   });
 
   await t.step("resolveValueSource returns literal sources", () => {
@@ -61,15 +54,15 @@ Deno.test("runtime.patterns.value_source", async (t) => {
     assertEquals(resolved, { kind: "ok", value: 7 });
   });
 
-  await t.step("resolveValueOperand accepts legacy bare strings", () => {
+  await t.step("resolvePatternValueOperand accepts legacy bare strings", () => {
     const scope = Scope.From(Input.Default());
-    const resolved = resolveValueOperand("*", scope, pattern);
+    const resolved = resolvePatternValueOperand("*", scope, pattern);
     assertEquals(resolved, { kind: "ok", value: "*" });
   });
 
-  await t.step("resolveValueOperand rejects untagged objects", () => {
+  await t.step("resolvePatternValueOperand rejects untagged objects", () => {
     const scope = Scope.From(Input.Default());
-    const resolved = resolveValueOperand({ foo: 1 }, scope, pattern);
+    const resolved = resolvePatternValueOperand({ foo: 1 }, scope, pattern);
     assertEquals(resolved.kind, "error");
     if (resolved.kind !== "error") return;
     assertEquals(resolved.match.kind, MatchKind.Error);
