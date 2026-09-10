@@ -9,7 +9,7 @@ import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { ModuleImportResultKind } from "../../runtime/resolvers/resolver.ts";
 
 Deno.test("req:language-modules-negative-002 - Tokenizer module rejects non-tokenizable input items", async () => {
-  const moduleUrl = new URL("../../lang/tokenizer/mod.ts", import.meta.url);
+  const moduleUrl = new URL("../../lang/tokenizer/mod.uff", import.meta.url);
   const resolver = new Resolver();
   const input = Input.Iterable([1]);
 
@@ -29,6 +29,7 @@ Deno.test("req:language-modules-negative-002 - Tokenizer module rejects non-toke
     pattern: {
       kind: PatternKind.Resolve,
       targetKind: ResolveTargetKind.Run,
+      name: "Tokenizer",
     },
   });
 
@@ -50,6 +51,7 @@ Deno.test("req:language-modules-negative-002 - Tokenizer module rejects non-toke
     {
       kind: PatternKind.Resolve,
       targetKind: ResolveTargetKind.Run,
+      name: "Tokenizer",
     },
     scope,
   );

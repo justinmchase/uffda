@@ -232,12 +232,12 @@ Convert in this order. **Stop before each module** for human review of G1–G3.
 These are still in-scope for full `.uff` conversion. Do not leave them as
 permanent TypeScript language modules once builtins exist.
 
-| #  | Module                     | Ready?                                          |
-| -- | -------------------------- | ----------------------------------------------- |
-| 45 | `tokenizer/mod`            | hard; joins + token-kind objects (B2)           |
-| 46 | `tokenizer/structured`     | after token/mod projections                     |
-| 47 | `source/mod`               | precursors shipped (B6) — convert after publish |
-| 48 | `tokenizer/tokenizer.lang` | precursors shipped (B7) — convert after publish |
+| #  | Module                     | Ready?                                              |
+| -- | -------------------------- | --------------------------------------------------- |
+| 45 | `tokenizer/mod`            | done (0.1.24 G0; structured.ts host helpers remain) |
+| 46 | `tokenizer/structured`     | host TS helpers only (not a ModuleDeclaration)      |
+| 47 | `source/mod`               | precursors shipped (B6) — convert next              |
+| 48 | `tokenizer/tokenizer.lang` | precursors shipped (B7) — convert after source      |
 
 ## Per-conversion checklist (use every time)
 
@@ -254,9 +254,8 @@ permanent TypeScript language modules once builtins exist.
 
 ## First candidate (next session)
 
-Phase 5: `tokenizer/mod` next; then convert `source/mod` +
-`tokenizer/tokenizer.lang` with published B6/B7 stds (0.1.23+). Pattern stack
-leaves are converted.
+Phase 5: convert `source/mod` next (B6 std), then `tokenizer/tokenizer.lang`
+(B7). `tokenizer/mod` is done; `structured.ts` stays as host type/span helpers.
 
 Optional `recursive rule` sugar remains deferred
 ([#98](https://github.com/justinmchase/uffda/issues/98)). Author-defined `func`

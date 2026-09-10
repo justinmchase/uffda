@@ -9,7 +9,7 @@ import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { ModuleImportResultKind } from "../../runtime/resolvers/resolver.ts";
 
 Deno.test("req:tokenizer-runtime-003 - Tokenizer fails non-tokenizable input without implicit coercion", async () => {
-  const moduleUrl = new URL("../../lang/tokenizer/mod.ts", import.meta.url);
+  const moduleUrl = new URL("../../lang/tokenizer/mod.uff", import.meta.url);
   const resolver = new Resolver();
   const input = Input.Iterable([1]);
 
@@ -29,6 +29,7 @@ Deno.test("req:tokenizer-runtime-003 - Tokenizer fails non-tokenizable input wit
     pattern: {
       kind: PatternKind.Resolve,
       targetKind: ResolveTargetKind.Run,
+      name: "Tokenizer",
     },
   });
 
@@ -50,6 +51,7 @@ Deno.test("req:tokenizer-runtime-003 - Tokenizer fails non-tokenizable input wit
     {
       kind: PatternKind.Resolve,
       targetKind: ResolveTargetKind.Run,
+      name: "Tokenizer",
     },
     scope,
   );
