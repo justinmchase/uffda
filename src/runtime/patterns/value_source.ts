@@ -21,7 +21,7 @@ export type VariableValueSource = {
 
 /**
  * Deterministic value operand for equal / between / includes / quantifier bounds.
- * Authored AST always carries an explicit `kind`; never a bare serializable.
+ * Always carries an explicit `kind`; never a bare serializable.
  */
 export type ValueSource = LiteralValueSource | VariableValueSource;
 
@@ -31,42 +31,6 @@ export function lit(value: Serializable): LiteralValueSource {
 
 export function varRef(name: string): VariableValueSource {
   return { kind: ValueSourceKind.Variable, name };
-}
-
-export function isValueSource(value: unknown): value is ValueSource {
-  if (value == null || typeof value !== "object") return false;
-  const source = value as { kind?: unknown; value?: unknown; name?: unknown };
-  if (source.kind === ValueSourceKind.Literal) {
-    return "value" in source;
-  }
-  if (source.kind === ValueSourceKind.Variable) {
-    return typeof source.name === "string";
-  }
-  return false;
-}
-
-/**
- * Compatibility for ModuleDeclarations still emitted by an older published CLI
- * (bare string/number/boolean/null operands). Objects are never inferred.
- *
- * This is not a bin rewrite: `compile:lang` stays a single `uffda compile`.
- * After publishing this emitter, install that CLI, re-run `compile:lang`, then
- * delete this helper in a follow-up.
- */
-export function legacyPrimitiveOperand(
-  value: unknown,
-): LiteralValueSource | undefined {
-  switch (typeof value) {
-    case "string":
-    case "number":
-    case "boolean":
-      return lit(value);
-    case "object":
-      if (value === null) return lit(null);
-      return undefined;
-    default:
-      return undefined;
-  }
 }
 
 export type ResolvedValueSource =
@@ -104,28 +68,4 @@ export function resolveValueSource(
       return _exhaustive;
     }
   }
-}
-
-/** Resolve a tagged ValueSource, or a legacy bare primitive from older CLI bin. */
-export function resolvePatternValueOperand(
-  operand: unknown,
-  scope: Scope,
-  pattern: Pattern,
-): ResolvedValueSource {
-  if (isValueSource(operand)) {
-    return resolveValueSource(operand, scope, pattern);
-  }
-  const legacy = legacyPrimitiveOperand(operand);
-  if (legacy) {
-    return resolveValueSource(legacy, scope, pattern);
-  }
-  return {
-    kind: "error",
-    match: error(
-      scope,
-      pattern,
-      MatchErrorCode.InvalidArgument,
-      "value operand must be a tagged ValueSource (value.literal | value.variable)",
-    ),
-  };
 }
