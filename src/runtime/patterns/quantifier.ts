@@ -3,17 +3,17 @@ import { match } from "../match.ts";
 import type { Match } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import type { QuantifierPattern } from "./pattern.ts";
-import { resolvePatternValueOperand } from "./value_source.ts";
+import { resolveValueSource, type ValueSource } from "./value_source.ts";
 
 function resolveBound(
-  bound: unknown,
+  bound: ValueSource | undefined,
   scope: Scope,
   pattern: QuantifierPattern,
 ): { kind: "ok"; value: number | undefined } | { kind: "error"; match: Match } {
   if (bound == null) {
     return { kind: "ok", value: undefined };
   }
-  const resolved = resolvePatternValueOperand(bound, scope, pattern);
+  const resolved = resolveValueSource(bound, scope, pattern);
   if (resolved.kind === "error") {
     return resolved;
   }

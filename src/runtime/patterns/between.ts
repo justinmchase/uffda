@@ -3,22 +3,14 @@ import type { Match } from "../../match.ts";
 import type { Comparable } from "../../comparable.ts";
 import type { Scope } from "../scope.ts";
 import type { BetweenPattern } from "./pattern.ts";
-import { resolvePatternValueOperand } from "./value_source.ts";
+import { resolveValueSource } from "./value_source.ts";
 
 export function between(pattern: BetweenPattern, scope: Scope): Match {
-  const leftResolved = resolvePatternValueOperand(
-    pattern.left,
-    scope,
-    pattern,
-  );
+  const leftResolved = resolveValueSource(pattern.left, scope, pattern);
   if (leftResolved.kind === "error") {
     return leftResolved.match;
   }
-  const rightResolved = resolvePatternValueOperand(
-    pattern.right,
-    scope,
-    pattern,
-  );
+  const rightResolved = resolveValueSource(pattern.right, scope, pattern);
   if (rightResolved.kind === "error") {
     return rightResolved.match;
   }

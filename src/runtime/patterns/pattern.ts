@@ -6,10 +6,7 @@ import type { ValueSource } from "./value_source.ts";
 
 export type { ValueSource } from "./value_source.ts";
 export {
-  isValueSource,
-  legacyPrimitiveOperand,
   lit,
-  resolvePatternValueOperand,
   resolveValueSource,
   ValueSourceKind,
   varRef,
