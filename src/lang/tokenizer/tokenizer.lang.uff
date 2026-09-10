@@ -12,10 +12,10 @@ export rule TokenizerLang =
 
 # `semantic_texts` is module-local: it is only needed here to project tokens
 # down to their text, omitting comments (#124).
-func IsNotComment<t:{kind:string}> =
-  (not (eq t.kind "comment"));
+func IsNotComment<{kind: k:string}> =
+  (not (eq k "comment"));
 
-func TokenText<t:{text:string}> = t.text;
+func TokenText<{text: t:string}> = t;
 
 func semantic_texts<tokens:array> =
   (map (filter tokens IsNotComment) TokenText);
