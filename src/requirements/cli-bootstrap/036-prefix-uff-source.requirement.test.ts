@@ -14,6 +14,8 @@ Deno.test(
     assertEquals(prefixSrc.includes("rule StarMaxOnly"), true);
     assertEquals(prefixSrc.includes("rule StarMinOnly"), true);
     assertEquals(prefixSrc.includes("rule StarBare"), true);
+    assertEquals(prefixSrc.includes("rule BoundVariable"), true);
+    assertEquals(prefixSrc.includes("rule BoundLiteral"), true);
     assertEquals(prefixSrc.includes("ExpressionKind.Native"), false);
     assertEquals(prefixSrc.includes("RangeError"), false);
     assertEquals(prefixSrc.includes("throw"), false);

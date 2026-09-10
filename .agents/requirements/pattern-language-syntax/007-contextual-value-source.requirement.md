@@ -21,7 +21,8 @@ Expected behavior:
   `{ kind: "value.literal", value }` (never a bare serializable operand).
 - Bare `$name` MUST normalize to an `equal` pattern whose value operand is that
   `value.variable` source (match input equal to the bound value).
-- `$name` MUST be accepted as between bounds and includes list elements.
+- `$name` MUST be accepted as between bounds, includes list elements, and
+  quantifier `min` / `max` bounds (`P*$n`, `P*$min..$max`, and mixed forms).
 - `$name` MUST NOT mean pattern resolve / “run the value as a pattern.” Bare
   identifiers in pattern position remain resolve; `$` marks value binding.
 - Capture of an equal-to-variable form (`x:$w`) MAY parse as capture of an equal

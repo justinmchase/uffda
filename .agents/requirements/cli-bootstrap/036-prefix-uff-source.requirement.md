@@ -20,8 +20,9 @@ Expected behavior:
 - Postfix `*` forms MUST be distinct arms (`StarMinMax`, `StarMinOpen`,
   `StarMaxOnly`, `StarMinOnly`, `StarBare`) rather than optional-bounds unwrap
   plus Native `throw`.
-- Bound numerals MUST come from `Number` digit strings projected to numeric
-  values (`BoundNumber`).
+- Bound numerals MUST come from `Number` digit strings projected as
+  `value.literal` (`BoundLiteral`). Contextual `$name` bounds MUST project
+  `value.variable` (`BoundVariable`). Star arms MUST accept either via `Bound`.
 - Compiling that file with the bootstrap compile path MUST succeed and emit AST
   JSON under `./bin/`.
 

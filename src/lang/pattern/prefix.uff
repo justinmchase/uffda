@@ -1,7 +1,7 @@
 # Prefix operators, capture, and postfix repetition (* / + / ?).
 # Star bounds are separate arms (not optional unwrap + Native validation):
-# digit BoundNumber is already non-negative; max < min is left to Quantifier
-# runtime (B8). Quantifier min/max are ValueSource literals (B17).
+# digit BoundLiteral is already non-negative; max < min is left to Quantifier
+# runtime (B8). Bounds are ValueSource literals or contextual $name (B17).
 import "./atomic.uff" Atomic;
 import "./pattern.uff" Pattern;
 import "../common/identifier.uff" Identifier;
@@ -9,33 +9,40 @@ import "../expression/number.uff" Number;
 
 export Prefix;
 
-rule BoundNumber =
-  n:Number -> n.value;
+rule IdToken = string & [Identifier];
+
+rule BoundLiteral =
+  n:Number -> { kind: "value.literal", value: n.value };
+
+rule BoundVariable =
+  "$"
+  n:IdToken
+  -> { kind: "value.variable", name: n };
+
+rule Bound =
+  | BoundVariable
+  | BoundLiteral
+  ;
 
 rule StarMinMax =
   p:Atomic
   "*"
-  n:BoundNumber
+  n:Bound
   "."
   "."
-  m:BoundNumber
-  -> {
-    kind: "quantifier",
-    pattern: p,
-    min: { kind: "value.literal", value: n },
-    max: { kind: "value.literal", value: m }
-  };
+  m:Bound
+  -> { kind: "quantifier", pattern: p, min: n, max: m };
 
 rule StarMinOpen =
   p:Atomic
   "*"
-  n:BoundNumber
+  n:Bound
   "."
   "."
   -> {
     kind: "quantifier",
     pattern: p,
-    min: { kind: "value.literal", value: n },
+    min: n,
     max: undefined
   };
 
@@ -44,22 +51,22 @@ rule StarMaxOnly =
   "*"
   "."
   "."
-  m:BoundNumber
+  m:Bound
   -> {
     kind: "quantifier",
     pattern: p,
     min: { kind: "value.literal", value: 0 },
-    max: { kind: "value.literal", value: m }
+    max: m
   };
 
 rule StarMinOnly =
   p:Atomic
   "*"
-  n:BoundNumber
+  n:Bound
   -> {
     kind: "quantifier",
     pattern: p,
-    min: { kind: "value.literal", value: n },
+    min: n,
     max: undefined
   };
 
