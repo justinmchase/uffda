@@ -8,7 +8,6 @@ import {
   toStableSourcePath,
 } from "../runtime/resolvers/artifact_path.ts";
 import { compileUffdaSource } from "../lang/uffda/execute.ts";
-import { migrateModuleValueSources } from "../runtime/patterns/migrate_value_sources.ts";
 
 export enum CliCompileFailureCode {
   InvalidContext = "CLI_COMPILE_INVALID_CONTEXT",
@@ -323,7 +322,7 @@ export async function compileSourcesToAstArtifacts(
       });
       continue;
     }
-    const module = migrateModuleValueSources(compiled.value);
+    const module = compiled.value;
 
     try {
       await Deno.writeTextFile(

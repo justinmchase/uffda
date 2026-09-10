@@ -21,7 +21,7 @@ export type VariableValueSource = {
 
 /**
  * Deterministic value operand for equal / between / includes / quantifier bounds.
- * Always carries an explicit `kind`; never a bare serializable.
+ * Always carries an explicit `kind`; never a bare serializable in new AST.
  */
 export type ValueSource = LiteralValueSource | VariableValueSource;
 
@@ -43,6 +43,31 @@ export function isValueSource(value: unknown): value is ValueSource {
     return typeof source.name === "string";
   }
   return false;
+}
+
+/**
+ * Temporary bridge for ModuleDeclarations emitted by published CLIs that still
+ * bake bare string/number/boolean/null operands. Objects are never inferred —
+ * they must already be tagged ValueSource nodes.
+ *
+ * Remove after a published CLI emits tagged operands and language `.uff` are
+ * recompiled with it (`compile:lang` = single `uffda compile` only).
+ */
+export function coerceValueOperand(value: unknown): ValueSource | undefined {
+  if (isValueSource(value)) return value;
+  switch (typeof value) {
+    case "string":
+    case "number":
+    case "boolean":
+      return lit(value);
+    case "undefined":
+      return undefined;
+    case "object":
+      if (value === null) return lit(null);
+      return undefined;
+    default:
+      return undefined;
+  }
 }
 
 export type ResolvedValueSource =
@@ -80,4 +105,24 @@ export function resolveValueSource(
       return _exhaustive;
     }
   }
+}
+
+export function resolveValueOperand(
+  operand: unknown,
+  scope: Scope,
+  pattern: Pattern,
+): ResolvedValueSource {
+  const source = coerceValueOperand(operand);
+  if (source == null) {
+    return {
+      kind: "error",
+      match: error(
+        scope,
+        pattern,
+        MatchErrorCode.InvalidArgument,
+        "value operand must be a tagged ValueSource (value.literal | value.variable)",
+      ),
+    };
+  }
+  return resolveValueSource(source, scope, pattern);
 }

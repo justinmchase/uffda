@@ -276,12 +276,14 @@ Agreed design:
    identifier string as `value.literal`.
 
 **Ship order:** in-tree runtime + `literals.ts` (this work) → publish → then `$`
-bounds in `prefix.uff` via `compile:lang`. Until the published CLI emits tagged
-operands, `compile:lang` / `uffda compile` MAY run a one-way ModuleDeclaration
-migration that wraps legacy bare equal/between/includes/quantifier operands as
-`value.literal` (old format had no `$name`). That migration is not runtime
-inference. Quantifier numeral `max < min` remains runtime-authoritative (B8).
-Infinity deferred.
+bounds in `prefix.uff` via `compile:lang`. Quantifier numeral `max < min`
+remains runtime-authoritative (B8). Infinity deferred.
+
+`compile:lang` remains a single previous published `uffda compile` (no host
+post-steps). Until that published CLI emits tagged operands, matchers MAY coerce
+legacy **primitive** bare operands (string/number/boolean/null) to
+`value.literal` only — never objects (no shape inference). Remove that coerce
+after publish + recompile.
 
 ## References
 

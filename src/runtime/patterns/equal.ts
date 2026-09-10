@@ -1,10 +1,10 @@
 import { fail, type Match, ok } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import type { EqualPattern } from "./pattern.ts";
-import { resolveValueSource } from "./value_source.ts";
+import { resolveValueOperand } from "./value_source.ts";
 
 export function equal(pattern: EqualPattern, scope: Scope): Match {
-  const resolved = resolveValueSource(pattern.value, scope, pattern);
+  const resolved = resolveValueOperand(pattern.value, scope, pattern);
   if (resolved.kind === "error") {
     return resolved.match;
   }
