@@ -12,6 +12,15 @@ matched before the body runs. See
 consumption of funcs is deferred to
 [#129](https://github.com/justinmchase/uffda/issues/129).
 
+Rules and funcs share a Pattern → Expression idea but differ in required slots
+and invocation site. See [rules and funcs](./rules-and-funcs.spec.md).
+
+## Rough grammar
+
+```text
+"func" Identifier ( "<" Pattern ">" )? "=" Expression ";"
+```
+
 ## Core func contracts
 
 - Func declarations MUST include a stable identity (name).
