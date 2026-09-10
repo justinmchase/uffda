@@ -54,7 +54,7 @@ visible symbols for Uffda modules.
 - `export rule A = P;` MUST normalize identically to `export A; rule A = P;`.
 - Exported func declarations MUST accept canonical starter forms:
   - `export func F = 1;`
-  - `export func F<a> = a;`
+  - `export func F<a:number> = a;`
 - `export func F = E;` MUST normalize identically to `export F; func F = E;`.
 
 ## Subtopics

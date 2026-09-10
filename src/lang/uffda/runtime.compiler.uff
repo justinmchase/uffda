@@ -63,7 +63,7 @@ rule CompileFuncDeclaration =
   {
     kind: "func",
     name: n:string,
-    parameters: p:any,
+    pattern: t:object,
     expression: x:object
   }
   -> {
@@ -72,7 +72,7 @@ rule CompileFuncDeclaration =
     rules: [],
     funcs: [{
       name: n,
-      parameters: (flat (coalesce p [])),
+      pattern: t,
       expression: x
     }]
   };

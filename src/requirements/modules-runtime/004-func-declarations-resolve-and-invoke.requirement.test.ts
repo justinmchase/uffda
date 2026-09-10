@@ -1,4 +1,5 @@
 import { assertEquals } from "@std/assert";
+import { Type } from "@justinmchase/type";
 import { MatchKind } from "../../match.ts";
 import {
   ExportDeclarationKind,
@@ -6,6 +7,7 @@ import {
 } from "../../runtime/declarations/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { executeModuleDeclaration } from "../../runtime/module.execute.ts";
+import type { Pattern } from "../../runtime/patterns/pattern.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { ModuleImportResultKind } from "../../runtime/resolvers/resolver.ts";
@@ -20,6 +22,12 @@ const resolveContext = {
     targetKind: ResolveTargetKind.Run,
   },
 } as ModuleResolutionContext;
+
+const numberVar: Pattern = {
+  kind: PatternKind.Variable,
+  name: "a",
+  pattern: { kind: PatternKind.Type, type: Type.Number },
+};
 
 Deno.test("req:modules-runtime-004 - local exported func invokes from projection", async () => {
   const m = await executeModuleDeclaration(
@@ -38,7 +46,7 @@ Deno.test("req:modules-runtime-004 - local exported func invokes from projection
       }],
       funcs: [{
         name: "Double",
-        parameters: [{ name: "a" }],
+        pattern: numberVar,
         expression: {
           kind: ExpressionKind.Invocation,
           expression: { kind: ExpressionKind.Reference, name: "add" },
@@ -96,7 +104,21 @@ Deno.test("req:modules-runtime-004 - imported func shadows std global", async ()
           rules: [],
           funcs: [{
             name: "add",
-            parameters: [{ name: "a" }, { name: "b" }],
+            pattern: {
+              kind: PatternKind.Then,
+              patterns: [
+                {
+                  kind: PatternKind.Variable,
+                  name: "a",
+                  pattern: { kind: PatternKind.Type, type: Type.Number },
+                },
+                {
+                  kind: PatternKind.Variable,
+                  name: "b",
+                  pattern: { kind: PatternKind.Type, type: Type.Number },
+                },
+              ],
+            },
             expression: {
               kind: ExpressionKind.Number,
               value: 99,
@@ -125,7 +147,7 @@ Deno.test("req:modules-runtime-004 - import colliding with local func fails", as
         rules: [],
         funcs: [{
           name: "Helper",
-          parameters: [],
+          pattern: { kind: PatternKind.End },
           expression: { kind: ExpressionKind.Number, value: 1 },
         }],
       },
@@ -139,7 +161,7 @@ Deno.test("req:modules-runtime-004 - import colliding with local func fails", as
         rules: [],
         funcs: [{
           name: "Helper",
-          parameters: [],
+          pattern: { kind: PatternKind.End },
           expression: { kind: ExpressionKind.Number, value: 2 },
         }],
       },
@@ -167,4 +189,31 @@ Deno.test("req:modules-runtime-004 - unknown func export fails", async () => {
   const result = await resolver.import(moduleUrl, resolveContext);
 
   assertEquals(result.kind, ModuleImportResultKind.Error);
+});
+
+Deno.test("req:modules-runtime-004 - arg pattern mismatch fails invocation", async () => {
+  const m = await executeModuleDeclaration(
+    {
+      imports: [],
+      exports: [{ kind: ExportDeclarationKind.Rule, name: "Main" }],
+      rules: [{
+        name: "Main",
+        parameters: [],
+        pattern: { kind: PatternKind.Any },
+        expression: {
+          kind: ExpressionKind.Invocation,
+          expression: { kind: ExpressionKind.Reference, name: "OnlyNumber" },
+          args: [{ kind: ExpressionKind.String, values: ["nope"] }],
+        },
+      }],
+      funcs: [{
+        name: "OnlyNumber",
+        pattern: numberVar,
+        expression: { kind: ExpressionKind.Reference, name: "a" },
+      }],
+    },
+    { input: null, entryRuleName: "Main" },
+  );
+
+  assertEquals(m.kind === MatchKind.Ok, false);
 });

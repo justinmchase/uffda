@@ -1,6 +1,9 @@
-# Func declaration syntax: expression body only (no pattern / ->).
-# Parameter lists reuse the same angle-bracket, comma-separated form as rules.
-# Variable bindings are single-letter (B12).
+# Func declaration syntax: expression body only (no rule-style ->).
+# Parameter lists are PatternLang patterns in angle brackets, e.g.
+# `<a:number b:string>` or `<a:any*>`. The list is one pattern (typically Then).
+# Omitted or empty `<>` means End (no arguments). Variable bindings are
+# single-letter (B12).
+import "../pattern/pattern.lang.uff" PatternTokens;
 import "../expression/expression.lang.uff" ExpressionTokens;
 import "./shared.rules.uff" IdentifierToken;
 
@@ -35,26 +38,52 @@ rule FuncExpressionToken =
   )+
   -> (flat _);
 
-rule FuncParameterName =
-  n:IdentifierToken
-  -> { name: n };
+rule FuncParameterChunkNestedAngle =
+  "<"
+  c:FuncParameterChunk*
+  ">"
+  -> (flat (pack "<" (flat c) ">"));
 
-rule FuncParameterNameTail =
-  ","
-  v:FuncParameterName
-  -> v;
+rule FuncParameterChunkNestedParen =
+  "("
+  c:FuncParameterChunk*
+  ")"
+  -> (flat (pack "(" (flat c) ")"));
 
-rule FuncParameterNameList =
-  f:FuncParameterName
-  r:FuncParameterNameTail*
-  ","?
-  -> (flat (pack f r));
+rule FuncParameterChunkNestedBracket =
+  "["
+  c:FuncParameterChunk*
+  "]"
+  -> (flat (pack "[" (flat c) "]"));
+
+rule FuncParameterChunkNestedBrace =
+  o:"{"
+  c:FuncParameterChunk*
+  e:"}"
+  -> (flat (pack o (flat c) e));
+
+rule FuncParameterChunk =
+  | FuncQuotedTokenSequence
+  | FuncParameterChunkNestedAngle
+  | FuncParameterChunkNestedParen
+  | FuncParameterChunkNestedBracket
+  | FuncParameterChunkNestedBrace
+  | ((not ">") & string)
+  ;
+
+rule FuncParameterToken =
+  FuncParameterChunk+
+  -> (flat _);
+
+rule FuncParameterPatterns =
+  FuncParameterToken
+  |> PatternTokens;
 
 rule FuncParameterList =
   "<"
-  p:FuncParameterNameList?
+  p:FuncParameterPatterns?
   ">"
-  -> (flat (coalesce p []));
+  -> (coalesce p { kind: "end" });
 
 rule FuncDeclarationSyntax =
   "func"
@@ -66,6 +95,6 @@ rule FuncDeclarationSyntax =
   -> {
     kind: "func",
     name: n,
-    parameters: (flat (coalesce p [])),
+    pattern: (coalesce p { kind: "end" }),
     expression: e
   };

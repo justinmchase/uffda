@@ -28,7 +28,8 @@ export type UffdaRuleSyntaxDeclaration = {
 export type UffdaFuncSyntaxDeclaration = {
   kind: "func";
   name: string;
-  parameters: UffdaRuleParameterSyntax[];
+  /** Args pattern (End when no parameter list); typically Then of captures. */
+  pattern: Pattern;
   expression: Expression;
 };
 

@@ -12,17 +12,19 @@ Preconditions:
 
 - In-tree UffdaLang and runtime.compiler include `func` / `export func` after
   `compile:lang` (workspace `./bin`).
-- ExpressionLang can parse expression bodies used in func declarations.
+- PatternLang and ExpressionLang can parse parameter and body slots.
 
 Expected behavior:
 
-- Source `func Double<a> = (add a a);` MUST parse and lower to a
+- Source `func Double<a:number> = (add a a);` MUST parse and lower to a
   `ModuleDeclaration` whose `funcs` list contains one entry named `Double` with
-  one parameter `a` and an invocation expression body.
-- Source `export func Id<a> = a;` MUST lower with both an export of `Id` (func
-  kind after finalize) and a matching `funcs` entry.
-- `export Id; func Id<a> = a;` MUST lower equivalently to
-  `export func Id<a> = a;`.
+  a variable capture pattern for `a:number` and an invocation expression body.
+- Source `func Pair<a:number b:string> = a;` MUST lower a Then (or equivalent)
+  parameter pattern over `a:number` then `b:string`.
+- Source `export func Id<a:any> = a;` MUST lower with both an export of `Id`
+  (func kind after finalize) and a matching `funcs` entry.
+- `export Id; func Id<a:any> = a;` MUST lower equivalently to
+  `export func Id<a:any> = a;`.
 
 Postconditions:
 

@@ -96,11 +96,11 @@ export class Resolver {
         });
       }
 
-      for (const { name, parameters, expression } of funcsOf(declaration)) {
+      for (const { name, pattern, expression } of funcsOf(declaration)) {
         module.funcs.set(name, {
           module,
           name,
-          parameters,
+          pattern,
           expression,
         });
       }

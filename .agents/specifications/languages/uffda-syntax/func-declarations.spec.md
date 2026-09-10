@@ -4,9 +4,10 @@ This chapter defines Uffda `func` declaration forms for module-local callables.
 
 ## Logical purpose
 
-Func declarations bind a name and ordered parameters to an expression body so
-modules can export and import callables without host `Native` or permanent
-global std entries. See
+Func declarations bind a name and a **parameter pattern** to an expression body
+so modules can export and import callables without host `Native` or permanent
+global std entries. Parameter patterns are Patterns-as-types: arguments are
+matched before the body runs. See
 [#124](https://github.com/justinmchase/uffda/issues/124). Remote package
 consumption of funcs is deferred to
 [#129](https://github.com/justinmchase/uffda/issues/129).
@@ -19,26 +20,35 @@ consumption of funcs is deferred to
   - `export func`
 - Func declarations MUST place `=` between the identity (and any parameter list)
   and the expression body.
-- Func declarations MAY include ordered parameter lists.
-- When a parameter list is present, it MUST use the same angle-bracket form as
-  rules (`Name<P1, P2, …>`), with comma-separated parameter identifiers
-  (trailing commas MAY be accepted).
-- Parameter names MUST be identifiers; they bind as variables for the expression
-  body when the func is invoked.
+- Func declarations MAY include a parameter list in angle brackets immediately
+  after the name.
+- When a parameter list is present, its body MUST be parsed as PatternLang
+  (space-separated patterns form a Then, same as pattern bodies).
+- Canonical parameter forms include capture patterns such as `a:number`,
+  `b:string`, and rest-style `a:any*`.
+- Omitted parameter lists and empty `<>` MUST normalize to an `end` pattern
+  (zero arguments).
+- At invocation, the runtime MUST match the func's parameter pattern against the
+  argument list as an iterable stream (no Into). The effective matcher MUST
+  require full consumption (parameter pattern then `end`), except when the
+  declared pattern is already `end`.
+- Successful matches MUST bind PatternLang variables for the expression body.
+- Failed argument matches MUST fail the invocation (same class of outcome as a
+  failed lambda argument match).
 - Func declarations MUST include an expression body slot parsed through
   `ExpressionLang`.
-- Func declarations MUST NOT include a pattern body or a trailing `->`
-  projection slot; the expression after `=` is the body.
+- Func declarations MUST NOT include a rule-style pattern body or a trailing
+  `->` projection slot; the expression after `=` is the body.
 - An exported func declaration MUST normalize to the same ordered syntax
   declarations as a standalone export immediately followed by the equivalent
   func declaration (`export func F = E;` ≡ `export F; func F = E;`).
-- The canonical syntax tree MUST preserve the ordered parameter list and
-  expression body so runtime compilation can emit `FuncDeclaration`.
+- The canonical syntax tree MUST preserve the parameter pattern and expression
+  body so runtime compilation can emit `FuncDeclaration`.
 
 ## Runtime compilation and resolution
 
 - Compiling a func declaration MUST emit a `FuncDeclaration` on
-  `ModuleDeclaration.funcs` (not on `rules`).
+  `ModuleDeclaration.funcs` (not on `rules`) with `pattern` and `expression`.
 - Exporting a local func MUST use `ExportDeclarationKind.Func`.
 - Standalone `export Name;` MUST resolve to a local rule, local func, or
   imported name via the same finalize/export classification used for rules.
@@ -51,17 +61,15 @@ consumption of funcs is deferred to
 
 ## Integration contracts
 
-- Expression slots in func declarations MUST delegate parsing to
-  `ExpressionLang` rather than duplicating expression grammar in the Uffda
-  layer.
+- Parameter slots MUST delegate parsing to `PatternLang`.
+- Expression slots MUST delegate parsing to `ExpressionLang`.
 - `func` MUST be a reserved declaration keyword (not a legal identifier token in
   Uffda declaration positions that use `IdentifierToken`).
 
 ## Failure surface
 
 - Missing required func components MUST fail deterministically.
-- Arity mismatches at invocation MUST fail when the call is evaluated (v1 MAY
-  throw like many std helpers).
+- Argument patterns that do not match MUST fail the invocation.
 - Unknown exported or imported func names MUST fail module resolution.
 
 ## Bootstrap note
