@@ -6,13 +6,13 @@
 # Variable bindings are single-letter (B12).
 # NormalizeExport is an inline nested projection on `any` (not a named rule and
 # not `x:any`): rule frames clear variables, and quantified Variables duplicate
-# across export items. Use `_` for the item value; `t`/`s` stay in Into scope.
+# across export items. Use `_` for the item value; `t`/`u`/`s` stay in Into scope.
 # Unary `not expr` is not a Primary; negation inside calls uses std `(not …)`.
 export UffdaRuntimeCompiler;
 
 rule CompileEmptyDeclarations =
   end
-  -> { imports: [], exports: [], rules: [] };
+  -> { imports: [], exports: [], rules: [], funcs: [] };
 
 rule CompileImportDeclaration =
   {
@@ -23,7 +23,8 @@ rule CompileImportDeclaration =
   -> {
     imports: [{ kind: "module", moduleUrl: u, names: n }],
     exports: [],
-    rules: []
+    rules: [],
+    funcs: []
   };
 
 rule CompileExportDeclaration =
@@ -34,7 +35,8 @@ rule CompileExportDeclaration =
   -> {
     imports: [],
     exports: [{ kind: "rule", name: n }],
-    rules: []
+    rules: [],
+    funcs: []
   };
 
 rule CompileRuleDeclaration =
@@ -53,6 +55,25 @@ rule CompileRuleDeclaration =
       parameters: (flat (coalesce p [])),
       pattern: t,
       expression: j
+    }],
+    funcs: []
+  };
+
+rule CompileFuncDeclaration =
+  {
+    kind: "func",
+    name: n:string,
+    parameters: p:any,
+    expression: x:object
+  }
+  -> {
+    imports: [],
+    exports: [],
+    rules: [],
+    funcs: [{
+      name: n,
+      parameters: (flat (coalesce p [])),
+      expression: x
     }]
   };
 
@@ -60,6 +81,7 @@ rule CompileDeclaration =
   | CompileImportDeclaration
   | CompileExportDeclaration
   | CompileRuleDeclaration
+  | CompileFuncDeclaration
   ;
 
 rule CompileDeclarationSequence =
@@ -68,7 +90,8 @@ rule CompileDeclarationSequence =
   -> {
     imports: (flat [d.imports r.imports]),
     exports: (flat [d.exports r.exports]),
-    rules: (flat [d.rules r.rules])
+    rules: (flat [d.rules r.rules]),
+    funcs: (flat [d.funcs r.funcs])
   };
 
 rule CompileDeclarations =
@@ -80,12 +103,15 @@ rule AttachNameSets =
   {
     imports: i:any,
     rules: r:any,
+    funcs: f:any,
     exports: e:any
   }
   -> {
     imports: i,
     rules: r,
+    funcs: f,
     t: (to_set (pluck r "name")),
+    u: (to_set (pluck f "name")),
     s: (to_set (flat (pluck i "names"))),
     exports: e
   };
@@ -94,20 +120,24 @@ rule FinalizeExports =
   {
     imports: i:any,
     rules: r:any,
+    funcs: f:any,
     t: t:any,
+    u: u:any,
     s: s:any,
     exports: e:[(
       any
       -> (when (eq _.kind "rule")
-           (when (not (has t _.name))
-             (when (has s _.name)
-               { ..._, kind: "import" }
-               _)
-             _)
+           (when (has t _.name)
+             _
+             (when (has u _.name)
+               { ..._, kind: "func" }
+               (when (has s _.name)
+                 { ..._, kind: "import" }
+                 _)))
            _)
     )*]
   }
-  -> { imports: i, rules: r, exports: e };
+  -> { imports: i, rules: r, funcs: f, exports: e };
 
 rule NormalizeModule =
   AttachNameSets

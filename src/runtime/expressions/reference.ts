@@ -1,5 +1,6 @@
 import type { MatchOk } from "../../match.ts";
 import type { ReferenceExpression } from "./expression.ts";
+import { funcCallable } from "./func_callable.ts";
 
 export function reference(
   expression: ReferenceExpression,
@@ -12,6 +13,12 @@ export function reference(
     default:
       if (match.scope.variables.has(name)) {
         return Promise.resolve(match.scope.variables.get(name));
+      }
+      {
+        const fn = match.scope.getFunc(name);
+        if (fn) {
+          return Promise.resolve(funcCallable(fn, match));
+        }
       }
       if (match.scope.options.globals.has(name)) {
         return Promise.resolve(match.scope.options.globals.get(name));

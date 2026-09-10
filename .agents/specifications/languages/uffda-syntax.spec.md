@@ -18,8 +18,8 @@ Normative key words in this chapter use the conventions defined in the
 
 ## Layer goals
 
-- Uffda syntax MUST provide explicit forms for imports, exports, and rule
-  declarations.
+- Uffda syntax MUST provide explicit forms for imports, exports, rule
+  declarations, and func declarations.
 - Uffda syntax MUST require each top-level declaration family to start with a
   distinct declaration keyword.
 - Uffda syntax MUST preserve declaration order.
@@ -33,6 +33,7 @@ Normative key words in this chapter use the conventions defined in the
 - [import declaration syntax](./uffda-syntax/imports.spec.md)
 - [export declaration syntax](./uffda-syntax/exports.spec.md)
 - [rule declaration syntax](./uffda-syntax/rule-declarations.spec.md)
+- [func declaration syntax](./uffda-syntax/func-declarations.spec.md)
 - [rule declaration keyword forms](./uffda-syntax/pattern-declarations.spec.md)
 - [canonical executable examples](./uffda-syntax/canonical-examples.spec.md)
 - [canonical Morse language](./uffda-syntax/morse-language.spec.md)
@@ -46,5 +47,6 @@ Normative key words in this chapter use the conventions defined in the
 
 ## Module ordering and separators
 
-- All import declarations MUST appear before all rule declarations.
+- All import declarations MUST appear before all rule and func declarations.
+- After imports and exports, rule and func declarations MAY appear in any order.
 - Top-level declarations MUST be separated by `;`.

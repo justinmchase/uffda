@@ -3,6 +3,8 @@ import { Input, InputNormalizationMode } from "../input.ts";
 import { Memos } from "../memo.ts";
 import {
   DefaultModule,
+  type Func,
+  isFunc,
   type Module,
   type Rule,
   type Special,
@@ -76,7 +78,23 @@ export class Scope {
       return this.module.rules.get(name);
     }
 
-    return this.module.imports.get(name);
+    const imported = this.module.imports.get(name);
+    if (imported && !isFunc(imported)) {
+      return imported;
+    }
+    return undefined;
+  }
+
+  public getFunc(name: string): Func | undefined {
+    if (this.module.funcs.has(name)) {
+      return this.module.funcs.get(name);
+    }
+
+    const imported = this.module.imports.get(name);
+    if (imported && isFunc(imported)) {
+      return imported;
+    }
+    return undefined;
   }
 
   public withInput(input: Input): Scope {

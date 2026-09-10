@@ -27,6 +27,7 @@ Deno.test("req:uffda-runtime-compilation-001 - compiler is an executable runtime
       imports: [],
       exports: [],
       rules: [],
+      funcs: [],
     });
   }
 });

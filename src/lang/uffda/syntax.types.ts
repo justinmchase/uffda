@@ -25,10 +25,18 @@ export type UffdaRuleSyntaxDeclaration = {
   projection?: Expression;
 };
 
+export type UffdaFuncSyntaxDeclaration = {
+  kind: "func";
+  name: string;
+  parameters: UffdaRuleParameterSyntax[];
+  expression: Expression;
+};
+
 export type UffdaSyntaxDeclaration =
   | UffdaImportSyntaxDeclaration
   | UffdaExportSyntaxDeclaration
-  | UffdaRuleSyntaxDeclaration;
+  | UffdaRuleSyntaxDeclaration
+  | UffdaFuncSyntaxDeclaration;
 
 export type UffdaSyntaxModule = {
   kind: "module";

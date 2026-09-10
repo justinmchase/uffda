@@ -21,9 +21,10 @@ visible symbols for Uffda modules.
 
 - Export declarations MUST begin with the `export` declaration keyword.
 - Export declarations MUST identify names exported from the current module.
-- Uffda MUST support both export families:
+- Uffda MUST support these export families:
   - standalone export declarations that begin with `export`
   - exported rule declarations that begin with `export rule`
+  - exported func declarations that begin with `export func`
 - Standalone export declarations MUST support direct-name export lists without
   commas.
 - Standalone export declarations MUST support single-target aliasing.
@@ -51,6 +52,10 @@ visible symbols for Uffda modules.
   - `export rule A = any;`
   - `export rule A = any -> 1;`
 - `export rule A = P;` MUST normalize identically to `export A; rule A = P;`.
+- Exported func declarations MUST accept canonical starter forms:
+  - `export func F = 1;`
+  - `export func F<a> = a;`
+- `export func F = E;` MUST normalize identically to `export F; func F = E;`.
 
 ## Subtopics
 

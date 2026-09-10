@@ -1,6 +1,7 @@
 import { extname } from "@std/path";
 import {
   ExportDeclarationKind,
+  funcsOf,
   ImportDeclarationKind,
   type ModuleDeclaration,
 } from "./declarations/mod.ts";
@@ -72,6 +73,7 @@ export class Resolver {
         imports: new Map(),
         exports: new Map(),
         rules: new Map(),
+        funcs: new Map(),
         default: undefined,
       };
       this.modules.set(moduleUrl.href, module);
@@ -80,9 +82,10 @@ export class Resolver {
         return moduleResolutionResult(moduleDeclaration.error);
       }
 
+      const declaration = moduleDeclaration.moduleDeclaration;
+
       for (
-        const { name, pattern, parameters, expression } of moduleDeclaration
-          .moduleDeclaration.rules
+        const { name, pattern, parameters, expression } of declaration.rules
       ) {
         module.rules.set(name, {
           module,
@@ -93,7 +96,16 @@ export class Resolver {
         });
       }
 
-      for (const e of moduleDeclaration.moduleDeclaration.exports) {
+      for (const { name, parameters, expression } of funcsOf(declaration)) {
+        module.funcs.set(name, {
+          module,
+          name,
+          parameters,
+          expression,
+        });
+      }
+
+      for (const e of declaration.exports) {
         const { kind, name } = e;
         switch (kind) {
           case ExportDeclarationKind.Rule: {
@@ -116,10 +128,30 @@ export class Resolver {
             }
             break;
           }
+          case ExportDeclarationKind.Func: {
+            const fn = module.funcs.get(name);
+            if (!fn) {
+              return moduleResolutionResult(moduleResolutionError(
+                `Unknown func ${name}`,
+                context,
+              ));
+            }
+            module.exports.set(name, fn);
+            if (e.default) {
+              if (module.default) {
+                return moduleResolutionResult(moduleResolutionError(
+                  `Module ${name} cannot have multiple default exports`,
+                  context,
+                ));
+              }
+              module.default = fn;
+            }
+            break;
+          }
         }
       }
 
-      for (const i of moduleDeclaration.moduleDeclaration.imports) {
+      for (const i of declaration.imports) {
         const resolvedModuleUrl = new URL(i.moduleUrl, moduleUrl);
 
         // todo: Remove support for function imports if we can...
@@ -156,11 +188,18 @@ export class Resolver {
             ));
           }
 
+          if (module.funcs.has(name)) {
+            return moduleResolutionResult(moduleResolutionError(
+              `Import ${name} conflicts with func declaration in ${moduleUrl}`,
+              context,
+            ));
+          }
+
           module.imports.set(name, r);
         }
       }
 
-      for (const e of moduleDeclaration.moduleDeclaration.exports) {
+      for (const e of declaration.exports) {
         const { kind, name } = e;
         switch (kind) {
           case ExportDeclarationKind.Import: {

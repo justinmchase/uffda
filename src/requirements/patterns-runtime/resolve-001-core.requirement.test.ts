@@ -17,6 +17,7 @@ const mod0: Module = {
   imports: new Map(),
   exports: new Map(),
   rules: new Map(),
+  funcs: new Map(),
   default: undefined,
 };
 const rule0: Rule = {

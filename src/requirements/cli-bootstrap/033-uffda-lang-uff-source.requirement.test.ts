@@ -12,9 +12,10 @@ Deno.test(
     assertEquals(uff.includes("rule ModuleBody"), true);
     assertEquals(uff.includes("rule UffdaLang"), true);
     assertEquals(
-      uff.includes('{ kind: "module", declarations: (flat [i (flat e) r]) }'),
+      uff.includes('{ kind: "module", declarations: (flat [i (flat e) d]) }'),
       true,
     );
+    assertEquals(uff.includes("FuncDeclarationSyntax"), true);
     assertEquals(uff.includes("[ModuleBody]"), true);
     assertEquals(uff.includes("ExpressionKind.Native"), false);
 

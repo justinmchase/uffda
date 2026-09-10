@@ -3,6 +3,7 @@ import { rule } from "../rule.ts";
 import type { AwaitableMatch } from "../awaitable.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { SpecialKind } from "../modules/special.ts";
+import { isFunc } from "../modules/func.ts";
 import type { Rule } from "../modules/rule.ts";
 import type { Module } from "../modules/module.ts";
 import type { Scope } from "../scope.ts";
@@ -112,6 +113,17 @@ async function resolveRun(
       pattern.name
         ? `Rule ${pattern.name} not found`
         : "Module does not have a default export, please specify which Rule you want to import",
+    );
+  }
+
+  if (isFunc(main)) {
+    return error(
+      scope,
+      pattern,
+      MatchErrorCode.PatternExpected,
+      pattern.name
+        ? `Export ${pattern.name} is a func, not a rule`
+        : "Default export is a func, not a rule",
     );
   }
 

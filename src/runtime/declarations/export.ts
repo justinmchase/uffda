@@ -1,10 +1,12 @@
 export type ExportDeclaration =
   | ImportExportDeclaration
-  | RuleExportDeclaration;
+  | RuleExportDeclaration
+  | FuncExportDeclaration;
 
 export enum ExportDeclarationKind {
   Import = "import",
   Rule = "rule",
+  Func = "func",
 }
 
 export type ImportExportDeclaration = {
@@ -15,6 +17,12 @@ export type ImportExportDeclaration = {
 
 export type RuleExportDeclaration = {
   kind: ExportDeclarationKind.Rule;
+  name: string;
+  default?: boolean;
+};
+
+export type FuncExportDeclaration = {
+  kind: ExportDeclarationKind.Func;
   name: string;
   default?: boolean;
 };

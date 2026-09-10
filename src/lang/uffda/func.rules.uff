@@ -1,0 +1,71 @@
+# Func declaration syntax: expression body only (no pattern / ->).
+# Parameter lists reuse the same angle-bracket, comma-separated form as rules.
+# Variable bindings are single-letter (B12).
+import "../expression/expression.lang.uff" ExpressionTokens;
+import "./shared.rules.uff" IdentifierToken;
+
+export FuncDeclarationSyntax;
+export FuncExpressionBody;
+export FuncParameterList;
+
+rule FuncExpressionBody =
+  FuncExpressionToken
+  |> ExpressionTokens;
+
+rule FuncEscapedQuotedTokens =
+  "\\"
+  e:("\"" | "{" | "\\")
+  -> (pack "\\" e);
+
+rule FuncQuotedTokenContent =
+  | FuncEscapedQuotedTokens
+  | ((not "\"") & string)
+  ;
+
+rule FuncQuotedTokenSequence =
+  "\""
+  c:FuncQuotedTokenContent*
+  "\""
+  -> (flat (pack "\"" (flat c) "\""));
+
+rule FuncExpressionToken =
+  (
+    | FuncQuotedTokenSequence
+    | ((not ";") & string)
+  )+
+  -> (flat _);
+
+rule FuncParameterName =
+  n:IdentifierToken
+  -> { name: n };
+
+rule FuncParameterNameTail =
+  ","
+  v:FuncParameterName
+  -> v;
+
+rule FuncParameterNameList =
+  f:FuncParameterName
+  r:FuncParameterNameTail*
+  ","?
+  -> (flat (pack f r));
+
+rule FuncParameterList =
+  "<"
+  p:FuncParameterNameList?
+  ">"
+  -> (flat (coalesce p []));
+
+rule FuncDeclarationSyntax =
+  "func"
+  n:IdentifierToken
+  p:FuncParameterList?
+  "="
+  e:FuncExpressionBody
+  ";"
+  -> {
+    kind: "func",
+    name: n,
+    parameters: (flat (coalesce p [])),
+    expression: e
+  };

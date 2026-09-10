@@ -1,4 +1,4 @@
-import type { ModuleDeclaration } from "../declarations/module.ts";
+import type { ModuleDeclaration } from "./module.ts";
 
 /** Runtime ModuleDeclaration shape written to `./bin` by compile. */
 export function isModuleDeclaration(
@@ -8,5 +8,11 @@ export function isModuleDeclaration(
   const record = value as Record<string, unknown>;
   return Array.isArray(record.imports) &&
     Array.isArray(record.exports) &&
-    Array.isArray(record.rules);
+    Array.isArray(record.rules) &&
+    (record.funcs === undefined || Array.isArray(record.funcs));
+}
+
+/** Normalize older artifacts that omit `funcs`. */
+export function funcsOf(declaration: ModuleDeclaration) {
+  return declaration.funcs ?? [];
 }
