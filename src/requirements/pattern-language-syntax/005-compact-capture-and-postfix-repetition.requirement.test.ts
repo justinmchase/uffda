@@ -129,17 +129,10 @@ Deno.test(
     );
 
     await t.step(
-      "descending bounds parse; quantifier rejects at use",
+      "descending digit bounds are rejected at parse",
       async () => {
         const match = await patternGrammar("any*2..1");
-        assertEquals(match.kind, MatchKind.Ok);
-        if (match.kind !== MatchKind.Ok) return;
-        assertEquals(match.value, {
-          kind: PatternKind.Quantifier,
-          pattern: { kind: PatternKind.Any },
-          min: { kind: ValueSourceKind.Literal, value: 2 },
-          max: { kind: ValueSourceKind.Literal, value: 1 },
-        });
+        assertEquals(match.kind, MatchKind.Fail);
       },
     );
 

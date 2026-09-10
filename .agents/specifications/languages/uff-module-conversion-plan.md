@@ -233,9 +233,10 @@ permanent TypeScript language modules once builtins exist.
 
 ## First candidate (next session)
 
-**Open between:** `L..R`, `L..`, and `..R` (reject bare `..`) unlock prefix
-StarMinMax constraints such as `m:(BoundNum |> (number & $n..))` after publish.
-Avoid capture names `min`/`max`/`name` in authored `.uff` — they fail to parse.
+**Open between + prefix:** digit StarMinMax uses `number & $n..` so `*2..1`
+fails at parse. Hard leaves: `pattern/literals` CharacterClass/Natives, or
+`pattern/resolve`+`structure` (B9). Phase 5: `tokenizer/mod`; B6/B7 still block
+`source` / `tokenizer.lang`.
 
 Hard leaves: `pattern/literals` CharacterClass/Natives, or
 `pattern/resolve`+`structure` (B9). Phase 5: `tokenizer/mod`; B6/B7 still block

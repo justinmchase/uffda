@@ -18,6 +18,8 @@ Expected behavior:
 - Each subsequent step MUST evaluate against derived stream from prior step
   output value.
 - Pipeline MUST consume outer input only through first step.
+- Pipeline steps MUST observe variable bindings from the surrounding match scope
+  (including captures established before the pipeline).
 
 Postconditions:
 
