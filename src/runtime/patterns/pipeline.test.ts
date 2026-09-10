@@ -7,7 +7,7 @@ import { moduleDeclarationTest } from "../../test.ts";
 import { ExportDeclarationKind } from "../declarations/mod.ts";
 import { ExpressionKind } from "../expressions/mod.ts";
 import { PatternKind } from "./pattern.kind.ts";
-import { lit } from "./value_source.ts";
+import { lit, ValueSourceKind } from "./value_source.ts";
 import { match } from "../match.ts";
 import { Scope } from "../scope.ts";
 
@@ -506,6 +506,41 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       assertEquals(m.kind, MatchKind.Fail);
       if (m.kind !== MatchKind.Fail) return;
       assertEquals(getRightmostFailure(m).originalSpan.start, 10);
+    },
+  });
+
+  await t.step({
+    name: "PIPELINE10 later steps see outer variable bindings",
+    fn: async () => {
+      const scope = new Scope(
+        undefined,
+        undefined,
+        new Map([["n", 3]]),
+        new Map(),
+        Input.Iterable([5]),
+      );
+      const m = await match(
+        {
+          kind: PatternKind.Pipeline,
+          steps: [
+            { kind: PatternKind.Type, type: Type.Number },
+            {
+              kind: PatternKind.And,
+              patterns: [
+                { kind: PatternKind.Type, type: Type.Number },
+                {
+                  kind: PatternKind.Between,
+                  left: { kind: ValueSourceKind.Variable, name: "n" },
+                },
+              ],
+            },
+          ],
+        },
+        scope,
+      );
+      assertEquals(m.kind, MatchKind.Ok);
+      if (m.kind !== MatchKind.Ok) return;
+      assertEquals(m.value, 5);
     },
   });
 });

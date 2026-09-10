@@ -87,9 +87,14 @@ The grammar MUST be able to express the following pattern families:
 - Value operands on equal, between, includes, and quantifier bounds MAY be
   contextual `$name` references. See Value sources.
 - An open range with neither bound (`P*..`) MUST be rejected at parse time.
-- A maximum less than its minimum MAY parse to a Quantifier AST; the
+- A maximum less than its minimum on digit–digit star bounds (`P*2..1`) MUST be
+  rejected at parse time via open-upper between (`number & $n..`). Variable or
+  mixed bounds MAY still parse; the
   [quantifier](../../patterns/runtime/quantifier.spec.md) runtime MUST reject
-  that pattern when it is evaluated.
+  invalid resolved bounds when evaluated.
+- Shorter postfix `*` arms MUST NOT succeed on a proper prefix of a longer star
+  form: after `P*min..` reject a following bound token; after `P*min` reject
+  following `..`; after bare `P*` reject a following bound or `.`.
 - Repetition suffixes MUST NOT be chained.
 - Bounds immediately following `*` MUST belong to that repetition regardless of
   intervening whitespace. Authors MUST group an unbounded repetition before

@@ -110,5 +110,15 @@ Deno.test({
         },
       }),
     });
+
+    await t.step({
+      name: "PREFIX_06_star_minmax_descending_digits_fail",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "Star",
+        input: Input.Iterable(["any", "*", "2", ".", ".", "1"]),
+        kind: MatchKind.Fail,
+      }),
+    });
   },
 });

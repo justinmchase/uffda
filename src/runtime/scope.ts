@@ -138,7 +138,7 @@ export class Scope {
     return new Scope(
       this.module,
       this.parent,
-      new Map(),
+      this.variables,
       new Map(),
       this.stream,
       this.memos,
