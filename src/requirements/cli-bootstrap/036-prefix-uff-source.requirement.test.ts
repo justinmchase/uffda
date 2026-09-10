@@ -10,6 +10,9 @@ Deno.test(
     const prefixSrc = await Deno.readTextFile(join(pattern, "prefix.uff"));
     assertEquals(prefixSrc.includes("export Prefix"), true);
     assertEquals(prefixSrc.includes("rule StarMinMax"), true);
+    assertEquals(prefixSrc.includes("rule StarMinMaxNumNum"), true);
+    assertEquals(prefixSrc.includes("rule BoundVariable"), true);
+    assertEquals(prefixSrc.includes("number & $n.."), true);
     assertEquals(prefixSrc.includes("rule StarMinOpen"), true);
     assertEquals(prefixSrc.includes("rule StarMaxOnly"), true);
     assertEquals(prefixSrc.includes("rule StarMinOnly"), true);

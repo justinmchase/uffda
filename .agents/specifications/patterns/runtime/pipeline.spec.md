@@ -29,6 +29,9 @@ receives input derived from the previous step's matched value.
   immediately.
 - If every step succeeds, the `pipeline` pattern MUST succeed.
 - A `pipeline` pattern with no steps MUST succeed and report `undefined`.
+- Pipeline steps MUST observe variable bindings from the surrounding match scope
+  (including captures established before the pipeline). Steps MUST NOT start
+  with an empty variable map solely because a pipeline frame was pushed.
 
 ## Left-recursion behavior
 

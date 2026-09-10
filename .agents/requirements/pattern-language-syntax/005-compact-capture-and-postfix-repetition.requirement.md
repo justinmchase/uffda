@@ -24,8 +24,9 @@ Expected behavior:
 - `P?` MUST normalize to a maybe pattern rather than a quantifier.
 - Invalid or chained repetition suffixes (`P*..`, `P**`, …) MUST not produce a
   successful complete pattern parse.
-- Descending bounds such as `P*2..1` MAY parse successfully; quantifier
-  evaluation MUST reject them at match time.
+- Descending digit bounds such as `P*2..1` MUST fail to parse. Variable or mixed
+  bounds MAY still parse; quantifier evaluation MUST reject invalid resolved
+  bounds at match time.
 
 Postconditions:
 
