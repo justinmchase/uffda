@@ -12,7 +12,7 @@ import type { TokenizerLangValue } from "./tokenizer.lang.ts";
 Deno.test("lang.tokenizer.tokenizer-lang - pipelines normalization and tokenization", async () => {
   const resolver = new Resolver();
   const input = Input.Scalar("a\r\nb\rc");
-  const moduleUrl = new URL("./tokenizer.lang.ts", import.meta.url);
+  const moduleUrl = new URL("./tokenizer.lang.uff", import.meta.url);
 
   const importScope = new Scope(
     undefined,
@@ -30,6 +30,7 @@ Deno.test("lang.tokenizer.tokenizer-lang - pipelines normalization and tokenizat
     pattern: {
       kind: PatternKind.Resolve,
       targetKind: ResolveTargetKind.Run,
+      name: "TokenizerLang",
     },
   });
 
@@ -54,6 +55,7 @@ Deno.test("lang.tokenizer.tokenizer-lang - pipelines normalization and tokenizat
         {
           kind: PatternKind.Resolve,
           targetKind: ResolveTargetKind.Run,
+          name: "TokenizerLang",
         },
         {
           kind: PatternKind.End,

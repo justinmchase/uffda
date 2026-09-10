@@ -16,19 +16,5 @@
  */
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 
-import Source from "./source/mod.ts";
-import TokenizerLang from "./tokenizer/tokenizer.lang.ts";
-const here = import.meta.url;
-
-function entry(
-  relativePath: string,
-  declaration: ModuleDeclaration,
-): [string, ModuleDeclaration] {
-  return [new URL(relativePath, here).href, declaration];
-}
-
 export const builtInLanguageDeclarations: Record<string, ModuleDeclaration> =
-  Object.fromEntries([
-    entry("./source/mod.ts", Source),
-    entry("./tokenizer/tokenizer.lang.ts", TokenizerLang),
-  ]);
+  {};

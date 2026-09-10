@@ -49,6 +49,13 @@ Deno.test("lang.declarations registers built-in language modules", () => {
     import.meta.url,
   ).href;
   assertEquals(builtInLanguageDeclarations[runtimeCompilerUff], undefined);
+  const sourceUff = new URL("./source/mod.uff", import.meta.url).href;
+  assertEquals(builtInLanguageDeclarations[sourceUff], undefined);
+  const tokenizerModUff = new URL("./tokenizer/mod.uff", import.meta.url).href;
+  assertEquals(builtInLanguageDeclarations[tokenizerModUff], undefined);
+  const tokenizerLangUff =
+    new URL("./tokenizer/tokenizer.lang.uff", import.meta.url).href;
+  assertEquals(builtInLanguageDeclarations[tokenizerLangUff], undefined);
   for (
     const name of [
       "then",
