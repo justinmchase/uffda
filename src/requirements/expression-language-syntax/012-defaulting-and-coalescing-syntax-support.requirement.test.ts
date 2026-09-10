@@ -1,7 +1,7 @@
 import { assertEquals, assertNotEquals } from "@std/assert";
 import { MatchKind } from "../../match.ts";
 import { expressionGrammar } from "../../lang/expression/expression.lang.ts";
-import { std } from "../../runtime/std/mod.ts";
+import { defaultGlobals } from "../../runtime/globals/mod.ts";
 import { exec } from "../../runtime/exec.ts";
 
 Deno.test("req:expression-language-syntax-012 - Explicit coalescing syntax supports deterministic fallback behavior without infix precedence", async (t) => {
@@ -9,7 +9,7 @@ Deno.test("req:expression-language-syntax-012 - Explicit coalescing syntax suppo
     "explicit coalesce invocation returns first non-nullish value",
     async () => {
       const globals = new Map<string, unknown>([
-        ...std,
+        ...defaultGlobals,
         ["left", null],
         ["fallback", "ok"],
       ]);
@@ -27,7 +27,7 @@ Deno.test("req:expression-language-syntax-012 - Explicit coalescing syntax suppo
 
   await t.step("coalesce remains deterministic for fixed input", async () => {
     const globals = new Map<string, unknown>([
-      ...std,
+      ...defaultGlobals,
       ["left", undefined],
       ["fallback", 11],
     ]);
@@ -55,7 +55,7 @@ Deno.test("req:expression-language-syntax-012 - Explicit coalescing syntax suppo
     async () => {
       const m = await expressionGrammar("(coalesce left ?? fallback)", {
         globals: new Map<string, unknown>([
-          ...std,
+          ...defaultGlobals,
           ["left", null],
           ["fallback", "ok"],
         ]),

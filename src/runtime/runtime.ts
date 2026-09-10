@@ -1,3 +1,3 @@
-import { std } from "./std/mod.ts";
+import { defaultGlobals } from "./globals/mod.ts";
 
-export const globals = new Map([...std]);
+export const globals = new Map([...defaultGlobals]);

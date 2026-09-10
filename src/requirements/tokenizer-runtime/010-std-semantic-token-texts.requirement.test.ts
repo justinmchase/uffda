@@ -2,7 +2,7 @@ import { assertEquals } from "@std/assert";
 import {
   semantic_no_whitespace_texts,
   semantic_texts,
-} from "../../runtime/std/semantic_texts.ts";
+} from "../../runtime/globals/semantic_texts.ts";
 
 Deno.test("req:tokenizer-runtime-010 - std semantic texts omit comments and optional whitespace", () => {
   const tokens = [

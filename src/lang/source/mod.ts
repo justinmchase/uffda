@@ -5,22 +5,22 @@ import { resolve } from "../../runtime/patterns/resolve.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { ModuleImportResultKind } from "../../runtime/resolvers/resolver.ts";
-import { line_starts } from "../../runtime/std/line_starts.ts";
+import { line_starts } from "../../runtime/globals/line_starts.ts";
 import {
   source_document,
   type SourceDocument,
-} from "../../runtime/std/source_document.ts";
-import { type SourceUnit, units } from "../../runtime/std/units.ts";
+} from "../../runtime/globals/source_document.ts";
+import { type SourceUnit, units } from "../../runtime/globals/units.ts";
 
 export type { SourceDocument, SourceUnit };
 export { source_document };
 
-/** @deprecated Prefer std `line_starts`. */
+/** @deprecated Prefer globals `line_starts`. */
 export function buildLineStarts(text: string): number[] {
   return line_starts(text);
 }
 
-/** @deprecated Prefer std `units`. */
+/** @deprecated Prefer globals `units`. */
 export function buildUnits(
   text: string,
   lineStarts: number[],

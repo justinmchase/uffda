@@ -4,7 +4,7 @@ import type { ItemSourceSpan, SourceSpan } from "../../span.ts";
 import {
   semantic_no_whitespace_texts,
   semantic_texts,
-} from "../../runtime/std/semantic_texts.ts";
+} from "../../runtime/globals/semantic_texts.ts";
 
 export enum StructuredTokenKind {
   Whitespace = "whitespace",
@@ -41,12 +41,12 @@ export function isSemanticNoWhitespaceToken(token: TokenValue): boolean {
     token.kind === StructuredTokenKind.Punctuation;
 }
 
-/** @deprecated Prefer std `semantic_texts`. */
+/** @deprecated Prefer globals `semantic_texts`. */
 export function toSemanticTexts(tokens: TokenValue[]): string[] {
   return semantic_texts(tokens);
 }
 
-/** @deprecated Prefer std `semantic_no_whitespace_texts`. */
+/** @deprecated Prefer globals `semantic_no_whitespace_texts`. */
 export function toSemanticNoWhitespaceTexts(tokens: TokenValue[]): string[] {
   return semantic_no_whitespace_texts(tokens);
 }

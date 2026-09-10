@@ -9,7 +9,6 @@ import { languageArtifactRoots } from "../../runtime/resolvers/language_artifact
 import { ModuleImportResultKind } from "../../runtime/resolvers/resolver.ts";
 import { Resolver } from "../../runtime/resolve.ts";
 import { Scope } from "../../runtime/scope.ts";
-import { std } from "../../runtime/std/mod.ts";
 import type { UffdaSyntaxModule } from "./syntax.types.ts";
 
 export type UffdaRuntimeCompilerDiagnostic = {
@@ -102,7 +101,6 @@ export async function runUffdaRuntimeCompiler(
     kind: InputNormalizationMode.Scalar,
   }).withOptions({
     resolver,
-    globals: new Map(std),
   });
 
   const imported = await resolver.import(moduleUrl, {

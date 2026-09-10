@@ -1,13 +1,13 @@
 import { assertEquals } from "@std/assert";
-import { checksum } from "../../runtime/std/checksum.ts";
-import { document_id } from "../../runtime/std/document_id.ts";
-import { line_starts } from "../../runtime/std/line_starts.ts";
+import { checksum } from "../../runtime/globals/checksum.ts";
+import { document_id } from "../../runtime/globals/document_id.ts";
+import { line_starts } from "../../runtime/globals/line_starts.ts";
 import {
   normalization_map,
   normalized_unit,
-} from "../../runtime/std/normalized_unit.ts";
-import { source_document } from "../../runtime/std/source_document.ts";
-import { units } from "../../runtime/std/units.ts";
+} from "../../runtime/globals/normalized_unit.ts";
+import { source_document } from "../../runtime/globals/source_document.ts";
+import { units } from "../../runtime/globals/units.ts";
 
 Deno.test("req:source-normalization-runtime-004 - std helpers assemble SourceDocument indexes", () => {
   assertEquals(checksum(""), "811c9dc5");

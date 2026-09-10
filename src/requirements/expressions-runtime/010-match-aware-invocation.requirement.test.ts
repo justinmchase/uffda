@@ -6,7 +6,7 @@ import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { exec } from "../../runtime/exec.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { Scope } from "../../runtime/scope.ts";
-import { match_leaf_offset } from "../../runtime/std/match_leaf_offset.ts";
+import { match_leaf_offset } from "../../runtime/globals/match_leaf_offset.ts";
 
 Deno.test("req:expressions-runtime-010 - match-aware invocation injects MatchOk", async () => {
   const scope = new Scope(

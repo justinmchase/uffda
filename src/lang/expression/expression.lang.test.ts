@@ -1,7 +1,7 @@
 import { MatchKind, Resolver } from "../../mod.ts";
 import { expressionGrammar } from "./expression.lang.ts";
 import { assertEquals, assertStringIncludes } from "@std/assert";
-import { std } from "../../runtime/std/mod.ts";
+import { defaultGlobals } from "../../runtime/globals/mod.ts";
 import { exec } from "../../runtime/exec.ts";
 import type { Expression } from "../../runtime/expressions/expression.ts";
 import { visualizeMatchFailure } from "../../match.visualize.ts";
@@ -198,7 +198,7 @@ Deno.test(
       name: "EXPR_LANG_05",
       fn: async () => {
         const globals = new Map<string, unknown>([
-          ...std,
+          ...defaultGlobals,
           ["xs", [2, 3]],
         ]);
         const m = await expressionGrammar("[1 ...xs]", { globals });
@@ -226,7 +226,7 @@ Deno.test(
       name: "EXPR_LANG_06",
       fn: async () => {
         const globals = new Map<string, unknown>([
-          ...std,
+          ...defaultGlobals,
           ["base", { enabled: true }],
         ]);
         const m = await expressionGrammar("{...base, count: 1}", { globals });

@@ -3,7 +3,7 @@ import { type Match, MatchKind, type MatchOk } from "../match.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "../runtime/patterns/pattern.ts";
 import { Scope } from "../runtime/scope.ts";
-import { std } from "../runtime/std/mod.ts";
+import { globals as defaultGlobals } from "../runtime/runtime.ts";
 import { resolve } from "../runtime/patterns/resolve.ts";
 import { languageArtifactRoots } from "../runtime/resolvers/language_artifact_roots.ts";
 import { ModuleImportResultKind } from "../runtime/resolvers/resolver.ts";
@@ -58,9 +58,9 @@ export async function parseGrammar<TAst>(options: {
   const { globals, declarations } = grammarOptions ?? {};
   const { builtInLanguageDeclarations } = await import("./declarations.ts");
 
-  // Caller globals override std entries with the same name; std remains available
-  // for serializable projections such as `(join (flat _) "")`.
-  const g = new Map([...std, ...(globals ?? [])]);
+  // Caller globals override default entries with the same name; defaults
+  // remain available for serializable projections such as `(join (flat _) "")`.
+  const g = new Map([...defaultGlobals, ...(globals ?? [])]);
   const { cwd, artifactRoot } = languageArtifactRoots(import.meta.url);
   const r = new Resolver({
     declarations: {
