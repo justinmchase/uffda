@@ -17,8 +17,6 @@
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 
 import Literals from "./pattern/literals.ts";
-import Resolve from "./pattern/resolve.ts";
-import Structure from "./pattern/structure.ts";
 import Source from "./source/mod.ts";
 import Tokenizer from "./tokenizer/mod.ts";
 import TokenizerLang from "./tokenizer/tokenizer.lang.ts";
@@ -34,8 +32,6 @@ function entry(
 export const builtInLanguageDeclarations: Record<string, ModuleDeclaration> =
   Object.fromEntries([
     entry("./pattern/literals.ts", Literals),
-    entry("./pattern/resolve.ts", Resolve),
-    entry("./pattern/structure.ts", Structure),
     entry("./source/mod.ts", Source),
     entry("./tokenizer/mod.ts", Tokenizer),
     entry("./tokenizer/tokenizer.lang.ts", TokenizerLang),

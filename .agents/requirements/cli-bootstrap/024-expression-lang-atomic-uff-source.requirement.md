@@ -11,8 +11,8 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 Preconditions:
 
 - `expression/expression` is converted to `.uff`.
-- `pattern/atoms` is converted; Atomic may still import TypeScript
-  `literals`/`resolve`/`structure` until those convert.
+- `pattern/atoms` is converted; Atomic may still import TypeScript `literals`
+  until that converts. `resolve` and `structure` are authored `.uff`.
 - `source/mod` and `tokenizer/mod` may remain TypeScript bridges.
 
 Expected behavior:

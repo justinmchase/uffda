@@ -1,8 +1,8 @@
 # Atomic is Atoms | Literals | Resolve | Structure.
 import "./atoms.uff" Atoms;
 import "./literals.ts" Literals;
-import "./resolve.ts" Resolve;
-import "./structure.ts" Structure;
+import "./resolve.uff" Resolve;
+import "./structure.uff" Structure;
 
 export Atomic;
 

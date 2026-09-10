@@ -3,7 +3,7 @@ import { MatchKind } from "../../mod.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
-const moduleUrl = new URL("./structure.ts", import.meta.url).href;
+const moduleUrl = new URL("./structure.uff", import.meta.url).href;
 
 const p = await Deno.permissions.query({
   name: "read",
@@ -18,6 +18,7 @@ Deno.test({
       name: "STRUCTURE_00",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Structure",
         input: Input.Iterable([
           "{",
           "name",
@@ -44,6 +45,7 @@ Deno.test({
       name: "STRUCTURE_01",
       fn: moduleDeclarationTest({
         moduleUrl,
+        entryRuleName: "Structure",
         input: Input.Iterable([
           "{",
           "name",

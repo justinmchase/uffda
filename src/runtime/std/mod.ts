@@ -4,6 +4,7 @@ import { eq } from "./eq.ts";
 import { filter } from "./filter.ts";
 import { flat } from "./flat.ts";
 import { format } from "./format.ts";
+import { from_entries } from "./from_entries.ts";
 import { has } from "./has.ts";
 import { id } from "./id.ts";
 import { int } from "./int.ts";
@@ -24,6 +25,7 @@ export const std = new Map<string, unknown>([
   ["filter", filter],
   ["flat", flat],
   ["format", format],
+  ["from_entries", from_entries],
   ["has", has],
   ["id", id],
   ["int", int],
