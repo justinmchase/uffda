@@ -1,7 +1,6 @@
 import { assertEquals, assertThrows } from "@std/assert";
 import { checksum } from "./checksum.ts";
 import { document_id } from "./document_id.ts";
-import { normalization_map, normalized_unit } from "./normalized_unit.ts";
 import { source_document } from "./source_document.ts";
 import { units } from "./units.ts";
 
@@ -13,18 +12,6 @@ Deno.test("std.checksum is stable for fixed text", () => {
 
 Deno.test("std.document_id uses length and checksum", () => {
   assertEquals(document_id("hi"), `source:2:${checksum("hi")}`);
-});
-
-Deno.test("std.normalized_unit and normalization_map", () => {
-  const u0 = normalized_unit("a", 0, 1);
-  const u1 = normalized_unit("\n", 1, 3);
-  assertEquals(u0, {
-    value: "a",
-    originalOffsetStart: 0,
-    originalOffsetEnd: 1,
-  });
-  assertEquals(normalization_map([u0, u1]), [0, 1, 3]);
-  assertEquals(normalization_map([]), [0]);
 });
 
 Deno.test("std.units builds SourceUnit rows", () => {

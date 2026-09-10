@@ -1,5 +1,4 @@
 # Tokenizer: structured tokens with comment/string trivia, then semantic views.
-# Uses provisional std semantic_no_whitespace_texts (B7 / #124).
 #
 # Declare the `"\\"` pattern before other quoted rule bodies so the multi-rule
 # quote scanner (B15) does not break on later backslash literals.
@@ -85,6 +84,17 @@ rule Tokens =
   | WordToken
   | PunctuationToken
   ;
+
+# `semantic_no_whitespace_texts` is module-local: it is only needed here to
+# project tokens down to word/punctuation text, omitting whitespace and
+# comments (#124).
+func IsWordOrPunctuation<t:{kind:string}> =
+  (has (to_set ["word" "punctuation"]) t.kind);
+
+func TokenText<t:{text:string}> = t.text;
+
+func semantic_no_whitespace_texts<tokens:array> =
+  (map (filter tokens IsWordOrPunctuation) TokenText);
 
 rule TokenizerNoWhitespace =
   Tokenizer

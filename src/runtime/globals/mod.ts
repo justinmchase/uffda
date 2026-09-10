@@ -13,17 +13,13 @@ import { id } from "./id.ts";
 import { int } from "./int.ts";
 import { join } from "./join.ts";
 import { json } from "./json.ts";
+import { last } from "./last.ts";
 import { map } from "./map.ts";
 import { match_leaf_offset } from "./match_leaf_offset.ts";
 import { not } from "./not.ts";
-import { normalization_map, normalized_unit } from "./normalized_unit.ts";
 import { one } from "./one.ts";
 import { pack } from "./pack.ts";
 import { pluck } from "./pluck.ts";
-import {
-  semantic_no_whitespace_texts,
-  semantic_texts,
-} from "./semantic_texts.ts";
 import { source_document } from "./source_document.ts";
 import { to_set } from "./to_set.ts";
 import { units } from "./units.ts";
@@ -57,16 +53,13 @@ export const defaultGlobals = new Map<string, unknown>([
   ["int", int],
   ["join", join],
   ["json", json],
+  ["last", last],
   ["map", map],
   ["match_leaf_offset", match_leaf_offset],
-  ["normalization_map", normalization_map],
-  ["normalized_unit", normalized_unit],
   ["not", not],
   ["one", one],
   ["pack", pack],
   ["pluck", pluck],
-  ["semantic_no_whitespace_texts", semantic_no_whitespace_texts],
-  ["semantic_texts", semantic_texts],
   ["source_document", source_document],
   ["to_set", to_set],
   ["units", units],

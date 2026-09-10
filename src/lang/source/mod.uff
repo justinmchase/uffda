@@ -10,6 +10,20 @@ export rule Source =
   |> SourceDocument
   ;
 
+# `normalized_unit`/`normalization_map` are module-local: they are only
+# needed by NormalizedUnit's arms and NormalizedText's projection, and are
+# not part of the general globals toolbox (#124).
+func normalized_unit<value:string start:number end:number> =
+  { value: value, originalOffsetStart: start, originalOffsetEnd: end };
+
+func LastOriginalOffsetEnd<u:{originalOffsetEnd:number}> = u.originalOffsetEnd;
+
+func normalization_map<items:array> =
+  [
+    ...(pluck items "originalOffsetStart")
+    (LastOriginalOffsetEnd (last items { originalOffsetEnd: 0 }))
+  ];
+
 rule CrLfUnit =
   "\r" "\n"
   -> (normalized_unit "\n" (match_leaf_offset "start") (match_leaf_offset "end"));

@@ -80,26 +80,21 @@ that can be consumed by expression, pattern, and language-definition layers.
 - Comment recognition and string-literal boundaries MUST be expressed through
   tokenizer patterns rather than a host-language state machine.
 
-## Semantic token text helpers (bootstrap precursors)
+## Semantic token text helpers
 
-After structured tokens are produced, language modules MUST be able to project
-parser-facing text streams without permanent TypeScript `Native` walks once
-these std globals ship:
+After structured tokens are produced, language modules project parser-facing
+text streams via module-local `func` declarations (not permanent globals):
 
 | Name                           | Contract                                                    |
 | ------------------------------ | ----------------------------------------------------------- |
 | `semantic_texts`               | Token texts with `kind !== "comment"` (whitespace retained) |
 | `semantic_no_whitespace_texts` | Texts for `kind` in `{ "word", "punctuation" }` only        |
 
-Authors write `(semantic_texts tokens)` and
-`(semantic_no_whitespace_texts tokens)`. These helpers operate on token values
-only; they MUST NOT read Match spans.
-
-These helpers are **provisional domain std**: they encode default tokenizer
-kind/text policy rather than general-purpose expression utilities. Prefer
-migrating them to module-local functions when author-defined `func` declarations
-ship ([#124](https://github.com/justinmchase/uffda/issues/124)). Until then,
-names and contracts MUST remain stable for conversion.
+Authors write `(semantic_texts tokens)` in `tokenizer.lang.uff` and
+`(semantic_no_whitespace_texts tokens)` in `tokenizer/mod.uff`. These funcs
+operate on token values only; they MUST NOT read Match spans. They are
+module-local (not exported, not registered as runtime globals) — see
+[#124](https://github.com/justinmchase/uffda/issues/124).
 
 ## Escape sequences in quoted strings
 
