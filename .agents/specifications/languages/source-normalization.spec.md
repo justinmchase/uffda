@@ -135,3 +135,37 @@ Each `SourceUnit` MUST include:
 
 - Source normalization contracts SHOULD be reusable by alternate language stacks
   that only consume tokenizer/lower-layer outputs.
+
+## Standard library helpers (bootstrap precursors)
+
+Language modules MUST be able to assemble source documents without permanent
+TypeScript `Native` host helpers once these std globals ship. Authors invoke
+them as ordinary invocations (for example `(checksum text)`).
+
+### Pure std (no match injection)
+
+| Name                | Contract                                                                |
+| ------------------- | ----------------------------------------------------------------------- |
+| `checksum`          | Deterministic 8-hex FNV-1a-style digest of a string                     |
+| `line_starts`       | Ordered normalized line-start offsets for a string                      |
+| `units`             | Ordered `SourceUnit` rows from text, lineStarts, and normalizationMap   |
+| `document_id`       | Stable `source:{length}:{checksum}` identifier                          |
+| `normalized_unit`   | `{ value, originalOffsetStart, originalOffsetEnd }`                     |
+| `normalization_map` | Map from ordered normalized units (ends with final original end offset) |
+| `source_document`   | Assembles a `SourceDocument` including `Symbol.iterator` over text      |
+
+Object literals MUST NOT be used to attach `Symbol.iterator`. Authors MUST call
+`source_document` when constructing iterable source documents.
+
+### Match-aware std
+
+| Name                | Contract                                                                  |
+| ------------------- | ------------------------------------------------------------------------- |
+| `match_leaf_offset` | Numeric leaf path segment of the current match span (`"start"` / `"end"`) |
+
+Match-aware callables are ordinary std globals marked for match injection.
+Invocation MUST inject the current successful `MatchOk` as the first argument
+before author-supplied arguments (see
+[invocation](../expressions/invocation.spec.md#match-aware-invocation)). Authors
+write `(match_leaf_offset "start")` — they MUST NOT pass the match value
+themselves.

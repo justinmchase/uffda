@@ -3,10 +3,10 @@ import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
-import { MatchKind } from "../../match.ts";
 import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
 import type { SourceDocument } from "../source/mod.ts";
-import { type TokenValue, toSemanticTexts } from "./structured.ts";
+import type { TokenValue } from "./structured.ts";
+import { semantic_texts } from "../../runtime/std/semantic_texts.ts";
 
 export type TokenizerLangValue = {
   source: SourceDocument;
@@ -46,10 +46,14 @@ export const TokenizerLang: ModuleDeclaration = {
         kind: PatternKind.Pipeline,
         steps: [
           {
-            kind: PatternKind.Resolve,
-            targetKind: ResolveTargetKind.Reference,
-            name: "Source",
-            args: [],
+            kind: PatternKind.Variable,
+            name: "s",
+            pattern: {
+              kind: PatternKind.Resolve,
+              targetKind: ResolveTargetKind.Reference,
+              name: "Source",
+              args: [],
+            },
           },
           {
             kind: PatternKind.Into,
@@ -64,18 +68,13 @@ export const TokenizerLang: ModuleDeclaration = {
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ _ }, _specials, match): TokenizerLangValue => {
-          const sourceMatch = match.matches[0];
-          if (!sourceMatch || sourceMatch.kind !== MatchKind.Ok) {
-            throw new TypeError(
-              "TokenizerLang expects Source to succeed",
-            );
+        fn: ({ _, s }): TokenizerLangValue => {
+          if (s == null) {
+            throw new TypeError("TokenizerLang expects Source to succeed");
           }
-
-          const source = sourceMatch.value as SourceDocument;
           return {
-            source,
-            tokens: toSemanticTexts(_ as TokenValue[]),
+            source: s as SourceDocument,
+            tokens: semantic_texts(_ as TokenValue[]),
           };
         },
       },

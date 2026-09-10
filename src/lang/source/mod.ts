@@ -6,33 +6,19 @@ import { executeModuleDeclaration } from "../../runtime/module.execute.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { lit, ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
+import { line_starts } from "../../runtime/std/line_starts.ts";
+import { match_leaf_offset } from "../../runtime/std/match_leaf_offset.ts";
+import {
+  normalization_map,
+  normalized_unit,
+} from "../../runtime/std/normalized_unit.ts";
+import {
+  source_document,
+  type SourceDocument,
+} from "../../runtime/std/source_document.ts";
+import { type SourceUnit, units } from "../../runtime/std/units.ts";
 
-export type SourceUnit = {
-  index: number;
-  value: string;
-  offsetStart: number;
-  offsetEnd: number;
-  lineStart: number;
-  columnStart: number;
-  lineEnd: number;
-  columnEnd: number;
-  originalOffsetStart: number;
-  originalOffsetEnd: number;
-};
-
-export type SourceDocument = {
-  documentId: string;
-  text: string;
-  lineStarts: number[];
-  units: SourceUnit[];
-  normalizationMap: number[];
-  [Symbol.iterator](): Iterator<string>;
-};
-
-type NormalizedTextResult = {
-  text: string;
-  normalizationMap: number[];
-};
+export type { SourceDocument, SourceUnit };
 
 type NormalizedTextStage = {
   kind: "NormalizedText";
@@ -69,102 +55,26 @@ type UnitIndexedInput = {
   units: SourceUnit[];
 };
 
-function checksum(value: string): string {
-  let hash = 2166136261;
-  for (let i = 0; i < value.length; i++) {
-    hash ^= value.charCodeAt(i);
-    hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) +
-      (hash << 24);
-  }
-
-  return (hash >>> 0).toString(16).padStart(8, "0");
-}
-
-function sourceOffset(match: MatchOk, edge: "start" | "end"): number {
-  const offset = match.span[edge].segments.at(-1);
-  if (typeof offset !== "number") {
-    throw new TypeError(`Expected numeric source ${edge} offset`);
-  }
-  return offset;
-}
-
-function normalizedUnit(value: string, match: MatchOk): NormalizedUnit {
-  return {
-    value,
-    originalOffsetStart: sourceOffset(match, "start"),
-    originalOffsetEnd: sourceOffset(match, "end"),
-  };
-}
-
+/** @deprecated Prefer std `line_starts`. */
 export function buildLineStarts(text: string): number[] {
-  const starts = [0];
-  for (let i = 0; i < text.length; i++) {
-    if (text[i] === "\n" && i + 1 <= text.length) {
-      starts.push(i + 1);
-    }
-  }
-  return starts;
+  return line_starts(text);
 }
 
+/** @deprecated Prefer std `units`. */
 export function buildUnits(
   text: string,
   lineStarts: number[],
   normalizationMap: number[],
 ): SourceUnit[] {
-  const units: SourceUnit[] = [];
+  return units(text, lineStarts, normalizationMap);
+}
 
-  let lineIndex = 0;
-  let lineStartOffset = lineStarts[0] ?? 0;
-  let column = 1;
-  let offset = 0;
-  let unitIndex = 0;
-
-  for (const value of text) {
-    const width = value.length;
-
-    while (
-      lineIndex + 1 < lineStarts.length &&
-      lineStarts[lineIndex + 1] <= offset
-    ) {
-      lineIndex += 1;
-      lineStartOffset = lineStarts[lineIndex];
-      column = offset - lineStartOffset + 1;
-    }
-
-    const offsetStart = offset;
-    const offsetEnd = offset + width;
-    const lineStart = lineIndex + 1;
-    const columnStart = column;
-
-    const lineEnd = lineStart;
-    const columnEnd = columnStart + width;
-
-    units.push({
-      index: unitIndex,
-      value,
-      offsetStart,
-      offsetEnd,
-      lineStart,
-      columnStart,
-      lineEnd,
-      columnEnd,
-      originalOffsetStart: normalizationMap[offsetStart],
-      originalOffsetEnd: normalizationMap[offsetEnd],
-    });
-
-    unitIndex += 1;
-    offset = offsetEnd;
-
-    if (value === "\n") {
-      lineIndex += 1;
-      lineStartOffset = lineStarts[lineIndex] ?? offset;
-      column = 1;
-    } else {
-      column += width;
-    }
-  }
-
-  return units;
+function unitFromMatch(value: string, match: MatchOk): NormalizedUnit {
+  return normalized_unit(
+    value,
+    match_leaf_offset(match, "start"),
+    match_leaf_offset(match, "end"),
+  );
 }
 
 export async function normalizeSource(value: string): Promise<SourceDocument> {
@@ -214,7 +124,7 @@ export const Source: ModuleDeclaration = {
       expression: {
         kind: ExpressionKind.Native,
         fn: (_variables, _capabilities, match): NormalizedUnit =>
-          normalizedUnit("\n", match),
+          unitFromMatch("\n", match),
       },
     },
     {
@@ -224,7 +134,7 @@ export const Source: ModuleDeclaration = {
       expression: {
         kind: ExpressionKind.Native,
         fn: (_variables, _capabilities, match): NormalizedUnit =>
-          normalizedUnit("\n", match),
+          unitFromMatch("\n", match),
       },
     },
     {
@@ -237,7 +147,7 @@ export const Source: ModuleDeclaration = {
       expression: {
         kind: ExpressionKind.Native,
         fn: ({ _ }, _capabilities, match): NormalizedUnit =>
-          normalizedUnit(_ as string, match),
+          unitFromMatch(_ as string, match),
       },
     },
     {
@@ -298,14 +208,11 @@ export const Source: ModuleDeclaration = {
       expression: {
         kind: ExpressionKind.Native,
         fn: ({ _ }): NormalizedTextStage => {
-          const units = _ as NormalizedUnit[];
+          const unitList = _ as NormalizedUnit[];
           return {
             kind: "NormalizedText",
-            text: units.map(({ value }) => value).join(""),
-            normalizationMap: [
-              ...units.map(({ originalOffsetStart }) => originalOffsetStart),
-              units.at(-1)?.originalOffsetEnd ?? 0,
-            ],
+            text: unitList.map(({ value }) => value).join(""),
+            normalizationMap: normalization_map(unitList),
           };
         },
       },
@@ -331,12 +238,11 @@ export const Source: ModuleDeclaration = {
         kind: ExpressionKind.Native,
         fn: ({ _ }): LineIndexedResult => {
           const normalized = _ as NormalizedTextStage;
-
           return {
             kind: "LineIndex",
             text: normalized.text,
             normalizationMap: normalized.normalizationMap,
-            lineStarts: buildLineStarts(normalized.text),
+            lineStarts: line_starts(normalized.text),
           };
         },
       },
@@ -366,13 +272,12 @@ export const Source: ModuleDeclaration = {
         kind: ExpressionKind.Native,
         fn: ({ _ }): UnitIndexedResult => {
           const indexed = _ as LineIndexedResult;
-
           return {
             kind: "UnitIndex",
             text: indexed.text,
             normalizationMap: indexed.normalizationMap,
             lineStarts: indexed.lineStarts,
-            units: buildUnits(
+            units: units(
               indexed.text,
               indexed.lineStarts,
               indexed.normalizationMap,
@@ -410,18 +315,12 @@ export const Source: ModuleDeclaration = {
         kind: ExpressionKind.Native,
         fn: ({ _ }): SourceDocument => {
           const indexed = _ as UnitIndexedInput;
-
-          const text = indexed.text;
-          return {
-            documentId: `source:${text.length}:${checksum(text)}`,
-            text,
-            lineStarts: indexed.lineStarts,
-            units: indexed.units,
-            normalizationMap: indexed.normalizationMap,
-            [Symbol.iterator](): Iterator<string> {
-              return text[Symbol.iterator]();
-            },
-          };
+          return source_document(
+            indexed.text,
+            indexed.lineStarts,
+            indexed.units,
+            indexed.normalizationMap,
+          );
         },
       },
     },

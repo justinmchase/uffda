@@ -7,11 +7,11 @@ import {
 } from "../../runtime/declarations/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 import { PatternKind } from "../../runtime/patterns/mod.ts";
+import { semantic_no_whitespace_texts } from "../../runtime/std/semantic_texts.ts";
 import {
   isTokenValue,
   StructuredTokenKind,
   type TokenValue,
-  toSemanticNoWhitespaceTexts,
 } from "./structured.ts";
 
 export type { TokenValue } from "./structured.ts";
@@ -501,10 +501,7 @@ export const Tokenizer: ModuleDeclaration = {
       },
       expression: {
         kind: ExpressionKind.Native,
-        fn: ({ _ }) => {
-          const tokens = _ as TokenValue[];
-          return toSemanticNoWhitespaceTexts(tokens);
-        },
+        fn: ({ _ }) => semantic_no_whitespace_texts(_ as TokenValue[]),
       },
     },
   ],

@@ -80,6 +80,21 @@ that can be consumed by expression, pattern, and language-definition layers.
 - Comment recognition and string-literal boundaries MUST be expressed through
   tokenizer patterns rather than a host-language state machine.
 
+## Semantic token text helpers (bootstrap precursors)
+
+After structured tokens are produced, language modules MUST be able to project
+parser-facing text streams without permanent TypeScript `Native` walks once
+these std globals ship:
+
+| Name                           | Contract                                                    |
+| ------------------------------ | ----------------------------------------------------------- |
+| `semantic_texts`               | Token texts with `kind !== "comment"` (whitespace retained) |
+| `semantic_no_whitespace_texts` | Texts for `kind` in `{ "word", "punctuation" }` only        |
+
+Authors write `(semantic_texts tokens)` and
+`(semantic_no_whitespace_texts tokens)`. These helpers operate on token values
+only; they MUST NOT read Match spans.
+
 ## Escape sequences in quoted strings
 
 - Inside a quoted string, `\` MUST introduce an escape that consumes exactly one
