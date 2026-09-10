@@ -1,0 +1,148 @@
+# Literals: types, character classes, between, includes, and bare equal.
+# Value sources use tagged value.literal / value.variable (B17). String escapes
+# mirror expression/string without interpolation. Bindings are single-letter (B12).
+import "../common/identifier.uff" Identifier;
+import "../expression/number.uff" Number;
+import "../expression/boolean.uff" Boolean;
+import "../expression/nullish.uff" Nullish;
+import "./character_class.uff" CharacterClass;
+
+export Literals;
+
+rule IdToken = string & [Identifier];
+
+rule EscapedPatternStringQuote = "\\" "\"" -> "\"";
+rule EscapedPatternStringBackslash = "\\" "\\" -> "\\";
+rule EscapedPatternStringTab = "\\" "t" -> "\t";
+rule EscapedPatternStringNewline = "\\" "n" -> "\n";
+rule EscapedPatternStringReturn = "\\" "r" -> "\r";
+
+rule PatternStringToken =
+  | EscapedPatternStringQuote
+  | EscapedPatternStringBackslash
+  | EscapedPatternStringTab
+  | EscapedPatternStringNewline
+  | EscapedPatternStringReturn
+  | ((not "\"") & string)
+  ;
+
+rule StringValue =
+  "\""
+  p:PatternStringToken*
+  "\""
+  -> (join (flat p) "");
+
+rule NumberValue =
+  n:Number
+  -> n.value;
+
+rule BooleanValue =
+  b:Boolean
+  -> b.value;
+
+rule NullishValue =
+  n:Nullish
+  -> n.value;
+
+rule ContextualValue =
+  "$"
+  n:IdToken
+  -> { kind: "value.variable", name: n };
+
+rule AtomicLiteralValue =
+  | StringValue
+  | NumberValue
+  | BooleanValue
+  | NullishValue
+  ;
+
+rule AtomicLiteralSource =
+  v:AtomicLiteralValue
+  -> { kind: "value.literal", value: v };
+
+rule IdentifierLiteralSource =
+  v:IdToken
+  -> { kind: "value.literal", value: v };
+
+rule Literal =
+  | ContextualValue
+  | AtomicLiteralSource
+  | IdentifierLiteralSource
+  ;
+
+rule TypeArray = "array" -> { kind: "type", type: "array" };
+rule TypeBigInt = "bigint" -> { kind: "type", type: "bigint" };
+rule TypeBoolean = "boolean" -> { kind: "type", type: "boolean" };
+rule TypeDate = "date" -> { kind: "type", type: "date" };
+rule TypeError = "error" -> { kind: "type", type: "error" };
+rule TypeFunction = "function" -> { kind: "type", type: "function" };
+rule TypeMap = "map" -> { kind: "type", type: "map" };
+rule TypeNumber = "number" -> { kind: "type", type: "number" };
+rule TypeObject = "object" -> { kind: "type", type: "object" };
+rule TypeSet = "set" -> { kind: "type", type: "set" };
+rule TypeString = "string" -> { kind: "type", type: "string" };
+rule TypeSymbol = "symbol" -> { kind: "type", type: "symbol" };
+
+rule TypeKeyword =
+  | TypeArray
+  | TypeBigInt
+  | TypeBoolean
+  | TypeDate
+  | TypeError
+  | TypeFunction
+  | TypeMap
+  | TypeNumber
+  | TypeObject
+  | TypeSet
+  | TypeString
+  | TypeSymbol
+  ;
+
+rule BareLiteralPattern =
+  v:(ContextualValue | AtomicLiteralSource)
+  -> { kind: "equal", value: v };
+
+rule IncludesValues =
+  f:Literal
+  r:Literal*
+  -> (flat (pack f r));
+
+rule IncludesPattern =
+  "in"
+  "["
+  v:IncludesValues
+  "]"
+  -> { kind: "includes", values: v };
+
+rule BetweenClosed =
+  l:Literal
+  "."
+  "."
+  r:Literal
+  -> { kind: "between", left: l, right: r };
+
+rule BetweenOpenUpper =
+  l:Literal
+  "."
+  "."
+  -> { kind: "between", left: l, right: undefined };
+
+rule BetweenOpenLower =
+  "."
+  "."
+  r:Literal
+  -> { kind: "between", left: undefined, right: r };
+
+rule BetweenPattern =
+  | BetweenClosed
+  | BetweenOpenUpper
+  | BetweenOpenLower
+  ;
+
+rule Literals =
+  | TypeKeyword
+  | CharacterClass
+  | BetweenPattern
+  | IncludesPattern
+  | BareLiteralPattern
+  ;

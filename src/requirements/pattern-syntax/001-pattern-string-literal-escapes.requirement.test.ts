@@ -13,7 +13,7 @@ Deno.test(
       ),
     );
     const literals = await Deno.readTextFile(
-      join(repoRoot, "src/lang/pattern/literals.ts"),
+      join(repoRoot, "src/lang/pattern/literals.uff"),
     );
     assertEquals(spec.includes("\\t"), true);
     assertEquals(spec.includes("\\n"), true);

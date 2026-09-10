@@ -1,6 +1,6 @@
 # Atomic is Atoms | Literals | Resolve | Structure.
 import "./atoms.uff" Atoms;
-import "./literals.ts" Literals;
+import "./literals.uff" Literals;
 import "./resolve.uff" Resolve;
 import "./structure.uff" Structure;
 
