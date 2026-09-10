@@ -95,6 +95,12 @@ Authors write `(semantic_texts tokens)` and
 `(semantic_no_whitespace_texts tokens)`. These helpers operate on token values
 only; they MUST NOT read Match spans.
 
+These helpers are **provisional domain std**: they encode default tokenizer
+kind/text policy rather than general-purpose expression utilities. Prefer
+migrating them to module-local functions when author-defined `func` declarations
+ship ([#124](https://github.com/justinmchase/uffda/issues/124)). Until then,
+names and contracts MUST remain stable for conversion.
+
 ## Escape sequences in quoted strings
 
 - Inside a quoted string, `\` MUST introduce an escape that consumes exactly one

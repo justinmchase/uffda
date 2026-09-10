@@ -142,6 +142,13 @@ Language modules MUST be able to assemble source documents without permanent
 TypeScript `Native` host helpers once these std globals ship. Authors invoke
 them as ordinary invocations (for example `(checksum text)`).
 
+These globals are **bootstrap precursors**. Several encode source-stack
+contracts and are a provisional fit for shared std; the long-term home is
+expected to be module-local author-defined functions once that surface exists
+(see [#124](https://github.com/justinmchase/uffda/issues/124)). Until then,
+implementations MUST keep these names and contracts stable for language-module
+conversion.
+
 ### Pure std (no match injection)
 
 | Name                | Contract                                                                |
