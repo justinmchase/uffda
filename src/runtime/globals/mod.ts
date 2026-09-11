@@ -1,4 +1,5 @@
 import { add } from "./add.ts";
+import { at } from "./at.ts";
 import { base58 } from "./base58.ts";
 import { coalesce } from "./coalesce.ts";
 import { compare } from "./compare.ts";
@@ -29,6 +30,7 @@ import { pluck } from "./pluck.ts";
 import { reduce } from "./reduce.ts";
 import { sha256 } from "./sha256.ts";
 import { slice } from "./slice.ts";
+import { sub } from "./sub.ts";
 import { symbol } from "./symbol.ts";
 import { to_set } from "./to_set.ts";
 import { units } from "./units.ts";
@@ -48,6 +50,7 @@ import { when } from "./when.ts";
  */
 export const defaultGlobals = new Map<string, unknown>([
   ["add", add],
+  ["at", at],
   ["base58", base58],
   ["coalesce", coalesce],
   ["compare", compare],
@@ -78,6 +81,7 @@ export const defaultGlobals = new Map<string, unknown>([
   ["reduce", reduce],
   ["sha256", sha256],
   ["slice", slice],
+  ["sub", sub],
   ["symbol", symbol],
   ["to_set", to_set],
   ["units", units],
