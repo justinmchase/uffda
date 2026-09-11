@@ -154,6 +154,7 @@ conversion.
 | Name                | Contract                                                                |
 | ------------------- | ----------------------------------------------------------------------- |
 | `checksum`          | Deterministic 8-hex FNV-1a-style digest of a string                     |
+| `length`            | Length/size of a string, array, Set, or Map                             |
 | `line_starts`       | Ordered normalized line-start offsets for a string                      |
 | `units`             | Ordered `SourceUnit` rows from text, lineStarts, and normalizationMap   |
 | `document_id`       | Stable `source:{length}:{checksum}` identifier                          |
@@ -161,10 +162,16 @@ conversion.
 | `normalization_map` | Map from ordered normalized units (ends with final original end offset) |
 | `iterable`          | Normalizes any `Symbol.iterator`/`Symbol.asyncIterator` value to async  |
 
+`checksum`, `length`, `units`, and `iterable` are runtime globals;
+`line_starts`, `document_id`, `normalized_unit`, and `normalization_map` are
+module-local `func` declarations in `src/lang/source/mod.uff` composed from
+those globals (for example `document_id` is
+`"source:{(length text)}:{(checksum text)}"` via string interpolation).
+
 `source_document`-shaped values (e.g. `SourceDocument`) are assembled directly
-as object literals using computed keys and the `symbol`/`iterable` globals — for
-example `{ ...(iterable t), documentId: (document_id t), text: t, ... }` —
-rather than a dedicated constructor global.
+as object literals using computed keys and the `iterable` global — for example
+`{ ...(iterable t), documentId: (document_id t), text: t, ... }` — rather than a
+dedicated constructor global.
 
 ### Match-aware std
 
