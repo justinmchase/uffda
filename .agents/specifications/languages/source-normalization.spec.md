@@ -140,7 +140,7 @@ Each `SourceUnit` MUST include:
 
 Language modules MUST be able to assemble source documents without permanent
 TypeScript `Native` host helpers once these std globals ship. Authors invoke
-them as ordinary invocations (for example `(checksum text)`).
+them as ordinary invocations (for example `(sha256 text)`).
 
 These globals are **bootstrap precursors**. Several encode source-stack
 contracts and are a provisional fit for shared std; the long-term home is
@@ -153,20 +153,24 @@ conversion.
 
 | Name                | Contract                                                                |
 | ------------------- | ----------------------------------------------------------------------- |
-| `checksum`          | Deterministic 8-hex FNV-1a-style digest of a string                     |
+| `sha256`            | SHA-256 digest of a string, as raw bytes                                |
+| `base58`            | Base58 (Bitcoin alphabet) encoding of bytes                             |
+| `slice`             | Slice of a string or array (JS `slice` semantics: exclusive end)        |
 | `length`            | Length/size of a string, array, Set, or Map                             |
 | `line_starts`       | Ordered normalized line-start offsets for a string                      |
 | `units`             | Ordered `SourceUnit` rows from text, lineStarts, and normalizationMap   |
-| `document_id`       | Stable `source:{length}:{checksum}` identifier                          |
+| `document_id`       | Stable `source:{length}:{digest}` identifier                            |
 | `normalized_unit`   | `{ value, originalOffsetStart, originalOffsetEnd }`                     |
 | `normalization_map` | Map from ordered normalized units (ends with final original end offset) |
 | `iterable`          | Normalizes any `Symbol.iterator`/`Symbol.asyncIterator` value to async  |
 
-`checksum`, `length`, `units`, and `iterable` are runtime globals;
-`line_starts`, `document_id`, `normalized_unit`, and `normalization_map` are
-module-local `func` declarations in `src/lang/source/mod.uff` composed from
-those globals (for example `document_id` is
-`"source:{(length text)}:{(checksum text)}"` via string interpolation).
+`sha256`, `base58`, `slice`, `length`, `units`, and `iterable` are runtime
+globals; `line_starts`, `document_id`, `normalized_unit`, and
+`normalization_map` are module-local `func` declarations in
+`src/lang/source/mod.uff` composed from those globals (for example `document_id`
+is `"source:{(length text)}:{(slice (base58 (sha256 text)) 0 8)}"` via string
+interpolation — `sha256` is async, but ExpressionLang invocations already await
+nested calls end-to-end, so no special syntax is needed).
 
 `source_document`-shaped values (e.g. `SourceDocument`) are assembled directly
 as object literals using computed keys and the `iterable` global — for example

@@ -91,7 +91,7 @@ rule UnitIndex =
 
 # `document_id` is module-local: it is only needed by SourceDocument's
 # projection and is not part of the general globals toolbox (#124).
-func document_id<text:string> = "source:{(length text)}:{(checksum text)}";
+func document_id<text:string> = "source:{(length text)}:{(slice (base58 (sha256 text)) 0 8)}";
 
 rule SourceDocument =
   {
