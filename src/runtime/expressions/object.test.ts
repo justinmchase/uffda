@@ -1,5 +1,6 @@
 import { expressionTest } from "../../test.ts";
 import { ExpressionKind } from "./expression.kind.ts";
+import type { ObjectKeyExpression } from "./expression.ts";
 
 await Deno.test("runtime/expressions/object", async (t) => {
   await t.step({
@@ -243,5 +244,40 @@ await Deno.test("runtime/expressions/object", async (t) => {
         ],
       },
     }),
+  });
+
+  await t.step({
+    name: "OBJECT10 evaluates keys sequentially, not concurrently",
+    fn: async () => {
+      // Fields must be evaluated strictly left-to-right, not concurrently
+      // (concurrent evaluation would race a shared parser scope/stream).
+      const order: number[] = [];
+      const delayed = (
+        name: string,
+        n: number,
+        ms: number,
+      ): ObjectKeyExpression => ({
+        kind: ExpressionKind.ObjectKey,
+        name,
+        expression: {
+          kind: ExpressionKind.Native,
+          fn: async () => {
+            await new Promise((r) => setTimeout(r, ms));
+            order.push(n);
+            return n;
+          },
+        },
+      });
+      await expressionTest({
+        expression: {
+          kind: ExpressionKind.Object,
+          keys: [delayed("x", 0, 20), delayed("y", 1, 0)],
+        },
+        result: { x: 0, y: 1 },
+      })();
+      if (order[0] !== 0 || order[1] !== 1) {
+        throw new Error(`Expected sequential order [0, 1], got [${order}]`);
+      }
+    },
   });
 });

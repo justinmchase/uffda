@@ -1,6 +1,7 @@
 import { Scope } from "../scope.ts";
 import { expressionTest } from "../../test.ts";
 import { ExpressionKind } from "./expression.kind.ts";
+import type { ArrayElementExpression } from "./expression.ts";
 
 await Deno.test("runtime/expressions/array", async (t) => {
   await t.step({
@@ -275,6 +276,36 @@ await Deno.test("runtime/expressions/array", async (t) => {
 
   await t.step({
     name: "RUNTIME.ARRAY08",
+    fn: async () => {
+      // Elements must be evaluated strictly left-to-right, not concurrently
+      // (concurrent evaluation would race a shared parser scope/stream).
+      const order: number[] = [];
+      const delayed = (n: number, ms: number): ArrayElementExpression => ({
+        kind: ExpressionKind.ArrayElement,
+        expression: {
+          kind: ExpressionKind.Native,
+          fn: async () => {
+            await new Promise((r) => setTimeout(r, ms));
+            order.push(n);
+            return n;
+          },
+        },
+      });
+      await expressionTest({
+        expression: {
+          kind: ExpressionKind.Array,
+          expressions: [delayed(0, 20), delayed(1, 0)],
+        },
+        result: [0, 1],
+      })();
+      if (order[0] !== 0 || order[1] !== 1) {
+        throw new Error(`Expected sequential order [0, 1], got [${order}]`);
+      }
+    },
+  });
+
+  await t.step({
+    name: "RUNTIME.ARRAY09",
     fn: expressionTest({
       expression: {
         kind: ExpressionKind.Array,

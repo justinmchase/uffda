@@ -20,16 +20,20 @@ export async function object(
   match: MatchOk,
 ): Promise<unknown> {
   const { keys } = expression;
-  const values = await Promise.all(
-    keys.map((key) =>
+  // Evaluated sequentially (not `Promise.all`) — see invocation.ts for why
+  // concurrent sibling-expression evaluation against a shared `match` is
+  // unsafe (races the packrat left-recursion memo and `Input.next()`).
+  const values: unknown[] = [];
+  for (const key of keys) {
+    values.push(
       key.kind === ExpressionKind.ObjectComputedKey
-        ? Promise.all([
-          exec(key.keyExpression, match),
-          exec(key.expression, match),
-        ])
-        : exec(key.expression, match)
-    ),
-  );
+        ? [
+          await exec(key.keyExpression, match),
+          await exec(key.expression, match),
+        ]
+        : await exec(key.expression, match),
+    );
+  }
   const buildObject = (resolvedValues: unknown[]) =>
     keys.reduce<Record<PropertyKey, unknown>>(
       (obj, key, i) => {
