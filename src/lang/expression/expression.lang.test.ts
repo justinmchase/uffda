@@ -280,5 +280,53 @@ Deno.test(
         assertStringIncludes(visualization, "Failure tree:");
       },
     });
+
+    await t.step({
+      name: "EXPR_LANG_09 lambda invoked inline with a single parameter",
+      fn: async () => {
+        const m = await expressionGrammar("(<x:any> -> (add x 1) 5)");
+        switch (m.kind) {
+          case MatchKind.Ok: {
+            const value = await exec(m.value, m);
+            assertEquals(value, 6);
+            break;
+          }
+          default:
+            assertEquals(m.kind, MatchKind.Ok);
+        }
+      },
+    });
+
+    await t.step({
+      name: "EXPR_LANG_10 lambda invoked inline with multiple parameters",
+      fn: async () => {
+        const m = await expressionGrammar("(<a:any b:any> -> (add a b) 2 3)");
+        switch (m.kind) {
+          case MatchKind.Ok: {
+            const value = await exec(m.value, m);
+            assertEquals(value, 5);
+            break;
+          }
+          default:
+            assertEquals(m.kind, MatchKind.Ok);
+        }
+      },
+    });
+
+    await t.step({
+      name: "EXPR_LANG_11 lambda body may be a bare reference, no parens",
+      fn: async () => {
+        const m = await expressionGrammar("(<x:any> -> x 9)");
+        switch (m.kind) {
+          case MatchKind.Ok: {
+            const value = await exec(m.value, m);
+            assertEquals(value, 9);
+            break;
+          }
+          default:
+            assertEquals(m.kind, MatchKind.Ok);
+        }
+      },
+    });
   },
 );

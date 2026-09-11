@@ -2,14 +2,14 @@
 # Parameter lists are PatternLang patterns in angle brackets, e.g.
 # `<a:number b:string>` or `<a:any*>`. The list is one pattern (typically Then).
 # Omitted or empty `<>` means End (no arguments). Variable bindings are
-# single-letter (B12).
-import "../pattern/pattern.lang.uff" PatternTokens;
+# single-letter (B12). The `<...>` capture-and-reparse mechanism itself is
+# shared with inline lambda expressions; see pattern/parameter_list.uff.
 import "../expression/expression.lang.uff" ExpressionTokens;
+import "../pattern/parameter_list.uff" ParameterList;
 import "./shared.rules.uff" IdentifierToken;
 
 export FuncDeclarationSyntax;
 export FuncExpressionBody;
-export FuncParameterList;
 
 rule FuncExpressionBody =
   FuncExpressionToken
@@ -38,57 +38,10 @@ rule FuncExpressionToken =
   )+
   -> (flat _);
 
-rule FuncParameterChunkNestedAngle =
-  "<"
-  c:FuncParameterChunk*
-  ">"
-  -> (flat (pack "<" (flat c) ">"));
-
-rule FuncParameterChunkNestedParen =
-  "("
-  c:FuncParameterChunk*
-  ")"
-  -> (flat (pack "(" (flat c) ")"));
-
-rule FuncParameterChunkNestedBracket =
-  "["
-  c:FuncParameterChunk*
-  "]"
-  -> (flat (pack "[" (flat c) "]"));
-
-rule FuncParameterChunkNestedBrace =
-  o:"{"
-  c:FuncParameterChunk*
-  e:"}"
-  -> (flat (pack o (flat c) e));
-
-rule FuncParameterChunk =
-  | FuncQuotedTokenSequence
-  | FuncParameterChunkNestedAngle
-  | FuncParameterChunkNestedParen
-  | FuncParameterChunkNestedBracket
-  | FuncParameterChunkNestedBrace
-  | ((not ">") & string)
-  ;
-
-rule FuncParameterToken =
-  FuncParameterChunk+
-  -> (flat _);
-
-rule FuncParameterPatterns =
-  FuncParameterToken
-  |> PatternTokens;
-
-rule FuncParameterList =
-  "<"
-  p:FuncParameterPatterns?
-  ">"
-  -> (coalesce p { kind: "end" });
-
 rule FuncDeclarationSyntax =
   "func"
   n:IdentifierToken
-  p:FuncParameterList?
+  p:ParameterList?
   "="
   e:FuncExpressionBody
   ";"
