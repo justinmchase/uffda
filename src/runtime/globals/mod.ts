@@ -1,12 +1,15 @@
 import { add } from "./add.ts";
 import { base58 } from "./base58.ts";
 import { coalesce } from "./coalesce.ts";
+import { compare } from "./compare.ts";
 import { eq } from "./eq.ts";
 import { enumerate } from "./enumerate.ts";
 import { filter } from "./filter.ts";
 import { flat } from "./flat.ts";
 import { format } from "./format.ts";
 import { from_entries } from "./from_entries.ts";
+import { gt } from "./gt.ts";
+import { gte } from "./gte.ts";
 import { has } from "./has.ts";
 import { id } from "./id.ts";
 import { int } from "./int.ts";
@@ -15,6 +18,8 @@ import { join } from "./join.ts";
 import { json } from "./json.ts";
 import { last } from "./last.ts";
 import { length } from "./length.ts";
+import { lt } from "./lt.ts";
+import { lte } from "./lte.ts";
 import { map } from "./map.ts";
 import { match_leaf_offset } from "./match_leaf_offset.ts";
 import { not } from "./not.ts";
@@ -45,12 +50,15 @@ export const defaultGlobals = new Map<string, unknown>([
   ["add", add],
   ["base58", base58],
   ["coalesce", coalesce],
+  ["compare", compare],
   ["eq", eq],
   ["enumerate", enumerate],
   ["filter", filter],
   ["flat", flat],
   ["format", format],
   ["from_entries", from_entries],
+  ["gt", gt],
+  ["gte", gte],
   ["has", has],
   ["id", id],
   ["int", int],
@@ -59,6 +67,8 @@ export const defaultGlobals = new Map<string, unknown>([
   ["json", json],
   ["last", last],
   ["length", length],
+  ["lt", lt],
+  ["lte", lte],
   ["map", map],
   ["match_leaf_offset", match_leaf_offset],
   ["not", not],
