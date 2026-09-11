@@ -25,6 +25,7 @@ RFC 8174.
 - [number expression](./expressions/number.spec.md)
 - [object expression](./expressions/object.spec.md)
 - [object key initializer](./expressions/object-key.spec.md)
+- [object computed-key initializer](./expressions/object-computed-key.spec.md)
 - [object spread initializer](./expressions/object-spread.spec.md)
 - [reference expression](./expressions/reference.spec.md)
 - [string expression](./expressions/string.spec.md)

@@ -175,4 +175,73 @@ await Deno.test("runtime/expressions/object", async (t) => {
       },
     }),
   });
+
+  await t.step({
+    name: "OBJECT07 computed key from a dynamic expression",
+    fn: expressionTest({
+      result: { dynamic: 7 },
+      expression: {
+        kind: ExpressionKind.Object,
+        keys: [
+          {
+            kind: ExpressionKind.ObjectComputedKey,
+            keyExpression: {
+              kind: ExpressionKind.Value,
+              value: "dynamic",
+            },
+            expression: {
+              kind: ExpressionKind.Value,
+              value: 7,
+            },
+          },
+        ],
+      },
+    }),
+  });
+
+  await t.step({
+    name: "OBJECT08 computed key can be a symbol",
+    fn: expressionTest({
+      result: { [Symbol.for("example")]: 7 },
+      expression: {
+        kind: ExpressionKind.Object,
+        keys: [
+          {
+            kind: ExpressionKind.ObjectComputedKey,
+            keyExpression: {
+              kind: ExpressionKind.Native,
+              fn: () => Promise.resolve(Symbol.for("example")),
+            },
+            expression: {
+              kind: ExpressionKind.Value,
+              value: 7,
+            },
+          },
+        ],
+      },
+    }),
+  });
+
+  await t.step({
+    name: "OBJECT09 computed key rejects non property-key values",
+    fn: expressionTest({
+      throws: true,
+      expression: {
+        kind: ExpressionKind.Object,
+        keys: [
+          {
+            kind: ExpressionKind.ObjectComputedKey,
+            keyExpression: {
+              kind: ExpressionKind.Value,
+              value: { not: "a valid key" },
+            },
+            expression: {
+              kind: ExpressionKind.Value,
+              value: 1,
+            },
+          },
+        ],
+      },
+    }),
+  });
 });

@@ -99,5 +99,32 @@ Deno.test(
         },
       }),
     });
+    await t.step({
+      name: "OBJECT_EXPRESSION_03",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "Object",
+        input: Input.Iterable([
+          "{",
+          "[",
+          "key",
+          "]",
+          ":",
+          "1",
+          "}",
+        ]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: ExpressionKind.Object,
+          keys: [
+            {
+              kind: ExpressionKind.ObjectComputedKey,
+              keyExpression: { kind: ExpressionKind.Reference, name: "key" },
+              expression: { kind: ExpressionKind.Number, value: 1 },
+            },
+          ],
+        },
+      }),
+    });
   },
 );

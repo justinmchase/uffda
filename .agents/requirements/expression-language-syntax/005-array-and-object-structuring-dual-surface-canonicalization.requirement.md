@@ -20,6 +20,8 @@ Expected behavior:
 - JavaScript-style sugar MUST apply to arrays/objects only.
 - Supported surface forms MUST normalize deterministically to one canonical
   structuring representation.
+- Object structuring MUST support computed (expression-valued) property keys in
+  both surface forms.
 - Set and map structuring MUST be expressed in canonical forms such as
   `(set
   ...)` and `(map (key ... ...))`.
@@ -30,10 +32,12 @@ Valid syntax examples:
 
 - `(array (elem 1) (elem 2) (elem 3))`
 - `(object (key name value))`
+- `(object (computed-key keyExpr value))`
 - `(set a b)`
 - `(map (key a b))`
 - `[1 2 3]`
 - `{name: value}`
+- `{[key]: value}`
 
 Invalid syntax examples:
 
