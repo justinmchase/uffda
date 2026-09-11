@@ -1,6 +1,14 @@
 import { assertEquals } from "@std/assert";
 import { normalizeSource } from "./mod.ts";
 
+async function collect(value: AsyncIterable<unknown>): Promise<unknown[]> {
+  const items: unknown[] = [];
+  for await (const item of value) {
+    items.push(item);
+  }
+  return items;
+}
+
 Deno.test("lang.source - normalizes CRLF and CR into LF", async () => {
   const normalized = await normalizeSource("a\r\nb\rc\n");
 
@@ -15,7 +23,7 @@ Deno.test("lang.source - computes deterministic source document", async () => {
   assertEquals(one.documentId, two.documentId);
   assertEquals(one.text, "ab\nc");
   assertEquals(one.lineStarts, [0, 3]);
-  assertEquals([...one], ["a", "b", "\n", "c"]);
+  assertEquals(await collect(one), ["a", "b", "\n", "c"]);
   assertEquals(one.units.length, 4);
 
   assertEquals(one.units[0].offsetStart, 0);

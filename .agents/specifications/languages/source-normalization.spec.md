@@ -159,10 +159,12 @@ conversion.
 | `document_id`       | Stable `source:{length}:{checksum}` identifier                          |
 | `normalized_unit`   | `{ value, originalOffsetStart, originalOffsetEnd }`                     |
 | `normalization_map` | Map from ordered normalized units (ends with final original end offset) |
-| `source_document`   | Assembles a `SourceDocument` including `Symbol.iterator` over text      |
+| `iterable`          | Normalizes any `Symbol.iterator`/`Symbol.asyncIterator` value to async  |
 
-Object literals MUST NOT be used to attach `Symbol.iterator`. Authors MUST call
-`source_document` when constructing iterable source documents.
+`source_document`-shaped values (e.g. `SourceDocument`) are assembled directly
+as object literals using computed keys and the `symbol`/`iterable` globals — for
+example `{ ...(iterable t), documentId: (document_id t), text: t, ... }` —
+rather than a dedicated constructor global.
 
 ### Match-aware std
 
