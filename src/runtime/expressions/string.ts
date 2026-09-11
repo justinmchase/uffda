@@ -9,33 +9,28 @@ export async function string(
   match: MatchOk,
 ): Promise<string> {
   const { values } = expression;
-  const segments = await Promise.all(values.map(async (value) => {
+  // Evaluated sequentially (not `Promise.all`) — see invocation.ts for why
+  // concurrent sibling-expression evaluation against a shared `match` is
+  // unsafe (races the packrat left-recursion memo and `Input.next()`).
+  const segments: unknown[] = [];
+  for (const value of values) {
     const [t, v] = type(value);
     switch (t) {
       case Type.String:
-        return v;
+        segments.push(v);
+        break;
       case Type.Object:
         if (isExpression(v)) {
-          return await exec(v as Expression, match);
+          segments.push(await exec(v as Expression, match));
         } else {
-          return v;
+          segments.push(v);
         }
-      case Type.Null:
-      case Type.Undefined:
-      case Type.BigInt:
-      case Type.Boolean:
-      case Type.Function:
-      case Type.Number:
-      case Type.Symbol:
-      case Type.Array:
-      case Type.Error:
-      case Type.Map:
-      case Type.Set:
-      case Type.Date:
+        break;
       default:
-        return value;
+        segments.push(value);
+        break;
     }
-  }));
+  }
 
   const toStringValue = (segment: unknown): string => `${segment}`;
   return segments.map(toStringValue).join("");
