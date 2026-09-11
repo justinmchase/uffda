@@ -74,6 +74,62 @@ rule LineIndex =
     lineStarts: (line_starts t)
   };
 
+# `units` is module-local: it is only needed by UnitIndex and is not part of
+# the general globals toolbox (#124). Built in two passes:
+#   1. `unit_positions` prefix-sums each code point's UTF-16 width via
+#      `reduce` to get {index, value, offsetStart, offsetEnd} per unit — an
+#      accumulator is unavoidable here since each offset depends on every
+#      preceding unit's width.
+#   2. `to_source_unit` adds line/column via a pure lookup against the
+#      already-known `lineStarts` (no accumulator needed): the line number is
+#      how many `lineStarts` entries are `<=` a unit's offsetStart, and the
+#      line's start offset is the greatest such entry. `line_lookup` still
+#      uses `reduce` internally, but only to walk `lineStarts` (one line per
+#      step), not to thread state across *units*.
+#
+# NOTE: variable names bound anywhere in a func's parameter pattern are
+# visible to every nested func/lambda call made from within its body — the
+# runtime does not give each call its own isolated namespace, so a name
+# reused at a deeper nesting level collides with the same name bound higher
+# up (E_DUPLICATE_VARIABLE). Every func below therefore uses parameter names
+# that are unique across this whole call chain, not just within each func.
+func UnitPosition<{offset: po:number, output: pout:array} entry:{index: ei:number, value: ev:string}> =
+  {
+    offset: (add po (length ev)),
+    output: [...pout { index: ei, value: ev, offsetStart: po, offsetEnd: (add po (length ev)) }]
+  };
+
+func UnitPositionsOutput<{offset: po:number, output: pout:array}> = pout;
+
+func unit_positions<text:string> =
+  (UnitPositionsOutput (reduce (enumerate text) { offset: 0, output: [] } UnitPosition));
+
+func line_lookup<llPositions:array llTarget:number> =
+  (reduce llPositions { line: 0, lineStart: 0 }
+    <llAcc:{line: llLine:number, lineStart: llStart:number} llCandidate:number> ->
+      (when (lte llCandidate llTarget) { line: (add llLine 1), lineStart: llCandidate } llAcc));
+
+func build_source_unit<
+  bsEntry:{index: bsIndex:number, value: bsValue:string, offsetStart: bsOffsetStart:number, offsetEnd: bsOffsetEnd:number}
+  bsMap:array
+  bsPos:{line: bsLine:number, lineStart: bsLineStart:number}
+> =
+  {
+    index: bsIndex,
+    value: bsValue,
+    offsetStart: bsOffsetStart,
+    offsetEnd: bsOffsetEnd,
+    lineStart: bsLine,
+    columnStart: (add (sub bsOffsetStart bsLineStart) 1),
+    lineEnd: bsLine,
+    columnEnd: (add (add (sub bsOffsetStart bsLineStart) 1) (sub bsOffsetEnd bsOffsetStart)),
+    originalOffsetStart: (at bsMap bsOffsetStart),
+    originalOffsetEnd: (at bsMap bsOffsetEnd)
+  };
+
+func to_source_unit<tsPositions:array tsMap:array tsEntry:{offsetStart: tsOffset:number}> =
+  (build_source_unit tsEntry tsMap (line_lookup tsPositions tsOffset));
+
 rule UnitIndex =
   {
     kind: "LineIndex",
@@ -86,7 +142,7 @@ rule UnitIndex =
     text: t,
     normalizationMap: m,
     lineStarts: s,
-    units: (units t s m)
+    units: [...(map (unit_positions t) <posEntry:any> -> (to_source_unit s m posEntry))]
   };
 
 # `document_id` is module-local: it is only needed by SourceDocument's
