@@ -9,9 +9,13 @@ export async function array(
   match: MatchOk,
 ): Promise<unknown> {
   const { expressions } = expression;
-  const values = await Promise.all(
-    expressions.map((expr) => exec(expr.expression, match)),
-  );
+  // Evaluated sequentially (not `Promise.all`) — see invocation.ts for why
+  // concurrent sibling-expression evaluation against a shared `match` is
+  // unsafe (races the packrat left-recursion memo and `Input.next()`).
+  const values: unknown[] = [];
+  for (const expr of expressions) {
+    values.push(await exec(expr.expression, match));
+  }
 
   const result: unknown[] = [];
   for (let i = 0; i < expressions.length; i++) {

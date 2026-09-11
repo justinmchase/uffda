@@ -25,14 +25,21 @@ export async function invocation(
   };
 
   const fn = await exec(expr, match);
-  const values = await Promise.all(
-    args.map((arg) =>
-      exec(
+  // Evaluated sequentially (not `Promise.all`) so sibling argument
+  // expressions never run concurrently against the same shared `match`
+  // scope/stream. This is both simpler (a deterministic left-to-right
+  // evaluation order) and required for correctness: concurrent evaluation
+  // can race the packrat left-recursion memo and `Input.next()`, which are
+  // only safe when driven by a single in-flight caller at a time.
+  const values: unknown[] = [];
+  for (const arg of args) {
+    values.push(
+      await exec(
         arg.kind === ExpressionKind.InvocationSpread ? arg.expression : arg,
         match,
-      )
-    ),
-  );
+      ),
+    );
+  }
 
   const resolvedArgs: unknown[] = [];
   for (let i = 0; i < args.length; i++) {
