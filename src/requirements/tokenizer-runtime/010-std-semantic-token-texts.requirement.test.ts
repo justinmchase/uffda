@@ -1,4 +1,5 @@
 import { assertEquals } from "@std/assert";
+import { collect } from "../../testing.ts";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { moduleDeclarationTest } from "../../test.ts";
@@ -77,7 +78,7 @@ Deno.test(
     }
 
     const [value] = m.value as [TokenizerLangValue, unknown];
-    assertEquals(value.tokens, ["a", " ", "\n", "+"]);
+    assertEquals(await collect(value.tokens), ["a", " ", "\n", "+"]);
   },
 );
 

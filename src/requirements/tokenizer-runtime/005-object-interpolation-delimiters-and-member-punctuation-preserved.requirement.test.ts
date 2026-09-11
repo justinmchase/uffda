@@ -1,4 +1,5 @@
 import { assertEquals } from "@std/assert";
+import { collect } from "../../testing.ts";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import type { TokenizerLangValue } from "../../lang/tokenizer/tokenizer.lang.ts";
@@ -72,7 +73,7 @@ Deno.test("req:tokenizer-runtime-005 - Object interpolation delimiters and membe
   if (m.kind !== MatchKind.Ok) return;
 
   const [value] = m.value as [TokenizerLangValue, unknown];
-  assertEquals(value.tokens, [
+  assertEquals(await collect(value.tokens), [
     '"',
     "$",
     "{",

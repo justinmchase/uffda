@@ -1,5 +1,6 @@
 import type { MatchOk } from "../../match.ts";
 import { exec } from "../exec.ts";
+import { collect } from "../collect.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import type { InvocationExpression } from "./expression.ts";
 import { isMatchAware } from "../globals/match_aware.ts";
@@ -33,13 +34,19 @@ export async function invocation(
     ),
   );
 
-  const resolvedArgs = args.reduce<unknown[]>((all, arg, i) => {
+  const resolvedArgs: unknown[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
     const value = values[i];
     if (arg.kind === ExpressionKind.InvocationSpread) {
-      return [...all, ...(value as [])];
+      // `value` may be a lazily produced sequence (e.g. the result of
+      // `enumerate`/`map`/`filter`), so drain it via `collect` instead of
+      // relying on native `...` (which only supports sync iterables).
+      resolvedArgs.push(...await collect(value));
+    } else {
+      resolvedArgs.push(value);
     }
-    return [...all, value];
-  }, []);
+  }
 
   return invoke(fn, resolvedArgs);
 }

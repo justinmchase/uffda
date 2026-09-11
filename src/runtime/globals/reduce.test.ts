@@ -55,6 +55,24 @@ Deno.test("globals.reduce keeps an astral character as one item, not two", async
   assertEquals(items, ["a", emoji, "b"]);
 });
 
+Deno.test("globals.reduce drains a lazy map/filter/enumerate chain", async () => {
+  const { enumerate } = await import("./enumerate.ts");
+  const { filter } = await import("./filter.ts");
+  const { map } = await import("./map.ts");
+  const result = await reduce(
+    map(
+      filter(
+        enumerate([1, 2, 3, 4]),
+        (e) => (e as { index: number }).index % 2 === 0,
+      ),
+      (e) => (e as { value: number }).value,
+    ),
+    0,
+    (acc, item) => (acc as number) + (item as number),
+  );
+  assertEquals(result, 4); // items at index 0, 2 -> values 1, 3
+});
+
 Deno.test("globals.reduce rejects unsupported values", async () => {
   await assertRejects(
     () => reduce(42 as unknown as string, 0, (a) => a),

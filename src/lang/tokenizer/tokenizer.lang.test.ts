@@ -7,6 +7,7 @@ import { match } from "../../runtime/match.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { ModuleImportResultKind } from "../../runtime/resolvers/resolver.ts";
+import { collect } from "../../testing.ts";
 import type { TokenizerLangValue } from "./tokenizer.lang.ts";
 
 Deno.test("lang.tokenizer.tokenizer-lang - pipelines normalization and tokenization", async () => {
@@ -71,5 +72,5 @@ Deno.test("lang.tokenizer.tokenizer-lang - pipelines normalization and tokenizat
   const [value] = m.value as [TokenizerLangValue, unknown];
   assertEquals(value.source.text, "a\nb\nc");
   assertEquals(value.source.normalizationMap, [0, 1, 3, 4, 5, 6]);
-  assertEquals(value.tokens, ["a", "\n", "b", "\n", "c"]);
+  assertEquals(await collect(value.tokens), ["a", "\n", "b", "\n", "c"]);
 });
