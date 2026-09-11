@@ -1,0 +1,231 @@
+# Runtime memo eviction
+
+This chapter defines the runtime contract for bounded-memory, first-pass
+streaming: parsing a large, previously-unparsed input while evicting memoized
+state that can no longer affect the outcome, instead of retaining memo entries
+for the entire input for the life of the parse.
+
+## Conventions
+
+Normative key words in this chapter use the conventions defined in RFC 2119 and
+RFC 8174.
+
+## Logical purpose
+
+Memo eviction exists to serve ingestion of arbitrarily large, new inputs without
+requiring working memory proportional to the whole input. Packrat memoization
+(see [runtime rules](./rules.spec.md)) makes direct left recursion and
+backtracking tractable, but naively retaining every rule's memo entry at every
+position for the life of a parse means memory scales with input size, not with
+grammar complexity. Memo eviction lets the runtime reclaim memo entries once it
+can prove no remaining evaluation path can ever observe them again, bounding
+working memory for a single first-pass parse.
+
+## Scope
+
+- This chapter governs a single, first-pass parse of an input that has not been
+  parsed before — reducing peak/working memory during that parse.
+- Like [runtime incremental re-parsing](./incremental-parsing.spec.md), this
+  chapter is input-shape-agnostic: a Uffda [rule](./rules.spec.md) matches over
+  a generic `Input` stream whose items MAY be characters, tokens, objects,
+  arrays, or any other JavaScript value. "Position" and "input" in this chapter
+  refer to stream positions and stream items in general, not text offsets.
+- This chapter does NOT govern re-analysis of an already-parsed input after a
+  localized edit. That is a distinct concern with different tradeoffs and is
+  defined separately in
+  [runtime incremental re-parsing](./incremental-parsing.spec.md). The two
+  chapters MUST be treated independently: an implementation MAY support eviction
+  without incremental re-parsing, or vice versa, or neither.
+- This chapter applies to the packrat/memoized runtime described in
+  [runtime rules](./rules.spec.md) and
+  [runtime left recursion](./left-recursion.spec.md). Grammar authors MUST
+  observe identical match outcomes whether or not memo eviction is active —
+  eviction MUST be strictly a memory-management strategy, never a change to
+  matching semantics.
+- Uffda compiler pipelines are commonly composed of multiple layers (for
+  example: normalization, tokenization, parsing, lowering), where each layer is
+  itself a grammar matching over the previous layer's output stream. See
+  "Multi-stage pipelines" below for how this chapter's contract composes across
+  such layers.
+
+## Definitions
+
+- The **low-water mark** at a given point during a parse is the earliest input
+  position that any currently-active evaluation path (in-progress rule calls,
+  in-progress left-recursive growth loops, and any pending backtracking
+  alternative) could still revisit or depend on.
+- A memo entry is **provably unreachable** once its position is strictly before
+  the current low-water mark, AND the entry is not reachable from the parse's
+  **delivered result** (see "Interaction with delivered results" below): no live
+  growth loop, no pending alternation branch, and no enclosing rule frame can
+  ever re-examine that position again for the remainder of the parse, and no
+  reference to that entry's value is held by anything the host or a downstream
+  pipeline layer can still observe.
+- **Eviction** is the act of discarding a provably-unreachable memo entry (and
+  reclaiming the memory it and its associated match value hold) before the parse
+  completes.
+
+## Core contract
+
+- Memo eviction MUST NOT change match outcomes. A grammar MUST produce the same
+  success/failure/error result, matched value, and diagnostics whether or not
+  eviction is active, and regardless of when eviction runs relative to matching.
+- The runtime MUST only evict a memo entry once it is provably unreachable per
+  the low-water-mark definition above. When reachability cannot be proven, the
+  runtime MUST retain the entry rather than risk evicting something a later step
+  still depends on.
+- The runtime MUST track enough state to compute a correct low-water mark,
+  including the positions of all currently-active rule frames, all in-progress
+  left-recursive growth loops, and all pending backtracking alternatives that
+  have not yet been resolved.
+- Eviction MUST be safe to run at any point between discrete evaluation steps
+  (for example, after a rule call fully resolves) without observably pausing or
+  altering the evaluation in progress.
+
+## Interaction with delivered results
+
+- A parse's **delivered result** is the caller-visible value(s) it returns: the
+  top-level rule's successful outcome, everything reachable from it, and (in a
+  multi-stage pipeline) any layer's output stream consumed by a downstream
+  layer. Eviction governs the transient working set produced while reaching that
+  result — abandoned alternation branches, superseded intermediate
+  left-recursive growth entries, and rule/position pairs that turned out not to
+  be part of the accepted parse — never the delivered result itself.
+- The runtime MUST NOT evict a memo entry that is reachable from the delivered
+  result for as long as the host (or a downstream pipeline layer) retains that
+  result. This is a natural consequence of "provably unreachable": if the host
+  still holds a reference into a value, evaluation could still cause it to be
+  observed (for example, by a downstream layer consuming it, or by an
+  incremental re-parse reusing it per
+  [runtime incremental re-parsing](./incremental-parsing.spec.md)), so it is not
+  unreachable.
+- This means a host that discards a parse's delivered result immediately after
+  use pays no eviction-related memory cost beyond ordinary garbage collection. A
+  host that retains the delivered result (for example, to enable incremental
+  re-parsing of that input, or to feed it to a downstream pipeline layer) pays a
+  cost proportional to the size of that delivered result — bounded by the
+  accepted parse's own structure, not by the full packrat working set (failed
+  branches and superseded growth attempts are never part of the delivered
+  result, so retaining it never requires retaining them).
+- This chapter does not require a distinct "durable cache" mechanism separate
+  from ordinary memo entries: the delivered result's reachability is what keeps
+  its underlying entries alive, exactly as JavaScript's ordinary reachability
+  and garbage collection already work. Eviction only needs to reclaim entries
+  the delivered result does NOT reference.
+
+## Interaction with left recursion and backtracking
+
+- While a left-recursive growth loop for a rule at a given position is
+  in-progress (seeded but not yet stabilized, per
+  [runtime left recursion](./left-recursion.spec.md)), the runtime MUST NOT
+  evict that rule's memo entry at that position, nor any memo entry the
+  in-progress growth step depends on.
+- The low-water mark MUST NOT advance past a position while any pending
+  alternation branch (an unexplored `or` alternative that has not yet been
+  attempted or ruled out) could still re-enter that position.
+- Once a left-recursive growth loop stabilizes and its final result is recorded,
+  and once all alternation branches that could revisit an earlier position have
+  been resolved, the low-water mark MAY advance past that position, making its
+  now-superseded intermediate memo entries eligible for eviction.
+
+## Multi-stage pipelines
+
+- Each pipeline layer (see
+  [runtime incremental re-parsing](./incremental-parsing.spec.md)'s "Multi-stage
+  pipelines" section) has its own rule set, input stream, and memo state, and
+  therefore its own low-water mark, tracked and advanced independently of every
+  other layer's.
+- A downstream layer consuming an upstream layer's output stream is, from the
+  upstream layer's perspective, part of that upstream layer's delivered result
+  for as long as the downstream layer is still reading from it. The upstream
+  layer MUST NOT evict memo entries reachable from the portion of its output the
+  downstream layer has not yet finished consuming.
+- Layers MAY apply eviction independently: a pipeline MAY bound working memory
+  in an early layer (for example, tokenization) while a later layer (for
+  example, parsing) retains everything, or vice versa, according to each layer's
+  own low-water mark and delivered-result reachability.
+
+## Error and negative behavior
+
+- The runtime MUST NOT evict a memo entry it cannot prove is unreachable, even
+  under memory pressure. Eviction is a proof-driven optimization, not a
+  best-effort cache with arbitrary reclamation (for example, LRU-style eviction
+  of entries that might still be needed is NOT an acceptable fallback under this
+  contract).
+- If a subsequent evaluation step requires a memo entry that was evicted, that
+  MUST indicate a defect in the low-water-mark computation (an unsafe eviction),
+  not a supported "recompute on miss" pathway. The contract requires evicted
+  entries to be genuinely unreachable, not merely unlikely to be needed.
+
+## Performance intent
+
+- For grammars and inputs where the low-water mark advances roughly in step with
+  input position (bounded lookahead, bounded-depth backtracking, and
+  left-recursive growth that stabilizes promptly), working memory SHOULD stay
+  bounded rather than scale linearly with total input size.
+- The runtime MAY fall back to effectively unbounded memory retention for
+  pathological grammars whose evaluation paths keep arbitrarily early positions
+  reachable for the entire parse (for example, a rule whose alternation defers
+  resolution of an early branch until end of input). Eviction MUST remain
+  correct in that worst case; it is only required to be a memory optimization,
+  never a requirement for correctness.
+
+## Composition and extension intent
+
+- Memo eviction is an optional runtime capability. Implementations MAY run a
+  full, unbounded-memory packrat parse and are never required to implement
+  eviction.
+- This chapter defines the contract memo eviction MUST satisfy. It intentionally
+  does not mandate a specific low-water-mark tracking data structure or
+  algorithm — those are implementation and requirement-level decisions to be
+  validated against this contract (including empirical prototyping against
+  realistic large inputs, including non-text pipeline layers) before being
+  finalized.
+
+## Why this design
+
+- Bounding working memory for a first-pass parse is only valuable if it never
+  risks correctness: a proof-driven eviction contract (evict only what is
+  provably unreachable) keeps this feature strictly additive, the same way
+  [runtime incremental re-parsing](./incremental-parsing.spec.md)'s
+  conservative-fallback-on-doubt rule keeps that feature strictly additive.
+- Tying eviction eligibility to left-recursion growth stabilization and
+  unresolved alternation branches (rather than a simpler "evict everything
+  before the current position" rule) is necessary because DLR and backtracking
+  are exactly the cases where a later evaluation step can revisit an earlier
+  position; a naive position-only rule would be unsound for the grammars this
+  runtime is designed to support.
+- Excluding entries reachable from the delivered result from eviction, rather
+  than introducing a separate "durable cache" concept, keeps eviction and
+  incremental re-parsing composable without a special mode switch between them:
+  a host that wants incremental reuse simply keeps the delivered result alive,
+  and the memo entries it needs stay reachable (and therefore un-evicted) as an
+  ordinary consequence of that reachability — not because eviction was disabled.
+- Many real-world parsers assume a single text-in, tree-out shape and can treat
+  "the parse tree" and "the memo table" as clearly separate concepts (compact
+  tree kept, everything else discarded). Uffda's model is broader: every
+  compiler layer is itself a grammar, and a layer's "delivered result" may be
+  consumed as another layer's raw input stream rather than only handed to an
+  external host. The delivered-result reachability rule generalizes cleanly to
+  this shape without assuming inputs are text or that there is only one output
+  consumer.
+- This is intentionally the lower-priority of the two streaming concerns
+  identified in issue #149: incremental re-parsing (see
+  [runtime incremental re-parsing](./incremental-parsing.spec.md)) serves the
+  more concrete editor/live-diagnostics use case, while this chapter serves bulk
+  ingestion of new large inputs, which is a real but comparatively less urgent
+  target.
+
+## Related
+
+- [runtime rules](./rules.spec.md) — packrat memoization by input position and
+  rule identity, which memo eviction reclaims once entries are unreachable.
+- [runtime left recursion](./left-recursion.spec.md) — seed-and-grow evaluation
+  whose in-progress growth loops constrain when the low-water mark may advance.
+- [runtime incremental re-parsing](./incremental-parsing.spec.md) — the
+  distinct, edit-driven re-analysis concern this chapter explicitly excludes,
+  and whose reuse rules operate against exactly the memo entries this chapter's
+  delivered-result reachability rule keeps alive.
+- GitHub issue #149 — origin of this chapter, split from the incremental
+  re-parsing concern as the other of the two streaming/large-input problems
+  identified there.
