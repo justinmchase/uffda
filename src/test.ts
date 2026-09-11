@@ -5,6 +5,7 @@ import { match } from "./runtime/match.ts";
 import { exec } from "./runtime/exec.ts";
 import { Input } from "./input.ts";
 import { ok, Resolver } from "./mod.ts";
+import { collect, isGenerator } from "./runtime/collect.ts";
 import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "./runtime/patterns/pattern.ts";
 import { resolve } from "./runtime/patterns/resolve.ts";
@@ -558,13 +559,19 @@ async function assertOk(m: MatchOk, assertion: MatchAssertion) {
       m,
     )}`,
   );
+  // A rule/func result may be a lazily produced sequence (an actual
+  // generator instance from `map`/`filter`/`enumerate`), which `equal`
+  // can't meaningfully compare against a literal array — drain it first.
+  const actualValue = isGenerator(m.value) ? await collect(m.value) : m.value;
   assert(
-    equal(m.value, assertion.value),
+    equal(actualValue, assertion.value),
     `Match value did not equal expected value\n` +
       `expected value: ${
         Deno.inspect(assertion.value, { colors: true, depth: 10 })
       }\n` +
-      `  actual value: ${Deno.inspect(m.value, { colors: true, depth: 10 })}` +
+      `  actual value: ${
+        Deno.inspect(actualValue, { colors: true, depth: 10 })
+      }` +
       `${await matchDebug(m)}`,
   );
   const done = assertion.done ?? true;

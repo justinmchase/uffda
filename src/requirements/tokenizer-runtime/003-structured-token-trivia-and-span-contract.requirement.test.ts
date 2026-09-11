@@ -1,4 +1,5 @@
 import { assertEquals } from "@std/assert";
+import { collect } from "../../testing.ts";
 import { Input } from "../../input.ts";
 import { type Match, MatchKind, type MatchOk } from "../../match.ts";
 import type { TokenizerLangValue } from "../../lang/tokenizer/tokenizer.lang.ts";
@@ -111,7 +112,7 @@ Deno.test("req:tokenizer-runtime-003 - match results carry trivia-compatible tok
   const [value] = m.value as [TokenizerLangValue, unknown];
   // Normalized text: "a\n# hi\nb"
   assertEquals(value.source.text, "a\n# hi\nb");
-  assertEquals(value.tokens, ["a", "\n", "\n", "b"]);
+  assertEquals(await collect(value.tokens), ["a", "\n", "\n", "b"]);
   assertEquals(
     "structured" in value,
     false,

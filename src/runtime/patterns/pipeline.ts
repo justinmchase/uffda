@@ -7,6 +7,7 @@ import {
   sourceProvenanceFrom,
 } from "../../input.ts";
 import { match } from "../match.ts";
+import { collect, isGenerator } from "../collect.ts";
 import type { PipelinePattern } from "./pattern.ts";
 import type { ItemSourceSpan } from "../../span.ts";
 import { leafOffset } from "../../span.ts";
@@ -87,6 +88,7 @@ export async function pipeline(
 ): Promise<Match> {
   const { steps } = pattern;
   let last = ok(scope, scope, pattern, undefined);
+  let lastValue: unknown = last.value;
   let next = scope;
   let outerEnd = scope;
   const matches: Match[] = [];
@@ -103,30 +105,50 @@ export async function pipeline(
 
     next = next.pushPipeline(pattern);
     const m = await match(pattern, next);
-    matches.push(m);
     switch (m.kind) {
       case MatchKind.LR:
       case MatchKind.Error:
+        matches.push(m);
         return m;
       case MatchKind.Fail:
+        matches.push(m);
         return fail(scope, pattern, matches);
-      case MatchKind.Ok:
+      case MatchKind.Ok: {
         last = m;
         if (i === 0) {
           outerEnd = m.scope;
         }
+        lastValue = m.value;
+        if (isGenerator(lastValue)) {
+          // Pipeline stage boundaries are eager "drain" points, exactly
+          // like array/invocation spread: a lazily produced sequence (e.g.
+          // from a `.uff` func built on `map`/`filter`/`enumerate`) must
+          // become a concrete array here, both so the next stage's `Input`
+          // can be re-inspected/backtracked over normally, so
+          // `provenanceForPipelineValue` below can compute token spans by
+          // indexing/length-comparing against it, and so diagnostics
+          // (`match.visualize.ts`) render a real array rather than an
+          // opaque, already-exhausted generator object. Only actual
+          // generator instances are unwrapped this way — a plain domain
+          // object that merely exposes `Symbol.asyncIterator` (e.g.
+          // `SourceDocument`) is left untouched.
+          lastValue = await collect(lastValue);
+          last = { ...m, value: lastValue };
+        }
+        matches.push(last);
         break;
+      }
     }
 
     const input = new Input(
-      last.value,
+      lastValue,
       last.scope.stream.path.push(0),
       0,
       undefined,
       InputNormalizationMode.Scalar,
       false,
       await provenanceForPipelineValue(
-        last.value,
+        lastValue,
         last,
         last.scope.stream.provenance,
       ),
@@ -141,7 +163,7 @@ export async function pipeline(
     scope,
     outerEnd.addVariables(last.scope.variables),
     pattern,
-    last.value,
+    lastValue,
     matches,
   );
 }
