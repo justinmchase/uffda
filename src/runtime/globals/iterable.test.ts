@@ -1,14 +1,7 @@
 import { assertEquals, assertStrictEquals } from "@std/assert";
 import { assertThrows } from "@std/assert/throws";
 import { iterable } from "./iterable.ts";
-
-async function collect(value: AsyncIterable<unknown>): Promise<unknown[]> {
-  const items: unknown[] = [];
-  for await (const item of value) {
-    items.push(item);
-  }
-  return items;
-}
+import { collect } from "../../testing.ts";
 
 Deno.test("globals.iterable wraps a sync iterable string as async", async () => {
   const result = await collect(iterable("abc"));

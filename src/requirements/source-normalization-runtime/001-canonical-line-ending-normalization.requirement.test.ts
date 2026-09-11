@@ -1,13 +1,6 @@
 import { assertEquals } from "@std/assert";
 import { normalizeSource } from "../../lang/source/mod.ts";
-
-async function collect(value: AsyncIterable<unknown>): Promise<unknown[]> {
-  const items: unknown[] = [];
-  for await (const item of value) {
-    items.push(item);
-  }
-  return items;
-}
+import { collect } from "../../testing.ts";
 
 Deno.test("req:source-normalization-runtime-001 - Source normalization canonicalizes line endings and preserves offset provenance", async () => {
   const doc = await normalizeSource("a\r\nb\rc\n");

@@ -2,14 +2,7 @@ import { assertEquals } from "@std/assert";
 import { checksum } from "../../runtime/globals/checksum.ts";
 import { document_id } from "../../runtime/globals/document_id.ts";
 import { normalizeSource } from "../../lang/source/mod.ts";
-
-async function collect(value: AsyncIterable<unknown>): Promise<unknown[]> {
-  const items: unknown[] = [];
-  for await (const item of value) {
-    items.push(item);
-  }
-  return items;
-}
+import { collect } from "../../testing.ts";
 
 Deno.test(
   "req:source-normalization-runtime-004 - std helpers assemble SourceDocument indexes",

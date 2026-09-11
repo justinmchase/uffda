@@ -1,13 +1,6 @@
 import { assertEquals } from "@std/assert";
 import { normalizeSource } from "./mod.ts";
-
-async function collect(value: AsyncIterable<unknown>): Promise<unknown[]> {
-  const items: unknown[] = [];
-  for await (const item of value) {
-    items.push(item);
-  }
-  return items;
-}
+import { collect } from "../../testing.ts";
 
 Deno.test("lang.source - normalizes CRLF and CR into LF", async () => {
   const normalized = await normalizeSource("a\r\nb\rc\n");
