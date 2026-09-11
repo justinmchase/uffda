@@ -58,6 +58,16 @@ ModuleDeclaration under `./bin`; resolve loads JSON only. Never post-process
   use `@justinmchase/type`'s helpers (`type()`, `assertNumber`, etc.) instead
   of hand-rolled `typeof`/`Array.isArray`/`instanceof` checks. It is already a
   project dependency and is used throughout `src/runtime/`.
+- When a function needs to branch on a value's runtime type across more than
+  one or two cases, prefer `const [t, v] = type(value)` followed by a
+  `switch (t)` over `Type`'s enum members, with one `case` per type you
+  support and a final fallthrough group of `case`s for the rest that throws
+  (or otherwise handles the unsupported-type path). Enumerating every `Type`
+  member (even in the "unsupported" group) forces you to consciously decide
+  what to do for each one, rather than silently falling through an `if`/`else`
+  chain that only checks for the types you first thought of. See
+  `src/runtime/globals/at.ts` and `src/runtime/globals/compare.ts` for
+  examples.
 
 ## Specification authority and change control
 

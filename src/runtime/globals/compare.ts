@@ -1,4 +1,4 @@
-import { isNumber, isString } from "@justinmchase/type";
+import { Type, type } from "@justinmchase/type";
 
 /**
  * Generic three-way comparison. Authors write `(compare left right)`.
@@ -8,11 +8,31 @@ import { isNumber, isString } from "@justinmchase/type";
  * throws so callers don't get a silently wrong ordering.
  */
 export function compare(left: unknown, right: unknown): number {
-  const bothNumbers = isNumber(left) && isNumber(right);
-  const bothStrings = isString(left) && isString(right);
-  if (!bothNumbers && !bothStrings) {
+  const [lt, lv] = type(left);
+  const [rt, rv] = type(right);
+  if (lt !== rt) {
     throw new TypeError("compare expects two numbers or two strings");
   }
-  if (left === right) return 0;
-  return (left as number | string) < (right as number | string) ? -1 : 1;
+  switch (lt) {
+    case Type.Number:
+    case Type.String: {
+      const l = lv as number | string;
+      const r = rv as number | string;
+      if (l === r) return 0;
+      return l < r ? -1 : 1;
+    }
+    case Type.Null:
+    case Type.Undefined:
+    case Type.BigInt:
+    case Type.Boolean:
+    case Type.Function:
+    case Type.Symbol:
+    case Type.Array:
+    case Type.Error:
+    case Type.Object:
+    case Type.Map:
+    case Type.Set:
+    case Type.Date:
+      throw new TypeError("compare expects two numbers or two strings");
+  }
 }
