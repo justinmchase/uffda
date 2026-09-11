@@ -25,7 +25,7 @@ Deno.test("span.sourceSpansFrom maps itemSpans at pre-item leaf 0", () => {
   });
 });
 
-Deno.test("span.sourceSpansFrom maps a consumed item through adjacent leaves", () => {
+Deno.test("span.sourceSpansFrom maps a consumed item through adjacent leaves", async () => {
   const itemSpans = [
     {
       normalized: { start: 0, end: 1 },
@@ -41,14 +41,14 @@ Deno.test("span.sourceSpansFrom maps a consumed item through adjacent leaves", (
     provenance: { itemSpans },
   });
   const before = stream;
-  const atFirst = stream.next();
+  const atFirst = await stream.next();
   assertEquals(sourceSpansFrom(Scope.From(before), Scope.From(atFirst)), {
     normalizedSpan: { start: 0, end: 1 },
     originalSpan: { start: 10, end: 11 },
   });
 });
 
-Deno.test("span.sourceSpansFrom uses eof endpoints without advancing", () => {
+Deno.test("span.sourceSpansFrom uses eof endpoints without advancing", async () => {
   const itemSpans = [
     {
       normalized: { start: 0, end: 3 },
@@ -59,8 +59,8 @@ Deno.test("span.sourceSpansFrom uses eof endpoints without advancing", () => {
     kind: InputNormalizationMode.Iterable,
     provenance: { itemSpans },
   });
-  const after = stream.next();
-  const eof = after.next();
+  const after = await stream.next();
+  const eof = await after.next();
   assertEquals(eof.isEof, true);
   const start = Scope.From(eof);
   assertEquals(sourceSpansFrom(start, start), {
@@ -69,12 +69,12 @@ Deno.test("span.sourceSpansFrom uses eof endpoints without advancing", () => {
   });
 });
 
-Deno.test("span.sourceSpansFrom falls back to normalizationMap", () => {
+Deno.test("span.sourceSpansFrom falls back to normalizationMap", async () => {
   const stream = Input.From("ab", {
     kind: InputNormalizationMode.Scalar,
     provenance: { normalizationMap: [5, 6, 7] },
   });
-  const atValue = stream.next();
+  const atValue = await stream.next();
   const start = Scope.From(stream);
   const end = Scope.From(atValue);
   assertEquals(sourceSpansFrom(start, end), {

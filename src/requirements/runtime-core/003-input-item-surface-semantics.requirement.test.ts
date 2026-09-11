@@ -14,7 +14,7 @@ Deno.test("req:runtime-core-003 - Input item surfaces drive direct, iterable, an
 
     assertEquals(m.kind, MatchKind.Ok);
     if (m.kind === MatchKind.Ok) {
-      assertEquals(m.scope.stream.done, true);
+      assertEquals(await m.scope.stream.done(), true);
     }
   });
 

@@ -40,12 +40,12 @@ function provenanceForIntoItem(
 }
 
 export async function into(pattern: IntoPattern, scope: Scope): Promise<Match> {
-  if (scope.stream.done) {
+  if (await scope.stream.done()) {
     return fail(scope, pattern);
   }
 
-  const next = scope.stream.next();
-  if (!Input.isIterable(next.value)) {
+  const next = await scope.stream.next();
+  if (!Input.isIterable(next.value) && !Input.isAsyncIterable(next.value)) {
     const [t] = type(next.value);
     return error(
       scope,
@@ -75,7 +75,7 @@ export async function into(pattern: IntoPattern, scope: Scope): Promise<Match> {
     case MatchKind.Fail:
       return fail(scope, pattern, [m]);
     case MatchKind.Ok: {
-      if (!m.scope.stream.done) {
+      if (!(await m.scope.stream.done())) {
         // Must consume entire stream to succeed
         return fail(scope, pattern, [m]);
       }

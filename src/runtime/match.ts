@@ -35,23 +35,23 @@ export async function match(pattern: Pattern, scope: Scope): AwaitableMatch {
     case PatternKind.And:
       return await and(pattern, scope);
     case PatternKind.Any:
-      return any(pattern, scope);
+      return await any(pattern, scope);
     case PatternKind.Between:
-      return between(pattern, scope);
+      return await between(pattern, scope);
     case PatternKind.Into:
       return await into(pattern, scope);
     case PatternKind.Character:
-      return character(pattern, scope);
+      return await character(pattern, scope);
     case PatternKind.End:
-      return end(pattern, scope);
+      return await end(pattern, scope);
     case PatternKind.Equal:
-      return equal(pattern, scope);
+      return await equal(pattern, scope);
     case PatternKind.Except:
       return await except(pattern, scope);
     case PatternKind.Fail:
       return failPattern(pattern, scope);
     case PatternKind.Includes:
-      return includes(pattern, scope);
+      return await includes(pattern, scope);
     case PatternKind.Lookahead:
       return await lookahead(pattern, scope);
     case PatternKind.Maybe:
@@ -71,13 +71,13 @@ export async function match(pattern: Pattern, scope: Scope): AwaitableMatch {
     case PatternKind.Quantifier:
       return await quantifier(pattern, scope);
     case PatternKind.RegExp:
-      return regexp(pattern, scope);
+      return await regexp(pattern, scope);
     case PatternKind.Resolve:
       return await resolve(pattern, scope);
     case PatternKind.Then:
       return await then(pattern, scope);
     case PatternKind.Type:
-      return type(pattern, scope);
+      return await type(pattern, scope);
     case PatternKind.Variable:
       return await variable(pattern, scope);
     default:

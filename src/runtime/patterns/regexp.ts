@@ -2,11 +2,14 @@ import { error, fail, type Match, MatchErrorCode, ok } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import type { RegExpPattern } from "./pattern.ts";
 
-export function regexp(pattern: RegExpPattern, scope: Scope): Match {
-  if (scope.stream.done) {
+export async function regexp(
+  pattern: RegExpPattern,
+  scope: Scope,
+): Promise<Match> {
+  if (await scope.stream.done()) {
     return fail(scope, pattern);
   }
-  const next = scope.stream.next();
+  const next = await scope.stream.next();
   const end = scope.withInput(next);
   if (typeof next.value !== "string") {
     return error(

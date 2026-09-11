@@ -7,8 +7,10 @@ Deno.test({
   fn: async (t) => {
     await t.step({
       name: "INPUT00",
-      fn: () => {
-        const { path, index, value, done } = Input.Default();
+      fn: async () => {
+        const input = Input.Default();
+        const { path, index, value } = input;
+        const done = await input.done();
         assertEquals({ path, index, value, done }, {
           path: Path.From(0),
           index: 0,
@@ -19,8 +21,10 @@ Deno.test({
     });
     await t.step({
       name: "INPUT01",
-      fn: () => {
-        const { path, index, value, done } = Input.Iterable([1, 2, 3]);
+      fn: async () => {
+        const input = Input.Iterable([1, 2, 3]);
+        const { path, index, value } = input;
+        const done = await input.done();
         assertEquals({ path, index, value, done }, {
           path: Path.From(0),
           index: 0,
@@ -31,9 +35,11 @@ Deno.test({
     });
     await t.step({
       name: "INPUT02",
-      fn: () => {
-        const { path, index, value, done } = Input.Iterable(["x", "y", "z"])
+      fn: async () => {
+        const input = await Input.Iterable(["x", "y", "z"])
           .next();
+        const { path, index, value } = input;
+        const done = await input.done();
         assertEquals({ path, index, value, done }, {
           path: Path.From(1),
           index: 1,
@@ -44,9 +50,11 @@ Deno.test({
     });
     await t.step({
       name: "INPUT03",
-      fn: () => {
-        const { path, index, value, done } = Input.Iterable(["x", "y", "z"])
-          .next().next();
+      fn: async () => {
+        const input = await (await Input.Iterable(["x", "y", "z"])
+          .next()).next();
+        const { path, index, value } = input;
+        const done = await input.done();
         assertEquals({ path, index, value, done }, {
           path: Path.From(2),
           index: 2,
@@ -57,9 +65,11 @@ Deno.test({
     });
     await t.step({
       name: "INPUT04",
-      fn: () => {
-        const { path, index, value, done } = Input.Iterable(["x", "y", "z"])
-          .next().next().next();
+      fn: async () => {
+        const input = await (await (await Input.Iterable(["x", "y", "z"])
+          .next()).next()).next();
+        const { path, index, value } = input;
+        const done = await input.done();
         assertEquals({ path, index, value, done }, {
           path: Path.From(3),
           index: 3,
@@ -71,9 +81,11 @@ Deno.test({
 
     await t.step({
       name: "INPUT05",
-      fn: () => {
-        const { path, index, value, done } = Input.Iterable(["x", "y", "z"])
-          .next().next().next().next();
+      fn: async () => {
+        const input = await (await (await (await Input.Iterable(["x", "y", "z"])
+          .next()).next()).next()).next();
+        const { path, index, value } = input;
+        const done = await input.done();
         assertEquals({ path, index, value, done }, {
           path: Path.From(3),
           index: 3,
@@ -85,8 +97,10 @@ Deno.test({
 
     await t.step({
       name: "INPUT06",
-      fn: () => {
-        const { path, index, value, done } = Input.From(null).next();
+      fn: async () => {
+        const input = await Input.From(null).next();
+        const { path, index, value } = input;
+        const done = await input.done();
         assertEquals({ path, index, value, done }, {
           path: Path.From(1),
           index: 1,
@@ -98,9 +112,12 @@ Deno.test({
 
     await t.step({
       name: "INPUT07",
-      fn: () => {
-        const { path, index, value, done } = Input.Iterable("abc").next().next()
-          .next();
+      fn: async () => {
+        const i1 = await Input.Iterable("abc").next();
+        const i2 = await i1.next();
+        const input = await i2.next();
+        const { path, index, value } = input;
+        const done = await input.done();
         assertEquals({ path, index, value, done }, {
           path: Path.From(3),
           index: 3,
@@ -112,9 +129,11 @@ Deno.test({
 
     await t.step({
       name: "INPUT08",
-      fn: () => {
-        const { path, index, value, done, kind } = Input.From("abc")
+      fn: async () => {
+        const input = await Input.From("abc")
           .next();
+        const { path, index, value, kind } = input;
+        const done = await input.done();
         assertEquals({ path, index, value, done, kind }, {
           path: Path.From(1),
           index: 1,
@@ -143,16 +162,16 @@ Deno.test({
 
     await t.step({
       name: "INPUT10 isEof does not advance the stream",
-      fn: () => {
+      fn: async () => {
         const start = Input.Iterable(["x"]);
         assertEquals(start.isEof, false);
-        assertEquals(start.done, false);
-        const atItem = start.next();
+        assertEquals(await start.done(), false);
+        const atItem = await start.next();
         assertEquals(atItem.isEof, false);
         assertEquals(atItem.value, "x");
-        const eof = atItem.next();
+        const eof = await atItem.next();
         assertEquals(eof.isEof, true);
-        assertEquals(eof.done, true);
+        assertEquals(await eof.done(), true);
         assertEquals(eof.value, "x");
       },
     });

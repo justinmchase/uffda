@@ -23,9 +23,9 @@ function childrenOf(match: Match): Match[] {
   return [];
 }
 
-function currentValue(match: Match): unknown {
-  if (match.kind === MatchKind.LR) return undefined;
-  return match.scope.stream.next().value;
+function currentValue(match: Match): Promise<unknown> {
+  if (match.kind === MatchKind.LR) return Promise.resolve(undefined);
+  return match.scope.stream.next().then((input) => input.value);
 }
 
 function formatValueSource(source: ValueSource): string {
@@ -123,18 +123,22 @@ function expectation(pattern: Pattern): string | undefined {
   }
 }
 
-function collectNodes(root: Match): MatchNode[] {
+async function collectNodes(root: Match): Promise<MatchNode[]> {
   const nodes: MatchNode[] = [];
   const seen = new Set<Match>();
 
-  function visit(match: Match, depth: number, suppressed: boolean): void {
+  async function visit(
+    match: Match,
+    depth: number,
+    suppressed: boolean,
+  ): Promise<void> {
     if (seen.has(match)) return;
     seen.add(match);
     nodes.push({
       match,
       depth,
       order: nodes.length,
-      current: currentValue(match),
+      current: await currentValue(match),
       suppressed,
     });
     const suppressChildren = suppressed ||
@@ -144,11 +148,11 @@ function collectNodes(root: Match): MatchNode[] {
           match.pattern.kind === PatternKind.Except ||
           match.pattern.kind === PatternKind.Maybe));
     for (const child of childrenOf(match)) {
-      visit(child, depth + 1, suppressChildren);
+      await visit(child, depth + 1, suppressChildren);
     }
   }
 
-  visit(root, 0, false);
+  await visit(root, 0, false);
   return nodes;
 }
 
@@ -292,16 +296,16 @@ function markRelevant(
   return includesTarget;
 }
 
-function renderFailureTree(
+async function renderFailureTree(
   root: Match,
   relevant: Set<Match>,
   candidate: MatchNode,
   ids: Map<Match, number>,
-): string[] {
+): Promise<string[]> {
   const lines: string[] = [];
   const rendered = new Set<Match>();
 
-  function render(match: Match, depth: number): void {
+  async function render(match: Match, depth: number): Promise<void> {
     if (!relevant.has(match)) return;
     const indent = "  ".repeat(depth);
     const id = ids.get(match);
@@ -319,7 +323,7 @@ function renderFailureTree(
     }${path}`;
     if (
       (match.kind === MatchKind.Fail || match.kind === MatchKind.Error) &&
-      Object.is(currentValue(match), candidate.current)
+      Object.is(await currentValue(match), candidate.current)
     ) {
       line += ` unexpected ${formatValue(candidate.current)}`;
     }
@@ -328,16 +332,16 @@ function renderFailureTree(
     }
     lines.push(line);
 
-    for (const child of childrenOf(match)) render(child, depth + 1);
+    for (const child of childrenOf(match)) await render(child, depth + 1);
   }
 
-  render(root, 0);
+  await render(root, 0);
   return lines;
 }
 
-export function visualizeMatchFailure(match: Match): string {
-  const nodes = collectNodes(match);
-  const sourceValue = currentValue(match);
+export async function visualizeMatchFailure(match: Match): Promise<string> {
+  const nodes = await collectNodes(match);
+  const sourceValue = await currentValue(match);
   const source = typeof sourceValue === "string" ? sourceValue : undefined;
   const candidate = selectPipelineBoundary(nodes, source) ??
     selectFailure(nodes, source);
@@ -428,7 +432,7 @@ export function visualizeMatchFailure(match: Match): string {
   lines.push(
     "",
     "Failure tree:",
-    ...renderFailureTree(match, relevant, candidate, ids),
+    ...(await renderFailureTree(match, relevant, candidate, ids)),
   );
   return lines.join("\n");
 }

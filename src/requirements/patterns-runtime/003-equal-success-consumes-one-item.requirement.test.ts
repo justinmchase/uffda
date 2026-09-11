@@ -19,5 +19,5 @@ Deno.test("req:equal-003 - Equal success consumes exactly one item and reports t
 
   assertEquals(m.value, "a");
   assertEquals(m.scope.stream.path, Path.From(1));
-  assertEquals(m.scope.stream.done, false);
+  assertEquals(await m.scope.stream.done(), false);
 });

@@ -8,11 +8,11 @@ import type { OverPattern, Pattern } from "./pattern.ts";
 
 export async function over(pattern: OverPattern, scope: Scope): Promise<Match> {
   const { keys = {} } = pattern;
-  if (scope.stream.done) {
+  if (await scope.stream.done()) {
     return fail(scope, pattern);
   }
 
-  const next = scope.stream.next();
+  const next = await scope.stream.next();
   const [t] = type(next.value);
 
   // todo: handle maps as well...

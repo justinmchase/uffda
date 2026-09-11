@@ -5,7 +5,10 @@ import type { Scope } from "../scope.ts";
 import type { BetweenPattern } from "./pattern.ts";
 import { resolveValueSource } from "./value_source.ts";
 
-export function between(pattern: BetweenPattern, scope: Scope): Match {
+export async function between(
+  pattern: BetweenPattern,
+  scope: Scope,
+): Promise<Match> {
   if (pattern.left == null && pattern.right == null) {
     return error(
       scope,
@@ -33,11 +36,11 @@ export function between(pattern: BetweenPattern, scope: Scope): Match {
     right = rightResolved.value as Comparable;
   }
 
-  if (scope.stream.done) {
+  if (await scope.stream.done()) {
     return fail(scope, pattern);
   }
 
-  const next = scope.stream.next();
+  const next = await scope.stream.next();
   const end = scope.withInput(next);
   const { value } = next as { value: Comparable };
   if (value == null) {

@@ -403,7 +403,7 @@ export class CliWorkbench {
       }),
     );
     this.#session.visualization = result.kind === MatchKind.Fail
-      ? visualizeMatchFailure(result)
+      ? await visualizeMatchFailure(result)
       : result.kind === MatchKind.Ok
       ? matchVisualization(result.kind, result.value)
       : matchVisualization(result.kind);

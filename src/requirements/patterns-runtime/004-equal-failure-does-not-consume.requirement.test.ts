@@ -17,17 +17,17 @@ Deno.test("req:equal-004 - Equal failure does not consume input and reports fail
     const m = await match(pattern, scope);
     assertEquals(m.kind, MatchKind.Fail);
     assertEquals(m.scope.stream.path, Path.From(0));
-    assertEquals(m.scope.stream.done, false);
+    assertEquals(await m.scope.stream.done(), false);
   });
 
   await t.step("end-of-input failure also preserves position", async () => {
     const root = Scope.From(["a"], { kind: InputNormalizationMode.Iterable });
-    const end = root.withInput(root.stream.next());
+    const end = root.withInput(await root.stream.next());
     const pattern: Pattern = { kind: PatternKind.Equal, value: lit("x") };
 
     const m = await match(pattern, end);
     assertEquals(m.kind, MatchKind.Fail);
     assertEquals(m.scope.stream.path, Path.From(1));
-    assertEquals(m.scope.stream.done, true);
+    assertEquals(await m.scope.stream.done(), true);
   });
 });

@@ -72,7 +72,12 @@ export class Input {
     Input.From([], { kind: InputNormalizationMode.Iterable });
 
   public static readonly From = (
-    items: Iterable<unknown> | Iterator<unknown> | unknown,
+    items:
+      | Iterable<unknown>
+      | Iterator<unknown>
+      | AsyncIterable<unknown>
+      | AsyncIterator<unknown>
+      | unknown,
     options?: InputFromOptions,
   ): Input =>
     new Input(
@@ -89,7 +94,11 @@ export class Input {
     Input.From(value, { kind: InputNormalizationMode.Scalar });
 
   public static readonly Iterable = (
-    value: Iterable<unknown> | Iterator<unknown>,
+    value:
+      | Iterable<unknown>
+      | Iterator<unknown>
+      | AsyncIterable<unknown>
+      | AsyncIterator<unknown>,
   ): Input => Input.From(value, { kind: InputNormalizationMode.Iterable });
 
   public static isIterable(value: unknown): value is Iterable<unknown> {
@@ -100,13 +109,26 @@ export class Input {
     return value != null &&
       typeof (value as Iterator<unknown>).next === "function";
   }
+  public static isAsyncIterable(
+    value: unknown,
+  ): value is AsyncIterable<unknown> {
+    return value != null &&
+      typeof (value as AsyncIterable<unknown>)[Symbol.asyncIterator] ===
+        "function";
+  }
 
   private _next: Input | undefined = undefined;
   private _done: boolean | undefined = undefined;
-  private _items: Iterator<unknown>;
+  private _items: Iterator<unknown> | AsyncIterator<unknown>;
+  private readonly isAsync: boolean;
 
   constructor(
-    public readonly items: Iterable<unknown> | Iterator<unknown> | unknown,
+    public readonly items:
+      | Iterable<unknown>
+      | Iterator<unknown>
+      | AsyncIterable<unknown>
+      | AsyncIterator<unknown>
+      | unknown,
     public readonly path: Path = Path.Default(),
     public readonly index = 0,
     public readonly value?: unknown,
@@ -114,6 +136,7 @@ export class Input {
       InputNormalizationMode.Scalar,
     private readonly trustedIterator = false,
     public readonly provenance?: SourceProvenance,
+    trustedIsAsync = false,
   ) {
     if (trustedIterator) {
       if (!Input.isIterator(items)) {
@@ -122,6 +145,7 @@ export class Input {
         );
       }
       this._items = items;
+      this.isAsync = trustedIsAsync;
       return;
     }
 
@@ -135,16 +159,25 @@ export class Input {
     const mode = assertNormalizationMode(kind);
     if (mode === InputNormalizationMode.Scalar) {
       this._items = [items][Symbol.iterator]();
+      this.isAsync = false;
+      return;
+    }
+
+    if (Input.isAsyncIterable(items)) {
+      this._items = items[Symbol.asyncIterator]();
+      this.isAsync = true;
       return;
     }
 
     if (Input.isIterable(items)) {
       this._items = items[Symbol.iterator]();
+      this.isAsync = false;
       return;
     }
 
     if (Input.isIterator(items)) {
       this._items = items;
+      this.isAsync = false;
       return;
     }
 
@@ -153,9 +186,13 @@ export class Input {
     );
   }
 
-  public get done(): boolean {
+  /**
+   * Whether the stream has been fully consumed. Advances the stream (pulling
+   * one item, possibly asynchronously) if that isn't already known.
+   */
+  public async done(): Promise<boolean> {
     if (this._done === undefined) {
-      this.next();
+      await this.next();
     }
     return this._done!;
   }
@@ -168,9 +205,11 @@ export class Input {
     return this._done === true;
   }
 
-  public next(): Input {
+  public async next(): Promise<Input> {
     if (!this._next) {
-      const { value, done } = this._items.next();
+      const { value, done } = this.isAsync
+        ? await (this._items as AsyncIterator<unknown>).next()
+        : await (this._items as Iterator<unknown>).next();
       this._done = done;
       if (done) return this;
 
@@ -183,6 +222,7 @@ export class Input {
         this.kind,
         true,
         this.provenance,
+        this.isAsync,
       );
     }
     return this._next;

@@ -9,8 +9,8 @@ Deno.test(
     const match = await expressionGrammar("(add 1 #)");
     assertEquals(match.kind, MatchKind.Fail);
 
-    const first = visualizeMatchFailure(match);
-    const second = visualizeMatchFailure(match);
+    const first = await visualizeMatchFailure(match);
+    const second = await visualizeMatchFailure(match);
 
     assertEquals(second, first);
     assertStringIncludes(first, 'Unexpected: "#"');

@@ -88,13 +88,13 @@ export function patternTest(options: PatternTestOptions & MatchAssertion) {
     const m = await match(pattern, s);
     switch (m.kind) {
       case MatchKind.LR:
-        return assertLR(m, options);
+        return await assertLR(m, options);
       case MatchKind.Error:
-        return assertError(m, options);
+        return await assertError(m, options);
       case MatchKind.Fail:
-        return assertFail(m, options);
+        return await assertFail(m, options);
       case MatchKind.Ok:
-        return assertOk(m, options);
+        return await assertOk(m, options);
     }
   };
 }
@@ -214,7 +214,7 @@ export function moduleDeclarationTest(options: ModuleDeclarationTestOptions) {
         if (isThrowsAssertion(options)) {
           throw module.error;
         }
-        return assertError(module.error, options);
+        return await assertError(module.error, options);
       }
       if (isThrowsAssertion(options)) {
         throw new Error(`Expected to throw but didn't`);
@@ -242,13 +242,13 @@ export function moduleDeclarationTest(options: ModuleDeclarationTestOptions) {
       );
       switch (m.kind) {
         case MatchKind.LR:
-          return assertLR(m, options);
+          return await assertLR(m, options);
         case MatchKind.Error:
-          return assertError(m, options);
+          return await assertError(m, options);
         case MatchKind.Fail:
-          return assertFail(m, options);
+          return await assertFail(m, options);
         case MatchKind.Ok:
-          return assertOk(m, options);
+          return await assertOk(m, options);
       }
     } catch (err) {
       const name = thrownName(err);
@@ -330,7 +330,7 @@ export function ruleTest(options: RuleTestOptions) {
         if (isThrowsAssertion(options)) {
           throw module.error;
         }
-        return assertError(module.error, options);
+        return await assertError(module.error, options);
       }
       if (isThrowsAssertion(options)) {
         throw new Error(`Expected to throw but didn't`);
@@ -355,13 +355,13 @@ export function ruleTest(options: RuleTestOptions) {
       );
       switch (m.kind) {
         case MatchKind.LR:
-          return assertLR(m, options);
+          return await assertLR(m, options);
         case MatchKind.Error:
-          return assertError(m, options);
+          return await assertError(m, options);
         case MatchKind.Fail:
-          return assertFail(m, options);
+          return await assertFail(m, options);
         case MatchKind.Ok:
-          return assertOk(m, options);
+          return await assertOk(m, options);
       }
     } catch (err) {
       const name = thrownName(err);
@@ -419,7 +419,7 @@ function spanText(match: MatchFail | MatchOk | MatchError): string {
   return `${match.span.start.toString()} -> ${match.span.end.toString()}`;
 }
 
-function matchDebug(match: Match): string {
+async function matchDebug(match: Match): Promise<string> {
   const lines: string[] = [
     "Match debug:",
     `  kind: ${match.kind}`,
@@ -434,7 +434,7 @@ function matchDebug(match: Match): string {
     lines.push(
       `  originalSpan: ${match.originalSpan.start} -> ${match.originalSpan.end}`,
     );
-    lines.push(`  stream done: ${match.scope.stream.done}`);
+    lines.push(`  stream done: ${await match.scope.stream.done()}`);
   }
 
   if (match.kind === MatchKind.Fail || match.kind === MatchKind.Ok) {
@@ -455,50 +455,54 @@ function matchDebug(match: Match): string {
   return `\n${lines.join("\n")}`;
 }
 
-function assertLR(m: MatchLR, assertion: MatchAssertion) {
+async function assertLR(m: MatchLR, assertion: MatchAssertion) {
   assert(
     m.kind === assertion.kind,
-    `Match was ${m.kind} but expected to be ${assertion.kind}${matchDebug(m)}`,
+    `Match was ${m.kind} but expected to be ${assertion.kind}${await matchDebug(
+      m,
+    )}`,
   );
 }
 
-function assertError(m: MatchError, assertion: MatchAssertion) {
+async function assertError(m: MatchError, assertion: MatchAssertion) {
   assert(
     m.kind === assertion.kind,
-    `Match was [${m.kind}] with message "${m.message}" but expected to be [${assertion.kind}]${
-      matchDebug(m)
-    }`,
+    `Match was [${m.kind}] with message "${m.message}" but expected to be [${assertion.kind}]${await matchDebug(
+      m,
+    )}`,
   );
   assert(
     m.message === assertion.message,
-    `Match error message was '${m.message}' but expected to be '${assertion.message}'${
-      matchDebug(m)
-    }`,
+    `Match error message was '${m.message}' but expected to be '${assertion.message}'${await matchDebug(
+      m,
+    )}`,
   );
   assert(
     m.code === assertion.code,
-    `Match error code was ${m.code} but expected to be ${assertion.code}${
-      matchDebug(m)
-    }`,
+    `Match error code was ${m.code} but expected to be ${assertion.code}${await matchDebug(
+      m,
+    )}`,
   );
   assert(
     equal(m.span.start, assertion.start),
-    `Match error start was ${m.span.start} but expected to be ${assertion.start}${
-      matchDebug(m)
-    }`,
+    `Match error start was ${m.span.start} but expected to be ${assertion.start}${await matchDebug(
+      m,
+    )}`,
   );
   assert(
     equal(m.span.end, assertion.end),
-    `Match error end was ${m.span.end} but expected to be ${assertion.end}${
-      matchDebug(m)
-    }`,
+    `Match error end was ${m.span.end} but expected to be ${assertion.end}${await matchDebug(
+      m,
+    )}`,
   );
 }
 
-function assertFail(m: MatchFail, assertion: MatchAssertion) {
+async function assertFail(m: MatchFail, assertion: MatchAssertion) {
   assert(
     m.kind === assertion.kind,
-    `Match was ${m.kind} but expected to be ${assertion.kind}${matchDebug(m)}`,
+    `Match was ${m.kind} but expected to be ${assertion.kind}${await matchDebug(
+      m,
+    )}`,
   );
 
   if (assertion.failures) {
@@ -508,49 +512,51 @@ function assertFail(m: MatchFail, assertion: MatchAssertion) {
       const fr = assertion.failures[i];
       assert(
         equal(fl.span.start, fr.start),
-        `Match failure start was ${fl.span.start} but expected to be ${fr.start}${
-          matchDebug(m)
-        }`,
+        `Match failure start was ${fl.span.start} but expected to be ${fr.start}${await matchDebug(
+          m,
+        )}`,
       );
       assert(
         equal(fl.span.end, fr.end),
-        `Match failure end was ${fl.span.end} but expected to be ${fr.end}${
-          matchDebug(m)
-        }`,
+        `Match failure end was ${fl.span.end} but expected to be ${fr.end}${await matchDebug(
+          m,
+        )}`,
       );
     }
   } else {
     if (assertion.start) {
       assert(
         equal(m.span.start, assertion.start),
-        `Match error start was ${m.span.start} but expected to be ${assertion.start}${
-          matchDebug(m)
-        }`,
+        `Match error start was ${m.span.start} but expected to be ${assertion.start}${await matchDebug(
+          m,
+        )}`,
       );
     }
     if (assertion.end) {
       assert(
         equal(m.span.end, assertion.end),
-        `Match error end was ${m.span.end} but expected to be ${assertion.end}${
-          matchDebug(m)
-        }`,
+        `Match error end was ${m.span.end} but expected to be ${assertion.end}${await matchDebug(
+          m,
+        )}`,
       );
     }
   }
 
   const done = assertion.done ?? false;
   assert(
-    equal(m.scope.stream.done, done),
-    `Pattern was ${done ? "" : "not "}expected to be done${matchDebug(m)}`,
+    equal(await m.scope.stream.done(), done),
+    `Pattern was ${done ? "" : "not "}expected to be done${await matchDebug(
+      m,
+    )}`,
   );
 }
 
-function assertOk(m: MatchOk, assertion: MatchAssertion) {
+async function assertOk(m: MatchOk, assertion: MatchAssertion) {
   assert(
     m.kind === assertion.kind,
-    `Match was [${m.kind}] but expected to be ${assertion.kind}${
-      matchDebug(m)
-    }`,
+    `Match was [${m.kind}] but expected to be ${assertion.kind}${await matchDebug(
+      m,
+    )}`,
   );
   assert(
     equal(m.value, assertion.value),
@@ -559,11 +565,13 @@ function assertOk(m: MatchOk, assertion: MatchAssertion) {
         Deno.inspect(assertion.value, { colors: true, depth: 10 })
       }\n` +
       `  actual value: ${Deno.inspect(m.value, { colors: true, depth: 10 })}` +
-      `${matchDebug(m)}`,
+      `${await matchDebug(m)}`,
   );
   const done = assertion.done ?? true;
   assert(
-    equal(m.scope.stream.done, done),
-    `Pattern was ${done ? "" : "not "}expected to be done${matchDebug(m)}`,
+    equal(await m.scope.stream.done(), done),
+    `Pattern was ${done ? "" : "not "}expected to be done${await matchDebug(
+      m,
+    )}`,
   );
 }
