@@ -97,6 +97,14 @@ pipeline composition (`P |> Q`).
 - Pipeline feeds each stage from the previous stage's **output value**.
 - When that output is iterable and the next stage must consume items as a
   stream, the next stage MUST use `into` explicitly (authored as `[P]`).
+- When a stage's output value is a lazily produced sequence (an actual
+  generator/async-generator instance, e.g. from a `.uff` func built on std
+  `map`/`filter`/`enumerate`), the pipeline pattern drains it into a concrete
+  array at that stage boundary before it feeds the next stage — see
+  [pipeline: lazy sequence draining](../patterns/runtime/pipeline.spec.md#lazy-sequence-draining-at-stage-boundaries).
+  Authors composing lazy std funcs inside a pipeline stage's projection can rely
+  on each `|>` boundary being an eager sink, exactly like array/invocation
+  spread.
 
 Example shape from language modules:
 

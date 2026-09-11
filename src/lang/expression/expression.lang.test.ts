@@ -328,5 +328,23 @@ Deno.test(
         }
       },
     });
+
+    await t.step({
+      name: "EXPR_LANG_12 reduce composes with an inline lambda",
+      fn: async () => {
+        const m = await expressionGrammar(
+          "(reduce [1 2 3 4] 0 <acc:any x:any> -> (add acc x))",
+        );
+        switch (m.kind) {
+          case MatchKind.Ok: {
+            const value = await exec(m.value, m);
+            assertEquals(value, 10);
+            break;
+          }
+          default:
+            assertEquals(m.kind, MatchKind.Ok);
+        }
+      },
+    });
   },
 );

@@ -1,4 +1,5 @@
 import { assertEquals } from "@std/assert";
+import { collect } from "../../testing.ts";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import type { TokenizerLangValue } from "../../lang/tokenizer/tokenizer.lang.ts";
@@ -78,5 +79,5 @@ Deno.test("req:tokenizer-runtime-002 - Source-normalization and tokenizer pipeli
   const newlineUnits = value.source.units.filter((u) => u.value === "\n");
   assertEquals(newlineUnits.length, 3);
   assertEquals(newlineUnits.map((u) => u.originalOffsetStart), [1, 4, 6]);
-  assertEquals(value.tokens, ["a", "\n", "b", "\n", "c", "\n"]);
+  assertEquals(await collect(value.tokens), ["a", "\n", "b", "\n", "c", "\n"]);
 });

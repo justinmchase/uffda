@@ -1,4 +1,5 @@
 import { assertEquals } from "@std/assert";
+import { collect } from "../../testing.ts";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import type { TokenizerLangValue } from "../../lang/tokenizer/tokenizer.lang.ts";
@@ -73,5 +74,5 @@ Deno.test("req:tokenizer-runtime-001 - Tokenizer consumes normalized source-docu
 
   const [value] = m.value as [TokenizerLangValue, unknown];
   assertEquals(value.source.text, "abc\nxyz\n123");
-  assertEquals(value.tokens, ["abc", "\n", "xyz", "\n", "123"]);
+  assertEquals(await collect(value.tokens), ["abc", "\n", "xyz", "\n", "123"]);
 });

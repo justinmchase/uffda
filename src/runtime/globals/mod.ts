@@ -21,6 +21,7 @@ import { not } from "./not.ts";
 import { one } from "./one.ts";
 import { pack } from "./pack.ts";
 import { pluck } from "./pluck.ts";
+import { reduce } from "./reduce.ts";
 import { sha256 } from "./sha256.ts";
 import { slice } from "./slice.ts";
 import { symbol } from "./symbol.ts";
@@ -64,6 +65,7 @@ export const defaultGlobals = new Map<string, unknown>([
   ["one", one],
   ["pack", pack],
   ["pluck", pluck],
+  ["reduce", reduce],
   ["sha256", sha256],
   ["slice", slice],
   ["symbol", symbol],
