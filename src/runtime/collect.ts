@@ -1,5 +1,19 @@
 import { iterable } from "./globals/iterable.ts";
 
+// The real, shared intrinsic prototypes for generator/async-generator
+// instances, captured once from throwaway generator functions. JS has no
+// public `Generator`/`AsyncGenerator` global to `instanceof` against, and
+// `Object.prototype.toString.call(value)`'s `"[object Generator]"` tag is
+// spoofable by any plain object that defines its own `Symbol.toStringTag`.
+// `isPrototypeOf` against these captured prototypes checks the value's
+// actual prototype chain instead, which cannot be faked without genuinely
+// deriving from a generator function. Called via `Object.prototype.
+// isPrototypeOf.call(...)` (not `proto.isPrototypeOf(value)`) per
+// `no-prototype-builtins`.
+const GeneratorPrototype = Object.getPrototypeOf(function* () {}).prototype;
+const AsyncGeneratorPrototype =
+  Object.getPrototypeOf(async function* () {}).prototype;
+
 /**
  * True only for actual (async) generator objects — the values produced by
  * `async function*`/`function*`, e.g. `map`/`filter`/`enumerate`. Narrower
@@ -9,8 +23,12 @@ import { iterable } from "./globals/iterable.ts";
  * not be mistaken for a lazy sequence and drained/replaced.
  */
 export function isGenerator(value: unknown): boolean {
-  const tag = Object.prototype.toString.call(value);
-  return tag === "[object Generator]" || tag === "[object AsyncGenerator]";
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (Object.prototype.isPrototypeOf.call(GeneratorPrototype, value) ||
+      Object.prototype.isPrototypeOf.call(AsyncGeneratorPrototype, value))
+  );
 }
 
 /**
