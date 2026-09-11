@@ -26,8 +26,9 @@ affected.
   **localized edit** to that same document.
 - This chapter does NOT govern bounded-memory streaming of a **new**,
   previously-unparsed large document (memo eviction during a first pass). That
-  is a distinct concern with different tradeoffs and is deferred to separate
-  future work.
+  is a distinct concern with different tradeoffs, defined separately in
+  [runtime memo eviction](./memo-eviction.spec.md). The two chapters MUST be
+  treated independently: an implementation MAY support one without the other.
 - This chapter applies to the packrat/memoized runtime described in
   [runtime rules](./rules.spec.md) and
   [runtime left recursion](./left-recursion.spec.md). It does not change grammar
@@ -164,6 +165,8 @@ affected.
 - [runtime left recursion](./left-recursion.spec.md) — seed-and-grow evaluation
   whose in-progress and stabilized memo entries are subject to the invalidation
   rules in this chapter.
-- GitHub issue #149 — origin of this chapter, including the deferred, separate
-  bounded-memory first-pass streaming concern (memo eviction for new large
-  documents), tracked independently of incremental re-parsing.
+- [runtime memo eviction](./memo-eviction.spec.md) — the distinct, first-pass
+  bounded-memory concern this chapter explicitly excludes.
+- GitHub issue #149 — origin of this chapter and of
+  [runtime memo eviction](./memo-eviction.spec.md), the two streaming/
+  large-file problems identified there.
