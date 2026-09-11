@@ -668,6 +668,8 @@ Deno.test("runtime.rule", async (t) => {
           return storedMemo;
         },
         get: () => ({ key, memo: undefined }),
+        withFrame: async (_path: unknown, fn: () => Promise<unknown>) =>
+          await fn(),
       };
       const scope = new Scope(
         module.module,
