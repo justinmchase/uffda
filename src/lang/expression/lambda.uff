@@ -1,0 +1,23 @@
+# Lambda matches `<pattern> -> expression` and projects a LambdaExpression.
+# The `<pattern>` half reuses the same capture-and-reparse mechanism as
+# `func` declarations (pattern/parameter_list.uff). The body is an ordinary
+# recursive Primary reference (not raw-token capture) — recursive descent
+# already knows where it ends, exactly like invocation arguments and string
+# interpolation payloads. Since every call already requires parens
+# (`(callee args…)`), a lambda body that is itself a call is naturally
+# parenthesized too, with no extra grammar rule needed to enforce it, e.g.
+# `<acc x> -> (add acc x)`. A bare terminal body needs no parens either:
+# `<x> -> x`.
+import "../tokenizer/token.uff" Token;
+import "../pattern/parameter_list.uff" ParameterList;
+import "./primary.uff" Primary;
+
+export Lambda;
+
+rule LambdaArrow = "-" ">" -> "->";
+
+rule Lambda =
+  p:ParameterList
+  Token<LambdaArrow>
+  e:Token<Primary>
+  -> { kind: "lambda", pattern: p, expression: e };

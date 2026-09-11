@@ -7,10 +7,12 @@ import "./member.uff" Member;
 import "./boolean.uff" Boolean;
 import "./nullish.uff" Nullish;
 import "./sequence.uff" Sequence;
+import "./lambda.uff" Lambda;
 
 export Primary;
 
 rule Primary =
+  | Lambda
   | Sequence
   | Array
   | Object

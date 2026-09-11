@@ -1,0 +1,71 @@
+# ParameterList captures `<...>` (angle-bracket) content as raw balanced
+# tokens, then reparses it as a Pattern via PatternTokens. This is the
+# shared `<pattern>` mechanism reused by both `func` declarations
+# (func.rules.uff) and inline lambda expressions (expression/lambda.uff).
+# Omitted or empty `<>` means End (no arguments).
+import "./pattern.lang.uff" PatternTokens;
+
+export ParameterList;
+
+rule ParameterEscapedQuotedTokens =
+  "\\"
+  e:("\"" | "{" | "\\")
+  -> (pack "\\" e);
+
+rule ParameterQuotedTokenContent =
+  | ParameterEscapedQuotedTokens
+  | ((not "\"") & string)
+  ;
+
+rule ParameterQuotedTokenSequence =
+  "\""
+  c:ParameterQuotedTokenContent*
+  "\""
+  -> (flat (pack "\"" (flat c) "\""));
+
+rule ParameterChunkNestedAngle =
+  "<"
+  c:ParameterChunk*
+  ">"
+  -> (flat (pack "<" (flat c) ">"));
+
+rule ParameterChunkNestedParen =
+  "("
+  c:ParameterChunk*
+  ")"
+  -> (flat (pack "(" (flat c) ")"));
+
+rule ParameterChunkNestedBracket =
+  "["
+  c:ParameterChunk*
+  "]"
+  -> (flat (pack "[" (flat c) "]"));
+
+rule ParameterChunkNestedBrace =
+  o:"{"
+  c:ParameterChunk*
+  e:"}"
+  -> (flat (pack o (flat c) e));
+
+rule ParameterChunk =
+  | ParameterQuotedTokenSequence
+  | ParameterChunkNestedAngle
+  | ParameterChunkNestedParen
+  | ParameterChunkNestedBracket
+  | ParameterChunkNestedBrace
+  | ((not ">") & string)
+  ;
+
+rule ParameterToken =
+  ParameterChunk+
+  -> (flat _);
+
+rule ParameterPatterns =
+  ParameterToken
+  |> PatternTokens;
+
+rule ParameterList =
+  "<"
+  p:ParameterPatterns?
+  ">"
+  -> (coalesce p { kind: "end" });
