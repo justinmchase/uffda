@@ -59,12 +59,16 @@ shape → publish → install → recompile.
   project dependency and is used throughout `src/runtime/`.
 - When a function needs to branch on a value's runtime type across more than one
   or two cases, prefer `const [t, v] = type(value)` followed by a `switch (t)`
-  over `Type`'s enum members, with one `case` per type you support and a final
-  fallthrough group of `case`s for the rest that throws (or otherwise handles
-  the unsupported-type path). Enumerating every `Type` member (even in the
-  "unsupported" group) forces you to consciously decide what to do for each one,
-  rather than silently falling through an `if`/`else` chain that only checks for
-  the types you first thought of. See `src/runtime/globals/at.ts` and
+  over `Type`'s enum members instead of an `if`/`else` chain of `isX()` guards:
+  one `case` per type you support, then a single `default:` that throws (or
+  otherwise handles the unsupported-type path). Always keep the `default:` —
+  compile-time exhaustiveness checking is not a substitute for it (it doesn't
+  catch every gap, e.g. a stale type-check, `@ts-ignore`, or a dependency
+  upgrade that adds a new `Type` member), so unhandled types must still fail
+  loudly at runtime rather than falling off the switch and returning
+  `undefined`. Given that `default:` has to be there anyway, don't also list
+  every remaining `Type` member as a case that maps to the same `default`
+  behavior — that's redundant. See `src/runtime/globals/at.ts` and
   `src/runtime/globals/compare.ts` for examples.
 
 ## Specification authority and change control

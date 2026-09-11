@@ -28,16 +28,7 @@ export function at(value: unknown, index: unknown): unknown {
     case Type.Set:
     case Type.Map:
       return nthEntry(v, i);
-    case Type.Null:
-    case Type.Undefined:
-    case Type.BigInt:
-    case Type.Boolean:
-    case Type.Function:
-    case Type.Number:
-    case Type.Symbol:
-    case Type.Error:
-    case Type.Object:
-    case Type.Date:
+    default:
       throw new TypeError("at expects a string, array, Set, or Map");
   }
 }
