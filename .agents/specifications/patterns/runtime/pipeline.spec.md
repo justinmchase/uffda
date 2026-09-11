@@ -70,6 +70,33 @@ receives input derived from the previous step's matched value.
 - The `pipeline` pattern MUST NOT produce externally observable side effects
   beyond its match result and resulting matching context.
 
+## Lazy sequence draining at stage boundaries
+
+- A step's matched value MAY be a lazily produced sequence — an actual generator
+  or async-generator instance (for example, the result of a std
+  `enumerate`/`map`/`filter` call) — rather than an already-materialized array.
+- Before such a value is used to build the next step's derived input stream, and
+  before source provenance is computed for that step (see
+  [Source provenance](#source-provenance) below), the `pipeline` pattern MUST
+  drain the generator into a concrete array. This is a stage-boundary
+  eager-evaluation point, exactly like array-spread and invocation-spread
+  contexts elsewhere in the runtime: laziness is preserved _within_ a single
+  step's composition of `map`/`filter`/`enumerate`, but each `|>` boundary is a
+  sink.
+- This draining MUST reflect back onto the step's reported match value (for
+  example, in diagnostic/visualization output), so callers and tooling never
+  observe an opaque, already-exhausted generator object where a concrete array
+  is expected.
+- This draining check MUST be narrow: it MUST detect only actual
+  generator/async-generator instances, and MUST NOT trigger merely because a
+  value implements `Symbol.iterator`/`Symbol.asyncIterator`. Some domain-shaped
+  values (for example, a source-document record) legitimately expose an iterator
+  protocol for downstream stream consumption while remaining a plain record that
+  MUST NOT be discarded and replaced with an array of its own iterated items.
+- Values that are already arrays, or that are not generator instances at all
+  (strings, plain objects, `Set`/`Map`, etc.), are unaffected by this draining
+  step.
+
 ## Source provenance
 
 - When a step output is used to build the next derived input stream, the
