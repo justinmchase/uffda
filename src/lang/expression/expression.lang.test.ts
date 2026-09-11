@@ -264,7 +264,7 @@ Deno.test(
         const m = await expressionGrammar("(add 1 #)");
         assertEquals(m.kind, MatchKind.Fail);
 
-        const visualization = visualizeMatchFailure(m);
+        const visualization = await visualizeMatchFailure(m);
         assertStringIncludes(visualization, 'Unexpected: "#"');
         assertStringIncludes(visualization, "source offset 7");
         assertStringIncludes(

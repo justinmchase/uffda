@@ -3,18 +3,21 @@ import type { Scope } from "../scope.ts";
 import type { EqualPattern } from "./pattern.ts";
 import { resolveValueSource } from "./value_source.ts";
 
-export function equal(pattern: EqualPattern, scope: Scope): Match {
+export async function equal(
+  pattern: EqualPattern,
+  scope: Scope,
+): Promise<Match> {
   const resolved = resolveValueSource(pattern.value, scope, pattern);
   if (resolved.kind === "error") {
     return resolved.match;
   }
   const value = resolved.value;
 
-  if (scope.stream.done) {
+  if (await scope.stream.done()) {
     return fail(scope, pattern);
   }
 
-  const next = scope.stream.next();
+  const next = await scope.stream.next();
   const end = scope.withInput(next);
   if (next.value === value) {
     return ok(scope, end, pattern, next.value);

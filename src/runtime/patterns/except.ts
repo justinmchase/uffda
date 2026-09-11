@@ -14,7 +14,7 @@ export async function except(
   pattern: ExceptPattern,
   scope: Scope,
 ): Promise<Match> {
-  if (scope.stream.done) {
+  if (await scope.stream.done()) {
     return fail(scope, pattern);
   }
 
@@ -27,7 +27,7 @@ export async function except(
     case MatchKind.Ok:
       return fail(scope, pattern, [assertion]);
     case MatchKind.Fail: {
-      const next = scope.stream.next();
+      const next = await scope.stream.next();
       const end = scope.withInput(next);
       return ok(scope, end, pattern, next.value, [assertion]);
     }

@@ -27,7 +27,7 @@ Deno.test("runtime.scope", async (t) => {
       };
       const m = await match(pattern, scope);
       assert(m.kind === MatchKind.Ok);
-      const done = m.scope.stream.done;
+      const done = await m.scope.stream.done();
       const { start, end } = m.span;
       assertObjectMatch({ done, start, end }, {
         done: false,
@@ -46,7 +46,7 @@ Deno.test("runtime.scope", async (t) => {
       const pattern: Pattern = { kind: PatternKind.Equal, value: lit("a") };
       const m = await match(pattern, scope);
       assert(m.kind === MatchKind.Ok);
-      const done = m.scope.stream.done;
+      const done = await m.scope.stream.done();
       const { start, end } = m.span;
       // It matched the full pattern but didn't consume all of the output
       assertEquals({ done, start, end }, {
@@ -73,7 +73,7 @@ Deno.test("runtime.scope", async (t) => {
       };
       const m = await match(pattern, scope);
       assert(m.kind === MatchKind.Ok);
-      const { done } = m.scope.stream;
+      const done = await m.scope.stream.done();
       const { start, end } = m.span;
       assertObjectMatch({ done, start, end }, {
         done: true,
@@ -137,7 +137,7 @@ Deno.test("runtime.scope", async (t) => {
       const pattern: Pattern = { kind: PatternKind.Equal, value: lit("x") };
       const m = await match(pattern, scope);
       assert(m.kind === MatchKind.Fail);
-      const done = m.scope.stream.done;
+      const done = await m.scope.stream.done();
       const { start, end } = m.span;
       assertEquals({ done, start, end }, {
         done: false,
@@ -154,7 +154,7 @@ Deno.test("runtime.scope", async (t) => {
       const pattern: Pattern = { kind: PatternKind.Equal, value: lit("abc") };
       const m = await match(pattern, scope);
       assert(m.kind === MatchKind.Ok);
-      assertEquals(m.scope.stream.done, true);
+      assertEquals(await m.scope.stream.done(), true);
       assertEquals(m.span.start, Path.From(0));
       assertEquals(m.span.end, Path.From(1));
     },

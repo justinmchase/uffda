@@ -4,7 +4,10 @@ import type { Scope } from "../scope.ts";
 import type { IncludesPattern } from "./pattern.ts";
 import { resolveValueSource } from "./value_source.ts";
 
-export function includes(pattern: IncludesPattern, scope: Scope): Match {
+export async function includes(
+  pattern: IncludesPattern,
+  scope: Scope,
+): Promise<Match> {
   const values: Serializable[] = [];
   for (const source of pattern.values) {
     const resolved = resolveValueSource(source, scope, pattern);
@@ -14,11 +17,11 @@ export function includes(pattern: IncludesPattern, scope: Scope): Match {
     values.push(resolved.value as Serializable);
   }
 
-  if (scope.stream.done) {
+  if (await scope.stream.done()) {
     return fail(scope, pattern);
   }
 
-  const next = scope.stream.next();
+  const next = await scope.stream.next();
   const end = scope.withInput(next);
   if (values.includes(next.value as Serializable)) {
     return ok(scope, end, pattern, next.value);

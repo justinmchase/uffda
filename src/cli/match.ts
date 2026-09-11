@@ -48,7 +48,10 @@ function sourceOffset(
   return undefined;
 }
 
-function matchFailure(result: Match, source?: string): CliMatchResult {
+async function matchFailure(
+  result: Match,
+  source?: string,
+): Promise<CliMatchResult> {
   switch (result.kind) {
     case MatchKind.Error:
       return {
@@ -69,7 +72,7 @@ function matchFailure(result: Match, source?: string): CliMatchResult {
           message:
             `Pattern '${rightmost.pattern.kind}' did not match input at ${rightmost.span.start.toString()}`,
           inputPosition: rightmost.span.start.toString(),
-          inputDescription: rightmost.scope.stream.done
+          inputDescription: await rightmost.scope.stream.done()
             ? "end of input"
             : "a value that did not match",
           source,
@@ -118,7 +121,7 @@ export async function matchCliPattern(
   );
   return result.kind === MatchKind.Ok
     ? { ok: true, value: result.value }
-    : matchFailure(result, source);
+    : await matchFailure(result, source);
 }
 
 export function parseCliMatchInput(

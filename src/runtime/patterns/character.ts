@@ -4,7 +4,10 @@ import type { Match } from "../../match.ts";
 import type { CharacterPattern } from "./pattern.ts";
 import type { Scope } from "../scope.ts";
 
-export function character(pattern: CharacterPattern, scope: Scope): Match {
+export async function character(
+  pattern: CharacterPattern,
+  scope: Scope,
+): Promise<Match> {
   const { characterClass } = pattern;
   const regexp = characterClassToRegexp(characterClass);
   if (!regexp) {
@@ -15,11 +18,11 @@ export function character(pattern: CharacterPattern, scope: Scope): Match {
       `unknown character class ${characterClass}`,
     );
   }
-  if (scope.stream.done) {
+  if (await scope.stream.done()) {
     return fail(scope, pattern);
   }
 
-  const next = scope.stream.next();
+  const next = await scope.stream.next();
   if (typeof next.value !== "string") {
     return error(
       scope,

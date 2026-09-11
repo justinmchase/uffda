@@ -76,14 +76,14 @@ function sourceOffsetFromMatch(match: Match, source: string): number {
   return source.length;
 }
 
-function describeUnexpected(match: Match): string {
+async function describeUnexpected(match: Match): Promise<string> {
   if (match.kind !== MatchKind.Fail && match.kind !== MatchKind.Error) {
     return "unexpected input";
   }
   const focus = match.kind === MatchKind.Fail
     ? getRightmostFailure(match)
     : match;
-  if (focus.scope.stream.done) return "end of input";
+  if (await focus.scope.stream.done()) return "end of input";
   const value = focus.scope.stream.value;
   if (typeof value === "string") return JSON.stringify(value);
   if (value === undefined) return "missing input";
@@ -94,15 +94,15 @@ function describeUnexpected(match: Match): string {
   });
 }
 
-export function parseFailureMessage(match: Match): string {
+export async function parseFailureMessage(match: Match): Promise<string> {
   if (match.kind === MatchKind.Error) {
     return `${match.code}: ${match.message}`;
   }
   if (match.kind === MatchKind.Fail) {
     const rightmost = getRightmostFailure(match);
-    return `unexpected ${
-      describeUnexpected(rightmost)
-    } while matching ${rightmost.pattern.kind}`;
+    return `unexpected ${await describeUnexpected(
+      rightmost,
+    )} while matching ${rightmost.pattern.kind}`;
   }
   if (match.kind === MatchKind.LR) {
     return "parse failed with left recursion outcome";
@@ -110,12 +110,12 @@ export function parseFailureMessage(match: Match): string {
   return "unexpected parser outcome";
 }
 
-function toParseFailure(
+async function toParseFailure(
   match: Match,
   language: CliLanguage,
   sourcePath: string,
   sourceText: string,
-): CliStreamResult {
+): Promise<CliStreamResult> {
   return {
     ok: false,
     error: {
@@ -123,7 +123,7 @@ function toParseFailure(
       phase: "parse",
       sourcePath,
       language,
-      message: parseFailureMessage(match),
+      message: await parseFailureMessage(match),
       location: locationFromOffset(
         sourceText,
         sourceOffsetFromMatch(match, sourceText),
@@ -142,19 +142,19 @@ export async function parseSourceToAst(
       const parsed = await uffdaGrammar(sourceText);
       return parsed.kind === MatchKind.Ok
         ? { ok: true, ast: parsed.value }
-        : toParseFailure(parsed, language, sourcePath, sourceText);
+        : await toParseFailure(parsed, language, sourcePath, sourceText);
     }
     case CliLanguage.Pattern: {
       const parsed = await patternGrammar(sourceText);
       return parsed.kind === MatchKind.Ok
         ? { ok: true, ast: parsed.value }
-        : toParseFailure(parsed, language, sourcePath, sourceText);
+        : await toParseFailure(parsed, language, sourcePath, sourceText);
     }
     case CliLanguage.Expression: {
       const parsed = await expressionGrammar(sourceText);
       return parsed.kind === MatchKind.Ok
         ? { ok: true, ast: parsed.value }
-        : toParseFailure(parsed, language, sourcePath, sourceText);
+        : await toParseFailure(parsed, language, sourcePath, sourceText);
     }
   }
 }

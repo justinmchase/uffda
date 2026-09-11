@@ -18,9 +18,9 @@ Deno.test("req:runtime-core-004 - Runtime scope carries active input position an
 
   // Incoming scope is unchanged.
   assertEquals(start.stream.path, Path.From(0));
-  assertEquals(start.stream.done, false);
+  assertEquals(await start.stream.done(), false);
 
   // Resulting scope reflects consumed input.
   assertEquals(m.scope.stream.path, Path.From(1));
-  assertEquals(m.scope.stream.done, false);
+  assertEquals(await m.scope.stream.done(), false);
 });

@@ -12,7 +12,7 @@ Deno.test("req:equal-001 - Equal inspects the current input position and fails a
     "equal inspects and matches at the current position",
     async () => {
       const root = Scope.From("ab", { kind: InputNormalizationMode.Iterable });
-      const atB = root.withInput(root.stream.next());
+      const atB = root.withInput(await root.stream.next());
       const pattern: Pattern = { kind: PatternKind.Equal, value: lit("b") };
 
       const m = await match(pattern, atB);
@@ -24,7 +24,7 @@ Deno.test("req:equal-001 - Equal inspects the current input position and fails a
     "equal fails at end-of-input without changing position",
     async () => {
       const root = Scope.From("a", { kind: InputNormalizationMode.Iterable });
-      const end = root.withInput(root.stream.next());
+      const end = root.withInput(await root.stream.next());
       const pattern: Pattern = { kind: PatternKind.Equal, value: lit("x") };
 
       const m = await match(pattern, end);

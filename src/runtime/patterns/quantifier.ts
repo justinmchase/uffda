@@ -101,7 +101,7 @@ export async function quantifier(
   const values: unknown[] = [];
   const matches: Match[] = [];
   let done = false;
-  while (!done && !end.stream.done) {
+  while (!done && !(await end.stream.done())) {
     const m = await match(pattern.pattern, end);
     matches.push(m);
     switch (m.kind) {
