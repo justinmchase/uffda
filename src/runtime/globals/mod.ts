@@ -28,6 +28,7 @@ import { one } from "./one.ts";
 import { pack } from "./pack.ts";
 import { pluck } from "./pluck.ts";
 import { reduce } from "./reduce.ts";
+import { scan } from "./scan.ts";
 import { sha256 } from "./sha256.ts";
 import { slice } from "./slice.ts";
 import { sub } from "./sub.ts";
@@ -78,6 +79,7 @@ export const defaultGlobals = new Map<string, unknown>([
   ["pack", pack],
   ["pluck", pluck],
   ["reduce", reduce],
+  ["scan", scan],
   ["sha256", sha256],
   ["slice", slice],
   ["sub", sub],
