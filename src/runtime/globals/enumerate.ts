@@ -1,9 +1,11 @@
+import { Type, type } from "@justinmchase/type";
 import { Input } from "../../input.ts";
 
 function isPlainObject(
   value: unknown,
 ): value is Record<PropertyKey, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  const [t] = type(value);
+  return t === Type.Object;
 }
 
 /**
