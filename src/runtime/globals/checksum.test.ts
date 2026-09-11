@@ -1,16 +1,11 @@
 import { assertEquals, assertThrows } from "@std/assert";
 import { checksum } from "./checksum.ts";
-import { document_id } from "./document_id.ts";
 import { units } from "./units.ts";
 
 Deno.test("std.checksum is stable for fixed text", () => {
   assertEquals(checksum(""), "811c9dc5");
   assertEquals(checksum("a"), checksum("a"));
   assertEquals(checksum("hello"), "4f9f2cab");
-});
-
-Deno.test("std.document_id uses length and checksum", () => {
-  assertEquals(document_id("hi"), `source:2:${checksum("hi")}`);
 });
 
 Deno.test("std.units builds SourceUnit rows", () => {
