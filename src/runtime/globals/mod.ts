@@ -33,7 +33,6 @@ import { slice } from "./slice.ts";
 import { sub } from "./sub.ts";
 import { symbol } from "./symbol.ts";
 import { to_set } from "./to_set.ts";
-import { units } from "./units.ts";
 import { when } from "./when.ts";
 
 /**
@@ -43,7 +42,7 @@ import { when } from "./when.ts";
  *
  * B6/B7 also registered source/tokenizer domain helpers as bootstrap
  * precursors so language modules can convert without Native. Several of those
- * (`match_leaf_offset`, `units`, …) are provisional in this map; the
+ * (`match_leaf_offset`, …) are provisional in this map; the
  * intended long-term home is author-defined `func` declarations
  * (https://github.com/justinmchase/uffda/issues/124). Do not grow more
  * stack-specific globals without considering that path.
@@ -84,7 +83,6 @@ export const defaultGlobals = new Map<string, unknown>([
   ["sub", sub],
   ["symbol", symbol],
   ["to_set", to_set],
-  ["units", units],
   ["when", when],
 ]);
 

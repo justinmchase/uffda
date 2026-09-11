@@ -5,7 +5,20 @@ import { resolve } from "../../runtime/patterns/resolve.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { ModuleImportResultKind } from "../../runtime/resolvers/resolver.ts";
-import { type SourceUnit, units } from "../../runtime/globals/units.ts";
+
+/** Built in src/lang/source/mod.uff (`unit_positions`/`to_source_unit`). */
+export type SourceUnit = {
+  index: number;
+  value: string;
+  offsetStart: number;
+  offsetEnd: number;
+  lineStart: number;
+  columnStart: number;
+  lineEnd: number;
+  columnEnd: number;
+  originalOffsetStart: number;
+  originalOffsetEnd: number;
+};
 
 /**
  * Assembled in src/lang/source/mod.uff via computed object keys + the
@@ -20,17 +33,6 @@ export type SourceDocument = {
   normalizationMap: number[];
   [Symbol.asyncIterator](): AsyncIterator<string>;
 };
-
-export type { SourceUnit };
-
-/** @deprecated Prefer globals `units`. */
-export function buildUnits(
-  text: string,
-  lineStarts: number[],
-  normalizationMap: number[],
-): SourceUnit[] {
-  return units(text, lineStarts, normalizationMap);
-}
 
 export async function normalizeSource(value: string): Promise<SourceDocument> {
   const moduleUrl = new URL("./mod.uff", import.meta.url);
