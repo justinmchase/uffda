@@ -36,3 +36,4 @@ Each runtime subtopic should define:
 - [runtime rules](./runtime/rules.spec.md)
 - [runtime left recursion](./runtime/left-recursion.spec.md)
 - [match diagnostics](./runtime/match-diagnostics.spec.md)
+- [runtime incremental re-parsing](./runtime/incremental-parsing.spec.md)
