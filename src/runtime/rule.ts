@@ -72,60 +72,69 @@ export async function rule(
     ...mergedArgs.values(),
   ]);
   if (!memo) {
-    memo = scope.memos.set(scope.stream.path, key, lr(scope, pattern));
-    const subScope = scope
-      .pushModule(module)
-      .pushRule(rule, mergedArgs);
+    return await scope.memos.withFrame(scope.stream.path, async () => {
+      memo = scope.memos.set(scope.stream.path, key, lr(scope, pattern));
+      const subScope = scope
+        .pushModule(module)
+        .pushRule(rule, mergedArgs);
 
-    const m = await match(pattern, subScope);
-    switch (m.kind) {
-      case MatchKind.LR: {
-        const grown = await grow(pattern, key, subScope);
-        switch (grown.kind) {
-          case MatchKind.LR:
-          case MatchKind.Error:
-            memo.match = grown;
-            return grown;
-          case MatchKind.Fail: {
-            const failed = fail(scope, rule.pattern, [grown]);
-            memo.match = failed;
-            return failed;
+      const m = await match(pattern, subScope);
+      switch (m.kind) {
+        case MatchKind.LR: {
+          const grown = await grow(pattern, key, subScope);
+          switch (grown.kind) {
+            case MatchKind.LR:
+            case MatchKind.Error:
+              memo!.match = grown;
+              return grown;
+            case MatchKind.Fail: {
+              const failed = fail(scope, rule.pattern, [grown]);
+              memo!.match = failed;
+              return failed;
+            }
+            case MatchKind.Ok: {
+              // Match the non-LR Ok path: expose only the caller scope plus the
+              // advanced stream so inner growth bindings do not leak outward.
+              // Apply rule-level projection to the stabilized growth result, then
+              // memoize that caller-visible value for later non-growth reuse.
+              const finished = await finishRuleSuccess(rule, grown, scope);
+              memo!.match = finished;
+              return finished;
+            }
           }
-          case MatchKind.Ok: {
-            // Match the non-LR Ok path: expose only the caller scope plus the
-            // advanced stream so inner growth bindings do not leak outward.
-            // Apply rule-level projection to the stabilized growth result, then
-            // memoize that caller-visible value for later non-growth reuse.
-            const finished = await finishRuleSuccess(rule, grown, scope);
-            memo.match = finished;
-            return finished;
-          }
+          return error(
+            scope,
+            rule.pattern,
+            MatchErrorCode.InternalInvariant,
+            `unexpected match kind ${
+              (grown as { kind?: unknown }).kind
+            } after left-recursion growth`,
+          );
         }
-        return error(
-          scope,
-          rule.pattern,
-          MatchErrorCode.InternalInvariant,
-          `unexpected match kind ${
-            (grown as { kind?: unknown }).kind
-          } after left-recursion growth`,
-        );
+        case MatchKind.Error:
+          memo!.match = m;
+          return m;
+        case MatchKind.Fail: {
+          const failed = fail(scope, rule.pattern, [m]);
+          memo!.match = failed;
+          return failed;
+        }
+        case MatchKind.Ok: {
+          const finished = await finishRuleSuccess(rule, m, scope);
+          // Store the post-expression success so Or backtracking that
+          // re-enters this rule at the same position observes the
+          // projected value.
+          memo!.match = finished;
+          return finished;
+        }
       }
-      case MatchKind.Error:
-        memo.match = m;
-        return m;
-      case MatchKind.Fail: {
-        const failed = fail(scope, rule.pattern, [m]);
-        memo.match = failed;
-        return failed;
-      }
-      case MatchKind.Ok: {
-        const finished = await finishRuleSuccess(rule, m, scope);
-        // Store the post-expression success so Or backtracking that re-enters
-        // this rule at the same position observes the projected value.
-        memo.match = finished;
-        return finished;
-      }
-    }
+      return error(
+        scope,
+        rule.pattern,
+        MatchErrorCode.InternalInvariant,
+        `unexpected match kind ${(m as { kind?: unknown }).kind}`,
+      );
+    });
   } else {
     const m = memo.match;
     const frame = scope.stack[scope.stack.length - 1];
