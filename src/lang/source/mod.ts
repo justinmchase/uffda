@@ -5,14 +5,23 @@ import { resolve } from "../../runtime/patterns/resolve.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { ModuleImportResultKind } from "../../runtime/resolvers/resolver.ts";
-import {
-  source_document,
-  type SourceDocument,
-} from "../../runtime/globals/source_document.ts";
 import { type SourceUnit, units } from "../../runtime/globals/units.ts";
 
-export type { SourceDocument, SourceUnit };
-export { source_document };
+/**
+ * Assembled in src/lang/source/mod.uff via computed object keys + the
+ * generic `iterable` global (`[(symbol "asyncIterator")]` is attached by
+ * spreading `(iterable t)`), not by a TS constructor.
+ */
+export type SourceDocument = {
+  documentId: string;
+  text: string;
+  lineStarts: number[];
+  units: SourceUnit[];
+  normalizationMap: number[];
+  [Symbol.asyncIterator](): AsyncIterator<string>;
+};
+
+export type { SourceUnit };
 
 /** @deprecated Prefer globals `units`. */
 export function buildUnits(

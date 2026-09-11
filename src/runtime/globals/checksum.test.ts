@@ -1,7 +1,6 @@
 import { assertEquals, assertThrows } from "@std/assert";
 import { checksum } from "./checksum.ts";
 import { document_id } from "./document_id.ts";
-import { source_document } from "./source_document.ts";
 import { units } from "./units.ts";
 
 Deno.test("std.checksum is stable for fixed text", () => {
@@ -25,15 +24,6 @@ Deno.test("std.units builds SourceUnit rows", () => {
   assertEquals(rows[0].columnStart, 1);
   assertEquals(rows[1].value, "\n");
   assertEquals(rows[1].originalOffsetStart, 1);
-});
-
-Deno.test("std.source_document is iterable over text", () => {
-  const text = "xy";
-  const starts = [0];
-  const map = [0, 1, 2];
-  const doc = source_document(text, starts, units(text, starts, map), map);
-  assertEquals(doc.documentId, document_id(text));
-  assertEquals([...doc], ["x", "y"]);
 });
 
 Deno.test("std.checksum rejects non-strings", () => {

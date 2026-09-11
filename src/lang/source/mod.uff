@@ -97,4 +97,11 @@ rule SourceDocument =
     lineStarts: s:array,
     units: u:array
   }
-  -> (source_document t s u m);
+  -> {
+    ...(iterable t),
+    documentId: (document_id t),
+    text: t,
+    lineStarts: s,
+    units: u,
+    normalizationMap: m
+  };

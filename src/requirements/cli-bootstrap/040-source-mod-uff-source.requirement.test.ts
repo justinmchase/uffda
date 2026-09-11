@@ -10,7 +10,7 @@ Deno.test(
     const source = await Deno.readTextFile(modUff);
     assertEquals(source.includes("export rule Source"), true);
     assertEquals(source.includes("export NormalizedText"), true);
-    assertEquals(source.includes("(source_document t s u m)"), true);
+    assertEquals(source.includes("...(iterable t)"), true);
     assertEquals(source.includes('(match_leaf_offset "start")'), true);
     assertEquals(source.includes("(normalization_map _)"), true);
     assertEquals(source.includes("(line_starts t)"), true);

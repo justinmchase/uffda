@@ -11,7 +11,7 @@ spec_ref: ".agents/specifications/languages/source-normalization.spec.md#standar
 Preconditions:
 
 - The runtime std globals include `checksum`, `line_starts`, `units`,
-  `document_id`, `normalized_unit`, `normalization_map`, `source_document`, and
+  `document_id`, `normalized_unit`, `normalization_map`, `iterable`, and
   match-aware `match_leaf_offset`.
 
 Expected behavior:
@@ -19,8 +19,10 @@ Expected behavior:
 - `checksum` MUST return a stable 8-hex digest for fixed text.
 - `line_starts` and `units` MUST produce deterministic indexes for fixed
   normalized text and normalization map.
-- `source_document` MUST assemble a `SourceDocument` whose iterator yields the
-  characters of `text`.
+- `iterable` MUST normalize any `Symbol.iterator`/`Symbol.asyncIterator` value
+  to an async iterable, and `SourceDocument` object literals assembled with it
+  (via computed keys) MUST yield the characters of `text` when consumed with
+  `for await...of`.
 - `match_leaf_offset` MUST return the numeric leaf path segment for `"start"` or
   `"end"` of the current match span when invoked as a match-aware std callable.
 
