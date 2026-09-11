@@ -77,15 +77,20 @@ rule LineIndex =
 # `units` is module-local: it is only needed by UnitIndex and is not part of
 # the general globals toolbox (#124). Built in two passes:
 #   1. `unit_positions` prefix-sums each code point's UTF-16 width via
-#      `reduce` to get {index, value, offsetStart, offsetEnd} per unit — an
-#      accumulator is unavoidable here since each offset depends on every
-#      preceding unit's width.
+#      `scan` to get {index, value, offsetStart, offsetEnd} per unit — a
+#      running accumulator is unavoidable here since each offset depends on
+#      every preceding unit's width. `scan` (unlike hand-rolling this with
+#      `reduce` and `[...acc, item]`) threads only the small running
+#      `{offset}` accumulator between steps rather than rebuilding a growing
+#      output array on every step, so this stays O(n) instead of O(n^2) for
+#      large source texts.
 #   2. `to_source_unit` adds line/column via a pure lookup against the
 #      already-known `lineStarts` (no accumulator needed): the line number is
 #      how many `lineStarts` entries are `<=` a unit's offsetStart, and the
 #      line's start offset is the greatest such entry. `line_lookup` still
 #      uses `reduce` internally, but only to walk `lineStarts` (one line per
-#      step), not to thread state across *units*.
+#      step, and `lineStarts` is small — one entry per source line, not per
+#      unit), not to thread state across *units*.
 #
 # NOTE: variable names bound anywhere in a func's parameter pattern are
 # visible to every nested func/lambda call made from within its body — the
@@ -93,16 +98,16 @@ rule LineIndex =
 # reused at a deeper nesting level collides with the same name bound higher
 # up (E_DUPLICATE_VARIABLE). Every func below therefore uses parameter names
 # that are unique across this whole call chain, not just within each func.
-func UnitPosition<{offset: po:number, output: pout:array} entry:{index: ei:number, value: ev:string}> =
+func UnitPosition<{offset: po:number} entry:{index: ei:number, value: ev:string}> =
   {
     offset: (add po (length ev)),
-    output: [...pout { index: ei, value: ev, offsetStart: po, offsetEnd: (add po (length ev)) }]
+    entry: { index: ei, value: ev, offsetStart: po, offsetEnd: (add po (length ev)) }
   };
 
-func UnitPositionsOutput<{offset: po:number, output: pout:array}> = pout;
+func UnitPositionEntry<{entry: upe:any}> = upe;
 
 func unit_positions<text:string> =
-  (UnitPositionsOutput (reduce (enumerate text) { offset: 0, output: [] } UnitPosition));
+  (map (scan (enumerate text) { offset: 0 } UnitPosition) UnitPositionEntry);
 
 func line_lookup<llPositions:array llTarget:number> =
   (reduce llPositions { line: 0, lineStart: 0 }
