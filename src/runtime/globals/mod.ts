@@ -1,5 +1,5 @@
 import { add } from "./add.ts";
-import { checksum } from "./checksum.ts";
+import { base58 } from "./base58.ts";
 import { coalesce } from "./coalesce.ts";
 import { eq } from "./eq.ts";
 import { enumerate } from "./enumerate.ts";
@@ -21,6 +21,8 @@ import { not } from "./not.ts";
 import { one } from "./one.ts";
 import { pack } from "./pack.ts";
 import { pluck } from "./pluck.ts";
+import { sha256 } from "./sha256.ts";
+import { slice } from "./slice.ts";
 import { symbol } from "./symbol.ts";
 import { to_set } from "./to_set.ts";
 import { units } from "./units.ts";
@@ -33,14 +35,14 @@ import { when } from "./when.ts";
  *
  * B6/B7 also registered source/tokenizer domain helpers as bootstrap
  * precursors so language modules can convert without Native. Several of those
- * (`checksum`, `match_leaf_offset`, `units`, …) are provisional in this map;
- * the intended long-term home is author-defined `func` declarations
+ * (`match_leaf_offset`, `units`, …) are provisional in this map; the
+ * intended long-term home is author-defined `func` declarations
  * (https://github.com/justinmchase/uffda/issues/124). Do not grow more
  * stack-specific globals without considering that path.
  */
 export const defaultGlobals = new Map<string, unknown>([
   ["add", add],
-  ["checksum", checksum],
+  ["base58", base58],
   ["coalesce", coalesce],
   ["eq", eq],
   ["enumerate", enumerate],
@@ -62,6 +64,8 @@ export const defaultGlobals = new Map<string, unknown>([
   ["one", one],
   ["pack", pack],
   ["pluck", pluck],
+  ["sha256", sha256],
+  ["slice", slice],
   ["symbol", symbol],
   ["to_set", to_set],
   ["units", units],
