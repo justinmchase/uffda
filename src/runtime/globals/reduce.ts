@@ -23,18 +23,12 @@ export async function reduce(
   initial: unknown,
   fn: (acc: unknown, item: unknown) => unknown,
 ): Promise<unknown> {
+  if (typeof self !== "string" && !Array.isArray(self)) {
+    throw new TypeError("reduce expects a string or array");
+  }
   let acc = initial;
-  if (typeof self === "string") {
-    for (const item of self) {
-      acc = await fn(acc, item);
-    }
-    return acc;
+  for (const item of self) {
+    acc = await fn(acc, item);
   }
-  if (Array.isArray(self)) {
-    for (let i = 0; i < self.length; i++) {
-      acc = await fn(acc, self[i]);
-    }
-    return acc;
-  }
-  throw new TypeError("reduce expects a string or array");
+  return acc;
 }
