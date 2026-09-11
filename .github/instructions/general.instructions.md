@@ -52,6 +52,11 @@ shape → publish → install → recompile.
 - Do not put variants in a discriminator enum unless they belong to that union.
 - Keep discriminator enums narrow enough that callers do not need to mentally
   filter out irrelevant members.
+- Whenever JavaScript/TypeScript runtime type checking is needed (for example
+  distinguishing arrays/objects/maps/sets, or asserting a value is a number),
+  use `@justinmchase/type`'s helpers (`type()`, `assertNumber`, etc.) instead of
+  hand-rolled `typeof`/`Array.isArray`/`instanceof` checks. It is already a
+  project dependency and is used throughout `src/runtime/`.
 
 ## Specification authority and change control
 
