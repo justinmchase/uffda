@@ -11,6 +11,8 @@
     "compile:cli": "deno task compile:lang && deno run --allow-read --allow-write --allow-run --allow-env ./scripts/compile-cli.ts",
     "test": "deno task compile:lang && deno test --allow-read --allow-write --parallel",
     "test:watch": "deno task compile:lang && deno test --allow-read --allow-write --watch --parallel",
+    "bench": "deno bench --allow-read --allow-write bench/",
+    "bench:memo": "deno run --allow-read --allow-write bench/memo-eviction.report.ts",
     "pre": "deno fmt && deno lint --fix && deno task test && npx jsr publish --dry-run --allow-dirty"
   },
   "imports": {
@@ -39,6 +41,7 @@
       ".agents/",
       ".cursor/",
       ".github/",
+      "bench/",
       "src/requirements/"
     ]
   }
