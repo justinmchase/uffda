@@ -14,6 +14,9 @@ Reference expressions resolve a name from expression-visible runtime context.
 ## Behavioral expectations
 
 - The reserved name `_` MUST resolve to the current match value.
+- The reserved name `this` MUST resolve to the current successful `MatchOk`
+  itself (not just its value), giving expressions direct access to match
+  metadata (for example `this.normalizedSpan.start`) via member expressions.
 - For non-reserved names, resolution MUST check local match variables before
   configured runtime capabilities.
 - The runtime capability set MAY include standard-library values and additional

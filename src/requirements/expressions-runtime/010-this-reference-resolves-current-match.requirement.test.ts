@@ -6,35 +6,26 @@ import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { exec } from "../../runtime/exec.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { Scope } from "../../runtime/scope.ts";
-import { match_leaf_offset } from "../../runtime/globals/match_leaf_offset.ts";
 
-Deno.test("req:expressions-runtime-010 - match-aware invocation injects MatchOk", async () => {
-  const scope = new Scope(
-    undefined,
-    undefined,
-    new Map(),
-    new Map(),
-    Input.From("hi"),
-    undefined,
-    undefined,
-    {
-      globals: new Map([["match_leaf_offset", match_leaf_offset]]),
-    },
-  );
+Deno.test("req:expressions-runtime-010 - `this` resolves to the current MatchOk", async () => {
+  const scope = Scope.Default().withInput(Input.From("hi"));
   const base = ok(scope, scope, { kind: PatternKind.Any }, undefined);
   const match = {
     ...base,
     span: { start: Path.From(4), end: Path.From(6) },
+    normalizedSpan: { start: 4, end: 6 },
     kind: MatchKind.Ok as const,
   };
+
   const value = await exec(
     {
-      kind: ExpressionKind.Invocation,
+      kind: ExpressionKind.Member,
       expression: {
-        kind: ExpressionKind.Reference,
-        name: "match_leaf_offset",
+        kind: ExpressionKind.Member,
+        expression: { kind: ExpressionKind.Reference, name: "this" },
+        name: "normalizedSpan",
       },
-      args: [{ kind: ExpressionKind.Value, value: "end" }],
+      name: "end",
     },
     match,
   );

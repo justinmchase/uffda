@@ -41,6 +41,56 @@ shape → publish → install → recompile.
 - Prefer `deno task pre` before committing.
 - Keep modules small and composable when adding or refactoring parser logic.
 
+## Design philosophy: correctness over expedience
+
+This runtime is a kernel/foundation layer: every impurity or workaround baked in
+here magnifies and limits what everything built on top of it can ever do.
+Correctness and thoroughness outrank speed.
+
+- When you find a gap between the spec/requirements and the behavior you need,
+  do not patch around it with a narrow, special-cased workaround just because it
+  makes tests pass. Stop and ask: "what is the most correct, most general fix —
+  even if it means revisiting the spec, digressing from the current plan, or
+  making a more fundamental change?"
+- Prefer strengthening a foundational layer (grammar, runtime primitives, spec)
+  over an expedient fix at the call site, even when the correct fix is larger in
+  scope, touches more files, or requires the user to weigh in on a design
+  tradeoff first.
+- Treat any solution that introduces a special case, an implicit side effect, or
+  a narrow escape hatch as a signal to pause. Explain the tradeoff and ask the
+  user how to proceed instead of silently shipping the workaround.
+- A missing spec/requirement is itself a defect. If the "correct" fix is really
+  "the spec should have said this all along," fix the spec (per Specification
+  authority and change control below) rather than working around its silence in
+  code.
+
+## Global function purity
+
+- `src/runtime/globals/` (see `defaultGlobals` in `src/runtime/globals/mod.ts`)
+  are the always-available runtime kernel — the essential primitives every
+  instance of the runtime gets by default. They MUST stay pure, general purpose,
+  and free of hidden side channels or behavior tied to a single
+  language/module's needs.
+- Never bolt a domain-specific behavior, implicit side channel, or special-cased
+  injection/marker protocol onto a global to work around a missing capability
+  elsewhere (for example: injecting hidden context arguments, or marking
+  specific functions to receive runtime internals no other function can see).
+  That kind of impurity compounds silently and constrains every author who later
+  composes these primitives.
+- If a global needs awareness of something beyond its own arguments (the current
+  match, scope, or rule, etc.) to do its job, that need is a signal the fix
+  belongs one layer down — in expression/reference resolution, the pattern
+  grammar, or the spec — not a bolt-on side effect on an individual global
+  function.
+- Prefer exposing a missing capability as an ordinary, explicit, referenceable
+  value in scope (following the existing `_`/`this` reserved-reference
+  precedent) over implicit argument injection, hidden globals, or ad hoc marker
+  protocols.
+- Before adding a new global or changing an existing one to solve a
+  hard-to-reach problem, stop and ask whether a more general/correct mechanism
+  exists first, rather than defaulting to the smallest patch that makes the
+  immediate case work.
+
 ## Type modeling conventions
 
 - Prefer discriminated unions that use a `kind` field with an enum discriminator
