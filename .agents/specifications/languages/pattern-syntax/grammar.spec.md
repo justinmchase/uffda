@@ -45,6 +45,7 @@ The grammar MUST be able to express the following pattern families:
 - traversal and delegation forms, including `into`, `over`, `pipeline`, and
   `resolve`;
 - boundary and lookaround forms, including `lookahead`;
+- committed-choice dispatch, via `switch`;
 - runtime-adjacent forms whose syntax normalizes to the corresponding pattern
   runtime contract.
 
@@ -127,6 +128,25 @@ The grammar MUST be able to express the following pattern families:
   - `..R` → `{ kind: "between", left: undefined, right }`
   - Arms MUST prefer closed `L..R`, then `L..`, then `..R`, so `1..3` stays
     closed. Bare `..` MUST NOT match any between arm.
+
+## Switch case dispatch
+
+- Committed-choice dispatch MUST use the spelling
+  `switch { case, ..., default: P }`, normalizing to the
+  [switch](../../patterns/runtime/switch.spec.md) runtime pattern.
+- Each case MUST be written `key: P`, where `key` is either a comma-separated
+  list of value-source keys (`ContextualValue` or a bare/literal value, but not
+  a bare identifier reference) or a single Unicode character class, and `P` is
+  that case's body pattern.
+- `switch` and `default` MUST be reserved keywords: they MUST NOT be accepted as
+  bare rule-reference identifiers, so that a bare `default` token can never be
+  parsed as a case's literal-value key instead of the default marker.
+- `default: P`, if present, MUST be the last entry in the `switch` body.
+- The `switch` body MAY declare zero cases (with or without `default`).
+- Cases and `default` MUST be separated by `,`. A single trailing `,` before the
+  closing `}` MUST be accepted.
+- Case order in source MUST be preserved as declared-order dispatch priority in
+  the normalized `switch` pattern.
 
 ## Precedence
 
