@@ -1,0 +1,88 @@
+# Switch matches `switch { key: Pattern, ..., default: Pattern }` for
+# committed-choice dispatch (see runtime/patterns/switch.ts). Each case key
+# is a fixed, author-declared literal-value set and/or a CharacterClass —
+# never a general Pattern — so dispatch is a direct check, not inference.
+# `default` is a reserved case marker (see ReservedKeyword in resolve.uff)
+# and, if present, must be the last entry. Case keys use AtomicLiteralSource
+# / ContextualValue (not the full Literal, which also allows bare
+# identifiers) so a bare `default` can never be mistaken for a case key.
+import "./pattern.uff" Pattern;
+import "./character_class.uff" CharacterClass;
+import "./literals.uff" ContextualValue AtomicLiteralSource;
+
+export Switch;
+
+rule SwitchCaseKeyValue =
+  | ContextualValue
+  | AtomicLiteralSource
+  ;
+
+rule SwitchCaseKeyValueTail =
+  "," v:SwitchCaseKeyValue -> v;
+
+rule SwitchCaseKeyValues =
+  f:SwitchCaseKeyValue
+  r:SwitchCaseKeyValueTail*
+  -> { kind: "values", values: (flat (pack f r)) };
+
+rule SwitchCaseKeyCharacterClass =
+  c:CharacterClass
+  -> { kind: "characterClass", characterClass: c.characterClass };
+
+rule SwitchCaseKey =
+  | SwitchCaseKeyCharacterClass
+  | SwitchCaseKeyValues
+  ;
+
+rule SwitchCase =
+  k:SwitchCaseKey
+  ":"
+  p:Pattern
+  -> { key: k, pattern: p };
+
+rule SwitchCaseTail =
+  "," c:SwitchCase -> c;
+
+rule SwitchCases =
+  f:SwitchCase
+  r:SwitchCaseTail*
+  -> (flat (pack f r));
+
+rule SwitchDefaultCase =
+  "default"
+  ":"
+  p:Pattern
+  -> p;
+
+rule SwitchCasesWithDefaultBody =
+  c:SwitchCases
+  ","
+  d:SwitchDefaultCase
+  -> { cases: c, default: d };
+
+rule SwitchDefaultOnlyBody =
+  d:SwitchDefaultCase
+  -> { cases: [], default: d };
+
+rule SwitchCasesOnlyBody =
+  c:SwitchCases
+  -> { cases: c, default: undefined };
+
+rule SwitchEmptyBody =
+  ok
+  -> { cases: [], default: undefined };
+
+rule SwitchBody =
+  | SwitchCasesWithDefaultBody
+  | SwitchDefaultOnlyBody
+  | SwitchCasesOnlyBody
+  | SwitchEmptyBody
+  ;
+
+rule Switch =
+  "switch"
+  "{"
+  b:SwitchBody
+  ","?
+  "}"
+  -> { kind: "switch", cases: b.cases, default: b.default };
