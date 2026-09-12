@@ -113,6 +113,24 @@ export class Scope {
     );
   }
 
+  /// <summary>
+  /// Returns a scope backed by the given memo table instead of this scope's
+  /// own. Used to seed a reparse with a memo table rehydrated from a prior
+  /// parse's delivered result (see incremental re-parsing).
+  /// </summary>
+  public withMemos(memos: Memos): Scope {
+    return new Scope(
+      this.module,
+      this.parent,
+      this.variables,
+      this.args,
+      this.stream,
+      memos,
+      this.stack,
+      this.options,
+    );
+  }
+
   public withInputValue(
     input: Iterable<unknown> | Iterator<unknown> | unknown,
     options?: ScopeFromOptions,

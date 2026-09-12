@@ -27,7 +27,20 @@ type RecursiveWeakMap = WeakMap<Rule, { key: symbol; keys: RecursiveWeakMap }>;
  */
 export class Memos {
   private readonly keys: RecursiveWeakMap = new WeakMap();
-  private readonly memos = new Map<Path, Map<symbol, Memo>>();
+  /**
+   * Keyed by `path.toString()` rather than by `Path` object identity.
+   * `Path` has value-based equality (`compareTo`) but no value-based `Map`
+   * key semantics, and incremental re-parsing rehydrates entries against a
+   * freshly-built `Path`/`Input` chain over a post-edit sequence — those
+   * fresh `Path` objects are never reference-equal to the ones a prior parse
+   * produced, even at numerically identical positions. Keying by the
+   * deterministic string form lets structurally-equal positions from two
+   * different parses hit the same entry.
+   */
+  private readonly memos = new Map<
+    string,
+    { path: Path; entries: Map<symbol, Memo> }
+  >();
 
   /**
    * Start positions of every currently in-progress (not yet returned) rule
@@ -50,7 +63,7 @@ export class Memos {
   }
 
   public get(path: Path, key: symbol): { key: symbol; memo: Memo | undefined } {
-    return { key, memo: this.memos.get(path)?.get(key) };
+    return { key, memo: this.memos.get(path.toString())?.entries.get(key) };
   }
 
   private getKey(rules: Rule[]): symbol {
@@ -71,10 +84,12 @@ export class Memos {
 
   public set(path: Path, key: symbol, match: Match): Memo {
     const memo = { match };
-    if (this.memos.has(path)) {
-      this.memos.get(path)?.set(key, memo);
+    const pathKey = path.toString();
+    const existing = this.memos.get(pathKey);
+    if (existing) {
+      existing.entries.set(key, memo);
     } else {
-      this.memos.set(path, new Map<symbol, Memo>([[key, memo]]));
+      this.memos.set(pathKey, { path, entries: new Map([[key, memo]]) });
     }
     return memo;
   }
@@ -121,9 +136,9 @@ export class Memos {
       }
     }
 
-    for (const path of this.memos.keys()) {
-      if (path.compareTo(mark) < 0) {
-        this.memos.delete(path);
+    for (const [pathKey, entry] of this.memos) {
+      if (entry.path.compareTo(mark) < 0) {
+        this.memos.delete(pathKey);
       }
     }
   }

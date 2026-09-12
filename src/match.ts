@@ -1,5 +1,6 @@
 import type { Pattern } from "./runtime/patterns/pattern.ts";
 import type { Scope } from "./runtime/scope.ts";
+import type { Rule } from "./runtime/modules/mod.ts";
 import {
   type SourceSpan,
   sourceSpansFrom,
@@ -8,6 +9,25 @@ import {
 } from "./span.ts";
 
 export type { SourceSpan } from "./span.ts";
+
+/**
+ * Identifies the rule invocation (see `rule()` in `./runtime/rule.ts`) that
+ * produced a memoized `MatchOk`/`MatchFail`. This is the "reverse" of a
+ * packrat memo lookup: `rule()` already knows `(rule, args, position)` when
+ * it asks `Memos` for a cached outcome, but a bare `Match` value on its own
+ * does not otherwise record which rule (and resolved arguments) produced it.
+ *
+ * Recording `origin` lets a retained delivered-result tree (see
+ * `.agents/specifications/runtime/memo-eviction.spec.md`'s delivered-result
+ * reachability rule) be walked back into `(rule, args, position)` memo keys
+ * for incremental re-parsing (see
+ * `.agents/specifications/runtime/incremental-parsing.spec.md`), without
+ * requiring the evicted `Memos` table itself to still exist.
+ */
+export type MatchOrigin = {
+  rule: Rule;
+  args: Map<string, Rule>;
+};
 
 export enum MatchErrorCode {
   UnknownReference = "E_UNKNOWN_REFERENCE",
@@ -48,6 +68,8 @@ export type MatchOk<T = unknown> = {
   originalSpan: SourceSpan;
   matches: Match[];
   value: T;
+  /** Set only for the Ok produced by a fresh rule invocation; see {@link MatchOrigin}. */
+  origin?: MatchOrigin;
 };
 
 export type MatchFail = {
@@ -58,6 +80,8 @@ export type MatchFail = {
   normalizedSpan: SourceSpan;
   originalSpan: SourceSpan;
   matches: Match[];
+  /** Set only for the Fail produced by a fresh rule invocation; see {@link MatchOrigin}. */
+  origin?: MatchOrigin;
 };
 
 export type MatchError = {
@@ -114,6 +138,7 @@ export function ok(
   pattern: Pattern,
   value: unknown = undefined,
   matches: Match[] = [],
+  origin?: MatchOrigin,
 ): MatchOk {
   const { normalizedSpan, originalSpan } = sourceSpansFrom(start, end);
   return {
@@ -125,6 +150,7 @@ export function ok(
     scope: end,
     value,
     matches,
+    origin,
   };
 }
 
@@ -132,6 +158,7 @@ export function fail(
   scope: Scope,
   pattern: Pattern,
   matches: Match[] = [],
+  origin?: MatchOrigin,
 ): MatchFail {
   const { normalizedSpan, originalSpan } = sourceSpansFrom(scope, scope);
   return {
@@ -142,6 +169,7 @@ export function fail(
     scope,
     pattern,
     matches,
+    origin,
   };
 }
 
