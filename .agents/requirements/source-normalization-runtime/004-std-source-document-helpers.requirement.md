@@ -10,10 +10,11 @@ spec_ref: ".agents/specifications/languages/source-normalization.spec.md#standar
 
 Preconditions:
 
-- The runtime std globals include `sha256`, `base58`, `slice`, `length`,
-  `units`, `iterable`, and match-aware `match_leaf_offset`. `line_starts`,
-  `document_id`, `normalized_unit`, and `normalization_map` are module-local
-  `func` declarations in `src/lang/source/mod.uff` composed from those globals.
+- The runtime std globals include `sha256`, `base58`, `slice`, `length`, and
+  `iterable`. `line_starts`, `document_id`, `normalized_unit`,
+  `normalization_map`, and `units` are module-local `func` declarations in
+  `src/lang/source/mod.uff` composed from those globals plus the reserved `this`
+  reference (for match span/offset access).
 
 Expected behavior:
 
@@ -31,8 +32,9 @@ Expected behavior:
   to an async iterable, and `SourceDocument` object literals assembled with it
   (via computed keys) MUST yield the characters of `text` when consumed with
   `for await...of`.
-- `match_leaf_offset` MUST return the numeric leaf path segment for `"start"` or
-  `"end"` of the current match span when invoked as a match-aware std callable.
+- Rule projections MUST read span/offset metadata (`"start"`/`"end"` of the
+  current match) via `this.normalizedSpan.start`/`this.normalizedSpan.end`,
+  where `this` resolves to the current successful `MatchOk`.
 
 Error behavior:
 
