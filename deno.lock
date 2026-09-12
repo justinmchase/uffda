@@ -9,12 +9,14 @@
     "jsr:@std/assert@^1.0.10": "1.0.10",
     "jsr:@std/crypto@*": "1.0.3",
     "jsr:@std/crypto@^1.0.3": "1.0.3",
+    "jsr:@std/data-structures@*": "1.1.0",
+    "jsr:@std/data-structures@^1.1.0": "1.1.0",
     "jsr:@std/encoding@*": "1.0.6",
     "jsr:@std/encoding@^1.0.6": "1.0.6",
     "jsr:@std/fs@^1.0.19": "1.0.24",
     "jsr:@std/internal@^1.0.14": "1.0.14",
     "jsr:@std/internal@^1.0.5": "1.0.14",
-    "jsr:@std/path@^1.0.8": "1.0.8",
+    "jsr:@std/path@^1.0.8": "1.1.5",
     "jsr:@std/path@^1.1.5": "1.1.5",
     "jsr:@tui/inputs@0": "0.0.1",
     "jsr:@tui/inputs@0.0.1": "0.0.1",
@@ -66,6 +68,9 @@
     },
     "@std/crypto@1.0.3": {
       "integrity": "a2a32f51ddef632d299e3879cd027c630dcd4d1d9a5285d6e6788072f4e51e7f"
+    },
+    "@std/data-structures@1.1.0": {
+      "integrity": "c35ae4ad5d8e41a38573c2fe3e19b18ea2505f63cfea201edcb8720aca1f7f58"
     },
     "@std/encoding@1.0.6": {
       "integrity": "ca87122c196e8831737d9547acf001766618e78cd8c33920776c7f5885546069"
@@ -129,6 +134,7 @@
       "jsr:@justinmchase/type@~0.2.4",
       "jsr:@std/assert@^1.0.10",
       "jsr:@std/crypto@^1.0.3",
+      "jsr:@std/data-structures@^1.1.0",
       "jsr:@std/encoding@^1.0.6",
       "jsr:@std/fs@^1.0.19",
       "jsr:@std/path@^1.0.8",

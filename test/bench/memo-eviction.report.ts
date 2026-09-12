@@ -1,18 +1,18 @@
-import { Input } from "../src/input.ts";
-import { MatchKind } from "../src/match.ts";
-import { type Memo, Memos } from "../src/memo.ts";
+import { Input } from "../../src/input.ts";
+import { MatchKind } from "../../src/match.ts";
+import { type Memo, Memos } from "../../src/memo.ts";
 import {
   CharacterClass,
   ResolveTargetKind,
-} from "../src/runtime/patterns/pattern.ts";
-import { PatternKind } from "../src/runtime/patterns/pattern.kind.ts";
-import { resolve } from "../src/runtime/patterns/resolve.ts";
-import { Resolver } from "../src/mod.ts";
-import { Scope } from "../src/runtime/scope.ts";
-import { ModuleImportResultKind } from "../src/runtime/resolvers/resolver.ts";
-import { ExportDeclarationKind } from "../src/runtime/declarations/mod.ts";
-import type { Path } from "../src/path.ts";
-import type { ModuleDeclaration } from "../src/runtime/declarations/module.ts";
+} from "../../src/runtime/patterns/pattern.ts";
+import { PatternKind } from "../../src/runtime/patterns/pattern.kind.ts";
+import { resolve } from "../../src/runtime/patterns/resolve.ts";
+import { Resolver } from "../../src/mod.ts";
+import { Scope } from "../../src/runtime/scope.ts";
+import { ModuleImportResultKind } from "../../src/runtime/resolvers/resolver.ts";
+import { ExportDeclarationKind } from "../../src/runtime/declarations/mod.ts";
+import type { Path } from "../../src/path.ts";
+import type { ModuleDeclaration } from "../../src/runtime/declarations/module.ts";
 
 /**
  * Reports the memory-footprint payoff of proof-driven memo eviction (see

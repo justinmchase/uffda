@@ -1,10 +1,15 @@
+// Traces to
+// `.agents/requirements/uffda-runtime-compilation/006-canonical-morse-language.requirement.md`.
+// Relocated here (from `src/requirements/uffda-runtime-compilation/`) because
+// it's a slow, full-compile integration test — see `test/integration/README.md`.
+
 import { assertEquals } from "@std/assert";
-import { Input } from "../../input.ts";
-import { MatchKind } from "../../match.ts";
-import { executeUffdaSource } from "../../lang/uffda/uffda.lang.ts";
+import { Input } from "../../src/input.ts";
+import { MatchKind } from "../../src/match.ts";
+import { executeUffdaSource } from "../../src/lang/uffda/uffda.lang.ts";
 
 const MorseLang = await Deno.readTextFile(
-  new URL("../../../examples/morse/morse.uff", import.meta.url),
+  new URL("../../examples/morse/morse.uff", import.meta.url),
 );
 
 Deno.test("req:uffda-runtime-compilation-006 - source-authored Morse targets the Uffda runtime", async () => {
