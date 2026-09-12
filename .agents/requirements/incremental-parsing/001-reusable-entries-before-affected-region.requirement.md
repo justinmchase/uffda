@@ -61,3 +61,7 @@ Postconditions:
 - Re-evaluation against the rehydrated memo table MUST NOT be observable as a
   difference in outcome from a from-scratch parse: reuse is strictly an
   optimization.
+- See
+  [selective-memoization-003](../selective-memoization/003-incremental-reparse-interaction.requirement.md)
+  for how this requirement composes with rules the runtime never memoizes in the
+  first place.

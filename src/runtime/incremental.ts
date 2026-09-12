@@ -1,5 +1,6 @@
 import { Memos } from "../memo.ts";
 import { MatchKind } from "../match.ts";
+import { canSkipMemo } from "./rule.reentrancy.ts";
 import type { Match } from "../match.ts";
 import type { Edit } from "../edit.ts";
 import type { Input } from "../input.ts";
@@ -37,7 +38,15 @@ import type { Path } from "../path.ts";
  *     `(origin.rule, origin.args, span.start)` key, with only its own
  *     `scope.stream` swapped for the corresponding fresh `Input` node (so
  *     that a caller resuming from this memoized result continues walking
- *     the *new* sequence rather than the stale one).
+ *     the *new* sequence rather than the stale one). A node whose rule is
+ *     proven safe to skip memoization for entirely (see
+ *     `./rule.reentrancy.ts` and
+ *     `.agents/specifications/runtime/selective-memoization.spec.md`) is
+ *     never captured either: such a rule never consults `scope.memos` in
+ *     the first place, so an entry for it would just be dead weight. Its
+ *     invocations are simply recomputed directly on the rehydrated
+ *     re-parse — safe, and inexpensive by construction, since that
+ *     analysis only applies to rules cheap enough to not need reuse.
  *  3. Recursion stops the moment such a node is captured: a memo hit at
  *     this node's position will short-circuit before a fresh parse ever
  *     queries any of its descendants, so indexing them too would be pure
@@ -64,7 +73,11 @@ export async function rehydrateMemos(
       return;
     }
 
-    if (node.origin && node.span.end.compareTo(edit.at) <= 0) {
+    if (
+      node.origin &&
+      node.span.end.compareTo(edit.at) <= 0 &&
+      !canSkipMemo(node.origin.rule)
+    ) {
       const freshEnd = positions.get(node.span.end.toString());
       if (freshEnd) {
         const { key } = memos.resolve(

@@ -38,3 +38,4 @@ Each runtime subtopic should define:
 - [match diagnostics](./runtime/match-diagnostics.spec.md)
 - [runtime incremental re-parsing](./runtime/incremental-parsing.spec.md)
 - [runtime memo eviction](./runtime/memo-eviction.spec.md)
+- [runtime selective memoization](./runtime/selective-memoization.spec.md)
