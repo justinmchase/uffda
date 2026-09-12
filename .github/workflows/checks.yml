@@ -166,3 +166,42 @@ jobs:
         run: >-
           deno run --allow-read --allow-write --allow-env=GITHUB_STEP_SUMMARY
           test/perf/morse-compile.report.ts
+
+  bench:
+    name: Bench
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Setup Uffda CLI
+        uses: ./.github/actions/uffda-setup
+        with:
+          version: latest
+
+      - name: Compile language modules
+        run: deno task compile:lang
+
+      - name: Bench
+        # Throughput micro-benchmarks (see test/README.md). Informational
+        # only, not a pass/fail gate: shared CI runners are too noisy for
+        # reliable regression gating on raw throughput numbers. Runs as its
+        # own parallel job alongside Integration/Perf so it never blocks
+        # fast feedback from the main Checks job. Output is attached to the
+        # job summary for visibility; NO_COLOR avoids raw ANSI escapes there.
+        run: |
+          set -euo pipefail
+          {
+            echo "### Bench"
+            echo
+            echo '```'
+            NO_COLOR=1 deno task bench
+            echo
+            NO_COLOR=1 deno task bench:memo
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"

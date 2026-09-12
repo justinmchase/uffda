@@ -18,6 +18,7 @@
     "jsr:@std/internal@^1.0.5": "1.0.14",
     "jsr:@std/path@^1.0.8": "1.1.5",
     "jsr:@std/path@^1.1.5": "1.1.5",
+    "jsr:@std/yaml@*": "1.1.1",
     "jsr:@tui/inputs@0": "0.0.1",
     "jsr:@tui/inputs@0.0.1": "0.0.1",
     "jsr:@tui/nice@0.6.1": "0.6.1",
@@ -96,6 +97,9 @@
       "dependencies": [
         "jsr:@std/internal@^1.0.14"
       ]
+    },
+    "@std/yaml@1.1.1": {
+      "integrity": "a57665ecf3d17b926380593a56625d8a10cc7281802f1e993b5ebc94a48e71f8"
     },
     "@tui/inputs@0.0.1": {
       "integrity": "4310f1d6de2d5b25b0ca5030b4849535bda3e5c20ff1bce8dbfa1b753a315efd"

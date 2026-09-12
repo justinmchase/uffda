@@ -13,7 +13,9 @@ code.
   job so slow full-compile tests never block fast feedback on lint/format/unit
   tests.
 - `test/bench/` — `deno bench` suites and footprint reports. Run with
-  `deno task bench` / `deno task bench:memo`.
+  `deno task bench` / `deno task bench:memo`. Runs as its own parallel `Bench`
+  job in CI (informational only — shared runners are too noisy for reliable
+  throughput regression gating), attaching output to the job summary.
 - `test/perf/` — ad hoc perf-investigation reports (compile-time scaling, not
   throughput). Run with `deno task perf`; see `test/perf/README.md`. Runs as its
   own parallel `Perf` job in CI, attaching results to the job summary.
