@@ -177,15 +177,11 @@ as object literals using computed keys and the `iterable` global — for example
 `{ ...(iterable t), documentId: (document_id t), text: t, ... }` — rather than a
 dedicated constructor global.
 
-### Match-aware std
+### Match access
 
-| Name                | Contract                                                                  |
-| ------------------- | ------------------------------------------------------------------------- |
-| `match_leaf_offset` | Numeric leaf path segment of the current match span (`"start"` / `"end"`) |
-
-Match-aware callables are ordinary std globals marked for match injection.
-Invocation MUST inject the current successful `MatchOk` as the first argument
-before author-supplied arguments (see
-[invocation](../expressions/invocation.spec.md#match-aware-invocation)). Authors
-write `(match_leaf_offset "start")` — they MUST NOT pass the match value
-themselves.
+Rule projections that need span/offset metadata off the current match read it
+directly through the reserved `this` reference (see
+[reference](../expressions/reference.spec.md#behavioral-expectations)), which
+resolves to the current successful `MatchOk`. Authors write
+`this.normalizedSpan.start` / `this.normalizedSpan.end` — no dedicated global or
+implicit match injection is required.

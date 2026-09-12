@@ -11,7 +11,7 @@ Deno.test(
     assertEquals(source.includes("export rule Source"), true);
     assertEquals(source.includes("export NormalizedText"), true);
     assertEquals(source.includes("...(iterable t)"), true);
-    assertEquals(source.includes('(match_leaf_offset "start")'), true);
+    assertEquals(source.includes("this.normalizedSpan.start"), true);
     assertEquals(source.includes("(normalization_map _)"), true);
     assertEquals(source.includes("(line_starts t)"), true);
   },

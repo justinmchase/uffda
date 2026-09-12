@@ -26,15 +26,15 @@ func normalization_map<items:array> =
 
 rule CrLfUnit =
   "\r" "\n"
-  -> (normalized_unit "\n" (match_leaf_offset "start") (match_leaf_offset "end"));
+  -> (normalized_unit "\n" this.normalizedSpan.start this.normalizedSpan.end);
 
 rule CrUnit =
   "\r"
-  -> (normalized_unit "\n" (match_leaf_offset "start") (match_leaf_offset "end"));
+  -> (normalized_unit "\n" this.normalizedSpan.start this.normalizedSpan.end);
 
 rule SourceUnit =
   except "\r"
-  -> (normalized_unit _ (match_leaf_offset "start") (match_leaf_offset "end"));
+  -> (normalized_unit _ this.normalizedSpan.start this.normalizedSpan.end);
 
 rule NormalizedUnit =
   | CrLfUnit

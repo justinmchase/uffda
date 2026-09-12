@@ -22,7 +22,6 @@ import { length } from "./length.ts";
 import { lt } from "./lt.ts";
 import { lte } from "./lte.ts";
 import { map } from "./map.ts";
-import { match_leaf_offset } from "./match_leaf_offset.ts";
 import { not } from "./not.ts";
 import { one } from "./one.ts";
 import { pack } from "./pack.ts";
@@ -41,12 +40,16 @@ import { when } from "./when.ts";
  *
  * Prefer general-purpose helpers here (`flat`, `join`, `one`, …).
  *
- * B6/B7 also registered source/tokenizer domain helpers as bootstrap
- * precursors so language modules can convert without Native. Several of those
- * (`match_leaf_offset`, …) are provisional in this map; the
- * intended long-term home is author-defined `func` declarations
- * (https://github.com/justinmchase/uffda/issues/124). Do not grow more
- * stack-specific globals without considering that path.
+ * Domain helpers that were previously registered here as bootstrap
+ * precursors (B6/B7) have since moved to author-defined `func` declarations
+ * in their owning language modules
+ * (https://github.com/justinmchase/uffda/issues/124). The one remaining
+ * domain need — reading span/offset metadata off the current match — no
+ * longer requires a global at all: the reserved `this` reference resolves to
+ * the current `MatchOk`, so expressions read it directly (for example
+ * `this.normalizedSpan.start`; see
+ * `.agents/specifications/expressions/reference.spec.md`). Do not grow more
+ * stack-specific globals without considering that path first.
  */
 export const defaultGlobals = new Map<string, unknown>([
   ["add", add],
@@ -73,7 +76,6 @@ export const defaultGlobals = new Map<string, unknown>([
   ["lt", lt],
   ["lte", lte],
   ["map", map],
-  ["match_leaf_offset", match_leaf_offset],
   ["not", not],
   ["one", one],
   ["pack", pack],
@@ -87,5 +89,3 @@ export const defaultGlobals = new Map<string, unknown>([
   ["to_set", to_set],
   ["when", when],
 ]);
-
-export { isMatchAware, markMatchAware, MATCH_AWARE } from "./match_aware.ts";

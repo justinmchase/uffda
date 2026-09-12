@@ -10,6 +10,8 @@ export function reference(
   switch (name) {
     case "_":
       return Promise.resolve(match.value);
+    case "this":
+      return Promise.resolve(match);
     default:
       if (match.scope.variables.has(name)) {
         return Promise.resolve(match.scope.variables.get(name));
