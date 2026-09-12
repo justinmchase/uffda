@@ -16,16 +16,26 @@ rule SlashPunctuationToken =
   b:"\\"
   -> { kind: "punctuation", text: b };
 
+# Dispatched with `switch` (#158 Stage 2): the leading character after `\`
+# uniquely determines which alternative applies, so a single committed-choice
+# character-class check replaces trying each alternative in turn.
 rule EscapeFollower =
-  | Whitespace
-  | "\n"
-  | Letter
-  | Connecting
-  | Combining
-  | Digit
-  | Formatting
-  | string
-  ;
+  switch {
+    \cZs: Whitespace,
+    \cZl: Whitespace,
+    \cZp: Whitespace,
+    "\t": Whitespace,
+    "\n": "\n",
+    \cL: Letter,
+    \cNl: Letter,
+    \cPc: Connecting,
+    \cMn: Combining,
+    \cMe: Combining,
+    \cMc: Combining,
+    \cNd: Digit,
+    \cCf: Formatting,
+    default: string
+  };
 
 rule EscapeCharPunctuationToken =
   e:EscapeFollower
@@ -42,8 +52,24 @@ rule NewLineToken =
   "\n"
   -> { kind: "newline", text: _ };
 
+
+# `WordChar` is a hot per-character dispatch inside `WordToken`'s `+` loop
+# (#158 Stage 2): each declared character class maps directly to its
+# matcher, so the loop no longer trials up to 5 alternatives per character.
+rule WordChar =
+  switch {
+    \cL: Letter,
+    \cNl: Letter,
+    \cPc: Connecting,
+    \cMn: Combining,
+    \cMe: Combining,
+    \cMc: Combining,
+    \cNd: Digit,
+    \cCf: Formatting
+  };
+
 rule WordToken =
-  (Letter | Connecting | Combining | Digit | Formatting)+
+  WordChar+
   -> { kind: "word", text: (join (flat _) "") };
 
 rule PunctuationToken =
@@ -62,13 +88,28 @@ rule StringPunctuationToken =
   (not "\"") & string
   -> { kind: "punctuation", text: _ };
 
+# `StringInterior`'s per-character dispatch inside quoted strings (#158
+# Stage 2): committed-choice `switch` replaces trying each alternative
+# in turn per character; a closing `"` (not any declared key) falls to
+# `default`, matching the original last-alternative failure exactly.
 rule StringInterior =
-  | EscapeTokens
-  | WhitespaceToken
-  | NewLineToken
-  | WordToken
-  | StringPunctuationToken
-  ;
+  switch {
+    "\\": EscapeTokens,
+    \cZs: WhitespaceToken,
+    \cZl: WhitespaceToken,
+    \cZp: WhitespaceToken,
+    "\t": WhitespaceToken,
+    "\n": NewLineToken,
+    \cL: WordToken,
+    \cNl: WordToken,
+    \cPc: WordToken,
+    \cMn: WordToken,
+    \cMe: WordToken,
+    \cMc: WordToken,
+    \cNd: WordToken,
+    \cCf: WordToken,
+    default: StringPunctuationToken
+  };
 
 rule QuotedStringTokens =
   o:DQuoteToken
@@ -76,14 +117,30 @@ rule QuotedStringTokens =
   c:DQuoteToken?
   -> (flat [o i (coalesce c [])] 2);
 
+# `Tokens`'s per-token dispatch (#158 Stage 2, the original motivating
+# case): the leading character of each token kind is disjoint, so `switch`
+# replaces the 6-way ordered-choice trial with one committed-choice check.
+# `default` is the exact equivalent of the original last-alternative
+# fallback (`PunctuationToken` matches any remaining single character).
 rule Tokens =
-  | QuotedStringTokens
-  | CommentToken
-  | WhitespaceToken
-  | NewLineToken
-  | WordToken
-  | PunctuationToken
-  ;
+  switch {
+    "\"": QuotedStringTokens,
+    "#": CommentToken,
+    \cZs: WhitespaceToken,
+    \cZl: WhitespaceToken,
+    \cZp: WhitespaceToken,
+    "\t": WhitespaceToken,
+    "\n": NewLineToken,
+    \cL: WordToken,
+    \cNl: WordToken,
+    \cPc: WordToken,
+    \cMn: WordToken,
+    \cMe: WordToken,
+    \cMc: WordToken,
+    \cNd: WordToken,
+    \cCf: WordToken,
+    default: PunctuationToken
+  };
 
 # `semantic_no_whitespace_texts` is module-local: it is only needed here to
 # project tokens down to word/punctuation text, omitting whitespace and

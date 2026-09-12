@@ -15,9 +15,15 @@ Deno.test(
     assertEquals(second, first);
     assertStringIncludes(first, 'Unexpected: "#"');
     assertStringIncludes(first, "source offset 7");
+    // The tokenizer and the source-normalization pass both fail at the same
+    // rightmost boundary for this input; the visualizer's shallowest-depth
+    // tie-break picks whichever candidate is nearer the root. Switching the
+    // tokenizer's hot alternations to `switch` (#158 Stage 2) adds one extra
+    // dispatch layer relative to `or`, which shifts that tie-break to the
+    // source-normalization candidate instead of the tokenizer one.
     assertStringIncludes(
       first,
-      "Rules: ExpressionLang > TokenizerNoWhitespace",
+      "Rules: ExpressionLang > Source > NormalizedText > NormalizedUnit",
     );
     assertStringIncludes(first, "[2] OK into -> resolve TokenizerNoWhitespace");
     assertStringIncludes(first, 'output: [ "(", "add", "1" ]');

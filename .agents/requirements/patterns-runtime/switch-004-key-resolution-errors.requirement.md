@@ -20,6 +20,10 @@ Expected behavior:
   MUST NOT continue checking subsequent case keys.
 - If a case key declares a character class the runtime does not recognize,
   Switch MUST report an error rather than treating the key as non-matching.
+- If a case key declares a character class and the current input item is not a
+  string, Switch MUST report a type error (matching the standalone `character`
+  pattern's error code and message) rather than treating the key as
+  non-matching.
 
 Postconditions:
 

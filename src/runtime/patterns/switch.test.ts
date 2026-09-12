@@ -184,6 +184,38 @@ await Deno.test("runtime/patterns/switch", async (t) => {
   );
 
   await t.step(
+    "a non-string current item against a characterClass key reports a type error rather than silently falling through",
+    async () => {
+      const pattern: SwitchPattern = {
+        kind: PatternKind.Switch,
+        cases: [
+          {
+            key: {
+              kind: "characterClass",
+              characterClass: CharacterClass.Letter,
+            },
+            pattern: { kind: PatternKind.Any },
+          },
+        ],
+        default: { kind: PatternKind.Fail },
+      };
+      const scope = new Scope(
+        undefined,
+        undefined,
+        new Map(),
+        new Map(),
+        Input.Iterable([1]),
+      );
+      const m = await switchPattern(pattern, scope);
+      assertEquals(m.kind, MatchKind.Error);
+      if (m.kind === MatchKind.Error) {
+        assertEquals(m.code, MatchErrorCode.Type);
+        assertEquals(m.message, "expected value to be a string but got number");
+      }
+    },
+  );
+
+  await t.step(
     "a resolution error on a variable-sourced key is surfaced as an Error",
     async () => {
       const pattern: SwitchPattern = {

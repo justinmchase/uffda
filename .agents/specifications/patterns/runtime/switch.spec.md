@@ -83,6 +83,11 @@ FIRST-set from a pattern whose match behavior includes error paths.
 - If a case key declares a character class that the runtime does not recognize,
   the `switch` pattern MUST report an error rather than silently treating the
   key as non-matching.
+- If a case key declares a character class and the current input item is not a
+  string, the `switch` pattern MUST report a type error rather than silently
+  treating the key as non-matching — this matches the standalone
+  [character](./character.spec.md) pattern's contract, so a non-tokenizable
+  input item cannot be masked as a clean case/default fallthrough.
 - If the chosen case's body pattern (or `default`) reports an error, the
   `switch` pattern MUST propagate that error unchanged.
 

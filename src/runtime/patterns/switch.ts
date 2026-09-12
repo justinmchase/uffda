@@ -117,9 +117,24 @@ function keyMatches(
           ),
         };
       }
+      // Match the standalone `character` pattern's contract: a non-string
+      // current item is a type error, not merely a non-matching key, so a
+      // `characterClass` key check must not silently mask it as "try the
+      // next case/default".
+      if (typeof value !== "string") {
+        return {
+          ok: false,
+          match: error(
+            scope,
+            pattern,
+            MatchErrorCode.Type,
+            `expected value to be a string but got ${typeof value}`,
+          ),
+        };
+      }
       return {
         ok: true,
-        matched: typeof value === "string" && regexp.test(value),
+        matched: regexp.test(value),
       };
     }
     default: {
