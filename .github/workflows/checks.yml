@@ -87,8 +87,10 @@ jobs:
 
       - name: Test
         # Allow read is required to run resolve tests. Language `.uff` modules
-        # load from ./bin produced by the prior compile step.
-        run: deno test --allow-read --allow-write --parallel --coverage=cov_profile
+        # load from ./bin produced by the prior compile step. Slow full-compile
+        # integration tests live under test/integration/ and run in the
+        # separate, parallel "Integration" job below instead.
+        run: deno test --allow-read --allow-write --parallel --coverage=cov_profile --ignore=test/integration/
 
       - name: Bootstrap import from ./bin
         run: |
@@ -108,3 +110,98 @@ jobs:
           $(lcov --summary cov_profile.lcov)
           \`\`\`
           EOF
+
+  integration:
+    name: Integration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Setup Uffda CLI
+        uses: ./.github/actions/uffda-setup
+        with:
+          version: latest
+
+      - name: Compile language modules
+        run: deno task compile:lang
+
+      - name: Integration tests
+        # Slow, full-compile end-to-end tests (see test/README.md). Runs as
+        # its own job so it never blocks fast feedback (lint/format/unit
+        # tests) from the main Checks job.
+        run: deno test --allow-read --allow-write --parallel test/integration/
+
+  perf:
+    name: Perf
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Setup Uffda CLI
+        uses: ./.github/actions/uffda-setup
+        with:
+          version: latest
+
+      - name: Compile language modules
+        run: deno task compile:lang
+
+      - name: Perf report
+        # Reports .uff compile-time scaling (see test/perf/README.md and
+        # test/perf/morse-compile.report.ts). Not a pass/fail gate today —
+        # it exists to surface superlinear regressions visibly in CI output
+        # alongside bench/integration, without blocking the main Checks job.
+        # Attaches the full size/time table to the job summary.
+        run: >-
+          deno run --allow-read --allow-write --allow-env=GITHUB_STEP_SUMMARY
+          test/perf/morse-compile.report.ts
+
+  bench:
+    name: Bench
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Setup Uffda CLI
+        uses: ./.github/actions/uffda-setup
+        with:
+          version: latest
+
+      - name: Compile language modules
+        run: deno task compile:lang
+
+      - name: Bench
+        # Throughput micro-benchmarks (see test/README.md). Informational
+        # only, not a pass/fail gate: shared CI runners are too noisy for
+        # reliable regression gating on raw throughput numbers. Runs as its
+        # own parallel job alongside Integration/Perf so it never blocks
+        # fast feedback from the main Checks job. Output is attached to the
+        # job summary for visibility; NO_COLOR avoids raw ANSI escapes there.
+        run: |
+          set -euo pipefail
+          {
+            echo "### Bench"
+            echo
+            echo '```'
+            NO_COLOR=1 deno task bench
+            echo
+            NO_COLOR=1 deno task bench:memo
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"

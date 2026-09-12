@@ -13,6 +13,7 @@ import { Resolver } from "./resolve.ts";
 import { globals } from "./runtime.ts";
 import type { StackFrame } from "./stack/frame.ts";
 import { StackFrameKind } from "./stack/stackFrameKind.ts";
+import { VariableScope } from "./variable_scope.ts";
 
 export type ScopeOptions = {
   trace: boolean;
@@ -24,13 +25,6 @@ export type ScopeOptions = {
 export type ScopeFromOptions = {
   kind?: InputNormalizationMode;
 };
-
-export const DefaultOptions: () => ScopeOptions = () => ({
-  globals,
-  specials: new Map(),
-  trace: false,
-  resolver: new Resolver(),
-});
 
 export class Scope {
   public static readonly Default = (): Scope => new Scope();
@@ -45,22 +39,33 @@ export class Scope {
     );
 
   public readonly options: ScopeOptions;
+  public readonly variables: VariableScope;
   constructor(
     public readonly module: Module = DefaultModule(),
     public readonly parent: Scope | undefined = undefined,
-    public readonly variables: Map<string, unknown> = new Map(),
+    variables: Map<string, unknown> | VariableScope = VariableScope.Empty,
     public readonly args: Map<string, Rule> = new Map(),
     public readonly stream: Input = Input.Default(),
     public readonly memos: Memos = new Memos(),
     public readonly stack: StackFrame[] = [],
     options?: Partial<ScopeOptions>,
   ) {
-    const defaults = DefaultOptions();
+    // Accepting a plain `Map` here too (normalized via `VariableScope.From`)
+    // keeps every existing caller that constructs a `Scope` directly with a
+    // literal `Map` working unchanged.
+    this.variables = VariableScope.From(variables);
+    // Every scope derivation (`withInput`, `withMemos`, `addVariables`, ...)
+    // constructs a new `Scope` while forwarding an already-complete
+    // `options`. Building `DefaultOptions()` unconditionally here — as this
+    // used to do — threw away a fresh `new Resolver()` (and the `Deno.cwd()`
+    // syscall inside it) on every single one of those derivations, which
+    // happens on the order of once per rule invocation during a parse. Only
+    // construct a default for whichever field is actually missing.
     this.options = {
-      trace: options?.trace ?? defaults.trace,
-      specials: options?.specials ?? defaults.specials,
-      globals: options?.globals ?? defaults.globals,
-      resolver: options?.resolver ?? defaults.resolver,
+      trace: options?.trace ?? false,
+      specials: options?.specials ?? new Map(),
+      globals: options?.globals ?? globals,
+      resolver: options?.resolver ?? new Resolver(),
     };
   }
 
@@ -143,15 +148,18 @@ export class Scope {
   }
 
   public addVariables(
-    variables: Record<string, unknown> | Map<string, unknown>,
+    variables:
+      | Record<string, unknown>
+      | Map<string, unknown>
+      | VariableScope,
   ): Scope {
-    if (!(variables instanceof Map)) {
-      variables = new Map(Object.entries(variables));
-    }
+    const nextVariables = variables instanceof VariableScope
+      ? this.variables.withScope(variables)
+      : this.variables.with(variables);
     return new Scope(
       this.module,
       this.parent,
-      new Map([...this.variables, ...variables]),
+      nextVariables,
       this.args,
       this.stream,
       this.memos,

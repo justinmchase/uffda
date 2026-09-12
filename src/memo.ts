@@ -1,3 +1,4 @@
+import { RedBlackTree } from "@std/data-structures";
 import type { Path } from "./path.ts";
 import type { Match } from "./match.ts";
 import type { Rule } from "./runtime/modules/mod.ts";
@@ -41,6 +42,21 @@ export class Memos {
     string,
     { path: Path; entries: Map<symbol, Memo> }
   >();
+
+  /**
+   * A second index over the same entries, keyed by position instead of by
+   * `pathKey`, so eviction can find "everything before the low-water mark"
+   * directly instead of scanning `memos` in full. A plain sorted array
+   * cannot do this affordably here: real grammars constantly memoize
+   * positions out of document order (sibling alternatives explore ahead
+   * before an earlier alternative's own attempt finishes), so inserts are
+   * *not* mostly-appends in practice — an array would pay O(n) per
+   * out-of-order insert. A red-black tree keeps both insert and the
+   * repeated "smallest remaining" eviction walk at O(log n).
+   */
+  private readonly order = new RedBlackTree<{ path: Path; pathKey: string }>(
+    (a, b) => a.path.compareTo(b.path),
+  );
 
   /**
    * Start positions of every currently in-progress (not yet returned) rule
@@ -90,6 +106,7 @@ export class Memos {
       existing.entries.set(key, memo);
     } else {
       this.memos.set(pathKey, { path, entries: new Map([[key, memo]]) });
+      this.order.insert({ path, pathKey });
     }
     return memo;
   }
@@ -126,6 +143,7 @@ export class Memos {
       // needed for evaluation. Anything the delivered result still
       // references stays alive independently, via ordinary reachability.
       this.memos.clear();
+      this.order.clear();
       return;
     }
 
@@ -136,10 +154,16 @@ export class Memos {
       }
     }
 
-    for (const [pathKey, entry] of this.memos) {
-      if (entry.path.compareTo(mark) < 0) {
-        this.memos.delete(pathKey);
-      }
+    // Repeatedly pop the smallest remaining position and delete it by key
+    // as long as it is still strictly before the mark. `min()`/`remove()`
+    // are each O(log n), and every entry is ever popped at most once across
+    // the table's whole lifetime, so this costs O(log n) when nothing is
+    // evictable and amortized O(k log n) for the k entries that are.
+    let next = this.order.min();
+    while (next !== null && next.path.compareTo(mark) < 0) {
+      this.memos.delete(next.pathKey);
+      this.order.remove(next);
+      next = this.order.min();
     }
   }
 }
