@@ -19,6 +19,7 @@ export * from "./projection.ts";
 export * from "./quantifier.ts";
 export * from "./regexp.ts";
 export * from "./resolve.ts";
+export * from "./switch.ts";
 export * from "./then.ts";
 export * from "./type.ts";
 export * from "./variable.ts";

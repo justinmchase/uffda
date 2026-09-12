@@ -40,7 +40,7 @@ export async function character(
   return ok(scope, end, pattern, next.value);
 }
 
-function characterClassToRegexp(
+export function characterClassToRegexp(
   characterClass: CharacterClass,
 ): RegExp | undefined {
   switch (characterClass) {
