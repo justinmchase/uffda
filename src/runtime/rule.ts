@@ -3,7 +3,7 @@ import { match } from "./match.ts";
 import { StackFrameKind } from "./stack/stackFrameKind.ts";
 import { exec } from "./exec.ts";
 import type { AwaitableMatch } from "./awaitable.ts";
-import type { Match, MatchOk } from "../match.ts";
+import type { Match, MatchOk, MatchOrigin } from "../match.ts";
 import type { Rule } from "./modules/mod.ts";
 import type { Scope } from "./scope.ts";
 import type { Pattern } from "./patterns/pattern.ts";
@@ -12,6 +12,7 @@ async function finishRuleSuccess(
   rule: Rule,
   patternMatch: MatchOk,
   callerScope: Scope,
+  origin: MatchOrigin,
 ): AwaitableMatch {
   const { pattern, expression } = rule;
   let value: unknown;
@@ -35,6 +36,7 @@ async function finishRuleSuccess(
     pattern,
     value,
     [patternMatch],
+    origin,
   );
 }
 
@@ -77,6 +79,7 @@ export async function rule(
       const subScope = scope
         .pushModule(module)
         .pushRule(rule, mergedArgs);
+      const origin: MatchOrigin = { rule, args: mergedArgs };
 
       const m = await match(pattern, subScope);
       switch (m.kind) {
@@ -88,7 +91,7 @@ export async function rule(
               memo!.match = grown;
               return grown;
             case MatchKind.Fail: {
-              const failed = fail(scope, rule.pattern, [grown]);
+              const failed = fail(scope, rule.pattern, [grown], origin);
               memo!.match = failed;
               return failed;
             }
@@ -97,7 +100,12 @@ export async function rule(
               // advanced stream so inner growth bindings do not leak outward.
               // Apply rule-level projection to the stabilized growth result, then
               // memoize that caller-visible value for later non-growth reuse.
-              const finished = await finishRuleSuccess(rule, grown, scope);
+              const finished = await finishRuleSuccess(
+                rule,
+                grown,
+                scope,
+                origin,
+              );
               memo!.match = finished;
               return finished;
             }
@@ -115,12 +123,12 @@ export async function rule(
           memo!.match = m;
           return m;
         case MatchKind.Fail: {
-          const failed = fail(scope, rule.pattern, [m]);
+          const failed = fail(scope, rule.pattern, [m], origin);
           memo!.match = failed;
           return failed;
         }
         case MatchKind.Ok: {
-          const finished = await finishRuleSuccess(rule, m, scope);
+          const finished = await finishRuleSuccess(rule, m, scope, origin);
           // Store the post-expression success so Or backtracking that
           // re-enters this rule at the same position observes the
           // projected value.
