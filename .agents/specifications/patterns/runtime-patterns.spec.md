@@ -54,6 +54,7 @@ Each runtime pattern subtopic should define:
 - [regexp pattern](./runtime/regexp.spec.md)
 - [resolve pattern](./runtime/resolve.spec.md)
 - [run pattern](./runtime/run.spec.md)
+- [switch pattern](./runtime/switch.spec.md)
 - [then pattern](./runtime/then.spec.md)
 - [type pattern](./runtime/type.spec.md)
 - [variable pattern](./runtime/variable.spec.md)

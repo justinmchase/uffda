@@ -8,6 +8,8 @@ import "../expression/nullish.uff" Nullish;
 import "./character_class.uff" CharacterClass;
 
 export Literals;
+export ContextualValue;
+export AtomicLiteralSource;
 
 rule EscapedPatternStringQuote = "\\" "\"" -> "\"";
 rule EscapedPatternStringBackslash = "\\" "\\" -> "\\";

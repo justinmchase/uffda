@@ -1,8 +1,9 @@
-# Atomic is Atoms | Literals | Resolve | Structure.
+# Atomic is Atoms | Literals | Resolve | Structure | Switch.
 import "./atoms.uff" Atoms;
 import "./literals.uff" Literals;
 import "./resolve.uff" Resolve;
 import "./structure.uff" Structure;
+import "./switch.uff" Switch;
 
 export Atomic;
 
@@ -11,4 +12,5 @@ rule Atomic =
   | Literals
   | Resolve
   | Structure
+  | Switch
   ;
