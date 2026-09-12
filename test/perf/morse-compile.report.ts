@@ -51,8 +51,29 @@ const source = await Deno.readTextFile(
 );
 const lines = source.split("\n");
 
+// Sample prefixes that end at complete top-level declaration boundaries
+// (a line ending in `;`) rather than arbitrary line counts. Cutting mid
+// declaration produces a syntactically incomplete, deliberately-invalid
+// prefix — a legitimate parse failure that has nothing to do with the perf
+// trend this report tracks, but reads as an alarming "fail" row next to an
+// otherwise all-green report. Every sampled prefix here is a valid,
+// parseable module on its own.
+const boundaries: number[] = [];
+for (let i = 0; i < lines.length; i++) {
+  if (lines[i].trimEnd().endsWith(";")) boundaries.push(i);
+}
+
+const sampleCount = 7;
+const sampledLineCounts = Array.from(
+  { length: sampleCount },
+  (_, i) =>
+    boundaries[
+      Math.round(i * (boundaries.length - 1) / (sampleCount - 1))
+    ] + 1,
+);
+
 const rows: Row[] = [];
-for (const n of [5, 10, 20, 40, 60, 80, lines.length]) {
+for (const n of sampledLineCounts) {
   const prefix = lines.slice(0, n).join("\n");
   const t0 = performance.now();
   const parsed = await uffdaGrammar(prefix);
