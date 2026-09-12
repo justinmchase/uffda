@@ -2,6 +2,7 @@ import { error, fail, lr, MatchErrorCode, MatchKind, ok } from "../match.ts";
 import { match } from "./match.ts";
 import { StackFrameKind } from "./stack/stackFrameKind.ts";
 import { exec } from "./exec.ts";
+import { canSkipMemo } from "./rule.reentrancy.ts";
 import type { AwaitableMatch } from "./awaitable.ts";
 import type { Match, MatchOk, MatchOrigin } from "../match.ts";
 import type { Rule } from "./modules/mod.ts";
@@ -68,6 +69,10 @@ export async function rule(
         `argument ${arg} was not expected for rule ${name}`,
       );
     }
+  }
+
+  if (canSkipMemo(rule)) {
+    return await runUnmemoized(rule, mergedArgs, scope);
   }
 
   let { key, memo } = scope.memos.resolve(scope.stream.path, rule, [
@@ -178,6 +183,46 @@ export async function rule(
         );
     }
   }
+}
+
+/**
+ * Runs a rule proven by {@link canSkipMemo} to never be re-enterable at the
+ * same input position, without paying any `Memos.resolve`/`set` bookkeeping
+ * (packrat key derivation, entry storage, eviction-order tracking). The
+ * `active`-position tracking `withFrame` provides is still honored, so other
+ * (memoized) rules' eviction low-water mark stays accurate.
+ */
+async function runUnmemoized(
+  rule: Rule,
+  mergedArgs: Map<string, Rule>,
+  scope: Scope,
+): AwaitableMatch {
+  return await scope.memos.withFrame(scope.stream.path, async () => {
+    const subScope = scope
+      .pushModule(rule.module)
+      .pushRule(rule, mergedArgs);
+    const origin: MatchOrigin = { rule, args: mergedArgs };
+
+    const m = await match(rule.pattern, subScope);
+    switch (m.kind) {
+      case MatchKind.LR:
+        // canSkipMemo only proves a rule safe when it cannot reach itself
+        // through statically-resolved calls, so it should never actually
+        // grow left-recursively. Surface loudly if it somehow does.
+        return error(
+          scope,
+          rule.pattern,
+          MatchErrorCode.InternalInvariant,
+          `rule ${rule.name} was proven non-recursive but produced left recursion`,
+        );
+      case MatchKind.Error:
+        return m;
+      case MatchKind.Fail:
+        return fail(scope, rule.pattern, [m], origin);
+      case MatchKind.Ok:
+        return await finishRuleSuccess(rule, m, scope, origin);
+    }
+  });
 }
 
 async function grow(

@@ -15,9 +15,22 @@ import { ExportDeclarationKind } from "./declarations/mod.ts";
 import type { ModuleDeclaration } from "./declarations/module.ts";
 
 /**
- * A tiny "one-or-more letters" grammar: `letters` is a `letter+` sequence,
- * and `letter` is its own rule so every matched character is a distinct,
- * memoizable rule-boundary invocation (see `MatchOrigin` in `../match.ts`).
+ * A tiny "one-or-more letters" grammar: `letters` is a `group+` sequence.
+ *
+ * `group` (not `letter` directly) is the rule each iteration resolves,
+ * because `letter` itself is a plain `character` pattern with no rule calls
+ * of its own — under selective memoization (see
+ * `.agents/specifications/runtime/selective-memoization.spec.md` and
+ * `../runtime/rule.reentrancy.ts`) it is provably never re-enterable at the
+ * same position, so its invocations always skip the packrat memo table
+ * entirely and are never captured for incremental reuse. `group` exists
+ * purely to give this grammar a rule the analysis *cannot* prove safe to
+ * skip: its pattern statically resolves itself (`group | group`), which is
+ * enough to force it to remain memoized regardless of whether that
+ * self-referencing branch is ever actually taken at runtime. This lets the
+ * test still demonstrate genuine rehydrated-memo reuse (the double-wrapped,
+ * identity-preserving hit) at the `group` boundary, one level above the
+ * always-fresh `letter` leaf.
  */
 function lettersModuleDeclarations(
   moduleUrl: string,
@@ -37,9 +50,34 @@ function lettersModuleDeclarations(
             pattern: {
               kind: PatternKind.Resolve,
               targetKind: ResolveTargetKind.Reference,
-              name: "letter",
+              name: "group",
               args: [],
             },
+          },
+        },
+        {
+          name: "group",
+          parameters: [],
+          pattern: {
+            kind: PatternKind.Or,
+            patterns: [
+              {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "letter",
+                args: [],
+              },
+              // Never actually taken (the `letter` alternative above always
+              // succeeds first) — present only to give `group` a static
+              // self-reference, so it is not eligible for selective
+              // memoization's skip-memo optimization.
+              {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "group",
+                args: [],
+              },
+            ],
           },
         },
         {
@@ -132,8 +170,10 @@ Deno.test("runtime.incremental", async (t) => {
       const freshInput = Input.Iterable("abcXdef");
       const rehydrated = await rehydrateMemos(priorMatch, edit, freshInput);
 
-      // Exactly the 3 "letter" rule invocations for 'a', 'b', 'c' lie
-      // entirely before the edit and should have been captured.
+      // Exactly the 3 "group" rule invocations wrapping 'a', 'b', 'c' lie
+      // entirely before the edit and should have been captured. `letter`
+      // itself is never captured (it is skip-memo, see the grammar
+      // comment above), only its memoized `group` wrapper.
       assertEquals(rehydrated.size, 3);
 
       const priorQuantifierMatch = priorMatch.matches[0];
@@ -169,7 +209,7 @@ Deno.test("runtime.incremental", async (t) => {
       assertEquals(reparsed.value, freshParse.value);
 
       // Stronger evidence of actual reuse (not just an equal-by-value
-      // recomputation): the reparsed tree's first 3 "letter" invocations
+      // recomputation): the reparsed tree's first 3 "group" invocations
       // carry the exact same `origin` object the original (first) parse
       // stamped on them, rather than a freshly-produced one from a real
       // re-match. rule()'s memo-hit branch wraps the reused node in a
