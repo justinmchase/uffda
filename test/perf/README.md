@@ -12,6 +12,11 @@ it's suspected.
   `examples/morse/morse.uff`. Written after a real regression where compiling
   that ~6KB grammar took ~90 seconds (root-caused and fixed — see the header
   comment in the report itself for the full story). Run with `deno task perf`.
+  **Scope**: this only parses the `.uff` grammar source text itself
+  (`uffdaGrammar(source)`) — it never compiles+runs the grammar against any
+  example input (no Moby Dick or other roundtrip). A multi-second number here
+  reflects self-hosted-parser overhead on a tiny file, not input throughput; the
+  report's own output states this scope explicitly to avoid that confusion.
 
 ## Output behavior
 

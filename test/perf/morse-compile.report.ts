@@ -93,6 +93,20 @@ function toMarkdownTable(rows: Row[]): string {
   return `${header}\n${body}`;
 }
 
+// Spelled out explicitly in both the CI summary and local output: this is
+// solely the cost of parsing the ~6KB `.uff` grammar *source text* itself
+// (`uffdaGrammar(source)`), not compiling+running it against any example
+// input (there is no Moby Dick or other roundtrip here). That distinction
+// matters because the whole point of this report is that this bootstrap
+// parse step was once the dominant cost (~90s) despite the *compiled*
+// grammar running against real input in milliseconds — so a multi-second
+// number here reflects self-hosted-parser overhead on a tiny file, not
+// anything to do with input throughput.
+const scopeNote = "_Scope: parses only the `.uff` grammar source text itself " +
+  `(${full.chars} chars) via the self-hosted \`uffdaGrammar\`. Does **not** ` +
+  "include compiling+running the grammar against any example input " +
+  "(e.g. no Moby Dick roundtrip) — see `test/perf/README.md`._";
+
 const summaryPath = Deno.env.get("GITHUB_STEP_SUMMARY");
 if (summaryPath) {
   const heading = withinExpected
@@ -104,7 +118,7 @@ if (summaryPath) {
     }ms**, exceeding the ${MAX_EXPECTED_FULL_COMPILE_MS}ms expected bound — investigate for a regression.`;
   await Deno.writeTextFile(
     summaryPath,
-    `${heading}\n\n${toMarkdownTable(rows)}\n`,
+    `${heading}\n\n${scopeNote}\n\n${toMarkdownTable(rows)}\n`,
     { append: true },
   );
 }
@@ -112,7 +126,7 @@ if (summaryPath) {
 const verbose = Deno.args.includes("--verbose");
 if (withinExpected && !verbose) {
   console.log(
-    `perf: examples/morse/morse.uff compiled in ${
+    `perf: parsing examples/morse/morse.uff source text (no example input involved) took ${
       full.ms.toFixed(1)
     }ms (${full.chars} chars) — within expected bound (${MAX_EXPECTED_FULL_COMPILE_MS}ms). Pass --verbose for the full breakdown.`,
   );
