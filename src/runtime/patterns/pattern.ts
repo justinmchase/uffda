@@ -34,6 +34,7 @@ export type Pattern =
   | QuantifierPattern
   | RegExpPattern
   | ResolvePattern
+  | SwitchPattern
   | ThenPattern
   | TypePattern
   | VariablePattern;
@@ -201,6 +202,48 @@ export type ResolveSpecialPattern = {
   targetKind: ResolveTargetKind.Special;
   value: Special;
 };
+
+/**
+ * A single `Switch` branch: `key` is a small, explicit, author-declared
+ * discriminator — never inferred — evaluated directly against the next
+ * peeked stream value to decide, with certainty, whether `pattern` is even
+ * worth attempting. See `SwitchPattern` for the overall dispatch contract.
+ */
+export type SwitchCase = {
+  key: SwitchKey;
+  pattern: Pattern;
+};
+
+/**
+ * Either a small set of literal values (compared with `===`, matching
+ * `EqualPattern`/`IncludesPattern`'s own semantics) or a single
+ * `CharacterClass` (matching `CharacterPattern`'s semantics: the next value
+ * must be a string satisfying the class).
+ */
+export type SwitchKey =
+  | { kind: "values"; values: ValueSource[] }
+  | { kind: "characterClass"; characterClass: CharacterClass };
+
+/**
+ * Committed-choice dispatch: peek the next stream value once, run the
+ * *first* case whose `key` matches, and return its result directly — unlike
+ * `Or`, a failing chosen case does **not** fall through to try any other
+ * case. If no case's key matches, `default` runs if present; with neither a
+ * matching case nor a `default`, `Switch` fails (it never surfaces a type
+ * mismatch as an error the way, say, `Character` does — "no key matched" is
+ * always just a `Fail`).
+ *
+ * This exists specifically so grammar authors can hand-declare mutually
+ * exclusive dispatch (e.g. a tokenizer choosing a token kind by its first
+ * character) without paying `Or`'s per-position cost of attempting every
+ * alternative in order.
+ */
+export type SwitchPattern = {
+  kind: PatternKind.Switch;
+  cases: SwitchCase[];
+  default?: Pattern;
+};
+
 export type ThenPattern = {
   kind: PatternKind.Then;
   patterns: Pattern[];

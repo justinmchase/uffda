@@ -25,6 +25,7 @@ import {
   quantifier,
   regexp,
   resolve,
+  switchPattern,
   then,
   type,
   variable,
@@ -74,6 +75,8 @@ export async function match(pattern: Pattern, scope: Scope): AwaitableMatch {
       return await regexp(pattern, scope);
     case PatternKind.Resolve:
       return await resolve(pattern, scope);
+    case PatternKind.Switch:
+      return await switchPattern(pattern, scope);
     case PatternKind.Then:
       return await then(pattern, scope);
     case PatternKind.Type:
