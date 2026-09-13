@@ -178,15 +178,11 @@ rule FinalizeExports =
     exports: e:[(
       any
       -> (when (eq _.kind "rule")
-           (when (has t _.name)
-             _
-             (when (has u _.name)
-               { ..._, kind: "func" }
-               (when (has v _.name)
-                 { ..._, kind: "decorator" }
-                 (when (has s _.name)
-                   { ..._, kind: "import" }
-                   _))))
+           (coalesce
+             (when (has u _.name) { ..._, kind: "func" })
+             (when (has v _.name) { ..._, kind: "decorator" })
+             (when (has s _.name) { ..._, kind: "import" })
+             _)
            _)
     )*]
   }
