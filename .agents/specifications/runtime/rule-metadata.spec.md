@@ -55,6 +55,14 @@ classification layer that can drift from the grammar. See
   [reference expressions](../expressions/reference.spec.md): `this` always
   resolves to "the value this evaluation is about," and decorator invocation is
   a distinct evaluation phase from match-time expression evaluation.
+- `this` in decorator-invocation context MUST expose only the pre-decoration
+  structural fields of the declaration (`name`, `module`, `pattern`,
+  `parameters`, `expression`). It MUST NOT expose `metadata` or `decorators`,
+  including any metadata already merged by earlier decorators in the same list.
+  This keeps decorator invocation acyclic by construction: a decorator can never
+  observe its own or a sibling decorator's not-yet-final output, which covers
+  cases such as a decorator naming itself (`[Example] func Example = …`) or one
+  decorator attempting to read another's result via `this`.
 - A decorator with no declared parameters MUST still be invocable with zero
   arguments (`[Name]`), consistent with func declarations' own zero-argument
   normalization.
@@ -113,6 +121,12 @@ classification layer that can drift from the grammar. See
   evaluation is about" (see `reference.spec.md`); rebinding it per evaluation
   phase is consistent with that meaning rather than introducing a second
   reserved word for the same concept.
+- **`this` excludes in-progress metadata.** Restricting `this` to pre-decoration
+  structural fields makes decorator invocation acyclic without a separate cycle
+  check: a func decorating itself (`[Example] func Example = …`), or a decorator
+  that references `this.metadata`, can never observe output that does not yet
+  exist, so no runaway or nondeterministic-ordering hazard can arise from self-
+  or sibling-reference through `this`.
 - **Metadata-only boundary.** Keeping decorators unable to change matching
   behavior means a rule's observable results never depend on which decorators
   were applied, which keeps this chapter's correctness reasoning simple:
@@ -128,3 +142,7 @@ classification layer that can drift from the grammar. See
   fail declaration resolution deterministically.
 - A decorator whose invocation raises an expression exception MUST fail
   declaration resolution with that exception, not silently skip the decorator.
+- A decorator naming the very declaration it decorates (for example
+  `[Example] func Example = …`) MUST NOT be specially rejected: it resolves and
+  invokes exactly like any other decorator reference, and the `this`-exposure
+  constraint above already prevents it from being a correctness hazard.
