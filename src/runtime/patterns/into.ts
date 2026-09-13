@@ -6,11 +6,11 @@ import {
   type SourceProvenance,
   sourceProvenanceFrom,
 } from "../../input.ts";
-import { match } from "../match.ts";
-import type { Match } from "../../match.ts";
+import { compile } from "../match.ts";
 import type { Scope } from "../scope.ts";
 import type { IntoPattern } from "./pattern.ts";
 import { leafOffset } from "../../span.ts";
+import type { CompiledPattern } from "../compiled_pattern.ts";
 
 function provenanceForIntoItem(
   value: unknown,
@@ -39,60 +39,67 @@ function provenanceForIntoItem(
   return parent.provenance;
 }
 
-export async function into(pattern: IntoPattern, scope: Scope): Promise<Match> {
-  if (await scope.stream.done()) {
-    return fail(scope, pattern);
-  }
-
-  const next = await scope.stream.next();
-  if (!Input.isIterable(next.value) && !Input.isAsyncIterable(next.value)) {
-    const [t] = type(next.value);
-    return error(
-      scope,
-      pattern,
-      MatchErrorCode.IterableExpected,
-      `expected value to be iterable but got type ${t}`,
-    );
-  }
-
-  const innerStream = new Input(
-    next.value,
-    scope.stream.path.push(0),
-    0,
-    undefined,
-    InputNormalizationMode.Iterable,
-    false,
-    provenanceForIntoItem(next.value, scope.stream, next),
-  );
-  const innerScope = scope
-    .withInput(innerStream);
-
-  const m = await match(pattern.pattern, innerScope);
-  switch (m.kind) {
-    case MatchKind.LR:
-    case MatchKind.Error:
-      return m;
-    case MatchKind.Fail:
-      return fail(scope, pattern, [m]);
-    case MatchKind.Ok: {
-      if (!(await m.scope.stream.done())) {
-        // Must consume entire stream to succeed
-        return fail(scope, pattern, [m]);
-      }
-
-      const end = scope
-        .withInput(next)
-        .addVariables(m.scope.variables);
-      return ok(scope, end, pattern, m.value, [m]);
+/** Compiles an `Into` pattern into a flattened, reusable closure. */
+export function into(
+  pattern: IntoPattern,
+  scope: Scope,
+): CompiledPattern {
+  const child = compile(pattern.pattern, scope);
+  return async (invocationScope: Scope) => {
+    if (await invocationScope.stream.done()) {
+      return fail(invocationScope, pattern);
     }
-  }
 
-  return error(
-    scope,
-    pattern,
-    MatchErrorCode.InvalidArgument,
-    `unexpected match kind ${
-      (m as { kind?: unknown }).kind
-    } in into child pattern`,
-  );
+    const next = await invocationScope.stream.next();
+    if (!Input.isIterable(next.value) && !Input.isAsyncIterable(next.value)) {
+      const [t] = type(next.value);
+      return error(
+        invocationScope,
+        pattern,
+        MatchErrorCode.IterableExpected,
+        `expected value to be iterable but got type ${t}`,
+      );
+    }
+
+    const innerStream = new Input(
+      next.value,
+      invocationScope.stream.path.push(0),
+      0,
+      undefined,
+      InputNormalizationMode.Iterable,
+      false,
+      provenanceForIntoItem(next.value, invocationScope.stream, next),
+    );
+    const innerScope = invocationScope
+      .withInput(innerStream);
+
+    const m = await child(innerScope);
+    switch (m.kind) {
+      case MatchKind.LR:
+      case MatchKind.Error:
+        return m;
+      case MatchKind.Fail:
+        return fail(invocationScope, pattern, [m]);
+      case MatchKind.Ok: {
+        if (!(await m.scope.stream.done())) {
+          // Must consume entire stream to succeed
+          return fail(invocationScope, pattern, [m]);
+        }
+
+        const end = invocationScope
+          .withInput(next)
+          .addVariables(m.scope.variables);
+        return ok(invocationScope, end, pattern, m.value, [m]);
+      }
+    }
+
+    return error(
+      invocationScope,
+      pattern,
+      MatchErrorCode.InvalidArgument,
+      `unexpected match kind ${
+        (m as { kind?: unknown }).kind
+      } in into child pattern`,
+    );
+  };
 }

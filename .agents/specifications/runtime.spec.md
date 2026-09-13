@@ -39,3 +39,4 @@ Each runtime subtopic should define:
 - [runtime incremental re-parsing](./runtime/incremental-parsing.spec.md)
 - [runtime memo eviction](./runtime/memo-eviction.spec.md)
 - [runtime selective memoization](./runtime/selective-memoization.spec.md)
+- [runtime compiled pattern dispatch](./runtime/compiled-patterns.spec.md)

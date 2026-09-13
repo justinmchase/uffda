@@ -6,6 +6,8 @@ import {
   type ModuleDeclaration,
 } from "./declarations/mod.ts";
 import type { Module } from "./modules/mod.ts";
+import type { CompiledPattern } from "./compiled_pattern.ts";
+import type { Pattern } from "./patterns/pattern.ts";
 import {
   type IModuleResolvers,
   type ImportResult,
@@ -46,6 +48,14 @@ export class Resolver {
   private readonly modules = new Map<string, Module>();
   private readonly declarations: Map<string, ModuleDeclaration>;
   private readonly resolvers: IModuleResolvers;
+  /**
+   * Per-instance cache of pattern nodes compiled into reusable closures
+   * (see `compile()` in `./match.ts`). Kept here — scoped to this
+   * `Resolver` instance — rather than as module-level global state, so
+   * independently constructed runtimes (for example a sandboxed or test
+   * `Resolver`) never share compiled closures with one another.
+   */
+  private readonly compiledPatterns = new WeakMap<Pattern, CompiledPattern>();
   constructor(opts?: ResolverOptions) {
     const {
       declarations = new Map<string, ModuleDeclaration>(),
@@ -59,6 +69,23 @@ export class Resolver {
       [".uff"]: new UffArtifactResolver({ cwd, artifactRoot }),
       ...(resolvers ?? {}),
     };
+  }
+
+  /**
+   * Returns the cached compiled closure for `pattern`, building it with
+   * `build` (and caching the result) the first time this `Resolver`
+   * instance is asked to compile that particular pattern node.
+   */
+  public compilePattern(
+    pattern: Pattern,
+    build: () => CompiledPattern,
+  ): CompiledPattern {
+    let compiled = this.compiledPatterns.get(pattern);
+    if (!compiled) {
+      compiled = build();
+      this.compiledPatterns.set(pattern, compiled);
+    }
+    return compiled;
   }
 
   public async import(
