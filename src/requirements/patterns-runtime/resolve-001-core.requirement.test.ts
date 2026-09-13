@@ -18,6 +18,8 @@ const mod0: Module = {
   exports: new Map(),
   rules: new Map(),
   funcs: new Map(),
+  decorators: new Map(),
+  decoratorImports: new Map(),
   default: undefined,
 };
 const rule0: Rule = {

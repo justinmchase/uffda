@@ -16,6 +16,7 @@ Deno.test("req:uffda-language-syntax-007 - rule declarations require an equals s
       parameters: [],
       pattern: { kind: PatternKind.Any },
       projection: { kind: ExpressionKind.Number, value: 1 },
+      attributes: [],
     }]);
   }
   assertEquals(bare.kind, MatchKind.Fail);

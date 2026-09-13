@@ -1,3 +1,4 @@
+import type { DecoratorDeclaration } from "./decorator.ts";
 import type { ExportDeclaration } from "./export.ts";
 import type { FuncDeclaration } from "./func.ts";
 import type { ImportDeclaration } from "./import.ts";
@@ -9,4 +10,6 @@ export type ModuleDeclaration = {
   rules: RuleDeclaration[];
   /** Author-defined callables; older artifacts MAY omit (treat as []). */
   funcs?: FuncDeclaration[];
+  /** `decorator` declarations; older artifacts MAY omit (treat as []). */
+  decorators?: DecoratorDeclaration[];
 };

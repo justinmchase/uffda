@@ -6,13 +6,22 @@
 # Variable bindings are single-letter (B12).
 # NormalizeExport is an inline nested projection on `any` (not a named rule and
 # not `x:any`): rule frames clear variables, and quantified Variables duplicate
-# across export items. Use `_` for the item value; `t`/`u`/`s` stay in Into scope.
-# Unary `not expr` is not a Primary; negation inside calls uses std `(not …)`.
+# across export items. Use `_` for the item value; `t`/`u`/`s`/`v` stay in Into
+# scope. Unary `not expr` is not a Primary; negation inside calls uses std
+# `(not …)`.
+# `decorator` declarations are their own declaration kind (`kind: "decorator"`),
+# distinct from the `attribute` syntax (`kind: "attribute"`, `[Name arg…]`)
+# nested inside a rule/func's own `attributes` field — see
+# languages/uffda-syntax/decorator-declarations.spec.md and
+# languages/uffda-syntax/declaration-attributes.spec.md. Every Compile* rule
+# below threads a `decorators` array through its output alongside
+# `imports`/`exports`/`rules`/`funcs` so decorator declarations flow through
+# the same accumulation/classification pipeline.
 export UffdaRuntimeCompiler;
 
 rule CompileEmptyDeclarations =
   end
-  -> { imports: [], exports: [], rules: [], funcs: [] };
+  -> { imports: [], exports: [], rules: [], funcs: [], decorators: [] };
 
 rule CompileImportDeclaration =
   {
@@ -24,7 +33,8 @@ rule CompileImportDeclaration =
     imports: [{ kind: "module", moduleUrl: u, names: n }],
     exports: [],
     rules: [],
-    funcs: []
+    funcs: [],
+    decorators: []
   };
 
 rule CompileExportDeclaration =
@@ -36,8 +46,17 @@ rule CompileExportDeclaration =
     imports: [],
     exports: [{ kind: "rule", name: n }],
     rules: [],
-    funcs: []
+    funcs: [],
+    decorators: []
   };
+
+rule CompileAttribute =
+  {
+    kind: "attribute",
+    name: n:string,
+    args: a:[any*]
+  }
+  -> { name: n, args: a };
 
 rule CompileRuleDeclaration =
   {
@@ -45,7 +64,8 @@ rule CompileRuleDeclaration =
     name: n:string,
     pattern: t:object,
     parameters: p:any,
-    projection: j:any
+    projection: j:any,
+    attributes: c:[CompileAttribute*]
   }
   -> {
     imports: [],
@@ -54,14 +74,37 @@ rule CompileRuleDeclaration =
       name: n,
       parameters: (flat (coalesce p [])),
       pattern: t,
-      expression: j
+      expression: j,
+      attributes: c
     }],
-    funcs: []
+    funcs: [],
+    decorators: []
   };
 
 rule CompileFuncDeclaration =
   {
     kind: "func",
+    name: n:string,
+    pattern: t:object,
+    expression: x:object,
+    attributes: c:[CompileAttribute*]
+  }
+  -> {
+    imports: [],
+    exports: [],
+    rules: [],
+    funcs: [{
+      name: n,
+      pattern: t,
+      expression: x,
+      attributes: c
+    }],
+    decorators: []
+  };
+
+rule CompileDecoratorDeclaration =
+  {
+    kind: "decorator",
     name: n:string,
     pattern: t:object,
     expression: x:object
@@ -70,7 +113,8 @@ rule CompileFuncDeclaration =
     imports: [],
     exports: [],
     rules: [],
-    funcs: [{
+    funcs: [],
+    decorators: [{
       name: n,
       pattern: t,
       expression: x
@@ -82,6 +126,7 @@ rule CompileDeclaration =
   | CompileExportDeclaration
   | CompileRuleDeclaration
   | CompileFuncDeclaration
+  | CompileDecoratorDeclaration
   ;
 
 rule CompileDeclarationSequence =
@@ -91,7 +136,8 @@ rule CompileDeclarationSequence =
     imports: (flat [d.imports r.imports]),
     exports: (flat [d.exports r.exports]),
     rules: (flat [d.rules r.rules]),
-    funcs: (flat [d.funcs r.funcs])
+    funcs: (flat [d.funcs r.funcs]),
+    decorators: (flat [d.decorators r.decorators])
   };
 
 rule CompileDeclarations =
@@ -104,15 +150,18 @@ rule AttachNameSets =
     imports: i:any,
     rules: r:any,
     funcs: f:any,
+    decorators: d:any,
     exports: e:any
   }
   -> {
     imports: i,
     rules: r,
     funcs: f,
+    decorators: d,
     t: (to_set (pluck r "name")),
     u: (to_set (pluck f "name")),
     s: (to_set (flat (pluck i "names"))),
+    v: (to_set (pluck d "name")),
     exports: e
   };
 
@@ -121,23 +170,23 @@ rule FinalizeExports =
     imports: i:any,
     rules: r:any,
     funcs: f:any,
+    decorators: d:any,
     t: t:any,
     u: u:any,
     s: s:any,
+    v: v:any,
     exports: e:[(
       any
       -> (when (eq _.kind "rule")
-           (when (has t _.name)
-             _
-             (when (has u _.name)
-               { ..._, kind: "func" }
-               (when (has s _.name)
-                 { ..._, kind: "import" }
-                 _)))
+           (coalesce
+             (when (has u _.name) { ..._, kind: "func" })
+             (when (has v _.name) { ..._, kind: "decorator" })
+             (when (has s _.name) { ..._, kind: "import" })
+             _)
            _)
     )*]
   }
-  -> { imports: i, rules: r, funcs: f, exports: e };
+  -> { imports: i, rules: r, funcs: f, decorators: d, exports: e };
 
 rule NormalizeModule =
   AttachNameSets

@@ -70,6 +70,15 @@ export type MatchOk<T = unknown> = {
   value: T;
   /** Set only for the Ok produced by a fresh rule invocation; see {@link MatchOrigin}. */
   origin?: MatchOrigin;
+  /**
+   * When set, `this` (see `reference()`) resolves to this value instead of
+   * the `MatchOk` itself. Used only for decorator invocation, where `this`
+   * must resolve to the `Rule`/`Func` being decorated rather than to the
+   * decorator's own args-match; see
+   * `.agents/specifications/runtime/rule-metadata.spec.md`. Absent for every
+   * ordinary match-time evaluation.
+   */
+  subject?: unknown;
 };
 
 export type MatchFail = {

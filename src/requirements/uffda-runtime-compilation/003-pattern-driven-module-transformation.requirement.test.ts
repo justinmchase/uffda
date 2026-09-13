@@ -17,12 +17,14 @@ Deno.test("req:uffda-runtime-compilation-003 - compiler rules transform declarat
         name: "First",
         parameters: [],
         pattern: { kind: PatternKind.Any },
+        attributes: [],
       },
       {
         kind: "rule",
         name: "Second",
         parameters: [],
         pattern: { kind: PatternKind.End },
+        attributes: [],
       },
     ],
   });
@@ -48,13 +50,16 @@ Deno.test("req:uffda-runtime-compilation-003 - compiler rules transform declarat
         parameters: [],
         pattern: { kind: PatternKind.Any },
         expression: undefined,
+        attributes: [],
       }, {
         name: "Second",
         parameters: [],
         pattern: { kind: PatternKind.End },
         expression: undefined,
+        attributes: [],
       }],
       funcs: [],
+      decorators: [],
     });
   }
 });

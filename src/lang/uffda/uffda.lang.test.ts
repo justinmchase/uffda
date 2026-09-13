@@ -201,6 +201,7 @@ Deno.test({
               ],
             },
             projection: undefined,
+            attributes: [],
           });
         }
       },
@@ -218,6 +219,7 @@ Deno.test({
             parameters: [],
             pattern: { kind: PatternKind.Any },
             projection: undefined,
+            attributes: [],
           });
         }
 

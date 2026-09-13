@@ -14,6 +14,8 @@ const mod0: Module = {
   exports: new Map(),
   rules: new Map(),
   funcs: new Map(),
+  decorators: new Map(),
+  decoratorImports: new Map(),
   default: undefined,
 };
 const mod1: Module = {
@@ -22,6 +24,8 @@ const mod1: Module = {
   exports: new Map(),
   rules: new Map(),
   funcs: new Map(),
+  decorators: new Map(),
+  decoratorImports: new Map(),
   default: undefined,
 };
 const rule: Rule = {

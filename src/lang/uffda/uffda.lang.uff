@@ -9,12 +9,14 @@ import "./import.rules.uff" ImportDeclarationSyntax;
 import "./export.rules.uff" ExportDeclarationSyntax;
 import "./rule.rules.uff" RuleDeclarationSyntax;
 import "./func.rules.uff" FuncDeclarationSyntax;
+import "./decorator.rules.uff" DecoratorDeclarationSyntax;
 
 export UffdaLang;
 
 rule ModuleDeclarationSyntax =
   | FuncDeclarationSyntax
   | RuleDeclarationSyntax
+  | DecoratorDeclarationSyntax
   ;
 
 rule ModuleBody =

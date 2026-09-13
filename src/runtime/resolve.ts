@@ -1,13 +1,15 @@
 import { extname } from "@std/path";
 import {
+  decoratorsOf,
   ExportDeclarationKind,
   funcsOf,
   ImportDeclarationKind,
   type ModuleDeclaration,
 } from "./declarations/mod.ts";
-import type { Module } from "./modules/mod.ts";
+import type { DecoratorFunc, Module, ModuleMember } from "./modules/mod.ts";
 import type { CompiledPattern } from "./compiled_pattern.ts";
 import type { Pattern } from "./patterns/pattern.ts";
+import { applyAttributes } from "./apply_attributes.ts";
 import {
   type IModuleResolvers,
   type ImportResult,
@@ -101,6 +103,8 @@ export class Resolver {
         exports: new Map(),
         rules: new Map(),
         funcs: new Map(),
+        decorators: new Map(),
+        decoratorImports: new Map(),
         default: undefined,
       };
       this.modules.set(moduleUrl.href, module);
@@ -130,6 +134,24 @@ export class Resolver {
           pattern,
           expression,
         });
+      }
+
+      for (const { name, pattern, expression } of decoratorsOf(declaration)) {
+        module.decorators.set(name, {
+          module,
+          name,
+          pattern,
+          expression,
+        });
+      }
+
+      for (const name of module.decorators.keys()) {
+        if (module.rules.has(name) || module.funcs.has(name)) {
+          return moduleResolutionResult(moduleResolutionError(
+            `Decorator ${name} conflicts with rule/func declaration in ${moduleUrl}`,
+            context,
+          ));
+        }
       }
 
       for (const e of declaration.exports) {
@@ -172,6 +194,26 @@ export class Resolver {
                 ));
               }
               module.default = fn;
+            }
+            break;
+          }
+          case ExportDeclarationKind.Decorator: {
+            const decorator = module.decorators.get(name);
+            if (!decorator) {
+              return moduleResolutionResult(moduleResolutionError(
+                `Unknown decorator ${name}`,
+                context,
+              ));
+            }
+            module.exports.set(name, decorator);
+            if (e.default) {
+              if (module.default) {
+                return moduleResolutionResult(moduleResolutionError(
+                  `Module ${name} cannot have multiple default exports`,
+                  context,
+                ));
+              }
+              module.default = decorator;
             }
             break;
           }
@@ -222,7 +264,39 @@ export class Resolver {
             ));
           }
 
-          module.imports.set(name, r);
+          if (module.decorators.has(name)) {
+            return moduleResolutionResult(moduleResolutionError(
+              `Import ${name} conflicts with decorator declaration in ${moduleUrl}`,
+              context,
+            ));
+          }
+
+          const isDecoratorExport =
+            importedModule.module.decorators.has(name) ||
+            importedModule.module.decoratorImports.has(name);
+          if (isDecoratorExport) {
+            module.decoratorImports.set(name, r as DecoratorFunc);
+          } else {
+            module.imports.set(name, r as ModuleMember);
+          }
+        }
+      }
+
+      const declarationScope = context.scope.pushModule(module);
+      for (const { name, attributes } of declaration.rules) {
+        if (attributes && attributes.length > 0) {
+          const rule = module.rules.get(name);
+          if (rule) {
+            await applyAttributes(rule, attributes, module, declarationScope);
+          }
+        }
+      }
+      for (const { name, attributes } of funcsOf(declaration)) {
+        if (attributes && attributes.length > 0) {
+          const fn = module.funcs.get(name);
+          if (fn) {
+            await applyAttributes(fn, attributes, module, declarationScope);
+          }
         }
       }
 
@@ -230,7 +304,8 @@ export class Resolver {
         const { kind, name } = e;
         switch (kind) {
           case ExportDeclarationKind.Import: {
-            const resolvedImport = module.imports.get(name);
+            const resolvedImport = module.imports.get(name) ??
+              module.decoratorImports.get(name);
             if (!resolvedImport) {
               return moduleResolutionResult(moduleResolutionError(
                 `Unknown import ${name}`,

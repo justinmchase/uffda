@@ -9,10 +9,16 @@ export function isModuleDeclaration(
   return Array.isArray(record.imports) &&
     Array.isArray(record.exports) &&
     Array.isArray(record.rules) &&
-    (record.funcs === undefined || Array.isArray(record.funcs));
+    (record.funcs === undefined || Array.isArray(record.funcs)) &&
+    (record.decorators === undefined || Array.isArray(record.decorators));
 }
 
 /** Normalize older artifacts that omit `funcs`. */
 export function funcsOf(declaration: ModuleDeclaration) {
   return declaration.funcs ?? [];
+}
+
+/** Normalize older artifacts that omit `decorators`. */
+export function decoratorsOf(declaration: ModuleDeclaration) {
+  return declaration.decorators ?? [];
 }

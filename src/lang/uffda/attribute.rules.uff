@@ -1,0 +1,24 @@
+# AttributeSyntax matches `[Name]` / `[Name arg1 arg2]`: a declaration-time
+# annotation prefix on rule/func declarations, resolved against `decorator`
+# declarations exclusively (not ordinary funcs) at resolve time. See
+# languages/uffda-syntax/declaration-attributes.spec.md. Variable bindings
+# are single-letter (published CLI PatternLang).
+import "../tokenizer/token.uff" Token;
+import "../expression/primary.uff" Primary;
+import "../expression/reference.uff" Reference;
+
+export AttributeSyntax;
+
+rule AttributeOpenBracket = "[" -> "[";
+rule AttributeCloseBracket = "]" -> "]";
+
+rule AttributeArgument =
+  Token<Primary>
+  -> _;
+
+rule AttributeSyntax =
+  Token<AttributeOpenBracket>
+  n:Token<Reference>
+  a:AttributeArgument*
+  Token<AttributeCloseBracket>
+  -> { kind: "attribute", name: n.name, args: a };
