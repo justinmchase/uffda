@@ -12,7 +12,6 @@ import { collect, isGenerator } from "../collect.ts";
 import type { PipelinePattern } from "./pattern.ts";
 import type { ItemSourceSpan } from "../../span.ts";
 import { leafOffset } from "../../span.ts";
-import type { AwaitableMatch } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 
 function itemSpansFromParentSlice(
@@ -85,18 +84,8 @@ async function provenanceForPipelineValue(
   return fromValue ?? parentProvenance;
 }
 
-/** Matches a `Pipeline` pattern: the interpreted entry point delegates to
- * the same logic as {@link buildPipeline}, so there is a single
- * implementation. */
-export function pipeline(
-  pattern: PipelinePattern,
-  scope: Scope,
-): AwaitableMatch {
-  return buildPipeline(pattern, scope)(scope);
-}
-
 /** Compiles a `Pipeline` pattern into a flattened, reusable closure. */
-export function buildPipeline(
+export function pipeline(
   pattern: PipelinePattern,
   scope: Scope,
 ): CompiledPattern {

@@ -12,7 +12,6 @@ import { resolveValueSource } from "./value_source.ts";
 import { ValueSourceKind } from "./value_source.ts";
 import type { Scope } from "../scope.ts";
 import type { Pattern, SwitchKey, SwitchPattern } from "./pattern.ts";
-import type { AwaitableMatch } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 
 type KeyCheck =
@@ -135,16 +134,6 @@ function wrap(scope: Scope, pattern: SwitchPattern, m: Match): Match {
   }
 }
 
-/** Matches a `Switch` pattern: the interpreted entry point delegates to
- * the same logic as {@link buildSwitch}, so there is a single
- * implementation. */
-export function switchPattern(
-  pattern: SwitchPattern,
-  scope: Scope,
-): AwaitableMatch {
-  return buildSwitch(pattern, scope)(scope);
-}
-
 /**
  * Compiles a `Switch` pattern into a flattened, reusable closure.
  * Committed-choice dispatch (see `SwitchPattern`): peek the next stream
@@ -154,7 +143,7 @@ export function switchPattern(
  * dispatch map (when eligible) and every case/default child are compiled
  * exactly once here, not recomputed per invocation.
  */
-export function buildSwitch(
+export function switchPattern(
   pattern: SwitchPattern,
   scope: Scope,
 ): CompiledPattern {

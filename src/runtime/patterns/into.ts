@@ -10,7 +10,6 @@ import { compile } from "../match.ts";
 import type { Scope } from "../scope.ts";
 import type { IntoPattern } from "./pattern.ts";
 import { leafOffset } from "../../span.ts";
-import type { AwaitableMatch } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 
 function provenanceForIntoItem(
@@ -40,15 +39,8 @@ function provenanceForIntoItem(
   return parent.provenance;
 }
 
-/** Matches an `Into` pattern: the interpreted entry point delegates to
- * the same logic as {@link buildInto}, so there is a single
- * implementation. */
-export function into(pattern: IntoPattern, scope: Scope): AwaitableMatch {
-  return buildInto(pattern, scope)(scope);
-}
-
 /** Compiles an `Into` pattern into a flattened, reusable closure. */
-export function buildInto(
+export function into(
   pattern: IntoPattern,
   scope: Scope,
 ): CompiledPattern {

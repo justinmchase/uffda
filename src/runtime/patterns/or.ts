@@ -2,18 +2,11 @@ import { fail, MatchKind, ok } from "../../match.ts";
 import type { Match } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import { compile } from "../match.ts";
-import type { AwaitableMatch } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 import type { OrPattern } from "./pattern.ts";
 
-/** Matches an `Or` pattern: the interpreted entry point delegates to the
- * same logic as {@link buildOr}, so there is a single implementation. */
-export function or(pattern: OrPattern, scope: Scope): AwaitableMatch {
-  return buildOr(pattern, scope)(scope);
-}
-
 /** Compiles an `Or` pattern into a flattened, reusable closure. */
-export function buildOr(pattern: OrPattern, scope: Scope): CompiledPattern {
+export function or(pattern: OrPattern, scope: Scope): CompiledPattern {
   const { patterns } = pattern;
   const children = patterns.map((p) => compile(p, scope));
   return async (invocationScope: Scope) => {

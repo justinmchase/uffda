@@ -3,21 +3,10 @@ import type { Comparable } from "../../comparable.ts";
 import type { Scope } from "../scope.ts";
 import type { BetweenPattern } from "./pattern.ts";
 import { resolveValueSource } from "./value_source.ts";
-import type { AwaitableMatch } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 
-/** Matches a `Between` pattern: the interpreted entry point delegates to
- * the same logic as {@link buildBetween}, so there is a single
- * implementation. */
-export function between(
-  pattern: BetweenPattern,
-  scope: Scope,
-): AwaitableMatch {
-  return buildBetween(pattern)(scope);
-}
-
 /** Compiles a `Between` pattern into a flattened, reusable closure. */
-export function buildBetween(pattern: BetweenPattern): CompiledPattern {
+export function between(pattern: BetweenPattern): CompiledPattern {
   return async (scope: Scope) => {
     if (pattern.left == null && pattern.right == null) {
       return error(

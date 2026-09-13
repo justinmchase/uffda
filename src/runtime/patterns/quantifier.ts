@@ -4,7 +4,6 @@ import type { Match } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import type { QuantifierPattern } from "./pattern.ts";
 import { resolveValueSource, type ValueSource } from "./value_source.ts";
-import type { AwaitableMatch } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 
 function resolveBound(
@@ -22,18 +21,8 @@ function resolveBound(
   return { kind: "ok", value: resolved.value as number };
 }
 
-/** Matches a `Quantifier` pattern: the interpreted entry point delegates
- * to the same logic as {@link buildQuantifier}, so there is a single
- * implementation. */
-export function quantifier(
-  pattern: QuantifierPattern,
-  scope: Scope,
-): AwaitableMatch {
-  return buildQuantifier(pattern, scope)(scope);
-}
-
 /** Compiles a `Quantifier` pattern into a flattened, reusable closure. */
-export function buildQuantifier(
+export function quantifier(
   pattern: QuantifierPattern,
   scope: Scope,
 ): CompiledPattern {

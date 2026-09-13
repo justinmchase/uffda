@@ -2,18 +2,10 @@ import { error, fail, MatchErrorCode, MatchKind, ok } from "../../match.ts";
 import { compile } from "../match.ts";
 import type { Scope } from "../scope.ts";
 import type { ExceptPattern } from "./pattern.ts";
-import type { AwaitableMatch } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 
-/** Matches an `Except` pattern: the interpreted entry point delegates to
- * the same logic as {@link buildExcept}, so there is a single
- * implementation. */
-export function except(pattern: ExceptPattern, scope: Scope): AwaitableMatch {
-  return buildExcept(pattern, scope)(scope);
-}
-
 /** Compiles an `Except` pattern into a flattened, reusable closure. */
-export function buildExcept(
+export function except(
   pattern: ExceptPattern,
   scope: Scope,
 ): CompiledPattern {

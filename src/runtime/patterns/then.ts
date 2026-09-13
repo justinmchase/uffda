@@ -2,18 +2,11 @@ import { fail, MatchKind, ok } from "../../match.ts";
 import type { Match } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import { compile } from "../match.ts";
-import type { AwaitableMatch } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 import type { ThenPattern } from "./pattern.ts";
 
-/** Matches a `Then` pattern: the interpreted entry point delegates to the
- * same logic as {@link buildThen}, so there is a single implementation. */
-export function then(pattern: ThenPattern, scope: Scope): AwaitableMatch {
-  return buildThen(pattern, scope)(scope);
-}
-
 /** Compiles a `Then` pattern into a flattened, reusable closure. */
-export function buildThen(pattern: ThenPattern, scope: Scope): CompiledPattern {
+export function then(pattern: ThenPattern, scope: Scope): CompiledPattern {
   const { patterns } = pattern;
   const children = patterns.map((p) => compile(p, scope));
   return async (invocationScope: Scope) => {

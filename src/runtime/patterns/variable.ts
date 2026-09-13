@@ -1,22 +1,11 @@
 import { error, fail, MatchErrorCode, MatchKind, ok } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import { compile } from "../match.ts";
-import type { AwaitableMatch } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 import type { VariablePattern } from "./pattern.ts";
 
-/** Matches a `Variable` pattern: the interpreted entry point delegates to
- * the same logic as {@link buildVariable}, so there is a single
- * implementation. */
-export function variable(
-  pattern: VariablePattern,
-  scope: Scope,
-): AwaitableMatch {
-  return buildVariable(pattern, scope)(scope);
-}
-
 /** Compiles a `Variable` pattern into a flattened, reusable closure. */
-export function buildVariable(
+export function variable(
   pattern: VariablePattern,
   scope: Scope,
 ): CompiledPattern {

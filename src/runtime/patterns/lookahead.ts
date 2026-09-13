@@ -2,21 +2,10 @@ import { error, fail, MatchErrorCode, MatchKind, ok } from "../../match.ts";
 import { compile } from "../match.ts";
 import type { Scope } from "../scope.ts";
 import type { LookaheadPattern } from "./pattern.ts";
-import type { AwaitableMatch } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 
-/** Matches a `Lookahead` pattern: the interpreted entry point delegates
- * to the same logic as {@link buildLookahead}, so there is a single
- * implementation. */
-export function lookahead(
-  pattern: LookaheadPattern,
-  scope: Scope,
-): AwaitableMatch {
-  return buildLookahead(pattern, scope)(scope);
-}
-
 /** Compiles a `Lookahead` pattern into a flattened, reusable closure. */
-export function buildLookahead(
+export function lookahead(
   pattern: LookaheadPattern,
   scope: Scope,
 ): CompiledPattern {

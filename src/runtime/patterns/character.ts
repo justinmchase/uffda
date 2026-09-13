@@ -2,18 +2,7 @@ import { error, fail, MatchErrorCode, ok } from "../../match.ts";
 import { CharacterClass } from "./pattern.ts";
 import type { CharacterPattern } from "./pattern.ts";
 import type { Scope } from "../scope.ts";
-import type { AwaitableMatch } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
-
-/** Matches a `Character` pattern: the interpreted entry point delegates to
- * the same logic as {@link buildCharacter}, so there is a single
- * implementation. */
-export function character(
-  pattern: CharacterPattern,
-  scope: Scope,
-): AwaitableMatch {
-  return buildCharacter(pattern)(scope);
-}
 
 export function characterClassToRegexp(
   characterClass: CharacterClass,
@@ -69,7 +58,7 @@ export function characterClassToRegexp(
 }
 
 /** Compiles a `Character` pattern into a flattened, reusable closure. */
-export function buildCharacter(pattern: CharacterPattern): CompiledPattern {
+export function character(pattern: CharacterPattern): CompiledPattern {
   const { characterClass } = pattern;
   const regexp = characterClassToRegexp(characterClass);
   return async (scope: Scope) => {

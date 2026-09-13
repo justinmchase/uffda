@@ -3,21 +3,10 @@ import { fail, ok } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import type { IncludesPattern } from "./pattern.ts";
 import { resolveValueSource } from "./value_source.ts";
-import type { AwaitableMatch } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 
-/** Matches an `Includes` pattern: the interpreted entry point delegates to
- * the same logic as {@link buildIncludes}, so there is a single
- * implementation. */
-export function includes(
-  pattern: IncludesPattern,
-  scope: Scope,
-): AwaitableMatch {
-  return buildIncludes(pattern)(scope);
-}
-
 /** Compiles an `Includes` pattern into a flattened, reusable closure. */
-export function buildIncludes(pattern: IncludesPattern): CompiledPattern {
+export function includes(pattern: IncludesPattern): CompiledPattern {
   return async (scope: Scope) => {
     const values: Serializable[] = [];
     for (const source of pattern.values) {

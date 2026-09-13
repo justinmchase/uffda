@@ -3,21 +3,10 @@ import { exec } from "../exec.ts";
 import { compile } from "../match.ts";
 import type { Scope } from "../scope.ts";
 import type { ProjectionPattern } from "./pattern.ts";
-import type { AwaitableMatch } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 
-/** Matches a `Projection` pattern: the interpreted entry point delegates
- * to the same logic as {@link buildProjection}, so there is a single
- * implementation. */
-export function projection(
-  pattern: ProjectionPattern,
-  scope: Scope,
-): AwaitableMatch {
-  return buildProjection(pattern, scope)(scope);
-}
-
 /** Compiles a `Projection` pattern into a flattened, reusable closure. */
-export function buildProjection(
+export function projection(
   pattern: ProjectionPattern,
   scope: Scope,
 ): CompiledPattern {

@@ -5,17 +5,10 @@ import { compile } from "../match.ts";
 import type { Match } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import type { OverPattern } from "./pattern.ts";
-import type { AwaitableMatch } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 
-/** Matches an `Over` pattern: the interpreted entry point delegates to the
- * same logic as {@link buildOver}, so there is a single implementation. */
-export function over(pattern: OverPattern, scope: Scope): AwaitableMatch {
-  return buildOver(pattern, scope)(scope);
-}
-
 /** Compiles an `Over` pattern into a flattened, reusable closure. */
-export function buildOver(pattern: OverPattern, scope: Scope): CompiledPattern {
+export function over(pattern: OverPattern, scope: Scope): CompiledPattern {
   const { keys = {} } = pattern;
   const children = Object.entries(keys).map(
     ([key, keyPattern]) =>
