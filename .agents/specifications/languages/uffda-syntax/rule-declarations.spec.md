@@ -10,6 +10,10 @@ optional projection expression.
 Rules and funcs share a Pattern → Expression idea but differ in required slots
 and invocation site. See [rules and funcs](./rules-and-funcs.spec.md).
 
+Rule declarations MAY be preceded by a decorator list; see
+[decorator declaration syntax](./decorator-declarations.spec.md) and
+[runtime rule metadata](../../runtime/rule-metadata.spec.md).
+
 ## Core rule contracts
 
 - Rule declarations MUST include a stable rule identity (name).

@@ -15,6 +15,10 @@ consumption of funcs is deferred to
 Rules and funcs share a Pattern → Expression idea but differ in required slots
 and invocation site. See [rules and funcs](./rules-and-funcs.spec.md).
 
+Func declarations MAY be preceded by a decorator list; see
+[decorator declaration syntax](./decorator-declarations.spec.md) and
+[runtime rule metadata](../../runtime/rule-metadata.spec.md).
+
 ## Rough grammar
 
 ```text

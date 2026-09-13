@@ -40,3 +40,4 @@ Each runtime subtopic should define:
 - [runtime memo eviction](./runtime/memo-eviction.spec.md)
 - [runtime selective memoization](./runtime/selective-memoization.spec.md)
 - [runtime compiled pattern dispatch](./runtime/compiled-patterns.spec.md)
+- [runtime rule metadata](./runtime/rule-metadata.spec.md)

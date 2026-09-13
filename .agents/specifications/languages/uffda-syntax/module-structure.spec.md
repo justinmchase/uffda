@@ -23,6 +23,11 @@ form one Uffda module.
 - Declaration order MUST be preserved in the canonical syntax tree.
 - Future declaration families MUST be introduced as explicit top-level forms
   rather than overloaded into existing declaration grammar.
+- A `rule` or `func` declaration (including exported forms) MAY be preceded by a
+  decorator list without changing its declaration family or keyword; see
+  [decorator declaration syntax](./decorator-declarations.spec.md). A decorator
+  list is a prefix on the declaration it decorates, not a distinct top-level
+  declaration family.
 
 ## Declaration keyword model
 
