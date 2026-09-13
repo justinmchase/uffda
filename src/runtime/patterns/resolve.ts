@@ -15,6 +15,7 @@ import type {
   ResolveSpecialPattern,
 } from "./pattern.ts";
 import { ResolveTargetKind } from "./pattern.ts";
+import type { CompiledPattern } from "../compiled_pattern.ts";
 
 function argumentRule(pattern: Pattern, module: Module, index: number): Rule {
   return {
@@ -191,4 +192,24 @@ export async function resolve(
     case ResolveTargetKind.Special:
       return await resolveSpecial(pattern, scope);
   }
+}
+
+/**
+ * Compiles a `Resolve` pattern into a reusable closure. Unlike composite
+ * kinds such as `Then`/`And`/`Or`, a `Resolve` pattern has no static child
+ * pattern to precompile ahead of time: which `Rule` it actually invokes is
+ * looked up from the invocation `Scope` itself (`scope.getRule`, the
+ * current `scope.module`, or a pattern-embedded but already-resolved
+ * `Special` value), so there is nothing further to flatten beyond skipping
+ * the generic dispatcher's per-call `switch (pattern.kind)`.
+ *
+ * `resolve` itself stays a plain two-argument entry point (rather than
+ * collapsing into this factory the way every other pattern kind does)
+ * because callers outside the compiled-pattern pipeline — language
+ * bootstrapping code that resolves a synthetic `ResolvePattern` once,
+ * outside of any cached rule body — invoke it directly and need the
+ * `Match` result, not a reusable closure.
+ */
+export function buildResolve(pattern: ResolvePattern): CompiledPattern {
+  return (scope: Scope) => resolve(pattern, scope);
 }

@@ -1,44 +1,8 @@
 import { error, fail, MatchErrorCode, ok } from "../../match.ts";
 import { CharacterClass } from "./pattern.ts";
-import type { Match } from "../../match.ts";
 import type { CharacterPattern } from "./pattern.ts";
 import type { Scope } from "../scope.ts";
-
-export async function character(
-  pattern: CharacterPattern,
-  scope: Scope,
-): Promise<Match> {
-  const { characterClass } = pattern;
-  const regexp = characterClassToRegexp(characterClass);
-  if (!regexp) {
-    return error(
-      scope,
-      pattern,
-      MatchErrorCode.InvalidArgument,
-      `unknown character class ${characterClass}`,
-    );
-  }
-  if (await scope.stream.done()) {
-    return fail(scope, pattern);
-  }
-
-  const next = await scope.stream.next();
-  if (typeof next.value !== "string") {
-    return error(
-      scope,
-      pattern,
-      MatchErrorCode.Type,
-      `expected value to be a string but got ${typeof next.value}`,
-    );
-  }
-
-  if (!regexp.test(next.value)) {
-    return fail(scope, pattern);
-  }
-
-  const end = scope.withInput(next);
-  return ok(scope, end, pattern, next.value);
-}
+import type { CompiledPattern } from "../compiled_pattern.ts";
 
 export function characterClassToRegexp(
   characterClass: CharacterClass,
@@ -91,4 +55,36 @@ export function characterClassToRegexp(
     default:
       return undefined;
   }
+}
+
+/** Compiles a `Character` pattern into a flattened, reusable closure. */
+export function character(pattern: CharacterPattern): CompiledPattern {
+  const { characterClass } = pattern;
+  const regexp = characterClassToRegexp(characterClass);
+  return async (scope: Scope) => {
+    if (!regexp) {
+      return error(
+        scope,
+        pattern,
+        MatchErrorCode.InvalidArgument,
+        `unknown character class ${characterClass}`,
+      );
+    }
+    if (await scope.stream.done()) {
+      return fail(scope, pattern);
+    }
+    const next = await scope.stream.next();
+    if (typeof next.value !== "string") {
+      return error(
+        scope,
+        pattern,
+        MatchErrorCode.Type,
+        `expected value to be a string but got ${typeof next.value}`,
+      );
+    }
+    if (!regexp.test(next.value)) {
+      return fail(scope, pattern);
+    }
+    return ok(scope, scope.withInput(next), pattern, next.value);
+  };
 }

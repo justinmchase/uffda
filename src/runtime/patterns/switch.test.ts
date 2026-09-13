@@ -144,7 +144,7 @@ await Deno.test("runtime/patterns/switch", async (t) => {
         new Map(),
         Input.Iterable(["a"]),
       );
-      const m = await switchPattern(pattern, scope);
+      const m = await switchPattern(pattern, scope)(scope);
       // The first case's key ("a") matches, so only its body (Equal("z"))
       // is ever attempted; it fails against the actual value "a", and the
       // Switch fails outright rather than trying the second case, even
@@ -175,7 +175,7 @@ await Deno.test("runtime/patterns/switch", async (t) => {
         new Map(),
         Input.Iterable(["a"]),
       );
-      const m = await switchPattern(pattern, scope);
+      const m = await switchPattern(pattern, scope)(scope);
       assertEquals(m.kind, MatchKind.Error);
       if (m.kind === MatchKind.Error) {
         assertEquals(m.code, MatchErrorCode.InvalidArgument);
@@ -206,7 +206,7 @@ await Deno.test("runtime/patterns/switch", async (t) => {
         new Map(),
         Input.Iterable([1]),
       );
-      const m = await switchPattern(pattern, scope);
+      const m = await switchPattern(pattern, scope)(scope);
       assertEquals(m.kind, MatchKind.Error);
       if (m.kind === MatchKind.Error) {
         assertEquals(m.code, MatchErrorCode.Type);
@@ -237,7 +237,7 @@ await Deno.test("runtime/patterns/switch", async (t) => {
         new Map(),
         Input.Iterable(["a"]),
       );
-      const m = await switchPattern(pattern, scope);
+      const m = await switchPattern(pattern, scope)(scope);
       assertEquals(m.kind, MatchKind.Error);
       if (m.kind === MatchKind.Error) {
         assertEquals(m.code, MatchErrorCode.UnknownReference);
