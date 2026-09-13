@@ -8,15 +8,15 @@ import type { AndPattern } from "./pattern.ts";
 /** Matches an `And` pattern: the interpreted entry point delegates to the
  * same logic as {@link buildAnd}, so there is a single implementation. */
 export function and(pattern: AndPattern, scope: Scope): AwaitableMatch {
-  return buildAnd(pattern)(scope);
+  return buildAnd(pattern, scope)(scope);
 }
 
 /** Compiles an `And` pattern into a flattened, reusable closure. */
-export function buildAnd(pattern: AndPattern): CompiledPattern {
+export function buildAnd(pattern: AndPattern, scope: Scope): CompiledPattern {
   const { patterns } = pattern;
-  const children = patterns.map(compile);
-  return async (scope: Scope) => {
-    let s = scope;
+  const children = patterns.map((p) => compile(p, scope));
+  return async (invocationScope: Scope) => {
+    let s = invocationScope;
     const matches: MatchOk[] = [];
     for (let i = 0; i < children.length; i++) {
       const m = await children[i](s);
@@ -25,7 +25,7 @@ export function buildAnd(pattern: AndPattern): CompiledPattern {
         case MatchKind.Error:
           return m;
         case MatchKind.Fail:
-          return fail(scope, patterns[i], [...matches, m]);
+          return fail(invocationScope, patterns[i], [...matches, m]);
         case MatchKind.Ok:
           matches.push(m);
           s = s.addVariables(m.scope.variables);

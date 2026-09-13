@@ -14,8 +14,9 @@ await Deno.test("runtime.match", async (t) => {
       "MATCH00 - compiling the same node object twice returns the same closure",
     fn: () => {
       const pattern: Pattern = { kind: PatternKind.Any };
-      const a = compile(pattern);
-      const b = compile(pattern);
+      const scope = Scope.Default();
+      const a = compile(pattern, scope);
+      const b = compile(pattern, scope);
       assertStrictEquals(a, b);
     },
   });
@@ -25,9 +26,30 @@ await Deno.test("runtime.match", async (t) => {
     fn: () => {
       const a: Pattern = { kind: PatternKind.Any };
       const b: Pattern = { kind: PatternKind.Any };
-      const ca = compile(a);
-      const cb = compile(b);
+      const scope = Scope.Default();
+      const ca = compile(a, scope);
+      const cb = compile(b, scope);
       assertStrictEquals(ca === cb, false);
+    },
+  });
+
+  await t.step({
+    name:
+      "MATCH01B - two independent Scope/Resolver instances compile the same node independently",
+    fn: () => {
+      // The compiled-closure cache lives on `Resolver` (see
+      // `Resolver.compilePattern`), not as module-level global state, so
+      // two independently constructed runtimes must never share a compiled
+      // closure for the same pattern node.
+      const pattern: Pattern = { kind: PatternKind.Any };
+      const scopeA = Scope.Default();
+      const scopeB = Scope.Default();
+      const ca = compile(pattern, scopeA);
+      const cb = compile(pattern, scopeB);
+      assertStrictEquals(ca === cb, false);
+      // ...but each Scope/Resolver instance is still internally cached.
+      assertStrictEquals(compile(pattern, scopeA), ca);
+      assertStrictEquals(compile(pattern, scopeB), cb);
     },
   });
 

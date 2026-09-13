@@ -9,15 +9,15 @@ import type { ThenPattern } from "./pattern.ts";
 /** Matches a `Then` pattern: the interpreted entry point delegates to the
  * same logic as {@link buildThen}, so there is a single implementation. */
 export function then(pattern: ThenPattern, scope: Scope): AwaitableMatch {
-  return buildThen(pattern)(scope);
+  return buildThen(pattern, scope)(scope);
 }
 
 /** Compiles a `Then` pattern into a flattened, reusable closure. */
-export function buildThen(pattern: ThenPattern): CompiledPattern {
+export function buildThen(pattern: ThenPattern, scope: Scope): CompiledPattern {
   const { patterns } = pattern;
-  const children = patterns.map(compile);
-  return async (scope: Scope) => {
-    let end = scope;
+  const children = patterns.map((p) => compile(p, scope));
+  return async (invocationScope: Scope) => {
+    let end = invocationScope;
     const matches: Match[] = [];
     const values: unknown[] = [];
     for (let i = 0; i < children.length; i++) {
@@ -28,13 +28,13 @@ export function buildThen(pattern: ThenPattern): CompiledPattern {
         case MatchKind.Error:
           return m;
         case MatchKind.Fail:
-          return fail(scope, patterns[i], matches);
+          return fail(invocationScope, patterns[i], matches);
         case MatchKind.Ok:
           values.push(m.value);
           end = m.scope;
           break;
       }
     }
-    return ok(scope, end, pattern, values, matches);
+    return ok(invocationScope, end, pattern, values, matches);
   };
 }

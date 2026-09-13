@@ -40,13 +40,14 @@ import {
 
 export type { CompiledPattern } from "./compiled_pattern.ts";
 
-const compiledCache = new WeakMap<Pattern, CompiledPattern>();
-
 /**
- * Compiles a pattern node into a closure once and caches it on the node
- * itself (keyed by object identity via `WeakMap`), so a rule's pattern tree
- * only ever pays the "which kind is this, and what does it statically need"
- * cost a single time, no matter how many times the rule is matched.
+ * Compiles a pattern node into a closure once and caches it on `scope`'s
+ * `Resolver` instance (see `Resolver.compilePattern`), so a rule's pattern
+ * tree only ever pays the "which kind is this, and what does it statically
+ * need" cost a single time per runtime instance, no matter how many times
+ * the rule is matched. The cache lives on the `Resolver` — not as
+ * module-level global state — so independently constructed runtimes never
+ * share compiled closures with one another.
  *
  * Only a pilot set of high call-volume, structurally simple kinds
  * (`Then`, `And`, `Or`, `Character`, `Variable`, `Type`) have a specialized
@@ -58,36 +59,34 @@ const compiledCache = new WeakMap<Pattern, CompiledPattern>();
  * {@link compile} for their children, so compiled and interpreted subtrees
  * can be freely mixed within the same rule.
  */
-export function compile(pattern: Pattern): CompiledPattern {
-  let compiled = compiledCache.get(pattern);
-  if (!compiled) {
-    compiled = build(pattern);
-    compiledCache.set(pattern, compiled);
-  }
-  return compiled;
+export function compile(pattern: Pattern, scope: Scope): CompiledPattern {
+  return scope.options.resolver.compilePattern(
+    pattern,
+    () => build(pattern, scope),
+  );
 }
 
-function build(pattern: Pattern): CompiledPattern {
+function build(pattern: Pattern, scope: Scope): CompiledPattern {
   switch (pattern.kind) {
     case PatternKind.Then:
-      return buildThen(pattern);
+      return buildThen(pattern, scope);
     case PatternKind.And:
-      return buildAnd(pattern);
+      return buildAnd(pattern, scope);
     case PatternKind.Or:
-      return buildOr(pattern);
+      return buildOr(pattern, scope);
     case PatternKind.Character:
       return buildCharacter(pattern);
     case PatternKind.Variable:
-      return buildVariable(pattern);
+      return buildVariable(pattern, scope);
     case PatternKind.Type:
       return buildType(pattern);
     default:
-      return (scope: Scope) => interpret(pattern, scope);
+      return (s: Scope) => interpret(pattern, s);
   }
 }
 
 export function match(pattern: Pattern, scope: Scope): AwaitableMatch {
-  return compile(pattern)(scope);
+  return compile(pattern, scope)(scope);
 }
 
 async function interpret(pattern: Pattern, scope: Scope): AwaitableMatch {

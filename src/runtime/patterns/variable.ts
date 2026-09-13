@@ -12,32 +12,35 @@ export function variable(
   pattern: VariablePattern,
   scope: Scope,
 ): AwaitableMatch {
-  return buildVariable(pattern)(scope);
+  return buildVariable(pattern, scope)(scope);
 }
 
 /** Compiles a `Variable` pattern into a flattened, reusable closure. */
-export function buildVariable(pattern: VariablePattern): CompiledPattern {
+export function buildVariable(
+  pattern: VariablePattern,
+  scope: Scope,
+): CompiledPattern {
   const { name } = pattern;
-  const child = compile(pattern.pattern);
-  return async (scope: Scope) => {
-    if (scope.variables.has(name)) {
+  const child = compile(pattern.pattern, scope);
+  return async (invocationScope: Scope) => {
+    if (invocationScope.variables.has(name)) {
       return error(
-        scope,
+        invocationScope,
         pattern,
         MatchErrorCode.DuplicateVariable,
         `Variable ${name} already exists in scope`,
       );
     }
-    const m = await child(scope);
+    const m = await child(invocationScope);
     switch (m.kind) {
       case MatchKind.LR:
       case MatchKind.Error:
         return m;
       case MatchKind.Fail:
-        return fail(scope, pattern, [m]);
+        return fail(invocationScope, pattern, [m]);
       case MatchKind.Ok:
         return ok(
-          scope,
+          invocationScope,
           m.scope.addVariables({ [name]: m.value }),
           pattern,
           m.value,
@@ -45,7 +48,7 @@ export function buildVariable(pattern: VariablePattern): CompiledPattern {
         );
     }
     return error(
-      scope,
+      invocationScope,
       pattern,
       MatchErrorCode.InvalidArgument,
       `unexpected match kind ${
