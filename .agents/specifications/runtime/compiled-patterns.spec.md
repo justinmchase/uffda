@@ -58,11 +58,22 @@ for kinds that have a compiled implementation.
 
 ## Compilation
 
-- A pattern node MUST be compiled at most once for the lifetime of that node
-  object: an implementation MUST cache the compiled closure keyed by the node's
-  own identity (not by its kind or structural equality with other nodes), so
-  that two distinct node objects with identical shape are compiled
-  independently, and a single node object already compiled is never recompiled.
+- A pattern node MUST be compiled at most once per runtime instance: an
+  implementation MUST cache the compiled closure keyed by the node's own
+  identity (not by its kind or structural equality with other nodes), so that
+  two distinct node objects with identical shape are compiled independently, and
+  a single node object already compiled is never recompiled by the same runtime
+  instance.
+- The compiled-closure cache MUST be owned by a per-runtime-instance object (for
+  example, the same object that already owns other per-instance state such as
+  resolved module declarations), never by process-wide or module-level global
+  state. Two independently constructed runtime instances (for example, a
+  sandboxed instance, a test instance, or two instances configured with
+  different overridable behavior) MUST NOT observe or share each other's
+  compiled closures for the same pattern node, even when both happen to match
+  that exact same node object. Each such instance MAY redundantly compile the
+  same node the first time that instance matches it; this is a correctness
+  boundary, not a caching optimality target.
 - Compiling a node MUST NOT observe or depend on any particular `Scope`: only
   information available from the node's own declaration (its kind and its static
   fields, such as a nested pattern, a list of child patterns, or a fixed
