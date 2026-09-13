@@ -14,6 +14,7 @@ Deno.test("req:uffda-runtime-compilation-004 - compilation and execution remain 
         name: "Main",
         parameters: [],
         pattern: { kind: PatternKind.Any },
+        attributes: [],
       },
     ],
   });

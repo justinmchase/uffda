@@ -16,6 +16,12 @@ export type UffdaRuleParameterSyntax = {
   name: string;
 };
 
+export type UffdaAttributeSyntax = {
+  kind: "attribute";
+  name: string;
+  args: Expression[];
+};
+
 export type UffdaRuleSyntaxDeclaration = {
   kind: "rule";
   name: string;
@@ -23,10 +29,22 @@ export type UffdaRuleSyntaxDeclaration = {
   parameters: UffdaRuleParameterSyntax[];
   pattern: Pattern;
   projection?: Expression;
+  /** Written left to right; empty when no `[Name]` prefix is present. */
+  attributes: UffdaAttributeSyntax[];
 };
 
 export type UffdaFuncSyntaxDeclaration = {
   kind: "func";
+  name: string;
+  /** Args pattern (End when no parameter list); typically Then of captures. */
+  pattern: Pattern;
+  expression: Expression;
+  /** Written left to right; empty when no `[Name]` prefix is present. */
+  attributes: UffdaAttributeSyntax[];
+};
+
+export type UffdaDecoratorSyntaxDeclaration = {
+  kind: "decorator";
   name: string;
   /** Args pattern (End when no parameter list); typically Then of captures. */
   pattern: Pattern;
@@ -37,7 +55,8 @@ export type UffdaSyntaxDeclaration =
   | UffdaImportSyntaxDeclaration
   | UffdaExportSyntaxDeclaration
   | UffdaRuleSyntaxDeclaration
-  | UffdaFuncSyntaxDeclaration;
+  | UffdaFuncSyntaxDeclaration
+  | UffdaDecoratorSyntaxDeclaration;
 
 export type UffdaSyntaxModule = {
   kind: "module";

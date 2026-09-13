@@ -11,7 +11,7 @@ export function reference(
     case "_":
       return Promise.resolve(match.value);
     case "this":
-      return Promise.resolve(match);
+      return Promise.resolve(match.subject ?? match);
     default:
       if (match.scope.variables.has(name)) {
         return Promise.resolve(match.scope.variables.get(name));

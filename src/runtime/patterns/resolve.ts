@@ -3,7 +3,7 @@ import { rule } from "../rule.ts";
 import type { AwaitableMatch } from "../awaitable.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { SpecialKind } from "../modules/special.ts";
-import { isFunc } from "../modules/func.ts";
+import { isRule } from "../modules/rule.ts";
 import type { Rule } from "../modules/rule.ts";
 import type { Module } from "../modules/module.ts";
 import type { Scope } from "../scope.ts";
@@ -117,7 +117,7 @@ async function resolveRun(
     );
   }
 
-  if (isFunc(main)) {
+  if (!isRule(main)) {
     return error(
       scope,
       pattern,

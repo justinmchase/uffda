@@ -24,6 +24,7 @@ Deno.test("lang.uffda.runtime-compiler compiles an empty syntax module", async (
       exports: [],
       rules: [],
       funcs: [],
+      decorators: [],
     });
   }
 });
@@ -47,12 +48,14 @@ Deno.test("lang.uffda.runtime-compiler compiles declaration families", async () 
         parameters: [],
         pattern: { kind: PatternKind.Any },
         projection: { kind: ExpressionKind.Value, value: "compiled" },
+        attributes: [],
       },
       {
         kind: "rule",
         name: "Stop",
         parameters: [],
         pattern: { kind: PatternKind.Equal, value: lit(".") },
+        attributes: [],
       },
     ],
   };
@@ -76,13 +79,16 @@ Deno.test("lang.uffda.runtime-compiler compiles declaration families", async () 
         parameters: [],
         pattern: { kind: PatternKind.Any },
         expression: { kind: ExpressionKind.Value, value: "compiled" },
+        attributes: [],
       }, {
         name: "Stop",
         parameters: [],
         pattern: { kind: PatternKind.Equal, value: lit(".") },
         expression: undefined,
+        attributes: [],
       }],
       funcs: [],
+      decorators: [],
     });
   }
 });
@@ -120,6 +126,47 @@ Deno.test(
         }],
         rules: [],
         funcs: [],
+        decorators: [],
+      });
+    }
+  },
+);
+
+Deno.test(
+  "lang.uffda.runtime-compiler compiles decorator declarations",
+  async () => {
+    const syntaxModule: UffdaSyntaxModule = {
+      kind: "module",
+      declarations: [
+        {
+          kind: "export",
+          name: "Deprecated",
+        },
+        {
+          kind: "decorator",
+          name: "Deprecated",
+          pattern: { kind: PatternKind.End },
+          expression: { kind: ExpressionKind.Value, value: "deprecated" },
+        },
+      ],
+    };
+
+    const match = await runUffdaRuntimeCompiler(syntaxModule);
+    assertEquals(match.kind, MatchKind.Ok);
+    if (match.kind === MatchKind.Ok) {
+      assertEquals(match.value, {
+        imports: [],
+        exports: [{
+          kind: ExportDeclarationKind.Decorator,
+          name: "Deprecated",
+        }],
+        rules: [],
+        funcs: [],
+        decorators: [{
+          name: "Deprecated",
+          pattern: { kind: PatternKind.End },
+          expression: { kind: ExpressionKind.Value, value: "deprecated" },
+        }],
       });
     }
   },

@@ -49,6 +49,7 @@ function expressionModule(expression: Expression): UffdaSyntaxModule {
         parameters: [],
         pattern: { kind: PatternKind.Ok },
         projection: expression,
+        attributes: [],
       },
     ],
   };

@@ -60,4 +60,18 @@ await Deno.test("runtime/expressions/reference", async (t) => {
       assertEquals(r, m);
     },
   );
+
+  await t.step(
+    "REFERENCE04 - `this` resolves to match.subject when set",
+    async () => {
+      const scope = Scope.Default();
+      const subject = { name: "Example" };
+      const m = ok(scope, scope, { kind: PatternKind.Ok }, "value");
+      const r = await exec(
+        { kind: ExpressionKind.Reference, name: "this" },
+        { ...m, subject },
+      );
+      assertEquals(r, subject);
+    },
+  );
 });

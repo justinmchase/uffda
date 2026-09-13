@@ -17,6 +17,7 @@ Deno.test("lang.uffda.export-rules parses direct export names", async () => {
         parameters: [],
         pattern: { kind: PatternKind.Any },
         projection: undefined,
+        attributes: [],
       },
     ]);
   }
@@ -44,3 +45,19 @@ Deno.test("lang.uffda.export-rules normalizes inline exported rules", async () =
     assertEquals(inline.value, split.value);
   }
 });
+
+Deno.test(
+  "lang.uffda.export-rules normalizes inline exported decorators",
+  async () => {
+    const inline = await uffdaGrammar('export decorator Example = "example";');
+    const split = await uffdaGrammar(
+      'export Example; decorator Example = "example";',
+    );
+
+    assertEquals(inline.kind, MatchKind.Ok);
+    assertEquals(split.kind, MatchKind.Ok);
+    if (inline.kind === MatchKind.Ok && split.kind === MatchKind.Ok) {
+      assertEquals(inline.value, split.value);
+    }
+  },
+);

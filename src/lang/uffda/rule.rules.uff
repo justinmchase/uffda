@@ -5,6 +5,7 @@
 import "../pattern/pattern.lang.uff" PatternTokens;
 import "../expression/expression.lang.uff" ExpressionTokens;
 import "./shared.rules.uff" IdentifierToken;
+import "./attribute.rules.uff" AttributeSyntax;
 
 export RulePatternBody;
 export RuleProjectionExpression;
@@ -160,6 +161,7 @@ rule RuleProjectionTail =
   -> p;
 
 rule RuleDeclarationSyntax =
+  a:AttributeSyntax*
   "rule"
   n:IdentifierToken
   p:RuleParameterList?
@@ -172,7 +174,8 @@ rule RuleDeclarationSyntax =
     name: n,
     parameters: (flat (coalesce p [])),
     pattern: t,
-    projection: j
+    projection: j,
+    attributes: a
   };
 
 rule RuleDeclarationWithoutProjection =

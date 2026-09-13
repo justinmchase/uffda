@@ -1,5 +1,6 @@
 import type { Expression } from "../expressions/expression.ts";
 import type { Pattern } from "../patterns/mod.ts";
+import type { AttributeDeclaration } from "./attribute.ts";
 
 /**
  * Author-defined callable. `pattern` matches the invocation argument list as an
@@ -9,4 +10,6 @@ export type FuncDeclaration = {
   name: string;
   pattern: Pattern;
   expression: Expression;
+  /** Written left to right; older artifacts MAY omit (treat as []). */
+  attributes?: AttributeDeclaration[];
 };

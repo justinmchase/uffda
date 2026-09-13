@@ -5,6 +5,7 @@
 import "./shared.rules.uff" IdentifierToken;
 import "./rule.rules.uff" RuleDeclarationSyntax;
 import "./func.rules.uff" FuncDeclarationSyntax;
+import "./decorator.rules.uff" DecoratorDeclarationSyntax;
 
 export ExportDeclarationSyntax;
 export ExportNameList;
@@ -28,6 +29,11 @@ rule InlineExportedFuncDeclarationSyntax =
   f:FuncDeclarationSyntax
   -> (pack { kind: "export", name: f.name } f);
 
+rule InlineExportedDecoratorDeclarationSyntax =
+  "export"
+  d:DecoratorDeclarationSyntax
+  -> (pack { kind: "export", name: d.name } d);
+
 rule StandaloneExportDeclarationSyntax =
   "export"
   n:ExportNameList
@@ -37,5 +43,6 @@ rule StandaloneExportDeclarationSyntax =
 rule ExportDeclarationSyntax =
   | InlineExportedRuleDeclarationSyntax
   | InlineExportedFuncDeclarationSyntax
+  | InlineExportedDecoratorDeclarationSyntax
   | StandaloneExportDeclarationSyntax
   ;

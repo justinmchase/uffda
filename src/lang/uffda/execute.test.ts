@@ -22,6 +22,7 @@ Deno.test("lang.uffda.execute compiles through UffdaRuntimeCompiler", async () =
         name: "Main",
         parameters: [],
         pattern: { kind: PatternKind.Any },
+        attributes: [],
       },
     ],
   });
@@ -35,6 +36,7 @@ Deno.test("lang.uffda.execute compiles through UffdaRuntimeCompiler", async () =
     parameters: [],
     pattern: { kind: PatternKind.Any },
     expression: undefined,
+    attributes: [],
   }]);
 });
 
