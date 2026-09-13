@@ -1,22 +1,14 @@
 import { type as typeCheck } from "@justinmchase/type";
-import { fail, type Match, ok } from "../../match.ts";
+import { fail, ok } from "../../match.ts";
 import type { Scope } from "../scope.ts";
+import type { AwaitableMatch } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 import type { TypePattern } from "./pattern.ts";
 
-export async function type(pattern: TypePattern, scope: Scope): Promise<Match> {
-  const { type: expectedType } = pattern;
-  if (await scope.stream.done()) {
-    return fail(scope, pattern);
-  }
-
-  const end = await scope.stream.next();
-  const [actualType] = typeCheck(end.value);
-  if (actualType === expectedType) {
-    return ok(scope, scope.withInput(end), pattern, end.value);
-  } else {
-    return fail(scope, pattern);
-  }
+/** Matches a `Type` pattern: the interpreted entry point delegates to the
+ * same logic as {@link buildType}, so there is a single implementation. */
+export function type(pattern: TypePattern, scope: Scope): AwaitableMatch {
+  return buildType(pattern)(scope);
 }
 
 /** Compiles a `Type` pattern into a flattened, reusable closure. */

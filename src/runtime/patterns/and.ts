@@ -1,30 +1,14 @@
 import type { Scope } from "../scope.ts";
-import { fail, type Match, MatchKind, type MatchOk, ok } from "../../match.ts";
-import { compile, match } from "../match.ts";
+import { fail, MatchKind, type MatchOk, ok } from "../../match.ts";
+import { compile } from "../match.ts";
+import type { AwaitableMatch } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 import type { AndPattern } from "./pattern.ts";
 
-export async function and(pattern: AndPattern, scope: Scope): Promise<Match> {
-  const { patterns } = pattern;
-  const matches: MatchOk[] = [];
-  for (const pattern of patterns) {
-    const m = await match(pattern, scope);
-    switch (m.kind) {
-      case MatchKind.LR:
-      case MatchKind.Error:
-        return m;
-      case MatchKind.Fail:
-        return fail(scope, pattern, [...matches, m]);
-      case MatchKind.Ok:
-        matches.push(m);
-        scope = scope.addVariables(m.scope.variables);
-        break;
-    }
-  }
-
-  // The last match is the one that dictates the value and what is consumed
-  const last = matches.slice(-1)?.[0];
-  return ok(scope, last?.scope ?? scope, pattern, last?.value, matches);
+/** Matches an `And` pattern: the interpreted entry point delegates to the
+ * same logic as {@link buildAnd}, so there is a single implementation. */
+export function and(pattern: AndPattern, scope: Scope): AwaitableMatch {
+  return buildAnd(pattern)(scope);
 }
 
 /** Compiles an `And` pattern into a flattened, reusable closure. */
