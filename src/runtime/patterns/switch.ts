@@ -7,28 +7,17 @@ import {
   ok,
 } from "../../match.ts";
 import { characterClassToRegexp } from "./character.ts";
-import { match } from "../match.ts";
+import { compile } from "../match.ts";
 import { resolveValueSource } from "./value_source.ts";
 import { ValueSourceKind } from "./value_source.ts";
 import type { Scope } from "../scope.ts";
 import type { Pattern, SwitchKey, SwitchPattern } from "./pattern.ts";
+import type { AwaitableMatch } from "../awaitable.ts";
+import type { CompiledPattern } from "../compiled_pattern.ts";
 
 type KeyCheck =
   | { ok: true; matched: boolean }
   | { ok: false; match: Match };
-
-/**
- * Per-`SwitchPattern` cache of a literal-value → case-index map, used to
- * give O(1) dispatch for the common case where every case key is a fixed
- * set of literal values (no character classes, no variable-sourced
- * values). `null` means the pattern was checked and is *not* eligible
- * (linear committed-choice scan must be used instead — see
- * `buildLiteralCaseIndex` for why eligibility must be all-or-nothing).
- */
-const literalCaseIndexCache = new WeakMap<
-  SwitchPattern,
-  Map<unknown, number> | null
->();
 
 /**
  * Builds a literal-value → case-index map, but only when *every* case key
@@ -40,7 +29,8 @@ const literalCaseIndexCache = new WeakMap<
  * that a map lookup would otherwise jump straight to. Requiring full
  * eligibility keeps the committed-choice, declared-order semantics exact
  * while still giving real O(1) lookups for the common fully-literal
- * `switch`.
+ * `switch`. Computed once at build time (see {@link buildSwitch}) and
+ * closed over by the returned closure, rather than cached separately.
  */
 function buildLiteralCaseIndex(
   pattern: SwitchPattern,
@@ -62,17 +52,6 @@ function buildLiteralCaseIndex(
     }
   }
   return map;
-}
-
-function getLiteralCaseIndex(
-  pattern: SwitchPattern,
-): Map<unknown, number> | null {
-  let cached = literalCaseIndexCache.get(pattern);
-  if (cached === undefined) {
-    cached = buildLiteralCaseIndex(pattern);
-    literalCaseIndexCache.set(pattern, cached);
-  }
-  return cached;
 }
 
 /**
@@ -156,52 +135,89 @@ function wrap(scope: Scope, pattern: SwitchPattern, m: Match): Match {
   }
 }
 
+/** Matches a `Switch` pattern: the interpreted entry point delegates to
+ * the same logic as {@link buildSwitch}, so there is a single
+ * implementation. */
+export function switchPattern(
+  pattern: SwitchPattern,
+  scope: Scope,
+): AwaitableMatch {
+  return buildSwitch(pattern, scope)(scope);
+}
+
 /**
+ * Compiles a `Switch` pattern into a flattened, reusable closure.
  * Committed-choice dispatch (see `SwitchPattern`): peek the next stream
  * value once, run only the first case whose declared `key` matches it, and
  * return that case's result directly — a failing chosen case does *not*
- * fall through to try any other case, unlike `Or`.
+ * fall through to try any other case, unlike `Or`. The literal-value
+ * dispatch map (when eligible) and every case/default child are compiled
+ * exactly once here, not recomputed per invocation.
  */
-export async function switchPattern(
+export function buildSwitch(
   pattern: SwitchPattern,
   scope: Scope,
-): Promise<Match> {
-  const isEof = await scope.stream.done();
-  const value = isEof ? undefined : (await scope.stream.next()).value;
+): CompiledPattern {
+  const literalIndex = buildLiteralCaseIndex(pattern);
+  const caseChildren = pattern.cases.map((c) => compile(c.pattern, scope));
+  const defaultChild = pattern.default
+    ? compile(pattern.default, scope)
+    : undefined;
+  return async (invocationScope: Scope) => {
+    const isEof = await invocationScope.stream.done();
+    const value = isEof
+      ? undefined
+      : (await invocationScope.stream.next()).value;
 
-  if (!isEof) {
-    const literalIndex = getLiteralCaseIndex(pattern);
-    if (literalIndex) {
+    if (!isEof && literalIndex) {
       // O(1) fast path: every key is a fixed set of literals, so a single
       // Map lookup tells us the (only possible) matching case, if any.
       const i = literalIndex.get(value);
       if (i !== undefined) {
         return wrap(
-          scope,
+          invocationScope,
           pattern,
-          await match(pattern.cases[i].pattern, scope),
+          await caseChildren[i](invocationScope),
         );
       }
-      if (pattern.default) {
-        return wrap(scope, pattern, await match(pattern.default, scope));
+      if (defaultChild) {
+        return wrap(
+          invocationScope,
+          pattern,
+          await defaultChild(invocationScope),
+        );
       }
-      return fail(scope, pattern);
+      return fail(invocationScope, pattern);
     }
-  }
 
-  for (const c of pattern.cases) {
-    const result = keyMatches(c.key, value, isEof, scope, pattern);
-    if (!result.ok) {
-      return result.match;
+    for (let i = 0; i < pattern.cases.length; i++) {
+      const result = keyMatches(
+        pattern.cases[i].key,
+        value,
+        isEof,
+        invocationScope,
+        pattern,
+      );
+      if (!result.ok) {
+        return result.match;
+      }
+      if (result.matched) {
+        return wrap(
+          invocationScope,
+          pattern,
+          await caseChildren[i](invocationScope),
+        );
+      }
     }
-    if (result.matched) {
-      return wrap(scope, pattern, await match(c.pattern, scope));
+
+    if (defaultChild) {
+      return wrap(
+        invocationScope,
+        pattern,
+        await defaultChild(invocationScope),
+      );
     }
-  }
 
-  if (pattern.default) {
-    return wrap(scope, pattern, await match(pattern.default, scope));
-  }
-
-  return fail(scope, pattern);
+    return fail(invocationScope, pattern);
+  };
 }
