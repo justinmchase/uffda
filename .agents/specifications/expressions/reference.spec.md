@@ -17,6 +17,10 @@ Reference expressions resolve a name from expression-visible runtime context.
 - The reserved name `this` MUST resolve to the current successful `MatchOk`
   itself (not just its value), giving expressions direct access to match
   metadata (for example `this.normalizedSpan.start`) via member expressions.
+- Within decorator invocation (a distinct evaluation phase from match-time
+  expression evaluation), `this` MUST instead resolve to the `Rule` or `Func`
+  declaration being decorated; see
+  [runtime rule metadata](../runtime/rule-metadata.spec.md).
 - For non-reserved names, resolution MUST check local match variables before
   configured runtime capabilities.
 - The runtime capability set MAY include standard-library values and additional
