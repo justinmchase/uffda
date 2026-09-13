@@ -84,13 +84,19 @@ rule LineIndex =
 #      `{offset}` accumulator between steps rather than rebuilding a growing
 #      output array on every step, so this stays O(n) instead of O(n^2) for
 #      large source texts.
-#   2. `to_source_unit` adds line/column via a pure lookup against the
-#      already-known `lineStarts` (no accumulator needed): the line number is
-#      how many `lineStarts` entries are `<=` a unit's offsetStart, and the
-#      line's start offset is the greatest such entry. `line_lookup` still
-#      uses `reduce` internally, but only to walk `lineStarts` (one line per
-#      step, and `lineStarts` is small — one entry per source line, not per
-#      unit), not to thread state across *units*.
+#   2. `to_source_unit_step` adds line/column by threading a running
+#      `{line, lineStart, ptr}` pointer across *units* via `scan`, advancing
+#      at most one `lineStarts` entry per unit (a unit is exactly one raw
+#      character, so it can cross at most one line boundary). This used to
+#      look up each unit's line independently via a `line_lookup` helper
+#      that `reduce`d over the *entire* `lineStarts` array for every single
+#      unit (O(units * lines) — units and lines both scale with source
+#      size, so this was effectively quadratic for large files: profiling
+#      `examples/morse/morse.uff` showed this one lookup accounting for
+#      roughly 70% of all pattern-node invocations in a full grammar
+#      compile). Threading the pointer forward instead — valid because
+#      units are processed in strictly increasing offset order and
+#      `lineStarts` is sorted ascending — makes this O(units + lines).
 #
 # NOTE: variable names bound anywhere in a func's parameter pattern are
 # visible to every nested func/lambda call made from within its body — the
@@ -108,11 +114,6 @@ func UnitPositionEntry<{entry: upe:any}> = upe;
 
 func unit_positions<text:string> =
   (map (scan (enumerate text) { offset: 0 } UnitPosition) UnitPositionEntry);
-
-func line_lookup<llPositions:array llTarget:number> =
-  (reduce llPositions { line: 0, lineStart: 0 }
-    <llAcc:{line: llLine:number, lineStart: llStart:number} llCandidate:number> ->
-      (when (lte llCandidate llTarget) { line: (add llLine 1), lineStart: llCandidate } llAcc));
 
 func build_source_unit<
   bsEntry:{index: bsIndex:number, value: bsValue:string, offsetStart: bsOffsetStart:number, offsetEnd: bsOffsetEnd:number}
@@ -132,8 +133,64 @@ func build_source_unit<
     originalOffsetEnd: (at bsMap bsOffsetEnd)
   };
 
-func to_source_unit<tsPositions:array tsMap:array tsEntry:{offsetStart: tsOffset:number}> =
-  (build_source_unit tsEntry tsMap (line_lookup tsPositions tsOffset));
+# `next_ptr` clamps the candidate index to the current `ptr` when there is no
+# next `lineStarts` entry, so it is always a valid `alpStarts` index. This
+# keeps every downstream lookup safe to evaluate eagerly: `when` (unlike a
+# short-circuiting `and`) always evaluates all three of its arguments, so a
+# naive `(when (lt ...) (lte (at alpStarts (add ptr 1)) offset) alpPos)` would
+# still evaluate the out-of-bounds `at`/`lte` even when the guard is false.
+func next_ptr<pos:{ptr: number} starts:array> =
+  (when (lt (add pos.ptr 1) (length starts)) (add pos.ptr 1) pos.ptr);
+
+# Advances the running `{line, lineStart, ptr}` pointer by at most one
+# `lineStarts` entry per call. `ptr` is the index of the most recently
+# matched `lineStarts` entry, pre-matched at entry `0` from the start
+# (`lineStarts[0]` is always `0`, which is always `<=` any offset), so
+# callers never need a negative sentinel to mean "nothing matched yet".
+func advance_line_position<
+  alpPos:{line: number, lineStart: number, ptr: number}
+  alpStarts:array
+  alpOffset:number
+> =
+  (advance_line_position_at alpPos alpStarts alpOffset (next_ptr alpPos alpStarts));
+
+func advance_line_position_at<
+  alpaPos:{line: number, lineStart: number, ptr: number}
+  alpaStarts:array
+  alpaOffset:number
+  alpaNextPtr:number
+> =
+  (when (gt alpaNextPtr alpaPos.ptr)
+    (when (lte (at alpaStarts alpaNextPtr) alpaOffset)
+      { line: (add alpaPos.line 1), lineStart: (at alpaStarts alpaNextPtr), ptr: alpaNextPtr }
+      alpaPos)
+    alpaPos);
+
+# Advances the pointer for this unit's offset, then builds the unit record
+# with it, bundling the next pointer state alongside the built record as
+# `out` so `scan` can keep threading `{line, lineStart, ptr}` forward while
+# still producing one output per unit.
+func build_indexed_source_unit<
+  bisMap:array
+  bisEntry:{index: number, value: string, offsetStart: number, offsetEnd: number}
+  bisPos:{line: number, lineStart: number, ptr: number}
+> =
+  {
+    line: bisPos.line,
+    lineStart: bisPos.lineStart,
+    ptr: bisPos.ptr,
+    out: (build_source_unit bisEntry bisMap bisPos)
+  };
+
+func to_source_unit_step<
+  tsuStarts:array
+  tsuMap:array
+  tsuPos:{line: number, lineStart: number, ptr: number}
+  tsuEntry:{index: number, value: string, offsetStart: number, offsetEnd: number}
+> =
+  (build_indexed_source_unit tsuMap tsuEntry (advance_line_position tsuPos tsuStarts tsuEntry.offsetStart));
+
+func indexed_source_unit_out<{out: isuOut:any}> = isuOut;
 
 rule UnitIndex =
   {
@@ -147,7 +204,13 @@ rule UnitIndex =
     text: t,
     normalizationMap: m,
     lineStarts: s,
-    units: [...(map (unit_positions t) <posEntry:any> -> (to_source_unit s m posEntry))]
+    units: [
+      ...(map
+        (scan (unit_positions t) { line: 1, lineStart: 0, ptr: 0 }
+          <acc:{line: number, lineStart: number, ptr: number} entry:{index: number, value: string, offsetStart: number, offsetEnd: number}> ->
+            (to_source_unit_step s m acc entry))
+        indexed_source_unit_out)
+    ]
   };
 
 # `document_id` is module-local: it is only needed by SourceDocument's
