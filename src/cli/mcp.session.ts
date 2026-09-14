@@ -133,24 +133,25 @@ function summarizeModule(moduleUrl: URL, module: Module): LoadedModuleSummary {
 
 /**
  * Summarizes every module `resolver` has resolved so far (per its
- * `resolvedModules` graph), excluding `excludeHref` if given — used to
- * surface modules a failing `load()` call nonetheless successfully resolved
- * along the way (see `SessionLoadResult`'s `resolvedDuringLoad`). Only
- * modules whose `ModuleDeclaration` was actually resolved (present in
- * `resolver.moduleDeclarations`) are included: `Resolver.import()` registers
- * a placeholder `Module` for every URL it *attempts* to resolve, including
- * ones that go on to fail, so filtering on the declaration map (only ever
- * populated once a module's declaration is genuinely available) is what
- * distinguishes a truly-resolved dependency from an in-flight or failed one.
+ * `resolvedModules` graph) that isn't in `excludeHrefs` — used to surface
+ * modules a failing `load()` call nonetheless successfully resolved along
+ * the way (see `SessionLoadResult`'s `resolvedDuringLoad`). Since
+ * `Resolver.import()` rolls back its own cache entry for any URL whose
+ * resolution fails, `resolvedModules` only ever contains genuinely,
+ * completely resolved modules — never a half-built entry for one that's
+ * still in flight or that itself failed. `excludeHrefs` is used to omit the
+ * failing load's own root module (which resolved nothing useful) and any
+ * module the session had already committed from a prior `load()` (already
+ * reported via `partiallyLoadedModules`, so repeating it here would be
+ * redundant).
  */
 function collectResolvedModules(
   resolver: Resolver,
-  excludeHref?: string,
+  excludeHrefs: ReadonlySet<string>,
 ): LoadedModuleSummary[] {
   const summaries: LoadedModuleSummary[] = [];
   for (const [href, module] of resolver.resolvedModules) {
-    if (href === excludeHref) continue;
-    if (!resolver.moduleDeclarations.has(href)) continue;
+    if (excludeHrefs.has(href)) continue;
     summaries.push(summarizeModule(new URL(href), module));
   }
   return summaries;
@@ -248,6 +249,16 @@ export class RuntimeSession {
     });
     const scope = Scope.Default().withOptions({ resolver });
 
+    // The failing load's own root href, plus every module this session has
+    // already committed from a prior `load()` — both excluded from
+    // `resolvedDuringLoad` below: the root resolved nothing useful, and
+    // already-committed modules are already reported via
+    // `partiallyLoadedModules`, so repeating them would be redundant.
+    const excludeFromResolvedDuringLoad = new Set([
+      moduleUrl.href,
+      ...this.modules.keys(),
+    ]);
+
     // Wrapped in try/catch: some failure modes (for example a relative
     // `.uff` import resolved against an anonymous `session://` module URL,
     // which isn't a file URL) throw rather than returning a resolution
@@ -268,7 +279,10 @@ export class RuntimeSession {
           message: error instanceof Error ? error.message : String(error),
         },
         partiallyLoadedModules: this.listLoadedModules(),
-        resolvedDuringLoad: collectResolvedModules(resolver, moduleUrl.href),
+        resolvedDuringLoad: collectResolvedModules(
+          resolver,
+          excludeFromResolvedDuringLoad,
+        ),
       };
     }
     if (imported.kind === ModuleImportResultKind.Error) {
@@ -280,7 +294,10 @@ export class RuntimeSession {
           message: `${imported.error.code}: ${imported.error.message}`,
         },
         partiallyLoadedModules: this.listLoadedModules(),
-        resolvedDuringLoad: collectResolvedModules(resolver, moduleUrl.href),
+        resolvedDuringLoad: collectResolvedModules(
+          resolver,
+          excludeFromResolvedDuringLoad,
+        ),
       };
     }
 

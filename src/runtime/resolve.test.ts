@@ -200,6 +200,28 @@ if (readPermissions.state === "granted") {
       assert(resolver.moduleDeclarations.has(moduleUrl.href));
     },
   });
+
+  Deno.test({
+    name: "RESOLVE09 - a failed import is rolled back, not cached as a success",
+    fn: async () => {
+      const resolver = new Resolver();
+      const moduleUrl = new URL(
+        "./resolvers/test.bad.module.json",
+        import.meta.url,
+      );
+      const first = await resolver.import(moduleUrl, context());
+      assertEquals(first.kind, ModuleImportResultKind.Error);
+
+      // The failed URL must not be memoized as if it had succeeded:
+      // `resolvedModules` must not carry a half-built entry for it, and a
+      // second `import()` of the same URL must fail again rather than
+      // returning a cached "success" for the broken module.
+      assert(!resolver.resolvedModules.has(moduleUrl.href));
+
+      const second = await resolver.import(moduleUrl, context());
+      assertEquals(second.kind, ModuleImportResultKind.Error);
+    },
+  });
 } else {
   Deno.test({
     name: "resolve tests require read permissions",

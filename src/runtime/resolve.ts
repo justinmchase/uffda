@@ -130,226 +130,265 @@ export class Resolver {
         default: undefined,
       };
       this.modules.set(moduleUrl.href, module);
-      const moduleDeclaration = await this.importModule(moduleUrl, context);
-      if (moduleDeclaration.kind === ModuleDeclarationResultKind.Error) {
-        return moduleResolutionResult(moduleDeclaration.error);
+      // Wrapped in try/catch (rethrowing after rolling back) as well as
+      // checked via each result's `.kind`: a resolver (for example the
+      // `.uff` artifact resolver, given a non-file base URL) can throw
+      // rather than returning an error result. Either way,
+      // `resolvedModules`/`modules` must only ever reflect modules that
+      // genuinely finished resolving, never a half-built entry for a URL
+      // whose resolution failed. Without this, a later `import()` of the
+      // same URL would incorrectly hit the memoization check above and be
+      // treated as a cached success.
+      try {
+        const moduleDeclaration = await this.importModule(moduleUrl, context);
+        if (moduleDeclaration.kind === ModuleDeclarationResultKind.Error) {
+          this.modules.delete(moduleUrl.href);
+          return moduleResolutionResult(moduleDeclaration.error);
+        }
+
+        const result = await this.populateModule(
+          module,
+          moduleDeclaration.moduleDeclaration,
+          moduleUrl,
+          context,
+        );
+        if (result.kind === ModuleImportResultKind.Error) {
+          this.modules.delete(moduleUrl.href);
+        }
+        return result;
+      } catch (error) {
+        this.modules.delete(moduleUrl.href);
+        throw error;
       }
+    }
+  }
 
-      const declaration = moduleDeclaration.moduleDeclaration;
+  /**
+   * Populates `module` (already registered in `this.modules` under
+   * `moduleUrl.href` by `import()`) from `declaration`: materializes its
+   * rules/funcs/decorators, validates and records its exports, resolves and
+   * binds its imports, applies attributes, and resolves re-exported
+   * imports. Returns an error result — without itself touching
+   * `this.modules` — for any of these that fail; `import()` is solely
+   * responsible for rolling back the cache entry on error.
+   */
+  private async populateModule(
+    module: Module,
+    declaration: ModuleDeclaration,
+    moduleUrl: URL,
+    context: ModuleResolutionContext,
+  ): Promise<ImportResult> {
+    for (
+      const { name, pattern, parameters, expression } of declaration.rules
+    ) {
+      module.rules.set(name, {
+        module,
+        name,
+        parameters,
+        pattern,
+        expression,
+      });
+    }
 
-      for (
-        const { name, pattern, parameters, expression } of declaration.rules
+    for (const { name, pattern, expression } of funcsOf(declaration)) {
+      module.funcs.set(name, {
+        module,
+        name,
+        pattern,
+        expression,
+      });
+    }
+
+    for (const { name, pattern, expression } of decoratorsOf(declaration)) {
+      module.decorators.set(name, {
+        module,
+        name,
+        pattern,
+        expression,
+      });
+    }
+
+    for (const name of module.decorators.keys()) {
+      if (module.rules.has(name) || module.funcs.has(name)) {
+        return moduleResolutionResult(moduleResolutionError(
+          `Decorator ${name} conflicts with rule/func declaration in ${moduleUrl}`,
+          context,
+        ));
+      }
+    }
+
+    for (const e of declaration.exports) {
+      const { kind, name } = e;
+      switch (kind) {
+        case ExportDeclarationKind.Rule: {
+          const rule = module.rules.get(name);
+          if (!rule) {
+            return moduleResolutionResult(moduleResolutionError(
+              `Unknown rule ${name}`,
+              context,
+            ));
+          }
+          module.exports.set(name, rule);
+          if (e.default) {
+            if (module.default) {
+              return moduleResolutionResult(moduleResolutionError(
+                `Module ${name} cannot have multiple default exports`,
+                context,
+              ));
+            }
+            module.default = rule;
+          }
+          break;
+        }
+        case ExportDeclarationKind.Func: {
+          const fn = module.funcs.get(name);
+          if (!fn) {
+            return moduleResolutionResult(moduleResolutionError(
+              `Unknown func ${name}`,
+              context,
+            ));
+          }
+          module.exports.set(name, fn);
+          if (e.default) {
+            if (module.default) {
+              return moduleResolutionResult(moduleResolutionError(
+                `Module ${name} cannot have multiple default exports`,
+                context,
+              ));
+            }
+            module.default = fn;
+          }
+          break;
+        }
+        case ExportDeclarationKind.Decorator: {
+          const decorator = module.decorators.get(name);
+          if (!decorator) {
+            return moduleResolutionResult(moduleResolutionError(
+              `Unknown decorator ${name}`,
+              context,
+            ));
+          }
+          module.exports.set(name, decorator);
+          if (e.default) {
+            if (module.default) {
+              return moduleResolutionResult(moduleResolutionError(
+                `Module ${name} cannot have multiple default exports`,
+                context,
+              ));
+            }
+            module.default = decorator;
+          }
+          break;
+        }
+      }
+    }
+
+    for (const i of declaration.imports) {
+      const resolvedModuleUrl = new URL(i.moduleUrl, moduleUrl);
+
+      // todo: Remove support for function imports if we can...
+      if (
+        i.kind === ImportDeclarationKind.Native &&
+        !this.declarations.has(resolvedModuleUrl.href)
       ) {
-        module.rules.set(name, {
-          module,
-          name,
-          parameters,
-          pattern,
-          expression,
-        });
+        const importedModuleDeclaration = typeof i.module === "function"
+          ? i.module()
+          : i.module;
+        this.declarations.set(
+          resolvedModuleUrl.href,
+          importedModuleDeclaration,
+        );
       }
 
-      for (const { name, pattern, expression } of funcsOf(declaration)) {
-        module.funcs.set(name, {
-          module,
-          name,
-          pattern,
-          expression,
-        });
+      const importedModule = await this.import(resolvedModuleUrl, context);
+      if (importedModule.kind === ModuleImportResultKind.Error) {
+        return importedModule;
       }
-
-      for (const { name, pattern, expression } of decoratorsOf(declaration)) {
-        module.decorators.set(name, {
-          module,
-          name,
-          pattern,
-          expression,
-        });
-      }
-
-      for (const name of module.decorators.keys()) {
-        if (module.rules.has(name) || module.funcs.has(name)) {
+      for (const name of i.names) {
+        const r = importedModule.module.exports.get(name);
+        if (!r) {
           return moduleResolutionResult(moduleResolutionError(
-            `Decorator ${name} conflicts with rule/func declaration in ${moduleUrl}`,
+            `Unknown export ${name} from module ${resolvedModuleUrl}`,
             context,
           ));
         }
-      }
 
-      for (const e of declaration.exports) {
-        const { kind, name } = e;
-        switch (kind) {
-          case ExportDeclarationKind.Rule: {
-            const rule = module.rules.get(name);
-            if (!rule) {
-              return moduleResolutionResult(moduleResolutionError(
-                `Unknown rule ${name}`,
-                context,
-              ));
-            }
-            module.exports.set(name, rule);
-            if (e.default) {
-              if (module.default) {
-                return moduleResolutionResult(moduleResolutionError(
-                  `Module ${name} cannot have multiple default exports`,
-                  context,
-                ));
-              }
-              module.default = rule;
-            }
-            break;
-          }
-          case ExportDeclarationKind.Func: {
-            const fn = module.funcs.get(name);
-            if (!fn) {
-              return moduleResolutionResult(moduleResolutionError(
-                `Unknown func ${name}`,
-                context,
-              ));
-            }
-            module.exports.set(name, fn);
-            if (e.default) {
-              if (module.default) {
-                return moduleResolutionResult(moduleResolutionError(
-                  `Module ${name} cannot have multiple default exports`,
-                  context,
-                ));
-              }
-              module.default = fn;
-            }
-            break;
-          }
-          case ExportDeclarationKind.Decorator: {
-            const decorator = module.decorators.get(name);
-            if (!decorator) {
-              return moduleResolutionResult(moduleResolutionError(
-                `Unknown decorator ${name}`,
-                context,
-              ));
-            }
-            module.exports.set(name, decorator);
-            if (e.default) {
-              if (module.default) {
-                return moduleResolutionResult(moduleResolutionError(
-                  `Module ${name} cannot have multiple default exports`,
-                  context,
-                ));
-              }
-              module.default = decorator;
-            }
-            break;
-          }
+        if (module.rules.has(name)) {
+          return moduleResolutionResult(moduleResolutionError(
+            `Import ${name} conflicts with rule declaration in ${moduleUrl}`,
+            context,
+          ));
+        }
+
+        if (module.funcs.has(name)) {
+          return moduleResolutionResult(moduleResolutionError(
+            `Import ${name} conflicts with func declaration in ${moduleUrl}`,
+            context,
+          ));
+        }
+
+        if (module.decorators.has(name)) {
+          return moduleResolutionResult(moduleResolutionError(
+            `Import ${name} conflicts with decorator declaration in ${moduleUrl}`,
+            context,
+          ));
+        }
+
+        const isDecoratorExport = importedModule.module.decorators.has(name) ||
+          importedModule.module.decoratorImports.has(name);
+        if (isDecoratorExport) {
+          module.decoratorImports.set(name, r as DecoratorFunc);
+        } else {
+          module.imports.set(name, r as ModuleMember);
         }
       }
-
-      for (const i of declaration.imports) {
-        const resolvedModuleUrl = new URL(i.moduleUrl, moduleUrl);
-
-        // todo: Remove support for function imports if we can...
-        if (
-          i.kind === ImportDeclarationKind.Native &&
-          !this.declarations.has(resolvedModuleUrl.href)
-        ) {
-          const importedModuleDeclaration = typeof i.module === "function"
-            ? i.module()
-            : i.module;
-          this.declarations.set(
-            resolvedModuleUrl.href,
-            importedModuleDeclaration,
-          );
-        }
-
-        const importedModule = await this.import(resolvedModuleUrl, context);
-        if (importedModule.kind === ModuleImportResultKind.Error) {
-          return importedModule;
-        }
-        for (const name of i.names) {
-          const r = importedModule.module.exports.get(name);
-          if (!r) {
-            return moduleResolutionResult(moduleResolutionError(
-              `Unknown export ${name} from module ${resolvedModuleUrl}`,
-              context,
-            ));
-          }
-
-          if (module.rules.has(name)) {
-            return moduleResolutionResult(moduleResolutionError(
-              `Import ${name} conflicts with rule declaration in ${moduleUrl}`,
-              context,
-            ));
-          }
-
-          if (module.funcs.has(name)) {
-            return moduleResolutionResult(moduleResolutionError(
-              `Import ${name} conflicts with func declaration in ${moduleUrl}`,
-              context,
-            ));
-          }
-
-          if (module.decorators.has(name)) {
-            return moduleResolutionResult(moduleResolutionError(
-              `Import ${name} conflicts with decorator declaration in ${moduleUrl}`,
-              context,
-            ));
-          }
-
-          const isDecoratorExport =
-            importedModule.module.decorators.has(name) ||
-            importedModule.module.decoratorImports.has(name);
-          if (isDecoratorExport) {
-            module.decoratorImports.set(name, r as DecoratorFunc);
-          } else {
-            module.imports.set(name, r as ModuleMember);
-          }
-        }
-      }
-
-      const declarationScope = context.scope.pushModule(module);
-      for (const { name, attributes } of declaration.rules) {
-        if (attributes && attributes.length > 0) {
-          const rule = module.rules.get(name);
-          if (rule) {
-            await applyAttributes(rule, attributes, module, declarationScope);
-          }
-        }
-      }
-      for (const { name, attributes } of funcsOf(declaration)) {
-        if (attributes && attributes.length > 0) {
-          const fn = module.funcs.get(name);
-          if (fn) {
-            await applyAttributes(fn, attributes, module, declarationScope);
-          }
-        }
-      }
-
-      for (const e of declaration.exports) {
-        const { kind, name } = e;
-        switch (kind) {
-          case ExportDeclarationKind.Import: {
-            const resolvedImport = module.imports.get(name) ??
-              module.decoratorImports.get(name);
-            if (!resolvedImport) {
-              return moduleResolutionResult(moduleResolutionError(
-                `Unknown import ${name}`,
-                context,
-              ));
-            }
-            module.exports.set(name, resolvedImport);
-            if (e.default) {
-              if (module.default) {
-                return moduleResolutionResult(moduleResolutionError(
-                  `Module ${name} cannot have multiple default exports`,
-                  context,
-                ));
-              }
-              module.default = resolvedImport;
-            }
-            break;
-          }
-        }
-      }
-      return moduleResult(module);
     }
+
+    const declarationScope = context.scope.pushModule(module);
+    for (const { name, attributes } of declaration.rules) {
+      if (attributes && attributes.length > 0) {
+        const rule = module.rules.get(name);
+        if (rule) {
+          await applyAttributes(rule, attributes, module, declarationScope);
+        }
+      }
+    }
+    for (const { name, attributes } of funcsOf(declaration)) {
+      if (attributes && attributes.length > 0) {
+        const fn = module.funcs.get(name);
+        if (fn) {
+          await applyAttributes(fn, attributes, module, declarationScope);
+        }
+      }
+    }
+
+    for (const e of declaration.exports) {
+      const { kind, name } = e;
+      switch (kind) {
+        case ExportDeclarationKind.Import: {
+          const resolvedImport = module.imports.get(name) ??
+            module.decoratorImports.get(name);
+          if (!resolvedImport) {
+            return moduleResolutionResult(moduleResolutionError(
+              `Unknown import ${name}`,
+              context,
+            ));
+          }
+          module.exports.set(name, resolvedImport);
+          if (e.default) {
+            if (module.default) {
+              return moduleResolutionResult(moduleResolutionError(
+                `Module ${name} cannot have multiple default exports`,
+                context,
+              ));
+            }
+            module.default = resolvedImport;
+          }
+          break;
+        }
+      }
+    }
+    return moduleResult(module);
   }
 
   private async importModule(

@@ -237,4 +237,84 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
       assertEquals(result.resolvedDuringLoad, []);
     },
   );
+
+  await t.step(
+    "does not re-list an already-committed module in resolvedDuringLoad",
+    async () => {
+      const cwd = await Deno.makeTempDir({ prefix: "uffda-mcp-session-" });
+      try {
+        const depUff = join(cwd, "dep.uff");
+        await Deno.writeTextFile(depUff, "export Foo;\nrule Foo = any;");
+        const compiled = await compileSourcesToAstArtifacts({
+          cwd,
+          sourcePaths: [depUff],
+          outputDir: join(cwd, ".uffda", "ast"),
+          overwrite: true,
+        });
+        assertEquals(compiled.ok, true);
+
+        const session = new RuntimeSession("s12", { cwd });
+        const first = await session.load(
+          'import "./dep.uff" Foo;\nexport Foo;',
+          "first.uff",
+        );
+        assertEquals(first.ok, true);
+        assertEquals(session.listLoadedModules().length, 2);
+
+        // A second, failing load that re-imports the already-committed
+        // "./dep.uff" must not repeat it in resolvedDuringLoad — it's
+        // already reported via partiallyLoadedModules.
+        const second = await session.load(
+          'import "./dep.uff" Foo;\nimport "./missing.uff" Bar;',
+          "second.uff",
+        );
+        assertEquals(second.ok, false);
+        assert(!second.ok);
+        assertEquals(second.resolvedDuringLoad, []);
+        assertEquals(second.partiallyLoadedModules.length, 2);
+      } finally {
+        await Deno.remove(cwd, { recursive: true });
+      }
+    },
+  );
+
+  await t.step(
+    "a module whose own resolution fails is not cached as a success (Resolver rollback)",
+    async () => {
+      const cwd = await Deno.makeTempDir({ prefix: "uffda-mcp-session-" });
+      try {
+        // "bad.uff" itself successfully resolves an artifact but then
+        // fails its own resolution (an export referencing an undeclared
+        // name) — this must not leave a broken "successful" entry in the
+        // resolver's module graph that a later import of the same URL
+        // could hit via memoization.
+        const badUff = join(cwd, "bad.uff");
+        await Deno.writeTextFile(badUff, "export Missing;");
+        const compiled = await compileSourcesToAstArtifacts({
+          cwd,
+          sourcePaths: [badUff],
+          outputDir: join(cwd, ".uffda", "ast"),
+          overwrite: true,
+        });
+        assertEquals(compiled.ok, true);
+
+        const session = new RuntimeSession("s13", { cwd });
+        const result = await session.load(
+          'import "./bad.uff" Missing;',
+          "main.uff",
+        );
+        assertEquals(result.ok, false);
+        assert(!result.ok);
+        assertEquals(
+          result.error.code,
+          SessionLoadFailureCode.ResolutionFailure,
+        );
+        // "bad.uff" itself failed, so it must not appear as a resolved
+        // dependency alongside the failure.
+        assertEquals(result.resolvedDuringLoad, []);
+      } finally {
+        await Deno.remove(cwd, { recursive: true });
+      }
+    },
+  );
 });
