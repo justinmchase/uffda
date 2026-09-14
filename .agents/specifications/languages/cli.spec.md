@@ -43,6 +43,10 @@ source and inspecting outcomes without embedding Uffda programmatically.
   `compile` always targets Uffda module AST artifacts.
 - Interactive workbench mode: a stateful editor-like interface with dynamic
   visualization and file input/output orchestration.
+- MCP server mode: an agent-facing Model Context Protocol stdio server exposing
+  parse/compile/match, live in-memory runtime sessions, incremental re-parsing,
+  evaluation, and introspection as tools; see
+  [MCP server mode](./cli/mcp-server.spec.md).
 
 ## Canonical usage examples
 
@@ -95,6 +99,13 @@ uffda run ./app.uff --entry Main
 uffda parse --lang uffda ./app.uff | uffda run --ast --entry Main
 ```
 
+Start an MCP stdio server for agent-driven parsing, live runtime sessions, and
+introspection:
+
+```sh
+uffda mcp
+```
+
 Operational commands never infer AST format from input content. `--ast` is
 required whenever `exec`, `match`, or `run` receives raw AST JSON.
 
@@ -110,6 +121,7 @@ be human-readable and include the relevant source excerpt and input path.
 - [compile, parse, and operation modes](./cli/compile-and-stream.spec.md)
 - [language-selection and output contracts](./cli/language-and-output.spec.md)
 - [interactive workbench mode](./cli/interactive-workbench.spec.md)
+- [MCP server mode](./cli/mcp-server.spec.md)
 - [distribution and release contracts](./cli/distribution-and-release.spec.md)
 
 ## Composition intent
@@ -124,6 +136,10 @@ be human-readable and include the relevant source excerpt and input path.
 Required CLI mode families above are shipped: compile, parse, exec, match, run,
 workbench, binary distribution, `uffda-setup`, and self-hosted language modules
 under `./bin`.
+
+Specified, not yet implemented:
+
+- MCP server mode (see [MCP server mode](./cli/mcp-server.spec.md)).
 
 Deferred polish (not release blockers):
 
