@@ -13,11 +13,15 @@ import {
   parseCliMatchInput,
 } from "./match.ts";
 import { type CliStreamFailure, parseSourceToAst } from "./stream.ts";
+import { type HighlightResult, highlightSource } from "./highlight.ts";
 
 /**
- * Stateless operation tools: `uffda_compile`, `uffda_parse`, `uffda_match`.
- * These mirror the batch CLI's `compile`/`parse`/`match` modes (see
- * `.agents/requirements/mcp-server/003-stateless-operation-tools.requirement.md`):
+ * Stateless operation tools: `uffda_compile`, `uffda_parse`, `uffda_match`,
+ * `uffda_highlight`. These mirror the batch CLI's `compile`/`parse`/`match`
+ * modes (see
+ * `.agents/requirements/mcp-server/003-stateless-operation-tools.requirement.md`),
+ * plus a standalone source-highlighting tool (see
+ * `.agents/requirements/mcp-server/009-source-highlighting-tool.requirement.md`):
  * same deterministic output/diagnostic shape as the CLI's `--json` output,
  * no session id, no persisted state between calls.
  */
@@ -141,5 +145,29 @@ export function parseToolResult(value: unknown): CallToolResult {
   return jsonResult(value);
 }
 export function matchToolResult(value: MatchToolResult): CallToolResult {
+  return jsonResult(value);
+}
+
+export const highlightToolInputShape = {
+  source: z.string().describe(
+    "Uffda (or a sub-language's) source text to highlight.",
+  ),
+  language: languageSchema.optional().describe(
+    "Defaults to 'uffda' (full module grammar).",
+  ),
+};
+const highlightToolInputSchema = z.object(highlightToolInputShape);
+export type HighlightToolInput = z.infer<typeof highlightToolInputSchema>;
+
+export async function highlightToolHandler(
+  input: HighlightToolInput,
+): Promise<HighlightResult> {
+  return await highlightSource(
+    input.source,
+    input.language ?? CliLanguage.FullUffda,
+  );
+}
+
+export function highlightToolResult(value: HighlightResult): CallToolResult {
   return jsonResult(value);
 }

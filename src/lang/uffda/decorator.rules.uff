@@ -7,13 +7,13 @@
 # for the expression body (identical tokenizing/parsing needs). Variable
 # bindings are single-letter (published CLI PatternLang).
 import "../pattern/parameter_list.uff" ParameterList;
-import "./shared.rules.uff" IdentifierToken;
+import "./shared.rules.uff" IdentifierToken DecoratorKeyword;
 import "./func.rules.uff" FuncExpressionBody;
 
 export DecoratorDeclarationSyntax;
 
 rule DecoratorDeclarationSyntax =
-  "decorator"
+  DecoratorKeyword
   n:IdentifierToken
   p:ParameterList?
   "="
