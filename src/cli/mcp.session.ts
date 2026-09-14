@@ -4,12 +4,22 @@ import type { UffdaSyntaxModule } from "../lang/uffda/uffda.lang.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "../runtime/patterns/pattern.ts";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
+import { isRule } from "../runtime/modules/rule.ts";
 import type { Module } from "../runtime/modules/mod.ts";
 import { Resolver } from "../runtime/resolve.ts";
 import { Scope } from "../runtime/scope.ts";
 import { ModuleImportResultKind } from "../runtime/resolvers/resolver.ts";
 import { CliLanguage } from "./contract.ts";
 import { parseSourceToAst } from "./stream.ts";
+
+/**
+ * Default artifact root a session resolves `.uff` imports' compiled
+ * artifacts under, matching `uffda_compile`'s and the batch CLI's default
+ * (`.uffda/ast`) rather than `Resolver`'s own bootstrap-oriented default of
+ * `./bin`, so a plain `uffda compile` followed by `uffda_session_load` just
+ * works without callers having to pass a matching `artifactRoot` by hand.
+ */
+const DEFAULT_SESSION_ARTIFACT_ROOT = ".uffda";
 
 /**
  * A `RuntimeSession` is the live, in-memory runtime backing `uffda mcp`'s
@@ -46,6 +56,8 @@ export type LoadedDeclarationKind = "rule" | "func" | "decorator";
 export type LoadedDeclarationSummary = {
   name: string;
   kind: LoadedDeclarationKind;
+  /** Whether this declaration is part of its module's public `export` set. */
+  exported: boolean;
 };
 
 export type LoadedModuleSummary = {
@@ -65,10 +77,25 @@ export type SessionLoadResult =
      * — never silently dropped alongside a failure.
      */
     partiallyLoadedModules: LoadedModuleSummary[];
+    /**
+     * Other modules that were themselves successfully resolved by this
+     * failing `load()` call before the failure occurred — for example a
+     * resolvable import's own exports — even though the load as a whole did
+     * not succeed and none of this is committed to the session's graph.
+     * Always empty for parse/compile-phase failures, since resolution never
+     * started.
+     */
+    resolvedDuringLoad: LoadedModuleSummary[];
   };
 
 export type RuntimeSessionOptions = {
   cwd?: string;
+  /**
+   * Root whose `ast/` subtree mirrors compiled `.uff` artifacts, used to
+   * resolve this session's `.uff` imports. Defaults to
+   * `DEFAULT_SESSION_ARTIFACT_ROOT` (`.uffda`), matching `uffda_compile`'s
+   * default output location.
+   */
   artifactRoot?: string;
 };
 
@@ -87,22 +114,52 @@ function loadContextPattern() {
 
 function summarizeModule(moduleUrl: URL, module: Module): LoadedModuleSummary {
   const declarations: LoadedDeclarationSummary[] = [];
-  for (const name of module.rules.keys()) {
-    declarations.push({ name, kind: "rule" });
+  const push = (name: string, kind: LoadedDeclarationKind) => {
+    declarations.push({ name, kind, exported: module.exports.has(name) });
+  };
+  for (const name of module.rules.keys()) push(name, "rule");
+  for (const name of module.funcs.keys()) push(name, "func");
+  for (const name of module.decorators.keys()) push(name, "decorator");
+  // `imports`/`decoratorImports` are the names this module bound from other
+  // modules (either for its own local use, or to re-export). Walking them
+  // too — in addition to this module's own `rules`/`funcs`/`decorators` —
+  // ensures a re-exported import is reported rather than silently skipped.
+  for (const [name, member] of module.imports) {
+    push(name, isRule(member) ? "rule" : "func");
   }
-  for (const name of module.funcs.keys()) {
-    declarations.push({ name, kind: "func" });
-  }
-  for (const name of module.decorators.keys()) {
-    declarations.push({ name, kind: "decorator" });
-  }
+  for (const name of module.decoratorImports.keys()) push(name, "decorator");
   return { moduleUrl: moduleUrl.href, declarations };
+}
+
+/**
+ * Summarizes every module `resolver` has resolved so far (per its
+ * `resolvedModules` graph), excluding `excludeHref` if given — used to
+ * surface modules a failing `load()` call nonetheless successfully resolved
+ * along the way (see `SessionLoadResult`'s `resolvedDuringLoad`). Only
+ * modules whose `ModuleDeclaration` was actually resolved (present in
+ * `resolver.moduleDeclarations`) are included: `Resolver.import()` registers
+ * a placeholder `Module` for every URL it *attempts* to resolve, including
+ * ones that go on to fail, so filtering on the declaration map (only ever
+ * populated once a module's declaration is genuinely available) is what
+ * distinguishes a truly-resolved dependency from an in-flight or failed one.
+ */
+function collectResolvedModules(
+  resolver: Resolver,
+  excludeHref?: string,
+): LoadedModuleSummary[] {
+  const summaries: LoadedModuleSummary[] = [];
+  for (const [href, module] of resolver.resolvedModules) {
+    if (href === excludeHref) continue;
+    if (!resolver.moduleDeclarations.has(href)) continue;
+    summaries.push(summarizeModule(new URL(href), module));
+  }
+  return summaries;
 }
 
 export class RuntimeSession {
   public readonly id: string;
   private readonly cwd: string;
-  private readonly artifactRoot?: string;
+  private readonly artifactRoot: string;
   private readonly declarations = new Map<string, ModuleDeclaration>();
   private readonly modules = new Map<string, Module>();
   private readonly moduleOrder: string[] = [];
@@ -112,7 +169,7 @@ export class RuntimeSession {
   constructor(id: string, options?: RuntimeSessionOptions) {
     this.id = id;
     this.cwd = options?.cwd ?? Deno.cwd();
-    this.artifactRoot = options?.artifactRoot;
+    this.artifactRoot = options?.artifactRoot ?? DEFAULT_SESSION_ARTIFACT_ROOT;
   }
 
   public get isClosed(): boolean {
@@ -160,6 +217,7 @@ export class RuntimeSession {
           message: parsed.error.message,
         },
         partiallyLoadedModules: this.listLoadedModules(),
+        resolvedDuringLoad: [],
       };
     }
 
@@ -177,6 +235,7 @@ export class RuntimeSession {
           message: error instanceof Error ? error.message : String(error),
         },
         partiallyLoadedModules: this.listLoadedModules(),
+        resolvedDuringLoad: [],
       };
     }
 
@@ -189,10 +248,29 @@ export class RuntimeSession {
     });
     const scope = Scope.Default().withOptions({ resolver });
 
-    const imported = await resolver.import(moduleUrl, {
-      scope,
-      pattern: loadContextPattern(),
-    });
+    // Wrapped in try/catch: some failure modes (for example a relative
+    // `.uff` import resolved against an anonymous `session://` module URL,
+    // which isn't a file URL) throw rather than returning a resolution
+    // error result. Either way this must surface as a structured
+    // `ResolutionFailure`, never an unhandled exception.
+    let imported: Awaited<ReturnType<Resolver["import"]>>;
+    try {
+      imported = await resolver.import(moduleUrl, {
+        scope,
+        pattern: loadContextPattern(),
+      });
+    } catch (error) {
+      return {
+        ok: false,
+        error: {
+          code: SessionLoadFailureCode.ResolutionFailure,
+          phase: "resolve",
+          message: error instanceof Error ? error.message : String(error),
+        },
+        partiallyLoadedModules: this.listLoadedModules(),
+        resolvedDuringLoad: collectResolvedModules(resolver, moduleUrl.href),
+      };
+    }
     if (imported.kind === ModuleImportResultKind.Error) {
       return {
         ok: false,
@@ -202,13 +280,22 @@ export class RuntimeSession {
           message: `${imported.error.code}: ${imported.error.message}`,
         },
         partiallyLoadedModules: this.listLoadedModules(),
+        resolvedDuringLoad: collectResolvedModules(resolver, moduleUrl.href),
       };
     }
 
-    this.declarations.set(moduleUrl.href, declaration);
-    this.modules.set(moduleUrl.href, imported.module);
-    if (!this.moduleOrder.includes(moduleUrl.href)) {
-      this.moduleOrder.push(moduleUrl.href);
+    // Persist every module the resolver reached (the root plus any
+    // transitively imported modules), not just the root, so the session's
+    // graph — and `listLoadedModules()` / future `load()` seeds — never
+    // silently drop imported modules.
+    for (const [href, module] of resolver.resolvedModules) {
+      this.modules.set(href, module);
+      if (!this.moduleOrder.includes(href)) {
+        this.moduleOrder.push(href);
+      }
+    }
+    for (const [href, decl] of resolver.moduleDeclarations) {
+      this.declarations.set(href, decl);
     }
     return { ok: true, module: summarizeModule(moduleUrl, imported.module) };
   }

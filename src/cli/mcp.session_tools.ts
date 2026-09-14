@@ -18,6 +18,11 @@ export const sessionOpenInputShape = {
     "Absolute working directory the session's imports/artifacts resolve " +
       "against. Defaults to the server process's cwd.",
   ),
+  artifactRoot: z.string().optional().describe(
+    "Root whose 'ast/' subtree mirrors compiled .uff artifacts, used to " +
+      "resolve this session's .uff imports. Defaults to '.uffda', matching " +
+      "uffda_compile's default output location.",
+  ),
 };
 const sessionOpenInputSchema = z.object(sessionOpenInputShape);
 export type SessionOpenInput = z.infer<typeof sessionOpenInputSchema>;
@@ -62,7 +67,10 @@ export function registerSessionTools(
       inputSchema: sessionOpenInputShape,
     },
     (input: SessionOpenInput) => {
-      const session = sessions.open({ cwd: input.cwd });
+      const session = sessions.open({
+        cwd: input.cwd,
+        artifactRoot: input.artifactRoot,
+      });
       return jsonResult({ ok: true, sessionId: session.id });
     },
   );

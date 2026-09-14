@@ -1,5 +1,7 @@
 import { assert, assertEquals } from "@std/assert";
+import { join } from "@std/path";
 import { RuntimeSession, SessionLoadFailureCode } from "./mcp.session.ts";
+import { compileSourcesToAstArtifacts } from "./compile.ts";
 
 Deno.test("cli.mcp.session RuntimeSession", async (t) => {
   await t.step("loads a module and reports its exports", async () => {
@@ -9,7 +11,9 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
     );
     assertEquals(result.ok, true);
     assert(result.ok);
-    assertEquals(result.module.declarations, [{ name: "Main", kind: "rule" }]);
+    assertEquals(result.module.declarations, [
+      { name: "Main", kind: "rule", exported: true },
+    ]);
     assertEquals(session.listLoadedModules().length, 1);
   });
 
@@ -62,7 +66,7 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
       assertEquals(session.listLoadedModules().length, 1);
       assertEquals(
         session.listLoadedModules()[0].declarations,
-        [{ name: "B", kind: "rule" }],
+        [{ name: "B", kind: "rule", exported: true }],
       );
     },
   );
@@ -81,4 +85,156 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
     }
     assert(threw);
   });
+
+  await t.step(
+    "resolves .uff imports against the default '.uffda' artifact root",
+    async () => {
+      const cwd = await Deno.makeTempDir({ prefix: "uffda-mcp-session-" });
+      try {
+        const depUff = join(cwd, "dep.uff");
+        await Deno.writeTextFile(depUff, "export Foo;\nrule Foo = any;");
+        const compiled = await compileSourcesToAstArtifacts({
+          cwd,
+          sourcePaths: [depUff],
+          outputDir: join(cwd, ".uffda", "ast"),
+          overwrite: true,
+        });
+        assertEquals(compiled.ok, true);
+
+        const session = new RuntimeSession("s7", { cwd });
+        const result = await session.load(
+          'import "./dep.uff" Foo;\nexport Foo;',
+          "main.uff",
+        );
+        assertEquals(result.ok, true);
+        assert(result.ok);
+        assertEquals(result.module.declarations, [
+          { name: "Foo", kind: "rule", exported: true },
+        ]);
+      } finally {
+        await Deno.remove(cwd, { recursive: true });
+      }
+    },
+  );
+
+  await t.step(
+    "honors an explicit artifactRoot override",
+    async () => {
+      const cwd = await Deno.makeTempDir({ prefix: "uffda-mcp-session-" });
+      const artifactRoot = await Deno.makeTempDir({
+        prefix: "uffda-mcp-session-artifacts-",
+      });
+      try {
+        const depUff = join(cwd, "dep.uff");
+        await Deno.writeTextFile(depUff, "export Foo;\nrule Foo = any;");
+        const compiled = await compileSourcesToAstArtifacts({
+          cwd,
+          sourcePaths: [depUff],
+          outputDir: join(artifactRoot, "ast"),
+          overwrite: true,
+        });
+        assertEquals(compiled.ok, true);
+
+        const session = new RuntimeSession("s8", { cwd, artifactRoot });
+        const result = await session.load(
+          'import "./dep.uff" Foo;\nexport Foo;',
+          "main.uff",
+        );
+        assertEquals(result.ok, true);
+      } finally {
+        await Deno.remove(cwd, { recursive: true });
+        await Deno.remove(artifactRoot, { recursive: true });
+      }
+    },
+  );
+
+  await t.step(
+    "tracks transitively imported modules in the session graph",
+    async () => {
+      const cwd = await Deno.makeTempDir({ prefix: "uffda-mcp-session-" });
+      try {
+        const depUff = join(cwd, "dep.uff");
+        await Deno.writeTextFile(depUff, "export Foo;\nrule Foo = any;");
+        const compiled = await compileSourcesToAstArtifacts({
+          cwd,
+          sourcePaths: [depUff],
+          outputDir: join(cwd, ".uffda", "ast"),
+          overwrite: true,
+        });
+        assertEquals(compiled.ok, true);
+
+        const session = new RuntimeSession("s9", { cwd });
+        const result = await session.load(
+          'import "./dep.uff" Foo;\nexport Foo;',
+          "main.uff",
+        );
+        assertEquals(result.ok, true);
+
+        const loaded = session.listLoadedModules();
+        assertEquals(loaded.length, 2);
+        const depSummary = loaded.find((m) => m.moduleUrl.endsWith("dep.uff"));
+        assert(depSummary);
+        assertEquals(depSummary.declarations, [
+          { name: "Foo", kind: "rule", exported: true },
+        ]);
+      } finally {
+        await Deno.remove(cwd, { recursive: true });
+      }
+    },
+  );
+
+  await t.step(
+    "reports modules resolved before a failure via resolvedDuringLoad",
+    async () => {
+      const cwd = await Deno.makeTempDir({ prefix: "uffda-mcp-session-" });
+      try {
+        const depUff = join(cwd, "dep.uff");
+        await Deno.writeTextFile(depUff, "export Foo;\nrule Foo = any;");
+        const compiled = await compileSourcesToAstArtifacts({
+          cwd,
+          sourcePaths: [depUff],
+          outputDir: join(cwd, ".uffda", "ast"),
+          overwrite: true,
+        });
+        assertEquals(compiled.ok, true);
+
+        const session = new RuntimeSession("s10", { cwd });
+        // "./dep.uff" resolves successfully; "./missing.uff" has no
+        // compiled artifact, so the load fails while resolving imports —
+        // but only after "./dep.uff" was already fully resolved.
+        const result = await session.load(
+          'import "./dep.uff" Foo;\nimport "./missing.uff" Bar;',
+          "main.uff",
+        );
+        assertEquals(result.ok, false);
+        assert(!result.ok);
+        assertEquals(
+          result.error.code,
+          SessionLoadFailureCode.ResolutionFailure,
+        );
+        assertEquals(result.resolvedDuringLoad.length, 1);
+        assert(result.resolvedDuringLoad[0].moduleUrl.endsWith("dep.uff"));
+        assertEquals(result.resolvedDuringLoad[0].declarations, [
+          { name: "Foo", kind: "rule", exported: true },
+        ]);
+        // Nothing is committed to the session's own graph on failure.
+        assertEquals(session.listLoadedModules(), []);
+      } finally {
+        await Deno.remove(cwd, { recursive: true });
+      }
+    },
+  );
+
+  await t.step(
+    "an anonymous load with a relative .uff import fails structurally, not by throwing",
+    async () => {
+      const session = new RuntimeSession("s11");
+      const result = await session.load('import "./dep.uff" Foo;');
+      assertEquals(result.ok, false);
+      assert(!result.ok);
+      assertEquals(result.error.code, SessionLoadFailureCode.ResolutionFailure);
+      assertEquals(result.error.phase, "resolve");
+      assertEquals(result.resolvedDuringLoad, []);
+    },
+  );
 });

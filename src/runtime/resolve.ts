@@ -74,6 +74,28 @@ export class Resolver {
   }
 
   /**
+   * Read-only view of every module this resolver has resolved so far
+   * (including transitively imported modules, not only ones directly passed
+   * to `import()`), keyed by module URL href. Used by tooling that needs to
+   * introspect the resolver's whole module graph — for example `uffda mcp`'s
+   * session lifecycle, which must not silently drop imported modules from
+   * its bookkeeping (see
+   * `.agents/requirements/mcp-server/002-session-lifecycle-and-isolation.requirement.md`).
+   */
+  public get resolvedModules(): ReadonlyMap<string, Module> {
+    return this.modules;
+  }
+
+  /**
+   * Read-only view of every `ModuleDeclaration` this resolver was seeded
+   * with or has since resolved (native/function imports as well as `.uff`
+   * files resolved from artifacts), keyed by module URL href.
+   */
+  public get moduleDeclarations(): ReadonlyMap<string, ModuleDeclaration> {
+    return this.declarations;
+  }
+
+  /**
    * Returns the cached compiled closure for `pattern`, building it with
    * `build` (and caching the result) the first time this `Resolver`
    * instance is asked to compile that particular pattern node.

@@ -49,11 +49,13 @@ Deno.test("cli.mcp session tools end to end", async (t) => {
           }),
         ) as {
           ok: boolean;
-          module?: { declarations: { name: string; kind: string }[] };
+          module?: {
+            declarations: { name: string; kind: string; exported: boolean }[];
+          };
         };
         assertEquals(loaded.ok, true);
         assertEquals(loaded.module?.declarations, [
-          { name: "Main", kind: "rule" },
+          { name: "Main", kind: "rule", exported: true },
         ]);
 
         const closed = textOf(

@@ -178,6 +178,28 @@ if (readPermissions.state === "granted") {
       assert(m.error.cause instanceof Error);
     },
   });
+
+  Deno.test({
+    name:
+      "RESOLVE08 - resolvedModules/moduleDeclarations expose every resolved module",
+    fn: async () => {
+      const resolver = new Resolver();
+      const moduleUrl = new URL(
+        "./resolvers/test.module.json",
+        import.meta.url,
+      );
+      const resolved = await resolver.import(moduleUrl, context());
+      assertEquals(resolved.kind, ModuleImportResultKind.Module);
+      if (resolved.kind !== ModuleImportResultKind.Module) return;
+
+      assert(resolver.resolvedModules.has(moduleUrl.href));
+      assertEquals(
+        resolver.resolvedModules.get(moduleUrl.href),
+        resolved.module,
+      );
+      assert(resolver.moduleDeclarations.has(moduleUrl.href));
+    },
+  });
 } else {
   Deno.test({
     name: "resolve tests require read permissions",
