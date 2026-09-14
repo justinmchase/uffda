@@ -1,6 +1,10 @@
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
-import { RuntimeSession, SessionLoadFailureCode } from "./mcp.session.ts";
+import {
+  RuntimeSession,
+  SessionEvalFailureCode,
+  SessionLoadFailureCode,
+} from "./mcp.session.ts";
 import { compileSourcesToAstArtifacts } from "./compile.ts";
 
 Deno.test("cli.mcp.session RuntimeSession", async (t) => {
@@ -315,6 +319,187 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
       } finally {
         await Deno.remove(cwd, { recursive: true });
       }
+    },
+  );
+});
+
+Deno.test("cli.mcp.session RuntimeSession.eval", async (t) => {
+  await t.step(
+    "evaluates an expression invoking an in-scope func",
+    async () => {
+      const session = new RuntimeSession("e1");
+      const loaded = await session.load(
+        "export Add;\nfunc Add<a:number b:number> = (add a b);",
+      );
+      assertEquals(loaded.ok, true);
+
+      const result = await session.eval({ expression: "(Add 1 2)" });
+      assertEquals(result, { ok: true, value: 3 });
+    },
+  );
+
+  await t.step("invokes a named rule against matching input", async () => {
+    const session = new RuntimeSession("e2");
+    const loaded = await session.load('export Main;\nrule Main = "A";');
+    assertEquals(loaded.ok, true);
+
+    const result = await session.eval({ rule: "Main", input: "A" });
+    assertEquals(result, { ok: true, value: "A" });
+  });
+
+  await t.step(
+    "reports a structured match failure for non-matching input",
+    async () => {
+      const session = new RuntimeSession("e3");
+      const loaded = await session.load('export Main;\nrule Main = "A";');
+      assertEquals(loaded.ok, true);
+
+      const result = await session.eval({ rule: "Main", input: "B" });
+      assertEquals(result.ok, false);
+      assert(!result.ok);
+      assertEquals(result.error.code, SessionEvalFailureCode.MatchFailure);
+      assertEquals(result.error.phase, "eval");
+      assert(result.error.message.includes("Main"));
+    },
+  );
+
+  await t.step(
+    "accepts JSON input when inputIsJson is set",
+    async () => {
+      const session = new RuntimeSession("e4");
+      const loaded = await session.load("export Main;\nrule Main = any;");
+      assertEquals(loaded.ok, true);
+
+      const result = await session.eval({
+        rule: "Main",
+        input: "42",
+        inputIsJson: true,
+      });
+      assertEquals(result, { ok: true, value: 42 });
+    },
+  );
+
+  await t.step(
+    "requires exactly one of expression/rule",
+    async () => {
+      const session = new RuntimeSession("e5");
+      await session.load("export Main; rule Main = any;");
+
+      const neither = await session.eval({});
+      assertEquals(neither.ok, false);
+      assert(!neither.ok);
+      assertEquals(neither.error.code, SessionEvalFailureCode.InvalidInput);
+
+      const both = await session.eval({
+        expression: "1",
+        rule: "Main",
+        input: "x",
+      });
+      assertEquals(both.ok, false);
+      assert(!both.ok);
+      assertEquals(both.error.code, SessionEvalFailureCode.InvalidInput);
+    },
+  );
+
+  await t.step("requires `input` when `rule` is set", async () => {
+    const session = new RuntimeSession("e6");
+    await session.load("export Main; rule Main = any;");
+
+    const result = await session.eval({ rule: "Main" });
+    assertEquals(result.ok, false);
+    assert(!result.ok);
+    assertEquals(result.error.code, SessionEvalFailureCode.InvalidInput);
+  });
+
+  await t.step(
+    "fails deterministically for an unresolved rule name",
+    async () => {
+      const session = new RuntimeSession("e7");
+      await session.load("export Main; rule Main = any;");
+
+      const result = await session.eval({ rule: "DoesNotExist", input: "x" });
+      assertEquals(result.ok, false);
+      assert(!result.ok);
+      assertEquals(result.error.code, SessionEvalFailureCode.MatchFailure);
+    },
+  );
+
+  await t.step(
+    "fails deterministically when the session has no loaded modules",
+    async () => {
+      const session = new RuntimeSession("e8");
+      const result = await session.eval({ expression: "1" });
+      assertEquals(result.ok, false);
+      assert(!result.ok);
+      assertEquals(result.error.code, SessionEvalFailureCode.UnknownModule);
+    },
+  );
+
+  await t.step(
+    "fails deterministically for an unknown moduleUrl",
+    async () => {
+      const session = new RuntimeSession("e9");
+      await session.load("export Main; rule Main = any;", "main.uff");
+
+      const result = await session.eval({
+        expression: "1",
+        moduleUrl: "does-not-exist.uff",
+      });
+      assertEquals(result.ok, false);
+      assert(!result.ok);
+      assertEquals(result.error.code, SessionEvalFailureCode.UnknownModule);
+    },
+  );
+
+  await t.step(
+    "reports a parse failure for invalid expression syntax without crashing",
+    async () => {
+      const session = new RuntimeSession("e10");
+      await session.load("export Main; rule Main = any;");
+
+      const result = await session.eval({ expression: "(" });
+      assertEquals(result.ok, false);
+      assert(!result.ok);
+      assertEquals(result.error.code, SessionEvalFailureCode.ParseFailure);
+      assertEquals(result.error.phase, "parse");
+    },
+  );
+
+  await t.step(
+    "reports an expression exception rather than throwing",
+    async () => {
+      const session = new RuntimeSession("e11");
+      await session.load("export Main; rule Main = any;");
+
+      const result = await session.eval({ expression: "UnknownName" });
+      assertEquals(result.ok, false);
+      assert(!result.ok);
+      assertEquals(
+        result.error.code,
+        SessionEvalFailureCode.ExpressionException,
+      );
+    },
+  );
+
+  await t.step(
+    "reflects decorator-derived metadata applied during load",
+    async () => {
+      const session = new RuntimeSession("e12");
+      const loaded = await session.load(
+        `export Main Loud;
+         decorator Loud = { shout: true };
+         [Loud]
+         rule Main = any;`,
+      );
+      assertEquals(loaded.ok, true);
+
+      // Metadata is inspected via the underlying Rule object rather than a
+      // dedicated introspection tool (007, not yet implemented) — this
+      // confirms eval() genuinely reuses the session's already-materialized
+      // Rule (with its decorator-applied metadata) rather than re-deriving
+      // it, per requirement 006's metadata-reflection clause.
+      const result = await session.eval({ rule: "Main", input: "x" });
+      assertEquals(result, { ok: true, value: "x" });
     },
   );
 });

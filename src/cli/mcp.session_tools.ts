@@ -45,6 +45,35 @@ export const sessionCloseInputShape = {
 const sessionCloseInputSchema = z.object(sessionCloseInputShape);
 export type SessionCloseInput = z.infer<typeof sessionCloseInputSchema>;
 
+export const sessionEvalInputShape = {
+  sessionId: z.string().describe("An id returned by uffda_session_open."),
+  moduleUrl: z.string().optional().describe(
+    "Which loaded module's scope to evaluate against (a path already " +
+      "passed to uffda_session_load). Defaults to the most recently " +
+      "loaded module.",
+  ),
+  expression: z.string().optional().describe(
+    "An Uffda expression to evaluate (parsed with the expression " +
+      "grammar), for example '(add 1 2)' to invoke an in-scope func, or a " +
+      "member/object construction. Mutually exclusive with `rule`.",
+  ),
+  rule: z.string().optional().describe(
+    "The name of an exported Rule to invoke against `input`. Mutually " +
+      "exclusive with `expression`. Exactly one of `expression`/`rule` is " +
+      "required.",
+  ),
+  input: z.string().describe(
+    "Subject text to match `rule` against. Required when `rule` is set.",
+  ).optional(),
+  inputIsJson: z.boolean().optional().describe(
+    "When true, `input` is parsed as JSON before matching. Defaults to " +
+      "false (input is matched as raw text/iterable), matching " +
+      "uffda_match's convention.",
+  ),
+};
+const sessionEvalInputSchema = z.object(sessionEvalInputShape);
+export type SessionEvalToolInput = z.infer<typeof sessionEvalInputSchema>;
+
 function jsonResult(value: unknown): CallToolResult {
   return { content: [{ type: "text", text: JSON.stringify(value) }] };
 }
@@ -91,6 +120,31 @@ export function registerSessionTools(
       const lookup = sessions.get(input.sessionId);
       if (!lookup.ok) return jsonResult({ ok: false, error: lookup.error });
       const result = await lookup.session.load(input.source, input.path);
+      return jsonResult(result);
+    },
+  );
+
+  server.registerTool(
+    "uffda_session_eval",
+    {
+      title: "uffda session eval",
+      description:
+        "Evaluates an expression, or invokes a named exported Rule against " +
+        "subject input, using a session's already-resolved live state " +
+        "(no re-parsing or re-resolving any loaded module). Exactly one " +
+        "of `expression`/`rule` is required.",
+      inputSchema: sessionEvalInputShape,
+    },
+    async (input: SessionEvalToolInput) => {
+      const lookup = sessions.get(input.sessionId);
+      if (!lookup.ok) return jsonResult({ ok: false, error: lookup.error });
+      const result = await lookup.session.eval({
+        moduleUrl: input.moduleUrl,
+        expression: input.expression,
+        rule: input.rule,
+        input: input.input,
+        inputIsJson: input.inputIsJson,
+      });
       return jsonResult(result);
     },
   );
