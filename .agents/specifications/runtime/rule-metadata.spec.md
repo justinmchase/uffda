@@ -101,6 +101,36 @@ and
   resolved `DecoratorFunc`), not by name text.
 - Attribute order MUST be preserved and MUST determine invocation order.
 
+## Metadata resolution
+
+- **Resolving** a `Match` node MEANS resolving it along one specific
+  root-to-node path: walking the retained match tree from its root down to that
+  node via a given sequence of child indices, and collecting, in root-to-node
+  order, every visited node's `origin.rule.metadata` (including the node itself,
+  if it is itself the `Ok`/`Fail` produced by a fresh rule invocation). A node
+  reachable from a shared/memoized sub-tree via more than one path is resolved
+  independently for each path; resolution is a function of the path, not of node
+  identity alone, since two paths to the same node can pass through different
+  origin-tagged ancestors and MUST be allowed to yield different contribution
+  lists.
+- Resolution MUST produce an ordered list of contributions (one entry per
+  ancestor-or-self node that has `origin` set), each naming the contributing
+  rule and its metadata, rather than a single shallow-merged object. A node can
+  be nested inside more than one decorated rule invocation (for example, a
+  `Keyword`-decorated token rule matched inside an outer `Statement` rule that
+  is itself decorated for an unrelated purpose), and merging would either
+  silently drop one contribution behind another with the same decorator name, or
+  falsely imply the metadata came from a single declaration.
+- Because `Match` nodes only reference their children (`matches: Match[]`), not
+  a parent, resolution requires the path from the tree's root to the node in
+  question. `Match` itself MUST NOT gain a parent-pointer field to support this:
+  a walker (see the match-tree walking tools in
+  [MCP server mode](../languages/cli/mcp-server.spec.md#match-tree-walking-tools))
+  tracks the ancestor stack itself while descending, keeping `Match` free of
+  traversal-direction-specific fields.
+- Resolution MUST be pure: it MUST NOT mutate the match tree, and resolving the
+  same path twice MUST produce the same ordered list.
+
 ## Mechanism
 
 - Decorator resolution and invocation happen once, during declaration

@@ -23,6 +23,13 @@ Expected behavior:
 - The tool MUST allow walking into any reachable sub-node of the tree (nested
   Ok/Fail/Error results, spans, bound variables) incrementally, so a large
   result can be explored without ever requiring a single unbounded response.
+- Each returned node MUST report its own decorator-derived metadata when it
+  originates a fresh rule invocation, and the metadata resolved from every
+  ancestor node on the path from the tree's root down to it, as an ordered list
+  of per-rule contributions (see
+  `.agents/specifications/runtime/rule-metadata.spec.md#metadata-resolution`) —
+  not a single merged object, since a node can be nested inside more than one
+  decorated rule invocation.
 - Requesting a window against an evaluation handle that no longer exists (for
   example after the session was closed) MUST fail deterministically.
 

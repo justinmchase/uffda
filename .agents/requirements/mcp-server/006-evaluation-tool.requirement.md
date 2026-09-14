@@ -23,6 +23,12 @@ Expected behavior:
 - The tool MUST return a structured result including at minimum the match kind
   (Ok/Fail/Error), the resulting value when applicable, and source span
   information when the evaluated target has one.
+- For a rule/func invocation, the tool MUST retain the full match result tree in
+  the session and return a stable result id referencing it, rather than
+  returning the full tree inline or discarding it once the top-level value is
+  extracted. The retained tree is what the match-tree walking tool (008)
+  traverses; a match result tree can be arbitrarily large, so eagerly returning
+  or flattening it here would defeat that tool's response-size budget.
 - Invoking a rule/func by a name that does not resolve in the session MUST fail
   deterministically with the same error shape as other unresolved-reference
   failures.
