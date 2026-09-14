@@ -670,7 +670,8 @@
       "jsr:@tui/nice@0.6.1",
       "jsr:@tui/signals@0.0.10",
       "jsr:@tui/tui@3.0.0-dev.10",
-      "npm:@modelcontextprotocol/sdk@1.30.0"
+      "npm:@modelcontextprotocol/sdk@1.30.0",
+      "npm:zod@3"
     ]
   }
 }

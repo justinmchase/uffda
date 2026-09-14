@@ -3,6 +3,22 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { version } from "../version.ts";
+import {
+  compileToolHandler,
+  type CompileToolInput,
+  compileToolInputShape,
+  compileToolResult,
+  matchToolHandler,
+  type MatchToolInput,
+  matchToolInputShape,
+  matchToolResult,
+  parseToolHandler,
+  type ParseToolInput,
+  parseToolInputShape,
+  parseToolResult,
+} from "./mcp.static_tools.ts";
+import { registerSessionTools } from "./mcp.session_tools.ts";
+import { SessionManager } from "./mcp.sessions.ts";
 
 /**
  * Wraps a single string as an MCP tool text result. Kept tiny and reused by
@@ -41,6 +57,50 @@ export function createUffdaMcpServer(): McpServer {
     },
     () => versionToolHandler(),
   );
+
+  server.registerTool(
+    "uffda_compile",
+    {
+      title: "uffda compile",
+      description:
+        "Compiles one or more Uffda source files/globs to Uffda syntax AST " +
+        "artifacts on disk, equivalent to `uffda compile`. Stateless: does " +
+        "not require or affect any session.",
+      inputSchema: compileToolInputShape,
+    },
+    async (input: CompileToolInput) =>
+      compileToolResult(await compileToolHandler(input)),
+  );
+
+  server.registerTool(
+    "uffda_parse",
+    {
+      title: "uffda parse",
+      description:
+        "Parses Uffda (or a sub-language's) source text to a raw AST, " +
+        "equivalent to `uffda parse`. Stateless: does not require or " +
+        "affect any session.",
+      inputSchema: parseToolInputShape,
+    },
+    async (input: ParseToolInput) =>
+      parseToolResult(await parseToolHandler(input)),
+  );
+
+  server.registerTool(
+    "uffda_match",
+    {
+      title: "uffda match",
+      description:
+        "Matches an explicit subject (text or JSON) against a Uffda " +
+        "pattern, equivalent to `uffda match`. Stateless: does not require " +
+        "or affect any session.",
+      inputSchema: matchToolInputShape,
+    },
+    async (input: MatchToolInput) =>
+      matchToolResult(await matchToolHandler(input)),
+  );
+
+  registerSessionTools(server, new SessionManager());
 
   return server;
 }

@@ -27,14 +27,58 @@ Deno.test("cli.mcp", async (t) => {
       try {
         const tools = await client.listTools();
         assertEquals(
-          tools.tools.map((tool: Tool) => tool.name),
-          ["uffda_version"],
+          tools.tools.map((tool: Tool) => tool.name).sort(),
+          [
+            "uffda_compile",
+            "uffda_match",
+            "uffda_parse",
+            "uffda_session_close",
+            "uffda_session_load",
+            "uffda_session_open",
+            "uffda_version",
+          ].sort(),
         );
 
         const result = await client.callTool({ name: "uffda_version" });
         assertEquals(result, {
           content: [{ type: "text", text: version }],
         });
+      } finally {
+        await client.close();
+        await server.close();
+      }
+    },
+  );
+
+  await t.step(
+    "uffda_parse and uffda_match tools are callable end to end",
+    async () => {
+      const server = createUffdaMcpServer();
+      const client = new Client({ name: "test-client", version: "0.0.0" });
+      const [clientTransport, serverTransport] = InMemoryTransport
+        .createLinkedPair();
+
+      await Promise.all([
+        server.connect(serverTransport),
+        client.connect(clientTransport),
+      ]);
+
+      try {
+        const parseResult = await client.callTool({
+          name: "uffda_parse",
+          arguments: { source: "any", language: "pattern" },
+        });
+        const parseContent = (parseResult.content as { text: string }[])[0]
+          .text;
+        assertEquals(JSON.parse(parseContent).ok, true);
+
+        const matchResult = await client.callTool({
+          name: "uffda_match",
+          arguments: { pattern: "any", input: "x" },
+        });
+        const matchContent = (matchResult.content as { text: string }[])[0]
+          .text;
+        assertEquals(JSON.parse(matchContent).ok, true);
       } finally {
         await client.close();
         await server.close();
