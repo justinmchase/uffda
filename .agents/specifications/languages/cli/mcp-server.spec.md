@@ -152,6 +152,34 @@ chapter(s).
   maintained mapping from rule name to role that could drift from the grammar it
   classifies.
 
+### Session display surface tool
+
+- The server MUST expose an explicit, opt-in tool to open a live display surface
+  for a session, distinct from and not automatically created by session-open
+  (see session lifecycle above) — a caller that never asks for a display surface
+  MUST NOT have one created on its behalf.
+- A display surface MUST be rendered as a real, human-observable window (not MCP
+  tool-call output text), backed by a loopback-only local endpoint the session's
+  process serves; opening a display surface MUST NOT require or imply a
+  non-loopback network listener, so it does not conflict with the transport
+  contract's "no network listener by default" requirement (the listener only
+  exists once, and for as long as, a caller has explicitly opened a display
+  surface for a specific session).
+- The server MUST expose a tool to render a previously produced structured
+  result — at minimum, a retained match result tree (see the evaluation and
+  match-tree walking tools above) and a source-highlighting result (see the
+  source highlighting tool above) — into an already-open display surface,
+  updating that surface's existing window in place rather than opening a new
+  window per render.
+- Both a match result tree and a highlighting result MUST be rendered through
+  the same underlying transform from structured result to displayable markup,
+  not two independently maintained renderers, so the two views cannot silently
+  drift from each other's conventions (colors, layout primitives, etc.).
+- A session's display surface MUST be released when that session is closed (see
+  session lifecycle above), along with the rest of that session's state.
+- Rendering a result into a display surface MUST be deterministic for a fixed
+  result and fixed display surface state.
+
 ## Error and determinism contract
 
 - Every tool MUST produce a deterministic result for a fixed session state and
@@ -175,5 +203,9 @@ chapter(s).
 
 ## Status
 
-Specified, not yet implemented. See [command model](./command-model.spec.md) for
-the existing shipped CLI modes this chapter's tools sit alongside.
+Stateless operation tools, session lifecycle tools, evaluation tools,
+introspection and query tools, match-tree walking tools, and the source
+highlighting tool are implemented. Incremental re-parse tools and the session
+display surface tool remain specified but not yet implemented. See
+[command model](./command-model.spec.md) for the existing shipped CLI modes this
+chapter's tools sit alongside.
