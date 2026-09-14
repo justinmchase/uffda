@@ -22,6 +22,7 @@ import {
   parseToolResult,
 } from "./mcp.static_tools.ts";
 import { registerSessionTools } from "./mcp.session_tools.ts";
+import { registerDisplayTools } from "./mcp.display_tools.ts";
 import { SessionManager } from "./mcp.sessions.ts";
 
 /**
@@ -120,7 +121,9 @@ export function createUffdaMcpServer(): McpServer {
       highlightToolResult(await highlightToolHandler(input)),
   );
 
-  registerSessionTools(server, new SessionManager());
+  const sessions = new SessionManager();
+  registerSessionTools(server, sessions);
+  registerDisplayTools(server, sessions);
 
   return server;
 }

@@ -316,8 +316,8 @@ export function registerSessionTools(
         "tool calls against this session id will fail deterministically.",
       inputSchema: sessionCloseInputShape,
     },
-    (input: SessionCloseInput) => {
-      const result = sessions.close(input.sessionId);
+    async (input: SessionCloseInput) => {
+      const result = await sessions.close(input.sessionId);
       return jsonResult(
         result.ok ? { ok: true, sessionId: input.sessionId } : {
           ok: false,

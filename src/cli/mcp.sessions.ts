@@ -21,8 +21,14 @@ export type SessionLookupResult =
   | { ok: true; session: RuntimeSession }
   | { ok: false; error: SessionManagerError };
 
+/** A cleanup callback registered against a session id, invoked once when
+ * that session closes (see `onClose`). May be async (e.g. releasing a
+ * display surface's window/server). */
+export type SessionDisposeHook = (id: string) => void | Promise<void>;
+
 export class SessionManager {
   private readonly sessions = new Map<string, RuntimeSession>();
+  private readonly disposeHooks = new Map<string, SessionDisposeHook[]>();
   private nextId = 0;
 
   /** Opens a new, empty session and returns its stable id. */
@@ -54,10 +60,32 @@ export class SessionManager {
     return { ok: true, session };
   }
 
-  /** Closes and releases `id`'s session, if it is currently open. */
-  public close(id: string): SessionLookupResult {
+  /**
+   * Registers `hook` to run when `id`'s session closes (e.g. releasing a
+   * display surface opened against that session). Hooks for a session that
+   * never closes are simply never invoked; hooks are discarded once run.
+   */
+  public onClose(id: string, hook: SessionDisposeHook): void {
+    const hooks = this.disposeHooks.get(id);
+    if (hooks) {
+      hooks.push(hook);
+    } else {
+      this.disposeHooks.set(id, [hook]);
+    }
+  }
+
+  /** Closes and releases `id`'s session, if it is currently open, running
+   * any hooks registered via `onClose` first. */
+  public async close(id: string): Promise<SessionLookupResult> {
     const lookup = this.get(id);
     if (!lookup.ok) return lookup;
+    const hooks = this.disposeHooks.get(id);
+    this.disposeHooks.delete(id);
+    if (hooks) {
+      for (const hook of hooks) {
+        await hook(id);
+      }
+    }
     lookup.session.close();
     this.sessions.delete(id);
     return lookup;
