@@ -234,6 +234,12 @@ export class RuntimeSession {
   private readonly declarations = new Map<string, ModuleDeclaration>();
   private readonly modules = new Map<string, Module>();
   private readonly moduleOrder: string[] = [];
+  // The href of the most recent successful `load()` call's *root* module
+  // (as opposed to `moduleOrder`'s last entry, which is populated in
+  // resolver-discovery order and so is the root's *last transitive import*
+  // once that root pulls in anything). This is what `eval()` defaults to
+  // when `moduleUrl` is omitted.
+  private lastLoadedRootHref?: string;
   private nextAnonymousLoadId = 0;
   private closed = false;
 
@@ -384,19 +390,31 @@ export class RuntimeSession {
     for (const [href, decl] of resolver.moduleDeclarations) {
       this.declarations.set(href, decl);
     }
+    this.lastLoadedRootHref = moduleUrl.href;
     return { ok: true, module: summarizeModule(moduleUrl, imported.module) };
   }
 
   /**
-   * Resolves `moduleUrl` (an href/path already loaded into this session, or
-   * the most recently loaded module if omitted) to its cached `Module`.
+   * Resolves `moduleUrl` (an href already returned by `load()`, a path
+   * already passed to `load()`, or the most recently loaded module's root if
+   * omitted) to its cached `Module`.
    */
   private resolveTargetModule(
     moduleUrl?: string,
   ): { ok: true; module: Module } | { ok: false; error: SessionEvalFailure } {
-    const href = moduleUrl
-      ? toFileUrl(resolvePath(this.cwd, moduleUrl)).href
-      : this.moduleOrder.at(-1);
+    let href: string | undefined;
+    if (moduleUrl) {
+      // `moduleUrl` may already be a stored href verbatim (what `load()`
+      // returns, including `session://...` for inline loads that have no
+      // filesystem path at all) — check that first. Only fall back to
+      // resolving it as a path relative to `cwd` for callers passing back
+      // the same `path` string they gave `load()`.
+      href = this.modules.has(moduleUrl)
+        ? moduleUrl
+        : toFileUrl(resolvePath(this.cwd, moduleUrl)).href;
+    } else {
+      href = this.lastLoadedRootHref;
+    }
     const module = href ? this.modules.get(href) : undefined;
     if (!module) {
       return {
@@ -568,6 +586,7 @@ export class RuntimeSession {
     this.declarations.clear();
     this.modules.clear();
     this.moduleOrder.length = 0;
+    this.lastLoadedRootHref = undefined;
     this.closed = true;
   }
 }

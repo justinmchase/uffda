@@ -466,6 +466,68 @@ Deno.test("cli.mcp.session RuntimeSession.eval", async (t) => {
   );
 
   await t.step(
+    "defaults to the just-loaded root module, not its last-resolved import",
+    async () => {
+      // Regression test: `Resolver.import` discovers the root module before
+      // its imports, so the root's href is *not* the last entry recorded in
+      // resolver-discovery order once it imports anything. Omitting
+      // `moduleUrl` must still target the root that was just loaded (whose
+      // `Add` func is in scope), not the last transitively resolved import.
+      const cwd = await Deno.makeTempDir({ prefix: "uffda-mcp-session-" });
+      try {
+        const depUff = join(cwd, "dep.uff");
+        await Deno.writeTextFile(depUff, "export Foo;\nrule Foo = any;");
+        const compiled = await compileSourcesToAstArtifacts({
+          cwd,
+          sourcePaths: [depUff],
+          outputDir: join(cwd, ".uffda", "ast"),
+          overwrite: true,
+        });
+        assertEquals(compiled.ok, true);
+
+        const session = new RuntimeSession("e11", { cwd });
+        const loaded = await session.load(
+          'import "./dep.uff" Foo;\n' +
+            "export Add;\n" +
+            "func Add<a:number b:number> = (add a b);",
+          "main.uff",
+        );
+        assertEquals(loaded.ok, true);
+        // Two modules are now tracked (main.uff and dep.uff); the
+        // resolver-discovery order places dep.uff last.
+        assertEquals(session.listLoadedModules().length, 2);
+
+        const result = await session.eval({ expression: "(Add 1 2)" });
+        assertEquals(result, { ok: true, value: 3 });
+      } finally {
+        await Deno.remove(cwd, { recursive: true });
+      }
+    },
+  );
+
+  await t.step(
+    "accepts an href previously returned by load(), including session:// hrefs for inline source",
+    async () => {
+      // Regression test: `resolveTargetModule` must recognize a `moduleUrl`
+      // that is already a stored href verbatim (exactly what `load()`
+      // returns), not only a filesystem path resolved against `cwd` — this
+      // is the only way to address an inline (no `path` given) load at all,
+      // since its href is a `session://` URL with no corresponding path.
+      const session = new RuntimeSession("e12");
+      const loaded = await session.load("export Main; rule Main = any;");
+      assertEquals(loaded.ok, true);
+      assert(loaded.ok);
+
+      const result = await session.eval({
+        rule: "Main",
+        input: "x",
+        moduleUrl: loaded.module.moduleUrl,
+      });
+      assertEquals(result, { ok: true, value: "x" });
+    },
+  );
+
+  await t.step(
     "reports an expression exception rather than throwing",
     async () => {
       const session = new RuntimeSession("e11");
