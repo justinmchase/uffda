@@ -103,10 +103,16 @@ and
 
 ## Metadata resolution
 
-- **Resolving** a `Match` node's metadata means walking the retained match tree
-  from its root down to that node and collecting, in root-to-node order, every
-  visited node's `origin.rule.metadata` (including the node itself, if it is
-  itself the `Ok`/`Fail` produced by a fresh rule invocation).
+- **Resolving** a `Match` node MEANS resolving it along one specific
+  root-to-node path: walking the retained match tree from its root down to that
+  node via a given sequence of child indices, and collecting, in root-to-node
+  order, every visited node's `origin.rule.metadata` (including the node itself,
+  if it is itself the `Ok`/`Fail` produced by a fresh rule invocation). A node
+  reachable from a shared/memoized sub-tree via more than one path is resolved
+  independently for each path; resolution is a function of the path, not of node
+  identity alone, since two paths to the same node can pass through different
+  origin-tagged ancestors and MUST be allowed to yield different contribution
+  lists.
 - Resolution MUST produce an ordered list of contributions (one entry per
   ancestor-or-self node that has `origin` set), each naming the contributing
   rule and its metadata, rather than a single shallow-merged object. A node can
@@ -123,7 +129,7 @@ and
   tracks the ancestor stack itself while descending, keeping `Match` free of
   traversal-direction-specific fields.
 - Resolution MUST be pure: it MUST NOT mutate the match tree, and resolving the
-  same node twice MUST produce the same ordered list.
+  same path twice MUST produce the same ordered list.
 
 ## Mechanism
 
