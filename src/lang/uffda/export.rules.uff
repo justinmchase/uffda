@@ -2,7 +2,7 @@
 # Per-item ExportName projection avoids map/lambda (pattern idioms).
 # Inline export packs [export-decl, rule/func-decl] via std pack.
 # Variable bindings are single-letter (published CLI PatternLang).
-import "./shared.rules.uff" IdentifierToken;
+import "./shared.rules.uff" IdentifierToken ExportKeyword;
 import "./rule.rules.uff" RuleDeclarationSyntax;
 import "./func.rules.uff" FuncDeclarationSyntax;
 import "./decorator.rules.uff" DecoratorDeclarationSyntax;
@@ -20,22 +20,22 @@ rule ExportNameList =
   -> (flat _);
 
 rule InlineExportedRuleDeclarationSyntax =
-  "export"
+  ExportKeyword
   r:RuleDeclarationSyntax
   -> (pack { kind: "export", name: r.name } r);
 
 rule InlineExportedFuncDeclarationSyntax =
-  "export"
+  ExportKeyword
   f:FuncDeclarationSyntax
   -> (pack { kind: "export", name: f.name } f);
 
 rule InlineExportedDecoratorDeclarationSyntax =
-  "export"
+  ExportKeyword
   d:DecoratorDeclarationSyntax
   -> (pack { kind: "export", name: d.name } d);
 
 rule StandaloneExportDeclarationSyntax =
-  "export"
+  ExportKeyword
   n:ExportNameList
   ";"
   -> n;

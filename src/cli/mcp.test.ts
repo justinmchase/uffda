@@ -30,6 +30,7 @@ Deno.test("cli.mcp", async (t) => {
           tools.tools.map((tool: Tool) => tool.name).sort(),
           [
             "uffda_compile",
+            "uffda_highlight",
             "uffda_match",
             "uffda_parse",
             "uffda_session_close",
@@ -84,6 +85,20 @@ Deno.test("cli.mcp", async (t) => {
         const matchContent = (matchResult.content as { text: string }[])[0]
           .text;
         assertEquals(JSON.parse(matchContent).ok, true);
+
+        const highlightResult = await client.callTool({
+          name: "uffda_highlight",
+          arguments: { source: "rule A = any;\n" },
+        });
+        const highlightContent =
+          (highlightResult.content as { text: string }[])[0].text;
+        const highlight = JSON.parse(highlightContent);
+        assertEquals(highlight.ok, true);
+        assertEquals(
+          highlight.spans.find((s: { role: string }) => s.role === "keyword")
+            ?.text,
+          "rule",
+        );
       } finally {
         await client.close();
         await server.close();
