@@ -780,6 +780,45 @@ Deno.test("cli.mcp.session RuntimeSession introspection", async (t) => {
   );
 
   await t.step(
+    "queryByMetadata does not treat Object.prototype keys as applied decorators",
+    async () => {
+      const session = new RuntimeSession("i11b");
+      await session.load(LOUD_MODULE_SOURCE);
+
+      for (const name of ["constructor", "toString", "hasOwnProperty"]) {
+        const result = await session.queryByMetadata(name);
+        assertEquals(result, { ok: true, matches: [] });
+      }
+    },
+  );
+
+  await t.step(
+    "queryByMetadata still matches a decorator whose name collides with an Object.prototype key",
+    async () => {
+      const session = new RuntimeSession("i11c");
+      await session.load(
+        `export Main;
+         decorator constructor = { proto: true };
+         [constructor]
+         rule Main = any;
+         [constructor]
+         func Greet = _;`,
+      );
+
+      const result = await session.queryByMetadata("constructor");
+      assertEquals(result.ok, true);
+      assert(result.ok);
+      assertEquals(
+        result.matches.map((m) => m.name).sort(),
+        ["Greet", "Main"],
+      );
+      for (const m of result.matches) {
+        assertEquals(m.metadata, { proto: true });
+      }
+    },
+  );
+
+  await t.step(
     "queryByMetadata reports a parse failure for an invalid predicate without crashing",
     async () => {
       const session = new RuntimeSession("i12");

@@ -23,8 +23,11 @@ Expected behavior:
   args) and keyed metadata (decorator name -> that decorator's return value).
 - A "query by metadata" tool MUST, given a decorator name (and optionally a
   predicate over that decorator's metadata value), return every rule/func in the
-  session whose metadata contains a matching entry, across all loaded modules in
-  that session.
+  session whose metadata contains a matching own-key entry for that decorator
+  name, across all loaded modules in that session. Inherited prototype keys (for
+  example `constructor` or `toString` on a plain metadata object) MUST NOT count
+  as applied decorators. When a decorator whose name collides with a prototype
+  key was actually applied, that own-key entry MUST still match.
 - All introspection tools MUST reflect the session's current state, including
   the effect of any incremental re-parse already applied and any evaluation that
   mutated no state (introspection itself MUST be read-only and MUST NOT change

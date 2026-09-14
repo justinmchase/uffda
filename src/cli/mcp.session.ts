@@ -779,11 +779,13 @@ export class RuntimeSession {
 
   /**
    * Finds every rule/func across this session's loaded modules whose
-   * metadata contains an entry for `decorator`, optionally filtered by
-   * `predicate` — an Uffda pattern (parsed with the pattern grammar) matched
-   * against that entry's value, reusing the same pattern-matching machinery
-   * `uffda_match` uses rather than a parallel predicate mechanism. Read-only;
-   * never mutates session state. See
+   * metadata has an own-key entry for `decorator` (the name-keyed store
+   * produced by decorator application — not inherited Object.prototype
+   * properties), optionally filtered by `predicate` — an Uffda pattern
+   * (parsed with the pattern grammar) matched against that entry's value,
+   * reusing the same pattern-matching machinery `uffda_match` uses rather
+   * than a parallel predicate mechanism. Read-only; never mutates session
+   * state. See
    * `.agents/requirements/mcp-server/007-introspection-and-query-tools.requirement.md`.
    */
   public async queryByMetadata(
@@ -826,8 +828,12 @@ export class RuntimeSession {
         ),
       ];
       for (const [name, kind, member] of members) {
-        if (!member.metadata || !(decorator in member.metadata)) continue;
-        const value = member.metadata[decorator];
+        const metadata = member.metadata;
+        // Own-key only: `in` is true for inherited Object.prototype names
+        // (`constructor`, `toString`, …), which would treat every decorated
+        // rule/func as a hit for a decorator that was never applied.
+        if (!metadata || !Object.hasOwn(metadata, decorator)) continue;
+        const value = metadata[decorator];
         if (pattern) {
           const result = await match(pattern, Scope.From(value));
           if (result.kind !== MatchKind.Ok) continue;

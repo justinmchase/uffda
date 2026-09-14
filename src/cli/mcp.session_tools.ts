@@ -107,8 +107,8 @@ export const sessionQueryInputShape = {
   sessionId: z.string().describe("An id returned by uffda_session_open."),
   decorator: z.string().describe(
     "Decorator name to search for. Returns every rule/func across this " +
-      "session's loaded modules whose metadata has an entry for this " +
-      "decorator.",
+      "session's loaded modules whose metadata has an own-key entry for this " +
+      "decorator (not inherited Object.prototype names).",
   ),
   predicate: z.string().optional().describe(
     "An Uffda pattern (parsed with the pattern grammar) matched against " +
