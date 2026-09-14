@@ -170,3 +170,33 @@ artifacts with host-side rewriters.
   loaded from compiled `./bin` ModuleDeclaration JSON. Thin TypeScript hosts MAY
   remain only for non-declaration helpers (for example types or host-side walks
   that are not ModuleDeclarations).
+
+## Projection bootstrapping (future direction)
+
+- Every transformation that turns source into an AST, an AST into another AST,
+  or an AST/`Match` tree into a different representation (rendered/highlighted
+  text, generated code, a documentation view, etc.) is itself a pattern-match
+  operation over structured data, exactly like parsing is. Long term, these
+  projections SHOULD be authored as Uffda grammars/patterns rather than
+  hand-written host TypeScript walks, so the same pattern-matching primitives
+  end users write their own languages with are also what implements the tools
+  that operate on those languages (parsing, highlighting, code generation,
+  static analysis) — not a second, parallel, host-only mechanism unavailable to
+  authors.
+- A grammar used purely to walk an already-fully-resolved tree (no source-text
+  ambiguity to disambiguate) SHOULD be written using only direct, unambiguous
+  pattern forms (no
+  [DLR](../patterns/direct-left-recursion.spec.md)/backtracking constructs it
+  doesn't need), since backtracking and ambiguity resolution are opt-in per
+  grammar, not an unavoidable cost of using the pattern engine at all.
+- This is subject to the same bootstrap progression as any other language
+  capability (see
+  [Bootstrap progression requirements](#bootstrap-progression-requirements)): a
+  projection grammar that depends on a runtime/pattern-language capability not
+  yet in a published CLI MUST wait for that capability to publish, install, and
+  recompile through the normal cycle — it is not a separate, special-cased
+  bootstrap problem.
+- Existing host-TypeScript projections (for example, the `Match`-tree walk that
+  backs the source-highlighting tool) are permitted as an interim exception, not
+  a model to replicate for new tooling — new projection-shaped code SHOULD
+  default to asking whether it can be a grammar first.
