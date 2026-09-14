@@ -6,12 +6,12 @@
     ".": "./mod.ts"
   },
   "tasks": {
-    "cli": "deno run --allow-read --allow-write --allow-net --allow-env=INIT_CWD,PWD ./src/cli/main.ts",
+    "cli": "deno run --allow-read --allow-write --allow-net --allow-run --allow-env=INIT_CWD,PWD,HOME,XDG_CACHE_HOME ./src/cli/main.ts",
     "compile:lang": "rm -rf ./bin && uffda compile 'src/lang/**/*.uff' --out-dir ./bin",
     "compile:cli": "deno task compile:lang && deno run --allow-read --allow-write --allow-run --allow-env ./scripts/compile-cli.ts",
-    "test": "deno task compile:lang && deno test --allow-read --allow-write --parallel --ignore=test/integration/",
-    "test:watch": "deno task compile:lang && deno test --allow-read --allow-write --watch --parallel --ignore=test/integration/",
-    "test:integration": "deno task compile:lang && deno test --allow-read --allow-write --parallel test/integration/",
+    "test": "deno task compile:lang && deno test --allow-read --allow-write --allow-net=127.0.0.1 --parallel --ignore=test/integration/",
+    "test:watch": "deno task compile:lang && deno test --allow-read --allow-write --allow-net=127.0.0.1 --watch --parallel --ignore=test/integration/",
+    "test:integration": "deno task compile:lang && deno test --allow-read --allow-write --allow-net=127.0.0.1 --parallel test/integration/",
     "bench": "deno bench --allow-read --allow-write test/bench/",
     "bench:memo": "deno run --allow-read --allow-write test/bench/memo-eviction.report.ts",
     "perf": "deno task compile:lang && deno run --allow-read --allow-write --allow-env=GITHUB_STEP_SUMMARY test/perf/morse-compile.report.ts",

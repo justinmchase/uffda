@@ -22,10 +22,10 @@ Deno.test("cli.mcp.sessions SessionManager", async (t) => {
 
   await t.step(
     "close releases the session; further lookups fail deterministically",
-    () => {
+    async () => {
       const manager = new SessionManager();
       const session = manager.open();
-      const closed = manager.close(session.id);
+      const closed = await manager.close(session.id);
       assertEquals(closed.ok, true);
       assertEquals(session.isClosed, true);
 
@@ -36,9 +36,9 @@ Deno.test("cli.mcp.sessions SessionManager", async (t) => {
     },
   );
 
-  await t.step("close on an unknown id fails deterministically", () => {
+  await t.step("close on an unknown id fails deterministically", async () => {
     const manager = new SessionManager();
-    const result = manager.close("never-opened");
+    const result = await manager.close("never-opened");
     assertEquals(result.ok, false);
   });
 
@@ -50,4 +50,37 @@ Deno.test("cli.mcp.sessions SessionManager", async (t) => {
     assertEquals(a.listLoadedModules().length, 1);
     assertEquals(b.listLoadedModules().length, 0);
   });
+
+  await t.step(
+    "onClose hooks run once, in registration order, on close",
+    async () => {
+      const manager = new SessionManager();
+      const session = manager.open();
+      const calls: string[] = [];
+      manager.onClose(session.id, () => {
+        calls.push("first");
+      });
+      manager.onClose(session.id, async () => {
+        await Promise.resolve();
+        calls.push("second");
+      });
+      await manager.close(session.id);
+      assertEquals(calls, ["first", "second"]);
+    },
+  );
+
+  await t.step(
+    "onClose hooks for one session don't run for another",
+    async () => {
+      const manager = new SessionManager();
+      const a = manager.open();
+      const b = manager.open();
+      let aHookCalls = 0;
+      manager.onClose(a.id, () => {
+        aHookCalls++;
+      });
+      await manager.close(b.id);
+      assertEquals(aHookCalls, 0);
+    },
+  );
 });

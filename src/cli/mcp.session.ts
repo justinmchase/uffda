@@ -955,6 +955,18 @@ export class RuntimeSession {
   }
 
   /**
+   * Looks up a previously retained match result tree by id (see
+   * {@link retainMatchResult}), for consumers other than `walk()` that need
+   * the raw tree — for example the session display surface tool's
+   * Match-to-HTML transform (see
+   * `.agents/requirements/mcp-server/011-session-display-surface-tool.requirement.md`).
+   * Returns `undefined` for an unknown id, mirroring `walk()`'s own lookup.
+   */
+  public getMatchResult(matchResultId: string): Match | undefined {
+    return this.matchResults.get(matchResultId);
+  }
+
+  /**
    * Traverses a retained match result tree (see {@link retainMatchResult})
    * in deterministic, bounded windows — see
    * `.agents/requirements/mcp-server/008-match-tree-walking-tool.requirement.md`.
