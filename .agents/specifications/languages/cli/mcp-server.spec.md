@@ -203,9 +203,8 @@ chapter(s).
 
 ## Status
 
-Stateless operation tools, session lifecycle tools, evaluation tools,
-introspection and query tools, match-tree walking tools, and the source
-highlighting tool are implemented. Incremental re-parse tools and the session
-display surface tool remain specified but not yet implemented. See
-[command model](./command-model.spec.md) for the existing shipped CLI modes this
-chapter's tools sit alongside.
+Stateless operation tools, session lifecycle tools, incremental re-parse tools,
+evaluation tools, introspection and query tools, match-tree walking tools, the
+source highlighting tool, and the session display surface tool are implemented.
+See [command model](./command-model.spec.md) for the existing shipped CLI modes
+this chapter's tools sit alongside.

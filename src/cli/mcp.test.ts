@@ -41,6 +41,7 @@ Deno.test("cli.mcp", async (t) => {
             "uffda_session_list_modules",
             "uffda_session_load",
             "uffda_session_open",
+            "uffda_session_patch",
             "uffda_session_query",
             "uffda_session_walk",
             "uffda_version",

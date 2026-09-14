@@ -45,6 +45,28 @@ export const sessionLoadInputShape = {
 const sessionLoadInputSchema = z.object(sessionLoadInputShape);
 export type SessionLoadInput = z.infer<typeof sessionLoadInputSchema>;
 
+export const sessionPatchInputShape = {
+  sessionId: z.string().describe("An id returned by uffda_session_open."),
+  moduleUrl: z.string().optional().describe(
+    "Which loaded module to patch (a path already passed to " +
+      "uffda_session_load, or an href already returned by it). Defaults " +
+      "to the most recently loaded root module.",
+  ),
+  start: z.number().int().min(0).describe(
+    "Character offset (inclusive) where the replaced span begins, " +
+      "within the module's current source text.",
+  ),
+  end: z.number().int().min(0).describe(
+    "Character offset (exclusive) where the replaced span ends, " +
+      "within the module's current source text.",
+  ),
+  replacement: z.string().describe(
+    "Text to splice into the module's source in place of [start, end).",
+  ),
+};
+const sessionPatchInputSchema = z.object(sessionPatchInputShape);
+export type SessionPatchInput = z.infer<typeof sessionPatchInputSchema>;
+
 export const sessionCloseInputShape = {
   sessionId: z.string().describe("An id returned by uffda_session_open."),
 };
@@ -190,6 +212,33 @@ export function registerSessionTools(
       const lookup = sessions.get(input.sessionId);
       if (!lookup.ok) return jsonResult({ ok: false, error: lookup.error });
       const result = await lookup.session.load(input.source, input.path);
+      return jsonResult(result);
+    },
+  );
+
+  server.registerTool(
+    "uffda_session_patch",
+    {
+      title: "uffda session patch",
+      description:
+        "Applies a character-offset-range edit to an already-loaded " +
+        "module's current source text, and re-parses/re-resolves only " +
+        "what has to change — reusing memoized parse state for spans " +
+        "unaffected by the edit — instead of requiring the caller to " +
+        "resubmit the module's entire source through uffda_session_load. " +
+        "Produces the same result as reloading the post-edit source in " +
+        "full, and reports failures the same way uffda_session_load would.",
+      inputSchema: sessionPatchInputShape,
+    },
+    async (input: SessionPatchInput) => {
+      const lookup = sessions.get(input.sessionId);
+      if (!lookup.ok) return jsonResult({ ok: false, error: lookup.error });
+      const result = await lookup.session.patch({
+        moduleUrl: input.moduleUrl,
+        start: input.start,
+        end: input.end,
+        replacement: input.replacement,
+      });
       return jsonResult(result);
     },
   );

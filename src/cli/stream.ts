@@ -8,6 +8,8 @@ import {
   type UffdaSyntaxModule,
 } from "../lang/uffda/uffda.lang.ts";
 import { CliLanguage } from "./contract.ts";
+import type { Input } from "../input.ts";
+import type { Memos } from "../memo.ts";
 
 export enum CliStreamFailureCode {
   ParseFailure = "CLI_STREAM_PARSE_FAILURE",
@@ -35,6 +37,15 @@ export type CliStreamResult =
   | {
     ok: true;
     ast: UffdaSyntaxModule | Pattern | Expression;
+    /**
+     * The raw, successful `Match` this AST was extracted from. Present so
+     * callers doing incremental re-parsing (see
+     * `.agents/specifications/runtime/incremental-parsing.spec.md`) can
+     * retain it as the "prior parse" fed into `rehydrateMemos` for a later
+     * edit, without this module needing any incremental-specific return
+     * shape of its own. Unused by ordinary one-shot callers.
+     */
+    match: Match;
   }
   | {
     ok: false;
@@ -132,28 +143,39 @@ async function toParseFailure(
   };
 }
 
+/** Options threaded through to the underlying grammar for incremental
+ * re-parsing (see `GrammarOptions` in `../lang/grammar.ts`): a pre-seeded
+ * memo table (typically from `rehydrateMemos`) plus the exact `Input` chain
+ * it was rehydrated against. Only meaningful for `CliLanguage.FullUffda`,
+ * the only language a session's incremental patch tool re-parses. */
+export type CliStreamIncrementalOptions = {
+  memos?: Memos;
+  input?: Input;
+};
+
 export async function parseSourceToAst(
   sourceText: string,
   language: CliLanguage = CliLanguage.FullUffda,
   sourcePath = "<stdin>",
+  incremental?: CliStreamIncrementalOptions,
 ): Promise<CliStreamResult> {
   switch (language) {
     case CliLanguage.FullUffda: {
-      const parsed = await uffdaGrammar(sourceText);
+      const parsed = await uffdaGrammar(sourceText, incremental);
       return parsed.kind === MatchKind.Ok
-        ? { ok: true, ast: parsed.value }
+        ? { ok: true, ast: parsed.value, match: parsed }
         : await toParseFailure(parsed, language, sourcePath, sourceText);
     }
     case CliLanguage.Pattern: {
       const parsed = await patternGrammar(sourceText);
       return parsed.kind === MatchKind.Ok
-        ? { ok: true, ast: parsed.value }
+        ? { ok: true, ast: parsed.value, match: parsed }
         : await toParseFailure(parsed, language, sourcePath, sourceText);
     }
     case CliLanguage.Expression: {
       const parsed = await expressionGrammar(sourceText);
       return parsed.kind === MatchKind.Ok
-        ? { ok: true, ast: parsed.value }
+        ? { ok: true, ast: parsed.value, match: parsed }
         : await toParseFailure(parsed, language, sourcePath, sourceText);
     }
   }

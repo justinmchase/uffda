@@ -19,7 +19,10 @@ import {
 import type { Module } from "../runtime/modules/mod.ts";
 import { Resolver } from "../runtime/resolve.ts";
 import { Scope } from "../runtime/scope.ts";
-import { InputNormalizationMode } from "../input.ts";
+import { Input, InputNormalizationMode } from "../input.ts";
+import { Path } from "../path.ts";
+import type { Edit } from "../edit.ts";
+import { rehydrateMemos } from "../runtime/incremental.ts";
 import {
   getRightmostFailure,
   type Match,
@@ -104,6 +107,43 @@ export type SessionLoadResult =
      * Always empty for parse/compile-phase failures, since resolution never
      * started.
      */
+    resolvedDuringLoad: LoadedModuleSummary[];
+  };
+
+export enum SessionPatchFailureCode {
+  UnknownModule = "MCP_SESSION_PATCH_UNKNOWN_MODULE",
+  InvalidEdit = "MCP_SESSION_PATCH_INVALID_EDIT",
+}
+
+export type SessionPatchFailure =
+  | SessionLoadFailure
+  | {
+    code: SessionPatchFailureCode;
+    phase: "input";
+    message: string;
+  };
+
+export type SessionPatchInput = {
+  /**
+   * The module to patch: an href already returned by `load()`, or the
+   * `path` string already passed to `load()`. Defaults to the most
+   * recently loaded root module, matching `resolveTargetModule`'s default.
+   */
+  moduleUrl?: string;
+  /** Character offset (inclusive) where the replaced span begins. */
+  start: number;
+  /** Character offset (exclusive) where the replaced span ends. */
+  end: number;
+  /** Text to splice into `[start, end)`. */
+  replacement: string;
+};
+
+export type SessionPatchResult =
+  | { ok: true; module: LoadedModuleSummary }
+  | {
+    ok: false;
+    error: SessionPatchFailure;
+    partiallyLoadedModules: LoadedModuleSummary[];
     resolvedDuringLoad: LoadedModuleSummary[];
   };
 
@@ -481,6 +521,16 @@ export class RuntimeSession {
   private readonly matchResults = new Map<string, Match>();
   private nextMatchResultId = 1;
   private closed = false;
+  // The exact source text and raw parse `Match` for every module loaded via
+  // a full `load()` call, keyed by module href. Retained so a later
+  // `patch()` call can rehydrate a memo table from the prior parse (see
+  // `rehydrateMemos` in `../runtime/incremental.ts`) instead of re-parsing
+  // the whole module from scratch. Only ever set alongside `this.modules` —
+  // committed together on success, never partially.
+  private readonly parseStates = new Map<
+    string,
+    { source: string; match: Match }
+  >();
 
   constructor(id: string, options?: RuntimeSessionOptions) {
     this.id = id;
@@ -537,11 +587,125 @@ export class RuntimeSession {
       };
     }
 
+    const result = await this.compileAndCommitModule(
+      moduleUrl,
+      parsed.ast as UffdaSyntaxModule,
+    );
+    if (result.ok) {
+      this.parseStates.set(moduleUrl.href, { source, match: parsed.match });
+    }
+    return result;
+  }
+
+  /**
+   * Applies a character-offset-range edit to the current source text of an
+   * already file-backed or inline-loaded module, and re-parses/re-resolves
+   * only what has to change — reusing memoized parse state for every span
+   * that ends strictly before the edit via `rehydrateMemos` (see
+   * `.agents/specifications/runtime/incremental-parsing.spec.md`) — rather
+   * than requiring the caller to resubmit the module's entire source text
+   * through `load()`. Resolution/commit after the parse is identical to a
+   * full `load()`, so the result of a successful `patch()` is guaranteed
+   * equivalent to reloading the post-edit source in full (see
+   * `.agents/requirements/mcp-server/005-incremental-reparse-tool.requirement.md`).
+   */
+  public async patch(input: SessionPatchInput): Promise<SessionPatchResult> {
+    if (this.closed) {
+      throw new Error(`Session ${this.id} is closed`);
+    }
+
+    const { moduleUrl, start, end, replacement } = input;
+    const href = this.hrefFor(moduleUrl);
+    const priorState = href ? this.parseStates.get(href) : undefined;
+    if (!href || !priorState) {
+      return {
+        ok: false,
+        error: {
+          code: SessionPatchFailureCode.UnknownModule,
+          phase: "input",
+          message: href
+            ? `No prior parse state retained for module: ${href}`
+            : "This session has no loaded modules to patch",
+        },
+        partiallyLoadedModules: this.listLoadedModules(),
+        resolvedDuringLoad: [],
+      };
+    }
+
+    const { source, match: priorMatch } = priorState;
+    if (
+      !Number.isInteger(start) || !Number.isInteger(end) ||
+      start < 0 || end < start || end > source.length
+    ) {
+      return {
+        ok: false,
+        error: {
+          code: SessionPatchFailureCode.InvalidEdit,
+          phase: "input",
+          message:
+            `Invalid edit range [${start}, ${end}) for module source of length ${source.length}`,
+        },
+        partiallyLoadedModules: this.listLoadedModules(),
+        resolvedDuringLoad: [],
+      };
+    }
+
+    const newSource = source.slice(0, start) + replacement +
+      source.slice(end);
+    const freshInput = Input.From(newSource, {
+      kind: InputNormalizationMode.Scalar,
+    });
+    const edit: Edit = {
+      at: Path.Default().set(start),
+      removed: end - start,
+      inserted: replacement.length,
+    };
+    const memos = await rehydrateMemos(priorMatch, edit, freshInput);
+
+    const parsed = await parseSourceToAst(
+      newSource,
+      CliLanguage.FullUffda,
+      href,
+      { memos, input: freshInput },
+    );
+    if (!parsed.ok) {
+      return {
+        ok: false,
+        error: {
+          code: SessionLoadFailureCode.ParseFailure,
+          phase: "parse",
+          message: parsed.error.message,
+        },
+        partiallyLoadedModules: this.listLoadedModules(),
+        resolvedDuringLoad: [],
+      };
+    }
+
+    const result = await this.compileAndCommitModule(
+      new URL(href),
+      parsed.ast as UffdaSyntaxModule,
+    );
+    if (result.ok) {
+      this.parseStates.set(href, { source: newSource, match: parsed.match });
+    }
+    return result;
+  }
+
+  /**
+   * Compiles an already-parsed `UffdaSyntaxModule` AST to a
+   * `ModuleDeclaration`, resolves it (and anything it imports) against a
+   * trial resolver seeded with this session's accumulated declarations, and
+   * commits every module the resolver reached on success. Shared by `load()`
+   * (full parse) and `patch()` (incremental re-parse) so both paths commit
+   * session state identically.
+   */
+  private async compileAndCommitModule(
+    moduleUrl: URL,
+    ast: UffdaSyntaxModule,
+  ): Promise<SessionLoadResult> {
     let declaration: ModuleDeclaration;
     try {
-      declaration = await compileUffdaSyntaxModule(
-        parsed.ast as UffdaSyntaxModule,
-      );
+      declaration = await compileUffdaSyntaxModule(ast);
     } catch (error) {
       return {
         ok: false,
@@ -636,24 +800,33 @@ export class RuntimeSession {
   /**
    * Resolves `moduleUrl` (an href already returned by `load()`, a path
    * already passed to `load()`, or the most recently loaded module's root if
-   * omitted) to its cached `Module`.
+   * omitted) to a stored module href, if any. Shared by
+   * `resolveTargetModule()` (eval/walk/describe target resolution) and
+   * `patch()` (incremental re-parse target resolution).
    */
-  private resolveTargetModule(
-    moduleUrl?: string,
-  ): { ok: true; module: Module } | { ok: false; error: SessionEvalFailure } {
-    let href: string | undefined;
+  private hrefFor(moduleUrl?: string): string | undefined {
     if (moduleUrl) {
       // `moduleUrl` may already be a stored href verbatim (what `load()`
       // returns, including `session://...` for inline loads that have no
       // filesystem path at all) — check that first. Only fall back to
       // resolving it as a path relative to `cwd` for callers passing back
       // the same `path` string they gave `load()`.
-      href = this.modules.has(moduleUrl)
+      return this.modules.has(moduleUrl)
         ? moduleUrl
         : toFileUrl(resolvePath(this.cwd, moduleUrl)).href;
-    } else {
-      href = this.lastLoadedRootHref;
     }
+    return this.lastLoadedRootHref;
+  }
+
+  /**
+   * Resolves `moduleUrl` (an href already returned by `load()`, a path
+   * already passed to `load()`, or the most recently loaded module's root if
+   * omitted) to its cached `Module`.
+   */
+  private resolveTargetModule(
+    moduleUrl?: string,
+  ): { ok: true; module: Module } | { ok: false; error: SessionEvalFailure } {
+    const href = this.hrefFor(moduleUrl);
     const module = href ? this.modules.get(href) : undefined;
     if (!module) {
       return {

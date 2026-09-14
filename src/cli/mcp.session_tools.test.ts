@@ -102,6 +102,76 @@ Deno.test("cli.mcp session tools end to end", async (t) => {
   });
 
   await t.step(
+    "patches a loaded module's source and reports the same result as a full reload",
+    async () => {
+      const { server, client } = await connectedClient();
+      try {
+        const opened = textOf(
+          await client.callTool({
+            name: "uffda_session_open",
+            arguments: {},
+          }),
+        ) as { ok: boolean; sessionId: string };
+
+        const before = 'export Main;\nrule Main = "a";';
+        const editAt = before.indexOf('"a"');
+        const loaded = textOf(
+          await client.callTool({
+            name: "uffda_session_load",
+            arguments: { sessionId: opened.sessionId, source: before },
+          }),
+        ) as {
+          ok: boolean;
+          module?: { moduleUrl: string };
+        };
+        assertEquals(loaded.ok, true);
+
+        const patched = textOf(
+          await client.callTool({
+            name: "uffda_session_patch",
+            arguments: {
+              sessionId: opened.sessionId,
+              moduleUrl: loaded.module?.moduleUrl,
+              start: editAt,
+              end: editAt + 3,
+              replacement: '"z"',
+            },
+          }),
+        ) as {
+          ok: boolean;
+          module?: {
+            declarations: { name: string; kind: string; exported: boolean }[];
+          };
+        };
+        assertEquals(patched.ok, true);
+        assertEquals(patched.module?.declarations, [
+          { name: "Main", kind: "rule", exported: true },
+        ]);
+      } finally {
+        await client.close();
+        await server.close();
+      }
+    },
+  );
+
+  await t.step("patching against an unknown session id fails", async () => {
+    const { server, client } = await connectedClient();
+    try {
+      const result = textOf(
+        await client.callTool({
+          name: "uffda_session_patch",
+          arguments: { sessionId: "nope", start: 0, end: 0, replacement: "" },
+        }),
+      ) as { ok: boolean; error?: { code: string } };
+      assertEquals(result.ok, false);
+      assertEquals(result.error?.code, "MCP_SESSION_UNKNOWN");
+    } finally {
+      await client.close();
+      await server.close();
+    }
+  });
+
+  await t.step(
     "evaluates an expression and invokes a named rule over MCP",
     async () => {
       const { server, client } = await connectedClient();

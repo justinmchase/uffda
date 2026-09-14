@@ -5,6 +5,7 @@ import {
   SessionDescribeFailureCode,
   SessionEvalFailureCode,
   SessionLoadFailureCode,
+  SessionPatchFailureCode,
   SessionQueryFailureCode,
   SessionWalkFailureCode,
 } from "./mcp.session.ts";
@@ -323,6 +324,215 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
       } finally {
         await Deno.remove(cwd, { recursive: true });
       }
+    },
+  );
+});
+
+Deno.test("cli.mcp.session RuntimeSession.patch", async (t) => {
+  await t.step(
+    "applies an edit and reports the same summary as a full reload",
+    async () => {
+      const before =
+        'export First Second;\nrule First = "a";\nrule Second = "b";';
+      const editAt = before.indexOf('"b"');
+      const after = before.slice(0, editAt) + '"c"' +
+        before.slice(editAt + 3);
+
+      const session = new RuntimeSession("patch1");
+      const loaded = await session.load(before);
+      assertEquals(loaded.ok, true);
+      assert(loaded.ok);
+
+      const patched = await session.patch({
+        moduleUrl: loaded.module.moduleUrl,
+        start: editAt,
+        end: editAt + 3,
+        replacement: '"c"',
+      });
+      assertEquals(patched.ok, true);
+      assert(patched.ok);
+
+      const fullReloadSession = new RuntimeSession("patch1-full");
+      const fullReload = await fullReloadSession.load(after);
+      assertEquals(fullReload.ok, true);
+      assert(fullReload.ok);
+
+      assertEquals(patched.module.declarations, fullReload.module.declarations);
+    },
+  );
+
+  await t.step(
+    "defaults moduleUrl to the most recently loaded root module",
+    async () => {
+      const before = 'export Main;\nrule Main = "a";';
+      const editAt = before.indexOf('"a"');
+      const session = new RuntimeSession("patch2");
+      await session.load(before);
+
+      const patched = await session.patch({
+        start: editAt,
+        end: editAt + 3,
+        replacement: '"z"',
+      });
+      assertEquals(patched.ok, true);
+      assert(patched.ok);
+      assertEquals(patched.module.declarations, [
+        { name: "Main", kind: "rule", exported: true },
+      ]);
+    },
+  );
+
+  await t.step(
+    "accepts an href previously returned by load(), including session:// hrefs",
+    async () => {
+      const before = 'export Main;\nrule Main = "a";';
+      const editAt = before.indexOf('"a"');
+      const session = new RuntimeSession("patch3");
+      const loaded = await session.load(before);
+      assertEquals(loaded.ok, true);
+      assert(loaded.ok);
+      assert(loaded.module.moduleUrl.startsWith("session:///"));
+
+      const patched = await session.patch({
+        moduleUrl: loaded.module.moduleUrl,
+        start: editAt,
+        end: editAt + 3,
+        replacement: '"z"',
+      });
+      assertEquals(patched.ok, true);
+    },
+  );
+
+  await t.step(
+    "fails with UnknownModule for a moduleUrl never loaded in this session",
+    async () => {
+      const session = new RuntimeSession("patch4");
+      const result = await session.patch({
+        moduleUrl: "does-not-exist.uff",
+        start: 0,
+        end: 0,
+        replacement: "",
+      });
+      assertEquals(result.ok, false);
+      assert(!result.ok);
+      assertEquals(result.error.code, SessionPatchFailureCode.UnknownModule);
+      assertEquals(result.error.phase, "input");
+    },
+  );
+
+  await t.step(
+    "fails with UnknownModule when the session has no loaded modules",
+    async () => {
+      const session = new RuntimeSession("patch5");
+      const result = await session.patch({ start: 0, end: 0, replacement: "" });
+      assertEquals(result.ok, false);
+      assert(!result.ok);
+      assertEquals(result.error.code, SessionPatchFailureCode.UnknownModule);
+    },
+  );
+
+  await t.step(
+    "fails with InvalidEdit for an out-of-range edit",
+    async () => {
+      const session = new RuntimeSession("patch6");
+      const loaded = await session.load('export Main;\nrule Main = "a";');
+      assertEquals(loaded.ok, true);
+      assert(loaded.ok);
+
+      const negativeStart = await session.patch({
+        start: -1,
+        end: 0,
+        replacement: "",
+      });
+      assertEquals(negativeStart.ok, false);
+      assert(!negativeStart.ok);
+      assertEquals(
+        negativeStart.error.code,
+        SessionPatchFailureCode.InvalidEdit,
+      );
+
+      const endBeforeStart = await session.patch({
+        start: 5,
+        end: 2,
+        replacement: "",
+      });
+      assertEquals(endBeforeStart.ok, false);
+      assert(!endBeforeStart.ok);
+      assertEquals(
+        endBeforeStart.error.code,
+        SessionPatchFailureCode.InvalidEdit,
+      );
+
+      const beyondEnd = await session.patch({
+        start: 0,
+        end: 10_000,
+        replacement: "",
+      });
+      assertEquals(beyondEnd.ok, false);
+      assert(!beyondEnd.ok);
+      assertEquals(beyondEnd.error.code, SessionPatchFailureCode.InvalidEdit);
+    },
+  );
+
+  await t.step(
+    "reports a parse failure the same way a full load failure would",
+    async () => {
+      const session = new RuntimeSession("patch7");
+      const loaded = await session.load('export Main;\nrule Main = "a";');
+      assertEquals(loaded.ok, true);
+      assert(loaded.ok);
+
+      const result = await session.patch({
+        start: 0,
+        end: 0,
+        replacement: "!!!not valid uffda!!!",
+      });
+      assertEquals(result.ok, false);
+      assert(!result.ok);
+      assertEquals(result.error.code, SessionLoadFailureCode.ParseFailure);
+      assertEquals(result.error.phase, "parse");
+    },
+  );
+
+  await t.step(
+    "two sequential edits compose to the same result as one equivalent edit",
+    async () => {
+      const before =
+        'export First Second Third;\nrule First = "a";\nrule Second = "b";\nrule Third = "c";';
+
+      const bIndex = before.indexOf('"b"');
+      const afterFirstEdit = before.slice(0, bIndex) + '"x"' +
+        before.slice(bIndex + 3);
+      const cIndex = afterFirstEdit.indexOf('"c"');
+      const finalSource = afterFirstEdit.slice(0, cIndex) + '"y"' +
+        afterFirstEdit.slice(cIndex + 3);
+
+      const session = new RuntimeSession("patch8");
+      await session.load(before);
+      const firstPatch = await session.patch({
+        start: bIndex,
+        end: bIndex + 3,
+        replacement: '"x"',
+      });
+      assertEquals(firstPatch.ok, true);
+
+      const secondPatch = await session.patch({
+        start: cIndex,
+        end: cIndex + 3,
+        replacement: '"y"',
+      });
+      assertEquals(secondPatch.ok, true);
+      assert(secondPatch.ok);
+
+      const fullSession = new RuntimeSession("patch8-full");
+      const fullReload = await fullSession.load(finalSource);
+      assertEquals(fullReload.ok, true);
+      assert(fullReload.ok);
+
+      assertEquals(
+        secondPatch.module.declarations,
+        fullReload.module.declarations,
+      );
     },
   );
 });

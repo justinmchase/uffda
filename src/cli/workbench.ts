@@ -97,12 +97,22 @@ export type CliWorkbenchFileSystem = {
   writeTextFile(path: string, content: string): Promise<void>;
 };
 
+/** Distributes `Omit` over a union so each branch's discriminant/shape is
+ * preserved (plain `Omit` collapses a union to only its common keys). */
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K>
+  : never;
+
 export type CliWorkbenchSession = {
   active: boolean;
   language: CliLanguage;
   source: string;
   sourcePath: string;
-  compilation?: CliStreamResult;
+  // Only `ok`/`ast`/`error` are ever read by the workbench; the raw `match`
+  // tree `CliStreamResult` success carries for incremental re-parsing (see
+  // `rehydrateMemos` in `../runtime/incremental.ts`) is dropped before
+  // storage so `snapshot()`'s `structuredClone` never has to clone it (its
+  // internal node/iterator structure isn't structured-clonable).
+  compilation?: DistributiveOmit<CliStreamResult, "match">;
   visualization?: string;
 };
 
@@ -411,11 +421,14 @@ export class CliWorkbench {
   }
 
   async #compile(): Promise<void> {
-    this.#session.compilation = await parseSourceToAst(
+    const result = await parseSourceToAst(
       this.#session.source,
       this.#session.language,
       this.#session.sourcePath,
     );
+    this.#session.compilation = result.ok
+      ? { ok: true, ast: result.ast }
+      : result;
   }
 
   private resolvePath(path: string): string {
