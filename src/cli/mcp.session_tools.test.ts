@@ -100,4 +100,87 @@ Deno.test("cli.mcp session tools end to end", async (t) => {
       await server.close();
     }
   });
+
+  await t.step(
+    "evaluates an expression and invokes a named rule over MCP",
+    async () => {
+      const { server, client } = await connectedClient();
+      try {
+        const opened = textOf(
+          await client.callTool({
+            name: "uffda_session_open",
+            arguments: {},
+          }),
+        ) as { ok: boolean; sessionId: string };
+
+        const loaded = textOf(
+          await client.callTool({
+            name: "uffda_session_load",
+            arguments: {
+              sessionId: opened.sessionId,
+              source:
+                'export Add Main;\nfunc Add<a:number b:number> = (add a b);\nrule Main = "A";',
+            },
+          }),
+        ) as { ok: boolean };
+        assertEquals(loaded.ok, true);
+
+        const exprResult = textOf(
+          await client.callTool({
+            name: "uffda_session_eval",
+            arguments: {
+              sessionId: opened.sessionId,
+              expression: "(Add 1 2)",
+            },
+          }),
+        ) as { ok: boolean; value?: unknown };
+        assertEquals(exprResult, { ok: true, value: 3 });
+
+        const ruleResult = textOf(
+          await client.callTool({
+            name: "uffda_session_eval",
+            arguments: {
+              sessionId: opened.sessionId,
+              rule: "Main",
+              input: "A",
+            },
+          }),
+        ) as { ok: boolean; value?: unknown };
+        assertEquals(ruleResult, { ok: true, value: "A" });
+
+        const failResult = textOf(
+          await client.callTool({
+            name: "uffda_session_eval",
+            arguments: {
+              sessionId: opened.sessionId,
+              rule: "Main",
+              input: "B",
+            },
+          }),
+        ) as { ok: boolean; error?: { code: string } };
+        assertEquals(failResult.ok, false);
+        assertEquals(failResult.error?.code, "MCP_SESSION_EVAL_MATCH_FAILURE");
+      } finally {
+        await client.close();
+        await server.close();
+      }
+    },
+  );
+
+  await t.step("evaluating against an unknown session id fails", async () => {
+    const { server, client } = await connectedClient();
+    try {
+      const result = textOf(
+        await client.callTool({
+          name: "uffda_session_eval",
+          arguments: { sessionId: "nope", expression: "1" },
+        }),
+      ) as { ok: boolean; error?: { code: string } };
+      assertEquals(result.ok, false);
+      assertEquals(result.error?.code, "MCP_SESSION_UNKNOWN");
+    } finally {
+      await client.close();
+      await server.close();
+    }
+  });
 });

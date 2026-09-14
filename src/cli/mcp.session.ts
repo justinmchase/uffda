@@ -1,13 +1,18 @@
 import { resolve as resolvePath, toFileUrl } from "@std/path";
 import { compileUffdaSyntaxModule } from "../lang/uffda/execute.ts";
 import type { UffdaSyntaxModule } from "../lang/uffda/uffda.lang.ts";
+import { exec } from "../runtime/exec.ts";
+import type { Expression } from "../runtime/expressions/expression.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "../runtime/patterns/pattern.ts";
+import { resolve as resolvePattern } from "../runtime/patterns/resolve.ts";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 import { isRule } from "../runtime/modules/rule.ts";
 import type { Module } from "../runtime/modules/mod.ts";
 import { Resolver } from "../runtime/resolve.ts";
 import { Scope } from "../runtime/scope.ts";
+import { InputNormalizationMode } from "../input.ts";
+import { getRightmostFailure, MatchKind, ok as matchOk } from "../match.ts";
 import { ModuleImportResultKind } from "../runtime/resolvers/resolver.ts";
 import { CliLanguage } from "./contract.ts";
 import { parseSourceToAst } from "./stream.ts";
@@ -88,6 +93,56 @@ export type SessionLoadResult =
     resolvedDuringLoad: LoadedModuleSummary[];
   };
 
+export enum SessionEvalFailureCode {
+  InvalidInput = "MCP_SESSION_EVAL_INVALID_INPUT",
+  InvalidJson = "MCP_SESSION_EVAL_INVALID_JSON",
+  UnknownModule = "MCP_SESSION_EVAL_UNKNOWN_MODULE",
+  ParseFailure = "MCP_SESSION_EVAL_PARSE_FAILURE",
+  ExpressionException = "MCP_SESSION_EVAL_EXPRESSION_EXCEPTION",
+  MatchFailure = "MCP_SESSION_EVAL_MATCH_FAILURE",
+}
+
+export type SessionEvalFailure = {
+  code: SessionEvalFailureCode;
+  phase: "input" | "parse" | "resolve" | "eval";
+  message: string;
+  inputPosition?: string;
+  inputDescription?: string;
+};
+
+export type SessionEvalResult =
+  | { ok: true; value: unknown }
+  | { ok: false; error: SessionEvalFailure };
+
+export type SessionEvalInput = {
+  /**
+   * Which loaded module's scope to evaluate against (an href/path this
+   * session already loaded). Defaults to the most recently loaded module.
+   */
+  moduleUrl?: string;
+  /**
+   * An Uffda expression to evaluate (parsed with the expression grammar),
+   * for example `(add 1 2)` to invoke an in-scope func, or a member/object
+   * construction. Mutually exclusive with `rule`.
+   */
+  expression?: string;
+  /**
+   * The name of an exported Rule to invoke against `input` (mutually
+   * exclusive with `expression`). Omit the name and rely on the module's
+   * default export instead by leaving both unset only if `expression` is
+   * also unset — one of `expression`/`rule` is always required.
+   */
+  rule?: string;
+  /** Subject text to match `rule` against. Required when `rule` is set. */
+  input?: string;
+  /**
+   * When true, `input` is parsed as JSON before matching. Defaults to false
+   * (input is matched as raw text/iterable), matching `uffda_match`'s
+   * convention.
+   */
+  inputIsJson?: boolean;
+};
+
 export type RuntimeSessionOptions = {
   cwd?: string;
   /**
@@ -105,6 +160,21 @@ export type RuntimeSessionOptions = {
  * structure, so no real target name is meaningful here.
  */
 function loadContextPattern() {
+  return {
+    kind: PatternKind.Resolve,
+    targetKind: ResolveTargetKind.Run,
+    name: undefined,
+  } as const;
+}
+
+/**
+ * Placeholder pattern used only to synthesize a `MatchOk` context for
+ * standalone expression evaluation (`uffda_session_eval`'s `expression`
+ * mode): `exec()` requires a `MatchOk` to resolve `_`/`this`/variables
+ * against, but a bare expression isn't itself the result of matching any
+ * real pattern, so there is no meaningful pattern to attribute it to.
+ */
+function evalContextPattern() {
   return {
     kind: PatternKind.Resolve,
     targetKind: ResolveTargetKind.Run,
@@ -164,6 +234,12 @@ export class RuntimeSession {
   private readonly declarations = new Map<string, ModuleDeclaration>();
   private readonly modules = new Map<string, Module>();
   private readonly moduleOrder: string[] = [];
+  // The href of the most recent successful `load()` call's *root* module
+  // (as opposed to `moduleOrder`'s last entry, which is populated in
+  // resolver-discovery order and so is the root's *last transitive import*
+  // once that root pulls in anything). This is what `eval()` defaults to
+  // when `moduleUrl` is omitted.
+  private lastLoadedRootHref?: string;
   private nextAnonymousLoadId = 0;
   private closed = false;
 
@@ -314,7 +390,195 @@ export class RuntimeSession {
     for (const [href, decl] of resolver.moduleDeclarations) {
       this.declarations.set(href, decl);
     }
+    this.lastLoadedRootHref = moduleUrl.href;
     return { ok: true, module: summarizeModule(moduleUrl, imported.module) };
+  }
+
+  /**
+   * Resolves `moduleUrl` (an href already returned by `load()`, a path
+   * already passed to `load()`, or the most recently loaded module's root if
+   * omitted) to its cached `Module`.
+   */
+  private resolveTargetModule(
+    moduleUrl?: string,
+  ): { ok: true; module: Module } | { ok: false; error: SessionEvalFailure } {
+    let href: string | undefined;
+    if (moduleUrl) {
+      // `moduleUrl` may already be a stored href verbatim (what `load()`
+      // returns, including `session://...` for inline loads that have no
+      // filesystem path at all) — check that first. Only fall back to
+      // resolving it as a path relative to `cwd` for callers passing back
+      // the same `path` string they gave `load()`.
+      href = this.modules.has(moduleUrl)
+        ? moduleUrl
+        : toFileUrl(resolvePath(this.cwd, moduleUrl)).href;
+    } else {
+      href = this.lastLoadedRootHref;
+    }
+    const module = href ? this.modules.get(href) : undefined;
+    if (!module) {
+      return {
+        ok: false,
+        error: {
+          code: SessionEvalFailureCode.UnknownModule,
+          phase: "resolve",
+          message: href
+            ? `No module loaded in this session with url: ${href}`
+            : "This session has no loaded modules to evaluate against",
+        },
+      };
+    }
+    return { ok: true, module };
+  }
+
+  /**
+   * Evaluates an expression, or invokes a named Rule against subject input,
+   * using this session's already-resolved module state (no re-parsing or
+   * re-resolving any loaded module) — see
+   * `.agents/requirements/mcp-server/006-evaluation-tool.requirement.md`.
+   *
+   * Func invocation is expressed through `expression` (for example
+   * `(myFunc 1 2)`), since Funcs are ordinary callable values resolved
+   * through the expression grammar's `Reference`/`Invocation` nodes. `rule`
+   * is for invoking a named Rule — which matches against a stream of input
+   * rather than a fixed argument list — against `input` text.
+   */
+  public async eval(input: SessionEvalInput): Promise<SessionEvalResult> {
+    if (this.closed) {
+      throw new Error(`Session ${this.id} is closed`);
+    }
+
+    const hasExpression = input.expression !== undefined;
+    const hasRule = input.rule !== undefined;
+    if (hasExpression === hasRule) {
+      return {
+        ok: false,
+        error: {
+          code: SessionEvalFailureCode.InvalidInput,
+          phase: "input",
+          message: "Provide exactly one of `expression` or `rule`.",
+        },
+      };
+    }
+
+    const target = this.resolveTargetModule(input.moduleUrl);
+    if (!target.ok) return target;
+    const { module } = target;
+
+    if (hasExpression) {
+      const parsed = await parseSourceToAst(
+        input.expression!,
+        CliLanguage.Expression,
+      );
+      if (!parsed.ok) {
+        return {
+          ok: false,
+          error: {
+            code: SessionEvalFailureCode.ParseFailure,
+            phase: "parse",
+            message: parsed.error.message,
+          },
+        };
+      }
+
+      const scope = Scope.Default().pushModule(module);
+      const context = matchOk(scope, scope, evalContextPattern(), undefined);
+      try {
+        const value = await exec(parsed.ast as Expression, context);
+        return { ok: true, value };
+      } catch (error) {
+        return {
+          ok: false,
+          error: {
+            code: SessionEvalFailureCode.ExpressionException,
+            phase: "eval",
+            message: error instanceof Error ? error.message : String(error),
+          },
+        };
+      }
+    }
+
+    if (input.input === undefined) {
+      return {
+        ok: false,
+        error: {
+          code: SessionEvalFailureCode.InvalidInput,
+          phase: "input",
+          message: "`input` is required when `rule` is set.",
+        },
+      };
+    }
+
+    const jsonInput = input.inputIsJson ?? false;
+    let subject: unknown = input.input;
+    if (jsonInput) {
+      try {
+        subject = JSON.parse(input.input);
+      } catch (error) {
+        return {
+          ok: false,
+          error: {
+            code: SessionEvalFailureCode.InvalidJson,
+            phase: "input",
+            message: error instanceof Error ? error.message : String(error),
+          },
+        };
+      }
+    }
+
+    const scope = Scope.From(subject, {
+      kind: jsonInput
+        ? InputNormalizationMode.Scalar
+        : InputNormalizationMode.Iterable,
+    }).pushModule(module);
+    const result = await resolvePattern(
+      {
+        kind: PatternKind.Resolve,
+        targetKind: ResolveTargetKind.Run,
+        name: input.rule,
+      },
+      scope,
+    );
+
+    switch (result.kind) {
+      case MatchKind.Ok:
+        return { ok: true, value: result.value };
+      case MatchKind.Error:
+        return {
+          ok: false,
+          error: {
+            code: SessionEvalFailureCode.MatchFailure,
+            phase: "eval",
+            message: `${result.code}: ${result.message}`,
+          },
+        };
+      case MatchKind.Fail: {
+        const rightmost = getRightmostFailure(result);
+        return {
+          ok: false,
+          error: {
+            code: SessionEvalFailureCode.MatchFailure,
+            phase: "eval",
+            message: input.rule
+              ? `Rule '${input.rule}' did not match input at ${rightmost.span.start.toString()}`
+              : `Default rule did not match input at ${rightmost.span.start.toString()}`,
+            inputPosition: rightmost.span.start.toString(),
+            inputDescription: await rightmost.scope.stream.done()
+              ? "end of input"
+              : "a value that did not match",
+          },
+        };
+      }
+      case MatchKind.LR:
+        return {
+          ok: false,
+          error: {
+            code: SessionEvalFailureCode.MatchFailure,
+            phase: "eval",
+            message: "match failed with left recursion outcome",
+          },
+        };
+    }
   }
 
   /** Releases this session's in-memory state. Idempotent. */
@@ -322,6 +586,7 @@ export class RuntimeSession {
     this.declarations.clear();
     this.modules.clear();
     this.moduleOrder.length = 0;
+    this.lastLoadedRootHref = undefined;
     this.closed = true;
   }
 }
