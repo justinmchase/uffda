@@ -90,6 +90,18 @@ chapter(s).
 - Evaluation MUST use the session's live resolved state (including any
   decorator-derived metadata) rather than re-resolving from source on every
   call.
+- A rule/func invocation's full match result tree MUST be retained in the
+  session, referenced by a stable result id returned alongside the structured
+  result, rather than being discarded once the top-level value is extracted. The
+  tool MUST NOT return the full tree in the evaluation response itself (see
+  match-tree walking tools below for bounded traversal of a retained tree) — a
+  match result tree can be arbitrarily large, so eagerly returning or eagerly
+  flattening it would defeat the response-size budget the walking tool exists to
+  enforce.
+- A retained match result MUST remain walkable for the lifetime of the session
+  it belongs to (or until an explicit release, if the server offers one).
+  Closing the session MUST release it along with the rest of that session's
+  state.
 
 ### Introspection and query tools
 
@@ -112,6 +124,13 @@ chapter(s).
   response.
 - Windowed/paginated traversal MUST be deterministic for a fixed match tree and
   fixed window parameters.
+- Each visited node MUST report its own decorator-derived metadata when it
+  originates a fresh rule invocation (see
+  [rule metadata](../../runtime/rule-metadata.spec.md)), as well as the
+  accumulated metadata contributed by every ancestor node on the path from the
+  tree's root down to it (see that chapter's "Metadata resolution" section) — so
+  a caller can determine everything a given span or value has been decorated
+  with without independently re-walking the tree from the root on every query.
 
 ### Source highlighting tool
 
@@ -123,6 +142,12 @@ chapter(s).
 - Highlighting output MUST be derived from the same parse/AST span information
   used elsewhere for diagnostics, not a separate, independently maintained
   classification.
+- Syntactic-role classification SHOULD be driven by decorator-derived metadata
+  (for example a `[Keyword]` decorator applied to the token-producing rules of
+  the language's own grammar) resolved via the same metadata-resolution
+  mechanism as the match-tree walking tools, rather than a second, independently
+  maintained mapping from rule name to role that could drift from the grammar it
+  classifies.
 
 ## Error and determinism contract
 

@@ -24,7 +24,11 @@ Expected behavior:
 - Classification MUST be derived from the same parse/AST span information used
   for diagnostics elsewhere in the system (not a separately maintained
   regex/heuristic classifier that could silently diverge from actual parse
-  results).
+  results). Classification SHOULD be driven by decorator-derived metadata (for
+  example a `[Keyword]` decorator applied to the token-producing rules of the
+  grammar being highlighted) resolved via the same mechanism the match-tree
+  walking tool (008) uses, rather than a second hand-maintained mapping from
+  rule name to syntactic role.
 - The tool MUST return a representation an agent can render directly for a human
   to read (for example ANSI-annotated text or a span list with
   role/offset/length), covering the entire input source with no gaps.
