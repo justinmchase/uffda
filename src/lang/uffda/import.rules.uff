@@ -1,6 +1,6 @@
 # Import declaration syntax: import "path" Name Rest*;
 # Path join uses std join (B2). Variable bindings are single-letter (B12).
-import "./shared.rules.uff" IdentifierToken;
+import "./shared.rules.uff" IdentifierToken ImportKeyword;
 
 export ImportDeclarationSyntax;
 export ImportNameList;
@@ -18,7 +18,7 @@ rule ImportNameList =
   -> (flat _);
 
 rule ImportDeclarationSyntax =
-  "import"
+  ImportKeyword
   m:ImportModuleSpecifier
   n:ImportNameList
   ";"

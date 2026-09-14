@@ -6,7 +6,7 @@
 # shared with inline lambda expressions; see pattern/parameter_list.uff.
 import "../expression/expression.lang.uff" ExpressionTokens;
 import "../pattern/parameter_list.uff" ParameterList;
-import "./shared.rules.uff" IdentifierToken;
+import "./shared.rules.uff" IdentifierToken FuncKeyword;
 import "./attribute.rules.uff" AttributeSyntax;
 
 export FuncDeclarationSyntax;
@@ -41,7 +41,7 @@ rule FuncExpressionToken =
 
 rule FuncDeclarationSyntax =
   a:AttributeSyntax*
-  "func"
+  FuncKeyword
   n:IdentifierToken
   p:ParameterList?
   "="

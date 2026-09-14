@@ -8,6 +8,10 @@ import {
   type CompileToolInput,
   compileToolInputShape,
   compileToolResult,
+  highlightToolHandler,
+  type HighlightToolInput,
+  highlightToolInputShape,
+  highlightToolResult,
   matchToolHandler,
   type MatchToolInput,
   matchToolInputShape,
@@ -98,6 +102,22 @@ export function createUffdaMcpServer(): McpServer {
     },
     async (input: MatchToolInput) =>
       matchToolResult(await matchToolHandler(input)),
+  );
+
+  server.registerTool(
+    "uffda_highlight",
+    {
+      title: "uffda highlight",
+      description:
+        "Classifies Uffda (or a sub-language's) source text by syntactic " +
+        "role (keyword, identifier, string, comment, punctuation, ...) " +
+        "derived from the same parse/AST information used elsewhere for " +
+        "diagnostics, as a gap-free ordered span list covering the entire " +
+        "input. Stateless: does not require or affect any session.",
+      inputSchema: highlightToolInputShape,
+    },
+    async (input: HighlightToolInput) =>
+      highlightToolResult(await highlightToolHandler(input)),
   );
 
   registerSessionTools(server, new SessionManager());
