@@ -145,8 +145,10 @@ Deno.test("cli.mcp session tools end to end", async (t) => {
               input: "A",
             },
           }),
-        ) as { ok: boolean; value?: unknown };
-        assertEquals(ruleResult, { ok: true, value: "A" });
+        ) as { ok: boolean; value?: unknown; matchResultId?: string };
+        assertEquals(ruleResult.ok, true);
+        assertEquals(ruleResult.value, "A");
+        assert(typeof ruleResult.matchResultId === "string");
 
         const failResult = textOf(
           await client.callTool({
@@ -282,7 +284,7 @@ Deno.test("cli.mcp session tools end to end", async (t) => {
   );
 
   await t.step(
-    "listing modules, describing, and querying against an unknown session id all fail",
+    "listing modules, describing, querying, and walking against an unknown session id all fail",
     async () => {
       const { server, client } = await connectedClient();
       try {
@@ -312,6 +314,120 @@ Deno.test("cli.mcp session tools end to end", async (t) => {
         ) as { ok: boolean; error?: { code: string } };
         assertEquals(queryResult.ok, false);
         assertEquals(queryResult.error?.code, "MCP_SESSION_UNKNOWN");
+
+        const walkResult = textOf(
+          await client.callTool({
+            name: "uffda_session_walk",
+            arguments: { sessionId: "nope", matchResultId: "1" },
+          }),
+        ) as { ok: boolean; error?: { code: string } };
+        assertEquals(walkResult.ok, false);
+        assertEquals(walkResult.error?.code, "MCP_SESSION_UNKNOWN");
+      } finally {
+        await client.close();
+        await server.close();
+      }
+    },
+  );
+
+  await t.step(
+    "evaluates a rule, then walks its retained match result tree over MCP",
+    async () => {
+      const { server, client } = await connectedClient();
+      try {
+        const opened = textOf(
+          await client.callTool({
+            name: "uffda_session_open",
+            arguments: {},
+          }),
+        ) as { ok: boolean; sessionId: string };
+
+        const loaded = textOf(
+          await client.callTool({
+            name: "uffda_session_load",
+            arguments: {
+              sessionId: opened.sessionId,
+              source: `export Main Inner Loud;
+                       decorator Loud = { shout: true };
+                       [Loud]
+                       rule Inner = any;
+                       rule Main = Inner;`,
+            },
+          }),
+        ) as { ok: boolean };
+        assertEquals(loaded.ok, true);
+
+        const evaluated = textOf(
+          await client.callTool({
+            name: "uffda_session_eval",
+            arguments: {
+              sessionId: opened.sessionId,
+              rule: "Main",
+              input: "x",
+            },
+          }),
+        ) as { ok: boolean; value?: unknown; matchResultId?: string };
+        assertEquals(evaluated.ok, true);
+        assertEquals(evaluated.value, "x");
+        assert(typeof evaluated.matchResultId === "string");
+
+        const walked = textOf(
+          await client.callTool({
+            name: "uffda_session_walk",
+            arguments: {
+              sessionId: opened.sessionId,
+              matchResultId: evaluated.matchResultId,
+            },
+          }),
+        ) as {
+          ok: boolean;
+          truncated?: boolean;
+          nodes?: {
+            path: number[];
+            kind: string;
+            rule?: string;
+            metadata: { rule: string; metadata: unknown }[];
+          }[];
+        };
+        assertEquals(walked.ok, true);
+        assertEquals(walked.truncated, false);
+        assertEquals(walked.nodes?.length, 4);
+        assertEquals(walked.nodes?.[0].rule, "Main");
+
+        const innerNode = walked.nodes?.find((n) => n.rule === "Inner");
+        assert(innerNode);
+        assertEquals(innerNode.metadata, [
+          { rule: "Inner", metadata: { Loud: { shout: true } } },
+        ]);
+
+        // Windowing: maxNodes bounds the response and reports truncated.
+        const windowed = textOf(
+          await client.callTool({
+            name: "uffda_session_walk",
+            arguments: {
+              sessionId: opened.sessionId,
+              matchResultId: evaluated.matchResultId,
+              maxNodes: 1,
+            },
+          }),
+        ) as { ok: boolean; truncated?: boolean; nodes?: unknown[] };
+        assertEquals(windowed.ok, true);
+        assertEquals(windowed.nodes?.length, 1);
+        assertEquals(windowed.truncated, true);
+
+        // An out-of-range path fails deterministically.
+        const badPath = textOf(
+          await client.callTool({
+            name: "uffda_session_walk",
+            arguments: {
+              sessionId: opened.sessionId,
+              matchResultId: evaluated.matchResultId,
+              path: [9],
+            },
+          }),
+        ) as { ok: boolean; error?: { code: string } };
+        assertEquals(badPath.ok, false);
+        assertEquals(badPath.error?.code, "MCP_SESSION_WALK_INVALID_PATH");
       } finally {
         await client.close();
         await server.close();

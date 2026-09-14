@@ -1,4 +1,4 @@
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertThrows } from "@std/assert";
 import { join } from "@std/path";
 import {
   RuntimeSession,
@@ -6,6 +6,7 @@ import {
   SessionEvalFailureCode,
   SessionLoadFailureCode,
   SessionQueryFailureCode,
+  SessionWalkFailureCode,
 } from "./mcp.session.ts";
 import { compileSourcesToAstArtifacts } from "./compile.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
@@ -347,7 +348,10 @@ Deno.test("cli.mcp.session RuntimeSession.eval", async (t) => {
     assertEquals(loaded.ok, true);
 
     const result = await session.eval({ rule: "Main", input: "A" });
-    assertEquals(result, { ok: true, value: "A" });
+    assertEquals(result.ok, true);
+    assert(result.ok);
+    assertEquals(result.value, "A");
+    assert(typeof result.matchResultId === "string");
   });
 
   await t.step(
@@ -378,7 +382,10 @@ Deno.test("cli.mcp.session RuntimeSession.eval", async (t) => {
         input: "42",
         inputIsJson: true,
       });
-      assertEquals(result, { ok: true, value: 42 });
+      assertEquals(result.ok, true);
+      assert(result.ok);
+      assertEquals(result.value, 42);
+      assert(typeof result.matchResultId === "string");
     },
   );
 
@@ -526,7 +533,9 @@ Deno.test("cli.mcp.session RuntimeSession.eval", async (t) => {
         input: "x",
         moduleUrl: loaded.module.moduleUrl,
       });
-      assertEquals(result, { ok: true, value: "x" });
+      assertEquals(result.ok, true);
+      assert(result.ok);
+      assertEquals(result.value, "x");
     },
   );
 
@@ -565,7 +574,9 @@ Deno.test("cli.mcp.session RuntimeSession.eval", async (t) => {
       // Rule (with its decorator-applied metadata) rather than re-deriving
       // it, per requirement 006's metadata-reflection clause.
       const result = await session.eval({ rule: "Main", input: "x" });
-      assertEquals(result, { ok: true, value: "x" });
+      assertEquals(result.ok, true);
+      assert(result.ok);
+      assertEquals(result.value, "x");
     },
   );
 });
@@ -865,6 +876,189 @@ Deno.test("cli.mcp.session RuntimeSession introspection", async (t) => {
       } finally {
         await Deno.remove(cwd, { recursive: true });
       }
+    },
+  );
+});
+
+Deno.test("cli.mcp.session RuntimeSession.walk", async (t) => {
+  // A rule invoking a nested, [Loud]-decorated rule, so the retained match
+  // tree has: root (Main's own Ok, no metadata) -> resolve wrapper (no
+  // origin) -> Inner's own Ok (origin set, metadata {Loud: {shout: true}})
+  // -> the `any` pattern's leaf Ok (no origin, but still resolves Inner's
+  // metadata as an ancestor contribution).
+  const LOUD_NESTED_SOURCE = `export Main Inner Loud;
+    decorator Loud = { shout: true };
+    [Loud]
+    rule Inner = any;
+    rule Main = Inner;`;
+
+  await t.step(
+    "walks every node of a small match tree by default, resolving accumulated metadata",
+    async () => {
+      const session = new RuntimeSession("w1");
+      await session.load(LOUD_NESTED_SOURCE);
+
+      const evaluated = await session.eval({ rule: "Main", input: "x" });
+      assertEquals(evaluated.ok, true);
+      assert(evaluated.ok);
+      assert(typeof evaluated.matchResultId === "string");
+
+      const walked = session.walk({ matchResultId: evaluated.matchResultId! });
+      assertEquals(walked.ok, true);
+      assert(walked.ok);
+      assertEquals(walked.truncated, false);
+      assertEquals(walked.nodes.length, 4);
+
+      const root = walked.nodes[0];
+      assertEquals(root.path, []);
+      assertEquals(root.kind, "ok");
+      assertEquals(root.value, "x");
+      assertEquals(root.rule, "Main");
+      assertEquals(root.metadata, []);
+
+      const innerInvocation = walked.nodes.find((n) => n.rule === "Inner");
+      assert(innerInvocation);
+      assertEquals(innerInvocation.metadata, [
+        { rule: "Inner", metadata: { Loud: { shout: true } } },
+      ]);
+
+      // The leaf under Inner has no origin of its own but still resolves
+      // Inner's metadata as an ancestor contribution.
+      const leaf = walked.nodes[walked.nodes.length - 1];
+      assertEquals(leaf.rule, undefined);
+      assertEquals(leaf.childCount, 0);
+      assertEquals(leaf.metadata, [
+        { rule: "Inner", metadata: { Loud: { shout: true } } },
+      ]);
+    },
+  );
+
+  await t.step(
+    "windows results deterministically via maxNodes, reporting truncated: true",
+    async () => {
+      const session = new RuntimeSession("w2");
+      await session.load(LOUD_NESTED_SOURCE);
+      const evaluated = await session.eval({ rule: "Main", input: "x" });
+      assert(evaluated.ok);
+
+      const first = session.walk({
+        matchResultId: evaluated.matchResultId!,
+        maxNodes: 2,
+      });
+      assert(first.ok);
+      assertEquals(first.nodes.length, 2);
+      assertEquals(first.truncated, true);
+
+      const second = session.walk({
+        matchResultId: evaluated.matchResultId!,
+        maxNodes: 2,
+      });
+      assertEquals(second, first);
+    },
+  );
+
+  await t.step(
+    "starts from a given path, returning only that sub-tree",
+    async () => {
+      const session = new RuntimeSession("w3");
+      await session.load(LOUD_NESTED_SOURCE);
+      const evaluated = await session.eval({ rule: "Main", input: "x" });
+      assert(evaluated.ok);
+
+      const walked = session.walk({
+        matchResultId: evaluated.matchResultId!,
+        path: [0, 0],
+      });
+      assert(walked.ok);
+      assertEquals(walked.nodes.map((n) => n.path), [[0, 0], [0, 0, 0]]);
+      assertEquals(walked.nodes[0].rule, "Inner");
+    },
+  );
+
+  await t.step(
+    "maxDepth: 0 returns only the start node, marked truncated",
+    async () => {
+      const session = new RuntimeSession("w4");
+      await session.load(LOUD_NESTED_SOURCE);
+      const evaluated = await session.eval({ rule: "Main", input: "x" });
+      assert(evaluated.ok);
+
+      const walked = session.walk({
+        matchResultId: evaluated.matchResultId!,
+        maxDepth: 0,
+      });
+      assert(walked.ok);
+      assertEquals(walked.nodes.length, 1);
+      assertEquals(walked.nodes[0].path, []);
+      assertEquals(walked.truncated, true);
+    },
+  );
+
+  await t.step(
+    "fails deterministically for an out-of-range path index",
+    async () => {
+      const session = new RuntimeSession("w5");
+      await session.load(LOUD_NESTED_SOURCE);
+      const evaluated = await session.eval({ rule: "Main", input: "x" });
+      assert(evaluated.ok);
+
+      const walked = session.walk({
+        matchResultId: evaluated.matchResultId!,
+        path: [5],
+      });
+      assertEquals(walked.ok, false);
+      assert(!walked.ok);
+      assertEquals(walked.error.code, SessionWalkFailureCode.InvalidPath);
+    },
+  );
+
+  await t.step(
+    "fails deterministically for an unknown match result id",
+    async () => {
+      const session = new RuntimeSession("w6");
+      await session.load(LOUD_NESTED_SOURCE);
+
+      const walked = session.walk({ matchResultId: "does-not-exist" });
+      assertEquals(walked.ok, false);
+      assert(!walked.ok);
+      assertEquals(
+        walked.error.code,
+        SessionWalkFailureCode.UnknownMatchResult,
+      );
+    },
+  );
+
+  await t.step(
+    "retains a Fail match result's tree too, for diagnosing why a rule didn't match",
+    async () => {
+      const session = new RuntimeSession("w7");
+      await session.load('export Main;\nrule Main = "A";');
+
+      const evaluated = await session.eval({ rule: "Main", input: "B" });
+      assertEquals(evaluated.ok, false);
+      assert(!evaluated.ok);
+      assert(typeof evaluated.error.matchResultId === "string");
+
+      const walked = session.walk({
+        matchResultId: evaluated.error.matchResultId!,
+      });
+      assert(walked.ok);
+      assertEquals(walked.nodes[0].kind, "fail");
+    },
+  );
+
+  await t.step(
+    "closing the session releases retained match results",
+    async () => {
+      const session = new RuntimeSession("w8");
+      await session.load(LOUD_NESTED_SOURCE);
+      const evaluated = await session.eval({ rule: "Main", input: "x" });
+      assert(evaluated.ok);
+
+      session.close();
+      assertThrows(() =>
+        session.walk({ matchResultId: evaluated.matchResultId! })
+      );
     },
   );
 });
