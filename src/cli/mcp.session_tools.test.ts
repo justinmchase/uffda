@@ -183,4 +183,139 @@ Deno.test("cli.mcp session tools end to end", async (t) => {
       await server.close();
     }
   });
+
+  await t.step(
+    "lists modules, describes a decorated rule, and queries by metadata over MCP",
+    async () => {
+      const { server, client } = await connectedClient();
+      try {
+        const opened = textOf(
+          await client.callTool({
+            name: "uffda_session_open",
+            arguments: {},
+          }),
+        ) as { ok: boolean; sessionId: string };
+
+        const loaded = textOf(
+          await client.callTool({
+            name: "uffda_session_load",
+            arguments: {
+              sessionId: opened.sessionId,
+              source: `export Main Loud;
+                       decorator Loud = { shout: true };
+                       [Loud]
+                       rule Main = any;`,
+            },
+          }),
+        ) as { ok: boolean };
+        assertEquals(loaded.ok, true);
+
+        const modules = textOf(
+          await client.callTool({
+            name: "uffda_session_list_modules",
+            arguments: { sessionId: opened.sessionId },
+          }),
+        ) as {
+          ok: boolean;
+          modules?: {
+            moduleUrl: string;
+            declarations: { name: string; kind: string }[];
+          }[];
+        };
+        assertEquals(modules.ok, true);
+        assertEquals(modules.modules?.length, 1);
+        assertEquals(
+          modules.modules?.[0].declarations.map((d) => d.name).sort(),
+          ["Loud", "Main"],
+        );
+
+        const described = textOf(
+          await client.callTool({
+            name: "uffda_session_describe",
+            arguments: { sessionId: opened.sessionId, name: "Main" },
+          }),
+        ) as {
+          ok: boolean;
+          declaration?: {
+            kind: string;
+            attributes: unknown;
+            metadata: unknown;
+          };
+        };
+        assertEquals(described.ok, true);
+        assertEquals(described.declaration?.kind, "rule");
+        assertEquals(described.declaration?.attributes, [
+          { decorator: "Loud", args: [] },
+        ]);
+        assertEquals(described.declaration?.metadata, {
+          Loud: { shout: true },
+        });
+
+        const queried = textOf(
+          await client.callTool({
+            name: "uffda_session_query",
+            arguments: { sessionId: opened.sessionId, decorator: "Loud" },
+          }),
+        ) as {
+          ok: boolean;
+          matches?: {
+            moduleUrl: string;
+            name: string;
+            kind: string;
+            metadata: unknown;
+          }[];
+        };
+        assertEquals(queried.ok, true);
+        assertEquals(queried.matches, [
+          {
+            moduleUrl: modules.modules![0].moduleUrl,
+            name: "Main",
+            kind: "rule",
+            metadata: { shout: true },
+          },
+        ]);
+      } finally {
+        await client.close();
+        await server.close();
+      }
+    },
+  );
+
+  await t.step(
+    "listing modules, describing, and querying against an unknown session id all fail",
+    async () => {
+      const { server, client } = await connectedClient();
+      try {
+        const listResult = textOf(
+          await client.callTool({
+            name: "uffda_session_list_modules",
+            arguments: { sessionId: "nope" },
+          }),
+        ) as { ok: boolean; error?: { code: string } };
+        assertEquals(listResult.ok, false);
+        assertEquals(listResult.error?.code, "MCP_SESSION_UNKNOWN");
+
+        const describeResult = textOf(
+          await client.callTool({
+            name: "uffda_session_describe",
+            arguments: { sessionId: "nope", name: "Main" },
+          }),
+        ) as { ok: boolean; error?: { code: string } };
+        assertEquals(describeResult.ok, false);
+        assertEquals(describeResult.error?.code, "MCP_SESSION_UNKNOWN");
+
+        const queryResult = textOf(
+          await client.callTool({
+            name: "uffda_session_query",
+            arguments: { sessionId: "nope", decorator: "Loud" },
+          }),
+        ) as { ok: boolean; error?: { code: string } };
+        assertEquals(queryResult.ok, false);
+        assertEquals(queryResult.error?.code, "MCP_SESSION_UNKNOWN");
+      } finally {
+        await client.close();
+        await server.close();
+      }
+    },
+  );
 });

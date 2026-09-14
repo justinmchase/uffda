@@ -100,7 +100,10 @@ chapter(s).
     applied attributes and keyed metadata (see
     [rule metadata](../../runtime/rule-metadata.spec.md));
   - query declarations by decorator/metadata key across a session's loaded
-    modules.
+    modules. A name matches only when that decorator was actually applied to the
+    declaration — an own key of its name-keyed metadata (see
+    [rule metadata](../../runtime/rule-metadata.spec.md)), not an inherited
+    object property.
 - Introspection tools MUST reflect the session's current state, including
   effects of any incremental re-parse already applied.
 
