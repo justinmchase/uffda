@@ -7,11 +7,13 @@ import type { SessionManager } from "./mcp.sessions.ts";
  * Session lifecycle, evaluation, and introspection tools:
  * `uffda_session_open`, `uffda_session_load`, `uffda_session_eval`,
  * `uffda_session_list_modules`, `uffda_session_describe`,
- * `uffda_session_query`, `uffda_session_close` (see
+ * `uffda_session_query`, `uffda_session_walk`, `uffda_session_close` (see
  * `.agents/requirements/mcp-server/002-session-lifecycle-and-isolation.requirement.md`,
  * `.agents/requirements/mcp-server/004-session-load-tool.requirement.md`,
- * `.agents/requirements/mcp-server/006-evaluation-tool.requirement.md`, and
- * `.agents/requirements/mcp-server/007-introspection-and-query-tools.requirement.md`).
+ * `.agents/requirements/mcp-server/006-evaluation-tool.requirement.md`,
+ * `.agents/requirements/mcp-server/007-introspection-and-query-tools.requirement.md`,
+ * and
+ * `.agents/requirements/mcp-server/008-match-tree-walking-tool.requirement.md`).
  * A single `SessionManager` instance is shared by every tool for a given
  * server so state genuinely persists across tool calls within one server
  * process (each session is still isolated from every other session).
@@ -118,6 +120,29 @@ export const sessionQueryInputShape = {
 };
 const sessionQueryInputSchema = z.object(sessionQueryInputShape);
 export type SessionQueryToolInput = z.infer<typeof sessionQueryInputSchema>;
+
+export const sessionWalkInputShape = {
+  sessionId: z.string().describe("An id returned by uffda_session_open."),
+  matchResultId: z.string().describe(
+    "A matchResultId returned by a prior uffda_session_eval rule " +
+      "invocation (present on both successful and failed match outcomes).",
+  ),
+  path: z.array(z.number().int().nonnegative()).optional().describe(
+    "Child indices from the retained match tree's root to the node to " +
+      "start walking from. Defaults to [] (the tree's root).",
+  ),
+  maxNodes: z.number().int().positive().optional().describe(
+    "Maximum number of nodes to return in this window (pre-order " +
+      "depth-first from the start node, inclusive). Defaults to 50.",
+  ),
+  maxDepth: z.number().int().nonnegative().optional().describe(
+    "Maximum depth (relative to the start node; 0 = only the start node " +
+      "itself) to descend into. Omit for no depth limit (bounded only by " +
+      "maxNodes).",
+  ),
+};
+const sessionWalkInputSchema = z.object(sessionWalkInputShape);
+export type SessionWalkToolInput = z.infer<typeof sessionWalkInputSchema>;
 
 function jsonResult(value: unknown): CallToolResult {
   return { content: [{ type: "text", text: JSON.stringify(value) }] };
@@ -252,6 +277,32 @@ export function registerSessionTools(
         input.decorator,
         input.predicate,
       );
+      return jsonResult(result);
+    },
+  );
+
+  server.registerTool(
+    "uffda_session_walk",
+    {
+      title: "uffda session walk",
+      description: "Traverses a retained match result tree from a prior " +
+        "uffda_session_eval rule invocation in a deterministic, bounded " +
+        "window (never the full tree at once). Each returned node reports " +
+        "its own decorator metadata plus the metadata resolved from every " +
+        "ancestor on the path from the tree's root, as an ordered list of " +
+        "per-rule contributions. Read-only: never mutates the retained " +
+        "tree.",
+      inputSchema: sessionWalkInputShape,
+    },
+    (input: SessionWalkToolInput) => {
+      const lookup = sessions.get(input.sessionId);
+      if (!lookup.ok) return jsonResult({ ok: false, error: lookup.error });
+      const result = lookup.session.walk({
+        matchResultId: input.matchResultId,
+        path: input.path,
+        maxNodes: input.maxNodes,
+        maxDepth: input.maxDepth,
+      });
       return jsonResult(result);
     },
   );

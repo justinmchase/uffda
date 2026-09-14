@@ -20,7 +20,13 @@ import type { Module } from "../runtime/modules/mod.ts";
 import { Resolver } from "../runtime/resolve.ts";
 import { Scope } from "../runtime/scope.ts";
 import { InputNormalizationMode } from "../input.ts";
-import { getRightmostFailure, MatchKind, ok as matchOk } from "../match.ts";
+import {
+  getRightmostFailure,
+  type Match,
+  MatchKind,
+  ok as matchOk,
+  type SourceSpan,
+} from "../match.ts";
 import { ModuleImportResultKind } from "../runtime/resolvers/resolver.ts";
 import { CliLanguage } from "./contract.ts";
 import { parseSourceToAst } from "./stream.ts";
@@ -116,10 +122,17 @@ export type SessionEvalFailure = {
   message: string;
   inputPosition?: string;
   inputDescription?: string;
+  /**
+   * Present when a rule invocation produced a match result tree (Ok or
+   * Fail) even though evaluation as a whole failed — the tree is retained
+   * in the session under this id and can still be traversed via `walk()`
+   * for diagnostics, exactly like a successful invocation's tree.
+   */
+  matchResultId?: string;
 };
 
 export type SessionEvalResult =
-  | { ok: true; value: unknown }
+  | { ok: true; value: unknown; matchResultId?: string }
   | { ok: false; error: SessionEvalFailure };
 
 export type SessionEvalInput = {
@@ -150,6 +163,83 @@ export type SessionEvalInput = {
    */
   inputIsJson?: boolean;
 };
+
+/**
+ * Match-tree walking tool (see
+ * `.agents/requirements/mcp-server/008-match-tree-walking-tool.requirement.md`):
+ * deterministic, windowed/paginated traversal of a match result tree
+ * `eval()` retained under a `matchResultId`. Read-only — it only ever reads
+ * a retained `Match` tree, never mutates it or session state.
+ */
+
+export enum SessionWalkFailureCode {
+  UnknownMatchResult = "MCP_SESSION_WALK_UNKNOWN_MATCH_RESULT",
+  InvalidPath = "MCP_SESSION_WALK_INVALID_PATH",
+}
+
+export type SessionWalkFailure = {
+  code: SessionWalkFailureCode;
+  phase: "input";
+  message: string;
+};
+
+/**
+ * One rule invocation's contribution to a walked node's resolved metadata
+ * (see
+ * `.agents/specifications/runtime/rule-metadata.spec.md#metadata-resolution`).
+ * A node's full `metadata` list is built by walking from the match tree's
+ * root down to that node (inclusive) and collecting one entry per visited
+ * node that originated a fresh rule invocation, in that root-to-node order —
+ * never merged into one object, since more than one ancestor may apply the
+ * same decorator name to a different span.
+ */
+export type SessionWalkMetadataContribution = {
+  rule: string;
+  metadata: Record<string, unknown>;
+};
+
+export type SessionWalkNode = {
+  /** Child indices from the walked tree's root down to this node. */
+  path: number[];
+  kind: "ok" | "fail" | "error" | "lr";
+  pattern: Pattern;
+  normalizedSpan?: SourceSpan;
+  originalSpan?: SourceSpan;
+  /** Only present for `kind: "ok"`. */
+  value?: unknown;
+  /** Only present for `kind: "error"`. */
+  code?: string;
+  /** Only present for `kind: "error"`. */
+  message?: string;
+  /** Number of direct child matches reachable below this node (0 for
+   * `error`/`lr`, which never have any). */
+  childCount: number;
+  /** Set only when this node is the Ok/Fail produced by a fresh rule
+   * invocation (see `MatchOrigin` in `../match.ts`). */
+  rule?: string;
+  /** Variables bound in this node's scope, flattened to a plain object. */
+  variables: Record<string, unknown>;
+  metadata: SessionWalkMetadataContribution[];
+};
+
+export type SessionWalkInput = {
+  /** A `matchResultId` returned by a prior `eval()` rule invocation. */
+  matchResultId: string;
+  /** Child indices from the retained tree's root to the node to start
+   * walking from. Defaults to `[]` (the tree's root). */
+  path?: number[];
+  /** Maximum number of nodes to return in this window (pre-order
+   * depth-first from the start node, inclusive). Defaults to 50. */
+  maxNodes?: number;
+  /** Maximum depth (relative to the start node; 0 = only the start node
+   * itself) to descend into. Omit for no depth limit (bounded only by
+   * `maxNodes`). */
+  maxDepth?: number;
+};
+
+export type SessionWalkResult =
+  | { ok: true; nodes: SessionWalkNode[]; truncated: boolean }
+  | { ok: false; error: SessionWalkFailure };
 
 export type RuntimeSessionOptions = {
   cwd?: string;
@@ -384,6 +474,12 @@ export class RuntimeSession {
   // when `moduleUrl` is omitted.
   private lastLoadedRootHref?: string;
   private nextAnonymousLoadId = 0;
+  // Match result trees retained by `eval()` for `walk()` to traverse later
+  // (see `.agents/requirements/mcp-server/008-match-tree-walking-tool.requirement.md`).
+  // Only rule invocations populate this — expressions and funcs never
+  // produce a `Match` tree.
+  private readonly matchResults = new Map<string, Match>();
+  private nextMatchResultId = 1;
   private closed = false;
 
   constructor(id: string, options?: RuntimeSessionOptions) {
@@ -685,7 +781,11 @@ export class RuntimeSession {
 
     switch (result.kind) {
       case MatchKind.Ok:
-        return { ok: true, value: result.value };
+        return {
+          ok: true,
+          value: result.value,
+          matchResultId: this.retainMatchResult(result),
+        };
       case MatchKind.Error:
         return {
           ok: false,
@@ -709,6 +809,7 @@ export class RuntimeSession {
             inputDescription: await rightmost.scope.stream.done()
               ? "end of input"
               : "a value that did not match",
+            matchResultId: this.retainMatchResult(result),
           },
         };
       }
@@ -845,12 +946,197 @@ export class RuntimeSession {
     return { ok: true, matches };
   }
 
+  /** Retains a rule invocation's match result tree for later `walk()` calls,
+   * returning the stable id it's stored under. */
+  private retainMatchResult(result: Match): string {
+    const id = String(this.nextMatchResultId++);
+    this.matchResults.set(id, result);
+    return id;
+  }
+
+  /**
+   * Traverses a retained match result tree (see {@link retainMatchResult})
+   * in deterministic, bounded windows — see
+   * `.agents/requirements/mcp-server/008-match-tree-walking-tool.requirement.md`.
+   * Read-only: never mutates the retained tree.
+   */
+  public walk(input: SessionWalkInput): SessionWalkResult {
+    if (this.closed) {
+      throw new Error(`Session ${this.id} is closed`);
+    }
+
+    const root = this.matchResults.get(input.matchResultId);
+    if (!root) {
+      return {
+        ok: false,
+        error: {
+          code: SessionWalkFailureCode.UnknownMatchResult,
+          phase: "input",
+          message: `No retained match result with id '${input.matchResultId}'`,
+        },
+      };
+    }
+
+    const path = input.path ?? [];
+    const maxNodes = input.maxNodes ?? 50;
+    const maxDepth = input.maxDepth;
+
+    // Navigate from the tree's root to the requested start node, keeping
+    // the ancestor chain (inclusive of the start node) for metadata
+    // resolution — see rule-metadata.spec.md#metadata-resolution.
+    let start = root;
+    const ancestry: Match[] = [root];
+    for (const index of path) {
+      if (start.kind !== MatchKind.Ok && start.kind !== MatchKind.Fail) {
+        return {
+          ok: false,
+          error: {
+            code: SessionWalkFailureCode.InvalidPath,
+            phase: "input",
+            message:
+              `Path index ${index} is invalid: a '${start.kind}' node has no children`,
+          },
+        };
+      }
+      const child: Match | undefined = start.matches[index];
+      if (!child) {
+        return {
+          ok: false,
+          error: {
+            code: SessionWalkFailureCode.InvalidPath,
+            phase: "input",
+            message:
+              `Path index ${index} is out of range (node has ${start.matches.length} children)`,
+          },
+        };
+      }
+      start = child;
+      ancestry.push(start);
+    }
+
+    const nodes: SessionWalkNode[] = [];
+    let truncated = false;
+
+    const visit = (
+      node: Match,
+      nodePath: number[],
+      nodeAncestry: Match[],
+      depth: number,
+    ): void => {
+      if (nodes.length >= maxNodes) {
+        truncated = true;
+        return;
+      }
+      nodes.push(projectWalkNode(node, nodePath, nodeAncestry));
+
+      const hasChildren = node.kind === MatchKind.Ok ||
+        node.kind === MatchKind.Fail;
+      if (!hasChildren) return;
+      const children = (node as { matches: Match[] }).matches;
+      if (children.length === 0) return;
+
+      if (maxDepth !== undefined && depth >= maxDepth) {
+        truncated = true;
+        return;
+      }
+
+      for (let i = 0; i < children.length; i++) {
+        if (nodes.length >= maxNodes) {
+          truncated = true;
+          return;
+        }
+        visit(
+          children[i],
+          [...nodePath, i],
+          [...nodeAncestry, children[i]],
+          depth + 1,
+        );
+      }
+    };
+
+    visit(start, path, ancestry, 0);
+    return { ok: true, nodes, truncated };
+  }
+
   /** Releases this session's in-memory state. Idempotent. */
   public close(): void {
     this.declarations.clear();
     this.modules.clear();
     this.moduleOrder.length = 0;
     this.lastLoadedRootHref = undefined;
+    this.matchResults.clear();
     this.closed = true;
+  }
+}
+
+/** Builds one `SessionWalkNode` from a `Match`, its path from the walked
+ * tree's root, and the ancestor chain (inclusive of `node` itself) used to
+ * resolve its accumulated decorator metadata. */
+function projectWalkNode(
+  node: Match,
+  path: number[],
+  ancestry: Match[],
+): SessionWalkNode {
+  const metadata: SessionWalkMetadataContribution[] = [];
+  for (const ancestor of ancestry) {
+    if (ancestor.kind !== MatchKind.Ok && ancestor.kind !== MatchKind.Fail) {
+      continue;
+    }
+    const rule = ancestor.origin?.rule;
+    if (rule?.metadata) {
+      metadata.push({ rule: rule.name, metadata: rule.metadata });
+    }
+  }
+
+  const variables = Object.fromEntries(node.scope.variables.entries());
+
+  switch (node.kind) {
+    case MatchKind.Ok:
+      return {
+        path,
+        kind: "ok",
+        pattern: node.pattern,
+        normalizedSpan: node.normalizedSpan,
+        originalSpan: node.originalSpan,
+        value: node.value,
+        childCount: node.matches.length,
+        rule: node.origin?.rule.name,
+        variables,
+        metadata,
+      };
+    case MatchKind.Fail:
+      return {
+        path,
+        kind: "fail",
+        pattern: node.pattern,
+        normalizedSpan: node.normalizedSpan,
+        originalSpan: node.originalSpan,
+        childCount: node.matches.length,
+        rule: node.origin?.rule.name,
+        variables,
+        metadata,
+      };
+    case MatchKind.Error:
+      return {
+        path,
+        kind: "error",
+        pattern: node.pattern,
+        normalizedSpan: node.normalizedSpan,
+        originalSpan: node.originalSpan,
+        code: node.code,
+        message: node.message,
+        childCount: 0,
+        variables,
+        metadata,
+      };
+    case MatchKind.LR:
+      return {
+        path,
+        kind: "lr",
+        pattern: node.pattern,
+        childCount: 0,
+        variables,
+        metadata,
+      };
   }
 }
