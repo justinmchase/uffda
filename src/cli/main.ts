@@ -23,6 +23,7 @@ import {
 import { parseSourceToAst } from "./stream.ts";
 import { runWorkbenchProtocol, workbenchBanner } from "./workbench.ts";
 import { launchWorkbenchTui } from "./workbench.tui.ts";
+import { runMcpServer } from "./mcp.ts";
 import { version } from "../version.ts";
 
 export type CliRunResult = {
@@ -38,7 +39,8 @@ type HelpTarget =
   | "match"
   | "parse"
   | "run"
-  | "workbench";
+  | "workbench"
+  | "mcp";
 
 function toJson(value: unknown): string {
   return `${JSON.stringify(value, null, 2)}\n`;
@@ -89,7 +91,8 @@ function resolveHelpTarget(argv: string[]): HelpTarget {
 
     if (
       token === "compile" || token === "exec" || token === "match" ||
-      token === "parse" || token === "run" || token === "workbench"
+      token === "parse" || token === "run" || token === "workbench" ||
+      token === "mcp"
     ) {
       target = token;
       continue;
@@ -131,6 +134,7 @@ function rootUsageText(): string {
     "  parse       Parse one selected-language source unit to an AST.",
     "  run         Run one Uffda module source unit or module AST.",
     "  workbench   Launch the interactive terminal workbench.",
+    "  mcp         Start a Model Context Protocol stdio server.",
     "",
     "Global options:",
     "  --help, -h             Show usage for the current command or command root.",
@@ -146,6 +150,7 @@ function rootUsageText(): string {
     "  uffda match -e 'number' --input-json 42 --json",
     "  uffda run ./app.uff --entry Main",
     "  uffda workbench",
+    "  uffda mcp",
     "",
   ].join("\n");
 }
@@ -236,6 +241,18 @@ function workbenchUsageText(): string {
   ].join("\n");
 }
 
+function mcpUsageText(): string {
+  return [
+    "Usage: uffda mcp",
+    "",
+    "Agent integration:",
+    "  Starts a Model Context Protocol (MCP) server over standard input and",
+    "  standard output. Standard input/output carry only MCP protocol traffic",
+    "  once started; there are no other flags or positional arguments.",
+    "",
+  ].join("\n");
+}
+
 function usageText(target: HelpTarget): string {
   switch (target) {
     case "compile":
@@ -250,6 +267,8 @@ function usageText(target: HelpTarget): string {
       return runUsageText();
     case "workbench":
       return workbenchUsageText();
+    case "mcp":
+      return mcpUsageText();
     case "root":
       return rootUsageText();
   }
@@ -470,6 +489,22 @@ function hasVersionFlag(argv: string[]): boolean {
   return argv.includes("--version") || argv.includes("-V");
 }
 
+/**
+ * `mcp` is dispatched entirely outside `runCli`/`resolveCliProcessContract`:
+ * unlike every other command, it is a live, indefinitely-running stdio server
+ * rather than a one-shot argv-in/CliRunResult-out invocation, so it cannot be
+ * expressed as a `CliMode` (see `.agents/specifications/languages/cli/mcp-server.spec.md`).
+ * This mirrors how the live interactive workbench TUI is also dispatched
+ * directly from the process entry point below, rather than through `runCli`.
+ */
+function hasMcpCommand(argv: string[]): boolean {
+  for (const token of argv) {
+    if (token.startsWith("-")) continue;
+    return token === "mcp";
+  }
+  return false;
+}
+
 export async function runCli(
   argv: string[],
   processCwd: string,
@@ -634,6 +669,12 @@ export async function runCli(
 if (import.meta.main) {
   const processCwd = resolveProcessCwd();
   const stdinAttached = !Deno.stdin.isTerminal();
+
+  if (!hasHelpFlag(Deno.args) && hasMcpCommand(Deno.args)) {
+    await runMcpServer();
+    Deno.exit(CliExitCode.Ok);
+  }
+
   const resolution = resolveCliProcessContract({
     argv: Deno.args,
     processCwd,

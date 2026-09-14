@@ -94,6 +94,16 @@ Deno.test("cli.main runCli validates mode support and compile routing", async (t
     assert(result.stdout?.includes("Usage: uffda parse [options]"));
   });
 
+  await t.step("prints command help for mcp context", async () => {
+    const result = await runCli(
+      ["mcp", "--help"],
+      "/workspace/project",
+      false,
+    );
+    assertEquals(result.exitCode, CliExitCode.Ok);
+    assert(result.stdout?.includes("Usage: uffda mcp"));
+  });
+
   await t.step("writes a full-Uffda AST from stdin to stdout", async () => {
     const result = await runCli(
       ["parse"],
