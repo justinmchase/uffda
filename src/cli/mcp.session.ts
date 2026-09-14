@@ -3,11 +3,19 @@ import { compileUffdaSyntaxModule } from "../lang/uffda/execute.ts";
 import type { UffdaSyntaxModule } from "../lang/uffda/uffda.lang.ts";
 import { exec } from "../runtime/exec.ts";
 import type { Expression } from "../runtime/expressions/expression.ts";
+import { match } from "../runtime/match.ts";
+import type { Pattern } from "../runtime/patterns/pattern.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "../runtime/patterns/pattern.ts";
 import { resolve as resolvePattern } from "../runtime/patterns/resolve.ts";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
-import { isRule } from "../runtime/modules/rule.ts";
+import type { DecoratorFunc } from "../runtime/modules/decorator.ts";
+import type { Func } from "../runtime/modules/func.ts";
+import {
+  isRule,
+  type Rule,
+  type RuleParameter,
+} from "../runtime/modules/rule.ts";
 import type { Module } from "../runtime/modules/mod.ts";
 import { Resolver } from "../runtime/resolve.ts";
 import { Scope } from "../runtime/scope.ts";
@@ -155,6 +163,76 @@ export type RuntimeSessionOptions = {
 };
 
 /**
+ * Introspection tools (see
+ * `.agents/requirements/mcp-server/007-introspection-and-query-tools.requirement.md`):
+ * "list modules", "describe declaration", and "query by decorator metadata".
+ * All three are read-only — they only ever read `this.modules`, never
+ * mutate session state — and reuse the session's already-resolved `Module`
+ * objects exactly as `eval()` does, rather than re-deriving anything.
+ */
+
+export enum SessionDescribeFailureCode {
+  UnknownModule = "MCP_SESSION_DESCRIBE_UNKNOWN_MODULE",
+  UnknownDeclaration = "MCP_SESSION_DESCRIBE_UNKNOWN_DECLARATION",
+}
+
+export type SessionDescribeFailure = {
+  code: SessionDescribeFailureCode;
+  phase: "resolve";
+  message: string;
+};
+
+/** An applied attribute, summarized for JSON transport (decorator by name). */
+export type DescribedAttribute = {
+  decorator: string;
+  args: unknown[];
+};
+
+export type DescribedDeclaration = {
+  moduleUrl: string;
+  name: string;
+  kind: LoadedDeclarationKind;
+  exported: boolean;
+  pattern: Pattern;
+  /** Absent for a `Rule` with no projection (`->`). Always present for
+   * `func`/`decorator`, which always have a body expression. */
+  expression?: Expression;
+  /** Only present for `kind: "rule"`. */
+  parameters?: RuleParameter[];
+  /** Only present for `kind: "rule" | "func"` — decorators aren't
+   * decoratable, see `.agents/specifications/runtime/rule-metadata.spec.md`. */
+  attributes?: DescribedAttribute[];
+  /** Only present for `kind: "rule" | "func"`, keyed by decorator name. */
+  metadata?: Record<string, unknown>;
+};
+
+export type SessionDescribeResult =
+  | { ok: true; declaration: DescribedDeclaration }
+  | { ok: false; error: SessionDescribeFailure };
+
+export enum SessionQueryFailureCode {
+  ParseFailure = "MCP_SESSION_QUERY_PARSE_FAILURE",
+}
+
+export type SessionQueryFailure = {
+  code: SessionQueryFailureCode;
+  phase: "parse";
+  message: string;
+};
+
+export type SessionQueryMatch = {
+  moduleUrl: string;
+  name: string;
+  kind: "rule" | "func";
+  /** This declaration's `metadata[decorator]` value (the matched entry). */
+  metadata: unknown;
+};
+
+export type SessionQueryResult =
+  | { ok: true; matches: SessionQueryMatch[] }
+  | { ok: false; error: SessionQueryFailure };
+
+/**
  * Placeholder resolve pattern used only for `ModuleResolutionContext`
  * diagnostics; `load()` doesn't run any rule/func, it only resolves module
  * structure, so no real target name is meaningful here.
@@ -199,6 +277,71 @@ function summarizeModule(moduleUrl: URL, module: Module): LoadedModuleSummary {
   }
   for (const name of module.decoratorImports.keys()) push(name, "decorator");
   return { moduleUrl: moduleUrl.href, declarations };
+}
+
+/**
+ * Finds a declaration named `name` in `module` — its own `rules`/`funcs`/
+ * `decorators`, or a name it bound via `imports`/`decoratorImports` (so a
+ * re-exported import can be described too, matching `summarizeModule`'s
+ * lookup surface) — and tags it with its `LoadedDeclarationKind`. Returns
+ * `undefined` if no such name exists in this module at all.
+ */
+function findDeclaration(
+  module: Module,
+  name: string,
+):
+  | { member: Rule | Func | DecoratorFunc; kind: LoadedDeclarationKind }
+  | undefined {
+  const rule = module.rules.get(name);
+  if (rule) return { member: rule, kind: "rule" };
+  const func = module.funcs.get(name);
+  if (func) return { member: func, kind: "func" };
+  const decorator = module.decorators.get(name);
+  if (decorator) return { member: decorator, kind: "decorator" };
+  const imported = module.imports.get(name);
+  if (imported) {
+    return { member: imported, kind: isRule(imported) ? "rule" : "func" };
+  }
+  const importedDecorator = module.decoratorImports.get(name);
+  if (importedDecorator) {
+    return { member: importedDecorator, kind: "decorator" };
+  }
+  return undefined;
+}
+
+/**
+ * Builds a `DescribedDeclaration` for `member`/`kind` found in `module` —
+ * only `rule`/`func` carry `parameters`/`attributes`/`metadata`, since
+ * decorators aren't decoratable and have no separate `parameters` field
+ * (see `.agents/specifications/runtime/rule-metadata.spec.md`).
+ */
+function describeMember(
+  moduleUrl: URL,
+  name: string,
+  member: Rule | Func | DecoratorFunc,
+  kind: LoadedDeclarationKind,
+  exported: boolean,
+): DescribedDeclaration {
+  const base: DescribedDeclaration = {
+    moduleUrl: moduleUrl.href,
+    name,
+    kind,
+    exported,
+    pattern: member.pattern,
+    expression: member.expression,
+  };
+  if (kind === "decorator") return base;
+
+  const ruleOrFunc = member as Rule | Func;
+  return {
+    ...base,
+    parameters: kind === "rule" ? (member as Rule).parameters : undefined,
+    attributes: ruleOrFunc.attributes?.map((attribute) => ({
+      decorator: attribute.decorator.name,
+      args: attribute.args,
+    })),
+    metadata: ruleOrFunc.metadata,
+  };
 }
 
 /**
@@ -579,6 +722,121 @@ export class RuntimeSession {
           },
         };
     }
+  }
+
+  /**
+   * Describes a rule/func/decorator declaration — its pattern/expression
+   * structure, parameters, and (for rules/funcs) applied attributes and
+   * keyed metadata — using this session's already-resolved state (read-only;
+   * never mutates session state). See
+   * `.agents/requirements/mcp-server/007-introspection-and-query-tools.requirement.md`.
+   */
+  public describe(
+    name: string,
+    moduleUrl?: string,
+  ): SessionDescribeResult {
+    if (this.closed) {
+      throw new Error(`Session ${this.id} is closed`);
+    }
+
+    const target = this.resolveTargetModule(moduleUrl);
+    if (!target.ok) {
+      return {
+        ok: false,
+        error: {
+          code: SessionDescribeFailureCode.UnknownModule,
+          phase: "resolve",
+          message: target.error.message,
+        },
+      };
+    }
+    const { module } = target;
+
+    const found = findDeclaration(module, name);
+    if (!found) {
+      return {
+        ok: false,
+        error: {
+          code: SessionDescribeFailureCode.UnknownDeclaration,
+          phase: "resolve",
+          message:
+            `No rule/func/decorator named '${name}' in module ${module.moduleUrl.href}`,
+        },
+      };
+    }
+
+    return {
+      ok: true,
+      declaration: describeMember(
+        module.moduleUrl,
+        name,
+        found.member,
+        found.kind,
+        module.exports.has(name),
+      ),
+    };
+  }
+
+  /**
+   * Finds every rule/func across this session's loaded modules whose
+   * metadata contains an entry for `decorator`, optionally filtered by
+   * `predicate` — an Uffda pattern (parsed with the pattern grammar) matched
+   * against that entry's value, reusing the same pattern-matching machinery
+   * `uffda_match` uses rather than a parallel predicate mechanism. Read-only;
+   * never mutates session state. See
+   * `.agents/requirements/mcp-server/007-introspection-and-query-tools.requirement.md`.
+   */
+  public async queryByMetadata(
+    decorator: string,
+    predicate?: string,
+  ): Promise<SessionQueryResult> {
+    if (this.closed) {
+      throw new Error(`Session ${this.id} is closed`);
+    }
+
+    let pattern: Pattern | undefined;
+    if (predicate !== undefined) {
+      const parsed = await parseSourceToAst(predicate, CliLanguage.Pattern);
+      if (!parsed.ok) {
+        return {
+          ok: false,
+          error: {
+            code: SessionQueryFailureCode.ParseFailure,
+            phase: "parse",
+            message: parsed.error.message,
+          },
+        };
+      }
+      pattern = parsed.ast as Pattern;
+    }
+
+    const matches: SessionQueryMatch[] = [];
+    // Only each module's own `rules`/`funcs` — never `imports`/
+    // `decoratorImports` — are scanned: an import is an alias for a Rule/Func
+    // that's already reachable (and already scanned) via its origin module in
+    // `this.modules`, so walking imports too would report the same
+    // metadata twice under a second name.
+    for (const [href, module] of this.modules) {
+      const members: [string, "rule" | "func", Rule | Func][] = [
+        ...[...module.rules].map(
+          ([n, r]): [string, "rule" | "func", Rule | Func] => [n, "rule", r],
+        ),
+        ...[...module.funcs].map(
+          ([n, f]): [string, "rule" | "func", Rule | Func] => [n, "func", f],
+        ),
+      ];
+      for (const [name, kind, member] of members) {
+        if (!member.metadata || !(decorator in member.metadata)) continue;
+        const value = member.metadata[decorator];
+        if (pattern) {
+          const result = await match(pattern, Scope.From(value));
+          if (result.kind !== MatchKind.Ok) continue;
+        }
+        matches.push({ moduleUrl: href, name, kind, metadata: value });
+      }
+    }
+
+    return { ok: true, matches };
   }
 
   /** Releases this session's in-memory state. Idempotent. */

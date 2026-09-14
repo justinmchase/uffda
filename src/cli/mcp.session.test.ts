@@ -2,10 +2,13 @@ import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import {
   RuntimeSession,
+  SessionDescribeFailureCode,
   SessionEvalFailureCode,
   SessionLoadFailureCode,
+  SessionQueryFailureCode,
 } from "./mcp.session.ts";
 import { compileSourcesToAstArtifacts } from "./compile.ts";
+import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 
 Deno.test("cli.mcp.session RuntimeSession", async (t) => {
   await t.step("loads a module and reports its exports", async () => {
@@ -555,13 +558,274 @@ Deno.test("cli.mcp.session RuntimeSession.eval", async (t) => {
       );
       assertEquals(loaded.ok, true);
 
-      // Metadata is inspected via the underlying Rule object rather than a
-      // dedicated introspection tool (007, not yet implemented) — this
+      // Metadata is inspected here via the underlying Rule object rather
+      // than the dedicated introspection tools (007) exercised in
+      // "cli.mcp.session RuntimeSession introspection" below — this
       // confirms eval() genuinely reuses the session's already-materialized
       // Rule (with its decorator-applied metadata) rather than re-deriving
       // it, per requirement 006's metadata-reflection clause.
       const result = await session.eval({ rule: "Main", input: "x" });
       assertEquals(result, { ok: true, value: "x" });
+    },
+  );
+});
+
+Deno.test("cli.mcp.session RuntimeSession introspection", async (t) => {
+  const LOUD_MODULE_SOURCE = `export Main Loud Label Greet Add;
+     decorator Loud = { shout: true };
+     decorator Label<name:string> = { name: name };
+     [Loud]
+     rule Main = any;
+     [Loud]
+     [Label "hi"]
+     func Greet<name:string> = name;
+     func Add<a:number b:number> = (add a b);`;
+
+  await t.step(
+    "listLoadedModules reports every declaration's kind and exported flag",
+    async () => {
+      const session = new RuntimeSession("i1");
+      await session.load(LOUD_MODULE_SOURCE);
+
+      const modules = session.listLoadedModules();
+      assertEquals(modules.length, 1);
+      const kinds = new Map(
+        modules[0].declarations.map((d) => [d.name, d.kind]),
+      );
+      assertEquals(kinds.get("Main"), "rule");
+      assertEquals(kinds.get("Greet"), "func");
+      assertEquals(kinds.get("Add"), "func");
+      assertEquals(kinds.get("Loud"), "decorator");
+      assert(modules[0].declarations.every((d) => d.exported));
+    },
+  );
+
+  await t.step(
+    "describe reports a rule's pattern, parameters, attributes, and metadata",
+    async () => {
+      const session = new RuntimeSession("i2");
+      await session.load(LOUD_MODULE_SOURCE);
+
+      const result = session.describe("Main");
+      assertEquals(result.ok, true);
+      assert(result.ok);
+      assertEquals(result.declaration.kind, "rule");
+      assertEquals(result.declaration.name, "Main");
+      assertEquals(result.declaration.exported, true);
+      assertEquals(result.declaration.parameters, []);
+      assertEquals(result.declaration.pattern, { kind: PatternKind.Any });
+      assertEquals(result.declaration.attributes, [
+        { decorator: "Loud", args: [] },
+      ]);
+      assertEquals(result.declaration.metadata, { Loud: { shout: true } });
+    },
+  );
+
+  await t.step(
+    "describe reports a func's attribute args and metadata",
+    async () => {
+      const session = new RuntimeSession("i3");
+      await session.load(LOUD_MODULE_SOURCE);
+
+      const result = session.describe("Greet");
+      assertEquals(result.ok, true);
+      assert(result.ok);
+      assertEquals(result.declaration.kind, "func");
+      assertEquals(result.declaration.attributes, [
+        { decorator: "Loud", args: [] },
+        { decorator: "Label", args: ["hi"] },
+      ]);
+      assertEquals(result.declaration.metadata, {
+        Loud: { shout: true },
+        Label: { name: "hi" },
+      });
+    },
+  );
+
+  await t.step(
+    "describe reports a decorator's own pattern/expression with no parameters/attributes/metadata",
+    async () => {
+      const session = new RuntimeSession("i4");
+      await session.load(LOUD_MODULE_SOURCE);
+
+      const result = session.describe("Loud");
+      assertEquals(result.ok, true);
+      assert(result.ok);
+      assertEquals(result.declaration.kind, "decorator");
+      assertEquals(result.declaration.parameters, undefined);
+      assertEquals(result.declaration.attributes, undefined);
+      assertEquals(result.declaration.metadata, undefined);
+    },
+  );
+
+  await t.step(
+    "describe reports a declaration with no applied attributes as having no metadata",
+    async () => {
+      const session = new RuntimeSession("i5");
+      await session.load(LOUD_MODULE_SOURCE);
+
+      const result = session.describe("Add");
+      assertEquals(result.ok, true);
+      assert(result.ok);
+      assertEquals(result.declaration.attributes, undefined);
+      assertEquals(result.declaration.metadata, undefined);
+    },
+  );
+
+  await t.step(
+    "describe fails deterministically for an unknown declaration name",
+    async () => {
+      const session = new RuntimeSession("i6");
+      await session.load(LOUD_MODULE_SOURCE);
+
+      const result = session.describe("DoesNotExist");
+      assertEquals(result.ok, false);
+      assert(!result.ok);
+      assertEquals(
+        result.error.code,
+        SessionDescribeFailureCode.UnknownDeclaration,
+      );
+    },
+  );
+
+  await t.step(
+    "describe fails deterministically for an unknown moduleUrl",
+    async () => {
+      const session = new RuntimeSession("i7");
+      await session.load(LOUD_MODULE_SOURCE, "main.uff");
+
+      const result = session.describe("Main", "does-not-exist.uff");
+      assertEquals(result.ok, false);
+      assert(!result.ok);
+      assertEquals(result.error.code, SessionDescribeFailureCode.UnknownModule);
+    },
+  );
+
+  await t.step("describe defaults to the just-loaded root module", async () => {
+    const cwd = await Deno.makeTempDir({ prefix: "uffda-mcp-session-" });
+    try {
+      const depUff = join(cwd, "dep.uff");
+      await Deno.writeTextFile(depUff, "export Foo;\nrule Foo = any;");
+      const compiled = await compileSourcesToAstArtifacts({
+        cwd,
+        sourcePaths: [depUff],
+        outputDir: join(cwd, ".uffda", "ast"),
+        overwrite: true,
+      });
+      assertEquals(compiled.ok, true);
+
+      const session = new RuntimeSession("i8", { cwd });
+      await session.load(
+        'import "./dep.uff" Foo;\nexport Main;\nrule Main = any;',
+        "main.uff",
+      );
+
+      // Omitting moduleUrl must describe against the just-loaded root
+      // (main.uff, which has `Main`), not the last-resolved import
+      // (dep.uff, which does not).
+      const result = session.describe("Main");
+      assertEquals(result.ok, true);
+    } finally {
+      await Deno.remove(cwd, { recursive: true });
+    }
+  });
+
+  await t.step(
+    "queryByMetadata finds every rule/func with the given decorator, unfiltered",
+    async () => {
+      const session = new RuntimeSession("i9");
+      await session.load(LOUD_MODULE_SOURCE);
+
+      const result = await session.queryByMetadata("Loud");
+      assertEquals(result.ok, true);
+      assert(result.ok);
+      const names = result.matches.map((m) => m.name).sort();
+      assertEquals(names, ["Greet", "Main"]);
+    },
+  );
+
+  await t.step(
+    "queryByMetadata filters by a predicate pattern matched against the metadata value",
+    async () => {
+      const session = new RuntimeSession("i10");
+      await session.load(LOUD_MODULE_SOURCE);
+
+      const result = await session.queryByMetadata(
+        "Loud",
+        "{ shout: true }",
+      );
+      assertEquals(result.ok, true);
+      assert(result.ok);
+      assertEquals(result.matches.map((m) => m.name).sort(), ["Greet", "Main"]);
+
+      const noMatches = await session.queryByMetadata(
+        "Loud",
+        "{ shout: false }",
+      );
+      assertEquals(noMatches.ok, true);
+      assert(noMatches.ok);
+      assertEquals(noMatches.matches, []);
+    },
+  );
+
+  await t.step(
+    "queryByMetadata returns no matches for a decorator nothing applies",
+    async () => {
+      const session = new RuntimeSession("i11");
+      await session.load(LOUD_MODULE_SOURCE);
+
+      const result = await session.queryByMetadata("Unused");
+      assertEquals(result, { ok: true, matches: [] });
+    },
+  );
+
+  await t.step(
+    "queryByMetadata reports a parse failure for an invalid predicate without crashing",
+    async () => {
+      const session = new RuntimeSession("i12");
+      await session.load(LOUD_MODULE_SOURCE);
+
+      const result = await session.queryByMetadata("Loud", "{");
+      assertEquals(result.ok, false);
+      assert(!result.ok);
+      assertEquals(result.error.code, SessionQueryFailureCode.ParseFailure);
+    },
+  );
+
+  await t.step(
+    "queryByMetadata searches across every loaded module in the session, not just the root",
+    async () => {
+      const cwd = await Deno.makeTempDir({ prefix: "uffda-mcp-session-" });
+      try {
+        const depUff = join(cwd, "dep.uff");
+        await Deno.writeTextFile(
+          depUff,
+          `export Foo Loud;
+         decorator Loud = { shout: true };
+         [Loud]
+         rule Foo = any;`,
+        );
+        const compiled = await compileSourcesToAstArtifacts({
+          cwd,
+          sourcePaths: [depUff],
+          outputDir: join(cwd, ".uffda", "ast"),
+          overwrite: true,
+        });
+        assertEquals(compiled.ok, true);
+
+        const session = new RuntimeSession("i13", { cwd });
+        await session.load(
+          'import "./dep.uff" Foo;\nexport Main;\nrule Main = any;',
+          "main.uff",
+        );
+
+        const result = await session.queryByMetadata("Loud");
+        assertEquals(result.ok, true);
+        assert(result.ok);
+        assertEquals(result.matches.map((m) => m.name), ["Foo"]);
+      } finally {
+        await Deno.remove(cwd, { recursive: true });
+      }
     },
   );
 });

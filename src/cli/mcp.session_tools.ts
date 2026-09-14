@@ -4,11 +4,15 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { SessionManager } from "./mcp.sessions.ts";
 
 /**
- * Session lifecycle tools: `uffda_session_open`, `uffda_session_load`,
- * `uffda_session_close` (see
- * `.agents/requirements/mcp-server/002-session-lifecycle-and-isolation.requirement.md`
- * and `.agents/requirements/mcp-server/004-session-load-tool.requirement.md`).
- * A single `SessionManager` instance is shared by all three tools for a given
+ * Session lifecycle, evaluation, and introspection tools:
+ * `uffda_session_open`, `uffda_session_load`, `uffda_session_eval`,
+ * `uffda_session_list_modules`, `uffda_session_describe`,
+ * `uffda_session_query`, `uffda_session_close` (see
+ * `.agents/requirements/mcp-server/002-session-lifecycle-and-isolation.requirement.md`,
+ * `.agents/requirements/mcp-server/004-session-load-tool.requirement.md`,
+ * `.agents/requirements/mcp-server/006-evaluation-tool.requirement.md`, and
+ * `.agents/requirements/mcp-server/007-introspection-and-query-tools.requirement.md`).
+ * A single `SessionManager` instance is shared by every tool for a given
  * server so state genuinely persists across tool calls within one server
  * process (each session is still isolated from every other session).
  */
@@ -73,6 +77,47 @@ export const sessionEvalInputShape = {
 };
 const sessionEvalInputSchema = z.object(sessionEvalInputShape);
 export type SessionEvalToolInput = z.infer<typeof sessionEvalInputSchema>;
+
+export const sessionListModulesInputShape = {
+  sessionId: z.string().describe("An id returned by uffda_session_open."),
+};
+const sessionListModulesInputSchema = z.object(sessionListModulesInputShape);
+export type SessionListModulesToolInput = z.infer<
+  typeof sessionListModulesInputSchema
+>;
+
+export const sessionDescribeInputShape = {
+  sessionId: z.string().describe("An id returned by uffda_session_open."),
+  name: z.string().describe(
+    "The rule/func/decorator name to describe, resolved against the " +
+      "target module's own declarations or its imports/decoratorImports.",
+  ),
+  moduleUrl: z.string().optional().describe(
+    "Which loaded module to describe `name` in (a path already passed to " +
+      "uffda_session_load, or an href already returned by it). Defaults " +
+      "to the most recently loaded module.",
+  ),
+};
+const sessionDescribeInputSchema = z.object(sessionDescribeInputShape);
+export type SessionDescribeToolInput = z.infer<
+  typeof sessionDescribeInputSchema
+>;
+
+export const sessionQueryInputShape = {
+  sessionId: z.string().describe("An id returned by uffda_session_open."),
+  decorator: z.string().describe(
+    "Decorator name to search for. Returns every rule/func across this " +
+      "session's loaded modules whose metadata has an entry for this " +
+      "decorator.",
+  ),
+  predicate: z.string().optional().describe(
+    "An Uffda pattern (parsed with the pattern grammar) matched against " +
+      "each candidate's metadata value; only matching entries are " +
+      "returned. Omit to return every entry for `decorator` unfiltered.",
+  ),
+};
+const sessionQueryInputSchema = z.object(sessionQueryInputShape);
+export type SessionQueryToolInput = z.infer<typeof sessionQueryInputSchema>;
 
 function jsonResult(value: unknown): CallToolResult {
   return { content: [{ type: "text", text: JSON.stringify(value) }] };
@@ -145,6 +190,68 @@ export function registerSessionTools(
         input: input.input,
         inputIsJson: input.inputIsJson,
       });
+      return jsonResult(result);
+    },
+  );
+
+  server.registerTool(
+    "uffda_session_list_modules",
+    {
+      title: "uffda session list modules",
+      description:
+        "Lists every module currently loaded in a session and each " +
+        "module's declarations (rules/funcs/decorators, and whether each " +
+        "is exported). Read-only: never mutates session state.",
+      inputSchema: sessionListModulesInputShape,
+    },
+    (input: SessionListModulesToolInput) => {
+      const lookup = sessions.get(input.sessionId);
+      if (!lookup.ok) return jsonResult({ ok: false, error: lookup.error });
+      return jsonResult({
+        ok: true,
+        modules: lookup.session.listLoadedModules(),
+      });
+    },
+  );
+
+  server.registerTool(
+    "uffda_session_describe",
+    {
+      title: "uffda session describe",
+      description:
+        "Describes a rule/func/decorator declaration using a session's " +
+        "already-resolved state: its pattern/expression structure, " +
+        "parameters (rules only), and — for rules/funcs — applied " +
+        "attributes and keyed metadata. Read-only: never mutates session " +
+        "state.",
+      inputSchema: sessionDescribeInputShape,
+    },
+    (input: SessionDescribeToolInput) => {
+      const lookup = sessions.get(input.sessionId);
+      if (!lookup.ok) return jsonResult({ ok: false, error: lookup.error });
+      const result = lookup.session.describe(input.name, input.moduleUrl);
+      return jsonResult(result);
+    },
+  );
+
+  server.registerTool(
+    "uffda_session_query",
+    {
+      title: "uffda session query",
+      description:
+        "Finds every rule/func across a session's loaded modules whose " +
+        "metadata contains an entry for a given decorator, optionally " +
+        "filtered by a pattern matched against that entry's value. " +
+        "Read-only: never mutates session state.",
+      inputSchema: sessionQueryInputShape,
+    },
+    async (input: SessionQueryToolInput) => {
+      const lookup = sessions.get(input.sessionId);
+      if (!lookup.ok) return jsonResult({ ok: false, error: lookup.error });
+      const result = await lookup.session.queryByMetadata(
+        input.decorator,
+        input.predicate,
+      );
       return jsonResult(result);
     },
   );
