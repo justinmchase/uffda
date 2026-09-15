@@ -112,6 +112,23 @@ Deno.test("cli.main runCli validates mode support and compile routing", async (t
     assert(result.stdout?.includes("Usage: uffda mcp"));
   });
 
+  await t.step("prints command help for lsp context", async () => {
+    const result = await runCli(
+      ["lsp", "--help"],
+      "/workspace/project",
+      false,
+    );
+    assertEquals(result.exitCode, CliExitCode.Ok);
+    assert(result.stdout?.includes("Usage: uffda lsp"));
+  });
+
+  await t.step("root usage text mentions both mcp and lsp", async () => {
+    const result = await runCli([], "/workspace/project", false);
+    assertEquals(result.exitCode, CliExitCode.Ok);
+    assert(result.stdout?.includes("uffda mcp"));
+    assert(result.stdout?.includes("uffda lsp"));
+  });
+
   await t.step("writes a full-Uffda AST from stdin to stdout", async () => {
     const result = await runCli(
       ["parse"],

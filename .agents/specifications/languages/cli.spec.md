@@ -144,8 +144,11 @@ Deferred polish (not release blockers):
 - Watch-style file I/O orchestration and debounce/refresh automation.
 - Richer match-tree visualizer output (for example Mermaid) for debugging.
 
-Language server mode ([language server mode](./cli/language-server.spec.md)) is
-specified but not yet implemented.
+Language server mode ([language server mode](./cli/language-server.spec.md)):
+server mode/invocation, language configuration, document synchronization, and
+diagnostics are implemented (`.uff`-only, over stdio); syntax highlighting,
+hover/navigation/completions, and the VS Code extension are specified but not
+yet implemented.
 
 Normative distribution and release contracts live in
 [distribution and release](./cli/distribution-and-release.spec.md). Bootstrap

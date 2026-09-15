@@ -183,9 +183,12 @@ not introduce a parallel parsing or compilation pathway.
 
 ## Status
 
-Specified, not yet implemented. See GitHub issue #155 for the tracking issue and
-its resolved design questions, and `.agents/requirements/cli-language-server/`
-for derived, directly testable requirements once authored.
+`uffda lsp`'s server mode/invocation, language configuration, document
+synchronization/incremental re-parsing, and diagnostics (see requirements
+001-004 in `.agents/requirements/cli-language-server/`) are implemented,
+`.uff`-only, over stdio. Syntax highlighting, hover/navigation/completions, and
+the VS Code extension (requirements 005-007) are specified but not yet
+implemented. See GitHub issue #155 for the tracking issue.
 
 ## Related
 
