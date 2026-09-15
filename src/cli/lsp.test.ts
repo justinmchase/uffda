@@ -8,6 +8,7 @@ import type {
   SemanticTokensParams,
 } from "vscode-languageserver/node";
 import { SemanticTokensRequest } from "vscode-languageserver/node";
+import { LANGUAGE_METADATA_METHOD } from "./language_metadata.ts";
 import { type UffdaLspConnection, wireUffdaLspHandlers } from "./lsp.ts";
 import { SEMANTIC_TOKENS_LEGEND } from "./semantic_tokens.ts";
 
@@ -215,6 +216,35 @@ Deno.test("cli.lsp wireUffdaLspHandlers", async (t) => {
       // The successfully matched prefix (`export`/`rule`/...) must still
       // contribute tokens rather than blanking the whole document.
       assertEquals(tokens.data.length > 0, true);
+    },
+  );
+
+  await t.step(
+    "advertises and serves uffda/languageMetadata from [Language] decorators",
+    async () => {
+      const { connection, handlers } = createFakeConnection();
+      wireUffdaLspHandlers(connection, { workspaceRoot: Deno.cwd() });
+
+      const init = await handlers.initialize(
+        {} as InitializeParams,
+      ) as InitializeResult;
+      assertEquals(init.capabilities.experimental, {
+        uffdaLanguageMetadata: true,
+      });
+
+      const result = await handlers[LANGUAGE_METADATA_METHOD]({
+        languageId: "uffda",
+      }) as {
+        languages: Array<{
+          id: string;
+          configuration: { comments?: { lineComment?: string } };
+        }>;
+      };
+      assertEquals(result.languages.length, 1);
+      assertEquals(result.languages[0].id, "uffda");
+      assertEquals(result.languages[0].configuration.comments, {
+        lineComment: "#",
+      });
     },
   );
 });

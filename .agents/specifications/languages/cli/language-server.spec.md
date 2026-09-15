@@ -239,7 +239,13 @@ metadata); aligning that projection onto a general `[Token]` rule-metadata walk
 (requirement 007) has an initial implementation at `editors/vscode/`: it
 registers `uffda lsp` for `.uff` files, registers `uffda mcp` as an MCP server,
 and resolves/downloads a compatible `uffda` binary automatically, with debug
-override settings. See GitHub issue #155 for the tracking issue.
+override settings. The extension also queries the custom
+`uffda/languageMetadata` request and applies `[Language]`-derived editor
+configuration via `vscode.languages.setLanguageConfiguration()` for `.uff`
+(static `language-configuration.json` remains as a fallback); dynamic
+file-extension→language-id association for additional workspace languages (see
+GitHub issue #192) is still outstanding. See GitHub issue #155 for the tracking
+issue.
 
 ## Related
 

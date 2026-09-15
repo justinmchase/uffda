@@ -1,4 +1,17 @@
 {
   "deno.enable": true,
-  "deno.unstable": true
+  "deno.unstable": true,
+  "uffda.lsp.serverPath": "deno",
+  "uffda.lsp.serverArgs": [
+    "run",
+    "-A",
+    "./src/cli/main.ts",
+    "lsp"
+  ],
+  "uffda.mcp.serverArgs": [
+    "run",
+    "-A",
+    "./src/cli/main.ts",
+    "mcp"
+  ]
 }

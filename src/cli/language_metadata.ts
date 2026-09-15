@@ -2,6 +2,7 @@ import { resolve as resolvePath } from "@std/path";
 import { resolveGrammarModule } from "../lang/grammar.ts";
 import {
   BUILTIN_UFF_LANGUAGE,
+  type LspConfig,
   type LspLanguageConfigEntry,
 } from "./lsp.config.ts";
 
@@ -33,6 +34,38 @@ export type LanguageMetadata = {
 };
 
 export type LanguageBracketPair = [open: string, close: string];
+
+/**
+ * VS Code / editor `LanguageConfiguration`-shaped projection of
+ * `LanguageMetadata` (see
+ * https://code.visualstudio.com/api/language-extensions/language-configuration-guide).
+ * Returned by the `uffda/languageMetadata` LSP request so clients can call
+ * `setLanguageConfiguration` without re-deriving field names.
+ */
+export type EditorLanguageConfiguration = {
+  comments?: { lineComment?: string };
+  brackets?: LanguageBracketPair[];
+  autoClosingPairs?: Array<{ open: string; close: string }>;
+  surroundingPairs?: LanguageBracketPair[];
+};
+
+/** Custom LSP request: query `[Language]` metadata for configured languages. */
+export const LANGUAGE_METADATA_METHOD = "uffda/languageMetadata";
+
+export type LanguageMetadataParams = {
+  /** When set, only this language id is queried; otherwise every configured entry. */
+  languageId?: string;
+};
+
+export type LanguageMetadataEntry = {
+  id: string;
+  metadata: LanguageMetadata;
+  configuration: EditorLanguageConfiguration;
+};
+
+export type LanguageMetadataResult = {
+  languages: LanguageMetadataEntry[];
+};
 
 const LANGUAGE_DECORATOR_NAME = "Language";
 
@@ -78,7 +111,31 @@ export function toLanguageMetadata(
   if (autoClosingPairs) metadata.autoClosingPairs = autoClosingPairs;
   const surroundingPairs = toBracketPairs(v.surroundingPairs);
   if (surroundingPairs) metadata.surroundingPairs = surroundingPairs;
-  return metadata;
+  return Object.keys(metadata).length > 0 ? metadata : undefined;
+}
+
+/**
+ * Projects `LanguageMetadata` into the editor configuration shape VS Code's
+ * `languages.setLanguageConfiguration()` accepts. Returns `undefined` when
+ * there is nothing editor-facing to apply (e.g. only `ext`/`name` were set).
+ */
+export function toEditorLanguageConfiguration(
+  metadata: LanguageMetadata,
+): EditorLanguageConfiguration | undefined {
+  const configuration: EditorLanguageConfiguration = {};
+  if (metadata.comment !== undefined) {
+    configuration.comments = { lineComment: metadata.comment };
+  }
+  if (metadata.brackets) configuration.brackets = metadata.brackets;
+  if (metadata.autoClosingPairs) {
+    configuration.autoClosingPairs = metadata.autoClosingPairs.map(
+      ([open, close]) => ({ open, close }),
+    );
+  }
+  if (metadata.surroundingPairs) {
+    configuration.surroundingPairs = metadata.surroundingPairs;
+  }
+  return Object.keys(configuration).length > 0 ? configuration : undefined;
 }
 
 /**
@@ -134,4 +191,29 @@ export async function loadLanguageMetadata(
 
   const rule = resolved.resolved.module.rules.get(target.entryRuleName);
   return toLanguageMetadata(rule?.metadata?.[LANGUAGE_DECORATOR_NAME]);
+}
+
+/**
+ * Handles the `uffda/languageMetadata` custom LSP request: loads `[Language]`
+ * metadata for each configured language (or a single `languageId`) and
+ * returns both the raw metadata and its editor-configuration projection.
+ */
+export async function languageMetadataForConfig(
+  config: LspConfig,
+  workspaceRoot: string,
+  params?: LanguageMetadataParams,
+): Promise<LanguageMetadataResult> {
+  const entries = params?.languageId
+    ? config.languages.filter((language) => language.id === params.languageId)
+    : config.languages;
+
+  const languages: LanguageMetadataEntry[] = [];
+  for (const language of entries) {
+    const metadata = await loadLanguageMetadata(language, workspaceRoot);
+    if (!metadata) continue;
+    const configuration = toEditorLanguageConfiguration(metadata);
+    if (!configuration) continue;
+    languages.push({ id: language.id, metadata, configuration });
+  }
+  return { languages };
 }
