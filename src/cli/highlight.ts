@@ -179,8 +179,15 @@ function roleFor(
  * list covering `sourceText` in full. Overlapping/duplicate token spans
  * (e.g. the same characters visited more than once via memoized sub-trees)
  * are deduplicated by offset, keeping the first (leftmost pre-order) visit.
+ *
+ * Shared by `highlightSource` (MCP/CLI) and the LSP semantic-tokens path
+ * (`src/cli/semantic_tokens.ts`) so both derive classifications from the
+ * same parse tree rather than a second, highlighting-specific parse.
  */
-function projectSpans(root: Match, sourceText: string): HighlightSpan[] {
+export function highlightSpansFromMatch(
+  root: Match,
+  sourceText: string,
+): HighlightSpan[] {
   const { tokens, keywords } = collectSpans(root, sourceText);
 
   const byOffset = new Map<number, CollectedToken>();
@@ -237,7 +244,7 @@ export async function highlightSource(
     }
   })();
 
-  const spans = projectSpans(match, sourceText);
+  const spans = highlightSpansFromMatch(match, sourceText);
   if (match.kind === MatchKind.Ok) return { ok: true, spans };
 
   const rightmost = match.kind === MatchKind.Fail

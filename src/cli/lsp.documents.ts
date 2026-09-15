@@ -1,7 +1,9 @@
 import { fromFileUrl } from "@std/path";
-import type { Diagnostic } from "vscode-languageserver-types";
+import type { Diagnostic, SemanticTokens } from "vscode-languageserver-types";
+import { highlightSpansFromMatch } from "./highlight.ts";
 import { RuntimeSession } from "./mcp.session.ts";
 import { diagnosticsForSessionResult } from "./lsp.diagnostics.ts";
+import { buildSemanticTokens } from "./semantic_tokens.ts";
 
 /**
  * The minimal shape of an LSP `TextDocumentContentChangeEvent` this module
@@ -143,6 +145,25 @@ export class LspDocumentManager {
     if (!doc) return;
     doc.session.close();
     this.documents.delete(uri);
+  }
+
+  /**
+   * Builds an LSP `SemanticTokens` response for `uri` from the document's
+   * most recent parse tree (see
+   * `.agents/requirements/cli-language-server/005-syntax-highlighting.requirement.md`).
+   * Returns `undefined` when the document is not open; returns an empty
+   * token list when no parse tree has been retained yet.
+   */
+  public semanticTokens(uri: string): SemanticTokens | undefined {
+    const doc = this.documents.get(uri);
+    if (!doc) return undefined;
+    const state = doc.session.getLatestParseState();
+    if (!state) return { data: [] };
+    // Prefer the session's retained source (always aligned with `match`)
+    // over `doc.source` — they should match after every open/change, but
+    // the parse tree is authoritative for offset classification.
+    const spans = highlightSpansFromMatch(state.match, state.source);
+    return buildSemanticTokens(spans, state.source);
   }
 }
 

@@ -70,10 +70,13 @@ not introduce a parallel parsing or compilation pathway.
   that would need to be undone to support it later: a grammar module MAY
   eventually self-declare its own file extension(s) and other editor-facing
   configuration (see "VS Code extension" below) via decorator-derived metadata
-  on its entry rule (for example a `[LanguageExtension ".uff"]`-shaped
-  decorator, queryable the same way `[token]`/`[Keyword]` metadata already is —
-  see [rule metadata](../../runtime/rule-metadata.spec.md)), rather than
-  requiring every consumer (the workspace configuration file, an editor
+  on its entry rule — for example a decorator that takes one object-literal
+  argument and an application site like
+  `[Language { ext: ".uff", name: "Uffda" }]` (or a narrower positional form
+  such as `decorator Language<ext:string> = { kind: "language", ext };` applied
+  as `[Language ".uff"]`), queryable the same way `[Token]`/`[Keyword]` metadata
+  already is — see [rule metadata](../../runtime/rule-metadata.spec.md) — rather
+  than requiring every consumer (the workspace configuration file, an editor
   extension) to separately hard-code per-language facts the grammar already
   knows about itself. A per-language config entry remains the near-term source
   of truth and, when present, MUST take precedence over any future self-declared
@@ -116,7 +119,7 @@ not introduce a parallel parsing or compilation pathway.
 
 - The server MUST support `textDocument/semanticTokens` for syntax highlighting,
   deriving token classification from the grammar's own delivered parse tree and
-  its rule metadata (see the `[token]` rule-metadata mechanism referenced by
+  its rule metadata (see the `[Token]` rule-metadata mechanism referenced by
   GitHub issue #159), rather than a separately hand-maintained TextMate-style
   grammar.
 - Highlighting MUST be kept current under incremental re-parsing using the same
@@ -225,14 +228,18 @@ not introduce a parallel parsing or compilation pathway.
 ## Status
 
 `uffda lsp`'s server mode/invocation, language configuration, document
-synchronization/incremental re-parsing, and diagnostics (see requirements
-001-004 in `.agents/requirements/cli-language-server/`) are implemented,
-`.uff`-only, over stdio. Syntax highlighting and hover/navigation/completions
-(requirements 005-006) are specified but not yet implemented. The VS Code
-extension (requirement 007) has an initial implementation at `editors/vscode/`:
-it registers `uffda lsp` for `.uff` files, registers `uffda mcp` as an MCP
-server, and resolves/downloads a compatible `uffda` binary automatically, with
-debug override settings. See GitHub issue #155 for the tracking issue.
+synchronization/incremental re-parsing, diagnostics, and full-document
+semantic-token highlighting (see requirements 001-005 in
+`.agents/requirements/cli-language-server/`) are implemented, `.uff`-only, over
+stdio. Classification currently reuses the shared parse-tree projection in
+`src/cli/highlight.ts` (tokenizer rule names plus `[Keyword]` decorator
+metadata); aligning that projection onto a general `[Token]` rule-metadata walk
+(see GitHub issue #159) remains a follow-up. Hover/navigation/completions
+(requirement 006) are specified but not yet implemented. The VS Code extension
+(requirement 007) has an initial implementation at `editors/vscode/`: it
+registers `uffda lsp` for `.uff` files, registers `uffda mcp` as an MCP server,
+and resolves/downloads a compatible `uffda` binary automatically, with debug
+override settings. See GitHub issue #155 for the tracking issue.
 
 ## Related
 
@@ -242,5 +249,5 @@ debug override settings. See GitHub issue #155 for the tracking issue.
 - [runtime incremental re-parsing](../../runtime/incremental-parsing.spec.md) —
   the reuse contract this mode's document synchronization is built on.
 - GitHub issue #155 — origin of this chapter.
-- GitHub issue #159 — the `[token]` rule-metadata mechanism this chapter's
+- GitHub issue #159 — the `[Token]` rule-metadata mechanism this chapter's
   syntax highlighting section relies on.

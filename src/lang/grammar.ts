@@ -9,6 +9,7 @@ import { languageArtifactRoots } from "../runtime/resolvers/language_artifact_ro
 import { ModuleImportResultKind } from "../runtime/resolvers/resolver.ts";
 import { Resolver } from "../runtime/resolve.ts";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
+import type { Module } from "../runtime/modules/module.ts";
 import type { Input } from "../input.ts";
 import type { Memos } from "../memo.ts";
 
@@ -63,18 +64,29 @@ export type GrammarOptions = {
   input?: Input;
 };
 
-export async function parseGrammar<TAst>(options: {
-  source: string;
+export type ResolvedGrammarModule = {
+  module: Module;
+  scope: Scope;
+};
+
+export type ResolveGrammarModuleResult<TAst> =
+  | { ok: true; resolved: ResolvedGrammarModule }
+  | { ok: false; error: Match<TAst> };
+
+/**
+ * Resolves (imports) `moduleUrl` without running any rule/func against it —
+ * the shared first half of `parseGrammar`, factored out so callers that
+ * only need the compiled `Module` itself (for example to read decorator
+ * metadata off an entry rule, see `src/cli/language_metadata.ts`) don't need
+ * to also perform a full parse of some source text just to reach it.
+ */
+export async function resolveGrammarModule<TAst>(options: {
   moduleUrl: URL;
   entryRuleName: string;
+  source?: string;
   grammarOptions?: GrammarOptions;
-}): Promise<Match<TAst>> {
-  const {
-    source,
-    moduleUrl,
-    entryRuleName,
-    grammarOptions,
-  } = options;
+}): Promise<ResolveGrammarModuleResult<TAst>> {
+  const { moduleUrl, entryRuleName, source, grammarOptions } = options;
   const { globals, declarations, memos, input } = grammarOptions ?? {};
   const { builtInLanguageDeclarations } = await import("./declarations.ts");
 
@@ -90,7 +102,7 @@ export async function parseGrammar<TAst>(options: {
     cwd,
     artifactRoot,
   });
-  let s = (input ? Scope.Default().withInput(input) : Scope.From(source))
+  let s = (input ? Scope.Default().withInput(input) : Scope.From(source ?? ""))
     .withOptions({ globals: g, resolver: r });
   if (memos) {
     s = s.withMemos(memos);
@@ -105,10 +117,30 @@ export async function parseGrammar<TAst>(options: {
     },
   });
   if (m.kind === ModuleImportResultKind.Error) {
-    return m.error;
+    return { ok: false, error: m.error as Match<TAst> };
   }
 
-  const scoped = s.pushModule(m.module);
+  return { ok: true, resolved: { module: m.module, scope: s } };
+}
+
+export async function parseGrammar<TAst>(options: {
+  source: string;
+  moduleUrl: URL;
+  entryRuleName: string;
+  grammarOptions?: GrammarOptions;
+}): Promise<Match<TAst>> {
+  const { source, moduleUrl, entryRuleName, grammarOptions } = options;
+
+  const resolved = await resolveGrammarModule<TAst>({
+    moduleUrl,
+    entryRuleName,
+    source,
+    grammarOptions,
+  });
+  if (!resolved.ok) return resolved.error;
+
+  const { module, scope } = resolved.resolved;
+  const scoped = scope.pushModule(module);
   const parsed = await resolve(
     {
       kind: PatternKind.Resolve,
