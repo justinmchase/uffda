@@ -5,7 +5,7 @@ import * as semver from "semver";
 // release automation that bumps deno.jsonc/VERSION/src/version.ts) — bump
 // timing tracks this monorepo's release cadence, so the extension only ever
 // declares itself compatible with the uffda CLI shipped alongside it.
-export const MIN_UFFDA_VERSION = "0.2.6";
+export const MIN_UFFDA_VERSION = "0.2.7";
 
 /**
  * Returns true when `actual` is greater than or equal to `minimum`, per
