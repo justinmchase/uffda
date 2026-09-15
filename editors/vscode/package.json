@@ -1,0 +1,87 @@
+{
+  "name": "uffda-vscode",
+  "displayName": "Uffda",
+  "description": "Language support for Uffda (.uff) grammars: diagnostics, highlighting, and an MCP server for AI agent tools.",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "publisher": "justinmchase",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/justinmchase/uffda.git",
+    "directory": "editors/vscode"
+  },
+  "engines": {
+    "vscode": "^1.104.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "AI"
+  ],
+  "activationEvents": [
+    "onLanguage:uffda"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "uffda",
+        "aliases": [
+          "Uffda",
+          "uffda"
+        ],
+        "extensions": [
+          ".uff"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "uffda",
+        "label": "Uffda"
+      }
+    ],
+    "configuration": {
+      "title": "Uffda",
+      "properties": {
+        "uffda.lsp.serverPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Overrides the `uffda` executable used to launch the language server and MCP server, bypassing `PATH` resolution and automatic download entirely. Intended for debugging a local source checkout (for example `deno`). Used verbatim together with `#uffda.lsp.serverArgs#`."
+        },
+        "uffda.lsp.serverArgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Arguments passed to `#uffda.lsp.serverPath#` when launching the language server, in place of the default `lsp` argument. Only used when `#uffda.lsp.serverPath#` is set. For example, to run from source: `[\"run\", \"-A\", \"./mod.ts\", \"lsp\"]`."
+        },
+        "uffda.mcp.serverArgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Arguments passed to `#uffda.lsp.serverPath#` when launching the MCP server, in place of the default `mcp` argument. Only used when `#uffda.lsp.serverPath#` is set. For example, to run from source: `[\"run\", \"-A\", \"./mod.ts\", \"mcp\"]`."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -p ./ --watch",
+    "package": "vsce package -o uffda.vsix",
+    "check-types": "tsc --noEmit -p ./"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^10.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.104.0",
+    "@vscode/vsce": "^4.0.0",
+    "typescript": "^5.6.0"
+  }
+}

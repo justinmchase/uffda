@@ -42,7 +42,13 @@
   },
   "fmt": {
     "exclude": [
-      "./src/runtime/resolvers/test.bad.module.json"
+      "./src/runtime/resolvers/test.bad.module.json",
+      "./editors/vscode/"
+    ]
+  },
+  "lint": {
+    "exclude": [
+      "./editors/vscode/"
     ]
   },
   "publish": {
@@ -54,7 +60,8 @@
       ".cursor/",
       ".github/",
       "test/",
-      "src/requirements/"
+      "src/requirements/",
+      "editors/"
     ]
   }
 }

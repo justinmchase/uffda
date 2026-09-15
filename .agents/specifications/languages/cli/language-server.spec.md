@@ -198,9 +198,12 @@ not introduce a parallel parsing or compilation pathway.
 `uffda lsp`'s server mode/invocation, language configuration, document
 synchronization/incremental re-parsing, and diagnostics (see requirements
 001-004 in `.agents/requirements/cli-language-server/`) are implemented,
-`.uff`-only, over stdio. Syntax highlighting, hover/navigation/completions, and
-the VS Code extension (requirements 005-007) are specified but not yet
-implemented. See GitHub issue #155 for the tracking issue.
+`.uff`-only, over stdio. Syntax highlighting and hover/navigation/completions
+(requirements 005-006) are specified but not yet implemented. The VS Code
+extension (requirement 007) has an initial implementation at `editors/vscode/`:
+it registers `uffda lsp` for `.uff` files, registers `uffda mcp` as an MCP
+server, and resolves/downloads a compatible `uffda` binary automatically, with
+debug override settings. See GitHub issue #155 for the tracking issue.
 
 ## Related
 
