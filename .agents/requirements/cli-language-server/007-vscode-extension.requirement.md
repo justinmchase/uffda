@@ -75,8 +75,8 @@ Expected behavior:
   full-command override) that, when set, are used verbatim to launch the server
   process, completely bypassing PATH resolution, version checking, and download
   (steps above). This lets a contributor point the extension at a local source
-  checkout (for example `deno run -A ./mod.ts lsp` or an in-progress build) to
-  debug `uffda lsp` itself.
+  checkout (for example `deno run -A ./src/cli/main.ts lsp` or an in-progress
+  build) to debug `uffda lsp` itself.
 - When a server-path/command override is configured, the extension MUST still
   surface a clear, actionable error if the overridden command fails to start,
   rather than silently falling back to PATH resolution or download — overriding

@@ -22,8 +22,8 @@ Language support for [Uffda](../../README.md) `.uff` grammars.
 | Setting | Description |
 | --- | --- |
 | `uffda.lsp.serverPath` | Overrides the `uffda` executable used for both the language server and the MCP server, bypassing `PATH` resolution and download entirely. Useful for pointing the extension at a local source checkout, e.g. `deno`. |
-| `uffda.lsp.serverArgs` | Arguments passed to `uffda.lsp.serverPath` when launching the language server (default: `["lsp"]`). For example: `["run", "-A", "./mod.ts", "lsp"]`. |
-| `uffda.mcp.serverArgs` | Arguments passed to `uffda.lsp.serverPath` when launching the MCP server (default: `["mcp"]`). For example: `["run", "-A", "./mod.ts", "mcp"]`. |
+| `uffda.lsp.serverArgs` | Arguments passed to `uffda.lsp.serverPath` when launching the language server (default: `["lsp"]`). For example: `["run", "-A", "./src/cli/main.ts", "lsp"]`. |
+| `uffda.mcp.serverArgs` | Arguments passed to `uffda.lsp.serverPath` when launching the MCP server (default: `["mcp"]`). For example: `["run", "-A", "./src/cli/main.ts", "mcp"]`. |
 
 When `uffda.lsp.serverPath` is unset, the extension resolves a `uffda`
 binary automatically: prefer a compatible version on `PATH`, otherwise

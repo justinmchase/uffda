@@ -5,13 +5,13 @@
   "uffda.lsp.serverArgs": [
     "run",
     "-A",
-    "./mod.ts",
+    "./src/cli/main.ts",
     "lsp"
   ],
   "uffda.mcp.serverArgs": [
     "run",
     "-A",
-    "./mod.ts",
+    "./src/cli/main.ts",
     "mcp"
   ]
 }

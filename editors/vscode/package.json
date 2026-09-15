@@ -56,7 +56,7 @@
             "type": "string"
           },
           "default": [],
-          "markdownDescription": "Arguments passed to `#uffda.lsp.serverPath#` when launching the language server, in place of the default `lsp` argument. Only used when `#uffda.lsp.serverPath#` is set. For example, to run from source: `[\"run\", \"-A\", \"./mod.ts\", \"lsp\"]`."
+          "markdownDescription": "Arguments passed to `#uffda.lsp.serverPath#` when launching the language server, in place of the default `lsp` argument. Only used when `#uffda.lsp.serverPath#` is set. For example, to run from source: `[\"run\", \"-A\", \"./src/cli/main.ts\", \"lsp\"]`."
         },
         "uffda.mcp.serverArgs": {
           "type": "array",
@@ -64,7 +64,7 @@
             "type": "string"
           },
           "default": [],
-          "markdownDescription": "Arguments passed to `#uffda.lsp.serverPath#` when launching the MCP server, in place of the default `mcp` argument. Only used when `#uffda.lsp.serverPath#` is set. For example, to run from source: `[\"run\", \"-A\", \"./mod.ts\", \"mcp\"]`."
+          "markdownDescription": "Arguments passed to `#uffda.lsp.serverPath#` when launching the MCP server, in place of the default `mcp` argument. Only used when `#uffda.lsp.serverPath#` is set. For example, to run from source: `[\"run\", \"-A\", \"./src/cli/main.ts\", \"mcp\"]`."
         }
       }
     }

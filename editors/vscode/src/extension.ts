@@ -3,7 +3,6 @@ import {
   LanguageClient,
   LanguageClientOptions,
   ServerOptions,
-  TransportKind,
 } from "vscode-languageclient/node";
 import { resolveUffdaServer, ResolveServerError, ResolvedServer } from "./binary";
 
@@ -78,7 +77,9 @@ async function startLanguageClient(context: vscode.ExtensionContext): Promise<vo
     command: resolved.command,
     args: resolved.args,
     options: cwd ? { cwd } : undefined,
-    transport: TransportKind.stdio,
+    // Omit `transport`: vscode-languageclient defaults to stdio for
+    // Executable servers. Setting `TransportKind.stdio` would also append a
+    // literal `--stdio` argv token, which uffda does not use.
   };
   const clientOptions: LanguageClientOptions = {
     documentSelector: [{ scheme: "file", language: "uffda" }],
@@ -187,7 +188,7 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): void {
           `Registering MCP server: ${resolved.command} ${resolved.args.join(" ")} (${resolved.source})`,
         );
         // McpStdioServerDefinition takes command/args only; relative
-        // `./mod.ts` overrides rely on the host resolving against the
+        // `./src/cli/main.ts` overrides rely on the host resolving against the
         // workspace folder the same way the language client cwd does.
         return [new McpStdioServerDefinition("Uffda", resolved.command, resolved.args)];
       } catch (err) {
