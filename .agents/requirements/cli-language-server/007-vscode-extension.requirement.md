@@ -16,6 +16,12 @@ Preconditions:
 
 Expected behavior:
 
+- The extension's source lives in this repository under `editors/vscode/`, as
+  its own independently versioned npm package, isolated from `deno.jsonc`'s
+  `fmt`/`lint`/`test`/publish tasks (which MUST exclude `editors/vscode/`) and
+  built/tested via its own CI job. This is a deliberate, revisitable choice —
+  splitting it into a separate repository later remains an acceptable future
+  refinement if in-repo npm/Deno coexistence becomes cumbersome.
 - The extension MUST register `uffda lsp` as the language server for `.uff`
   files as its first, dogfooding-target language contribution.
 - The extension MUST launch `uffda lsp` as a child process communicating over
