@@ -1,6 +1,15 @@
 import { assertEquals, assertStringIncludes } from "@std/assert";
 import { CliLanguage } from "./contract.ts";
-import { CliStreamFailureCode, compileStdinToArtifact } from "./stream.ts";
+import {
+  CliStreamFailureCode,
+  compileStdinToArtifact,
+  parseSourceToAst,
+} from "./stream.ts";
+import { Input, InputNormalizationMode } from "../input.ts";
+import { Path } from "../path.ts";
+import type { Edit } from "../edit.ts";
+import { rehydrateMemos } from "../runtime/incremental.ts";
+import { MatchKind } from "../match.ts";
 
 Deno.test("cli.stream parses one stdin source unit into a raw AST", async (t) => {
   await t.step("emits a module AST for valid full-Uffda input", async () => {
@@ -108,6 +117,56 @@ Deno.test("cli.stream parses one stdin source unit into a raw AST", async (t) =>
       assertEquals(result.ok, false);
       if (result.ok) return;
       assertEquals(result.error.location?.offset, 2);
+    },
+  );
+
+  await t.step(
+    "success results include the raw Match alongside the AST",
+    async () => {
+      const result = await compileStdinToArtifact(
+        "export Main; rule Main = any;",
+      );
+
+      assertEquals(result.ok, true);
+      if (!result.ok) return;
+      assertEquals(result.match.kind, MatchKind.Ok);
+    },
+  );
+
+  await t.step(
+    "reuses rehydrated memos and a fresh Input for an incremental re-parse",
+    async () => {
+      const before = 'rule First = "a"; rule Second = "b";';
+      const prior = await parseSourceToAst(before);
+      assertEquals(prior.ok, true);
+      if (!prior.ok) return;
+
+      const editAt = before.indexOf('"b"');
+      const after = before.slice(0, editAt) + '"c"' +
+        before.slice(editAt + 3);
+      const freshInput = Input.From(after, {
+        kind: InputNormalizationMode.Scalar,
+      });
+      const edit: Edit = {
+        at: Path.Default().set(editAt),
+        removed: 3,
+        inserted: 3,
+      };
+      const memos = await rehydrateMemos(prior.match, edit, freshInput);
+
+      const incremental = await parseSourceToAst(
+        after,
+        CliLanguage.FullUffda,
+        "<stdin>",
+        { memos, input: freshInput },
+      );
+      const full = await parseSourceToAst(after);
+
+      assertEquals(incremental.ok, true);
+      assertEquals(full.ok, true);
+      if (incremental.ok && full.ok) {
+        assertEquals(incremental.ast, full.ast);
+      }
     },
   );
 });

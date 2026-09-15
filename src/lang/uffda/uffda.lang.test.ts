@@ -5,6 +5,10 @@ import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { lit } from "../../runtime/patterns/value_source.ts";
 import { uffdaGrammar } from "./uffda.lang.ts";
 import { fromFileUrl, join } from "@std/path";
+import { Input, InputNormalizationMode } from "../../input.ts";
+import { Path } from "../../path.ts";
+import type { Edit } from "../../edit.ts";
+import { rehydrateMemos } from "../../runtime/incremental.ts";
 
 const uffdaDir = fromFileUrl(new URL(".", import.meta.url));
 
@@ -328,6 +332,65 @@ Deno.test({
         );
         assertEquals(ruleRules.includes("|> PatternTokens"), true);
         assertEquals(ruleRules.includes("|> ExpressionTokens"), true);
+      },
+    });
+    await t.step({
+      name:
+        "UFFDA_LANG_08 incremental re-parse (rehydrated memos + fresh input) matches a full re-parse",
+      fn: async () => {
+        const before = 'rule First = "a"; rule Second = "b";';
+        const priorMatch = await uffdaGrammar(before);
+        assertEquals(priorMatch.kind, MatchKind.Ok);
+        if (priorMatch.kind !== MatchKind.Ok) return;
+
+        // Edit near the end: change the second rule's matched literal,
+        // leaving the first rule's declaration entirely untouched.
+        const editAt = before.indexOf('"b"');
+        const after = before.slice(0, editAt) + '"c"' +
+          before.slice(editAt + 3);
+
+        const freshInput = Input.From(after, {
+          kind: InputNormalizationMode.Scalar,
+        });
+        const edit: Edit = {
+          at: Path.Default().set(editAt),
+          removed: 3,
+          inserted: 3,
+        };
+        const memos = await rehydrateMemos(priorMatch, edit, freshInput);
+
+        const incremental = await uffdaGrammar(after, {
+          memos,
+          input: freshInput,
+        });
+        const full = await uffdaGrammar(after);
+
+        assertEquals(incremental.kind, MatchKind.Ok);
+        assertEquals(full.kind, MatchKind.Ok);
+        if (incremental.kind === MatchKind.Ok && full.kind === MatchKind.Ok) {
+          assertEquals(incremental.value, full.value);
+          assertEquals(incremental.value, {
+            kind: "module",
+            declarations: [
+              {
+                kind: "rule",
+                name: "First",
+                parameters: [],
+                pattern: { kind: PatternKind.Equal, value: lit("a") },
+                projection: undefined,
+                attributes: [],
+              },
+              {
+                kind: "rule",
+                name: "Second",
+                parameters: [],
+                pattern: { kind: PatternKind.Equal, value: lit("c") },
+                projection: undefined,
+                attributes: [],
+              },
+            ],
+          });
+        }
       },
     });
   },

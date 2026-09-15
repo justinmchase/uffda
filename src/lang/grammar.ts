@@ -9,6 +9,8 @@ import { languageArtifactRoots } from "../runtime/resolvers/language_artifact_ro
 import { ModuleImportResultKind } from "../runtime/resolvers/resolver.ts";
 import { Resolver } from "../runtime/resolve.ts";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
+import type { Input } from "../input.ts";
+import type { Memos } from "../memo.ts";
 
 export type GrammarParse<TAst, TOptions> = (
   source: string,
@@ -41,6 +43,24 @@ export type GrammarRunResult<TAst, TResult> =
 export type GrammarOptions = {
   globals?: Map<string, unknown>;
   declarations?: Record<string, ModuleDeclaration>;
+  /**
+   * Pre-seeded memo table to parse against instead of a fresh, empty one —
+   * typically rehydrated from a prior parse's delivered `Match` tree via
+   * `rehydrateMemos` (see
+   * `.agents/specifications/runtime/incremental-parsing.spec.md`). Only
+   * meaningful together with `input` (below): both must come from the same
+   * incremental re-parse setup for the memo table's captured positions to
+   * line up with the stream this parse actually walks.
+   */
+  memos?: Memos;
+  /**
+   * Pre-built `Input` stream to parse over, instead of building a fresh one
+   * from `source` text. Required for incremental re-parsing so the parse
+   * walks the exact same `Input` chain `rehydrateMemos` indexed positions
+   * against, rather than an equivalent-but-distinct chain built again from
+   * scratch.
+   */
+  input?: Input;
 };
 
 export async function parseGrammar<TAst>(options: {
@@ -55,7 +75,7 @@ export async function parseGrammar<TAst>(options: {
     entryRuleName,
     grammarOptions,
   } = options;
-  const { globals, declarations } = grammarOptions ?? {};
+  const { globals, declarations, memos, input } = grammarOptions ?? {};
   const { builtInLanguageDeclarations } = await import("./declarations.ts");
 
   // Caller globals override default entries with the same name; defaults
@@ -70,9 +90,11 @@ export async function parseGrammar<TAst>(options: {
     cwd,
     artifactRoot,
   });
-  const s = Scope
-    .From(source)
+  let s = (input ? Scope.Default().withInput(input) : Scope.From(source))
     .withOptions({ globals: g, resolver: r });
+  if (memos) {
+    s = s.withMemos(memos);
+  }
 
   const m = await r.import(moduleUrl, {
     scope: s,
