@@ -30,6 +30,23 @@ binary automatically: prefer a compatible version on `PATH`, otherwise
 download and cache one. If neither succeeds, the extension surfaces a clear
 error instead of silently disabling itself.
 
+## Design notes
+
+`language-configuration.json` and the single `contributes.languages` entry in
+`package.json` are currently `.uff`-specific interim scaffolding, not a
+pattern to copy per additional served language. See the "Language
+configuration" and "VS Code extension" sections of
+[`language-server.spec.md`](../../.agents/specifications/languages/cli/language-server.spec.md)
+and requirement
+[`002-language-configuration`](../../.agents/requirements/cli-language-server/002-language-configuration.requirement.md)/[`007-vscode-extension`](../../.agents/requirements/cli-language-server/007-vscode-extension.requirement.md)
+for the intended direction: a grammar module can self-declare its own file
+extension(s) and editor configuration (comments, brackets, auto-closing pairs)
+via decorator-derived metadata on its entry rule, which this extension should
+eventually query from the language server and apply dynamically
+(`vscode.languages.setLanguageConfiguration()`,
+`vscode.languages.setTextDocumentLanguage()`) instead of requiring a second
+hand-authored JSON file and static contribution per language.
+
 ## Development
 
 This extension lives in this repository under `editors/vscode/` as its own

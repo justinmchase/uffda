@@ -85,6 +85,18 @@ Expected behavior:
   settings where practical, so a contributor debugging a local `uffda` build
   gets consistent behavior across both the language server and MCP server
   registrations.
+- Design note (non-normative for this requirement, see the spec chapter's "VS
+  Code extension" section): the current
+  `editors/vscode/language-configuration.json` and its single static
+  `contributes.languages` entry are `.uff`-specific interim scaffolding, not a
+  template to duplicate per additional language. Implementations of additional
+  served languages SHOULD prefer deriving editor configuration (comments,
+  brackets, auto-closing pairs) dynamically — from the grammar's own
+  decorator-derived metadata via the language server, set programmatically via
+  `vscode.languages.setLanguageConfiguration()` — and assigning language ids to
+  workspace-configured file extensions at runtime (for example via
+  `vscode.languages.setTextDocumentLanguage()`) over adding a second
+  hand-authored JSON file and a second static package.json contribution.
 
 Postconditions:
 

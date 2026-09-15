@@ -66,6 +66,18 @@ not introduce a parallel parsing or compilation pathway.
 - `.uff` itself (Uffda's own grammar language) MUST be configurable the same way
   as any user-authored language — the server MUST NOT hard-code `.uff` handling
   through a path unavailable to other languages.
+- This chapter does not yet require it, but implementations SHOULD avoid designs
+  that would need to be undone to support it later: a grammar module MAY
+  eventually self-declare its own file extension(s) and other editor-facing
+  configuration (see "VS Code extension" below) via decorator-derived metadata
+  on its entry rule (for example a `[LanguageExtension ".uff"]`-shaped
+  decorator, queryable the same way `[token]`/`[Keyword]` metadata already is —
+  see [rule metadata](../../runtime/rule-metadata.spec.md)), rather than
+  requiring every consumer (the workspace configuration file, an editor
+  extension) to separately hard-code per-language facts the grammar already
+  knows about itself. A per-language config entry remains the near-term source
+  of truth and, when present, MUST take precedence over any future self-declared
+  metadata (an explicit workspace override always wins).
 
 ## Document synchronization and incremental re-parsing
 
@@ -172,6 +184,23 @@ not introduce a parallel parsing or compilation pathway.
   is intended for developing and debugging `uffda` itself (for example running
   the LSP mode from a local source checkout via `deno run` instead of a released
   binary), not for ordinary end-user use.
+- Editor-side language configuration that VS Code itself has no LSP-standard
+  equivalent for (comments, brackets, auto-closing/surrounding pairs, word
+  pattern) is currently supplied as a static, hand-authored
+  `language-configuration.json` scoped to `.uff` only. This chapter does not yet
+  require anything more general, but this MUST be treated as interim,
+  `.uff`-specific scaffolding, not a pattern to copy-paste per additional
+  language: adding a second served language MUST NOT require a second
+  hand-authored `language-configuration.json` plus a second static
+  `contributes.languages`/`contributes.configuration` entry as the only option.
+  The intended direction (see "Language configuration" above) is for the
+  extension to derive this configuration dynamically — querying the language
+  server for decorator-derived metadata on the grammar's own entry rule and
+  calling `vscode.languages.setLanguageConfiguration()` programmatically — and
+  to assign a language id to arbitrary configured file extensions at runtime
+  (for example via `vscode.languages.setTextDocumentLanguage()` driven by the
+  workspace's language configuration file) rather than requiring a statically
+  contributed `contributes.languages` entry per language.
 
 ## Performance intent
 
