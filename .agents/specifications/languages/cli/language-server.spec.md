@@ -144,6 +144,16 @@ not introduce a parallel parsing or compilation pathway.
   integration, so that installing the extension is sufficient to make both the
   language server and the MCP tools available in the editor, with no separate
   manual MCP configuration step.
+- The extension MUST resolve a working `uffda` binary automatically: it MUST
+  prefer a `uffda` already on `PATH` when that binary satisfies the extension's
+  minimum supported `uffda` version, and otherwise MUST download the matching
+  platform binary from the project's published GitHub Release artifacts, caching
+  it in the extension's own storage for reuse. Requiring the user to manually
+  install `uffda` before the extension works MUST NOT be the only supported
+  path.
+- The extension's compatibility requirement on `uffda` MUST be expressed as a
+  minimum version (not an exact pin), so that a newer, backward-compatible
+  `uffda` already on `PATH` is accepted without triggering a redundant download.
 
 ## Performance intent
 

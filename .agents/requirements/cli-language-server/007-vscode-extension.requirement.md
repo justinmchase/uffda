@@ -10,9 +10,9 @@ spec_ref: ".agents/specifications/languages/cli/language-server.spec.md#vs-code-
 
 Preconditions:
 
-- The extension is installed in VS Code and `uffda` (with `lsp` support) is
-  available on the host (bundled with the extension or resolved from `PATH`, per
-  the extension's own packaging choice).
+- The extension is installed in VS Code. The host MAY or MAY NOT already have a
+  `uffda` binary on `PATH`; the extension MUST work correctly in both cases (see
+  binary acquisition below).
 
 Expected behavior:
 
@@ -47,6 +47,23 @@ Expected behavior:
   extension uses for `uffda lsp` (bundled binary or `PATH` resolution, whichever
   the extension's packaging chooses), so the two registrations never disagree
   about which `uffda` binary/version is in use.
+- The extension MUST declare a minimum supported `uffda` version and, on
+  activation, MUST resolve a usable `uffda` binary as follows, in order:
+  1. If a `uffda` binary is found on `PATH` and its `uffda_version` (or
+     equivalent version query) satisfies the minimum version, use it directly —
+     no download.
+  2. Otherwise, download the platform-matching compiled binary asset
+     (`uffda-<version>-<target>[.exe]`) from the project's published GitHub
+     Release artifacts (see `.github/workflows/release-binaries.yml`), verify it
+     against its published `.sha256` checksum, and cache it in the extension's
+     own persistent storage for reuse across sessions.
+- The extension MUST NOT require the user to manually install `uffda` as the
+  only way to make the extension work; automatic download (step 2 above) MUST be
+  the fallback whenever a compatible `PATH` binary is absent.
+- If both PATH resolution and the download fallback fail (for example, no
+  network access and no compatible `PATH` binary), the extension MUST surface a
+  clear, actionable error identifying the failure and MUST NOT silently disable
+  itself without explanation.
 
 Postconditions:
 
@@ -55,3 +72,5 @@ Postconditions:
   the workspace's `.uffda/lsp.jsonc`.
 - Installing the extension also makes `uffda`'s MCP tools available to the
   editor's agent features with no separate manual MCP configuration step.
+- A user with no `uffda` installation on `PATH` still gets a working extension
+  after installation, with no manual binary-installation step required.
