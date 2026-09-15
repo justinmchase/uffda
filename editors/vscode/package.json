@@ -76,10 +76,12 @@
     "check-types": "tsc --noEmit -p ./"
   },
   "dependencies": {
+    "semver": "^7.8.5",
     "vscode-languageclient": "^10.1.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/semver": "^7.8.0",
     "@types/vscode": "^1.104.0",
     "@vscode/vsce": "^4.0.0",
     "typescript": "^5.6.0"
