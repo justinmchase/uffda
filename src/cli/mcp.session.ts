@@ -33,6 +33,7 @@ import {
 import { ModuleImportResultKind } from "../runtime/resolvers/resolver.ts";
 import { CliLanguage } from "./contract.ts";
 import { parseSourceToAst } from "./stream.ts";
+import type { CliStreamFailureLocation } from "./stream.ts";
 
 /**
  * Default artifact root a session resolves `.uff` imports' compiled
@@ -71,6 +72,15 @@ export type SessionLoadFailure = {
   code: SessionLoadFailureCode;
   phase: "parse" | "compile" | "resolve";
   message: string;
+  /**
+   * The offset/line/column of the failure within the module's source text,
+   * when known. Only ever populated for `phase: "parse"` failures — compile
+   * and resolve failures currently carry no location of their own (see
+   * `.agents/requirements/cli-language-server/004-diagnostics.requirement.md`,
+   * which requires falling back to whole-document attribution for those
+   * phases).
+   */
+  location?: CliStreamFailureLocation;
 };
 
 export type LoadedDeclarationKind = "rule" | "func" | "decorator";
@@ -581,6 +591,7 @@ export class RuntimeSession {
           code: SessionLoadFailureCode.ParseFailure,
           phase: "parse",
           message: parsed.error.message,
+          location: parsed.error.location,
         },
         partiallyLoadedModules: this.listLoadedModules(),
         resolvedDuringLoad: [],
@@ -675,6 +686,7 @@ export class RuntimeSession {
           code: SessionLoadFailureCode.ParseFailure,
           phase: "parse",
           message: parsed.error.message,
+          location: parsed.error.location,
         },
         partiallyLoadedModules: this.listLoadedModules(),
         resolvedDuringLoad: [],

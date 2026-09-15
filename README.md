@@ -52,6 +52,7 @@ Running `uffda` with no arguments prints help. Commands:
 | `match`   | Match a pattern against `--input` / `--input-json`    |
 | `run`     | Run a Uffda module (`--entry` selects an export)      |
 | `mcp`     | Start the MCP server and session/display tools        |
+| `lsp`     | Start the Language Server Protocol stdio server       |
 
 Languages for `parse`: `uffda` (default), `pattern`, `expression`.
 
@@ -93,6 +94,17 @@ published** CLI (bootstrap recursion break).
 `uffda mcp` starts the stdio MCP server. Use the `uffda_session_*` tools plus
 the display surface for live session loading, evaluation, inspection, and
 rendering.
+
+### Language server
+
+`uffda lsp` starts a stdio Language Server Protocol server. It publishes
+diagnostics for `.uff` documents on `didOpen`/`didChange`/`didClose`, reusing
+incremental re-parsing so edits only reprocess the affected region. A
+workspace's `<workspace>/.uffda/lsp.jsonc` can declare additional languages;
+`.uff` is always available even without one. See
+[`language-server.spec.md`](.agents/specifications/languages/cli/language-server.spec.md)
+for the full contract — syntax highlighting, hover/navigation/completions, and
+the VS Code extension are specified but not yet implemented.
 
 ## Library
 

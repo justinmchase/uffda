@@ -22,6 +22,7 @@ import {
 } from "./match.ts";
 import { parseSourceToAst } from "./stream.ts";
 import { runMcpServer } from "./mcp.ts";
+import { runLspServer } from "./lsp.ts";
 import { version } from "../version.ts";
 
 export type CliRunResult = {
@@ -37,7 +38,8 @@ type HelpTarget =
   | "match"
   | "parse"
   | "run"
-  | "mcp";
+  | "mcp"
+  | "lsp";
 
 function toJson(value: unknown): string {
   return `${JSON.stringify(value, null, 2)}\n`;
@@ -86,7 +88,8 @@ function resolveHelpTarget(argv: string[]): HelpTarget {
 
     if (
       token === "compile" || token === "exec" || token === "match" ||
-      token === "parse" || token === "run" || token === "mcp"
+      token === "parse" || token === "run" || token === "mcp" ||
+      token === "lsp"
     ) {
       target = token;
       continue;
@@ -126,6 +129,7 @@ function rootUsageText(): string {
     "  parse       Parse one selected-language source unit to an AST.",
     "  run         Run one Uffda module source unit or module AST.",
     "  mcp         Start a Model Context Protocol stdio server.",
+    "  lsp         Start a Language Server Protocol stdio server.",
     "",
     "Global options:",
     "  --help, -h             Show usage for the current command or command root.",
@@ -141,6 +145,7 @@ function rootUsageText(): string {
     "  uffda match -e 'number' --input-json 42 --json",
     "  uffda run ./app.uff --entry Main",
     "  uffda mcp",
+    "  uffda lsp",
     "",
   ].join("\n");
 }
@@ -224,6 +229,20 @@ function mcpUsageText(): string {
   ].join("\n");
 }
 
+function lspUsageText(): string {
+  return [
+    "Usage: uffda lsp",
+    "",
+    "Editor integration:",
+    "  Starts a Language Server Protocol (LSP) server over standard input and",
+    "  standard output. Standard input/output carry only LSP protocol traffic",
+    "  once started; there are no other flags or positional arguments.",
+    "  Language configuration is read from <workspace>/.uffda/lsp.jsonc; .uff",
+    "  is always available even without a config file.",
+    "",
+  ].join("\n");
+}
+
 function usageText(target: HelpTarget): string {
   switch (target) {
     case "compile":
@@ -238,6 +257,8 @@ function usageText(target: HelpTarget): string {
       return runUsageText();
     case "mcp":
       return mcpUsageText();
+    case "lsp":
+      return lspUsageText();
     case "root":
       return rootUsageText();
   }
@@ -473,6 +494,19 @@ function hasMcpCommand(argv: string[]): boolean {
   return false;
 }
 
+/**
+ * `lsp` mirrors `mcp`'s dispatch: a live, indefinitely-running stdio server,
+ * not a one-shot `CliMode` (see
+ * `.agents/specifications/languages/cli/language-server.spec.md`).
+ */
+function hasLspCommand(argv: string[]): boolean {
+  for (const token of argv) {
+    if (token.startsWith("-")) continue;
+    return token === "lsp";
+  }
+  return false;
+}
+
 export async function runCli(
   argv: string[],
   processCwd: string,
@@ -639,6 +673,11 @@ if (import.meta.main) {
 
   if (!hasHelpFlag(Deno.args) && hasMcpCommand(Deno.args)) {
     await runMcpServer();
+    Deno.exit(CliExitCode.Ok);
+  }
+
+  if (!hasHelpFlag(Deno.args) && hasLspCommand(Deno.args)) {
+    await runLspServer();
     Deno.exit(CliExitCode.Ok);
   }
 
