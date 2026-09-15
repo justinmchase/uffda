@@ -45,6 +45,10 @@ source and inspecting outcomes without embedding Uffda programmatically.
   parse/compile/match, live in-memory runtime sessions, incremental re-parsing,
   evaluation, and introspection as tools; see
   [MCP server mode](./cli/mcp-server.spec.md).
+- Language server mode: an editor-facing Language Server Protocol stdio server
+  exposing diagnostics, syntax highlighting, hover, and navigation, driven by
+  incremental re-parsing; see
+  [language server mode](./cli/language-server.spec.md).
 
 ## Canonical usage examples
 
@@ -119,6 +123,7 @@ be human-readable and include the relevant source excerpt and input path.
 - [compile, parse, and operation modes](./cli/compile-and-stream.spec.md)
 - [language-selection and output contracts](./cli/language-and-output.spec.md)
 - [MCP server mode](./cli/mcp-server.spec.md)
+- [language server mode](./cli/language-server.spec.md)
 - [distribution and release contracts](./cli/distribution-and-release.spec.md)
 
 ## Composition intent
@@ -138,6 +143,9 @@ Deferred polish (not release blockers):
 
 - Watch-style file I/O orchestration and debounce/refresh automation.
 - Richer match-tree visualizer output (for example Mermaid) for debugging.
+
+Language server mode ([language server mode](./cli/language-server.spec.md)) is
+specified but not yet implemented.
 
 Normative distribution and release contracts live in
 [distribution and release](./cli/distribution-and-release.spec.md). Bootstrap
