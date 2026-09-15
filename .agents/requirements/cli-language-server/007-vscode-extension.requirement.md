@@ -1,6 +1,6 @@
 ---
 id: cli-language-server-007
-title: The VS Code extension registers uffda lsp for .uff and is packageable without per-language forks
+title: The VS Code extension registers uffda lsp for .uff, registers uffda as an MCP server, and is packageable without per-language forks
 spec_ref: ".agents/specifications/languages/cli/language-server.spec.md#vs-code-extension"
 ---
 
@@ -36,9 +36,22 @@ Expected behavior:
   logic in extension (client-side) code; all such logic MUST come from the
   `uffda lsp` server responses, per LSP's client/server division of
   responsibility.
+- The extension MUST also register `uffda` as an MCP server via VS Code's
+  built-in MCP server registration mechanism (contributing an MCP server
+  definition that launches `uffda mcp` over stdio, per
+  [MCP server mode](../../specifications/languages/cli/mcp-server.spec.md)'s
+  transport contract). Installing the extension MUST be sufficient to make the
+  MCP tools available to the editor's AI/agent features, with no separate,
+  manual MCP server configuration step required from the user.
+- The MCP server registration MUST use the same `uffda` binary resolution the
+  extension uses for `uffda lsp` (bundled binary or `PATH` resolution, whichever
+  the extension's packaging chooses), so the two registrations never disagree
+  about which `uffda` binary/version is in use.
 
 Postconditions:
 
 - Opening a `.uff` file in a workspace with the extension installed yields live
   diagnostics and highlighting with no additional per-file configuration beyond
   the workspace's `.uffda/lsp.jsonc`.
+- Installing the extension also makes `uffda`'s MCP tools available to the
+  editor's agent features with no separate manual MCP configuration step.

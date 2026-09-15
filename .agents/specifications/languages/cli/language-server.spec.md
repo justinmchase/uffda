@@ -139,6 +139,11 @@ not introduce a parallel parsing or compilation pathway.
 - The extension MUST be shippable through the standard VS Code extension
   packaging/publishing flow (a `.vsix` package suitable for the Marketplace or
   manual installation).
+- The extension MUST also register `uffda` as an MCP server (see
+  [MCP server mode](mcp-server.spec.md)) using VS Code's built-in MCP
+  integration, so that installing the extension is sufficient to make both the
+  language server and the MCP tools available in the editor, with no separate
+  manual MCP configuration step.
 
 ## Performance intent
 
