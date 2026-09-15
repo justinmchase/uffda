@@ -13,6 +13,22 @@ import "./decorator.rules.uff" DecoratorDeclarationSyntax;
 
 export UffdaLang;
 
+# `Language` records this grammar's own editor-facing facts (file
+# extension, display name, and the editor-side settings VS Code has no
+# LSP-standard equivalent for — comment/bracket/pair configuration)
+# directly on its entry rule's metadata, so tooling (see
+# `src/cli/language_metadata.ts`) can derive an editor's language
+# configuration dynamically from the grammar itself instead of a
+# hand-maintained, per-language static file. `c` is a single object literal
+# so any consumer may freely add further properties (for example a future
+# `description` or `wordPattern`) without changing the decorator's shape.
+# Multi-word string values are not used here yet: `TokenizerNoWhitespace`
+# (see `tokenizer/mod.uff`) drops whitespace tokens before module-body
+# expressions (including string literals) are parsed, so an embedded space
+# is not currently preserved inside a module-level string literal — see
+# GitHub issue #<pending> (filed as a follow-up).
+decorator Language<c:any> = c;
+
 rule ModuleDeclarationSyntax =
   | FuncDeclarationSyntax
   | RuleDeclarationSyntax
@@ -25,6 +41,14 @@ rule ModuleBody =
   d:ModuleDeclarationSyntax*
   -> { kind: "module", declarations: (flat [i (flat e) d]) };
 
+[Language {
+  ext: ".uff",
+  name: "Uffda",
+  comment: "#",
+  brackets: [["\{" "}"] ["[" "]"] ["(" ")"]],
+  autoClosingPairs: [["\{" "}"] ["[" "]"] ["(" ")"] ["\"" "\""]],
+  surroundingPairs: [["\{" "}"] ["[" "]"] ["(" ")"] ["\"" "\""]]
+}]
 rule UffdaLang =
   m:(
     Source

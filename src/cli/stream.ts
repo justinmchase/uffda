@@ -50,6 +50,15 @@ export type CliStreamResult =
   | {
     ok: false;
     error: CliStreamFailure;
+    /**
+     * The raw `Match` tree that produced this failure (`Fail`/`Error`/`LR`).
+     * Present so consumers that derive editor features from the parse tree
+     * (LSP semantic tokens, see
+     * `.agents/requirements/cli-language-server/005-syntax-highlighting.requirement.md`)
+     * can still classify spans matched before the failure point, rather than
+     * blanking out highlighting for the whole document.
+     */
+    match: Match;
   };
 
 export function locationFromOffset(
@@ -140,6 +149,7 @@ async function toParseFailure(
         sourceOffsetFromMatch(match, sourceText),
       ),
     },
+    match,
   };
 }
 

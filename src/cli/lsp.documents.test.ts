@@ -1,4 +1,4 @@
-import { assertEquals, assertRejects } from "@std/assert";
+import { assert, assertEquals, assertRejects } from "@std/assert";
 import { LspDocumentManager, positionToOffset } from "./lsp.documents.ts";
 
 Deno.test("cli.lsp.documents positionToOffset", async (t) => {
@@ -91,6 +91,40 @@ Deno.test("cli.lsp.documents LspDocumentManager", async (t) => {
     manager.close("inline:///f");
     await assertRejects(() => manager.change("inline:///f", [{ text: "" }]));
   });
+
+  await t.step(
+    "semanticTokens derives classifications from the retained parse tree",
+    async () => {
+      const manager = new LspDocumentManager(Deno.cwd());
+      await manager.open(
+        "inline:///g",
+        "export Main; rule Main = any;",
+      );
+      const tokens = manager.semanticTokens("inline:///g");
+      assert(tokens);
+      assertEquals(tokens.data.length > 0, true);
+      assertEquals(tokens.data.length % 5, 0);
+    },
+  );
+
+  await t.step(
+    "semanticTokens still returns tokens after a parse failure",
+    async () => {
+      const manager = new LspDocumentManager(Deno.cwd());
+      await manager.open("inline:///h", "export Main; rule Main = ");
+      const tokens = manager.semanticTokens("inline:///h");
+      assert(tokens);
+      assertEquals(tokens.data.length > 0, true);
+    },
+  );
+
+  await t.step(
+    "semanticTokens returns undefined for a document that was never opened",
+    () => {
+      const manager = new LspDocumentManager(Deno.cwd());
+      assertEquals(manager.semanticTokens("inline:///missing"), undefined);
+    },
+  );
 });
 
 function offsetToPosition(

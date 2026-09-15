@@ -8,6 +8,8 @@ import {
   type DidOpenTextDocumentParams,
   type InitializeParams,
   type InitializeResult,
+  type SemanticTokensParams,
+  SemanticTokensRequest,
   TextDocumentSyncKind,
 } from "vscode-languageserver/node";
 import {
@@ -17,6 +19,7 @@ import {
   resolveLanguageForDocument,
 } from "./lsp.config.ts";
 import { LspDocumentManager } from "./lsp.documents.ts";
+import { SEMANTIC_TOKENS_LEGEND } from "./semantic_tokens.ts";
 
 /**
  * The subset of `vscode-languageserver`'s `Connection` this module drives.
@@ -31,6 +34,7 @@ export type UffdaLspConnection = Pick<
   | "onDidOpenTextDocument"
   | "onDidChangeTextDocument"
   | "onDidCloseTextDocument"
+  | "onRequest"
   | "sendDiagnostics"
   | "listen"
 >;
@@ -56,7 +60,7 @@ function rootFromInitializeParams(
  * `.agents/requirements/cli-language-server/002-language-configuration.requirement.md`'s
  * "uff-only" v1 dogfooding scope) — documents resolving to any other
  * configured language are currently accepted (so a future phase can extend
- * them) but produce no diagnostics.
+ * them) but produce no diagnostics or semantic tokens.
  */
 export function wireUffdaLspHandlers(
   connection: UffdaLspConnection,
@@ -77,6 +81,10 @@ export function wireUffdaLspHandlers(
       return {
         capabilities: {
           textDocumentSync: TextDocumentSyncKind.Incremental,
+          semanticTokensProvider: {
+            legend: SEMANTIC_TOKENS_LEGEND,
+            full: true,
+          },
         },
       };
     },
@@ -111,6 +119,18 @@ export function wireUffdaLspHandlers(
     manager?.close(uri);
     connection.sendDiagnostics({ uri, diagnostics: [] });
   });
+
+  connection.onRequest(
+    SemanticTokensRequest.type,
+    (params: SemanticTokensParams) => {
+      const { uri } = params.textDocument;
+      const language = resolveLanguageForDocument(config, uri);
+      if (!manager || !language || language.id !== BUILTIN_UFF_LANGUAGE.id) {
+        return { data: [] };
+      }
+      return manager.semanticTokens(uri) ?? { data: [] };
+    },
+  );
 }
 
 /**

@@ -4,8 +4,12 @@ import type {
   DidCloseTextDocumentParams,
   DidOpenTextDocumentParams,
   InitializeParams,
+  InitializeResult,
+  SemanticTokensParams,
 } from "vscode-languageserver/node";
+import { SemanticTokensRequest } from "vscode-languageserver/node";
 import { type UffdaLspConnection, wireUffdaLspHandlers } from "./lsp.ts";
+import { SEMANTIC_TOKENS_LEGEND } from "./semantic_tokens.ts";
 
 /**
  * A minimal fake of the `Connection` surface `wireUffdaLspHandlers` uses,
@@ -35,6 +39,12 @@ function createFakeConnection() {
     // deno-lint-ignore no-explicit-any
     onDidCloseTextDocument: (handler: (params: any) => unknown) => {
       handlers.close = handler;
+    },
+    // deno-lint-ignore no-explicit-any
+    onRequest: (type: any, handler: (params: any) => unknown) => {
+      const method = typeof type === "string" ? type : type.method;
+      handlers[method] = handler;
+      return { dispose: () => {} };
     },
     // deno-lint-ignore no-explicit-any
     sendDiagnostics: (params: any) => {
@@ -146,6 +156,65 @@ Deno.test("cli.lsp wireUffdaLspHandlers", async (t) => {
 
       assertEquals(sentDiagnostics.length, 3);
       assertEquals(sentDiagnostics[2].diagnostics, []);
+    },
+  );
+
+  await t.step(
+    "declares a semanticTokensProvider and returns tokens for an open .uff document",
+    async () => {
+      const { connection, handlers } = createFakeConnection();
+      wireUffdaLspHandlers(connection, { workspaceRoot: Deno.cwd() });
+
+      const init = await handlers.initialize(
+        {} as InitializeParams,
+      ) as InitializeResult;
+      assertEquals(
+        init.capabilities.semanticTokensProvider,
+        { legend: SEMANTIC_TOKENS_LEGEND, full: true },
+      );
+
+      await handlers.open({
+        textDocument: {
+          uri: "file:///workspace/tokens.uff",
+          languageId: "uffda",
+          version: 1,
+          text: "export Main; rule Main = any;",
+        },
+      } as DidOpenTextDocumentParams);
+
+      const tokens = await handlers[SemanticTokensRequest.method]({
+        textDocument: { uri: "file:///workspace/tokens.uff" },
+      } as SemanticTokensParams) as { data: number[] };
+
+      // At least one keyword token should be present (`export` / `rule`).
+      assertEquals(tokens.data.length > 0, true);
+      assertEquals(tokens.data.length % 5, 0);
+    },
+  );
+
+  await t.step(
+    "still returns semantic tokens for a document with a parse error",
+    async () => {
+      const { connection, handlers } = createFakeConnection();
+      wireUffdaLspHandlers(connection, { workspaceRoot: Deno.cwd() });
+
+      await handlers.initialize({} as InitializeParams);
+      await handlers.open({
+        textDocument: {
+          uri: "file:///workspace/partial.uff",
+          languageId: "uffda",
+          version: 1,
+          text: "export Main; rule Main = ",
+        },
+      } as DidOpenTextDocumentParams);
+
+      const tokens = await handlers[SemanticTokensRequest.method]({
+        textDocument: { uri: "file:///workspace/partial.uff" },
+      } as SemanticTokensParams) as { data: number[] };
+
+      // The successfully matched prefix (`export`/`rule`/...) must still
+      // contribute tokens rather than blanking the whole document.
+      assertEquals(tokens.data.length > 0, true);
     },
   );
 });

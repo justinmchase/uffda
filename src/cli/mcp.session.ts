@@ -531,16 +531,24 @@ export class RuntimeSession {
   private readonly matchResults = new Map<string, Match>();
   private nextMatchResultId = 1;
   private closed = false;
-  // The exact source text and raw parse `Match` for every module loaded via
-  // a full `load()` call, keyed by module href. Retained so a later
-  // `patch()` call can rehydrate a memo table from the prior parse (see
-  // `rehydrateMemos` in `../runtime/incremental.ts`) instead of re-parsing
-  // the whole module from scratch. Only ever set alongside `this.modules` —
-  // committed together on success, never partially.
+  // The exact source text and raw parse `Match` for every module this
+  // session has attempted to parse — successful *or* failed — keyed by
+  // module href. Retained so (1) a later `patch()` can rehydrate memos from
+  // the prior parse and (2) editor features that walk the parse tree (LSP
+  // semantic tokens) can classify spans even when the latest parse failed,
+  // rather than blanking out highlighting for the whole document (see
+  // `.agents/requirements/cli-language-server/005-syntax-highlighting.requirement.md`).
+  // Updated whenever a parse produces a `Match`, including after a
+  // compile/resolve failure of an otherwise successful parse.
   private readonly parseStates = new Map<
     string,
     { source: string; match: Match }
   >();
+  // Href of the most recently retained parse state (see `parseStates`).
+  // Distinct from `lastLoadedRootHref`, which only tracks successfully
+  // *committed* roots — a failed first open still has a parse tree worth
+  // highlighting against.
+  private lastParseHref?: string;
 
   constructor(id: string, options?: RuntimeSessionOptions) {
     this.id = id;
@@ -557,6 +565,31 @@ export class RuntimeSession {
     return this.moduleOrder.map((href) =>
       summarizeModule(new URL(href), this.modules.get(href)!)
     );
+  }
+
+  /**
+   * Returns the most recently retained parse state (source text + raw
+   * `Match` tree), including states retained after a failed parse. Used by
+   * the language server to derive semantic tokens from the same tree the
+   * session already produced, rather than re-parsing (see
+   * `.agents/requirements/cli-language-server/005-syntax-highlighting.requirement.md`).
+   */
+  public getLatestParseState():
+    | { href: string; source: string; match: Match }
+    | undefined {
+    if (!this.lastParseHref) return undefined;
+    const state = this.parseStates.get(this.lastParseHref);
+    if (!state) return undefined;
+    return {
+      href: this.lastParseHref,
+      source: state.source,
+      match: state.match,
+    };
+  }
+
+  private retainParseState(href: string, source: string, match: Match): void {
+    this.parseStates.set(href, { source, match });
+    this.lastParseHref = href;
   }
 
   /**
@@ -584,6 +617,10 @@ export class RuntimeSession {
       CliLanguage.FullUffda,
       path ?? moduleUrl.href,
     );
+    // Retain the parse tree whether or not the parse (or later
+    // compile/resolve) succeeds — highlighting and a subsequent incremental
+    // `patch()` both need the latest Match aligned with `source`.
+    this.retainParseState(moduleUrl.href, source, parsed.match);
     if (!parsed.ok) {
       return {
         ok: false,
@@ -598,14 +635,10 @@ export class RuntimeSession {
       };
     }
 
-    const result = await this.compileAndCommitModule(
+    return await this.compileAndCommitModule(
       moduleUrl,
       parsed.ast as UffdaSyntaxModule,
     );
-    if (result.ok) {
-      this.parseStates.set(moduleUrl.href, { source, match: parsed.match });
-    }
-    return result;
   }
 
   /**
@@ -679,6 +712,7 @@ export class RuntimeSession {
       href,
       { memos, input: freshInput },
     );
+    this.retainParseState(href, newSource, parsed.match);
     if (!parsed.ok) {
       return {
         ok: false,
@@ -693,14 +727,10 @@ export class RuntimeSession {
       };
     }
 
-    const result = await this.compileAndCommitModule(
+    return await this.compileAndCommitModule(
       new URL(href),
       parsed.ast as UffdaSyntaxModule,
     );
-    if (result.ok) {
-      this.parseStates.set(href, { source: newSource, match: parsed.match });
-    }
-    return result;
   }
 
   /**
@@ -1261,6 +1291,8 @@ export class RuntimeSession {
     this.modules.clear();
     this.moduleOrder.length = 0;
     this.lastLoadedRootHref = undefined;
+    this.lastParseHref = undefined;
+    this.parseStates.clear();
     this.matchResults.clear();
     this.closed = true;
   }
