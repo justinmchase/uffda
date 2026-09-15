@@ -205,3 +205,32 @@ jobs:
             NO_COLOR=1 deno task bench:memo
             echo '```'
           } | tee -a "$GITHUB_STEP_SUMMARY"
+
+  vscode-extension:
+    name: VS Code Extension
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: editors/vscode
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: editors/vscode/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run check-types
+
+      - name: Compile
+        run: npm run compile
+
+      - name: Package .vsix
+        run: npm run package

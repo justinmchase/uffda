@@ -1,0 +1,7 @@
+.vscode-test/**
+.gitignore
+src/**
+tsconfig.json
+*.map
+.eslintrc*
+uffda.vsix

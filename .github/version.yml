@@ -9,3 +9,6 @@ on:
     - kind: regexp
       file: src/version.ts
       pattern: '(?<=export const version = ").*(?=";)'
+    - kind: regexp
+      file: editors/vscode/src/version.ts
+      pattern: '(?<=export const MIN_UFFDA_VERSION = ").*(?=";)'

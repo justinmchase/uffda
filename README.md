@@ -103,8 +103,17 @@ incremental re-parsing so edits only reprocess the affected region. A
 workspace's `<workspace>/.uffda/lsp.jsonc` can declare additional languages;
 `.uff` is always available even without one. See
 [`language-server.spec.md`](.agents/specifications/languages/cli/language-server.spec.md)
-for the full contract — syntax highlighting, hover/navigation/completions, and
-the VS Code extension are specified but not yet implemented.
+for the full contract — syntax highlighting and hover/navigation/completions are
+specified but not yet implemented.
+
+### VS Code extension
+
+[`editors/vscode/`](editors/vscode/) contains the VS Code extension: it
+registers `uffda lsp` as the language server for `.uff` files and `uffda mcp` as
+an MCP server, resolving/downloading a compatible `uffda` binary automatically.
+It's an independently versioned npm package, isolated from this repo's
+`deno.jsonc` tasks and CI. See its [README](editors/vscode/README.md) for
+development instructions.
 
 ## Library
 
