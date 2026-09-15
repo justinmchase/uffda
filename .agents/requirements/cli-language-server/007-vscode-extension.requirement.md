@@ -1,6 +1,6 @@
 ---
 id: cli-language-server-007
-title: The VS Code extension registers uffda lsp for .uff, registers uffda as an MCP server, and is packageable without per-language forks
+title: The VS Code extension registers uffda lsp for .uff, registers uffda as an MCP server, resolves/downloads its binary automatically with a debug override, and is packageable without per-language forks
 spec_ref: ".agents/specifications/languages/cli/language-server.spec.md#vs-code-extension"
 ---
 
@@ -64,6 +64,21 @@ Expected behavior:
   network access and no compatible `PATH` binary), the extension MUST surface a
   clear, actionable error identifying the failure and MUST NOT silently disable
   itself without explanation.
+- The extension MUST expose user-facing settings (for example
+  `uffda.lsp.serverPath` and `uffda.lsp.serverArgs`, or an equivalent
+  full-command override) that, when set, are used verbatim to launch the server
+  process, completely bypassing PATH resolution, version checking, and download
+  (steps above). This lets a contributor point the extension at a local source
+  checkout (for example `deno run -A ./mod.ts lsp` or an in-progress build) to
+  debug `uffda lsp` itself.
+- When a server-path/command override is configured, the extension MUST still
+  surface a clear, actionable error if the overridden command fails to start,
+  rather than silently falling back to PATH resolution or download — overriding
+  is explicit and MUST behave predictably for debugging.
+- The MCP server registration (`uffda mcp`) SHOULD honor the same override
+  settings where practical, so a contributor debugging a local `uffda` build
+  gets consistent behavior across both the language server and MCP server
+  registrations.
 
 Postconditions:
 
@@ -74,3 +89,6 @@ Postconditions:
   editor's agent features with no separate manual MCP configuration step.
 - A user with no `uffda` installation on `PATH` still gets a working extension
   after installation, with no manual binary-installation step required.
+- A contributor can point the extension at a locally built/source-run `uffda`
+  via the override settings, without needing to modify or reinstall the
+  extension itself.

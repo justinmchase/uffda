@@ -154,6 +154,12 @@ not introduce a parallel parsing or compilation pathway.
 - The extension's compatibility requirement on `uffda` MUST be expressed as a
   minimum version (not an exact pin), so that a newer, backward-compatible
   `uffda` already on `PATH` is accepted without triggering a redundant download.
+- The extension MUST expose user-configurable settings to override both the
+  server executable path and the full launch command/arguments used to start
+  `uffda lsp`, bypassing automatic resolution/download entirely when set. This
+  is intended for developing and debugging `uffda` itself (for example running
+  the LSP mode from a local source checkout via `deno run` instead of a released
+  binary), not for ordinary end-user use.
 
 ## Performance intent
 
