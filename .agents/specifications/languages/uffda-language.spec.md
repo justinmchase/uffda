@@ -99,13 +99,13 @@ layers into author-facing language/module declarations.
 - Show successful pipeline outputs and the failed pipeline step for malformed
   expression-language source.
 
-### Milestone 8: Deliver the Uffda CLI and interactive workbench
+### Milestone 8: Deliver the Uffda CLI and MCP server
 
 - Define and deliver a deterministic CLI surface for file/glob compilation,
   stream operation, and language-selection flags.
 - Emit JSON-serializable AST artifacts and runtime-oriented envelopes.
-- Deliver an interactive editor-like workbench with dynamic visualization and
-  file I/O orchestration.
+- Deliver an MCP server with session-oriented load/eval/query tools and a
+  display surface for structured inspection.
 - Distribute the CLI as a `deno compile` product across the full target matrix,
   publish GitHub Release binaries with checksums and a Linux install script, and
   provide an `uffda-setup` GitHub Action for CI installation.

@@ -29,18 +29,6 @@ Deno.test("cli.contract resolves command model and process contracts determinist
     );
   });
 
-  await t.step("defaults to interactive workbench with no arguments", () => {
-    const resolution = resolveCliProcessContract({
-      argv: [],
-      processCwd: cwd,
-    });
-
-    assertEquals(resolution.ok, true);
-    if (!resolution.ok) return;
-    assertEquals(resolution.contract.mode, CliMode.Interactive);
-    assertEquals(resolution.contract.command, "workbench");
-  });
-
   await t.step("recognizes parse as a stdin command", () => {
     const resolution = resolveCliProcessContract({
       argv: ["parse"],
@@ -128,14 +116,14 @@ Deno.test("cli.contract resolves command model and process contracts determinist
     "last shorthand mode flag wins when no command token is present",
     () => {
       const resolution = resolveCliProcessContract({
-        argv: ["--compile", "--interactive"],
+        argv: ["--compile", "--parse"],
         processCwd: cwd,
       });
 
       assertEquals(resolution.ok, true);
       if (!resolution.ok) return;
-      assertEquals(resolution.contract.mode, CliMode.Interactive);
-      assertEquals(resolution.contract.command, "workbench");
+      assertEquals(resolution.contract.mode, CliMode.Parse);
+      assertEquals(resolution.contract.command, "parse");
     },
   );
 

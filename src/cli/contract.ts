@@ -6,7 +6,6 @@ export enum CliMode {
   Match = "match",
   Parse = "parse",
   Run = "run",
-  Interactive = "interactive",
 }
 
 export enum CliLanguage {
@@ -40,7 +39,7 @@ export type CliProcessInput = {
 };
 
 export type CliProcessContract = {
-  command: "compile" | "exec" | "match" | "parse" | "run" | "workbench";
+  command: "compile" | "exec" | "match" | "parse" | "run";
   mode: CliMode;
   language: CliLanguage;
   inputPaths: string[];
@@ -69,7 +68,7 @@ export type CliProcessResolution =
   };
 
 type ParsedArgs = {
-  commandToken?: "compile" | "exec" | "match" | "parse" | "run" | "workbench";
+  commandToken?: "compile" | "exec" | "match" | "parse" | "run";
   modeFromLong?: CliMode;
   modeFlagOrder: CliMode[];
   language: CliLanguage;
@@ -130,8 +129,6 @@ function toCliMode(value: string): CliMode | undefined {
       return CliMode.Parse;
     case CliMode.Run:
       return CliMode.Run;
-    case CliMode.Interactive:
-      return CliMode.Interactive;
     default:
       return undefined;
   }
@@ -152,7 +149,7 @@ function toCliLanguage(value: string): CliLanguage | undefined {
 
 function commandFromMode(
   mode: CliMode,
-): "compile" | "exec" | "match" | "parse" | "run" | "workbench" {
+): "compile" | "exec" | "match" | "parse" | "run" {
   switch (mode) {
     case CliMode.Compile:
       return "compile";
@@ -164,13 +161,11 @@ function commandFromMode(
       return "parse";
     case CliMode.Run:
       return "run";
-    case CliMode.Interactive:
-      return "workbench";
   }
 }
 
 function modeFromCommand(
-  command: "compile" | "exec" | "match" | "parse" | "run" | "workbench",
+  command: "compile" | "exec" | "match" | "parse" | "run",
 ): CliMode {
   switch (command) {
     case "compile":
@@ -183,8 +178,6 @@ function modeFromCommand(
       return CliMode.Parse;
     case "run":
       return CliMode.Run;
-    case "workbench":
-      return CliMode.Interactive;
   }
 }
 
@@ -226,7 +219,7 @@ function parseArgs(argv: string[]): ParsedArgs | ParsedArgsError {
         !parsed.commandToken &&
         (
           token === "compile" || token === "exec" || token === "match" ||
-          token === "parse" || token === "run" || token === "workbench"
+          token === "parse" || token === "run"
         )
       ) {
         parsed.commandToken = token;
@@ -250,10 +243,6 @@ function parseArgs(argv: string[]): ParsedArgs | ParsedArgsError {
     }
     if (token === "--run") {
       parsed.modeFlagOrder.push(CliMode.Run);
-      continue;
-    }
-    if (token === "--interactive") {
-      parsed.modeFlagOrder.push(CliMode.Interactive);
       continue;
     }
     if (token === "--help" || token === "-h") {
@@ -396,8 +385,7 @@ export function resolveCliProcessContract(
     );
   }
 
-  const mode = commandMode ?? flagMode ??
-    (argv.length === 0 ? CliMode.Interactive : CliMode.Compile);
+  const mode = commandMode ?? flagMode ?? CliMode.Compile;
   const command = parsed.commandToken ?? commandFromMode(mode);
 
   if (mode !== CliMode.Compile && parsed.inputPaths.length > 1) {

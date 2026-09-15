@@ -42,18 +42,18 @@ deno task cli --help
 
 ## CLI
 
-Running `uffda` with no arguments opens the workbench. Commands:
+Running `uffda` with no arguments prints help. Commands:
 
-| Command     | Purpose                                               |
-| ----------- | ----------------------------------------------------- |
-| `compile`   | Compile `.uff` modules to ModuleDeclaration JSON      |
-| `parse`     | Parse source to a raw AST (`--lang` selects language) |
-| `exec`      | Evaluate an expression (source or `--ast`)            |
-| `match`     | Match a pattern against `--input` / `--input-json`    |
-| `run`       | Run a Uffda module (`--entry` selects an export)      |
-| `workbench` | Interactive TUI editor / JSON automation protocol     |
+| Command   | Purpose                                               |
+| --------- | ----------------------------------------------------- |
+| `compile` | Compile `.uff` modules to ModuleDeclaration JSON      |
+| `parse`   | Parse source to a raw AST (`--lang` selects language) |
+| `exec`    | Evaluate an expression (source or `--ast`)            |
+| `match`   | Match a pattern against `--input` / `--input-json`    |
+| `run`     | Run a Uffda module (`--entry` selects an export)      |
+| `mcp`     | Start the MCP server and session/display tools        |
 
-Languages for `parse` / `workbench`: `uffda` (default), `pattern`, `expression`.
+Languages for `parse`: `uffda` (default), `pattern`, `expression`.
 
 ### Quick start
 
@@ -88,26 +88,11 @@ Writes ModuleDeclaration JSON under `<out-dir>/ast` (default `.uffda/ast`). In
 this repo, `deno task compile:lang` builds workspace `./bin` with the **previous
 published** CLI (bootstrap recursion break).
 
-### Workbench
+### MCP server
 
-Fullscreen TUI: browse a folder, edit source, toggle compile/diagnostics with
-`Shift+Tab`. Pass a path to open a file directly:
-
-```sh
-uffda workbench
-uffda workbench ./examples/morse/morse.uff
-```
-
-Piped stdin uses a newline-delimited JSON protocol (`open`, `save`,
-`export-ast`, `visualize`, `match`, …):
-
-```sh
-printf '%s\n' \
-  '{"action":"start","language":"pattern","source":"any"}' \
-  '{"action":"set-source","source":"number"}' \
-  '{"action":"end"}' |
-  uffda workbench
-```
+`uffda mcp` starts the stdio MCP server. Use the `uffda_session_*` tools plus
+the display surface for live session loading, evaluation, inspection, and
+rendering.
 
 ## Library
 

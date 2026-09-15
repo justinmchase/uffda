@@ -18,12 +18,12 @@ Expected behavior:
 - Mode resolution MUST be deterministic.
 - Conflicting command and mode selection MUST fail with deterministic usage
   diagnostics.
-- In the absence of an explicit command, mode flag, or any argument, the CLI
-  MUST default to the interactive workbench.
+- In the absence of any command-line arguments, the CLI entry point MUST print
+  root usage text and exit with code `0`.
 - In the absence of an explicit command or mode flag when other arguments are
   present (for example a source path), deterministic fallback policy MUST choose
   compile mode regardless of standard-input attachment.
 
 Postconditions:
 
-- Invocation behavior remains predictable across interactive use and automation.
+- Invocation behavior remains predictable across manual use and automation.

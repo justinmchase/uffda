@@ -18,8 +18,7 @@ modules into a live runtime, evaluating expressions/rules/funcs against that
 runtime, and introspecting its structure and metadata — without shelling out to
 one-shot CLI invocations per step and without re-parsing whole files on every
 edit. It is an additional entry point onto the same deterministic compiler and
-runtime pathways the batch CLI and interactive workbench already use, not a
-parallel implementation.
+runtime pathways the batch CLI already uses, not a parallel implementation.
 
 This chapter defines only the agent-facing tool contract over the MCP stdio
 transport. A human-observable view onto server/session activity (terminal
@@ -195,8 +194,8 @@ chapter(s).
 ## Composition intent
 
 - The MCP server SHOULD compose the same compiler/resolver/runtime code paths
-  used by the batch CLI and interactive workbench rather than introducing a
-  parallel implementation of parsing, resolution, or evaluation.
+  used by the batch CLI rather than introducing a parallel implementation of
+  parsing, resolution, or evaluation.
 - Tool granularity SHOULD favor small, composable operations (open, load, patch,
   eval, describe, query, walk) over a small number of large "do everything"
   tools, so an agent can build up and inspect runtime state incrementally.

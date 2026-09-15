@@ -1,8 +1,8 @@
-# Command-line interface and interactive workbench
+# Command-line interface
 
 This chapter defines the contract for the Uffda CLI, including batch
 compilation, parsing, language-specific operation execution, language-mode
-selection, and an interactive workbench mode.
+selection, and an MCP server mode.
 
 ## Conventions
 
@@ -41,8 +41,6 @@ source and inspecting outcomes without embedding Uffda programmatically.
 - Language-selection mode: `parse` selects full Uffda, pattern, or expression
   via `--lang` (full Uffda default); `exec`/`match`/`run` own their languages;
   `compile` always targets Uffda module AST artifacts.
-- Interactive workbench mode: a stateful editor-like interface with dynamic
-  visualization and file input/output orchestration.
 - MCP server mode: an agent-facing Model Context Protocol stdio server exposing
   parse/compile/match, live in-memory runtime sessions, incremental re-parsing,
   evaluation, and introspection as tools; see
@@ -120,7 +118,6 @@ be human-readable and include the relevant source excerpt and input path.
 - [command model and process contract](./cli/command-model.spec.md)
 - [compile, parse, and operation modes](./cli/compile-and-stream.spec.md)
 - [language-selection and output contracts](./cli/language-and-output.spec.md)
-- [interactive workbench mode](./cli/interactive-workbench.spec.md)
 - [MCP server mode](./cli/mcp-server.spec.md)
 - [distribution and release contracts](./cli/distribution-and-release.spec.md)
 
@@ -128,24 +125,18 @@ be human-readable and include the relevant source excerpt and input path.
 
 - The CLI SHOULD compose existing language-layer and runtime contracts rather
   than introducing alternate parsing semantics.
-- The interactive mode SHOULD reuse the same deterministic compiler and
-  diagnostic pathways as non-interactive mode.
+- The batch CLI and MCP server SHOULD reuse the same deterministic compiler and
+  diagnostic pathways.
 
 ## Status
 
 Required CLI mode families above are shipped: compile, parse, exec, match, run,
-workbench, binary distribution, `uffda-setup`, and self-hosted language modules
-under `./bin`.
-
-Specified, not yet implemented:
-
-- MCP server mode (see [MCP server mode](./cli/mcp-server.spec.md)).
+MCP server mode, binary distribution, `uffda-setup`, and self-hosted language
+modules under `./bin`.
 
 Deferred polish (not release blockers):
 
 - Watch-style file I/O orchestration and debounce/refresh automation.
-- Explicit import/export actions for source and artifacts beyond current
-  workbench protocol commands.
 - Richer match-tree visualizer output (for example Mermaid) for debugging.
 
 Normative distribution and release contracts live in

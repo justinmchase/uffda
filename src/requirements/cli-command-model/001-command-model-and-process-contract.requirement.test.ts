@@ -2,14 +2,13 @@ import { assertEquals } from "@std/assert";
 import {
   CliContractErrorCode,
   CliExitCode,
-  CliLanguage,
   CliMode,
   resolveCliProcessContract,
 } from "../../cli/contract.ts";
 
 Deno.test("req:cli-command-model-001 - CLI command model and process contract are deterministic", async (t) => {
   await t.step(
-    "command families resolve to compile, parse, exec, match, run, and interactive",
+    "command families resolve to compile, parse, exec, match, and run",
     () => {
       const compile = resolveCliProcessContract({
         argv: ["compile", "main.uff"],
@@ -31,52 +30,20 @@ Deno.test("req:cli-command-model-001 - CLI command model and process contract ar
         argv: ["run", "app.uff"],
         processCwd: "/repo",
       });
-      const interactive = resolveCliProcessContract({
-        argv: ["workbench"],
-        processCwd: "/repo",
-      });
-
       assertEquals(compile.ok, true);
       assertEquals(parse.ok, true);
       assertEquals(exec.ok, true);
       assertEquals(match.ok, true);
       assertEquals(run.ok, true);
-      assertEquals(interactive.ok, true);
-      if (
-        !compile.ok || !parse.ok || !exec.ok || !match.ok || !run.ok ||
-        !interactive.ok
-      ) return;
+      if (!compile.ok || !parse.ok || !exec.ok || !match.ok || !run.ok) {
+        return;
+      }
 
       assertEquals(compile.contract.mode, CliMode.Compile);
       assertEquals(parse.contract.mode, CliMode.Parse);
       assertEquals(exec.contract.mode, CliMode.Exec);
       assertEquals(match.contract.mode, CliMode.Match);
       assertEquals(run.contract.mode, CliMode.Run);
-      assertEquals(interactive.contract.mode, CliMode.Interactive);
-    },
-  );
-
-  await t.step(
-    "default mode is the interactive workbench with no arguments at all",
-    () => {
-      const withStdin = resolveCliProcessContract({
-        argv: [],
-        processCwd: "/repo",
-        stdinAttached: true,
-      });
-      const withoutStdin = resolveCliProcessContract({
-        argv: [],
-        processCwd: "/repo",
-        stdinAttached: false,
-      });
-
-      assertEquals(withStdin.ok, true);
-      assertEquals(withoutStdin.ok, true);
-      if (!withStdin.ok || !withoutStdin.ok) return;
-
-      assertEquals(withStdin.contract.mode, CliMode.Interactive);
-      assertEquals(withoutStdin.contract.mode, CliMode.Interactive);
-      assertEquals(withoutStdin.contract.language, CliLanguage.FullUffda);
     },
   );
 

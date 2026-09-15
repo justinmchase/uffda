@@ -15,8 +15,7 @@ Normative key words in this chapter use the conventions defined in the
   - standard-input parsing workflows selected by `parse`;
   - expression execution workflows selected by `exec`;
   - pattern matching workflows selected by `match`;
-  - Uffda module execution workflows selected by `run`;
-  - interactive/workbench workflows.
+  - Uffda module execution workflows selected by `run`.
 - The command topology MUST support global flags that apply consistently across
   command families.
 - Global options MUST include language selection and runtime resolution context.
@@ -45,8 +44,12 @@ Normative key words in this chapter use the conventions defined in the
   standard input alone MUST NOT change compile mode.
 - If command selection conflicts with explicit mode flags, the CLI MUST fail
   with deterministic diagnostics.
-- When no explicit command or mode flag is present, the CLI SHOULD resolve mode
+- When no explicit command or mode flag is present and one or more
+  non-help/version arguments are present, the CLI MUST resolve to compile mode
   via deterministic fallback policy.
+- When no command-line arguments are present at all, the CLI entry point MUST
+  print root usage text and exit successfully rather than selecting an execution
+  mode.
 
 ## Input selection contract
 
