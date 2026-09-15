@@ -130,6 +130,18 @@ not introduce a parallel parsing or compilation pathway.
 
 - A VS Code extension MUST register `uffda lsp` as the language server for
   `.uff` (Uffda's own grammar language) as the first, dogfooding target.
+- The extension's source lives in this repository, under `editors/vscode/`, as
+  its own independently versioned npm package (own `package.json`,
+  `tsconfig.json`, and build/package tooling), rather than in a separate
+  repository or folded into the Deno workspace's own `deno.jsonc`. This keeps
+  the extension's version/compatibility requirements on `uffda` easy to keep in
+  lockstep with this repo's own releases, while its npm-based toolchain stays
+  isolated from `deno.jsonc`'s `fmt`/`lint`/`test`/publish tasks (which MUST
+  exclude `editors/vscode/`) and gets its own CI job rather than being folded
+  into the Deno `Checks` job. This placement is a deliberate, revisitable
+  choice, not a permanent commitment — splitting the extension into its own
+  repository remains an acceptable future refinement if the in-repo npm/Deno
+  coexistence becomes cumbersome to maintain.
 - The extension MUST be structured so that pointing it at a different
   workspace's language configuration (see "Language configuration" above) is
   sufficient to serve a user-authored language, without requiring a per-language
