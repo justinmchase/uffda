@@ -21,10 +21,9 @@ Expected behavior:
 - Standard input/output MUST carry only MCP protocol frames (requests,
   responses, notifications) for the lifetime of the process. Human-readable
   logging, if any, MUST go to standard error, never standard input/output.
-- The command MUST follow the same `CliMode`/contract dispatch pattern as
-  `compile`/`exec`/`match`/`parse`/`run`/`workbench` in `main.ts`/`contract.ts`,
-  including deterministic exit codes and error shape for startup failures (for
-  example invalid flags).
+- The command MUST follow the same deterministic top-level dispatch, exit-code,
+  and error-shape conventions as `compile`/`exec`/`match`/`parse`/`run` for
+  startup failures (for example invalid flags).
 
 Postconditions:
 
