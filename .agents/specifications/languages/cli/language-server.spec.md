@@ -246,10 +246,12 @@ registers `uffda lsp` for `.uff` files, registers `uffda mcp` as an MCP server,
 and resolves/downloads a compatible `uffda` binary automatically, with debug
 override settings. The extension also queries the custom
 `uffda/languageMetadata` request and applies `[Language]`-derived editor
-configuration via `vscode.languages.setLanguageConfiguration()` for `.uff`
-(static `language-configuration.json` remains as a fallback); dynamic
-file-extension→language-id association for additional workspace languages (see
-GitHub issue #192) is still outstanding. See GitHub issue #155 for the tracking
+configuration via `vscode.languages.setLanguageConfiguration()`, and assigns
+language ids from `[Language].ext` via
+`vscode.languages.setTextDocumentLanguage()` for workspace-declared languages
+(static `language-configuration.json` remains as a fallback for `.uff`). The LSP
+config loader fills omitted `extensions` from `[Language].ext` when
+`modulePath`/`entryRuleName` are present. See GitHub issue #155 for the tracking
 issue.
 
 ## Related

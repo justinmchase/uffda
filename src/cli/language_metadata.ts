@@ -4,6 +4,7 @@ import {
   BUILTIN_UFF_LANGUAGE,
   type LspConfig,
   type LspLanguageConfigEntry,
+  withExtensionFromMetadata,
 } from "./lsp.config.ts";
 
 /**
@@ -197,6 +198,8 @@ export async function loadLanguageMetadata(
  * Handles the `uffda/languageMetadata` custom LSP request: loads `[Language]`
  * metadata for each configured language (or a single `languageId`) and
  * returns both the raw metadata and its editor-configuration projection.
+ * Entries with only `ext`/`name` (no editor pairs) are still returned so
+ * clients can map file extensions → language ids.
  */
 export async function languageMetadataForConfig(
   config: LspConfig,
@@ -211,9 +214,31 @@ export async function languageMetadataForConfig(
   for (const language of entries) {
     const metadata = await loadLanguageMetadata(language, workspaceRoot);
     if (!metadata) continue;
-    const configuration = toEditorLanguageConfiguration(metadata);
-    if (!configuration) continue;
-    languages.push({ id: language.id, metadata, configuration });
+    languages.push({
+      id: language.id,
+      metadata,
+      configuration: toEditorLanguageConfiguration(metadata) ?? {},
+    });
+  }
+  return { languages };
+}
+
+/**
+ * Fills empty `extensions` arrays from each language's `[Language].ext`
+ * metadata. Workspace JSON extensions always win when already present.
+ */
+export async function enrichLspConfigWithLanguageMetadata(
+  config: LspConfig,
+  workspaceRoot: string,
+): Promise<LspConfig> {
+  const languages = [];
+  for (const language of config.languages) {
+    if (language.extensions.length > 0) {
+      languages.push(language);
+      continue;
+    }
+    const metadata = await loadLanguageMetadata(language, workspaceRoot);
+    languages.push(withExtensionFromMetadata(language, metadata?.ext));
   }
   return { languages };
 }

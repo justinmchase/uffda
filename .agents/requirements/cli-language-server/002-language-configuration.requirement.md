@@ -30,20 +30,14 @@ Expected behavior:
 - Design note (non-normative for this requirement, see the spec chapter's
   "Language configuration" section): implementations SHOULD avoid hard-coding
   assumptions that a language's file extension(s) can only ever come from this
-  file. A grammar module MAY eventually self-declare its own extension(s) (and
-  other editor-facing facts, such as a display name or description) via
-  decorator-derived metadata on its entry rule — for example
-  `[Language { ext: ".uff", name: "Uffda" }]` (object-literal argument) or
-  `[Language ".uff"]` (positional string argument against a
-  `decorator Language<ext:string> = …` declaration) — queryable the same way
-  other decorator metadata already is. Attribute application uses `[Name arg…]`
-  expression arguments (see
+  file. A grammar module MAY self-declare its own extension(s) (and other
+  editor-facing facts) via `[Language { ext: ".uff", … }]` metadata on its entry
+  rule. When a language entry omits `extensions` but supplies `modulePath` and
+  `entryRuleName`, the server MUST fill `extensions` from that metadata's `ext`
+  (workspace JSON still wins when `extensions` is present). Attribute
+  application uses `[Name arg…]` expression arguments (see
   [declaration attribute syntax](../../specifications/languages/uffda-syntax/declaration-attributes.spec.md));
-  a form like `[Language ext: ".uff"]` is not valid Uffda syntax. This
-  requirement does not yet mandate deriving `extensions` this way; it only asks
-  that near-term code not foreclose it — for example, prefer a lookup/derivation
-  step that could later consult module metadata over baking "extensions always
-  come from this JSON file" into unrelated call sites.
+  a form like `[Language ext: ".uff"]` is not valid Uffda syntax.
 - A document whose extension does not match any configured language entry MUST
   be ignored by the server (no diagnostics, highlighting, or other features
   offered for it) rather than causing a startup or per-document failure.

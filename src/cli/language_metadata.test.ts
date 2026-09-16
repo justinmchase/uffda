@@ -4,6 +4,7 @@ import {
   type LspLanguageConfigEntry,
 } from "./lsp.config.ts";
 import {
+  enrichLspConfigWithLanguageMetadata,
   languageMetadataForConfig,
   loadLanguageMetadata,
   toEditorLanguageConfiguration,
@@ -149,4 +150,38 @@ Deno.test("cli.language_metadata languageMetadataForConfig", async (t) => {
     );
     assertEquals(result.languages, []);
   });
+});
+
+Deno.test("cli.language_metadata enrichLspConfigWithLanguageMetadata", async (t) => {
+  await t.step(
+    "fills extensions from the built-in .uff [Language].ext when empty",
+    async () => {
+      const enriched = await enrichLspConfigWithLanguageMetadata(
+        {
+          languages: [{
+            id: "uffda",
+            extensions: [],
+          }],
+        },
+        Deno.cwd(),
+      );
+      assertEquals(enriched.languages[0].extensions, ["uff"]);
+    },
+  );
+
+  await t.step(
+    "leaves JSON-declared extensions alone",
+    async () => {
+      const enriched = await enrichLspConfigWithLanguageMetadata(
+        {
+          languages: [{
+            id: "uffda",
+            extensions: ["custom"],
+          }],
+        },
+        Deno.cwd(),
+      );
+      assertEquals(enriched.languages[0].extensions, ["custom"]);
+    },
+  );
 });
