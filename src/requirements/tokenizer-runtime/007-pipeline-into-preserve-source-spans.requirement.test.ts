@@ -28,7 +28,8 @@ Deno.test(
 
         assertEquals(result.ok, false);
         if (result.ok) return;
-        assertEquals(result.error.location?.offset, 2);
+        // Points at the `1` still awaiting a complete array element / closer.
+        assertEquals(result.error.location?.offset, 1);
       },
     );
 
@@ -40,7 +41,8 @@ Deno.test(
 
         assertEquals(result.ok, false);
         if (result.ok) return;
-        assertEquals(result.error.location?.offset, source.length);
+        // Points at the unexpected `=` (pattern body still required after it).
+        assertEquals(result.error.location?.offset, source.lastIndexOf("="));
       },
     );
   },
