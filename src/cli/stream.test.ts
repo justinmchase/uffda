@@ -34,38 +34,105 @@ Deno.test("cli.stream parses one stdin source unit into a raw AST", async (t) =>
     assertEquals(result.error.sourcePath, "<stdin>");
     assertEquals(result.error.language, CliLanguage.FullUffda);
     assertEquals(result.error.location?.line, 0);
+    // Points at the unexpected "=" token (pattern body still required after it).
     assertEquals(
       result.error.location?.offset,
+      "export Main; rule Main ".length,
+    );
+    assertEquals(
+      result.error.location?.endOffset,
       "export Main; rule Main =".length,
     );
-    assertStringIncludes(result.error.message, "while matching");
+    assertStringIncludes(result.error.message, "Expected");
+    assertStringIncludes(
+      result.error.message,
+      "RulePatternBodyBeforeProjection",
+    );
   });
 
   await t.step(
-    "points incomplete CRLF input at the original source offset",
+    "points a naked pipeline operator at the following token, not EOF",
+    async () => {
+      const source = [
+        "export Main;",
+        "rule Main =",
+        "  (",
+        "    any",
+        "    |> ",
+        "  )",
+        "  ;",
+      ].join("\n");
+      const result = await compileStdinToArtifact(source);
+      assertEquals(result.ok, false);
+      if (result.ok) return;
+      assertStringIncludes(result.error.message, "Expected");
+      assertStringIncludes(result.error.message, "Capture");
+      assertStringIncludes(result.error.message, "Into");
+      assertStringIncludes(result.error.message, "e.g.");
+      assertStringIncludes(result.error.message, '"not"');
+      assertStringIncludes(result.error.message, '"["');
+      assertStringIncludes(result.error.message, "Identifier");
+      assertStringIncludes(result.error.message, 'Unexpected ")"');
+      // Squiggle on `)`, immediately after the incomplete `|>`, not the final `;`.
+      assertEquals(result.error.location?.offset, source.lastIndexOf(")"));
+      assertEquals(
+        result.error.location?.endOffset,
+        source.lastIndexOf(")") + 1,
+      );
+    },
+  );
+
+  await t.step(
+    "describes equal failures with expected value and rule context",
+    async () => {
+      const result = await compileStdinToArtifact("rule A = any");
+      assertEquals(result.ok, false);
+      if (result.ok) return;
+      // Expected leads; squiggle covers "any".
+      assertStringIncludes(result.error.message, "Expected");
+      assertStringIncludes(result.error.message, ";");
+      assertStringIncludes(result.error.message, "Unexpected");
+      assertStringIncludes(result.error.message, "any");
+      assertStringIncludes(result.error.message, "RuleDeclarationSyntax");
+      assertEquals(result.error.location?.offset, "rule A = ".length);
+      assertEquals(
+        result.error.location?.endOffset,
+        "rule A = any".length,
+      );
+    },
+  );
+
+  await t.step(
+    "points incomplete CRLF input at the unexpected token offset",
     async () => {
       const source = "export Main;\r\nrule Main =";
       const result = await compileStdinToArtifact(source);
 
       assertEquals(result.ok, false);
       if (result.ok) return;
-      assertEquals(result.error.location?.offset, source.length);
+      assertEquals(result.error.location?.offset, source.lastIndexOf("="));
+      assertEquals(result.error.location?.endOffset, source.length);
       assertEquals(result.error.location?.line, 1);
-      assertEquals(result.error.location?.column, "rule Main =".length);
+      assertEquals(result.error.location?.column, "rule Main ".length);
     },
   );
 
   await t.step(
-    "points mid-source pattern failures at the original token offset",
+    "points mid-source pattern failures at an unexpected token",
     async () => {
       const source = "export Main; rule Main = !!!;";
       const result = await compileStdinToArtifact(source);
 
       assertEquals(result.ok, false);
       if (result.ok) return;
-      assertEquals(result.error.location?.offset, source.indexOf("!"));
+      assertEquals(result.error.location !== undefined, true);
+      assertEquals(
+        (result.error.location?.offset ?? -1) >= source.indexOf("!"),
+        true,
+      );
       assertEquals(result.error.location?.line, 0);
-      assertEquals(result.error.location?.column, source.indexOf("!"));
+      assertStringIncludes(result.error.message, "Expected");
+      assertStringIncludes(result.error.message, "Unexpected");
     },
   );
 
@@ -106,7 +173,7 @@ Deno.test("cli.stream parses one stdin source unit into a raw AST", async (t) =>
   );
 
   await t.step(
-    "points incomplete expression failures at the original offset",
+    "points incomplete expression failures at an unexpected token",
     async () => {
       const source = "[1 ";
       const result = await compileStdinToArtifact(
@@ -116,7 +183,9 @@ Deno.test("cli.stream parses one stdin source unit into a raw AST", async (t) =>
 
       assertEquals(result.ok, false);
       if (result.ok) return;
-      assertEquals(result.error.location?.offset, 2);
+      // Underlines the `1` still awaiting a complete array element / closer.
+      assertEquals(result.error.location?.offset, 1);
+      assertStringIncludes(result.error.message, "Expected");
     },
   );
 

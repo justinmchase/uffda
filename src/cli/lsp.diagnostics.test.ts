@@ -15,26 +15,26 @@ Deno.test("cli.lsp.diagnostics diagnosticsForSessionResult", async (t) => {
   });
 
   await t.step(
-    "reports a precise point range for a located parse failure",
+    "reports a precise token range for a located parse failure",
     () => {
       const result: SessionLoadResult = {
         ok: false,
         error: {
           code: SessionLoadFailureCode.ParseFailure,
           phase: "parse",
-          message: "unexpected end of input",
-          location: { offset: 5, line: 0, column: 5 },
+          message: 'Expected ";"\nUnexpected "any"',
+          location: { offset: 9, line: 0, column: 9, endOffset: 12 },
         },
         partiallyLoadedModules: [],
         resolvedDuringLoad: [],
       };
-      const diagnostics = diagnosticsForSessionResult(result, "rule ");
+      const diagnostics = diagnosticsForSessionResult(result, "rule A = any");
       assertEquals(diagnostics.length, 1);
       assertEquals(diagnostics[0].range, {
-        start: { line: 0, character: 5 },
-        end: { line: 0, character: 5 },
+        start: { line: 0, character: 9 },
+        end: { line: 0, character: 12 },
       });
-      assertEquals(diagnostics[0].message, "unexpected end of input");
+      assertEquals(diagnostics[0].message, 'Expected ";"\nUnexpected "any"');
       assertEquals(diagnostics[0].source, "uffda (parse)");
     },
   );

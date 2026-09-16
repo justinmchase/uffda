@@ -22,8 +22,8 @@ Language support for [Uffda](../../README.md) `.uff` grammars.
 | Setting | Description |
 | --- | --- |
 | `uffda.lsp.serverPath` | Overrides the `uffda` executable used for both the language server and the MCP server, bypassing `PATH` resolution and download entirely. Useful for pointing the extension at a local source checkout, e.g. `deno`. |
-| `uffda.lsp.serverArgs` | Arguments passed to `uffda.lsp.serverPath` when launching the language server (default: `["lsp"]`). For example: `["run", "-A", "./mod.ts", "lsp"]`. |
-| `uffda.mcp.serverArgs` | Arguments passed to `uffda.lsp.serverPath` when launching the MCP server (default: `["mcp"]`). For example: `["run", "-A", "./mod.ts", "mcp"]`. |
+| `uffda.lsp.serverArgs` | Arguments passed to `uffda.lsp.serverPath` when launching the language server (default: `["lsp"]`). For example: `["run", "-A", "./src/cli/main.ts", "lsp"]`. |
+| `uffda.mcp.serverArgs` | Arguments passed to `uffda.lsp.serverPath` when launching the MCP server (default: `["mcp"]`). For example: `["run", "-A", "./src/cli/main.ts", "mcp"]`. |
 
 When `uffda.lsp.serverPath` is unset, the extension resolves a `uffda`
 binary automatically: prefer a compatible version on `PATH`, otherwise
@@ -33,19 +33,19 @@ error instead of silently disabling itself.
 ## Design notes
 
 `language-configuration.json` and the single `contributes.languages` entry in
-`package.json` are currently `.uff`-specific interim scaffolding, not a
-pattern to copy per additional served language. See the "Language
-configuration" and "VS Code extension" sections of
+`package.json` are currently `.uff`-specific interim scaffolding and a
+fallback when the language server does not yet expose `[Language]` metadata.
+On activation the extension requests `uffda/languageMetadata` and, when the
+server returns a configuration projection, applies it with
+`vscode.languages.setLanguageConfiguration()` (see GitHub issue #192). Dynamic
+file-extension → language-id association for additional workspace-configured
+languages is still outstanding.
+
+See the "Language configuration" and "VS Code extension" sections of
 [`language-server.spec.md`](../../.agents/specifications/languages/cli/language-server.spec.md)
-and requirement
+and requirements
 [`002-language-configuration`](../../.agents/requirements/cli-language-server/002-language-configuration.requirement.md)/[`007-vscode-extension`](../../.agents/requirements/cli-language-server/007-vscode-extension.requirement.md)
-for the intended direction: a grammar module can self-declare its own file
-extension(s) and editor configuration (comments, brackets, auto-closing pairs)
-via decorator-derived metadata on its entry rule, which this extension should
-eventually query from the language server and apply dynamically
-(`vscode.languages.setLanguageConfiguration()`,
-`vscode.languages.setTextDocumentLanguage()`) instead of requiring a second
-hand-authored JSON file and static contribution per language.
+for the intended direction.
 
 ## Development
 

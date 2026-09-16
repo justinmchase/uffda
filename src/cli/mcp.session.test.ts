@@ -1,4 +1,5 @@
 import { assert, assertEquals, assertThrows } from "@std/assert";
+import { exists } from "@std/fs/exists";
 import { join } from "@std/path";
 import {
   RuntimeSession,
@@ -120,6 +121,34 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
         assertEquals(result.module.declarations, [
           { name: "Foo", kind: "rule", exported: true },
         ]);
+      } finally {
+        await Deno.remove(cwd, { recursive: true });
+      }
+    },
+  );
+
+  await t.step(
+    "compiles missing .uff imports into the session artifact root on load",
+    async () => {
+      const cwd = await Deno.makeTempDir({ prefix: "uffda-mcp-session-" });
+      try {
+        const depUff = join(cwd, "dep.uff");
+        await Deno.writeTextFile(depUff, "export Foo;\nrule Foo = any;");
+
+        const session = new RuntimeSession("s-auto-compile", { cwd });
+        const result = await session.load(
+          'import "./dep.uff" Foo;\nexport Foo;',
+          "main.uff",
+        );
+        assertEquals(result.ok, true);
+        assert(result.ok);
+
+        const loaded = session.listLoadedModules();
+        assertEquals(loaded.length, 2);
+        assert(
+          await exists(join(cwd, ".uffda", "ast")),
+          "expected compiled artifacts under .uffda/ast",
+        );
       } finally {
         await Deno.remove(cwd, { recursive: true });
       }

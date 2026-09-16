@@ -33,7 +33,12 @@ export function diagnosticsForSessionResult(
   const range = location
     ? {
       start: { line: location.line, character: location.column },
-      end: { line: location.line, character: location.column },
+      end: location.endOffset !== undefined
+        ? (() => {
+          const end = locationFromOffset(source, location.endOffset);
+          return { line: end.line, character: end.column };
+        })()
+        : { line: location.line, character: location.column },
     }
     : {
       start: { line: 0, character: 0 },

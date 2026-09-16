@@ -13,6 +13,11 @@ import {
   TextDocumentSyncKind,
 } from "vscode-languageserver/node";
 import {
+  LANGUAGE_METADATA_METHOD,
+  languageMetadataForConfig,
+  type LanguageMetadataParams,
+} from "./language_metadata.ts";
+import {
   BUILTIN_UFF_LANGUAGE,
   loadLspConfig,
   type LspConfig,
@@ -68,22 +73,29 @@ export function wireUffdaLspHandlers(
 ): void {
   let manager: LspDocumentManager | undefined;
   let config: LspConfig = { languages: [BUILTIN_UFF_LANGUAGE] };
+  let workspaceRoot = options?.workspaceRoot ?? Deno.cwd();
 
   connection.onInitialize(
     async (params: InitializeParams): Promise<InitializeResult> => {
-      const root = options?.workspaceRoot ??
+      workspaceRoot = options?.workspaceRoot ??
         rootFromInitializeParams(params) ?? Deno.cwd();
-      const loaded = await loadLspConfig(root);
+      const loaded = await loadLspConfig(workspaceRoot);
       config = loaded.ok
         ? loaded.config
         : { languages: [BUILTIN_UFF_LANGUAGE] };
-      manager = new LspDocumentManager(root);
+      manager = new LspDocumentManager(workspaceRoot);
       return {
         capabilities: {
           textDocumentSync: TextDocumentSyncKind.Incremental,
           semanticTokensProvider: {
             legend: SEMANTIC_TOKENS_LEGEND,
             full: true,
+          },
+          // Advertises the custom `uffda/languageMetadata` request so
+          // clients (the VS Code extension) can derive editor language
+          // configuration from grammar `[Language]` metadata (#192).
+          experimental: {
+            uffdaLanguageMetadata: true,
           },
         },
       };
@@ -130,6 +142,12 @@ export function wireUffdaLspHandlers(
       }
       return manager.semanticTokens(uri) ?? { data: [] };
     },
+  );
+
+  connection.onRequest(
+    LANGUAGE_METADATA_METHOD,
+    (params: LanguageMetadataParams = {}) =>
+      languageMetadataForConfig(config, workspaceRoot, params),
   );
 }
 

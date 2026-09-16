@@ -3,9 +3,25 @@ import {
   LanguageClient,
   LanguageClientOptions,
   ServerOptions,
-  TransportKind,
 } from "vscode-languageclient/node";
 import { resolveUffdaServer, ResolveServerError, ResolvedServer } from "./binary";
+
+/** Mirrors `LANGUAGE_METADATA_METHOD` in `src/cli/language_metadata.ts`. */
+const LANGUAGE_METADATA_METHOD = "uffda/languageMetadata";
+
+type EditorLanguageConfiguration = {
+  comments?: { lineComment?: string };
+  brackets?: [string, string][];
+  autoClosingPairs?: Array<{ open: string; close: string }>;
+  surroundingPairs?: [string, string][];
+};
+
+type LanguageMetadataResult = {
+  languages: Array<{
+    id: string;
+    configuration: EditorLanguageConfiguration;
+  }>;
+};
 
 let client: LanguageClient | undefined;
 let outputChannel: vscode.LogOutputChannel | undefined;
@@ -33,6 +49,10 @@ function currentOverrides() {
   return { serverPathOverride, lspArgsOverride, mcpArgsOverride };
 }
 
+function workspaceCwd(): string | undefined {
+  return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+}
+
 async function startLanguageClient(context: vscode.ExtensionContext): Promise<void> {
   const { serverPathOverride, lspArgsOverride } = currentOverrides();
 
@@ -52,10 +72,14 @@ async function startLanguageClient(context: vscode.ExtensionContext): Promise<vo
     `Starting language server: ${resolved.command} ${resolved.args.join(" ")} (${resolved.source})`,
   );
 
+  const cwd = workspaceCwd();
   const serverOptions: ServerOptions = {
     command: resolved.command,
     args: resolved.args,
-    transport: TransportKind.stdio,
+    options: cwd ? { cwd } : undefined,
+    // Omit `transport`: vscode-languageclient defaults to stdio for
+    // Executable servers. Setting `TransportKind.stdio` would also append a
+    // literal `--stdio` argv token, which uffda does not use.
   };
   const clientOptions: LanguageClientOptions = {
     documentSelector: [{ scheme: "file", language: "uffda" }],
@@ -72,8 +96,50 @@ async function startLanguageClient(context: vscode.ExtensionContext): Promise<vo
   try {
     await client.start();
     context.subscriptions.push({ dispose: () => void client?.stop() });
+    await applyLanguageConfigurationsFromServer(context, client);
   } catch (err) {
     reportStartError("language server", resolved, err);
+  }
+}
+
+/**
+ * Queries `uffda/languageMetadata` and applies each language's projected
+ * editor configuration via `vscode.languages.setLanguageConfiguration()`,
+ * per issue #192 / requirement 007's design note. The static
+ * `language-configuration.json` contribution remains as a fallback when the
+ * server is older or the request fails.
+ */
+async function applyLanguageConfigurationsFromServer(
+  context: vscode.ExtensionContext,
+  languageClient: LanguageClient,
+): Promise<void> {
+  try {
+    const result = await languageClient.sendRequest<LanguageMetadataResult>(
+      LANGUAGE_METADATA_METHOD,
+      { languageId: "uffda" },
+    );
+    for (const entry of result.languages) {
+      const disposable = vscode.languages.setLanguageConfiguration(
+        entry.id,
+        entry.configuration as vscode.LanguageConfiguration,
+      );
+      context.subscriptions.push(disposable);
+      outputChannel?.appendLine(
+        `Applied [Language] configuration for '${entry.id}' (comments=${
+          entry.configuration.comments?.lineComment ?? "none"
+        }, brackets=${entry.configuration.brackets?.length ?? 0})`,
+      );
+    }
+    if (result.languages.length === 0) {
+      outputChannel?.appendLine(
+        "No [Language] metadata returned; keeping static language-configuration.json.",
+      );
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    outputChannel?.appendLine(
+      `Dynamic language configuration unavailable (${message}); keeping static language-configuration.json.`,
+    );
   }
 }
 
@@ -121,6 +187,9 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): void {
         outputChannel?.appendLine(
           `Registering MCP server: ${resolved.command} ${resolved.args.join(" ")} (${resolved.source})`,
         );
+        // McpStdioServerDefinition takes command/args only; relative
+        // `./src/cli/main.ts` overrides rely on the host resolving against the
+        // workspace folder the same way the language client cwd does.
         return [new McpStdioServerDefinition("Uffda", resolved.command, resolved.args)];
       } catch (err) {
         reportResolveError("MCP server", err);

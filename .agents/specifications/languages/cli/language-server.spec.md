@@ -224,6 +224,11 @@ not introduce a parallel parsing or compilation pathway.
   but this chapter does not require the two servers to share a process, a
   session model, or a wire protocol — only the underlying deterministic
   compiler/runtime pathways.
+- When resolving `.uff` imports from open documents, the server MUST use the
+  session/runtime artifact root (default `.uffda`) with compile-on-demand into
+  that root — the same contract as
+  [MCP session load](./mcp-server.spec.md#session-lifecycle-tools) — and MUST
+  NOT assume workspace `./bin` or introduce an LSP-config `artifactRoot`.
 
 ## Status
 
@@ -239,7 +244,13 @@ metadata); aligning that projection onto a general `[Token]` rule-metadata walk
 (requirement 007) has an initial implementation at `editors/vscode/`: it
 registers `uffda lsp` for `.uff` files, registers `uffda mcp` as an MCP server,
 and resolves/downloads a compatible `uffda` binary automatically, with debug
-override settings. See GitHub issue #155 for the tracking issue.
+override settings. The extension also queries the custom
+`uffda/languageMetadata` request and applies `[Language]`-derived editor
+configuration via `vscode.languages.setLanguageConfiguration()` for `.uff`
+(static `language-configuration.json` remains as a fallback); dynamic
+file-extension→language-id association for additional workspace languages (see
+GitHub issue #192) is still outstanding. See GitHub issue #155 for the tracking
+issue.
 
 ## Related
 

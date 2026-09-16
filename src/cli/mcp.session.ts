@@ -32,6 +32,7 @@ import {
 } from "../match.ts";
 import { ModuleImportResultKind } from "../runtime/resolvers/resolver.ts";
 import { CliLanguage } from "./contract.ts";
+import { ensureCompiledImportArtifacts } from "./ensure_import_artifacts.ts";
 import { parseSourceToAst } from "./stream.ts";
 import type { CliStreamFailureLocation } from "./stream.ts";
 
@@ -763,6 +764,30 @@ export class RuntimeSession {
 
     const trialDeclarations = new Map(this.declarations);
     trialDeclarations.set(moduleUrl.href, declaration);
+
+    // Resolve only loads JSON under the session artifact root; compile any
+    // missing/stale file:// `.uff` imports into that root first (default
+    // `.uffda`), rather than assuming `./bin` or an LSP-config override.
+    const ensured = await ensureCompiledImportArtifacts({
+      cwd: this.cwd,
+      artifactRoot: this.artifactRoot,
+      moduleUrl,
+      declaration,
+      knownDeclarations: trialDeclarations,
+    });
+    if (!ensured.ok) {
+      return {
+        ok: false,
+        error: {
+          code: SessionLoadFailureCode.ResolutionFailure,
+          phase: "resolve",
+          message: ensured.message,
+        },
+        partiallyLoadedModules: this.listLoadedModules(),
+        resolvedDuringLoad: [],
+      };
+    }
+
     const resolver = new Resolver({
       declarations: Object.fromEntries(trialDeclarations),
       cwd: this.cwd,

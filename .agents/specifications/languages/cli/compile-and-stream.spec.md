@@ -46,6 +46,13 @@ Normative key words in this chapter use the conventions defined in the
 - Valid parse input MUST emit its raw selected-language syntax AST as one JSON
   payload to STDOUT; parse failure MUST emit one diagnostic JSON payload to
   STDERR.
+- Parse-failure diagnostics MUST identify the furthest-right failed pattern
+  using the same focus as match-failure visualization (see
+  [match diagnostics](../../runtime/match-diagnostics.spec.md)). The diagnostic
+  message MUST lead with expected alternatives (or the pattern/rule being
+  matched when no terminal expectation is available), then unexpected input, so
+  an editor that already highlights the failure site still makes clear what
+  would have matched.
 - Empty full-Uffda stream input MUST emit an empty module AST.
 
 ## AST execution contracts
