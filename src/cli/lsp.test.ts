@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import type {
   DidChangeTextDocumentParams,
   DidCloseTextDocumentParams,
@@ -40,6 +40,10 @@ function createFakeConnection() {
     // deno-lint-ignore no-explicit-any
     onDidCloseTextDocument: (handler: (params: any) => unknown) => {
       handlers.close = handler;
+    },
+    // deno-lint-ignore no-explicit-any
+    onHover: (handler: (params: any) => unknown) => {
+      handlers.hover = handler;
     },
     // deno-lint-ignore no-explicit-any
     onRequest: (type: any, handler: (params: any) => unknown) => {
@@ -216,6 +220,41 @@ Deno.test("cli.lsp wireUffdaLspHandlers", async (t) => {
       // The successfully matched prefix (`export`/`rule`/...) must still
       // contribute tokens rather than blanking the whole document.
       assertEquals(tokens.data.length > 0, true);
+    },
+  );
+
+  await t.step(
+    "declares hoverProvider and describes a rule under the cursor",
+    async () => {
+      const { connection, handlers } = createFakeConnection();
+      wireUffdaLspHandlers(connection, { workspaceRoot: Deno.cwd() });
+
+      const init = await handlers.initialize(
+        {} as InitializeParams,
+      ) as InitializeResult;
+      assertEquals(init.capabilities.hoverProvider, true);
+
+      const text = "export Main; rule Main = any;";
+      await handlers.open({
+        textDocument: {
+          uri: "file:///workspace/hover.uff",
+          languageId: "uffda",
+          version: 1,
+          text,
+        },
+      } as DidOpenTextDocumentParams);
+
+      const hover = await handlers.hover({
+        textDocument: { uri: "file:///workspace/hover.uff" },
+        position: { line: 0, character: text.indexOf("Main") + 1 },
+      }) as { contents: { kind: string; value: string } } | null;
+
+      assert(hover);
+      assertEquals(hover.contents.kind, "markdown");
+      assertEquals(
+        hover.contents.value.includes("(exported rule) `Main`"),
+        true,
+      );
     },
   );
 
