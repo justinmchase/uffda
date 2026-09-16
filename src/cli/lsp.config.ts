@@ -10,7 +10,11 @@ import { resolve as resolvePath } from "@std/path";
 export type LspLanguageConfigEntry = {
   /** Stable identifier for this language, used as the LSP `languageId`. */
   id: string;
-  /** File extensions (without the leading dot) this language owns. */
+  /**
+   * File extensions (without the leading dot) this language owns. MAY be empty
+   * in the workspace JSON when the grammar's `[Language]` metadata supplies
+   * `ext` — see `enrichLspConfigWithLanguageMetadata`.
+   */
   extensions: string[];
   /**
    * Path (relative to the workspace root) to the compiled grammar module the
@@ -67,20 +71,56 @@ function toLanguageEntry(
   if (!isPlainObject(value)) return undefined;
   const { id, extensions, modulePath, entryRuleName } = value;
   if (typeof id !== "string" || id.length === 0) return undefined;
-  if (
-    !Array.isArray(extensions) ||
-    extensions.length === 0 ||
-    !extensions.every((ext) => typeof ext === "string")
-  ) {
-    return undefined;
-  }
   if (modulePath !== undefined && typeof modulePath !== "string") {
     return undefined;
   }
   if (entryRuleName !== undefined && typeof entryRuleName !== "string") {
     return undefined;
   }
-  return { id, extensions, modulePath, entryRuleName };
+
+  let normalizedExtensions: string[] = [];
+  if (extensions !== undefined) {
+    if (
+      !Array.isArray(extensions) ||
+      !extensions.every((ext) => typeof ext === "string")
+    ) {
+      return undefined;
+    }
+    normalizedExtensions = extensions.map(normalizeExtension).filter(Boolean);
+  }
+
+  // Extensions may be omitted when the grammar later supplies `[Language].ext`
+  // — but only when there is a module to load that metadata from.
+  if (normalizedExtensions.length === 0) {
+    if (!modulePath || !entryRuleName) return undefined;
+  }
+
+  return {
+    id,
+    extensions: normalizedExtensions,
+    modulePath,
+    entryRuleName,
+  };
+}
+
+/** Lowercases and strips a leading dot from a file-extension string. */
+export function normalizeExtension(ext: string): string {
+  const trimmed = ext.trim().toLowerCase();
+  return trimmed.startsWith(".") ? trimmed.slice(1) : trimmed;
+}
+
+/**
+ * Merges a `[Language].ext` value into an entry when the workspace JSON left
+ * `extensions` empty. JSON-declared extensions always win (requirement 002).
+ */
+export function withExtensionFromMetadata(
+  language: LspLanguageConfigEntry,
+  ext: string | undefined,
+): LspLanguageConfigEntry {
+  if (language.extensions.length > 0 || !ext) return language;
+  const normalized = normalizeExtension(ext);
+  if (!normalized) return language;
+  return { ...language, extensions: [normalized] };
 }
 
 /**

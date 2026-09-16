@@ -5,7 +5,9 @@ import {
   extensionOf,
   loadLspConfig,
   LspConfigLoadFailureCode,
+  normalizeExtension,
   resolveLanguageForDocument,
+  withExtensionFromMetadata,
 } from "./lsp.config.ts";
 
 Deno.test("cli.lsp.config extensionOf", async (t) => {
@@ -94,6 +96,66 @@ Deno.test("cli.lsp.config loadLspConfig", async (t) => {
     } finally {
       await Deno.remove(dir, { recursive: true });
     }
+  });
+
+  await t.step(
+    "allows omitting extensions when modulePath and entryRuleName are present",
+    async () => {
+      const dir = await Deno.makeTempDir();
+      try {
+        await Deno.mkdir(join(dir, ".uffda"), { recursive: true });
+        await Deno.writeTextFile(
+          join(dir, ".uffda", "lsp.jsonc"),
+          `{
+            "languages": [
+              {
+                "id": "morse",
+                "modulePath": "./morse.uff",
+                "entryRuleName": "Main"
+              }
+            ]
+          }`,
+        );
+        const result = await loadLspConfig(dir);
+        assertEquals(result.ok, true);
+        assert(result.ok);
+        assertEquals(result.config.languages[1], {
+          id: "morse",
+          extensions: [],
+          modulePath: "./morse.uff",
+          entryRuleName: "Main",
+        });
+      } finally {
+        await Deno.remove(dir, { recursive: true });
+      }
+    },
+  );
+});
+
+Deno.test("cli.lsp.config withExtensionFromMetadata", async (t) => {
+  await t.step("normalizes leading dots", () => {
+    assertEquals(normalizeExtension(".UFF"), "uff");
+    assertEquals(normalizeExtension("morse"), "morse");
+  });
+
+  await t.step("fills empty extensions from metadata ext", () => {
+    assertEquals(
+      withExtensionFromMetadata(
+        { id: "morse", extensions: [], modulePath: "./morse.uff" },
+        ".morse",
+      ).extensions,
+      ["morse"],
+    );
+  });
+
+  await t.step("does not override JSON-declared extensions", () => {
+    assertEquals(
+      withExtensionFromMetadata(
+        { id: "morse", extensions: ["ms"] },
+        ".morse",
+      ).extensions,
+      ["ms"],
+    );
   });
 });
 

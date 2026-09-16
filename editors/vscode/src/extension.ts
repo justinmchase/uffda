@@ -19,6 +19,7 @@ type EditorLanguageConfiguration = {
 type LanguageMetadataResult = {
   languages: Array<{
     id: string;
+    metadata: { ext?: string; name?: string };
     configuration: EditorLanguageConfiguration;
   }>;
 };
@@ -53,6 +54,25 @@ function workspaceCwd(): string | undefined {
   return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 }
 
+function extensionOf(fsPath: string): string {
+  const lastDot = fsPath.lastIndexOf(".");
+  const lastSlash = Math.max(fsPath.lastIndexOf("/"), fsPath.lastIndexOf("\\"));
+  if (lastDot === -1 || lastDot < lastSlash) return "";
+  return fsPath.slice(lastDot + 1).toLowerCase();
+}
+
+function normalizeExt(ext: string): string {
+  const trimmed = ext.trim().toLowerCase();
+  return trimmed.startsWith(".") ? trimmed.slice(1) : trimmed;
+}
+
+function configurationIsEmpty(configuration: EditorLanguageConfiguration): boolean {
+  return configuration.comments === undefined &&
+    configuration.brackets === undefined &&
+    configuration.autoClosingPairs === undefined &&
+    configuration.surroundingPairs === undefined;
+}
+
 async function startLanguageClient(context: vscode.ExtensionContext): Promise<void> {
   const { serverPathOverride, lspArgsOverride } = currentOverrides();
 
@@ -82,7 +102,10 @@ async function startLanguageClient(context: vscode.ExtensionContext): Promise<vo
     // literal `--stdio` argv token, which uffda does not use.
   };
   const clientOptions: LanguageClientOptions = {
-    documentSelector: [{ scheme: "file", language: "uffda" }],
+    // Scheme-only selector: the server filters by configured extensions, and
+    // workspace languages may receive a dynamic language id via
+    // `setTextDocumentLanguage` after `[Language].ext` discovery (#192).
+    documentSelector: [{ scheme: "file" }],
     outputChannel,
   };
 
@@ -96,44 +119,60 @@ async function startLanguageClient(context: vscode.ExtensionContext): Promise<vo
   try {
     await client.start();
     context.subscriptions.push({ dispose: () => void client?.stop() });
-    await applyLanguageConfigurationsFromServer(context, client);
+    await applyLanguageMetadataFromServer(context, client);
   } catch (err) {
     reportStartError("language server", resolved, err);
   }
 }
 
 /**
- * Queries `uffda/languageMetadata` and applies each language's projected
- * editor configuration via `vscode.languages.setLanguageConfiguration()`,
- * per issue #192 / requirement 007's design note. The static
- * `language-configuration.json` contribution remains as a fallback when the
- * server is older or the request fails.
+ * Queries `uffda/languageMetadata` and:
+ * - applies each language's projected editor configuration via
+ *   `vscode.languages.setLanguageConfiguration()` when present
+ * - maps `[Language].ext` → language id and assigns language ids at runtime
+ *   via `setTextDocumentLanguage` for workspace-declared languages (#192)
+ *
+ * The static `language-configuration.json` contribution remains as a fallback
+ * when the server is older or the request fails.
  */
-async function applyLanguageConfigurationsFromServer(
+async function applyLanguageMetadataFromServer(
   context: vscode.ExtensionContext,
   languageClient: LanguageClient,
 ): Promise<void> {
   try {
     const result = await languageClient.sendRequest<LanguageMetadataResult>(
       LANGUAGE_METADATA_METHOD,
-      { languageId: "uffda" },
+      {},
     );
+    const extToLanguageId = new Map<string, string>();
+
     for (const entry of result.languages) {
-      const disposable = vscode.languages.setLanguageConfiguration(
-        entry.id,
-        entry.configuration as vscode.LanguageConfiguration,
-      );
-      context.subscriptions.push(disposable);
-      outputChannel?.appendLine(
-        `Applied [Language] configuration for '${entry.id}' (comments=${
-          entry.configuration.comments?.lineComment ?? "none"
-        }, brackets=${entry.configuration.brackets?.length ?? 0})`,
-      );
+      if (!configurationIsEmpty(entry.configuration)) {
+        const disposable = vscode.languages.setLanguageConfiguration(
+          entry.id,
+          entry.configuration as vscode.LanguageConfiguration,
+        );
+        context.subscriptions.push(disposable);
+        outputChannel?.appendLine(
+          `Applied [Language] configuration for '${entry.id}' (comments=${
+            entry.configuration.comments?.lineComment ?? "none"
+          }, brackets=${entry.configuration.brackets?.length ?? 0})`,
+        );
+      }
+
+      if (entry.metadata.ext) {
+        extToLanguageId.set(normalizeExt(entry.metadata.ext), entry.id);
+      }
     }
+
     if (result.languages.length === 0) {
       outputChannel?.appendLine(
         "No [Language] metadata returned; keeping static language-configuration.json.",
       );
+    }
+
+    if (extToLanguageId.size > 0) {
+      registerDynamicLanguageIds(context, extToLanguageId);
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -141,6 +180,43 @@ async function applyLanguageConfigurationsFromServer(
       `Dynamic language configuration unavailable (${message}); keeping static language-configuration.json.`,
     );
   }
+}
+
+/**
+ * Assigns language ids to open/opening documents whose extension is declared
+ * by a grammar's `[Language].ext` (or equivalent metadata), so workspace
+ * languages do not need a static `contributes.languages` package.json entry.
+ */
+function registerDynamicLanguageIds(
+  context: vscode.ExtensionContext,
+  extToLanguageId: Map<string, string>,
+): void {
+  const assign = async (document: vscode.TextDocument): Promise<void> => {
+    if (document.uri.scheme !== "file") return;
+    const ext = extensionOf(document.uri.fsPath);
+    const languageId = extToLanguageId.get(ext);
+    if (!languageId || document.languageId === languageId) return;
+    try {
+      await vscode.languages.setTextDocumentLanguage(document, languageId);
+      outputChannel?.appendLine(
+        `Set language id '${languageId}' for ${document.uri.fsPath}`,
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      outputChannel?.appendLine(
+        `Failed to set language id '${languageId}' for ${document.uri.fsPath}: ${message}`,
+      );
+    }
+  };
+
+  for (const document of vscode.workspace.textDocuments) {
+    void assign(document);
+  }
+  context.subscriptions.push(
+    vscode.workspace.onDidOpenTextDocument((document) => {
+      void assign(document);
+    }),
+  );
 }
 
 function registerMcpServerProvider(context: vscode.ExtensionContext): void {

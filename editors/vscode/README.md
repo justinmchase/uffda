@@ -33,19 +33,23 @@ error instead of silently disabling itself.
 ## Design notes
 
 `language-configuration.json` and the single `contributes.languages` entry in
-`package.json` are currently `.uff`-specific interim scaffolding and a
-fallback when the language server does not yet expose `[Language]` metadata.
-On activation the extension requests `uffda/languageMetadata` and, when the
-server returns a configuration projection, applies it with
-`vscode.languages.setLanguageConfiguration()` (see GitHub issue #192). Dynamic
-file-extension → language-id association for additional workspace-configured
-languages is still outstanding.
+`package.json` are `.uff`-specific fallback scaffolding when the language
+server does not yet expose `[Language]` metadata. On activation the extension
+requests `uffda/languageMetadata` and:
+
+- applies editor configuration with `vscode.languages.setLanguageConfiguration()`
+- maps `[Language].ext` → language id and assigns ids at runtime with
+  `vscode.languages.setTextDocumentLanguage()` for workspace-declared
+  languages (so additional languages do not need a second static
+  `contributes.languages` entry)
+
+Workspace `.uffda/lsp.jsonc` entries may omit `extensions` when the grammar's
+`[Language]` metadata supplies `ext` (JSON still wins when present).
 
 See the "Language configuration" and "VS Code extension" sections of
 [`language-server.spec.md`](../../.agents/specifications/languages/cli/language-server.spec.md)
 and requirements
-[`002-language-configuration`](../../.agents/requirements/cli-language-server/002-language-configuration.requirement.md)/[`007-vscode-extension`](../../.agents/requirements/cli-language-server/007-vscode-extension.requirement.md)
-for the intended direction.
+[`002-language-configuration`](../../.agents/requirements/cli-language-server/002-language-configuration.requirement.md)/[`007-vscode-extension`](../../.agents/requirements/cli-language-server/007-vscode-extension.requirement.md).
 
 ## Development
 
