@@ -125,6 +125,37 @@ Deno.test("cli.lsp.documents LspDocumentManager", async (t) => {
       assertEquals(manager.semanticTokens("inline:///missing"), undefined);
     },
   );
+
+  await t.step(
+    "hover describes a resolved rule under the cursor",
+    async () => {
+      const manager = new LspDocumentManager(Deno.cwd());
+      const source = "export Main; rule Main = any;";
+      await manager.open("inline:///hover", source);
+      const hover = manager.hover(
+        "inline:///hover",
+        offsetToPosition(source, source.indexOf("Main")),
+      );
+      assert(hover);
+      assertEquals(
+        typeof hover.contents === "object" &&
+          "value" in hover.contents &&
+          hover.contents.value.includes("(exported rule) `Main`"),
+        true,
+      );
+    },
+  );
+
+  await t.step(
+    "hover returns null for a document that was never opened",
+    () => {
+      const manager = new LspDocumentManager(Deno.cwd());
+      assertEquals(
+        manager.hover("inline:///missing", { line: 0, character: 0 }),
+        null,
+      );
+    },
+  );
 });
 
 function offsetToPosition(
