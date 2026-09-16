@@ -1,6 +1,10 @@
 import { expressionGrammar } from "../lang/expression/expression.lang.ts";
 import type { Expression } from "../runtime/expressions/expression.ts";
 import { getRightmostFailure, type Match, MatchKind } from "../match.ts";
+import {
+  analyzeMatchFailure,
+  formatMatchFailureSummary,
+} from "../match.visualize.ts";
 import { patternGrammar } from "../lang/pattern/pattern.lang.ts";
 import type { Pattern } from "../runtime/patterns/pattern.ts";
 import {
@@ -22,6 +26,11 @@ export type CliStreamFailureLocation = {
   line: number;
   /** 0-based column index within the line. */
   column: number;
+  /**
+   * Exclusive end offset of the unexpected token when known (so editors can
+   * underline the whole token). Omitted for end-of-input / point failures.
+   */
+  endOffset?: number;
 };
 
 export type CliStreamFailure = {
@@ -96,38 +105,44 @@ function sourceOffsetFromMatch(match: Match, source: string): number {
   return source.length;
 }
 
-async function describeUnexpected(match: Match): Promise<string> {
-  if (match.kind !== MatchKind.Fail && match.kind !== MatchKind.Error) {
-    return "unexpected input";
-  }
-  const focus = match.kind === MatchKind.Fail
-    ? getRightmostFailure(match)
-    : match;
-  if (await focus.scope.stream.done()) return "end of input";
-  const value = focus.scope.stream.value;
-  if (typeof value === "string") return JSON.stringify(value);
-  if (value === undefined) return "missing input";
-  return Deno.inspect(value, {
-    colors: false,
-    depth: 1,
-    strAbbreviateSize: 40,
-  });
-}
-
 export async function parseFailureMessage(match: Match): Promise<string> {
   if (match.kind === MatchKind.Error) {
     return `${match.code}: ${match.message}`;
   }
   if (match.kind === MatchKind.Fail) {
-    const rightmost = getRightmostFailure(match);
-    return `unexpected ${await describeUnexpected(
-      rightmost,
-    )} while matching ${rightmost.pattern.kind}`;
+    const analysis = await analyzeMatchFailure(match);
+    if (analysis) return formatMatchFailureSummary(analysis);
+    // Fallback if analysis finds no candidate (should be rare for Fail).
+    return "Expected input\nUnexpected failure";
   }
   if (match.kind === MatchKind.LR) {
     return "parse failed with left recursion outcome";
   }
   return "unexpected parser outcome";
+}
+
+function locationFromAnalysis(
+  sourceText: string,
+  analysis: Awaited<ReturnType<typeof analyzeMatchFailure>>,
+  match: Match,
+): CliStreamFailureLocation {
+  if (analysis && analysis.sourceOffset >= 0) {
+    const start = locationFromOffset(sourceText, analysis.sourceOffset);
+    if (analysis.unexpectedLength > 0) {
+      return {
+        ...start,
+        endOffset: Math.min(
+          sourceText.length,
+          analysis.sourceOffset + analysis.unexpectedLength,
+        ),
+      };
+    }
+    return start;
+  }
+  return locationFromOffset(
+    sourceText,
+    sourceOffsetFromMatch(match, sourceText),
+  );
 }
 
 async function toParseFailure(
@@ -136,6 +151,9 @@ async function toParseFailure(
   sourcePath: string,
   sourceText: string,
 ): Promise<CliStreamResult> {
+  const analysis = match.kind === MatchKind.Fail
+    ? await analyzeMatchFailure(match)
+    : undefined;
   return {
     ok: false,
     error: {
@@ -143,11 +161,10 @@ async function toParseFailure(
       phase: "parse",
       sourcePath,
       language,
-      message: await parseFailureMessage(match),
-      location: locationFromOffset(
-        sourceText,
-        sourceOffsetFromMatch(match, sourceText),
-      ),
+      message: analysis
+        ? formatMatchFailureSummary(analysis)
+        : await parseFailureMessage(match),
+      location: locationFromAnalysis(sourceText, analysis, match),
     },
     match,
   };

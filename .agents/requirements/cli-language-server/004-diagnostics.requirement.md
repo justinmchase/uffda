@@ -17,8 +17,15 @@ Expected behavior:
 - The server MUST publish `textDocument/publishDiagnostics` reflecting every
   parse, compile, and resolution failure for the document, translating the same
   underlying failure information the batch CLI and MCP server already surface
-  (for example `getRightmostFailure` in `src/match.ts`) into LSP diagnostic
-  ranges (line/character positions, not raw stream offsets).
+  (for example `getRightmostFailure` / match-failure analysis in
+  `src/match.visualize.ts`) into LSP diagnostic ranges (line/character
+  positions, not raw stream offsets).
+- Parse-failure diagnostic messages MUST lead with what was **expected** for the
+  match to succeed, then what was found, so editors that already underline the
+  unexpected token still make the missing alternative obvious (see
+  [match diagnostics](../../specifications/runtime/match-diagnostics.spec.md)).
+  When a terminal expectation is unavailable, the message MUST still name the
+  pattern/rule being matched.
 - Diagnostics MUST be republished after every `didChange`, including a change
   whose affected region, under incremental re-parsing, did not actually alter
   any diagnostic — the published set MUST always reflect current content, never

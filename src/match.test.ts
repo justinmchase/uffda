@@ -176,6 +176,23 @@ Deno.test({
         assertEquals(result.span.start.compareTo(child1.span.start) > 0, true);
       },
     });
+
+    await t.step({
+      name: "RIGHTMOST08 - terminates on a cyclic match graph",
+      fn: async () => {
+        const input = Input.Iterable("ab");
+        const scope0 = Scope.From(input);
+        const scope1 = scope0.withInput(await input.next());
+
+        const child = fail(scope1, testPattern);
+        const parent = fail(scope0, testPattern, [child]);
+        // Introduce a cycle: child points back at parent.
+        (child as { matches: unknown[] }).matches.push(parent);
+
+        const result = getRightmostFailure(parent);
+        assertEquals(result, child);
+      },
+    });
   },
 });
 

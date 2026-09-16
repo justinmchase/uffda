@@ -2,6 +2,10 @@ import { expandGlob } from "@std/fs/expand-glob";
 import { dirname, isAbsolute, join, resolve } from "@std/path";
 import { isGlob } from "@std/path/is-glob";
 import { type Match, MatchKind } from "../match.ts";
+import {
+  analyzeMatchFailure,
+  formatMatchFailureSummary,
+} from "../match.visualize.ts";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 import {
   outputNameForSource,
@@ -67,12 +71,14 @@ type PlannedSource = {
   outputPath: string;
 };
 
-function parseFailureMessage(match: Match): string {
+async function parseFailureMessage(match: Match): Promise<string> {
   if (match.kind === MatchKind.Error) {
     return `${match.code}: ${match.message}`;
   }
   if (match.kind === MatchKind.Fail) {
-    return `parse failed at ${match.span.start.toString()}`;
+    const analysis = await analyzeMatchFailure(match);
+    if (analysis) return formatMatchFailureSummary(analysis);
+    return "parse failed";
   }
   if (match.kind === MatchKind.LR) {
     return "parse failed with left recursion outcome";
@@ -311,7 +317,7 @@ export async function compileSourcesToAstArtifacts(
         code: CliCompileFailureCode.ParseFailure,
         sourcePath: plan.sourcePath,
         outputPath: plan.outputPath,
-        message: parseFailureMessage(compiled),
+        message: await parseFailureMessage(compiled),
       };
       failures.push(failure);
       units.push({

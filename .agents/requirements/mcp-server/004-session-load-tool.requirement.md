@@ -19,6 +19,16 @@ Expected behavior:
 - Loading MUST parse, compile, and resolve the given source against the
   session's resolver, adding it (and any modules it imports) to the session's
   module graph.
+- Before resolve, loading MUST ensure every transitive file:// `.uff` import has
+  a compiled ModuleDeclaration artifact under the session's artifact root
+  (default `.uffda`, overridable via the session's runtime `artifactRoot` option
+  — not via LSP config and not by assuming `./bin`). When an artifact is missing
+  or older than its source, and the source file exists, the session MUST compile
+  that source into the artifact root. When the source file is absent, the
+  session MUST leave the failure to the resolver so earlier imports in the same
+  load can still contribute to partial-success reporting. The resolver remains
+  read-only over JSON artifacts (see compiler-bootstrap); compile-on-demand is a
+  session responsibility.
 - If loading fails at any stage (parse, compile, or resolution), the tool MUST
   report which stage failed and MUST still report any information that was
   successfully resolved prior to the failure (for example, a resolvable import's

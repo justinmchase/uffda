@@ -1,7 +1,11 @@
-import { assertStringIncludes } from "@std/assert";
+import { assertEquals, assertStringIncludes } from "@std/assert";
 import { Input } from "./input.ts";
 import { fail, MatchKind, ok } from "./match.ts";
-import { visualizeMatchFailure } from "./match.visualize.ts";
+import {
+  analyzeMatchFailure,
+  formatMatchFailureSummary,
+  visualizeMatchFailure,
+} from "./match.visualize.ts";
 import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
 import { lit } from "./runtime/patterns/value_source.ts";
 import type { PipelinePattern } from "./runtime/patterns/pattern.ts";
@@ -32,6 +36,26 @@ Deno.test("match.visualize renders pipeline failures and terminates on cycles", 
     assertStringIncludes(visualization, scope.module.moduleUrl.href);
     assertStringIncludes(visualization, "Failure tree:");
   });
+
+  await t.step(
+    "summarizeMatchFailure shares Unexpected/Expected with the visualizer",
+    async () => {
+      const scope = Scope.From(Input.Iterable("#"));
+      const pattern = {
+        kind: PatternKind.Equal,
+        value: lit("expected"),
+      } as const;
+      const match = fail(scope, pattern);
+      const analysis = await analyzeMatchFailure(match);
+      assertEquals(analysis?.unexpected, '"#"');
+      assertEquals(analysis?.expected, ['"expected"']);
+      assertStringIncludes(
+        formatMatchFailureSummary(analysis!),
+        'Expected "expected"',
+      );
+      assertStringIncludes(formatMatchFailureSummary(analysis!), "Unexpected");
+    },
+  );
 
   await t.step("terminates on a cyclic match graph", async () => {
     const scope = Scope.From(Input.Iterable("#"));

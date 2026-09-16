@@ -210,8 +210,11 @@ export function fail(
  */
 export function getRightmostFailure(match: MatchFail): MatchFail {
   let rightmost = match;
+  const seen = new Set<Match>();
 
   const visit = (node: Match): void => {
+    if (seen.has(node)) return;
+    seen.add(node);
     if (node.kind === MatchKind.Fail) {
       if (node.span.start.compareTo(rightmost.span.start) > 0) {
         rightmost = node;

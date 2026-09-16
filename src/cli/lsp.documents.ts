@@ -81,6 +81,8 @@ export class LspDocumentManager {
   /** Handles `textDocument/didOpen`, returning the diagnostics to publish. */
   public async open(uri: string, text: string): Promise<Diagnostic[]> {
     const path = uriToPath(uri);
+    // RuntimeSession defaults to `.uffda` and compiles missing `.uff` import
+    // artifacts there before resolve (see `ensureCompiledImportArtifacts`).
     const session = new RuntimeSession(uri, { cwd: this.cwd });
     const doc: OpenDocument = { session, source: text, path };
     this.documents.set(uri, doc);
