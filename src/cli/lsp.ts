@@ -13,6 +13,7 @@ import {
   TextDocumentSyncKind,
 } from "vscode-languageserver/node";
 import {
+  enrichLspConfigWithLanguageMetadata,
   LANGUAGE_METADATA_METHOD,
   languageMetadataForConfig,
   type LanguageMetadataParams,
@@ -80,9 +81,10 @@ export function wireUffdaLspHandlers(
       workspaceRoot = options?.workspaceRoot ??
         rootFromInitializeParams(params) ?? Deno.cwd();
       const loaded = await loadLspConfig(workspaceRoot);
-      config = loaded.ok
+      const base = loaded.ok
         ? loaded.config
         : { languages: [BUILTIN_UFF_LANGUAGE] };
+      config = await enrichLspConfigWithLanguageMetadata(base, workspaceRoot);
       manager = new LspDocumentManager(workspaceRoot);
       return {
         capabilities: {
