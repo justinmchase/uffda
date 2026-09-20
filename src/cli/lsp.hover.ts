@@ -1,10 +1,7 @@
 import type { Hover, MarkupContent, Range } from "vscode-languageserver-types";
 import { describePattern } from "../match.describe_pattern.ts";
 import type { Match } from "../match.ts";
-import type {
-  DescribedDeclaration,
-  RuntimeSession,
-} from "./mcp.session.ts";
+import type { DescribedDeclaration, RuntimeSession } from "./mcp.session.ts";
 import { HighlightRole, highlightSpansFromMatch } from "./highlight.ts";
 import { offsetToPosition, positionToOffset } from "./lsp.positions.ts";
 
