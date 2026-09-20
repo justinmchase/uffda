@@ -1,8 +1,14 @@
 import { fromFileUrl } from "@std/path";
-import type { Diagnostic, SemanticTokens } from "vscode-languageserver-types";
+import type {
+  Diagnostic,
+  Hover,
+  SemanticTokens,
+} from "vscode-languageserver-types";
 import { highlightSpansFromMatch } from "./highlight.ts";
 import { RuntimeSession } from "./mcp.session.ts";
 import { diagnosticsForSessionResult } from "./lsp.diagnostics.ts";
+import { hoverAtPosition } from "./lsp.hover.ts";
+import { positionToOffset } from "./lsp.positions.ts";
 import { buildSemanticTokens } from "./semantic_tokens.ts";
 
 /**
@@ -19,31 +25,7 @@ export type LspContentChange = {
   text: string;
 };
 
-/**
- * Converts a 0-based LSP `{line, character}` position to an absolute
- * character offset into `source`. LSP positions count `character` in UTF-16
- * code units, which is exactly how JavaScript strings are already indexed,
- * so no re-encoding is needed here.
- */
-export function positionToOffset(
-  source: string,
-  position: { line: number; character: number },
-): number {
-  let offset = 0;
-  let line = 0;
-  while (line < position.line) {
-    const next = source.indexOf("\n", offset);
-    if (next === -1) {
-      // Position refers to a line past the document's end; clamp to EOF.
-      return source.length;
-    }
-    offset = next + 1;
-    line++;
-  }
-  const lineEnd = source.indexOf("\n", offset);
-  const lineLength = (lineEnd === -1 ? source.length : lineEnd) - offset;
-  return offset + Math.min(position.character, lineLength);
-}
+export { offsetToPosition, positionToOffset } from "./lsp.positions.ts";
 
 type OpenDocument = {
   session: RuntimeSession;
@@ -166,6 +148,27 @@ export class LspDocumentManager {
     // the parse tree is authoritative for offset classification.
     const spans = highlightSpansFromMatch(state.match, state.source);
     return buildSemanticTokens(spans, state.source);
+  }
+
+  /**
+   * Builds an LSP `Hover` for `uri` at `position` from the document session's
+   * resolved declarations via `RuntimeSession.describe` (requirement 006).
+   * Returns `null` when the document is not open or nothing resolvable is
+   * under the cursor — never mutates parse/resolution state.
+   */
+  public hover(
+    uri: string,
+    position: { line: number; character: number },
+  ): Hover | null {
+    const doc = this.documents.get(uri);
+    if (!doc) return null;
+    const state = doc.session.getLatestParseState();
+    return hoverAtPosition(
+      doc.session,
+      state?.source ?? doc.source,
+      position,
+      state?.match,
+    );
   }
 }
 

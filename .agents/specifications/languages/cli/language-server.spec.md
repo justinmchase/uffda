@@ -239,13 +239,15 @@ semantic-token highlighting (see requirements 001-005 in
 stdio. Classification currently reuses the shared parse-tree projection in
 `src/cli/highlight.ts` (tokenizer rule names plus `[Keyword]` decorator
 metadata); aligning that projection onto a general `[Token]` rule-metadata walk
-(see GitHub issue #159) remains a follow-up. Hover/navigation/completions
-(requirement 006) are specified but not yet implemented. The VS Code extension
-(requirement 007) has an initial implementation at `editors/vscode/`: it
-registers `uffda lsp` for `.uff` files, registers `uffda mcp` as an MCP server,
-and resolves/downloads a compatible `uffda` binary automatically, with debug
-override settings. The extension also queries the custom
-`uffda/languageMetadata` request and applies `[Language]`-derived editor
+(see GitHub issue #159) remains a follow-up. Hover (`textDocument/hover`, part
+of requirement 006) is implemented for `.uff` by resolving the identifier under
+the cursor through the same `RuntimeSession.describe()` introspection the MCP
+server already exposes; go-to-definition and completions remain outstanding. The
+VS Code extension (requirement 007) has an initial implementation at
+`editors/vscode/`: it registers `uffda lsp` for `.uff` files, registers
+`uffda mcp` as an MCP server, and resolves/downloads a compatible `uffda` binary
+automatically, with debug override settings. The extension also queries the
+custom `uffda/languageMetadata` request and applies `[Language]`-derived editor
 configuration via `vscode.languages.setLanguageConfiguration()`, and assigns
 language ids from `[Language].ext` via
 `vscode.languages.setTextDocumentLanguage()` for workspace-declared languages
