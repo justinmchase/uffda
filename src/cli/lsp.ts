@@ -3,6 +3,7 @@ import { fromFileUrl } from "@std/path";
 import {
   type Connection,
   createConnection,
+  type DefinitionParams,
   type DidChangeTextDocumentParams,
   type DidCloseTextDocumentParams,
   type DidOpenTextDocumentParams,
@@ -42,6 +43,7 @@ export type UffdaLspConnection = Pick<
   | "onDidChangeTextDocument"
   | "onDidCloseTextDocument"
   | "onHover"
+  | "onDefinition"
   | "onRequest"
   | "sendDiagnostics"
   | "listen"
@@ -92,6 +94,7 @@ export function wireUffdaLspHandlers(
         capabilities: {
           textDocumentSync: TextDocumentSyncKind.Incremental,
           hoverProvider: true,
+          definitionProvider: true,
           semanticTokensProvider: {
             legend: SEMANTIC_TOKENS_LEGEND,
             full: true,
@@ -144,6 +147,15 @@ export function wireUffdaLspHandlers(
       return null;
     }
     return manager.hover(uri, params.position);
+  });
+
+  connection.onDefinition(async (params: DefinitionParams) => {
+    const { uri } = params.textDocument;
+    const language = resolveLanguageForDocument(config, uri);
+    if (!manager || !language || language.id !== BUILTIN_UFF_LANGUAGE.id) {
+      return [];
+    }
+    return await manager.definition(uri, params.position);
   });
 
   connection.onRequest(

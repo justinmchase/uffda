@@ -351,6 +351,25 @@ export type SessionDescribeResult =
   | { ok: true; declaration: DescribedDeclaration }
   | { ok: false; error: SessionDescribeFailure };
 
+/**
+ * A name resolved against a loaded module's declaration surface for
+ * go-to-definition. `definingModuleUrl` is always the module that owns the
+ * `Rule`/`Func`/`DecoratorFunc` object (`member.module.moduleUrl`), which
+ * for an import is the imported defining module — not the lookup module.
+ */
+export type ResolvedDeclaration = {
+  name: string;
+  kind: LoadedDeclarationKind;
+  definingModuleUrl: string;
+  /** The module `name` was looked up in (local or as an import binding). */
+  lookupModuleUrl: string;
+  exported: boolean;
+};
+
+export type SessionResolveDeclarationResult =
+  | { ok: true; declaration: ResolvedDeclaration }
+  | { ok: false; error: SessionDescribeFailure };
+
 export enum SessionQueryFailureCode {
   ParseFailure = "MCP_SESSION_QUERY_PARSE_FAILURE",
 }
@@ -586,6 +605,17 @@ export class RuntimeSession {
       source: state.source,
       match: state.match,
     };
+  }
+
+  /**
+   * Returns a retained parse state for a specific module href, if this
+   * session has ever parsed that module (root loads/patches). Imported
+   * modules loaded from artifacts alone do not appear here.
+   */
+  public getParseState(
+    href: string,
+  ): { source: string; match: Match } | undefined {
+    return this.parseStates.get(href);
   }
 
   private retainParseState(href: string, source: string, match: Match): void {
@@ -1115,6 +1145,58 @@ export class RuntimeSession {
         found.kind,
         module.exports.has(name),
       ),
+    };
+  }
+
+  /**
+   * Resolves a rule/func/decorator name against a loaded module's local and
+   * imported declarations, returning the **defining** module URL
+   * (`member.module.moduleUrl`) rather than the lookup module. Used by LSP
+   * go-to-definition (requirement 006); read-only.
+   */
+  public resolveDeclaration(
+    name: string,
+    moduleUrl?: string,
+  ): SessionResolveDeclarationResult {
+    if (this.closed) {
+      throw new Error(`Session ${this.id} is closed`);
+    }
+
+    const target = this.resolveTargetModule(moduleUrl);
+    if (!target.ok) {
+      return {
+        ok: false,
+        error: {
+          code: SessionDescribeFailureCode.UnknownModule,
+          phase: "resolve",
+          message: target.error.message,
+        },
+      };
+    }
+    const { module } = target;
+
+    const found = findDeclaration(module, name);
+    if (!found) {
+      return {
+        ok: false,
+        error: {
+          code: SessionDescribeFailureCode.UnknownDeclaration,
+          phase: "resolve",
+          message:
+            `No rule/func/decorator named '${name}' in module ${module.moduleUrl.href}`,
+        },
+      };
+    }
+
+    return {
+      ok: true,
+      declaration: {
+        name,
+        kind: found.kind,
+        definingModuleUrl: found.member.module.moduleUrl.href,
+        lookupModuleUrl: module.moduleUrl.href,
+        exported: found.member.module.exports.has(name),
+      },
     };
   }
 

@@ -1,4 +1,5 @@
 import { assert, assertEquals } from "@std/assert";
+import { join, toFileUrl } from "@std/path";
 import type {
   DidChangeTextDocumentParams,
   DidCloseTextDocumentParams,
@@ -44,6 +45,10 @@ function createFakeConnection() {
     // deno-lint-ignore no-explicit-any
     onHover: (handler: (params: any) => unknown) => {
       handlers.hover = handler;
+    },
+    // deno-lint-ignore no-explicit-any
+    onDefinition: (handler: (params: any) => unknown) => {
+      handlers.definition = handler;
     },
     // deno-lint-ignore no-explicit-any
     onRequest: (type: any, handler: (params: any) => unknown) => {
@@ -255,6 +260,45 @@ Deno.test("cli.lsp wireUffdaLspHandlers", async (t) => {
         hover.contents.value.includes("(exported rule) `Main`"),
         true,
       );
+    },
+  );
+
+  await t.step(
+    "declares definitionProvider and jumps to a same-file rule declaration",
+    async () => {
+      const { connection, handlers } = createFakeConnection();
+      const cwd = await Deno.makeTempDir({ prefix: "uffda-lsp-def-wire-" });
+      try {
+        const path = join(cwd, "main.uff");
+        const text = "export Main;\nrule Main = any;";
+        await Deno.writeTextFile(path, text);
+        const uri = toFileUrl(path).href;
+
+        wireUffdaLspHandlers(connection, { workspaceRoot: cwd });
+        const init = await handlers.initialize(
+          {} as InitializeParams,
+        ) as InitializeResult;
+        assertEquals(init.capabilities.definitionProvider, true);
+
+        await handlers.open({
+          textDocument: {
+            uri,
+            languageId: "uffda",
+            version: 1,
+            text,
+          },
+        } as DidOpenTextDocumentParams);
+
+        const locations = await handlers.definition({
+          textDocument: { uri },
+          position: { line: 0, character: text.indexOf("Main") + 1 },
+        }) as Array<{ uri: string; range: unknown }>;
+
+        assertEquals(locations.length, 1);
+        assertEquals(locations[0].uri, uri);
+      } finally {
+        await Deno.remove(cwd, { recursive: true });
+      }
     },
   );
 

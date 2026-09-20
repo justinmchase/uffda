@@ -2,11 +2,14 @@ import { fromFileUrl } from "@std/path";
 import type {
   Diagnostic,
   Hover,
+  Location,
   SemanticTokens,
 } from "vscode-languageserver-types";
 import { highlightSpansFromMatch } from "./highlight.ts";
+import type { Match } from "../match.ts";
 import { RuntimeSession } from "./mcp.session.ts";
 import { diagnosticsForSessionResult } from "./lsp.diagnostics.ts";
+import { definitionAtPosition } from "./lsp.definition.ts";
 import { hoverAtPosition } from "./lsp.hover.ts";
 import { positionToOffset } from "./lsp.positions.ts";
 import { buildSemanticTokens } from "./semantic_tokens.ts";
@@ -169,6 +172,45 @@ export class LspDocumentManager {
       position,
       state?.match,
     );
+  }
+
+  /**
+   * Builds LSP go-to-definition `Location[]` for `uri` at `position`
+   * (requirement 006). Prefers an open document's buffer when the defining
+   * module is already open; otherwise uses this session's parse state or a
+   * read-only re-parse of the defining `.uff` on disk. Empty when unresolved.
+   */
+  public async definition(
+    uri: string,
+    position: { line: number; character: number },
+  ): Promise<Location[]> {
+    const doc = this.documents.get(uri);
+    if (!doc) return [];
+    const state = doc.session.getLatestParseState();
+    return await definitionAtPosition(
+      doc.session,
+      state?.source ?? doc.source,
+      position,
+      state?.match,
+      {
+        openDocumentSource: (definingModuleUrl) =>
+          this.parseStateForModuleUrl(definingModuleUrl),
+      },
+    );
+  }
+
+  private parseStateForModuleUrl(
+    definingModuleUrl: string,
+  ): { source: string; match: Match } | undefined {
+    for (const open of this.documents.values()) {
+      if (open.href === definingModuleUrl) {
+        const state = open.session.getLatestParseState();
+        if (state) return { source: state.source, match: state.match };
+      }
+      const byHref = open.session.getParseState(definingModuleUrl);
+      if (byHref) return byHref;
+    }
+    return undefined;
   }
 }
 
