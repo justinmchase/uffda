@@ -1,5 +1,6 @@
 import {
   type Diagnostic,
+  type DiagnosticRelatedInformation,
   DiagnosticSeverity,
 } from "vscode-languageserver-types";
 import type { SessionLoadResult, SessionPatchResult } from "./mcp.session.ts";
@@ -16,10 +17,11 @@ import { locationFromOffset } from "./stream.ts";
  * accumulated across calls, only replaced, matching `publishDiagnostics`'
  * "full current state" contract.
  *
- * `source` is the document's current full text, used both to compute a
- * point range for parse failures (which carry a precise offset/line/column)
- * and as the whole-document fallback range for compile/resolve failures
- * (which carry no location of their own).
+ * `source` is the document's current full text, used both to compute the
+ * range of a located failure (a parse failure's token, or the specifier of
+ * the import a resolve failure is attributed to) and as the whole-document
+ * fallback range for failures without a location. A dependency's own source
+ * position, when known, is attached as `relatedInformation`.
  */
 export function diagnosticsForSessionResult(
   result: SessionLoadResult | SessionPatchResult,
@@ -45,12 +47,36 @@ export function diagnosticsForSessionResult(
       end: pointFromEnd(source),
     };
 
+  const dependency = "dependencyFailure" in error
+    ? error.dependencyFailure
+    : undefined;
+  const relatedInformation: DiagnosticRelatedInformation[] =
+    dependency?.location
+      ? [{
+        location: {
+          uri: dependency.moduleUrl,
+          range: {
+            start: {
+              line: dependency.location.line,
+              character: dependency.location.column,
+            },
+            end: {
+              line: dependency.location.line,
+              character: dependency.location.column,
+            },
+          },
+        },
+        message: dependency.message,
+      }]
+      : [];
+
   return [{
     severity: DiagnosticSeverity.Error,
     range,
     message: error.message,
     source: `uffda (${error.phase})`,
     code: error.code,
+    ...(relatedInformation.length > 0 ? { relatedInformation } : {}),
   }];
 }
 
