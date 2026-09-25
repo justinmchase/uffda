@@ -357,6 +357,19 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
   );
 
   await t.step(
+    "anchors a parse failure at the end of an unfinished line",
+    async () => {
+      const session = new RuntimeSession("s16");
+      const line = 'import "./dep.uff"';
+      const result = await session.load(`${line}\n\nexport A;`);
+      assert(!result.ok);
+      assertEquals(result.error.phase, "parse");
+      assertEquals(result.error.location?.line, 0);
+      assertEquals(result.error.location?.column, line.length);
+    },
+  );
+
+  await t.step(
     "attributes a missing import source to its specifier",
     async () => {
       const cwd = await Deno.makeTempDir({ prefix: "uffda-mcp-session-" });

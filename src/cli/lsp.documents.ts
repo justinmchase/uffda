@@ -68,11 +68,35 @@ type OpenDocument = {
  */
 export class LspDocumentManager {
   private readonly documents = new Map<string, OpenDocument>();
+  /** Tail of each URI's operation queue (see `serialize`). */
+  private readonly queues = new Map<string, Promise<unknown>>();
 
   constructor(private readonly cwd: string) {}
 
+  /**
+   * Runs `operation` after every operation previously queued for `uri` has
+   * settled. LSP clients send `didChange` notifications without waiting for
+   * the server, and each change patches the parse state the previous one
+   * produced, so edits (and queries reading that state) MUST apply strictly
+   * in arrival order, never interleaved across `await`s.
+   */
+  private serialize<T>(uri: string, operation: () => Promise<T>): Promise<T> {
+    const previous = this.queues.get(uri) ?? Promise.resolve();
+    const next = previous.then(operation, operation);
+    const tail = next.catch(() => undefined);
+    this.queues.set(uri, tail);
+    tail.then(() => {
+      if (this.queues.get(uri) === tail) this.queues.delete(uri);
+    });
+    return next;
+  }
+
   /** Handles `textDocument/didOpen`, returning the diagnostics to publish. */
-  public async open(uri: string, text: string): Promise<Diagnostic[]> {
+  public open(uri: string, text: string): Promise<Diagnostic[]> {
+    return this.serialize(uri, () => this.openNow(uri, text));
+  }
+
+  private async openNow(uri: string, text: string): Promise<Diagnostic[]> {
     const path = uriToPath(uri);
     // RuntimeSession defaults to `.uffda` and compiles missing `.uff` import
     // artifacts there before resolve (see `ensureCompiledImportArtifacts`).
@@ -96,7 +120,14 @@ export class LspDocumentManager {
    * accumulated text. Either path always stays correct — only the
    * incremental-reuse performance benefit is lost in the fallback case.
    */
-  public async change(
+  public change(
+    uri: string,
+    changes: readonly LspContentChange[],
+  ): Promise<Diagnostic[]> {
+    return this.serialize(uri, () => this.changeNow(uri, changes));
+  }
+
+  private async changeNow(
     uri: string,
     changes: readonly LspContentChange[],
   ): Promise<Diagnostic[]> {
@@ -135,11 +166,15 @@ export class LspDocumentManager {
   }
 
   /** Handles `textDocument/didClose`, tearing down the document's session. */
-  public close(uri: string): void {
-    const doc = this.documents.get(uri);
-    if (!doc) return;
-    doc.session.close();
-    this.documents.delete(uri);
+  public close(uri: string): Promise<void> {
+    return this.serialize(uri, () => {
+      const doc = this.documents.get(uri);
+      if (doc) {
+        doc.session.close();
+        this.documents.delete(uri);
+      }
+      return Promise.resolve();
+    });
   }
 
   /**
@@ -149,16 +184,18 @@ export class LspDocumentManager {
    * Returns `undefined` when the document is not open; returns an empty
    * token list when no parse tree has been retained yet.
    */
-  public semanticTokens(uri: string): SemanticTokens | undefined {
-    const doc = this.documents.get(uri);
-    if (!doc) return undefined;
-    const state = doc.session.getLatestParseState();
-    if (!state) return { data: [] };
-    // Prefer the session's retained source (always aligned with `match`)
-    // over `doc.source` — they should match after every open/change, but
-    // the parse tree is authoritative for offset classification.
-    const spans = highlightSpansFromMatch(state.match, state.source);
-    return buildSemanticTokens(spans, state.source);
+  public semanticTokens(uri: string): Promise<SemanticTokens | undefined> {
+    return this.serialize<SemanticTokens | undefined>(uri, () => {
+      const doc = this.documents.get(uri);
+      if (!doc) return Promise.resolve(undefined);
+      const state = doc.session.getLatestParseState();
+      if (!state) return Promise.resolve({ data: [] });
+      // Prefer the session's retained source (always aligned with `match`)
+      // over `doc.source` — they should match after every open/change, but
+      // the parse tree is authoritative for offset classification.
+      const spans = highlightSpansFromMatch(state.match, state.source);
+      return Promise.resolve(buildSemanticTokens(spans, state.source));
+    });
   }
 
   /**
@@ -170,16 +207,18 @@ export class LspDocumentManager {
   public hover(
     uri: string,
     position: { line: number; character: number },
-  ): Hover | null {
-    const doc = this.documents.get(uri);
-    if (!doc) return null;
-    const state = doc.session.getLatestParseState();
-    return hoverAtPosition(
-      doc.session,
-      state?.source ?? doc.source,
-      position,
-      state?.match,
-    );
+  ): Promise<Hover | null> {
+    return this.serialize(uri, () => {
+      const doc = this.documents.get(uri);
+      if (!doc) return Promise.resolve(null);
+      const state = doc.session.getLatestParseState();
+      return Promise.resolve(hoverAtPosition(
+        doc.session,
+        state?.source ?? doc.source,
+        position,
+        state?.match,
+      ));
+    });
   }
 
   /**
@@ -188,7 +227,14 @@ export class LspDocumentManager {
    * module is already open; otherwise uses this session's parse state or a
    * read-only re-parse of the defining `.uff` on disk. Empty when unresolved.
    */
-  public async definition(
+  public definition(
+    uri: string,
+    position: { line: number; character: number },
+  ): Promise<Location[]> {
+    return this.serialize(uri, () => this.definitionNow(uri, position));
+  }
+
+  private async definitionNow(
     uri: string,
     position: { line: number; character: number },
   ): Promise<Location[]> {
@@ -215,7 +261,18 @@ export class LspDocumentManager {
    * is not open or nothing applies. `triggerCharacter` (the import trigger
    * characters `"` and `/`) only ever yields import completions.
    */
-  public async completion(
+  public completion(
+    uri: string,
+    position: { line: number; character: number },
+    triggerCharacter?: string,
+  ): Promise<CompletionItem[]> {
+    return this.serialize(
+      uri,
+      () => this.completionNow(uri, position, triggerCharacter),
+    );
+  }
+
+  private async completionNow(
     uri: string,
     position: { line: number; character: number },
     triggerCharacter?: string,
