@@ -370,6 +370,30 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
   );
 
   await t.step(
+    "attributes an unknown imported name to that name",
+    async () => {
+      const cwd = await Deno.makeTempDir({ prefix: "uffda-mcp-session-" });
+      try {
+        await Deno.writeTextFile(
+          join(cwd, "dep.uff"),
+          "export Foo;\nrule Foo = any;",
+        );
+        const source = 'import "./dep.uff" Foo Nope;\nexport Foo;';
+        const session = new RuntimeSession("s17", { cwd });
+        const result = await session.load(source, "main.uff");
+        assert(!result.ok);
+        assertEquals(result.error.phase, "resolve");
+        const location = result.error.location;
+        assert(location);
+        assertEquals(source.slice(location.offset, location.endOffset), "Nope");
+        assertEquals(result.error.importChain?.[0].name, "Nope");
+      } finally {
+        await Deno.remove(cwd, { recursive: true });
+      }
+    },
+  );
+
+  await t.step(
     "attributes a missing import source to its specifier",
     async () => {
       const cwd = await Deno.makeTempDir({ prefix: "uffda-mcp-session-" });

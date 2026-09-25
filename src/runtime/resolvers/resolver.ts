@@ -28,13 +28,16 @@ export type ModuleImportResult = {
 /**
  * One import declaration a module-resolution failure propagated through: the
  * `imports[importIndex]` declaration of the module at `importerUrl`, which
- * names `moduleUrl` (as written) resolving to `resolvedUrl`.
+ * names `moduleUrl` (as written) resolving to `resolvedUrl`. `name` is set
+ * when the failure is about one imported name of that declaration (unknown
+ * export, or a conflict with a local declaration) rather than the module.
  */
 export type ImportFrame = {
   importerUrl: string;
   importIndex: number;
   moduleUrl: string;
   resolvedUrl: string;
+  name?: string;
 };
 
 export type ModuleImportError = {

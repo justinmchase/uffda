@@ -42,7 +42,9 @@ Expected behavior:
   unexpected token on the same line is ranged on that token.
 - A resolution failure attributable to one of the document's import declarations
   MUST be ranged on that declaration's module specifier string (for example
-  `"./dep.uff"` in `import "./dep.uff" A;`). This covers:
+  `"./dep.uff"` in `import "./dep.uff" A;`), or on the imported name itself when
+  the failure is about that name (for example `A` when `./dep.uff` does not
+  export `A`, or `A` conflicts with a local declaration). This covers:
   - a module whose source file does not exist (the message MUST name the
     specifier and the missing path, not an artifact-compilation instruction);
   - a dependency whose own source fails to parse/compile (the diagnostic MUST
