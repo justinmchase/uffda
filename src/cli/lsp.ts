@@ -97,7 +97,10 @@ export function wireUffdaLspHandlers(
           textDocumentSync: TextDocumentSyncKind.Incremental,
           hoverProvider: true,
           definitionProvider: true,
-          completionProvider: { resolveProvider: false },
+          completionProvider: {
+            resolveProvider: false,
+            triggerCharacters: ['"', "/"],
+          },
           semanticTokensProvider: {
             legend: SEMANTIC_TOKENS_LEGEND,
             full: true,
@@ -161,13 +164,17 @@ export function wireUffdaLspHandlers(
     return await manager.definition(uri, params.position);
   });
 
-  connection.onCompletion((params: CompletionParams) => {
+  connection.onCompletion(async (params: CompletionParams) => {
     const { uri } = params.textDocument;
     const language = resolveLanguageForDocument(config, uri);
     if (!manager || !language || language.id !== BUILTIN_UFF_LANGUAGE.id) {
       return [];
     }
-    return manager.completion(uri);
+    return await manager.completion(
+      uri,
+      params.position,
+      params.context?.triggerCharacter,
+    );
   });
 
   connection.onRequest(

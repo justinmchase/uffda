@@ -10,6 +10,12 @@ import { highlightSpansFromMatch } from "./highlight.ts";
 import type { Match } from "../match.ts";
 import { RuntimeSession } from "./mcp.session.ts";
 import { completionItemsForSession } from "./lsp.completion.ts";
+import {
+  importCompletionContext,
+  ImportCompletionContextKind,
+  nameCompletionItems,
+  specifierCompletionItems,
+} from "./lsp.import_completion.ts";
 import { diagnosticsForSessionResult } from "./lsp.diagnostics.ts";
 import { definitionAtPosition } from "./lsp.definition.ts";
 import { hoverAtPosition } from "./lsp.hover.ts";
@@ -202,14 +208,37 @@ export class LspDocumentManager {
   }
 
   /**
-   * Builds LSP completion items for `uri` from the in-scope declarations of
-   * the document's resolved module (requirement 006). Empty when the
-   * document is not open or has never resolved.
+   * Builds LSP completion items for `uri` at `position` (requirement 006):
+   * importable files inside an import's module specifier, the imported
+   * module's exports in its name list, and otherwise the in-scope
+   * declarations of the document's resolved module. Empty when the document
+   * is not open or nothing applies. `triggerCharacter` (the import trigger
+   * characters `"` and `/`) only ever yields import completions.
    */
-  public completion(uri: string): CompletionItem[] {
+  public async completion(
+    uri: string,
+    position: { line: number; character: number },
+    triggerCharacter?: string,
+  ): Promise<CompletionItem[]> {
     const doc = this.documents.get(uri);
     if (!doc) return [];
-    return completionItemsForSession(doc.session);
+    const offset = positionToOffset(doc.source, position);
+    const context = importCompletionContext(doc.source, offset);
+    if (!context) {
+      return triggerCharacter ? [] : completionItemsForSession(doc.session);
+    }
+    if (!doc.path) return [];
+    switch (context.kind) {
+      case ImportCompletionContextKind.Specifier:
+        return await specifierCompletionItems(doc.path, doc.source, context);
+      case ImportCompletionContextKind.Names:
+        return await nameCompletionItems(
+          doc.session,
+          doc.path,
+          doc.source,
+          context,
+        );
+    }
   }
 
   private parseStateForModuleUrl(
