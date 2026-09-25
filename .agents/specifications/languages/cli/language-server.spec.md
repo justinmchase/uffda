@@ -239,22 +239,25 @@ semantic-token highlighting (see requirements 001-005 in
 stdio. Classification currently reuses the shared parse-tree projection in
 `src/cli/highlight.ts` (tokenizer rule names plus `[Keyword]` decorator
 metadata); aligning that projection onto a general `[Token]` rule-metadata walk
-(see GitHub issue #159) remains a follow-up. Hover (`textDocument/hover`, part
-of requirement 006) is implemented for `.uff` by resolving the identifier under
-the cursor through the same `RuntimeSession.describe()` introspection the MCP
-server already exposes; go-to-definition and completions remain outstanding. The
-VS Code extension (requirement 007) has an initial implementation at
-`editors/vscode/`: it registers `uffda lsp` for `.uff` files, registers
-`uffda mcp` as an MCP server, and resolves/downloads a compatible `uffda` binary
-automatically, with debug override settings. The extension also queries the
-custom `uffda/languageMetadata` request and applies `[Language]`-derived editor
-configuration via `vscode.languages.setLanguageConfiguration()`, and assigns
-language ids from `[Language].ext` via
-`vscode.languages.setTextDocumentLanguage()` for workspace-declared languages
-(static `language-configuration.json` remains as a fallback for `.uff`). The LSP
-config loader fills omitted `extensions` from `[Language].ext` when
-`modulePath`/`entryRuleName` are present. See GitHub issue #155 for the tracking
-issue.
+(see GitHub issue #159) remains a follow-up. Hover (`textDocument/hover`) and
+go-to-definition (`textDocument/definition`, both part of requirement 006) are
+implemented for `.uff`: hover resolves the identifier under the cursor through
+`RuntimeSession.describe()`, and definition resolves via
+`RuntimeSession.resolveDeclaration()` then locates the declaring production's
+`originalSpan` in a parse `Match` (open buffer preferred, else session parse
+state, else a read-only re-parse of the defining `.uff` on disk). Completions
+remain outstanding. The VS Code extension (requirement 007) has an initial
+implementation at `editors/vscode/`: it registers `uffda lsp` for `.uff` files,
+registers `uffda mcp` as an MCP server, and resolves/downloads a compatible
+`uffda` binary automatically, with debug override settings. The extension also
+queries the custom `uffda/languageMetadata` request and applies
+`[Language]`-derived editor configuration via
+`vscode.languages.setLanguageConfiguration()`, and assigns language ids from
+`[Language].ext` via `vscode.languages.setTextDocumentLanguage()` for
+workspace-declared languages (static `language-configuration.json` remains as a
+fallback for `.uff`). The LSP config loader fills omitted `extensions` from
+`[Language].ext` when `modulePath`/`entryRuleName` are present. See GitHub issue
+#155 for the tracking issue.
 
 ## Related
 
