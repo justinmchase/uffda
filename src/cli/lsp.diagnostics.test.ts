@@ -59,4 +59,49 @@ Deno.test("cli.lsp.diagnostics diagnosticsForSessionResult", async (t) => {
       assertEquals(diagnostics[0].source, "uffda (compile)");
     },
   );
+
+  await t.step(
+    "ranges an import failure on its specifier with related dependency info",
+    () => {
+      const source = 'import "./dep.uff" A;\nexport A;';
+      const result: SessionLoadResult = {
+        ok: false,
+        error: {
+          code: SessionLoadFailureCode.ResolutionFailure,
+          phase: "resolve",
+          message: 'Failed to compile "./dep.uff": bad',
+          location: { offset: 7, line: 0, column: 7, endOffset: 18 },
+          importChain: [{
+            importerUrl: "file:///main.uff",
+            importIndex: 0,
+            moduleUrl: "./dep.uff",
+            resolvedUrl: "file:///dep.uff",
+          }],
+          dependencyFailure: {
+            moduleUrl: "file:///dep.uff",
+            message: "bad",
+            location: { offset: 12, line: 2, column: 3 },
+          },
+        },
+        partiallyLoadedModules: [],
+        resolvedDuringLoad: [],
+      };
+      const [diagnostic] = diagnosticsForSessionResult(result, source);
+      assertEquals(diagnostic.range, {
+        start: { line: 0, character: 7 },
+        end: { line: 0, character: 18 },
+      });
+      assertEquals(diagnostic.source, "uffda (resolve)");
+      assertEquals(diagnostic.relatedInformation, [{
+        location: {
+          uri: "file:///dep.uff",
+          range: {
+            start: { line: 2, character: 3 },
+            end: { line: 2, character: 3 },
+          },
+        },
+        message: "bad",
+      }]);
+    },
+  );
 });

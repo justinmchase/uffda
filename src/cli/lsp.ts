@@ -97,7 +97,10 @@ export function wireUffdaLspHandlers(
           textDocumentSync: TextDocumentSyncKind.Incremental,
           hoverProvider: true,
           definitionProvider: true,
-          completionProvider: { resolveProvider: false },
+          completionProvider: {
+            resolveProvider: false,
+            triggerCharacters: ['"', "/"],
+          },
           semanticTokensProvider: {
             legend: SEMANTIC_TOKENS_LEGEND,
             full: true,
@@ -137,19 +140,21 @@ export function wireUffdaLspHandlers(
     },
   );
 
-  connection.onDidCloseTextDocument((params: DidCloseTextDocumentParams) => {
-    const { uri } = params.textDocument;
-    manager?.close(uri);
-    connection.sendDiagnostics({ uri, diagnostics: [] });
-  });
+  connection.onDidCloseTextDocument(
+    async (params: DidCloseTextDocumentParams) => {
+      const { uri } = params.textDocument;
+      await manager?.close(uri);
+      connection.sendDiagnostics({ uri, diagnostics: [] });
+    },
+  );
 
-  connection.onHover((params: HoverParams) => {
+  connection.onHover(async (params: HoverParams) => {
     const { uri } = params.textDocument;
     const language = resolveLanguageForDocument(config, uri);
     if (!manager || !language || language.id !== BUILTIN_UFF_LANGUAGE.id) {
       return null;
     }
-    return manager.hover(uri, params.position);
+    return await manager.hover(uri, params.position);
   });
 
   connection.onDefinition(async (params: DefinitionParams) => {
@@ -161,24 +166,28 @@ export function wireUffdaLspHandlers(
     return await manager.definition(uri, params.position);
   });
 
-  connection.onCompletion((params: CompletionParams) => {
+  connection.onCompletion(async (params: CompletionParams) => {
     const { uri } = params.textDocument;
     const language = resolveLanguageForDocument(config, uri);
     if (!manager || !language || language.id !== BUILTIN_UFF_LANGUAGE.id) {
       return [];
     }
-    return manager.completion(uri);
+    return await manager.completion(
+      uri,
+      params.position,
+      params.context?.triggerCharacter,
+    );
   });
 
   connection.onRequest(
     SemanticTokensRequest.type,
-    (params: SemanticTokensParams) => {
+    async (params: SemanticTokensParams) => {
       const { uri } = params.textDocument;
       const language = resolveLanguageForDocument(config, uri);
       if (!manager || !language || language.id !== BUILTIN_UFF_LANGUAGE.id) {
         return { data: [] };
       }
-      return manager.semanticTokens(uri) ?? { data: [] };
+      return (await manager.semanticTokens(uri)) ?? { data: [] };
     },
   );
 

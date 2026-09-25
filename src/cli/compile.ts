@@ -12,6 +12,10 @@ import {
   toStableSourcePath,
 } from "../runtime/resolvers/artifact_path.ts";
 import { compileUffdaSource } from "../lang/uffda/execute.ts";
+import {
+  type CliStreamFailureLocation,
+  parseFailureLocation,
+} from "./stream.ts";
 
 export enum CliCompileFailureCode {
   InvalidContext = "CLI_COMPILE_INVALID_CONTEXT",
@@ -28,6 +32,8 @@ export type CliCompileFailure = {
   sourcePath: string;
   outputPath?: string;
   message: string;
+  /** Source position of a `ParseFailure`. */
+  location?: CliStreamFailureLocation;
 };
 
 export type CliCompileUnitSuccess = {
@@ -318,6 +324,7 @@ export async function compileSourcesToAstArtifacts(
         sourcePath: plan.sourcePath,
         outputPath: plan.outputPath,
         message: await parseFailureMessage(compiled),
+        location: await parseFailureLocation(compiled, sourceText),
       };
       failures.push(failure);
       units.push({

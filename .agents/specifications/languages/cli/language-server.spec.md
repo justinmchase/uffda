@@ -114,6 +114,13 @@ not introduce a parallel parsing or compilation pathway.
 - Diagnostics from a downstream pipeline stage MUST be reported at the stage's
   own responsible source-facing range, not merged into or hidden behind an
   upstream stage's diagnostics.
+- A resolution failure caused by one of the document's imports (a missing
+  module, a dependency that fails to compile, or a failure deeper in that
+  import's own import graph) MUST be reported at the source range of that import
+  declaration in the document, not the whole document. When the failure has a
+  known location inside a dependency's own source, the diagnostic SHOULD link to
+  it (LSP `relatedInformation`). A whole-document range is only the fallback for
+  failures that cannot be attributed to a source range.
 
 ## Syntax highlighting
 
@@ -136,7 +143,9 @@ not introduce a parallel parsing or compilation pathway.
   source location within the workspace's resolved module graph.
 - The server MUST support `textDocument/completion`, offering in-scope
   rule/func/decorator names and, where staticly determinable, expression-level
-  completions.
+  completions. Inside an import declaration, completion MUST instead offer
+  importable modules (in the specifier) or the imported module's exports (in the
+  name list).
 - These capabilities MUST be read-only with respect to runtime/session state:
   none of them MUST mutate a document's parse state as a side effect of being
   queried.
@@ -239,30 +248,43 @@ semantic-token highlighting (see requirements 001-005 in
 stdio. Classification currently reuses the shared parse-tree projection in
 `src/cli/highlight.ts` (tokenizer rule names plus `[Keyword]` decorator
 metadata); aligning that projection onto a general `[Token]` rule-metadata walk
-(see GitHub issue #159) remains a follow-up. Hover (`textDocument/hover`) and
-go-to-definition (`textDocument/definition`, both part of requirement 006) are
-implemented for `.uff`: hover resolves the identifier under the cursor through
-`RuntimeSession.describe()`, and definition resolves via
-`RuntimeSession.resolveDeclaration()` then locates the declaring production's
-`originalSpan` in a parse `Match` (open buffer preferred, else session parse
-state, else a read-only re-parse of the defining `.uff` on disk).
+(see GitHub issue #159) remains a follow-up. Import-caused resolution failures
+are ranged on the failing root import's module specifier (via the resolver's
+`importChain` and the session's retained parse tree), with the dependency's own
+failure position as `relatedInformation` when known. A parse failure on an
+incomplete line (for example an import missing its names) is anchored right
+after that line's last token. Document operations (open/change/close and every
+query) run through a per-document queue in `LspDocumentManager`, since the LSP
+connection does not await async notification handlers. Hover
+(`textDocument/hover`) and go-to-definition (`textDocument/definition`, both
+part of requirement 006) are implemented for `.uff`: hover resolves the
+identifier under the cursor through `RuntimeSession.describe()`, and definition
+resolves via `RuntimeSession.resolveDeclaration()` then locates the declaring
+production's `originalSpan` in a parse `Match` (open buffer preferred, else
+session parse state, else a read-only re-parse of the defining `.uff` on disk).
 `textDocument/completion` offers the rule/func/decorator names in scope for the
 document's resolved module (local declarations plus import bindings, via
-`RuntimeSession.listDeclarations()`). Two refinements remain outstanding:
-filtering by position so decorators are only offered inside `[...]` attributes
-(and rules/funcs outside them), and expression-level completions such as
-parameter names in scope. The VS Code extension (requirement 007) has an initial
-implementation at `editors/vscode/`: it registers `uffda lsp` for `.uff` files,
-registers `uffda mcp` as an MCP server, and resolves/downloads a compatible
-`uffda` binary automatically, with debug override settings. The extension also
-queries the custom `uffda/languageMetadata` request and applies
-`[Language]`-derived editor configuration via
-`vscode.languages.setLanguageConfiguration()`, and assigns language ids from
-`[Language].ext` via `vscode.languages.setTextDocumentLanguage()` for
-workspace-declared languages (static `language-configuration.json` remains as a
-fallback for `.uff`). The LSP config loader fills omitted `extensions` from
-`[Language].ext` when `modulePath`/`entryRuleName` are present. See GitHub issue
-#155 for the tracking issue.
+`RuntimeSession.listDeclarations()`). Inside an import it offers `.uff` files
+and folders relative to the document within the specifier string, and the target
+module's exports in the name list (the session's resolved module, else a
+read-only compile of its source). The import context is classified from the
+cursor's line, so an import split across lines is not recognized, and `.ts` /
+`.js` / `.json` declaration modules are not offered as files. Two refinements
+remain outstanding: filtering by position so decorators are only offered inside
+`[...]` attributes (and rules/funcs outside them), and expression-level
+completions such as parameter names in scope. The VS Code extension
+(requirement 007) has an initial implementation at `editors/vscode/`: it
+registers `uffda lsp` for `.uff` files, registers `uffda mcp` as an MCP server,
+and resolves/downloads a compatible `uffda` binary automatically, with debug
+override settings. The extension also queries the custom
+`uffda/languageMetadata` request and applies `[Language]`-derived editor
+configuration via `vscode.languages.setLanguageConfiguration()`, and assigns
+language ids from `[Language].ext` via
+`vscode.languages.setTextDocumentLanguage()` for workspace-declared languages
+(static `language-configuration.json` remains as a fallback for `.uff`). The LSP
+config loader fills omitted `extensions` from `[Language].ext` when
+`modulePath`/`entryRuleName` are present. See GitHub issue #155 for the tracking
+issue.
 
 ## Related
 

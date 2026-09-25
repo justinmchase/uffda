@@ -109,6 +109,14 @@ and surfaced to runtime pattern execution.
   module-resolution errors.
 - For fixed resolver configuration and fixed module graph, module-resolution
   outcomes MUST be deterministic.
+- A module-resolution error caused while resolving an import (the imported
+  module failed, or its import names were invalid) MUST identify the import
+  edges that led to it: the chain of
+  `(importer, import index, specifier,
+  resolved URL)` frames from the
+  requested module down to the failing module, outermost first, so tooling can
+  attribute the error to a source location. An error about one imported name
+  (unknown export or conflict) also identifies that name.
 
 ## Composition intent
 

@@ -4,6 +4,8 @@ import { Resolver } from "./resolve.ts";
 import { PatternKind } from "./patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "./patterns/pattern.ts";
 import { ModuleImportResultKind } from "./resolvers/resolver.ts";
+import { ExportDeclarationKind } from "./declarations/export.ts";
+import { ImportDeclarationKind } from "./declarations/import.ts";
 import { Scope } from "./scope.ts";
 
 function context() {
@@ -220,6 +222,71 @@ if (readPermissions.state === "granted") {
 
       const second = await resolver.import(moduleUrl, context());
       assertEquals(second.kind, ModuleImportResultKind.Error);
+    },
+  });
+
+  Deno.test({
+    name: "RESOLVE10 - an import failure carries the chain of import edges",
+    fn: async () => {
+      const main = "file:///uffda-resolve10/main.uff";
+      const mid = "file:///uffda-resolve10/mid.uff";
+      const leaf = "file:///uffda-resolve10/leaf.uff";
+      const rule = (name: string) => ({
+        name,
+        parameters: [],
+        pattern: { kind: PatternKind.Any } as const,
+      });
+      const resolver = new Resolver({
+        declarations: {
+          [main]: {
+            imports: [
+              {
+                kind: ImportDeclarationKind.Module,
+                moduleUrl: "./leaf.uff",
+                names: ["L"],
+              },
+              {
+                kind: ImportDeclarationKind.Module,
+                moduleUrl: "./mid.uff",
+                names: ["M"],
+              },
+            ],
+            exports: [],
+            rules: [],
+          },
+          [mid]: {
+            imports: [{
+              kind: ImportDeclarationKind.Module,
+              moduleUrl: "./leaf.uff",
+              names: ["Nope"],
+            }],
+            exports: [{ kind: ExportDeclarationKind.Rule, name: "M" }],
+            rules: [rule("M")],
+          },
+          [leaf]: {
+            imports: [],
+            exports: [{ kind: ExportDeclarationKind.Rule, name: "L" }],
+            rules: [rule("L")],
+          },
+        },
+      });
+      const result = await resolver.import(new URL(main), context());
+      assert(result.kind === ModuleImportResultKind.Error);
+      assertEquals(result.importChain, [
+        {
+          importerUrl: main,
+          importIndex: 1,
+          moduleUrl: "./mid.uff",
+          resolvedUrl: mid,
+        },
+        {
+          importerUrl: mid,
+          importIndex: 0,
+          moduleUrl: "./leaf.uff",
+          resolvedUrl: leaf,
+          name: "Nope",
+        },
+      ]);
     },
   });
 } else {

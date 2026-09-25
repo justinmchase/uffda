@@ -1,4 +1,5 @@
 import { assert, assertEquals, assertRejects } from "@std/assert";
+import { join, toFileUrl } from "@std/path";
 import { LspDocumentManager, positionToOffset } from "./lsp.documents.ts";
 
 Deno.test("cli.lsp.documents positionToOffset", async (t) => {
@@ -85,10 +86,42 @@ Deno.test("cli.lsp.documents LspDocumentManager", async (t) => {
     },
   );
 
+  await t.step(
+    "un-awaited changes apply in order and match a fresh open",
+    async () => {
+      const initial = "export Main;\n\nrule Main = any;";
+      const typed = "rule B = Main;";
+      const manager = new LspDocumentManager(Deno.cwd());
+      await manager.open("inline:///burst", initial);
+      // Clients send didChange without waiting; each keystroke patches the
+      // state the previous one produced.
+      const pending = [...typed].map((ch, i) =>
+        manager.change("inline:///burst", [{
+          range: {
+            start: { line: 1, character: i },
+            end: { line: 1, character: i },
+          },
+          text: ch,
+        }])
+      );
+      const tokens = await manager.semanticTokens("inline:///burst");
+      const diagnostics = await pending.at(-1);
+
+      const final = `export Main;\n${typed}\nrule Main = any;`;
+      const fresh = new LspDocumentManager(Deno.cwd());
+      assertEquals(diagnostics, await fresh.open("inline:///fresh", final));
+      assertEquals(
+        tokens?.data,
+        (await fresh.semanticTokens("inline:///fresh"))?.data,
+      );
+      assertEquals(diagnostics, []);
+    },
+  );
+
   await t.step("close tears down the document's session", async () => {
     const manager = new LspDocumentManager(Deno.cwd());
     await manager.open("inline:///f", "export Main; rule Main = any;");
-    manager.close("inline:///f");
+    await manager.close("inline:///f");
     await assertRejects(() => manager.change("inline:///f", [{ text: "" }]));
   });
 
@@ -100,7 +133,7 @@ Deno.test("cli.lsp.documents LspDocumentManager", async (t) => {
         "inline:///g",
         "export Main; rule Main = any;",
       );
-      const tokens = manager.semanticTokens("inline:///g");
+      const tokens = await manager.semanticTokens("inline:///g");
       assert(tokens);
       assertEquals(tokens.data.length > 0, true);
       assertEquals(tokens.data.length % 5, 0);
@@ -112,7 +145,7 @@ Deno.test("cli.lsp.documents LspDocumentManager", async (t) => {
     async () => {
       const manager = new LspDocumentManager(Deno.cwd());
       await manager.open("inline:///h", "export Main; rule Main = ");
-      const tokens = manager.semanticTokens("inline:///h");
+      const tokens = await manager.semanticTokens("inline:///h");
       assert(tokens);
       assertEquals(tokens.data.length > 0, true);
     },
@@ -120,9 +153,12 @@ Deno.test("cli.lsp.documents LspDocumentManager", async (t) => {
 
   await t.step(
     "semanticTokens returns undefined for a document that was never opened",
-    () => {
+    async () => {
       const manager = new LspDocumentManager(Deno.cwd());
-      assertEquals(manager.semanticTokens("inline:///missing"), undefined);
+      assertEquals(
+        await manager.semanticTokens("inline:///missing"),
+        undefined,
+      );
     },
   );
 
@@ -132,7 +168,7 @@ Deno.test("cli.lsp.documents LspDocumentManager", async (t) => {
       const manager = new LspDocumentManager(Deno.cwd());
       const source = "export Main; rule Main = any;";
       await manager.open("inline:///hover", source);
-      const hover = manager.hover(
+      const hover = await manager.hover(
         "inline:///hover",
         offsetToPosition(source, source.indexOf("Main")),
       );
@@ -154,7 +190,10 @@ Deno.test("cli.lsp.documents LspDocumentManager", async (t) => {
         "inline:///completion",
         "export Main; rule Main = any; rule Helper = any;",
       );
-      const labels = manager.completion("inline:///completion")
+      const labels = (await manager.completion("inline:///completion", {
+        line: 0,
+        character: 0,
+      }))
         .map((item) => item.label)
         .sort();
       assertEquals(labels, ["Helper", "Main"]);
@@ -163,18 +202,63 @@ Deno.test("cli.lsp.documents LspDocumentManager", async (t) => {
 
   await t.step(
     "completion returns no items for a document that was never opened",
-    () => {
+    async () => {
       const manager = new LspDocumentManager(Deno.cwd());
-      assertEquals(manager.completion("inline:///missing"), []);
+      assertEquals(
+        await manager.completion("inline:///missing", {
+          line: 0,
+          character: 0,
+        }),
+        [],
+      );
+    },
+  );
+
+  await t.step(
+    "completion inside an import offers files, then the module's exports",
+    async () => {
+      const cwd = await Deno.makeTempDir({ prefix: "uffda-lsp-imports-" });
+      try {
+        await Deno.writeTextFile(
+          join(cwd, "dep.uff"),
+          "export Foo;\nexport Bar;\nrule Foo = any;\nrule Bar = any;",
+        );
+        await Deno.mkdir(join(cwd, "lib"));
+        const uri = toFileUrl(join(cwd, "main.uff")).href;
+        const manager = new LspDocumentManager(cwd);
+        await manager.open(uri, 'import "./');
+
+        const files = await manager.completion(
+          uri,
+          { line: 0, character: 10 },
+          "/",
+        );
+        assertEquals(files.map((i) => i.label), ["dep.uff", "lib/"]);
+
+        await manager.change(uri, [{ text: 'import "./dep.uff" Foo ' }]);
+        const names = await manager.completion(uri, {
+          line: 0,
+          character: 23,
+        });
+        assertEquals(names.map((i) => i.label), ["Bar"]);
+
+        await manager.change(uri, [{ text: 'rule A = "' }]);
+        assertEquals(
+          await manager.completion(uri, { line: 0, character: 10 }, '"'),
+          [],
+        );
+      } finally {
+        await Deno.remove(cwd, { recursive: true });
+      }
     },
   );
 
   await t.step(
     "hover returns null for a document that was never opened",
-    () => {
+    async () => {
       const manager = new LspDocumentManager(Deno.cwd());
       assertEquals(
-        manager.hover("inline:///missing", { line: 0, character: 0 }),
+        await manager.hover("inline:///missing", { line: 0, character: 0 }),
         null,
       );
     },

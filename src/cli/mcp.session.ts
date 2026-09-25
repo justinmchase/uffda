@@ -1,4 +1,4 @@
-import { resolve as resolvePath, toFileUrl } from "@std/path";
+import { fromFileUrl, resolve as resolvePath, toFileUrl } from "@std/path";
 import { compileUffdaSyntaxModule } from "../lang/uffda/execute.ts";
 import type { UffdaSyntaxModule } from "../lang/uffda/uffda.lang.ts";
 import { exec } from "../runtime/exec.ts";
@@ -30,9 +30,17 @@ import {
   ok as matchOk,
   type SourceSpan,
 } from "../match.ts";
-import { ModuleImportResultKind } from "../runtime/resolvers/resolver.ts";
+import {
+  type ImportFrame,
+  ModuleImportResultKind,
+} from "../runtime/resolvers/resolver.ts";
 import { CliLanguage } from "./contract.ts";
-import { ensureCompiledImportArtifacts } from "./ensure_import_artifacts.ts";
+import {
+  ensureCompiledImportArtifacts,
+  type EnsureImportDependencyFailure,
+} from "./ensure_import_artifacts.ts";
+import { importFrameLocation } from "./import_location.ts";
+import { anchorParseFailureLocation } from "./parse_failure_anchor.ts";
 import { parseSourceToAst } from "./stream.ts";
 import type { CliStreamFailureLocation } from "./stream.ts";
 
@@ -75,13 +83,20 @@ export type SessionLoadFailure = {
   message: string;
   /**
    * The offset/line/column of the failure within the module's source text,
-   * when known. Only ever populated for `phase: "parse"` failures — compile
-   * and resolve failures currently carry no location of their own (see
-   * `.agents/requirements/cli-language-server/004-diagnostics.requirement.md`,
-   * which requires falling back to whole-document attribution for those
-   * phases).
+   * when known: the failing token for `phase: "parse"`, or the module
+   * specifier of the root import a `phase: "resolve"` failure is attributed
+   * to (see `importChain`). Absent otherwise; consumers fall back to
+   * whole-document attribution (see
+   * `.agents/requirements/cli-language-server/004-diagnostics.requirement.md`).
    */
   location?: CliStreamFailureLocation;
+  /**
+   * For a resolve failure caused by an import, the import edges from this
+   * module (first frame) down to the module that failed (last frame).
+   */
+  importChain?: ImportFrame[];
+  /** The transitive dependency whose own source failed to compile. */
+  dependencyFailure?: EnsureImportDependencyFailure;
 };
 
 export type LoadedDeclarationKind = "rule" | "func" | "decorator";
@@ -674,7 +689,12 @@ export class RuntimeSession {
           code: SessionLoadFailureCode.ParseFailure,
           phase: "parse",
           message: parsed.error.message,
-          location: parsed.error.location,
+          location: parsed.error.location &&
+            anchorParseFailureLocation(
+              parsed.match,
+              source,
+              parsed.error.location,
+            ),
         },
         partiallyLoadedModules: this.listLoadedModules(),
         resolvedDuringLoad: [],
@@ -766,7 +786,12 @@ export class RuntimeSession {
           code: SessionLoadFailureCode.ParseFailure,
           phase: "parse",
           message: parsed.error.message,
-          location: parsed.error.location,
+          location: parsed.error.location &&
+            anchorParseFailureLocation(
+              parsed.match,
+              newSource,
+              parsed.error.location,
+            ),
         },
         partiallyLoadedModules: this.listLoadedModules(),
         resolvedDuringLoad: [],
@@ -821,13 +846,14 @@ export class RuntimeSession {
       knownDeclarations: trialDeclarations,
     });
     if (!ensured.ok) {
+      const { importChain, dependency } = ensured;
+      const direct = importChain.length === 1;
+      const reason = direct
+        ? `Failed to compile "${importChain[0].moduleUrl}": ${ensured.message}`
+        : `failed to compile ${dependency.moduleUrl}: ${ensured.message}`;
       return {
         ok: false,
-        error: {
-          code: SessionLoadFailureCode.ResolutionFailure,
-          phase: "resolve",
-          message: ensured.message,
-        },
+        error: this.importFailure(moduleUrl, importChain, reason, dependency),
         partiallyLoadedModules: this.listLoadedModules(),
         resolvedDuringLoad: [],
       };
@@ -877,13 +903,18 @@ export class RuntimeSession {
       };
     }
     if (imported.kind === ModuleImportResultKind.Error) {
+      const importChain = imported.importChain ?? [];
+      const failed = importChain.at(-1);
+      let reason = `${imported.error.code}: ${imported.error.message}`;
+      if (failed && ensured.missingSources.has(failed.resolvedUrl)) {
+        const missingPath = fromFileUrl(failed.resolvedUrl);
+        reason = importChain.length === 1
+          ? `Cannot find module "${failed.moduleUrl}": no such file ${missingPath}`
+          : `${failed.importerUrl} cannot find module "${failed.moduleUrl}": no such file ${missingPath}`;
+      }
       return {
         ok: false,
-        error: {
-          code: SessionLoadFailureCode.ResolutionFailure,
-          phase: "resolve",
-          message: `${imported.error.code}: ${imported.error.message}`,
-        },
+        error: this.importFailure(moduleUrl, importChain, reason),
         partiallyLoadedModules: this.listLoadedModules(),
         resolvedDuringLoad: collectResolvedModules(
           resolver,
@@ -907,6 +938,36 @@ export class RuntimeSession {
     }
     this.lastLoadedRootHref = moduleUrl.href;
     return { ok: true, module: summarizeModule(moduleUrl, imported.module) };
+  }
+
+  /**
+   * Builds a resolve-phase failure attributed to the root import at the head
+   * of `importChain`: `location` is that import's module specifier in the
+   * root module's retained parse tree. Transitive failures are prefixed with
+   * the root import so the message stands alone at that location.
+   */
+  private importFailure(
+    moduleUrl: URL,
+    importChain: ImportFrame[],
+    reason: string,
+    dependencyFailure?: EnsureImportDependencyFailure,
+  ): SessionLoadFailure {
+    const root = importChain[0];
+    const state = this.parseStates.get(moduleUrl.href);
+    const location = root && state
+      ? importFrameLocation(state.match, state.source, root)
+      : undefined;
+    const message = root && importChain.length > 1
+      ? `Import "${root.moduleUrl}" failed: ${reason}`
+      : reason;
+    return {
+      code: SessionLoadFailureCode.ResolutionFailure,
+      phase: "resolve",
+      message,
+      ...(location ? { location } : {}),
+      ...(importChain.length > 0 ? { importChain } : {}),
+      ...(dependencyFailure ? { dependencyFailure } : {}),
+    };
   }
 
   /**
