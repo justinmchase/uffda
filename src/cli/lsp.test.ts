@@ -317,6 +317,7 @@ Deno.test("cli.lsp wireUffdaLspHandlers", async (t) => {
       ) as InitializeResult;
       assertEquals(init.capabilities.completionProvider, {
         resolveProvider: false,
+        triggerCharacters: ['"', "/"],
       });
 
       await handlers.open({

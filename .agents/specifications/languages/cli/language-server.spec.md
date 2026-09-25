@@ -136,7 +136,9 @@ not introduce a parallel parsing or compilation pathway.
   source location within the workspace's resolved module graph.
 - The server MUST support `textDocument/completion`, offering in-scope
   rule/func/decorator names and, where staticly determinable, expression-level
-  completions.
+  completions. Inside an import declaration, completion MUST instead offer
+  importable modules (in the specifier) or the imported module's exports (in the
+  name list).
 - These capabilities MUST be read-only with respect to runtime/session state:
   none of them MUST mutate a document's parse state as a side effect of being
   queried.
@@ -248,21 +250,27 @@ implemented for `.uff`: hover resolves the identifier under the cursor through
 state, else a read-only re-parse of the defining `.uff` on disk).
 `textDocument/completion` offers the rule/func/decorator names in scope for the
 document's resolved module (local declarations plus import bindings, via
-`RuntimeSession.listDeclarations()`). Two refinements remain outstanding:
-filtering by position so decorators are only offered inside `[...]` attributes
-(and rules/funcs outside them), and expression-level completions such as
-parameter names in scope. The VS Code extension (requirement 007) has an initial
-implementation at `editors/vscode/`: it registers `uffda lsp` for `.uff` files,
-registers `uffda mcp` as an MCP server, and resolves/downloads a compatible
-`uffda` binary automatically, with debug override settings. The extension also
-queries the custom `uffda/languageMetadata` request and applies
-`[Language]`-derived editor configuration via
-`vscode.languages.setLanguageConfiguration()`, and assigns language ids from
-`[Language].ext` via `vscode.languages.setTextDocumentLanguage()` for
-workspace-declared languages (static `language-configuration.json` remains as a
-fallback for `.uff`). The LSP config loader fills omitted `extensions` from
-`[Language].ext` when `modulePath`/`entryRuleName` are present. See GitHub issue
-#155 for the tracking issue.
+`RuntimeSession.listDeclarations()`). Inside an import it offers `.uff` files
+and folders relative to the document within the specifier string, and the target
+module's exports in the name list (the session's resolved module, else a
+read-only compile of its source). The import context is classified from the
+cursor's line, so an import split across lines is not recognized, and `.ts` /
+`.js` / `.json` declaration modules are not offered as files. Two refinements
+remain outstanding: filtering by position so decorators are only offered inside
+`[...]` attributes (and rules/funcs outside them), and expression-level
+completions such as parameter names in scope. The VS Code extension
+(requirement 007) has an initial implementation at `editors/vscode/`: it
+registers `uffda lsp` for `.uff` files, registers `uffda mcp` as an MCP server,
+and resolves/downloads a compatible `uffda` binary automatically, with debug
+override settings. The extension also queries the custom
+`uffda/languageMetadata` request and applies `[Language]`-derived editor
+configuration via `vscode.languages.setLanguageConfiguration()`, and assigns
+language ids from `[Language].ext` via
+`vscode.languages.setTextDocumentLanguage()` for workspace-declared languages
+(static `language-configuration.json` remains as a fallback for `.uff`). The LSP
+config loader fills omitted `extensions` from `[Language].ext` when
+`modulePath`/`entryRuleName` are present. See GitHub issue #155 for the tracking
+issue.
 
 ## Related
 

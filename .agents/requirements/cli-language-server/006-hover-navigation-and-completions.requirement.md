@@ -30,6 +30,17 @@ Expected behavior:
   requested position, and, where statically determinable from the expression
   grammar's structure, expression-level completions (for example parameter names
   in scope).
+- Inside an import declaration, completion MUST be contextual instead of
+  offering in-scope declarations:
+  - inside the module specifier string, it MUST offer the importable entries
+    relative to the document: `.uff` modules and directories in the directory
+    the typed relative specifier (`./`, `../`) names, excluding the document
+    itself and hidden entries; an empty specifier offers `./` and `../`;
+  - in the name list after the specifier, it MUST offer the names the imported
+    module exports, excluding names already listed. Reading an unresolved
+    module's exports MUST NOT write artifacts or change session state.
+- Completion triggered by the import trigger characters (`"` and `/`) outside an
+  import declaration MUST return no items.
 - None of hover, go-to-definition, or completion requests MUST mutate any
   document's parse/resolution state, retained match results, or diagnostics as a
   side effect of being answered — they are read-only queries over already
