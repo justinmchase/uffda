@@ -51,6 +51,10 @@ function createFakeConnection() {
       handlers.definition = handler;
     },
     // deno-lint-ignore no-explicit-any
+    onCompletion: (handler: (params: any) => unknown) => {
+      handlers.completion = handler;
+    },
+    // deno-lint-ignore no-explicit-any
     onRequest: (type: any, handler: (params: any) => unknown) => {
       const method = typeof type === "string" ? type : type.method;
       handlers[method] = handler;
@@ -299,6 +303,36 @@ Deno.test("cli.lsp wireUffdaLspHandlers", async (t) => {
       } finally {
         await Deno.remove(cwd, { recursive: true });
       }
+    },
+  );
+
+  await t.step(
+    "declares completionProvider and offers in-scope declaration names",
+    async () => {
+      const { connection, handlers } = createFakeConnection();
+      wireUffdaLspHandlers(connection, { workspaceRoot: Deno.cwd() });
+
+      const init = await handlers.initialize(
+        {} as InitializeParams,
+      ) as InitializeResult;
+      assertEquals(init.capabilities.completionProvider, {
+        resolveProvider: false,
+      });
+
+      await handlers.open({
+        textDocument: {
+          uri: "file:///workspace/completion.uff",
+          languageId: "uffda",
+          version: 1,
+          text: "export Main; rule Main = any;",
+        },
+      } as DidOpenTextDocumentParams);
+
+      const items = await handlers.completion({
+        textDocument: { uri: "file:///workspace/completion.uff" },
+        position: { line: 0, character: 0 },
+      }) as Array<{ label: string }>;
+      assertEquals(items.map((item) => item.label), ["Main"]);
     },
   );
 

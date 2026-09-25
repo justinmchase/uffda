@@ -245,8 +245,13 @@ implemented for `.uff`: hover resolves the identifier under the cursor through
 `RuntimeSession.describe()`, and definition resolves via
 `RuntimeSession.resolveDeclaration()` then locates the declaring production's
 `originalSpan` in a parse `Match` (open buffer preferred, else session parse
-state, else a read-only re-parse of the defining `.uff` on disk). Completions
-remain outstanding. The VS Code extension (requirement 007) has an initial
+state, else a read-only re-parse of the defining `.uff` on disk).
+`textDocument/completion` offers the rule/func/decorator names in scope for the
+document's resolved module (local declarations plus import bindings, via
+`RuntimeSession.listDeclarations()`). Two refinements remain outstanding:
+filtering by position so decorators are only offered inside `[...]` attributes
+(and rules/funcs outside them), and expression-level completions such as
+parameter names in scope. The VS Code extension (requirement 007) has an initial
 implementation at `editors/vscode/`: it registers `uffda lsp` for `.uff` files,
 registers `uffda mcp` as an MCP server, and resolves/downloads a compatible
 `uffda` binary automatically, with debug override settings. The extension also

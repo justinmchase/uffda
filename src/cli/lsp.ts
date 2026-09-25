@@ -1,6 +1,7 @@
 import process from "node:process";
 import { fromFileUrl } from "@std/path";
 import {
+  type CompletionParams,
   type Connection,
   createConnection,
   type DefinitionParams,
@@ -44,6 +45,7 @@ export type UffdaLspConnection = Pick<
   | "onDidCloseTextDocument"
   | "onHover"
   | "onDefinition"
+  | "onCompletion"
   | "onRequest"
   | "sendDiagnostics"
   | "listen"
@@ -95,6 +97,7 @@ export function wireUffdaLspHandlers(
           textDocumentSync: TextDocumentSyncKind.Incremental,
           hoverProvider: true,
           definitionProvider: true,
+          completionProvider: { resolveProvider: false },
           semanticTokensProvider: {
             legend: SEMANTIC_TOKENS_LEGEND,
             full: true,
@@ -156,6 +159,15 @@ export function wireUffdaLspHandlers(
       return [];
     }
     return await manager.definition(uri, params.position);
+  });
+
+  connection.onCompletion((params: CompletionParams) => {
+    const { uri } = params.textDocument;
+    const language = resolveLanguageForDocument(config, uri);
+    if (!manager || !language || language.id !== BUILTIN_UFF_LANGUAGE.id) {
+      return [];
+    }
+    return manager.completion(uri);
   });
 
   connection.onRequest(

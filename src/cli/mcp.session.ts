@@ -588,6 +588,21 @@ export class RuntimeSession {
   }
 
   /**
+   * The declarations in scope for one loaded module — its own rules, funcs,
+   * and decorators plus names bound by its imports — or `undefined` when no
+   * such module has been successfully loaded. Defaults to the most recently
+   * loaded root module. Read-only; used by LSP completion (requirement 006).
+   */
+  public listDeclarations(moduleUrl?: string): LoadedModuleSummary | undefined {
+    if (this.closed) {
+      throw new Error(`Session ${this.id} is closed`);
+    }
+    const target = this.resolveTargetModule(moduleUrl);
+    if (!target.ok) return undefined;
+    return summarizeModule(target.module.moduleUrl, target.module);
+  }
+
+  /**
    * Returns the most recently retained parse state (source text + raw
    * `Match` tree), including states retained after a failed parse. Used by
    * the language server to derive semantic tokens from the same tree the
