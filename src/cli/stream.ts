@@ -145,6 +145,17 @@ function locationFromAnalysis(
   );
 }
 
+/** Source location of a failed parse, derived like `parseSourceToAst`'s. */
+export async function parseFailureLocation(
+  match: Match,
+  sourceText: string,
+): Promise<CliStreamFailureLocation> {
+  const analysis = match.kind === MatchKind.Fail
+    ? await analyzeMatchFailure(match)
+    : undefined;
+  return locationFromAnalysis(sourceText, analysis, match);
+}
+
 async function toParseFailure(
   match: Match,
   language: CliLanguage,

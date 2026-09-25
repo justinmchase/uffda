@@ -114,6 +114,13 @@ not introduce a parallel parsing or compilation pathway.
 - Diagnostics from a downstream pipeline stage MUST be reported at the stage's
   own responsible source-facing range, not merged into or hidden behind an
   upstream stage's diagnostics.
+- A resolution failure caused by one of the document's imports (a missing
+  module, a dependency that fails to compile, or a failure deeper in that
+  import's own import graph) MUST be reported at the source range of that import
+  declaration in the document, not the whole document. When the failure has a
+  known location inside a dependency's own source, the diagnostic SHOULD link to
+  it (LSP `relatedInformation`). A whole-document range is only the fallback for
+  failures that cannot be attributed to a source range.
 
 ## Syntax highlighting
 
@@ -241,7 +248,12 @@ semantic-token highlighting (see requirements 001-005 in
 stdio. Classification currently reuses the shared parse-tree projection in
 `src/cli/highlight.ts` (tokenizer rule names plus `[Keyword]` decorator
 metadata); aligning that projection onto a general `[Token]` rule-metadata walk
-(see GitHub issue #159) remains a follow-up. Hover (`textDocument/hover`) and
+(see GitHub issue #159) remains a follow-up. Import-caused resolution failures
+are ranged on the failing root import's module specifier (via the resolver's
+`importChain` and the session's retained parse tree), with the dependency's own
+failure position as `relatedInformation` when known. A parse failure on an
+incomplete line (for example an import missing its names) is still reported at
+the next token, which may sit on a later line. Hover (`textDocument/hover`) and
 go-to-definition (`textDocument/definition`, both part of requirement 006) are
 implemented for `.uff`: hover resolves the identifier under the cursor through
 `RuntimeSession.describe()`, and definition resolves via
