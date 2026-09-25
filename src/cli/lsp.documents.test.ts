@@ -147,6 +147,29 @@ Deno.test("cli.lsp.documents LspDocumentManager", async (t) => {
   );
 
   await t.step(
+    "completion offers the document's in-scope declarations",
+    async () => {
+      const manager = new LspDocumentManager(Deno.cwd());
+      await manager.open(
+        "inline:///completion",
+        "export Main; rule Main = any; rule Helper = any;",
+      );
+      const labels = manager.completion("inline:///completion")
+        .map((item) => item.label)
+        .sort();
+      assertEquals(labels, ["Helper", "Main"]);
+    },
+  );
+
+  await t.step(
+    "completion returns no items for a document that was never opened",
+    () => {
+      const manager = new LspDocumentManager(Deno.cwd());
+      assertEquals(manager.completion("inline:///missing"), []);
+    },
+  );
+
+  await t.step(
     "hover returns null for a document that was never opened",
     () => {
       const manager = new LspDocumentManager(Deno.cwd());

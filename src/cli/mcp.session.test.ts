@@ -851,6 +851,30 @@ Deno.test("cli.mcp.session RuntimeSession introspection", async (t) => {
   );
 
   await t.step(
+    "listDeclarations reports the root module's in-scope declarations",
+    async () => {
+      const session = new RuntimeSession("i1b");
+      await session.load(LOUD_MODULE_SOURCE);
+
+      const summary = session.listDeclarations();
+      assert(summary);
+      assertEquals(
+        summary.declarations.map((d) => d.name).sort(),
+        ["Add", "Greet", "Label", "Loud", "Main"],
+      );
+    },
+  );
+
+  await t.step(
+    "listDeclarations is undefined before any module has loaded",
+    async () => {
+      const session = new RuntimeSession("i1c");
+      await session.load("rule Main = ");
+      assertEquals(session.listDeclarations(), undefined);
+    },
+  );
+
+  await t.step(
     "describe reports a rule's pattern, parameters, attributes, and metadata",
     async () => {
       const session = new RuntimeSession("i2");

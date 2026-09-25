@@ -1,5 +1,6 @@
 import { fromFileUrl } from "@std/path";
 import type {
+  CompletionItem,
   Diagnostic,
   Hover,
   Location,
@@ -8,6 +9,7 @@ import type {
 import { highlightSpansFromMatch } from "./highlight.ts";
 import type { Match } from "../match.ts";
 import { RuntimeSession } from "./mcp.session.ts";
+import { completionItemsForSession } from "./lsp.completion.ts";
 import { diagnosticsForSessionResult } from "./lsp.diagnostics.ts";
 import { definitionAtPosition } from "./lsp.definition.ts";
 import { hoverAtPosition } from "./lsp.hover.ts";
@@ -197,6 +199,17 @@ export class LspDocumentManager {
           this.parseStateForModuleUrl(definingModuleUrl),
       },
     );
+  }
+
+  /**
+   * Builds LSP completion items for `uri` from the in-scope declarations of
+   * the document's resolved module (requirement 006). Empty when the
+   * document is not open or has never resolved.
+   */
+  public completion(uri: string): CompletionItem[] {
+    const doc = this.documents.get(uri);
+    if (!doc) return [];
+    return completionItemsForSession(doc.session);
   }
 
   private parseStateForModuleUrl(
