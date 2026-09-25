@@ -48,6 +48,42 @@ Deno.test("span.sourceSpansFrom maps a consumed item through adjacent leaves", a
   });
 });
 
+Deno.test("span.sourceSpansFrom starts a later match at its first item", async () => {
+  // Items separated by dropped trivia: "import" at 0..6, '"' at 7..8.
+  const itemSpans = [
+    {
+      normalized: { start: 0, end: 6 },
+      original: { start: 0, end: 6 },
+    },
+    {
+      normalized: { start: 7, end: 8 },
+      original: { start: 7, end: 8 },
+    },
+    {
+      normalized: { start: 8, end: 9 },
+      original: { start: 8, end: 9 },
+    },
+  ];
+  const stream = Input.From(["import", '"', "."], {
+    kind: InputNormalizationMode.Iterable,
+    provenance: { itemSpans },
+  });
+  const afterFirst = await stream.next();
+  const afterSecond = await afterFirst.next();
+  assertEquals(
+    sourceSpansFrom(Scope.From(afterFirst), Scope.From(afterSecond)),
+    {
+      normalizedSpan: { start: 7, end: 8 },
+      originalSpan: { start: 7, end: 8 },
+    },
+  );
+  const at = Scope.From(afterFirst);
+  assertEquals(sourceSpansFrom(at, at), {
+    normalizedSpan: { start: 7, end: 7 },
+    originalSpan: { start: 7, end: 7 },
+  });
+});
+
 Deno.test("span.sourceSpansFrom uses eof endpoints without advancing", async () => {
   const itemSpans = [
     {
