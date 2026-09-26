@@ -320,7 +320,7 @@ export class Resolver {
               `Unknown export ${name} from module ${resolvedModuleUrl}`,
               context,
             )),
-            frame,
+            { ...frame, name },
           );
         }
 
@@ -330,7 +330,7 @@ export class Resolver {
               `Import ${name} conflicts with rule declaration in ${moduleUrl}`,
               context,
             )),
-            frame,
+            { ...frame, name },
           );
         }
 
@@ -340,7 +340,7 @@ export class Resolver {
               `Import ${name} conflicts with func declaration in ${moduleUrl}`,
               context,
             )),
-            frame,
+            { ...frame, name },
           );
         }
 
@@ -350,7 +350,7 @@ export class Resolver {
               `Import ${name} conflicts with decorator declaration in ${moduleUrl}`,
               context,
             )),
-            frame,
+            { ...frame, name },
           );
         }
 

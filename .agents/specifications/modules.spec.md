@@ -115,7 +115,8 @@ and surfaced to runtime pattern execution.
   `(importer, import index, specifier,
   resolved URL)` frames from the
   requested module down to the failing module, outermost first, so tooling can
-  attribute the error to a source location.
+  attribute the error to a source location. An error about one imported name
+  (unknown export or conflict) also identifies that name.
 
 ## Composition intent
 

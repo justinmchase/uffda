@@ -8,10 +8,12 @@
 # bindings are single-letter (published CLI PatternLang).
 import "../pattern/parameter_list.uff" ParameterList;
 import "./shared.rules.uff" IdentifierToken DecoratorKeyword;
+import "../editor/editor.uff" Declaration;
 import "./func.rules.uff" FuncExpressionBody;
 
 export DecoratorDeclarationSyntax;
 
+[Declaration]
 rule DecoratorDeclarationSyntax =
   DecoratorKeyword
   n:IdentifierToken

@@ -19,13 +19,13 @@ Expected behavior:
 - The server MUST support `textDocument/semanticTokens` (full-document and, if
   the editor requests it, delta/range variants) for every configured language.
 - Token classification MUST be derived from the grammar's own delivered parse
-  tree and its decorator-derived rule metadata (see GitHub issue #159), not from
-  a separately hand-maintained TextMate-style grammar or regex classifier. The
-  near-term classification sources are the shared tokenizer rule names plus
-  `[Keyword]` metadata already used by `src/cli/highlight.ts`; a general
-  `[Token]` metadata walk that replaces the hard-coded tokenizer-rule map is the
-  intended follow-up and MUST remain compatible with this requirement's "no
-  parallel highlighting parse" postcondition. A rule with no applicable
+  tree and its decorator-derived rule metadata, not from a separately
+  hand-maintained TextMate-style grammar, a regex classifier, or a map of rule
+  names. The classification sources are `[Highlight { role }]` on token rules
+  and `[Keyword]` (see
+  [editor metadata](../../specifications/languages/cli/editor-metadata.spec.md#highlighting)):
+  token spans are the innermost `Highlight`-annotated nodes, each taking the
+  role of the outermost `Highlight` on its path. A rule with no applicable
   classification metadata MUST NOT itself emit a semantic token, though its
   matched span MAY still contribute to an ancestor/descendant rule's token.
 - Highlighting MUST stay current under `didChange` using the same

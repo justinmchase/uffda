@@ -39,7 +39,8 @@ import {
   ensureCompiledImportArtifacts,
   type EnsureImportDependencyFailure,
 } from "./ensure_import_artifacts.ts";
-import { importSpecifierLocation } from "./import_location.ts";
+import { importFrameLocation } from "./import_location.ts";
+import { anchorParseFailureLocation } from "./parse_failure_anchor.ts";
 import { parseSourceToAst } from "./stream.ts";
 import type { CliStreamFailureLocation } from "./stream.ts";
 
@@ -688,7 +689,12 @@ export class RuntimeSession {
           code: SessionLoadFailureCode.ParseFailure,
           phase: "parse",
           message: parsed.error.message,
-          location: parsed.error.location,
+          location: parsed.error.location &&
+            anchorParseFailureLocation(
+              parsed.match,
+              source,
+              parsed.error.location,
+            ),
         },
         partiallyLoadedModules: this.listLoadedModules(),
         resolvedDuringLoad: [],
@@ -780,7 +786,12 @@ export class RuntimeSession {
           code: SessionLoadFailureCode.ParseFailure,
           phase: "parse",
           message: parsed.error.message,
-          location: parsed.error.location,
+          location: parsed.error.location &&
+            anchorParseFailureLocation(
+              parsed.match,
+              newSource,
+              parsed.error.location,
+            ),
         },
         partiallyLoadedModules: this.listLoadedModules(),
         resolvedDuringLoad: [],
@@ -944,7 +955,7 @@ export class RuntimeSession {
     const root = importChain[0];
     const state = this.parseStates.get(moduleUrl.href);
     const location = root && state
-      ? importSpecifierLocation(state.match, state.source, root)
+      ? importFrameLocation(state.match, state.source, root)
       : undefined;
     const message = root && importChain.length > 1
       ? `Import "${root.moduleUrl}" failed: ${reason}`

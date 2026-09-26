@@ -17,11 +17,14 @@ Expected behavior:
 
 - `src/lang/uffda/import.rules.uff` MUST export `ImportDeclarationSyntax`,
   `ImportNameList`, and `ImportModuleSpecifier`.
-- `ImportModuleSpecifier` MUST join quoted path parts with `(join p "")`.
-- `ImportNameList` MUST flatten `IdentifierToken IdentifierToken*` with
-  `(flat _)`.
-- `ImportDeclarationSyntax` MUST project
-  `{ kind: "import", moduleUrl: m, names: n }` without Native.
+- `ImportModuleSpecifier` MUST project the quoted path, whose parts are joined
+  with `(join p "")` by an inner `[ModulePath]` rule covering exactly the path
+  text.
+- `ImportNameList` MUST flatten one or more `[ImportedName]`-annotated
+  `IdentifierToken` entries with `(flat _)`.
+- `ImportDeclarationSyntax` MUST be `[Import]`-annotated and project
+  `{ kind: "import", moduleUrl: m, names: n }` without Native (see
+  [editor metadata](../../specifications/languages/cli/editor-metadata.spec.md)).
 - Compiling that file with the bootstrap compile path MUST succeed and emit AST
   JSON under `./bin/`.
 

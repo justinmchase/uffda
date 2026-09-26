@@ -35,9 +35,19 @@ Expected behavior:
   internal/intermediate stage's own coordinate space, and MUST NOT be merged
   into or hidden behind an upstream stage's diagnostic for the same or a
   different location.
+- When only trivia (the `whitespace`/`newline`/`comment` highlight roles)
+  containing a line break (a `newline` span) separates a parse failure's
+  unexpected token from the last significant token before it, the diagnostic
+  MUST be a zero-width range immediately after that preceding token (the
+  unfinished construct), not on the later line's token. An unexpected token on
+  the same line is ranged on that token.
 - A resolution failure attributable to one of the document's import declarations
-  MUST be ranged on that declaration's module specifier string (for example
-  `"./dep.uff"` in `import "./dep.uff" A;`). This covers:
+  MUST be ranged on that declaration's `[ModulePath]` (for example `./dep.uff`
+  in `import "./dep.uff" A;`), or on the `[ImportedName]` itself when the
+  failure is about that name (for example `A` when `./dep.uff` does not export
+  `A`, or `A` conflicts with a local declaration), located through
+  [editor metadata](../../specifications/languages/cli/editor-metadata.spec.md#declarations-references-and-imports).
+  This covers:
   - a module whose source file does not exist (the message MUST name the
     specifier and the missing path, not an artifact-compilation instruction);
   - a dependency whose own source fails to parse/compile (the diagnostic MUST

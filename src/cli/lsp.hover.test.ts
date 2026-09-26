@@ -1,4 +1,5 @@
 import { assert, assertEquals } from "@std/assert";
+import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 import {
   formatDescribedDeclarationMarkdown,
@@ -15,9 +16,11 @@ rule Main = any;
 func Greet = "hi";`;
 
 Deno.test("cli.lsp.hover identifierAtOffset", async (t) => {
-  await t.step("finds a bare word under the cursor", () => {
-    const source = "rule Main = any;";
-    const hit = identifierAtOffset(source, source.indexOf("Main") + 1);
+  const source = "rule Main = any;";
+  const match = await uffdaGrammar(source);
+
+  await t.step("finds the identifier token under the cursor", () => {
+    const hit = identifierAtOffset(source, source.indexOf("Main") + 1, match);
     assertEquals(hit, {
       name: "Main",
       start: source.indexOf("Main"),
@@ -25,9 +28,19 @@ Deno.test("cli.lsp.hover identifierAtOffset", async (t) => {
     });
   });
 
-  await t.step("returns undefined on punctuation", () => {
-    const source = "rule Main = any;";
-    assertEquals(identifierAtOffset(source, source.indexOf("=")), undefined);
+  await t.step("returns undefined on a keyword or punctuation", () => {
+    assertEquals(identifierAtOffset(source, 1, match), undefined);
+    assertEquals(
+      identifierAtOffset(source, source.indexOf("="), match),
+      undefined,
+    );
+  });
+
+  await t.step("returns undefined without a parse tree", () => {
+    assertEquals(
+      identifierAtOffset(source, source.indexOf("Main") + 1),
+      undefined,
+    );
   });
 });
 

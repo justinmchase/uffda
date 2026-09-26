@@ -1,8 +1,13 @@
 import { assert, assertEquals } from "@std/assert";
 import { CliLanguage } from "./contract.ts";
+import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
+import { walkAnnotatable } from "./editor_metadata.ts";
 import {
   HighlightRole,
+  highlightRoleOf,
   highlightSource,
+  highlightSpansFromMatch,
+  isTriviaRole,
   renderHighlightAnsi,
 } from "./highlight.ts";
 
@@ -138,4 +143,71 @@ Deno.test("cli.highlight covers pattern/expression sub-language source without g
     assert(result.ok);
     assertFullCoverage(result.spans, source.length);
   });
+});
+
+Deno.test("cli.highlight derives roles from [Highlight] metadata", async (t) => {
+  const source = 'rule A = "in side"; # note\n';
+  const match = await uffdaGrammar(source);
+
+  await t.step("reads each annotated token rule's declared role", () => {
+    const roles = new Set<HighlightRole>();
+    walkAnnotatable(match, (node) => {
+      const role = highlightRoleOf(node);
+      if (role) roles.add(role);
+    });
+    assertEquals(
+      [...roles].sort(),
+      [
+        HighlightRole.Comment,
+        HighlightRole.Identifier,
+        HighlightRole.NewLine,
+        HighlightRole.Punctuation,
+        HighlightRole.String,
+        HighlightRole.Whitespace,
+      ],
+    );
+  });
+
+  await t.step("the outermost Highlight decides a nested token's role", () => {
+    const spans = highlightSpansFromMatch(match, source);
+    assertFullCoverage(spans, source.length);
+    assertEquals(
+      spans.map((s) => [s.text, s.role]),
+      [
+        ["rule", HighlightRole.Keyword],
+        [" ", HighlightRole.Whitespace],
+        ["A", HighlightRole.Identifier],
+        [" ", HighlightRole.Whitespace],
+        ["=", HighlightRole.Punctuation],
+        [" ", HighlightRole.Whitespace],
+        ['"', HighlightRole.String],
+        ["in", HighlightRole.String],
+        [" ", HighlightRole.String],
+        ["side", HighlightRole.String],
+        ['"', HighlightRole.String],
+        [";", HighlightRole.Punctuation],
+        [" ", HighlightRole.Whitespace],
+        ["# note", HighlightRole.Comment],
+        ["\n", HighlightRole.NewLine],
+      ],
+    );
+  });
+
+  await t.step("ignores nodes without a recognized role", () => {
+    assertEquals(highlightRoleOf(match), undefined);
+  });
+
+  await t.step(
+    "classifies whitespace, line breaks and comments as trivia",
+    () => {
+      assertEquals(
+        Object.values(HighlightRole).filter(isTriviaRole).sort(),
+        [
+          HighlightRole.Comment,
+          HighlightRole.NewLine,
+          HighlightRole.Whitespace,
+        ],
+      );
+    },
+  );
 });
