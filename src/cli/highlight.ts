@@ -160,16 +160,8 @@ function roleFor(
   keywords: CollectedKeyword[],
 ): HighlightRole {
   if (token.insideString) return HighlightRole.String;
-  const tokenEnd = token.offset + token.length;
-  // Keyword spans are read back from a rule invocation matched against the
-  // whitespace/comment/newline-filtered token stream (`TokenizerNoWhitespace`
-  // drops those trivia entirely before the module grammar sees it), so a
-  // keyword's originalSpan can start earlier than the token it corresponds
-  // to (absorbing filtered-out trivia between the previous surviving token
-  // and this one). Its end always lines up exactly with the token's end, so
-  // match on that rather than requiring an exact offset/length equality.
   const isKeyword = keywords.some(
-    (k) => k.offset <= token.offset && k.offset + k.length === tokenEnd,
+    (k) => k.offset === token.offset && k.length === token.length,
   );
   return isKeyword ? HighlightRole.Keyword : token.baseRole;
 }

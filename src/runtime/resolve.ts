@@ -12,6 +12,7 @@ import type { Pattern } from "./patterns/pattern.ts";
 import { applyAttributes } from "./apply_attributes.ts";
 import {
   type IModuleResolvers,
+  type ImportFrame,
   type ImportResult,
   moduleDeclarationResolutionResult,
   type ModuleDeclarationResult,
@@ -22,6 +23,7 @@ import {
   moduleResolutionError,
   moduleResolutionResult,
   moduleResult,
+  withImportFrame,
 } from "./resolvers/resolver.ts";
 import { ImportResolver, JsonResolver } from "./resolvers/mod.ts";
 import { DEFAULT_ARTIFACT_ROOT } from "./resolvers/artifact_path.ts";
@@ -283,8 +285,14 @@ export class Resolver {
       }
     }
 
-    for (const i of declaration.imports) {
+    for (const [importIndex, i] of declaration.imports.entries()) {
       const resolvedModuleUrl = new URL(i.moduleUrl, moduleUrl);
+      const frame: ImportFrame = {
+        importerUrl: moduleUrl.href,
+        importIndex,
+        moduleUrl: i.moduleUrl,
+        resolvedUrl: resolvedModuleUrl.href,
+      };
 
       // todo: Remove support for function imports if we can...
       if (
@@ -302,36 +310,48 @@ export class Resolver {
 
       const importedModule = await this.import(resolvedModuleUrl, context);
       if (importedModule.kind === ModuleImportResultKind.Error) {
-        return importedModule;
+        return withImportFrame(importedModule, frame);
       }
       for (const name of i.names) {
         const r = importedModule.module.exports.get(name);
         if (!r) {
-          return moduleResolutionResult(moduleResolutionError(
-            `Unknown export ${name} from module ${resolvedModuleUrl}`,
-            context,
-          ));
+          return withImportFrame(
+            moduleResolutionResult(moduleResolutionError(
+              `Unknown export ${name} from module ${resolvedModuleUrl}`,
+              context,
+            )),
+            frame,
+          );
         }
 
         if (module.rules.has(name)) {
-          return moduleResolutionResult(moduleResolutionError(
-            `Import ${name} conflicts with rule declaration in ${moduleUrl}`,
-            context,
-          ));
+          return withImportFrame(
+            moduleResolutionResult(moduleResolutionError(
+              `Import ${name} conflicts with rule declaration in ${moduleUrl}`,
+              context,
+            )),
+            frame,
+          );
         }
 
         if (module.funcs.has(name)) {
-          return moduleResolutionResult(moduleResolutionError(
-            `Import ${name} conflicts with func declaration in ${moduleUrl}`,
-            context,
-          ));
+          return withImportFrame(
+            moduleResolutionResult(moduleResolutionError(
+              `Import ${name} conflicts with func declaration in ${moduleUrl}`,
+              context,
+            )),
+            frame,
+          );
         }
 
         if (module.decorators.has(name)) {
-          return moduleResolutionResult(moduleResolutionError(
-            `Import ${name} conflicts with decorator declaration in ${moduleUrl}`,
-            context,
-          ));
+          return withImportFrame(
+            moduleResolutionResult(moduleResolutionError(
+              `Import ${name} conflicts with decorator declaration in ${moduleUrl}`,
+              context,
+            )),
+            frame,
+          );
         }
 
         const isDecoratorExport = importedModule.module.decorators.has(name) ||

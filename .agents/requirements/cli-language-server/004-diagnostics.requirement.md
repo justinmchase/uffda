@@ -35,6 +35,21 @@ Expected behavior:
   internal/intermediate stage's own coordinate space, and MUST NOT be merged
   into or hidden behind an upstream stage's diagnostic for the same or a
   different location.
+- A resolution failure attributable to one of the document's import declarations
+  MUST be ranged on that declaration's module specifier string (for example
+  `"./dep.uff"` in `import "./dep.uff" A;`). This covers:
+  - a module whose source file does not exist (the message MUST name the
+    specifier and the missing path, not an artifact-compilation instruction);
+  - a dependency whose own source fails to parse/compile (the diagnostic MUST
+    carry `relatedInformation` pointing at the dependency's failure position
+    when known);
+  - a failure further down that import's transitive import graph (the message
+    MUST name the root import, and the failure is attributed to the root import
+    through the module-runtime import chain, see
+    [modules-runtime 005](../modules-runtime/005-import-failures-carry-import-chain.requirement.md)).
+- Failures that carry no source location (for example a compile failure of the
+  document itself, or a resolution failure not caused by an import) MUST fall
+  back to a whole-document range.
 - A document with zero failures MUST publish an empty diagnostics array (not
   omit publishing), so the editor can clear any previously shown diagnostics for
   that document version.

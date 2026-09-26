@@ -3,6 +3,7 @@ import { CliLanguage } from "./contract.ts";
 import {
   CliStreamFailureCode,
   compileStdinToArtifact,
+  parseFailureLocation,
   parseSourceToAst,
 } from "./stream.ts";
 import { Input, InputNormalizationMode } from "../input.ts";
@@ -21,6 +22,21 @@ Deno.test("cli.stream parses one stdin source unit into a raw AST", async (t) =>
     if (!result.ok) return;
     assertEquals(result.ast.kind, "module");
   });
+
+  await t.step(
+    "parseFailureLocation agrees with a failed parse's reported location",
+    async () => {
+      const source = "export Main;\nrule Main = ( any ;";
+      const parsed = await parseSourceToAst(source, CliLanguage.FullUffda, "t");
+      assertEquals(parsed.ok, false);
+      if (parsed.ok) return;
+      assertEquals(
+        await parseFailureLocation(parsed.match, source),
+        parsed.error.location,
+      );
+      assertEquals(parsed.error.location?.line, 1);
+    },
+  );
 
   await t.step("emits a parse diagnostic for invalid input", async () => {
     const result = await compileStdinToArtifact(

@@ -25,9 +25,29 @@ export type ModuleImportResult = {
   module: Module;
 };
 
+/**
+ * One import declaration a module-resolution failure propagated through: the
+ * `imports[importIndex]` declaration of the module at `importerUrl`, which
+ * names `moduleUrl` (as written) resolving to `resolvedUrl`.
+ */
+export type ImportFrame = {
+  importerUrl: string;
+  importIndex: number;
+  moduleUrl: string;
+  resolvedUrl: string;
+};
+
 export type ModuleImportError = {
   kind: ModuleImportResultKind.Error;
   error: MatchError;
+  /**
+   * Present when the failure was caused by an import declaration (the
+   * imported module failing to resolve, or an imported name failing
+   * validation): every import declaration it propagated through, outermost
+   * importing module first. Absent for failures in a module's own
+   * declarations.
+   */
+  importChain?: ImportFrame[];
 };
 
 export type ImportResult = ModuleImportResult | ModuleImportError;
@@ -77,6 +97,14 @@ export function moduleResolutionResult(error: MatchError): ModuleImportError {
     kind: ModuleImportResultKind.Error,
     error,
   };
+}
+
+/** Prepends `frame` to `result`'s import chain as it crosses an import. */
+export function withImportFrame(
+  result: ModuleImportError,
+  frame: ImportFrame,
+): ModuleImportError {
+  return { ...result, importChain: [frame, ...(result.importChain ?? [])] };
 }
 
 export function moduleResult(module: Module): ModuleImportResult {
