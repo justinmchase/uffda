@@ -252,14 +252,16 @@ metadata); aligning that projection onto a general `[Token]` rule-metadata walk
 are ranged on the failing root import's module specifier (via the resolver's
 `importChain` and the session's retained parse tree), with the dependency's own
 failure position as `relatedInformation` when known. A parse failure on an
-incomplete line (for example an import missing its names) is still reported at
-the next token, which may sit on a later line. Hover (`textDocument/hover`) and
-go-to-definition (`textDocument/definition`, both part of requirement 006) are
-implemented for `.uff`: hover resolves the identifier under the cursor through
-`RuntimeSession.describe()`, and definition resolves via
-`RuntimeSession.resolveDeclaration()` then locates the declaring production's
-`originalSpan` in a parse `Match` (open buffer preferred, else session parse
-state, else a read-only re-parse of the defining `.uff` on disk).
+incomplete line (for example an import missing its names) is anchored right
+after that line's last token. Document operations (open/change/close and every
+query) run through a per-document queue in `LspDocumentManager`, since the LSP
+connection does not await async notification handlers. Hover
+(`textDocument/hover`) and go-to-definition (`textDocument/definition`, both
+part of requirement 006) are implemented for `.uff`: hover resolves the
+identifier under the cursor through `RuntimeSession.describe()`, and definition
+resolves via `RuntimeSession.resolveDeclaration()` then locates the declaring
+production's `originalSpan` in a parse `Match` (open buffer preferred, else
+session parse state, else a read-only re-parse of the defining `.uff` on disk).
 `textDocument/completion` offers the rule/func/decorator names in scope for the
 document's resolved module (local declarations plus import bindings, via
 `RuntimeSession.listDeclarations()`). Inside an import it offers `.uff` files

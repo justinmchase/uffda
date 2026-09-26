@@ -38,7 +38,11 @@ Expected behavior:
   a full re-parse of the same post-edit content.
 - The server MUST NOT begin processing a new `didChange` for a document while a
   prior change for that same document is still being incrementally applied;
-  edits for a single document MUST be processed in the order received.
+  edits for a single document MUST be processed in the order received. This
+  holds even when the client sends changes without waiting (LSP notifications
+  are not acknowledged), and queries for a document (semantic tokens, hover,
+  definition, completion) MUST be answered from the state after every change
+  received before them, never from a partially applied change.
 
 Postconditions:
 

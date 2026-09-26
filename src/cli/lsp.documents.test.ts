@@ -86,10 +86,42 @@ Deno.test("cli.lsp.documents LspDocumentManager", async (t) => {
     },
   );
 
+  await t.step(
+    "un-awaited changes apply in order and match a fresh open",
+    async () => {
+      const initial = "export Main;\n\nrule Main = any;";
+      const typed = "rule B = Main;";
+      const manager = new LspDocumentManager(Deno.cwd());
+      await manager.open("inline:///burst", initial);
+      // Clients send didChange without waiting; each keystroke patches the
+      // state the previous one produced.
+      const pending = [...typed].map((ch, i) =>
+        manager.change("inline:///burst", [{
+          range: {
+            start: { line: 1, character: i },
+            end: { line: 1, character: i },
+          },
+          text: ch,
+        }])
+      );
+      const tokens = await manager.semanticTokens("inline:///burst");
+      const diagnostics = await pending.at(-1);
+
+      const final = `export Main;\n${typed}\nrule Main = any;`;
+      const fresh = new LspDocumentManager(Deno.cwd());
+      assertEquals(diagnostics, await fresh.open("inline:///fresh", final));
+      assertEquals(
+        tokens?.data,
+        (await fresh.semanticTokens("inline:///fresh"))?.data,
+      );
+      assertEquals(diagnostics, []);
+    },
+  );
+
   await t.step("close tears down the document's session", async () => {
     const manager = new LspDocumentManager(Deno.cwd());
     await manager.open("inline:///f", "export Main; rule Main = any;");
-    manager.close("inline:///f");
+    await manager.close("inline:///f");
     await assertRejects(() => manager.change("inline:///f", [{ text: "" }]));
   });
 
@@ -101,7 +133,7 @@ Deno.test("cli.lsp.documents LspDocumentManager", async (t) => {
         "inline:///g",
         "export Main; rule Main = any;",
       );
-      const tokens = manager.semanticTokens("inline:///g");
+      const tokens = await manager.semanticTokens("inline:///g");
       assert(tokens);
       assertEquals(tokens.data.length > 0, true);
       assertEquals(tokens.data.length % 5, 0);
@@ -113,7 +145,7 @@ Deno.test("cli.lsp.documents LspDocumentManager", async (t) => {
     async () => {
       const manager = new LspDocumentManager(Deno.cwd());
       await manager.open("inline:///h", "export Main; rule Main = ");
-      const tokens = manager.semanticTokens("inline:///h");
+      const tokens = await manager.semanticTokens("inline:///h");
       assert(tokens);
       assertEquals(tokens.data.length > 0, true);
     },
@@ -121,9 +153,12 @@ Deno.test("cli.lsp.documents LspDocumentManager", async (t) => {
 
   await t.step(
     "semanticTokens returns undefined for a document that was never opened",
-    () => {
+    async () => {
       const manager = new LspDocumentManager(Deno.cwd());
-      assertEquals(manager.semanticTokens("inline:///missing"), undefined);
+      assertEquals(
+        await manager.semanticTokens("inline:///missing"),
+        undefined,
+      );
     },
   );
 
@@ -133,7 +168,7 @@ Deno.test("cli.lsp.documents LspDocumentManager", async (t) => {
       const manager = new LspDocumentManager(Deno.cwd());
       const source = "export Main; rule Main = any;";
       await manager.open("inline:///hover", source);
-      const hover = manager.hover(
+      const hover = await manager.hover(
         "inline:///hover",
         offsetToPosition(source, source.indexOf("Main")),
       );
@@ -220,10 +255,10 @@ Deno.test("cli.lsp.documents LspDocumentManager", async (t) => {
 
   await t.step(
     "hover returns null for a document that was never opened",
-    () => {
+    async () => {
       const manager = new LspDocumentManager(Deno.cwd());
       assertEquals(
-        manager.hover("inline:///missing", { line: 0, character: 0 }),
+        await manager.hover("inline:///missing", { line: 0, character: 0 }),
         null,
       );
     },

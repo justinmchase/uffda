@@ -284,6 +284,7 @@ if (readPermissions.state === "granted") {
           importIndex: 0,
           moduleUrl: "./leaf.uff",
           resolvedUrl: leaf,
+          name: "Nope",
         },
       ]);
     },

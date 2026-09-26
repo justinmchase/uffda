@@ -164,7 +164,7 @@ Deno.test("cli.lsp wireUffdaLspHandlers", async (t) => {
         1,
       );
 
-      handlers.close({
+      await handlers.close({
         textDocument: { uri: "file:///workspace/edit.uff" },
       } as DidCloseTextDocumentParams);
 

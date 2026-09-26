@@ -23,6 +23,9 @@ Expected behavior:
   index of the import within that module's `imports` (`importIndex`), the
   import's specifier as written (`moduleUrl`), and the specifier resolved
   against the importer (`resolvedUrl`).
+- When the failure is about one imported name rather than the module (an unknown
+  export, or a conflict with a local rule/func/decorator), the frame of the
+  declaration listing that name MUST also record it (`name`).
 - Errors not caused by an import (for example an unknown export of a local rule)
   MUST NOT carry an `importChain`.
 - The chain MUST be deterministic for a fixed resolver configuration and module
