@@ -3,7 +3,9 @@ import { ImportDeclarationKind } from "../runtime/declarations/import.ts";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 import { isModuleDeclaration } from "../runtime/declarations/is_module_declaration.ts";
 import { astArtifactPathForUffUrl } from "../runtime/resolvers/artifact_path.ts";
+import type { ImportFrame } from "../runtime/resolvers/resolver.ts";
 import { compileSourcesToAstArtifacts } from "./compile.ts";
+import type { CliStreamFailureLocation } from "./stream.ts";
 
 export type EnsureImportArtifactsOptions = {
   cwd: string;
@@ -22,9 +24,32 @@ export type EnsureImportArtifactsOptions = {
   knownDeclarations: ReadonlyMap<string, ModuleDeclaration>;
 };
 
+/** The transitive import whose source could not be compiled or read. */
+export type EnsureImportDependencyFailure = {
+  /** URL of the failing dependency module. */
+  moduleUrl: string;
+  message: string;
+  /** Position inside the dependency's source, when known. */
+  location?: CliStreamFailureLocation;
+};
+
 export type EnsureImportArtifactsResult =
-  | { ok: true }
-  | { ok: false; message: string };
+  | {
+    ok: true;
+    /**
+     * `file:` hrefs of imports whose `.uff` source does not exist. They are
+     * left for the resolver (see `resolvedDuringLoad`), which reports them
+     * only if nothing else supplied the module.
+     */
+    missingSources: ReadonlySet<string>;
+  }
+  | {
+    ok: false;
+    message: string;
+    /** Import edges from `moduleUrl` down to the failing dependency. */
+    importChain: ImportFrame[];
+    dependency: EnsureImportDependencyFailure;
+  };
 
 function isFileUffUrl(url: URL): boolean {
   return url.protocol === "file:" && url.pathname.endsWith(".uff");
@@ -49,10 +74,15 @@ export async function ensureCompiledImportArtifacts(
   const outputDir = join(absArtifactRoot, "ast");
 
   const pending: URL[] = [];
-  const seen = new Set<string>();
+  const chains = new Map<string, ImportFrame[]>();
+  const missingSources = new Set<string>();
 
-  const enqueueImports = (decl: ModuleDeclaration, from: URL) => {
-    for (const imp of decl.imports) {
+  const enqueueImports = (
+    decl: ModuleDeclaration,
+    from: URL,
+    chain: ImportFrame[],
+  ) => {
+    for (const [importIndex, imp] of decl.imports.entries()) {
       if (imp.kind !== ImportDeclarationKind.Module) continue;
       let url: URL;
       try {
@@ -61,20 +91,41 @@ export async function ensureCompiledImportArtifacts(
         continue;
       }
       if (!isFileUffUrl(url)) continue;
-      if (seen.has(url.href)) continue;
-      seen.add(url.href);
+      if (chains.has(url.href)) continue;
+      chains.set(url.href, [...chain, {
+        importerUrl: from.href,
+        importIndex,
+        moduleUrl: imp.moduleUrl,
+        resolvedUrl: url.href,
+      }]);
       pending.push(url);
     }
   };
 
-  enqueueImports(declaration, moduleUrl);
+  const failure = (
+    url: URL,
+    message: string,
+    location?: CliStreamFailureLocation,
+  ): EnsureImportArtifactsResult => ({
+    ok: false,
+    message,
+    importChain: chains.get(url.href) ?? [],
+    dependency: {
+      moduleUrl: url.href,
+      message,
+      ...(location ? { location } : {}),
+    },
+  });
+
+  enqueueImports(declaration, moduleUrl, []);
 
   while (pending.length > 0) {
     const url = pending.shift()!;
+    const chain = chains.get(url.href)!;
 
     const known = knownDeclarations.get(url.href);
     if (known) {
-      enqueueImports(known, url);
+      enqueueImports(known, url, chain);
       continue;
     }
 
@@ -88,6 +139,7 @@ export async function ensureCompiledImportArtifacts(
       // Source is absent — leave resolution to the read-only resolver so
       // earlier imports in the same load can still populate
       // `resolvedDuringLoad`. Do not invent a compile failure here.
+      missingSources.add(url.href);
       continue;
     }
 
@@ -108,16 +160,15 @@ export async function ensureCompiledImportArtifacts(
         const text = await Deno.readTextFile(artifactPath);
         const parsed: unknown = JSON.parse(text);
         if (isModuleDeclaration(parsed)) {
-          enqueueImports(parsed, url);
+          enqueueImports(parsed, url, chain);
         }
       } catch (error) {
-        return {
-          ok: false,
-          message:
-            `Unable to read compiled import artifact for ${url.href} at ${artifactPath}: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-        };
+        return failure(
+          url,
+          `Unable to read compiled import artifact for ${url.href} at ${artifactPath}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
       }
       continue;
     }
@@ -129,18 +180,19 @@ export async function ensureCompiledImportArtifacts(
       overwrite: true,
     });
     if (!compiled.ok) {
-      const failure = compiled.failures[0];
-      return {
-        ok: false,
-        message: failure
-          ? `${failure.code}: ${failure.message}`
-          : `Failed to compile import ${url.href}`,
-      };
+      const compileFailure = compiled.failures[0];
+      return compileFailure
+        ? failure(
+          url,
+          `${compileFailure.code}: ${compileFailure.message}`,
+          compileFailure.location,
+        )
+        : failure(url, `Failed to compile import ${url.href}`);
     }
     for (const success of compiled.successes) {
-      enqueueImports(success.module, url);
+      enqueueImports(success.module, url, chain);
     }
   }
 
-  return { ok: true };
+  return { ok: true, missingSources };
 }

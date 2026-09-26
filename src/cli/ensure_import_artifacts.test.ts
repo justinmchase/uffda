@@ -126,7 +126,11 @@ Deno.test("cli.ensure_import_artifacts", async (t) => {
           declaration: declWithImport("./missing.uff"),
           knownDeclarations: new Map(),
         });
-        assertEquals(result.ok, true);
+        assert(result.ok);
+        assertEquals(
+          [...result.missingSources],
+          [new URL(`file://${join(cwd, "missing.uff")}`).href],
+        );
       } finally {
         await Deno.remove(cwd, { recursive: true });
       }
@@ -151,6 +155,60 @@ Deno.test("cli.ensure_import_artifacts", async (t) => {
         assertEquals(result.ok, false);
         assert(!result.ok);
         assert(result.message.length > 0);
+        const badUrl = new URL(`file://${badPath}`).href;
+        assertEquals(result.dependency.moduleUrl, badUrl);
+        assertEquals(result.dependency.location?.line, 0);
+        assertEquals(result.importChain, [{
+          importerUrl: mainUrl.href,
+          importIndex: 0,
+          moduleUrl: "./bad.uff",
+          resolvedUrl: badUrl,
+        }]);
+      } finally {
+        await Deno.remove(cwd, { recursive: true });
+      }
+    },
+  );
+
+  await t.step(
+    "reports the full import chain for a transitive compile failure",
+    async () => {
+      const cwd = await Deno.makeTempDir({ prefix: "uffda-ensure-imports-" });
+      try {
+        const midPath = join(cwd, "mid.uff");
+        const badPath = join(cwd, "bad.uff");
+        await Deno.writeTextFile(
+          midPath,
+          'import "./bad.uff" B;\nexport Mid;\nrule Mid = B;',
+        );
+        await Deno.writeTextFile(badPath, "export B;\n\nrule B = ( any ;");
+        const mainUrl = new URL(`file://${join(cwd, "main.uff")}`);
+        const midUrl = new URL(`file://${midPath}`).href;
+        const badUrl = new URL(`file://${badPath}`).href;
+        const result = await ensureCompiledImportArtifacts({
+          cwd,
+          artifactRoot: ".uffda",
+          moduleUrl: mainUrl,
+          declaration: declWithImport("./mid.uff"),
+          knownDeclarations: new Map(),
+        });
+        assert(!result.ok);
+        assertEquals(result.dependency.moduleUrl, badUrl);
+        assertEquals(result.dependency.location?.line, 2);
+        assertEquals(result.importChain, [
+          {
+            importerUrl: mainUrl.href,
+            importIndex: 0,
+            moduleUrl: "./mid.uff",
+            resolvedUrl: midUrl,
+          },
+          {
+            importerUrl: midUrl,
+            importIndex: 0,
+            moduleUrl: "./bad.uff",
+            resolvedUrl: badUrl,
+          },
+        ]);
       } finally {
         await Deno.remove(cwd, { recursive: true });
       }

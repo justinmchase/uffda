@@ -355,6 +355,77 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
       }
     },
   );
+
+  await t.step(
+    "attributes a missing import source to its specifier",
+    async () => {
+      const cwd = await Deno.makeTempDir({ prefix: "uffda-mcp-session-" });
+      try {
+        const source =
+          '# main\nimport "./missing.uff" A;\nexport B;\nrule B = any;';
+        const session = new RuntimeSession("s14", { cwd });
+        const result = await session.load(source, "main.uff");
+        assert(!result.ok);
+        assertEquals(result.error.phase, "resolve");
+        assertEquals(
+          result.error.message,
+          `Cannot find module "./missing.uff": no such file ${
+            join(cwd, "missing.uff")
+          }`,
+        );
+        const location = result.error.location;
+        assert(location);
+        assertEquals(location.line, 1);
+        assertEquals(
+          source.slice(location.offset, location.endOffset),
+          '"./missing.uff"',
+        );
+        assertEquals(result.error.importChain?.length, 1);
+      } finally {
+        await Deno.remove(cwd, { recursive: true });
+      }
+    },
+  );
+
+  await t.step(
+    "attributes a transitive dependency's syntax error to the root import",
+    async () => {
+      const cwd = await Deno.makeTempDir({ prefix: "uffda-mcp-session-" });
+      try {
+        await Deno.writeTextFile(
+          join(cwd, "mid.uff"),
+          'import "./bad.uff" B;\nexport M;\nrule M = B;',
+        );
+        await Deno.writeTextFile(
+          join(cwd, "bad.uff"),
+          "export B;\n\nrule B = ( any ;",
+        );
+        const source = 'import "./mid.uff" M;\nexport M;';
+        const session = new RuntimeSession("s15", { cwd });
+        const result = await session.load(source, "main.uff");
+        assert(!result.ok);
+        assertEquals(result.error.phase, "resolve");
+        assert(
+          result.error.message.startsWith(
+            'Import "./mid.uff" failed: failed to compile ',
+          ),
+        );
+        const location = result.error.location;
+        assert(location);
+        assertEquals(
+          source.slice(location.offset, location.endOffset),
+          '"./mid.uff"',
+        );
+        assertEquals(result.error.importChain?.length, 2);
+        const dependency = result.error.dependencyFailure;
+        assert(dependency);
+        assert(dependency.moduleUrl.endsWith("/bad.uff"));
+        assertEquals(dependency.location?.line, 2);
+      } finally {
+        await Deno.remove(cwd, { recursive: true });
+      }
+    },
+  );
 });
 
 Deno.test("cli.mcp.session RuntimeSession.patch", async (t) => {

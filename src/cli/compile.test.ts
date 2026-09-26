@@ -84,6 +84,7 @@ Deno.test({
         );
         assert(parseFailure != null);
         assertEquals(parseFailure.code, CliCompileFailureCode.ParseFailure);
+        assertEquals(parseFailure.location?.line, 0);
 
         assertEquals(result.successes.length, 2);
         assertEquals(

@@ -49,7 +49,8 @@ export function mapSourceSpan(
 
 /**
  * Input streams use 1-based leaf indices: path leaf 0 is before the first
- * item, leaf k holds the k-th item. `itemSpans` is 0-based.
+ * item, leaf k holds the k-th item. `itemSpans` is 0-based, so a span from
+ * leaf a to leaf b covers `itemSpans[a]` through `itemSpans[b - 1]`.
  */
 function spansFromItemTable(
   startIdx: number,
@@ -84,17 +85,12 @@ function spansFromItemTable(
     return point(item.normalized.end, item.original.end);
   };
 
+  // A match starting at leaf k has consumed k items, so it begins at the
+  // (k+1)-th item: 0-based `itemSpans[k]`.
   const itemStart = (
     leaf: number,
   ): { normalized: number; original: number } => {
-    if (leaf <= 0) {
-      const first = itemSpans[0];
-      return {
-        normalized: first.normalized.start,
-        original: first.original.start,
-      };
-    }
-    const index = leaf - 1;
+    const index = Math.max(0, leaf);
     if (index >= itemSpans.length) {
       const last = itemSpans[itemSpans.length - 1];
       return { normalized: last.normalized.end, original: last.original.end };
