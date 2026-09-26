@@ -1,7 +1,12 @@
 import { fromFileUrl, toFileUrl } from "@std/path";
 import type { Location, Range } from "vscode-languageserver-types";
-import { type Match, MatchKind } from "../match.ts";
+import type { Match } from "../match.ts";
 import { CliLanguage } from "./contract.ts";
+import {
+  declaredName,
+  EditorDecorator,
+  findAnnotated,
+} from "./editor_metadata.ts";
 import { identifierAtOffset } from "./lsp.hover.ts";
 import { offsetToPosition, positionToOffset } from "./lsp.positions.ts";
 import type { RuntimeSession } from "./mcp.session.ts";
@@ -14,59 +19,31 @@ import { parseSourceToAst } from "./stream.ts";
  * when the declaration span cannot be proven.
  */
 
-/** Grammar rule origins that project `{ kind, name, … }` for a declaration. */
-const DECLARATION_RULE_NAMES = new Set([
-  "RuleDeclarationSyntax",
-  "FuncDeclarationSyntax",
-  "DecoratorDeclarationSyntax",
-]);
-
 export type DeclarationSpan = {
   start: number;
   end: number;
 };
 
 /**
- * Walks a parse `Match` for a declaration production whose projected `name`
- * equals `name`, returning its `originalSpan`. Walks Ok and Fail children so
- * a declaration matched before a later failure is still findable.
+ * Walks a parse `Match` for a `[Declaration]` production whose projected
+ * `name` equals `name`, returning its `originalSpan`. Walks Ok and Fail
+ * children so a declaration matched before a later failure is still findable.
  */
 export function declarationSpanInMatch(
   match: Match,
   name: string,
 ): DeclarationSpan | undefined {
-  let found: DeclarationSpan | undefined;
-
-  function walk(node: Match): void {
-    if (found) return;
-    if (node.kind !== MatchKind.Ok && node.kind !== MatchKind.Fail) return;
-
-    const ruleName = node.origin?.rule.name;
-    if (
-      node.kind === MatchKind.Ok &&
-      ruleName !== undefined &&
-      DECLARATION_RULE_NAMES.has(ruleName) &&
-      declarationNameFromValue(node.value) === name
-    ) {
-      const { start, end } = node.originalSpan;
-      if (end > start) {
-        found = { start, end };
-        return;
-      }
-    }
-
-    for (const child of node.matches) walk(child);
-  }
-
-  walk(match);
-  return found;
-}
-
-function declarationNameFromValue(value: unknown): string | undefined {
-  if (value === null || typeof value !== "object") return undefined;
-  if (!("name" in value)) return undefined;
-  const name = (value as { name: unknown }).name;
-  return typeof name === "string" ? name : undefined;
+  const found = findAnnotated(
+    match,
+    EditorDecorator.Declaration,
+    (node) =>
+      declaredName(node) === name &&
+      node.originalSpan.end > node.originalSpan.start,
+  );
+  return found && {
+    start: found.originalSpan.start,
+    end: found.originalSpan.end,
+  };
 }
 
 function rangeFromSpan(source: string, span: DeclarationSpan): Range {

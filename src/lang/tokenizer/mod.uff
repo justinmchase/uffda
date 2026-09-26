@@ -4,6 +4,7 @@
 # quote scanner (B15) does not break on later backslash literals.
 import "../common/characters/mod.uff" Combining Connecting Digit Formatting Letter Whitespace;
 import "./token.uff" Token;
+import "../editor/editor.uff" Highlight;
 
 export Token;
 export TokenizerNoWhitespace;
@@ -12,6 +13,7 @@ export rule Tokenizer =
   -> (flat _ 2)
   ;
 
+[Highlight { role: "punctuation" }]
 rule SlashPunctuationToken =
   b:"\\"
   -> { kind: "punctuation", text: b };
@@ -37,6 +39,7 @@ rule EscapeFollower =
     default: string
   };
 
+[Highlight { role: "string" }]
 rule EscapeCharPunctuationToken =
   e:EscapeFollower
   -> { kind: "punctuation", text: e };
@@ -44,10 +47,12 @@ rule EscapeCharPunctuationToken =
 rule EscapeTokens =
   SlashPunctuationToken EscapeCharPunctuationToken;
 
+[Highlight { role: "whitespace" }]
 rule WhitespaceToken =
   Whitespace+
   -> { kind: "whitespace", text: (join (flat _) "") };
 
+[Highlight { role: "newline" }]
 rule NewLineToken =
   "\n"
   -> { kind: "newline", text: _ };
@@ -68,22 +73,27 @@ rule WordChar =
     \cCf: Formatting
   };
 
+[Highlight { role: "identifier" }]
 rule WordToken =
   WordChar+
   -> { kind: "word", text: (join (flat _) "") };
 
+[Highlight { role: "punctuation" }]
 rule PunctuationToken =
   string
   -> { kind: "punctuation", text: _ };
 
+[Highlight { role: "punctuation" }]
 rule DQuoteToken =
   "\""
   -> { kind: "punctuation", text: _ };
 
+[Highlight { role: "comment" }]
 rule CommentToken =
   "#" (except "\n")*
   -> { kind: "comment", text: (join (flat _) "") };
 
+[Highlight { role: "string" }]
 rule StringPunctuationToken =
   (not "\"") & string
   -> { kind: "punctuation", text: _ };
@@ -111,6 +121,7 @@ rule StringInterior =
     default: StringPunctuationToken
   };
 
+[Highlight { role: "string" }]
 rule QuotedStringTokens =
   o:DQuoteToken
   i:StringInterior*

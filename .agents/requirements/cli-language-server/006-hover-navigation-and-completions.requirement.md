@@ -26,21 +26,30 @@ Expected behavior:
   graph, including across `.uff` import boundaries. A reference the server
   cannot resolve MUST return no location (an empty result), never a location
   chosen by heuristic/best-effort guessing.
-- `textDocument/completion` MUST offer in-scope rule/func/decorator names at the
-  requested position, and, where statically determinable from the expression
-  grammar's structure, expression-level completions (for example parameter names
-  in scope).
-- Inside an import declaration, completion MUST be contextual instead of
-  offering in-scope declarations:
-  - inside the module specifier string, it MUST offer the importable entries
-    relative to the document: `.uff` modules and directories in the directory
-    the typed relative specifier (`./`, `../`) names, excluding the document
-    itself and hidden entries; an empty specifier offers `./` and `../`;
-  - in the name list after the specifier, it MUST offer the names the imported
-    module exports, excluding names already listed. Reading an unresolved
-    module's exports MUST NOT write artifacts or change session state.
-- Completion triggered by the import trigger characters (`"` and `/`) outside an
-  import declaration MUST return no items.
+- Hover and go-to-definition MUST identify the name under the cursor from the
+  document's parse tree (an `identifier`-role token span); with no parse tree
+  they MUST return no result rather than scanning the text. Definition MUST
+  locate declarations by `[Declaration]` metadata.
+- `textDocument/completion` MUST derive what it offers from the completion
+  contexts the document's grammar produces for the text before the cursor (see
+  [editor metadata](../../specifications/languages/cli/editor-metadata.spec.md#completion-contexts)),
+  never from text patterns:
+  - in a `[ModulePath]`, it MUST offer the importable entries relative to the
+    document: modules with the path's declared extensions (`.uff` for the `.uff`
+    grammar) and directories in the directory the typed relative path (`./`,
+    `../`) names, excluding the document itself and hidden entries; an empty
+    path offers `./` and `../`;
+  - in an `[ImportedName]`, it MUST offer the names the module named by the
+    enclosing import's `[ModulePath]` exports, excluding names that import
+    already binds. Reading an unresolved module's exports MUST NOT write
+    artifacts or change session state;
+  - in a `[NameReference]`, it MUST offer the in-scope declarations of the kinds
+    it names (rules in a pattern, funcs in an expression, decorators in an
+    attribute, any kind in an export list), and, where statically determinable
+    from the expression grammar's structure, expression-level completions (for
+    example parameter names in scope).
+- A position no completion context reaches MUST return no items, whether or not
+  the request was triggered by a trigger character.
 - None of hover, go-to-definition, or completion requests MUST mutate any
   document's parse/resolution state, retained match results, or diagnostics as a
   side effect of being answered — they are read-only queries over already

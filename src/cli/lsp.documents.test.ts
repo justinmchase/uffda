@@ -183,20 +183,30 @@ Deno.test("cli.lsp.documents LspDocumentManager", async (t) => {
   );
 
   await t.step(
-    "completion offers the document's in-scope declarations",
+    "completion offers in-scope declarations at a name reference",
     async () => {
       const manager = new LspDocumentManager(Deno.cwd());
+      const uri = "inline:///completion";
       await manager.open(
-        "inline:///completion",
-        "export Main; rule Main = any; rule Helper = any;",
+        uri,
+        "export Main;\nrule Main = Helper;\nrule Helper = any;",
       );
-      const labels = (await manager.completion("inline:///completion", {
-        line: 0,
-        character: 0,
-      }))
-        .map((item) => item.label)
-        .sort();
-      assertEquals(labels, ["Helper", "Main"]);
+      const items = await manager.completion(uri, {
+        line: 1,
+        character: "rule Main = Hel".length,
+      });
+      assertEquals(items.map((item) => item.label).sort(), ["Helper", "Main"]);
+      const edit = items[0].textEdit;
+      assert(edit && "range" in edit);
+      assertEquals(edit.range, {
+        start: { line: 1, character: "rule Main = ".length },
+        end: { line: 1, character: "rule Main = Hel".length },
+      });
+
+      assertEquals(
+        await manager.completion(uri, { line: 0, character: 0 }),
+        [],
+      );
     },
   );
 
@@ -228,23 +238,22 @@ Deno.test("cli.lsp.documents LspDocumentManager", async (t) => {
         const manager = new LspDocumentManager(cwd);
         await manager.open(uri, 'import "./');
 
-        const files = await manager.completion(
-          uri,
-          { line: 0, character: 10 },
-          "/",
-        );
+        const files = await manager.completion(uri, {
+          line: 0,
+          character: 10,
+        });
         assertEquals(files.map((i) => i.label), ["dep.uff", "lib/"]);
 
-        await manager.change(uri, [{ text: 'import "./dep.uff" Foo ' }]);
+        await manager.change(uri, [{ text: 'import "./dep.uff" Foo B' }]);
         const names = await manager.completion(uri, {
           line: 0,
-          character: 23,
+          character: 24,
         });
         assertEquals(names.map((i) => i.label), ["Bar"]);
 
         await manager.change(uri, [{ text: 'rule A = "' }]);
         assertEquals(
-          await manager.completion(uri, { line: 0, character: 10 }, '"'),
+          await manager.completion(uri, { line: 0, character: 10 }),
           [],
         );
       } finally {

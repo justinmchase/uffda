@@ -1,8 +1,10 @@
 # Reference matches a string Identifier and projects a ReferenceExpression.
 import "../common/identifier.uff" IdToken;
+import "../editor/editor.uff" NameReference;
 
 export Reference;
 
+[NameReference { kinds: ["func"] }]
 rule Reference =
   IdToken
   -> { kind: "reference", name: _ };

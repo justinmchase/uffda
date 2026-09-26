@@ -126,9 +126,9 @@ not introduce a parallel parsing or compilation pathway.
 
 - The server MUST support `textDocument/semanticTokens` for syntax highlighting,
   deriving token classification from the grammar's own delivered parse tree and
-  its rule metadata (see the `[Token]` rule-metadata mechanism referenced by
-  GitHub issue #159), rather than a separately hand-maintained TextMate-style
-  grammar.
+  its `[Highlight]`/`[Keyword]` rule metadata (see
+  [editor metadata](./editor-metadata.spec.md#highlighting)), rather than a
+  separately hand-maintained TextMate-style grammar or a map of rule names.
 - Highlighting MUST be kept current under incremental re-parsing using the same
   document-synchronization contract as diagnostics.
 
@@ -143,9 +143,14 @@ not introduce a parallel parsing or compilation pathway.
   source location within the workspace's resolved module graph.
 - The server MUST support `textDocument/completion`, offering in-scope
   rule/func/decorator names and, where staticly determinable, expression-level
-  completions. Inside an import declaration, completion MUST instead offer
-  importable modules (in the specifier) or the imported module's exports (in the
-  name list).
+  completions. What is offered at a position MUST be determined by the
+  completion contexts the document's grammar derives there (see
+  [editor metadata](./editor-metadata.spec.md#completion-contexts)): importable
+  modules in a module path, the imported module's exports in an imported name,
+  and declarations of the referenced kinds in a name reference. The server MUST
+  NOT recognize any language's syntax (imports, identifiers) by text patterns.
+- Declarations, names under the cursor, and import sub-ranges MUST likewise be
+  located through editor metadata, not rule names.
 - These capabilities MUST be read-only with respect to runtime/session state:
   none of them MUST mutate a document's parse state as a side effect of being
   queried.
@@ -245,46 +250,45 @@ not introduce a parallel parsing or compilation pathway.
 synchronization/incremental re-parsing, diagnostics, and full-document
 semantic-token highlighting (see requirements 001-005 in
 `.agents/requirements/cli-language-server/`) are implemented, `.uff`-only, over
-stdio. Classification currently reuses the shared parse-tree projection in
-`src/cli/highlight.ts` (tokenizer rule names plus `[Keyword]` decorator
-metadata); aligning that projection onto a general `[Token]` rule-metadata walk
-(see GitHub issue #159) remains a follow-up. Import-caused resolution failures
-are ranged on the failing root import's module specifier (via the resolver's
-`importChain` and the session's retained parse tree), with the dependency's own
-failure position as `relatedInformation` when known. A parse failure on an
-incomplete line (for example an import missing its names) is anchored right
-after that line's last token. Document operations (open/change/close and every
-query) run through a per-document queue in `LspDocumentManager`, since the LSP
-connection does not await async notification handlers. Hover
-(`textDocument/hover`) and go-to-definition (`textDocument/definition`, both
-part of requirement 006) are implemented for `.uff`: hover resolves the
-identifier under the cursor through `RuntimeSession.describe()`, and definition
-resolves via `RuntimeSession.resolveDeclaration()` then locates the declaring
+stdio. Every piece of syntax knowledge the editor tooling uses comes from the
+[editor metadata](./editor-metadata.spec.md) the `.uff` grammar applies to its
+own rules (`src/lang/editor/editor.uff`): classification reads `[Highlight]`
+roles plus `[Keyword]` (`src/cli/highlight.ts`). Import-caused resolution
+failures are ranged on the failing root import's `[ModulePath]` or
+`[ImportedName]` (via the resolver's `importChain` and the session's retained
+parse tree), with the dependency's own failure position as `relatedInformation`
+when known. A parse failure on an incomplete line (for example an import missing
+its names) is anchored right after that line's last token. Document operations
+(open/change/close and every query) run through a per-document queue in
+`LspDocumentManager`, since the LSP connection does not await async notification
+handlers. Hover (`textDocument/hover`) and go-to-definition
+(`textDocument/definition`, both part of requirement 006) are implemented for
+`.uff`: hover resolves the identifier under the cursor through
+`RuntimeSession.describe()`, and definition resolves via
+`RuntimeSession.resolveDeclaration()` then locates the `[Declaration]`
 production's `originalSpan` in a parse `Match` (open buffer preferred, else
 session parse state, else a read-only re-parse of the defining `.uff` on disk).
-`textDocument/completion` offers the rule/func/decorator names in scope for the
-document's resolved module (local declarations plus import bindings, via
-`RuntimeSession.listDeclarations()`). Inside an import it offers `.uff` files
-and folders relative to the document within the specifier string, and the target
-module's exports in the name list (the session's resolved module, else a
-read-only compile of its source). The import context is classified from the
-cursor's line, so an import split across lines is not recognized, and `.ts` /
-`.js` / `.json` declaration modules are not offered as files. Two refinements
-remain outstanding: filtering by position so decorators are only offered inside
-`[...]` attributes (and rules/funcs outside them), and expression-level
-completions such as parameter names in scope. The VS Code extension
-(requirement 007) has an initial implementation at `editors/vscode/`: it
-registers `uffda lsp` for `.uff` files, registers `uffda mcp` as an MCP server,
-and resolves/downloads a compatible `uffda` binary automatically, with debug
-override settings. The extension also queries the custom
-`uffda/languageMetadata` request and applies `[Language]`-derived editor
-configuration via `vscode.languages.setLanguageConfiguration()`, and assigns
-language ids from `[Language].ext` via
-`vscode.languages.setTextDocumentLanguage()` for workspace-declared languages
-(static `language-configuration.json` remains as a fallback for `.uff`). The LSP
-config loader fills omitted `extensions` from `[Language].ext` when
-`modulePath`/`entryRuleName` are present. See GitHub issue #155 for the tracking
-issue.
+`textDocument/completion` parses the text before the cursor and offers items
+only for the completion contexts that reach it: `.uff` files and folders
+relative to the document in a `[ModulePath]`, the target module's exports in an
+`[ImportedName]` (the session's resolved module, else a read-only compile of its
+source), and in-scope declarations (via `RuntimeSession.listDeclarations()`) of
+the kinds a `[NameReference]` names — rules in patterns, funcs in expressions,
+decorators in attributes, any kind in an export list. An empty position after an
+optional repetition has no context yet (see the editor-metadata known gap), and
+expression-level completions such as parameter names in scope remain
+outstanding. The VS Code extension (requirement 007) has an initial
+implementation at `editors/vscode/`: it registers `uffda lsp` for `.uff` files,
+registers `uffda mcp` as an MCP server, and resolves/downloads a compatible
+`uffda` binary automatically, with debug override settings. The extension also
+queries the custom `uffda/languageMetadata` request and applies
+`[Language]`-derived editor configuration via
+`vscode.languages.setLanguageConfiguration()`, and assigns language ids from
+`[Language].ext` via `vscode.languages.setTextDocumentLanguage()` for
+workspace-declared languages (static `language-configuration.json` remains as a
+fallback for `.uff`). The LSP config loader fills omitted `extensions` from
+`[Language].ext` when `modulePath`/`entryRuleName` are present. See GitHub issue
+#155 for the tracking issue.
 
 ## Related
 
@@ -293,6 +297,8 @@ issue.
   server built on the same runtime pathways.
 - [runtime incremental re-parsing](../../runtime/incremental-parsing.spec.md) —
   the reuse contract this mode's document synchronization is built on.
+- [Editor metadata](./editor-metadata.spec.md) — the rule-metadata vocabulary
+  every syntax-aware capability of this mode reads.
 - GitHub issue #155 — origin of this chapter.
 - GitHub issue #159 — the `[Token]` rule-metadata mechanism this chapter's
   syntax highlighting section relies on.

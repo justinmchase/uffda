@@ -1,5 +1,6 @@
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
+import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
 import {
   declarationSpanInMatch,
   definitionAtPosition,
@@ -29,6 +30,29 @@ Deno.test("cli.lsp.definition declarationSpanInMatch", async (t) => {
     } finally {
       await Deno.remove(cwd, { recursive: true });
     }
+  });
+
+  await t.step(
+    "finds func and decorator declarations via [Declaration] metadata",
+    async () => {
+      const source = "decorator Loud = true;\nfunc Greet = 1;";
+      const match = await uffdaGrammar(source);
+      for (
+        const [name, text] of [["Loud", "decorator Loud"], [
+          "Greet",
+          "func Greet",
+        ]]
+      ) {
+        const span = declarationSpanInMatch(match, name);
+        assert(span, name);
+        assert(source.slice(span.start, span.end).startsWith(text));
+      }
+    },
+  );
+
+  await t.step("ignores names that are only referenced", async () => {
+    const match = await uffdaGrammar("rule Main = Other;");
+    assertEquals(declarationSpanInMatch(match, "Other"), undefined);
   });
 });
 

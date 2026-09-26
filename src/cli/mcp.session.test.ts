@@ -415,7 +415,7 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
         assertEquals(location.line, 1);
         assertEquals(
           source.slice(location.offset, location.endOffset),
-          '"./missing.uff"',
+          "./missing.uff",
         );
         assertEquals(result.error.importChain?.length, 1);
       } finally {
@@ -451,7 +451,7 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
         assert(location);
         assertEquals(
           source.slice(location.offset, location.endOffset),
-          '"./mid.uff"',
+          "./mid.uff",
         );
         assertEquals(result.error.importChain?.length, 2);
         const dependency = result.error.dependencyFailure;

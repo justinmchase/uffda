@@ -7,85 +7,32 @@ import {
 import { compileUffdaSource } from "../lang/uffda/execute.ts";
 import { MatchKind } from "../match.ts";
 import { ExportDeclarationKind } from "../runtime/declarations/export.ts";
+import type {
+  CompletionContext,
+  CompletionContextKind,
+  CompletionReplace,
+} from "./lsp.completion_context.ts";
 import { offsetToPosition } from "./lsp.positions.ts";
 import type { RuntimeSession } from "./mcp.session.ts";
 
 /**
- * Position-aware completion inside `.uff` import declarations
- * (`import "<specifier>" Name…;`, requirement 006): file paths while the cursor
- * is inside the module specifier string, and the imported module's exports
- * while it is in the name list.
- *
- * The context is classified lexically from the cursor's line rather than
- * from the parse tree: completion is requested mid-edit, when the declaration
- * is usually incomplete (an unterminated string swallows the rest of the
- * document), so the retained parse tree cannot be trusted to locate it.
+ * Completion items for import contexts (requirement 006): module files while
+ * the cursor is in a `[ModulePath]`, and the imported module's exports while
+ * it is in an `[ImportedName]` (see `lsp.completion_context.ts` for how those
+ * contexts are derived from the document's own grammar).
  */
 
-export enum ImportCompletionContextKind {
-  Specifier = "specifier",
-  Names = "names",
-}
+type ModulePathContext = Extract<
+  CompletionContext,
+  { kind: CompletionContextKind.ModulePath }
+>;
 
-export type ImportCompletionContext =
-  | {
-    kind: ImportCompletionContextKind.Specifier;
-    /** Specifier text typed so far (between the opening quote and cursor). */
-    typed: string;
-    /** Range of the path segment being completed (after the last `/`). */
-    replace: { start: number; end: number };
-  }
-  | {
-    kind: ImportCompletionContextKind.Names;
-    specifier: string;
-    /** Names already listed before the one being typed. */
-    listed: string[];
-    /** Range of the identifier being typed (possibly empty). */
-    replace: { start: number; end: number };
-  };
+type ImportedNameContext = Extract<
+  CompletionContext,
+  { kind: CompletionContextKind.ImportedName }
+>;
 
-const SPECIFIER_PREFIX = /^\s*import\s+"([^"]*)$/;
-const NAMES_PREFIX =
-  /^\s*import\s+"([^"]*)"((?:\s+[A-Za-z_][A-Za-z0-9_]*)*)\s+([A-Za-z_][A-Za-z0-9_]*)?$/;
-
-/** Classifies `offset` in `source` as an import-completion position, if any. */
-export function importCompletionContext(
-  source: string,
-  offset: number,
-): ImportCompletionContext | undefined {
-  const lineStart = source.lastIndexOf("\n", offset - 1) + 1;
-  const prefix = source.slice(lineStart, offset);
-
-  const specifier = SPECIFIER_PREFIX.exec(prefix);
-  if (specifier) {
-    const typed = specifier[1];
-    const start = offset - (typed.length - (typed.lastIndexOf("/") + 1));
-    let end = offset;
-    while (end < source.length && !/["/\s]/.test(source[end])) end++;
-    return {
-      kind: ImportCompletionContextKind.Specifier,
-      typed,
-      replace: { start, end },
-    };
-  }
-
-  const names = NAMES_PREFIX.exec(prefix);
-  if (names) {
-    const partial = names[3] ?? "";
-    let end = offset;
-    while (end < source.length && /[A-Za-z0-9_]/.test(source[end])) end++;
-    return {
-      kind: ImportCompletionContextKind.Names,
-      specifier: names[1],
-      listed: names[2].split(/\s+/).filter((n) => n.length > 0),
-      replace: { start: offset - partial.length, end },
-    };
-  }
-
-  return undefined;
-}
-
-function rangeOf(source: string, span: { start: number; end: number }): Range {
+export function rangeOf(source: string, span: CompletionReplace): Range {
   return {
     start: offsetToPosition(source, span.start),
     end: offsetToPosition(source, span.end),
@@ -93,19 +40,17 @@ function rangeOf(source: string, span: { start: number; end: number }): Range {
 }
 
 /**
- * Directories and `.uff` modules reachable from the specifier typed so far,
- * resolved against the importing document's directory. Only relative
- * specifiers (`./`, `../`) are completed; the document itself is excluded.
+ * Directories and modules (files with one of `context.extensions`, or any
+ * file when unrestricted) reachable from the path typed so far, resolved
+ * against the importing document's directory. Only relative paths (`./`,
+ * `../`) are completed; the document itself is excluded.
  */
 export async function specifierCompletionItems(
   documentPath: string,
   source: string,
-  context: Extract<
-    ImportCompletionContext,
-    { kind: ImportCompletionContextKind.Specifier }
-  >,
+  context: ModulePathContext,
 ): Promise<CompletionItem[]> {
-  const { typed } = context;
+  const { typed, extensions } = context;
   const range = rangeOf(source, context.replace);
   if (typed === "" || typed === ".") {
     return ["./", "../"].map((label) => ({
@@ -132,7 +77,9 @@ export async function specifierCompletionItems(
           command: RETRIGGER,
         });
       } else if (
-        entry.isFile && entry.name.endsWith(".uff") &&
+        entry.isFile &&
+        (extensions === undefined ||
+          extensions.some((ext) => entry.name.endsWith(ext))) &&
         !(directoryPart === "./" && entry.name === self)
       ) {
         items.push({
@@ -157,7 +104,7 @@ const RETRIGGER = {
 type ExportedName = { name: string; detail: string };
 
 /**
- * The exports of the module `context.specifier` names (relative to the
+ * The exports of the module `context.modulePath` names (relative to the
  * importing document), minus names already listed. Prefers the session's
  * resolved module; otherwise compiles the module's source read-only (no
  * artifact is written).
@@ -166,14 +113,12 @@ export async function nameCompletionItems(
   session: RuntimeSession,
   documentPath: string,
   source: string,
-  context: Extract<
-    ImportCompletionContext,
-    { kind: ImportCompletionContextKind.Names }
-  >,
+  context: ImportedNameContext,
 ): Promise<CompletionItem[]> {
+  if (context.modulePath === undefined) return [];
   let moduleUrl: URL;
   try {
-    moduleUrl = new URL(context.specifier, toFileUrl(documentPath));
+    moduleUrl = new URL(context.modulePath, toFileUrl(documentPath));
   } catch {
     return [];
   }
@@ -201,9 +146,7 @@ async function exportedNames(
       .map((d) => ({ name: d.name, detail: `exported ${d.kind}` }));
   }
 
-  if (moduleUrl.protocol !== "file:" || !moduleUrl.pathname.endsWith(".uff")) {
-    return [];
-  }
+  if (moduleUrl.protocol !== "file:") return [];
   let text: string;
   try {
     text = await Deno.readTextFile(fromFileUrl(moduleUrl));

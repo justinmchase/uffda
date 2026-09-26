@@ -19,53 +19,27 @@ export type IdentifierAtOffset = {
 };
 
 /**
- * Finds the identifier covering `offset` in `source`. When a parse `Match` is
- * available, prefers an `Identifier` highlight span (so keywords and string
- * interiors are not treated as declaration names). Falls back to a word-token
- * scan of the source text when no parse tree is retained yet.
+ * Finds the identifier covering `offset` in `source`: the `Identifier`
+ * highlight span of the document's parse `Match` there (so keywords and
+ * string interiors are not treated as declaration names). Without a parse
+ * tree nothing is known about the text, so there is no identifier.
  */
 export function identifierAtOffset(
   source: string,
   offset: number,
   match?: Match,
 ): IdentifierAtOffset | undefined {
-  if (match) {
-    const spans = highlightSpansFromMatch(match, source);
-    const hit = spans.find((span) =>
-      span.role === HighlightRole.Identifier &&
-      offset >= span.offset &&
-      offset < span.offset + span.length
-    );
-    if (hit) {
-      return {
-        name: hit.text,
-        start: hit.offset,
-        end: hit.offset + hit.length,
-      };
-    }
-    return undefined;
-  }
-  return wordAtOffset(source, offset);
-}
-
-function wordAtOffset(
-  source: string,
-  offset: number,
-): IdentifierAtOffset | undefined {
-  if (offset < 0 || offset > source.length) return undefined;
-  const isIdent = (c: string) => /[A-Za-z0-9_]/.test(c);
-  const isStart = (c: string) => /[A-Za-z_]/.test(c);
-  let start = Math.min(offset, source.length);
-  if (start === source.length || !isIdent(source[start]!)) {
-    if (start === 0 || !isIdent(source[start - 1]!)) return undefined;
-    start -= 1;
-  }
-  let end = start + 1;
-  while (start > 0 && isIdent(source[start - 1]!)) start -= 1;
-  while (end < source.length && isIdent(source[end]!)) end += 1;
-  const name = source.slice(start, end);
-  if (!name || !isStart(name[0]!)) return undefined;
-  return { name, start, end };
+  if (!match) return undefined;
+  const hit = highlightSpansFromMatch(match, source).find((span) =>
+    span.role === HighlightRole.Identifier &&
+    offset >= span.offset &&
+    offset < span.offset + span.length
+  );
+  return hit && {
+    name: hit.text,
+    start: hit.offset,
+    end: hit.offset + hit.length,
+  };
 }
 
 /** Formats a `DescribedDeclaration` as Markdown for `textDocument/hover`. */

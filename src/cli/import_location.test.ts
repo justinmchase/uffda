@@ -24,7 +24,7 @@ Deno.test("cli.import_location", async (t) => {
   const parsed = await parseSourceToAst(SOURCE, CliLanguage.FullUffda, "t");
   assert(parsed.ok);
 
-  await t.step("locates the specifier of the indexed import", () => {
+  await t.step("locates the module path of the indexed import", () => {
     const location = importFrameLocation(
       parsed.match,
       SOURCE,
@@ -34,7 +34,7 @@ Deno.test("cli.import_location", async (t) => {
     assertEquals(location.line, 1);
     assertEquals(
       SOURCE.slice(location.offset, location.endOffset),
-      '"./b.uff"',
+      "./b.uff",
     );
   });
 
@@ -48,7 +48,7 @@ Deno.test("cli.import_location", async (t) => {
     assertEquals(location.line, 0);
     assertEquals(
       SOURCE.slice(location.offset, location.endOffset),
-      '"./a.uff"',
+      "./a.uff",
     );
   });
 
@@ -62,7 +62,7 @@ Deno.test("cli.import_location", async (t) => {
     assertEquals(SOURCE.slice(location.offset, location.endOffset), "B");
   });
 
-  await t.step("falls back to the specifier for an unlisted name", () => {
+  await t.step("falls back to the module path for an unlisted name", () => {
     const location = importFrameLocation(parsed.match, SOURCE, {
       ...frame(0, "./a.uff"),
       name: "Missing",
@@ -70,7 +70,7 @@ Deno.test("cli.import_location", async (t) => {
     assert(location);
     assertEquals(
       SOURCE.slice(location.offset, location.endOffset),
-      '"./a.uff"',
+      "./a.uff",
     );
   });
 

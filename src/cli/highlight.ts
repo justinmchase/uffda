@@ -1,4 +1,6 @@
+import { Type, type } from "@justinmchase/type";
 import { getRightmostFailure, type Match, MatchKind } from "../match.ts";
+import { EditorDecorator, editorMetadata } from "./editor_metadata.ts";
 import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
 import { patternGrammar } from "../lang/pattern/pattern.lang.ts";
 import { expressionGrammar } from "../lang/expression/expression.lang.ts";
@@ -18,26 +20,22 @@ import {
  * same parse/`Match` tree the rest of the CLI uses for diagnostics — not a
  * separately maintained regex/heuristic classifier.
  *
- * Two independent signals feed classification, both read directly off the
- * `Match` tree already produced by parsing (no second pass over the text):
+ * Classification reads only rule metadata off the `Match` tree already
+ * produced by parsing (no second pass over the text, no rule names):
  *
- * 1. Every grammar reuses the same `tokenizer/mod.uff` token rules
- *    (`WordToken`, `CommentToken`, `WhitespaceToken`, `NewLineToken`,
- *    `PunctuationToken`, `DQuoteToken`, `StringPunctuationToken`, escape
- *    tokens). A leaf `Match` whose `origin.rule.name` is one of these gives a
- *    base role for that span.
- * 2. `WordToken`/`WhitespaceToken`/`NewLineToken` are reused verbatim *inside*
- *    quoted strings (`StringInterior`), so base role alone can't tell "bare
- *    identifier" from "text inside a string" — that distinction comes from
- *    whether a `QuotedStringTokens`/`StringInterior` origin appears among the
- *    node's ancestors.
+ * 1. Token rules carry `[Highlight { role }]` (see `src/lang/editor/editor.uff`
+ *    and `.agents/specifications/languages/cli/editor-metadata.spec.md`). The
+ *    innermost annotated `Ok` nodes are the token spans.
+ * 2. A span's role is that of the outermost `Highlight` on its path, so words
+ *    and whitespace reused inside a quoted string (itself annotated
+ *    `string`) classify as string content.
  * 3. Keyword classification is driven by decorator metadata (a `[Keyword]`
  *    decorator applied to the Uffda module grammar's own reserved-word rules,
  *    see `src/lang/uffda/shared.rules.uff`) resolved the same way the
  *    match-tree walking tool (008) resolves metadata: any origin on the path
  *    from the tree's root carrying a `Keyword` metadata entry marks that
- *    span's matched range as a keyword, overriding the base "identifier"
- *    role.
+ *    span's matched range as a keyword, overriding the token's own role
+ *    (but not a role inherited from an enclosing `Highlight`).
  *
  * Only the Uffda module grammar's reserved words (`import`/`export`/`rule`/
  * `func`/`decorator`) carry `[Keyword]` metadata today; the pattern/expression
@@ -66,24 +64,33 @@ export type HighlightResult =
   | { ok: true; spans: HighlightSpan[] }
   | { ok: false; error: CliStreamFailure; spans: HighlightSpan[] };
 
-/** Rule names produced by `tokenizer/mod.uff`, and their base role. */
-const TOKEN_RULE_ROLES: ReadonlyMap<string, HighlightRole> = new Map([
-  ["WordToken", HighlightRole.Identifier],
-  ["CommentToken", HighlightRole.Comment],
-  ["WhitespaceToken", HighlightRole.Whitespace],
-  ["NewLineToken", HighlightRole.NewLine],
-  ["PunctuationToken", HighlightRole.Punctuation],
-  ["DQuoteToken", HighlightRole.Punctuation],
-  ["StringPunctuationToken", HighlightRole.String],
-  ["SlashPunctuationToken", HighlightRole.Punctuation],
-  ["EscapeCharPunctuationToken", HighlightRole.String],
+const HIGHLIGHT_ROLES: ReadonlySet<string> = new Set(
+  Object.values(HighlightRole),
+);
+
+const TRIVIA_ROLES: ReadonlySet<HighlightRole> = new Set([
+  HighlightRole.Whitespace,
+  HighlightRole.NewLine,
+  HighlightRole.Comment,
 ]);
 
-/** Rule names whose descendants are inside a quoted string's content. */
-const STRING_ANCESTOR_RULE_NAMES = new Set([
-  "QuotedStringTokens",
-  "StringInterior",
-]);
+/** Whether `role` marks trivia (whitespace, line breaks, comments). */
+export function isTriviaRole(role: HighlightRole): boolean {
+  return TRIVIA_ROLES.has(role);
+}
+
+/**
+ * The role a node's `[Highlight { role }]` metadata declares, if any.
+ * Unrecognized roles are ignored rather than trusted.
+ */
+export function highlightRoleOf(node: Match): HighlightRole | undefined {
+  const [t, v] = type(editorMetadata(node, EditorDecorator.Highlight));
+  if (t !== Type.Object) return undefined;
+  const role = (v as { role?: unknown }).role;
+  return type(role)[0] === Type.String && HIGHLIGHT_ROLES.has(role as string)
+    ? role as HighlightRole
+    : undefined;
+}
 
 const KEYWORD_DECORATOR_NAME = "Keyword";
 
@@ -91,8 +98,10 @@ type CollectedToken = {
   offset: number;
   length: number;
   text: string;
-  baseRole: HighlightRole;
-  insideString: boolean;
+  /** Role of the outermost `Highlight` on the token's path. */
+  role: HighlightRole;
+  /** Whether that role came from an enclosing annotated node. */
+  inherited: boolean;
 };
 
 type CollectedKeyword = {
@@ -108,8 +117,9 @@ function isNonEmptySpan(offset: number, length: number): boolean {
  * Walks the entire `Match` tree once (pre-order, both `Ok` and `Fail`
  * branches — a `Fail` still has whatever `Ok` sub-matches it accumulated
  * before failing), collecting token spans and keyword-metadata spans. A
- * single pass suffices because both signals are read directly off `origin`,
- * not recomputed.
+ * token span is an `Ok` node carrying `Highlight` metadata with no annotated
+ * `Ok` descendant; its role is that of the outermost `Highlight` on its path
+ * (so a string literal's inner words classify as string content).
  */
 function collectSpans(
   root: Match,
@@ -118,12 +128,11 @@ function collectSpans(
   const tokens: CollectedToken[] = [];
   const keywords: CollectedKeyword[] = [];
 
-  function walk(node: Match, stringAncestor: boolean): void {
-    if (node.kind !== MatchKind.Ok && node.kind !== MatchKind.Fail) return;
-
-    const ruleName = node.origin?.rule.name;
-    const insideString = stringAncestor ||
-      (ruleName !== undefined && STRING_ANCESTOR_RULE_NAMES.has(ruleName));
+  /** Returns whether `node`'s subtree contributed a token span. */
+  function walk(node: Match, outerRole: HighlightRole | undefined): boolean {
+    if (node.kind !== MatchKind.Ok && node.kind !== MatchKind.Fail) {
+      return false;
+    }
 
     if (node.origin?.rule.metadata?.[KEYWORD_DECORATOR_NAME] !== undefined) {
       const { start, end } = node.originalSpan;
@@ -132,26 +141,27 @@ function collectSpans(
       }
     }
 
-    if (ruleName !== undefined) {
-      const baseRole = TOKEN_RULE_ROLES.get(ruleName);
-      if (baseRole !== undefined && node.kind === MatchKind.Ok) {
-        const { start, end } = node.originalSpan;
-        if (isNonEmptySpan(start, end - start)) {
-          tokens.push({
-            offset: start,
-            length: end - start,
-            text: sourceText.slice(start, end),
-            baseRole,
-            insideString,
-          });
-        }
-      }
+    const ownRole = highlightRoleOf(node);
+    let emitted = false;
+    for (const child of node.matches) {
+      if (walk(child, outerRole ?? ownRole)) emitted = true;
     }
+    if (emitted) return true;
+    if (ownRole === undefined || node.kind !== MatchKind.Ok) return false;
 
-    for (const child of node.matches) walk(child, insideString);
+    const { start, end } = node.originalSpan;
+    if (!isNonEmptySpan(start, end - start)) return false;
+    tokens.push({
+      offset: start,
+      length: end - start,
+      text: sourceText.slice(start, end),
+      role: outerRole ?? ownRole,
+      inherited: outerRole !== undefined,
+    });
+    return true;
   }
 
-  walk(root, false);
+  walk(root, undefined);
   return { tokens, keywords };
 }
 
@@ -159,11 +169,11 @@ function roleFor(
   token: CollectedToken,
   keywords: CollectedKeyword[],
 ): HighlightRole {
-  if (token.insideString) return HighlightRole.String;
+  if (token.inherited) return token.role;
   const isKeyword = keywords.some(
     (k) => k.offset === token.offset && k.length === token.length,
   );
-  return isKeyword ? HighlightRole.Keyword : token.baseRole;
+  return isKeyword ? HighlightRole.Keyword : token.role;
 }
 
 /**

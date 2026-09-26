@@ -6,10 +6,12 @@ import "./shared.rules.uff" IdentifierToken ExportKeyword;
 import "./rule.rules.uff" RuleDeclarationSyntax;
 import "./func.rules.uff" FuncDeclarationSyntax;
 import "./decorator.rules.uff" DecoratorDeclarationSyntax;
+import "../editor/editor.uff" NameReference;
 
 export ExportDeclarationSyntax;
 export ExportNameList;
 
+[NameReference {}]
 rule ExportName =
   n:IdentifierToken
   -> { kind: "export", name: n };

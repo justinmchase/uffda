@@ -124,6 +124,7 @@ be human-readable and include the relevant source excerpt and input path.
 - [language-selection and output contracts](./cli/language-and-output.spec.md)
 - [MCP server mode](./cli/mcp-server.spec.md)
 - [language server mode](./cli/language-server.spec.md)
+- [editor metadata](./cli/editor-metadata.spec.md)
 - [distribution and release contracts](./cli/distribution-and-release.spec.md)
 
 ## Composition intent

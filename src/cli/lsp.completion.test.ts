@@ -41,6 +41,23 @@ Deno.test("cli.lsp.completion completionItemsForModule", async (t) => {
     });
     assertEquals(items.length, 1);
   });
+
+  await t.step("offers only the requested kinds, replacing a range", () => {
+    const range = {
+      start: { line: 0, character: 1 },
+      end: { line: 0, character: 3 },
+    };
+    const items = completionItemsForModule({
+      moduleUrl: "file:///x.uff",
+      declarations: [
+        { name: "Main", kind: "rule", exported: true },
+        { name: "Greet", kind: "func", exported: false },
+        { name: "Loud", kind: "decorator", exported: true },
+      ],
+    }, { kinds: ["func", "decorator"], range });
+    assertEquals(items.map((i) => i.label), ["Greet", "Loud"]);
+    assertEquals(items[0].textEdit, { range, newText: "Greet" });
+  });
 });
 
 Deno.test("cli.lsp.completion completionItemsForSession", async (t) => {

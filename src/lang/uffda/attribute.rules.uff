@@ -6,11 +6,17 @@
 import "../tokenizer/token.uff" Token;
 import "../expression/primary.uff" Primary;
 import "../expression/reference.uff" Reference;
+import "../editor/editor.uff" NameReference;
 
 export AttributeSyntax;
 
 rule AttributeOpenBracket = "[" -> "[";
 rule AttributeCloseBracket = "]" -> "]";
+
+[NameReference { kinds: ["decorator"] }]
+rule AttributeName =
+  Token<Reference>
+  -> _;
 
 rule AttributeArgument =
   Token<Primary>
@@ -18,7 +24,7 @@ rule AttributeArgument =
 
 rule AttributeSyntax =
   Token<AttributeOpenBracket>
-  n:Token<Reference>
+  n:AttributeName
   a:AttributeArgument*
   Token<AttributeCloseBracket>
   -> { kind: "attribute", name: n.name, args: a };

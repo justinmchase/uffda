@@ -7,6 +7,7 @@
 import "../expression/expression.lang.uff" ExpressionTokens;
 import "../pattern/parameter_list.uff" ParameterList;
 import "./shared.rules.uff" IdentifierToken FuncKeyword;
+import "../editor/editor.uff" Declaration;
 import "./attribute.rules.uff" AttributeSyntax;
 
 export FuncDeclarationSyntax;
@@ -39,6 +40,7 @@ rule FuncExpressionToken =
   )+
   -> (flat _);
 
+[Declaration]
 rule FuncDeclarationSyntax =
   a:AttributeSyntax*
   FuncKeyword

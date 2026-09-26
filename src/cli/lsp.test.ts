@@ -331,7 +331,7 @@ Deno.test("cli.lsp wireUffdaLspHandlers", async (t) => {
 
       const items = await handlers.completion({
         textDocument: { uri: "file:///workspace/completion.uff" },
-        position: { line: 0, character: 0 },
+        position: { line: 0, character: "export Ma".length },
       }) as Array<{ label: string }>;
       assertEquals(items.map((item) => item.label), ["Main"]);
     },

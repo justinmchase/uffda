@@ -172,11 +172,7 @@ export function wireUffdaLspHandlers(
     if (!manager || !language || language.id !== BUILTIN_UFF_LANGUAGE.id) {
       return [];
     }
-    return await manager.completion(
-      uri,
-      params.position,
-      params.context?.triggerCharacter,
-    );
+    return await manager.completion(uri, params.position);
   });
 
   connection.onRequest(

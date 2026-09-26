@@ -5,6 +5,7 @@
 import "../pattern/pattern.lang.uff" PatternTokens;
 import "../expression/expression.lang.uff" ExpressionTokens;
 import "./shared.rules.uff" IdentifierToken RuleKeyword;
+import "../editor/editor.uff" Declaration;
 import "./attribute.rules.uff" AttributeSyntax;
 
 export RulePatternBody;
@@ -160,6 +161,7 @@ rule RuleProjectionTail =
   p:RuleProjectionExpression
   -> p;
 
+[Declaration]
 rule RuleDeclarationSyntax =
   a:AttributeSyntax*
   RuleKeyword

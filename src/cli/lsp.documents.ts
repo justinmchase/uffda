@@ -9,11 +9,16 @@ import type {
 import { highlightSpansFromMatch } from "./highlight.ts";
 import type { Match } from "../match.ts";
 import { RuntimeSession } from "./mcp.session.ts";
+import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
 import { completionItemsForSession } from "./lsp.completion.ts";
 import {
-  importCompletionContext,
-  ImportCompletionContextKind,
+  type CompletionContext,
+  CompletionContextKind,
+  completionContextsAt,
+} from "./lsp.completion_context.ts";
+import {
   nameCompletionItems,
+  rangeOf,
   specifierCompletionItems,
 } from "./lsp.import_completion.ts";
 import { diagnosticsForSessionResult } from "./lsp.diagnostics.ts";
@@ -254,47 +259,59 @@ export class LspDocumentManager {
   }
 
   /**
-   * Builds LSP completion items for `uri` at `position` (requirement 006):
-   * importable files inside an import's module specifier, the imported
-   * module's exports in its name list, and otherwise the in-scope
-   * declarations of the document's resolved module. Empty when the document
-   * is not open or nothing applies. `triggerCharacter` (the import trigger
-   * characters `"` and `/`) only ever yields import completions.
+   * Builds LSP completion items for `uri` at `position` (requirement 006)
+   * from the completion contexts the document's grammar derives for the text
+   * before the cursor (see `lsp.completion_context.ts`): module files in a
+   * `[ModulePath]`, the imported module's exports in an `[ImportedName]`, and
+   * in-scope declarations of the listed kinds in a `[NameReference]`. Empty
+   * when the document is not open or no context reaches the cursor.
    */
   public completion(
     uri: string,
     position: { line: number; character: number },
-    triggerCharacter?: string,
   ): Promise<CompletionItem[]> {
-    return this.serialize(
-      uri,
-      () => this.completionNow(uri, position, triggerCharacter),
-    );
+    return this.serialize(uri, () => this.completionNow(uri, position));
   }
 
   private async completionNow(
     uri: string,
     position: { line: number; character: number },
-    triggerCharacter?: string,
   ): Promise<CompletionItem[]> {
     const doc = this.documents.get(uri);
     if (!doc) return [];
     const offset = positionToOffset(doc.source, position);
-    const context = importCompletionContext(doc.source, offset);
-    if (!context) {
-      return triggerCharacter ? [] : completionItemsForSession(doc.session);
+    const prefix = doc.source.slice(0, offset);
+    const contexts = completionContextsAt(await uffdaGrammar(prefix), prefix);
+    const items: CompletionItem[] = [];
+    for (const context of contexts) {
+      items.push(...await this.completionItemsFor(doc, context));
     }
-    if (!doc.path) return [];
+    return items;
+  }
+
+  private async completionItemsFor(
+    doc: OpenDocument,
+    context: CompletionContext,
+  ): Promise<CompletionItem[]> {
     switch (context.kind) {
-      case ImportCompletionContextKind.Specifier:
-        return await specifierCompletionItems(doc.path, doc.source, context);
-      case ImportCompletionContextKind.Names:
-        return await nameCompletionItems(
-          doc.session,
-          doc.path,
-          doc.source,
-          context,
-        );
+      case CompletionContextKind.ModulePath:
+        return doc.path
+          ? await specifierCompletionItems(doc.path, doc.source, context)
+          : [];
+      case CompletionContextKind.ImportedName:
+        return doc.path
+          ? await nameCompletionItems(
+            doc.session,
+            doc.path,
+            doc.source,
+            context,
+          )
+          : [];
+      case CompletionContextKind.NameReference:
+        return completionItemsForSession(doc.session, {
+          kinds: context.kinds,
+          range: rangeOf(doc.source, context.replace),
+        });
     }
   }
 

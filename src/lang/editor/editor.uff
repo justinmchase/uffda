@@ -1,0 +1,41 @@
+# Editor metadata vocabulary: decorators a grammar applies to its own rules so
+# editor tooling (highlighting, diagnostics, hover, go-to-definition,
+# completion) derives everything from parse trees and rule metadata instead of
+# hard-coded knowledge of any one language. Tooling reads metadata by these
+# decorator names. See
+# .agents/specifications/languages/cli/editor-metadata.spec.md.
+
+export Highlight;
+export Declaration;
+export NameReference;
+export Import;
+export ModulePath;
+export ImportedName;
+
+# `[Highlight { role: "comment" }]` — the syntactic role of a token rule's
+# span. The outermost Highlight on a path decides the role of every token
+# span beneath it (a string literal's inner words are string content).
+decorator Highlight<c:any> = c;
+
+# `[Declaration]` — a production declaring a named rule/func/decorator. Its
+# projected value carries the declared `name`.
+decorator Declaration = true;
+
+# `[NameReference { kinds: ["decorator"] }]` — a production naming
+# a declaration in scope. Completion offers declarations of the listed kinds
+# (all kinds when `kinds` is omitted); the outermost NameReference on a
+# path applies.
+decorator NameReference<c:any> = c;
+
+# `[Import]` — a module import production. Its projected value is a runtime
+# import declaration (`moduleUrl`, `names`).
+decorator Import = true;
+
+# `[ModulePath { extensions: [".uff"] }]` — the module path text of an
+# import (no delimiters). Completion offers entries relative to the document
+# with the listed extensions.
+decorator ModulePath<c:any> = c;
+
+# `[ImportedName]` — one name bound by an import. Completion offers the
+# exports of the module named by the enclosing Import's ModulePath.
+decorator ImportedName = true;
