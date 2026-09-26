@@ -53,7 +53,7 @@ function rangeFromSpan(source: string, span: DeclarationSpan): Range {
   };
 }
 
-function isUffFileUrl(href: string): boolean {
+export function isUffFileUrl(href: string): boolean {
   if (!href.startsWith("file:")) return false;
   try {
     return fromFileUrl(href).endsWith(".uff");
@@ -108,7 +108,12 @@ export async function definitionAtPosition(
   }];
 }
 
-async function locateDeclarationSource(
+/**
+ * The source text and `[Declaration]` span of `name` in the `.uff` module at
+ * `definingModuleUrl`: an open buffer when `lookup` has one, else the
+ * session's parse state, else a read-only re-parse of the file on disk.
+ */
+export async function locateDeclarationSource(
   session: RuntimeSession,
   definingModuleUrl: string,
   name: string,

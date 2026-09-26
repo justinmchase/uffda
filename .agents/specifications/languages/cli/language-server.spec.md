@@ -264,7 +264,8 @@ its names) is anchored right after that line's last token. Document operations
 handlers. Hover (`textDocument/hover`) and go-to-definition
 (`textDocument/definition`, both part of requirement 006) are implemented for
 `.uff`: hover resolves the identifier under the cursor through
-`RuntimeSession.describe()`, and definition resolves via
+`RuntimeSession.describe()` and shows the declaration's source (located the same
+way as definition) when available, and definition resolves via
 `RuntimeSession.resolveDeclaration()` then locates the `[Declaration]`
 production's `originalSpan` in a parse `Match` (open buffer preferred, else
 session parse state, else a read-only re-parse of the defining `.uff` on disk).

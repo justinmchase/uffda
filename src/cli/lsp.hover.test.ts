@@ -1,4 +1,5 @@
 import { assert, assertEquals } from "@std/assert";
+import { join } from "@std/path";
 import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 import {
@@ -6,7 +7,7 @@ import {
   hoverAtPosition,
   identifierAtOffset,
 } from "./lsp.hover.ts";
-import { RuntimeSession } from "./mcp.session.ts";
+import { type DescribedDeclaration, RuntimeSession } from "./mcp.session.ts";
 import { offsetToPosition } from "./lsp.positions.ts";
 
 const MODULE = `export Main Loud Greet;
@@ -45,22 +46,87 @@ Deno.test("cli.lsp.hover identifierAtOffset", async (t) => {
 });
 
 Deno.test("cli.lsp.hover formatDescribedDeclarationMarkdown", async (t) => {
-  await t.step("renders kind, pattern, attributes, and metadata", () => {
-    const markdown = formatDescribedDeclarationMarkdown({
-      moduleUrl: "file:///x.uff",
-      name: "Main",
-      kind: "rule",
-      exported: true,
-      pattern: { kind: PatternKind.Any },
-      parameters: [],
-      attributes: [{ decorator: "Loud", args: [] }],
-      metadata: { Loud: { shout: true } },
-    });
-    assert(markdown.includes("(exported rule) `Main`"));
-    assert(markdown.includes("**pattern:** `any`"));
-    assert(markdown.includes("`Loud`"));
-    assert(markdown.includes("**metadata:**"));
+  const declaration: DescribedDeclaration = {
+    moduleUrl: "file:///x.uff",
+    name: "Main",
+    kind: "rule",
+    exported: true,
+    pattern: { kind: PatternKind.Any },
+    parameters: [],
+    attributes: [
+      { decorator: "Highlight", args: [{ role: "string" }] },
+      { decorator: "Keyword", args: [] },
+    ],
+    metadata: {
+      Highlight: { role: "string" },
+      Keyword: { role: "keyword" },
+    },
+  };
+
+  await t.step("shows the declaration source and computed metadata", () => {
+    const source =
+      '[Highlight { role: "string" }]\n[Keyword]\nrule Main = any;';
+    const markdown = formatDescribedDeclarationMarkdown(declaration, source);
+    assertEquals(
+      markdown,
+      [
+        "(exported rule) `Main`",
+        ["```uffda", source, "```"].join("\n"),
+        '- `Keyword` → `{ role: "keyword" }`',
+      ].join("\n\n"),
+    );
   });
+
+  await t.step("summarizes pattern and attributes without source", () => {
+    const markdown = formatDescribedDeclarationMarkdown(declaration);
+    assertEquals(
+      markdown,
+      [
+        "(exported rule) `Main`",
+        "**pattern:** `any`",
+        "**attributes:**",
+        [
+          '- `Highlight({ role: "string" })`',
+          '- `Keyword` → `{ role: "keyword" }`',
+        ].join("\n"),
+      ].join("\n\n"),
+    );
+  });
+
+  await t.step("truncates long declaration source", () => {
+    const source = Array.from({ length: 30 }, (_, i) => `line${i}`).join("\n");
+    const markdown = formatDescribedDeclarationMarkdown(declaration, source);
+    assert(markdown.includes("line19\n  …\n```"));
+    assert(!markdown.includes("line20"));
+  });
+});
+
+Deno.test("cli.lsp.hover shows a file-backed declaration's source", async () => {
+  const cwd = await Deno.makeTempDir({ prefix: "uffda-lsp-hover-" });
+  try {
+    const path = join(cwd, "main.uff");
+    const source =
+      "export Main;\n\n# docs\nrule Main =\n  Other;\n\nrule Other = any;\n";
+    await Deno.writeTextFile(path, source);
+    const session = new RuntimeSession("hover-src", { cwd });
+    assertEquals((await session.load(source, path)).ok, true);
+    const state = session.getLatestParseState();
+    assert(state);
+    const hover = await hoverAtPosition(
+      session,
+      source,
+      offsetToPosition(source, source.indexOf("Other;") + 1),
+      state.match,
+    );
+    const contents = hover?.contents;
+    assert(contents && typeof contents === "object" && "value" in contents);
+    assertEquals(
+      contents.value,
+      "(rule) `Other`\n\n```uffda\nrule Other = any;\n```",
+    );
+  } finally {
+    await Deno.remove(cwd, { recursive: true });
+  }
 });
 
 Deno.test("cli.lsp.hover hoverAtPosition", async (t) => {
@@ -74,7 +140,7 @@ Deno.test("cli.lsp.hover hoverAtPosition", async (t) => {
       assert(state);
 
       const offset = MODULE.indexOf("Main", MODULE.indexOf("rule"));
-      const hover = hoverAtPosition(
+      const hover = await hoverAtPosition(
         session,
         MODULE,
         offsetToPosition(MODULE, offset),
@@ -103,7 +169,7 @@ Deno.test("cli.lsp.hover hoverAtPosition", async (t) => {
       assert(state);
       // `any` is a pattern atom, not a declaration name in this module.
       const offset = MODULE.lastIndexOf("any");
-      const hover = hoverAtPosition(
+      const hover = await hoverAtPosition(
         session,
         MODULE,
         offsetToPosition(MODULE, offset),

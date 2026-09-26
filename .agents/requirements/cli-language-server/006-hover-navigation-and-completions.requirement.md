@@ -20,7 +20,13 @@ Expected behavior:
   requested position, using the same descriptive information the MCP server's
   `describe`-style introspection already exposes (see
   [MCP server mode](../../specifications/languages/cli/mcp-server.spec.md)),
-  rather than a separately maintained documentation source.
+  rather than a separately maintained documentation source. When the
+  declaration's source can be located (the same lookup go-to-definition uses)
+  the hover MUST show that source as authored (attributes included, long
+  declarations truncated), plus any decorator-computed metadata not visible in
+  it (for example `[Keyword]` → `{ role: "keyword" }`); otherwise it MUST
+  summarize the pattern, parameters, and attributes. It MUST NOT repeat
+  attribute values as a separate metadata dump.
 - `textDocument/definition` MUST resolve a reference to a rule, func, or
   decorator to its declaring location within the workspace's resolved module
   graph, including across `.uff` import boundaries. A reference the server
