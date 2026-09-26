@@ -1,6 +1,8 @@
 # CharacterClass parses \\c… token pairs into Character pattern AST.
 # These are meta-syntax Equals, not Digit-style \\cNd match sugar.
 
+import "../editor/editor.uff" Highlight;
+
 export CharacterClass;
 
 rule CharacterClassA =
@@ -123,6 +125,7 @@ rule CharacterClassZp =
 rule CharacterClassZs =
   "\\" "cZs" -> { kind: "character", characterClass: "Zs" };
 
+[Highlight { role: "string" }]
 rule CharacterClass =
   | CharacterClassA
   | CharacterClassAc

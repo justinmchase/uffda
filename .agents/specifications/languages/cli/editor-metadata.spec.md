@@ -64,11 +64,20 @@ existing metadata that tooling reads the same way.
 ## Highlighting
 
 - Token spans are the innermost `Highlight`-annotated `Ok` nodes of the parse
-  tree. A span's role is the role of the outermost `Highlight`-annotated node on
-  its path, so tokens reused inside an annotated construct (the words and spaces
-  of a string literal annotated `string`) take that construct's role.
+  tree, except one whose source span strictly contains another such node's span:
+  a construct the parser builds from several tokens (a pattern character class
+  `\cZs` is the tokens `\` and `cZs`) is not a token itself. Every other
+  `Highlight`-annotated node is a container.
+- A token's role is the role of the largest container that is its tree ancestor
+  or strictly contains its source span; with none, its own role. So tokens
+  inside an annotated construct (the words and spaces of a string literal, the
+  tokens of a character class, both annotated `string`) take that construct's
+  role. Roles resolve by source range because the tokenizer's tree and the
+  parser's tree are separate views of the same text. On equal extent the tree
+  ancestor, then the earliest-starting container, wins. A container covering
+  exactly one token does not override it; reserved words use `[Keyword]`.
 - A token whose role is its own (not inherited) is classified `keyword` when a
-  `[Keyword]`-annotated node on its path matched exactly its span.
+  `[Keyword]`-annotated node matched exactly its span.
 - Trivia is the `whitespace`, `newline`, and `comment` roles. Other tooling that
   needs to skip trivia or detect a line break (diagnostic anchoring, completion
   contexts) MUST use these roles, not character classes.

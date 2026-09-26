@@ -95,6 +95,13 @@ const EXPECTED: Array<
   ["../expression/reference.uff", "Reference", "Reference", "NameReference", {
     kinds: ["func"],
   }],
+  [
+    "../pattern/character_class.uff",
+    "CharacterClass",
+    "CharacterClass",
+    "Highlight",
+    { role: "string" },
+  ],
   ...([
     ["../uffda/shared.rules.uff", "IdentifierToken", "RuleKeyword"],
     ["../pattern/switch.uff", "Switch", "SwitchKeyword"],

@@ -31,6 +31,22 @@ function assertFullCoverage(
 
 Deno.test("cli.highlight classifies uffda module source by syntactic role", async (t) => {
   await t.step(
+    "classifies a character class spanning several tokens as a string",
+    async () => {
+      const source = "rule A = \\cZs | switch { \\cNd: any };";
+      const result = await highlightSource(source, CliLanguage.FullUffda);
+      assert(result.ok);
+      assertFullCoverage(result.spans, source.length);
+      assertEquals(
+        result.spans
+          .filter((s) => s.role === HighlightRole.String)
+          .map((s) => s.text),
+        ["\\", "cZs", "\\", "cNd"],
+      );
+    },
+  );
+
+  await t.step(
     "classifies pattern and expression reserved words as keywords",
     async () => {
       const source =

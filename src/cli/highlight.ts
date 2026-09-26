@@ -25,10 +25,11 @@ import {
  *
  * 1. Token rules carry `[Highlight { role }]` (see `src/lang/editor/editor.uff`
  *    and `.agents/specifications/languages/cli/editor-metadata.spec.md`). The
- *    innermost annotated `Ok` nodes are the token spans.
- * 2. A span's role is that of the outermost `Highlight` on its path, so words
- *    and whitespace reused inside a quoted string (itself annotated
- *    `string`) classify as string content.
+ *    innermost annotated `Ok` nodes are the token spans, unless they span
+ *    several other tokens (see `collectSpans`).
+ * 2. A span's role is that of the largest annotated construct covering it,
+ *    so words inside a quoted string or the tokens of a character class (both
+ *    annotated `string`) classify as string content.
  * 3. Keyword classification is driven by `[Keyword]` metadata (see
  *    `src/lang/editor/editor.uff`), applied to every reserved-word rule of
  *    the module, pattern, and expression grammars, resolved the same way the
@@ -88,14 +89,22 @@ export function highlightRoleOf(node: Match): HighlightRole | undefined {
 
 const KEYWORD_DECORATOR_NAME = "Keyword";
 
+type AnnotatedSpan = {
+  start: number;
+  end: number;
+  role: HighlightRole;
+};
+
 type CollectedToken = {
   offset: number;
   length: number;
   text: string;
-  /** Role of the outermost `Highlight` on the token's path. */
+  /** The token's own `Highlight` role. */
   role: HighlightRole;
-  /** Whether that role came from an enclosing annotated node. */
-  inherited: boolean;
+  /** Outermost `Highlight`-annotated tree ancestor, if any. */
+  ancestor?: AnnotatedSpan;
+  /** Role of the largest annotated span covering the token, if any. */
+  inheritedRole?: HighlightRole;
 };
 
 type CollectedKeyword = {
@@ -110,20 +119,27 @@ function isNonEmptySpan(offset: number, length: number): boolean {
 /**
  * Walks the entire `Match` tree once (pre-order, both `Ok` and `Fail`
  * branches — a `Fail` still has whatever `Ok` sub-matches it accumulated
- * before failing), collecting token spans and keyword-metadata spans. A
- * token span is an `Ok` node carrying `Highlight` metadata with no annotated
- * `Ok` descendant; its role is that of the outermost `Highlight` on its path
- * (so a string literal's inner words classify as string content).
+ * before failing), collecting token spans and keyword-metadata spans.
+ *
+ * A token span is an `Ok` node carrying `Highlight` metadata with no annotated
+ * `Ok` descendant, unless its source span strictly contains another such
+ * node's span: a parse-level construct built from several tokens (a pattern
+ * character class `\cZs` spans the tokens `\` and `cZs`) is not a token
+ * itself. Every annotated node that is not a token is a container. A token's
+ * role is that of the largest container that is its tree ancestor or strictly
+ * contains its span (so a string literal's inner words classify as string
+ * content, and so do the tokens of a character class).
  */
 function collectSpans(
   root: Match,
   sourceText: string,
 ): { tokens: CollectedToken[]; keywords: CollectedKeyword[] } {
-  const tokens: CollectedToken[] = [];
+  const leaves: CollectedToken[] = [];
+  const containers: AnnotatedSpan[] = [];
   const keywords: CollectedKeyword[] = [];
 
-  /** Returns whether `node`'s subtree contributed a token span. */
-  function walk(node: Match, outerRole: HighlightRole | undefined): boolean {
+  /** Returns whether `node`'s subtree contributed a leaf. */
+  function walk(node: Match, ancestor: AnnotatedSpan | undefined): boolean {
     if (node.kind !== MatchKind.Ok && node.kind !== MatchKind.Fail) {
       return false;
     }
@@ -136,34 +152,104 @@ function collectSpans(
     }
 
     const ownRole = highlightRoleOf(node);
+    const { start, end } = node.originalSpan;
+    const annotated = ownRole !== undefined && node.kind === MatchKind.Ok &&
+      isNonEmptySpan(start, end - start);
+    const self = annotated ? { start, end, role: ownRole } : undefined;
     let emitted = false;
     for (const child of node.matches) {
-      if (walk(child, outerRole ?? ownRole)) emitted = true;
+      if (walk(child, ancestor ?? self)) emitted = true;
     }
-    if (emitted) return true;
-    if (ownRole === undefined || node.kind !== MatchKind.Ok) return false;
-
-    const { start, end } = node.originalSpan;
-    if (!isNonEmptySpan(start, end - start)) return false;
-    tokens.push({
+    if (!self) return emitted;
+    if (emitted) {
+      containers.push(self);
+      return true;
+    }
+    leaves.push({
       offset: start,
       length: end - start,
       text: sourceText.slice(start, end),
-      role: outerRole ?? ownRole,
-      inherited: outerRole !== undefined,
+      role: self.role,
+      ancestor,
     });
     return true;
   }
 
   walk(root, undefined);
+
+  const demoted = new Set(leavesContainingAnother(leaves));
+  for (const leaf of demoted) {
+    containers.push({
+      start: leaf.offset,
+      end: leaf.offset + leaf.length,
+      role: leaf.role,
+    });
+  }
+  const tokens = leaves.filter((leaf) => !demoted.has(leaf));
+  assignInheritedRoles(tokens, containers);
   return { tokens, keywords };
+}
+
+/** Leaves whose span strictly contains another leaf's span. */
+function leavesContainingAnother(
+  leaves: readonly CollectedToken[],
+): CollectedToken[] {
+  const sorted = [...leaves].sort((a, b) =>
+    a.offset - b.offset || b.length - a.length
+  );
+  const found: CollectedToken[] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    const leaf = sorted[i];
+    const end = leaf.offset + leaf.length;
+    for (let j = i + 1; j < sorted.length && sorted[j].offset < end; j++) {
+      const other = sorted[j];
+      if (other.offset + other.length <= end && other.length < leaf.length) {
+        found.push(leaf);
+        break;
+      }
+    }
+  }
+  return found;
+}
+
+/**
+ * Sets each token's `inheritedRole` from the largest of its outermost
+ * annotated tree ancestor and the containers strictly containing its span
+ * (on equal extent the ancestor, then the earliest-starting container, wins).
+ */
+function assignInheritedRoles(
+  tokens: CollectedToken[],
+  containers: AnnotatedSpan[],
+): void {
+  const byStart = [...containers].sort((a, b) => a.start - b.start);
+  const ordered = [...tokens].sort((a, b) => a.offset - b.offset);
+  let next = 0;
+  let active: AnnotatedSpan[] = [];
+  for (const token of ordered) {
+    const end = token.offset + token.length;
+    while (next < byStart.length && byStart[next].start <= token.offset) {
+      active.push(byStart[next++]);
+    }
+    active = active.filter((container) => container.end > token.offset);
+
+    let best = token.ancestor;
+    let bestLength = best ? best.end - best.start : token.length;
+    for (const container of active) {
+      const length = container.end - container.start;
+      if (container.end >= end && length > bestLength) {
+        best = container;
+        bestLength = length;
+      }
+    }
+    token.inheritedRole = best?.role;
+  }
 }
 
 function roleFor(
   token: CollectedToken,
   keywords: CollectedKeyword[],
 ): HighlightRole {
-  if (token.inherited) return token.role;
+  if (token.inheritedRole !== undefined) return token.inheritedRole;
   const isKeyword = keywords.some(
     (k) => k.offset === token.offset && k.length === token.length,
   );
