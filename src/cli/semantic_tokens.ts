@@ -7,9 +7,8 @@ import { HighlightRole, type HighlightSpan } from "./highlight.ts";
 
 /**
  * Maps `highlight.ts`'s `HighlightRole` (already derived from the grammar's
- * own parse tree — tokenizer rule names plus `[Keyword]` decorator metadata
- * today; see that module's docs and the `[Token]` follow-up in GitHub issue
- * #159) onto the LSP semantic-tokens legend
+ * own parse tree — `[Highlight]` and `[Keyword]` rule metadata; see that
+ * module's docs) onto the LSP semantic-tokens legend
  * (`.agents/requirements/cli-language-server/005-syntax-highlighting.requirement.md`).
  * Standard `SemanticTokenTypes` names are reused verbatim so editors that
  * ship built-in color rules for them (most do) render something reasonable

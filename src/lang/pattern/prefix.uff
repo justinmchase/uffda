@@ -6,6 +6,7 @@ import "./atomic.uff" Atomic;
 import "./pattern.uff" Pattern;
 import "../common/identifier.uff" IdToken;
 import "../expression/number.uff" Number;
+import "../editor/editor.uff" Keyword;
 
 export Prefix;
 export Star;
@@ -153,18 +154,27 @@ rule Postfix =
   | Atomic
   ;
 
+[Keyword]
+rule NotKeyword = "not";
+
 rule Not =
-  "not"
+  NotKeyword
   p:Prefix
   -> { kind: "not", pattern: p };
 
+[Keyword]
+rule MaybeKeyword = "maybe";
+
 rule Maybe =
-  "maybe"
+  MaybeKeyword
   p:Prefix
   -> { kind: "maybe", pattern: p };
 
+[Keyword]
+rule LookaheadKeyword = "lookahead";
+
 rule Lookahead =
-  "lookahead"
+  LookaheadKeyword
   p:Prefix
   -> { kind: "lookahead", pattern: p };
 
@@ -174,8 +184,11 @@ rule Into =
   "]"
   -> { kind: "into", pattern: p };
 
+[Keyword]
+rule ExceptKeyword = "except";
+
 rule Except =
-  "except"
+  ExceptKeyword
   p:Prefix
   -> { kind: "except", pattern: p };
 

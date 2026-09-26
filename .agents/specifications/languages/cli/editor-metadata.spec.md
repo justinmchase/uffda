@@ -34,15 +34,24 @@ diagnostics, and tooling MUST NOT fall back to guessing.
 | Decorator                    | Applied to                                         | Metadata value                                        |
 | ---------------------------- | -------------------------------------------------- | ----------------------------------------------------- |
 | `Highlight { role }`         | a token rule                                       | `role`: a highlight role (see below)                  |
+| `Keyword`                    | a reserved word                                    | `{ role: "keyword" }`                                 |
 | `Declaration`                | a production declaring a named rule/func/decorator | projected value carries the declared `name`           |
 | `NameReference { kinds? }`   | a production naming a declaration in scope         | `kinds`: declaration kinds it may name (omitted: all) |
 | `Import`                     | a module import production                         | projected value is a runtime import declaration       |
 | `ModulePath { extensions? }` | the module path text of an import (no delimiters)  | `extensions`: module file extensions (omitted: any)   |
 | `ImportedName`               | one name bound by an import                        | —                                                     |
 
-`[Keyword]` (see `src/lang/uffda/shared.rules.uff`) and `[Language]` (see the
+`[Language]` (see the
 [language server](./language-server.spec.md#language-configuration)) are
 existing metadata that tooling reads the same way.
+
+- The `.uff` grammar applies `[Keyword]` to every reserved word it matches as
+  syntax: the module keywords (`import`, `export`, `rule`, `func`, `decorator`),
+  the pattern keywords (`switch`, `default`, `in`, `not`, `maybe`, `lookahead`,
+  `except`, `any`, `end`, `ok`, `fail`, and the type names such as `string`),
+  and the expression literals `true`, `false`, `null`, and `undefined` plus the
+  `not` operator. A reserved word used as a name (for example the `not` global
+  in `(not x)`) is not a keyword there.
 
 - Highlight roles are `keyword`, `identifier`, `string`, `comment`,
   `punctuation`, `whitespace`, and `newline`. An unrecognized role, or a

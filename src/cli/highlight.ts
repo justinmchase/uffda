@@ -29,19 +29,13 @@ import {
  * 2. A span's role is that of the outermost `Highlight` on its path, so words
  *    and whitespace reused inside a quoted string (itself annotated
  *    `string`) classify as string content.
- * 3. Keyword classification is driven by decorator metadata (a `[Keyword]`
- *    decorator applied to the Uffda module grammar's own reserved-word rules,
- *    see `src/lang/uffda/shared.rules.uff`) resolved the same way the
+ * 3. Keyword classification is driven by `[Keyword]` metadata (see
+ *    `src/lang/editor/editor.uff`), applied to every reserved-word rule of
+ *    the module, pattern, and expression grammars, resolved the same way the
  *    match-tree walking tool (008) resolves metadata: any origin on the path
  *    from the tree's root carrying a `Keyword` metadata entry marks that
  *    span's matched range as a keyword, overriding the token's own role
  *    (but not a role inherited from an enclosing `Highlight`).
- *
- * Only the Uffda module grammar's reserved words (`import`/`export`/`rule`/
- * `func`/`decorator`) carry `[Keyword]` metadata today; the pattern/expression
- * sub-grammars' own keyword-like atoms (`any`, `switch`, `true`, ...) are a
- * deliberately deferred follow-up and currently classify as plain
- * identifiers.
  */
 export enum HighlightRole {
   Keyword = "keyword",

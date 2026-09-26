@@ -6,6 +6,7 @@
 # .agents/specifications/languages/cli/editor-metadata.spec.md.
 
 export Highlight;
+export Keyword;
 export Declaration;
 export NameReference;
 export Import;
@@ -16,6 +17,11 @@ export ImportedName;
 # span. The outermost Highlight on a path decides the role of every token
 # span beneath it (a string literal's inner words are string content).
 decorator Highlight<c:any> = c;
+
+# `[Keyword]` — a reserved word. The token span a Keyword node matches
+# exactly is highlighted as a keyword (unless an enclosing Highlight, such as
+# a string literal, decides its role).
+decorator Keyword = { role: "keyword" };
 
 # `[Declaration]` — a production declaring a named rule/func/decorator. Its
 # projected value carries the declared `name`.

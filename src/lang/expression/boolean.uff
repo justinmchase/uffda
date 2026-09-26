@@ -1,9 +1,12 @@
 # Boolean matches true/false tokens and projects a BooleanExpression.
 import "../tokenizer/token.uff" Token;
+import "../editor/editor.uff" Keyword;
 
 export Boolean;
 
+[Keyword]
 rule TrueKeyword = "true" -> true;
+[Keyword]
 rule FalseKeyword = "false" -> false;
 rule Boolean =
   | Token<TrueKeyword>

@@ -1,9 +1,15 @@
 # Atoms are PatternLang keywords that project bare pattern kinds.
+import "../editor/editor.uff" Keyword;
+
 export Atoms;
 
+[Keyword]
 rule Any = "any" -> { kind: "any" };
+[Keyword]
 rule End = "end" -> { kind: "end" };
+[Keyword]
 rule Ok = "ok" -> { kind: "ok" };
+[Keyword]
 rule Fail = "fail" -> { kind: "fail" };
 
 rule Atoms =

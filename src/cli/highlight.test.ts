@@ -31,6 +31,33 @@ function assertFullCoverage(
 
 Deno.test("cli.highlight classifies uffda module source by syntactic role", async (t) => {
   await t.step(
+    "classifies pattern and expression reserved words as keywords",
+    async () => {
+      const source =
+        'rule A = switch { "a": any, default: not end } | in [1] -> (f null);\nrule B = "switch";\n';
+      const result = await highlightSource(source, CliLanguage.FullUffda);
+      assert(result.ok);
+      assertFullCoverage(result.spans, source.length);
+      assertEquals(
+        result.spans
+          .filter((s) => s.role === HighlightRole.Keyword)
+          .map((s) => s.text),
+        [
+          "rule",
+          "switch",
+          "any",
+          "default",
+          "not",
+          "end",
+          "in",
+          "null",
+          "rule",
+        ],
+      );
+    },
+  );
+
+  await t.step(
     "classifies reserved words as keywords, not identifiers",
     async () => {
       const source = 'import "./x.uff" A;\nexport B;\nrule B = any;\n';
@@ -41,13 +68,13 @@ Deno.test("cli.highlight classifies uffda module source by syntactic role", asyn
       const keywordTexts = result.spans
         .filter((s) => s.role === HighlightRole.Keyword)
         .map((s) => s.text);
-      assertEquals(keywordTexts, ["import", "export", "rule"]);
+      assertEquals(keywordTexts, ["import", "export", "rule", "any"]);
 
       // The rule's own name ("B") is an ordinary identifier, not a keyword.
       const identifierTexts = result.spans
         .filter((s) => s.role === HighlightRole.Identifier)
         .map((s) => s.text);
-      assertEquals(identifierTexts, ["A", "B", "B", "any"]);
+      assertEquals(identifierTexts, ["A", "B", "B"]);
     },
   );
 
@@ -62,7 +89,7 @@ Deno.test("cli.highlight classifies uffda module source by syntactic role", asyn
       const keywordTexts = result.spans
         .filter((s) => s.role === HighlightRole.Keyword)
         .map((s) => s.text);
-      assertEquals(keywordTexts, ["decorator", "func"]);
+      assertEquals(keywordTexts, ["decorator", "true", "func", "number"]);
     },
   );
 
