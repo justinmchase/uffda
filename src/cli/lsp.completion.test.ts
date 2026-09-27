@@ -3,10 +3,39 @@ import { CompletionItemKind } from "vscode-languageserver-types";
 import {
   completionItemsForModule,
   completionItemsForSession,
+  globalCompletionItems,
   localCompletionItems,
 } from "./lsp.completion.ts";
+import { formatDescribedGlobalMarkdown } from "./lsp.hover.ts";
 import { LocalBindingKind } from "./lsp.locals.ts";
 import { RuntimeSession } from "./mcp.session.ts";
+
+Deno.test("cli.lsp.completion globalCompletionItems", () => {
+  const global = {
+    name: "coalesce",
+    metadata: {
+      description: "The first non-null argument.",
+      parameters: [{ name: "values", rest: true }],
+    },
+  };
+  const range = {
+    start: { line: 0, character: 1 },
+    end: { line: 0, character: 3 },
+  };
+  assertEquals(globalCompletionItems([global], range), [
+    {
+      label: "coalesce",
+      kind: CompletionItemKind.Function,
+      detail: "global func",
+      documentation: {
+        kind: "markdown",
+        value: formatDescribedGlobalMarkdown(global),
+      },
+      textEdit: { range, newText: "coalesce" },
+    },
+  ]);
+  assertEquals(globalCompletionItems([{ name: "x" }])[0].textEdit, undefined);
+});
 
 Deno.test("cli.lsp.completion localCompletionItems", () => {
   const source = "rule Pair<P> = n:string;";

@@ -283,20 +283,21 @@ the kinds a `[NameReference]` names — rules in patterns, funcs in expressions,
 decorators in attributes, any kind in an export list — preceded by the local
 bindings visible there (captured variables and lambda parameters in expressions,
 `[Parameter]` rule parameters in patterns), which shadow same-named
-declarations. The text before the cursor is parsed as an open input, so empty
-positions (after a separator, inside a call) have contexts too. The VS Code
-extension (requirement 007) has an initial implementation at `editors/vscode/`:
-it registers `uffda lsp` for `.uff` files, registers `uffda mcp` as an MCP
-server, and resolves/downloads a compatible `uffda` binary automatically, with
-debug override settings. The extension also queries the custom
-`uffda/languageMetadata` request and applies `[Language]`-derived editor
-configuration via `vscode.languages.setLanguageConfiguration()`, and assigns
-language ids from `[Language].ext` via
-`vscode.languages.setTextDocumentLanguage()` for workspace-declared languages
-(static `language-configuration.json` remains as a fallback for `.uff`). The LSP
-config loader fills omitted `extensions` from `[Language].ext` when
-`modulePath`/`entryRuleName` are present. See GitHub issue #155 for the tracking
-issue.
+declarations, and followed in expressions by the runtime globals (via
+`RuntimeSession.listGlobals()`) that nothing in scope shadows. The text before
+the cursor is parsed as an open input, so empty positions (after a separator,
+inside a call) have contexts too. The VS Code extension (requirement 007) has an
+initial implementation at `editors/vscode/`: it registers `uffda lsp` for `.uff`
+files, registers `uffda mcp` as an MCP server, and resolves/downloads a
+compatible `uffda` binary automatically, with debug override settings. The
+extension also queries the custom `uffda/languageMetadata` request and applies
+`[Language]`-derived editor configuration via
+`vscode.languages.setLanguageConfiguration()`, and assigns language ids from
+`[Language].ext` via `vscode.languages.setTextDocumentLanguage()` for
+workspace-declared languages (static `language-configuration.json` remains as a
+fallback for `.uff`). The LSP config loader fills omitted `extensions` from
+`[Language].ext` when `modulePath`/`entryRuleName` are present. See GitHub issue
+#155 for the tracking issue.
 
 ## Related
 

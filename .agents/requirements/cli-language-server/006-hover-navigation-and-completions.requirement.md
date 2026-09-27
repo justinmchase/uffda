@@ -78,7 +78,10 @@ Expected behavior:
     innermost first, then the in-scope declarations of the kinds it names (rules
     in a pattern, funcs in an expression, decorators in an attribute, any kind
     in an export list). A declaration a local binding shadows MUST NOT be
-    offered.
+    offered. Where the reference names funcs, it MUST then offer the runtime
+    globals (documented as hover describes them) that no local binding or
+    declaration shadows; it MUST NOT offer globals where funcs are not named
+    explicitly (e.g. an export list).
 - A position no completion context reaches MUST return no items, whether or not
   the request was triggered by a trigger character.
 - None of hover, go-to-definition, or completion requests MUST mutate any

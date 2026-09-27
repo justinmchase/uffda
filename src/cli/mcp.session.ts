@@ -398,6 +398,11 @@ export type DescribedGlobal = {
   metadata?: FunctionMetadata;
 };
 
+function describedGlobal(name: string, value: unknown): DescribedGlobal {
+  const metadata = metadataOf(value);
+  return { name, ...(metadata ? { metadata } : {}) };
+}
+
 export type SessionDescribeGlobalResult =
   | { ok: true; global: DescribedGlobal }
   | { ok: false; error: SessionDescribeFailure };
@@ -1310,8 +1315,20 @@ export class RuntimeSession {
         },
       };
     }
-    const metadata = metadataOf(globals.get(name));
-    return { ok: true, global: { name, ...(metadata ? { metadata } : {}) } };
+    return { ok: true, global: describedGlobal(name, globals.get(name)) };
+  }
+
+  /**
+   * Lists every runtime global (see `describeGlobal`), sorted by name.
+   * Read-only.
+   */
+  public listGlobals(): DescribedGlobal[] {
+    if (this.closed) {
+      throw new Error(`Session ${this.id} is closed`);
+    }
+    return [...Scope.Default().options.globals]
+      .map(([name, value]) => describedGlobal(name, value))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 
   /**
