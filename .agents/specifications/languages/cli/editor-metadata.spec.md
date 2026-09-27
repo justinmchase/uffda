@@ -52,6 +52,11 @@ descriptions (on the declaration and on each parameter's own hover), and
 completion items MUST carry the description as their documentation. A
 declaration's hover MUST NOT also list `Documentation` as an attribute.
 
+Every decorator in the editor vocabulary (`src/lang/editor/editor.uff`) carries
+its own `[Documentation]`, including `Documentation` itself, so hover and
+completion on these names explain them from the grammar rather than from
+tooling.
+
 `[Language]` (see the
 [language server](./language-server.spec.md#language-configuration)) are
 existing metadata that tooling reads the same way.

@@ -86,6 +86,17 @@ Apply this strict authority order when implementing or evaluating behavior:
 - Requirements live under `.agents/requirements/` as `{name}.requirement.md`.
 - Requirement documents should reference the spec file and section they refine.
 
+## Releases
+
+- Never create, push, or move git tags manually. Tags are created by the release
+  process (Release Drafter + Release Binaries) and GitHub release tags are
+  immutable, so a stray tag permanently burns that version.
+- Never mark a release as a pre-release unless its version carries a `-pre.N`
+  suffix (for example `0.3.0-pre.1`). Demoting a normal version such as `0.2.7`
+  to a pre-release is not allowed.
+- To change the next version, use Release Drafter's `major` / `minor` / `patch`
+  PR labels rather than editing tags or version files by hand.
+
 ## Validation
 
 After making changes—and **before pushing** when those changes include code or

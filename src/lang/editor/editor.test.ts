@@ -1,4 +1,5 @@
-import { assertEquals } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
+import { documentationOf } from "../../cli/editor_metadata.ts";
 import { resolveGrammarModule } from "../grammar.ts";
 
 /**
@@ -138,6 +139,37 @@ Deno.test("lang.editor metadata on the .uff grammar", async (t) => {
       if (!resolved.ok) throw new Error(`cannot resolve ${module}`);
       const declared = resolved.resolved.module.rules.get(rule);
       assertEquals(declared?.metadata?.[decorator], value);
+    });
+  }
+});
+
+Deno.test("lang.editor decorators document themselves", async (t) => {
+  const resolved = await resolveGrammarModule({
+    moduleUrl: new URL("./editor.uff", import.meta.url),
+    entryRuleName: "Documentation",
+  });
+  if (!resolved.ok) throw new Error("cannot resolve editor.uff");
+  const { decorators } = resolved.resolved.module;
+  const parametersOf: Record<string, string[]> = {
+    Highlight: ["c"],
+    Keyword: [],
+    Declaration: [],
+    NameReference: ["c"],
+    Import: [],
+    ModulePath: ["c"],
+    ImportedName: [],
+    Documentation: ["d"],
+  };
+  for (const [name, parameters] of Object.entries(parametersOf)) {
+    await t.step(`${name} carries [Documentation]`, () => {
+      const documentation = documentationOf(
+        decorators.get(name)?.metadata ?? {},
+      );
+      assert(documentation?.description, `${name} has a description`);
+      assertEquals(
+        Object.keys(documentation.parameters).sort(),
+        parameters,
+      );
     });
   }
 });
