@@ -258,9 +258,12 @@ stdio. Every piece of syntax knowledge the editor tooling uses comes from the
 own rules (`src/lang/editor/editor.uff`): classification reads `[Highlight]`
 roles plus `[Keyword]` (`src/cli/highlight.ts`), refining names into pattern
 references (`type`), invoked functions (`function`), other expression references
-(`variable`), and member names (`property`). Import-caused resolution failures
-are ranged on the failing root import's `[ModulePath]` or `[ImportedName]` (via
-the resolver's `importChain` and the session's retained parse tree), with the
+(`variable`), and member names (`property`); the server then colors each
+`variable` reference by what the session resolves it to (rules as `type`, funcs
+and globals as `function`, local bindings staying `variable`;
+`src/cli/lsp.reference_roles.ts`). Import-caused resolution failures are ranged
+on the failing root import's `[ModulePath]` or `[ImportedName]` (via the
+resolver's `importChain` and the session's retained parse tree), with the
 dependency's own failure position as `relatedInformation` when known. A parse
 failure on an incomplete line (for example an import missing its names) is
 anchored right after that line's last token. Document operations

@@ -27,12 +27,17 @@ Expected behavior:
   token spans are the innermost `Highlight`-annotated nodes, each taking the
   role of the outermost `Highlight` on its path, and name-refinement roles
   (`type`, `function`, `variable`, `property`) reclassify the identifiers within
-  the outermost node annotated with one. Roles MUST map to the standard LSP
-  token types of the same names (`identifier` to `variable`, `punctuation` to
-  `operator`), so editor themes color them with no extension-side theme
-  contribution. A rule with no applicable classification metadata MUST NOT
-  itself emit a semantic token, though its matched span MAY still contribute to
-  an ancestor/descendant rule's token.
+  the outermost node annotated with one. A `variable` name MUST then be
+  classified by what the document session resolves it to (a local binding stays
+  `variable`, a rule or decorator is `type`, a func or runtime global is
+  `function`; see
+  [editor metadata](../../specifications/languages/cli/editor-metadata.spec.md#highlighting)),
+  without mutating session state. Roles MUST map to the standard LSP token types
+  of the same names (`identifier` to `variable`, `punctuation` to `operator`),
+  so editor themes color them with no extension-side theme contribution. A rule
+  with no applicable classification metadata MUST NOT itself emit a semantic
+  token, though its matched span MAY still contribute to an ancestor/descendant
+  rule's token.
 - Highlighting MUST stay current under `didChange` using the same
   document-synchronization contract diagnostics use (003/004): a region whose
   underlying parse was reused via incremental re-parsing MUST report the same

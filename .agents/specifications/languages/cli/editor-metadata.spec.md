@@ -115,10 +115,15 @@ existing metadata that tooling reads the same way.
 - A node annotated with a name refinement (`type`, `function`, `variable`,
   `property`) is neither a token span nor a container: it reclassifies each
   token within its span whose resolved role is `identifier` (so a keyword or
-  string content is never refined). Only `Ok` nodes with no refinement-annotated
-  `Ok` ancestor apply (the outermost on a path wins, so an invoked reference is
-  a `function`, not a `variable`), and the accepted parse is considered before
-  rejected attempts; the first refinement covering a token wins.
+  string content is never refined). Only `Ok` nodes of the accepted parse with
+  no refinement-annotated `Ok` ancestor apply (the outermost on a path wins, so
+  an invoked reference is a `function`, not a `variable`); attempts the parse
+  rejected never refine.
+- Where a session can resolve names (the language server), a `variable` name is
+  further classified by what it resolves to, in reference-resolution order: a
+  local binding stays `variable`, a declared rule or decorator is `type`, a
+  declared func is `function`, and (where the reference may name a func) a
+  runtime global is `function`. An unresolved name stays `variable`.
 - `identifier` and the name refinements are name roles; tooling that looks for
   the name under the cursor MUST accept any name role.
 - Trivia is the `whitespace`, `newline`, and `comment` roles. Other tooling that

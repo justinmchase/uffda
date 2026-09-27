@@ -3,7 +3,7 @@ import { getRightmostFailure, type Match, MatchKind } from "../match.ts";
 import {
   EditorDecorator,
   editorMetadata,
-  walkAnnotatable,
+  walkAccepted,
 } from "./editor_metadata.ts";
 import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
 import { patternGrammar } from "../lang/pattern/pattern.lang.ts";
@@ -300,13 +300,12 @@ function roleFor(
 }
 
 /**
- * The name-refinement-annotated `Ok` nodes of `root` with no such ancestor
- * (the outermost on their path), accepted parse first (see
- * `walkAnnotatable`).
+ * The name-refinement-annotated `Ok` nodes of the accepted parse with no such
+ * ancestor (the outermost on their path; see `walkAccepted`).
  */
 function collectNameRefinements(root: Match): AnnotatedSpan[] {
   const refinements: AnnotatedSpan[] = [];
-  walkAnnotatable(root, (node, ancestors) => {
+  walkAccepted(root, (node, ancestors) => {
     if (node.kind !== MatchKind.Ok) return;
     const role = highlightRoleOf(node);
     if (role === undefined || !isNameRefinementRole(role)) return;
