@@ -121,3 +121,40 @@ Deno.test({
     assertEquals(p1.segments, [0, 2]);
   },
 });
+
+Deno.test({
+  name: "path set on an empty path adds the segment",
+  fn: () => {
+    assertEquals(new Path().set(3).segments, [3]);
+  },
+});
+
+Deno.test({
+  name: "path set and push validate the new segment",
+  fn: () => {
+    const p0 = new Path(0);
+    assertEquals(p0.push(1.5 as number).segments, [0, "1.5"]);
+    assertEquals(p0.set(2.5 as number).segments, ["2.5"]);
+  },
+});
+
+Deno.test({
+  name: "path derived paths equal constructed paths",
+  fn: () => {
+    assertEquals(new Path(0, "a").push(1), new Path(0, "a", 1));
+    assertEquals(new Path(0, 1).set(2), Path.From(0, 2));
+    assertEquals(new Path(0, 1).pop(), Path.From(0));
+  },
+});
+
+Deno.test({
+  name: "path toString is stable and does not affect equality",
+  fn: () => {
+    const p0 = new Path(0, "a");
+    const p1 = new Path(0, "a");
+    assertEquals(p0.toString(), '[0]."a"');
+    assertEquals(p0.toString(), '[0]."a"');
+    assertEquals(p0, p1);
+    assertEquals(p0.push(1).toString(), '[0]."a".[1]');
+  },
+});

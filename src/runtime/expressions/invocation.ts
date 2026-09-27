@@ -3,7 +3,16 @@ import { andThen, type Awaitable, mapInOrder } from "../awaitable.ts";
 import { exec } from "../exec.ts";
 import { collect } from "../collect.ts";
 import { ExpressionKind } from "./expression.kind.ts";
-import type { InvocationExpression } from "./expression.ts";
+import type {
+  InvocationArgument,
+  InvocationExpression,
+  InvocationSpreadExpression,
+} from "./expression.ts";
+
+const isSpread = (
+  arg: InvocationArgument,
+): arg is InvocationSpreadExpression =>
+  arg.kind === ExpressionKind.InvocationSpread;
 
 export function invocation(
   expression: InvocationExpression,
@@ -31,20 +40,29 @@ export function invocation(
     andThen(
       mapInOrder(args, (arg) =>
         exec(
-          arg.kind === ExpressionKind.InvocationSpread ? arg.expression : arg,
+          isSpread(arg) ? arg.expression : arg,
           match,
         )),
       (values) =>
-        andThen(
-          mapInOrder(args, (arg, i): Awaitable<unknown[]> =>
-            arg.kind === ExpressionKind.InvocationSpread
-              // The value may be a lazily produced sequence (e.g. the result
-              // of `enumerate`/`map`/`filter`), so drain it via `collect`
-              // instead of relying on native `...` (which only supports sync
-              // iterables).
-              ? collect(values[i])
-              : [values[i]]),
-          (parts) => invoke(fn, parts.flat(1)),
-        ),
+        args.some(isSpread)
+          ? andThen(expandSpreads(args, values), (a) => invoke(fn, a))
+          : invoke(fn, values),
     ));
+}
+
+/** Argument values with each spread argument's sequence expanded in place. */
+function expandSpreads(
+  args: InvocationArgument[],
+  values: unknown[],
+): Awaitable<unknown[]> {
+  return andThen(
+    mapInOrder(args, (arg, i): Awaitable<unknown[]> =>
+      isSpread(arg)
+        // The value may be a lazily produced sequence (e.g. the result of
+        // `enumerate`/`map`/`filter`), so drain it via `collect` instead of
+        // relying on native `...` (which only supports sync iterables).
+        ? collect(values[i])
+        : [values[i]]),
+    (parts) => parts.flat(1),
+  );
 }

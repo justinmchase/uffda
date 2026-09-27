@@ -5,19 +5,32 @@ export class Path {
   public static readonly From = (...segments: Segment[]): Path =>
     new Path(...segments);
   public readonly segments: Segment[];
+  #key: string | undefined = undefined;
   constructor(...segments: Segment[]) {
     this.segments = segments.map(Path.getValidSegment);
   }
+
+  /** Wraps segments that are already valid, without copying them again. */
+  private static of(segments: Segment[]): Path {
+    const path = new Path();
+    (path as { segments: Segment[] }).segments = segments;
+    return path;
+  }
+
   public set(segment: Segment): Path {
-    return new Path(...this.segments.slice(0, -1), segment);
+    const segments = this.segments.slice(0, -1);
+    segments.push(Path.getValidSegment(segment));
+    return Path.of(segments);
   }
 
   public push(segment: Segment): Path {
-    return new Path(...this.segments, segment);
+    const segments = this.segments.slice();
+    segments.push(Path.getValidSegment(segment));
+    return Path.of(segments);
   }
 
   public pop(): Path {
-    return new Path(...this.segments.slice(0, -1));
+    return Path.of(this.segments.slice(0, -1));
   }
 
   private static getValidSegment(value: Segment): Segment {
@@ -65,8 +78,9 @@ export class Path {
     return 0;
   }
 
+  /** Also the memo-table key for this position, so it is computed once. */
   public toString(): string {
-    return this.segments
+    return this.#key ??= this.segments
       .map((s) => typeof s === "string" ? `"${s}"` : `[${s}]`)
       .join(".");
   }

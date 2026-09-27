@@ -6,6 +6,29 @@ import type { Expression } from "./expression.ts";
 
 Deno.test("runtime.expressions.invocation", async (t) => {
   await t.step({
+    name: "INVOKE_ARRAY_ARGUMENT - a non-spread array argument is passed whole",
+    fn: expressionTest({
+      expression: {
+        kind: ExpressionKind.Invocation,
+        expression: { kind: ExpressionKind.Reference, name: "fn" },
+        args: [
+          { kind: ExpressionKind.Reference, name: "a" },
+          { kind: ExpressionKind.Reference, name: "b" },
+        ],
+      },
+      scope: Scope
+        .Default()
+        .withOptions({
+          globals: new Map([
+            ["fn", (...args: unknown[]) => args],
+          ]),
+        })
+        .addVariables({ a: [1, 2], b: undefined }),
+      result: [[1, 2], undefined],
+    }),
+  });
+
+  await t.step({
     name: "INVOKE00",
     fn: expressionTest({
       expression: {

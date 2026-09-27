@@ -114,6 +114,11 @@ export class VariableScope {
     return this.layer(own);
   }
 
+  /** Returns a new view with the single binding `name` added; see {@link with}. */
+  public withBinding(name: string, value: unknown): VariableScope {
+    return this.layer(new Map<string, unknown>().set(name, value));
+  }
+
   /**
    * Folds another `VariableScope` chain on top of this one as a single new
    * layer — used where a nested scope's full binding set (e.g. the result
@@ -125,7 +130,19 @@ export class VariableScope {
     if (other === VariableScope.Empty || other === this) {
       return this;
     }
+    // `other` layered over one of its own ancestors already has exactly the
+    // bindings the fold would produce, so it is the result as-is.
+    if (other.descendsFrom(this)) {
+      return other;
+    }
     return this.layer(other.toMap());
+  }
+
+  private descendsFrom(ancestor: VariableScope): boolean {
+    for (let s = this.parent; s; s = s.parent) {
+      if (s === ancestor) return true;
+    }
+    return false;
   }
 
   private layer(own: ReadonlyMap<string, unknown>): VariableScope {

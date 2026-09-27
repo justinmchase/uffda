@@ -158,6 +158,19 @@ export class Scope {
     );
   }
 
+  public addVariable(name: string, value: unknown): Scope {
+    return new Scope(
+      this.module,
+      this.parent,
+      this.variables.withBinding(name, value),
+      this.args,
+      this.stream,
+      this.memos,
+      this.stack,
+      this.options,
+    );
+  }
+
   public addVariables(
     variables:
       | Record<string, unknown>
