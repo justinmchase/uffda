@@ -1,3 +1,4 @@
+import { immediateExpressionTest } from "../../test.ts";
 import { Scope } from "../scope.ts";
 import { expressionTest } from "../../test.ts";
 import { ExpressionKind } from "./expression.kind.ts";
@@ -320,6 +321,23 @@ await Deno.test("runtime/expressions/array", async (t) => {
         ],
       },
       throws: true,
+    }),
+  });
+
+  await t.step({
+    name: "ARRAY_IMMEDIATE - evaluates synchronously over immediate values",
+    fn: immediateExpressionTest({
+      expression: {
+        kind: ExpressionKind.Array,
+        expressions: [{
+          kind: ExpressionKind.ArrayElement,
+          expression: { kind: ExpressionKind.Number, value: 1 },
+        }, {
+          kind: ExpressionKind.ArraySpread,
+          expression: { kind: ExpressionKind.Value, value: [2, 3] },
+        }],
+      },
+      result: [1, 2, 3],
     }),
   });
 });

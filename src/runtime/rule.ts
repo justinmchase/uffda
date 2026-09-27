@@ -2,46 +2,55 @@ import { error, fail, lr, MatchErrorCode, MatchKind, ok } from "../match.ts";
 import { match } from "./match.ts";
 import { StackFrameKind } from "./stack/stackFrameKind.ts";
 import { exec } from "./exec.ts";
+import { expressionError } from "./expression_error.ts";
 import { canSkipMemo } from "./rule.reentrancy.ts";
-import type { AwaitableMatch } from "./awaitable.ts";
+import { andThen, attempt, type AwaitableMatch } from "./awaitable.ts";
 import type { Match, MatchOk, MatchOrigin } from "../match.ts";
 import type { Rule } from "./modules/mod.ts";
 import type { Scope } from "./scope.ts";
 import type { Pattern } from "./patterns/pattern.ts";
 
-async function finishRuleSuccess(
+/**
+ * The rule boundary: every fresh rule body evaluation starts on a new
+ * microtask, so the JS call stack only ever holds the patterns of the rule
+ * body currently being matched, never the whole chain of rules that led to
+ * it. Patterns within a rule body complete synchronously whenever their
+ * inputs allow (see `awaitable.ts`), but grammar recursion only happens
+ * through rules, so deferring here keeps stack depth independent of how
+ * deeply the input nests. See
+ * `.agents/specifications/runtime.spec.md#synchronous-completion-and-the-rule-boundary`.
+ */
+function ruleBody(body: () => AwaitableMatch): Promise<Match> {
+  return Promise.resolve().then(body);
+}
+
+function finishRuleSuccess(
   rule: Rule,
   patternMatch: MatchOk,
   callerScope: Scope,
   origin: MatchOrigin,
 ): AwaitableMatch {
   const { pattern, expression } = rule;
-  let value: unknown;
-  try {
-    value = expression
-      ? await exec(expression, patternMatch)
-      : patternMatch.value;
-  } catch (err) {
-    const message = err instanceof Error ? err.message : `${err}`;
-    return error(
+  const succeed = (value: unknown) =>
+    ok(
       callerScope,
+      callerScope.withInput(patternMatch.scope.stream),
       pattern,
-      MatchErrorCode.ExpressionException,
-      `expression exception: ${message}`,
-      err,
+      value,
+      [patternMatch],
+      origin,
     );
+  if (!expression) {
+    return succeed(patternMatch.value);
   }
-  return ok(
-    callerScope,
-    callerScope.withInput(patternMatch.scope.stream),
-    pattern,
-    value,
-    [patternMatch],
-    origin,
+  return attempt(
+    () => exec(expression, patternMatch),
+    succeed,
+    (err) => expressionError(callerScope, pattern, err),
   );
 }
 
-export async function rule(
+export function rule(
   rule: Rule,
   args: Map<string, Rule>,
   scope: Scope,
@@ -72,81 +81,86 @@ export async function rule(
   }
 
   if (canSkipMemo(rule)) {
-    return await runUnmemoized(rule, mergedArgs, scope);
+    return runUnmemoized(rule, mergedArgs, scope);
   }
 
   let { key, memo } = scope.memos.resolve(scope.stream.path, rule, [
     ...mergedArgs.values(),
   ]);
   if (!memo) {
-    return await scope.memos.withFrame(scope.stream.path, async () => {
+    return scope.memos.withFrame(scope.stream.path, () => {
       memo = scope.memos.set(scope.stream.path, key, lr(scope, pattern));
       const subScope = scope
         .pushModule(module)
         .pushRule(rule, mergedArgs);
       const origin: MatchOrigin = { rule, args: mergedArgs };
 
-      const m = await match(pattern, subScope);
-      switch (m.kind) {
-        case MatchKind.LR: {
-          const grown = await grow(pattern, key, subScope);
-          switch (grown.kind) {
-            case MatchKind.LR:
-            case MatchKind.Error:
-              memo!.match = grown;
-              return grown;
-            case MatchKind.Fail: {
-              const failed = fail(scope, rule.pattern, [grown], origin);
-              memo!.match = failed;
-              return failed;
-            }
-            case MatchKind.Ok: {
-              // Match the non-LR Ok path: expose only the caller scope plus the
-              // advanced stream so inner growth bindings do not leak outward.
-              // Apply rule-level projection to the stabilized growth result, then
-              // memoize that caller-visible value for later non-growth reuse.
-              const finished = await finishRuleSuccess(
-                rule,
-                grown,
+      return andThen(ruleBody(() => match(pattern, subScope)), (m) => {
+        switch (m.kind) {
+          case MatchKind.LR: {
+            return andThen(grow(pattern, key, subScope), (grown) => {
+              switch (grown.kind) {
+                case MatchKind.LR:
+                case MatchKind.Error:
+                  memo!.match = grown;
+                  return grown;
+                case MatchKind.Fail: {
+                  const failed = fail(scope, rule.pattern, [grown], origin);
+                  memo!.match = failed;
+                  return failed;
+                }
+                case MatchKind.Ok: {
+                  // Match the non-LR Ok path: expose only the caller scope plus the
+                  // advanced stream so inner growth bindings do not leak outward.
+                  // Apply rule-level projection to the stabilized growth result, then
+                  // memoize that caller-visible value for later non-growth reuse.
+                  return andThen(
+                    finishRuleSuccess(rule, grown, scope, origin),
+                    (finished) => {
+                      memo!.match = finished;
+                      return finished;
+                    },
+                  );
+                }
+              }
+              return error(
                 scope,
-                origin,
+                rule.pattern,
+                MatchErrorCode.InternalInvariant,
+                `unexpected match kind ${
+                  (grown as { kind?: unknown }).kind
+                } after left-recursion growth`,
               );
-              memo!.match = finished;
-              return finished;
-            }
+            });
           }
-          return error(
-            scope,
-            rule.pattern,
-            MatchErrorCode.InternalInvariant,
-            `unexpected match kind ${
-              (grown as { kind?: unknown }).kind
-            } after left-recursion growth`,
-          );
+          case MatchKind.Error:
+            memo!.match = m;
+            return m;
+          case MatchKind.Fail: {
+            const failed = fail(scope, rule.pattern, [m], origin);
+            memo!.match = failed;
+            return failed;
+          }
+          case MatchKind.Ok: {
+            // Store the post-expression success so Or backtracking that
+            // re-enters this rule at the same position observes the
+            // projected value.
+            return andThen(
+              finishRuleSuccess(rule, m, scope, origin),
+              (finished) => {
+                memo!.match = finished;
+                return finished;
+              },
+            );
+          }
         }
-        case MatchKind.Error:
-          memo!.match = m;
-          return m;
-        case MatchKind.Fail: {
-          const failed = fail(scope, rule.pattern, [m], origin);
-          memo!.match = failed;
-          return failed;
-        }
-        case MatchKind.Ok: {
-          const finished = await finishRuleSuccess(rule, m, scope, origin);
-          // Store the post-expression success so Or backtracking that
-          // re-enters this rule at the same position observes the
-          // projected value.
-          memo!.match = finished;
-          return finished;
-        }
-      }
-      return error(
-        scope,
-        rule.pattern,
-        MatchErrorCode.InternalInvariant,
-        `unexpected match kind ${(m as { kind?: unknown }).kind}`,
-      );
+        return error(
+          scope,
+          rule.pattern,
+          MatchErrorCode.InternalInvariant,
+          `unexpected match kind ${(m as { kind?: unknown }).kind}`,
+        );
+      });
     });
   } else {
     const m = memo.match;
@@ -192,36 +206,37 @@ export async function rule(
  * `active`-position tracking `withFrame` provides is still honored, so other
  * (memoized) rules' eviction low-water mark stays accurate.
  */
-async function runUnmemoized(
+function runUnmemoized(
   rule: Rule,
   mergedArgs: Map<string, Rule>,
   scope: Scope,
 ): AwaitableMatch {
-  return await scope.memos.withFrame(scope.stream.path, async () => {
+  return scope.memos.withFrame(scope.stream.path, () => {
     const subScope = scope
       .pushModule(rule.module)
       .pushRule(rule, mergedArgs);
     const origin: MatchOrigin = { rule, args: mergedArgs };
 
-    const m = await match(rule.pattern, subScope);
-    switch (m.kind) {
-      case MatchKind.LR:
-        // canSkipMemo only proves a rule safe when it cannot reach itself
-        // through statically-resolved calls, so it should never actually
-        // grow left-recursively. Surface loudly if it somehow does.
-        return error(
-          scope,
-          rule.pattern,
-          MatchErrorCode.InternalInvariant,
-          `rule ${rule.name} was proven non-recursive but produced left recursion`,
-        );
-      case MatchKind.Error:
-        return m;
-      case MatchKind.Fail:
-        return fail(scope, rule.pattern, [m], origin);
-      case MatchKind.Ok:
-        return await finishRuleSuccess(rule, m, scope, origin);
-    }
+    return andThen(ruleBody(() => match(rule.pattern, subScope)), (m) => {
+      switch (m.kind) {
+        case MatchKind.LR:
+          // canSkipMemo only proves a rule safe when it cannot reach itself
+          // through statically-resolved calls, so it should never actually
+          // grow left-recursively. Surface loudly if it somehow does.
+          return error(
+            scope,
+            rule.pattern,
+            MatchErrorCode.InternalInvariant,
+            `rule ${rule.name} was proven non-recursive but produced left recursion`,
+          );
+        case MatchKind.Error:
+          return m;
+        case MatchKind.Fail:
+          return fail(scope, rule.pattern, [m], origin);
+        case MatchKind.Ok:
+          return finishRuleSuccess(rule, m, scope, origin);
+      }
+    });
   });
 }
 
@@ -229,7 +244,7 @@ async function grow(
   pattern: Pattern,
   key: symbol,
   scope: Scope,
-): AwaitableMatch {
+): Promise<Match> {
   let growing = true;
   let m: Match = fail(scope, pattern);
   const start = scope.stream;

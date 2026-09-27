@@ -1,3 +1,4 @@
+import { awaitableAgreementTest } from "../../test.ts";
 import { patternTest } from "../../test.ts";
 import { ExpressionKind } from "../expressions/mod.ts";
 import { PatternKind } from "./pattern.kind.ts";
@@ -80,6 +81,19 @@ Deno.test("runtime.patterns.projection", async (t) => {
       message: "expression exception: boom",
       start: Path.From(0),
       end: Path.From(0),
+    }),
+  });
+
+  await t.step({
+    name:
+      "PROJECTION_AWAITABLE - completes synchronously over immediate input and agrees over async input",
+    fn: awaitableAgreementTest({
+      pattern: {
+        kind: PatternKind.Projection,
+        pattern: { kind: PatternKind.Any },
+        expression: { kind: ExpressionKind.Reference, name: "_" },
+      },
+      items: ["a"],
     }),
   });
 });

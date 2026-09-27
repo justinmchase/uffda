@@ -1,6 +1,6 @@
 import { error, fail, MatchErrorCode, MatchKind, ok } from "../../match.ts";
 import { rule } from "../rule.ts";
-import type { AwaitableMatch } from "../awaitable.ts";
+import { andThen, type AwaitableMatch } from "../awaitable.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { SpecialKind } from "../modules/special.ts";
 import { isRule } from "../modules/rule.ts";
@@ -26,7 +26,7 @@ function argumentRule(pattern: Pattern, module: Module, index: number): Rule {
   };
 }
 
-async function resolveReference(
+function resolveReference(
   pattern: ResolveReferencePattern,
   scope: Scope,
 ): AwaitableMatch {
@@ -87,19 +87,20 @@ async function resolveReference(
     args.set(paramName, argument);
   }
 
-  const m = await rule(ref, args, scope);
-  switch (m.kind) {
-    case MatchKind.LR:
-    case MatchKind.Error:
-      return m;
-    case MatchKind.Ok:
-      return ok(scope, m.scope, pattern, m.value, [m]);
-    case MatchKind.Fail:
-      return fail(scope, pattern, [m]);
-  }
+  return andThen(rule(ref, args, scope), (m) => {
+    switch (m.kind) {
+      case MatchKind.LR:
+      case MatchKind.Error:
+        return m;
+      case MatchKind.Ok:
+        return ok(scope, m.scope, pattern, m.value, [m]);
+      case MatchKind.Fail:
+        return fail(scope, pattern, [m]);
+    }
+  });
 }
 
-async function resolveRun(
+function resolveRun(
   pattern: ResolveRunPattern,
   scope: Scope,
 ): AwaitableMatch {
@@ -128,10 +129,10 @@ async function resolveRun(
     );
   }
 
-  return await rule(main, new Map(), scope);
+  return rule(main, new Map(), scope);
 }
 
-async function resolveSpecial(
+function resolveSpecial(
   pattern: ResolveSpecialPattern,
   scope: Scope,
 ): AwaitableMatch {
@@ -154,10 +155,10 @@ async function resolveSpecial(
     );
   }
 
-  const m = await (async () => {
+  const special = (): AwaitableMatch => {
     switch (value.kind) {
       case SpecialKind.Module:
-        return await resolve(
+        return resolve(
           {
             kind: PatternKind.Resolve,
             targetKind: ResolveTargetKind.Run,
@@ -165,32 +166,34 @@ async function resolveSpecial(
           scope.pushModule(value.module),
         );
       case SpecialKind.Rule:
-        return await rule(value.rule, new Map(), scope);
+        return rule(value.rule, new Map(), scope);
     }
-  })();
+  };
 
-  switch (m.kind) {
-    case MatchKind.LR:
-    case MatchKind.Error:
-      return m;
-    case MatchKind.Fail:
-      return fail(scope, pattern, [m]);
-    case MatchKind.Ok:
-      return ok(scope, m.scope.pop(scope), pattern, m.value, [m]);
-  }
+  return andThen(special(), (m) => {
+    switch (m.kind) {
+      case MatchKind.LR:
+      case MatchKind.Error:
+        return m;
+      case MatchKind.Fail:
+        return fail(scope, pattern, [m]);
+      case MatchKind.Ok:
+        return ok(scope, m.scope.pop(scope), pattern, m.value, [m]);
+    }
+  });
 }
 
-export async function resolve(
+export function resolve(
   pattern: ResolvePattern,
   scope: Scope,
 ): AwaitableMatch {
   switch (pattern.targetKind) {
     case ResolveTargetKind.Reference:
-      return await resolveReference(pattern, scope);
+      return resolveReference(pattern, scope);
     case ResolveTargetKind.Run:
-      return await resolveRun(pattern, scope);
+      return resolveRun(pattern, scope);
     case ResolveTargetKind.Special:
-      return await resolveSpecial(pattern, scope);
+      return resolveSpecial(pattern, scope);
   }
 }
 

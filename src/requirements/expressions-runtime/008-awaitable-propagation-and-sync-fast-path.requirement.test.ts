@@ -5,13 +5,13 @@ import { exec } from "../../runtime/exec.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 
-Deno.test("req:expressions-runtime-008 - Composite expression evaluation preserves awaitable propagation and synchronous fast paths", async (t) => {
+Deno.test("req:expressions-runtime-008 - Exec completes synchronously for immediate children and propagates awaitables otherwise", async (t) => {
   const scope = Scope.Default();
   const match = ok(scope, scope, { kind: PatternKind.Ok }, undefined);
 
   await t.step(
-    "exec returns a promise for composite expressions with immediate children",
-    async () => {
+    "exec returns the value itself for composite expressions with immediate children",
+    () => {
       const stringImmediateResult = exec(
         {
           kind: ExpressionKind.String,
@@ -22,8 +22,7 @@ Deno.test("req:expressions-runtime-008 - Composite expression evaluation preserv
         },
         match,
       );
-      assert(stringImmediateResult instanceof Promise);
-      assertEquals(await stringImmediateResult, "a1");
+      assertEquals(stringImmediateResult, "a1");
 
       const arrayResult = exec(
         {
@@ -41,8 +40,7 @@ Deno.test("req:expressions-runtime-008 - Composite expression evaluation preserv
         },
         match,
       );
-      assert(arrayResult instanceof Promise);
-      assertEquals(await arrayResult, [7, 11]);
+      assertEquals(arrayResult, [7, 11]);
 
       const objectResult = exec(
         {
@@ -62,13 +60,12 @@ Deno.test("req:expressions-runtime-008 - Composite expression evaluation preserv
         },
         match,
       );
-      assert(objectResult instanceof Promise);
-      assertEquals(await objectResult, { x: 7, y: 11 });
+      assertEquals(objectResult, { x: 7, y: 11 });
     },
   );
 
   await t.step(
-    "exec returns a promise for composite expressions with awaitable children",
+    "exec returns a promise for composite expressions with any awaitable child",
     async () => {
       const arrayAwaitableResult = exec(
         {
@@ -124,6 +121,37 @@ Deno.test("req:expressions-runtime-008 - Composite expression evaluation preserv
       );
       assert(notResult instanceof Promise);
       assertEquals(await notResult, false);
+    },
+  );
+
+  await t.step(
+    "children are evaluated in declared order across an awaitable child",
+    async () => {
+      const order: string[] = [];
+      const record = (name: string, value: unknown) => ({
+        kind: ExpressionKind.ArrayElement as const,
+        expression: {
+          kind: ExpressionKind.Native as const,
+          fn: () => {
+            order.push(name);
+            return value;
+          },
+        },
+      });
+      const result = exec(
+        {
+          kind: ExpressionKind.Array,
+          expressions: [
+            record("a", 1),
+            record("b", Promise.resolve(2)),
+            record("c", 3),
+          ],
+        },
+        match,
+      );
+      assert(result instanceof Promise);
+      assertEquals(await result, [1, 2, 3]);
+      assertEquals(order, ["a", "b", "c"]);
     },
   );
 });

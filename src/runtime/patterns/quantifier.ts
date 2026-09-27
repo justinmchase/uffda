@@ -4,6 +4,7 @@ import type { Match } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import type { QuantifierPattern } from "./pattern.ts";
 import { resolveValueSource, type ValueSource } from "./value_source.ts";
+import { andThen, type Awaitable, repeatUntil } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 
 function resolveBound(
@@ -27,7 +28,7 @@ export function quantifier(
   scope: Scope,
 ): CompiledPattern {
   const child = compile(pattern.pattern, scope);
-  return async (invocationScope: Scope) => {
+  return (invocationScope: Scope) => {
     const minResolved = resolveBound(pattern.min, invocationScope, pattern);
     if (minResolved.kind === "error") {
       return minResolved.match;
@@ -104,40 +105,43 @@ export function quantifier(
     let end: Scope = invocationScope;
     const values: unknown[] = [];
     const matches: Match[] = [];
-    let done = false;
-    while (!done && (end.stream.open || !(await end.stream.done()))) {
-      const m = await child(end);
-      matches.push(m);
-      switch (m.kind) {
-        case MatchKind.LR:
-        case MatchKind.Error:
-          return m;
-        case MatchKind.Fail:
-          done = true;
-          break;
-        case MatchKind.Ok:
-          values.push(m.value);
-          break;
-      }
-
-      // Prevent infinite loops on patterns that succeed without consuming input.
-      if (m.scope.stream.path.compareTo(end.stream.path) <= 0) {
-        if (values.length >= (min ? min : 1)) {
-          break;
+    const finish = (): Match =>
+      !min || values.length >= min
+        ? ok(invocationScope, end, pattern, values, matches)
+        : fail(invocationScope, pattern, matches);
+    return repeatUntil(
+      // One repetition, or `undefined` once the input is exhausted.
+      (): Awaitable<Match | undefined> =>
+        end.stream.open
+          ? child(end)
+          : andThen(end.stream.done(), (done) => done ? undefined : child(end)),
+      (m) => {
+        if (!m) {
+          return finish();
         }
-      }
-
-      end = m.scope;
-      if (max != null && values.length >= max) {
-        done = true;
-        break;
-      }
-    }
-
-    if (!min || values.length >= min) {
-      return ok(invocationScope, end, pattern, values, matches);
-    } else {
-      return fail(invocationScope, pattern, matches);
-    }
+        matches.push(m);
+        switch (m.kind) {
+          case MatchKind.LR:
+          case MatchKind.Error:
+            return m;
+          case MatchKind.Fail:
+            return finish();
+          case MatchKind.Ok:
+            values.push(m.value);
+            break;
+        }
+        // Prevent infinite loops on patterns that succeed without consuming input.
+        if (m.scope.stream.path.compareTo(end.stream.path) <= 0) {
+          if (values.length >= (min ? min : 1)) {
+            return finish();
+          }
+        }
+        end = m.scope;
+        if (max != null && values.length >= max) {
+          return finish();
+        }
+        return undefined;
+      },
+    );
   };
 }

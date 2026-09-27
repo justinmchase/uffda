@@ -1,3 +1,4 @@
+import { immediateExpressionTest } from "../../test.ts";
 import { Scope } from "../scope.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import { expressionTest } from "../../test.ts";
@@ -50,6 +51,18 @@ await Deno.test("runtime/expressions/member", async (t) => {
           name: "a",
         },
       },
+    }),
+  });
+
+  await t.step({
+    name: "MEMBER_IMMEDIATE - evaluates synchronously over immediate values",
+    fn: immediateExpressionTest({
+      expression: {
+        kind: ExpressionKind.Member,
+        name: "x",
+        expression: { kind: ExpressionKind.Value, value: { x: 1 } },
+      },
+      result: 1,
     }),
   });
 });

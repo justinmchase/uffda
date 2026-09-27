@@ -2,11 +2,12 @@ import { MatchKind, type MatchOk } from "../../match.ts";
 import { Input, InputNormalizationMode } from "../../input.ts";
 import { exec } from "../exec.ts";
 import { match } from "../match.ts";
+import { andThen, type Awaitable } from "../awaitable.ts";
 import type { Func } from "../modules/func.ts";
 import { PatternKind } from "../patterns/pattern.kind.ts";
 import type { Pattern } from "../patterns/pattern.ts";
 
-export type FuncCallable = (...args: unknown[]) => Promise<unknown>;
+export type FuncCallable = (...args: unknown[]) => Awaitable<unknown>;
 
 const argsPatterns = new WeakMap<Pattern, Pattern>();
 
@@ -46,7 +47,7 @@ export function funcCallable(
   matchOk: MatchOk,
   subject?: unknown,
 ): FuncCallable {
-  return async (...args: unknown[]) => {
+  return (...args: unknown[]) => {
     const pattern = argsPattern(fn.pattern);
     const stream = new Input(
       args,
@@ -56,20 +57,21 @@ export function funcCallable(
       InputNormalizationMode.Iterable,
     );
     const scope = matchOk.scope.withInput(stream);
-    const result = await match(pattern, scope);
-    switch (result.kind) {
-      case MatchKind.LR:
-      case MatchKind.Error:
-        return result;
-      case MatchKind.Fail:
-        throw new Error(
-          `func ${fn.name}: arguments did not match parameter pattern`,
-        );
-      case MatchKind.Ok:
-        return await exec(
-          fn.expression,
-          subject === undefined ? result : { ...result, subject },
-        );
-    }
+    return andThen(match(pattern, scope), (result) => {
+      switch (result.kind) {
+        case MatchKind.LR:
+        case MatchKind.Error:
+          return result;
+        case MatchKind.Fail:
+          throw new Error(
+            `func ${fn.name}: arguments did not match parameter pattern`,
+          );
+        case MatchKind.Ok:
+          return exec(
+            fn.expression,
+            subject === undefined ? result : { ...result, subject },
+          );
+      }
+    });
   };
 }

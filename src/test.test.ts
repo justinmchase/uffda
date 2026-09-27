@@ -4,7 +4,7 @@ import { MatchKind } from "./match.ts";
 import { Path } from "./path.ts";
 import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
 import { lit } from "./runtime/patterns/value_source.ts";
-import { patternTest } from "./test.ts";
+import { awaitableAgreementTest, patternTest } from "./test.ts";
 
 Deno.test({
   name: "test-harness debug diagnostics",
@@ -57,6 +57,14 @@ Deno.test({
         assertStringIncludes(message, "Match debug:");
         assertStringIncludes(message, "pattern: any");
       },
+    });
+
+    await t.step({
+      name: "awaitableAgreementTest passes for a pattern that agrees",
+      fn: awaitableAgreementTest({
+        pattern: { kind: PatternKind.Any },
+        items: ["a"],
+      }),
     });
   },
 });
