@@ -43,6 +43,8 @@ export type SourceProvenance = {
 type InputFromOptions = {
   kind?: InputNormalizationMode;
   provenance?: SourceProvenance;
+  /** Whether the input may continue past its last item (see `Input.open`). */
+  open?: boolean;
 };
 
 export function sourceProvenanceFrom(
@@ -88,6 +90,8 @@ export class Input {
       options?.kind ?? InputNormalizationMode.Scalar,
       false,
       options?.provenance,
+      false,
+      options?.open ?? false,
     );
 
   public static readonly Scalar = (value: unknown): Input =>
@@ -137,6 +141,14 @@ export class Input {
     private readonly trustedIterator = false,
     public readonly provenance?: SourceProvenance,
     trustedIsAsync = false,
+    /**
+     * Whether the input may continue past its last item: it is a prefix of
+     * a longer input still being written (for example the text before an
+     * editor's cursor). Exhausting an open input is not the end of the
+     * input, so patterns that stop at the end (repetition) still attempt
+     * their next element there.
+     */
+    public readonly open = false,
   ) {
     if (trustedIterator) {
       if (!Input.isIterator(items)) {
@@ -223,6 +235,7 @@ export class Input {
         true,
         this.provenance,
         this.isAsync,
+        this.open,
       );
     }
     return this._next;

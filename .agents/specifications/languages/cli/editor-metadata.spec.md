@@ -154,10 +154,14 @@ Completion is driven by the grammar, never by recognizing text:
 - A position no context reaches MUST yield no completion items. Trigger
   characters MAY be advertised, but a triggered request outside a context yields
   no items like any other.
-- Known gap: the runtime does not attempt a repetition's element once the input
-  is exhausted, so no `Fail` node records it. An empty position after an
-  optional repetition (for example after `import "./a.uff" Foo`) therefore has
-  no context until the first character of the next element is typed.
+- The prefix MUST be parsed as an
+  [open input](../../patterns/input-model.spec.md#open-inputs): the text may
+  continue past the cursor, so a repetition still attempts its next element
+  there and an empty position after it (for example after `import "./a.uff" Foo`
+  or inside a call after `(f`) has a context.
+- A non-empty token being typed (an `Ok` context node ending at the cursor) wins
+  over the tokens expected after it: when one reaches the cursor, `Fail` nodes
+  do not.
 
 ## Related
 

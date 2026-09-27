@@ -58,7 +58,9 @@ Expected behavior:
   they MUST return no result rather than scanning the text. Definition MUST
   locate declarations by `[Declaration]` metadata.
 - `textDocument/completion` MUST derive what it offers from the completion
-  contexts the document's grammar produces for the text before the cursor (see
+  contexts the document's grammar produces for the text before the cursor,
+  parsed as an open input so an empty position after a repetition (for example a
+  call's next argument) has a context (see
   [editor metadata](../../specifications/languages/cli/editor-metadata.spec.md#completion-contexts)),
   never from text patterns:
   - in a `[ModulePath]`, it MUST offer the importable entries relative to the

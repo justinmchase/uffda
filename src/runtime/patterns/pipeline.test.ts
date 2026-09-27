@@ -1,7 +1,7 @@
-import { assertEquals } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import { Type } from "@justinmchase/type";
 import { Input, InputNormalizationMode } from "../../input.ts";
-import { ResolveTargetKind } from "./pattern.ts";
+import { type Pattern, ResolveTargetKind } from "./pattern.ts";
 import { getRightmostFailure, MatchKind } from "../../match.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 import { ExportDeclarationKind } from "../declarations/mod.ts";
@@ -542,5 +542,40 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       if (m.kind !== MatchKind.Ok) return;
       assertEquals(m.value, 5);
     },
+  });
+});
+
+Deno.test("runtime.patterns.pipeline open input", async (t) => {
+  const pattern: Pattern = {
+    kind: PatternKind.Pipeline,
+    steps: [
+      {
+        kind: PatternKind.Quantifier,
+        pattern: { kind: PatternKind.Type, type: Type.String },
+      },
+      { kind: PatternKind.Quantifier, pattern: { kind: PatternKind.Any } },
+    ],
+  };
+  const lastStageKinds = async (open: boolean) => {
+    const input = Input.From("ab", {
+      kind: InputNormalizationMode.Iterable,
+      open,
+    });
+    const m = await match(pattern, Scope.Default().withInput(input));
+    assert(m.kind === MatchKind.Ok);
+    const last = m.matches.at(-1);
+    assert(last?.kind === MatchKind.Ok);
+    return last.matches.map((child) => child.kind);
+  };
+
+  await t.step(
+    "a stage that read an open input to its end feeds an open input",
+    async () => {
+      assertEquals(await lastStageKinds(true), [MatchKind.Ok, MatchKind.Fail]);
+    },
+  );
+
+  await t.step("a closed input feeds a closed input", async () => {
+    assertEquals(await lastStageKinds(false), [MatchKind.Ok]);
   });
 });

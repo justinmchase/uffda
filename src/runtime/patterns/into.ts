@@ -61,6 +61,7 @@ export function into(
       );
     }
 
+    // The last item of an open input may itself still be written.
     const innerStream = new Input(
       next.value,
       invocationScope.stream.path.push(0),
@@ -69,6 +70,8 @@ export function into(
       InputNormalizationMode.Iterable,
       false,
       provenanceForIntoItem(next.value, invocationScope.stream, next),
+      false,
+      invocationScope.stream.open && await next.done(),
     );
     const innerScope = invocationScope
       .withInput(innerStream);

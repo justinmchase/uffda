@@ -1,4 +1,5 @@
 import { assert, assertEquals } from "@std/assert";
+import { Input } from "../input.ts";
 import { parseGrammar } from "../lang/grammar.ts";
 import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
 import {
@@ -7,7 +8,8 @@ import {
 } from "./lsp.completion_context.ts";
 
 async function contextsAtEnd(prefix: string) {
-  return completionContextsAt(await uffdaGrammar(prefix), prefix);
+  const input = Input.From(prefix, { open: true });
+  return completionContextsAt(await uffdaGrammar(prefix, { input }), prefix);
 }
 
 async function onlyContextAtEnd(prefix: string) {
@@ -96,6 +98,36 @@ Deno.test("cli.lsp.completion_context completionContextsAt", async (t) => {
       const context = await onlyContextAtEnd("rule Pair<P, Q> = a:P b:Q");
       assert(context.kind === CompletionContextKind.NameReference);
       assertEquals(context.locals.map((binding) => binding.name), ["P", "Q"]);
+    },
+  );
+
+  await t.step(
+    "an empty position after an optional repetition",
+    async () => {
+      const argument = await onlyContextAtEnd("rule X = y:A -> (f ");
+      assert(argument.kind === CompletionContextKind.NameReference);
+      assertEquals(argument.kinds, ["func"]);
+      assertEquals(argument.locals.map((binding) => binding.name), ["y"]);
+
+      const prefix = 'import "./dep.uff" Foo ';
+      const name = await onlyContextAtEnd(prefix);
+      assert(name.kind === CompletionContextKind.ImportedName);
+      assertEquals(name.listed, ["Foo"]);
+      assertEquals(name.replace, { start: prefix.length, end: prefix.length });
+
+      const next = await onlyContextAtEnd("rule X = a ");
+      assert(next.kind === CompletionContextKind.NameReference);
+      assertEquals(next.kinds, ["rule"]);
+    },
+  );
+
+  await t.step(
+    "the token being typed wins over tokens expected after it",
+    async () => {
+      const prefix = 'import "./dep.uff" Foo Ba';
+      const context = await onlyContextAtEnd(prefix);
+      assert(context.kind === CompletionContextKind.ImportedName);
+      assertEquals(prefix.slice(context.replace.start), "Ba");
     },
   );
 

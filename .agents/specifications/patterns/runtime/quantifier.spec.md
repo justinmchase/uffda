@@ -31,7 +31,10 @@ and maximum repetition bounds.
   declaration context until one of the following stop conditions occurs:
   1. The child pattern fails.
   2. The `max` bound is reached.
-  3. The input stream is exhausted.
+  3. The input stream is exhausted and
+     [closed](../input-model.spec.md#open-inputs). At the end of an open stream
+     the child MUST still be evaluated; it typically fails there, stopping the
+     repetition by condition 1, and that attempt is recorded in the match.
   4. A non-progressing successful child match reaches the minimum required
      repetition threshold.
 - If the child pattern reports an error, the `quantifier` pattern MUST propagate

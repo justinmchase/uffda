@@ -10,6 +10,7 @@ import { highlightSpansFromMatch } from "./highlight.ts";
 import type { Match } from "../match.ts";
 import { RuntimeSession } from "./mcp.session.ts";
 import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
+import { Input } from "../input.ts";
 import {
   completionItemsForSession,
   localCompletionItems,
@@ -288,7 +289,10 @@ export class LspDocumentManager {
     if (!doc) return [];
     const offset = positionToOffset(doc.source, position);
     const prefix = doc.source.slice(0, offset);
-    const contexts = completionContextsAt(await uffdaGrammar(prefix), prefix);
+    const contexts = completionContextsAt(
+      await uffdaGrammar(prefix, { input: Input.From(prefix, { open: true }) }),
+      prefix,
+    );
     const items: CompletionItem[] = [];
     for (const context of contexts) {
       items.push(...await this.completionItemsFor(doc, context));
