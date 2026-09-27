@@ -5,7 +5,7 @@
 import "../pattern/pattern.lang.uff" PatternTokens;
 import "../expression/expression.lang.uff" ExpressionTokens;
 import "./shared.rules.uff" IdentifierToken RuleKeyword;
-import "../editor/editor.uff" Declaration;
+import "../editor/editor.uff" Declaration Parameter;
 import "./attribute.rules.uff" AttributeSyntax;
 
 export RulePatternBody;
@@ -134,6 +134,7 @@ rule RulePatternBodyBeforeProjection =
   RulePatternTokenUntilProjection
   |> PatternTokens;
 
+[Parameter]
 rule RuleParameterName =
   n:IdentifierToken
   -> { name: n };

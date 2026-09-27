@@ -50,6 +50,7 @@ diagnostics, and tooling MUST NOT fall back to guessing.
 | `Highlight { role }`         | a token rule                                       | `role`: a highlight role (see below)                  |
 | `Keyword`                    | a reserved word                                    | `{ role: "keyword" }`                                 |
 | `Declaration`                | a production declaring a named rule/func/decorator | projected value carries the declared `name`           |
+| `Parameter`                  | a production binding a declaration parameter       | projected value carries the bound `name`              |
 | `NameReference { kinds? }`   | a production naming a declaration in scope         | `kinds`: declaration kinds it may name (omitted: all) |
 | `Import`                     | a module import production                         | projected value is a runtime import declaration       |
 | `ModulePath { extensions? }` | the module path text of an import (no delimiters)  | `extensions`: module file extensions (omitted: any)   |
@@ -141,8 +142,15 @@ Completion is driven by the grammar, never by recognizing text:
   omitted) — replacing the segment after the last `/`.
 - `ImportedName`: offer the exports of the module named by the enclosing
   `Import` node's `ModulePath`, excluding names that import already binds.
-- `NameReference`: offer the declarations in scope whose kind is listed in
-  `kinds` (every kind when omitted).
+- `NameReference`: offer the local bindings visible at the cursor that the
+  reference may name — variables (captures, including func and lambda
+  parameters, whose runtime pattern is a variable) where a func may be named,
+  `Parameter` names of the enclosing `Declaration` where a rule may be named —
+  innermost scope first, then the declarations in scope whose kind is listed in
+  `kinds` (every kind when omitted) that no local binding shadows. Scopes are
+  `Declaration` nodes and parsed lambdas; bindings are read from the accepted
+  parse plus the attempt reaching the cursor, never from other rejected
+  attempts.
 - A position no context reaches MUST yield no completion items. Trigger
   characters MAY be advertised, but a triggered request outside a context yields
   no items like any other.

@@ -67,6 +67,38 @@ Deno.test("cli.lsp.completion_context completionContextsAt", async (t) => {
     assertEquals(context.kinds, ["func"]);
   });
 
+  await t.step(
+    "a func reference carries the variables in scope",
+    async () => {
+      const locals = async (prefix: string) => {
+        const context = await onlyContextAtEnd(prefix);
+        assert(context.kind === CompletionContextKind.NameReference);
+        return context.locals.map((binding) => binding.name);
+      };
+      assertEquals(await locals("rule X = y:A -> (f y"), ["y"]);
+      assertEquals(
+        await locals("rule X = y:A -> (map [y] <z:any> -> (add z"),
+        ["y", "z"],
+      );
+      assertEquals(
+        await locals(
+          "rule X = y:A -> (map (map [y] <z:any> -> z) <w:any> -> w",
+        ),
+        ["w", "y"],
+      );
+      assertEquals(await locals("func F<{text: t:string}> = (f t"), ["t"]);
+    },
+  );
+
+  await t.step(
+    "a rule reference carries the rule's parameters, not variables",
+    async () => {
+      const context = await onlyContextAtEnd("rule Pair<P, Q> = a:P b:Q");
+      assert(context.kind === CompletionContextKind.NameReference);
+      assertEquals(context.locals.map((binding) => binding.name), ["P", "Q"]);
+    },
+  );
+
   await t.step("the outermost NameReference wins", async () => {
     const context = await onlyContextAtEnd("[De");
     assert(context.kind === CompletionContextKind.NameReference);

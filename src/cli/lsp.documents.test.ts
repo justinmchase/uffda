@@ -211,6 +211,27 @@ Deno.test("cli.lsp.documents LspDocumentManager", async (t) => {
   );
 
   await t.step(
+    "completion offers local bindings first, shadowing declarations",
+    async () => {
+      const manager = new LspDocumentManager(Deno.cwd());
+      const uri = "inline:///completion-locals";
+      await manager.open(
+        uri,
+        "export Main;\nfunc json<v:any> = v;\nfunc text<v:any> = v;\n" +
+          "rule Main = json:string -> (json json);",
+      );
+      const items = await manager.completion(uri, {
+        line: 3,
+        character: "rule Main = json:string -> (j".length,
+      });
+      assertEquals(
+        items.map((item) => `${item.label}:${item.detail}`),
+        ["json:variable", "text:func"],
+      );
+    },
+  );
+
+  await t.step(
     "completion returns no items for a document that was never opened",
     async () => {
       const manager = new LspDocumentManager(Deno.cwd());

@@ -3,8 +3,58 @@ import { CompletionItemKind } from "vscode-languageserver-types";
 import {
   completionItemsForModule,
   completionItemsForSession,
+  localCompletionItems,
 } from "./lsp.completion.ts";
+import { LocalBindingKind } from "./lsp.locals.ts";
 import { RuntimeSession } from "./mcp.session.ts";
+
+Deno.test("cli.lsp.completion localCompletionItems", () => {
+  const source = "rule Pair<P> = n:string;";
+  const range = {
+    start: { line: 0, character: 1 },
+    end: { line: 0, character: 2 },
+  };
+  assertEquals(
+    localCompletionItems(
+      [
+        {
+          kind: LocalBindingKind.Variable,
+          name: "n",
+          span: { start: 15, end: 23 },
+        },
+        {
+          kind: LocalBindingKind.Parameter,
+          name: "P",
+          declarationName: "Pair",
+        },
+      ],
+      source,
+      range,
+    ),
+    [
+      {
+        label: "n",
+        kind: CompletionItemKind.Variable,
+        detail: "variable",
+        documentation: {
+          kind: "markdown",
+          value: "(variable) `n`\n\n```uffda\nn:string\n```",
+        },
+        textEdit: { range, newText: "n" },
+      },
+      {
+        label: "P",
+        kind: CompletionItemKind.Variable,
+        detail: "parameter",
+        documentation: {
+          kind: "markdown",
+          value: "(parameter) `P` of rule `Pair`",
+        },
+        textEdit: { range, newText: "P" },
+      },
+    ],
+  );
+});
 
 Deno.test("cli.lsp.completion completionItemsForModule", async (t) => {
   await t.step("maps each declaration kind and export flag", () => {

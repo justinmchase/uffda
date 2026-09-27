@@ -4,6 +4,8 @@ import {
   type Range,
 } from "vscode-languageserver-types";
 import { documentationOf } from "./editor_metadata.ts";
+import { formatLocalBindingMarkdown } from "./lsp.hover.ts";
+import type { LocalBinding } from "./lsp.locals.ts";
 import type {
   LoadedDeclarationKind,
   LoadedDeclarationSummary,
@@ -60,6 +62,27 @@ export function completionItemsForModule(
     });
   }
   return items;
+}
+
+/**
+ * Maps local bindings (see `localBindingsAt`) to completion items, each
+ * documented the way hover describes it.
+ */
+export function localCompletionItems(
+  bindings: readonly LocalBinding[],
+  source: string,
+  range?: Range,
+): CompletionItem[] {
+  return bindings.map((binding) => ({
+    label: binding.name,
+    kind: CompletionItemKind.Variable,
+    detail: binding.kind,
+    documentation: {
+      kind: "markdown",
+      value: formatLocalBindingMarkdown(binding, source),
+    },
+    ...(range ? { textEdit: { range, newText: binding.name } } : {}),
+  }));
 }
 
 /**

@@ -33,10 +33,13 @@ Expected behavior:
   - Local bindings MUST be found from the document's parse tree. A captured
     variable (`name:pattern`, including func and lambda parameters) is visible
     to expression references inside the enclosing `[Declaration]` or lambda that
-    binds it, and the innermost binding wins. A rule parameter is visible to
-    pattern references in its rule. At a binding site (not a `[NameReference]`)
-    either kind applies. A variable hover MUST show its binding as authored; a
-    parameter hover MUST name its rule.
+    binds it, and the innermost binding wins. A rule parameter (a `[Parameter]`
+    production) is visible to pattern references in its rule. Only the accepted
+    parse binds: a would-be binding inside an attempt the parse rejected binds
+    nothing, except the attempt still being typed at the cursor (completion's
+    prefix parse), whose bindings so far count. At a binding site (not a
+    `[NameReference]`) either kind applies. A variable hover MUST show its
+    binding as authored; a parameter hover MUST name its rule.
   - A declaration's `[Documentation]` (see
     [editor metadata](../../specifications/languages/cli/editor-metadata.spec.md#vocabulary))
     MUST lead its hover, its parameter descriptions MUST follow, and a local
@@ -67,11 +70,13 @@ Expected behavior:
     enclosing import's `[ModulePath]` exports, excluding names that import
     already binds. Reading an unresolved module's exports MUST NOT write
     artifacts or change session state;
-  - in a `[NameReference]`, it MUST offer the in-scope declarations of the kinds
-    it names (rules in a pattern, funcs in an expression, decorators in an
-    attribute, any kind in an export list), and, where statically determinable
-    from the expression grammar's structure, expression-level completions (for
-    example parameter names in scope).
+  - in a `[NameReference]`, it MUST offer the local bindings visible at the
+    cursor that the reference may name (as hover finds them: captured variables
+    where a func may be named, rule parameters where a rule may be named),
+    innermost first, then the in-scope declarations of the kinds it names (rules
+    in a pattern, funcs in an expression, decorators in an attribute, any kind
+    in an export list). A declaration a local binding shadows MUST NOT be
+    offered.
 - A position no completion context reaches MUST return no items, whether or not
   the request was triggered by a trigger character.
 - None of hover, go-to-definition, or completion requests MUST mutate any

@@ -63,6 +63,13 @@ const EXPECTED: Array<
     true,
   ],
   [
+    "../uffda/rule.rules.uff",
+    "RuleDeclarationSyntax",
+    "RuleParameterName",
+    "Parameter",
+    true,
+  ],
+  [
     "../uffda/func.rules.uff",
     "FuncDeclarationSyntax",
     "FuncDeclarationSyntax",
@@ -154,6 +161,7 @@ Deno.test("lang.editor decorators document themselves", async (t) => {
     Highlight: ["c"],
     Keyword: [],
     Declaration: [],
+    Parameter: [],
     NameReference: ["c"],
     Import: [],
     ModulePath: ["c"],

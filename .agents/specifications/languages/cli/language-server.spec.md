@@ -280,14 +280,15 @@ relative to the document in a `[ModulePath]`, the target module's exports in an
 `[ImportedName]` (the session's resolved module, else a read-only compile of its
 source), and in-scope declarations (via `RuntimeSession.listDeclarations()`) of
 the kinds a `[NameReference]` names — rules in patterns, funcs in expressions,
-decorators in attributes, any kind in an export list. An empty position after an
-optional repetition has no context yet (see the editor-metadata known gap), and
-expression-level completions such as parameter names in scope remain
-outstanding. The VS Code extension (requirement 007) has an initial
-implementation at `editors/vscode/`: it registers `uffda lsp` for `.uff` files,
-registers `uffda mcp` as an MCP server, and resolves/downloads a compatible
-`uffda` binary automatically, with debug override settings. The extension also
-queries the custom `uffda/languageMetadata` request and applies
+decorators in attributes, any kind in an export list — preceded by the local
+bindings visible there (captured variables and lambda parameters in expressions,
+`[Parameter]` rule parameters in patterns), which shadow same-named
+declarations. An empty position after an optional repetition has no context yet
+(see the editor-metadata known gap). The VS Code extension (requirement 007) has
+an initial implementation at `editors/vscode/`: it registers `uffda lsp` for
+`.uff` files, registers `uffda mcp` as an MCP server, and resolves/downloads a
+compatible `uffda` binary automatically, with debug override settings. The
+extension also queries the custom `uffda/languageMetadata` request and applies
 `[Language]`-derived editor configuration via
 `vscode.languages.setLanguageConfiguration()`, and assigns language ids from
 `[Language].ext` via `vscode.languages.setTextDocumentLanguage()` for

@@ -10,6 +10,7 @@ import {
   walkAnnotatable,
 } from "./editor_metadata.ts";
 import { highlightSpansFromMatch, isTriviaRole } from "./highlight.ts";
+import { type LocalBinding, localBindingsAt } from "./lsp.locals.ts";
 
 /**
  * Grammar-derived completion contexts (requirement 006, see
@@ -51,6 +52,11 @@ export type CompletionContext =
     kind: CompletionContextKind.NameReference;
     /** Declaration kinds that may be named (`undefined`: every kind). */
     kinds?: string[];
+    /**
+     * Local bindings visible at the cursor that the reference may name,
+     * innermost first (see `localBindingsAt`).
+     */
+    locals: LocalBinding[];
     /** Range of the name being typed (possibly empty). */
     replace: CompletionReplace;
   };
@@ -148,12 +154,18 @@ function contextFor(
         replace,
       };
     }
-    case EditorDecorator.NameReference:
+    case EditorDecorator.NameReference: {
+      const kinds = nameReferenceKinds(node);
       return {
         kind: CompletionContextKind.NameReference,
-        kinds: nameReferenceKinds(node),
+        kinds,
+        locals: localBindingsAt({
+          chain: [...ancestors, node],
+          reference: { kinds },
+        }),
         replace,
       };
+    }
     default:
       throw new Error(`Not a completion context decorator: ${decorator}`);
   }

@@ -25,8 +25,12 @@ type OkMatch = Extract<AnnotatableMatch, { kind: MatchKind.Ok }>;
 
 /** Where an identifier sits in the parse tree. */
 export type IdentifierPosition = {
-  /** `Ok` nodes covering the identifier, outermost first. */
-  chain: OkMatch[];
+  /**
+   * Nodes covering the identifier, outermost first: `Ok` nodes for a parsed
+   * document, possibly `Fail` ones for a construct still being typed (see
+   * `completionContextsAt`).
+   */
+  chain: AnnotatableMatch[];
   /**
    * The declaration kinds the outermost covering `[NameReference]` names,
    * `undefined` when it names none (every kind); absent when the identifier
@@ -104,81 +108,153 @@ function isLambda(value: unknown): boolean {
     isPattern(field(value, "pattern"));
 }
 
-function isScope(node: OkMatch): boolean {
+/**
+ * A `[Declaration]` (parsed or still being typed) or a parsed lambda. A lambda
+ * still being typed has no value yet, so its bindings count toward the
+ * enclosing scope, which is where the cursor inside it sees them anyway.
+ */
+function isScope(node: AnnotatableMatch): boolean {
   return hasEditorMetadata(node, EditorDecorator.Declaration) ||
-    isLambda(node.value);
+    (node.kind === MatchKind.Ok && isLambda(node.value));
 }
 
-function bindsVariable(value: unknown, name: string): boolean {
-  return isPattern(value) && value.kind === PatternKind.Variable &&
-    value.name === name;
+function variableName(value: unknown): string | undefined {
+  return isPattern(value) && value.kind === PatternKind.Variable
+    ? value.name
+    : undefined;
 }
 
 /**
- * The first node binding variable `name` directly within `scope`, narrowed
- * to the innermost node projecting that binding (wrappers such as a
- * one-entry parameter list pass the same value through).
+ * Visits each `Ok` node directly within `scope` once (nested scopes
+ * excluded): the accepted parse, plus the attempts on `chain` — a construct
+ * still being typed is a `Fail` reaching the position, and keeps the bindings
+ * it parsed before failing. Other `Fail` branches are attempts the parse
+ * rejected, whose would-be bindings bind nothing.
  */
-function variableIn(scope: OkMatch, name: string): OkMatch | undefined {
-  const walk = (node: Match): OkMatch | undefined => {
-    if (node.kind !== MatchKind.Ok) return undefined;
-    if (node !== scope && isScope(node)) return undefined;
-    if (bindsVariable(node.value, name)) {
-      return node.matches.map(walk).find((inner) => inner) ?? node;
-    }
+function walkScope(
+  scope: AnnotatableMatch,
+  chain: ReadonlySet<AnnotatableMatch>,
+  visit: (node: OkMatch) => void,
+): void {
+  const seen = new Set<Match>();
+  const walk = (node: AnnotatableMatch) => {
+    if (seen.has(node) || (node !== scope && isScope(node))) return;
+    seen.add(node);
+    if (node.kind === MatchKind.Ok) visit(node);
     for (const child of node.matches) {
-      const found = walk(child);
-      if (found) return found;
+      if (
+        child.kind === MatchKind.Ok ||
+        (child.kind === MatchKind.Fail && chain.has(child))
+      ) walk(child);
     }
-    return undefined;
   };
-  return walk(scope);
-}
-
-function hasParameter(declaration: OkMatch, name: string): boolean {
-  const [t, parameters] = type(field(declaration.value, "parameters"));
-  return t === Type.Array &&
-    (parameters as unknown[]).some((p) => field(p, "name") === name);
+  walk(scope);
 }
 
 /**
- * The innermost local binding of `name` visible at `position`, mirroring
- * reference resolution: variables (expression references) bound by an
- * enclosing lambda or declaration pattern, and parameters (pattern
- * references) of the enclosing rule.
+ * The first node binding each variable directly within `scope`, narrowed to
+ * the innermost node projecting that binding (wrappers such as a one-entry
+ * parameter list pass the same value through).
  */
-export function localBindingAt(
-  position: IdentifierPosition,
-  name: string,
-): LocalBinding | undefined {
+function variablesIn(
+  scope: AnnotatableMatch,
+  chain: ReadonlySet<AnnotatableMatch>,
+): Map<string, OkMatch> {
+  const found = new Map<string, OkMatch>();
+  walkScope(scope, chain, (node) => {
+    const name = variableName(node.value);
+    if (name === undefined || found.has(name)) return;
+    found.set(name, narrowed(node, name));
+  });
+  return found;
+}
+
+function narrowed(node: OkMatch, name: string): OkMatch {
+  for (const child of node.matches) {
+    const inner = firstBinding(child, name);
+    if (inner) return inner;
+  }
+  return node;
+}
+
+function firstBinding(node: Match, name: string): OkMatch | undefined {
+  if (node.kind !== MatchKind.Ok || isScope(node)) return undefined;
+  if (variableName(node.value) === name) return narrowed(node, name);
+  for (const child of node.matches) {
+    const inner = firstBinding(child, name);
+    if (inner) return inner;
+  }
+  return undefined;
+}
+
+/** The names a declaration's `[Parameter]` productions bind. */
+function parametersOf(
+  declaration: AnnotatableMatch,
+  chain: ReadonlySet<AnnotatableMatch>,
+): string[] {
+  const names: string[] = [];
+  walkScope(declaration, chain, (node) => {
+    if (!hasEditorMetadata(node, EditorDecorator.Parameter)) return;
+    const [t, name] = type(field(node.value, "name"));
+    if (t === Type.String && !names.includes(name as string)) {
+      names.push(name as string);
+    }
+  });
+  return names;
+}
+
+/**
+ * Every local binding visible at `position`, innermost first (a name bound
+ * by an inner scope shadows the same name further out), mirroring reference
+ * resolution: variables (expression references) bound by an enclosing lambda
+ * or declaration pattern, and parameters (pattern references) of the
+ * enclosing declaration.
+ */
+export function localBindingsAt(position: IdentifierPosition): LocalBinding[] {
   const variables = acceptsKind(position, "func");
   const parameters = acceptsKind(position, "rule");
+  const bindings: LocalBinding[] = [];
+  const bound = new Set<string>();
+  const chain = new Set(position.chain);
+  const add = (binding: LocalBinding) => {
+    if (bound.has(binding.name)) return;
+    bound.add(binding.name);
+    bindings.push(binding);
+  };
   for (const node of [...position.chain].reverse()) {
     if (!isScope(node)) continue;
     const isDeclaration = hasEditorMetadata(node, EditorDecorator.Declaration);
     const declarationName = isDeclaration ? declaredName(node) : undefined;
-    const variable = variables ? variableIn(node, name) : undefined;
-    if (variable) {
-      return {
-        kind: LocalBindingKind.Variable,
-        name,
-        span: {
-          start: variable.originalSpan.start,
-          end: variable.originalSpan.end,
-        },
-        ...(declarationName ? { declarationName } : {}),
-      };
+    const owner = declarationName ? { declarationName } : {};
+    if (variables) {
+      for (const [name, variable] of variablesIn(node, chain)) {
+        add({
+          kind: LocalBindingKind.Variable,
+          name,
+          span: {
+            start: variable.originalSpan.start,
+            end: variable.originalSpan.end,
+          },
+          ...owner,
+        });
+      }
     }
     if (isDeclaration) {
-      if (parameters && hasParameter(node, name)) {
-        return {
-          kind: LocalBindingKind.Parameter,
-          name,
-          ...(declarationName ? { declarationName } : {}),
-        };
+      if (parameters) {
+        for (const name of parametersOf(node, chain)) {
+          add({ kind: LocalBindingKind.Parameter, name, ...owner });
+        }
       }
-      return undefined;
+      break;
     }
   }
-  return undefined;
+  return bindings;
+}
+
+/** The innermost local binding of `name` visible at `position`. */
+export function localBindingAt(
+  position: IdentifierPosition,
+  name: string,
+): LocalBinding | undefined {
+  return localBindingsAt(position).find((binding) => binding.name === name);
 }
