@@ -33,6 +33,20 @@ Deno.test("cli.display_transform converts a highlighting result to display nodes
     assertEquals(ruleNode?.cssClass, "hl-keyword");
   });
 
+  await t.step("name refinements get their own css classes", async () => {
+    const result = await highlightSource(
+      "(f a.b)",
+      CliLanguage.Expression,
+    );
+    assert(result.ok);
+    const classes = Object.fromEntries(
+      highlightResultToDisplayNodes(result).map((n) => [n.label, n.cssClass]),
+    );
+    assertEquals(classes.f, "hl-function");
+    assertEquals(classes.a, "hl-variable");
+    assertEquals(classes.b, "hl-property");
+  });
+
   await t.step("renders to HTML with the role as the css class", async () => {
     const result = await highlightSource(
       "rule A = any;\n",

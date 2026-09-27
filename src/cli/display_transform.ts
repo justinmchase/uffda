@@ -58,6 +58,10 @@ const HIGHLIGHT_CSS_CLASS: Record<HighlightRole, string> = {
   [HighlightRole.Punctuation]: "hl-punctuation",
   [HighlightRole.Whitespace]: "hl-whitespace",
   [HighlightRole.NewLine]: "hl-newline",
+  [HighlightRole.Type]: "hl-type",
+  [HighlightRole.Function]: "hl-function",
+  [HighlightRole.Variable]: "hl-variable",
+  [HighlightRole.Property]: "hl-property",
 };
 
 /**

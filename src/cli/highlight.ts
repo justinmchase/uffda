@@ -1,6 +1,10 @@
 import { Type, type } from "@justinmchase/type";
 import { getRightmostFailure, type Match, MatchKind } from "../match.ts";
-import { EditorDecorator, editorMetadata } from "./editor_metadata.ts";
+import {
+  EditorDecorator,
+  editorMetadata,
+  walkAnnotatable,
+} from "./editor_metadata.ts";
 import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
 import { patternGrammar } from "../lang/pattern/pattern.lang.ts";
 import { expressionGrammar } from "../lang/expression/expression.lang.ts";
@@ -46,6 +50,10 @@ export enum HighlightRole {
   Punctuation = "punctuation",
   Whitespace = "whitespace",
   NewLine = "newline",
+  Type = "type",
+  Function = "function",
+  Variable = "variable",
+  Property = "property",
 }
 
 export type HighlightSpan = {
@@ -72,6 +80,27 @@ const TRIVIA_ROLES: ReadonlySet<HighlightRole> = new Set([
 /** Whether `role` marks trivia (whitespace, line breaks, comments). */
 export function isTriviaRole(role: HighlightRole): boolean {
   return TRIVIA_ROLES.has(role);
+}
+
+const NAME_REFINEMENT_ROLES: ReadonlySet<HighlightRole> = new Set([
+  HighlightRole.Type,
+  HighlightRole.Function,
+  HighlightRole.Variable,
+  HighlightRole.Property,
+]);
+
+/**
+ * Whether `role` refines what an `identifier` names (a type, function,
+ * variable, or property). Nodes annotated with one are not tokens: they
+ * reclassify the `identifier` tokens within their span.
+ */
+export function isNameRefinementRole(role: HighlightRole): boolean {
+  return NAME_REFINEMENT_ROLES.has(role);
+}
+
+/** Whether `role` classifies a name: `identifier` or a refinement of it. */
+export function isNameRole(role: HighlightRole): boolean {
+  return role === HighlightRole.Identifier || isNameRefinementRole(role);
 }
 
 /**
@@ -166,7 +195,8 @@ function collectSpans(
 
     const ownRole = highlightRoleOf(node);
     const { start, end } = node.originalSpan;
-    const annotated = ownRole !== undefined && node.kind === MatchKind.Ok &&
+    const annotated = ownRole !== undefined &&
+      !isNameRefinementRole(ownRole) && node.kind === MatchKind.Ok &&
       isNonEmptySpan(start, end - start);
     const self = annotated ? { start, end, role: ownRole } : undefined;
     let emitted = false;
@@ -270,6 +300,57 @@ function roleFor(
 }
 
 /**
+ * The name-refinement-annotated `Ok` nodes of `root` with no such ancestor
+ * (the outermost on their path), accepted parse first (see
+ * `walkAnnotatable`).
+ */
+function collectNameRefinements(root: Match): AnnotatedSpan[] {
+  const refinements: AnnotatedSpan[] = [];
+  walkAnnotatable(root, (node, ancestors) => {
+    if (node.kind !== MatchKind.Ok) return;
+    const role = highlightRoleOf(node);
+    if (role === undefined || !isNameRefinementRole(role)) return;
+    const nested = ancestors.some((ancestor) => {
+      if (ancestor.kind !== MatchKind.Ok) return false;
+      const outer = highlightRoleOf(ancestor);
+      return outer !== undefined && isNameRefinementRole(outer);
+    });
+    const { start, end } = node.originalSpan;
+    if (!nested && isNonEmptySpan(start, end - start)) {
+      refinements.push({ start, end, role });
+    }
+  });
+  return refinements;
+}
+
+/**
+ * Reclassifies each `identifier` span within a refinement's span with the
+ * refinement's role, the first refinement covering a span winning.
+ */
+function refineNames(
+  spans: HighlightSpan[],
+  refinements: readonly AnnotatedSpan[],
+): void {
+  const names = spans.filter((span) => span.role === HighlightRole.Identifier);
+  const refined = new Set<HighlightSpan>();
+  for (const { start, end, role } of refinements) {
+    let lo = 0;
+    let hi = names.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (names[mid].offset < start) lo = mid + 1;
+      else hi = mid;
+    }
+    for (let i = lo; i < names.length && names[i].offset < end; i++) {
+      const span = names[i];
+      if (span.offset + span.length > end || refined.has(span)) continue;
+      span.role = role;
+      refined.add(span);
+    }
+  }
+}
+
+/**
  * Projects a parsed `Match` tree into a deterministic, gap-free ordered span
  * list covering `sourceText` in full. Overlapping/duplicate token spans
  * (e.g. the same characters visited more than once via memoized sub-trees)
@@ -321,6 +402,7 @@ export function highlightSpansFromMatch(
       text: sourceText.slice(cursor),
     });
   }
+  refineNames(spans, collectNameRefinements(root));
   return spans;
 }
 
@@ -371,6 +453,10 @@ const ANSI_CODES: Record<HighlightRole, string> = {
   [HighlightRole.Punctuation]: "\x1b[36m", // cyan
   [HighlightRole.Whitespace]: "\x1b[39m",
   [HighlightRole.NewLine]: "\x1b[39m",
+  [HighlightRole.Type]: "\x1b[96m", // bright cyan
+  [HighlightRole.Function]: "\x1b[33m", // yellow
+  [HighlightRole.Variable]: "\x1b[94m", // bright blue
+  [HighlightRole.Property]: "\x1b[34m", // blue
 };
 const ANSI_RESET = "\x1b[0m";
 

@@ -3,7 +3,7 @@
 # Pattern via Atomic are expected (B9); Resolver import caching breaks recursion.
 import "../common/identifier.uff" IdToken;
 import "./pattern.uff" Pattern;
-import "../editor/editor.uff" NameReference;
+import "../editor/editor.uff" Highlight NameReference;
 
 export Resolve;
 
@@ -51,6 +51,7 @@ rule EscapedIdentifierToken =
   -> n;
 
 [NameReference { kinds: ["rule"] }]
+[Highlight { role: "type" }]
 rule ResolveName =
   | EscapedIdentifierToken
   | ((not ReservedKeyword) & IdToken)

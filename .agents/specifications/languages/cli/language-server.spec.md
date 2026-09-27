@@ -256,12 +256,14 @@ semantic-token highlighting (see requirements 001-005 in
 stdio. Every piece of syntax knowledge the editor tooling uses comes from the
 [editor metadata](./editor-metadata.spec.md) the `.uff` grammar applies to its
 own rules (`src/lang/editor/editor.uff`): classification reads `[Highlight]`
-roles plus `[Keyword]` (`src/cli/highlight.ts`). Import-caused resolution
-failures are ranged on the failing root import's `[ModulePath]` or
-`[ImportedName]` (via the resolver's `importChain` and the session's retained
-parse tree), with the dependency's own failure position as `relatedInformation`
-when known. A parse failure on an incomplete line (for example an import missing
-its names) is anchored right after that line's last token. Document operations
+roles plus `[Keyword]` (`src/cli/highlight.ts`), refining names into pattern
+references (`type`), invoked functions (`function`), other expression references
+(`variable`), and member names (`property`). Import-caused resolution failures
+are ranged on the failing root import's `[ModulePath]` or `[ImportedName]` (via
+the resolver's `importChain` and the session's retained parse tree), with the
+dependency's own failure position as `relatedInformation` when known. A parse
+failure on an incomplete line (for example an import missing its names) is
+anchored right after that line's last token. Document operations
 (open/change/close and every query) run through a per-document queue in
 `LspDocumentManager`, since the LSP connection does not await async notification
 handlers. Hover (`textDocument/hover`) and go-to-definition

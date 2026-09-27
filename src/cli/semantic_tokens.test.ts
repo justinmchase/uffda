@@ -110,6 +110,22 @@ Deno.test("cli.semantic_tokens buildSemanticTokens", async (t) => {
     ]);
   });
 
+  await t.step("maps name refinements to standard token types", () => {
+    const roles: [HighlightRole, string][] = [
+      [HighlightRole.Type, "type"],
+      [HighlightRole.Function, "function"],
+      [HighlightRole.Variable, "variable"],
+      [HighlightRole.Property, "property"],
+    ];
+    for (const [role, tokenType] of roles) {
+      const tokens = buildSemanticTokens(
+        [{ role, offset: 0, length: 1, text: "a" }],
+        "a",
+      );
+      assertEquals(tokens.data, [0, 0, 1, legendIndex(tokenType), 0]);
+    }
+  });
+
   await t.step("legend lists each mapped token type once", () => {
     assertEquals(
       new Set(SEMANTIC_TOKENS_LEGEND.tokenTypes).size,

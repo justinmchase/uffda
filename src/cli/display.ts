@@ -112,6 +112,10 @@ body { background:#282c34; color:#e5e5e5; font-family:monospace;
 .hl-string { color:#98c379; }
 .hl-comment { color:#5c6370; }
 .hl-punctuation { color:#56b6c2; }
+.hl-type { color:#e5c07b; }
+.hl-function { color:#61afef; }
+.hl-variable { color:#e06c75; }
+.hl-property { color:#d19a66; }
 .match-ok { color:#98c379; }
 .match-fail { color:#e06c75; }
 .match-error { color:#e5c07b; }
