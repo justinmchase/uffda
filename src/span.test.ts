@@ -1,6 +1,6 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertStrictEquals } from "@std/assert";
 import { Input, InputNormalizationMode } from "./input.ts";
-import { sourceSpansFrom } from "./span.ts";
+import { mapSourceSpan, sourceSpansFrom } from "./span.ts";
 import { Scope } from "./runtime/scope.ts";
 
 Deno.test("span.sourceSpansFrom maps itemSpans at pre-item leaf 0", () => {
@@ -117,4 +117,10 @@ Deno.test("span.sourceSpansFrom falls back to normalizationMap", async () => {
     normalizedSpan: { start: 0, end: 1 },
     originalSpan: { start: 5, end: 6 },
   });
+});
+
+Deno.test("span.mapSourceSpan shares the span when there is no normalization map", () => {
+  const span = { start: 2, end: 4 };
+  assertStrictEquals(mapSourceSpan(span), span);
+  assertEquals(mapSourceSpan(span, [0, 1, 5, 6, 9]), { start: 5, end: 9 });
 });

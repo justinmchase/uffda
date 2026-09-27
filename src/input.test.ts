@@ -1,4 +1,4 @@
-import { assert } from "@std/assert";
+import { assert, assertStrictEquals } from "@std/assert";
 import { assertEquals } from "@std/assert/equals";
 import { Input, InputNormalizationMode } from "./input.ts";
 import { Path } from "./path.ts";
@@ -216,4 +216,14 @@ Deno.test("input advances through promises over async items", async () => {
   const eof = (await input.next()).step();
   assert(eof instanceof Promise);
   assertEquals(await eof, undefined);
+});
+
+Deno.test("input step reuses a known next position without re-pulling", async () => {
+  const input = Input.From("ab", { kind: InputNormalizationMode.Iterable });
+  const first = await input.step();
+  assertStrictEquals(input.step(), first);
+  const second = await first!.step();
+  const end = await second!.step();
+  assertEquals(end, undefined);
+  assertEquals(second!.step(), undefined);
 });
