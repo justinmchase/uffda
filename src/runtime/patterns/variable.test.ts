@@ -179,6 +179,34 @@ Deno.test("runtime.patterns.variable", async (t) => {
   });
 
   await t.step({
+    name: "VARIABLE06",
+    // A binding whose value is undefined is still a binding.
+    fn: patternTest({
+      input: Input.Iterable([1]),
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Variable,
+            name: "x",
+            pattern: { kind: PatternKind.Ok },
+          },
+          {
+            kind: PatternKind.Variable,
+            name: "x",
+            pattern: { kind: PatternKind.Any },
+          },
+        ],
+      },
+      kind: MatchKind.Error,
+      code: MatchErrorCode.DuplicateVariable,
+      message: "Variable x already exists in scope",
+      start: Path.From(0),
+      end: Path.From(0),
+    }),
+  });
+
+  await t.step({
     name:
       "VARIABLE_AWAITABLE - completes synchronously over immediate input and agrees over async input",
     fn: awaitableAgreementTest({

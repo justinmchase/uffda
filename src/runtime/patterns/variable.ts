@@ -31,7 +31,7 @@ export function variable(
         case MatchKind.Ok:
           return ok(
             invocationScope,
-            m.scope.addVariables({ [name]: m.value }),
+            m.scope.addVariable(name, m.value),
             pattern,
             m.value,
             [m],

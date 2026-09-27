@@ -205,6 +205,20 @@ Deno.test("runtime.scope", async (t) => {
   });
 
   await t.step({
+    name: "SCOPE_ADD_VARIABLE",
+    fn: () => {
+      const scope = Scope.Default().addVariables({ a: 1 });
+      const next = scope.addVariable("b", 2);
+      assertEquals(next.variables.get("a"), 1);
+      assertEquals(next.variables.get("b"), 2);
+      assertEquals(scope.variables.has("b"), false);
+      assertStrictEquals(next.stream, scope.stream);
+      assertStrictEquals(next.stack, scope.stack);
+      assertStrictEquals(next.options, scope.options);
+    },
+  });
+
+  await t.step({
     name: "SCOPE_OPTIONS_PARTIAL",
     fn: () => {
       const scope = new Scope(

@@ -121,4 +121,53 @@ Deno.test("runtime.variable_scope", async (t) => {
       }
     },
   });
+
+  await t.step({
+    name: "VARIABLE_SCOPE_WITH_BINDING",
+    fn: () => {
+      const base = VariableScope.From({ a: 1, b: 2 });
+      const scope = base.withBinding("a", 3);
+      assertEquals(scope.get("a"), 3);
+      assertEquals(scope.get("b"), 2);
+      assertEquals(base.get("a"), 1);
+      assertEquals(
+        VariableScope.Empty.withBinding("x", undefined).has("x"),
+        true,
+      );
+    },
+  });
+
+  await t.step({
+    name: "VARIABLE_SCOPE_WITH_DESCENDANT",
+    // Folding a scope derived from this one back onto it yields exactly the
+    // derived scope, without flattening.
+    fn: () => {
+      const base = VariableScope.From({ a: 1 });
+      const derived = base.withBinding("b", 2).withBinding("a", 3);
+      assertStrictEquals(base.withScope(derived), derived);
+      assertEquals(
+        new Map(base.withScope(derived)),
+        new Map([["a", 3], ["b", 2]]),
+      );
+    },
+  });
+
+  await t.step({
+    name: "VARIABLE_SCOPE_WITH_UNRELATED",
+    // A scope not derived from this one (including one flattened past
+    // MaxDepth) is still folded on top as a new layer.
+    fn: () => {
+      const base = VariableScope.From({ a: 1, c: 0 });
+      const other = VariableScope.From({ a: 2, b: 3 });
+      const merged = base.withScope(other);
+      assertEquals(new Map(merged), new Map([["a", 2], ["c", 0], ["b", 3]]));
+
+      let deep = base;
+      for (let i = 0; i < 20; i++) deep = deep.withBinding(`v${i}`, i);
+      const folded = base.withScope(deep);
+      assertEquals(folded.size, 22);
+      assertEquals(folded.get("v19"), 19);
+      assertEquals(folded.get("c"), 0);
+    },
+  });
 });
