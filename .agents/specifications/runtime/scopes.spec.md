@@ -41,6 +41,18 @@ required to evaluate patterns deterministically.
   but resulting behavior MUST be projected back to caller-visible scope
   boundaries.
 
+## Structural sharing of derived scopes
+
+Every match retains the scope it ended in, so a parse result retains one scope
+per distinct match context. Scope derivation therefore MUST share unchanged
+state with the scope it derives from rather than copying it:
+
+- Pushing a stack frame MUST be constant-time and MUST share every existing
+  frame with the parent scope's stack; it MUST NOT copy the frames below it.
+- A derived scope MUST share its parent's runtime options object when the
+  options are unchanged, rather than constructing an equivalent copy.
+- Shared scope state MUST be treated as immutable after construction.
+
 ## Rule-resolution semantics
 
 - Rule lookup in scope MUST resolve bound rule arguments before local module

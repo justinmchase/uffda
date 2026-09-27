@@ -164,7 +164,7 @@ export function rule(
     });
   } else {
     const m = memo.match;
-    const frame = scope.stack[scope.stack.length - 1];
+    const frame = scope.stack.top;
     switch (m.kind) {
       case MatchKind.Error:
         return m;
@@ -174,7 +174,7 @@ export function rule(
             scope,
             rule.pattern,
             MatchErrorCode.IndirectLeftRecursion,
-            `Unexpected stack frame kind ${frame.kind}`,
+            `Unexpected stack frame kind ${frame?.kind}`,
           );
         } else if (!Object.is(frame.rule, rule)) {
           // This is a different rule than the one we're trying to match

@@ -11,7 +11,7 @@ import {
 } from "./modules/mod.ts";
 import { Resolver } from "./resolve.ts";
 import { globals } from "./runtime.ts";
-import type { StackFrame } from "./stack/frame.ts";
+import { CallStack } from "./stack/call_stack.ts";
 import { StackFrameKind } from "./stack/stackFrameKind.ts";
 import { VariableScope } from "./variable_scope.ts";
 
@@ -25,6 +25,15 @@ export type ScopeOptions = {
 export type ScopeFromOptions = {
   kind?: InputNormalizationMode;
 };
+
+function isCompleteOptions(
+  options: Partial<ScopeOptions> | undefined,
+): options is ScopeOptions {
+  return options?.trace !== undefined &&
+    options.specials !== undefined &&
+    options.globals !== undefined &&
+    options.resolver !== undefined;
+}
 
 export class Scope {
   public static readonly Default = (): Scope => new Scope();
@@ -47,7 +56,7 @@ export class Scope {
     public readonly args: Map<string, Rule> = new Map(),
     public readonly stream: Input = Input.Default(),
     public readonly memos: Memos = new Memos(),
-    public readonly stack: StackFrame[] = [],
+    public readonly stack: CallStack = CallStack.Empty,
     options?: Partial<ScopeOptions>,
   ) {
     // Accepting a plain `Map` here too (normalized via `VariableScope.From`)
@@ -60,8 +69,10 @@ export class Scope {
     // used to do — threw away a fresh `new Resolver()` (and the `Deno.cwd()`
     // syscall inside it) on every single one of those derivations, which
     // happens on the order of once per rule invocation during a parse. Only
-    // construct a default for whichever field is actually missing.
-    this.options = {
+    // construct a default for whichever field is actually missing. A complete
+    // `options` is shared as-is: every match retains its scope, so a copy per
+    // derivation is retained once per parse node.
+    this.options = isCompleteOptions(options) ? options : {
       trace: options?.trace ?? false,
       specials: options?.specials ?? new Map(),
       globals: options?.globals ?? globals,
@@ -70,7 +81,7 @@ export class Scope {
   }
 
   public get depth(): number {
-    return this.stack.length;
+    return this.stack.depth;
   }
 
   public getSpecial(name: string): Special | undefined {
@@ -176,7 +187,7 @@ export class Scope {
       args,
       this.stream,
       this.memos,
-      [...this.stack, { kind: StackFrameKind.Rule, rule }],
+      this.stack.push({ kind: StackFrameKind.Rule, rule }),
       this.options,
     );
   }
@@ -189,7 +200,7 @@ export class Scope {
       new Map(),
       this.stream,
       this.memos,
-      [...this.stack, { kind: StackFrameKind.Pipeline, pipeline }],
+      this.stack.push({ kind: StackFrameKind.Pipeline, pipeline }),
       this.options,
     );
   }
@@ -206,7 +217,7 @@ export class Scope {
       this.stream,
       this.memos,
       this.module !== module
-        ? [...this.stack, { kind: StackFrameKind.Module, module }]
+        ? this.stack.push({ kind: StackFrameKind.Module, module })
         : this.stack,
       this.options,
     );
