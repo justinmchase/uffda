@@ -3,6 +3,7 @@ import { join, toFileUrl } from "@std/path";
 import type { TextEdit } from "vscode-languageserver-types";
 import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
 import {
+  localDefinition,
   occurrenceAt,
   planRename,
   referenceLocations,
@@ -126,6 +127,32 @@ Deno.test("cli.lsp.references across a workspace", async (t) => {
       );
     },
   );
+});
+
+Deno.test("cli.lsp.references localDefinition", async (t) => {
+  const source = "rule Pair<P> = a:P -> (f a);\nrule Q = any;\n";
+  const document = await documentOf("file:///w/main.uff", source);
+  const definitionAt = (offset: number) => {
+    const at = occurrenceAt(document, offset, GLOBALS);
+    assert(at);
+    const location = localDefinition(document, at, GLOBALS);
+    return location && source.split("\n")[location.range.start.line].slice(
+          location.range.start.character,
+          location.range.end.character,
+        ) + `@${location.range.start.character}`;
+  };
+
+  await t.step("a variable reference goes to its binding site", () => {
+    assertEquals(definitionAt(source.indexOf("a);")), "a@15");
+  });
+
+  await t.step("a parameter reference goes to the parameter", () => {
+    assertEquals(definitionAt(source.indexOf("P ->")), "P@10");
+  });
+
+  await t.step("a declaration is not a local", () => {
+    assertEquals(definitionAt(source.indexOf("Pair")), undefined);
+  });
 });
 
 Deno.test("cli.lsp.references in one document", async (t) => {

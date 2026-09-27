@@ -64,6 +64,35 @@ export function occurrenceAt(
   );
 }
 
+/**
+ * Where a local binding occurring at `occurrence` in `document` is bound:
+ * its declaring occurrence (a rule parameter, or a variable's binding site).
+ * `undefined` for any other symbol.
+ */
+export function localDefinition(
+  document: SymbolDocument,
+  occurrence: NameOccurrence,
+  globals: ReadonlySet<string>,
+): Location | undefined {
+  if (occurrence.symbol.kind !== NameSymbolKind.Local) return undefined;
+  const binding = nameOccurrences(
+    document.moduleUrl,
+    document.source,
+    document.match,
+    globals,
+    occurrence.name,
+  ).find((candidate) =>
+    candidate.declaration && sameSymbol(candidate.symbol, occurrence.symbol)
+  );
+  return binding && {
+    uri: document.uri,
+    range: {
+      start: offsetToPosition(document.source, binding.start),
+      end: offsetToPosition(document.source, binding.end),
+    },
+  };
+}
+
 const SKIPPED_DIRECTORIES = [/[\\/](node_modules|\.git)([\\/]|$)/];
 
 /**

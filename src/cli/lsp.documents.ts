@@ -8,6 +8,7 @@ import type {
   SemanticTokens,
 } from "vscode-languageserver-types";
 import {
+  localDefinition,
   occurrenceAt,
   planRename,
   referenceLocations,
@@ -276,6 +277,9 @@ export class LspDocumentManager {
   ): Promise<Location[]> {
     const doc = this.documents.get(uri);
     if (!doc) return [];
+    const at = this.symbolAt(uri, position);
+    const local = at && localDefinition(at.origin, at.occurrence, at.globals);
+    if (local) return [local];
     const state = doc.session.getLatestParseState();
     return await definitionAtPosition(
       doc.session,
