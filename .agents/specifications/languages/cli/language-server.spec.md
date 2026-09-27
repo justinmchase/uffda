@@ -144,6 +144,16 @@ not introduce a parallel parsing or compilation pathway.
 - The server MUST support go-to-definition (`textDocument/definition`) for
   references to rules, funcs, and decorators, resolving to the declaration's
   source location within the workspace's resolved module graph.
+- The server MUST support find-references (`textDocument/references`) and rename
+  (`textDocument/prepareRename`, `textDocument/rename`) for local bindings,
+  declarations, and (references only) runtime globals, across every `.uff`
+  document in the workspace: a declaration's occurrences are in its module and
+  in the modules importing it by a path resolving to that module (open buffers
+  win over files on disk). Rename returns a workspace edit and never writes
+  files; it MUST be refused, with a reason, rather than produce an edit that
+  changes what any name denotes or that the grammar would not read back as the
+  same name (see
+  [editor metadata](./editor-metadata.spec.md#declarations-references-and-imports)).
 - The server MUST support `textDocument/completion`, offering in-scope
   rule/func/decorator names and, where staticly determinable, expression-level
   completions. What is offered at a position MUST be determined by the
@@ -279,6 +289,11 @@ completion items carry `[Documentation]` descriptions; and definition resolves
 via `RuntimeSession.resolveDeclaration()` then locates the `[Declaration]`
 production's `originalSpan` in a parse `Match` (open buffer preferred, else
 session parse state, else a read-only re-parse of the defining `.uff` on disk).
+Find-references and rename (`src/cli/lsp.symbols.ts`,
+`src/cli/lsp.references.ts`) collect each document's name occurrences from its
+parse tree, then search the open documents and the `.uff` files under the
+workspace root, parsing only those containing the name (and, for a declaration,
+its module's file name, which every import path to it ends with).
 `textDocument/completion` parses the text before the cursor and offers items
 only for the completion contexts that reach it: `.uff` files and folders
 relative to the document in a `[ModulePath]`, the target module's exports in an

@@ -136,6 +136,21 @@ existing metadata that tooling reads the same way.
   whose projected `name` equals the resolved name.
 - Hover and go-to-definition identify the name under the cursor by the name-role
   token span there. Without a parse tree there is no identifier.
+- A name occurrence is a name-role span (other than `property`) that denotes a
+  symbol: the name a `Declaration` node declares, an `ImportedName`, a
+  `Parameter`, a variable's binding site, or a `NameReference` resolving (as
+  hover resolves it) to a local binding, a declared or imported name, or — where
+  a func may be named — a runtime global. An imported name denotes the
+  declaration in the module its `ModulePath` resolves to (relative to the
+  importing module, as the runtime resolver resolves it). Names that denote
+  nothing (object keys, member names, unresolved references) are not
+  occurrences. Find-references and rename work on occurrences of the same
+  symbol.
+- Rename is refused for a runtime global, for a declaration whose module is not
+  in the workspace, when the new name already occurs in a document the rename
+  edits, and when re-parsing an edited document does not yield a name-role span
+  spelled with the new name at every edited occurrence (or turns a successful
+  parse into a failed one).
 - An import-caused diagnostic is ranged within the `Import`-annotated node the
   failure's import frame designates: on the `ImportedName` denoting the failing
   name when the failure is about one name, else on the `ModulePath`, else on the

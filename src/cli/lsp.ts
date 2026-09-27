@@ -11,6 +11,11 @@ import {
   type HoverParams,
   type InitializeParams,
   type InitializeResult,
+  LSPErrorCodes,
+  type PrepareRenameParams,
+  type ReferenceParams,
+  type RenameParams,
+  ResponseError,
   type SemanticTokensParams,
   SemanticTokensRequest,
   TextDocumentSyncKind,
@@ -46,6 +51,9 @@ export type UffdaLspConnection = Pick<
   | "onHover"
   | "onDefinition"
   | "onCompletion"
+  | "onReferences"
+  | "onPrepareRename"
+  | "onRenameRequest"
   | "onRequest"
   | "sendDiagnostics"
   | "listen"
@@ -97,6 +105,8 @@ export function wireUffdaLspHandlers(
           textDocumentSync: TextDocumentSyncKind.Incremental,
           hoverProvider: true,
           definitionProvider: true,
+          referencesProvider: true,
+          renameProvider: { prepareProvider: true },
           completionProvider: {
             resolveProvider: false,
             triggerCharacters: ['"', "/"],
@@ -173,6 +183,45 @@ export function wireUffdaLspHandlers(
       return [];
     }
     return await manager.completion(uri, params.position);
+  });
+
+  connection.onReferences(async (params: ReferenceParams) => {
+    const { uri } = params.textDocument;
+    const language = resolveLanguageForDocument(config, uri);
+    if (!manager || !language || language.id !== BUILTIN_UFF_LANGUAGE.id) {
+      return [];
+    }
+    return await manager.references(
+      uri,
+      params.position,
+      params.context.includeDeclaration,
+    );
+  });
+
+  connection.onPrepareRename(async (params: PrepareRenameParams) => {
+    const { uri } = params.textDocument;
+    const language = resolveLanguageForDocument(config, uri);
+    if (!manager || !language || language.id !== BUILTIN_UFF_LANGUAGE.id) {
+      return null;
+    }
+    const prepared = await manager.prepareRename(uri, params.position);
+    if (prepared && "refusal" in prepared) {
+      throw new ResponseError(LSPErrorCodes.RequestFailed, prepared.refusal);
+    }
+    return prepared;
+  });
+
+  connection.onRenameRequest(async (params: RenameParams) => {
+    const { uri } = params.textDocument;
+    const language = resolveLanguageForDocument(config, uri);
+    if (!manager || !language || language.id !== BUILTIN_UFF_LANGUAGE.id) {
+      return null;
+    }
+    const plan = await manager.rename(uri, params.position, params.newName);
+    if (!plan.ok) {
+      throw new ResponseError(LSPErrorCodes.RequestFailed, plan.message);
+    }
+    return plan.edit;
   });
 
   connection.onRequest(
