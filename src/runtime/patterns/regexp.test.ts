@@ -1,3 +1,4 @@
+import { awaitableAgreementTest } from "../../test.ts";
 import { Input } from "../../input.ts";
 import { MatchErrorCode } from "../../match.ts";
 import { MatchKind } from "../../match.ts";
@@ -44,6 +45,15 @@ Deno.test("runtime.patterns.regexp", async (t) => {
       value: "a",
       kind: MatchKind.Ok,
       done: false,
+    }),
+  });
+
+  await t.step({
+    name:
+      "REGEXP_AWAITABLE - completes synchronously over immediate input and agrees over async input",
+    fn: awaitableAgreementTest({
+      pattern: { kind: PatternKind.RegExp, pattern: /a/ },
+      items: ["a"],
     }),
   });
 });

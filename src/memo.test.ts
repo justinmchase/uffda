@@ -1,4 +1,9 @@
-import { assertEquals, assertRejects, assertStrictEquals } from "@std/assert";
+import {
+  assertEquals,
+  assertRejects,
+  assertStrictEquals,
+  assertThrows,
+} from "@std/assert";
 import { Memos } from "./memo.ts";
 import { Path } from "./path.ts";
 import type { Match } from "./match.ts";
@@ -203,15 +208,15 @@ Deno.test("memo.Memos", async (t) => {
     // withFrame still pops its frame and runs eviction when fn throws, so a
     // failed rule attempt does not leak an active frame that would pin the
     // low-water mark forever.
-    fn: async () => {
+    fn: () => {
       const memos = new Memos();
       const ruleA = fakeRule("a");
 
-      await memos.withFrame(Path.From(0), async () => {
+      memos.withFrame(Path.From(0), () => {
         const { key } = memos.resolve(Path.From(0), ruleA, []);
         memos.set(Path.From(0), key, fakeMatch());
 
-        await assertRejects(
+        assertThrows(
           () =>
             memos.withFrame(Path.From(1), () => {
               throw new Error("boom");
@@ -225,6 +230,30 @@ Deno.test("memo.Memos", async (t) => {
         assertEquals(memos.size, 1);
       });
 
+      assertEquals(memos.size, 0);
+    },
+  });
+
+  await t.step({
+    name: "MEMO_FRAME_ASYNC",
+    // A frame whose fn rejects is still left, just like one that throws.
+    fn: async () => {
+      const memos = new Memos();
+      const ruleA = fakeRule("a");
+      await memos.withFrame(Path.From(0), async () => {
+        const { key } = memos.resolve(Path.From(0), ruleA, []);
+        memos.set(Path.From(0), key, fakeMatch());
+        await assertRejects(
+          async () =>
+            await memos.withFrame(
+              Path.From(1),
+              () => Promise.reject(new Error("boom")),
+            ),
+          Error,
+          "boom",
+        );
+        assertEquals(memos.size, 1);
+      });
       assertEquals(memos.size, 0);
     },
   });

@@ -1,3 +1,4 @@
+import { immediateExpressionTest } from "../../test.ts";
 import { Scope } from "../scope.ts";
 import { expressionTest } from "../../test.ts";
 import { ExpressionKind } from "./expression.kind.ts";
@@ -255,5 +256,24 @@ Deno.test("runtime.expressions.invocation", async (t) => {
         throw new Error(`Expected sequential order [0, 1], got [${order}]`);
       }
     },
+  });
+
+  await t.step({
+    name:
+      "INVOCATION_IMMEDIATE - evaluates synchronously over immediate values",
+    fn: immediateExpressionTest({
+      scope: Scope.Default().withOptions({
+        globals: new Map([["add", (a: number, b: number) => a + b]]),
+      }),
+      expression: {
+        kind: ExpressionKind.Invocation,
+        expression: { kind: ExpressionKind.Reference, name: "add" },
+        args: [{ kind: ExpressionKind.Number, value: 1 }, {
+          kind: ExpressionKind.Number,
+          value: 2,
+        }],
+      },
+      result: 3,
+    }),
   });
 });

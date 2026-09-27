@@ -1,4 +1,5 @@
 import type { MatchOk } from "../match.ts";
+import type { Awaitable } from "./awaitable.ts";
 import {
   array,
   boolean,
@@ -19,7 +20,7 @@ import {
 export function exec(
   expression: Expression,
   match: MatchOk,
-): Promise<unknown> {
+): Awaitable<unknown> {
   switch (expression.kind) {
     case ExpressionKind.Array:
       return array(expression, match);

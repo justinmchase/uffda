@@ -47,7 +47,7 @@ Deno.test("runtime/expressions/func_callable", async (t) => {
       const m = ok(scope, scope, { kind: PatternKind.Ok }, undefined);
       const invoke = funcCallable(identityFn, m);
       await assertRejects(
-        () => invoke("unexpected-extra-argument"),
+        async () => await invoke("unexpected-extra-argument"),
         Error,
         "arguments did not match parameter pattern",
       );

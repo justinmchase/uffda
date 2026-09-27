@@ -1,4 +1,6 @@
 import { iterable } from "./globals/iterable.ts";
+import { Input } from "../input.ts";
+import type { Awaitable } from "./awaitable.ts";
 
 // The real, shared intrinsic prototypes for generator/async-generator
 // instances, captured once from throwaway generator functions. Note: a
@@ -45,10 +47,20 @@ export function isGenerator(value: unknown): boolean {
  * for equality. Reuses `iterable()`'s normalization, so it accepts anything
  * `iterable()` does (strings, arrays, Sets, Maps, custom (async) iterables)
  * and throws the same `TypeError` for anything else.
+ *
+ * A value that is only synchronously iterable is drained immediately; a
+ * promise is returned only when the value is async iterable.
  */
-export async function collect(value: unknown): Promise<unknown[]> {
+export function collect(value: unknown): Awaitable<unknown[]> {
+  if (!Input.isAsyncIterable(value) && Input.isIterable(value)) {
+    return [...value];
+  }
+  return drain(iterable(value));
+}
+
+async function drain(items: AsyncIterable<unknown>): Promise<unknown[]> {
   const result: unknown[] = [];
-  for await (const item of iterable(value)) {
+  for await (const item of items) {
     result.push(item);
   }
   return result;

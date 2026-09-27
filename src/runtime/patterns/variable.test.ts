@@ -1,3 +1,4 @@
+import { awaitableAgreementTest } from "../../test.ts";
 import { patternTest, ruleTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { ExpressionKind } from "../expressions/mod.ts";
@@ -174,6 +175,19 @@ Deno.test("runtime.patterns.variable", async (t) => {
       message: "Variable x already exists in scope",
       start: Path.From(1),
       end: Path.From(1),
+    }),
+  });
+
+  await t.step({
+    name:
+      "VARIABLE_AWAITABLE - completes synchronously over immediate input and agrees over async input",
+    fn: awaitableAgreementTest({
+      pattern: {
+        kind: PatternKind.Variable,
+        name: "x",
+        pattern: { kind: PatternKind.Any },
+      },
+      items: ["a"],
     }),
   });
 });

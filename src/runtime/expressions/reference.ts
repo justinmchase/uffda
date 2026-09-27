@@ -5,29 +5,29 @@ import { funcCallable } from "./func_callable.ts";
 export function reference(
   expression: ReferenceExpression,
   match: MatchOk,
-): Promise<unknown> {
+): unknown {
   const { name } = expression;
   switch (name) {
     case "_":
-      return Promise.resolve(match.value);
+      return match.value;
     case "this":
-      return Promise.resolve(match.subject ?? match);
+      return match.subject ?? match;
     default:
       if (match.scope.variables.has(name)) {
-        return Promise.resolve(match.scope.variables.get(name));
+        return match.scope.variables.get(name);
       }
       {
         const fn = match.scope.getFunc(name);
         if (fn) {
-          return Promise.resolve(funcCallable(fn, match));
+          return funcCallable(fn, match);
         }
       }
       if (match.scope.options.globals.has(name)) {
-        return Promise.resolve(match.scope.options.globals.get(name));
+        return match.scope.options.globals.get(name);
       }
       if (match.scope.options.specials.has(name)) {
-        return Promise.resolve(match.scope.options.specials.get(name));
+        return match.scope.options.specials.get(name);
       }
-      return Promise.reject(new ReferenceError(`unknown reference: ${name}`));
+      throw new ReferenceError(`unknown reference: ${name}`);
   }
 }

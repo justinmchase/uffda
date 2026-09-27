@@ -3,11 +3,13 @@ import type { Comparable } from "../../comparable.ts";
 import type { Scope } from "../scope.ts";
 import type { BetweenPattern } from "./pattern.ts";
 import { resolveValueSource } from "./value_source.ts";
+import { andThen } from "../awaitable.ts";
+import type { Match } from "../../match.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 
 /** Compiles a `Between` pattern into a flattened, reusable closure. */
 export function between(pattern: BetweenPattern): CompiledPattern {
-  return async (scope: Scope) => {
+  return (scope: Scope) => {
     if (pattern.left == null && pattern.right == null) {
       return error(
         scope,
@@ -35,66 +37,68 @@ export function between(pattern: BetweenPattern): CompiledPattern {
       right = rightResolved.value as Comparable;
     }
 
-    if (await scope.stream.done()) {
-      return fail(scope, pattern);
-    }
+    return andThen(scope.stream.step(), (next): Match => {
+      if (!next) {
+        return fail(scope, pattern);
+      }
+      const end = scope.withInput(next);
+      const { value } = next as { value: Comparable };
+      if (value == null) {
+        return error(
+          scope,
+          pattern,
+          MatchErrorCode.NullValue,
+          "expected value to be non-null",
+        );
+      }
 
-    const next = await scope.stream.next();
-    const end = scope.withInput(next);
-    const { value } = next as { value: Comparable };
-    if (value == null) {
-      return error(
-        scope,
-        pattern,
-        MatchErrorCode.NullValue,
-        "expected value to be non-null",
-      );
-    }
+      const tv = typeof value;
+      if (left != null && tv !== typeof left) {
+        return fail(scope, pattern);
+      }
+      if (right != null && tv !== typeof right) {
+        return fail(scope, pattern);
+      }
 
-    const tv = typeof value;
-    if (left != null && tv !== typeof left) {
-      return fail(scope, pattern);
-    }
-    if (right != null && tv !== typeof right) {
-      return fail(scope, pattern);
-    }
-
-    let inRange = false;
-    if (tv === "object") {
-      if (left != null) {
-        if (typeof left !== "object" || typeof left.compareTo !== "function") {
-          return fail(scope, pattern);
+      let inRange = false;
+      if (tv === "object") {
+        if (left != null) {
+          if (
+            typeof left !== "object" || typeof left.compareTo !== "function"
+          ) {
+            return fail(scope, pattern);
+          }
+        }
+        if (right != null) {
+          if (
+            typeof right !== "object" ||
+            typeof right.compareTo !== "function"
+          ) {
+            return fail(scope, pattern);
+          }
+        }
+        const aboveLeft = left == null || left.compareTo(value) >= 0;
+        const belowRight = right == null || right.compareTo(value) <= 0;
+        inRange = aboveLeft && belowRight;
+      } else {
+        switch (tv) {
+          case "string":
+          case "number": {
+            const aboveLeft = left == null || left <= value;
+            const belowRight = right == null || value <= right;
+            inRange = aboveLeft && belowRight;
+            break;
+          }
+          default:
+            return fail(scope, pattern);
         }
       }
-      if (right != null) {
-        if (
-          typeof right !== "object" ||
-          typeof right.compareTo !== "function"
-        ) {
-          return fail(scope, pattern);
-        }
-      }
-      const aboveLeft = left == null || left.compareTo(value) >= 0;
-      const belowRight = right == null || right.compareTo(value) <= 0;
-      inRange = aboveLeft && belowRight;
-    } else {
-      switch (tv) {
-        case "string":
-        case "number": {
-          const aboveLeft = left == null || left <= value;
-          const belowRight = right == null || value <= right;
-          inRange = aboveLeft && belowRight;
-          break;
-        }
-        default:
-          return fail(scope, pattern);
-      }
-    }
 
-    if (inRange) {
-      return ok(scope, end, pattern, next.value);
-    } else {
-      return fail(scope, pattern);
-    }
+      if (inRange) {
+        return ok(scope, end, pattern, next.value);
+      } else {
+        return fail(scope, pattern);
+      }
+    });
   };
 }

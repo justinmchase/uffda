@@ -1,3 +1,4 @@
+import { awaitableAgreementTest } from "../../test.ts";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { patternTest } from "../../test.ts";
@@ -113,6 +114,18 @@ await Deno.test("runtime/patterns/or", async (t) => {
       input: Input.Iterable([1, 2, 3]),
       kind: MatchKind.Fail,
       done: false,
+    }),
+  });
+
+  await t.step({
+    name:
+      "OR_AWAITABLE - completes synchronously over immediate input and agrees over async input",
+    fn: awaitableAgreementTest({
+      pattern: {
+        kind: PatternKind.Or,
+        patterns: [{ kind: PatternKind.End }, { kind: PatternKind.Any }],
+      },
+      items: ["a"],
     }),
   });
 });

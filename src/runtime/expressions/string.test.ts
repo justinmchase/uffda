@@ -1,3 +1,4 @@
+import { immediateExpressionTest } from "../../test.ts";
 import { expressionTest } from "../../test.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import type { NativeExpression } from "./expression.ts";
@@ -76,5 +77,16 @@ await Deno.test("runtime/expressions/string", async (t) => {
         throw new Error(`Expected sequential order [0, 1], got [${order}]`);
       }
     },
+  });
+
+  await t.step({
+    name: "STRING_IMMEDIATE - evaluates synchronously over immediate values",
+    fn: immediateExpressionTest({
+      expression: {
+        kind: ExpressionKind.String,
+        values: ["a", { kind: ExpressionKind.Number, value: 1 }],
+      },
+      result: "a1",
+    }),
   });
 });

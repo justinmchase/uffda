@@ -2,6 +2,7 @@ import { error, fail, MatchErrorCode, ok } from "../../match.ts";
 import { CharacterClass } from "./pattern.ts";
 import type { CharacterPattern } from "./pattern.ts";
 import type { Scope } from "../scope.ts";
+import { andThen } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 
 export function characterClassToRegexp(
@@ -61,7 +62,7 @@ export function characterClassToRegexp(
 export function character(pattern: CharacterPattern): CompiledPattern {
   const { characterClass } = pattern;
   const regexp = characterClassToRegexp(characterClass);
-  return async (scope: Scope) => {
+  return (scope: Scope) => {
     if (!regexp) {
       return error(
         scope,
@@ -70,21 +71,22 @@ export function character(pattern: CharacterPattern): CompiledPattern {
         `unknown character class ${characterClass}`,
       );
     }
-    if (await scope.stream.done()) {
-      return fail(scope, pattern);
-    }
-    const next = await scope.stream.next();
-    if (typeof next.value !== "string") {
-      return error(
-        scope,
-        pattern,
-        MatchErrorCode.Type,
-        `expected value to be a string but got ${typeof next.value}`,
-      );
-    }
-    if (!regexp.test(next.value)) {
-      return fail(scope, pattern);
-    }
-    return ok(scope, scope.withInput(next), pattern, next.value);
+    return andThen(scope.stream.step(), (next) => {
+      if (!next) {
+        return fail(scope, pattern);
+      }
+      if (typeof next.value !== "string") {
+        return error(
+          scope,
+          pattern,
+          MatchErrorCode.Type,
+          `expected value to be a string but got ${typeof next.value}`,
+        );
+      }
+      if (!regexp.test(next.value)) {
+        return fail(scope, pattern);
+      }
+      return ok(scope, scope.withInput(next), pattern, next.value);
+    });
   };
 }

@@ -1,3 +1,4 @@
+import { immediateExpressionTest } from "../../test.ts";
 import { expressionTest } from "../../test.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 
@@ -21,6 +22,14 @@ await Deno.test("runtime/expressions/value", async (t) => {
         kind: ExpressionKind.Value,
         value: 7,
       },
+    }),
+  });
+
+  await t.step({
+    name: "VALUE_IMMEDIATE - evaluates synchronously over immediate values",
+    fn: immediateExpressionTest({
+      expression: { kind: ExpressionKind.Value, value: "v" },
+      result: "v",
     }),
   });
 });

@@ -1,37 +1,30 @@
 import { Type, type } from "@justinmchase/type";
+import { andThen, type Awaitable, mapInOrder } from "../awaitable.ts";
 import { exec } from "../exec.ts";
 import type { MatchOk } from "../../match.ts";
 import type { Expression, StringExpression } from "./mod.ts";
 import { isExpression } from "./expression.ts";
 
-export async function string(
+export function string(
   expression: StringExpression,
   match: MatchOk,
-): Promise<string> {
+): Awaitable<string> {
   const { values } = expression;
   // Evaluated sequentially (not `Promise.all`) — see invocation.ts for why
   // concurrent sibling-expression evaluation against a shared `match` is
   // unsafe (races the packrat left-recursion memo and `Input.next()`).
-  const segments: unknown[] = [];
-  for (const value of values) {
+  const segments = mapInOrder(values, (value) => {
     const [t, v] = type(value);
     switch (t) {
       case Type.String:
-        segments.push(v);
-        break;
+        return v;
       case Type.Object:
-        if (isExpression(v)) {
-          segments.push(await exec(v as Expression, match));
-        } else {
-          segments.push(v);
-        }
-        break;
+        return isExpression(v) ? exec(v as Expression, match) : v;
       default:
-        segments.push(value);
-        break;
+        return value;
     }
-  }
+  });
 
   const toStringValue = (segment: unknown): string => `${segment}`;
-  return segments.map(toStringValue).join("");
+  return andThen(segments, (parts) => parts.map(toStringValue).join(""));
 }

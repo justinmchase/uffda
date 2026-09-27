@@ -154,5 +154,6 @@ Pattern matching outcomes fall into four categories:
 - Requirement authors SHOULD derive low-level matching assertions from this
   chapter together with the relevant pattern-specific chapter and runtime
   chapter.
-- Implementations SHOULD optimize for synchronous completion where possible, but
-  the normative contract is the async-capable model.
+- Synchronous completion and the rule boundary are governed by
+  [runtime](../runtime.spec.md#synchronous-completion-and-the-rule-boundary);
+  the normative contract remains the async-capable model.

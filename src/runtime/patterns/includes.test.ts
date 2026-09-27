@@ -1,3 +1,4 @@
+import { awaitableAgreementTest } from "../../test.ts";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { patternTest } from "../../test.ts";
@@ -57,6 +58,15 @@ await Deno.test("runtime/patterns/includes", async (t) => {
       input: Input.Iterable("x"),
       value: "x",
       kind: MatchKind.Ok,
+    }),
+  });
+
+  await t.step({
+    name:
+      "INCLUDES_AWAITABLE - completes synchronously over immediate input and agrees over async input",
+    fn: awaitableAgreementTest({
+      pattern: { kind: PatternKind.Includes, values: [lit("a"), lit("b")] },
+      items: ["b"],
     }),
   });
 });

@@ -1,3 +1,4 @@
+import { awaitableAgreementTest } from "../../test.ts";
 import { assertEquals } from "@std/assert";
 import { Input, InputNormalizationMode } from "../../input.ts";
 import { MatchErrorCode, MatchKind } from "../../match.ts";
@@ -68,5 +69,17 @@ Deno.test("runtime.patterns.except", async (t) => {
       assertEquals(m.code, MatchErrorCode.IterableExpected);
       assertEquals(m.scope.stream.path, scope.stream.path);
     },
+  });
+
+  await t.step({
+    name:
+      "EXCEPT_AWAITABLE - completes synchronously over immediate input and agrees over async input",
+    fn: awaitableAgreementTest({
+      pattern: {
+        kind: PatternKind.Except,
+        pattern: { kind: PatternKind.Equal, value: lit("x") },
+      },
+      items: ["a"],
+    }),
   });
 });

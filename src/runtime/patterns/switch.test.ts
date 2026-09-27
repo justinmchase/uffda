@@ -1,3 +1,4 @@
+import { awaitableAgreementTest } from "../../test.ts";
 import { assertEquals } from "@std/assert";
 import { Input } from "../../input.ts";
 import { MatchErrorCode, MatchKind } from "../../match.ts";
@@ -244,4 +245,19 @@ await Deno.test("runtime/patterns/switch", async (t) => {
       }
     },
   );
+
+  await t.step({
+    name:
+      "SWITCH_AWAITABLE - completes synchronously over immediate input and agrees over async input",
+    fn: awaitableAgreementTest({
+      pattern: {
+        kind: PatternKind.Switch,
+        cases: [{
+          key: { kind: "values", values: [lit("a")] },
+          pattern: { kind: PatternKind.Any },
+        }],
+      },
+      items: ["a"],
+    }),
+  });
 });

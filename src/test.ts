@@ -1,4 +1,4 @@
-import { assert, assertRejects, equal } from "@std/assert";
+import { assert, assertEquals, assertRejects, equal } from "@std/assert";
 import { resolve as resolvePath } from "@std/path";
 import { Scope } from "./runtime/scope.ts";
 import { match } from "./runtime/match.ts";
@@ -67,6 +67,27 @@ export function expressionTest(options: ExpressionTestOptions) {
   };
 }
 
+/**
+ * Asserts `expression` evaluates synchronously to `result` (the value itself,
+ * not a promise) when everything it depends on is immediately available.
+ * See `.agents/specifications/runtime.spec.md#synchronous-completion-and-the-rule-boundary`.
+ */
+export function immediateExpressionTest(
+  options: Omit<ExpressionTestOptions, "throws">,
+) {
+  const { match, scope, expression, result } = options;
+  const s = scope ?? Scope.Default();
+  const m = match ? match(s) : ok(s, s, { kind: PatternKind.Ok }, undefined);
+  return () => {
+    const r = exec(expression, m);
+    assert(
+      !(r instanceof Promise),
+      "expected synchronous evaluation over immediate values",
+    );
+    assertEquals(r, result);
+  };
+}
+
 type PatternTestOptions = {
   pattern: Pattern;
   input?: Input;
@@ -97,6 +118,43 @@ export function patternTest(options: PatternTestOptions & MatchAssertion) {
       case MatchKind.Ok:
         return await assertOk(m, options);
     }
+  };
+}
+
+type AwaitableAgreementOptions = {
+  pattern: Pattern;
+  items: unknown[];
+  variables?: Map<string, unknown>;
+};
+
+/**
+ * Asserts `pattern` completes synchronously over `items` supplied as an
+ * immediately available iterable, and produces the same outcome (kind,
+ * value, end position) over the same items supplied as an async iterable.
+ * See `.agents/specifications/runtime.spec.md#synchronous-completion-and-the-rule-boundary`.
+ */
+export function awaitableAgreementTest(options: AwaitableAgreementOptions) {
+  const { pattern, items, variables = new Map() } = options;
+  const run = (input: Input) =>
+    match(
+      pattern,
+      new Scope(undefined, undefined, variables, new Map(), input),
+    );
+  const outcome = (m: Match) => ({
+    kind: m.kind,
+    value: m.kind === MatchKind.Ok ? m.value : undefined,
+    end: m.scope.stream.path.toString(),
+  });
+  return async () => {
+    const immediate = run(Input.Iterable(items));
+    assert(
+      !(immediate instanceof Promise),
+      "expected synchronous completion over immediately available input",
+    );
+    const awaitable = await run(Input.Iterable((async function* () {
+      yield* items;
+    })()));
+    assertEquals(outcome(awaitable), outcome(immediate));
   };
 }
 

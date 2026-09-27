@@ -2,6 +2,7 @@ import { fail, MatchKind, ok } from "../../match.ts";
 import type { Match } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import { compile } from "../match.ts";
+import { eachInOrder } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 import type { ThenPattern } from "./pattern.ts";
 
@@ -9,25 +10,28 @@ import type { ThenPattern } from "./pattern.ts";
 export function then(pattern: ThenPattern, scope: Scope): CompiledPattern {
   const { patterns } = pattern;
   const children = patterns.map((p) => compile(p, scope));
-  return async (invocationScope: Scope) => {
+  return (invocationScope: Scope) => {
     let end = invocationScope;
     const matches: Match[] = [];
     const values: unknown[] = [];
-    for (let i = 0; i < children.length; i++) {
-      const m = await children[i](end);
-      matches.push(m);
-      switch (m.kind) {
-        case MatchKind.LR:
-        case MatchKind.Error:
-          return m;
-        case MatchKind.Fail:
-          return fail(invocationScope, patterns[i], matches);
-        case MatchKind.Ok:
-          values.push(m.value);
-          end = m.scope;
-          break;
-      }
-    }
-    return ok(invocationScope, end, pattern, values, matches);
+    return eachInOrder<Match, Match>(
+      children.length,
+      (i) => children[i](end),
+      (i, m) => {
+        matches.push(m);
+        switch (m.kind) {
+          case MatchKind.LR:
+          case MatchKind.Error:
+            return m;
+          case MatchKind.Fail:
+            return fail(invocationScope, patterns[i], matches);
+          case MatchKind.Ok:
+            values.push(m.value);
+            end = m.scope;
+            return undefined;
+        }
+      },
+      () => ok(invocationScope, end, pattern, values, matches),
+    );
   };
 }
