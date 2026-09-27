@@ -17,34 +17,50 @@ export Documentation;
 # `[Highlight { role: "comment" }]` — the syntactic role of a token rule's
 # span. The outermost Highlight on a path decides the role of every token
 # span beneath it (a string literal's inner words are string content).
+[Documentation {
+  description: "The syntactic role of a token rule's span. The outermost Highlight on a path decides the role of every token span beneath it.",
+  parameters: { c: "An object with the highlight `role` (for example `comment`, `string`, or `keyword`)." }
+}]
 decorator Highlight<c:any> = c;
 
 # `[Keyword]` — a reserved word. The token span a Keyword node matches
 # exactly is highlighted as a keyword (unless an enclosing Highlight, such as
 # a string literal, decides its role).
+[Documentation "A reserved word. The token span a Keyword node matches exactly is highlighted as a keyword unless an enclosing Highlight decides its role."]
 decorator Keyword = { role: "keyword" };
 
 # `[Declaration]` — a production declaring a named rule/func/decorator. Its
 # projected value carries the declared `name`.
+[Documentation "A production declaring a named rule, func, or decorator. Its projected value carries the declared `name`."]
 decorator Declaration = true;
 
 # `[NameReference { kinds: ["decorator"] }]` — a production naming
 # a declaration in scope. Completion offers declarations of the listed kinds
 # (all kinds when `kinds` is omitted); the outermost NameReference on a
 # path applies.
+[Documentation {
+  description: "A production naming a declaration in scope. Completion offers declarations of the listed kinds; the outermost NameReference on a path applies.",
+  parameters: { c: "An object with optional `kinds` (any of `rule`, `func`, `decorator`); all kinds when omitted." }
+}]
 decorator NameReference<c:any> = c;
 
 # `[Import]` — a module import production. Its projected value is a runtime
 # import declaration (`moduleUrl`, `names`).
+[Documentation "A module import production. Its projected value is a runtime import declaration (`moduleUrl`, `names`)."]
 decorator Import = true;
 
 # `[ModulePath { extensions: [".uff"] }]` — the module path text of an
 # import (no delimiters). Completion offers entries relative to the document
 # with the listed extensions.
+[Documentation {
+  description: "The module path text of an import, without delimiters. Completion offers entries relative to the document.",
+  parameters: { c: "An object with the file `extensions` to offer (for example `.uff`)." }
+}]
 decorator ModulePath<c:any> = c;
 
 # `[ImportedName]` — one name bound by an import. Completion offers the
 # exports of the module named by the enclosing Import's ModulePath.
+[Documentation "One name bound by an import. Completion offers the exports of the module named by the enclosing Import's ModulePath."]
 decorator ImportedName = true;
 
 # `[Documentation "…"]` or
@@ -52,6 +68,10 @@ decorator ImportedName = true;
 # documentation of a rule/func/decorator for tooling (hover, completion).
 # Either form is normalized to `{ description, parameters }`, `parameters`
 # mapping parameter names to their descriptions.
+[Documentation {
+  description: "Documentation of a rule, func, or decorator for editor tooling (hover and completion).",
+  parameters: { d: "A description string, or an object with a `description` and optional `parameters` mapping parameter names to their descriptions." }
+}]
 decorator Documentation<d:(string | { description: string })> = {
   description: (coalesce d.description d),
   parameters: (coalesce d.parameters {})

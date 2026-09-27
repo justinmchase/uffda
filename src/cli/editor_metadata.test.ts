@@ -87,6 +87,39 @@ Deno.test("cli.editor_metadata", async (t) => {
   });
 });
 
+Deno.test("cli.editor_metadata walkAnnotatable over a shared parse DAG", async (t) => {
+  // Every nesting level retains rejected alternatives sharing the memoized
+  // inner group, so a tree walk would take exponentially many visits.
+  const depth = 3;
+  const source = `rule X = ${"(".repeat(depth)}A${")".repeat(depth)};`;
+  const match = await uffdaGrammar(source);
+  assertEquals(match.kind, MatchKind.Ok);
+
+  await t.step("visits each node exactly once", () => {
+    const seen = new Set<AnnotatableMatch>();
+    let visits = 0;
+    walkAnnotatable(match, (node) => {
+      visits++;
+      seen.add(node);
+    });
+    assertEquals(visits, seen.size);
+  });
+
+  await t.step("visits accepted nodes with their accepted ancestors", () => {
+    const offset = source.indexOf("A");
+    let found = false;
+    walkAnnotatable(match, (node, ancestors) => {
+      if (
+        node.kind !== MatchKind.Ok ||
+        node.originalSpan.start !== offset ||
+        !hasEditorMetadata(node, EditorDecorator.NameReference)
+      ) return;
+      if (ancestors.every((a) => a.kind === MatchKind.Ok)) found = true;
+    });
+    assert(found);
+  });
+});
+
 Deno.test("cli.editor_metadata documentationOf", () => {
   assertEquals(
     documentationOf({

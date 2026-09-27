@@ -23,6 +23,20 @@ fact it needs is declared on the grammar's rules as
 [rule metadata](../../runtime/rule-metadata.spec.md) and read back off the
 `Match` tree's rule origins.
 
+### Walking the parse
+
+A parse `Match` is a DAG, not a tree: a memoized sub-match is shared by every
+attempt that reached it, including attempts the parse rejected (a `Fail` beneath
+an `Ok`, such as the alternatives of an ordered choice that did not match).
+Rejected attempts keep the sub-matches they accumulated before failing — the
+progress of a partially typed construct, which highlighting and completion need
+— so tooling reads them too. But the number of paths through the DAG grows
+exponentially with nesting, so tooling MUST visit each node once (linear in the
+number of distinct nodes), never once per path. Where a node's ancestors matter,
+the accepted parse (`Ok` beneath `Ok`, and everything beneath a `Fail` root) is
+walked first, so a node belonging to it is seen with its accepted ancestors; any
+other node is seen on the first path reaching it.
+
 ## Vocabulary
 
 The decorators are declared in `src/lang/editor/editor.uff`. Tooling identifies
@@ -51,6 +65,11 @@ descriptions. Hover MUST lead with the description and show parameter
 descriptions (on the declaration and on each parameter's own hover), and
 completion items MUST carry the description as their documentation. A
 declaration's hover MUST NOT also list `Documentation` as an attribute.
+
+Every decorator in the editor vocabulary (`src/lang/editor/editor.uff`) carries
+its own `[Documentation]`, including `Documentation` itself, so hover and
+completion on these names explain them from the grammar rather than from
+tooling.
 
 `[Language]` (see the
 [language server](./language-server.spec.md#language-configuration)) are
