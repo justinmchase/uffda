@@ -1,3 +1,5 @@
+import { defineMetadata } from "../value_metadata.ts";
+
 function propertyAt(item: unknown, key: PropertyKey): unknown {
   if (
     item != null && (typeof item === "object" || typeof item === "function")
@@ -31,3 +33,8 @@ function elementsOf(collection: unknown): unknown[] {
 export function pluck(collection: unknown, key: PropertyKey): unknown[] {
   return elementsOf(collection).map((item) => propertyAt(item, key));
 }
+
+defineMetadata(pluck, {
+  description: "Collects item[key] for each element of a collection.",
+  parameters: [{ name: "collection" }, { name: "key" }],
+});

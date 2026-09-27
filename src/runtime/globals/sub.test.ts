@@ -1,5 +1,6 @@
 import { assertEquals, assertThrows } from "@std/assert";
 import { sub } from "./sub.ts";
+import { metadataOf } from "../value_metadata.ts";
 
 Deno.test("runtime.sub subtracts right from left", () => {
   assertEquals(sub(5, 2), 3);
@@ -9,4 +10,11 @@ Deno.test("runtime.sub subtracts right from left", () => {
 Deno.test("runtime.sub rejects non-numeric operands", () => {
   assertThrows(() => sub("5", 2));
   assertThrows(() => sub(5, "2"));
+});
+
+Deno.test("globals.sub carries metadata", () => {
+  assertEquals(
+    metadataOf(sub)?.parameters.map((p) => p.name),
+    ["left", "right"],
+  );
 });

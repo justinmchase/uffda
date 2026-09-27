@@ -1,5 +1,6 @@
 import { assertEquals } from "@std/assert";
 import { one } from "./one.ts";
+import { metadataOf } from "../value_metadata.ts";
 
 Deno.test("std.one returns the sole element unchanged", () => {
   assertEquals(
@@ -24,4 +25,11 @@ Deno.test("std.one returns the full value when items is empty or multi", () => {
     steps: [{ kind: "any" }, { kind: "end" }],
   };
   assertEquals(one(pipelineFull.steps, pipelineFull), pipelineFull);
+});
+
+Deno.test("globals.one carries metadata", () => {
+  assertEquals(
+    metadataOf(one)?.parameters.map((p) => p.name),
+    ["items", "full"],
+  );
 });

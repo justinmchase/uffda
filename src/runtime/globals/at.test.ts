@@ -1,5 +1,6 @@
 import { assertEquals, assertThrows } from "@std/assert";
 import { at } from "./at.ts";
+import { metadataOf } from "../value_metadata.ts";
 
 Deno.test("runtime.at indexes arrays", () => {
   assertEquals(at([1, 2, 3], 1), 2);
@@ -27,4 +28,11 @@ Deno.test("runtime.at indexes Maps as [key, value] entries by insertion order", 
 
 Deno.test("runtime.at rejects unsupported types", () => {
   assertThrows(() => at({}, 0), TypeError);
+});
+
+Deno.test("globals.at carries metadata", () => {
+  assertEquals(
+    metadataOf(at)?.parameters.map((p) => p.name),
+    ["value", "index"],
+  );
 });

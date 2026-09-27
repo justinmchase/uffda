@@ -1,4 +1,5 @@
 import { iterable } from "./iterable.ts";
+import { defineMetadata } from "../value_metadata.ts";
 
 /**
  * Keep elements of a value whose (async) predicate is truthy. Lazy —
@@ -23,3 +24,8 @@ export async function* filter(
     }
   }
 }
+
+defineMetadata(filter, {
+  description: "Lazily keeps the elements for which the predicate is truthy.",
+  parameters: [{ name: "self" }, { name: "predicate" }],
+});

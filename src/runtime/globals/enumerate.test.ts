@@ -1,6 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { collect } from "../collect.ts";
 import { enumerate } from "./enumerate.ts";
+import { metadataOf } from "../value_metadata.ts";
 
 Deno.test("globals.enumerate pairs each array element with its index", async () => {
   assertEquals(await collect(enumerate(["a", "b", "c"])), [
@@ -71,4 +72,11 @@ Deno.test("globals.enumerate is lazy: nothing runs until drained", async () => {
   assertEquals(touched, false);
   assertEquals(await collect(gen), [{ index: 0, value: "a" }]);
   assertEquals(touched, true);
+});
+
+Deno.test("globals.enumerate carries metadata", () => {
+  assertEquals(
+    metadataOf(enumerate)?.parameters.map((p) => p.name),
+    ["self"],
+  );
 });

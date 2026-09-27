@@ -1,8 +1,20 @@
 import type { Hover, MarkupContent, Range } from "vscode-languageserver-types";
 import { describePattern } from "../match.describe_pattern.ts";
 import type { Match } from "../match.ts";
-import type { DescribedDeclaration, RuntimeSession } from "./mcp.session.ts";
+import { formatSignature } from "../runtime/value_metadata.ts";
+import type {
+  DescribedDeclaration,
+  DescribedGlobal,
+  RuntimeSession,
+} from "./mcp.session.ts";
 import { HighlightRole, highlightSpansFromMatch } from "./highlight.ts";
+import {
+  acceptsKind,
+  identifierPosition,
+  type LocalBinding,
+  localBindingAt,
+  LocalBindingKind,
+} from "./lsp.locals.ts";
 import {
   type DefinitionSourceLookup,
   isUffFileUrl,
@@ -12,9 +24,10 @@ import { offsetToPosition, positionToOffset } from "./lsp.positions.ts";
 
 /**
  * LSP hover for `.uff` documents (requirement 006): resolve the identifier at
- * the requested position against the document session's
- * `RuntimeSession.describe()` — the same structural introspection MCP already
- * exposes — rather than a separately maintained documentation source.
+ * the requested position against the document's own parse tree (local
+ * bindings), the session's `RuntimeSession.describe()` — the same structural
+ * introspection MCP already exposes — and the metadata runtime globals carry,
+ * rather than a separately maintained documentation source.
  */
 
 export type IdentifierAtOffset = {
@@ -150,11 +163,12 @@ export function formatDescribedDeclarationMarkdown(
 
 /**
  * Builds an LSP `Hover` for `position` in `source` by describing the
- * identifier under the cursor via `session.describe`, showing the
- * declaration's own source when it can be located (see
- * `locateDeclarationSource`). Returns `null` when there is no identifier,
- * the session cannot describe it, or the document has not resolved enough
- * state yet — never throws for those cases.
+ * identifier under the cursor: a local binding, a declaration via
+ * `session.describe` (showing its own source when it can be located, see
+ * `locateDeclarationSource`), or a runtime global via
+ * `session.describeGlobal`. Returns `null` when there is no identifier,
+ * nothing describes it, or the document has not resolved enough state yet —
+ * never throws for those cases.
  */
 export async function hoverAtPosition(
   session: RuntimeSession,
@@ -165,23 +179,89 @@ export async function hoverAtPosition(
 ): Promise<Hover | null> {
   const offset = positionToOffset(source, position);
   const ident = identifierAtOffset(source, offset, match);
-  if (!ident) return null;
+  if (!ident || !match) return null;
 
-  const described = session.describe(ident.name);
-  if (!described.ok) return null;
+  const value = await hoverMarkdown(session, source, ident, match, lookup);
+  if (value === undefined) return null;
 
-  const contents: MarkupContent = {
-    kind: "markdown",
-    value: formatDescribedDeclarationMarkdown(
-      described.declaration,
-      await declarationSourceText(session, ident.name, lookup),
-    ),
-  };
+  const contents: MarkupContent = { kind: "markdown", value };
   const range: Range = {
     start: offsetToPosition(source, ident.start),
     end: offsetToPosition(source, ident.end),
   };
   return { contents, range };
+}
+
+/**
+ * Resolves the identifier in the same order expression/pattern references
+ * do: a local binding, then a declared rule/func/decorator, then (where a
+ * func may be named) a runtime global.
+ */
+async function hoverMarkdown(
+  session: RuntimeSession,
+  source: string,
+  ident: IdentifierAtOffset,
+  match: Match,
+  lookup: DefinitionSourceLookup,
+): Promise<string | undefined> {
+  const position = identifierPosition(match, ident);
+  const local = localBindingAt(position, ident.name);
+  if (local) return formatLocalBindingMarkdown(local, source);
+
+  const described = session.describe(ident.name);
+  if (described.ok) {
+    return formatDescribedDeclarationMarkdown(
+      described.declaration,
+      await declarationSourceText(session, ident.name, lookup),
+    );
+  }
+
+  if (acceptsKind(position, "func")) {
+    const global = session.describeGlobal(ident.name);
+    if (global.ok) return formatDescribedGlobalMarkdown(global.global);
+  }
+  return undefined;
+}
+
+/** Formats a local binding (see `localBindingAt`) as hover Markdown. */
+export function formatLocalBindingMarkdown(
+  binding: LocalBinding,
+  source: string,
+): string {
+  switch (binding.kind) {
+    case LocalBindingKind.Parameter:
+      return `(parameter) \`${binding.name}\`${
+        binding.declarationName ? ` of rule \`${binding.declarationName}\`` : ""
+      }`;
+    case LocalBindingKind.Variable:
+      return [
+        `(variable) \`${binding.name}\``,
+        [
+          "```uffda",
+          truncateLines(
+            source.slice(binding.span.start, binding.span.end),
+            MAX_SOURCE_LINES,
+          ),
+          "```",
+        ].join("\n"),
+      ].join("\n\n");
+  }
+}
+
+/**
+ * Formats a runtime global as hover Markdown: its invocation signature and
+ * description from the function metadata it carries, when any.
+ */
+export function formatDescribedGlobalMarkdown(global: DescribedGlobal): string {
+  const sections = [`(global func) \`${global.name}\``];
+  if (global.metadata) {
+    sections.push(
+      ["```uffda", formatSignature(global.name, global.metadata), "```"]
+        .join("\n"),
+      global.metadata.description,
+    );
+  }
+  return sections.join("\n\n");
 }
 
 async function declarationSourceText(

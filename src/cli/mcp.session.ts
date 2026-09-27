@@ -19,6 +19,10 @@ import {
 import type { Module } from "../runtime/modules/mod.ts";
 import { Resolver } from "../runtime/resolve.ts";
 import { Scope } from "../runtime/scope.ts";
+import {
+  type FunctionMetadata,
+  metadataOf,
+} from "../runtime/value_metadata.ts";
 import { Input, InputNormalizationMode } from "../input.ts";
 import { Path } from "../path.ts";
 import type { Edit } from "../edit.ts";
@@ -383,6 +387,20 @@ export type ResolvedDeclaration = {
 
 export type SessionResolveDeclarationResult =
   | { ok: true; declaration: ResolvedDeclaration }
+  | { ok: false; error: SessionDescribeFailure };
+
+/**
+ * A runtime global visible to expression references, with the function
+ * metadata it carries under the well-known `METADATA` symbol (see
+ * `.agents/specifications/runtime/value-metadata.spec.md`), when any.
+ */
+export type DescribedGlobal = {
+  name: string;
+  metadata?: FunctionMetadata;
+};
+
+export type SessionDescribeGlobalResult =
+  | { ok: true; global: DescribedGlobal }
   | { ok: false; error: SessionDescribeFailure };
 
 export enum SessionQueryFailureCode {
@@ -1274,6 +1292,30 @@ export class RuntimeSession {
         exported: found.member.module.exports.has(name),
       },
     };
+  }
+
+  /**
+   * Describes a runtime global — the values expression references fall
+   * back to after locals and declared funcs — from the globals this
+   * session's scopes resolve against. Read-only.
+   */
+  public describeGlobal(name: string): SessionDescribeGlobalResult {
+    if (this.closed) {
+      throw new Error(`Session ${this.id} is closed`);
+    }
+    const globals = Scope.Default().options.globals;
+    if (!globals.has(name)) {
+      return {
+        ok: false,
+        error: {
+          code: SessionDescribeFailureCode.UnknownDeclaration,
+          phase: "resolve",
+          message: `No global named '${name}'`,
+        },
+      };
+    }
+    const metadata = metadataOf(globals.get(name));
+    return { ok: true, global: { name, ...(metadata ? { metadata } : {}) } };
   }
 
   /**

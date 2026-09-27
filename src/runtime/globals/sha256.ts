@@ -1,3 +1,5 @@
+import { defineMetadata } from "../value_metadata.ts";
+
 /**
  * SHA-256 digest of a string, as raw bytes.
  * Authors write `(sha256 text)`. Compose with `base58`/`slice` for
@@ -11,3 +13,8 @@ export async function sha256(text: string): Promise<Uint8Array> {
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   return new Uint8Array(digest);
 }
+
+defineMetadata(sha256, {
+  description: "SHA-256 digest of a string, as bytes.",
+  parameters: [{ name: "text" }],
+});

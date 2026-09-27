@@ -1,4 +1,5 @@
 import { iterable } from "./iterable.ts";
+import { defineMetadata } from "../value_metadata.ts";
 
 /**
  * Project each element of a value through an (async) callback. Lazy —
@@ -21,3 +22,8 @@ export async function* map(
     yield await callback(item);
   }
 }
+
+defineMetadata(map, {
+  description: "Lazily projects each element through a callback.",
+  parameters: [{ name: "self" }, { name: "callback" }],
+});

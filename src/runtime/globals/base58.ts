@@ -1,4 +1,5 @@
 import { encodeBase58 } from "@std/encoding/base58";
+import { defineMetadata } from "../value_metadata.ts";
 
 /**
  * Base58 (Bitcoin alphabet) encoding of bytes.
@@ -10,3 +11,8 @@ export function base58(bytes: Uint8Array): string {
   }
   return encodeBase58(bytes);
 }
+
+defineMetadata(base58, {
+  description: "Base58 (Bitcoin alphabet) encoding of bytes.",
+  parameters: [{ name: "bytes" }],
+});

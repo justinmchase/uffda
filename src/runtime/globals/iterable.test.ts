@@ -2,6 +2,7 @@ import { assertEquals, assertStrictEquals } from "@std/assert";
 import { assertThrows } from "@std/assert/throws";
 import { iterable } from "./iterable.ts";
 import { collect } from "../../testing.ts";
+import { metadataOf } from "../value_metadata.ts";
 
 Deno.test("globals.iterable wraps a sync iterable string as async", async () => {
   const result = await collect(iterable("abc"));
@@ -28,4 +29,11 @@ Deno.test("globals.iterable rejects values without Symbol.iterator or Symbol.asy
   assertThrows(() => iterable(7), TypeError);
   assertThrows(() => iterable(null), TypeError);
   assertThrows(() => iterable({}), TypeError);
+});
+
+Deno.test("globals.iterable carries metadata", () => {
+  assertEquals(
+    metadataOf(iterable)?.parameters.map((p) => p.name),
+    ["value"],
+  );
 });

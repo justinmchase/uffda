@@ -1,3 +1,5 @@
+import { defineMetadata } from "../value_metadata.ts";
+
 /**
  * Last element of a string or array, or `fallback` when empty.
  * Authors write `(last items fallback)`. Eager expression-invocation
@@ -10,3 +12,8 @@ export function last(
 ): unknown {
   return self.length > 0 ? self[self.length - 1] : fallback;
 }
+
+defineMetadata(last, {
+  description: "The last element of a string or array, or fallback when empty.",
+  parameters: [{ name: "self" }, { name: "fallback" }],
+});

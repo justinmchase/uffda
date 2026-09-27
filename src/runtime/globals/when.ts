@@ -1,3 +1,5 @@
+import { defineMetadata } from "../value_metadata.ts";
+
 /**
  * Conditional value selection. Authors write `(when cond then else)`.
  * Arguments are evaluated eagerly (expression invocation semantics).
@@ -9,3 +11,10 @@ export function when(
 ): unknown {
   return condition ? thenValue : elseValue;
 }
+
+defineMetadata(when, {
+  description: "thenValue when condition is truthy, otherwise elseValue.",
+  parameters: [{ name: "condition" }, { name: "thenValue" }, {
+    name: "elseValue",
+  }],
+});

@@ -1,5 +1,6 @@
 import { assertEquals } from "@std/assert";
 import { has } from "./has.ts";
+import { metadataOf } from "../value_metadata.ts";
 
 Deno.test("std.has checks Set, array, and object membership", () => {
   assertEquals(has(new Set(["a", "b"]), "a"), true);
@@ -8,4 +9,11 @@ Deno.test("std.has checks Set, array, and object membership", () => {
   assertEquals(has({ name: 1 }, "name"), true);
   assertEquals(has({ name: 1 }, "other"), false);
   assertEquals(has(null, "x"), false);
+});
+
+Deno.test("globals.has carries metadata", () => {
+  assertEquals(
+    metadataOf(has)?.parameters.map((p) => p.name),
+    ["collection", "value"],
+  );
 });

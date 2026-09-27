@@ -1,5 +1,6 @@
 import { Type, type } from "@justinmchase/type";
 import { Input } from "../../input.ts";
+import { defineMetadata } from "../value_metadata.ts";
 
 function isPlainObject(
   value: unknown,
@@ -56,3 +57,8 @@ export async function* enumerate(
 
   yield { index: 0, value: self };
 }
+
+defineMetadata(enumerate, {
+  description: "Lazily pairs each element with its index as { index, value }.",
+  parameters: [{ name: "self" }],
+});

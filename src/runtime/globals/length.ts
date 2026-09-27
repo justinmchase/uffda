@@ -1,3 +1,5 @@
+import { defineMetadata } from "../value_metadata.ts";
+
 /**
  * Generic length: works for strings, arrays, Sets, and Maps.
  * Authors write `(length value)`.
@@ -11,3 +13,8 @@ export function length(value: unknown): number {
   }
   throw new TypeError("length expects a string, array, Set, or Map");
 }
+
+defineMetadata(length, {
+  description: "The length of a string, array, Set, or Map.",
+  parameters: [{ name: "value" }],
+});

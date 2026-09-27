@@ -1,6 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { assertThrows } from "@std/assert/throws";
 import { to_set } from "./to_set.ts";
+import { metadataOf } from "../value_metadata.ts";
 
 Deno.test("std.to_set builds a Set from an array", () => {
   const values = to_set(["a", "b", "a"]);
@@ -21,4 +22,11 @@ Deno.test("std.to_set copies object values, Map values, and Sets", () => {
 
 Deno.test("std.to_set rejects non-collections", () => {
   assertThrows(() => to_set("a"), TypeError);
+});
+
+Deno.test("globals.to_set carries metadata", () => {
+  assertEquals(
+    metadataOf(to_set)?.parameters.map((p) => p.name),
+    ["items"],
+  );
 });

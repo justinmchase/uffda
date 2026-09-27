@@ -27,6 +27,19 @@ Expected behavior:
   it (for example `[Keyword]` → `{ role: "keyword" }`); otherwise it MUST
   summarize the pattern, parameters, and attributes. It MUST NOT repeat
   attribute values as a separate metadata dump.
+- Hover MUST resolve a name in the same order references resolve it: a local
+  binding first, then a declared rule/func/decorator, then (only where the
+  reference may name a func) a runtime global.
+  - Local bindings MUST be found from the document's parse tree. A captured
+    variable (`name:pattern`, including func and lambda parameters) is visible
+    to expression references inside the enclosing `[Declaration]` or lambda that
+    binds it, and the innermost binding wins. A rule parameter is visible to
+    pattern references in its rule. At a binding site (not a `[NameReference]`)
+    either kind applies. A variable hover MUST show its binding as authored; a
+    parameter hover MUST name its rule.
+  - A runtime global hover MUST show the global's signature and description from
+    the metadata it carries (see
+    [runtime value metadata](../../specifications/runtime/value-metadata.spec.md)).
 - `textDocument/definition` MUST resolve a reference to a rule, func, or
   decorator to its declaring location within the workspace's resolved module
   graph, including across `.uff` import boundaries. A reference the server

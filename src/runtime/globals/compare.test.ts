@@ -1,5 +1,6 @@
 import { assertEquals, assertThrows } from "@std/assert";
 import { compare } from "./compare.ts";
+import { metadataOf } from "../value_metadata.ts";
 
 Deno.test("runtime.compare orders numbers", () => {
   assertEquals(compare(1, 2), -1);
@@ -17,4 +18,11 @@ Deno.test("runtime.compare rejects non-comparable or mixed-type values", () => {
   assertThrows(() => compare(1, "1"), TypeError);
   assertThrows(() => compare(null, 1), TypeError);
   assertThrows(() => compare({}, {}), TypeError);
+});
+
+Deno.test("globals.compare carries metadata", () => {
+  assertEquals(
+    metadataOf(compare)?.parameters.map((p) => p.name),
+    ["left", "right"],
+  );
 });

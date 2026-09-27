@@ -1,6 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { assertThrows } from "@std/assert/throws";
 import { pluck } from "./pluck.ts";
+import { metadataOf } from "../value_metadata.ts";
 
 Deno.test("std.pluck maps a property off each array element", () => {
   assertEquals(pluck([{ name: "A" }, { name: "B" }], "name"), ["A", "B"]);
@@ -37,4 +38,11 @@ Deno.test("std.pluck maps a property off each Set value", () => {
 Deno.test("std.pluck rejects non-collections", () => {
   assertThrows(() => pluck("name", "length"), TypeError);
   assertThrows(() => pluck(null, "name"), TypeError);
+});
+
+Deno.test("globals.pluck carries metadata", () => {
+  assertEquals(
+    metadataOf(pluck)?.parameters.map((p) => p.name),
+    ["collection", "key"],
+  );
 });

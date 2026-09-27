@@ -1,6 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { assertThrows } from "@std/assert/throws";
 import { slice } from "./slice.ts";
+import { metadataOf } from "../value_metadata.ts";
 
 Deno.test("globals.slice slices a string", () => {
   assertEquals(slice("hello world", 0, 5), "hello");
@@ -16,4 +17,11 @@ Deno.test("globals.slice slices an array", () => {
 Deno.test("globals.slice rejects unsupported values", () => {
   assertThrows(() => slice(42 as unknown as string, 0, 1), TypeError);
   assertThrows(() => slice(null as unknown as string, 0, 1), TypeError);
+});
+
+Deno.test("globals.slice carries metadata", () => {
+  assertEquals(
+    metadataOf(slice)?.parameters.map((p) => p.name),
+    ["value", "start", "end"],
+  );
 });

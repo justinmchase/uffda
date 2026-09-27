@@ -137,7 +137,10 @@ not introduce a parallel parsing or compilation pathway.
 - The server MUST support `textDocument/hover`, reporting structural information
   about the rule/func/decorator/expression at the requested position, using the
   same descriptive information the MCP server's introspection tools already
-  expose (see [introspection tools](./mcp-server.spec.md)).
+  expose (see [introspection tools](./mcp-server.spec.md)). Local bindings
+  (captured variables and parameters) and runtime globals MUST be describable
+  too: locals from the document's parse tree, globals from the metadata they
+  carry (see [runtime value metadata](../../runtime/value-metadata.spec.md)).
 - The server MUST support go-to-definition (`textDocument/definition`) for
   references to rules, funcs, and decorators, resolving to the declaration's
   source location within the workspace's resolved module graph.
@@ -263,33 +266,35 @@ its names) is anchored right after that line's last token. Document operations
 `LspDocumentManager`, since the LSP connection does not await async notification
 handlers. Hover (`textDocument/hover`) and go-to-definition
 (`textDocument/definition`, both part of requirement 006) are implemented for
-`.uff`: hover resolves the identifier under the cursor through
-`RuntimeSession.describe()` and shows the declaration's source (located the same
-way as definition) when available, and definition resolves via
-`RuntimeSession.resolveDeclaration()` then locates the `[Declaration]`
-production's `originalSpan` in a parse `Match` (open buffer preferred, else
-session parse state, else a read-only re-parse of the defining `.uff` on disk).
-`textDocument/completion` parses the text before the cursor and offers items
-only for the completion contexts that reach it: `.uff` files and folders
-relative to the document in a `[ModulePath]`, the target module's exports in an
-`[ImportedName]` (the session's resolved module, else a read-only compile of its
-source), and in-scope declarations (via `RuntimeSession.listDeclarations()`) of
-the kinds a `[NameReference]` names — rules in patterns, funcs in expressions,
-decorators in attributes, any kind in an export list. An empty position after an
-optional repetition has no context yet (see the editor-metadata known gap), and
-expression-level completions such as parameter names in scope remain
-outstanding. The VS Code extension (requirement 007) has an initial
-implementation at `editors/vscode/`: it registers `uffda lsp` for `.uff` files,
-registers `uffda mcp` as an MCP server, and resolves/downloads a compatible
-`uffda` binary automatically, with debug override settings. The extension also
-queries the custom `uffda/languageMetadata` request and applies
-`[Language]`-derived editor configuration via
-`vscode.languages.setLanguageConfiguration()`, and assigns language ids from
-`[Language].ext` via `vscode.languages.setTextDocumentLanguage()` for
-workspace-declared languages (static `language-configuration.json` remains as a
-fallback for `.uff`). The LSP config loader fills omitted `extensions` from
-`[Language].ext` when `modulePath`/`entryRuleName` are present. See GitHub issue
-#155 for the tracking issue.
+`.uff`: hover resolves the identifier under the cursor as a local binding (from
+the parse tree), then through `RuntimeSession.describe()` — showing the
+declaration's source (located the same way as definition) when available — then
+as a runtime global via `RuntimeSession.describeGlobal()`, and definition
+resolves via `RuntimeSession.resolveDeclaration()` then locates the
+`[Declaration]` production's `originalSpan` in a parse `Match` (open buffer
+preferred, else session parse state, else a read-only re-parse of the defining
+`.uff` on disk). `textDocument/completion` parses the text before the cursor and
+offers items only for the completion contexts that reach it: `.uff` files and
+folders relative to the document in a `[ModulePath]`, the target module's
+exports in an `[ImportedName]` (the session's resolved module, else a read-only
+compile of its source), and in-scope declarations (via
+`RuntimeSession.listDeclarations()`) of the kinds a `[NameReference]` names —
+rules in patterns, funcs in expressions, decorators in attributes, any kind in
+an export list. An empty position after an optional repetition has no context
+yet (see the editor-metadata known gap), and expression-level completions such
+as parameter names in scope remain outstanding. The VS Code extension
+(requirement 007) has an initial implementation at `editors/vscode/`: it
+registers `uffda lsp` for `.uff` files, registers `uffda mcp` as an MCP server,
+and resolves/downloads a compatible `uffda` binary automatically, with debug
+override settings. The extension also queries the custom
+`uffda/languageMetadata` request and applies `[Language]`-derived editor
+configuration via `vscode.languages.setLanguageConfiguration()`, and assigns
+language ids from `[Language].ext` via
+`vscode.languages.setTextDocumentLanguage()` for workspace-declared languages
+(static `language-configuration.json` remains as a fallback for `.uff`). The LSP
+config loader fills omitted `extensions` from `[Language].ext` when
+`modulePath`/`entryRuleName` are present. See GitHub issue #155 for the tracking
+issue.
 
 ## Related
 

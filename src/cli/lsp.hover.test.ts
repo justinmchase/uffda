@@ -179,3 +179,68 @@ Deno.test("cli.lsp.hover hoverAtPosition", async (t) => {
     },
   );
 });
+
+Deno.test("cli.lsp.hover locals and globals", async (t) => {
+  const source = `export Main Pair Words;
+rule Pair<P> = a:P b:P -> [a b];
+rule Main = n:string -> (join (map [n] <x:any> -> x) ",");
+func Words<s:string> = (join s " ");
+`;
+  const session = new RuntimeSession("hover-locals");
+  assertEquals((await session.load(source)).ok, true);
+  const state = session.getLatestParseState();
+  assert(state);
+
+  const hoverText = async (offset: number) => {
+    const hover = await hoverAtPosition(
+      session,
+      source,
+      offsetToPosition(source, offset),
+      state.match,
+    );
+    const contents = hover?.contents;
+    return contents && typeof contents === "object" && "value" in contents
+      ? contents.value
+      : undefined;
+  };
+
+  await t.step("describes a runtime global from its metadata", async () => {
+    assertEquals(
+      await hoverText(source.indexOf("join")),
+      [
+        "(global func) `join`",
+        "```uffda\n(join self separator?)\n```",
+        "Joins an array's elements into a string with a separator.",
+      ].join("\n\n"),
+    );
+    assert(
+      (await hoverText(source.indexOf("map")))?.startsWith(
+        "(global func) `map`",
+      ),
+    );
+  });
+
+  await t.step("describes a captured variable by its binding", async () => {
+    const expected = "(variable) `n`\n\n```uffda\nn:string\n```";
+    assertEquals(await hoverText(source.indexOf("[n]") + 1), expected);
+    assertEquals(await hoverText(source.indexOf("n:string")), expected);
+    assertEquals(
+      await hoverText(source.indexOf("(join s") + 6),
+      "(variable) `s`\n\n```uffda\ns:string\n```",
+    );
+  });
+
+  await t.step("scopes lambda parameters to the lambda", async () => {
+    assertEquals(
+      await hoverText(source.indexOf("-> x") + 3),
+      "(variable) `x`\n\n```uffda\nx:any\n```",
+    );
+  });
+
+  await t.step("describes a rule parameter in pattern position", async () => {
+    assertEquals(
+      await hoverText(source.indexOf("a:P") + 2),
+      "(parameter) `P` of rule `Pair`",
+    );
+  });
+});
