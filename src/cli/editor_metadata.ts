@@ -150,6 +150,32 @@ export function walkAnnotatable(
     ancestors: readonly AnnotatableMatch[],
   ) => void,
 ): void {
+  walkDag(root, visit, true);
+}
+
+/**
+ * The first phase of `walkAnnotatable` alone: visits each node of the
+ * accepted parse (`Ok` beneath `Ok`, and everything beneath a `Fail` root)
+ * once in pre-order, skipping attempts the parse rejected.
+ */
+export function walkAccepted(
+  root: Match,
+  visit: (
+    node: AnnotatableMatch,
+    ancestors: readonly AnnotatableMatch[],
+  ) => void,
+): void {
+  walkDag(root, visit, false);
+}
+
+function walkDag(
+  root: Match,
+  visit: (
+    node: AnnotatableMatch,
+    ancestors: readonly AnnotatableMatch[],
+  ) => void,
+  rejected: boolean,
+): void {
   const visited = new Set<Match>();
   const ancestors: AnnotatableMatch[] = [];
   const walk = (
@@ -175,7 +201,7 @@ export function walkAnnotatable(
         : node.matches,
     new Set(),
   );
-  walk(root, (node) => node.matches, new Set());
+  if (rejected) walk(root, (node) => node.matches, new Set());
 }
 
 /**

@@ -11,7 +11,8 @@ Deno.test(
     );
     assertEquals(member.includes("export Member"), true);
     assertEquals(member.includes("e:Member"), true);
-    assertEquals(member.includes("n:Token<Reference>"), true);
+    assertEquals(member.includes("n:Token<MemberName>"), true);
+    assertEquals(member.includes("rule MemberName = Reference;"), true);
     assertEquals(
       member.includes('{ kind: "member", expression: e, name: n.name }'),
       true,
@@ -19,7 +20,7 @@ Deno.test(
     assertEquals(member.includes("| Token<MemberTarget>"), false);
     assertEquals(
       member.includes(
-        'b:Token<MemberTarget> "." n:Token<Reference> -> { kind: "member", expression: b, name: n.name }',
+        'b:Token<MemberTarget> "." n:Token<MemberName> -> { kind: "member", expression: b, name: n.name }',
       ),
       true,
     );

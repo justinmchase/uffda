@@ -7,9 +7,28 @@ import {
   highlightRoleOf,
   highlightSource,
   highlightSpansFromMatch,
+  isNameRefinementRole,
+  isNameRole,
   isTriviaRole,
   renderHighlightAnsi,
 } from "./highlight.ts";
+
+Deno.test("cli.highlight name roles", () => {
+  assert(isNameRole(HighlightRole.Identifier));
+  assert(!isNameRefinementRole(HighlightRole.Identifier));
+  for (
+    const role of [
+      HighlightRole.Type,
+      HighlightRole.Function,
+      HighlightRole.Variable,
+      HighlightRole.Property,
+    ]
+  ) {
+    assert(isNameRole(role) && isNameRefinementRole(role));
+  }
+  assert(!isNameRole(HighlightRole.Keyword));
+  assert(!isNameRole(HighlightRole.String));
+});
 
 /**
  * Coverage for the source-highlighting tool (see
@@ -264,5 +283,91 @@ Deno.test("cli.highlight walks a shared parse DAG once per node", async () => {
   const spans = highlightSpansFromMatch(match, source);
   assertFullCoverage(spans, source.length);
   const reference = spans.find((span) => span.text === "A");
-  assertEquals(reference?.role, HighlightRole.Identifier);
+  assertEquals(reference?.role, HighlightRole.Type);
+});
+
+Deno.test("cli.highlight refines names by what they reference", async (t) => {
+  const rolesOf = async (source: string, language?: CliLanguage) => {
+    const result = await highlightSource(source, language);
+    assert(result.ok);
+    return result.spans
+      .filter((span) => !isTriviaRole(span.role))
+      .filter((span) => span.role !== HighlightRole.Punctuation)
+      .map((span) => [span.text, span.role]);
+  };
+
+  await t.step(
+    "an invoked name is a function, its arguments variables",
+    async () => {
+      assertEquals(
+        await rolesOf(
+          "(map (filter tokens IsNotComment) TokenText)",
+          CliLanguage.Expression,
+        ),
+        [
+          ["map", HighlightRole.Function],
+          ["filter", HighlightRole.Function],
+          ["tokens", HighlightRole.Variable],
+          ["IsNotComment", HighlightRole.Variable],
+          ["TokenText", HighlightRole.Variable],
+        ],
+      );
+    },
+  );
+
+  await t.step("a member name is a property", async () => {
+    assertEquals(
+      await rolesOf("(f a.b)", CliLanguage.Expression),
+      [
+        ["f", HighlightRole.Function],
+        ["a", HighlightRole.Variable],
+        ["b", HighlightRole.Property],
+      ],
+    );
+  });
+
+  await t.step("a member callee is not refined as a function", async () => {
+    assertEquals(
+      await rolesOf("(a.b x)", CliLanguage.Expression),
+      [
+        ["a", HighlightRole.Variable],
+        ["b", HighlightRole.Property],
+        ["x", HighlightRole.Variable],
+      ],
+    );
+  });
+
+  await t.step("reserved words keep their keyword role", async () => {
+    assertEquals(
+      await rolesOf("(f true null)", CliLanguage.Expression),
+      [
+        ["f", HighlightRole.Function],
+        ["true", HighlightRole.Keyword],
+        ["null", HighlightRole.Keyword],
+      ],
+    );
+    assertEquals(
+      await rolesOf("(not x)", CliLanguage.Expression),
+      [["not", HighlightRole.Function], ["x", HighlightRole.Variable]],
+    );
+  });
+
+  await t.step(
+    "pattern references are types, string words are not",
+    async () => {
+      assertEquals(
+        await rolesOf('rule A = B<C> @D "E";'),
+        [
+          ["rule", HighlightRole.Keyword],
+          ["A", HighlightRole.Identifier],
+          ["B", HighlightRole.Type],
+          ["C", HighlightRole.Type],
+          ["D", HighlightRole.Type],
+          ['"', HighlightRole.String],
+          ["E", HighlightRole.String],
+          ['"', HighlightRole.String],
+        ],
+      );
+    },
+  );
 });

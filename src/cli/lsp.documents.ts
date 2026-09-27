@@ -31,6 +31,7 @@ import { definitionAtPosition } from "./lsp.definition.ts";
 import { hoverAtPosition } from "./lsp.hover.ts";
 import { positionToOffset } from "./lsp.positions.ts";
 import { buildSemanticTokens } from "./semantic_tokens.ts";
+import { resolveReferenceRoles } from "./lsp.reference_roles.ts";
 
 /**
  * The minimal shape of an LSP `TextDocumentContentChangeEvent` this module
@@ -203,7 +204,11 @@ export class LspDocumentManager {
       // Prefer the session's retained source (always aligned with `match`)
       // over `doc.source` — they should match after every open/change, but
       // the parse tree is authoritative for offset classification.
-      const spans = highlightSpansFromMatch(state.match, state.source);
+      const spans = resolveReferenceRoles(
+        highlightSpansFromMatch(state.match, state.source),
+        state.match,
+        doc.session,
+      );
       return Promise.resolve(buildSemanticTokens(spans, state.source));
     });
   }

@@ -20,7 +20,9 @@ Expected behavior:
 
 - `src/lang/expression/member.uff` MUST express the member-chain left-fold as
   same-rule DLR with a nested projection on the recursive arm, for example:
-  `(e:Member "." n:Token<Reference> -> { kind: "member", expression: e, name: n.name }) | (b:Token<MemberTarget> "." n:Token<Reference> -> { kind: "member", expression: b, name: n.name })`.
+  `(e:Member "." n:Token<MemberName> -> { kind: "member", expression: e, name: n.name }) | (b:Token<MemberTarget> "." n:Token<MemberName> -> { kind: "member", expression: b, name: n.name })`,
+  where `MemberName` is a `Reference` annotated as a `property` name (see
+  [editor metadata](../../specifications/languages/cli/editor-metadata.spec.md#highlighting)).
 - The Member projection MUST NOT use Native `for` / `.reduce`, std `reduce`,
   ExpressionLang lambdas, or a domain-specific fold helper to build nested
   `{ kind: "member", … }` AST nodes.

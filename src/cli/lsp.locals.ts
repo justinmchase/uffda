@@ -9,7 +9,7 @@ import {
   EditorDecorator,
   hasEditorMetadata,
   nameReferenceKinds,
-  walkAnnotatable,
+  walkAccepted,
 } from "./editor_metadata.ts";
 import type { LoadedDeclarationKind } from "./mcp.session.ts";
 
@@ -44,7 +44,7 @@ export function identifierPosition(
   span: { start: number; end: number },
 ): IdentifierPosition {
   let chain: OkMatch[] = [];
-  walkAnnotatable(match, (node, ancestors) => {
+  walkAccepted(match, (node, ancestors) => {
     if (node.kind !== MatchKind.Ok) return;
     if (ancestors.some((a) => a.kind !== MatchKind.Ok)) return;
     if (
@@ -54,6 +54,10 @@ export function identifierPosition(
       chain = [...ancestors, node] as OkMatch[];
     }
   });
+  return positionOf(chain);
+}
+
+function positionOf(chain: AnnotatableMatch[]): IdentifierPosition {
   const reference = chain.find((node) =>
     hasEditorMetadata(node, EditorDecorator.NameReference)
   );
@@ -63,6 +67,58 @@ export function identifierPosition(
       ? { reference: { kinds: nameReferenceKinds(reference) } }
       : {}),
   };
+}
+
+/**
+ * `identifierPosition` for each of `spans` (sorted by `start`, not
+ * overlapping), in one walk of `match`.
+ */
+export function identifierPositions(
+  match: Match,
+  spans: readonly { start: number; end: number }[],
+): IdentifierPosition[] {
+  // The accepted parse of an `Ok` root is `Ok` throughout; a `Fail` root
+  // leaves no node with only `Ok` ancestors.
+  if (match.kind !== MatchKind.Ok) return spans.map(() => positionOf([]));
+  const parent = new Map<AnnotatableMatch, AnnotatableMatch | undefined>();
+  const deepest: (AnnotatableMatch | undefined)[] = spans.map(() => undefined);
+  const deepestLevel: number[] = spans.map(() => -1);
+  walkAccepted(match, (node, ancestors) => {
+    const level = ancestors.length;
+    const { start, end } = node.originalSpan;
+    let lo = 0;
+    let hi = spans.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (spans[mid].start < start) lo = mid + 1;
+      else hi = mid;
+    }
+    let covers = false;
+    for (let i = lo; i < spans.length && spans[i].start < end; i++) {
+      if (spans[i].end > end) continue;
+      covers = true;
+      if (deepestLevel[i] < level) {
+        deepest[i] = node;
+        deepestLevel[i] = level;
+      }
+    }
+    if (!covers) return;
+    parent.set(node, ancestors.at(-1));
+    for (let i = level - 1; i >= 0 && !parent.has(ancestors[i]); i--) {
+      parent.set(ancestors[i], ancestors[i - 1]);
+    }
+  });
+  return deepest.map((node) => {
+    const chain: AnnotatableMatch[] = [];
+    for (
+      let at: AnnotatableMatch | undefined = node;
+      at !== undefined;
+      at = parent.get(at)
+    ) {
+      chain.push(at);
+    }
+    return positionOf(chain.reverse());
+  });
 }
 
 /**
@@ -203,19 +259,54 @@ function parametersOf(
   return names;
 }
 
+/** Per-scope bindings shared across `localBindingsAt` calls. */
+export class LocalScopeMemo {
+  readonly variables = new Map<AnnotatableMatch, Map<string, OkMatch>>();
+  readonly parameters = new Map<AnnotatableMatch, string[]>();
+}
+
+function cached<T>(
+  memo: Map<AnnotatableMatch, T> | undefined,
+  scope: AnnotatableMatch,
+  compute: () => T,
+): T {
+  if (!memo) return compute();
+  let value = memo.get(scope);
+  if (value === undefined) {
+    value = compute();
+    memo.set(scope, value);
+  }
+  return value;
+}
+
 /**
  * Every local binding visible at `position`, innermost first (a name bound
  * by an inner scope shadows the same name further out), mirroring reference
  * resolution: variables (expression references) bound by an enclosing lambda
  * or declaration pattern, and parameters (pattern references) of the
  * enclosing declaration.
+ *
+ * `memo` shares each scope's bindings across calls; it applies only to
+ * positions in the accepted parse (a chain of `Ok` nodes), whose scopes bind
+ * the same names wherever in them the position is.
  */
-export function localBindingsAt(position: IdentifierPosition): LocalBinding[] {
+export function localBindingsAt(
+  position: IdentifierPosition,
+  memo?: LocalScopeMemo,
+): LocalBinding[] {
   const variables = acceptsKind(position, "func");
   const parameters = acceptsKind(position, "rule");
   const bindings: LocalBinding[] = [];
   const bound = new Set<string>();
   const chain = new Set(position.chain);
+  const shared = memo &&
+      position.chain.every((node) => node.kind === MatchKind.Ok)
+    ? memo
+    : undefined;
+  const variablesOf = (scope: AnnotatableMatch) =>
+    cached(shared?.variables, scope, () => variablesIn(scope, chain));
+  const parameterNamesOf = (scope: AnnotatableMatch) =>
+    cached(shared?.parameters, scope, () => parametersOf(scope, chain));
   const add = (binding: LocalBinding) => {
     if (bound.has(binding.name)) return;
     bound.add(binding.name);
@@ -227,7 +318,7 @@ export function localBindingsAt(position: IdentifierPosition): LocalBinding[] {
     const declarationName = isDeclaration ? declaredName(node) : undefined;
     const owner = declarationName ? { declarationName } : {};
     if (variables) {
-      for (const [name, variable] of variablesIn(node, chain)) {
+      for (const [name, variable] of variablesOf(node)) {
         add({
           kind: LocalBindingKind.Variable,
           name,
@@ -241,7 +332,7 @@ export function localBindingsAt(position: IdentifierPosition): LocalBinding[] {
     }
     if (isDeclaration) {
       if (parameters) {
-        for (const name of parametersOf(node, chain)) {
+        for (const name of parameterNamesOf(node)) {
           add({ kind: LocalBindingKind.Parameter, name, ...owner });
         }
       }

@@ -85,9 +85,12 @@ existing metadata that tooling reads the same way.
   in `(not x)`) is not a keyword there.
 
 - Highlight roles are `keyword`, `identifier`, `string`, `comment`,
-  `punctuation`, `whitespace`, and `newline`. An unrecognized role, or a
-  malformed metadata value of any decorator, MUST be ignored rather than
-  trusted.
+  `punctuation`, `whitespace`, and `newline`, plus the name refinements `type`,
+  `function`, `variable`, and `property` (see Highlighting). The `.uff` grammar
+  annotates pattern references `type`, a bare-name invocation callee `function`,
+  other expression references `variable`, and member names `property`. An
+  unrecognized role, or a malformed metadata value of any decorator, MUST be
+  ignored rather than trusted.
 - The text a `ModulePath` or `ImportedName` node denotes is its projected value
   when that is a string (for example an unescaped path), otherwise its source
   text.
@@ -109,6 +112,20 @@ existing metadata that tooling reads the same way.
   exactly one token does not override it; reserved words use `[Keyword]`.
 - A token whose role is its own (not inherited) is classified `keyword` when a
   `[Keyword]`-annotated node matched exactly its span.
+- A node annotated with a name refinement (`type`, `function`, `variable`,
+  `property`) is neither a token span nor a container: it reclassifies each
+  token within its span whose resolved role is `identifier` (so a keyword or
+  string content is never refined). Only `Ok` nodes of the accepted parse with
+  no refinement-annotated `Ok` ancestor apply (the outermost on a path wins, so
+  an invoked reference is a `function`, not a `variable`); attempts the parse
+  rejected never refine.
+- Where a session can resolve names (the language server), a `variable` name is
+  further classified by what it resolves to, in reference-resolution order: a
+  local binding stays `variable`, a declared rule or decorator is `type`, a
+  declared func is `function`, and (where the reference may name a func) a
+  runtime global is `function`. An unresolved name stays `variable`.
+- `identifier` and the name refinements are name roles; tooling that looks for
+  the name under the cursor MUST accept any name role.
 - Trivia is the `whitespace`, `newline`, and `comment` roles. Other tooling that
   needs to skip trivia or detect a line break (diagnostic anchoring, completion
   contexts) MUST use these roles, not character classes.
@@ -117,9 +134,8 @@ existing metadata that tooling reads the same way.
 
 - Go-to-definition locates a declaration by the `Declaration`-annotated node
   whose projected `name` equals the resolved name.
-- Hover and go-to-definition identify the name under the cursor by the
-  `identifier`-role token span there. Without a parse tree there is no
-  identifier.
+- Hover and go-to-definition identify the name under the cursor by the name-role
+  token span there. Without a parse tree there is no identifier.
 - An import-caused diagnostic is ranged within the `Import`-annotated node the
   failure's import frame designates: on the `ImportedName` denoting the failing
   name when the failure is about one name, else on the `ModulePath`, else on the

@@ -29,6 +29,16 @@ Deno.test("cli.lsp.hover identifierAtOffset", async (t) => {
     });
   });
 
+  await t.step("finds a name refined as a reference", async () => {
+    const refs = "rule A = B;";
+    const hit = identifierAtOffset(
+      refs,
+      refs.indexOf("B"),
+      await uffdaGrammar(refs),
+    );
+    assertEquals(hit?.name, "B");
+  });
+
   await t.step("returns undefined on a keyword or punctuation", () => {
     assertEquals(identifierAtOffset(source, 1, match), undefined);
     assertEquals(

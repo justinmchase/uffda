@@ -3,10 +3,37 @@ import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
 import {
   acceptsKind,
   identifierPosition,
+  identifierPositions,
   localBindingAt,
   LocalBindingKind,
   localBindingsAt,
+  LocalScopeMemo,
 } from "./lsp.locals.ts";
+
+Deno.test("cli.lsp.locals identifierPositions", async (t) => {
+  const source = `rule Pair<P> = a:P b:P -> [a b];
+rule Main = n:string -> (join (map [n] <x:any> -> (f x n)) ",");`;
+  const match = await uffdaGrammar(source);
+  const spans = [...source.matchAll(/\b[a-zA-Z]\w*\b/g)].map((m) => ({
+    start: m.index,
+    end: m.index + m[0].length,
+  }));
+
+  await t.step("matches identifierPosition for every span", () => {
+    const batch = identifierPositions(match, spans);
+    spans.forEach((span, i) => {
+      assertEquals(batch[i], identifierPosition(match, span));
+    });
+  });
+
+  await t.step("a memo does not change the bindings found", () => {
+    const memo = new LocalScopeMemo();
+    for (const position of identifierPositions(match, spans)) {
+      assertEquals(localBindingsAt(position, memo), localBindingsAt(position));
+    }
+    assertEquals(memo.variables.size > 0, true);
+  });
+});
 
 async function bindingAt(source: string, needle: string, delta = 0) {
   const match = await uffdaGrammar(source);

@@ -12,6 +12,7 @@ import {
   modulePathExtensions,
   nameReferenceKinds,
   nodeText,
+  walkAccepted,
   walkAnnotatable,
 } from "./editor_metadata.ts";
 
@@ -128,6 +129,19 @@ Deno.test("cli.editor_metadata walkAnnotatable over a shared parse DAG", async (
       if (ancestors.every((a) => a.kind === MatchKind.Ok)) found = true;
     });
     assert(found);
+  });
+
+  await t.step("walkAccepted visits only the accepted parse", () => {
+    const accepted: AnnotatableMatch[] = [];
+    walkAccepted(match, (node, ancestors) => {
+      assertEquals(node.kind, MatchKind.Ok);
+      assert(ancestors.every((a) => a.kind === MatchKind.Ok));
+      accepted.push(node);
+    });
+    const all: AnnotatableMatch[] = [];
+    walkAnnotatable(match, (node) => all.push(node));
+    assertEquals(accepted, all.slice(0, accepted.length));
+    assert(all.length > accepted.length);
   });
 });
 

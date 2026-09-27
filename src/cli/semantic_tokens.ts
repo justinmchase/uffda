@@ -24,6 +24,10 @@ const ROLE_TOKEN_TYPE: ReadonlyMap<HighlightRole, string> = new Map([
   [HighlightRole.String, "string"],
   [HighlightRole.Comment, "comment"],
   [HighlightRole.Punctuation, "operator"],
+  [HighlightRole.Type, "type"],
+  [HighlightRole.Function, "function"],
+  [HighlightRole.Variable, "variable"],
+  [HighlightRole.Property, "property"],
 ]);
 
 const TOKEN_TYPES = [...new Set(ROLE_TOKEN_TYPE.values())];

@@ -2,12 +2,28 @@
 # Variable bindings are single-letter (published CLI PatternLang).
 import "../tokenizer/token.uff" Token;
 import "./primary.uff" Primary;
+import "./member.uff" Member;
+import "./boolean.uff" Boolean;
+import "./nullish.uff" Nullish;
+import "./reference.uff" Reference;
 import "../common/spread.uff" SpreadMarker;
+import "../editor/editor.uff" Highlight;
 
 export Sequence;
 
 rule OpenParen = "(" -> "(";
 rule CloseParen = ")" -> ")";
+
+[Highlight { role: "function" }]
+rule InvokedName = Reference;
+
+# A callee that is a bare name is the function being invoked. The lookaheads
+# keep Primary's precedence for its alternatives that can begin with a name
+# (Member, Boolean, Nullish); every other callee is an ordinary Primary.
+rule Callee =
+  | ((not Token<Member>) (not Token<Boolean>) (not Token<Nullish>) n:Token<InvokedName> -> n)
+  | Token<Primary>
+  ;
 
 rule InvocationSpread =
   SpreadMarker
@@ -21,7 +37,7 @@ rule InvocationArgument =
 
 rule Sequence =
   Token<OpenParen>
-  e:Token<Primary>
+  e:Callee
   a:InvocationArgument*
   Token<CloseParen>
   -> { kind: "invocation", expression: e, args: a };

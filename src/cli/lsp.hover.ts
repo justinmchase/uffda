@@ -7,7 +7,7 @@ import type {
   DescribedGlobal,
   RuntimeSession,
 } from "./mcp.session.ts";
-import { HighlightRole, highlightSpansFromMatch } from "./highlight.ts";
+import { highlightSpansFromMatch, isNameRole } from "./highlight.ts";
 import {
   type Documentation,
   documentationOf,
@@ -54,7 +54,7 @@ export function identifierAtOffset(
 ): IdentifierAtOffset | undefined {
   if (!match) return undefined;
   const hit = highlightSpansFromMatch(match, source).find((span) =>
-    span.role === HighlightRole.Identifier &&
+    isNameRole(span.role) &&
     offset >= span.offset &&
     offset < span.offset + span.length
   );

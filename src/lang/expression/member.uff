@@ -9,8 +9,12 @@ import "./array.uff" Array;
 import "./object.uff" Object;
 import "./terminal.uff" Terminal;
 import "./reference.uff" Reference;
+import "../editor/editor.uff" Highlight;
 
 export Member;
+
+[Highlight { role: "property" }]
+rule MemberName = Reference;
 
 rule MemberTarget =
   | Token<Sequence>
@@ -20,6 +24,6 @@ rule MemberTarget =
   ;
 
 rule Member =
-  (e:Member "." n:Token<Reference> -> { kind: "member", expression: e, name: n.name })
-  | (b:Token<MemberTarget> "." n:Token<Reference> -> { kind: "member", expression: b, name: n.name })
+  (e:Member "." n:Token<MemberName> -> { kind: "member", expression: e, name: n.name })
+  | (b:Token<MemberTarget> "." n:Token<MemberName> -> { kind: "member", expression: b, name: n.name })
   ;

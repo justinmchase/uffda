@@ -2,6 +2,7 @@ import { assert, assertEquals, assertRejects } from "@std/assert";
 import { join, toFileUrl } from "@std/path";
 import type { CompletionItem } from "vscode-languageserver-types";
 import { LspDocumentManager, positionToOffset } from "./lsp.documents.ts";
+import { SEMANTIC_TOKENS_LEGEND } from "./semantic_tokens.ts";
 
 function partitionGlobals(
   items: CompletionItem[],
@@ -145,6 +146,40 @@ Deno.test("cli.lsp.documents LspDocumentManager", async (t) => {
       assert(tokens);
       assertEquals(tokens.data.length > 0, true);
       assertEquals(tokens.data.length % 5, 0);
+    },
+  );
+
+  await t.step(
+    "semanticTokens colors expression references by what they name",
+    async () => {
+      const manager = new LspDocumentManager(Deno.cwd());
+      const source =
+        "export Main;\nrule Other = any;\nrule Main = x:any -> (f x Other);";
+      await manager.open("inline:///refs", source);
+      const tokens = await manager.semanticTokens("inline:///refs");
+      assert(tokens);
+      const typeIndex = SEMANTIC_TOKENS_LEGEND.tokenTypes.indexOf("type");
+      const variableIndex = SEMANTIC_TOKENS_LEGEND.tokenTypes.indexOf(
+        "variable",
+      );
+      let line = 0;
+      let character = 0;
+      const typed = new Map<string, number>();
+      for (let i = 0; i < tokens.data.length; i += 5) {
+        const [deltaLine, deltaStart, length, tokenType] = tokens.data.slice(
+          i,
+          i + 4,
+        );
+        line += deltaLine;
+        character = deltaLine === 0 ? character + deltaStart : deltaStart;
+        const text = source.split("\n")[line].slice(
+          character,
+          character + length,
+        );
+        typed.set(text, tokenType);
+      }
+      assertEquals(typed.get("Other"), typeIndex);
+      assertEquals(typed.get("x"), variableIndex);
     },
   );
 
