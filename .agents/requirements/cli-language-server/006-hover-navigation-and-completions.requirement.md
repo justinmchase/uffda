@@ -50,9 +50,13 @@ Expected behavior:
     [runtime value metadata](../../specifications/runtime/value-metadata.spec.md)).
 - `textDocument/definition` MUST resolve a reference to a rule, func, or
   decorator to its declaring location within the workspace's resolved module
-  graph, including across `.uff` import boundaries. A reference the server
-  cannot resolve MUST return no location (an empty result), never a location
-  chosen by heuristic/best-effort guessing.
+  graph, including across `.uff` import boundaries. A reference to a local
+  binding (a rule parameter, captured variable, or func/lambda parameter) MUST
+  resolve to its declaring occurrence (see
+  [editor metadata](../../specifications/languages/cli/editor-metadata.spec.md#declarations-references-and-imports))
+  in the same document, before any same-named declaration. A reference the
+  server cannot resolve MUST return no location (an empty result), never a
+  location chosen by heuristic/best-effort guessing.
 - Hover and go-to-definition MUST identify the name under the cursor from the
   document's parse tree (an `identifier`-role token span); with no parse tree
   they MUST return no result rather than scanning the text. Definition MUST

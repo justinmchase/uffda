@@ -269,6 +269,36 @@ Deno.test("cli.lsp.documents LspDocumentManager", async (t) => {
   );
 
   await t.step(
+    "definition goes to local bindings before declarations",
+    async () => {
+      const manager = new LspDocumentManager(Deno.cwd());
+      const uri = "inline:///local-definition";
+      const lines = [
+        "export Main;",
+        "rule Other = any;",
+        "rule Main = Other:any -> (map [Other] <x:any> -> x);",
+      ];
+      await manager.open(uri, lines.join("\n"));
+      const definitionOf = async (character: number) =>
+        (await manager.definition(uri, { line: 2, character }))
+          .map((l) =>
+            `${l.uri}:${l.range.start.line}:${l.range.start.character}`
+          );
+
+      assertEquals(
+        await definitionOf(lines[2].indexOf("Other]")),
+        [`${uri}:2:12`],
+        "a capture shadowing a rule",
+      );
+      assertEquals(
+        await definitionOf(lines[2].lastIndexOf("x")),
+        [`${uri}:2:${lines[2].indexOf("x:any")}`],
+        "a lambda parameter",
+      );
+    },
+  );
+
+  await t.step(
     "hover describes a resolved rule under the cursor",
     async () => {
       const manager = new LspDocumentManager(Deno.cwd());

@@ -133,7 +133,8 @@ existing metadata that tooling reads the same way.
 ## Declarations, references, and imports
 
 - Go-to-definition locates a declaration by the `Declaration`-annotated node
-  whose projected `name` equals the resolved name.
+  whose projected `name` equals the resolved name, and a local binding by its
+  declaring occurrence (see below).
 - Hover and go-to-definition identify the name under the cursor by the name-role
   token span there. Without a parse tree there is no identifier.
 - A name occurrence is a name-role span (other than `property`) that denotes a

@@ -143,7 +143,10 @@ not introduce a parallel parsing or compilation pathway.
   carry (see [runtime value metadata](../../runtime/value-metadata.spec.md)).
 - The server MUST support go-to-definition (`textDocument/definition`) for
   references to rules, funcs, and decorators, resolving to the declaration's
-  source location within the workspace's resolved module graph.
+  source location within the workspace's resolved module graph, and for local
+  bindings, resolving to where they are bound (a rule parameter, or a variable's
+  binding site). A local binding takes precedence over a declaration of the same
+  name, as it does in reference resolution.
 - The server MUST support find-references (`textDocument/references`) and rename
   (`textDocument/prepareRename`, `textDocument/rename`) for local bindings,
   declarations, and (references only) runtime globals, across every `.uff`
@@ -285,8 +288,10 @@ handlers. Hover (`textDocument/hover`) and go-to-definition
 the parse tree), then through `RuntimeSession.describe()` — showing the
 declaration's `[Documentation]` and source (located the same way as definition)
 when available — then as a runtime global via `RuntimeSession.describeGlobal()`;
-completion items carry `[Documentation]` descriptions; and definition resolves
-via `RuntimeSession.resolveDeclaration()` then locates the `[Declaration]`
+completion items carry `[Documentation]` descriptions; and definition goes to a
+local binding's declaring occurrence when the name is one (`localDefinition` in
+`src/cli/lsp.references.ts`), else resolves via
+`RuntimeSession.resolveDeclaration()` then locates the `[Declaration]`
 production's `originalSpan` in a parse `Match` (open buffer preferred, else
 session parse state, else a read-only re-parse of the defining `.uff` on disk).
 Find-references and rename (`src/cli/lsp.symbols.ts`,
