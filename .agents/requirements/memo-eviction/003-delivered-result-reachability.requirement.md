@@ -10,8 +10,9 @@ spec_ref: ".agents/specifications/runtime/memo-eviction.spec.md#interaction-with
 
 Preconditions:
 
-- A parse has produced a delivered result (the top-level rule's successful
-  outcome, or an intermediate pipeline layer's output stream consumed by a
+- A parse has produced a delivered result (the top-level rule's outcome,
+  successful or failed, including the rejected attempts its `Match` graph
+  records; or an intermediate pipeline layer's output stream consumed by a
   downstream layer).
 - The host or a downstream layer retains a reference to that delivered result,
   or to some value nested within it.
@@ -25,7 +26,7 @@ Expected behavior:
   memo table's own entry pointing to that same value has been evicted.
 - Evicting a memo table entry MUST only remove the memo table's own reference to
   a value. It MUST NOT be the only reference keeping that value alive if the
-  value is also part of the accepted parse tree.
+  value is also reachable from the delivered `Match` graph.
 
 Error behavior:
 
