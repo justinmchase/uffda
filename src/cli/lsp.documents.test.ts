@@ -1,6 +1,14 @@
 import { assert, assertEquals, assertRejects } from "@std/assert";
 import { join, toFileUrl } from "@std/path";
+import type { CompletionItem } from "vscode-languageserver-types";
 import { LspDocumentManager, positionToOffset } from "./lsp.documents.ts";
+
+function partitionGlobals(
+  items: CompletionItem[],
+): [CompletionItem[], CompletionItem[]] {
+  const isGlobal = (item: CompletionItem) => item.detail === "global func";
+  return [items.filter((item) => !isGlobal(item)), items.filter(isGlobal)];
+}
 
 Deno.test("cli.lsp.documents positionToOffset", async (t) => {
   const source = "line0\nline1\nline2";
@@ -224,9 +232,20 @@ Deno.test("cli.lsp.documents LspDocumentManager", async (t) => {
         line: 3,
         character: "rule Main = json:string -> (j".length,
       });
+      const [locals, globals] = partitionGlobals(items);
       assertEquals(
-        items.map((item) => `${item.label}:${item.detail}`),
+        locals.map((item) => `${item.label}:${item.detail}`),
         ["json:variable", "text:func"],
+      );
+      const names = globals.map((item) => item.label);
+      assert(names.includes("coalesce"));
+      assert(!names.includes("json"), "the local json shadows the global");
+      const coalesce = globals.find((item) => item.label === "coalesce");
+      assert(
+        coalesce?.documentation && typeof coalesce.documentation !== "string" &&
+          coalesce.documentation.value.includes(
+            "The first argument that is neither null nor undefined.",
+          ),
       );
     },
   );
@@ -246,9 +265,25 @@ Deno.test("cli.lsp.documents LspDocumentManager", async (t) => {
         character: line.length,
       });
       assertEquals(
-        items.map((item) => `${item.label}:${item.detail}`),
+        partitionGlobals(items)[0].map((item) =>
+          `${item.label}:${item.detail}`
+        ),
         ["n:variable", "text:func"],
       );
+    },
+  );
+
+  await t.step(
+    "completion offers no globals where funcs are not named",
+    async () => {
+      const manager = new LspDocumentManager(Deno.cwd());
+      const uri = "inline:///completion-no-globals";
+      await manager.open(uri, "export Main;\nrule Main = any;");
+      const items = await manager.completion(uri, {
+        line: 0,
+        character: "export M".length,
+      });
+      assertEquals(partitionGlobals(items)[1], []);
     },
   );
 

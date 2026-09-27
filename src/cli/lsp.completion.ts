@@ -4,9 +4,13 @@ import {
   type Range,
 } from "vscode-languageserver-types";
 import { documentationOf } from "./editor_metadata.ts";
-import { formatLocalBindingMarkdown } from "./lsp.hover.ts";
+import {
+  formatDescribedGlobalMarkdown,
+  formatLocalBindingMarkdown,
+} from "./lsp.hover.ts";
 import type { LocalBinding } from "./lsp.locals.ts";
 import type {
+  DescribedGlobal,
   LoadedDeclarationKind,
   LoadedDeclarationSummary,
   LoadedModuleSummary,
@@ -82,6 +86,26 @@ export function localCompletionItems(
       value: formatLocalBindingMarkdown(binding, source),
     },
     ...(range ? { textEdit: { range, newText: binding.name } } : {}),
+  }));
+}
+
+/**
+ * Maps runtime globals (see `RuntimeSession.listGlobals`) to completion
+ * items, documented the way hover describes them.
+ */
+export function globalCompletionItems(
+  globals: readonly DescribedGlobal[],
+  range?: Range,
+): CompletionItem[] {
+  return globals.map((global) => ({
+    label: global.name,
+    kind: CompletionItemKind.Function,
+    detail: "global func",
+    documentation: {
+      kind: "markdown",
+      value: formatDescribedGlobalMarkdown(global),
+    },
+    ...(range ? { textEdit: { range, newText: global.name } } : {}),
   }));
 }
 

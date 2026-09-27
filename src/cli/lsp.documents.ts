@@ -13,6 +13,7 @@ import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
 import { Input } from "../input.ts";
 import {
   completionItemsForSession,
+  globalCompletionItems,
   localCompletionItems,
 } from "./lsp.completion.ts";
 import {
@@ -320,13 +321,20 @@ export class LspDocumentManager {
           : [];
       case CompletionContextKind.NameReference: {
         const range = rangeOf(doc.source, context.replace);
-        const locals = new Set(context.locals.map((binding) => binding.name));
+        const shadowed = new Set(context.locals.map((binding) => binding.name));
+        const declarations = completionItemsForSession(doc.session, {
+          kinds: context.kinds,
+          range,
+        }).filter((item) => !shadowed.has(item.label));
+        for (const item of declarations) shadowed.add(item.label);
+        const globals = context.kinds?.includes("func")
+          ? globalCompletionItems(doc.session.listGlobals(), range)
+            .filter((item) => !shadowed.has(item.label))
+          : [];
         return [
           ...localCompletionItems(context.locals, doc.source, range),
-          ...completionItemsForSession(doc.session, {
-            kinds: context.kinds,
-            range,
-          }).filter((item) => !locals.has(item.label)),
+          ...declarations,
+          ...globals,
         ];
       }
     }

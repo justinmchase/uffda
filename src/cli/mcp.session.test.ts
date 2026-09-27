@@ -998,6 +998,16 @@ Deno.test("cli.mcp.session RuntimeSession introspection", async (t) => {
     },
   );
 
+  await t.step("listGlobals lists every runtime global by name", () => {
+    const session = new RuntimeSession("i1g");
+    const globals = session.listGlobals();
+    const names = globals.map((global) => global.name);
+    assertEquals(names, [...names].sort((a, b) => a.localeCompare(b)));
+    const join = session.describeGlobal("join");
+    assert(join.ok);
+    assertEquals(globals.find((global) => global.name === "join"), join.global);
+  });
+
   await t.step(
     "describe reports a rule's pattern, parameters, attributes, and metadata",
     async () => {

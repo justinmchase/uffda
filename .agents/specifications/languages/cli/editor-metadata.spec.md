@@ -147,10 +147,12 @@ Completion is driven by the grammar, never by recognizing text:
   parameters, whose runtime pattern is a variable) where a func may be named,
   `Parameter` names of the enclosing `Declaration` where a rule may be named —
   innermost scope first, then the declarations in scope whose kind is listed in
-  `kinds` (every kind when omitted) that no local binding shadows. Scopes are
-  `Declaration` nodes and parsed lambdas; bindings are read from the accepted
-  parse plus the attempt reaching the cursor, never from other rejected
-  attempts.
+  `kinds` (every kind when omitted) that no local binding shadows, then — only
+  where `kinds` explicitly lists `func` — the runtime globals that no local
+  binding or declaration shadows (globals are not declarations, so an omitted
+  `kinds` does not include them). Scopes are `Declaration` nodes and parsed
+  lambdas; bindings are read from the accepted parse plus the attempt reaching
+  the cursor, never from other rejected attempts.
 - A position no context reaches MUST yield no completion items. Trigger
   characters MAY be advertised, but a triggered request outside a context yields
   no items like any other.
