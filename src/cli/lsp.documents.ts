@@ -1,11 +1,23 @@
-import { fromFileUrl } from "@std/path";
+import { fromFileUrl, toFileUrl } from "@std/path";
 import type {
   CompletionItem,
   Diagnostic,
   Hover,
   Location,
+  Range,
   SemanticTokens,
 } from "vscode-languageserver-types";
+import {
+  occurrenceAt,
+  planRename,
+  referenceLocations,
+  type RenamePlan,
+  renameRefusal,
+  type SymbolDocument,
+  symbolOccurrences,
+  type WorkspaceDocuments,
+} from "./lsp.references.ts";
+import type { NameOccurrence } from "./lsp.symbols.ts";
 import { highlightSpansFromMatch } from "./highlight.ts";
 import type { Match } from "../match.ts";
 import { RuntimeSession } from "./mcp.session.ts";
@@ -48,6 +60,11 @@ export type LspContentChange = {
 };
 
 export { offsetToPosition, positionToOffset } from "./lsp.positions.ts";
+
+/** A `prepareRename` answer: the name's range, or why it cannot be renamed. */
+export type PreparedRename =
+  | { range: Range; placeholder: string }
+  | { refusal: string };
 
 type OpenDocument = {
   session: RuntimeSession;
@@ -345,6 +362,114 @@ export class LspDocumentManager {
     }
   }
 
+  /**
+   * Handles `textDocument/references` (requirement 006): every occurrence of
+   * the symbol under the cursor across the workspace (see
+   * `lsp.references.ts`), without declaring occurrences unless
+   * `includeDeclaration`. Empty when nothing resolvable is under the cursor.
+   */
+  public references(
+    uri: string,
+    position: { line: number; character: number },
+    includeDeclaration: boolean,
+  ): Promise<Location[]> {
+    return this.serialize(uri, async () => {
+      const at = this.symbolAt(uri, position);
+      if (!at) return [];
+      const found = await symbolOccurrences(
+        at.occurrence.symbol,
+        at.occurrence.name,
+        at.origin,
+        this.workspaceDocuments(),
+        at.globals,
+      );
+      return referenceLocations(found, includeDeclaration);
+    });
+  }
+
+  /**
+   * Handles `textDocument/prepareRename`: the range of the renameable name
+   * under the cursor, `null` when there is none, or why its symbol cannot be
+   * renamed.
+   */
+  public prepareRename(
+    uri: string,
+    position: { line: number; character: number },
+  ): Promise<PreparedRename | null> {
+    return this.serialize(uri, () => {
+      const at = this.symbolAt(uri, position);
+      if (!at) return Promise.resolve(null);
+      const refusal = renameRefusal(at.occurrence.symbol);
+      const prepared: PreparedRename = refusal ? { refusal } : {
+        range: rangeOf(at.origin.source, at.occurrence),
+        placeholder: at.occurrence.name,
+      };
+      return Promise.resolve(prepared);
+    });
+  }
+
+  /**
+   * Handles `textDocument/rename`: the workspace edit renaming the symbol
+   * under the cursor everywhere it occurs (see `planRename`), or why it was
+   * refused. Never writes files or changes session state.
+   */
+  public rename(
+    uri: string,
+    position: { line: number; character: number },
+    newName: string,
+  ): Promise<RenamePlan> {
+    return this.serialize(uri, async () => {
+      const at = this.symbolAt(uri, position);
+      if (!at) return { ok: false, message: "Nothing to rename here" };
+      const found = await symbolOccurrences(
+        at.occurrence.symbol,
+        at.occurrence.name,
+        at.origin,
+        this.workspaceDocuments(),
+        at.globals,
+      );
+      return await planRename(
+        at.occurrence.symbol,
+        found,
+        newName,
+        at.globals,
+      );
+    });
+  }
+
+  private symbolAt(
+    uri: string,
+    position: { line: number; character: number },
+  ):
+    | {
+      origin: SymbolDocument;
+      occurrence: NameOccurrence;
+      globals: ReadonlySet<string>;
+    }
+    | undefined {
+    const doc = this.documents.get(uri);
+    const origin = doc && symbolDocument(uri, doc);
+    if (!doc || !origin) return undefined;
+    const globals = new Set(
+      doc.session.listGlobals().map((global) => global.name),
+    );
+    const occurrence = occurrenceAt(
+      origin,
+      positionToOffset(origin.source, position),
+      globals,
+    );
+    return occurrence && { origin, occurrence, globals };
+  }
+
+  private workspaceDocuments(): WorkspaceDocuments {
+    const open: SymbolDocument[] = [];
+    for (const [uri, doc] of this.documents) {
+      const document = symbolDocument(uri, doc);
+      if (document) open.push(document);
+    }
+    return { open, root: this.cwd };
+  }
+
   private parseStateForModuleUrl(
     definingModuleUrl: string,
   ): { source: string; match: Match } | undefined {
@@ -358,6 +483,17 @@ export class LspDocumentManager {
     }
     return undefined;
   }
+}
+
+/** The open document's latest parse, keyed by the module URL it resolves as. */
+function symbolDocument(
+  uri: string,
+  doc: OpenDocument,
+): SymbolDocument | undefined {
+  const state = doc.session.getLatestParseState();
+  if (!state) return undefined;
+  const moduleUrl = doc.href ?? (doc.path ? toFileUrl(doc.path).href : uri);
+  return { uri, moduleUrl, source: state.source, match: state.match };
 }
 
 function uriToPath(uri: string): string | undefined {

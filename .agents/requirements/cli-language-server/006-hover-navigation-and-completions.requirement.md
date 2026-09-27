@@ -57,6 +57,19 @@ Expected behavior:
   document's parse tree (an `identifier`-role token span); with no parse tree
   they MUST return no result rather than scanning the text. Definition MUST
   locate declarations by `[Declaration]` metadata.
+- `textDocument/references` MUST return every occurrence (see
+  [editor metadata](../../specifications/languages/cli/editor-metadata.spec.md#declarations-references-and-imports))
+  of the symbol under the cursor: a local binding's within its document; a
+  declaration's in its module and every workspace `.uff` module importing it; a
+  runtime global's wherever it is referenced. Declaring occurrences MUST be left
+  out unless the request includes the declaration.
+- `textDocument/prepareRename` MUST return the range of the name under the
+  cursor, no result when there is none, or an error explaining why its symbol
+  cannot be renamed. `textDocument/rename` MUST return a workspace edit
+  replacing every occurrence (import lists and export lists included), or an
+  error when the rename is refused (a runtime global; a declaration outside the
+  workspace; a new name already occurring in an edited document; a new name the
+  grammar does not read back as that name). Neither MUST write files.
 - `textDocument/completion` MUST derive what it offers from the completion
   contexts the document's grammar produces for the text before the cursor,
   parsed as an open input so an empty position after a repetition (for example a
@@ -84,10 +97,10 @@ Expected behavior:
     explicitly (e.g. an export list).
 - A position no completion context reaches MUST return no items, whether or not
   the request was triggered by a trigger character.
-- None of hover, go-to-definition, or completion requests MUST mutate any
-  document's parse/resolution state, retained match results, or diagnostics as a
-  side effect of being answered — they are read-only queries over already
-  resolved state (003/004).
+- None of hover, go-to-definition, references, rename, or completion requests
+  MUST mutate any document's parse/resolution state, retained match results, or
+  diagnostics as a side effect of being answered — they are read-only queries
+  over already resolved state (003/004).
 - These capabilities MUST degrade gracefully (returning empty/no results rather
   than erroring the request) for a document that currently has unresolved parse
   or compile failures, at least for the regions unaffected by those failures.

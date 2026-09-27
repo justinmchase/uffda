@@ -8,7 +8,10 @@ import type {
   InitializeResult,
   SemanticTokensParams,
 } from "vscode-languageserver/node";
-import { SemanticTokensRequest } from "vscode-languageserver/node";
+import {
+  ResponseError,
+  SemanticTokensRequest,
+} from "vscode-languageserver/node";
 import { LANGUAGE_METADATA_METHOD } from "./language_metadata.ts";
 import { type UffdaLspConnection, wireUffdaLspHandlers } from "./lsp.ts";
 import { SEMANTIC_TOKENS_LEGEND } from "./semantic_tokens.ts";
@@ -53,6 +56,18 @@ function createFakeConnection() {
     // deno-lint-ignore no-explicit-any
     onCompletion: (handler: (params: any) => unknown) => {
       handlers.completion = handler;
+    },
+    // deno-lint-ignore no-explicit-any
+    onReferences: (handler: (params: any) => unknown) => {
+      handlers.references = handler;
+    },
+    // deno-lint-ignore no-explicit-any
+    onPrepareRename: (handler: (params: any) => unknown) => {
+      handlers.prepareRename = handler;
+    },
+    // deno-lint-ignore no-explicit-any
+    onRenameRequest: (handler: (params: any) => unknown) => {
+      handlers.rename = handler;
     },
     // deno-lint-ignore no-explicit-any
     onRequest: (type: any, handler: (params: any) => unknown) => {
@@ -283,6 +298,10 @@ Deno.test("cli.lsp wireUffdaLspHandlers", async (t) => {
           {} as InitializeParams,
         ) as InitializeResult;
         assertEquals(init.capabilities.definitionProvider, true);
+        assertEquals(init.capabilities.referencesProvider, true);
+        assertEquals(init.capabilities.renameProvider, {
+          prepareProvider: true,
+        });
 
         await handlers.open({
           textDocument: {
@@ -300,6 +319,27 @@ Deno.test("cli.lsp wireUffdaLspHandlers", async (t) => {
 
         assertEquals(locations.length, 1);
         assertEquals(locations[0].uri, uri);
+
+        const references = await handlers.references({
+          textDocument: { uri },
+          position: { line: 0, character: text.indexOf("Main") + 1 },
+          context: { includeDeclaration: true },
+        }) as unknown[];
+        assertEquals(references.length, 2);
+
+        const edit = await handlers.rename({
+          textDocument: { uri },
+          position: { line: 0, character: text.indexOf("Main") + 1 },
+          newName: "Start",
+        }) as { changes: Record<string, unknown[]> };
+        assertEquals(edit.changes[uri].length, 2);
+
+        const refused = await Promise.resolve(handlers.rename({
+          textDocument: { uri },
+          position: { line: 0, character: text.indexOf("Main") + 1 },
+          newName: "rule",
+        })).then(() => undefined, (error) => error);
+        assert(refused instanceof ResponseError);
       } finally {
         await Deno.remove(cwd, { recursive: true });
       }

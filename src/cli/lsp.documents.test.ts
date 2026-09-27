@@ -184,6 +184,69 @@ Deno.test("cli.lsp.documents LspDocumentManager", async (t) => {
   );
 
   await t.step(
+    "references, prepareRename, and rename span the workspace",
+    async () => {
+      const root = await Deno.makeTempDir({ prefix: "uffda-lsp-refs-" });
+      try {
+        const depPath = join(root, "dep.uff");
+        const mainPath = join(root, "main.uff");
+        await Deno.writeTextFile(depPath, "export Dep;\nrule Dep = any;\n");
+        await Deno.writeTextFile(mainPath, "export Main;\nrule Main = any;\n");
+        const main = toFileUrl(mainPath).href;
+        const dep = toFileUrl(depPath).href;
+        const manager = new LspDocumentManager(root);
+        const unsaved =
+          'import "./dep.uff" Dep;\nexport Main;\nrule Main = Dep -> (join Dep);\n';
+        await manager.open(main, unsaved);
+        const position = {
+          line: 2,
+          character: "rule Main = D".length,
+        };
+
+        const locations = await manager.references(main, position, true);
+        assertEquals(
+          locations.map((l) => l.uri).sort(),
+          [dep, dep, main, main, main],
+        );
+        assertEquals(
+          (await manager.references(main, position, false)).length,
+          4,
+        );
+
+        assertEquals(await manager.prepareRename(main, position), {
+          range: {
+            start: { line: 2, character: 12 },
+            end: { line: 2, character: 15 },
+          },
+          placeholder: "Dep",
+        });
+        const joinAt = {
+          line: 2,
+          character: "rule Main = Dep -> (jo".length,
+        };
+        const refused = await manager.prepareRename(main, joinAt);
+        assert(refused && "refusal" in refused);
+        assertEquals(
+          await manager.prepareRename(main, { line: 1, character: 0 }),
+          null,
+        );
+
+        const plan = await manager.rename(main, position, "Base");
+        assert(plan.ok);
+        assertEquals(Object.keys(plan.edit.changes!).sort(), [dep, main]);
+        assertEquals(plan.edit.changes![main].length, 3);
+        assertEquals(
+          await Deno.readTextFile(depPath),
+          "export Dep;\nrule Dep = any;\n",
+          "rename never writes files",
+        );
+      } finally {
+        await Deno.remove(root, { recursive: true });
+      }
+    },
+  );
+
+  await t.step(
     "semanticTokens still returns tokens after a parse failure",
     async () => {
       const manager = new LspDocumentManager(Deno.cwd());
