@@ -1,4 +1,7 @@
-import { assertEquals, assertStrictEquals } from "@std/assert";
+import { assert, assertEquals, assertStrictEquals } from "@std/assert";
+import { rule } from "./rule.ts";
+import { DefaultModule } from "./modules/module.ts";
+import { InputNormalizationMode } from "../input.ts";
 import { Resolver } from "../mod.ts";
 import { ResolveTargetKind } from "./patterns/pattern.ts";
 import { moduleDeclarationTest } from "../test.ts";
@@ -758,4 +761,22 @@ Deno.test("runtime.rule", async (t) => {
     }),
   });
   // todo: two identical rules with different native projections should not trigger DLR?
+
+  await t.step(
+    "RULE_BOUNDARY - a fresh rule invocation returns a promise",
+    async () => {
+      const result = rule(
+        {
+          name: "Any",
+          module: DefaultModule(),
+          parameters: [],
+          pattern: { kind: PatternKind.Any },
+        },
+        new Map(),
+        Scope.From("a", { kind: InputNormalizationMode.Iterable }),
+      );
+      assert(result instanceof Promise);
+      assertEquals((await result).kind, MatchKind.Ok);
+    },
+  );
 });

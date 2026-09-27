@@ -1,3 +1,4 @@
+import { awaitableAgreementTest } from "../../test.ts";
 import { Input } from "../../input.ts";
 import { MatchErrorCode, MatchKind } from "../../match.ts";
 import { Path } from "../../mod.ts";
@@ -76,6 +77,15 @@ await Deno.test("runtime/patterns/equal", async (t) => {
       message: "Unknown value reference $x",
       start: Path.From(0),
       end: Path.From(0),
+    }),
+  });
+
+  await t.step({
+    name:
+      "EQUAL_AWAITABLE - completes synchronously over immediate input and agrees over async input",
+    fn: awaitableAgreementTest({
+      pattern: { kind: PatternKind.Equal, value: lit("a") },
+      items: ["a"],
     }),
   });
 });

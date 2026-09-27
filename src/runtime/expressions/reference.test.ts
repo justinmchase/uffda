@@ -1,3 +1,4 @@
+import { immediateExpressionTest } from "../../test.ts";
 import { Scope } from "../scope.ts";
 import { expressionTest } from "../../test.ts";
 import { ExpressionKind } from "./expression.kind.ts";
@@ -74,4 +75,13 @@ await Deno.test("runtime/expressions/reference", async (t) => {
       assertEquals(r, subject);
     },
   );
+
+  await t.step({
+    name: "REFERENCE_IMMEDIATE - evaluates synchronously over immediate values",
+    fn: immediateExpressionTest({
+      scope: Scope.Default().addVariables({ x: 1 }),
+      expression: { kind: ExpressionKind.Reference, name: "x" },
+      result: 1,
+    }),
+  });
 });

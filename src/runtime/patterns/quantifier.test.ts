@@ -1,3 +1,4 @@
+import { awaitableAgreementTest } from "../../test.ts";
 import { assert, assertEquals } from "@std/assert";
 import { Type } from "@justinmchase/type";
 import { Input, InputNormalizationMode } from "../../input.ts";
@@ -273,4 +274,16 @@ Deno.test("runtime.patterns.quantifier at the end of an open input", async (t) =
       assertEquals(await kinds(false), [MatchKind.Ok, MatchKind.Ok]);
     },
   );
+
+  await t.step({
+    name:
+      "QUANTIFIER_AWAITABLE - completes synchronously over immediate input and agrees over async input",
+    fn: awaitableAgreementTest({
+      pattern: {
+        kind: PatternKind.Quantifier,
+        pattern: { kind: PatternKind.Any },
+      },
+      items: ["a", "b", "c"],
+    }),
+  });
 });

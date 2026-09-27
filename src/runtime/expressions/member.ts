@@ -1,12 +1,15 @@
 import type { MatchOk } from "../../match.ts";
+import { andThen, type Awaitable } from "../awaitable.ts";
 import { exec } from "../exec.ts";
 import type { MemberExpression } from "./expression.ts";
 
-export async function member(
+export function member(
   expression: MemberExpression,
   match: MatchOk,
-): Promise<unknown> {
+): Awaitable<unknown> {
   const { name, expression: expr } = expression;
-  const result = await exec(expr, match);
-  return (result as { [key: string]: unknown })[name];
+  return andThen(
+    exec(expr, match),
+    (result) => (result as { [key: string]: unknown })[name],
+  );
 }

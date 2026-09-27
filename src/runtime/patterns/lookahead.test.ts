@@ -1,3 +1,4 @@
+import { awaitableAgreementTest } from "../../test.ts";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { patternTest } from "../../test.ts";
@@ -42,6 +43,18 @@ Deno.test("runtime.patterns.lookahead", async (t) => {
       input: Input.Iterable(""),
       kind: MatchKind.Fail,
       done: true,
+    }),
+  });
+
+  await t.step({
+    name:
+      "LOOKAHEAD_AWAITABLE - completes synchronously over immediate input and agrees over async input",
+    fn: awaitableAgreementTest({
+      pattern: {
+        kind: PatternKind.Lookahead,
+        pattern: { kind: PatternKind.Any },
+      },
+      items: ["a"],
     }),
   });
 });

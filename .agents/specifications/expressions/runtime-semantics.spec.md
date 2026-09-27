@@ -142,8 +142,9 @@ boundaries.
 - Expressions are async-capable by default.
 - Every expression evaluation step MUST support either immediate values or
   awaitable values.
-- Implementations SHOULD preserve a synchronous fast path when child results are
-  immediate values.
+- Evaluation MUST complete synchronously when child results are immediate
+  values, per
+  [runtime](../runtime.spec.md#synchronous-completion-and-the-rule-boundary).
 - The language does not require dedicated `await` syntax to use async-capable
   expression evaluation.
 

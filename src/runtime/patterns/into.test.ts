@@ -1,3 +1,4 @@
+import { awaitableAgreementTest } from "../../test.ts";
 import { assert, assertEquals } from "@std/assert";
 import { Type } from "@justinmchase/type";
 import { Input, InputNormalizationMode } from "../../input.ts";
@@ -318,5 +319,20 @@ Deno.test("runtime.patterns.into open input", async (t) => {
 
   await t.step("an item of a closed input is closed", async () => {
     assertEquals(await innerKinds(["ab"], false), [MatchKind.Ok, MatchKind.Ok]);
+  });
+
+  await t.step({
+    name:
+      "INTO_AWAITABLE - completes synchronously over immediate input and agrees over async input",
+    fn: awaitableAgreementTest({
+      pattern: {
+        kind: PatternKind.Into,
+        pattern: {
+          kind: PatternKind.Then,
+          patterns: [{ kind: PatternKind.Any }, { kind: PatternKind.Any }],
+        },
+      },
+      items: ["ab"],
+    }),
   });
 });

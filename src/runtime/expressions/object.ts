@@ -1,5 +1,6 @@
 import type { MatchOk } from "../../match.ts";
 import { Type, type } from "@justinmchase/type";
+import { andThen, type Awaitable, mapInOrder } from "../awaitable.ts";
 import { exec } from "../exec.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import type { ObjectExpression } from "./expression.ts";
@@ -15,25 +16,21 @@ function assertPropertyKey(
   }
 }
 
-export async function object(
+export function object(
   expression: ObjectExpression,
   match: MatchOk,
-): Promise<unknown> {
+): Awaitable<unknown> {
   const { keys } = expression;
   // Evaluated sequentially (not `Promise.all`) — see invocation.ts for why
   // concurrent sibling-expression evaluation against a shared `match` is
   // unsafe (races the packrat left-recursion memo and `Input.next()`).
-  const values: unknown[] = [];
-  for (const key of keys) {
-    values.push(
+  const values = mapInOrder(
+    keys,
+    (key) =>
       key.kind === ExpressionKind.ObjectComputedKey
-        ? [
-          await exec(key.keyExpression, match),
-          await exec(key.expression, match),
-        ]
-        : await exec(key.expression, match),
-    );
-  }
+        ? mapInOrder([key.keyExpression, key.expression], (e) => exec(e, match))
+        : exec(key.expression, match),
+  );
   const buildObject = (resolvedValues: unknown[]) =>
     keys.reduce<Record<PropertyKey, unknown>>(
       (obj, key, i) => {
@@ -56,5 +53,5 @@ export async function object(
       {},
     );
 
-  return buildObject(values);
+  return andThen(values, buildObject);
 }

@@ -26,7 +26,9 @@ function childrenOf(match: Match): Match[] {
 
 function currentValue(match: Match): Promise<unknown> {
   if (match.kind === MatchKind.LR) return Promise.resolve(undefined);
-  return match.scope.stream.next().then((input) => input.value);
+  return Promise.resolve(match.scope.stream.next()).then((input) =>
+    input.value
+  );
 }
 
 function formatValue(value: unknown): string {

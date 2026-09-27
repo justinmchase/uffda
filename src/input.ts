@@ -1,4 +1,5 @@
 import { Path } from "./path.ts";
+import { andThen, type Awaitable } from "./runtime/awaitable.ts";
 
 export enum InputNormalizationMode {
   Scalar = "scalar",
@@ -202,11 +203,19 @@ export class Input {
    * Whether the stream has been fully consumed. Advances the stream (pulling
    * one item, possibly asynchronously) if that isn't already known.
    */
-  public async done(): Promise<boolean> {
-    if (this._done === undefined) {
-      await this.next();
+  public done(): Awaitable<boolean> {
+    if (this._done !== undefined) {
+      return this._done;
     }
-    return this._done!;
+    return andThen(this.next(), () => this._done!);
+  }
+
+  /**
+   * The following input position, or `undefined` when the stream is done.
+   * Resolves immediately for synchronous streams.
+   */
+  public step(): Awaitable<Input | undefined> {
+    return andThen(this.next(), (next) => this._done ? undefined : next);
   }
 
   /**
@@ -217,27 +226,33 @@ export class Input {
     return this._done === true;
   }
 
-  public async next(): Promise<Input> {
-    if (!this._next) {
-      const { value, done } = this.isAsync
-        ? await (this._items as AsyncIterator<unknown>).next()
-        : await (this._items as Iterator<unknown>).next();
-      this._done = done;
-      if (done) return this;
-
-      const i = this.index + 1;
-      this._next = new Input(
-        this._items,
-        this.path.set(i),
-        i,
-        value,
-        this.kind,
-        true,
-        this.provenance,
-        this.isAsync,
-        this.open,
-      );
+  public next(): Awaitable<Input> {
+    if (this._next) {
+      return this._next;
     }
+    if (this._done) {
+      return this;
+    }
+    return andThen(this._items.next(), (result) => this.advance(result));
+  }
+
+  private advance(result: IteratorResult<unknown>): Input {
+    this._done = result.done ?? false;
+    if (this._done) {
+      return this;
+    }
+    const i = this.index + 1;
+    this._next = new Input(
+      this._items,
+      this.path.set(i),
+      i,
+      result.value,
+      this.kind,
+      true,
+      this.provenance,
+      this.isAsync,
+      this.open,
+    );
     return this._next;
   }
 }

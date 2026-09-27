@@ -1,3 +1,4 @@
+import { awaitableAgreementTest } from "../../test.ts";
 import { Type } from "@justinmchase/type";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../mod.ts";
@@ -81,4 +82,13 @@ Deno.test("runtime.patterns.type", async (t) => {
       }),
     });
   }
+
+  await t.step({
+    name:
+      "TYPE_AWAITABLE - completes synchronously over immediate input and agrees over async input",
+    fn: awaitableAgreementTest({
+      pattern: { kind: PatternKind.Type, type: Type.String },
+      items: ["a"],
+    }),
+  });
 });

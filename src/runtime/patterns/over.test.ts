@@ -1,3 +1,4 @@
+import { awaitableAgreementTest } from "../../test.ts";
 import { assertEquals } from "@std/assert";
 import { Type } from "@justinmchase/type";
 import { Input } from "../../input.ts";
@@ -100,4 +101,16 @@ await Deno.test("runtime/patterns/object", async (t) => {
       }
     },
   );
+
+  await t.step({
+    name:
+      "OVER_AWAITABLE - completes synchronously over immediate input and agrees over async input",
+    fn: awaitableAgreementTest({
+      pattern: {
+        kind: PatternKind.Over,
+        keys: { x: { kind: PatternKind.Any } },
+      },
+      items: [{ x: 1 }],
+    }),
+  });
 });

@@ -1,3 +1,4 @@
+import { awaitableAgreementTest } from "../../test.ts";
 import { patternTest } from "../../test.ts";
 import { CharacterClass } from "./pattern.ts";
 import { PatternKind } from "./pattern.kind.ts";
@@ -430,6 +431,18 @@ Deno.test("patterns/character", async (t) => {
       message: "unknown character class Bogus",
       start: Path.From(0),
       end: Path.From(0),
+    }),
+  });
+
+  await t.step({
+    name:
+      "CHARACTER_AWAITABLE - completes synchronously over immediate input and agrees over async input",
+    fn: awaitableAgreementTest({
+      pattern: {
+        kind: PatternKind.Character,
+        characterClass: CharacterClass.Letter,
+      },
+      items: ["a"],
     }),
   });
 });

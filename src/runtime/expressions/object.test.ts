@@ -1,3 +1,4 @@
+import { immediateExpressionTest } from "../../test.ts";
 import { expressionTest } from "../../test.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import type { ObjectKeyExpression } from "./expression.ts";
@@ -279,5 +280,20 @@ await Deno.test("runtime/expressions/object", async (t) => {
         throw new Error(`Expected sequential order [0, 1], got [${order}]`);
       }
     },
+  });
+
+  await t.step({
+    name: "OBJECT_IMMEDIATE - evaluates synchronously over immediate values",
+    fn: immediateExpressionTest({
+      expression: {
+        kind: ExpressionKind.Object,
+        keys: [{
+          kind: ExpressionKind.ObjectKey,
+          name: "a",
+          expression: { kind: ExpressionKind.Number, value: 1 },
+        }],
+      },
+      result: { a: 1 },
+    }),
   });
 });

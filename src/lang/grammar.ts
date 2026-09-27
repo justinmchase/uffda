@@ -1,3 +1,4 @@
+import type { Awaitable } from "../runtime/awaitable.ts";
 import { assertEquals } from "@std/assert";
 import { type Match, MatchKind, type MatchOk } from "../match.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
@@ -21,7 +22,7 @@ export type GrammarParse<TAst, TOptions> = (
 export type GrammarEvaluate<TAst, TResult> = (
   ast: TAst,
   match: MatchOk<TAst>,
-) => Promise<TResult>;
+) => Awaitable<TResult>;
 
 export type GrammarCase<TAst, TResult, TOptions> = {
   syntax: string;

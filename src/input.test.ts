@@ -1,3 +1,4 @@
+import { assert } from "@std/assert";
 import { assertEquals } from "@std/assert/equals";
 import { Input, InputNormalizationMode } from "./input.ts";
 import { Path } from "./path.ts";
@@ -187,4 +188,32 @@ Deno.test("input.open carries to every later position", async () => {
   });
   const end = await (await open.next()).next();
   assertEquals([open.open, end.open, await end.done()], [true, true, true]);
+});
+
+Deno.test("input advances synchronously over immediate items", () => {
+  const input = Input.From("ab", { kind: InputNormalizationMode.Iterable });
+  const first = input.step();
+  assert(first instanceof Input);
+  assertEquals(first.value, "a");
+  assertEquals(input.done(), false);
+  const second = first.next() as Input;
+  assertEquals(second.value, "b");
+  assertEquals(second.step(), undefined);
+  assertEquals(second.done(), true);
+});
+
+Deno.test("input advances through promises over async items", async () => {
+  const input = Input.From(
+    (async function* () {
+      yield "a";
+    })(),
+    { kind: InputNormalizationMode.Iterable },
+  );
+  const first = input.step();
+  assert(first instanceof Promise);
+  assertEquals((await first)?.value, "a");
+  assertEquals(input.done(), false);
+  const eof = (await input.next()).step();
+  assert(eof instanceof Promise);
+  assertEquals(await eof, undefined);
 });

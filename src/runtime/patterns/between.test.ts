@@ -1,3 +1,4 @@
+import { awaitableAgreementTest } from "../../test.ts";
 import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { lit, ValueSourceKind } from "./value_source.ts";
@@ -358,6 +359,15 @@ Deno.test("runtime.patterns.between", async (t) => {
       message: "between requires at least one bound (L..R, L.., or ..R)",
       start: Path.From(0),
       end: Path.From(0),
+    }),
+  });
+
+  await t.step({
+    name:
+      "BETWEEN_AWAITABLE - completes synchronously over immediate input and agrees over async input",
+    fn: awaitableAgreementTest({
+      pattern: { kind: PatternKind.Between, left: lit("a"), right: lit("z") },
+      items: ["m"],
     }),
   });
 });

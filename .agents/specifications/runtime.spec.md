@@ -30,6 +30,37 @@ Each runtime subtopic should define:
 - Error normalization, memoization, and left-recursion handling MUST remain
   well-defined under awaitable evaluation.
 
+## Synchronous completion and the rule boundary
+
+- Pattern matching and expression evaluation MUST complete synchronously when
+  every value they depend on is immediately available, and MUST return an
+  awaitable only when a genuinely awaitable value (for example an async-iterable
+  input or a native function returning a thenable) was encountered. A composite
+  whose children all complete synchronously MUST itself complete synchronously.
+- Whether an evaluation step is awaitable MUST be decided solely from the values
+  its children actually produce at run time. Implementations MUST NOT classify
+  patterns, expressions, or rules as synchronous or asynchronous ahead of time
+  (by inspecting their structure, marking them, or compiling separate
+  synchronous and asynchronous variants).
+- Any thenable (an object with a callable `then`) MUST be treated as awaitable,
+  matching the adoption behavior of `await`.
+- Composites that evaluate children in sequence (`Then`, `And`, `Or`, `Over`,
+  `Quantifier`, and sequential expression lists) MUST evaluate each child only
+  after the previous child has completed, in declared order, whether earlier
+  children completed synchronously or asynchronously. The outcome, the consumed
+  input, and the bindings MUST be identical in both cases.
+- Errors MUST be normalized identically whether an expression throws
+  synchronously or rejects asynchronously. Cleanup obligations (such as leaving
+  a memo frame) MUST run on success, synchronous throw, and rejection alike.
+- **Rule boundary.** Every fresh (non-memoized) rule body evaluation MUST begin
+  asynchronously, on a new task or microtask, so that the host call stack holds
+  at most the patterns of one rule body at a time. Grammar recursion only
+  happens through rules, so this bounds host stack depth independently of how
+  deeply the input nests. Memoized rule results MAY be returned synchronously
+  since they do not re-enter evaluation.
+- Top-level entry points (grammar execution, module resolution/import) MUST
+  continue to return promises.
+
 ## Subtopics
 
 - [runtime scopes](./runtime/scopes.spec.md)

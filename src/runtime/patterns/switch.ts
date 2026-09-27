@@ -12,6 +12,7 @@ import { resolveValueSource } from "./value_source.ts";
 import { ValueSourceKind } from "./value_source.ts";
 import type { Scope } from "../scope.ts";
 import type { Pattern, SwitchKey, SwitchPattern } from "./pattern.ts";
+import { andThen } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 
 type KeyCheck =
@@ -152,61 +153,49 @@ export function switchPattern(
   const defaultChild = pattern.default
     ? compile(pattern.default, scope)
     : undefined;
-  return async (invocationScope: Scope) => {
-    const isEof = await invocationScope.stream.done();
-    const value = isEof
-      ? undefined
-      : (await invocationScope.stream.next()).value;
+  return (invocationScope: Scope) =>
+    andThen(invocationScope.stream.step(), (next) => {
+      const isEof = next === undefined;
+      const value = next?.value;
+      const run = (child: CompiledPattern) =>
+        andThen(
+          child(invocationScope),
+          (m) => wrap(invocationScope, pattern, m),
+        );
 
-    if (!isEof && literalIndex) {
-      // O(1) fast path: every key is a fixed set of literals, so a single
-      // Map lookup tells us the (only possible) matching case, if any.
-      const i = literalIndex.get(value);
-      if (i !== undefined) {
-        return wrap(
+      if (!isEof && literalIndex) {
+        // O(1) fast path: every key is a fixed set of literals, so a single
+        // Map lookup tells us the (only possible) matching case, if any.
+        const i = literalIndex.get(value);
+        if (i !== undefined) {
+          return run(caseChildren[i]);
+        }
+        if (defaultChild) {
+          return run(defaultChild);
+        }
+        return fail(invocationScope, pattern);
+      }
+
+      for (let i = 0; i < pattern.cases.length; i++) {
+        const result = keyMatches(
+          pattern.cases[i].key,
+          value,
+          isEof,
           invocationScope,
           pattern,
-          await caseChildren[i](invocationScope),
         );
+        if (!result.ok) {
+          return result.match;
+        }
+        if (result.matched) {
+          return run(caseChildren[i]);
+        }
       }
+
       if (defaultChild) {
-        return wrap(
-          invocationScope,
-          pattern,
-          await defaultChild(invocationScope),
-        );
+        return run(defaultChild);
       }
+
       return fail(invocationScope, pattern);
-    }
-
-    for (let i = 0; i < pattern.cases.length; i++) {
-      const result = keyMatches(
-        pattern.cases[i].key,
-        value,
-        isEof,
-        invocationScope,
-        pattern,
-      );
-      if (!result.ok) {
-        return result.match;
-      }
-      if (result.matched) {
-        return wrap(
-          invocationScope,
-          pattern,
-          await caseChildren[i](invocationScope),
-        );
-      }
-    }
-
-    if (defaultChild) {
-      return wrap(
-        invocationScope,
-        pattern,
-        await defaultChild(invocationScope),
-      );
-    }
-
-    return fail(invocationScope, pattern);
-  };
+    });
 }

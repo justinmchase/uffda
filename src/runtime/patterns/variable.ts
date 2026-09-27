@@ -1,6 +1,7 @@
 import { error, fail, MatchErrorCode, MatchKind, ok } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import { compile } from "../match.ts";
+import { andThen } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 import type { VariablePattern } from "./pattern.ts";
 
@@ -11,7 +12,7 @@ export function variable(
 ): CompiledPattern {
   const { name } = pattern;
   const child = compile(pattern.pattern, scope);
-  return async (invocationScope: Scope) => {
+  return (invocationScope: Scope) => {
     if (invocationScope.variables.has(name)) {
       return error(
         invocationScope,
@@ -20,29 +21,30 @@ export function variable(
         `Variable ${name} already exists in scope`,
       );
     }
-    const m = await child(invocationScope);
-    switch (m.kind) {
-      case MatchKind.LR:
-      case MatchKind.Error:
-        return m;
-      case MatchKind.Fail:
-        return fail(invocationScope, pattern, [m]);
-      case MatchKind.Ok:
-        return ok(
-          invocationScope,
-          m.scope.addVariables({ [name]: m.value }),
-          pattern,
-          m.value,
-          [m],
-        );
-    }
-    return error(
-      invocationScope,
-      pattern,
-      MatchErrorCode.InvalidArgument,
-      `unexpected match kind ${
-        (m as { kind?: unknown }).kind
-      } in variable child pattern`,
-    );
+    return andThen(child(invocationScope), (m) => {
+      switch (m.kind) {
+        case MatchKind.LR:
+        case MatchKind.Error:
+          return m;
+        case MatchKind.Fail:
+          return fail(invocationScope, pattern, [m]);
+        case MatchKind.Ok:
+          return ok(
+            invocationScope,
+            m.scope.addVariables({ [name]: m.value }),
+            pattern,
+            m.value,
+            [m],
+          );
+      }
+      return error(
+        invocationScope,
+        pattern,
+        MatchErrorCode.InvalidArgument,
+        `unexpected match kind ${
+          (m as { kind?: unknown }).kind
+        } in variable child pattern`,
+      );
+    });
   };
 }

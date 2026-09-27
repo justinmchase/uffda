@@ -2,6 +2,7 @@ import { RedBlackTree } from "@std/data-structures";
 import type { Path } from "./path.ts";
 import type { Match } from "./match.ts";
 import type { Rule } from "./runtime/modules/mod.ts";
+import { type Awaitable, ensure } from "./runtime/awaitable.ts";
 
 export type Memo = { match: Match };
 
@@ -126,14 +127,12 @@ export class Memos {
    * completes. Every fresh (non-memo-hit) rule call MUST be run through this
    * so eviction has an accurate view of what is still in progress.
    */
-  public async withFrame<T>(path: Path, fn: () => Promise<T>): Promise<T> {
+  public withFrame<T>(path: Path, fn: () => Awaitable<T>): Awaitable<T> {
     this.active.push(path);
-    try {
-      return await fn();
-    } finally {
+    return ensure(fn, () => {
       this.active.pop();
       this.evict();
-    }
+    });
   }
 
   private evict(): void {

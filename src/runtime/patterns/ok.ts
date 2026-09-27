@@ -5,5 +5,5 @@ import type { CompiledPattern } from "../compiled_pattern.ts";
 
 /** Compiles an `Ok` pattern into a flattened, reusable closure. */
 export function ok(pattern: OkPattern): CompiledPattern {
-  return (scope: Scope) => Promise.resolve(matchOk(scope, scope, pattern));
+  return (scope: Scope) => matchOk(scope, scope, pattern);
 }
