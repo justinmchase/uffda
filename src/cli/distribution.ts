@@ -10,6 +10,18 @@ export const DENO_COMPILE_TARGETS = [
 
 export type DenoCompileTarget = typeof DENO_COMPILE_TARGETS[number];
 
+/**
+ * Permissions baked into every compiled CLI (`scripts/compile-cli.ts` and the
+ * Release Binaries workflow must both use exactly these). `XDG_RUNTIME_DIR`
+ * is read by `vscode-jsonrpc` as soon as the language server module loads,
+ * which `main.ts` does for every command.
+ */
+export const CLI_COMPILE_PERMISSION_FLAGS = [
+  "--allow-read",
+  "--allow-write",
+  "--allow-env=INIT_CWD,PWD,XDG_RUNTIME_DIR",
+] as const;
+
 export function isDenoCompileTarget(
   value: string,
 ): value is DenoCompileTarget {

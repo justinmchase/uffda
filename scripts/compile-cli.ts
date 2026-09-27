@@ -11,6 +11,7 @@ import { version as packageVersion } from "../src/version.ts";
 import {
   artifactFileName,
   checksumFileName,
+  CLI_COMPILE_PERMISSION_FLAGS,
   DENO_COMPILE_TARGETS,
   type DenoCompileTarget,
   installScriptFileName,
@@ -64,9 +65,7 @@ async function compileTarget(
     // imports without a consumer workspace `./bin` tree.
     "--include",
     "./bin",
-    "--allow-read",
-    "--allow-write",
-    "--allow-env=INIT_CWD,PWD",
+    ...CLI_COMPILE_PERMISSION_FLAGS,
     entry,
   ];
   const command = new Deno.Command(Deno.execPath(), {
