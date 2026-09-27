@@ -1,5 +1,6 @@
 import { assertEquals, assertThrows } from "@std/assert";
 import { from_entries } from "./from_entries.ts";
+import { metadataOf } from "../value_metadata.ts";
 
 Deno.test("std.from_entries builds an object from [key, value] pairs", () => {
   assertEquals(from_entries([["a", 1], ["b", 2]]), { a: 1, b: 2 });
@@ -33,4 +34,11 @@ Deno.test("std.from_entries rejects non-arrays", () => {
 Deno.test("std.from_entries rejects malformed entries", () => {
   assertThrows(() => from_entries([1]), TypeError);
   assertThrows(() => from_entries([["only-key"]]), TypeError);
+});
+
+Deno.test("globals.from_entries carries metadata", () => {
+  assertEquals(
+    metadataOf(from_entries)?.parameters.map((p) => p.name),
+    ["entries"],
+  );
 });

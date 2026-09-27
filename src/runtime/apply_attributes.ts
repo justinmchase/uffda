@@ -20,7 +20,7 @@ function resolveDecorator(
 
 /**
  * Invokes each attribute's decorator, in written order, against `target` — a
- * freshly materialized `Rule`/`Func` that does not yet carry
+ * freshly materialized `Rule`/`Func`/`DecoratorFunc` that does not yet carry
  * `attributes`/`metadata`.
  *
  * `this` inside a decorator's body always resolves to `target` (see
@@ -35,10 +35,12 @@ function resolveDecorator(
  * pre-decoration structural fields at the point it is passed in here, which
  * keeps decorator invocation acyclic by construction (a decorator can never
  * observe its own or a sibling decorator's not-yet-final output, including a
- * decorator whose name matches the declaration it decorates).
+ * decorator whose name matches the declaration it decorates). Invoking a
+ * decorator never reads any declaration's metadata, so a decorator may be
+ * applied to itself or to another decorator in any order.
  */
 export async function applyAttributes(
-  target: Rule | Func,
+  target: Rule | Func | DecoratorFunc,
   declarations: AttributeDeclaration[] | undefined,
   module: Module,
   scope: Scope,

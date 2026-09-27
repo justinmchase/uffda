@@ -147,6 +147,7 @@ Deno.test(
           name: "Deprecated",
           pattern: { kind: PatternKind.End },
           expression: { kind: ExpressionKind.Value, value: "deprecated" },
+          attributes: [{ kind: "attribute", name: "Deprecated", args: [] }],
         },
       ],
     };
@@ -166,6 +167,7 @@ Deno.test(
           name: "Deprecated",
           pattern: { kind: PatternKind.End },
           expression: { kind: ExpressionKind.Value, value: "deprecated" },
+          attributes: [{ name: "Deprecated", args: [] }],
         }],
       });
     }

@@ -1,3 +1,5 @@
+import { defineMetadata } from "../value_metadata.ts";
+
 /**
  * Well-known symbol names (`iterator`, `asyncIterator`, `toStringTag`, …)
  * are the static properties on the `Symbol` constructor whose values are
@@ -32,3 +34,8 @@ export function symbol(name: string): symbol {
   }
   return Symbol.for(name);
 }
+
+defineMetadata(symbol, {
+  description: "The well-known or registered symbol with this name.",
+  parameters: [{ name: "name" }],
+});

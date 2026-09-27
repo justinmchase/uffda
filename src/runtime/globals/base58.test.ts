@@ -1,6 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { assertThrows } from "@std/assert/throws";
 import { base58 } from "./base58.ts";
+import { metadataOf } from "../value_metadata.ts";
 
 Deno.test("globals.base58 encodes bytes", () => {
   const bytes = new TextEncoder().encode("Hello World!");
@@ -10,4 +11,11 @@ Deno.test("globals.base58 encodes bytes", () => {
 Deno.test("globals.base58 rejects non-bytes", () => {
   assertThrows(() => base58("abc" as unknown as Uint8Array), TypeError);
   assertThrows(() => base58([1, 2, 3] as unknown as Uint8Array), TypeError);
+});
+
+Deno.test("globals.base58 carries metadata", () => {
+  assertEquals(
+    metadataOf(base58)?.parameters.map((p) => p.name),
+    ["bytes"],
+  );
 });

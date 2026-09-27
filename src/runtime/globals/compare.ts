@@ -1,4 +1,5 @@
 import { Type, type } from "@justinmchase/type";
+import { defineMetadata } from "../value_metadata.ts";
 
 /**
  * Generic three-way comparison. Authors write `(compare left right)`.
@@ -25,3 +26,8 @@ export function compare(left: unknown, right: unknown): number {
       throw new TypeError("compare expects two numbers or two strings");
   }
 }
+
+defineMetadata(compare, {
+  description: "Three-way comparison of two numbers or strings: -1, 0, or 1.",
+  parameters: [{ name: "left" }, { name: "right" }],
+});

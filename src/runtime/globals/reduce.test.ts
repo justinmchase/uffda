@@ -1,6 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { assertRejects } from "@std/assert/rejects";
 import { reduce } from "./reduce.ts";
+import { metadataOf } from "../value_metadata.ts";
 
 Deno.test("globals.reduce folds into a scalar accumulator", async () => {
   const result = await reduce(
@@ -81,5 +82,12 @@ Deno.test("globals.reduce rejects unsupported values", async () => {
   await assertRejects(
     () => reduce(null as unknown as string, 0, (a) => a),
     TypeError,
+  );
+});
+
+Deno.test("globals.reduce carries metadata", () => {
+  assertEquals(
+    metadataOf(reduce)?.parameters.map((p) => p.name),
+    ["self", "initial", "fn"],
   );
 });

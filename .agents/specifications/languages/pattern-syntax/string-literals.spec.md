@@ -32,9 +32,9 @@ escapes MUST be recognized and MUST project the corresponding character:
 - An unrecognized escape of the form `\` followed by one character MUST remain
   two characters in the literal value (backslash plus that character), until a
   later revision defines additional escapes.
-- Unescaped whitespace or newline characters inside quotes MAY be discarded by
-  the default no-whitespace semantic token stream. Authors MUST use `\t`, `\n`,
-  and `\r` when those characters are required in an Equal value.
+- Unescaped whitespace and newline characters inside quotes MUST be preserved in
+  the literal value (`" "` matches a single space). The escapes `\t`, `\n`, and
+  `\r` remain available.
 
 ## Tokenizer escape followers
 

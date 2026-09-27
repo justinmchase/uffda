@@ -191,4 +191,58 @@ Deno.test("runtime/resolve decorators (#159)", async (t) => {
       );
     },
   );
+
+  await t.step(
+    "RESOLVE_DECORATORS09 - a decorator can carry attributes",
+    async () => {
+      const module = await importCompiled(
+        `export Main;
+         decorator Note<n:string> = { note: n, of: this.name };
+         [Note "marks things"]
+         decorator Marker = true;
+         [Marker]
+         rule Main = any;`,
+      );
+      const marker = module.decorators.get("Marker");
+      assertEquals(marker?.metadata, {
+        Note: { note: "marks things", of: "Marker" },
+      });
+      assertEquals(marker?.attributes?.[0].decorator.name, "Note");
+      assertEquals(module.rules.get("Main")?.metadata, { Marker: true });
+    },
+  );
+
+  await t.step(
+    "RESOLVE_DECORATORS10 - a decorator can decorate itself",
+    async () => {
+      const module = await importCompiled(
+        `export Main;
+         [Note "a note"]
+         decorator Note<n:string> = { note: n, of: this.name };
+         [Note "main"]
+         rule Main = any;`,
+      );
+      const note = module.decorators.get("Note");
+      assertEquals(note?.metadata, { Note: { note: "a note", of: "Note" } });
+      assertEquals(module.rules.get("Main")?.metadata, {
+        Note: { note: "main", of: "Main" },
+      });
+    },
+  );
+
+  await t.step(
+    "RESOLVE_DECORATORS11 - decorators can decorate each other",
+    async () => {
+      const module = await importCompiled(
+        `export Main;
+         [B]
+         decorator A = "a";
+         [A]
+         decorator B = "b";
+         rule Main = any;`,
+      );
+      assertEquals(module.decorators.get("A")?.metadata, { B: "b" });
+      assertEquals(module.decorators.get("B")?.metadata, { A: "a" });
+    },
+  );
 });

@@ -103,8 +103,12 @@ module-local (not exported, not registered as runtime globals) — see
 - The escape introducer and its single follower MUST both remain visible to
   no-whitespace semantic consumers (for example as punctuation texts) so
   PatternLang can interpret `\t`, `\n`, `\r`, `\\`, and `\"`.
-- Unescaped whitespace and newlines inside quotes remain trivia and MUST NOT
-  appear in the no-whitespace semantic stream.
+- Unescaped whitespace and newlines inside quotes are string content, not
+  trivia: each such character MUST be emitted as a semantic (`punctuation`)
+  token so it appears in the no-whitespace semantic stream and string literals
+  keep it. The tokenizer does not know about interpolation; parsers that
+  interpolate code inside strings drop whitespace there themselves (see
+  [string and interpolation syntax](./expression-syntax/string-and-interpolation.spec.md)).
 
 - Tokenization MUST preserve interpolation delimiter boundaries used by
   downstream expression parsing (for example `"`, `$`, `{`, `}`, `.`, and `:`).

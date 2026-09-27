@@ -1,9 +1,12 @@
 # Nullish matches null/undefined tokens and projects a ValueExpression.
 import "../tokenizer/token.uff" Token;
+import "../editor/editor.uff" Keyword;
 
 export Nullish;
 
+[Keyword]
 rule NullKeyword = "null" -> null;
+[Keyword]
 rule UndefinedKeyword = "undefined" -> undefined;
 rule Nullish =
   | Token<NullKeyword>

@@ -1,5 +1,6 @@
 import type { Expression } from "../expressions/expression.ts";
 import type { Pattern } from "../patterns/mod.ts";
+import type { Attribute } from "./attribute.ts";
 import type { Module } from "./module.ts";
 
 /**
@@ -15,4 +16,8 @@ export type DecoratorFunc = {
   module: Module;
   pattern: Pattern;
   expression: Expression;
+  /** Applied attributes, in written order; set once during materialization. */
+  attributes?: Attribute[];
+  /** Metadata keyed by decorator name -> that decorator's raw return value. */
+  metadata?: Record<string, unknown>;
 };

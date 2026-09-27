@@ -34,15 +34,35 @@ diagnostics, and tooling MUST NOT fall back to guessing.
 | Decorator                    | Applied to                                         | Metadata value                                        |
 | ---------------------------- | -------------------------------------------------- | ----------------------------------------------------- |
 | `Highlight { role }`         | a token rule                                       | `role`: a highlight role (see below)                  |
+| `Keyword`                    | a reserved word                                    | `{ role: "keyword" }`                                 |
 | `Declaration`                | a production declaring a named rule/func/decorator | projected value carries the declared `name`           |
 | `NameReference { kinds? }`   | a production naming a declaration in scope         | `kinds`: declaration kinds it may name (omitted: all) |
 | `Import`                     | a module import production                         | projected value is a runtime import declaration       |
 | `ModulePath { extensions? }` | the module path text of an import (no delimiters)  | `extensions`: module file extensions (omitted: any)   |
 | `ImportedName`               | one name bound by an import                        | —                                                     |
+| `Documentation`              | a rule/func/decorator being documented             | `{ description, parameters }` (see below)             |
 
-`[Keyword]` (see `src/lang/uffda/shared.rules.uff`) and `[Language]` (see the
+`Documentation` differs from the others: it describes a declaration for the
+people using it, not a grammar production for tooling. It is written either
+`[Documentation "…"]` or
+`[Documentation { description: "…", parameters: { P: "…" } }]` and normalized to
+`{ description, parameters }`, `parameters` mapping parameter names to their
+descriptions. Hover MUST lead with the description and show parameter
+descriptions (on the declaration and on each parameter's own hover), and
+completion items MUST carry the description as their documentation. A
+declaration's hover MUST NOT also list `Documentation` as an attribute.
+
+`[Language]` (see the
 [language server](./language-server.spec.md#language-configuration)) are
 existing metadata that tooling reads the same way.
+
+- The `.uff` grammar applies `[Keyword]` to every reserved word it matches as
+  syntax: the module keywords (`import`, `export`, `rule`, `func`, `decorator`),
+  the pattern keywords (`switch`, `default`, `in`, `not`, `maybe`, `lookahead`,
+  `except`, `any`, `end`, `ok`, `fail`, and the type names such as `string`),
+  and the expression literals `true`, `false`, `null`, and `undefined` plus the
+  `not` operator. A reserved word used as a name (for example the `not` global
+  in `(not x)`) is not a keyword there.
 
 - Highlight roles are `keyword`, `identifier`, `string`, `comment`,
   `punctuation`, `whitespace`, and `newline`. An unrecognized role, or a
@@ -55,11 +75,20 @@ existing metadata that tooling reads the same way.
 ## Highlighting
 
 - Token spans are the innermost `Highlight`-annotated `Ok` nodes of the parse
-  tree. A span's role is the role of the outermost `Highlight`-annotated node on
-  its path, so tokens reused inside an annotated construct (the words and spaces
-  of a string literal annotated `string`) take that construct's role.
+  tree, except one whose source span strictly contains another such node's span:
+  a construct the parser builds from several tokens (a pattern character class
+  `\cZs` is the tokens `\` and `cZs`) is not a token itself. Every other
+  `Highlight`-annotated node is a container.
+- A token's role is the role of the largest container that is its tree ancestor
+  or strictly contains its source span; with none, its own role. So tokens
+  inside an annotated construct (the words and spaces of a string literal, the
+  tokens of a character class, both annotated `string`) take that construct's
+  role. Roles resolve by source range because the tokenizer's tree and the
+  parser's tree are separate views of the same text. On equal extent the tree
+  ancestor, then the earliest-starting container, wins. A container covering
+  exactly one token does not override it; reserved words use `[Keyword]`.
 - A token whose role is its own (not inherited) is classified `keyword` when a
-  `[Keyword]`-annotated node on its path matched exactly its span.
+  `[Keyword]`-annotated node matched exactly its span.
 - Trivia is the `whitespace`, `newline`, and `comment` roles. Other tooling that
   needs to skip trivia or detect a line break (diagnostic anchoring, completion
   contexts) MUST use these roles, not character classes.

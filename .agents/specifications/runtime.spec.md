@@ -41,3 +41,4 @@ Each runtime subtopic should define:
 - [runtime selective memoization](./runtime/selective-memoization.spec.md)
 - [runtime compiled pattern dispatch](./runtime/compiled-patterns.spec.md)
 - [runtime rule metadata](./runtime/rule-metadata.spec.md)
+- [runtime value metadata](./runtime/value-metadata.spec.md)

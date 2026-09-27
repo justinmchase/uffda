@@ -1,5 +1,6 @@
 import { assertEquals, assertStrictEquals } from "@std/assert";
 import { symbol } from "./symbol.ts";
+import { metadataOf } from "../value_metadata.ts";
 
 Deno.test("globals.symbol resolves well-known symbols to the built-in singleton", () => {
   assertStrictEquals(symbol("iterator"), Symbol.iterator);
@@ -22,4 +23,11 @@ Deno.test("globals.symbol does not conflate custom names with well-known ones", 
   const custom = symbol("iterator-but-not-really");
   assertEquals(typeof custom, "symbol");
   assertStrictEquals(custom, Symbol.for("iterator-but-not-really"));
+});
+
+Deno.test("globals.symbol carries metadata", () => {
+  assertEquals(
+    metadataOf(symbol)?.parameters.map((p) => p.name),
+    ["name"],
+  );
 });

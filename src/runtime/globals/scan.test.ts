@@ -1,6 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { assertRejects } from "@std/assert/rejects";
 import { scan } from "./scan.ts";
+import { metadataOf } from "../value_metadata.ts";
 
 async function collect<T>(it: AsyncGenerator<T>): Promise<T[]> {
   const result: T[] = [];
@@ -143,5 +144,12 @@ Deno.test("globals.scan rejects unsupported values", async () => {
       }
     },
     TypeError,
+  );
+});
+
+Deno.test("globals.scan carries metadata", () => {
+  assertEquals(
+    metadataOf(scan)?.parameters.map((p) => p.name),
+    ["self", "initial", "fn"],
   );
 });

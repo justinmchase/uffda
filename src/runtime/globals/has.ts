@@ -1,3 +1,5 @@
+import { defineMetadata } from "../value_metadata.ts";
+
 /**
  * Membership check for Sets, Maps, arrays, and own object keys.
  * Authors write `(has collection value)`.
@@ -17,3 +19,8 @@ export function has(collection: unknown, value: unknown): boolean {
   }
   return false;
 }
+
+defineMetadata(has, {
+  description: "Whether a Set, Map, array, or object contains a value or key.",
+  parameters: [{ name: "collection" }, { name: "value" }],
+});

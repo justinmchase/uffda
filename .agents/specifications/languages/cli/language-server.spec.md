@@ -137,7 +137,10 @@ not introduce a parallel parsing or compilation pathway.
 - The server MUST support `textDocument/hover`, reporting structural information
   about the rule/func/decorator/expression at the requested position, using the
   same descriptive information the MCP server's introspection tools already
-  expose (see [introspection tools](./mcp-server.spec.md)).
+  expose (see [introspection tools](./mcp-server.spec.md)). Local bindings
+  (captured variables and parameters) and runtime globals MUST be describable
+  too: locals from the document's parse tree, globals from the metadata they
+  carry (see [runtime value metadata](../../runtime/value-metadata.spec.md)).
 - The server MUST support go-to-definition (`textDocument/definition`) for
   references to rules, funcs, and decorators, resolving to the declaration's
   source location within the workspace's resolved module graph.
@@ -263,9 +266,12 @@ its names) is anchored right after that line's last token. Document operations
 `LspDocumentManager`, since the LSP connection does not await async notification
 handlers. Hover (`textDocument/hover`) and go-to-definition
 (`textDocument/definition`, both part of requirement 006) are implemented for
-`.uff`: hover resolves the identifier under the cursor through
-`RuntimeSession.describe()`, and definition resolves via
-`RuntimeSession.resolveDeclaration()` then locates the `[Declaration]`
+`.uff`: hover resolves the identifier under the cursor as a local binding (from
+the parse tree), then through `RuntimeSession.describe()` — showing the
+declaration's `[Documentation]` and source (located the same way as definition)
+when available — then as a runtime global via `RuntimeSession.describeGlobal()`;
+completion items carry `[Documentation]` descriptions; and definition resolves
+via `RuntimeSession.resolveDeclaration()` then locates the `[Declaration]`
 production's `originalSpan` in a parse `Match` (open buffer preferred, else
 session parse state, else a read-only re-parse of the defining `.uff` on disk).
 `textDocument/completion` parses the text before the cursor and offers items

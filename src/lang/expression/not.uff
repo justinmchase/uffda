@@ -1,10 +1,14 @@
 # Not matches `not` followed by a Primary token and projects a NotExpression.
 import "../tokenizer/token.uff" Token;
 import "./primary.uff" Primary;
+import "../editor/editor.uff" Keyword;
 
 export Not;
 
+[Keyword]
+rule NotKeyword = "not";
+
 rule Not =
-  "not"
+  NotKeyword
   e:Token<Primary>
   -> { kind: "not", expression: e };

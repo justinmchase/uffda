@@ -19,6 +19,10 @@ import {
 import type { Module } from "../runtime/modules/mod.ts";
 import { Resolver } from "../runtime/resolve.ts";
 import { Scope } from "../runtime/scope.ts";
+import {
+  type FunctionMetadata,
+  metadataOf,
+} from "../runtime/value_metadata.ts";
 import { Input, InputNormalizationMode } from "../input.ts";
 import { Path } from "../path.ts";
 import type { Edit } from "../edit.ts";
@@ -355,10 +359,9 @@ export type DescribedDeclaration = {
   expression?: Expression;
   /** Only present for `kind: "rule"`. */
   parameters?: RuleParameter[];
-  /** Only present for `kind: "rule" | "func"` — decorators aren't
-   * decoratable, see `.agents/specifications/runtime/rule-metadata.spec.md`. */
+  /** Applied attributes, in written order, when any were applied. */
   attributes?: DescribedAttribute[];
-  /** Only present for `kind: "rule" | "func"`, keyed by decorator name. */
+  /** Keyed by decorator name, when any attributes were applied. */
   metadata?: Record<string, unknown>;
 };
 
@@ -383,6 +386,20 @@ export type ResolvedDeclaration = {
 
 export type SessionResolveDeclarationResult =
   | { ok: true; declaration: ResolvedDeclaration }
+  | { ok: false; error: SessionDescribeFailure };
+
+/**
+ * A runtime global visible to expression references, with the function
+ * metadata it carries under the well-known `METADATA` symbol (see
+ * `.agents/specifications/runtime/value-metadata.spec.md`), when any.
+ */
+export type DescribedGlobal = {
+  name: string;
+  metadata?: FunctionMetadata;
+};
+
+export type SessionDescribeGlobalResult =
+  | { ok: true; global: DescribedGlobal }
   | { ok: false; error: SessionDescribeFailure };
 
 export enum SessionQueryFailureCode {
@@ -505,17 +522,14 @@ function describeMember(
     pattern: member.pattern,
     expression: member.expression,
   };
-  if (kind === "decorator") return base;
-
-  const ruleOrFunc = member as Rule | Func;
   return {
     ...base,
     parameters: kind === "rule" ? (member as Rule).parameters : undefined,
-    attributes: ruleOrFunc.attributes?.map((attribute) => ({
+    attributes: member.attributes?.map((attribute) => ({
       decorator: attribute.decorator.name,
       args: attribute.args,
     })),
-    metadata: ruleOrFunc.metadata,
+    metadata: member.metadata,
   };
 }
 
@@ -1274,6 +1288,30 @@ export class RuntimeSession {
         exported: found.member.module.exports.has(name),
       },
     };
+  }
+
+  /**
+   * Describes a runtime global — the values expression references fall
+   * back to after locals and declared funcs — from the globals this
+   * session's scopes resolve against. Read-only.
+   */
+  public describeGlobal(name: string): SessionDescribeGlobalResult {
+    if (this.closed) {
+      throw new Error(`Session ${this.id} is closed`);
+    }
+    const globals = Scope.Default().options.globals;
+    if (!globals.has(name)) {
+      return {
+        ok: false,
+        error: {
+          code: SessionDescribeFailureCode.UnknownDeclaration,
+          phase: "resolve",
+          message: `No global named '${name}'`,
+        },
+      };
+    }
+    const metadata = metadataOf(globals.get(name));
+    return { ok: true, global: { name, ...(metadata ? { metadata } : {}) } };
   }
 
   /**

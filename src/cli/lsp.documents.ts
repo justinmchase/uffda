@@ -205,8 +205,8 @@ export class LspDocumentManager {
 
   /**
    * Builds an LSP `Hover` for `uri` at `position` from the document session's
-   * resolved declarations via `RuntimeSession.describe` (requirement 006).
-   * Returns `null` when the document is not open or nothing resolvable is
+   * resolved declarations via `RuntimeSession.describe` (requirement 006),
+   * showing the declaration's source when it can be located. Returns `null` when the document is not open or nothing resolvable is
    * under the cursor — never mutates parse/resolution state.
    */
   public hover(
@@ -217,12 +217,16 @@ export class LspDocumentManager {
       const doc = this.documents.get(uri);
       if (!doc) return Promise.resolve(null);
       const state = doc.session.getLatestParseState();
-      return Promise.resolve(hoverAtPosition(
+      return hoverAtPosition(
         doc.session,
         state?.source ?? doc.source,
         position,
         state?.match,
-      ));
+        {
+          openDocumentSource: (definingModuleUrl) =>
+            this.parseStateForModuleUrl(definingModuleUrl),
+        },
+      );
     });
   }
 

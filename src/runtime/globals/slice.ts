@@ -1,3 +1,5 @@
+import { defineMetadata } from "../value_metadata.ts";
+
 /**
  * Generic slice: works for strings and arrays, matching JS
  * `String.prototype.slice`/`Array.prototype.slice` semantics (exclusive
@@ -15,3 +17,11 @@ export function slice<T extends string | unknown[]>(
   }
   throw new TypeError("slice expects a string or array");
 }
+
+defineMetadata(slice, {
+  description: "Slices a string or array from start up to (not including) end.",
+  parameters: [{ name: "value" }, { name: "start", optional: true }, {
+    name: "end",
+    optional: true,
+  }],
+});

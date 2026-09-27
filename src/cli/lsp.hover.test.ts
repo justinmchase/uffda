@@ -1,4 +1,5 @@
 import { assert, assertEquals } from "@std/assert";
+import { join } from "@std/path";
 import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 import {
@@ -6,7 +7,7 @@ import {
   hoverAtPosition,
   identifierAtOffset,
 } from "./lsp.hover.ts";
-import { RuntimeSession } from "./mcp.session.ts";
+import { type DescribedDeclaration, RuntimeSession } from "./mcp.session.ts";
 import { offsetToPosition } from "./lsp.positions.ts";
 
 const MODULE = `export Main Loud Greet;
@@ -45,22 +46,108 @@ Deno.test("cli.lsp.hover identifierAtOffset", async (t) => {
 });
 
 Deno.test("cli.lsp.hover formatDescribedDeclarationMarkdown", async (t) => {
-  await t.step("renders kind, pattern, attributes, and metadata", () => {
-    const markdown = formatDescribedDeclarationMarkdown({
-      moduleUrl: "file:///x.uff",
-      name: "Main",
-      kind: "rule",
-      exported: true,
-      pattern: { kind: PatternKind.Any },
-      parameters: [],
-      attributes: [{ decorator: "Loud", args: [] }],
-      metadata: { Loud: { shout: true } },
-    });
-    assert(markdown.includes("(exported rule) `Main`"));
-    assert(markdown.includes("**pattern:** `any`"));
-    assert(markdown.includes("`Loud`"));
-    assert(markdown.includes("**metadata:**"));
+  const declaration: DescribedDeclaration = {
+    moduleUrl: "file:///x.uff",
+    name: "Main",
+    kind: "rule",
+    exported: true,
+    pattern: { kind: PatternKind.Any },
+    parameters: [],
+    attributes: [
+      { decorator: "Highlight", args: [{ role: "string" }] },
+      { decorator: "Keyword", args: [] },
+    ],
+    metadata: {
+      Highlight: { role: "string" },
+      Keyword: { role: "keyword" },
+    },
+  };
+
+  await t.step("shows the declaration source and computed metadata", () => {
+    const source =
+      '[Highlight { role: "string" }]\n[Keyword]\nrule Main = any;';
+    const markdown = formatDescribedDeclarationMarkdown(declaration, source);
+    assertEquals(
+      markdown,
+      [
+        "(exported rule) `Main`",
+        ["```uffda", source, "```"].join("\n"),
+        '- `Keyword` → `{ role: "keyword" }`',
+      ].join("\n\n"),
+    );
   });
+
+  await t.step("summarizes pattern and attributes without source", () => {
+    const markdown = formatDescribedDeclarationMarkdown(declaration);
+    assertEquals(
+      markdown,
+      [
+        "(exported rule) `Main`",
+        "**pattern:** `any`",
+        "**attributes:**",
+        [
+          '- `Highlight({ role: "string" })`',
+          '- `Keyword` → `{ role: "keyword" }`',
+        ].join("\n"),
+      ].join("\n\n"),
+    );
+  });
+
+  await t.step("summarizes [Documentation] without repeating it", () => {
+    const markdown = formatDescribedDeclarationMarkdown({
+      ...declaration,
+      parameters: [{ name: "P" }],
+      attributes: [{ decorator: "Documentation", args: ["Doc."] }],
+      metadata: {
+        Documentation: { description: "Doc.", parameters: { P: "Elem." } },
+      },
+    });
+    assertEquals(
+      markdown,
+      [
+        "(exported rule) `Main`",
+        "Doc.",
+        "**pattern:** `any`",
+        "**parameters:**",
+        "- `P` — Elem.",
+      ].join("\n\n"),
+    );
+  });
+
+  await t.step("truncates long declaration source", () => {
+    const source = Array.from({ length: 30 }, (_, i) => `line${i}`).join("\n");
+    const markdown = formatDescribedDeclarationMarkdown(declaration, source);
+    assert(markdown.includes("line19\n  …\n```"));
+    assert(!markdown.includes("line20"));
+  });
+});
+
+Deno.test("cli.lsp.hover shows a file-backed declaration's source", async () => {
+  const cwd = await Deno.makeTempDir({ prefix: "uffda-lsp-hover-" });
+  try {
+    const path = join(cwd, "main.uff");
+    const source =
+      "export Main;\n\n# docs\nrule Main =\n  Other;\n\nrule Other = any;\n";
+    await Deno.writeTextFile(path, source);
+    const session = new RuntimeSession("hover-src", { cwd });
+    assertEquals((await session.load(source, path)).ok, true);
+    const state = session.getLatestParseState();
+    assert(state);
+    const hover = await hoverAtPosition(
+      session,
+      source,
+      offsetToPosition(source, source.indexOf("Other;") + 1),
+      state.match,
+    );
+    const contents = hover?.contents;
+    assert(contents && typeof contents === "object" && "value" in contents);
+    assertEquals(
+      contents.value,
+      "(rule) `Other`\n\n```uffda\nrule Other = any;\n```",
+    );
+  } finally {
+    await Deno.remove(cwd, { recursive: true });
+  }
 });
 
 Deno.test("cli.lsp.hover hoverAtPosition", async (t) => {
@@ -74,7 +161,7 @@ Deno.test("cli.lsp.hover hoverAtPosition", async (t) => {
       assert(state);
 
       const offset = MODULE.indexOf("Main", MODULE.indexOf("rule"));
-      const hover = hoverAtPosition(
+      const hover = await hoverAtPosition(
         session,
         MODULE,
         offsetToPosition(MODULE, offset),
@@ -103,7 +190,7 @@ Deno.test("cli.lsp.hover hoverAtPosition", async (t) => {
       assert(state);
       // `any` is a pattern atom, not a declaration name in this module.
       const offset = MODULE.lastIndexOf("any");
-      const hover = hoverAtPosition(
+      const hover = await hoverAtPosition(
         session,
         MODULE,
         offsetToPosition(MODULE, offset),
@@ -112,4 +199,144 @@ Deno.test("cli.lsp.hover hoverAtPosition", async (t) => {
       assertEquals(hover, null);
     },
   );
+});
+
+Deno.test("cli.lsp.hover locals and globals", async (t) => {
+  const source = `export Main Pair Words;
+rule Pair<P> = a:P b:P -> [a b];
+rule Main = n:string -> (join (map [n] <x:any> -> x) ",");
+func Words<s:string> = (join s " ");
+`;
+  const session = new RuntimeSession("hover-locals");
+  assertEquals((await session.load(source)).ok, true);
+  const state = session.getLatestParseState();
+  assert(state);
+
+  const hoverText = async (offset: number) => {
+    const hover = await hoverAtPosition(
+      session,
+      source,
+      offsetToPosition(source, offset),
+      state.match,
+    );
+    const contents = hover?.contents;
+    return contents && typeof contents === "object" && "value" in contents
+      ? contents.value
+      : undefined;
+  };
+
+  await t.step("describes a runtime global from its metadata", async () => {
+    assertEquals(
+      await hoverText(source.indexOf("join")),
+      [
+        "(global func) `join`",
+        "```uffda\n(join self separator?)\n```",
+        "Joins an array's elements into a string with a separator.",
+      ].join("\n\n"),
+    );
+    assert(
+      (await hoverText(source.indexOf("map")))?.startsWith(
+        "(global func) `map`",
+      ),
+    );
+  });
+
+  await t.step("describes a captured variable by its binding", async () => {
+    const expected = "(variable) `n`\n\n```uffda\nn:string\n```";
+    assertEquals(await hoverText(source.indexOf("[n]") + 1), expected);
+    assertEquals(await hoverText(source.indexOf("n:string")), expected);
+    assertEquals(
+      await hoverText(source.indexOf("(join s") + 6),
+      "(variable) `s`\n\n```uffda\ns:string\n```",
+    );
+  });
+
+  await t.step("scopes lambda parameters to the lambda", async () => {
+    assertEquals(
+      await hoverText(source.indexOf("-> x") + 3),
+      "(variable) `x`\n\n```uffda\nx:any\n```",
+    );
+  });
+
+  await t.step("describes a rule parameter in pattern position", async () => {
+    assertEquals(
+      await hoverText(source.indexOf("a:P") + 2),
+      "(parameter) `P` of rule `Pair`",
+    );
+  });
+});
+
+Deno.test("cli.lsp.hover shows [Documentation]", async (t) => {
+  const cwd = await Deno.makeTempDir({ prefix: "uffda-lsp-hover-doc-" });
+  try {
+    const editor = new URL("../lang/editor/editor.uff", import.meta.url);
+    const path = join(cwd, "main.uff");
+    const source = `import "${editor.pathname}" Documentation;
+export Main Pair Words Note;
+[Documentation "Two of P in a row."]
+rule Main = Pair<any>;
+[Documentation { description: "A pair.", parameters: { P: "The element." } }]
+rule Pair<P> = P P;
+[Documentation { description: "Joins words.", parameters: { s: "The words." } }]
+func Words<s:array> = (join s " ");
+[Note "Notes things."]
+[Documentation "Attaches a note."]
+decorator Note<n:string> = n;
+`;
+    await Deno.writeTextFile(path, source);
+    const session = new RuntimeSession("hover-doc", { cwd });
+    const load = await session.load(source, path);
+    assertEquals(load.ok, true);
+    const state = session.getLatestParseState();
+    assert(state);
+    const hoverText = async (offset: number) => {
+      const hover = await hoverAtPosition(
+        session,
+        source,
+        offsetToPosition(source, offset),
+        state.match,
+      );
+      const contents = hover?.contents;
+      return contents && typeof contents === "object" && "value" in contents
+        ? contents.value
+        : undefined;
+    };
+
+    await t.step("leads with the description", async () => {
+      const text = await hoverText(source.indexOf("Pair<any>"));
+      assertEquals(
+        text,
+        [
+          "(exported rule) `Pair`",
+          "A pair.",
+          [
+            "```uffda",
+            '[Documentation { description: "A pair.", parameters: { P: "The element." } }]\nrule Pair<P> = P P;',
+            "```",
+          ].join("\n"),
+          "- `P` — The element.",
+        ].join("\n\n"),
+      );
+    });
+
+    await t.step("documents rule and func parameters", async () => {
+      assertEquals(
+        await hoverText(source.indexOf("P P;")),
+        "(parameter) `P` of rule `Pair`\n\nThe element.",
+      );
+      assertEquals(
+        await hoverText(source.indexOf('s " "')),
+        "(variable) `s`\n\n```uffda\ns:array\n```\n\nThe words.",
+      );
+    });
+
+    await t.step("documents a self-decorated decorator", async () => {
+      const text = await hoverText(source.indexOf("Note<n"));
+      assert(
+        text?.startsWith("(exported decorator) `Note`\n\nAttaches a note."),
+      );
+    });
+  } finally {
+    await Deno.remove(cwd, { recursive: true });
+  }
 });

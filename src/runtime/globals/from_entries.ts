@@ -1,3 +1,5 @@
+import { defineMetadata } from "../value_metadata.ts";
+
 /**
  * Build a plain object from an entry list. Authors write `(from_entries xs)`.
  *
@@ -27,3 +29,9 @@ export function from_entries(entries: unknown): Record<string, unknown> {
     }),
   );
 }
+
+defineMetadata(from_entries, {
+  description:
+    "Builds an object from [key, value] pairs or { name, value } entries.",
+  parameters: [{ name: "entries" }],
+});

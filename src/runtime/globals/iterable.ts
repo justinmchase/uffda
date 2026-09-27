@@ -1,3 +1,5 @@
+import { defineMetadata } from "../value_metadata.ts";
+
 function hasAsyncIterator(
   value: unknown,
 ): value is AsyncIterable<unknown> {
@@ -52,3 +54,8 @@ export function iterable(value: unknown): AsyncIterable<unknown> {
     "iterable expects a value with Symbol.iterator or Symbol.asyncIterator",
   );
 }
+
+defineMetadata(iterable, {
+  description: "Normalizes any sync or async iterable into an async iterable.",
+  parameters: [{ name: "value" }],
+});

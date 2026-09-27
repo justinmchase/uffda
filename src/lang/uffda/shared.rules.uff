@@ -1,20 +1,17 @@
 # Shared Uffda tokens: identifiers excluding reserved keywords, plus the
-# reserved keyword tokens themselves, each decorated with [Keyword] so
-# metadata resolution (see rule-metadata.spec.md) lets tools like the MCP
-# source-highlighting tool classify their matched spans as keywords without a
-# separately maintained rule-name-to-role mapping.
+# reserved keyword tokens themselves, each decorated with [Keyword] (see
+# ../editor/editor.uff) so editor tooling classifies their matched spans as
+# keywords without a separately maintained rule-name-to-role mapping.
 import "../common/identifier.uff" IdToken;
+import "../editor/editor.uff" Keyword;
 
 export IdentifierToken;
 export ReservedKeywordToken;
-export Keyword;
 export ImportKeyword;
 export ExportKeyword;
 export RuleKeyword;
 export FuncKeyword;
 export DecoratorKeyword;
-
-decorator Keyword = { role: "keyword" };
 
 [Keyword]
 rule ImportKeyword = "import" -> "import";

@@ -239,4 +239,22 @@ Deno.test("runtime/apply_attributes", async (t) => {
       assertEquals(func.metadata, { Example: { kind: "example" } });
     },
   );
+
+  await t.step(
+    "APPLY_ATTRIBUTES09 - a decorator can be applied to itself",
+    async () => {
+      const module = DefaultModule();
+      const decorator = metadataDecorator("Self", { kind: "self" });
+      module.decorators.set("Self", decorator);
+
+      await applyAttributes(
+        decorator,
+        [{ name: "Self", args: [] }],
+        module,
+        Scope.Default(),
+      );
+      assertEquals(decorator.metadata, { Self: { kind: "self" } });
+      assertEquals(decorator.attributes?.[0].decorator, decorator);
+    },
+  );
 });

@@ -1,4 +1,5 @@
 import { Type, type } from "@justinmchase/type";
+import { defineMetadata } from "../value_metadata.ts";
 
 function nthEntry<T>(items: Iterable<T>, index: number): T | undefined {
   let position = 0;
@@ -32,3 +33,9 @@ export function at(value: unknown, index: unknown): unknown {
       throw new TypeError("at expects a string, array, Set, or Map");
   }
 }
+
+defineMetadata(at, {
+  description:
+    "The element at an ordinal index of a string, array, Set, or Map.",
+  parameters: [{ name: "value" }, { name: "index" }],
+});

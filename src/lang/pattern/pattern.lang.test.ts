@@ -670,3 +670,13 @@ Deno.test(
     });
   },
 );
+
+Deno.test("lang.pattern string literals keep whitespace", async () => {
+  const match = await patternGrammar('" a b "');
+  assertEquals(match.kind, MatchKind.Ok);
+  if (match.kind !== MatchKind.Ok) return;
+  assertEquals(match.value, {
+    kind: PatternKind.Equal,
+    value: { kind: ValueSourceKind.Literal, value: " a b " },
+  });
+});

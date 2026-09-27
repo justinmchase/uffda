@@ -3,6 +3,7 @@ import { collect } from "../collect.ts";
 import { enumerate } from "./enumerate.ts";
 import { filter } from "./filter.ts";
 import { map } from "./map.ts";
+import { metadataOf } from "../value_metadata.ts";
 
 Deno.test("globals.map projects each element through an async callback", async () => {
   const result = await collect(map(
@@ -43,4 +44,11 @@ Deno.test("globals.map composes with a lazy enumerate/filter chain", async () =>
     ),
   );
   assertEquals(result, ["a", "c"]);
+});
+
+Deno.test("globals.map carries metadata", () => {
+  assertEquals(
+    metadataOf(map)?.parameters.map((p) => p.name),
+    ["self", "callback"],
+  );
 });

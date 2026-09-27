@@ -3,6 +3,7 @@
 # Variable bindings are single-letter (published CLI PatternLang).
 # Project `{` via binding (B13: `-> "{"` parses as an object literal).
 import "./primary.uff" Primary;
+import "../common/characters/mod.uff" NewLine Whitespace;
 
 export String;
 
@@ -22,8 +23,26 @@ rule EscapedString =
   | EscapedReturn
   ;
 
+# Whitespace inside a string reaches this grammar as content tokens; inside
+# an interpolation it only separates code tokens, so it is dropped before the
+# code is parsed.
+rule InterpolationSpace = string & [(Whitespace | NewLine)+];
+
+rule InterpolationCode =
+  (
+    | InterpolationSpace -> []
+    | "{" c:InterpolationCode "}" -> (flat ["\{" c "}"])
+    | ((not "{") & (not "}") & string) -> [_]
+  )*
+  -> (flat _);
+
+rule InterpolationValue =
+  v:Primary
+  end
+  -> v;
+
 rule StringExpression =
-  "{" v:Primary "}" -> v;
+  "{" v:(InterpolationCode |> [InterpolationValue]) "}" -> v;
 
 rule StringContent =
   (

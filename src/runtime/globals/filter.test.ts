@@ -1,6 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { collect } from "../collect.ts";
 import { filter } from "./filter.ts";
+import { metadataOf } from "../value_metadata.ts";
 
 Deno.test("globals.filter keeps elements whose async predicate is truthy", async () => {
   const result = await collect(filter(
@@ -28,4 +29,11 @@ Deno.test("globals.filter is lazy: nothing runs until drained", async () => {
   assertEquals(calls, 0);
   await collect(gen);
   assertEquals(calls, 3);
+});
+
+Deno.test("globals.filter carries metadata", () => {
+  assertEquals(
+    metadataOf(filter)?.parameters.map((p) => p.name),
+    ["self", "predicate"],
+  );
 });

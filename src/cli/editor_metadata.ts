@@ -16,6 +16,7 @@ export enum EditorDecorator {
   Import = "Import",
   ModulePath = "ModulePath",
   ImportedName = "ImportedName",
+  Documentation = "Documentation",
 }
 
 /** A parse node that carries rule metadata (`Ok` or `Fail`). */
@@ -74,6 +75,35 @@ export function modulePathExtensions(node: Match): string[] | undefined {
   return stringArray(
     field(editorMetadata(node, EditorDecorator.ModulePath), "extensions"),
   );
+}
+
+/** A declaration's `[Documentation]`, as normalized by the decorator. */
+export type Documentation = {
+  description: string;
+  /** Parameter name -> description. */
+  parameters: Record<string, string>;
+};
+
+/**
+ * The `[Documentation]` a declaration's metadata carries, validated; a
+ * missing or malformed entry yields `undefined`, and non-string parameter
+ * descriptions are dropped.
+ */
+export function documentationOf(
+  metadata: Record<string, unknown> | undefined,
+): Documentation | undefined {
+  const value = metadata?.[EditorDecorator.Documentation];
+  const description = field(value, "description");
+  if (type(description)[0] !== Type.String) return undefined;
+  const [t, raw] = type(field(value, "parameters"));
+  const parameters = t === Type.Object
+    ? Object.fromEntries(
+      Object.entries(raw as Record<string, unknown>).filter((
+        entry,
+      ): entry is [string, string] => type(entry[1])[0] === Type.String),
+    )
+    : {};
+  return { description: description as string, parameters };
 }
 
 /** The `name` field of a node's projected value (a `[Declaration]`). */

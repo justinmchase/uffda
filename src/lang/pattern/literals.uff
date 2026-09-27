@@ -6,6 +6,7 @@ import "../expression/number.uff" Number;
 import "../expression/boolean.uff" Boolean;
 import "../expression/nullish.uff" Nullish;
 import "./character_class.uff" CharacterClass;
+import "../editor/editor.uff" Keyword;
 
 export Literals;
 export ContextualValue;
@@ -70,17 +71,29 @@ rule Literal =
   | IdentifierLiteralSource
   ;
 
+[Keyword]
 rule TypeArray = "array" -> { kind: "type", type: "array" };
+[Keyword]
 rule TypeBigInt = "bigint" -> { kind: "type", type: "bigint" };
+[Keyword]
 rule TypeBoolean = "boolean" -> { kind: "type", type: "boolean" };
+[Keyword]
 rule TypeDate = "date" -> { kind: "type", type: "date" };
+[Keyword]
 rule TypeError = "error" -> { kind: "type", type: "error" };
+[Keyword]
 rule TypeFunction = "function" -> { kind: "type", type: "function" };
+[Keyword]
 rule TypeMap = "map" -> { kind: "type", type: "map" };
+[Keyword]
 rule TypeNumber = "number" -> { kind: "type", type: "number" };
+[Keyword]
 rule TypeObject = "object" -> { kind: "type", type: "object" };
+[Keyword]
 rule TypeSet = "set" -> { kind: "type", type: "set" };
+[Keyword]
 rule TypeString = "string" -> { kind: "type", type: "string" };
+[Keyword]
 rule TypeSymbol = "symbol" -> { kind: "type", type: "symbol" };
 
 rule TypeKeyword =
@@ -107,8 +120,11 @@ rule IncludesValues =
   r:Literal*
   -> (flat (pack f r));
 
+[Keyword]
+rule InKeyword = "in";
+
 rule IncludesPattern =
-  "in"
+  InKeyword
   "["
   v:IncludesValues
   "]"

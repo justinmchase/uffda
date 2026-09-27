@@ -983,6 +983,22 @@ Deno.test("cli.mcp.session RuntimeSession introspection", async (t) => {
   );
 
   await t.step(
+    "describeGlobal reports a runtime global's metadata",
+    () => {
+      const session = new RuntimeSession("i1d");
+      const result = session.describeGlobal("join");
+      assertEquals(result.ok, true);
+      assert(result.ok);
+      assertEquals(result.global.name, "join");
+      assertEquals(
+        result.global.metadata?.parameters.map((p) => p.name),
+        ["self", "separator"],
+      );
+      assertEquals(session.describeGlobal("NotAGlobal").ok, false);
+    },
+  );
+
+  await t.step(
     "describe reports a rule's pattern, parameters, attributes, and metadata",
     async () => {
       const session = new RuntimeSession("i2");

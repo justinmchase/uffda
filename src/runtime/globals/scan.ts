@@ -1,4 +1,5 @@
 import { iterable } from "./iterable.ts";
+import { defineMetadata } from "../value_metadata.ts";
 
 /**
  * Lazily thread a running accumulator across a value, yielding the updated
@@ -36,3 +37,9 @@ export async function* scan(
     yield acc;
   }
 }
+
+defineMetadata(scan, {
+  description:
+    "Lazily yields the running accumulator after each fn(acc, item) step.",
+  parameters: [{ name: "self" }, { name: "initial" }, { name: "fn" }],
+});

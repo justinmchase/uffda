@@ -1,3 +1,5 @@
+import { defineMetadata } from "../value_metadata.ts";
+
 /**
  * Length-1 list collapse for pattern wrappers (conversion blocker B4).
  *
@@ -14,3 +16,8 @@ export function one(items: unknown[], full: unknown): unknown {
   }
   return full;
 }
+
+defineMetadata(one, {
+  description: "The only element of a one-element list, otherwise full.",
+  parameters: [{ name: "items" }, { name: "full" }],
+});

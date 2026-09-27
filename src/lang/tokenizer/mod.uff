@@ -93,6 +93,7 @@ rule CommentToken =
   "#" (except "\n")*
   -> { kind: "comment", text: (join (flat _) "") };
 
+# A single character of string content (punctuation or whitespace).
 [Highlight { role: "string" }]
 rule StringPunctuationToken =
   (not "\"") & string
@@ -102,14 +103,12 @@ rule StringPunctuationToken =
 # Stage 2): committed-choice `switch` replaces trying each alternative
 # in turn per character; a closing `"` (not any declared key) falls to
 # `default`, matching the original last-alternative failure exactly.
+# Whitespace and newlines inside a string are string content, not trivia:
+# they fall to `default` as content tokens so `TokenizerNoWhitespace` keeps
+# them.
 rule StringInterior =
   switch {
     "\\": EscapeTokens,
-    \cZs: WhitespaceToken,
-    \cZl: WhitespaceToken,
-    \cZp: WhitespaceToken,
-    "\t": WhitespaceToken,
-    "\n": NewLineToken,
     \cL: WordToken,
     \cNl: WordToken,
     \cPc: WordToken,

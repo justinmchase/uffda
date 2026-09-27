@@ -9,6 +9,7 @@
 import "./pattern.uff" Pattern;
 import "./character_class.uff" CharacterClass;
 import "./literals.uff" ContextualValue AtomicLiteralSource;
+import "../editor/editor.uff" Keyword;
 
 export Switch;
 
@@ -48,8 +49,11 @@ rule SwitchCases =
   r:SwitchCaseTail*
   -> (flat (pack f r));
 
+[Keyword]
+rule DefaultKeyword = "default";
+
 rule SwitchDefaultCase =
-  "default"
+  DefaultKeyword
   ":"
   p:Pattern
   -> p;
@@ -79,8 +83,11 @@ rule SwitchBody =
   | SwitchEmptyBody
   ;
 
+[Keyword]
+rule SwitchKeyword = "switch";
+
 rule Switch =
-  "switch"
+  SwitchKeyword
   "{"
   b:SwitchBody
   ","?

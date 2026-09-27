@@ -1,3 +1,5 @@
+import { defineMetadata } from "../value_metadata.ts";
+
 /**
  * Convert a collection into a Set of its elements.
  * Authors write `(to_set items)`.
@@ -20,3 +22,8 @@ export function to_set(items: unknown): Set<unknown> {
   }
   throw new TypeError("to_set expects an array, object, Map, or Set");
 }
+
+defineMetadata(to_set, {
+  description: "Converts a collection into a Set.",
+  parameters: [{ name: "items" }],
+});

@@ -279,7 +279,20 @@ Deno.test({
         input: Input.Iterable(
           '#123 punctuation !@*\nany # trailing\n"# quoted \\" hash"\nend',
         ),
-        value: ["any", '"', "#", "quoted", "\\", '"', "hash", '"', "end"],
+        value: [
+          "any",
+          '"',
+          "#",
+          " ",
+          "quoted",
+          " ",
+          "\\",
+          '"',
+          " ",
+          "hash",
+          '"',
+          "end",
+        ],
         kind: MatchKind.Ok,
       }),
     });

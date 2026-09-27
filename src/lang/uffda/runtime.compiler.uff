@@ -107,7 +107,8 @@ rule CompileDecoratorDeclaration =
     kind: "decorator",
     name: n:string,
     pattern: t:object,
-    expression: x:object
+    expression: x:object,
+    attributes: c:[CompileAttribute*]
   }
   -> {
     imports: [],
@@ -117,7 +118,8 @@ rule CompileDecoratorDeclaration =
     decorators: [{
       name: n,
       pattern: t,
-      expression: x
+      expression: x,
+      attributes: c
     }]
   };
 

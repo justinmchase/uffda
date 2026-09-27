@@ -1,4 +1,5 @@
 import { iterable } from "./iterable.ts";
+import { defineMetadata } from "../value_metadata.ts";
 
 /**
  * Reduce a value to a single accumulated value. Authors write
@@ -34,3 +35,9 @@ export async function reduce(
   }
   return acc;
 }
+
+defineMetadata(reduce, {
+  description:
+    "Reduces a collection to one value by calling fn(acc, item) for each item.",
+  parameters: [{ name: "self" }, { name: "initial" }, { name: "fn" }],
+});

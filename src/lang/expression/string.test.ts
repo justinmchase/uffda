@@ -166,5 +166,31 @@ Deno.test(
         },
       }),
     });
+
+    await t.step({
+      name: "STRING_EXPRESSION_06 - whitespace content is preserved",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "String",
+        input: Input.Iterable(['"', "a", " ", "b", "\n", '"']),
+        kind: MatchKind.Ok,
+        value: { kind: ExpressionKind.String, values: ["a b\n"] },
+      }),
+    });
+
+    await t.step({
+      name:
+        "STRING_EXPRESSION_07 - whitespace inside an interpolation is ignored",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "String",
+        input: Input.Iterable(['"', "x", " ", "{", " ", "y", " ", "}", '"']),
+        kind: MatchKind.Ok,
+        value: {
+          kind: ExpressionKind.String,
+          values: ["x ", { kind: ExpressionKind.Reference, name: "y" }],
+        },
+      }),
+    });
   },
 );

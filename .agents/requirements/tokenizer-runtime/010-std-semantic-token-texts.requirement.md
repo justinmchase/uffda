@@ -20,7 +20,8 @@ Expected behavior:
 - `semantic_texts` MUST omit tokens whose `kind` is `"comment"` and MUST retain
   whitespace and newline texts.
 - `semantic_no_whitespace_texts` MUST retain only `"word"` and `"punctuation"`
-  texts.
+  texts. Whitespace and newlines inside a quoted string are string content
+  (`"punctuation"` tokens), so they MUST be retained.
 - Funcs MUST NOT read Match spans.
 
 Error behavior:

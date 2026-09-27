@@ -95,6 +95,37 @@ const EXPECTED: Array<
   ["../expression/reference.uff", "Reference", "Reference", "NameReference", {
     kinds: ["func"],
   }],
+  [
+    "../pattern/character_class.uff",
+    "CharacterClass",
+    "CharacterClass",
+    "Highlight",
+    { role: "string" },
+  ],
+  ...([
+    ["../uffda/shared.rules.uff", "IdentifierToken", "RuleKeyword"],
+    ["../pattern/switch.uff", "Switch", "SwitchKeyword"],
+    ["../pattern/switch.uff", "Switch", "DefaultKeyword"],
+    ["../pattern/prefix.uff", "Prefix", "NotKeyword"],
+    ["../pattern/prefix.uff", "Prefix", "MaybeKeyword"],
+    ["../pattern/prefix.uff", "Prefix", "LookaheadKeyword"],
+    ["../pattern/prefix.uff", "Prefix", "ExceptKeyword"],
+    ["../pattern/literals.uff", "Literals", "InKeyword"],
+    ["../pattern/literals.uff", "Literals", "TypeString"],
+    ["../pattern/atoms.uff", "Atoms", "Any"],
+    ["../pattern/atoms.uff", "Atoms", "Fail"],
+    ["../expression/not.uff", "Not", "NotKeyword"],
+    ["../expression/boolean.uff", "Boolean", "TrueKeyword"],
+    ["../expression/nullish.uff", "Nullish", "NullKeyword"],
+  ] as const).map(([module, entry, rule]) =>
+    [module, entry, rule, "Keyword", { role: "keyword" }] as [
+      string,
+      string,
+      string,
+      string,
+      unknown,
+    ]
+  ),
 ];
 
 Deno.test("lang.editor metadata on the .uff grammar", async (t) => {

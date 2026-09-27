@@ -6,16 +6,23 @@
 # .agents/specifications/languages/cli/editor-metadata.spec.md.
 
 export Highlight;
+export Keyword;
 export Declaration;
 export NameReference;
 export Import;
 export ModulePath;
 export ImportedName;
+export Documentation;
 
 # `[Highlight { role: "comment" }]` — the syntactic role of a token rule's
 # span. The outermost Highlight on a path decides the role of every token
 # span beneath it (a string literal's inner words are string content).
 decorator Highlight<c:any> = c;
+
+# `[Keyword]` — a reserved word. The token span a Keyword node matches
+# exactly is highlighted as a keyword (unless an enclosing Highlight, such as
+# a string literal, decides its role).
+decorator Keyword = { role: "keyword" };
 
 # `[Declaration]` — a production declaring a named rule/func/decorator. Its
 # projected value carries the declared `name`.
@@ -39,3 +46,13 @@ decorator ModulePath<c:any> = c;
 # `[ImportedName]` — one name bound by an import. Completion offers the
 # exports of the module named by the enclosing Import's ModulePath.
 decorator ImportedName = true;
+
+# `[Documentation "…"]` or
+# `[Documentation { description: "…", parameters: { P: "…" } }]` —
+# documentation of a rule/func/decorator for tooling (hover, completion).
+# Either form is normalized to `{ description, parameters }`, `parameters`
+# mapping parameter names to their descriptions.
+decorator Documentation<d:(string | { description: string })> = {
+  description: (coalesce d.description d),
+  parameters: (coalesce d.parameters {})
+};

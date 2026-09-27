@@ -365,6 +365,19 @@ export class Resolver {
     }
 
     const declarationScope = context.scope.pushModule(module);
+    for (const { name, attributes } of decoratorsOf(declaration)) {
+      if (attributes && attributes.length > 0) {
+        const decorator = module.decorators.get(name);
+        if (decorator) {
+          await applyAttributes(
+            decorator,
+            attributes,
+            module,
+            declarationScope,
+          );
+        }
+      }
+    }
     for (const { name, attributes } of declaration.rules) {
       if (attributes && attributes.length > 0) {
         const rule = module.rules.get(name);
