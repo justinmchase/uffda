@@ -1,8 +1,8 @@
 # DecoratorDeclarationSyntax matches `decorator Name<params> = expr;`: a
 # top-level declaration parallel to `func`, but living in its own namespace
 # (never resolvable as an ordinary reference/invocation, never invocable via
-# `func`-style call syntax). Applied to a rule/func via `[Name arg…]`
-# attribute syntax, see attribute.rules.uff. See
+# `func`-style call syntax). Applied to a rule/func/decorator via
+# `[Name arg…]` attribute syntax, see attribute.rules.uff. See
 # languages/uffda-syntax/decorator-declarations.spec.md. Reuses FuncExpressionBody
 # for the expression body (identical tokenizing/parsing needs). Variable
 # bindings are single-letter (published CLI PatternLang).
@@ -10,11 +10,13 @@ import "../pattern/parameter_list.uff" ParameterList;
 import "./shared.rules.uff" IdentifierToken DecoratorKeyword;
 import "../editor/editor.uff" Declaration;
 import "./func.rules.uff" FuncExpressionBody;
+import "./attribute.rules.uff" AttributeSyntax;
 
 export DecoratorDeclarationSyntax;
 
 [Declaration]
 rule DecoratorDeclarationSyntax =
+  a:AttributeSyntax*
   DecoratorKeyword
   n:IdentifierToken
   p:ParameterList?
@@ -25,5 +27,6 @@ rule DecoratorDeclarationSyntax =
     kind: "decorator",
     name: n,
     pattern: (coalesce p { kind: "end" }),
-    expression: e
+    expression: e,
+    attributes: a
   };

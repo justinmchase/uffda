@@ -120,10 +120,10 @@ Deno.test("lang.uffda.attribute-rules", async (t) => {
   );
 
   await t.step(
-    "ATTRIBUTE_RULES07 - an attribute list before a decorator declaration fails to parse",
+    "ATTRIBUTE_RULES07 - an attribute list MAY precede a decorator declaration",
     async () => {
       const match = await uffdaGrammar("[Foo] decorator Bar = end;");
-      assertEquals(match.kind, MatchKind.Fail);
+      assertEquals(match.kind, MatchKind.Ok);
     },
   );
 });

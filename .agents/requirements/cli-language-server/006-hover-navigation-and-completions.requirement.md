@@ -37,6 +37,11 @@ Expected behavior:
     pattern references in its rule. At a binding site (not a `[NameReference]`)
     either kind applies. A variable hover MUST show its binding as authored; a
     parameter hover MUST name its rule.
+  - A declaration's `[Documentation]` (see
+    [editor metadata](../../specifications/languages/cli/editor-metadata.spec.md#vocabulary))
+    MUST lead its hover, its parameter descriptions MUST follow, and a local
+    binding that is a documented parameter of its declaration MUST show that
+    parameter's description. Completion items MUST carry the description.
   - A runtime global hover MUST show the global's signature and description from
     the metadata it carries (see
     [runtime value metadata](../../specifications/runtime/value-metadata.spec.md)).

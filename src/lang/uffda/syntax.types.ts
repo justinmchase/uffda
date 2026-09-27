@@ -49,6 +49,8 @@ export type UffdaDecoratorSyntaxDeclaration = {
   /** Args pattern (End when no parameter list); typically Then of captures. */
   pattern: Pattern;
   expression: Expression;
+  /** Written left to right; empty when no `[Name]` prefix is present. */
+  attributes: UffdaAttributeSyntax[];
 };
 
 export type UffdaSyntaxDeclaration =

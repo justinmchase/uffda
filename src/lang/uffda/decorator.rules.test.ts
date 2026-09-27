@@ -55,10 +55,18 @@ Deno.test("lang.uffda.decorator-rules", async (t) => {
   );
 
   await t.step(
-    "DECORATOR_RULES03 - a decorator declaration MUST NOT itself carry an attribute list",
+    "DECORATOR_RULES03 - a decorator declaration MAY carry an attribute list",
     async () => {
-      const match = await uffdaGrammar("[Foo] decorator Bar = end;");
-      assertEquals(match.kind, MatchKind.Fail);
+      const match = await uffdaGrammar("[Foo] [Bar] decorator Bar = end;");
+      assertEquals(match.kind, MatchKind.Ok);
+      if (match.kind !== MatchKind.Ok) return;
+      const declaration = match.value.declarations[0];
+      assertEquals(declaration.kind, "decorator");
+      if (declaration.kind !== "decorator") return;
+      assertEquals(
+        declaration.attributes.map((a) => a.name),
+        ["Foo", "Bar"],
+      );
     },
   );
 });

@@ -1,7 +1,8 @@
 import type { DecoratorFunc } from "./decorator.ts";
 
 /**
- * An applied attribute (`[Name arg…]`) on a `Rule`/`Func`, paired with its
+ * An applied attribute (`[Name arg…]`) on a `Rule`/`Func`/`DecoratorFunc`,
+ * paired with its
  * evaluated call-site args and the resolved `DecoratorFunc` it invoked.
  * Presence is recorded unconditionally, independent of the invocation's
  * return value. See `.agents/specifications/runtime/rule-metadata.spec.md`.

@@ -1,6 +1,6 @@
 ---
 id: rule-decorators-002
-title: Attribute lists parse as stacked bracket groups preceding rule/func declarations and resolve exclusively against decorator declarations
+title: Attribute lists parse as stacked bracket groups preceding rule/func/decorator declarations and resolve exclusively against decorator declarations
 spec_ref: ".agents/specifications/languages/uffda-syntax/declaration-attributes.spec.md#rough-grammar; .agents/specifications/languages/uffda-syntax/declaration-attributes.spec.md#core-contracts"
 ---
 
@@ -22,10 +22,11 @@ Expected behavior:
 - Multiple attributes on one declaration MUST parse as separate stacked bracket
   groups (`[Foo][Bar]`, `[Foo 0][Bar 1]`) and MUST NOT parse a comma-separated
   list inside a single bracket pair as multiple attributes.
-- An attribute list immediately preceding `rule`, `export rule`, `func`, or
-  `export func` MUST attach to that declaration.
-- An attribute list preceding any other top-level declaration keyword (including
-  `decorator`) MUST fail to parse.
+- An attribute list immediately preceding `rule`, `export rule`, `func`,
+  `export func`, `decorator`, or `export decorator` MUST attach to that
+  declaration.
+- An attribute list preceding any other top-level declaration keyword MUST fail
+  to parse.
 - `Name` MUST resolve exclusively against `decorator` declarations
   (`Module.decorators`/`Module.decoratorImports`); it MUST NOT resolve against
   `rule`, `func`, or ordinary imported names.

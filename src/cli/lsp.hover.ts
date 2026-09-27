@@ -9,6 +9,11 @@ import type {
 } from "./mcp.session.ts";
 import { HighlightRole, highlightSpansFromMatch } from "./highlight.ts";
 import {
+  type Documentation,
+  documentationOf,
+  EditorDecorator,
+} from "./editor_metadata.ts";
+import {
   acceptsKind,
   identifierPosition,
   type LocalBinding,
@@ -102,12 +107,19 @@ function truncateLines(text: string, max: number): string {
     : [...lines.slice(0, max), "  …"].join("\n");
 }
 
+function parameterDocs(documentation: Documentation | undefined) {
+  return Object.entries(documentation?.parameters ?? {})
+    .map(([name, description]) => `- \`${name}\` — ${description}`)
+    .join("\n");
+}
+
 /**
  * Formats a `DescribedDeclaration` as Markdown for `textDocument/hover`.
- * With `sourceText` (the declaration as authored, attributes included) the
- * source is shown verbatim and only decorator-computed metadata not visible
- * in it is listed; without it, the pattern kind, parameters, and attributes
- * are summarized instead.
+ * Its `[Documentation]` description leads, and its parameter descriptions
+ * follow. With `sourceText` (the declaration as authored, attributes
+ * included) the source is shown verbatim and only decorator-computed metadata
+ * not visible in it is listed; without it, the pattern kind, parameters, and
+ * attributes are summarized instead.
  */
 export function formatDescribedDeclarationMarkdown(
   declaration: DescribedDeclaration,
@@ -117,7 +129,11 @@ export function formatDescribedDeclarationMarkdown(
   const sections: string[] = [
     `(${exportTag}${declaration.kind}) \`${declaration.name}\``,
   ];
-  const attributes = declaration.attributes ?? [];
+  const documentation = documentationOf(declaration.metadata);
+  if (documentation) sections.push(documentation.description);
+  const attributes = (declaration.attributes ?? []).filter((a) =>
+    a.decorator !== EditorDecorator.Documentation
+  );
 
   if (sourceText !== undefined) {
     sections.push(
@@ -136,11 +152,16 @@ export function formatDescribedDeclarationMarkdown(
         ).join("\n"),
       );
     }
+    const parameters = parameterDocs(documentation);
+    if (parameters) sections.push(parameters);
     return sections.join("\n\n");
   }
 
   sections.push(`**pattern:** \`${describePattern(declaration.pattern)}\``);
-  if (declaration.parameters && declaration.parameters.length > 0) {
+  const parameters = parameterDocs(documentation);
+  if (parameters) {
+    sections.push("**parameters:**", parameters);
+  } else if (declaration.parameters && declaration.parameters.length > 0) {
     sections.push(
       `**parameters:** ${
         declaration.parameters.map((p) => `\`${p.name}\``).join(", ")
@@ -206,7 +227,18 @@ async function hoverMarkdown(
 ): Promise<string | undefined> {
   const position = identifierPosition(match, ident);
   const local = localBindingAt(position, ident.name);
-  if (local) return formatLocalBindingMarkdown(local, source);
+  if (local) {
+    const declaration = local.declarationName &&
+      session.describe(local.declarationName);
+    const documentation = declaration && declaration.ok
+      ? documentationOf(declaration.declaration.metadata)
+      : undefined;
+    return formatLocalBindingMarkdown(
+      local,
+      source,
+      documentation?.parameters[local.name],
+    );
+  }
 
   const described = session.describe(ident.name);
   if (described.ok) {
@@ -223,18 +255,28 @@ async function hoverMarkdown(
   return undefined;
 }
 
-/** Formats a local binding (see `localBindingAt`) as hover Markdown. */
+/**
+ * Formats a local binding (see `localBindingAt`) as hover Markdown, with the
+ * enclosing declaration's `[Documentation]` of that parameter when given.
+ */
 export function formatLocalBindingMarkdown(
   binding: LocalBinding,
   source: string,
+  parameterDescription?: string,
 ): string {
+  const sections: string[] = [];
   switch (binding.kind) {
     case LocalBindingKind.Parameter:
-      return `(parameter) \`${binding.name}\`${
-        binding.declarationName ? ` of rule \`${binding.declarationName}\`` : ""
-      }`;
+      sections.push(
+        `(parameter) \`${binding.name}\`${
+          binding.declarationName
+            ? ` of rule \`${binding.declarationName}\``
+            : ""
+        }`,
+      );
+      break;
     case LocalBindingKind.Variable:
-      return [
+      sections.push(
         `(variable) \`${binding.name}\``,
         [
           "```uffda",
@@ -244,8 +286,11 @@ export function formatLocalBindingMarkdown(
           ),
           "```",
         ].join("\n"),
-      ].join("\n\n");
+      );
+      break;
   }
+  if (parameterDescription) sections.push(parameterDescription);
+  return sections.join("\n\n");
 }
 
 /**

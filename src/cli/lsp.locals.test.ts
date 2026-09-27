@@ -32,6 +32,20 @@ Deno.test("cli.lsp.locals", async (t) => {
     );
   });
 
+  await t.step("names the declaration that binds a variable", async () => {
+    const source = "func F<s:string> = (map [s] <x:any> -> x);";
+    const direct = await bindingAt(source, "[s]", 1);
+    assertEquals(
+      direct && "declarationName" in direct ? direct.declarationName : null,
+      "F",
+    );
+    const lambda = await bindingAt(source, "-> x", 3);
+    assertEquals(
+      lambda && "declarationName" in lambda ? lambda.declarationName : null,
+      null,
+    );
+  });
+
   await t.step("resolves destructured func parameters", async () => {
     const source = "func Text<{text: t:string}> = t;";
     const binding = await bindingAt(source, "t;");

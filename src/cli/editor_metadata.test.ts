@@ -4,6 +4,7 @@ import { MatchKind } from "../match.ts";
 import {
   type AnnotatableMatch,
   declaredName,
+  documentationOf,
   EditorDecorator,
   editorMetadata,
   findAnnotated,
@@ -84,4 +85,23 @@ Deno.test("cli.editor_metadata", async (t) => {
     assertEquals(modulePathExtensions(match), undefined);
     assertEquals(declaredName(match), undefined);
   });
+});
+
+Deno.test("cli.editor_metadata documentationOf", () => {
+  assertEquals(
+    documentationOf({
+      Documentation: {
+        description: "Pair of P.",
+        parameters: { P: "the element", Q: 1 },
+      },
+    }),
+    { description: "Pair of P.", parameters: { P: "the element" } },
+  );
+  assertEquals(
+    documentationOf({ Documentation: { description: "Only text." } }),
+    { description: "Only text.", parameters: {} },
+  );
+  assertEquals(documentationOf({ Documentation: "raw string" }), undefined);
+  assertEquals(documentationOf({ Highlight: { role: "string" } }), undefined);
+  assertEquals(documentationOf(undefined), undefined);
 });

@@ -90,6 +90,8 @@ export type LocalBinding =
     name: string;
     /** Source span of the binding pattern (`name:pattern`). */
     span: { start: number; end: number };
+    /** The declaration whose own parameters/pattern bind it (not a lambda). */
+    declarationName?: string;
   };
 
 function field(value: unknown, name: string): unknown {
@@ -153,6 +155,8 @@ export function localBindingAt(
   const parameters = acceptsKind(position, "rule");
   for (const node of [...position.chain].reverse()) {
     if (!isScope(node)) continue;
+    const isDeclaration = hasEditorMetadata(node, EditorDecorator.Declaration);
+    const declarationName = isDeclaration ? declaredName(node) : undefined;
     const variable = variables ? variableIn(node, name) : undefined;
     if (variable) {
       return {
@@ -162,11 +166,11 @@ export function localBindingAt(
           start: variable.originalSpan.start,
           end: variable.originalSpan.end,
         },
+        ...(declarationName ? { declarationName } : {}),
       };
     }
-    if (hasEditorMetadata(node, EditorDecorator.Declaration)) {
+    if (isDeclaration) {
       if (parameters && hasParameter(node, name)) {
-        const declarationName = declaredName(node);
         return {
           kind: LocalBindingKind.Parameter,
           name,

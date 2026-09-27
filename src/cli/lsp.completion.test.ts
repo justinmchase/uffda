@@ -58,6 +58,42 @@ Deno.test("cli.lsp.completion completionItemsForModule", async (t) => {
     assertEquals(items.map((i) => i.label), ["Greet", "Loud"]);
     assertEquals(items[0].textEdit, { range, newText: "Greet" });
   });
+
+  await t.step("attaches documentation when provided", () => {
+    const items = completionItemsForModule({
+      moduleUrl: "file:///x.uff",
+      declarations: [
+        { name: "Main", kind: "rule", exported: true },
+        { name: "Greet", kind: "func", exported: false },
+      ],
+    }, {
+      documentation: (d) => d.name === "Main" ? "The entry rule." : undefined,
+    });
+    assertEquals(items[0].documentation, {
+      kind: "markdown",
+      value: "The entry rule.",
+    });
+    assertEquals(items[1].documentation, undefined);
+  });
+
+  await t.step(
+    "documents session declarations from [Documentation]",
+    async () => {
+      const session = new RuntimeSession("completion-docs");
+      const load = await session.load(`export Main;
+decorator Documentation<d:string> = { description: d };
+[Documentation "The entry rule."]
+rule Main = any;`);
+      assertEquals(load.ok, true);
+      const main = completionItemsForSession(session).find((i) =>
+        i.label === "Main"
+      );
+      assertEquals(main?.documentation, {
+        kind: "markdown",
+        value: "The entry rule.",
+      });
+    },
+  );
 });
 
 Deno.test("cli.lsp.completion completionItemsForSession", async (t) => {

@@ -40,6 +40,17 @@ diagnostics, and tooling MUST NOT fall back to guessing.
 | `Import`                     | a module import production                         | projected value is a runtime import declaration       |
 | `ModulePath { extensions? }` | the module path text of an import (no delimiters)  | `extensions`: module file extensions (omitted: any)   |
 | `ImportedName`               | one name bound by an import                        | —                                                     |
+| `Documentation`              | a rule/func/decorator being documented             | `{ description, parameters }` (see below)             |
+
+`Documentation` differs from the others: it describes a declaration for the
+people using it, not a grammar production for tooling. It is written either
+`[Documentation "…"]` or
+`[Documentation { description: "…", parameters: { P: "…" } }]` and normalized to
+`{ description, parameters }`, `parameters` mapping parameter names to their
+descriptions. Hover MUST lead with the description and show parameter
+descriptions (on the declaration and on each parameter's own hover), and
+completion items MUST carry the description as their documentation. A
+declaration's hover MUST NOT also list `Documentation` as an attribute.
 
 `[Language]` (see the
 [language server](./language-server.spec.md#language-configuration)) are

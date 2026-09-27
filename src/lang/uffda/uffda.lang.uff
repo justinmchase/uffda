@@ -22,11 +22,6 @@ export UffdaLang;
 # hand-maintained, per-language static file. `c` is a single object literal
 # so any consumer may freely add further properties (for example a future
 # `description` or `wordPattern`) without changing the decorator's shape.
-# Multi-word string values are not used here yet: `TokenizerNoWhitespace`
-# (see `tokenizer/mod.uff`) drops whitespace tokens before module-body
-# expressions (including string literals) are parsed, so an embedded space
-# is not currently preserved inside a module-level string literal — see
-# GitHub issue #<pending> (filed as a follow-up).
 decorator Language<c:any> = c;
 
 rule ModuleDeclarationSyntax =

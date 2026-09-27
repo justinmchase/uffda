@@ -2,8 +2,8 @@
 
 This chapter defines Uffda `decorator` declaration syntax: a top-level
 declaration family, parallel to `rule` and `func`, that defines a named,
-reusable callable applied to a `rule`/`func` declaration via `[Name arg…]`
-attribute syntax.
+reusable callable applied to a `rule`/`func`/`decorator` declaration via
+`[Name arg…]` attribute syntax.
 
 ## Logical purpose
 
@@ -26,7 +26,8 @@ matters for `this` binding, and
 ## Rough grammar
 
 ```text
-DecoratorDeclaration = "decorator" Identifier ParameterList? "=" Expression ";" ;
+DecoratorDeclaration = AttributeList? "decorator" Identifier ParameterList?
+                       "=" Expression ";" ;
 ```
 
 `ParameterList` and `Expression` are parsed exactly as they are for `func`
@@ -46,8 +47,10 @@ declarations — see [func declaration syntax](./func-declarations.spec.md).
   every `rule`, `func`, and imported name in the same module. It MUST NOT
   collide with a rule/func/import name, and a rule/func/import name MUST NOT
   collide with it.
-- A `decorator` declaration MUST NOT itself carry an attribute list (no
-  `[Foo] decorator Bar = …;`). Decorators are not decoratable.
+- A `decorator` declaration MAY carry an attribute list
+  (`[Foo] decorator Bar = …;`), including one naming itself
+  (`[Foo] decorator Foo = …;`) — see
+  [declaration attribute syntax](./declaration-attributes.spec.md).
 - A `decorator` declaration MUST NOT be referenced from an ordinary
   `ExpressionLang` expression (for example `(Name arg1 arg2)` inside a rule or
   func body). A decorator name is only ever resolved through attribute
@@ -64,11 +67,12 @@ declarations — see [func declaration syntax](./func-declarations.spec.md).
   is only ever reached through the attribute-application path, so `this` has
   exactly one meaning there. See
   [runtime rule metadata](../../runtime/rule-metadata.spec.md).
-- **Decorators are not decoratable.** Allowing `[Foo] decorator Bar = …;` would
-  require topological ordering (or cycle detection) across decorator
-  declarations before any of them could be considered "resolved enough" to
-  validate as a decorator. Excluding decorators from the attribute target set
-  keeps decorator resolution a single, ordering-free namespace lookup.
+- **Decorators are decoratable.** Decorators need the same annotations as rules
+  and funcs (for example `[Documentation]`). This needs no ordering or cycle
+  detection: invoking a decorator reads only its own pattern and expression,
+  never any declaration's metadata (see
+  [runtime rule metadata](../../runtime/rule-metadata.spec.md)), so decorators
+  may decorate themselves and each other in any order.
 - **Structurally identical to `func` otherwise.** Reusing the exact parameter
   list and expression body grammar keeps the surface small and familiar; the
   only thing that changes is which namespace the declaration lives in and what

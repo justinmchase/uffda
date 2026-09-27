@@ -3,8 +3,10 @@ import {
   CompletionItemKind,
   type Range,
 } from "vscode-languageserver-types";
+import { documentationOf } from "./editor_metadata.ts";
 import type {
   LoadedDeclarationKind,
+  LoadedDeclarationSummary,
   LoadedModuleSummary,
   RuntimeSession,
 } from "./mcp.session.ts";
@@ -29,6 +31,8 @@ export type DeclarationCompletionOptions = {
   kinds?: readonly string[];
   /** Range each item replaces (the name typed so far). */
   range?: Range;
+  /** Markdown documentation for a declaration, when it has any. */
+  documentation?: (declaration: LoadedDeclarationSummary) => string | undefined;
 };
 
 /** Maps a module's in-scope declarations to LSP completion items. */
@@ -36,7 +40,7 @@ export function completionItemsForModule(
   summary: LoadedModuleSummary,
   options: DeclarationCompletionOptions = {},
 ): CompletionItem[] {
-  const { kinds, range } = options;
+  const { kinds, range, documentation } = options;
   const seen = new Set<string>();
   const items: CompletionItem[] = [];
   for (const declaration of summary.declarations) {
@@ -44,12 +48,14 @@ export function completionItemsForModule(
     const key = `${declaration.kind}:${declaration.name}`;
     if (seen.has(key)) continue;
     seen.add(key);
+    const docs = documentation?.(declaration);
     items.push({
       label: declaration.name,
       kind: COMPLETION_KINDS[declaration.kind],
       detail: declaration.exported
         ? `exported ${declaration.kind}`
         : declaration.kind,
+      ...(docs ? { documentation: { kind: "markdown", value: docs } } : {}),
       ...(range ? { textEdit: { range, newText: declaration.name } } : {}),
     });
   }
@@ -58,13 +64,23 @@ export function completionItemsForModule(
 
 /**
  * Builds completion items for the session's most recently loaded root
- * module. Returns an empty list when nothing has resolved yet (for example a
- * document whose first parse failed) rather than erroring.
+ * module, documented by each declaration's `[Documentation]`. Returns an
+ * empty list when nothing has resolved yet (for example a document whose
+ * first parse failed) rather than erroring.
  */
 export function completionItemsForSession(
   session: RuntimeSession,
   options: DeclarationCompletionOptions = {},
 ): CompletionItem[] {
   const summary = session.listDeclarations();
-  return summary ? completionItemsForModule(summary, options) : [];
+  if (!summary) return [];
+  return completionItemsForModule(summary, {
+    documentation: (declaration) => {
+      const described = session.describe(declaration.name);
+      return described.ok && described.declaration.kind === declaration.kind
+        ? documentationOf(described.declaration.metadata)?.description
+        : undefined;
+    },
+    ...options,
+  });
 }

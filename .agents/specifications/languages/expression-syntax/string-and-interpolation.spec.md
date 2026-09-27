@@ -16,6 +16,12 @@ Normative key words in this chapter use the conventions defined in the
 - The following escapes MUST be recognized in string content and MUST project
   the corresponding character: `\t` (tab), `\n` (LF), `\r` (CR), `\\`
   (backslash), and `\"` (quote).
+- Unescaped whitespace and newlines in string content MUST be preserved in the
+  string's value (`"a b"` is `a b`).
+- Inside an interpolation, whitespace MUST only separate the payload's tokens:
+  it is not part of the string, and `"{ (length s) }"` is equivalent to
+  `"{(length s)}"`. Braces nested in a payload (object literals) MUST be
+  balanced.
 - String interpolation MUST support expression payloads including object-like
   interpolation structures used for meta-programming.
 - Interpolation syntax MUST remain low-sugar and explicit; implicit template
@@ -25,6 +31,8 @@ Normative key words in this chapter use the conventions defined in the
 
 - `"hello"`
 - `"hello {name}"`
+- `"source:{ (length text) }"` (whitespace around an interpolation payload is
+  ignored)
 - `"{user.name}"`
 - `"\t\n\r"` (tab, LF, and CR via escapes)
 - `"\\"` and `"\""` (literal backslash and quote)

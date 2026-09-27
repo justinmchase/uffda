@@ -268,33 +268,33 @@ handlers. Hover (`textDocument/hover`) and go-to-definition
 (`textDocument/definition`, both part of requirement 006) are implemented for
 `.uff`: hover resolves the identifier under the cursor as a local binding (from
 the parse tree), then through `RuntimeSession.describe()` — showing the
-declaration's source (located the same way as definition) when available — then
-as a runtime global via `RuntimeSession.describeGlobal()`, and definition
-resolves via `RuntimeSession.resolveDeclaration()` then locates the
-`[Declaration]` production's `originalSpan` in a parse `Match` (open buffer
-preferred, else session parse state, else a read-only re-parse of the defining
-`.uff` on disk). `textDocument/completion` parses the text before the cursor and
-offers items only for the completion contexts that reach it: `.uff` files and
-folders relative to the document in a `[ModulePath]`, the target module's
-exports in an `[ImportedName]` (the session's resolved module, else a read-only
-compile of its source), and in-scope declarations (via
-`RuntimeSession.listDeclarations()`) of the kinds a `[NameReference]` names —
-rules in patterns, funcs in expressions, decorators in attributes, any kind in
-an export list. An empty position after an optional repetition has no context
-yet (see the editor-metadata known gap), and expression-level completions such
-as parameter names in scope remain outstanding. The VS Code extension
-(requirement 007) has an initial implementation at `editors/vscode/`: it
-registers `uffda lsp` for `.uff` files, registers `uffda mcp` as an MCP server,
-and resolves/downloads a compatible `uffda` binary automatically, with debug
-override settings. The extension also queries the custom
-`uffda/languageMetadata` request and applies `[Language]`-derived editor
-configuration via `vscode.languages.setLanguageConfiguration()`, and assigns
-language ids from `[Language].ext` via
-`vscode.languages.setTextDocumentLanguage()` for workspace-declared languages
-(static `language-configuration.json` remains as a fallback for `.uff`). The LSP
-config loader fills omitted `extensions` from `[Language].ext` when
-`modulePath`/`entryRuleName` are present. See GitHub issue #155 for the tracking
-issue.
+declaration's `[Documentation]` and source (located the same way as definition)
+when available — then as a runtime global via `RuntimeSession.describeGlobal()`;
+completion items carry `[Documentation]` descriptions; and definition resolves
+via `RuntimeSession.resolveDeclaration()` then locates the `[Declaration]`
+production's `originalSpan` in a parse `Match` (open buffer preferred, else
+session parse state, else a read-only re-parse of the defining `.uff` on disk).
+`textDocument/completion` parses the text before the cursor and offers items
+only for the completion contexts that reach it: `.uff` files and folders
+relative to the document in a `[ModulePath]`, the target module's exports in an
+`[ImportedName]` (the session's resolved module, else a read-only compile of its
+source), and in-scope declarations (via `RuntimeSession.listDeclarations()`) of
+the kinds a `[NameReference]` names — rules in patterns, funcs in expressions,
+decorators in attributes, any kind in an export list. An empty position after an
+optional repetition has no context yet (see the editor-metadata known gap), and
+expression-level completions such as parameter names in scope remain
+outstanding. The VS Code extension (requirement 007) has an initial
+implementation at `editors/vscode/`: it registers `uffda lsp` for `.uff` files,
+registers `uffda mcp` as an MCP server, and resolves/downloads a compatible
+`uffda` binary automatically, with debug override settings. The extension also
+queries the custom `uffda/languageMetadata` request and applies
+`[Language]`-derived editor configuration via
+`vscode.languages.setLanguageConfiguration()`, and assigns language ids from
+`[Language].ext` via `vscode.languages.setTextDocumentLanguage()` for
+workspace-declared languages (static `language-configuration.json` remains as a
+fallback for `.uff`). The LSP config loader fills omitted `extensions` from
+`[Language].ext` when `modulePath`/`entryRuleName` are present. See GitHub issue
+#155 for the tracking issue.
 
 ## Related
 

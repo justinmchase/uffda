@@ -359,10 +359,9 @@ export type DescribedDeclaration = {
   expression?: Expression;
   /** Only present for `kind: "rule"`. */
   parameters?: RuleParameter[];
-  /** Only present for `kind: "rule" | "func"` — decorators aren't
-   * decoratable, see `.agents/specifications/runtime/rule-metadata.spec.md`. */
+  /** Applied attributes, in written order, when any were applied. */
   attributes?: DescribedAttribute[];
-  /** Only present for `kind: "rule" | "func"`, keyed by decorator name. */
+  /** Keyed by decorator name, when any attributes were applied. */
   metadata?: Record<string, unknown>;
 };
 
@@ -523,17 +522,14 @@ function describeMember(
     pattern: member.pattern,
     expression: member.expression,
   };
-  if (kind === "decorator") return base;
-
-  const ruleOrFunc = member as Rule | Func;
   return {
     ...base,
     parameters: kind === "rule" ? (member as Rule).parameters : undefined,
-    attributes: ruleOrFunc.attributes?.map((attribute) => ({
+    attributes: member.attributes?.map((attribute) => ({
       decorator: attribute.decorator.name,
       args: attribute.args,
     })),
-    metadata: ruleOrFunc.metadata,
+    metadata: member.metadata,
   };
 }
 

@@ -12,6 +12,7 @@ export NameReference;
 export Import;
 export ModulePath;
 export ImportedName;
+export Documentation;
 
 # `[Highlight { role: "comment" }]` — the syntactic role of a token rule's
 # span. The outermost Highlight on a path decides the role of every token
@@ -45,3 +46,13 @@ decorator ModulePath<c:any> = c;
 # `[ImportedName]` — one name bound by an import. Completion offers the
 # exports of the module named by the enclosing Import's ModulePath.
 decorator ImportedName = true;
+
+# `[Documentation "…"]` or
+# `[Documentation { description: "…", parameters: { P: "…" } }]` —
+# documentation of a rule/func/decorator for tooling (hover, completion).
+# Either form is normalized to `{ description, parameters }`, `parameters`
+# mapping parameter names to their descriptions.
+decorator Documentation<d:(string | { description: string })> = {
+  description: (coalesce d.description d),
+  parameters: (coalesce d.parameters {})
+};

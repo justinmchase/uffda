@@ -3,6 +3,7 @@ import { expressionGrammar } from "./expression.lang.ts";
 import { assertEquals, assertStringIncludes } from "@std/assert";
 import { defaultGlobals } from "../../runtime/globals/mod.ts";
 import { exec } from "../../runtime/exec.ts";
+import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import type { Expression } from "../../runtime/expressions/expression.ts";
 import { visualizeMatchFailure } from "../../match.visualize.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
@@ -348,3 +349,21 @@ Deno.test(
     });
   },
 );
+
+Deno.test("lang.expression string literals keep whitespace", async () => {
+  const match = await expressionGrammar('"a b {  (length s) } c"');
+  assertEquals(match.kind, MatchKind.Ok);
+  if (match.kind !== MatchKind.Ok) return;
+  assertEquals(match.value, {
+    kind: ExpressionKind.String,
+    values: [
+      "a b ",
+      {
+        kind: ExpressionKind.Invocation,
+        expression: { kind: ExpressionKind.Reference, name: "length" },
+        args: [{ kind: ExpressionKind.Reference, name: "s" }],
+      },
+      " c",
+    ],
+  });
+});

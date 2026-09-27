@@ -1,7 +1,7 @@
 # Runtime rule metadata
 
 This chapter defines the runtime contract for decorator invocation and the
-metadata it attaches to `rule`/`func` declarations.
+metadata it attaches to `rule`/`func`/`decorator` declarations.
 
 ## Conventions
 
@@ -68,9 +68,9 @@ and
   [function invocation](../languages/expression-syntax/function-invocation.spec.md)):
   arguments MUST be evaluated left to right, and invocation MUST remain free of
   observable side effects.
-- Within a decorator's body, the reserved name `this` MUST resolve to the `Rule`
-  or `Func` declaration being decorated. This extends, rather than conflicts
-  with, the existing `this` contract in
+- Within a decorator's body, the reserved name `this` MUST resolve to the
+  `Rule`, `Func`, or `DecoratorFunc` declaration being decorated. This extends,
+  rather than conflicts with, the existing `this` contract in
   [reference expressions](../expressions/reference.spec.md): `this` always
   resolves to "the value this evaluation is about," and decorator invocation is
   a distinct evaluation phase from match-time expression evaluation.
@@ -162,9 +162,12 @@ and
   ever reached through attribute application, so `this` there has exactly one
   meaning, and an ordinary func can never accidentally be invoked with
   decorator-style `this`-binding.
-- **Decorators are not decoratable.** Excluding `decorator` declarations from
-  the attribute target set avoids needing topological ordering or cycle
-  detection across decorators before any of them can be considered valid.
+- **Decorators are decoratable, in any order.** Invoking a decorator evaluates
+  only its own pattern and expression; it never reads any declaration's metadata
+  (`this` excludes it, and decorators are unreachable from ordinary
+  expressions). So a decorator's own attributes cannot affect what it returns,
+  and decorators may decorate themselves or each other without topological
+  ordering or cycle detection.
 - **Name-keyed metadata, not shallow merge.** Keying by decorator name instead
   of shallow-merging each decorator's result makes key collisions structurally
   impossible instead of silently "later wins," and lets a decorator return any

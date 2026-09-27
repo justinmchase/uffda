@@ -1,8 +1,8 @@
 # Declaration attribute syntax
 
 This chapter defines Uffda attribute syntax: an optional, stackable prefix on
-`rule`/`func` declarations that names a `decorator` declaration to invoke at
-declaration-processing time.
+`rule`/`func`/`decorator` declarations that names a `decorator` declaration to
+invoke at declaration-processing time.
 
 ## Logical purpose
 
@@ -23,7 +23,8 @@ attaches to the declaration) are governed by
 ```text
 Attribute      = "[" Identifier Argument* "]" ;
 AttributeList  = Attribute+ ;
-DecoratedDecl  = AttributeList? ( RuleDeclaration | FuncDeclaration ) ;
+DecoratedDecl  = AttributeList?
+                 ( RuleDeclaration | FuncDeclaration | DecoratorDeclaration ) ;
 ```
 
 `Argument` is an `ExpressionLang` expression, parsed the same way invocation
@@ -35,11 +36,10 @@ without the extra wrapping parens, since `[...]` is already the call delimiter.
 
 - An attribute list MUST consist of one or more `[Name]` / `[Name arg1 arg2]`
   groups, each written as its own bracket pair.
-- An attribute list MAY immediately precede a `rule`, `export rule`, `func`, or
-  `export func` declaration.
-- An attribute list MUST NOT precede a `decorator` declaration; decorators are
-  not decoratable — see
-  [decorator declaration syntax](./decorator-declarations.spec.md).
+- An attribute list MAY immediately precede a `rule`, `export rule`, `func`,
+  `export func`, `decorator`, or `export decorator` declaration. A decorator MAY
+  be applied to itself or to another decorator (see
+  [runtime rule metadata](../../runtime/rule-metadata.spec.md)).
 - An attribute list MUST NOT introduce a new top-level declaration keyword
   family; it remains a prefix on the declaration it decorates, consistent with
   [module structure syntax](./module-structure.spec.md)'s requirement that every
@@ -88,9 +88,8 @@ without the extra wrapping parens, since `[...]` is already the call delimiter.
 
 ## Failure surface
 
-- An attribute list on a declaration family other than `rule`/`func` (and their
-  exported forms) MUST fail to parse.
-- An attribute list preceding a `decorator` declaration MUST fail to parse.
+- An attribute list on a declaration family other than `rule`/`func`/`decorator`
+  (and their exported forms) MUST fail to parse.
 - An unresolvable attribute `Name`, or a `Name` that resolves to a `rule` or
   ordinary `func` rather than a `decorator` declaration, MUST fail the same way
   an unresolvable reference fails elsewhere in this language.

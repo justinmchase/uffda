@@ -93,6 +93,27 @@ Deno.test("cli.lsp.hover formatDescribedDeclarationMarkdown", async (t) => {
     );
   });
 
+  await t.step("summarizes [Documentation] without repeating it", () => {
+    const markdown = formatDescribedDeclarationMarkdown({
+      ...declaration,
+      parameters: [{ name: "P" }],
+      attributes: [{ decorator: "Documentation", args: ["Doc."] }],
+      metadata: {
+        Documentation: { description: "Doc.", parameters: { P: "Elem." } },
+      },
+    });
+    assertEquals(
+      markdown,
+      [
+        "(exported rule) `Main`",
+        "Doc.",
+        "**pattern:** `any`",
+        "**parameters:**",
+        "- `P` — Elem.",
+      ].join("\n\n"),
+    );
+  });
+
   await t.step("truncates long declaration source", () => {
     const source = Array.from({ length: 30 }, (_, i) => `line${i}`).join("\n");
     const markdown = formatDescribedDeclarationMarkdown(declaration, source);
@@ -243,4 +264,79 @@ func Words<s:string> = (join s " ");
       "(parameter) `P` of rule `Pair`",
     );
   });
+});
+
+Deno.test("cli.lsp.hover shows [Documentation]", async (t) => {
+  const cwd = await Deno.makeTempDir({ prefix: "uffda-lsp-hover-doc-" });
+  try {
+    const editor = new URL("../lang/editor/editor.uff", import.meta.url);
+    const path = join(cwd, "main.uff");
+    const source = `import "${editor.pathname}" Documentation;
+export Main Pair Words Note;
+[Documentation "Two of P in a row."]
+rule Main = Pair<any>;
+[Documentation { description: "A pair.", parameters: { P: "The element." } }]
+rule Pair<P> = P P;
+[Documentation { description: "Joins words.", parameters: { s: "The words." } }]
+func Words<s:array> = (join s " ");
+[Note "Notes things."]
+[Documentation "Attaches a note."]
+decorator Note<n:string> = n;
+`;
+    await Deno.writeTextFile(path, source);
+    const session = new RuntimeSession("hover-doc", { cwd });
+    const load = await session.load(source, path);
+    assertEquals(load.ok, true);
+    const state = session.getLatestParseState();
+    assert(state);
+    const hoverText = async (offset: number) => {
+      const hover = await hoverAtPosition(
+        session,
+        source,
+        offsetToPosition(source, offset),
+        state.match,
+      );
+      const contents = hover?.contents;
+      return contents && typeof contents === "object" && "value" in contents
+        ? contents.value
+        : undefined;
+    };
+
+    await t.step("leads with the description", async () => {
+      const text = await hoverText(source.indexOf("Pair<any>"));
+      assertEquals(
+        text,
+        [
+          "(exported rule) `Pair`",
+          "A pair.",
+          [
+            "```uffda",
+            '[Documentation { description: "A pair.", parameters: { P: "The element." } }]\nrule Pair<P> = P P;',
+            "```",
+          ].join("\n"),
+          "- `P` — The element.",
+        ].join("\n\n"),
+      );
+    });
+
+    await t.step("documents rule and func parameters", async () => {
+      assertEquals(
+        await hoverText(source.indexOf("P P;")),
+        "(parameter) `P` of rule `Pair`\n\nThe element.",
+      );
+      assertEquals(
+        await hoverText(source.indexOf('s " "')),
+        "(variable) `s`\n\n```uffda\ns:array\n```\n\nThe words.",
+      );
+    });
+
+    await t.step("documents a self-decorated decorator", async () => {
+      const text = await hoverText(source.indexOf("Note<n"));
+      assert(
+        text?.startsWith("(exported decorator) `Note`\n\nAttaches a note."),
+      );
+    });
+  } finally {
+    await Deno.remove(cwd, { recursive: true });
+  }
 });
