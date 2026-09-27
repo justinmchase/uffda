@@ -189,7 +189,7 @@ jobs:
             --include ./bin \
             --allow-read \
             --allow-write \
-            --allow-env=INIT_CWD,PWD \
+            --allow-env=INIT_CWD,PWD,XDG_RUNTIME_DIR \
             ./src/cli/main.ts
           sha256sum "${out_dir}/${asset}" | tee "${out_dir}/${asset}.sha256"
 

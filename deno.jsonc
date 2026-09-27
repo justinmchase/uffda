@@ -6,7 +6,7 @@
     ".": "./mod.ts"
   },
   "tasks": {
-    "cli": "deno run --allow-read --allow-write --allow-net --allow-run --allow-env=INIT_CWD,PWD,HOME,XDG_CACHE_HOME ./src/cli/main.ts",
+    "cli": "deno run --allow-read --allow-write --allow-net --allow-run --allow-env=INIT_CWD,PWD,HOME,XDG_CACHE_HOME,XDG_RUNTIME_DIR ./src/cli/main.ts",
     "compile:lang": "rm -rf ./bin && uffda compile 'src/lang/**/*.uff' --out-dir ./bin",
     "compile:cli": "deno task compile:lang && deno run --allow-read --allow-write --allow-run --allow-env ./scripts/compile-cli.ts",
     "test": "deno task compile:lang && deno test --allow-read --allow-write --allow-net=127.0.0.1 --allow-env=XDG_RUNTIME_DIR --parallel --ignore=test/integration/",

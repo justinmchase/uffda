@@ -2,6 +2,7 @@ import { assertEquals } from "@std/assert";
 import {
   artifactFileName,
   checksumFileName,
+  CLI_COMPILE_PERMISSION_FLAGS,
   DENO_COMPILE_TARGETS,
   installScriptFileName,
   linuxTargetFromUnameArch,
@@ -81,4 +82,14 @@ Deno.test("cli.distribution target matrix and artifact naming", async (t) => {
       assertEquals(releaseTagCandidates("v0.1.2"), ["0.1.2", "v0.1.2"]);
     },
   );
+});
+
+Deno.test("cli.distribution release workflow compiles with the CLI permissions", async () => {
+  const workflow = await Deno.readTextFile(
+    new URL("../../.github/workflows/release-binaries.yml", import.meta.url),
+  );
+  const compile = workflow.slice(workflow.indexOf("deno compile"));
+  const flags = compile.slice(0, compile.indexOf("./src/cli/main.ts"))
+    .match(/--allow-[^\s\\]+/g);
+  assertEquals(flags, [...CLI_COMPILE_PERMISSION_FLAGS]);
 });
