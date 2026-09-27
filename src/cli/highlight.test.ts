@@ -254,3 +254,15 @@ Deno.test("cli.highlight derives roles from [Highlight] metadata", async (t) => 
     },
   );
 });
+
+Deno.test("cli.highlight walks a shared parse DAG once per node", async () => {
+  // Every nesting level retains rejected alternatives sharing the memoized
+  // inner group, so a tree walk would take exponentially many visits.
+  const depth = 8;
+  const source = `rule X = ${"(".repeat(depth)}A${")".repeat(depth)};`;
+  const match = await uffdaGrammar(source);
+  const spans = highlightSpansFromMatch(match, source);
+  assertFullCoverage(spans, source.length);
+  const reference = spans.find((span) => span.text === "A");
+  assertEquals(reference?.role, HighlightRole.Identifier);
+});

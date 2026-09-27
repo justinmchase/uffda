@@ -119,7 +119,11 @@ function isNonEmptySpan(offset: number, length: number): boolean {
 /**
  * Walks the entire `Match` tree once (pre-order, both `Ok` and `Fail`
  * branches — a `Fail` still has whatever `Ok` sub-matches it accumulated
- * before failing), collecting token spans and keyword-metadata spans.
+ * before failing), collecting token spans and keyword-metadata spans. The
+ * tree is a DAG (memoized sub-matches are shared by every attempt that
+ * reached them), so each node is walked only on the first path reaching it;
+ * spans are deduplicated keeping the first pre-order visit anyway (see
+ * `highlightSpansFromMatch`), so later paths contribute nothing.
  *
  * A token span is an `Ok` node carrying `Highlight` metadata with no annotated
  * `Ok` descendant, unless its source span strictly contains another such
@@ -137,9 +141,18 @@ function collectSpans(
   const leaves: CollectedToken[] = [];
   const containers: AnnotatedSpan[] = [];
   const keywords: CollectedKeyword[] = [];
+  const emittedBy = new Map<Match, boolean>();
 
   /** Returns whether `node`'s subtree contributed a leaf. */
   function walk(node: Match, ancestor: AnnotatedSpan | undefined): boolean {
+    const known = emittedBy.get(node);
+    if (known !== undefined) return known;
+    const emitted = walkOnce(node, ancestor);
+    emittedBy.set(node, emitted);
+    return emitted;
+  }
+
+  function walkOnce(node: Match, ancestor: AnnotatedSpan | undefined): boolean {
     if (node.kind !== MatchKind.Ok && node.kind !== MatchKind.Fail) {
       return false;
     }

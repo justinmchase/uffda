@@ -124,10 +124,23 @@ export function nodeText(node: AnnotatableMatch, source: string): string {
   return source.slice(node.originalSpan.start, node.originalSpan.end);
 }
 
+function isAnnotatable(node: Match): node is AnnotatableMatch {
+  return node.kind === MatchKind.Ok || node.kind === MatchKind.Fail;
+}
+
 /**
- * Visits every `Ok`/`Fail` node of `root` in pre-order, passing the chain of
- * its annotatable ancestors (outermost first). A `Fail` keeps the sub-matches
- * it accumulated before failing, so both branches are walked.
+ * Visits every `Ok`/`Fail` node of `root` exactly once in pre-order, passing
+ * the chain of its annotatable ancestors (outermost first).
+ *
+ * A parse `Match` is a DAG, not a tree: memoized sub-matches are shared by
+ * every attempt that reached them, including attempts the parse rejected (a
+ * `Fail` beneath an `Ok`, such as alternatives that did not match). Those
+ * keep the sub-matches they accumulated before failing (the progress of a
+ * partially typed construct), so they are walked too, but walking every path
+ * would revisit shared sub-matches exponentially often. The accepted parse
+ * (`Ok` beneath `Ok`, and everything beneath a `Fail` root) is walked first,
+ * so a node that belongs to it is visited with its accepted ancestors; the
+ * rest of the DAG follows, each node visited on the first path reaching it.
  */
 export function walkAnnotatable(
   root: Match,
@@ -136,15 +149,32 @@ export function walkAnnotatable(
     ancestors: readonly AnnotatableMatch[],
   ) => void,
 ): void {
+  const visited = new Set<Match>();
   const ancestors: AnnotatableMatch[] = [];
-  const walk = (node: Match) => {
-    if (node.kind !== MatchKind.Ok && node.kind !== MatchKind.Fail) return;
-    visit(node, ancestors);
+  const walk = (
+    node: Match,
+    children: (node: AnnotatableMatch) => readonly Match[],
+    expanded: Set<Match>,
+  ) => {
+    if (!isAnnotatable(node) || expanded.has(node)) return;
+    expanded.add(node);
+    if (!visited.has(node)) {
+      visited.add(node);
+      visit(node, ancestors);
+    }
     ancestors.push(node);
-    for (const child of node.matches) walk(child);
+    for (const child of children(node)) walk(child, children, expanded);
     ancestors.pop();
   };
-  walk(root);
+  walk(
+    root,
+    (node) =>
+      node.kind === MatchKind.Ok
+        ? node.matches.filter((child) => child.kind === MatchKind.Ok)
+        : node.matches,
+    new Set(),
+  );
+  walk(root, (node) => node.matches, new Set());
 }
 
 /**
