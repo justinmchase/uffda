@@ -79,6 +79,17 @@ Deno.test("cli.editor_metadata", async (t) => {
     });
   });
 
+  await t.step("finds the parameters a rule binds", async () => {
+    const source = "rule Pair<P, Q> = P Q;";
+    const parsed = await uffdaGrammar(source);
+    assertEquals(
+      annotated(parsed, EditorDecorator.Parameter).map((node) =>
+        nodeText(node, source)
+      ),
+      ["P", "Q"],
+    );
+  });
+
   await t.step("returns nothing for undecorated nodes", () => {
     assertEquals(editorMetadata(match, EditorDecorator.Import), undefined);
     assertEquals(nameReferenceKinds(match), undefined);

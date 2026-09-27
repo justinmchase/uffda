@@ -12,6 +12,7 @@ import { type Match, MatchKind } from "../match.ts";
 export enum EditorDecorator {
   Highlight = "Highlight",
   Declaration = "Declaration",
+  Parameter = "Parameter",
   NameReference = "NameReference",
   Import = "Import",
   ModulePath = "ModulePath",

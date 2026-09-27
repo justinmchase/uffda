@@ -10,7 +10,10 @@ import { highlightSpansFromMatch } from "./highlight.ts";
 import type { Match } from "../match.ts";
 import { RuntimeSession } from "./mcp.session.ts";
 import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
-import { completionItemsForSession } from "./lsp.completion.ts";
+import {
+  completionItemsForSession,
+  localCompletionItems,
+} from "./lsp.completion.ts";
 import {
   type CompletionContext,
   CompletionContextKind,
@@ -311,11 +314,17 @@ export class LspDocumentManager {
             context,
           )
           : [];
-      case CompletionContextKind.NameReference:
-        return completionItemsForSession(doc.session, {
-          kinds: context.kinds,
-          range: rangeOf(doc.source, context.replace),
-        });
+      case CompletionContextKind.NameReference: {
+        const range = rangeOf(doc.source, context.replace);
+        const locals = new Set(context.locals.map((binding) => binding.name));
+        return [
+          ...localCompletionItems(context.locals, doc.source, range),
+          ...completionItemsForSession(doc.session, {
+            kinds: context.kinds,
+            range,
+          }).filter((item) => !locals.has(item.label)),
+        ];
+      }
     }
   }
 

@@ -8,6 +8,7 @@
 export Highlight;
 export Keyword;
 export Declaration;
+export Parameter;
 export NameReference;
 export Import;
 export ModulePath;
@@ -33,6 +34,13 @@ decorator Keyword = { role: "keyword" };
 # projected value carries the declared `name`.
 [Documentation "A production declaring a named rule, func, or decorator. Its projected value carries the declared `name`."]
 decorator Declaration = true;
+
+# `[Parameter]` — a production binding one parameter of the enclosing
+# declaration by name (for example a rule's `<P>`). Its projected value
+# carries the bound `name`. Parameters written as patterns (a func's
+# `<s:string>`) bind variables instead and need no Parameter.
+[Documentation "A production binding one parameter of the enclosing declaration by name. Its projected value carries the bound `name`."]
+decorator Parameter = true;
 
 # `[NameReference { kinds: ["decorator"] }]` — a production naming
 # a declaration in scope. Completion offers declarations of the listed kinds

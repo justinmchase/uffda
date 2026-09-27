@@ -5,6 +5,7 @@ import {
   identifierPosition,
   localBindingAt,
   LocalBindingKind,
+  localBindingsAt,
 } from "./lsp.locals.ts";
 
 async function bindingAt(source: string, needle: string, delta = 0) {
@@ -86,6 +87,43 @@ Deno.test("cli.lsp.locals", async (t) => {
     const source = "rule A = n:string;\nrule B = any -> (json n);";
     assertEquals(await bindingAt(source, "n)"), undefined);
   });
+
+  await t.step(
+    "lists every visible binding, inner scopes first and shadowing",
+    async () => {
+      const source =
+        "rule Pair<P> = x:P y:P -> (map [x] <{v: x:any}> -> (f x y));";
+      const match = await uffdaGrammar(source);
+      const start = source.indexOf("x y)");
+      const position = identifierPosition(match, { start, end: start + 1 });
+      const bindings = localBindingsAt(position);
+      assertEquals(bindings.map((b) => `${b.kind}:${b.name}`), [
+        "variable:x",
+        "variable:y",
+      ]);
+      const [inner] = bindings;
+      assertEquals(
+        inner.kind === LocalBindingKind.Variable
+          ? source.slice(inner.span.start, inner.span.end)
+          : undefined,
+        "x:any",
+      );
+    },
+  );
+
+  await t.step(
+    "lists a rule's [Parameter] names at a rule reference",
+    async () => {
+      const source = "rule Pair<P, Q> = a:P b:Q;";
+      const match = await uffdaGrammar(source);
+      const start = source.indexOf("Q;");
+      const position = identifierPosition(match, { start, end: start + 1 });
+      assertEquals(
+        localBindingsAt(position).map((b) => `${b.kind}:${b.name}`),
+        ["parameter:P", "parameter:Q"],
+      );
+    },
+  );
 
   await t.step("acceptsKind follows the covering NameReference", async () => {
     const source = "rule Main = Other -> (json _);";
