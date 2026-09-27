@@ -45,6 +45,9 @@ input item, treating that item as a nested input stream.
   iterable and an error is reported.
 - The nested input stream consumed by the child pattern is the entirety of the
   current outer input item.
+- The nested input stream MUST be [open](../input-model.spec.md#open-inputs)
+  exactly when the current item is the last item of an open outer stream (an
+  item still being written), and closed otherwise.
 
 ## Expected output
 

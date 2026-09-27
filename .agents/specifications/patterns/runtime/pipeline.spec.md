@@ -52,6 +52,10 @@ receives input derived from the previous step's matched value.
 - A `pipeline` pattern with no steps MUST succeed without consuming input.
 - A `pipeline` pattern MUST NOT require the final step to consume its derived
   input stream completely unless composed with additional constraints.
+- A step's derived input stream MUST be
+  [open](../input-model.spec.md#open-inputs) exactly when the previous step read
+  an open stream to its end (more input could extend that step's value), and
+  closed otherwise.
 
 ## Expected output
 

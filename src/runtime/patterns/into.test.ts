@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import { Type } from "@justinmchase/type";
 import { Input, InputNormalizationMode } from "../../input.ts";
 import { getRightmostFailure, MatchKind } from "../../match.ts";
@@ -6,7 +6,7 @@ import { patternTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { lit } from "./value_source.ts";
 import { MatchErrorCode, Path } from "../../mod.ts";
-import { CharacterClass } from "./pattern.ts";
+import { CharacterClass, type Pattern } from "./pattern.ts";
 import { match } from "../match.ts";
 import { Scope } from "../scope.ts";
 
@@ -278,5 +278,45 @@ await Deno.test("runtime/patterns/into", async (t) => {
       const rightmost = getRightmostFailure(m);
       assertEquals(rightmost.originalSpan.start, 21);
     },
+  });
+});
+
+Deno.test("runtime.patterns.into open input", async (t) => {
+  const pattern: Pattern = {
+    kind: PatternKind.Into,
+    pattern: {
+      kind: PatternKind.Quantifier,
+      pattern: { kind: PatternKind.Type, type: Type.String },
+    },
+  };
+  const innerKinds = async (items: string[], open: boolean) => {
+    const input = Input.From(items, {
+      kind: InputNormalizationMode.Iterable,
+      open,
+    });
+    const m = await match(pattern, Scope.Default().withInput(input));
+    assert(m.kind === MatchKind.Ok);
+    const [inner] = m.matches;
+    assert(inner?.kind === MatchKind.Ok);
+    return inner.matches.map((child) => child.kind);
+  };
+
+  await t.step("the last item of an open input is open", async () => {
+    assertEquals(await innerKinds(["ab"], true), [
+      MatchKind.Ok,
+      MatchKind.Ok,
+      MatchKind.Fail,
+    ]);
+  });
+
+  await t.step("an earlier item of an open input is closed", async () => {
+    assertEquals(await innerKinds(["ab", "c"], true), [
+      MatchKind.Ok,
+      MatchKind.Ok,
+    ]);
+  });
+
+  await t.step("an item of a closed input is closed", async () => {
+    assertEquals(await innerKinds(["ab"], false), [MatchKind.Ok, MatchKind.Ok]);
   });
 });

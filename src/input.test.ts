@@ -177,3 +177,14 @@ Deno.test({
     });
   },
 });
+
+Deno.test("input.open carries to every later position", async () => {
+  const closed = Input.From("ab", { kind: InputNormalizationMode.Iterable });
+  assertEquals(closed.open, false);
+  const open = Input.From("ab", {
+    kind: InputNormalizationMode.Iterable,
+    open: true,
+  });
+  const end = await (await open.next()).next();
+  assertEquals([open.open, end.open, await end.done()], [true, true, true]);
+});

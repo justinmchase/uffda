@@ -33,6 +33,25 @@ Each input item has value-surface semantics used by runtime patterns:
 - A **keyed item** (object or `Map`) can be traversed with `over`, which
   evaluates declared keys against nested single-item streams.
 
+## Open inputs
+
+An input stream is either **closed** (the default) or **open**. An open stream
+is a prefix of a longer input still being written — for example the text before
+an editor's cursor — so exhausting it is not the end of the input: more items
+may follow.
+
+- Runtime implementations MUST support marking an input stream open at
+  pattern-entry boundaries, and every later position of that stream MUST be open
+  too.
+- Matching over an open stream MUST otherwise behave exactly as over a closed
+  one: an item-consuming pattern at its end fails, and `end` succeeds there.
+  What changes is that patterns which stop because the input is exhausted (see
+  [quantifier](./runtime/quantifier.spec.md)) still attempt their next element,
+  so the match records what the input was expected to continue with.
+- A nested stream derived from an open stream is open when it may likewise
+  continue: see [into](./runtime/into.spec.md) and
+  [pipeline](./runtime/pipeline.spec.md).
+
 Composition and boundary patterns (`then`, `and`, `or`, `not`, `end`, and
 related patterns) operate over stream positions regardless of item surface. When
 the active stream has one scalar item, a multi-step sequence can only succeed if

@@ -105,7 +105,7 @@ export function quantifier(
     const values: unknown[] = [];
     const matches: Match[] = [];
     let done = false;
-    while (!done && !(await end.stream.done())) {
+    while (!done && (end.stream.open || !(await end.stream.done()))) {
       const m = await child(end);
       matches.push(m);
       switch (m.kind) {

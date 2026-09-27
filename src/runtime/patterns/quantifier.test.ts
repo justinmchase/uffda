@@ -1,7 +1,11 @@
+import { assert, assertEquals } from "@std/assert";
 import { Type } from "@justinmchase/type";
-import { Input } from "../../input.ts";
+import { Input, InputNormalizationMode } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { patternTest } from "../../test.ts";
+import { match } from "../match.ts";
+import { Scope } from "../scope.ts";
+import type { Pattern } from "./pattern.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { lit, ValueSourceKind } from "./value_source.ts";
 
@@ -233,4 +237,40 @@ Deno.test("runtime.patterns.quantifier", async (t) => {
       done: false,
     }),
   });
+});
+
+Deno.test("runtime.patterns.quantifier at the end of an open input", async (t) => {
+  const pattern: Pattern = {
+    kind: PatternKind.Quantifier,
+    pattern: { kind: PatternKind.Type, type: Type.String },
+  };
+  const kinds = async (open: boolean) => {
+    const input = Input.From("ab", {
+      kind: InputNormalizationMode.Iterable,
+      open,
+    });
+    const m = await match(pattern, Scope.Default().withInput(input));
+    assertEquals(m.kind, MatchKind.Ok);
+    assert(m.kind === MatchKind.Ok);
+    assertEquals(m.value, ["a", "b"]);
+    return m.matches.map((child) => child.kind);
+  };
+
+  await t.step(
+    "attempts its element once more, recording the attempt",
+    async () => {
+      assertEquals(await kinds(true), [
+        MatchKind.Ok,
+        MatchKind.Ok,
+        MatchKind.Fail,
+      ]);
+    },
+  );
+
+  await t.step(
+    "stops without an attempt at the end of a closed input",
+    async () => {
+      assertEquals(await kinds(false), [MatchKind.Ok, MatchKind.Ok]);
+    },
+  );
 });

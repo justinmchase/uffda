@@ -71,10 +71,13 @@ const CONTEXT_DECORATORS: readonly EditorDecorator[] = [
  * The completion contexts at the end of `prefix` — the document text before
  * the cursor — given `match`, the document grammar's parse of `prefix`.
  *
- * A node reaches the cursor when it is an `Ok` node ending exactly there (the
- * token being typed) or a `Fail` node attempted after the last significant
- * token, i.e. separated from the cursor by trivia only (a token the grammar
- * expected next). Only the outermost node carrying a given decorator on a
+ * `match` should be a parse of `prefix` as an open input (`Input.From(prefix,
+ * { open: true })`), so repetitions record the element they expect at the
+ * cursor. A node reaches the cursor when it is an `Ok` node ending exactly
+ * there (the token being typed) or a `Fail` node attempted after the last
+ * significant token, i.e. separated from the cursor by trivia only (a token
+ * the grammar expected next). A non-empty token being typed wins over tokens
+ * expected after it. Only the outermost node carrying a given decorator on a
  * path counts. Distinct contexts are returned in tree order.
  */
 export function completionContextsAt(
@@ -83,26 +86,38 @@ export function completionContextsAt(
 ): CompletionContext[] {
   const cursor = prefix.length;
   const significantEnd = lastSignificantEnd(match, prefix);
-  const contexts: CompletionContext[] = [];
-  const seen = new Set<string>();
+  const typed: CompletionContext[] = [];
+  const expected: CompletionContext[] = [];
 
   walkAnnotatable(match, (node, ancestors) => {
-    const reaches = node.kind === MatchKind.Ok
-      ? node.originalSpan.end === cursor
-      : node.originalSpan.start >= significantEnd &&
-        node.originalSpan.start <= cursor;
+    const typing = node.kind === MatchKind.Ok &&
+      node.originalSpan.end === cursor &&
+      node.originalSpan.start < cursor;
+    const reaches = typing ||
+      (node.kind === MatchKind.Ok
+        ? node.originalSpan.end === cursor
+        : node.originalSpan.start >= significantEnd &&
+          node.originalSpan.start <= cursor);
     if (!reaches) return;
     for (const decorator of CONTEXT_DECORATORS) {
       if (!hasEditorMetadata(node, decorator)) continue;
       if (ancestors.some((a) => hasEditorMetadata(a, decorator))) continue;
-      const context = contextFor(decorator, node, ancestors, prefix);
-      const key = JSON.stringify(context);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      contexts.push(context);
+      (typing ? typed : expected).push(
+        contextFor(decorator, node, ancestors, prefix),
+      );
     }
   });
-  return contexts;
+  return distinct(typed.length > 0 ? typed : expected);
+}
+
+function distinct(contexts: CompletionContext[]): CompletionContext[] {
+  const seen = new Set<string>();
+  return contexts.filter((context) => {
+    const key = JSON.stringify(context);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 /** End offset of the last non-trivia token span in `prefix`, or 0. */

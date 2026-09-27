@@ -232,6 +232,27 @@ Deno.test("cli.lsp.documents LspDocumentManager", async (t) => {
   );
 
   await t.step(
+    "completion offers names at an empty argument position",
+    async () => {
+      const manager = new LspDocumentManager(Deno.cwd());
+      const uri = "inline:///completion-empty";
+      const line = "rule Main = n:string -> (text ";
+      await manager.open(
+        uri,
+        `export Main;\nfunc text<v:any> = v;\n${line}n);`,
+      );
+      const items = await manager.completion(uri, {
+        line: 2,
+        character: line.length,
+      });
+      assertEquals(
+        items.map((item) => `${item.label}:${item.detail}`),
+        ["n:variable", "text:func"],
+      );
+    },
+  );
+
+  await t.step(
     "completion returns no items for a document that was never opened",
     async () => {
       const manager = new LspDocumentManager(Deno.cwd());

@@ -145,9 +145,12 @@ export function pipeline(
         }
       }
 
+      // A stage that read an open input to its end may produce more once
+      // that input continues, so its value is open too.
+      const consumed = last.scope.stream;
       const input = new Input(
         lastValue,
-        last.scope.stream.path.push(0),
+        consumed.path.push(0),
         0,
         undefined,
         InputNormalizationMode.Scalar,
@@ -155,8 +158,10 @@ export function pipeline(
         await provenanceForPipelineValue(
           lastValue,
           last,
-          last.scope.stream.provenance,
+          consumed.provenance,
         ),
+        false,
+        consumed.open && await consumed.done(),
       );
       next = invocationScope.withInput(input);
 
