@@ -116,7 +116,7 @@ function isLowSignalTokenizerFailure(node: MatchNode): boolean {
   // they fire on later characters while an earlier syntactic hole is open.
   if (href.includes("/tokenizer/")) return true;
 
-  const rules = node.match.scope.stack
+  const rules = node.match.scope.stack.frames()
     .filter((frame) => frame.kind === StackFrameKind.Rule)
     .map((frame) => frame.rule.name);
   if (
@@ -172,7 +172,7 @@ function selectDiagnosticCandidate(
     rightProgress <= selectedProgress &&
     selectedProgress - rightProgress <= 32
   ) {
-    const selectedRules = selected.match.scope.stack
+    const selectedRules = selected.match.scope.stack.frames()
       .filter((frame) => frame.kind === StackFrameKind.Rule)
       .map((frame) => frame.rule.name);
     const incompletePipelineRecovery =
@@ -181,7 +181,7 @@ function selectDiagnosticCandidate(
       selected.current === "-" ||
       selected.current === ">";
     if (incompletePipelineRecovery) {
-      const rightRules = rightNode.match.scope.stack
+      const rightRules = rightNode.match.scope.stack.frames()
         .filter((frame) => frame.kind === StackFrameKind.Rule)
         .map((frame) => frame.rule.name);
       const rightIsPipelineHole = rightRules.includes("PipeTail") ||
@@ -571,7 +571,7 @@ function expectedFromOrAncestors(
     if (ancestor.kind !== MatchKind.Fail) continue;
     if (ancestor.pattern.kind !== PatternKind.Or) continue;
 
-    const ruleName = ancestor.scope.stack
+    const ruleName = ancestor.scope.stack.frames()
       .filter((frame) => frame.kind === StackFrameKind.Rule)
       .at(-1)
       ?.rule.name;
@@ -654,7 +654,7 @@ function analysisFromCandidate(
     offset >= 0 ? ` (source offset ${offset})` : ""
   }`;
 
-  const rules = candidate.match.scope.stack
+  const rules = candidate.match.scope.stack.frames()
     .filter((frame) => frame.kind === StackFrameKind.Rule)
     .map((frame) => frame.rule.name);
 

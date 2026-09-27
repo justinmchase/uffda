@@ -1,4 +1,9 @@
-import { assert, assertEquals, assertObjectMatch } from "@std/assert";
+import {
+  assert,
+  assertEquals,
+  assertObjectMatch,
+  assertStrictEquals,
+} from "@std/assert";
 import { lit, ResolveTargetKind } from "./patterns/pattern.ts";
 import { match } from "./match.ts";
 import { PatternKind } from "./patterns/mod.ts";
@@ -10,6 +15,7 @@ import { Path } from "../path.ts";
 import { ExpressionKind } from "./expressions/mod.ts";
 import type { Pattern } from "./patterns/mod.ts";
 import type { Expression } from "./expressions/mod.ts";
+import { StackFrameKind } from "./stack/stackFrameKind.ts";
 
 Deno.test("runtime.scope", async (t) => {
   await t.step({
@@ -157,6 +163,63 @@ Deno.test("runtime.scope", async (t) => {
       assertEquals(await m.scope.stream.done(), true);
       assertEquals(m.span.start, Path.From(0));
       assertEquals(m.span.end, Path.From(1));
+    },
+  });
+
+  await t.step({
+    name: "SCOPE_STACK_SHARED",
+    fn: () => {
+      const scope = Scope.Default();
+      const pipeline: Pattern = { kind: PatternKind.Ok };
+      const outer = scope.pushPipeline(pipeline);
+      const inner = outer.pushPipeline(pipeline);
+      assertEquals(scope.depth, 0);
+      assertEquals(outer.depth, 1);
+      assertEquals(inner.depth, 2);
+      assertStrictEquals(inner.stack.parent, outer.stack);
+      assertStrictEquals(inner.stack.top?.kind, StackFrameKind.Pipeline);
+      assertStrictEquals(inner.withInput(Input.Default()).stack, inner.stack);
+    },
+  });
+
+  await t.step({
+    name: "SCOPE_OPTIONS_SHARED",
+    fn: () => {
+      const scope = Scope.Default();
+      const pipeline: Pattern = { kind: PatternKind.Ok };
+      assertStrictEquals(
+        scope.withInput(Input.Default()).options,
+        scope.options,
+      );
+      assertStrictEquals(scope.addVariables({ x: 1 }).options, scope.options);
+      assertStrictEquals(scope.pushPipeline(pipeline).options, scope.options);
+      assertStrictEquals(
+        scope.pop(scope.pushPipeline(pipeline)).options,
+        scope.options,
+      );
+      const traced = scope.withOptions({ trace: true });
+      assert(traced.options !== scope.options);
+      assertEquals(traced.options.trace, true);
+      assertStrictEquals(traced.options.resolver, scope.options.resolver);
+    },
+  });
+
+  await t.step({
+    name: "SCOPE_OPTIONS_PARTIAL",
+    fn: () => {
+      const scope = new Scope(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { trace: true },
+      );
+      assertEquals(scope.options.trace, true);
+      assert(scope.options.resolver !== undefined);
+      assert(scope.options.specials instanceof Map);
     },
   });
 });
