@@ -8,15 +8,27 @@ import type { Pattern } from "../patterns/pattern.ts";
 
 export type FuncCallable = (...args: unknown[]) => Promise<unknown>;
 
-/** Require full consumption of the args stream after the declared pattern. */
-function argsPattern(pattern: Pattern): Pattern {
+const argsPatterns = new WeakMap<Pattern, Pattern>();
+
+/**
+ * Require full consumption of the args stream after the declared pattern.
+ * The same derived pattern object is returned for a given `pattern`, so the
+ * resolver's per-pattern compile cache (keyed by identity) compiles it once
+ * rather than on every call.
+ */
+export function argsPattern(pattern: Pattern): Pattern {
   if (pattern.kind === PatternKind.End) {
     return pattern;
   }
-  return {
-    kind: PatternKind.Then,
-    patterns: [pattern, { kind: PatternKind.End }],
-  };
+  let derived = argsPatterns.get(pattern);
+  if (!derived) {
+    derived = {
+      kind: PatternKind.Then,
+      patterns: [pattern, { kind: PatternKind.End }],
+    };
+    argsPatterns.set(pattern, derived);
+  }
+  return derived;
 }
 
 /**
