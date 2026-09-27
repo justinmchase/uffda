@@ -39,7 +39,7 @@ export function mapSourceSpan(
   normalizationMap?: readonly number[],
 ): SourceSpan {
   if (!normalizationMap) {
-    return { start: span.start, end: span.end };
+    return span;
   }
   return {
     start: normalizationMap[span.start] ?? span.start,

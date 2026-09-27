@@ -215,6 +215,8 @@ export class Input {
    * Resolves immediately for synchronous streams.
    */
   public step(): Awaitable<Input | undefined> {
+    if (this._next) return this._next;
+    if (this._done) return undefined;
     return andThen(this.next(), (next) => this._done ? undefined : next);
   }
 
