@@ -60,15 +60,22 @@ export class Memos {
   );
 
   /**
-   * Start positions of every currently in-progress (not yet returned) rule
-   * frame, in nesting order. This is the runtime's "low-water mark" tracker:
-   * memo entries at positions strictly before the minimum of these can never
-   * be revisited by any currently-active evaluation path (rule call,
-   * left-recursive growth loop, or pending backtracking alternative), because
-   * all of those can only ever consume forward from, or reset back to, the
-   * start position of the rule frame that is running them — never earlier.
+   * The runtime's "low-water mark" tracker, one entry per currently
+   * in-progress (not yet returned) rule frame, in nesting order. Memo entries
+   * at positions strictly before the minimum start position of those frames
+   * can never be revisited by any currently-active evaluation path (rule
+   * call, left-recursive growth loop, or pending backtracking alternative),
+   * because all of those can only ever consume forward from, or reset back
+   * to, the start position of the rule frame that is running them — never
+   * earlier.
+   *
+   * Entry `i` holds the minimum start position among frames `0..i` rather
+   * than frame `i`'s own start, so the mark is always the top entry. Frames
+   * nest as a stack, so this stays exact across pops while keeping the mark
+   * O(1) to read no matter how deeply rules nest; scanning every active
+   * frame on each return would make deeply nested input quadratic.
    */
-  private readonly active: Path[] = [];
+  private readonly marks: Path[] = [];
 
   public resolve(
     path: Path,
@@ -128,15 +135,19 @@ export class Memos {
    * so eviction has an accurate view of what is still in progress.
    */
   public withFrame<T>(path: Path, fn: () => Awaitable<T>): Awaitable<T> {
-    this.active.push(path);
+    const enclosing = this.marks.at(-1);
+    this.marks.push(
+      enclosing && enclosing.compareTo(path) <= 0 ? enclosing : path,
+    );
     return ensure(fn, () => {
-      this.active.pop();
+      this.marks.pop();
       this.evict();
     });
   }
 
   private evict(): void {
-    if (this.active.length === 0) {
+    const mark = this.marks.at(-1);
+    if (!mark) {
       // Nothing is in progress any more (the outermost rule frame just
       // returned): nothing currently reachable through this table is still
       // needed for evaluation. Anything the delivered result still
@@ -144,13 +155,6 @@ export class Memos {
       this.memos.clear();
       this.order.clear();
       return;
-    }
-
-    let mark = this.active[0];
-    for (let i = 1; i < this.active.length; i++) {
-      if (this.active[i].compareTo(mark) < 0) {
-        mark = this.active[i];
-      }
     }
 
     // Repeatedly pop the smallest remaining position and delete it by key

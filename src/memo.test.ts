@@ -235,6 +235,71 @@ Deno.test("memo.Memos", async (t) => {
   });
 
   await t.step({
+    name: "MEMO08",
+    // The low-water mark is the minimum start among all active frames, not
+    // the outermost frame's start: a nested frame that starts earlier than
+    // its ancestor (e.g. a stage over a different stream) lowers the mark
+    // while it is active, and the ancestor's mark is restored once it pops.
+    fn: () => {
+      const memos = new Memos();
+      const rule = fakeRule("r");
+      const put = (p: number) => {
+        const { key } = memos.resolve(Path.From(p), rule, []);
+        memos.set(Path.From(p), key, fakeMatch());
+        return key;
+      };
+
+      memos.withFrame(Path.From(5), () => {
+        memos.withFrame(Path.From(2), () => {
+          const key3 = put(3);
+          memos.withFrame(Path.From(10), () => {
+            put(10);
+          });
+          // Mark is 2 (the nested frame), so position 3 survives.
+          assertEquals(memos.get(Path.From(3), key3).memo !== undefined, true);
+          assertEquals(memos.size, 2);
+        });
+        // The frame at 2 popped: the mark is back to 5, evicting 3.
+        assertEquals(memos.size, 1);
+      });
+      assertEquals(memos.size, 0);
+    },
+  });
+
+  await t.step({
+    name: "MEMO09",
+    // Computing the low-water mark does not scale with how deeply frames
+    // nest: path comparisons made while entering and leaving N nested frames
+    // grow linearly in N, not quadratically.
+    fn: () => {
+      const comparisons = (depth: number) => {
+        const memos = new Memos();
+        const original = Path.prototype.compareTo;
+        let count = 0;
+        Path.prototype.compareTo = function (this: Path, other: Path) {
+          count++;
+          return original.call(this, other);
+        };
+        try {
+          const enter = (i: number): void => {
+            if (i < depth) {
+              memos.withFrame(Path.From(i), () => enter(i + 1));
+            }
+          };
+          enter(0);
+        } finally {
+          Path.prototype.compareTo = original;
+        }
+        return count;
+      };
+
+      const small = comparisons(500);
+      const large = comparisons(2_000);
+      assertEquals(large <= small * 4 + 8, true, `${small} -> ${large}`);
+    },
+  });
+
+  await t.step({
     name: "MEMO_FRAME_ASYNC",
     // A frame whose fn rejects is still left, just like one that throws.
     fn: async () => {

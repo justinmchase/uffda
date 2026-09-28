@@ -171,6 +171,11 @@ working memory for a single first-pass parse.
   input position (bounded lookahead, bounded-depth backtracking, and
   left-recursive growth that stabilizes promptly), working memory SHOULD stay
   bounded rather than scale linearly with total input size.
+- Tracking the low-water mark SHOULD cost amortized constant time per rule frame
+  entered and exited, independent of how many rule frames are simultaneously
+  active. Deeply nested input keeps one frame active per nesting level, so
+  bookkeeping proportional to the active frame count on every frame exit makes
+  total parse time quadratic in nesting depth.
 - The runtime MAY fall back to effectively unbounded memory retention for
   pathological grammars whose evaluation paths keep arbitrarily early positions
   reachable for the entire parse (for example, a rule whose alternation defers
