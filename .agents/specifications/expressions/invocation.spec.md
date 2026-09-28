@@ -27,8 +27,9 @@ Callables never receive an implicitly injected match. Expressions that need the
 current successful match use the reserved `this` reference (see the
 [Reference expression specification](./reference.spec.md)) and pass it as an
 ordinary argument, or read fields from it directly via member expressions.
-Source spans are not read this way (see
-[value provenance](../runtime/value-provenance.spec.md)).
+Foundational components MUST NOT rely on reading source spans this way for
+provenance (see
+[value provenance](../runtime/value-provenance.spec.md#data-model)).
 
 ## Error conditions
 

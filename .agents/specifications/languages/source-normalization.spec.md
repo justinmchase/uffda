@@ -179,5 +179,5 @@ dedicated constructor global.
 Normalization needs no span metadata: `CrLfUnit` and `CrUnit` project a literal
 `"\n"`, which takes the span of the characters it replaces, `SourceUnit` carries
 the original character, and `join` keeps each character's span (see
-[value provenance](../runtime/value-provenance.spec.md)). Rule projections MUST
-NOT read spans.
+[value provenance](../runtime/value-provenance.spec.md)). As a foundational
+module, it MUST NOT rely on reading spans.

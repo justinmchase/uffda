@@ -22,7 +22,7 @@ Expected behavior:
   `documentId`, `text`, `lineStarts`, and `units`.
 - Normalized text MUST be the `join` of units that carry their provenance (a
   literal `"\n"` for `\r\n`/`\r`, the original character otherwise); unit
-  projections MUST NOT read spans.
+  projections MUST NOT rely on reading spans.
 - Compiling that file with the bootstrap compile path MUST succeed and emit AST
   JSON under `./bin/`.
 

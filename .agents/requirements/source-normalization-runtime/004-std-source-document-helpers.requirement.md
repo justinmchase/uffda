@@ -30,8 +30,8 @@ Expected behavior:
   to an async iterable, and `SourceDocument` object literals assembled with it
   (via computed keys) MUST yield the characters of `text` when consumed with
   `for await...of`.
-- Rule projections MUST NOT read span/offset metadata; provenance is carried by
-  the values themselves (see
+- Source module rule projections MUST NOT rely on span/offset metadata;
+  provenance is carried by the values themselves (see
   `.agents/specifications/runtime/value-provenance.spec.md`).
 
 Error behavior:

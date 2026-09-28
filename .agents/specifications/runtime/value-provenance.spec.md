@@ -77,9 +77,13 @@ origin.
   places (bindings, containers, stream items); identity of the wrapper is how
   provenance is shared.
 - Wrapped values MUST NOT be observable to `.uff` authors. No pattern,
-  expression, or global result MAY expose the wrapper, the origin, or any span
-  as an ordinary value. Rule expressions MUST NOT read spans (including through
-  `this`).
+  expression, or global result MAY expose the wrapper or a value's origin as an
+  ordinary value.
+- A Match's own span stays readable through `this` (see
+  [reference](../expressions/reference.spec.md)), and the runtime does not block
+  it. Foundational components (runtime mechanisms and the language modules
+  shipped with the runtime) MUST NOT rely on reading spans to establish
+  provenance; provenance MUST flow through value origins.
 
 ## Root input
 
@@ -315,6 +319,9 @@ The following chapters and requirements conform to this chapter:
   implementation is complete.
 - **Normalization map:** folded into this mechanism. It was a special case of a
   computed string losing its link to the input.
+- **Span reads through `this`:** allowed, not blocked. Only foundational
+  components are barred from depending on them, so provenance never hinges on
+  authors copying spans into values.
 - **One span per Match:** Matches and origins carry a single source span in the
   caller's input coordinates. The former separate normalized span described
   offsets in one language's intermediate text (source normalization's), which a
