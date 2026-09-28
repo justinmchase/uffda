@@ -24,6 +24,8 @@ zero-width negative assertion.
   that error.
 - If the child pattern reports a left-recursion outcome, the `lookahead` pattern
   MUST propagate that outcome unchanged.
+- A `lookahead` pattern MUST evaluate its child with recovery disabled (see
+  [runtime error recovery](../../runtime/error-recovery.spec.md#predicates)).
 
 ## Left-recursion behavior
 

@@ -68,6 +68,7 @@ Each runtime subtopic should define:
 - [runtime left recursion](./runtime/left-recursion.spec.md)
 - [match diagnostics](./runtime/match-diagnostics.spec.md)
 - [runtime incremental re-parsing](./runtime/incremental-parsing.spec.md)
+- [runtime error recovery](./runtime/error-recovery.spec.md)
 - [runtime memo eviction](./runtime/memo-eviction.spec.md)
 - [runtime selective memoization](./runtime/selective-memoization.spec.md)
 - [runtime compiled pattern dispatch](./runtime/compiled-patterns.spec.md)

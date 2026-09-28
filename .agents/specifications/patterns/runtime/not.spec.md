@@ -22,6 +22,8 @@ pattern succeeds.
   error.
 - If the child pattern reports a left-recursion outcome, the `not` pattern MUST
   propagate that outcome.
+- A `not` pattern MUST evaluate its child with recovery disabled (see
+  [runtime error recovery](../../runtime/error-recovery.spec.md#predicates)).
 
 ## Left-recursion behavior
 

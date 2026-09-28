@@ -51,6 +51,7 @@ Each runtime pattern subtopic should define:
 - [pipeline pattern](./runtime/pipeline.spec.md)
 - [projection pattern](./runtime/projection.spec.md)
 - [quantifier pattern](./runtime/quantifier.spec.md)
+- [recover pattern](./runtime/recover.spec.md)
 - [regexp pattern](./runtime/regexp.spec.md)
 - [resolve pattern](./runtime/resolve.spec.md)
 - [run pattern](./runtime/run.spec.md)

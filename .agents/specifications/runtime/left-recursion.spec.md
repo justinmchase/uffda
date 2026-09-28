@@ -132,6 +132,9 @@ through other rules.
   stabilized outcome. Involved invocations complete normally on every iteration,
   so their rule-level expressions also apply to every iteration's outcome. A
   rule therefore projects the same value whether it is the head or involved.
+- A failure caused by reading a head's still-failing seed is a control signal of
+  growth, not a syntax error, so no recovery may be made from it; see
+  [runtime error recovery](./error-recovery.spec.md#left-recursion).
 - When left-recursive growth succeeds, the caller-visible scope MUST match
   non-LR rule success: retain the caller's bindings and advanced input stream,
   and MUST NOT expose rule-local bindings created during growth.

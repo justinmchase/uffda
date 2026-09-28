@@ -87,6 +87,9 @@ affected, and re-evaluate only the region an edit could have affected.
   - It was produced during an in-progress left-recursive growth loop (see
     [runtime left recursion](./left-recursion.spec.md)) that had not yet
     stabilized at the time of the edit.
+- A reused memo entry MUST be reused only under the recovery setting it was
+  computed with (see
+  [runtime error recovery](./error-recovery.spec.md#phase-isolation)).
 - Memo entries whose recorded position and consumed span both fall entirely
   outside the affected region MAY be reused, provided their position has been
   correctly remapped to the post-edit input.
