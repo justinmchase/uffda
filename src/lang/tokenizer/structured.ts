@@ -42,33 +42,40 @@ type SpannedToken = TokenValue & {
   originalSpan: SourceSpan;
 };
 
+/**
+ * Pre-order walk collecting the innermost token-valued Ok matches. Runs
+ * during pipeline evaluation over arbitrarily deep Match graphs, so it uses
+ * an explicit stack instead of host recursion (see the rule boundary in
+ * `.agents/specifications/runtime.spec.md`).
+ */
 function collectSpannedTokens(node: Match): SpannedToken[] {
   const tokens: SpannedToken[] = [];
+  const pending: Match[] = [node];
+  const pushChildren = (children: Match[]) => {
+    for (let i = children.length - 1; i >= 0; i--) pending.push(children[i]);
+  };
 
-  function visit(match: Match): void {
+  while (pending.length > 0) {
+    const match = pending.pop()!;
     if (match.kind === MatchKind.Ok) {
       if (isTokenValue(match.value)) {
         const inner = match.matches[0];
         if (inner?.kind === MatchKind.Ok && isTokenValue(inner.value)) {
-          visit(inner);
-          return;
+          pending.push(inner);
+          continue;
         }
         tokens.push({
           ...match.value,
           normalizedSpan: { ...match.normalizedSpan },
           originalSpan: { ...match.originalSpan },
         });
-        return;
+        continue;
       }
-      for (const child of match.matches) visit(child);
-      return;
-    }
-    if (match.kind === MatchKind.Fail) {
-      for (const child of match.matches) visit(child);
+      pushChildren(match.matches);
+    } else if (match.kind === MatchKind.Fail) {
+      pushChildren(match.matches);
     }
   }
-
-  visit(node);
   return tokens;
 }
 

@@ -26,6 +26,14 @@ Expected behavior:
   returned), the runtime MUST evict every remaining memo entry: nothing further
   can revisit any position once evaluation is complete for that parse.
 
+Performance behavior:
+
+- Computing the low-water mark when a frame is entered or exited MUST NOT
+  require work proportional to the number of currently-active frames: entering
+  and exiting N nested frames MUST perform O(N) position comparisons in total,
+  not O(N²) (see
+  [memo eviction performance intent](../../specifications/runtime/memo-eviction.spec.md#performance-intent)).
+
 Error behavior:
 
 - N/A — eviction is a memory-management operation; it MUST NOT raise or
