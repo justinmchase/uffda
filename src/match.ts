@@ -48,8 +48,6 @@ export enum MatchErrorCode {
   InternalInvariant = "E_INTERNAL_INVARIANT",
   ModuleResolution = "E_MODULE_RESOLUTION",
   DuplicateVariable = "E_DUPLICATE_VARIABLE",
-  /** @deprecated Indirect left recursion is supported; no longer produced. */
-  IndirectLeftRecursion = "E_INDIRECT_LEFT_RECURSION",
   ExpressionException = "E_EXPRESSION_EXCEPTION",
 }
 

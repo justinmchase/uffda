@@ -177,8 +177,9 @@ through other rules.
 
 ## Error conditions
 
-- Left recursion MUST NOT itself be an error condition. The
-  `E_INDIRECT_LEFT_RECURSION` code is no longer produced.
+- Left recursion MUST NOT itself be an error condition. There is no
+  left-recursion error code; the former `E_INDIRECT_LEFT_RECURSION` code has
+  been removed.
 
 ## Side effects
 
