@@ -1,6 +1,7 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertStrictEquals } from "@std/assert";
 import { one } from "./one.ts";
 import { metadataOf } from "../value_metadata.ts";
+import { rootOrigin, Wrapped } from "../../wrapped.ts";
 
 Deno.test("std.one returns the sole element unchanged", () => {
   assertEquals(
@@ -32,4 +33,9 @@ Deno.test("globals.one carries metadata", () => {
     metadataOf(one)?.parameters.map((p) => p.name),
     ["items", "full"],
   );
+});
+
+Deno.test("globals.one carries the single wrapped element", () => {
+  const item = new Wrapped(1, rootOrigin(0));
+  assertStrictEquals(one(new Wrapped([item], rootOrigin(0)), undefined), item);
 });

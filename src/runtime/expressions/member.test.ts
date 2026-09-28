@@ -2,6 +2,11 @@ import { immediateExpressionTest } from "../../test.ts";
 import { Scope } from "../scope.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import { expressionTest } from "../../test.ts";
+import { assertStrictEquals } from "@std/assert";
+import { rootOrigin, Wrapped } from "../../wrapped.ts";
+import { type MatchOk, ok } from "../../match.ts";
+import { PatternKind } from "../patterns/pattern.kind.ts";
+import { exec } from "../exec.ts";
 
 await Deno.test("runtime/expressions/member", async (t) => {
   await t.step({
@@ -65,4 +70,20 @@ await Deno.test("runtime/expressions/member", async (t) => {
       result: 1,
     }),
   });
+});
+
+function wrappedMatch(variables: Record<string, unknown> = {}): MatchOk {
+  const scope = Scope.Default().addVariables(variables);
+  return ok(scope, scope, { kind: PatternKind.Ok }, undefined);
+}
+
+Deno.test("runtime/expressions/member carries the property's own wrapper", async () => {
+  const name = new Wrapped("a", rootOrigin(5));
+  const m = wrappedMatch({ x: new Wrapped({ name }, rootOrigin(4, 7)) });
+  const r = await exec({
+    kind: ExpressionKind.Member,
+    name: "name",
+    expression: { kind: ExpressionKind.Reference, name: "x" },
+  }, m);
+  assertStrictEquals(r, name);
 });

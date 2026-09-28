@@ -1,6 +1,6 @@
 import { assertEquals } from "@std/assert";
 import { uffdaGrammar } from "../../lang/uffda/uffda.lang.ts";
-import { MatchKind } from "../../match.ts";
+import { MatchKind, valueOf } from "../../match.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 
@@ -10,7 +10,7 @@ Deno.test("req:uffda-language-syntax-007 - rule declarations require an equals s
 
   assertEquals(match.kind, MatchKind.Ok);
   if (match.kind === MatchKind.Ok) {
-    assertEquals(match.value.declarations, [{
+    assertEquals(valueOf(match).declarations, [{
       kind: "rule",
       name: "Main",
       parameters: [],

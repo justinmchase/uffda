@@ -1,8 +1,9 @@
 import { defineMetadata } from "../value_metadata.ts";
+import { rawOf } from "../../wrapped.ts";
 
 export function coalesce(...values: unknown[]) {
   for (const value of values) {
-    if (value != null) {
+    if (rawOf(value) != null) {
       return value;
     }
   }

@@ -3,6 +3,7 @@ import { match } from "../runtime/match.ts";
 import { InputNormalizationMode } from "../input.ts";
 import { isPattern, type Pattern } from "../runtime/patterns/pattern.ts";
 import { Scope } from "../runtime/scope.ts";
+import { valueOf } from "../match.ts";
 
 export enum CliMatchFailureCode {
   InvalidJson = "CLI_MATCH_INVALID_JSON",
@@ -120,7 +121,7 @@ export async function matchCliPattern(
     }),
   );
   return result.kind === MatchKind.Ok
-    ? { ok: true, value: result.value }
+    ? { ok: true, value: valueOf(result) }
     : await matchFailure(result, source);
 }
 

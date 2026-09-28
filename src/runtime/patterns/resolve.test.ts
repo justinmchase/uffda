@@ -7,6 +7,7 @@ import { Scope } from "../scope.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { ResolveTargetKind } from "./pattern.ts";
 import { resolve } from "./resolve.ts";
+import { unwrap } from "../../wrapped.ts";
 
 Deno.test("runtime/patterns/resolve", async (t) => {
   await t.step(
@@ -51,7 +52,7 @@ Deno.test("runtime/patterns/resolve", async (t) => {
       const resolved = await m;
       assertEquals(resolved.kind, MatchKind.Ok);
       if (resolved.kind !== MatchKind.Ok) return;
-      assertEquals(resolved.value, "a");
+      assertEquals(unwrap(resolved.value), "a");
     },
   );
 });

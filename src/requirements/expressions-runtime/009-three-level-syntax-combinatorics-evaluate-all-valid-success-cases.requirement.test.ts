@@ -1,11 +1,12 @@
 import { assertEquals } from "@std/assert";
-import { MatchKind } from "../../match.ts";
+import { MatchKind, valueOf } from "../../match.ts";
 import { expressionGrammar } from "../../lang/expression/expression.lang.ts";
 import { assertGrammarCases } from "../../lang/grammar.ts";
 import { defaultGlobals } from "../../runtime/globals/mod.ts";
 import { exec } from "../../runtime/exec.ts";
 import type { Expression } from "../../runtime/expressions/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
+import { unwrap } from "../../wrapped.ts";
 
 type WrapperKind = "array" | "object" | "string";
 type LeafKind =
@@ -227,7 +228,7 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
     const m = await expressionGrammar("[0 ...xs]", { globals });
     assertEquals(m.kind, MatchKind.Ok);
     if (m.kind === MatchKind.Ok) {
-      assertEquals(m.value, {
+      assertEquals(unwrap(m.value), {
         kind: ExpressionKind.Array,
         expressions: [
           {
@@ -240,8 +241,8 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
           },
         ],
       });
-      const execValue = await exec(m.value, m);
-      assertEquals(execValue, [0, 1, 2]);
+      const execValue = await exec(valueOf(m), m);
+      assertEquals(unwrap(execValue), [0, 1, 2]);
     }
   });
 
@@ -255,7 +256,7 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
     });
     assertEquals(m.kind, MatchKind.Ok);
     if (m.kind === MatchKind.Ok) {
-      assertEquals(m.value, {
+      assertEquals(unwrap(m.value), {
         kind: ExpressionKind.Array,
         expressions: [
           {
@@ -268,8 +269,8 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
           },
         ],
       });
-      const execValue = await exec(m.value, m);
-      assertEquals(execValue, [1, 2, 3]);
+      const execValue = await exec(valueOf(m), m);
+      assertEquals(unwrap(execValue), [1, 2, 3]);
     }
   });
 
@@ -277,7 +278,7 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
     const m = await expressionGrammar("{...base, name: 1}", { globals });
     assertEquals(m.kind, MatchKind.Ok);
     if (m.kind === MatchKind.Ok) {
-      assertEquals(m.value, {
+      assertEquals(unwrap(m.value), {
         kind: ExpressionKind.Object,
         keys: [
           {
@@ -291,8 +292,8 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
           },
         ],
       });
-      const execValue = await exec(m.value, m);
-      assertEquals(execValue, { enabled: true, a: 1, name: 1 });
+      const execValue = await exec(valueOf(m), m);
+      assertEquals(unwrap(execValue), { enabled: true, a: 1, name: 1 });
     }
   });
 
@@ -300,7 +301,7 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
     const m = await expressionGrammar("{name: 1, ...override}", { globals });
     assertEquals(m.kind, MatchKind.Ok);
     if (m.kind === MatchKind.Ok) {
-      assertEquals(m.value, {
+      assertEquals(unwrap(m.value), {
         kind: ExpressionKind.Object,
         keys: [
           {
@@ -314,8 +315,8 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
           },
         ],
       });
-      const execValue = await exec(m.value, m);
-      assertEquals(execValue, { name: 2 });
+      const execValue = await exec(valueOf(m), m);
+      assertEquals(unwrap(execValue), { name: 2 });
     }
   });
 
@@ -323,7 +324,7 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
     const m = await expressionGrammar("{...base, ...patch}", { globals });
     assertEquals(m.kind, MatchKind.Ok);
     if (m.kind === MatchKind.Ok) {
-      assertEquals(m.value, {
+      assertEquals(unwrap(m.value), {
         kind: ExpressionKind.Object,
         keys: [
           {
@@ -336,8 +337,8 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
           },
         ],
       });
-      const execValue = await exec(m.value, m);
-      assertEquals(execValue, { enabled: true, a: 3, b: 2 });
+      const execValue = await exec(valueOf(m), m);
+      assertEquals(unwrap(execValue), { enabled: true, a: 3, b: 2 });
     }
   });
 
@@ -347,7 +348,7 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
     });
     assertEquals(m.kind, MatchKind.Ok);
     if (m.kind === MatchKind.Ok) {
-      assertEquals(m.value, {
+      assertEquals(unwrap(m.value), {
         kind: ExpressionKind.Object,
         keys: [
           {
@@ -365,8 +366,13 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
           },
         ],
       });
-      const execValue = await exec(m.value, m);
-      assertEquals(execValue, { enabled: true, a: 3, b: 2, keep: true });
+      const execValue = await exec(valueOf(m), m);
+      assertEquals(unwrap(execValue), {
+        enabled: true,
+        a: 3,
+        b: 2,
+        keep: true,
+      });
     }
   });
 
@@ -380,7 +386,7 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
     });
     assertEquals(m.kind, MatchKind.Ok);
     if (m.kind === MatchKind.Ok) {
-      assertEquals(m.value, {
+      assertEquals(unwrap(m.value), {
         kind: ExpressionKind.Invocation,
         expression: {
           kind: ExpressionKind.Reference,
@@ -401,8 +407,8 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
         ],
       });
 
-      const execValue = await exec(m.value, m);
-      assertEquals(execValue, 7);
+      const execValue = await exec(valueOf(m), m);
+      assertEquals(unwrap(execValue), 7);
     }
   });
 
@@ -417,8 +423,8 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
       });
       assertEquals(m.kind, MatchKind.Ok);
       if (m.kind === MatchKind.Ok) {
-        const execValue = await exec(m.value, m);
-        assertEquals(execValue, [1, 2, 3]);
+        const execValue = await exec(valueOf(m), m);
+        assertEquals(unwrap(execValue), [1, 2, 3]);
       }
     },
   );

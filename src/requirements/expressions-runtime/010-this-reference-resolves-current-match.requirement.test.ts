@@ -6,6 +6,7 @@ import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { exec } from "../../runtime/exec.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { Scope } from "../../runtime/scope.ts";
+import { unwrap } from "../../wrapped.ts";
 
 Deno.test("req:expressions-runtime-010 - `this` resolves to the current MatchOk", async () => {
   const scope = Scope.Default().withInput(Input.From("hi"));
@@ -29,5 +30,5 @@ Deno.test("req:expressions-runtime-010 - `this` resolves to the current MatchOk"
     },
     match,
   );
-  assertEquals(value, 6);
+  assertEquals(unwrap(value), 6);
 });

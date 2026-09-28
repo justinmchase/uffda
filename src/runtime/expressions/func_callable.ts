@@ -49,12 +49,18 @@ export function funcCallable(
 ): FuncCallable {
   return (...args: unknown[]) => {
     const pattern = argsPattern(fn.pattern);
+    // Raw arguments (for example from a host global) take `matchOk` as origin.
     const stream = new Input(
       args,
       matchOk.scope.stream.path.push(0),
       0,
       undefined,
       InputNormalizationMode.Iterable,
+      false,
+      undefined,
+      false,
+      false,
+      matchOk,
     );
     const scope = matchOk.scope.withInput(stream);
     return andThen(match(pattern, scope), (result) => {

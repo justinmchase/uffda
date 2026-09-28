@@ -2,7 +2,7 @@ import { assertEquals } from "@std/assert";
 import { join, toFileUrl } from "@std/path";
 import { expressionGrammar } from "../lang/expression/expression.lang.ts";
 import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
-import { MatchKind } from "../match.ts";
+import { MatchKind, valueOf } from "../match.ts";
 import { compileSourcesToAstArtifacts } from "./compile.ts";
 import {
   CliExecFailureCode,
@@ -19,7 +19,7 @@ Deno.test("cli.exec executes raw module and expression AST inputs", async (t) =>
     assertEquals(parsed.kind, MatchKind.Ok);
     if (parsed.kind !== MatchKind.Ok) return;
 
-    const result = await executeCliAst(parsed.value);
+    const result = await executeCliAst(valueOf(parsed));
     assertEquals(result, { ok: true, value: 1 });
   });
 
@@ -28,7 +28,7 @@ Deno.test("cli.exec executes raw module and expression AST inputs", async (t) =>
     assertEquals(parsed.kind, MatchKind.Ok);
     if (parsed.kind !== MatchKind.Ok) return;
 
-    const result = await executeCliExpression(parsed.value);
+    const result = await executeCliExpression(valueOf(parsed));
     assertEquals(result, { ok: true, value: "hello" });
   });
 
@@ -39,7 +39,7 @@ Deno.test("cli.exec executes raw module and expression AST inputs", async (t) =>
     assertEquals(parsed.kind, MatchKind.Ok);
     if (parsed.kind !== MatchKind.Ok) return;
 
-    const result = await executeCliModule(parsed.value, "Other");
+    const result = await executeCliModule(valueOf(parsed), "Other");
     assertEquals(result, { ok: true, value: 2 });
   });
 
@@ -117,7 +117,7 @@ Deno.test("cli.exec executes raw module and expression AST inputs", async (t) =>
         assertEquals(parsed.kind, MatchKind.Ok);
         if (parsed.kind !== MatchKind.Ok) return;
 
-        const result = await executeCliModule(parsed.value, "Root", {
+        const result = await executeCliModule(valueOf(parsed), "Root", {
           cwd,
           artifactRoot,
           moduleUrl: moduleUrlForCliOrigin(cwd, {

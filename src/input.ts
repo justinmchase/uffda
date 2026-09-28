@@ -1,3 +1,13 @@
+import {
+  isWrapped,
+  type Origin,
+  rawOf,
+  rootOrigin,
+  unwrap,
+  wrap,
+  wrapItem,
+  type Wrapped,
+} from "./wrapped.ts";
 import { Path } from "./path.ts";
 import { andThen, type Awaitable } from "./runtime/awaitable.ts";
 
@@ -44,6 +54,8 @@ export type SourceProvenance = {
 type InputFromOptions = {
   kind?: InputNormalizationMode;
   provenance?: SourceProvenance;
+  /** Origin of raw items; without it they are root positions (see {@link Input}). */
+  origin?: Origin;
   /** Whether the input may continue past its last item (see `Input.open`). */
   open?: boolean;
 };
@@ -51,23 +63,25 @@ type InputFromOptions = {
 export function sourceProvenanceFrom(
   value: unknown,
 ): SourceProvenance | undefined {
-  if (value == null || typeof value !== "object") {
+  const raw = rawOf(value);
+  if (raw == null || typeof raw !== "object") {
     return undefined;
   }
-  const record = value as {
+  const record = raw as {
     documentId?: unknown;
     normalizationMap?: unknown;
   };
-  if (typeof record.documentId !== "string") {
+  if (typeof rawOf(record.documentId) !== "string") {
     return undefined;
   }
-  if (!Array.isArray(record.normalizationMap)) {
+  const normalizationMap = unwrap(record.normalizationMap);
+  if (!Array.isArray(normalizationMap)) {
     return undefined;
   }
-  if (!record.normalizationMap.every((offset) => typeof offset === "number")) {
+  if (!normalizationMap.every((offset) => typeof offset === "number")) {
     return undefined;
   }
-  return { normalizationMap: record.normalizationMap as number[] };
+  return { normalizationMap };
 }
 
 export class Input {
@@ -93,6 +107,7 @@ export class Input {
       options?.provenance,
       false,
       options?.open ?? false,
+      options?.origin,
     );
 
   public static readonly Scalar = (value: unknown): Input =>
@@ -126,6 +141,7 @@ export class Input {
   private _done: boolean | undefined = undefined;
   private _items: Iterator<unknown> | AsyncIterator<unknown>;
   private readonly isAsync: boolean;
+  private readonly source: Wrapped | undefined;
 
   constructor(
     public readonly items:
@@ -136,7 +152,8 @@ export class Input {
       | unknown,
     public readonly path: Path = Path.Default(),
     public readonly index = 0,
-    public readonly value?: unknown,
+    /** The item this position holds; see {@link wrapItem}. */
+    public readonly value?: Wrapped,
     public readonly kind: InputNormalizationMode =
       InputNormalizationMode.Scalar,
     private readonly trustedIterator = false,
@@ -150,7 +167,19 @@ export class Input {
      * their next element there.
      */
     public readonly open = false,
+    /**
+     * Origin of raw items that are not characters of a wrapped string. When
+     * absent, raw items are host input and their origin is their root
+     * position.
+     */
+    private readonly origin?: Origin,
+    source?: Wrapped,
   ) {
+    if (isWrapped(items)) {
+      source = items;
+      items = items.raw;
+    }
+    this.source = source;
     if (trustedIterator) {
       if (!Input.isIterator(items)) {
         throw new TypeError(
@@ -248,13 +277,22 @@ export class Input {
       this._items,
       this.path.set(i),
       i,
-      result.value,
+      this.wrapItem(result.value),
       this.kind,
       true,
       this.provenance,
       this.isAsync,
       this.open,
+      this.origin,
+      this.source,
     );
     return this._next;
+  }
+
+  /** The item following this position, wrapped; see {@link origin}. */
+  private wrapItem(item: unknown): Wrapped {
+    const { source, index } = this;
+    if (source) return wrapItem(source, item, index);
+    return wrap(item, this.origin ?? rootOrigin(index, index + 1));
   }
 }

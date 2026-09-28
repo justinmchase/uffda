@@ -8,6 +8,7 @@ import type {
   InvocationExpression,
   InvocationSpreadExpression,
 } from "./expression.ts";
+import { wrap, type Wrapped } from "../../wrapped.ts";
 
 const isSpread = (
   arg: InvocationArgument,
@@ -17,9 +18,11 @@ const isSpread = (
 export function invocation(
   expression: InvocationExpression,
   match: MatchOk,
-): Awaitable<unknown> {
+): Awaitable<Wrapped> {
   const { expression: expr, args } = expression;
-  const invoke = (fn: unknown, a: unknown[]) => {
+  // A raw result was computed by this invocation, so `match` is its origin.
+  const invoke = (callee: Wrapped, a: unknown[]) => {
+    const fn = callee.raw;
     if (typeof fn !== "function") {
       throw new Error(
         `Unable to invoke function [${fn}] for expression (${expr.kind}:${
@@ -27,7 +30,7 @@ export function invocation(
         })`,
       );
     }
-    return fn(...a);
+    return andThen(fn(...a), (result) => wrap(result, match));
   };
 
   return andThen(exec(expr, match), (fn) =>

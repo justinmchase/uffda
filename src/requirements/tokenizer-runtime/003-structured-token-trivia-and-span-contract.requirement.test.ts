@@ -1,7 +1,8 @@
-import { assertEquals } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
+import { shallow } from "../../wrapped.ts";
 import { collect } from "../../testing.ts";
 import { Input } from "../../input.ts";
-import { type Match, MatchKind, type MatchOk } from "../../match.ts";
+import { type Match, MatchKind, type MatchOk, valueOf } from "../../match.ts";
 import type { TokenizerLangValue } from "../../lang/tokenizer/tokenizer.lang.ts";
 import {
   isTokenValue,
@@ -20,7 +21,7 @@ const moduleUrl =
     .href;
 
 function tokenKey(node: MatchOk): string {
-  const token = node.value as TokenValue;
+  const token = valueOf(node) as TokenValue;
   return `${token.kind}:${token.text}:${node.normalizedSpan.start}:${node.normalizedSpan.end}`;
 }
 
@@ -109,7 +110,7 @@ Deno.test("req:tokenizer-runtime-003 - match results carry trivia-compatible tok
   assertEquals(m.kind, MatchKind.Ok);
   if (m.kind !== MatchKind.Ok) return;
 
-  const [value] = m.value as [TokenizerLangValue, unknown];
+  const [value] = valueOf(m) as [TokenizerLangValue, unknown];
   // Normalized text: "a\n# hi\nb"
   assertEquals(value.source.text, "a\n# hi\nb");
   assertEquals(await collect(value.tokens), ["a", "\n", "\n", "b"]);
@@ -120,10 +121,10 @@ Deno.test("req:tokenizer-runtime-003 - match results carry trivia-compatible tok
   );
 
   const tokenMatches = uniqueTokenMatches(
-    [...walk(m)].filter((node) => isTokenValue(node.value)),
+    [...walk(m)].filter((node) => isTokenValue(shallow(node.value))),
   );
   for (const node of tokenMatches) {
-    const token = node.value as TokenValue;
+    const token = valueOf(node) as TokenValue;
     assertEquals(
       "normalizedSpan" in token || "originalSpan" in token,
       false,
@@ -132,11 +133,11 @@ Deno.test("req:tokenizer-runtime-003 - match results carry trivia-compatible tok
   }
 
   const words = tokenMatches.filter((node) =>
-    (node.value as TokenValue).kind === StructuredTokenKind.Word
+    (valueOf(node) as TokenValue).kind === StructuredTokenKind.Word
   );
   assertEquals(
     words.map((node) => ({
-      text: (node.value as TokenValue).text,
+      text: (valueOf(node) as TokenValue).text,
       normalized: node.normalizedSpan,
       original: node.originalSpan,
     })),
@@ -155,9 +156,10 @@ Deno.test("req:tokenizer-runtime-003 - match results carry trivia-compatible tok
   );
 
   const comment = tokenMatches.find((node) =>
-    (node.value as TokenValue).kind === StructuredTokenKind.Comment
+    (valueOf(node) as TokenValue).kind === StructuredTokenKind.Comment
   );
-  assertEquals((comment?.value as TokenValue | undefined)?.text, "# hi");
+  assert(comment);
+  assertEquals((valueOf(comment) as TokenValue).text, "# hi");
   assertEquals(comment?.normalizedSpan, { start: 2, end: 6 });
   assertEquals(comment?.originalSpan, { start: 3, end: 7 });
 });

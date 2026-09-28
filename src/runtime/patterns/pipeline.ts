@@ -13,6 +13,7 @@ import type { PipelinePattern } from "./pattern.ts";
 import type { ItemSourceSpan } from "../../span.ts";
 import { leafOffset } from "../../span.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
+import { rawOf, Wrapped } from "../../wrapped.ts";
 
 function itemSpansFromParentSlice(
   value: string[],
@@ -46,12 +47,16 @@ async function provenanceForPipelineValue(
   valueMatch: Match,
   parentProvenance: SourceProvenance | undefined,
 ): Promise<SourceProvenance | undefined> {
+  value = rawOf(value);
   const fromValue = sourceProvenanceFrom(value);
   if (valueMatch.kind !== MatchKind.Ok) {
     return fromValue ?? parentProvenance;
   }
 
-  if (Array.isArray(value) && value.every((item) => typeof item === "string")) {
+  if (
+    Array.isArray(value) &&
+    value.every((item) => typeof rawOf(item) === "string")
+  ) {
     // Dynamic import avoids a static cycle:
     // match -> patterns -> pipeline -> tokenizer -> match
     const { itemSpansFromTokenizerMatch } = await import(
@@ -93,7 +98,7 @@ export function pipeline(
   const children = steps.map((p) => compile(p, scope));
   return async (invocationScope: Scope) => {
     let last = ok(invocationScope, invocationScope, pattern, undefined);
-    let lastValue: unknown = last.value;
+    let lastValue: Wrapped = last.value;
     let next = invocationScope;
     let outerEnd = invocationScope;
     const matches: Match[] = [];
@@ -124,7 +129,7 @@ export function pipeline(
             outerEnd = m.scope;
           }
           lastValue = m.value;
-          if (isGenerator(lastValue)) {
+          if (isGenerator(lastValue.raw)) {
             // Pipeline stage boundaries are eager "drain" points, exactly
             // like array/invocation spread: a lazily produced sequence (e.g.
             // from a `.uff` func built on `map`/`filter`/`enumerate`) must
@@ -137,7 +142,10 @@ export function pipeline(
             // generator instances are unwrapped this way — a plain domain
             // object that merely exposes `Symbol.asyncIterator` (e.g.
             // `SourceDocument`) is left untouched.
-            lastValue = await collect(lastValue);
+            lastValue = new Wrapped(
+              await collect(lastValue),
+              lastValue.origin,
+            );
             last = { ...m, value: lastValue };
           }
           matches.push(last);

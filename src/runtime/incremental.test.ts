@@ -13,6 +13,7 @@ import { Scope } from "./scope.ts";
 import { ModuleImportResultKind } from "./resolvers/resolver.ts";
 import { ExportDeclarationKind } from "./declarations/mod.ts";
 import type { ModuleDeclaration } from "./declarations/module.ts";
+import { unwrap } from "../wrapped.ts";
 
 /**
  * A tiny "one-or-more letters" grammar: `letters` is a `group+` sequence.
@@ -158,7 +159,7 @@ Deno.test("runtime.incremental", async (t) => {
       );
       assertEquals(priorMatch.kind, MatchKind.Ok);
       if (priorMatch.kind !== MatchKind.Ok) return;
-      assertEquals(priorMatch.value, ["a", "b", "c", "d", "e", "f"]);
+      assertEquals(unwrap(priorMatch.value), ["a", "b", "c", "d", "e", "f"]);
 
       // An edit inserting "X" right after "abc": the fresh sequence is
       // "abcXdef". Everything at or before position 3 ("abc") is untouched.
@@ -194,7 +195,7 @@ Deno.test("runtime.incremental", async (t) => {
       );
       assertEquals(reparsed.kind, MatchKind.Ok);
       if (reparsed.kind !== MatchKind.Ok) return;
-      assertEquals(reparsed.value, ["a", "b", "c", "X", "d", "e", "f"]);
+      assertEquals(unwrap(reparsed.value), ["a", "b", "c", "X", "d", "e", "f"]);
 
       // Sanity: matches a from-scratch parse of the edited input with no
       // rehydration at all.
@@ -206,7 +207,7 @@ Deno.test("runtime.incremental", async (t) => {
       );
       assertEquals(freshParse.kind, MatchKind.Ok);
       if (freshParse.kind !== MatchKind.Ok) return;
-      assertEquals(reparsed.value, freshParse.value);
+      assertEquals(unwrap(reparsed.value), unwrap(freshParse.value));
 
       // Stronger evidence of actual reuse (not just an equal-by-value
       // recomputation): the reparsed tree's first 3 "group" invocations
@@ -225,7 +226,7 @@ Deno.test("runtime.incremental", async (t) => {
         assertEquals(ruleResult.origin, undefined);
         const reused = ruleResult.matches[0] as MatchOk;
         assertStrictEquals(reused.origin, priorRuleResults[i].origin);
-        assertEquals(reused.value, "abc"[i]);
+        assertEquals(unwrap(reused.value), "abc"[i]);
       }
       // The rest of the letters ("X", "d", "e", "f") were freshly matched,
       // not reused: each carries its own fresh `origin` directly.

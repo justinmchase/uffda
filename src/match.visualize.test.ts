@@ -35,6 +35,7 @@ Deno.test("match.visualize renders pipeline failures and terminates on cycles", 
     assertStringIncludes(visualization, '[2] FAIL equal "expected"');
     assertStringIncludes(visualization, scope.module.moduleUrl.href);
     assertStringIncludes(visualization, "Failure tree:");
+    assertEquals(visualization.includes("Wrapped"), false);
   });
 
   await t.step(

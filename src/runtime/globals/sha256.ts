@@ -1,11 +1,13 @@
 import { defineMetadata } from "../value_metadata.ts";
+import { rawOf } from "../../wrapped.ts";
 
 /**
  * SHA-256 digest of a string, as raw bytes.
  * Authors write `(sha256 text)`. Compose with `base58`/`slice` for
  * human-readable, truncatable identifiers.
  */
-export async function sha256(text: string): Promise<Uint8Array> {
+export async function sha256(value: unknown): Promise<Uint8Array> {
+  const text = rawOf(value);
   if (typeof text !== "string") {
     throw new TypeError("sha256 expects a string");
   }

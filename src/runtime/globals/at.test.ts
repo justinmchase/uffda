@@ -1,6 +1,7 @@
-import { assertEquals, assertThrows } from "@std/assert";
+import { assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
 import { at } from "./at.ts";
 import { metadataOf } from "../value_metadata.ts";
+import { charOrigin, concat, rootOrigin, Wrapped } from "../../wrapped.ts";
 
 Deno.test("runtime.at indexes arrays", () => {
   assertEquals(at([1, 2, 3], 1), 2);
@@ -35,4 +36,20 @@ Deno.test("globals.at carries metadata", () => {
     metadataOf(at)?.parameters.map((p) => p.name),
     ["value", "index"],
   );
+});
+
+Deno.test("globals.at carries wrapped elements and characters", () => {
+  const item = new Wrapped(2, rootOrigin(1));
+  const items = new Wrapped(
+    [new Wrapped(1, rootOrigin(0)), item],
+    rootOrigin(0, 2),
+  );
+  assertStrictEquals(at(items, new Wrapped(1, rootOrigin(9))), item);
+  const text = concat([
+    new Wrapped("a", rootOrigin(3)),
+    new Wrapped("b", rootOrigin(7)),
+  ], rootOrigin(0));
+  const char = at(text, 1) as Wrapped<string>;
+  assertEquals(char.raw, "b");
+  assertEquals(charOrigin(char, 0), rootOrigin(7));
 });

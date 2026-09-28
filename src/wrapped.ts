@@ -12,7 +12,8 @@ export type Origin = {
 };
 
 /**
- * `length` consecutive characters of a string that share one origin. When
+ * `length` consecutive characters (code points, the unit strings are
+ * iterated in) of a string that share one origin. When
  * `linear`, character `k` of the run maps to offset `start + k` of the
  * origin's spans; otherwise every character maps to the whole origin span.
  */
@@ -46,13 +47,17 @@ export function wrap(value: unknown, origin: Origin): Wrapped {
 }
 
 /** The raw value of `value`, one level deep. */
+export function rawOf<T>(value: T | Wrapped<T>): T;
+export function rawOf(value: unknown): unknown;
 export function rawOf(value: unknown): unknown {
   return isWrapped(value) ? value.raw : value;
 }
 
 /**
  * The fully raw form of `value`: wrappers are removed at every level of
- * arrays and plain objects. Shared and cyclic structure is preserved.
+ * arrays and plain objects, and from the items produced by iterating it
+ * (iteration hooks of plain objects, and iterators such as generators).
+ * Shared and cyclic structure is preserved.
  */
 export function unwrap(value: unknown): unknown {
   return unwrapWith(value, new Map());
@@ -71,14 +76,16 @@ function unwrapWith(value: unknown, seen: Map<unknown, unknown>): unknown {
       return out;
     }
     case Type.Object: {
-      if (Object.getPrototypeOf(v) !== Object.prototype) return v;
+      const record = v as Record<PropertyKey, unknown>;
+      if (Object.getPrototypeOf(v) !== Object.prototype) {
+        return unwrapIterator(record) ?? v;
+      }
       const cached = seen.get(v);
       if (cached) return cached;
       const out: Record<PropertyKey, unknown> = {};
       seen.set(v, out);
-      const record = v as Record<PropertyKey, unknown>;
       for (const key of Reflect.ownKeys(record)) {
-        out[key] = unwrapWith(record[key], seen);
+        out[key] = unwrapHook(record, key) ?? unwrapWith(record[key], seen);
       }
       return out;
     }
@@ -87,8 +94,109 @@ function unwrapWith(value: unknown, seen: Map<unknown, unknown>): unknown {
   }
 }
 
-/** A root origin covering host input offsets `start` to `end`. */
-export function rootOrigin(start: number, end: number): Origin {
+function isFunction(value: unknown): value is (...args: unknown[]) => unknown {
+  return type(value)[0] === Type.Function;
+}
+
+/** An iteration hook of `owner` whose iterators yield unwrapped items. */
+function unwrapHook(
+  owner: Record<PropertyKey, unknown>,
+  key: PropertyKey,
+): (() => unknown) | undefined {
+  const hook = owner[key];
+  if (!isFunction(hook)) return undefined;
+  switch (key) {
+    case Symbol.asyncIterator:
+      return () => unwrapAsyncItems(hook.call(owner) as AsyncIterator<unknown>);
+    case Symbol.iterator:
+      return () => unwrapItems(hook.call(owner) as Iterator<unknown>);
+    default:
+      return undefined;
+  }
+}
+
+/** `value`'s remaining items, unwrapped, when `value` is an iterator. */
+function unwrapIterator(
+  value: Record<PropertyKey, unknown>,
+): AsyncGenerator<unknown> | Generator<unknown> | undefined {
+  if (!isFunction(value.next)) return undefined;
+  if (isFunction(value[Symbol.asyncIterator])) {
+    return unwrapAsyncItems(value as unknown as AsyncIterator<unknown>);
+  }
+  if (isFunction(value[Symbol.iterator])) {
+    return unwrapItems(value as unknown as Iterator<unknown>);
+  }
+  return undefined;
+}
+
+async function* unwrapAsyncItems(
+  iterator: AsyncIterator<unknown>,
+): AsyncGenerator<unknown> {
+  for (let r = await iterator.next(); !r.done; r = await iterator.next()) {
+    yield unwrap(r.value);
+  }
+}
+
+function* unwrapItems(iterator: Iterator<unknown>): Generator<unknown> {
+  for (let r = iterator.next(); !r.done; r = iterator.next()) {
+    yield unwrap(r.value);
+  }
+}
+
+/**
+ * Item `index` (0-based) of the wrapped sequence `source`, wrapped: carried
+ * when already wrapped, the character's own origin for a string, otherwise
+ * `source`'s origin.
+ */
+export function wrapItem(
+  source: Wrapped,
+  item: unknown,
+  index: number,
+): Wrapped {
+  if (isWrapped(item)) return item;
+  if (typeof source.raw === "string" && typeof item === "string") {
+    return new Wrapped(item, charOrigin(source as Wrapped<string>, index));
+  }
+  return new Wrapped(item, source.origin);
+}
+
+/** Like {@link wrapItem}, but leaves items of a raw `source` unchanged. */
+export function carryItem(
+  source: unknown,
+  item: unknown,
+  index: number,
+): unknown {
+  return isWrapped(source) ? wrapItem(source, item, index) : item;
+}
+
+/**
+ * `value` with wrappers removed from it and from its own properties or
+ * elements, one level only: for tooling that inspects a node's shape without
+ * unwrapping its whole subtree.
+ */
+export function shallow(value: unknown): unknown {
+  const raw = rawOf(value);
+  const [t, v] = type(raw);
+  switch (t) {
+    case Type.Array:
+      return (v as unknown[]).map(rawOf);
+    case Type.Object: {
+      if (Object.getPrototypeOf(v) !== Object.prototype) return v;
+      const record = v as Record<PropertyKey, unknown>;
+      const out: Record<PropertyKey, unknown> = {};
+      for (const key of Reflect.ownKeys(record)) out[key] = rawOf(record[key]);
+      return out;
+    }
+    default:
+      return raw;
+  }
+}
+
+/**
+ * A root origin covering host input offsets `start` to `end` (by default the
+ * single item at `start`).
+ */
+export function rootOrigin(start: number, end = start + 1): Origin {
   const span = { start, end };
   return { normalizedSpan: span, originalSpan: span };
 }
@@ -97,10 +205,16 @@ function isUnitWidth(span: SourceSpan): boolean {
   return span.end - span.start === 1;
 }
 
+function codePoints(text: string): number {
+  let count = 0;
+  for (const _ of text) count++;
+  return count;
+}
+
 /** The character runs of a wrapped string, covering every character. */
 export function charRuns(value: Wrapped<string>): readonly CharRun[] {
   if (value.chars) return value.chars;
-  const { length } = value.raw;
+  const length = codePoints(value.raw);
   if (length === 0) return [];
   const linear = length === 1 && isUnitWidth(value.origin.normalizedSpan) &&
     isUnitWidth(value.origin.originalSpan);
@@ -111,7 +225,7 @@ function offsetSpan(span: SourceSpan, k: number): SourceSpan {
   return { start: span.start + k, end: span.start + k + 1 };
 }
 
-/** The origin of character `index` of a wrapped string. */
+/** The origin of character (code point) `index` of a wrapped string. */
 export function charOrigin(value: Wrapped<string>, index: number): Origin {
   let k = index;
   for (const run of charRuns(value)) {
@@ -125,7 +239,7 @@ export function charOrigin(value: Wrapped<string>, index: number): Origin {
     k -= run.length;
   }
   throw new RangeError(
-    `character ${index} is out of range for a string of length ${value.raw.length}`,
+    `character ${index} is out of range for ${JSON.stringify(value.raw)}`,
   );
 }
 
@@ -165,6 +279,30 @@ function toWrappedString(value: unknown, origin: Origin): Wrapped<string> {
   const [t] = type(wrapped.raw);
   if (t === Type.String) return wrapped as Wrapped<string>;
   return new Wrapped(String(wrapped.raw), wrapped.origin);
+}
+
+/**
+ * `String.prototype.slice` over a wrapped string (`start`/`end` in UTF-16
+ * units), keeping each character's provenance.
+ */
+export function sliceString(
+  value: Wrapped<string>,
+  start?: number,
+  end?: number,
+): Wrapped<string> {
+  const { raw } = value;
+  const text = raw.slice(start, end);
+  const unitStart = start === undefined
+    ? 0
+    : start < 0
+    ? Math.max(raw.length + start, 0)
+    : Math.min(start, raw.length);
+  let index = codePoints(raw.slice(0, unitStart));
+  const chars: Wrapped<string>[] = [];
+  for (const char of text) {
+    chars.push(new Wrapped(char, charOrigin(value, index++)));
+  }
+  return concat(chars, value.origin);
 }
 
 /**

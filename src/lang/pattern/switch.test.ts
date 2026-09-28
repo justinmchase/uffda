@@ -7,6 +7,7 @@ import {
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { patternGrammar } from "./pattern.lang.ts";
 import { executeUffdaSource } from "../uffda/execute.ts";
+import { unwrap } from "../../wrapped.ts";
 
 const moduleUrl = new URL("./switch.uff", import.meta.url).href;
 
@@ -25,7 +26,7 @@ Deno.test({
         const m = await patternGrammar(`switch { "#": any, default: fail }`);
         assertEquals(m.kind, MatchKind.Ok);
         if (m.kind === MatchKind.Ok) {
-          assertEquals(m.value, {
+          assertEquals(unwrap(m.value), {
             kind: PatternKind.Switch,
             cases: [
               {
@@ -51,7 +52,7 @@ Deno.test({
         const m = await patternGrammar(`switch { \\cL: any, default: fail }`);
         assertEquals(m.kind, MatchKind.Ok);
         if (m.kind === MatchKind.Ok) {
-          assertEquals(m.value, {
+          assertEquals(unwrap(m.value), {
             kind: PatternKind.Switch,
             cases: [
               {
@@ -74,7 +75,7 @@ Deno.test({
         const m = await patternGrammar(`switch { "a", "b": any }`);
         assertEquals(m.kind, MatchKind.Ok);
         if (m.kind === MatchKind.Ok) {
-          assertEquals(m.value, {
+          assertEquals(unwrap(m.value), {
             kind: PatternKind.Switch,
             cases: [
               {
@@ -100,7 +101,7 @@ Deno.test({
         const m = await patternGrammar(`switch { "#": any, "%": end }`);
         assertEquals(m.kind, MatchKind.Ok);
         if (m.kind === MatchKind.Ok) {
-          assertEquals(m.value, {
+          assertEquals(unwrap(m.value), {
             kind: PatternKind.Switch,
             cases: [
               {
@@ -130,7 +131,7 @@ Deno.test({
         const m = await patternGrammar(`switch { default: fail }`);
         assertEquals(m.kind, MatchKind.Ok);
         if (m.kind === MatchKind.Ok) {
-          assertEquals(m.value, {
+          assertEquals(unwrap(m.value), {
             kind: PatternKind.Switch,
             cases: [],
             default: { kind: PatternKind.Fail },
@@ -145,7 +146,7 @@ Deno.test({
         const m = await patternGrammar(`switch { }`);
         assertEquals(m.kind, MatchKind.Ok);
         if (m.kind === MatchKind.Ok) {
-          assertEquals(m.value, {
+          assertEquals(unwrap(m.value), {
             kind: PatternKind.Switch,
             cases: [],
             default: undefined,
@@ -160,7 +161,7 @@ Deno.test({
         const m = await patternGrammar(`switch { "#": any, }`);
         assertEquals(m.kind, MatchKind.Ok);
         if (m.kind === MatchKind.Ok) {
-          assertEquals(m.value, {
+          assertEquals(unwrap(m.value), {
             kind: PatternKind.Switch,
             cases: [
               {
@@ -183,7 +184,7 @@ Deno.test({
         const m = await patternGrammar(`switch { "#": any, default: fail, }`);
         assertEquals(m.kind, MatchKind.Ok);
         if (m.kind === MatchKind.Ok) {
-          assertEquals(m.value, {
+          assertEquals(unwrap(m.value), {
             kind: PatternKind.Switch,
             cases: [
               {

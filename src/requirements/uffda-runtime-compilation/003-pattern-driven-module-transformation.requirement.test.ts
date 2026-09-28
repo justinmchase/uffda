@@ -4,6 +4,7 @@ import { ExportDeclarationKind } from "../../runtime/declarations/export.ts";
 import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { runUffdaRuntimeCompiler } from "../../lang/uffda/runtime.compiler.ts";
+import { unwrap } from "../../wrapped.ts";
 
 Deno.test("req:uffda-runtime-compilation-003 - compiler rules transform declaration sequences", async () => {
   const match = await runUffdaRuntimeCompiler({
@@ -31,7 +32,7 @@ Deno.test("req:uffda-runtime-compilation-003 - compiler rules transform declarat
 
   assertEquals(match.kind, MatchKind.Ok);
   if (match.kind === MatchKind.Ok) {
-    assertEquals(match.value, {
+    assertEquals(unwrap(match.value), {
       imports: [
         {
           kind: ImportDeclarationKind.Module,

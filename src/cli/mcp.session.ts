@@ -47,6 +47,8 @@ import { importFrameLocation } from "./import_location.ts";
 import { anchorParseFailureLocation } from "./parse_failure_anchor.ts";
 import { parseSourceToAst } from "./stream.ts";
 import type { CliStreamFailureLocation } from "./stream.ts";
+import { valueOf } from "../match.ts";
+import { unwrap } from "../wrapped.ts";
 
 /**
  * Default artifact root a session resolves `.uff` imports' compiled
@@ -1088,7 +1090,9 @@ export class RuntimeSession {
       const scope = Scope.Default().pushModule(module);
       const context = matchOk(scope, scope, evalContextPattern(), undefined);
       try {
-        const value = await exec(parsed.ast as Expression, context);
+        const value = unwrap(
+          await exec(parsed.ast as Expression, context),
+        );
         return { ok: true, value };
       } catch (error) {
         return {
@@ -1148,7 +1152,7 @@ export class RuntimeSession {
       case MatchKind.Ok:
         return {
           ok: true,
-          value: result.value,
+          value: valueOf(result),
           matchResultId: this.retainMatchResult(result),
         };
       case MatchKind.Error:
@@ -1555,7 +1559,9 @@ function projectWalkNode(
     }
   }
 
-  const variables = Object.fromEntries(node.scope.variables.entries());
+  const variables = Object.fromEntries(
+    [...node.scope.variables.entries()].map(([k, v]) => [k, unwrap(v)]),
+  );
 
   switch (node.kind) {
     case MatchKind.Ok:
@@ -1565,7 +1571,7 @@ function projectWalkNode(
         pattern: node.pattern,
         normalizedSpan: node.normalizedSpan,
         originalSpan: node.originalSpan,
-        value: node.value,
+        value: unwrap(node.value),
         childCount: node.matches.length,
         rule: node.origin?.rule.name,
         variables,

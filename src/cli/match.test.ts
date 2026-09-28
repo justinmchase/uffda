@@ -1,7 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { Type } from "@justinmchase/type";
 import { patternGrammar } from "../lang/pattern/pattern.lang.ts";
-import { MatchKind } from "../match.ts";
+import { MatchKind, valueOf } from "../match.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 import {
   CliMatchFailureCode,
@@ -15,7 +15,7 @@ Deno.test("cli.match applies raw pattern ASTs to text input", async (t) => {
     assertEquals(parsed.kind, MatchKind.Ok);
     if (parsed.kind !== MatchKind.Ok) return;
 
-    const result = await matchCliPattern(parsed.value, "a");
+    const result = await matchCliPattern(valueOf(parsed), "a");
     assertEquals(result, { ok: true, value: "a" });
   });
 
@@ -24,7 +24,7 @@ Deno.test("cli.match applies raw pattern ASTs to text input", async (t) => {
     assertEquals(parsed.kind, MatchKind.Ok);
     if (parsed.kind !== MatchKind.Ok) return;
 
-    const result = await matchCliPattern(parsed.value, "b");
+    const result = await matchCliPattern(valueOf(parsed), "b");
     assertEquals(result.ok, false);
     if (result.ok) return;
     assertEquals(result.error.code, CliMatchFailureCode.MatchFailure);
@@ -62,7 +62,7 @@ Deno.test("cli.match applies raw pattern ASTs to text input", async (t) => {
     assertEquals(input, { ok: true, value: 42 });
     if (!input.ok) return;
 
-    const result = await matchCliPattern(parsed.value, input.value, true);
+    const result = await matchCliPattern(valueOf(parsed), input.value, true);
     assertEquals(result, { ok: true, value: 42 });
   });
 

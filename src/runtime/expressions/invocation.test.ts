@@ -3,6 +3,7 @@ import { Scope } from "../scope.ts";
 import { expressionTest } from "../../test.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import type { Expression } from "./expression.ts";
+import type { Wrapped } from "../../wrapped.ts";
 
 Deno.test("runtime.expressions.invocation", async (t) => {
   await t.step({
@@ -52,7 +53,7 @@ Deno.test("runtime.expressions.invocation", async (t) => {
         .Default()
         .withOptions({
           globals: new Map([
-            ["fn", (a: number, b: number) => a + b],
+            ["fn", (a: Wrapped<number>, b: Wrapped<number>) => a.raw + b.raw],
           ]),
         })
         .addVariables({
@@ -126,7 +127,7 @@ Deno.test("runtime.expressions.invocation", async (t) => {
         .Default()
         .withOptions({
           globals: new Map([
-            ["fn", (v: number) => Promise.resolve(v + 1)],
+            ["fn", (v: Wrapped<number>) => Promise.resolve(v.raw + 1)],
           ]),
         }),
       result: 8,
@@ -153,7 +154,7 @@ Deno.test("runtime.expressions.invocation", async (t) => {
         .Default()
         .withOptions({
           globals: new Map([
-            ["fn", (v: number) => v * 2],
+            ["fn", (v: Wrapped<number>) => v.raw * 2],
           ]),
         }),
       result: 22,
@@ -286,7 +287,10 @@ Deno.test("runtime.expressions.invocation", async (t) => {
       "INVOCATION_IMMEDIATE - evaluates synchronously over immediate values",
     fn: immediateExpressionTest({
       scope: Scope.Default().withOptions({
-        globals: new Map([["add", (a: number, b: number) => a + b]]),
+        globals: new Map([[
+          "add",
+          (a: Wrapped<number>, b: Wrapped<number>) => a.raw + b.raw,
+        ]]),
       }),
       expression: {
         kind: ExpressionKind.Invocation,

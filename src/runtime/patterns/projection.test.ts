@@ -6,6 +6,7 @@ import { lit } from "./value_source.ts";
 import { Input } from "../../input.ts";
 import { MatchErrorCode, MatchKind } from "../../match.ts";
 import { Path } from "../../path.ts";
+import type { Wrapped } from "../../wrapped.ts";
 
 Deno.test("runtime.patterns.projection", async (t) => {
   await t.step({
@@ -37,7 +38,7 @@ Deno.test("runtime.patterns.projection", async (t) => {
         },
         expression: {
           kind: ExpressionKind.Native,
-          fn: ({ x }: { x: number }) => x + 11,
+          fn: ({ x }: { x: Wrapped<number> }) => x.raw + 11,
         },
       },
       input: Input.Iterable([7]),

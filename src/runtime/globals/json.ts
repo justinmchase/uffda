@@ -1,7 +1,8 @@
 import { defineMetadata } from "../value_metadata.ts";
+import { unwrap } from "../../wrapped.ts";
 
 export function json(self: unknown) {
-  return JSON.stringify(self);
+  return JSON.stringify(unwrap(self));
 }
 
 defineMetadata(json, {

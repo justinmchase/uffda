@@ -12,12 +12,14 @@ import type { IntoPattern } from "./pattern.ts";
 import { leafOffset } from "../../span.ts";
 import { andThen, type AwaitableMatch } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
+import { rawOf } from "../../wrapped.ts";
 
 function provenanceForIntoItem(
   value: unknown,
   parent: Input,
   item: Input,
 ): SourceProvenance | undefined {
+  value = rawOf(value);
   const fromValue = sourceProvenanceFrom(value);
   if (fromValue) return fromValue;
 
@@ -51,8 +53,9 @@ export function into(
       if (!next) {
         return fail(invocationScope, pattern);
       }
-      if (!Input.isIterable(next.value) && !Input.isAsyncIterable(next.value)) {
-        const [t] = type(next.value);
+      const raw = rawOf(next.value);
+      if (!Input.isIterable(raw) && !Input.isAsyncIterable(raw)) {
+        const [t] = type(raw);
         return error(
           invocationScope,
           pattern,

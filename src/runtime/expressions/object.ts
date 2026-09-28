@@ -4,6 +4,7 @@ import { andThen, type Awaitable, mapInOrder } from "../awaitable.ts";
 import { exec } from "../exec.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import type { ObjectExpression } from "./expression.ts";
+import { rawOf, unwrap, wrap, Wrapped } from "../../wrapped.ts";
 
 function assertPropertyKey(
   value: unknown,
@@ -16,10 +17,35 @@ function assertPropertyKey(
   }
 }
 
+/**
+ * Symbol-keyed properties are host protocol hooks (for example
+ * `Symbol.asyncIterator`) that host code reads and calls directly, so they
+ * hold raw values; every other property holds a wrapped value.
+ */
+function propertyValue(key: PropertyKey, value: Wrapped): unknown {
+  return typeof key === "symbol" ? unwrap(value) : value;
+}
+
+/**
+ * The own enumerable properties of a spread value. A raw property of a
+ * host-supplied object takes the object's origin.
+ */
+function spreadProperties(value: Wrapped): Record<PropertyKey, unknown> {
+  const raw = rawOf(value);
+  if (raw == null || typeof raw !== "object") return {};
+  const source = raw as Record<PropertyKey, unknown>;
+  const out: Record<PropertyKey, unknown> = {};
+  for (const key of Reflect.ownKeys(source)) {
+    if (!Object.prototype.propertyIsEnumerable.call(source, key)) continue;
+    out[key] = propertyValue(key, wrap(source[key], value.origin));
+  }
+  return out;
+}
+
 export function object(
   expression: ObjectExpression,
   match: MatchOk,
-): Awaitable<unknown> {
+): Awaitable<Wrapped> {
   const { keys } = expression;
   // Evaluated sequentially (not `Promise.all`) — see invocation.ts for why
   // concurrent sibling-expression evaluation against a shared `match` is
@@ -40,12 +66,15 @@ export function object(
           case ExpressionKind.ObjectKey:
             return Object.assign(obj, { [key.name]: value });
           case ExpressionKind.ObjectComputedKey: {
-            const [keyValue, propertyValue] = value as [unknown, unknown];
+            const [keyWrapped, property] = value as [Wrapped, Wrapped];
+            const keyValue = keyWrapped.raw;
             assertPropertyKey(keyValue);
-            return Object.assign(obj, { [keyValue]: propertyValue });
+            return Object.assign(obj, {
+              [keyValue]: propertyValue(keyValue, property),
+            });
           }
           case ExpressionKind.ObjectSpread:
-            return { ...obj, ...(value as Record<string, unknown>) };
+            return { ...obj, ...spreadProperties(value as Wrapped) };
           default:
             throw new Error(`Unexpected object initializer expression ${kind}`);
         }
@@ -53,5 +82,8 @@ export function object(
       {},
     );
 
-  return andThen(values, buildObject);
+  return andThen(
+    values,
+    (resolved) => new Wrapped(buildObject(resolved), match),
+  );
 }

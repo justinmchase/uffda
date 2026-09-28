@@ -13,6 +13,8 @@ import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 import type { Module } from "../runtime/modules/module.ts";
 import type { Input } from "../input.ts";
 import type { Memos } from "../memo.ts";
+import { valueOf } from "../match.ts";
+import { unwrap } from "../wrapped.ts";
 
 export type GrammarParse<TAst, TOptions> = (
   source: string,
@@ -151,14 +153,7 @@ export async function parseGrammar<TAst>(options: {
     scoped,
   );
 
-  if (parsed.kind === MatchKind.Ok) {
-    return {
-      ...parsed,
-      value: parsed.value as TAst,
-    };
-  }
-
-  return parsed;
+  return parsed as Match<TAst>;
 }
 
 export function createGrammarRunner<TAst, TResult, TOptions>(
@@ -179,7 +174,7 @@ export function createGrammarRunner<TAst, TResult, TOptions>(
     return {
       kind: "result",
       match,
-      result: await evaluate(match.value, match),
+      result: unwrap(await evaluate(valueOf(match), match)) as TResult,
     };
   };
 }
@@ -204,9 +199,9 @@ export async function assertGrammarCases<TAst, TResult, TOptions>(options: {
     );
     assertEquals(match.kind, MatchKind.Ok, `syntax: ${testCase.syntax}`);
     if (match.kind === MatchKind.Ok) {
-      assertEquals(match.value, testCase.expectedAst);
-      const value = await evaluate(match.value, match);
-      assertEquals(value, testCase.expectedValue);
+      assertEquals(valueOf(match), testCase.expectedAst);
+      const value = await evaluate(valueOf(match), match);
+      assertEquals(unwrap(value), testCase.expectedValue);
     }
   }
 }

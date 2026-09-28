@@ -1,6 +1,7 @@
 import type { Match, MatchOk } from "../../match.ts";
 import { MatchKind } from "../../match.ts";
 import type { ItemSourceSpan, SourceSpan } from "../../span.ts";
+import { rawOf } from "../../wrapped.ts";
 
 export enum StructuredTokenKind {
   Whitespace = "whitespace",
@@ -37,6 +38,15 @@ export function isSemanticNoWhitespaceToken(token: TokenValue): boolean {
     token.kind === StructuredTokenKind.Punctuation;
 }
 
+/** A token read from a match value, whose properties are wrapped. */
+function tokenOf(value: unknown): TokenValue | undefined {
+  const raw = rawOf(value);
+  if (raw == null || typeof raw !== "object") return undefined;
+  const { kind, text } = raw as Record<string, unknown>;
+  const token = { kind: rawOf(kind), text: rawOf(text) };
+  return isTokenValue(token) ? token : undefined;
+}
+
 type SpannedToken = TokenValue & {
   normalizedSpan: SourceSpan;
   originalSpan: SourceSpan;
@@ -58,14 +68,15 @@ function collectSpannedTokens(node: Match): SpannedToken[] {
   while (pending.length > 0) {
     const match = pending.pop()!;
     if (match.kind === MatchKind.Ok) {
-      if (isTokenValue(match.value)) {
+      const token = tokenOf(match.value);
+      if (token) {
         const inner = match.matches[0];
-        if (inner?.kind === MatchKind.Ok && isTokenValue(inner.value)) {
+        if (inner?.kind === MatchKind.Ok && tokenOf(inner.value)) {
           pending.push(inner);
           continue;
         }
         tokens.push({
-          ...match.value,
+          ...token,
           normalizedSpan: { ...match.normalizedSpan },
           originalSpan: { ...match.originalSpan },
         });

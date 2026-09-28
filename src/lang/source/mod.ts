@@ -5,6 +5,7 @@ import { resolve } from "../../runtime/patterns/resolve.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { ModuleImportResultKind } from "../../runtime/resolvers/resolver.ts";
+import { valueOf } from "../../match.ts";
 
 /** Built in src/lang/source/mod.uff (`unit_positions`/`to_source_unit`). */
 export type SourceUnit = {
@@ -61,5 +62,5 @@ export async function normalizeSource(value: string): Promise<SourceDocument> {
   if (result.kind !== MatchKind.Ok) {
     throw new Error(`Source normalization failed with ${result.kind}`);
   }
-  return result.value as SourceDocument;
+  return valueOf(result) as SourceDocument;
 }

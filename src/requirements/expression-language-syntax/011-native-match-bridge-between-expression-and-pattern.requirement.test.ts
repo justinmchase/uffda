@@ -1,21 +1,22 @@
 import { assertEquals, assertRejects } from "@std/assert";
-import { MatchKind } from "../../match.ts";
+import { MatchKind, valueOf } from "../../match.ts";
 import { expressionGrammar } from "../../lang/expression/expression.lang.ts";
 import { exec } from "../../runtime/exec.ts";
+import { unwrap, type Wrapped } from "../../wrapped.ts";
 
 Deno.test("req:expression-language-syntax-011 - Expression projection can invoke native match bridge with deterministic behavior and normalized errors", async (t) => {
   await t.step(
     "native match bridge can be invoked from expression syntax",
     async () => {
       const globals = new Map<string, unknown>([
-        ["match", (a: number, b: number) => a === b],
+        ["match", (a: Wrapped, b: Wrapped) => a.raw === b.raw],
       ]);
 
       const m = await expressionGrammar("(match 1 1)", { globals });
       assertEquals(m.kind, MatchKind.Ok);
       if (m.kind === MatchKind.Ok) {
-        const value = await exec(m.value, m);
-        assertEquals(value, true);
+        const value = await exec(valueOf(m), m);
+        assertEquals(unwrap(value), true);
       }
     },
   );
@@ -24,7 +25,7 @@ Deno.test("req:expression-language-syntax-011 - Expression projection can invoke
     "bridge invocation remains deterministic for fixed input",
     async () => {
       const globals = new Map<string, unknown>([
-        ["match", (a: number, b: number) => a === b],
+        ["match", (a: Wrapped, b: Wrapped) => a.raw === b.raw],
       ]);
 
       const left = await expressionGrammar("(match 1 2)", { globals });
@@ -34,10 +35,10 @@ Deno.test("req:expression-language-syntax-011 - Expression projection can invoke
       assertEquals(right.kind, MatchKind.Ok);
 
       if (left.kind === MatchKind.Ok && right.kind === MatchKind.Ok) {
-        const leftValue = await exec(left.value, left);
-        const rightValue = await exec(right.value, right);
-        assertEquals(leftValue, rightValue);
-        assertEquals(leftValue, false);
+        const leftValue = await exec(valueOf(left), left);
+        const rightValue = await exec(valueOf(right), right);
+        assertEquals(unwrap(leftValue), unwrap(rightValue));
+        assertEquals(unwrap(leftValue), false);
       }
     },
   );
@@ -55,7 +56,7 @@ Deno.test("req:expression-language-syntax-011 - Expression projection can invoke
       assertEquals(m.kind, MatchKind.Ok);
       if (m.kind === MatchKind.Ok) {
         await assertRejects(async () => {
-          await exec(m.value, m);
+          await exec(valueOf(m), m);
         });
       }
     },
@@ -70,7 +71,7 @@ Deno.test("req:expression-language-syntax-011 - Expression projection can invoke
       assertEquals(m.kind, MatchKind.Ok);
       if (m.kind === MatchKind.Ok) {
         await assertRejects(async () => {
-          await exec(m.value, m);
+          await exec(valueOf(m), m);
         });
       }
     },

@@ -1,5 +1,5 @@
 import { assertEquals, assertRejects } from "@std/assert";
-import { MatchKind } from "../match.ts";
+import { MatchKind, valueOf } from "../match.ts";
 import { PatternKind } from "./patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "./patterns/pattern.ts";
 import { ModuleImportResultKind } from "./resolvers/resolver.ts";
@@ -26,7 +26,7 @@ async function importCompiled(source: string) {
   }
   const moduleUrl = new URL("file:///uffda/decorators.test.module.ts");
   const resolver = new Resolver({
-    declarations: { [moduleUrl.href]: compiled.value },
+    declarations: { [moduleUrl.href]: valueOf(compiled) },
   });
   const scope = Scope.Default();
   const imported = await resolver.import(moduleUrl, {

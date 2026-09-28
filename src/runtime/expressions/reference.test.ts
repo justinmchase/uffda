@@ -2,10 +2,11 @@ import { immediateExpressionTest } from "../../test.ts";
 import { Scope } from "../scope.ts";
 import { expressionTest } from "../../test.ts";
 import { ExpressionKind } from "./expression.kind.ts";
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertStrictEquals } from "@std/assert";
 import { ok } from "../../match.ts";
 import { PatternKind } from "../patterns/pattern.kind.ts";
 import { exec } from "../exec.ts";
+import { rawOf, unwrap } from "../../wrapped.ts";
 
 await Deno.test("runtime/expressions/reference", async (t) => {
   await t.step({
@@ -58,7 +59,7 @@ await Deno.test("runtime/expressions/reference", async (t) => {
         { kind: ExpressionKind.Reference, name: "this" },
         m,
       );
-      assertEquals(r, m);
+      assertStrictEquals(rawOf(r), m);
     },
   );
 
@@ -72,7 +73,7 @@ await Deno.test("runtime/expressions/reference", async (t) => {
         { kind: ExpressionKind.Reference, name: "this" },
         { ...m, subject },
       );
-      assertEquals(r, subject);
+      assertEquals(unwrap(r), subject);
     },
   );
 

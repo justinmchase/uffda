@@ -14,6 +14,7 @@ import { ModuleImportResultKind } from "../../runtime/resolvers/resolver.ts";
 import type { ModuleResolutionContext } from "../../runtime/resolvers/resolver.ts";
 import { Resolver } from "../../runtime/resolve.ts";
 import { Scope } from "../../runtime/scope.ts";
+import { unwrap } from "../../wrapped.ts";
 
 const resolveContext = {
   scope: Scope.Default(),
@@ -62,7 +63,7 @@ Deno.test("req:modules-runtime-004 - local exported func invokes from projection
 
   assertEquals(m.kind, MatchKind.Ok);
   if (m.kind === MatchKind.Ok) {
-    assertEquals(m.value, 42);
+    assertEquals(unwrap(m.value), 42);
   }
 });
 
@@ -132,7 +133,7 @@ Deno.test("req:modules-runtime-004 - imported func shadows std global", async ()
   assertEquals(m.kind, MatchKind.Ok);
   if (m.kind === MatchKind.Ok) {
     // Shadowed `add` ignores args and returns 99, unlike std add.
-    assertEquals(m.value, 99);
+    assertEquals(unwrap(m.value), 99);
   }
 });
 

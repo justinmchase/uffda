@@ -2,6 +2,12 @@ import { immediateExpressionTest } from "../../test.ts";
 import { expressionTest } from "../../test.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import type { ObjectKeyExpression } from "./expression.ts";
+import { assertStrictEquals } from "@std/assert";
+import { rootOrigin, Wrapped } from "../../wrapped.ts";
+import { type MatchOk, ok } from "../../match.ts";
+import { PatternKind } from "../patterns/pattern.kind.ts";
+import { Scope } from "../scope.ts";
+import { exec } from "../exec.ts";
 
 await Deno.test("runtime/expressions/object", async (t) => {
   await t.step({
@@ -296,4 +302,34 @@ await Deno.test("runtime/expressions/object", async (t) => {
       result: { a: 1 },
     }),
   });
+});
+
+function wrappedMatch(variables: Record<string, unknown> = {}): MatchOk {
+  const scope = Scope.Default().addVariables(variables);
+  return ok(scope, scope, { kind: PatternKind.Ok }, undefined);
+}
+
+Deno.test("runtime/expressions/object carries wrapped properties and keeps symbol-keyed properties raw", async () => {
+  const x = new Wrapped(1, rootOrigin(2));
+  const m = wrappedMatch({ x });
+  const reference = { kind: ExpressionKind.Reference, name: "x" } as const;
+  const r = await exec({
+    kind: ExpressionKind.Object,
+    keys: [
+      { kind: ExpressionKind.ObjectKey, name: "a", expression: reference },
+      {
+        kind: ExpressionKind.ObjectComputedKey,
+        keyExpression: {
+          kind: ExpressionKind.Invocation,
+          expression: { kind: ExpressionKind.Reference, name: "symbol" },
+          args: [{ kind: ExpressionKind.String, values: ["iterator"] }],
+        },
+        expression: reference,
+      },
+    ],
+  }, m);
+  const obj = r.raw as Record<PropertyKey, unknown>;
+  assertStrictEquals(obj.a, x);
+  assertStrictEquals(obj[Symbol.iterator], 1);
+  assertStrictEquals(r.origin, m);
 });

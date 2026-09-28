@@ -1,5 +1,6 @@
 import { assertStringIncludes } from "@std/assert";
-import { Input } from "./input.ts";
+import { Input, InputNormalizationMode } from "./input.ts";
+import { rootOrigin, Wrapped } from "./wrapped.ts";
 import { MatchKind } from "./match.ts";
 import { Path } from "./path.ts";
 import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
@@ -57,6 +58,21 @@ Deno.test({
         assertStringIncludes(message, "Match debug:");
         assertStringIncludes(message, "pattern: any");
       },
+    });
+
+    await t.step({
+      name: "compares the raw value of a match over wrapped input",
+      fn: patternTest({
+        pattern: { kind: PatternKind.Any },
+        input: Input.From(
+          new Wrapped([new Wrapped("a", rootOrigin(3))], rootOrigin(3)),
+          {
+            kind: InputNormalizationMode.Iterable,
+          },
+        ),
+        kind: MatchKind.Ok,
+        value: "a",
+      }),
     });
 
     await t.step({

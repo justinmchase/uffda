@@ -6,6 +6,7 @@ import { match } from "./runtime/match.ts";
 import { Input } from "./input.ts";
 import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
 import type { FailPattern } from "./runtime/patterns/mod.ts";
+import { unwrap } from "./wrapped.ts";
 
 // Helper to create a simple test pattern
 const testPattern: FailPattern = {
@@ -206,7 +207,7 @@ Deno.test({
         const result = await match({ kind: PatternKind.Any }, scope);
         assertEquals(result.kind, MatchKind.Ok);
         if (result.kind !== MatchKind.Ok) return;
-        assertEquals(result.value, "a");
+        assertEquals(unwrap(result.value), "a");
         assertEquals(result.normalizedSpan, { start: 0, end: 1 });
         assertEquals(result.originalSpan, { start: 0, end: 1 });
       },

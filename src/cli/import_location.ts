@@ -10,6 +10,7 @@ import {
   walkAnnotatable,
 } from "./editor_metadata.ts";
 import { type CliStreamFailureLocation, locationFromOffset } from "./stream.ts";
+import { shallow } from "../wrapped.ts";
 
 type ImportNode = { node: AnnotatableMatch; moduleUrl: unknown };
 
@@ -60,7 +61,7 @@ function collectImportNodes(match: Match): ImportNode[] {
     const start = node.originalSpan.start;
     if (seenStarts.has(start)) return;
     seenStarts.add(start);
-    found.push({ node, moduleUrl: projectedModuleUrl(node.value) });
+    found.push({ node, moduleUrl: projectedModuleUrl(shallow(node.value)) });
   });
   return found;
 }

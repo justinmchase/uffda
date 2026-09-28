@@ -1,6 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { normalizeSource } from "./mod.ts";
 import { collect } from "../../testing.ts";
+import { isWrapped } from "../../wrapped.ts";
 
 Deno.test("lang.source - normalizes CRLF and CR into LF", async () => {
   const normalized = await normalizeSource("a\r\nb\rc\n");
@@ -35,4 +36,13 @@ Deno.test("lang.source - computes deterministic source document", async () => {
 Deno.test("lang.source - line starts include trailing empty line", async () => {
   const normalized = await normalizeSource("a\n");
   assertEquals(normalized.lineStarts, [0, 2]);
+});
+
+Deno.test("lang.source - returns a raw document whose iteration yields raw units", async () => {
+  const document = await normalizeSource("a\r\nb");
+  assertEquals(isWrapped(document.text), false);
+  assertEquals(isWrapped(document.units[0]), false);
+  const items = await collect(document);
+  assertEquals(items.some(isWrapped), false);
+  assertEquals(items, ["a", "\n", "b"]);
 });

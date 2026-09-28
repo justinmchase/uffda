@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { MatchKind } from "../../match.ts";
+import { MatchKind, valueOf } from "../../match.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { uffdaGrammar } from "../../lang/uffda/uffda.lang.ts";
@@ -11,7 +11,7 @@ Deno.test(
       const m = await uffdaGrammar("rule P = any -> 1;");
       assertEquals(m.kind, MatchKind.Ok);
       if (m.kind === MatchKind.Ok) {
-        const decl = (m.value as {
+        const decl = (valueOf(m) as {
           declarations: Array<{
             kind: string;
             pattern: unknown;
@@ -33,7 +33,7 @@ Deno.test(
         const m = await uffdaGrammar("rule M = (any -> 1) | fail;");
         assertEquals(m.kind, MatchKind.Ok);
         if (m.kind === MatchKind.Ok) {
-          const decl = (m.value as {
+          const decl = (valueOf(m) as {
             declarations: Array<{
               kind: string;
               pattern: unknown;

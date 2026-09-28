@@ -1,8 +1,9 @@
 import { assertEquals } from "@std/assert";
-import { MatchKind } from "../../match.ts";
+import { MatchKind, valueOf } from "../../match.ts";
 import { expressionGrammar } from "../../lang/expression/expression.lang.ts";
 import { exec } from "../../runtime/exec.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
+import { unwrap } from "../../wrapped.ts";
 
 Deno.test("req:expression-language-syntax-009 - Expression syntax supports explicit member access and unary not forms", async (t) => {
   await t.step(
@@ -16,7 +17,7 @@ Deno.test("req:expression-language-syntax-009 - Expression syntax supports expli
 
       assertEquals(m.kind, MatchKind.Ok);
       if (m.kind === MatchKind.Ok) {
-        assertEquals(m.value, {
+        assertEquals(unwrap(m.value), {
           kind: ExpressionKind.Member,
           expression: {
             kind: ExpressionKind.Reference,
@@ -25,8 +26,8 @@ Deno.test("req:expression-language-syntax-009 - Expression syntax supports expli
           name: "name",
         });
 
-        const value = await exec(m.value, m);
-        assertEquals(value, "uffda");
+        const value = await exec(valueOf(m), m);
+        assertEquals(unwrap(value), "uffda");
       }
     },
   );
@@ -40,8 +41,8 @@ Deno.test("req:expression-language-syntax-009 - Expression syntax supports expli
 
     assertEquals(m.kind, MatchKind.Ok);
     if (m.kind === MatchKind.Ok) {
-      const value = await exec(m.value, m);
-      assertEquals(value, "uffda");
+      const value = await exec(valueOf(m), m);
+      assertEquals(unwrap(value), "uffda");
     }
   });
 
@@ -50,7 +51,7 @@ Deno.test("req:expression-language-syntax-009 - Expression syntax supports expli
 
     assertEquals(m.kind, MatchKind.Ok);
     if (m.kind === MatchKind.Ok) {
-      assertEquals(m.value, {
+      assertEquals(unwrap(m.value), {
         kind: ExpressionKind.Not,
         expression: {
           kind: ExpressionKind.Boolean,
@@ -58,8 +59,8 @@ Deno.test("req:expression-language-syntax-009 - Expression syntax supports expli
         },
       });
 
-      const value = await exec(m.value, m);
-      assertEquals(value, false);
+      const value = await exec(valueOf(m), m);
+      assertEquals(unwrap(value), false);
     }
   });
 });

@@ -1,10 +1,13 @@
 import { defineMetadata } from "../value_metadata.ts";
+import { isWrapped, rawOf, wrap } from "../../wrapped.ts";
 
-function propertyAt(item: unknown, key: PropertyKey): unknown {
+function propertyAt(element: unknown, key: PropertyKey): unknown {
+  const item = rawOf(element);
   if (
     item != null && (typeof item === "object" || typeof item === "function")
   ) {
-    return (item as Record<PropertyKey, unknown>)[key];
+    const value = (item as Record<PropertyKey, unknown>)[key];
+    return isWrapped(element) ? wrap(value, element.origin) : value;
   }
   return undefined;
 }
@@ -30,8 +33,9 @@ function elementsOf(collection: unknown): unknown[] {
  * Arrays iterate elements; Maps/Sets iterate values; plain objects iterate
  * own values. Authors write `(pluck items "name")`.
  */
-export function pluck(collection: unknown, key: PropertyKey): unknown[] {
-  return elementsOf(collection).map((item) => propertyAt(item, key));
+export function pluck(collection: unknown, key: unknown): unknown[] {
+  const k = rawOf(key) as PropertyKey;
+  return elementsOf(rawOf(collection)).map((item) => propertyAt(item, k));
 }
 
 defineMetadata(pluck, {

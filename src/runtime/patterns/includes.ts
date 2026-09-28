@@ -3,6 +3,7 @@ import { fail, ok } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import type { IncludesPattern } from "./pattern.ts";
 import { resolveValueSource } from "./value_source.ts";
+import { rawOf } from "../../wrapped.ts";
 import { andThen } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 
@@ -19,7 +20,7 @@ export function includes(pattern: IncludesPattern): CompiledPattern {
     }
 
     return andThen(scope.stream.step(), (next) => {
-      if (!next || !values.includes(next.value as Serializable)) {
+      if (!next || !values.includes(rawOf(next.value) as Serializable)) {
         return fail(scope, pattern);
       }
       return ok(scope, scope.withInput(next), pattern, next.value);

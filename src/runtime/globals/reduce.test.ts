@@ -2,6 +2,7 @@ import { assertEquals } from "@std/assert";
 import { assertRejects } from "@std/assert/rejects";
 import { reduce } from "./reduce.ts";
 import { metadataOf } from "../value_metadata.ts";
+import { rootOrigin, Wrapped } from "../../wrapped.ts";
 
 Deno.test("globals.reduce folds into a scalar accumulator", async () => {
   const result = await reduce(
@@ -90,4 +91,14 @@ Deno.test("globals.reduce carries metadata", () => {
     metadataOf(reduce)?.parameters.map((p) => p.name),
     ["self", "initial", "fn"],
   );
+});
+
+Deno.test("globals.reduce passes wrapped elements to a wrapped callback", async () => {
+  const items = new Wrapped([
+    new Wrapped(1, rootOrigin(0)),
+    new Wrapped(2, rootOrigin(1)),
+  ], rootOrigin(0, 2));
+  const step = (acc: unknown, item: unknown) =>
+    (acc as number) + (item as Wrapped<number>).raw;
+  assertEquals(await reduce(items, 0, new Wrapped(step, rootOrigin(0))), 3);
 });

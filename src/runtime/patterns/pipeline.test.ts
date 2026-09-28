@@ -10,6 +10,7 @@ import { PatternKind } from "./pattern.kind.ts";
 import { lit, ValueSourceKind } from "./value_source.ts";
 import { match } from "../match.ts";
 import { Scope } from "../scope.ts";
+import { unwrap } from "../../wrapped.ts";
 
 Deno.test("runtime.patterns.pipeline", async (t) => {
   await t.step({
@@ -127,7 +128,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
               },
               expression: {
                 kind: ExpressionKind.Native,
-                fn: ({ _ }) => _.map((n: number) => n + 1),
+                fn: ({ _ }) => (unwrap(_) as number[]).map((n) => n + 1),
               },
             },
             {
@@ -139,7 +140,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
               },
               expression: {
                 kind: ExpressionKind.Native,
-                fn: ({ _ }) => _.map((n: number) => n * 2),
+                fn: ({ _ }) => (unwrap(_) as number[]).map((n) => n * 2),
               },
             },
             {
@@ -197,7 +198,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
               },
               expression: {
                 kind: ExpressionKind.Native,
-                fn: ({ _ }) => _.map((n: number) => n * 2),
+                fn: ({ _ }) => (unwrap(_) as number[]).map((n) => n * 2),
               },
             },
             {
@@ -247,7 +248,8 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
               },
               expression: {
                 kind: ExpressionKind.Native,
-                fn: ({ _ }) => _.reduce((i: number, n: number) => i + n, 0),
+                fn: ({ _ }) =>
+                  (unwrap(_) as number[]).reduce((i, n) => i + n, 0),
               },
             },
             {
@@ -298,7 +300,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
               },
               expression: {
                 kind: ExpressionKind.Native,
-                fn: ({ _ }) => _.join("-"),
+                fn: ({ _ }) => (unwrap(_) as unknown[]).join("-"),
               },
             },
             {
@@ -540,7 +542,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       );
       assertEquals(m.kind, MatchKind.Ok);
       if (m.kind !== MatchKind.Ok) return;
-      assertEquals(m.value, 5);
+      assertEquals(unwrap(m.value), 5);
     },
   });
 });

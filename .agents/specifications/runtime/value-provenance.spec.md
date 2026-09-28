@@ -49,8 +49,8 @@ origin.
 - **Wrapped value:** a runtime-owned record pairing a raw value with its
   **origin**.
 - **Origin:** where a wrapped value came from. It is either the Match that
-  produced the value, or, for a value supplied by the host as input, its
-  **root position** in that host input.
+  produced the value, or, for a value supplied by the host as input, its **root
+  position** in that host input.
 - **Root position:** the location of a host-supplied input item: the character
   offset for a string input, or the item path for an iterable input.
 - **Source span:** the range of root positions a value or Match derives from.
@@ -114,7 +114,8 @@ carried wrapped.**
   `func TokenText<{text: t}> = t`).
 - Building a pipeline or `into` input stream from a value: the stream's items
   are the wrapped elements, or, for a string, its characters with their
-  character provenance (see [String character provenance](#string-character-provenance)).
+  character provenance (see
+  [String character provenance](#string-character-provenance)).
 
 ### Operations that observe (the raw value is inspected)
 
@@ -181,6 +182,9 @@ original characters it replaced.
 - The runtime MUST export explicit helpers for globals: read the raw value of a
   wrapped value, deeply unwrap a value, test whether a value is wrapped, and
   concatenate strings with provenance. Globals MUST NOT inspect origins.
+- Native expressions (host functions embedded in an expression AST) follow the
+  same model as globals: they receive wrapped variables (including `_`), and a
+  raw value they return is wrapped with the evaluating Match as origin.
 
 ## Host boundary
 
@@ -189,7 +193,10 @@ original characters it replaced.
   of its properties) back to the caller's input directly.
 - Top-level entry points that return plain values to host code (for example
   `compile` output and CLI or JSON output) MUST return raw values, deeply
-  unwrapped.
+  unwrapped. Deep unwrapping extends to iteration: iterating an unwrapped value
+  (through a plain object's iteration hooks, or an iterator such as a generator)
+  yields deeply unwrapped items, while the same value iterated inside the
+  runtime yields wrapped items.
 - The runtime MUST export an API to read a wrapped value's source span. Tooling
   that needs provenance (diagnostics, language server, MCP) MUST use it, never
   inspect value shapes.

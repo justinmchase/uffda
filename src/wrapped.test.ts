@@ -1,13 +1,17 @@
 import { assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
 import {
+  carryItem,
   charOrigin,
   charRuns,
   concat,
   isWrapped,
   rawOf,
   rootOrigin,
+  shallow,
+  sliceString,
   unwrap,
   wrap,
+  wrapItem,
   Wrapped,
 } from "./wrapped.ts";
 
@@ -134,4 +138,81 @@ Deno.test("wrapped", async (t) => {
   await t.step("charOrigin rejects an out-of-range index", () => {
     assertThrows(() => charOrigin(new Wrapped("a", at(0)), 1), RangeError);
   });
+
+  await t.step("charOrigin counts code points, not UTF-16 units", () => {
+    const origin = at(0, 3);
+    const w = new Wrapped("😀ab", origin, [{
+      length: 3,
+      origin,
+      linear: true,
+    }]);
+    assertEquals(charOrigin(w, 1), at(1));
+  });
+
+  await t.step("sliceString keeps each character's origin", () => {
+    const w = concat([new Wrapped("a", at(4)), new Wrapped("b", at(9))], at(0));
+    const s = sliceString(w, 1);
+    assertEquals(s.raw, "b");
+    assertEquals(charOrigin(s, 0), at(9));
+  });
+
+  await t.step("sliceString indexes in UTF-16 units like String#slice", () => {
+    const w = concat(["😀", new Wrapped("z", at(6))], at(0, 2));
+    assertEquals(sliceString(w, 2).raw, "z");
+    assertEquals(charOrigin(sliceString(w, -1), 0), at(6));
+  });
+
+  await t.step("wrapItem carries an item that is already wrapped", () => {
+    const item = new Wrapped(1, at(3));
+    assertStrictEquals(wrapItem(new Wrapped([item], at(0, 5)), item, 0), item);
+  });
+
+  await t.step("wrapItem gives a string character its own origin", () => {
+    const source = concat(
+      [new Wrapped("a", at(2)), new Wrapped("b", at(8))],
+      at(0),
+    );
+    assertEquals(wrapItem(source, "b", 1).origin, at(8));
+  });
+
+  await t.step("wrapItem gives other raw items the container's origin", () => {
+    const source = new Wrapped([1, 2], at(0, 2));
+    assertStrictEquals(wrapItem(source, 2, 1).origin, source.origin);
+  });
+
+  await t.step("carryItem leaves items of a raw container unchanged", () => {
+    assertEquals(carryItem([1, 2], 2, 1), 2);
+    assertEquals(isWrapped(carryItem(new Wrapped([1, 2], at(0)), 2, 1)), true);
+  });
+
+  await t.step("shallow unwraps one level of elements and properties", () => {
+    const inner = new Wrapped({ x: new Wrapped(1, at(1)) }, at(1));
+    assertEquals(shallow(new Wrapped([inner], at(0))), [{ x: inner.raw.x }]);
+    assertEquals(shallow(new Wrapped({ a: inner }, at(0))), { a: inner.raw });
+  });
+
+  await t.step("unwrap unwraps items yielded by iteration hooks", async () => {
+    const items = [new Wrapped("a", at(0)), new Wrapped("b", at(1))];
+    const value = unwrap({
+      [Symbol.iterator]: () => items[Symbol.iterator](),
+      async *[Symbol.asyncIterator]() {
+        yield* items;
+      },
+    }) as Iterable<unknown> & AsyncIterable<unknown>;
+    assertEquals([...value], ["a", "b"]);
+    assertEquals(await Array.fromAsync(value), ["a", "b"]);
+  });
+
+  await t.step(
+    "unwrap unwraps the remaining items of an iterator",
+    async () => {
+      const generator = (async function* () {
+        yield new Wrapped([new Wrapped(1, at(0))], at(0));
+      })();
+      assertEquals(
+        await Array.fromAsync(unwrap(generator) as AsyncIterable<unknown>),
+        [[1]],
+      );
+    },
+  );
 });

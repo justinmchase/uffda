@@ -7,6 +7,7 @@ import { type Match, MatchErrorCode, MatchKind } from "../../match.ts";
 import { type Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import type { Expression } from "../../runtime/expressions/expression.ts";
+import { unwrap } from "../../wrapped.ts";
 
 async function* asyncItems(items: unknown[]) {
   for (const item of items) {
@@ -27,7 +28,7 @@ function asyncScope(items: unknown[]): Scope {
 function summary(m: Match) {
   return {
     kind: m.kind,
-    value: m.kind === MatchKind.Ok ? m.value : undefined,
+    value: m.kind === MatchKind.Ok ? unwrap(m.value) : undefined,
     end: m.scope.stream.path.toString(),
   };
 }
@@ -149,6 +150,6 @@ Deno.test("req:runtime-core-007 - Patterns complete synchronously over immediate
     );
     assertEquals(m.kind, MatchKind.Ok);
     if (m.kind !== MatchKind.Ok) return;
-    assertEquals(m.value, 5);
+    assertEquals(unwrap(m.value), 5);
   });
 });

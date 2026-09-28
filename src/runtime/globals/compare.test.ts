@@ -1,6 +1,7 @@
 import { assertEquals, assertThrows } from "@std/assert";
 import { compare } from "./compare.ts";
 import { metadataOf } from "../value_metadata.ts";
+import { rootOrigin, Wrapped } from "../../wrapped.ts";
 
 Deno.test("runtime.compare orders numbers", () => {
   assertEquals(compare(1, 2), -1);
@@ -24,5 +25,12 @@ Deno.test("globals.compare carries metadata", () => {
   assertEquals(
     metadataOf(compare)?.parameters.map((p) => p.name),
     ["left", "right"],
+  );
+});
+
+Deno.test("globals.compare observes raw operands", () => {
+  assertEquals(
+    compare(new Wrapped("a", rootOrigin(0)), new Wrapped("b", rootOrigin(1))),
+    -1,
   );
 });

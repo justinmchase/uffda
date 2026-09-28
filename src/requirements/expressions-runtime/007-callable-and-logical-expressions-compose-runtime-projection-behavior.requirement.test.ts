@@ -2,6 +2,7 @@ import { Scope } from "../../runtime/scope.ts";
 import { expressionTest } from "../../test.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
+import type { Wrapped } from "../../wrapped.ts";
 
 Deno.test("req:expressions-runtime-007 - Callable, lambda, native, spread, and unary expressions compose runtime projection behavior", async (t) => {
   await t.step(
@@ -9,7 +10,7 @@ Deno.test("req:expressions-runtime-007 - Callable, lambda, native, spread, and u
     expressionTest({
       scope: Scope.Default().withOptions({
         globals: new Map([
-          ["fn", (a: number, b: number) => a + b],
+          ["fn", (a: Wrapped<number>, b: Wrapped<number>) => a.raw + b.raw],
         ]),
       }).addVariables({
         a: 7,

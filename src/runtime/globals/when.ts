@@ -1,4 +1,5 @@
 import { defineMetadata } from "../value_metadata.ts";
+import { rawOf } from "../../wrapped.ts";
 
 /**
  * Conditional value selection. Authors write `(when cond then else)`.
@@ -9,7 +10,7 @@ export function when(
   thenValue: unknown,
   elseValue: unknown,
 ): unknown {
-  return condition ? thenValue : elseValue;
+  return rawOf(condition) ? thenValue : elseValue;
 }
 
 defineMetadata(when, {

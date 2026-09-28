@@ -1,4 +1,5 @@
 import { assertEquals } from "@std/assert";
+import { unwrap } from "../../wrapped.ts";
 import { lit } from "../../runtime/patterns/value_source.ts";
 import { Input, InputNormalizationMode } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
@@ -63,7 +64,7 @@ Deno.test("req:composition-001 - Composition isolates failing exploratory branch
       assertEquals(m.kind, MatchKind.Ok);
       if (m.kind !== MatchKind.Ok) return;
       assertEquals(m.scope.variables.has("x"), false);
-      assertEquals(m.scope.variables.get("y"), "a");
+      assertEquals(unwrap(m.scope.variables.get("y")), "a");
     },
   );
 });

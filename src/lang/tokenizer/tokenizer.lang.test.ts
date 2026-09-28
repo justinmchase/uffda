@@ -1,6 +1,6 @@
 import { assertEquals } from "@std/assert";
 import { Input } from "../../input.ts";
-import { MatchKind } from "../../match.ts";
+import { MatchKind, valueOf } from "../../match.ts";
 import { Resolver } from "../../runtime/resolve.ts";
 import { Scope } from "../../runtime/scope.ts";
 import { match } from "../../runtime/match.ts";
@@ -69,7 +69,7 @@ Deno.test("lang.tokenizer.tokenizer-lang - pipelines normalization and tokenizat
   assertEquals(m.kind, MatchKind.Ok);
   if (m.kind !== MatchKind.Ok) return;
 
-  const [value] = m.value as [TokenizerLangValue, unknown];
+  const [value] = valueOf(m) as [TokenizerLangValue, unknown];
   assertEquals(value.source.text, "a\nb\nc");
   assertEquals(value.source.normalizationMap, [0, 1, 3, 4, 5, 6]);
   assertEquals(await collect(value.tokens), ["a", "\n", "b", "\n", "c"]);

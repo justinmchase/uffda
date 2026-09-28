@@ -5,6 +5,7 @@ import { ExpressionKind } from "../../runtime/expressions/mod.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { lit } from "../../runtime/patterns/value_source.ts";
 import { patternTest } from "../../test.ts";
+import type { Wrapped } from "../../wrapped.ts";
 
 Deno.test("req:projection-001 - Projection succeeds with the expression result and preserves non-Ok child outcomes", async (t) => {
   await t.step(
@@ -19,7 +20,7 @@ Deno.test("req:projection-001 - Projection succeeds with the expression result a
         },
         expression: {
           kind: ExpressionKind.Native,
-          fn: ({ x }: { x: number }) => x * 2,
+          fn: ({ x }: { x: Wrapped<number> }) => x.raw * 2,
         },
       },
       input: Input.Iterable([7]),

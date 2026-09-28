@@ -9,6 +9,8 @@ import { Input, InputNormalizationMode } from "../../input.ts";
 import { Path } from "../../path.ts";
 import type { Edit } from "../../edit.ts";
 import { rehydrateMemos } from "../../runtime/incremental.ts";
+import { unwrap } from "../../wrapped.ts";
+import { valueOf } from "../../match.ts";
 
 const uffdaDir = fromFileUrl(new URL(".", import.meta.url));
 
@@ -21,7 +23,7 @@ Deno.test({
         const m = await uffdaGrammar("");
         assertEquals(m.kind, MatchKind.Ok);
         if (m.kind === MatchKind.Ok) {
-          assertEquals(m.value, {
+          assertEquals(unwrap(m.value), {
             kind: "module",
             declarations: [],
           });
@@ -36,7 +38,7 @@ Deno.test({
         const m = await uffdaGrammar('import "./a.ts" A;');
         assertEquals(m.kind, MatchKind.Ok);
         if (m.kind === MatchKind.Ok) {
-          assertEquals(m.value, {
+          assertEquals(unwrap(m.value), {
             kind: "module",
             declarations: [
               {
@@ -66,7 +68,7 @@ Deno.test({
         );
         assertEquals(m.kind, MatchKind.Ok);
         if (m.kind === MatchKind.Ok) {
-          assertEquals(m.value, {
+          assertEquals(unwrap(m.value), {
             kind: "module",
             declarations: [
               {
@@ -93,7 +95,7 @@ Deno.test({
         );
         assertEquals(m.kind, MatchKind.Ok);
         if (m.kind === MatchKind.Ok) {
-          assertEquals(m.value, {
+          assertEquals(unwrap(m.value), {
             kind: "module",
             declarations: [
               {
@@ -119,7 +121,7 @@ Deno.test({
         const one = await uffdaGrammar('import "./a.ts" A;');
         assertEquals(one.kind, MatchKind.Ok);
         if (one.kind === MatchKind.Ok) {
-          assertEquals(one.value.declarations[0], {
+          assertEquals(valueOf(one).declarations[0], {
             kind: "import",
             moduleUrl: "./a.ts",
             names: ["A"],
@@ -129,7 +131,7 @@ Deno.test({
         const many = await uffdaGrammar('import "./a.ts" A B C;');
         assertEquals(many.kind, MatchKind.Ok);
         if (many.kind === MatchKind.Ok) {
-          assertEquals(many.value.declarations[0], {
+          assertEquals(valueOf(many).declarations[0], {
             kind: "import",
             moduleUrl: "./a.ts",
             names: ["A", "B", "C"],
@@ -175,8 +177,8 @@ Deno.test({
         const one = await uffdaGrammar("rule P = any;");
         assertEquals(one.kind, MatchKind.Ok);
         if (one.kind === MatchKind.Ok) {
-          assertEquals(one.value.declarations.length, 1);
-          const declaration = one.value.declarations[0];
+          assertEquals(valueOf(one).declarations.length, 1);
+          const declaration = valueOf(one).declarations[0];
           if (!("kind" in declaration)) {
             throw new Error("expected rule declaration");
           }
@@ -192,7 +194,7 @@ Deno.test({
         const sequence = await uffdaGrammar('rule P = "." "." end;');
         assertEquals(sequence.kind, MatchKind.Ok);
         if (sequence.kind === MatchKind.Ok) {
-          assertEquals(sequence.value.declarations[0], {
+          assertEquals(valueOf(sequence).declarations[0], {
             kind: "rule",
             name: "P",
             parameters: [],
@@ -217,7 +219,7 @@ Deno.test({
         const empty = await uffdaGrammar("rule Wrap<> = any;");
         assertEquals(empty.kind, MatchKind.Ok);
         if (empty.kind === MatchKind.Ok) {
-          assertEquals(empty.value.declarations[0], {
+          assertEquals(valueOf(empty).declarations[0], {
             kind: "rule",
             name: "Wrap",
             parameters: [],
@@ -232,7 +234,7 @@ Deno.test({
         );
         assertEquals(params.kind, MatchKind.Ok);
         if (params.kind === MatchKind.Ok) {
-          const declaration = params.value.declarations[0];
+          const declaration = valueOf(params).declarations[0];
           assertEquals(declaration.kind, "rule");
           if (declaration.kind === "rule") {
             assertEquals(declaration.name, "Surround");
@@ -368,8 +370,8 @@ Deno.test({
         assertEquals(incremental.kind, MatchKind.Ok);
         assertEquals(full.kind, MatchKind.Ok);
         if (incremental.kind === MatchKind.Ok && full.kind === MatchKind.Ok) {
-          assertEquals(incremental.value, full.value);
-          assertEquals(incremental.value, {
+          assertEquals(unwrap(incremental.value), unwrap(full.value));
+          assertEquals(unwrap(incremental.value), {
             kind: "module",
             declarations: [
               {

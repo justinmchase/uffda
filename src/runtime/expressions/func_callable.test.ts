@@ -1,4 +1,9 @@
-import { assertEquals, assertRejects, assertStrictEquals } from "@std/assert";
+import {
+  assert,
+  assertEquals,
+  assertRejects,
+  assertStrictEquals,
+} from "@std/assert";
 import { MatchKind, ok } from "../../match.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 import { PatternKind } from "../patterns/pattern.kind.ts";
@@ -8,6 +13,7 @@ import type { Func } from "../modules/func.ts";
 import { Scope } from "../scope.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import { argsPattern, funcCallable } from "./func_callable.ts";
+import { isWrapped, rawOf } from "../../wrapped.ts";
 
 Deno.test("runtime/expressions/func_callable", async (t) => {
   const identityFn: Func = {
@@ -24,7 +30,8 @@ Deno.test("runtime/expressions/func_callable", async (t) => {
       const m = ok(scope, scope, { kind: PatternKind.Ok }, undefined);
       const invoke = funcCallable(identityFn, m);
       const result = await invoke();
-      assertEquals((result as { kind: MatchKind }).kind, MatchKind.Ok);
+      assert(isWrapped(result));
+      assertEquals((rawOf(result) as { kind: MatchKind }).kind, MatchKind.Ok);
     },
   );
 
@@ -36,7 +43,7 @@ Deno.test("runtime/expressions/func_callable", async (t) => {
       const subject = { name: "Example" };
       const invoke = funcCallable(identityFn, m, subject);
       const result = await invoke();
-      assertEquals(result, subject);
+      assertStrictEquals(rawOf(result), subject);
     },
   );
 

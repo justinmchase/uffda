@@ -1,6 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { MatchKind } from "../../mod.ts";
 import { executeUffdaSource } from "../../lang/uffda/uffda.lang.ts";
+import { unwrap } from "../../wrapped.ts";
 
 Deno.test("req:uffda-language-syntax-006 - Canonical Uffda examples parse compile and execute", async (t) => {
   await t.step("identity canonical example executes end-to-end", async () => {
@@ -10,7 +11,7 @@ Deno.test("req:uffda-language-syntax-006 - Canonical Uffda examples parse compil
     });
     assertEquals(m.kind, MatchKind.Ok);
     if (m.kind === MatchKind.Ok) {
-      assertEquals(m.value, "z");
+      assertEquals(unwrap(m.value), "z");
     }
   });
 
@@ -21,7 +22,7 @@ Deno.test("req:uffda-language-syntax-006 - Canonical Uffda examples parse compil
     });
     assertEquals(m.kind, MatchKind.Ok);
     if (m.kind === MatchKind.Ok) {
-      assertEquals(m.value, 1);
+      assertEquals(unwrap(m.value), 1);
     }
   });
 });

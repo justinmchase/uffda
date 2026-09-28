@@ -1,10 +1,11 @@
 import { assertEquals } from "@std/assert";
-import { MatchKind } from "../match.ts";
+import { MatchKind, valueOf } from "../match.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 import type { Pattern } from "../runtime/patterns/pattern.ts";
 import { expressionGrammar } from "./expression/expression.lang.ts";
 import { parseGrammar } from "./grammar.ts";
 import { exec } from "../runtime/exec.ts";
+import { unwrap } from "../wrapped.ts";
 
 Deno.test({
   name: "lang.grammar.parseGrammar",
@@ -20,7 +21,7 @@ Deno.test({
 
         assertEquals(m.kind, MatchKind.Ok);
         if (m.kind === MatchKind.Ok) {
-          assertEquals(m.value, { kind: PatternKind.Any });
+          assertEquals(unwrap(m.value), { kind: PatternKind.Any });
         }
       },
     });
@@ -48,7 +49,7 @@ Deno.test({
         });
         assertEquals(m.kind, MatchKind.Ok);
         if (m.kind === MatchKind.Ok) {
-          assertEquals(await exec(m.value, m), "ok");
+          assertEquals(unwrap(await exec(valueOf(m), m)), "ok");
         }
       },
     });

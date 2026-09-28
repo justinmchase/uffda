@@ -11,6 +11,8 @@ import {
 } from "./execute.ts";
 import { uffdaGrammar } from "./uffda.lang.ts";
 import type { UffdaSyntaxModule } from "./syntax.types.ts";
+import { unwrap } from "../../wrapped.ts";
+import { valueOf } from "../../match.ts";
 
 Deno.test("lang.uffda.execute compiles through UffdaRuntimeCompiler", async () => {
   const module = await compileUffdaSyntaxModule({
@@ -66,7 +68,7 @@ Deno.test("lang.uffda.execute parses compiles and runs canonical any rule", asyn
 
   assertEquals(m.kind, MatchKind.Ok);
   if (m.kind === MatchKind.Ok) {
-    assertEquals(m.value, "z");
+    assertEquals(unwrap(m.value), "z");
   }
 });
 
@@ -80,7 +82,7 @@ Deno.test("lang.uffda.execute parses compiles and runs parametric surround rule"
     });
     assertEquals(m.kind, MatchKind.Ok, `input ${JSON.stringify(input)}`);
     if (m.kind === MatchKind.Ok) {
-      assertEquals(m.value, "x");
+      assertEquals(unwrap(m.value), "x");
     }
   }
 
@@ -100,10 +102,10 @@ Deno.test("lang.uffda.execute compileUffdaSource matches uffdaGrammar + compileU
   const parsed = await uffdaGrammar(source);
   assertEquals(parsed.kind, MatchKind.Ok);
   if (parsed.kind !== MatchKind.Ok) return;
-  const twoStep = await compileUffdaSyntaxModule(parsed.value);
+  const twoStep = await compileUffdaSyntaxModule(valueOf(parsed));
 
   if (single.kind === MatchKind.Ok) {
-    assertEquals(single.value, twoStep);
+    assertEquals(unwrap(single.value), twoStep);
   }
 });
 

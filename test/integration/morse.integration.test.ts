@@ -1,9 +1,10 @@
 import { assertEquals } from "@std/assert";
 import { dirname, fromFileUrl, join, resolve } from "@std/path";
 import { Input } from "../../src/input.ts";
-import { MatchKind } from "../../src/match.ts";
+import { MatchKind, valueOf } from "../../src/match.ts";
 import { executeModuleDeclaration } from "../../src/runtime/module.execute.ts";
 import { compileSourcesToAstArtifacts } from "../../src/cli/compile.ts";
+import { unwrap } from "../../src/wrapped.ts";
 
 const writePermission = await Deno.permissions.query({
   name: "write",
@@ -70,15 +71,16 @@ Deno.test({
     });
     assertEquals(encoded.kind, MatchKind.Ok);
     if (encoded.kind !== MatchKind.Ok) return;
-    assertEquals(typeof encoded.value, "string");
-    if (typeof encoded.value !== "string") return;
+    const encodedText = valueOf(encoded);
+    assertEquals(typeof encodedText, "string");
+    if (typeof encodedText !== "string") return;
 
     const decoded = await executeModuleDeclaration(declaration, {
       entryRuleName: "Morse",
-      input: Input.Iterable(encoded.value),
+      input: Input.Iterable(encodedText),
     });
     assertEquals(decoded.kind, MatchKind.Ok);
     if (decoded.kind !== MatchKind.Ok) return;
-    assertEquals(decoded.value, sourceText);
+    assertEquals(unwrap(decoded.value), sourceText);
   },
 });

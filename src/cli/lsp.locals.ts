@@ -12,6 +12,7 @@ import {
   walkAccepted,
 } from "./editor_metadata.ts";
 import type { LoadedDeclarationKind } from "./mcp.session.ts";
+import { shallow } from "../wrapped.ts";
 
 /**
  * Local bindings for LSP hover (requirement 006): the rule parameters,
@@ -161,7 +162,7 @@ function field(value: unknown, name: string): unknown {
 
 function isLambda(value: unknown): boolean {
   return field(value, "kind") === ExpressionKind.Lambda &&
-    isPattern(field(value, "pattern"));
+    isPattern(shallow(field(value, "pattern")));
 }
 
 /**
@@ -171,7 +172,7 @@ function isLambda(value: unknown): boolean {
  */
 function isScope(node: AnnotatableMatch): boolean {
   return hasEditorMetadata(node, EditorDecorator.Declaration) ||
-    (node.kind === MatchKind.Ok && isLambda(node.value));
+    (node.kind === MatchKind.Ok && isLambda(shallow(node.value)));
 }
 
 function variableName(value: unknown): string | undefined {
@@ -218,7 +219,7 @@ function variablesIn(
 ): Map<string, OkMatch> {
   const found = new Map<string, OkMatch>();
   walkScope(scope, chain, (node) => {
-    const name = variableName(node.value);
+    const name = variableName(shallow(node.value));
     if (name === undefined || found.has(name)) return;
     found.set(name, narrowed(node, name));
   });
@@ -235,7 +236,7 @@ function narrowed(node: OkMatch, name: string): OkMatch {
 
 function firstBinding(node: Match, name: string): OkMatch | undefined {
   if (node.kind !== MatchKind.Ok || isScope(node)) return undefined;
-  if (variableName(node.value) === name) return narrowed(node, name);
+  if (variableName(shallow(node.value)) === name) return narrowed(node, name);
   for (const child of node.matches) {
     const inner = firstBinding(child, name);
     if (inner) return inner;
@@ -251,7 +252,7 @@ function parametersOf(
   const names: string[] = [];
   walkScope(declaration, chain, (node) => {
     if (!hasEditorMetadata(node, EditorDecorator.Parameter)) return;
-    const [t, name] = type(field(node.value, "name"));
+    const [t, name] = type(field(shallow(node.value), "name"));
     if (t === Type.String && !names.includes(name as string)) {
       names.push(name as string);
     }

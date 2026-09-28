@@ -9,6 +9,7 @@ import type { AttributeDeclaration } from "./declarations/attribute.ts";
 import type { Serializable } from "@justinmchase/serializable";
 import { Scope } from "./scope.ts";
 import { applyAttributes } from "./apply_attributes.ts";
+import { isWrapped } from "../wrapped.ts";
 
 function metadataDecorator(
   name: string,
@@ -255,6 +256,31 @@ Deno.test("runtime/apply_attributes", async (t) => {
       );
       assertEquals(decorator.metadata, { Self: { kind: "self" } });
       assertEquals(decorator.attributes?.[0].decorator, decorator);
+    },
+  );
+
+  await t.step(
+    "APPLY_ATTRIBUTES_RAW - metadata and resolved args are raw values",
+    async () => {
+      const module = DefaultModule();
+      const decorator: DecoratorFunc = {
+        ...metadataDecorator("Tagged", { kind: "tagged", n: [1] }),
+        pattern: { kind: PatternKind.Any },
+      };
+      module.decorators.set("Tagged", decorator);
+      const rule = targetRule();
+      await applyAttributes(
+        rule,
+        [{
+          name: "Tagged",
+          args: [{ kind: ExpressionKind.Number, value: 2 }],
+        }],
+        module,
+        Scope.Default(),
+      );
+      assertEquals(rule.metadata, { Tagged: { kind: "tagged", n: [1] } });
+      assertEquals(rule.attributes?.[0].args, [2]);
+      assertEquals(isWrapped(rule.attributes?.[0].args[0]), false);
     },
   );
 });

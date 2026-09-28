@@ -1,7 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { collect } from "../../testing.ts";
 import { Input } from "../../input.ts";
-import { MatchKind } from "../../match.ts";
+import { MatchKind, valueOf } from "../../match.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 import { Resolver } from "../../runtime/resolve.ts";
 import { Scope } from "../../runtime/scope.ts";
@@ -77,7 +77,7 @@ Deno.test(
       throw new Error(`Match was ${m.kind}`);
     }
 
-    const [value] = m.value as [TokenizerLangValue, unknown];
+    const [value] = valueOf(m) as [TokenizerLangValue, unknown];
     assertEquals(await collect(value.tokens), ["a", " ", "\n", "+"]);
   },
 );

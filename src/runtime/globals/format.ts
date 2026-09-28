@@ -1,10 +1,11 @@
 import { defineMetadata } from "../value_metadata.ts";
+import { rawOf } from "../../wrapped.ts";
 
-export function format(value: string, ...args: unknown[]) {
-  return value.replace(
+export function format(template: unknown, ...args: unknown[]) {
+  return (rawOf(template) as string).replace(
     /{(\d+)}/g,
     (substring: string, ...matches: string[]) =>
-      args[parseInt(matches[0])]?.toString() ?? substring,
+      rawOf(args[parseInt(matches[0])])?.toString() ?? substring,
   );
 }
 

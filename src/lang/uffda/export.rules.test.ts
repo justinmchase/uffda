@@ -1,14 +1,15 @@
 import { assertEquals } from "@std/assert";
-import { MatchKind } from "../../match.ts";
+import { MatchKind, valueOf } from "../../match.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { uffdaGrammar } from "./uffda.lang.ts";
+import { unwrap } from "../../wrapped.ts";
 
 Deno.test("lang.uffda.export-rules parses direct export names", async () => {
   const match = await uffdaGrammar("export Main Other; rule Main = any;");
 
   assertEquals(match.kind, MatchKind.Ok);
   if (match.kind === MatchKind.Ok) {
-    assertEquals(match.value.declarations, [
+    assertEquals(valueOf(match).declarations, [
       { kind: "export", name: "Main" },
       { kind: "export", name: "Other" },
       {
@@ -42,7 +43,7 @@ Deno.test("lang.uffda.export-rules normalizes inline exported rules", async () =
   assertEquals(inline.kind, MatchKind.Ok);
   assertEquals(split.kind, MatchKind.Ok);
   if (inline.kind === MatchKind.Ok && split.kind === MatchKind.Ok) {
-    assertEquals(inline.value, split.value);
+    assertEquals(unwrap(inline.value), unwrap(split.value));
   }
 });
 
@@ -57,7 +58,7 @@ Deno.test(
     assertEquals(inline.kind, MatchKind.Ok);
     assertEquals(split.kind, MatchKind.Ok);
     if (inline.kind === MatchKind.Ok && split.kind === MatchKind.Ok) {
-      assertEquals(inline.value, split.value);
+      assertEquals(unwrap(inline.value), unwrap(split.value));
     }
   },
 );

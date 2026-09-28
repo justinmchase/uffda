@@ -7,6 +7,7 @@ import {
   type Span,
   spanFrom,
 } from "./span.ts";
+import { unwrap, wrap, type Wrapped } from "./wrapped.ts";
 
 export type { SourceSpan } from "./span.ts";
 
@@ -67,7 +68,8 @@ export type MatchOk<T = unknown> = {
   normalizedSpan: SourceSpan;
   originalSpan: SourceSpan;
   matches: Match[];
-  value: T;
+  /** Carried as a wrapped value; see `./wrapped.ts`. */
+  value: Wrapped<T>;
   /** Set only for the Ok produced by a fresh rule invocation; see {@link MatchOrigin}. */
   origin?: MatchOrigin;
   /**
@@ -141,6 +143,9 @@ export function error(
   };
 }
 
+// Replaced before `ok()` returns; the match must exist to be its value's origin.
+const PENDING = undefined as unknown as Wrapped;
+
 export function ok(
   start: Scope,
   end: Scope,
@@ -150,17 +155,26 @@ export function ok(
   origin?: MatchOrigin,
 ): MatchOk {
   const { normalizedSpan, originalSpan } = sourceSpansFrom(start, end);
-  return {
+  const m: MatchOk = {
     kind: MatchKind.Ok,
     span: spanFrom(start, end),
     normalizedSpan,
     originalSpan,
     pattern,
     scope: end,
-    value,
+    value: PENDING,
     matches,
     origin,
   };
+  // A value that is not already carried was computed by this match, so the
+  // match itself is its origin.
+  m.value = wrap(value, m);
+  return m;
+}
+
+/** The fully raw value of `match`, for host code (see `unwrap`). */
+export function valueOf<T>(match: MatchOk<T>): T {
+  return unwrap(match.value) as T;
 }
 
 export function fail(

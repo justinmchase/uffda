@@ -1,6 +1,7 @@
 import { assertEquals, assertStrictEquals } from "@std/assert";
 import { symbol } from "./symbol.ts";
 import { metadataOf } from "../value_metadata.ts";
+import { rootOrigin, Wrapped } from "../../wrapped.ts";
 
 Deno.test("globals.symbol resolves well-known symbols to the built-in singleton", () => {
   assertStrictEquals(symbol("iterator"), Symbol.iterator);
@@ -29,5 +30,12 @@ Deno.test("globals.symbol carries metadata", () => {
   assertEquals(
     metadataOf(symbol)?.parameters.map((p) => p.name),
     ["name"],
+  );
+});
+
+Deno.test("globals.symbol observes the raw name", () => {
+  assertEquals(
+    symbol(new Wrapped("asyncIterator", rootOrigin(0))),
+    Symbol.asyncIterator,
   );
 });
