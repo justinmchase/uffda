@@ -73,3 +73,4 @@ Each runtime subtopic should define:
 - [runtime compiled pattern dispatch](./runtime/compiled-patterns.spec.md)
 - [runtime rule metadata](./runtime/rule-metadata.spec.md)
 - [runtime value metadata](./runtime/value-metadata.spec.md)
+- [runtime value provenance](./runtime/value-provenance.spec.md) (proposed)
