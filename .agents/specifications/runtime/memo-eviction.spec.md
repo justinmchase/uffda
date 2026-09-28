@@ -85,12 +85,19 @@ working memory for a single first-pass parse.
 ## Interaction with delivered results
 
 - A parse's **delivered result** is the caller-visible value(s) it returns: the
-  top-level rule's successful outcome, everything reachable from it, and (in a
-  multi-stage pipeline) any layer's output stream consumed by a downstream
-  layer. Eviction governs the transient working set produced while reaching that
-  result — abandoned alternation branches, superseded intermediate
-  left-recursive growth entries, and rule/position pairs that turned out not to
-  be part of the accepted parse — never the delivered result itself.
+  top-level rule's outcome (successful or failed), everything reachable from it,
+  and (in a multi-stage pipeline) any layer's output stream consumed by a
+  downstream layer. Everything reachable from the outcome includes the rejected
+  attempts the `Match` graph records as children — the failed alternatives of an
+  ordered choice, the failure that ends a repetition, the inner outcome of a
+  `Maybe`/`Not`/`Except` — together with the sub-matches those attempts
+  accumulated before failing. Editor tooling reads them (see
+  [editor metadata](../languages/cli/editor-metadata.spec.md#walking-the-parse)),
+  and so do diagnostics (see [match diagnostics](./match-diagnostics.spec.md)).
+- Eviction governs the transient working set produced while reaching that
+  result: memo entries at rule/position pairs the delivered `Match` graph does
+  not reference, and superseded intermediate left-recursive growth entries —
+  never the delivered result itself.
 - The runtime MUST NOT evict a memo entry that is reachable from the delivered
   result for as long as the host (or a downstream pipeline layer) retains that
   result. This is a natural consequence of "provably unreachable": if the host
@@ -103,10 +110,11 @@ working memory for a single first-pass parse.
   use pays no eviction-related memory cost beyond ordinary garbage collection. A
   host that retains the delivered result (for example, to enable incremental
   re-parsing of that input, or to feed it to a downstream pipeline layer) pays a
-  cost proportional to the size of that delivered result — bounded by the
-  accepted parse's own structure, not by the full packrat working set (failed
-  branches and superseded growth attempts are never part of the delivered
-  result, so retaining it never requires retaining them).
+  cost proportional to the size of that delivered result: the accepted parse
+  plus the rejected attempts recorded within it, not the full packrat working
+  set. Superseded growth attempts and memo entries the `Match` graph does not
+  reference are never part of the delivered result, so retaining it never
+  requires retaining them.
 - This chapter does not require a distinct "durable cache" mechanism separate
   from ordinary memo entries: the delivered result's reachability is what keeps
   its underlying entries alive, exactly as JavaScript's ordinary reachability
