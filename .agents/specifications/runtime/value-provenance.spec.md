@@ -6,9 +6,10 @@ normative and no implementation conforms to it. Once accepted, the chapters
 listed under [Affected chapters](#affected-chapters) MUST be updated in the same
 change that implements it.
 
-This chapter defines how every runtime value retains a link to the Match that
-produced it, so source provenance survives any language layer, projection, or
-pipeline stage without language-specific knowledge in the runtime.
+This chapter defines how every runtime value retains a link to where it came
+from, so errors can be traced back to precise positions in the input the caller
+supplied, through any language layer, projection, or pipeline stage, without
+language-specific knowledge in the runtime.
 
 ## Conventions
 
@@ -17,22 +18,28 @@ RFC 8174.
 
 ## Logical purpose
 
-Spans live on Matches, never on values
+The caller supplies an input and needs to know, as precisely as possible, where
+in that input a problem lies. Spans live on Matches, never on values
 ([tokenization](../languages/tokenization.spec.md#structured-tokens-and-trivia)).
 When a projection turns matched values into new values, and a later stage
 consumes those values as its input stream, nothing links a stage input item back
 to the Match that produced it. A primitive value (a string or number) has no
 identity, so one `"rule"` cannot be distinguished from another.
 
-Today the runtime rebuilds that link after the fact by walking the tokenizer's
-Match tree for values shaped like tokenizer tokens (`structured.ts`). That
-couples the generic `pipeline` pattern to one language's output format, only
-works for that format, and silently falls back when its count heuristic fails.
-Any other language that emits plain strings or numbers has no way to keep
-provenance at all.
+Today the runtime works around this in two language-specific ways:
 
-This chapter replaces that with a single general mechanism: values are carried
-inside runtime-owned wrappers that reference their producing Match.
+- The `pipeline` pattern rebuilds per-item spans by walking the tokenizer's
+  Match tree for values shaped like tokenizer tokens (`structured.ts`). It only
+  works for that format and silently falls back when its count heuristic fails.
+- Source normalization builds an offset table (`normalizationMap`) in `.uff` by
+  reading `this.normalizedSpan` in rule expressions, and the runtime picks it up
+  by recognizing values shaped like a `SourceDocument` (`sourceProvenanceFrom`).
+
+Both are the same problem: a computed value lost the link to the input it came
+from. Any other language that emits plain strings or numbers has no way to keep
+provenance at all. This chapter replaces both workarounds with one general
+mechanism: values are carried inside runtime-owned wrappers that reference their
+origin.
 
 ## Terms
 
@@ -41,8 +48,13 @@ inside runtime-owned wrappers that reference their producing Match.
   on).
 - **Wrapped value:** a runtime-owned record pairing a raw value with its
   **origin**.
-- **Origin:** the Match that produced the wrapped value. A wrapped value's
-  source provenance is its origin's normalized and original source spans.
+- **Origin:** where a wrapped value came from. It is either the Match that
+  produced the value, or, for a value supplied by the host as input, its
+  **root position** in that host input.
+- **Root position:** the location of a host-supplied input item: the character
+  offset for a string input, or the item path for an iterable input.
+- **Source span:** the range of root positions a value or Match derives from.
+  This is what diagnostics report.
 - **Observe:** to inspect a value's raw content in order to decide something
   (compare it, test its type, compute from it, hash it).
 - **Carry:** to move a value from one place to another without inspecting it
@@ -56,16 +68,28 @@ inside runtime-owned wrappers that reference their producing Match.
   whose raw array holds wrapped elements, and an object value is a wrapped value
   whose raw object holds wrapped property values. Per-element and per-property
   provenance depends on this.
-- A wrapped value MUST reference its origin Match rather than copying spans.
-  Matches are already retained by the Match graph, so a wrapped value adds only
-  the wrapper itself.
+- A wrapped value MUST reference its origin rather than copying spans. Matches
+  are already retained by the Match graph, so a wrapped value adds only the
+  wrapper itself.
 - Wrapped values MUST be immutable. The same wrapped value MAY appear in many
   places (bindings, containers, stream items); identity of the wrapper is how
   provenance is shared.
 - Wrapped values MUST NOT be observable to `.uff` authors. No pattern,
   expression, or global result MAY expose the wrapper, the origin, or any span
-  as an ordinary value. This preserves the rule that expressions never read
-  spans.
+  as an ordinary value. Rule expressions MUST NOT read spans (including through
+  `this`).
+
+## Root input
+
+- Items of a host-supplied input MUST be wrapped on entry with their root
+  position as origin. A string input's items are its characters, each with its
+  own character offset.
+- A Match's source span MUST be derived from the source spans of the input items
+  it consumed: a Match that consumed items `a` through `b` spans from the start
+  of item `a`'s source span to the end of item `b`'s source span. A zero-width
+  Match spans the position between the adjacent items. This applies uniformly to
+  host input and to derived stage inputs, and supersedes per-stream `itemSpans`
+  and `normalizationMap`.
 
 ## Observe raw, carry wrapped
 
@@ -74,7 +98,7 @@ carried wrapped.**
 
 ### Operations that carry (the wrapper passes through unchanged)
 
-- Binding a value to a variable, and reading that variable (`x`, `_`, `this`).
+- Binding a value to a variable, and reading that variable (`x`, `_`).
 - A Match's value when the pattern's value is an input item or a child's value
   (for example `any`, `equal`, `character`, `variable`, `then`, `or`, `and`,
   `maybe`, `over`, `into`, rule references). Consuming an input item yields that
@@ -89,15 +113,16 @@ carried wrapped.**
 - Returning a bound value from a projection or func body (for example
   `func TokenText<{text: t}> = t`).
 - Building a pipeline or `into` input stream from a value: the stream's items
-  are the wrapped elements.
+  are the wrapped elements, or, for a string, its characters with their
+  character provenance (see [String character provenance](#string-character-provenance)).
 
 ### Operations that observe (the raw value is inspected)
 
 - Pattern tests: equality, type, character class, regular expression, range, and
   `switch` key comparison MUST compare raw values. Object patterns MUST test raw
   shape but bind wrapped property values.
-- Expression operators that compute (arithmetic, comparison, logical operators,
-  string interpolation) MUST operate on raw values.
+- Expression operators that compute (arithmetic, comparison, logical operators)
+  MUST operate on raw values.
 - Memo keys and resolved rule arguments MUST be derived from raw values, so
   wrapping never changes memoization behavior.
 - Equality MUST be raw and deep where it is deep today: two wrapped values with
@@ -106,45 +131,68 @@ carried wrapped.**
 ### Computed values
 
 - A value newly created by an operation that observes (rather than one carried)
-  MUST be wrapped with the origin of the innermost Match whose evaluation
-  created it:
+  MUST be wrapped with the innermost Match whose evaluation created it as
+  origin:
   - in a projection expression, the projection's Match;
-  - in a func body, the func invocation's argument Match, whose span is derived
-    from the provenance of the arguments it consumed;
+  - in a func body, the func invocation's argument Match, whose source span is
+    derived from the arguments it consumed;
   - for a literal written in an expression, the Match evaluating that
     expression.
-- A Match over an input stream of wrapped items MUST derive its source spans
-  from the origins of the items it consumed: the original span of a Match that
-  consumed items `a` through `b` runs from the start of item `a`'s origin span
-  to the end of item `b`'s origin span. This supersedes per-stream `itemSpans`.
+
+## String character provenance
+
+A string often becomes the input of a later stage (for example when an
+interpolated string is re-parsed, or when normalized source text is tokenized),
+so a single span for the whole string is not precise enough.
+
+- Every character of a wrapped string MUST have its own source span.
+- A string taken directly from the input (a single character item) has the
+  character's source span.
+- A string produced by concatenation (`join`, string interpolation, and any
+  other operation that builds a string from strings) MUST give each character
+  the source span of the character it was copied from.
+- A character written in an expression literal, or produced by a computation
+  that does not copy characters, MUST take the source span of the Match that
+  created it. For example, normalizing `"\r\n"` to a literal `"\n"` gives that
+  `"\n"` the span of both original characters.
+- Implementations SHOULD store character provenance compactly as runs, merging
+  adjacent characters whose source spans are contiguous, so a string copied
+  verbatim from the input costs one run regardless of length.
+- When a string becomes an input stream, each character item MUST carry its own
+  character provenance.
+
+With this rule, source normalization needs no offset table: the normalized text
+is a concatenation of units, and every unit already carries the span of the
+original characters it replaced.
 
 ## Globals
 
-- Globals receive and return values under the same data model; there is no
-  marker, flag, or metadata that changes how a particular global is treated.
+- Globals receive and return values under the same data model, host-supplied
+  globals included. There is no marker, flag, or metadata that changes how a
+  particular global is treated.
 - A global that only rearranges values (for example `map`, `filter`, `flat`,
   `slice`, `at`, `last`, `pack`, `coalesce`) MUST carry the wrapped values it
   moves, so selection and reordering keep provenance. Callbacks MUST receive the
   wrapped element.
-- A global that computes (for example `add`, `join`, `format`, `eq`) MUST
-  observe raw inputs. A raw value it returns MUST be wrapped with the origin of
-  the Match evaluating the invocation.
-- The runtime MUST provide explicit, exported helpers for globals to observe and
-  to carry values (at minimum: read the raw value of a wrapped value, deeply
-  unwrap a value, and test whether a value is wrapped). Globals MUST NOT inspect
-  origins.
+- A global that computes (for example `add`, `format`, `eq`) MUST observe raw
+  inputs. A raw value it returns MUST be wrapped with the Match evaluating the
+  invocation as origin. A global that builds strings from strings MUST use the
+  runtime's concatenation helper so character provenance is kept.
+- The runtime MUST export explicit helpers for globals: read the raw value of a
+  wrapped value, deeply unwrap a value, test whether a value is wrapped, and
+  concatenate strings with provenance. Globals MUST NOT inspect origins.
 
 ## Host boundary
 
-- Top-level entry points that return values to host code (grammar execution,
-  module resolution, `compile` output, CLI and JSON output) MUST return raw
-  values, deeply unwrapped.
-- Tooling that needs provenance (diagnostics, language server, MCP) MUST obtain
-  it through an explicit runtime API over Matches or wrapped values, never by
-  inspecting value shapes.
-- Values supplied by the host (globals, input items, `Input.From` values) that
-  arrive unwrapped MUST be wrapped on entry. Input items without an upstream
-  origin get the Match that consumed them as their origin.
+- `Match.value` MUST be the wrapped value. The Match graph has a single value
+  representation, and tooling can map any value (for example an AST node or one
+  of its properties) back to the caller's input directly.
+- Top-level entry points that return plain values to host code (for example
+  `compile` output and CLI or JSON output) MUST return raw values, deeply
+  unwrapped.
+- The runtime MUST export an API to read a wrapped value's source span. Tooling
+  that needs provenance (diagnostics, language server, MCP) MUST use it, never
+  inspect value shapes.
 
 ## Invariants
 
@@ -154,9 +202,9 @@ carried wrapped.**
 - **Transparency:** for every grammar, the raw values produced, the input
   consumed, and the match outcome MUST be identical to the unwrapped model.
   Wrapping only adds provenance.
-- **No loss at stage boundaries:** a value that is carried across `pipeline` and
-  `into` boundaries MUST keep its origin, so diagnostics in a later stage
-  resolve to authored source offsets through the chain of origins.
+- **No loss at stage boundaries:** a carried value MUST keep its origin across
+  `pipeline` and `into` boundaries, so diagnostics in a later stage resolve to
+  positions in the caller's input through the chain of origins.
 
 ## Performance intent
 
@@ -168,7 +216,9 @@ carried wrapped.**
 - Before adoption, parse time and retained heap for `src/lang/source/mod.uff`
   MUST be benchmarked against the unwrapped model and reported on #219.
 
-## Worked example: tokenizer to parser
+## Worked examples
+
+### Tokenizer to parser
 
 ```
 rule WordToken = WordChar+ -> { kind: "word", text: (join (flat _) "") };
@@ -177,16 +227,29 @@ rule TokenizerNoWhitespace = Tokenizer -> (semantic_no_whitespace_texts _);
 rule UffdaLang = Source |> [TokenizerNoWhitespace] |> [ModuleBody];
 ```
 
-1. `join` computes a new string, which is wrapped with the origin of
-   `WordToken`'s projection Match: exactly that word's source span. The object
-   literal carries it as its `text` property.
+1. `join` concatenates the word's characters, so the resulting string keeps each
+   character's source span. The object literal carries it as its `text`
+   property.
 2. `filter` and `map` carry the token objects without inspecting their origins.
 3. `TokenText` destructures its argument, so `t` is the existing wrapped `text`
-   value with the word's span.
+   value.
 4. The pipeline builds `ModuleBody`'s input from those wrapped strings. When
-   `ModuleBody` fails at item 3, the failure's span derives from item 3's
-   origin, which is the authored word, with no tokenizer knowledge in the
-   runtime.
+   `ModuleBody` fails at item 3, the failure's span is item 3's source span: the
+   authored word, with no tokenizer knowledge in the runtime.
+
+### Source normalization
+
+```
+rule CrLfUnit = "\r" "\n" -> "\n";
+rule SourceUnit = except "\r";
+rule NormalizedText = u:(CrLfUnit | SourceUnit)* -> (join u "");
+```
+
+`CrLfUnit` creates a literal `"\n"` whose span is both original characters, and
+`SourceUnit` carries each original character. `join` keeps per-character spans,
+so the normalized text maps every character back to the caller's input with no
+offset table, no `this.normalizedSpan`, and no `SourceDocument` recognition in
+the runtime.
 
 ## Affected chapters
 
@@ -196,31 +259,30 @@ On acceptance, the following MUST be updated in the implementing change:
   [into](../patterns/runtime/into.spec.md#source-provenance): derive stream item
   provenance from wrapped values; remove `itemSpans`-specific wording.
 - [input model](../patterns/input-model.spec.md): stream items are wrapped
-  values; host-supplied items are wrapped on entry.
+  values; host-supplied items are wrapped with root positions on entry.
+- [source normalization](../languages/source-normalization.spec.md): per-
+  character provenance replaces the normalization map.
 - [tokenization](../languages/tokenization.spec.md): per-token spans come from
   value origins; no runtime knowledge of token kinds.
+- [debuggability](../languages/debuggability.spec.md): provenance mapping is
+  satisfied by value origins.
 - [expression runtime semantics](../expressions/runtime-semantics.spec.md): the
   observe/carry rule for operators, literals, member access, and invocation.
 - [value metadata](./value-metadata.spec.md): globals contract for wrapped
   arguments and results.
-- Requirements `tokenizer-runtime-002`, `tokenizer-runtime-003`,
-  `tokenizer-runtime-007`, and `patterns-runtime/pipeline-001`.
+- Requirements `source-normalization-runtime-001`, `tokenizer-runtime-002`,
+  `tokenizer-runtime-003`, `tokenizer-runtime-007`, and
+  `patterns-runtime/pipeline-001`.
 
-## Open questions
+## Resolved design decisions
 
-1. **Globals contract for host-supplied globals.** Should host globals receive
-   wrapped values (uniform, but every host global must use the helpers), or
-   receive raw values with results wrapped at the invocation's origin (simpler
-   for hosts, but provenance is lost through them)?
-2. **Character provenance inside strings.** When a string value becomes a
-   character stream (for example string interpolation re-parsing), should each
-   character map linearly from the string origin's start, or should all
-   characters share the string's origin span? Linear mapping is only correct
-   when the string is a verbatim slice of its origin's input.
-3. **Public `Match.value`.** Should `MatchOk.value` on the public API stay raw
-   (unwrapped at entry points, with provenance available through a separate
-   accessor), or expose wrapped values to tooling directly?
-4. **Normalization map.** Source normalization's `normalizationMap` maps
-   normalized offsets to original offsets within one source. It is a separate
-   concern from value origins and is expected to remain; confirm it should not
-   be folded into this mechanism.
+- **Globals contract:** uniform. Host-supplied globals follow the same wrapped
+  data model as default globals; provenance takes priority over host
+  convenience.
+- **Character provenance:** per character, mapped back to the caller's input
+  with maximum precision.
+- **Public `Match.value`:** the wrapped value (single representation). Entry
+  points that return plain values unwrap them. This MAY be revisited once the
+  implementation is complete.
+- **Normalization map:** folded into this mechanism. It was a special case of a
+  computed string losing its link to the input.
