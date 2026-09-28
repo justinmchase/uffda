@@ -26,7 +26,6 @@ export function lambda(
       undefined,
       InputNormalizationMode.Iterable,
       false,
-      undefined,
       false,
       false,
       originOf(m),

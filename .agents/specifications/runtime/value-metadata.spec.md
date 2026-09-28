@@ -35,6 +35,14 @@ maintained documentation table that can drift from the runtime.
 - Readers MUST validate the shape and treat missing or malformed metadata as
   absent rather than trusting it.
 
+## Wrapped arguments and results
+
+Globals, default and host-supplied alike, receive wrapped arguments and follow
+the globals contract of [value provenance](./value-provenance.spec.md#globals):
+rearranging globals carry the values they move, computing globals observe raw
+inputs, and a raw result is wrapped with the evaluating Match's source span.
+Globals never inspect origins.
+
 ## Default globals
 
 - Every default runtime global (`defaultGlobals`) MUST carry function metadata.

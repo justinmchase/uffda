@@ -1,4 +1,4 @@
-import { MatchKind } from "../../match.ts";
+import { MatchKind, type MatchOk } from "../../match.ts";
 import { Resolver } from "../../runtime/resolve.ts";
 import { Scope } from "../../runtime/scope.ts";
 import { resolve } from "../../runtime/patterns/resolve.ts";
@@ -17,8 +17,6 @@ export type SourceUnit = {
   columnStart: number;
   lineEnd: number;
   columnEnd: number;
-  originalOffsetStart: number;
-  originalOffsetEnd: number;
 };
 
 /**
@@ -31,11 +29,18 @@ export type SourceDocument = {
   text: string;
   lineStarts: number[];
   units: SourceUnit[];
-  normalizationMap: number[];
   [Symbol.asyncIterator](): AsyncIterator<string>;
 };
 
 export async function normalizeSource(value: string): Promise<SourceDocument> {
+  return valueOf(await sourceMatch(value)) as SourceDocument;
+}
+
+/**
+ * The `Source` match for `value`. Its value is the wrapped document, whose
+ * `text` characters carry their origins in `value`.
+ */
+export async function sourceMatch(value: string): Promise<MatchOk> {
   const moduleUrl = new URL("./mod.uff", import.meta.url);
   const resolver = new Resolver();
   const inputScope = Scope.From(value);
@@ -62,5 +67,5 @@ export async function normalizeSource(value: string): Promise<SourceDocument> {
   if (result.kind !== MatchKind.Ok) {
     throw new Error(`Source normalization failed with ${result.kind}`);
   }
-  return valueOf(result) as SourceDocument;
+  return result;
 }

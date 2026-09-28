@@ -3,7 +3,7 @@ import { MatchKind } from "../../match.ts";
 import {
   StructuredTokenKind,
   type TokenValue,
-} from "../../lang/tokenizer/structured.ts";
+} from "../../lang/tokenizer/tokenizer.lang.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
 const moduleUrl = new URL("../../lang/tokenizer/mod.uff", import.meta.url).href;

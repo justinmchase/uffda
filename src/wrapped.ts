@@ -1,32 +1,26 @@
 import { Type, type } from "@justinmchase/type";
 import type { SourceSpan } from "./span.ts";
 
-type SourceSpans = {
-  readonly normalizedSpan: SourceSpan;
-  readonly originalSpan: SourceSpan;
-};
+type Spanned = { readonly originalSpan: SourceSpan };
 
 /**
- * Where a value came from: the source spans of the Match that produced it, or
- * a root position in the host-supplied input. An origin holds spans only; a
+ * Where a value came from: the source span of the Match that produced it, or
+ * a root position in the host-supplied input. An origin is a span only; a
  * Match (which retains its scope and memos) must not be used as one, which
- * `kind?: never` enforces. Use {@link originOf} to take a Match's spans.
+ * `kind?: never` enforces. Use {@link originOf} to take a Match's span.
  */
-export type Origin = SourceSpans & { readonly kind?: never };
+export type Origin = Readonly<SourceSpan> & { readonly kind?: never };
 
-/** The origin of values produced by `match`: its spans, not the Match. */
-export function originOf(match: SourceSpans): Origin {
-  return {
-    normalizedSpan: match.normalizedSpan,
-    originalSpan: match.originalSpan,
-  };
+/** The origin of values produced by `match`: its span, not the Match. */
+export function originOf(match: Spanned): Origin {
+  return match.originalSpan;
 }
 
 /**
  * `length` consecutive characters (code points, the unit strings are
  * iterated in) of a string that share one origin. When
  * `linear`, character `k` of the run maps to offset `start + k` of the
- * origin's spans; otherwise every character maps to the whole origin span.
+ * origin; otherwise every character maps to the whole origin span.
  */
 export type CharRun = {
   readonly length: number;
@@ -61,7 +55,7 @@ export function wrap(value: unknown, origin: Origin): Wrapped {
  * Carries `value` if it is already wrapped, otherwise wraps it with the origin
  * of `match` (see {@link originOf}).
  */
-export function wrapFrom(value: unknown, match: SourceSpans): Wrapped {
+export function wrapFrom(value: unknown, match: Spanned): Wrapped {
   return isWrapped(value) ? value : new Wrapped(value, originOf(match));
 }
 
@@ -216,11 +210,24 @@ export function shallow(value: unknown): unknown {
  * single item at `start`).
  */
 export function rootOrigin(start: number, end = start + 1): Origin {
-  const span = { start, end };
-  return { normalizedSpan: span, originalSpan: span };
+  return { start, end };
 }
 
-function isUnitWidth(span: SourceSpan): boolean {
+/**
+ * A host-supplied value that is itself the root input: a string's characters
+ * take their own offsets, anything else is the single item at offset 0.
+ */
+export function wrapRoot(value: unknown): Wrapped {
+  if (isWrapped(value)) return value;
+  const [t, v] = type(value);
+  if (t !== Type.String) return new Wrapped(value, rootOrigin(0));
+  const length = codePoints(v as string);
+  const origin = rootOrigin(0, length);
+  const chars = length === 0 ? [] : [{ length, origin, linear: true }];
+  return new Wrapped(value, origin, chars);
+}
+
+function isUnitWidth(span: Origin): boolean {
   return span.end - span.start === 1;
 }
 
@@ -235,13 +242,8 @@ export function charRuns(value: Wrapped<string>): readonly CharRun[] {
   if (value.chars) return value.chars;
   const length = codePoints(value.raw);
   if (length === 0) return [];
-  const linear = length === 1 && isUnitWidth(value.origin.normalizedSpan) &&
-    isUnitWidth(value.origin.originalSpan);
+  const linear = length === 1 && isUnitWidth(value.origin);
   return [{ length, origin: value.origin, linear }];
-}
-
-function offsetSpan(span: SourceSpan, k: number): SourceSpan {
-  return { start: span.start + k, end: span.start + k + 1 };
 }
 
 const runStarts = new WeakMap<readonly CharRun[], number[]>();
@@ -278,22 +280,22 @@ export function charOrigin(value: Wrapped<string>, index: number): Origin {
   }
   const run = value.chars[lo];
   if (!run.linear || run.length === 1) return run.origin;
-  const k = index - starts[lo];
-  return {
-    normalizedSpan: offsetSpan(run.origin.normalizedSpan, k),
-    originalSpan: offsetSpan(run.origin.originalSpan, k),
-  };
+  const start = run.origin.start + index - starts[lo];
+  return { start, end: start + 1 };
 }
 
-function contiguous(a: SourceSpan, b: SourceSpan): boolean {
-  return a.end === b.start;
+/** The origin of every character (code point) of a wrapped string. */
+export function charOrigins(value: Wrapped<string>): Origin[] {
+  const origins: Origin[] = [];
+  for (let i = 0, n = codePoints(value.raw); i < n; i++) {
+    origins.push(charOrigin(value, i));
+  }
+  return origins;
 }
 
 function mergeable(a: CharRun, b: CharRun): boolean {
   if (a.origin === b.origin && !a.linear && !b.linear) return true;
-  return a.linear && b.linear &&
-    contiguous(a.origin.normalizedSpan, b.origin.normalizedSpan) &&
-    contiguous(a.origin.originalSpan, b.origin.originalSpan);
+  return a.linear && b.linear && a.origin.end === b.origin.start;
 }
 
 function merge(a: CharRun, b: CharRun): CharRun {
@@ -303,16 +305,7 @@ function merge(a: CharRun, b: CharRun): CharRun {
   return {
     length: a.length + b.length,
     linear: true,
-    origin: {
-      normalizedSpan: {
-        start: a.origin.normalizedSpan.start,
-        end: b.origin.normalizedSpan.end,
-      },
-      originalSpan: {
-        start: a.origin.originalSpan.start,
-        end: b.origin.originalSpan.end,
-      },
-    },
+    origin: { start: a.origin.start, end: b.origin.end },
   };
 }
 

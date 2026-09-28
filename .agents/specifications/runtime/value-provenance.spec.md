@@ -1,10 +1,8 @@
 # Runtime value provenance
 
-**Status: PROPOSED.** This chapter is a design proposal under review in
-[#219](https://github.com/justinmchase/uffda/issues/219). It is not yet
-normative and no implementation conforms to it. Once accepted, the chapters
-listed under [Affected chapters](#affected-chapters) MUST be updated in the same
-change that implements it.
+**Status: ACCEPTED.** Adopted for
+[#219](https://github.com/justinmchase/uffda/issues/219). The chapters listed
+under [Related chapters](#related-chapters) conform to it.
 
 This chapter defines how every runtime value retains a link to where it came
 from, so errors can be traced back to precise positions in the input the caller
@@ -26,14 +24,15 @@ consumes those values as its input stream, nothing links a stage input item back
 to the Match that produced it. A primitive value (a string or number) has no
 identity, so one `"rule"` cannot be distinguished from another.
 
-Today the runtime works around this in two language-specific ways:
+Before this chapter, the runtime worked around this in two language-specific
+ways:
 
-- The `pipeline` pattern rebuilds per-item spans by walking the tokenizer's
-  Match tree for values shaped like tokenizer tokens (`structured.ts`). It only
-  works for that format and silently falls back when its count heuristic fails.
-- Source normalization builds an offset table (`normalizationMap`) in `.uff` by
-  reading `this.normalizedSpan` in rule expressions, and the runtime picks it up
-  by recognizing values shaped like a `SourceDocument` (`sourceProvenanceFrom`).
+- The `pipeline` pattern rebuilt per-item spans by walking the tokenizer's Match
+  tree for values shaped like tokenizer tokens. It only worked for that format
+  and silently fell back when its count heuristic failed.
+- Source normalization built an offset table in `.uff` by reading the current
+  Match's span in rule expressions, and the runtime picked it up by recognizing
+  values shaped like a `SourceDocument`.
 
 Both are the same problem: a computed value lost the link to the input it came
 from. Any other language that emits plain strings or numbers has no way to keep
@@ -48,15 +47,15 @@ origin.
   on).
 - **Wrapped value:** a runtime-owned record pairing a raw value with its
   **origin**.
-- **Origin:** where a wrapped value came from, as a pair of source spans
-  (normalized and original). For a value produced during matching it is the
-  source span of the Match that produced the value; for a value supplied by the
-  host as input it is its **root position** in that host input. An origin is
-  spans only; it does not reference the Match.
+- **Origin:** where a wrapped value came from, as a source span. For a value
+  produced during matching it is the source span of the Match that produced the
+  value; for a value supplied by the host as input it is its **root position**
+  in that host input. An origin is spans only; it does not reference the Match.
 - **Root position:** the location of a host-supplied input item: the character
   offset for a string input, or the item path for an iterable input.
 - **Source span:** the range of root positions a value or Match derives from.
-  This is what diagnostics report.
+  This is what diagnostics report. A Match carries exactly one source span
+  (`originalSpan`), in the coordinates of the caller's input.
 - **Observe:** to inspect a value's raw content in order to decide something
   (compare it, test its type, compute from it, hash it).
 - **Carry:** to move a value from one place to another without inspecting it
@@ -87,12 +86,18 @@ origin.
 - Items of a host-supplied input MUST be wrapped on entry with their root
   position as origin. A string input's items are its characters, each with its
   own character offset.
+- A host-supplied scalar input's single item is the whole value. When that value
+  is a string, its characters take their own offsets (character `k`, counted in
+  code points, at `k` to `k + 1`), so iterating it yields root positions.
 - A Match's source span MUST be derived from the source spans of the input items
   it consumed: a Match that consumed items `a` through `b` spans from the start
   of item `a`'s source span to the end of item `b`'s source span. A zero-width
-  Match spans the position between the adjacent items. This applies uniformly to
-  host input and to derived stage inputs, and supersedes per-stream `itemSpans`
-  and `normalizationMap`.
+  Match (including every failure) is a point: the start of the next item's
+  source span when that item has already been read, otherwise the end of the
+  previous item's source span, otherwise the start of the stream (the start of
+  the origin of the value the stream iterates, or `0` for host input). Computing
+  a span MUST NOT advance the stream. This applies uniformly to host input and
+  to derived stage inputs; there are no per-stream offset tables.
 
 ## Observe raw, carry wrapped
 
@@ -159,6 +164,11 @@ so a single span for the whole string is not precise enough.
   that does not copy characters, MUST take the source span of the Match that
   created it. For example, normalizing `"\r\n"` to a literal `"\n"` gives that
   `"\n"` the span of both original characters.
+- Because a literal takes the span of the whole Match projecting it, grammar
+  authors SHOULD bind and carry matched items rather than re-create them as
+  literals when the result may be re-parsed (for example
+  `o:"(" c:Chunk* e:")" -> (pack o c e)` rather than
+  `"(" c:Chunk* ")" -> (pack "(" c ")")`), so each item keeps its own span.
 - Implementations SHOULD store character provenance compactly as runs, merging
   adjacent characters whose source spans are contiguous, so a string copied
   verbatim from the input costs one run regardless of length.
@@ -202,9 +212,10 @@ original characters it replaced.
   (through a plain object's iteration hooks, or an iterator such as a generator)
   yields deeply unwrapped items, while the same value iterated inside the
   runtime yields wrapped items.
-- The runtime MUST export an API to read a wrapped value's source span. Tooling
-  that needs provenance (diagnostics, language server, MCP) MUST use it, never
-  inspect value shapes.
+- The runtime MUST export an API to read a wrapped value's source span
+  (`Wrapped.origin`, and `charOrigin`/`charOrigins` for the characters of a
+  string). Tooling that needs provenance (diagnostics, language server, MCP)
+  MUST use it, never inspect value shapes.
 
 ## Invariants
 
@@ -253,8 +264,11 @@ rule UffdaLang = Source |> [TokenizerNoWhitespace] |> [ModuleBody];
 
 ```
 rule CrLfUnit = "\r" "\n" -> "\n";
+rule CrUnit = "\r" -> "\n";
 rule SourceUnit = except "\r";
-rule NormalizedText = u:(CrLfUnit | SourceUnit)* -> (join u "");
+rule NormalizedText =
+  string & [(CrLfUnit | CrUnit | SourceUnit)*]
+  -> { kind: "NormalizedText", text: (join _ "") };
 ```
 
 `CrLfUnit` creates a literal `"\n"` whose span is both original characters, and
@@ -263,9 +277,9 @@ so the normalized text maps every character back to the caller's input with no
 offset table, no `this.normalizedSpan`, and no `SourceDocument` recognition in
 the runtime.
 
-## Affected chapters
+## Related chapters
 
-On acceptance, the following MUST be updated in the implementing change:
+The following chapters and requirements conform to this chapter:
 
 - [pipeline](../patterns/runtime/pipeline.spec.md#source-provenance) and
   [into](../patterns/runtime/into.spec.md#source-provenance): derive stream item
@@ -280,6 +294,9 @@ On acceptance, the following MUST be updated in the implementing change:
   satisfied by value origins.
 - [expression runtime semantics](../expressions/runtime-semantics.spec.md): the
   observe/carry rule for operators, literals, member access, and invocation.
+- [reference](../expressions/reference.spec.md) and
+  [invocation](../expressions/invocation.spec.md): `this` no longer serves span
+  access.
 - [value metadata](./value-metadata.spec.md): globals contract for wrapped
   arguments and results.
 - Requirements `source-normalization-runtime-001`, `tokenizer-runtime-002`,
@@ -298,6 +315,11 @@ On acceptance, the following MUST be updated in the implementing change:
   implementation is complete.
 - **Normalization map:** folded into this mechanism. It was a special case of a
   computed string losing its link to the input.
+- **One span per Match:** Matches and origins carry a single source span in the
+  caller's input coordinates. The former separate normalized span described
+  offsets in one language's intermediate text (source normalization's), which a
+  language-independent runtime cannot compute, and tooling only used the
+  original span.
 - **Origins are spans, not Matches:** benchmarking showed Match origins kept
   every pipeline stage's memo table alive (4.5x retained heap). Diagnostics need
   where a value came from in the caller's input, not which Match produced it, so

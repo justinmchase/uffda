@@ -3,12 +3,12 @@ import { shallow } from "../../wrapped.ts";
 import { collect } from "../../testing.ts";
 import { Input } from "../../input.ts";
 import { type Match, MatchKind, type MatchOk, valueOf } from "../../match.ts";
-import type { TokenizerLangValue } from "../../lang/tokenizer/tokenizer.lang.ts";
 import {
   isTokenValue,
   StructuredTokenKind,
+  type TokenizerLangValue,
   type TokenValue,
-} from "../../lang/tokenizer/structured.ts";
+} from "../../lang/tokenizer/tokenizer.lang.ts";
 import { Resolver } from "../../runtime/resolve.ts";
 import { Scope } from "../../runtime/scope.ts";
 import { match } from "../../runtime/match.ts";
@@ -22,7 +22,7 @@ const moduleUrl =
 
 function tokenKey(node: MatchOk): string {
   const token = valueOf(node) as TokenValue;
-  return `${token.kind}:${token.text}:${node.normalizedSpan.start}:${node.normalizedSpan.end}`;
+  return `${token.kind}:${token.text}:${node.originalSpan.start}:${node.originalSpan.end}`;
 }
 
 function uniqueTokenMatches(nodes: MatchOk[]): MatchOk[] {
@@ -126,7 +126,7 @@ Deno.test("req:tokenizer-runtime-003 - match results carry trivia-compatible tok
   for (const node of tokenMatches) {
     const token = valueOf(node) as TokenValue;
     assertEquals(
-      "normalizedSpan" in token || "originalSpan" in token,
+      "originalSpan" in token,
       false,
       `token value ${token.kind}:${token.text} must not embed source spans`,
     );
@@ -138,20 +138,11 @@ Deno.test("req:tokenizer-runtime-003 - match results carry trivia-compatible tok
   assertEquals(
     words.map((node) => ({
       text: (valueOf(node) as TokenValue).text,
-      normalized: node.normalizedSpan,
       original: node.originalSpan,
     })),
     [
-      {
-        text: "a",
-        normalized: { start: 0, end: 1 },
-        original: { start: 0, end: 1 },
-      },
-      {
-        text: "b",
-        normalized: { start: 7, end: 8 },
-        original: { start: 9, end: 10 },
-      },
+      { text: "a", original: { start: 0, end: 1 } },
+      { text: "b", original: { start: 9, end: 10 } },
     ],
   );
 
@@ -160,6 +151,5 @@ Deno.test("req:tokenizer-runtime-003 - match results carry trivia-compatible tok
   );
   assert(comment);
   assertEquals((valueOf(comment) as TokenValue).text, "# hi");
-  assertEquals(comment?.normalizedSpan, { start: 2, end: 6 });
   assertEquals(comment?.originalSpan, { start: 3, end: 7 });
 });

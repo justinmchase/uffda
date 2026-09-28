@@ -1,6 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { Input } from "../../input.ts";
-import { MatchKind, valueOf } from "../../match.ts";
+import { MatchKind, type MatchOk, valueOf } from "../../match.ts";
+import { charOrigins, type Wrapped } from "../../wrapped.ts";
 import { Resolver } from "../../runtime/resolve.ts";
 import { Scope } from "../../runtime/scope.ts";
 import { match } from "../../runtime/match.ts";
@@ -8,7 +9,28 @@ import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { ModuleImportResultKind } from "../../runtime/resolvers/resolver.ts";
 import { collect } from "../../testing.ts";
-import type { TokenizerLangValue } from "./tokenizer.lang.ts";
+import {
+  isTokenValue,
+  StructuredTokenKind,
+  type TokenizerLangValue,
+} from "./tokenizer.lang.ts";
+
+/** The wrapped normalized text of the `TokenizerLang` value in `m`. */
+function sourceText(m: MatchOk): Wrapped<string> {
+  const [lang] = m.value.raw as Wrapped[];
+  const { source } = lang.raw as Record<string, Wrapped>;
+  return (source.raw as Record<string, Wrapped<string>>).text;
+}
+
+Deno.test("lang.tokenizer.tokenizer-lang - isTokenValue accepts kind and text only", () => {
+  assertEquals(
+    isTokenValue({ kind: StructuredTokenKind.Word, text: "a" }),
+    true,
+  );
+  assertEquals(isTokenValue({ kind: "other", text: "a" }), false);
+  assertEquals(isTokenValue({ kind: StructuredTokenKind.Word }), false);
+  assertEquals(isTokenValue(null), false);
+});
 
 Deno.test("lang.tokenizer.tokenizer-lang - pipelines normalization and tokenization", async () => {
   const resolver = new Resolver();
@@ -71,6 +93,12 @@ Deno.test("lang.tokenizer.tokenizer-lang - pipelines normalization and tokenizat
 
   const [value] = valueOf(m) as [TokenizerLangValue, unknown];
   assertEquals(value.source.text, "a\nb\nc");
-  assertEquals(value.source.normalizationMap, [0, 1, 3, 4, 5, 6]);
+  assertEquals(charOrigins(sourceText(m)), [
+    { start: 0, end: 1 },
+    { start: 1, end: 3 },
+    { start: 3, end: 4 },
+    { start: 4, end: 5 },
+    { start: 5, end: 6 },
+  ]);
   assertEquals(await collect(value.tokens), ["a", "\n", "b", "\n", "c"]);
 });

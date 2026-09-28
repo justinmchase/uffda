@@ -11,14 +11,14 @@ spec_ref: ".agents/specifications/languages/tokenization.spec.md#structured-toke
 Preconditions:
 
 - Tokenizer receives a normalized `SourceDocument` (via TokenizerLang or an
-  iterable document with a normalization map).
+  iterable document whose characters carry their origins).
 
 Expected behavior:
 
 - Token rule projections MUST contain only token kind and text.
-- Every Match result MUST include `normalizedSpan` and `originalSpan`. Original
-  spans MUST map through the source normalization map when the matched stream
-  carries that provenance.
+- Every Match result MUST include `originalSpan`, derived from the origins of
+  the items it consumed, so spans resolve to offsets in the original
+  (pre-normalization) source.
 - Comments and whitespace MUST remain available as trivia while being omitted
   from the semantic stream consumed by existing parsers.
 - Trivia attachment and ordering MUST be deterministic.

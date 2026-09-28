@@ -275,7 +275,6 @@ export type SessionWalkNode = {
   path: number[];
   kind: "ok" | "fail" | "error" | "lr";
   pattern: Pattern;
-  normalizedSpan?: SourceSpan;
   originalSpan?: SourceSpan;
   /** Only present for `kind: "ok"`. */
   value?: unknown;
@@ -1569,7 +1568,6 @@ function projectWalkNode(
         path,
         kind: "ok",
         pattern: node.pattern,
-        normalizedSpan: node.normalizedSpan,
         originalSpan: node.originalSpan,
         value: unwrap(node.value),
         childCount: node.matches.length,
@@ -1582,7 +1580,6 @@ function projectWalkNode(
         path,
         kind: "fail",
         pattern: node.pattern,
-        normalizedSpan: node.normalizedSpan,
         originalSpan: node.originalSpan,
         childCount: node.matches.length,
         rule: node.origin?.rule.name,
@@ -1594,7 +1591,6 @@ function projectWalkNode(
         path,
         kind: "error",
         pattern: node.pattern,
-        normalizedSpan: node.normalizedSpan,
         originalSpan: node.originalSpan,
         code: node.code,
         message: node.message,

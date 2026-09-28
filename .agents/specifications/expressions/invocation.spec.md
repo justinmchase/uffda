@@ -24,10 +24,11 @@ the resulting callable value.
 ## Match access
 
 Callables never receive an implicitly injected match. Expressions that need the
-current successful match (for example span leaf offsets) use the reserved `this`
-reference (see the [Reference expression specification](./reference.spec.md))
-and pass it as an ordinary argument, or read fields from it directly via member
-expressions (for example `this.normalizedSpan.start`).
+current successful match use the reserved `this` reference (see the
+[Reference expression specification](./reference.spec.md)) and pass it as an
+ordinary argument, or read fields from it directly via member expressions.
+Source spans are not read this way (see
+[value provenance](../runtime/value-provenance.spec.md)).
 
 ## Error conditions
 

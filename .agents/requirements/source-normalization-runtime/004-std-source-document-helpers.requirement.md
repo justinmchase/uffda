@@ -11,10 +11,8 @@ spec_ref: ".agents/specifications/languages/source-normalization.spec.md#standar
 Preconditions:
 
 - The runtime std globals include `sha256`, `base58`, `slice`, `length`, and
-  `iterable`. `line_starts`, `document_id`, `normalized_unit`,
-  `normalization_map`, and `units` are module-local `func` declarations in
-  `src/lang/source/mod.uff` composed from those globals plus the reserved `this`
-  reference (for match span/offset access).
+  `iterable`. `line_starts`, `document_id`, and `units` are module-local `func`
+  declarations in `src/lang/source/mod.uff` composed from those globals.
 
 Expected behavior:
 
@@ -24,7 +22,7 @@ Expected behavior:
   (exclusive `end`, negative indices count from the end).
 - `length` MUST return the length/size of a string, array, Set, or Map.
 - `line_starts` and `units` MUST produce deterministic indexes for fixed
-  normalized text and normalization map.
+  normalized text.
 - `document_id` MUST return `source:{length}:{digest}` for the given text, where
   `digest` is the first 8 characters of the Base58-encoded SHA-256 digest of the
   text.
@@ -32,9 +30,9 @@ Expected behavior:
   to an async iterable, and `SourceDocument` object literals assembled with it
   (via computed keys) MUST yield the characters of `text` when consumed with
   `for await...of`.
-- Rule projections MUST read span/offset metadata (`"start"`/`"end"` of the
-  current match) via `this.normalizedSpan.start`/`this.normalizedSpan.end`,
-  where `this` resolves to the current successful `MatchOk`.
+- Rule projections MUST NOT read span/offset metadata; provenance is carried by
+  the values themselves (see
+  `.agents/specifications/runtime/value-provenance.spec.md`).
 
 Error behavior:
 

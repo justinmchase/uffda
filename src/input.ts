@@ -1,12 +1,11 @@
 import {
   isWrapped,
   type Origin,
-  rawOf,
   rootOrigin,
-  unwrap,
   wrap,
   wrapItem,
   type Wrapped,
+  wrapRoot,
 } from "./wrapped.ts";
 import { Path } from "./path.ts";
 import { andThen, type Awaitable } from "./runtime/awaitable.ts";
@@ -42,47 +41,13 @@ function assertNormalizationMode(
   return mode;
 }
 
-export type SourceProvenance = {
-  normalizationMap?: readonly number[];
-  /**
-   * When the stream items are tokens (or other projections of source), maps
-   * each item index to character spans in normalized and original source.
-   */
-  itemSpans?: readonly import("./span.ts").ItemSourceSpan[];
-};
-
 type InputFromOptions = {
   kind?: InputNormalizationMode;
-  provenance?: SourceProvenance;
   /** Origin of raw items; without it they are root positions (see {@link Input}). */
   origin?: Origin;
   /** Whether the input may continue past its last item (see `Input.open`). */
   open?: boolean;
 };
-
-export function sourceProvenanceFrom(
-  value: unknown,
-): SourceProvenance | undefined {
-  const raw = rawOf(value);
-  if (raw == null || typeof raw !== "object") {
-    return undefined;
-  }
-  const record = raw as {
-    documentId?: unknown;
-    normalizationMap?: unknown;
-  };
-  if (typeof rawOf(record.documentId) !== "string") {
-    return undefined;
-  }
-  const normalizationMap = unwrap(record.normalizationMap);
-  if (!Array.isArray(normalizationMap)) {
-    return undefined;
-  }
-  if (!normalizationMap.every((offset) => typeof offset === "number")) {
-    return undefined;
-  }
-  return { normalizationMap };
-}
 
 export class Input {
   public static readonly Default = (): Input =>
@@ -104,7 +69,6 @@ export class Input {
       undefined,
       options?.kind ?? InputNormalizationMode.Scalar,
       false,
-      options?.provenance,
       false,
       options?.open ?? false,
       options?.origin,
@@ -157,7 +121,6 @@ export class Input {
     public readonly kind: InputNormalizationMode =
       InputNormalizationMode.Scalar,
     private readonly trustedIterator = false,
-    public readonly provenance?: SourceProvenance,
     trustedIsAsync = false,
     /**
      * Whether the input may continue past its last item: it is a prefix of
@@ -189,13 +152,6 @@ export class Input {
       this._items = items;
       this.isAsync = trustedIsAsync;
       return;
-    }
-
-    if (
-      provenance === undefined &&
-      kind === InputNormalizationMode.Iterable
-    ) {
-      this.provenance = sourceProvenanceFrom(items);
     }
 
     const mode = assertNormalizationMode(kind);
@@ -257,6 +213,19 @@ export class Input {
     return this._done === true;
   }
 
+  /**
+   * The following input position if it has already been read. Unlike
+   * {@link step}, this does not advance the stream.
+   */
+  public get following(): Input | undefined {
+    return this._next;
+  }
+
+  /** The source offset before the first item (see `sourceSpanFrom`). */
+  public get base(): number {
+    return (this.source?.origin ?? this.origin)?.start ?? 0;
+  }
+
   public next(): Awaitable<Input> {
     if (this._next) {
       return this._next;
@@ -280,7 +249,6 @@ export class Input {
       this.wrapItem(result.value),
       this.kind,
       true,
-      this.provenance,
       this.isAsync,
       this.open,
       this.origin,
@@ -289,10 +257,16 @@ export class Input {
     return this._next;
   }
 
-  /** The item following this position, wrapped; see {@link origin}. */
+  /**
+   * The item following this position, wrapped. A scalar input's only item is
+   * its whole value; see {@link origin} for raw items.
+   */
   private wrapItem(item: unknown): Wrapped {
     const { source, index } = this;
+    if (this.kind === InputNormalizationMode.Scalar) {
+      return source ?? (this.origin ? wrap(item, this.origin) : wrapRoot(item));
+    }
     if (source) return wrapItem(source, item, index);
-    return wrap(item, this.origin ?? rootOrigin(index, index + 1));
+    return wrap(item, this.origin ?? rootOrigin(index));
   }
 }

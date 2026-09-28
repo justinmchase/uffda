@@ -49,7 +49,6 @@ export function over(pattern: OverPattern, scope: Scope): CompiledPattern {
             undefined,
             InputNormalizationMode.Iterable,
             false,
-            undefined,
             false,
             false,
             next.value?.origin,

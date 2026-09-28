@@ -157,6 +157,18 @@ boundaries.
 - If all child evaluations are immediate values, parent evaluation SHOULD remain
   immediate when possible.
 
+## Wrapped values
+
+Expression evaluation follows the observe/carry rule of
+[value provenance](../runtime/value-provenance.spec.md#observe-raw-carry-wrapped):
+
+- Operators that compute (arithmetic, comparison, logical) observe raw values
+  and wrap their result with the evaluating Match's source span.
+- Literals take the source span of the Match evaluating them.
+- Variable references, member access, array and object literals (including
+  spreads), and invocation arguments carry the wrapped values they move.
+- String interpolation keeps each copied character's provenance.
+
 ## Exception model
 
 - Expression semantics use thrown exceptions.

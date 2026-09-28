@@ -6,7 +6,7 @@ import { match } from "./runtime/match.ts";
 import { Input } from "./input.ts";
 import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
 import type { FailPattern } from "./runtime/patterns/mod.ts";
-import { unwrap } from "./wrapped.ts";
+import { unwrap, Wrapped } from "./wrapped.ts";
 
 // Helper to create a simple test pattern
 const testPattern: FailPattern = {
@@ -208,7 +208,6 @@ Deno.test({
         assertEquals(result.kind, MatchKind.Ok);
         if (result.kind !== MatchKind.Ok) return;
         assertEquals(unwrap(result.value), "a");
-        assertEquals(result.normalizedSpan, { start: 0, end: 1 });
         assertEquals(result.originalSpan, { start: 0, end: 1 });
       },
     });
@@ -218,23 +217,19 @@ Deno.test({
       fn: () => {
         const scope = Scope.From(Input.Iterable("ab"));
         const result = fail(scope, testPattern);
-        assertEquals(result.normalizedSpan, { start: 0, end: 0 });
         assertEquals(result.originalSpan, { start: 0, end: 0 });
       },
     });
 
     await t.step({
-      name: "OK match maps original spans through Input provenance",
+      name: "OK match spans the origins of the items it consumed",
       fn: async () => {
-        const source = {
-          documentId: "source:test",
-          text: "a\nb",
-          normalizationMap: [0, 1, 3, 4],
-          [Symbol.iterator](): Iterator<string> {
-            return this.text[Symbol.iterator]();
-          },
-        };
-        const scope = Scope.From(Input.Iterable(source));
+        // "\n" normalized from "\r\n" at 1..3.
+        const scope = Scope.From(Input.Iterable([
+          new Wrapped("a", { start: 0, end: 1 }),
+          new Wrapped("\n", { start: 1, end: 3 }),
+          new Wrapped("b", { start: 3, end: 4 }),
+        ]));
         const result = await match({
           kind: PatternKind.Then,
           patterns: [
@@ -244,8 +239,6 @@ Deno.test({
         }, scope);
         assertEquals(result.kind, MatchKind.Ok);
         if (result.kind !== MatchKind.Ok) return;
-        // "a\n" occupies normalized 0-2, original 0-3 (\r\n collapsed)
-        assertEquals(result.normalizedSpan, { start: 0, end: 2 });
         assertEquals(result.originalSpan, { start: 0, end: 3 });
       },
     });

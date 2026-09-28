@@ -30,4 +30,5 @@ Postconditions:
   twin is gone.
 - Runtime loads Tokenizer from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).
-- Host `structured.ts` MAY remain for TypeScript type guards and span helpers.
+- Host `tokenizer.lang.ts` MAY hold TypeScript token types and guards; span
+  helpers MUST NOT exist (spans come from value origins).

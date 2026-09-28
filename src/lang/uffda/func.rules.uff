@@ -28,10 +28,10 @@ rule FuncQuotedTokenContent =
   ;
 
 rule FuncQuotedTokenSequence =
-  "\""
+  o:"\""
   c:FuncQuotedTokenContent*
-  "\""
-  -> (flat (pack "\"" (flat c) "\""));
+  e:"\""
+  -> (flat (pack o (flat c) e));
 
 rule FuncExpressionToken =
   (

@@ -255,3 +255,38 @@ Deno.test("input items of a wrapped string carry each character's origin", async
   const unmapped = await (await Input.From(shared, { kind }).next()).next();
   assertStrictEquals(unmapped.value?.origin, origin);
 });
+
+Deno.test("input scalar item is the whole value", async (t) => {
+  await t.step("a host string's characters take their offsets", async () => {
+    const { value } = await Input.Scalar("héllo").next();
+    assertEquals(value?.raw, "héllo");
+    assertEquals(value?.origin, rootOrigin(0, 5));
+  });
+
+  await t.step("a wrapped value is carried unchanged", async () => {
+    const source = new Wrapped("abc", rootOrigin(7, 10));
+    const { value } = await Input.Scalar(source).next();
+    assertStrictEquals(value, source);
+  });
+
+  await t.step("other host values sit at offset 0", async () => {
+    const { value } = await Input.Scalar([1, 2]).next();
+    assertEquals(value?.origin, rootOrigin(0));
+  });
+});
+
+Deno.test("input following is the next position only once read", async () => {
+  const input = Input.Iterable("ab");
+  assertEquals(input.following, undefined);
+  const first = await input.next();
+  assertStrictEquals(input.following, first);
+  assertEquals(first.following, undefined);
+});
+
+Deno.test("input base is the start of the stream's origin", () => {
+  assertEquals(Input.Iterable("ab").base, 0);
+  const kind = InputNormalizationMode.Iterable;
+  const wrapped = new Wrapped(["a"], rootOrigin(4, 9));
+  assertEquals(Input.From(wrapped, { kind }).base, 4);
+  assertEquals(Input.From(["a"], { kind, origin: rootOrigin(3, 5) }).base, 3);
+});

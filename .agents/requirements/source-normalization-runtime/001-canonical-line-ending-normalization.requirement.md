@@ -16,10 +16,10 @@ Expected behavior:
 
 - Carriage return line endings (`\r`) and carriage-return + line-feed pairs
   (`\r\n`) MUST be normalized to canonical line-feed (`\n`).
-- The resulting source document MUST expose normalized text and normalization
-  map metadata.
+- The resulting source document MUST expose normalized text.
 
 Postconditions:
 
-- The normalization map MUST preserve deterministic offset provenance from
-  normalized offsets back to original source offsets.
+- Every character of the normalized text MUST carry the source span of the
+  original characters it came from; a canonical newline that replaces `\r\n`
+  spans both original characters.

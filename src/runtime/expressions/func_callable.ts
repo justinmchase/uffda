@@ -58,7 +58,6 @@ export function funcCallable(
       undefined,
       InputNormalizationMode.Iterable,
       false,
-      undefined,
       false,
       false,
       originOf(matchOk),

@@ -1,126 +1,125 @@
-import { assertEquals, assertStrictEquals } from "@std/assert";
+import { assertEquals } from "@std/assert";
 import { Input, InputNormalizationMode } from "./input.ts";
-import { mapSourceSpan, sourceSpansFrom } from "./span.ts";
+import { leafOffset, sourceSpanFrom, spanFrom } from "./span.ts";
 import { Scope } from "./runtime/scope.ts";
+import { Path } from "./path.ts";
+import { Wrapped } from "./wrapped.ts";
 
-Deno.test("span.sourceSpansFrom maps itemSpans at pre-item leaf 0", () => {
-  const itemSpans = [
-    {
-      normalized: { start: 0, end: 1 },
-      original: { start: 10, end: 11 },
-    },
-    {
-      normalized: { start: 1, end: 2 },
-      original: { start: 11, end: 12 },
-    },
-  ];
-  const stream = Input.From(["a", "!"], {
-    kind: InputNormalizationMode.Iterable,
-    provenance: { itemSpans },
-  });
-  const start = Scope.From(stream);
-  assertEquals(sourceSpansFrom(start, start), {
-    normalizedSpan: { start: 0, end: 0 },
-    originalSpan: { start: 10, end: 10 },
-  });
-});
+/** Items separated by dropped trivia: "import" at 0..6, '"' at 7..8, "." at 8..9. */
+function tokens(): Input {
+  return Input.Iterable([
+    new Wrapped("import", { start: 0, end: 6 }),
+    new Wrapped('"', { start: 7, end: 8 }),
+    new Wrapped(".", { start: 8, end: 9 }),
+  ]);
+}
 
-Deno.test("span.sourceSpansFrom maps a consumed item through adjacent leaves", async () => {
-  const itemSpans = [
-    {
-      normalized: { start: 0, end: 1 },
-      original: { start: 10, end: 11 },
-    },
-    {
-      normalized: { start: 1, end: 2 },
-      original: { start: 11, end: 12 },
-    },
-  ];
-  const stream = Input.From(["a", "!"], {
-    kind: InputNormalizationMode.Iterable,
-    provenance: { itemSpans },
+Deno.test("span", async (t) => {
+  await t.step("spanFrom takes the stream paths", async () => {
+    const stream = Input.Iterable("ab");
+    const next = await stream.next();
+    assertEquals(spanFrom(Scope.From(stream), Scope.From(next)), {
+      start: stream.path,
+      end: next.path,
+    });
   });
-  const before = stream;
-  const atFirst = await stream.next();
-  assertEquals(sourceSpansFrom(Scope.From(before), Scope.From(atFirst)), {
-    normalizedSpan: { start: 0, end: 1 },
-    originalSpan: { start: 10, end: 11 },
-  });
-});
 
-Deno.test("span.sourceSpansFrom starts a later match at its first item", async () => {
-  // Items separated by dropped trivia: "import" at 0..6, '"' at 7..8.
-  const itemSpans = [
-    {
-      normalized: { start: 0, end: 6 },
-      original: { start: 0, end: 6 },
-    },
-    {
-      normalized: { start: 7, end: 8 },
-      original: { start: 7, end: 8 },
-    },
-    {
-      normalized: { start: 8, end: 9 },
-      original: { start: 8, end: 9 },
-    },
-  ];
-  const stream = Input.From(["import", '"', "."], {
-    kind: InputNormalizationMode.Iterable,
-    provenance: { itemSpans },
+  await t.step("leafOffset is the last numeric segment", () => {
+    assertEquals(leafOffset(Path.Default()), 0);
+    assertEquals(leafOffset(Path.Default().set(3)), 3);
+    assertEquals(leafOffset(Path.Default().set(3).push("key")), 3);
   });
-  const afterFirst = await stream.next();
-  const afterSecond = await afterFirst.next();
-  assertEquals(
-    sourceSpansFrom(Scope.From(afterFirst), Scope.From(afterSecond)),
-    {
-      normalizedSpan: { start: 7, end: 8 },
-      originalSpan: { start: 7, end: 8 },
+
+  await t.step(
+    "sourceSpanFrom spans the origins of the consumed items",
+    async () => {
+      const stream = tokens();
+      const first = await stream.next();
+      const second = await first.next();
+      const third = await second.next();
+      assertEquals(
+        sourceSpanFrom(Scope.From(stream), Scope.From(first)),
+        { start: 0, end: 6 },
+      );
+      assertEquals(
+        sourceSpanFrom(Scope.From(first), Scope.From(third)),
+        { start: 7, end: 9 },
+      );
     },
   );
-  const at = Scope.From(afterFirst);
-  assertEquals(sourceSpansFrom(at, at), {
-    normalizedSpan: { start: 7, end: 7 },
-    originalSpan: { start: 7, end: 7 },
-  });
-});
 
-Deno.test("span.sourceSpansFrom uses eof endpoints without advancing", async () => {
-  const itemSpans = [
-    {
-      normalized: { start: 0, end: 3 },
-      original: { start: 8, end: 11 },
+  await t.step(
+    "a zero-width span is the start of the next item once read",
+    async () => {
+      const stream = tokens();
+      const first = await stream.next();
+      await first.next();
+      const at = Scope.From(first);
+      assertEquals(sourceSpanFrom(at, at), { start: 7, end: 7 });
     },
-  ];
-  const stream = Input.From(["abc"], {
-    kind: InputNormalizationMode.Iterable,
-    provenance: { itemSpans },
-  });
-  const after = await stream.next();
-  const eof = await after.next();
-  assertEquals(eof.isEof, true);
-  const start = Scope.From(eof);
-  assertEquals(sourceSpansFrom(start, start), {
-    normalizedSpan: { start: 3, end: 3 },
-    originalSpan: { start: 11, end: 11 },
-  });
-});
+  );
 
-Deno.test("span.sourceSpansFrom falls back to normalizationMap", async () => {
-  const stream = Input.From("ab", {
-    kind: InputNormalizationMode.Scalar,
-    provenance: { normalizationMap: [5, 6, 7] },
-  });
-  const atValue = await stream.next();
-  const start = Scope.From(stream);
-  const end = Scope.From(atValue);
-  assertEquals(sourceSpansFrom(start, end), {
-    normalizedSpan: { start: 0, end: 1 },
-    originalSpan: { start: 5, end: 6 },
-  });
-});
+  await t.step(
+    "a zero-width span is the end of the item before when the next is unread",
+    async () => {
+      const first = await tokens().next();
+      const at = Scope.From(first);
+      assertEquals(sourceSpanFrom(at, at), { start: 6, end: 6 });
+    },
+  );
 
-Deno.test("span.mapSourceSpan shares the span when there is no normalization map", () => {
-  const span = { start: 2, end: 4 };
-  assertStrictEquals(mapSourceSpan(span), span);
-  assertEquals(mapSourceSpan(span, [0, 1, 5, 6, 9]), { start: 5, end: 9 });
+  await t.step(
+    "a zero-width span at the end is the end of the last item",
+    async () => {
+      const stream = Input.Iterable([
+        new Wrapped("abc", { start: 8, end: 11 }),
+      ]);
+      const last = await stream.next();
+      const eof = await last.next();
+      assertEquals(eof.isEof, true);
+      const at = Scope.From(eof);
+      assertEquals(sourceSpanFrom(at, at), { start: 11, end: 11 });
+    },
+  );
+
+  await t.step(
+    "a zero-width span before anything is read is the stream's start",
+    () => {
+      const root = Scope.From(Input.Iterable("ab"));
+      assertEquals(sourceSpanFrom(root, root), { start: 0, end: 0 });
+      const derived = Scope.From(
+        Input.From(new Wrapped(["a"], { start: 4, end: 9 }), {
+          kind: InputNormalizationMode.Iterable,
+        }),
+      );
+      assertEquals(sourceSpanFrom(derived, derived), { start: 4, end: 4 });
+    },
+  );
+
+  await t.step("root input items are their offsets", async () => {
+    const stream = Input.Iterable("ab");
+    const first = await stream.next();
+    const second = await first.next();
+    assertEquals(
+      sourceSpanFrom(Scope.From(stream), Scope.From(second)),
+      { start: 0, end: 2 },
+    );
+  });
+
+  await t.step(
+    "a scalar root string's characters are their offsets",
+    async () => {
+      const value = await Input.Scalar("abc").next();
+      assertEquals(value.value?.origin, { start: 0, end: 3 });
+      const chars = Input.From(value.value, {
+        kind: InputNormalizationMode.Iterable,
+      });
+      const first = await chars.next();
+      const second = await first.next();
+      assertEquals(
+        sourceSpanFrom(Scope.From(first), Scope.From(second)),
+        { start: 1, end: 2 },
+      );
+    },
+  );
 });

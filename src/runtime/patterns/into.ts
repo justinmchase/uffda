@@ -1,46 +1,12 @@
 import { type } from "@justinmchase/type";
 import { error, fail, MatchErrorCode, MatchKind, ok } from "../../match.ts";
-import {
-  Input,
-  InputNormalizationMode,
-  type SourceProvenance,
-  sourceProvenanceFrom,
-} from "../../input.ts";
+import { Input, InputNormalizationMode } from "../../input.ts";
 import { compile } from "../match.ts";
 import type { Scope } from "../scope.ts";
 import type { IntoPattern } from "./pattern.ts";
-import { leafOffset } from "../../span.ts";
 import { andThen, type AwaitableMatch } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 import { rawOf } from "../../wrapped.ts";
-
-function provenanceForIntoItem(
-  value: unknown,
-  parent: Input,
-  item: Input,
-): SourceProvenance | undefined {
-  value = rawOf(value);
-  const fromValue = sourceProvenanceFrom(value);
-  if (fromValue) return fromValue;
-
-  if (typeof value === "string" && parent.provenance?.itemSpans) {
-    // Stream leaf indices are 1-based; itemSpans is 0-based.
-    const index = leafOffset(item.path) - 1;
-    const span = index >= 0
-      ? parent.provenance.itemSpans[index]
-      : parent.provenance.itemSpans[0];
-    if (span) {
-      return {
-        normalizationMap: Array.from(
-          { length: value.length + 1 },
-          (_, offset) => span.original.start + offset,
-        ),
-      };
-    }
-  }
-
-  return parent.provenance;
-}
 
 /** Compiles an `Into` pattern into a flattened, reusable closure. */
 export function into(
@@ -74,7 +40,6 @@ export function into(
           undefined,
           InputNormalizationMode.Iterable,
           false,
-          provenanceForIntoItem(next.value, invocationScope.stream, next),
           false,
           innerOpen,
         );

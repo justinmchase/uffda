@@ -215,24 +215,14 @@ await Deno.test("runtime/patterns/into", async (t) => {
   });
 
   await t.step({
-    name: "INTO12 preserves itemSpans for nested token streams",
+    name: "INTO12 spans nested items by their origins",
     fn: async () => {
-      const itemSpans = [
-        {
-          normalized: { start: 0, end: 1 },
-          original: { start: 5, end: 6 },
-        },
-        {
-          normalized: { start: 1, end: 2 },
-          original: { start: 6, end: 7 },
-        },
-      ];
-      const scope = Scope.From(
-        Input.From([["!"]], {
-          kind: InputNormalizationMode.Iterable,
-          provenance: { itemSpans },
+      const scope = Scope.From(Input.Iterable([
+        new Wrapped([new Wrapped("!", { start: 5, end: 6 })], {
+          start: 5,
+          end: 7,
         }),
-      );
+      ]));
       const m = await match(
         {
           kind: PatternKind.Into,
@@ -244,25 +234,16 @@ await Deno.test("runtime/patterns/into", async (t) => {
       if (m.kind !== MatchKind.Fail) return;
       const rightmost = getRightmostFailure(m);
       assertEquals(rightmost.originalSpan.start, 5);
-      assertEquals(rightmost.normalizedSpan.start, 0);
     },
   });
 
   await t.step({
-    name: "INTO13 maps string items through parent itemSpans",
+    name: "INTO13 spans string characters by their origins",
     fn: async () => {
-      const itemSpans = [
-        {
-          normalized: { start: 0, end: 2 },
-          original: { start: 20, end: 22 },
-        },
-      ];
-      const scope = Scope.From(
-        Input.From(["ab"], {
-          kind: InputNormalizationMode.Iterable,
-          provenance: { itemSpans },
-        }),
-      );
+      const origin = { start: 20, end: 22 };
+      const scope = Scope.From(Input.Iterable([
+        new Wrapped("ab", origin, [{ length: 2, origin, linear: true }]),
+      ]));
       const m = await match(
         {
           kind: PatternKind.Into,

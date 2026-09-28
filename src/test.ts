@@ -489,9 +489,6 @@ async function matchDebug(match: Match): Promise<string> {
   if (match.kind !== MatchKind.LR) {
     lines.push(`  span: ${spanText(match)}`);
     lines.push(
-      `  normalizedSpan: ${match.normalizedSpan.start} -> ${match.normalizedSpan.end}`,
-    );
-    lines.push(
       `  originalSpan: ${match.originalSpan.start} -> ${match.originalSpan.end}`,
     );
     lines.push(`  stream done: ${await match.scope.stream.done()}`);

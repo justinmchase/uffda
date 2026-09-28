@@ -15,6 +15,7 @@ import {
   wrapFrom,
   wrapItem,
   Wrapped,
+  wrapRoot,
 } from "./wrapped.ts";
 
 const at = (start: number, end = start + 1) => rootOrigin(start, end);
@@ -218,22 +219,35 @@ Deno.test("wrapped", async (t) => {
     },
   );
 
-  await t.step("originOf takes only a match's spans", () => {
-    const match = { kind: "ok", scope: {}, ...at(2, 4) };
+  await t.step("originOf takes only a match's span", () => {
+    const match = { kind: "ok", scope: {}, originalSpan: at(2, 4) };
     const origin = originOf(match);
-    assertEquals(origin, at(2, 4));
-    assertStrictEquals(origin.normalizedSpan, match.normalizedSpan);
+    assertStrictEquals(origin, match.originalSpan);
     assertEquals("scope" in origin, false);
   });
 
   await t.step(
-    "wrapFrom carries a wrapped value or wraps at match spans",
+    "wrapFrom carries a wrapped value or wraps at the match's span",
     () => {
       const inner = new Wrapped("a", at(0));
-      assertStrictEquals(wrapFrom(inner, at(5)), inner);
-      assertEquals(wrapFrom(1, { kind: "ok", ...at(5) }).origin, at(5));
+      const match = { kind: "ok", originalSpan: at(5) };
+      assertStrictEquals(wrapFrom(inner, match), inner);
+      assertEquals(wrapFrom(1, match).origin, at(5));
     },
   );
+
+  await t.step("wrapRoot gives a string's characters their offsets", () => {
+    const w = wrapRoot("héy");
+    assertEquals(w.origin, at(0, 3));
+    assertEquals(charOrigin(w as Wrapped<string>, 2), at(2));
+    assertEquals(wrapRoot("").origin, at(0, 0));
+  });
+
+  await t.step("wrapRoot puts other values at offset 0", () => {
+    assertEquals(wrapRoot([1, 2]).origin, at(0));
+    const inner = new Wrapped(1, at(4));
+    assertStrictEquals(wrapRoot(inner), inner);
+  });
 
   await t.step("charOrigin finds the run of any character", () => {
     const parts = Array.from(

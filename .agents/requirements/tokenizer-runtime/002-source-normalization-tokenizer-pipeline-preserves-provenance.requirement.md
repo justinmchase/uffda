@@ -15,10 +15,10 @@ Preconditions:
 
 Expected behavior:
 
-- Source normalization MUST produce canonical text and normalization map
-  metadata.
+- Source normalization MUST produce canonical text whose characters carry their
+  original source spans.
 - Tokenizer output for normalized text MUST remain consistent with token
-  boundaries implied by source units and normalization map.
+  boundaries implied by source units and those character spans.
 
 Postconditions:
 

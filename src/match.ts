@@ -3,7 +3,7 @@ import type { Scope } from "./runtime/scope.ts";
 import type { Rule } from "./runtime/modules/mod.ts";
 import {
   type SourceSpan,
-  sourceSpansFrom,
+  sourceSpanFrom,
   type Span,
   spanFrom,
 } from "./span.ts";
@@ -65,7 +65,6 @@ export type MatchOk<T = unknown> = {
   pattern: Pattern;
   scope: Scope;
   span: Span;
-  normalizedSpan: SourceSpan;
   originalSpan: SourceSpan;
   matches: Match[];
   /** Carried as a wrapped value; see `./wrapped.ts`. */
@@ -88,7 +87,6 @@ export type MatchFail = {
   pattern: Pattern;
   scope: Scope;
   span: Span;
-  normalizedSpan: SourceSpan;
   originalSpan: SourceSpan;
   matches: Match[];
   /** Set only for the Fail produced by a fresh rule invocation; see {@link MatchOrigin}. */
@@ -100,7 +98,6 @@ export type MatchError = {
   pattern: Pattern;
   scope: Scope;
   span: Span;
-  normalizedSpan: SourceSpan;
   originalSpan: SourceSpan;
   code: MatchErrorCode;
   message: string;
@@ -128,11 +125,10 @@ export function error(
   message: string,
   cause?: unknown,
 ): MatchError {
-  const { normalizedSpan, originalSpan } = sourceSpansFrom(scope, scope);
+  const originalSpan = sourceSpanFrom(scope, scope);
   return {
     kind: MatchKind.Error,
     span: spanFrom(scope, scope),
-    normalizedSpan,
     originalSpan,
     pattern,
     scope,
@@ -154,11 +150,10 @@ export function ok(
   matches: Match[] = [],
   origin?: MatchOrigin,
 ): MatchOk {
-  const { normalizedSpan, originalSpan } = sourceSpansFrom(start, end);
+  const originalSpan = sourceSpanFrom(start, end);
   const m: MatchOk = {
     kind: MatchKind.Ok,
     span: spanFrom(start, end),
-    normalizedSpan,
     originalSpan,
     pattern,
     scope: end,
@@ -167,7 +162,7 @@ export function ok(
     origin,
   };
   // A value that is not already carried was computed by this match, so it
-  // takes this match's spans as its origin.
+  // takes this match's span as its origin.
   m.value = wrapFrom(value, m);
   return m;
 }
@@ -183,11 +178,10 @@ export function fail(
   matches: Match[] = [],
   origin?: MatchOrigin,
 ): MatchFail {
-  const { normalizedSpan, originalSpan } = sourceSpansFrom(scope, scope);
+  const originalSpan = sourceSpanFrom(scope, scope);
   return {
     kind: MatchKind.Fail,
     span: spanFrom(scope, scope),
-    normalizedSpan,
     originalSpan,
     scope,
     pattern,
