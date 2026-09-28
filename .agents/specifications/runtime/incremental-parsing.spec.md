@@ -110,7 +110,10 @@ affected, and re-evaluate only the region an edit could have affected.
   MUST treat the entire set of memo entries produced by a single growth loop as
   a unit for invalidation purposes: if any entry from that loop is invalidated,
   the runtime MUST invalidate the loop's other entries at that position rather
-  than reuse a partially-stale growth result.
+  than reuse a partially-stale growth result. In particular, a seed-dependent
+  outcome of a rule involved in an indirect or mutual cycle (see
+  [runtime left recursion](./left-recursion.spec.md#seed-dependent-outcomes))
+  MUST NOT be reused on its own, only as part of its cycle head's outcome.
 - Backtracking (alternation) MUST continue to explore branches in the order
   defined by [pattern matching](../patterns.spec.md) even when some branches'
   outcomes are served from reused memo entries and others are freshly evaluated;

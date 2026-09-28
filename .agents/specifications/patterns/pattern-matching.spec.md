@@ -137,11 +137,9 @@ Pattern matching outcomes fall into four categories:
 
 ## Left-recursion interactions
 
-- Pattern matching MUST route direct left recursion through the runtime
-  mechanism defined in
+- Pattern matching MUST route direct, indirect, and mutual left recursion
+  through the runtime mechanism defined in
   [runtime left recursion](../runtime/left-recursion.spec.md).
-- Pattern matching MUST NOT claim general support for indirect left recursion
-  beyond what the runtime chapter allows.
 - A left-recursion outcome MUST NOT be reinterpreted as ordinary failure by a
   delegating pattern unless that behavior is explicitly defined and remains
   consistent with the runtime chapter.
