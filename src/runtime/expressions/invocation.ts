@@ -8,7 +8,7 @@ import type {
   InvocationExpression,
   InvocationSpreadExpression,
 } from "./expression.ts";
-import { wrap, type Wrapped } from "../../wrapped.ts";
+import { wrapFrom, type Wrapped } from "../../wrapped.ts";
 
 const isSpread = (
   arg: InvocationArgument,
@@ -30,7 +30,7 @@ export function invocation(
         })`,
       );
     }
-    return andThen(fn(...a), (result) => wrap(result, match));
+    return andThen(fn(...a), (result) => wrapFrom(result, match));
   };
 
   return andThen(exec(expr, match), (fn) =>

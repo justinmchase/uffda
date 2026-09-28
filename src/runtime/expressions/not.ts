@@ -2,7 +2,7 @@ import type { MatchOk } from "../../match.ts";
 import { andThen, type Awaitable } from "../awaitable.ts";
 import { exec } from "../exec.ts";
 import type { NotExpression } from "./expression.ts";
-import { rawOf, Wrapped } from "../../wrapped.ts";
+import { originOf, rawOf, Wrapped } from "../../wrapped.ts";
 
 export function not(
   expression: NotExpression,
@@ -10,6 +10,6 @@ export function not(
 ): Awaitable<Wrapped<boolean>> {
   return andThen(
     exec(expression.expression, match),
-    (result) => new Wrapped(!rawOf(result), match),
+    (result) => new Wrapped(!rawOf(result), originOf(match)),
   );
 }

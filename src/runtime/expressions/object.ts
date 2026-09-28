@@ -4,7 +4,7 @@ import { andThen, type Awaitable, mapInOrder } from "../awaitable.ts";
 import { exec } from "../exec.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import type { ObjectExpression } from "./expression.ts";
-import { rawOf, unwrap, wrap, Wrapped } from "../../wrapped.ts";
+import { originOf, rawOf, unwrap, wrap, Wrapped } from "../../wrapped.ts";
 
 function assertPropertyKey(
   value: unknown,
@@ -84,6 +84,6 @@ export function object(
 
   return andThen(
     values,
-    (resolved) => new Wrapped(buildObject(resolved), match),
+    (resolved) => new Wrapped(buildObject(resolved), originOf(match)),
   );
 }

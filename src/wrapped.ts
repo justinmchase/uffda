@@ -1,15 +1,26 @@
 import { Type, type } from "@justinmchase/type";
 import type { SourceSpan } from "./span.ts";
 
-/**
- * Where a value came from: the Match that produced it, or a root position in
- * the host-supplied input. Only the source spans are read, so any Match
- * satisfies this structurally without being copied.
- */
-export type Origin = {
+type SourceSpans = {
   readonly normalizedSpan: SourceSpan;
   readonly originalSpan: SourceSpan;
 };
+
+/**
+ * Where a value came from: the source spans of the Match that produced it, or
+ * a root position in the host-supplied input. An origin holds spans only; a
+ * Match (which retains its scope and memos) must not be used as one, which
+ * `kind?: never` enforces. Use {@link originOf} to take a Match's spans.
+ */
+export type Origin = SourceSpans & { readonly kind?: never };
+
+/** The origin of values produced by `match`: its spans, not the Match. */
+export function originOf(match: SourceSpans): Origin {
+  return {
+    normalizedSpan: match.normalizedSpan,
+    originalSpan: match.originalSpan,
+  };
+}
 
 /**
  * `length` consecutive characters (code points, the unit strings are
@@ -44,6 +55,14 @@ export function isWrapped(value: unknown): value is Wrapped {
 /** Carries `value` if it is already wrapped, otherwise wraps it at `origin`. */
 export function wrap(value: unknown, origin: Origin): Wrapped {
   return isWrapped(value) ? value : new Wrapped(value, origin);
+}
+
+/**
+ * Carries `value` if it is already wrapped, otherwise wraps it with the origin
+ * of `match` (see {@link originOf}).
+ */
+export function wrapFrom(value: unknown, match: SourceSpans): Wrapped {
+  return isWrapped(value) ? value : new Wrapped(value, originOf(match));
 }
 
 /** The raw value of `value`, one level deep. */
@@ -225,22 +244,45 @@ function offsetSpan(span: SourceSpan, k: number): SourceSpan {
   return { start: span.start + k, end: span.start + k + 1 };
 }
 
+const runStarts = new WeakMap<readonly CharRun[], number[]>();
+
+/** The character index each run starts at, plus the total length. */
+function startsOf(runs: readonly CharRun[]): number[] {
+  let starts = runStarts.get(runs);
+  if (!starts) {
+    starts = [0];
+    for (const run of runs) starts.push(starts[starts.length - 1] + run.length);
+    runStarts.set(runs, starts);
+  }
+  return starts;
+}
+
 /** The origin of character (code point) `index` of a wrapped string. */
 export function charOrigin(value: Wrapped<string>, index: number): Origin {
-  let k = index;
-  for (const run of charRuns(value)) {
-    if (k < run.length) {
-      if (!run.linear || run.length === 1) return run.origin;
-      return {
-        normalizedSpan: offsetSpan(run.origin.normalizedSpan, k),
-        originalSpan: offsetSpan(run.origin.originalSpan, k),
-      };
-    }
-    k -= run.length;
+  const outOfRange = () =>
+    new RangeError(
+      `character ${index} is out of range for ${JSON.stringify(value.raw)}`,
+    );
+  if (!value.chars) {
+    if (index < 0 || index >= value.raw.length) throw outOfRange();
+    return value.origin;
   }
-  throw new RangeError(
-    `character ${index} is out of range for ${JSON.stringify(value.raw)}`,
-  );
+  const starts = startsOf(value.chars);
+  if (index < 0 || index >= starts[starts.length - 1]) throw outOfRange();
+  let lo = 0;
+  let hi = value.chars.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (starts[mid] <= index) lo = mid;
+    else hi = mid - 1;
+  }
+  const run = value.chars[lo];
+  if (!run.linear || run.length === 1) return run.origin;
+  const k = index - starts[lo];
+  return {
+    normalizedSpan: offsetSpan(run.origin.normalizedSpan, k),
+    originalSpan: offsetSpan(run.origin.originalSpan, k),
+  };
 }
 
 function contiguous(a: SourceSpan, b: SourceSpan): boolean {

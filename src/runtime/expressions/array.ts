@@ -4,7 +4,7 @@ import { collect } from "../collect.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import type { MatchOk } from "../../match.ts";
 import type { ArrayExpression } from "./expression.ts";
-import { Wrapped } from "../../wrapped.ts";
+import { originOf, Wrapped } from "../../wrapped.ts";
 
 export function array(
   expression: ArrayExpression,
@@ -32,7 +32,7 @@ export function array(
               throw new Error("Unexpected array initializer");
           }
         }),
-        (parts) => new Wrapped(parts.flat(1), match),
+        (parts) => new Wrapped(parts.flat(1), originOf(match)),
       ),
   );
 }

@@ -2,8 +2,8 @@ import { immediateExpressionTest } from "../../test.ts";
 import { expressionTest } from "../../test.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import type { ObjectKeyExpression } from "./expression.ts";
-import { assertStrictEquals } from "@std/assert";
-import { rootOrigin, Wrapped } from "../../wrapped.ts";
+import { assertEquals, assertStrictEquals } from "@std/assert";
+import { originOf, rootOrigin, Wrapped } from "../../wrapped.ts";
 import { type MatchOk, ok } from "../../match.ts";
 import { PatternKind } from "../patterns/pattern.kind.ts";
 import { Scope } from "../scope.ts";
@@ -331,5 +331,5 @@ Deno.test("runtime/expressions/object carries wrapped properties and keeps symbo
   const obj = r.raw as Record<PropertyKey, unknown>;
   assertStrictEquals(obj.a, x);
   assertStrictEquals(obj[Symbol.iterator], 1);
-  assertStrictEquals(r.origin, m);
+  assertEquals(r.origin, originOf(m));
 });

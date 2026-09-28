@@ -5,12 +5,14 @@ import {
   charRuns,
   concat,
   isWrapped,
+  originOf,
   rawOf,
   rootOrigin,
   shallow,
   sliceString,
   unwrap,
   wrap,
+  wrapFrom,
   wrapItem,
   Wrapped,
 } from "./wrapped.ts";
@@ -215,4 +217,34 @@ Deno.test("wrapped", async (t) => {
       );
     },
   );
+
+  await t.step("originOf takes only a match's spans", () => {
+    const match = { kind: "ok", scope: {}, ...at(2, 4) };
+    const origin = originOf(match);
+    assertEquals(origin, at(2, 4));
+    assertStrictEquals(origin.normalizedSpan, match.normalizedSpan);
+    assertEquals("scope" in origin, false);
+  });
+
+  await t.step(
+    "wrapFrom carries a wrapped value or wraps at match spans",
+    () => {
+      const inner = new Wrapped("a", at(0));
+      assertStrictEquals(wrapFrom(inner, at(5)), inner);
+      assertEquals(wrapFrom(1, { kind: "ok", ...at(5) }).origin, at(5));
+    },
+  );
+
+  await t.step("charOrigin finds the run of any character", () => {
+    const parts = Array.from(
+      { length: 50 },
+      (_, i) => new Wrapped("x", at(i * 2)),
+    );
+    const w = concat(parts, at(0));
+    assertEquals(w.chars?.length, 50);
+    assertEquals(charOrigin(w, 0), at(0));
+    assertEquals(charOrigin(w, 37), at(74));
+    assertEquals(charOrigin(w, 49), at(98));
+    assertThrows(() => charOrigin(w, 50), RangeError);
+  });
 });

@@ -48,9 +48,11 @@ origin.
   on).
 - **Wrapped value:** a runtime-owned record pairing a raw value with its
   **origin**.
-- **Origin:** where a wrapped value came from. It is either the Match that
-  produced the value, or, for a value supplied by the host as input, its **root
-  position** in that host input.
+- **Origin:** where a wrapped value came from, as a pair of source spans
+  (normalized and original). For a value produced during matching it is the
+  source span of the Match that produced the value; for a value supplied by the
+  host as input it is its **root position** in that host input. An origin is
+  spans only; it does not reference the Match.
 - **Root position:** the location of a host-supplied input item: the character
   offset for a string input, or the item path for an iterable input.
 - **Source span:** the range of root positions a value or Match derives from.
@@ -68,9 +70,10 @@ origin.
   whose raw array holds wrapped elements, and an object value is a wrapped value
   whose raw object holds wrapped property values. Per-element and per-property
   provenance depends on this.
-- A wrapped value MUST reference its origin rather than copying spans. Matches
-  are already retained by the Match graph, so a wrapped value adds only the
-  wrapper itself.
+- A wrapped value's origin MUST be spans only and MUST NOT reference the Match
+  that produced it. A Match retains its scope and memo table, so a Match
+  reference would keep whole stages' parse state alive for as long as any value
+  derived from them. An origin MAY share the producing Match's span objects.
 - Wrapped values MUST be immutable. The same wrapped value MAY appear in many
   places (bindings, containers, stream items); identity of the wrapper is how
   provenance is shared.
@@ -132,8 +135,8 @@ carried wrapped.**
 ### Computed values
 
 - A value newly created by an operation that observes (rather than one carried)
-  MUST be wrapped with the innermost Match whose evaluation created it as
-  origin:
+  MUST be wrapped with the source span of the innermost Match whose evaluation
+  created it as origin:
   - in a projection expression, the projection's Match;
   - in a func body, the func invocation's argument Match, whose source span is
     derived from the arguments it consumed;
@@ -176,15 +179,17 @@ original characters it replaced.
   moves, so selection and reordering keep provenance. Callbacks MUST receive the
   wrapped element.
 - A global that computes (for example `add`, `format`, `eq`) MUST observe raw
-  inputs. A raw value it returns MUST be wrapped with the Match evaluating the
-  invocation as origin. A global that builds strings from strings MUST use the
-  runtime's concatenation helper so character provenance is kept.
+  inputs. A raw value it returns MUST be wrapped with the source span of the
+  Match evaluating the invocation as origin. A global that builds strings from
+  strings MUST use the runtime's concatenation helper so character provenance is
+  kept.
 - The runtime MUST export explicit helpers for globals: read the raw value of a
   wrapped value, deeply unwrap a value, test whether a value is wrapped, and
   concatenate strings with provenance. Globals MUST NOT inspect origins.
 - Native expressions (host functions embedded in an expression AST) follow the
   same model as globals: they receive wrapped variables (including `_`), and a
-  raw value they return is wrapped with the evaluating Match as origin.
+  raw value they return is wrapped with the evaluating Match's source span as
+  origin.
 
 ## Host boundary
 
@@ -293,3 +298,7 @@ On acceptance, the following MUST be updated in the implementing change:
   implementation is complete.
 - **Normalization map:** folded into this mechanism. It was a special case of a
   computed string losing its link to the input.
+- **Origins are spans, not Matches:** benchmarking showed Match origins kept
+  every pipeline stage's memo table alive (4.5x retained heap). Diagnostics need
+  where a value came from in the caller's input, not which Match produced it, so
+  origins hold spans only.

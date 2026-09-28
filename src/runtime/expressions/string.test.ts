@@ -2,8 +2,8 @@ import { immediateExpressionTest } from "../../test.ts";
 import { expressionTest } from "../../test.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import type { NativeExpression } from "./expression.ts";
-import { assertEquals, assertStrictEquals } from "@std/assert";
-import { charOrigin, rootOrigin, Wrapped } from "../../wrapped.ts";
+import { assertEquals } from "@std/assert";
+import { charOrigin, originOf, rootOrigin, Wrapped } from "../../wrapped.ts";
 import { type MatchOk, ok } from "../../match.ts";
 import { PatternKind } from "../patterns/pattern.kind.ts";
 import { Scope } from "../scope.ts";
@@ -110,5 +110,5 @@ Deno.test("runtime/expressions/string keeps each interpolated character's proven
   }, m) as Wrapped<string>;
   assertEquals(r.raw, "a!");
   assertEquals(charOrigin(r, 0), rootOrigin(6));
-  assertStrictEquals(charOrigin(r, 1), m);
+  assertEquals(charOrigin(r, 1), originOf(m));
 });

@@ -4,7 +4,7 @@ import { exec } from "../exec.ts";
 import type { MatchOk } from "../../match.ts";
 import type { Expression, StringExpression } from "./mod.ts";
 import { isExpression } from "./expression.ts";
-import { concat, rawOf, unwrap, Wrapped } from "../../wrapped.ts";
+import { concat, originOf, rawOf, unwrap, Wrapped } from "../../wrapped.ts";
 
 export function string(
   expression: StringExpression,
@@ -31,6 +31,9 @@ export function string(
   const toText = (segment: unknown): unknown =>
     typeof rawOf(segment) === "string"
       ? segment
-      : new Wrapped(`${unwrap(segment)}`, match);
-  return andThen(segments, (parts) => concat(parts.map(toText), match));
+      : new Wrapped(`${unwrap(segment)}`, originOf(match));
+  return andThen(
+    segments,
+    (parts) => concat(parts.map(toText), originOf(match)),
+  );
 }

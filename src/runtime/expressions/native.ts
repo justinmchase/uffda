@@ -1,6 +1,6 @@
 import type { MatchOk } from "../../match.ts";
 import type { NativeExpression } from "./expression.ts";
-import { wrap, type Wrapped } from "../../wrapped.ts";
+import { wrapFrom, type Wrapped } from "../../wrapped.ts";
 
 export async function native(
   expression: NativeExpression,
@@ -14,5 +14,5 @@ export async function native(
     ...match.scope.options.globals.entries(),
     ...match.scope.options.specials.entries(),
   ]);
-  return wrap(await expression.fn(variables, capabilities, match), match);
+  return wrapFrom(await expression.fn(variables, capabilities, match), match);
 }

@@ -2,7 +2,7 @@ import { assertEquals, assertStrictEquals } from "@std/assert";
 import { ok } from "../../match.ts";
 import { PatternKind } from "../patterns/pattern.kind.ts";
 import { Scope } from "../scope.ts";
-import { rootOrigin, Wrapped } from "../../wrapped.ts";
+import { originOf, rootOrigin, Wrapped } from "../../wrapped.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import { native } from "./native.ts";
 
@@ -22,14 +22,14 @@ Deno.test("runtime/expressions/native", async (t) => {
   });
 
   await t.step(
-    "NATIVE01 - a raw result takes the evaluating match as origin",
+    "NATIVE01 - a raw result takes the evaluating match's spans as origin",
     async () => {
       const r = await native({
         kind: ExpressionKind.Native,
         fn: ({ x }: { x: Wrapped<number> }) => x.raw + 1,
       }, m);
       assertEquals(r.raw, 8);
-      assertStrictEquals(r.origin, m);
+      assertEquals(r.origin, originOf(m));
     },
   );
 

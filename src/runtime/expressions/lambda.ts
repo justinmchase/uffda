@@ -3,7 +3,7 @@ import { Input, InputNormalizationMode } from "../../input.ts";
 import { exec } from "../exec.ts";
 import { match } from "../match.ts";
 import type { LambdaExpression } from "./expression.ts";
-import { Wrapped } from "../../wrapped.ts";
+import { originOf, Wrapped } from "../../wrapped.ts";
 
 export type LambdaCallable = (...args: unknown[]) => Promise<unknown>;
 
@@ -29,7 +29,7 @@ export function lambda(
       undefined,
       false,
       false,
-      m,
+      originOf(m),
     );
     const scope = m.scope.withInput(stream);
     const result = await match(pattern, scope);
@@ -43,5 +43,5 @@ export function lambda(
         return await exec(expression, result);
     }
   };
-  return Promise.resolve(new Wrapped(callable, m));
+  return Promise.resolve(new Wrapped(callable, originOf(m)));
 }

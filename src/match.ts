@@ -7,7 +7,7 @@ import {
   type Span,
   spanFrom,
 } from "./span.ts";
-import { unwrap, wrap, type Wrapped } from "./wrapped.ts";
+import { unwrap, wrapFrom, type Wrapped } from "./wrapped.ts";
 
 export type { SourceSpan } from "./span.ts";
 
@@ -166,9 +166,9 @@ export function ok(
     matches,
     origin,
   };
-  // A value that is not already carried was computed by this match, so the
-  // match itself is its origin.
-  m.value = wrap(value, m);
+  // A value that is not already carried was computed by this match, so it
+  // takes this match's spans as its origin.
+  m.value = wrapFrom(value, m);
   return m;
 }
 
