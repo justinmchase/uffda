@@ -322,4 +322,115 @@ Deno.test("memo.Memos", async (t) => {
       assertEquals(memos.size, 0);
     },
   });
+
+  await t.step({
+    name: "MEMO_DELETE",
+    // delete drops a single entry without disturbing others at its position.
+    fn: () => {
+      const memos = new Memos();
+      const path = Path.From(0);
+      const { key: keyA } = memos.resolve(path, fakeRule("a"), []);
+      const { key: keyB } = memos.resolve(path, fakeRule("b"), []);
+      memos.set(path, keyA, fakeMatch());
+      memos.set(path, keyB, fakeMatch());
+      memos.delete(path, keyA);
+      assertEquals(memos.get(path, keyA).memo, undefined);
+      assertEquals(memos.get(path, keyB).memo !== undefined, true);
+    },
+  });
+
+  await t.step({
+    name: "MEMO_SEED_OBSERVED",
+    // Re-entering an in-progress entry makes every frame above it depend on
+    // its seed; once the seed's iteration advances those outcomes are stale.
+    fn: async () => {
+      const memos = new Memos();
+      const path = Path.From(0);
+      const head = fakeRule("head");
+      const involved = fakeRule("involved");
+      const { key: headKey } = memos.resolve(path, head, []);
+      const headMemo = memos.set(path, headKey, fakeMatch());
+      await memos.withFrame(path, async () => {
+        headMemo.iteration = 1;
+        const { key } = memos.resolve(path, involved, []);
+        const involvedMemo = memos.set(path, key, fakeMatch());
+        await memos.withFrame(path, () => {
+          assertStrictEquals(memos.resolve(path, head, []).memo, headMemo);
+        }, involvedMemo);
+        assertEquals(involvedMemo.seed, { memo: headMemo, iteration: 1 });
+        assertStrictEquals(
+          memos.resolve(path, involved, []).memo,
+          involvedMemo,
+        );
+
+        headMemo.iteration = 2;
+        assertEquals(memos.resolve(path, involved, []).memo, undefined);
+      }, headMemo);
+    },
+  });
+
+  await t.step({
+    name: "MEMO_SEED_TRANSITIVE",
+    // Reusing an entry computed against a live seed propagates that
+    // dependency to the reusing frame, and an entry computed in a growth's
+    // final iteration stays reusable after the growth completes.
+    fn: async () => {
+      const memos = new Memos();
+      const path = Path.From(0);
+      const [head, involved, reuser] = ["head", "involved", "reuser"].map(
+        fakeRule,
+      );
+      const { key: headKey } = memos.resolve(path, head, []);
+      const headMemo = memos.set(path, headKey, fakeMatch());
+      const { key: involvedKey } = memos.resolve(path, involved, []);
+      const involvedMemo = memos.set(path, involvedKey, fakeMatch());
+      const { key: reuserKey } = memos.resolve(path, reuser, []);
+      const reuserMemo = memos.set(path, reuserKey, fakeMatch());
+      // An enclosing frame keeps the table from being cleared when the
+      // head's own frame returns.
+      await memos.withFrame(path, async () => {
+        await memos.withFrame(path, async () => {
+          involvedMemo.seed = { memo: headMemo, iteration: 0 };
+          await memos.withFrame(path, () => {
+            assertStrictEquals(
+              memos.resolve(path, involved, []).memo,
+              involvedMemo,
+            );
+          }, reuserMemo);
+        }, headMemo);
+        assertEquals(reuserMemo.seed, { memo: headMemo, iteration: 0 });
+        assertStrictEquals(memos.resolve(path, reuser, []).memo, reuserMemo);
+      });
+    },
+  });
+
+  await t.step({
+    name: "MEMO_SEED_NESTED",
+    // A frame keeps its dependency on a more deeply nested in-progress entry
+    // when it also observes an outer one; the nested entry's own chain
+    // reaches the outer entry instead.
+    fn: async () => {
+      const memos = new Memos();
+      const path = Path.From(0);
+      const [outer, inner, frame] = ["outer", "inner", "frame"].map(fakeRule);
+      const entry = (rule: Rule) =>
+        memos.set(path, memos.resolve(path, rule, []).key, fakeMatch());
+      const outerMemo = entry(outer);
+      const innerMemo = entry(inner);
+      const frameMemo = entry(frame);
+      await memos.withFrame(path, async () => {
+        await memos.withFrame(path, async () => {
+          await memos.withFrame(path, () => {
+            memos.resolve(path, inner, []);
+            memos.resolve(path, outer, []);
+          }, frameMemo);
+        }, innerMemo);
+      }, outerMemo);
+      assertStrictEquals(frameMemo.seed?.memo, innerMemo);
+      assertStrictEquals(innerMemo.seed?.memo, outerMemo);
+
+      outerMemo.iteration++;
+      assertEquals(memos.resolve(path, frame, []).memo, undefined);
+    },
+  });
 });

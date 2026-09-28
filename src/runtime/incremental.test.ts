@@ -1,7 +1,8 @@
 import { assertEquals, assertStrictEquals } from "@std/assert";
 import { Resolver } from "../mod.ts";
-import { Input } from "../input.ts";
+import { Input, InputNormalizationMode } from "../input.ts";
 import { MatchKind, type MatchOk } from "../match.ts";
+import { lit } from "./patterns/value_source.ts";
 import { Memos } from "../memo.ts";
 import { Path } from "../path.ts";
 import type { Edit } from "../edit.ts";
@@ -234,6 +235,103 @@ Deno.test("runtime.incremental", async (t) => {
         const ruleResult = resolveMatches[i].matches[0] as MatchOk;
         assertEquals(ruleResult.origin !== undefined, true);
       }
+    },
+  });
+
+  await t.step({
+    name:
+      "INCREMENTAL01 - outcomes seeded by left-recursive growth are not reused",
+    fn: async () => {
+      // E = T; T = E "+" "n" | "n" — T is involved in E's indirect cycle,
+      // so every T outcome observed one of E's growth seeds.
+      const moduleUrl = import.meta.url + "#incremental01";
+      const ref = (name: string) => ({
+        kind: PatternKind.Resolve as const,
+        targetKind: ResolveTargetKind.Reference as const,
+        name,
+        args: [],
+      });
+      const n = { kind: PatternKind.Equal as const, value: lit("n") };
+      const resolver = new Resolver({
+        declarations: {
+          [moduleUrl]: {
+            imports: [],
+            exports: [
+              { kind: ExportDeclarationKind.Rule, name: "E", default: true },
+            ],
+            rules: [
+              { name: "E", parameters: [], pattern: ref("T") },
+              {
+                name: "T",
+                parameters: [],
+                pattern: {
+                  kind: PatternKind.Or,
+                  patterns: [
+                    {
+                      kind: PatternKind.Then,
+                      patterns: [
+                        ref("E"),
+                        { kind: PatternKind.Equal, value: lit("+") },
+                        n,
+                      ],
+                    },
+                    n,
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      });
+      const imported = await resolver.import(new URL(moduleUrl), {
+        scope: Scope.From("", { kind: InputNormalizationMode.Iterable }),
+        pattern: {
+          kind: PatternKind.Resolve,
+          targetKind: ResolveTargetKind.Run,
+        },
+      });
+      assertEquals(imported.kind, ModuleImportResultKind.Module);
+      if (imported.kind !== ModuleImportResultKind.Module) return;
+      const { module } = imported;
+
+      const priorMatch = await parseLetters(
+        module,
+        resolver,
+        Input.Iterable("n+n+n"),
+        new Memos(),
+      );
+      assertEquals(priorMatch.kind, MatchKind.Ok);
+
+      // Replace the final "n" with "n+n". The inner T outcomes spanning
+      // "n" and "n+n" end before the edit, but reusing either would stop
+      // E's growth at that seed instead of re-growing over the new input.
+      const edit: Edit = {
+        at: Path.Default().set(4),
+        removed: 1,
+        inserted: 3,
+      };
+      const freshInput = Input.Iterable("n+n+n+n");
+      const rehydrated = await rehydrateMemos(priorMatch, edit, freshInput);
+      assertEquals(rehydrated.size, 0);
+
+      const reparsed = await parseLetters(
+        module,
+        resolver,
+        freshInput,
+        rehydrated,
+      );
+      const freshParse = await parseLetters(
+        module,
+        resolver,
+        Input.Iterable("n+n+n+n"),
+        new Memos(),
+      );
+      assertEquals(freshParse.kind, MatchKind.Ok);
+      if (freshParse.kind !== MatchKind.Ok) return;
+      assertEquals(freshParse.value, [[["n", "+", "n"], "+", "n"], "+", "n"]);
+      assertEquals(reparsed.kind, MatchKind.Ok);
+      if (reparsed.kind !== MatchKind.Ok) return;
+      assertEquals(reparsed.value, freshParse.value);
     },
   });
 });

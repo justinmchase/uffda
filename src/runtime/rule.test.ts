@@ -19,6 +19,7 @@ import {
 } from "./declarations/mod.ts";
 import type { ModuleDeclaration } from "./declarations/module.ts";
 import type { Wrapped } from "../wrapped.ts";
+import type { Match, MatchOrigin } from "../match.ts";
 
 Deno.test("runtime.rule", async (t) => {
   await t.step({
@@ -612,93 +613,6 @@ Deno.test("runtime.rule", async (t) => {
   });
 
   await t.step({
-    name: "RULE12",
-    fn: async () => {
-      const declarations: Record<string, ModuleDeclaration> = {
-        [import.meta.url]: {
-          imports: [],
-          exports: [{
-            kind: ExportDeclarationKind.Rule,
-            name: "a",
-            default: true,
-          }],
-          rules: [
-            {
-              name: "a",
-              parameters: [],
-              pattern: {
-                kind: PatternKind.Or,
-                patterns: [
-                  {
-                    kind: PatternKind.Resolve,
-                    targetKind: ResolveTargetKind.Reference,
-                    name: "a",
-                    args: [],
-                  },
-                  { kind: PatternKind.Equal, value: lit("a") },
-                ],
-              },
-            },
-          ],
-        },
-      };
-
-      const resolver = new Resolver({ declarations });
-      const importScope = new Scope(
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        Input.Iterable("a"),
-        undefined,
-        undefined,
-        { resolver },
-      );
-      const module = await resolver.import(new URL(import.meta.url), {
-        scope: importScope,
-        pattern: {
-          kind: PatternKind.Resolve,
-          targetKind: ResolveTargetKind.Run,
-        },
-      });
-      assertEquals(module.kind, ModuleImportResultKind.Module);
-      if (module.kind !== ModuleImportResultKind.Module) return;
-      const key = Symbol("broken-grow-memo");
-      let storedMemo: { match: unknown } | undefined;
-      const brokenMemos = {
-        resolve: () => ({ key, memo: storedMemo }),
-        set: (_path: unknown, _key: symbol, match: unknown) => {
-          storedMemo = { match };
-          return storedMemo;
-        },
-        get: () => ({ key, memo: undefined }),
-        withFrame: async (_path: unknown, fn: () => Promise<unknown>) =>
-          await fn(),
-      };
-      const scope = new Scope(
-        module.module,
-        undefined,
-        undefined,
-        undefined,
-        Input.Iterable("a"),
-        brokenMemos as never,
-        undefined,
-        { resolver },
-      );
-
-      const m = await resolve(
-        { kind: PatternKind.Resolve, targetKind: ResolveTargetKind.Run },
-        scope,
-      );
-
-      assertEquals(m.kind, MatchKind.Error);
-      if (m.kind !== MatchKind.Error) return;
-      assertEquals(m.code, MatchErrorCode.InternalInvariant);
-      assertEquals(m.message, "left recursion memo missing during grow");
-    },
-  });
-
-  await t.step({
     name: "RULE13",
     fn: moduleDeclarationTest({
       moduleUrl: import.meta.url + "#memo-post-expression",
@@ -761,6 +675,91 @@ Deno.test("runtime.rule", async (t) => {
       value: "projected",
     }),
   });
+  await t.step({
+    name: "RULE14",
+    // E = T; T = E "+" "n" | "n": left recursion re-entering E passes
+    // through T, so E grows and T's outcomes are marked as seeded by that
+    // growth while E's own outcome is not.
+    fn: async () => {
+      const ref = (name: string) => ({
+        kind: PatternKind.Resolve as const,
+        targetKind: ResolveTargetKind.Reference as const,
+        name,
+        args: [],
+      });
+      const n = { kind: PatternKind.Equal as const, value: lit("n") };
+      const declarations: Record<string, ModuleDeclaration> = {
+        [import.meta.url]: {
+          imports: [],
+          exports: [
+            { kind: ExportDeclarationKind.Rule, name: "E", default: true },
+          ],
+          rules: [
+            { name: "E", parameters: [], pattern: ref("T") },
+            {
+              name: "T",
+              parameters: [],
+              pattern: {
+                kind: PatternKind.Or,
+                patterns: [
+                  {
+                    kind: PatternKind.Then,
+                    patterns: [
+                      ref("E"),
+                      { kind: PatternKind.Equal, value: lit("+") },
+                      n,
+                    ],
+                  },
+                  n,
+                ],
+              },
+            },
+          ],
+        },
+      };
+      const resolver = new Resolver({ declarations });
+      const module = await resolver.import(new URL(import.meta.url), {
+        scope: Scope.From("", { kind: InputNormalizationMode.Iterable }),
+        pattern: {
+          kind: PatternKind.Resolve,
+          targetKind: ResolveTargetKind.Run,
+        },
+      });
+      assertEquals(module.kind, ModuleImportResultKind.Module);
+      if (module.kind !== ModuleImportResultKind.Module) return;
+      const scope = new Scope(
+        module.module,
+        undefined,
+        undefined,
+        undefined,
+        Input.Iterable("n+n"),
+        undefined,
+        undefined,
+        { resolver },
+      );
+
+      const m = await resolve(
+        { kind: PatternKind.Resolve, targetKind: ResolveTargetKind.Run },
+        scope,
+      );
+
+      assertEquals(m.kind, MatchKind.Ok);
+      if (m.kind !== MatchKind.Ok) return;
+      assertEquals(m.value, ["n", "+", "n"]);
+      assertEquals(m.origin?.rule.name, "E");
+      assertEquals(m.origin?.seeded, undefined);
+      const origins: MatchOrigin[] = [];
+      const visit = (node: Match) => {
+        if (node.kind !== MatchKind.Ok && node.kind !== MatchKind.Fail) return;
+        if (node.origin?.rule.name === "T") origins.push(node.origin);
+        node.matches.forEach(visit);
+      };
+      visit(m);
+      assert(origins.length > 0);
+      assert(origins.every((origin) => origin.seeded === true));
+    },
+  });
+
   // todo: two identical rules with different native projections should not trigger DLR?
 
   await t.step(

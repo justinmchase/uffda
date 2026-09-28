@@ -28,6 +28,13 @@ export type { SourceSpan } from "./span.ts";
 export type MatchOrigin = {
   rule: Rule;
   args: Map<string, Rule>;
+  /**
+   * Set when the invocation's outcome observed an in-progress left-recursive
+   * seed at its start position. Such an outcome is only valid as part of that
+   * growth, so it is never reused on its own; see
+   * `.agents/specifications/runtime/left-recursion.spec.md`.
+   */
+  seeded?: true;
 };
 
 export enum MatchErrorCode {
@@ -41,6 +48,7 @@ export enum MatchErrorCode {
   InternalInvariant = "E_INTERNAL_INVARIANT",
   ModuleResolution = "E_MODULE_RESOLUTION",
   DuplicateVariable = "E_DUPLICATE_VARIABLE",
+  /** @deprecated Indirect left recursion is supported; no longer produced. */
   IndirectLeftRecursion = "E_INDIRECT_LEFT_RECURSION",
   ExpressionException = "E_EXPRESSION_EXCEPTION",
 }

@@ -6,7 +6,7 @@ import { lit } from "../../runtime/patterns/value_source.ts";
 import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 
-Deno.test("req:direct-left-recursion-001 - Direct left recursion is supported with a base case and indirect left recursion is rejected on the active rule-evaluation path", async (t) => {
+Deno.test("req:direct-left-recursion-001 - Direct left recursion is supported with a base case and a left-recursive cycle without one fails", async (t) => {
   await t.step(
     "direct left recursion with a base case stabilizes to a successful match",
     moduleDeclarationTest({
@@ -52,7 +52,7 @@ Deno.test("req:direct-left-recursion-001 - Direct left recursion is supported wi
   );
 
   await t.step(
-    "indirect left recursion is rejected on the current rule-evaluation path",
+    "a left-recursive cycle with no base case fails and terminates",
     moduleDeclarationTest({
       moduleUrl: import.meta.url,
       declarations: {
