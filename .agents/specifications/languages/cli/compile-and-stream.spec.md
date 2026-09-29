@@ -54,6 +54,18 @@ Normative key words in this chapter use the conventions defined in the
   an editor that already highlights the failure site still makes clear what
   would have matched.
 - Empty full-Uffda stream input MUST emit an empty module AST.
+- Parsing MUST request [error recovery](../../runtime/error-recovery.spec.md).
+  Every parse diagnostic payload MUST carry the parse's diagnostics, in document
+  order, as a `diagnostics` list (see
+  [error recovery](../../runtime/error-recovery.spec.md#diagnostics)), each
+  located by source position; a recovery's location spans the source it skipped.
+  The payload's `error` MUST be the parse failure, or the first recovery when
+  the parse succeeded only by recovering.
+- A parse that succeeded only by recovering is a parse failure: `parse` MUST
+  emit the recovered AST to STDOUT and the diagnostic payload to STDERR, and
+  exit with the failure status. Commands that go on to compile or execute a
+  parsed source (`exec`, `run`, `match`, `compile`) MUST stop at such a parse,
+  as at any parse failure.
 
 ## AST execution contracts
 
@@ -75,11 +87,21 @@ Normative key words in this chapter use the conventions defined in the
 - Invalid JSON, unsupported ASTs, parse failures, compilation failures, match
   failures, and execution failures MUST emit deterministic diagnostics to
   STDERR.
+- Module execution and matching MUST request
+  [error recovery](../../runtime/error-recovery.spec.md). A match or execution
+  that succeeded only by recovering MUST emit its result to STDOUT as a clean
+  result would, emit its diagnostics to STDERR, and exit with the failure
+  status. Structured diagnostics MUST carry the `diagnostics` list, each
+  recovery located by the source offsets of the input it skipped; human-readable
+  match diagnostics MUST list every diagnostic.
 
 ## Failure and exit behavior
 
 - If one or more compilation units fail for a multi-path or glob compile, the
   CLI MUST produce deterministic per-unit failure diagnostics.
+- A unit whose source parsed only by recovering MUST fail without writing an
+  artifact. A unit that failed to parse MUST report every parse diagnostic of
+  the unit, and the overall failure list MUST include each of them.
 - Exit status MUST indicate whether any input unit failed.
 - Partial success behavior MUST be explicit and reproducible.
 

@@ -132,3 +132,14 @@ Deno.test("cli.mcp.static_tools matchToolHandler", async (t) => {
     assert(!result.ok && result.error.phase === "input");
   });
 });
+
+Deno.test("cli.mcp.static_tools matchToolHandler reports recoveries", async () => {
+  const result = await matchToolHandler({
+    pattern: `(ope "a" sneak by any)* end`,
+    input: "axa",
+  });
+  assert(!result.ok);
+  assertEquals(result.value, [["a", "x", "a"], undefined]);
+  assertEquals(result.error.code, "CLI_MATCH_RECOVERED");
+  assertEquals(result.diagnostics, [result.error]);
+});

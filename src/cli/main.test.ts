@@ -431,3 +431,74 @@ Deno.test("cli.main runCli validates mode support and compile routing", async (t
     },
   });
 });
+
+Deno.test("cli.main runCli reports recoveries", async (t) => {
+  const recovering = `(ope "a" sneak by any)* end`;
+
+  await t.step(
+    "match prints the recovered value, lists recoveries, and exits non-zero",
+    async () => {
+      const result = await runCli(
+        ["match", "-e", recovering, "--input", "axa"],
+        Deno.cwd(),
+      );
+      assertEquals(result.exitCode, CliExitCode.Usage);
+      assertEquals(JSON.parse(result.stdout!), [["a", "x", "a"], null]);
+      assertEquals(
+        result.stderr,
+        'Match recovered at input 1..2: Expected "a"\nUnexpected "x"\n',
+      );
+    },
+  );
+
+  await t.step("match --json writes every diagnostic", async () => {
+    const result = await runCli(
+      ["match", "-e", recovering, "--input", "axay", "--json"],
+      Deno.cwd(),
+    );
+    assertEquals(result.exitCode, CliExitCode.Usage);
+    const payload = JSON.parse(result.stderr!);
+    assertEquals(payload.ok, false);
+    assertEquals(
+      payload.diagnostics.map((d: { inputSpan: unknown }) => d.inputSpan),
+      [{ start: 1, end: 2 }, { start: 3, end: 4 }],
+    );
+    assertEquals(payload.error, payload.diagnostics[0]);
+  });
+
+  await t.step("a clean match still exits zero", async () => {
+    const result = await runCli(
+      ["match", "-e", recovering, "--input", "aa"],
+      Deno.cwd(),
+    );
+    assertEquals(result.exitCode, CliExitCode.Ok);
+    assertEquals(result.stderr, undefined);
+  });
+
+  await t.step(
+    "run prints the recovered value and its diagnostics",
+    async () => {
+      const result = await runCli(
+        [
+          "run",
+          "-e",
+          `export Main; rule Main = (ok -> "axa") |> [(ope "a" sneak by any)* end];`,
+        ],
+        Deno.cwd(),
+      );
+      assertEquals(result.exitCode, CliExitCode.Usage);
+      assertEquals(JSON.parse(result.stdout!), [["a", "x", "a"], null]);
+      const payload = JSON.parse(result.stderr!);
+      assertEquals(payload.error.code, "CLI_EXEC_RECOVERED");
+      assertEquals(payload.diagnostics, [payload.error]);
+    },
+  );
+
+  await t.step("a parse failure writes its diagnostics", async () => {
+    const result = await runCli(["parse", "-e", "rule A = ;"], Deno.cwd());
+    assertEquals(result.exitCode, CliExitCode.Usage);
+    assertEquals(result.stdout, undefined);
+    const payload = JSON.parse(result.stderr!);
+    assertEquals(payload.diagnostics, [payload.error]);
+  });
+});

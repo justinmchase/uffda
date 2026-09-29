@@ -12,9 +12,11 @@ import {
   toStableSourcePath,
 } from "../runtime/resolvers/artifact_path.ts";
 import { compileUffdaSource } from "../lang/uffda/execute.ts";
+import { CliLanguage } from "./contract.ts";
 import {
   type CliStreamFailureLocation,
   parseFailureLocation,
+  recoveryFailures,
 } from "./stream.ts";
 import { valueOf } from "../match.ts";
 
@@ -25,6 +27,8 @@ export enum CliCompileFailureCode {
   OutputCollision = "CLI_COMPILE_OUTPUT_COLLISION",
   OutputExists = "CLI_COMPILE_OUTPUT_EXISTS",
   ParseFailure = "CLI_COMPILE_PARSE_FAILURE",
+  /** Source the parse skipped by recovering; see error-recovery.spec.md. */
+  Recovered = "CLI_COMPILE_PARSE_RECOVERED",
   WriteFailure = "CLI_COMPILE_WRITE_FAILURE",
 }
 
@@ -33,7 +37,7 @@ export type CliCompileFailure = {
   sourcePath: string;
   outputPath?: string;
   message: string;
-  /** Source position of a `ParseFailure`. */
+  /** Source position of a `ParseFailure` or `Recovered` diagnostic. */
   location?: CliStreamFailureLocation;
 };
 
@@ -55,7 +59,13 @@ export type CliCompileUnitResult =
     ok: false;
     sourcePath: string;
     outputPath?: string;
+    /** The unit's failure, or the first recovery of a recovered parse. */
     failure: CliCompileFailure;
+    /**
+     * Every parse diagnostic of the unit, in document order: one per
+     * recovery, then the parse failure when the parse failed.
+     */
+    diagnostics?: CliCompileFailure[];
   };
 
 export type CliCompileRequest = {
@@ -319,20 +329,38 @@ export async function compileSourcesToAstArtifacts(
     }
 
     const compiled = await compileUffdaSource(sourceText);
-    if (!isSuccess(compiled)) {
-      const failure: CliCompileFailure = {
-        code: CliCompileFailureCode.ParseFailure,
+    if (!isSuccess(compiled) || compiled.recovered) {
+      const diagnostics: CliCompileFailure[] = (await recoveryFailures(
+        compiled,
+        CliLanguage.FullUffda,
+        plan.sourcePath,
+        sourceText,
+      )).map(({ message, location }) => ({
+        code: CliCompileFailureCode.Recovered,
         sourcePath: plan.sourcePath,
         outputPath: plan.outputPath,
-        message: await parseFailureMessage(compiled),
-        location: await parseFailureLocation(compiled, sourceText),
-      };
-      failures.push(failure);
+        message,
+        location,
+      }));
+      if (!isSuccess(compiled)) {
+        diagnostics.push({
+          code: CliCompileFailureCode.ParseFailure,
+          sourcePath: plan.sourcePath,
+          outputPath: plan.outputPath,
+          message: await parseFailureMessage(compiled),
+          location: await parseFailureLocation(compiled, sourceText),
+        });
+      }
+      const failure = isSuccess(compiled)
+        ? diagnostics[0]
+        : diagnostics.at(-1)!;
+      failures.push(...diagnostics);
       units.push({
         ok: false,
         sourcePath: plan.sourcePath,
         outputPath: plan.outputPath,
         failure,
+        diagnostics,
       });
       continue;
     }

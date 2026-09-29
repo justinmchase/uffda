@@ -2,7 +2,8 @@ import {
   compileUffdaSyntaxModule,
   type UffdaSyntaxModule,
 } from "../lang/uffda/uffda.lang.ts";
-import { isSuccess, type Match, MatchKind } from "../match.ts";
+import { isSuccess, type Match, MatchKind, type SourceSpan } from "../match.ts";
+import { diagnoseRecoveries } from "../match.recovery_diagnostics.ts";
 import { executeModuleDeclaration } from "../runtime/module.execute.ts";
 import { type Expression, isExpression } from "../runtime/expressions/mod.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
@@ -15,17 +16,32 @@ export enum CliExecFailureCode {
   UnsupportedAst = "CLI_EXEC_UNSUPPORTED_AST",
   CompilationFailure = "CLI_EXEC_COMPILATION_FAILURE",
   ExecutionFailure = "CLI_EXEC_EXECUTION_FAILURE",
+  /** Input the execution skipped by recovering; see error-recovery.spec.md. */
+  Recovered = "CLI_EXEC_RECOVERED",
 }
 
 export type CliExecFailure = {
   code: CliExecFailureCode;
   phase: "parse" | "compile" | "execute";
   message: string;
+  /** Source offsets of the input a recovery skipped. */
+  span?: SourceSpan;
 };
 
 export type CliExecResult =
   | { ok: true; value: unknown }
-  | { ok: false; error: CliExecFailure };
+  | {
+    ok: false;
+    /** The failure, or the first recovery of a recovered execution. */
+    error: CliExecFailure;
+    /**
+     * Every diagnostic of an execution that ran, in document order: one per
+     * recovery, then the execution failure when it failed.
+     */
+    diagnostics?: CliExecFailure[];
+    /** The value of an execution that succeeded only by recovering. */
+    value?: unknown;
+  };
 
 export type CliAstParseResult =
   | { ok: true; ast: unknown }
@@ -88,6 +104,29 @@ function executionFailure(match: Match): CliExecFailure {
     case MatchKind.Skip:
       throw new Error("Expected execution failure");
   }
+}
+
+async function executionResult(execution: Match): Promise<CliExecResult> {
+  if (isSuccess(execution) && !execution.recovered) {
+    return { ok: true, value: valueOf(execution) };
+  }
+  const recoveries: CliExecFailure[] = (await diagnoseRecoveries(execution))
+    .map(({ span, message }) => ({
+      code: CliExecFailureCode.Recovered,
+      phase: "execute",
+      message,
+      span,
+    }));
+  if (isSuccess(execution)) {
+    return {
+      ok: false,
+      error: recoveries[0],
+      diagnostics: recoveries,
+      value: valueOf(execution),
+    };
+  }
+  const failure = executionFailure(execution);
+  return { ok: false, error: failure, diagnostics: [...recoveries, failure] };
 }
 
 export type CliExecOptions = {
@@ -176,10 +215,9 @@ export async function executeCliAst(
     scopeOptions: {
       globals: new Map([...globals, ["echo", (output: unknown) => output]]),
     },
+    recovery: true,
   });
-  return isSuccess(execution)
-    ? { ok: true, value: valueOf(execution) }
-    : { ok: false, error: executionFailure(execution) };
+  return await executionResult(execution);
 }
 
 export async function executeCliExpression(
@@ -237,10 +275,9 @@ export async function executeCliModule(
     scopeOptions: {
       globals: new Map([...globals, ["echo", (output: unknown) => output]]),
     },
+    recovery: true,
   });
-  return isSuccess(execution)
-    ? { ok: true, value: valueOf(execution) }
-    : { ok: false, error: executionFailure(execution) };
+  return await executionResult(execution);
 }
 
 export function parseCliAst(source: string): CliAstParseResult {

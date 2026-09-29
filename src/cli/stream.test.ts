@@ -5,7 +5,9 @@ import {
   compileStdinToArtifact,
   parseFailureLocation,
   parseSourceToAst,
+  recoveryFailures,
 } from "./stream.ts";
+import { executeUffdaSource } from "../lang/uffda/execute.ts";
 import { Input, InputNormalizationMode } from "../input.ts";
 import { Path } from "../path.ts";
 import type { Edit } from "../edit.ts";
@@ -254,4 +256,41 @@ Deno.test("cli.stream parses one stdin source unit into a raw AST", async (t) =>
       }
     },
   );
+});
+
+Deno.test("cli.stream reports parse diagnostics", async (t) => {
+  await t.step("a failed parse lists its failure", async () => {
+    const result = await parseSourceToAst("rule A = ;");
+    assertEquals(result.ok, false);
+    if (result.ok) return;
+    assertEquals(result.error.code, CliStreamFailureCode.ParseFailure);
+    assertEquals(result.diagnostics, [result.error]);
+    assertEquals(result.ast, undefined);
+  });
+
+  await t.step("recoveries are ranged over the skipped source", async () => {
+    const source = "ab;xx;ab;";
+    const match = await executeUffdaSource(
+      `export Main; rule Stmt = ope ("a" "b") sneak by until ";"; rule Main = (Stmt ";")* end;`,
+      {
+        entryRuleName: "Main",
+        input: Input.From(source, { kind: InputNormalizationMode.Iterable }),
+        recovery: true,
+      },
+    );
+    const [failure] = await recoveryFailures(
+      match,
+      CliLanguage.FullUffda,
+      "<stdin>",
+      source,
+    );
+    assertEquals(failure.code, CliStreamFailureCode.Recovered);
+    assertEquals(failure.location, {
+      offset: 3,
+      line: 0,
+      column: 3,
+      endOffset: 5,
+    });
+    assertEquals(failure.message, 'Expected "a"\nUnexpected "x"\nIn Stmt');
+  });
 });

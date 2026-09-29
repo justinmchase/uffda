@@ -251,4 +251,22 @@ Deno.test("runtime.recovery", async (t) => {
       assertEquals(recovered.scope.recovery, true);
     },
   );
+
+  await t.step(
+    "RECOVERY08 - a match produced with recovery disabled has no recoveries",
+    async () => {
+      const recovered = await matchWithRecovery(
+        run,
+        await moduleScope(statements, "xx;;"),
+      );
+      assertEquals(spans(recovered), [["[0]", "[2]"]]);
+      assertEquals(
+        collectRecoveries({
+          ...recovered,
+          scope: recovered.scope.withRecovery(false),
+        }),
+        [],
+      );
+    },
+  );
 });

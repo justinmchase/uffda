@@ -19,6 +19,7 @@ import {
   CliStreamFailureCode,
   locationFromOffset,
   parseFailureMessage,
+  recoveryFailures,
 } from "./stream.ts";
 
 /**
@@ -70,7 +71,17 @@ export type HighlightSpan = {
 
 export type HighlightResult =
   | { ok: true; spans: HighlightSpan[] }
-  | { ok: false; error: CliStreamFailure; spans: HighlightSpan[] };
+  | {
+    ok: false;
+    /** The parse failure, or the first recovery of a recovered parse. */
+    error: CliStreamFailure;
+    /**
+     * Every diagnostic of the parse, in document order: one per recovery,
+     * then the parse failure when the parse failed.
+     */
+    diagnostics: CliStreamFailure[];
+    spans: HighlightSpan[];
+  };
 
 const HIGHLIGHT_ROLES: ReadonlySet<string> = new Set(
   Object.values(HighlightRole),
@@ -426,7 +437,17 @@ export async function highlightSource(
   })();
 
   const spans = highlightSpansFromMatch(match, sourceText);
-  if (isSuccess(match)) return { ok: true, spans };
+  if (isSuccess(match) && !match.recovered) return { ok: true, spans };
+
+  const recoveries = await recoveryFailures(
+    match,
+    language,
+    "<stdin>",
+    sourceText,
+  );
+  if (isSuccess(match)) {
+    return { ok: false, error: recoveries[0], diagnostics: recoveries, spans };
+  }
 
   const rightmost = match.kind === MatchKind.Fail
     ? getRightmostFailure(match)
@@ -435,16 +456,18 @@ export async function highlightSource(
     0,
     Math.min(rightmost.originalSpan.start, sourceText.length),
   );
+  const failure: CliStreamFailure = {
+    code: CliStreamFailureCode.ParseFailure,
+    phase: "parse",
+    sourcePath: "<stdin>",
+    language,
+    message: await parseFailureMessage(match),
+    location: locationFromOffset(sourceText, offset),
+  };
   return {
     ok: false,
-    error: {
-      code: CliStreamFailureCode.ParseFailure,
-      phase: "parse",
-      sourcePath: "<stdin>",
-      language,
-      message: await parseFailureMessage(match),
-      location: locationFromOffset(sourceText, offset),
-    },
+    error: failure,
+    diagnostics: [...recoveries, failure],
     spans,
   };
 }

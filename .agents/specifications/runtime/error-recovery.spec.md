@@ -32,8 +32,8 @@ never hard-codes them.
 - It does not change any outcome of a match evaluated with recovery disabled
   (see [Recovery setting](#recovery-setting)). Grammars that declare no recovery
   points, and hosts that never enable recovery, observe no difference.
-- It does not define how consumers render recoveries as diagnostics; see
-  [Planned consumers](#planned-consumers-non-normative).
+- It defines what diagnostics recoveries yield (see
+  [Diagnostics](#diagnostics)); each host's chapter defines how it reports them.
 
 ## Definitions
 
@@ -100,7 +100,8 @@ never hard-codes them.
   matching, not derived by inspecting the grammar. A discovery phase that reuses
   memoized outcomes without re-evaluating them (for example after
   [incremental re-parsing](./incremental-parsing.spec.md) rehydration) MUST
-  assume one did.
+  assume one did whenever the parse those outcomes came from recorded one; an
+  outcome from a parse that recorded none cannot contain one.
 
 ## Recovered matches
 
@@ -214,7 +215,8 @@ never hard-codes them.
   document order, each paired with the failure it replaced.
 - Collection MUST be pure (no mutation of the match graph), deterministic, and
   MUST visit each node at most once; it MAY skip successful children that are
-  not recovered.
+  not recovered. A match produced with recovery disabled contains no recoveries,
+  so collection MAY return immediately for it.
 - The same input, grammar, and recovery setting MUST produce the same
   recoveries.
 
@@ -232,20 +234,29 @@ never hard-codes them.
 - The runtime MUST expose two-phase matching to hosts as an explicit option of
   matching a module's entry rule, off by default.
 
-## Planned consumers (non-normative)
+## Diagnostics
 
-These describe the intended follow-up stages; they become normative when
-specified in their own chapters.
-
-- **Diagnostics.** Each recovery yields one diagnostic ranged over its span,
-  whose message is the [match diagnostics](./match-diagnostics.spec.md) analysis
-  of the recovery's failure; a failed recovery phase adds the usual single
-  failure diagnostic. The CLI exits non-zero when any diagnostic exists.
-- **Language server.** Documents are parsed with two-phase matching and publish
-  every diagnostic; highlighting, symbols, and completion read the accepted
-  parse of the recovered result.
-- **MCP server.** Parse and session tools report all recoveries and retain the
-  recovered match for match-tree walking.
+- Each recovery in a match's accepted parse MUST yield one diagnostic, ranged
+  over the source offsets of the input the recovery skipped (the recovery's
+  source span), whose message is the
+  [match diagnostics](./match-diagnostics.spec.md) analysis of the failure the
+  recovery replaced.
+- The diagnostics of a match MUST be, in document order, those of its
+  recoveries, followed by the usual single failure diagnostic when the match
+  failed. A clean success has none.
+- A result with any diagnostic is not a clean result: hosts MUST report it as a
+  failure even when a recovered value is available, and MAY report the recovered
+  value alongside the diagnostics.
+- A recovered value MUST NOT be consumed as though it were clean: in particular,
+  a module source that parsed only by recovering MUST NOT be compiled, resolved,
+  or written as an artifact. Editor features MAY read the recovered parse.
+- The CLI, the
+  [language server](../languages/cli/language-server.spec.md#diagnostics), and
+  the
+  [MCP server](../languages/cli/mcp-server.spec.md#error-and-determinism-contract)
+  MUST match with recovery requested for every parse and every module or pattern
+  execution; their chapters specify how diagnostics are reported (see also
+  [compile and stream](../languages/cli/compile-and-stream.spec.md#parse-contracts)).
 
 ## Why this design
 

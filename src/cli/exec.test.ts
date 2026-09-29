@@ -132,3 +132,40 @@ Deno.test("cli.exec executes raw module and expression AST inputs", async (t) =>
     },
   );
 });
+
+Deno.test("cli.exec reports recoveries", async (t) => {
+  await t.step(
+    "a recovered execution fails with its value and every recovery",
+    async () => {
+      const parsed = await uffdaGrammar(
+        `export Main; rule Main = (ok -> "axa") |> [(ope "a" sneak by any)* end];`,
+      );
+      assertEquals(parsed.kind, MatchKind.Ok);
+      if (parsed.kind !== MatchKind.Ok) return;
+
+      const result = await executeCliModule(valueOf(parsed));
+      assertEquals(result.ok, false);
+      if (result.ok) return;
+      assertEquals(result.value, [["a", "x", "a"], undefined]);
+      assertEquals(result.error.code, CliExecFailureCode.Recovered);
+      assertEquals(result.error.phase, "execute");
+      assertEquals(
+        result.error.message,
+        'Expected "a"\nUnexpected "x"\nIn Main',
+      );
+      assertEquals(result.diagnostics, [result.error]);
+    },
+  );
+
+  await t.step("a failed execution lists its failure", async () => {
+    const parsed = await uffdaGrammar(`export Main; rule Main = fail;`);
+    assertEquals(parsed.kind, MatchKind.Ok);
+    if (parsed.kind !== MatchKind.Ok) return;
+
+    const result = await executeCliModule(valueOf(parsed));
+    assertEquals(result.ok, false);
+    if (result.ok) return;
+    assertEquals(result.error.code, CliExecFailureCode.ExecutionFailure);
+    assertEquals(result.diagnostics, [result.error]);
+  });
+});

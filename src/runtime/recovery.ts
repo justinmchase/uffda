@@ -45,6 +45,7 @@ export type Recovery = {
  */
 export function collectRecoveries(root: Match): Recovery[] {
   const recoveries: Recovery[] = [];
+  if (!root.scope.recovery) return recoveries;
   const visited = new Set<Match>();
   const visit = (node: Match): void => {
     if (visited.has(node)) return;

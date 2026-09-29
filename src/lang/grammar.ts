@@ -10,7 +10,7 @@ import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "../runtime/patterns/pattern.ts";
 import { Scope } from "../runtime/scope.ts";
 import { globals as defaultGlobals } from "../runtime/runtime.ts";
-import { resolve } from "../runtime/patterns/resolve.ts";
+import { matchWithRecovery } from "../runtime/recovery.ts";
 import { languageArtifactRoots } from "../runtime/resolvers/language_artifact_roots.ts";
 import { ModuleImportResultKind } from "../runtime/resolvers/resolver.ts";
 import { Resolver } from "../runtime/resolve.ts";
@@ -149,7 +149,7 @@ export async function parseGrammar<TAst>(options: {
 
   const { module, scope } = resolved.resolved;
   const scoped = scope.pushModule(module);
-  const parsed = await resolve(
+  const parsed = await matchWithRecovery(
     {
       kind: PatternKind.Resolve,
       targetKind: ResolveTargetKind.Run,

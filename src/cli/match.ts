@@ -4,7 +4,9 @@ import {
   type Match,
   MatchKind,
 } from "../match.ts";
-import { match } from "../runtime/match.ts";
+import { matchWithRecovery } from "../runtime/recovery.ts";
+import { diagnoseRecoveries } from "../match.recovery_diagnostics.ts";
+import type { SourceSpan } from "../span.ts";
 import { InputNormalizationMode } from "../input.ts";
 import { isPattern, type Pattern } from "../runtime/patterns/pattern.ts";
 import { Scope } from "../runtime/scope.ts";
@@ -14,6 +16,8 @@ export enum CliMatchFailureCode {
   InvalidJson = "CLI_MATCH_INVALID_JSON",
   UnsupportedAst = "CLI_MATCH_UNSUPPORTED_AST",
   MatchFailure = "CLI_MATCH_FAILURE",
+  /** Input the match skipped by recovering; see error-recovery.spec.md. */
+  Recovered = "CLI_MATCH_RECOVERED",
 }
 
 export type CliMatchFailure = {
@@ -24,6 +28,8 @@ export type CliMatchFailure = {
   inputDescription?: string;
   source?: string;
   sourceOffset?: number;
+  /** Source offsets of the input a recovery skipped. */
+  inputSpan?: SourceSpan;
 };
 
 export function isCliMatchFailure(value: unknown): value is CliMatchFailure {
@@ -41,7 +47,15 @@ export type CliMatchResult =
   | { ok: true; value: unknown }
   | {
     ok: false;
+    /** The failure, or the first recovery of a recovered match. */
     error: CliMatchFailure;
+    /**
+     * Every diagnostic of a match that ran, in document order: one per
+     * recovery, then the match failure when it failed.
+     */
+    diagnostics?: CliMatchFailure[];
+    /** The value of a match that succeeded only by recovering. */
+    value?: unknown;
   };
 
 function sourceOffset(
@@ -57,43 +71,34 @@ function sourceOffset(
 async function matchFailure(
   result: Match,
   source?: string,
-): Promise<CliMatchResult> {
+): Promise<CliMatchFailure> {
   switch (result.kind) {
     case MatchKind.Error:
       return {
-        ok: false,
-        error: {
-          code: CliMatchFailureCode.MatchFailure,
-          phase: "match",
-          message: `${result.code}: ${result.message}`,
-        },
+        code: CliMatchFailureCode.MatchFailure,
+        phase: "match",
+        message: `${result.code}: ${result.message}`,
       };
     case MatchKind.Fail: {
       const rightmost = getRightmostFailure(result);
       return {
-        ok: false,
-        error: {
-          code: CliMatchFailureCode.MatchFailure,
-          phase: "match",
-          message:
-            `Pattern '${rightmost.pattern.kind}' did not match input at ${rightmost.span.start.toString()}`,
-          inputPosition: rightmost.span.start.toString(),
-          inputDescription: await rightmost.scope.stream.done()
-            ? "end of input"
-            : "a value that did not match",
-          source,
-          sourceOffset: sourceOffset(source, rightmost.pattern),
-        },
+        code: CliMatchFailureCode.MatchFailure,
+        phase: "match",
+        message:
+          `Pattern '${rightmost.pattern.kind}' did not match input at ${rightmost.span.start.toString()}`,
+        inputPosition: rightmost.span.start.toString(),
+        inputDescription: await rightmost.scope.stream.done()
+          ? "end of input"
+          : "a value that did not match",
+        source,
+        sourceOffset: sourceOffset(source, rightmost.pattern),
       };
     }
     case MatchKind.LR:
       return {
-        ok: false,
-        error: {
-          code: CliMatchFailureCode.MatchFailure,
-          phase: "match",
-          message: "match failed with left recursion outcome",
-        },
+        code: CliMatchFailureCode.MatchFailure,
+        phase: "match",
+        message: "match failed with left recursion outcome",
       };
     case MatchKind.Ok:
     case MatchKind.Skip:
@@ -118,7 +123,7 @@ export async function matchCliPattern(
     };
   }
 
-  const result = await match(
+  const result = await matchWithRecovery(
     value as Pattern,
     Scope.From(input, {
       kind: jsonInput
@@ -126,9 +131,26 @@ export async function matchCliPattern(
         : InputNormalizationMode.Iterable,
     }),
   );
-  return isSuccess(result)
-    ? { ok: true, value: valueOf(result) }
-    : await matchFailure(result, source);
+  if (isSuccess(result) && !result.recovered) {
+    return { ok: true, value: valueOf(result) };
+  }
+  const recoveries: CliMatchFailure[] = (await diagnoseRecoveries(result))
+    .map(({ span, message }) => ({
+      code: CliMatchFailureCode.Recovered,
+      phase: "match",
+      message,
+      inputSpan: span,
+    }));
+  if (isSuccess(result)) {
+    return {
+      ok: false,
+      error: recoveries[0],
+      diagnostics: recoveries,
+      value: valueOf(result),
+    };
+  }
+  const failure = await matchFailure(result, source);
+  return { ok: false, error: failure, diagnostics: [...recoveries, failure] };
 }
 
 export function parseCliMatchInput(

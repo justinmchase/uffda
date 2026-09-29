@@ -111,6 +111,14 @@ not introduce a parallel parsing or compilation pathway.
   turned out not to actually change any diagnostic (an edit that leaves
   diagnostics unchanged MUST still result in a well-defined, not stale,
   diagnostic set).
+- Documents MUST be parsed with
+  [error recovery](../../runtime/error-recovery.spec.md) requested. The server
+  MUST publish every parse diagnostic (see
+  [error recovery](../../runtime/error-recovery.spec.md#diagnostics)): one per
+  recovery, ranged over the source it skipped, and the parse failure, if any. A
+  document that parsed only by recovering MUST NOT be compiled or resolved;
+  highlighting, symbols, and other features derived from the parse MUST read the
+  recovered parse.
 - Diagnostics from a downstream pipeline stage MUST be reported at the stage's
   own responsible source-facing range, not merged into or hidden behind an
   upstream stage's diagnostics.

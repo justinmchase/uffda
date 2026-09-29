@@ -371,3 +371,11 @@ Deno.test("cli.highlight refines names by what they reference", async (t) => {
     },
   );
 });
+
+Deno.test("cli.highlight reports parse diagnostics", async () => {
+  const result = await highlightSource("rule A = ;");
+  assert(!result.ok);
+  assertEquals(result.error.code, "CLI_STREAM_PARSE_FAILURE");
+  assertEquals(result.diagnostics, [result.error]);
+  assert(result.spans.length > 0);
+});

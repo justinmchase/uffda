@@ -5,6 +5,7 @@ import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
 import {
   localDefinition,
   occurrenceAt,
+  parseQuality,
   planRename,
   referenceLocations,
   renameRefusal,
@@ -202,4 +203,12 @@ Deno.test("cli.lsp.references in one document", async (t) => {
     assert(!plan.ok);
     assert(plan.message.includes("outside the workspace"));
   });
+});
+
+Deno.test("cli.lsp.references parseQuality orders failed, recovered, clean", async () => {
+  const clean = await uffdaGrammar("rule A = any;");
+  const failed = await uffdaGrammar("rule A = ;");
+  assertEquals(parseQuality(failed), 0);
+  assertEquals(parseQuality({ ...clean, recovered: true } as typeof clean), 1);
+  assertEquals(parseQuality(clean), 2);
 });

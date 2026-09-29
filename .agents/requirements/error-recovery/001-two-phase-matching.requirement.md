@@ -23,7 +23,7 @@ Expected behavior:
 - If discovery fails without any recover pattern's child failing, the recovery
   phase MUST be skipped and discovery's failure MUST be the result.
 - A discovery phase that reuses rehydrated incremental memo entries MUST assume
-  a recover pattern's child failed.
+  a recover pattern's child failed exactly when the prior parse recorded one.
 - The recovery setting MUST default to disabled for every evaluation context not
   derived from one that enabled it.
 

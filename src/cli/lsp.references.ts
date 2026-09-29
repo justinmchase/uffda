@@ -301,6 +301,12 @@ export async function planRename(
   return { ok: true, edit: { changes } };
 }
 
+/** Orders parses: failed, then recovered, then clean. */
+export function parseQuality(match: Match): number {
+  if (!isSuccess(match)) return 0;
+  return match.recovered ? 1 : 2;
+}
+
 /**
  * Whether `renamed` parses (at least as well as `document` did) with a name
  * token spelled `newName` at each of `spans`.
@@ -312,9 +318,7 @@ async function readsBackAsName(
   newName: string,
 ): Promise<boolean> {
   const match = await uffdaGrammar(renamed);
-  if (isSuccess(document.match) && !isSuccess(match)) {
-    return false;
-  }
+  if (parseQuality(match) < parseQuality(document.match)) return false;
   const names = new Set(
     highlightSpansFromMatch(match, renamed)
       .filter((span) => isNameRole(span.role) && span.text === newName)

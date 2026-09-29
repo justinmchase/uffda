@@ -10,6 +10,7 @@ import {
   analyzeMatchFailure,
   formatMatchFailureSummary,
 } from "../match.visualize.ts";
+import { diagnoseRecoveries } from "../match.recovery_diagnostics.ts";
 import { patternGrammar } from "../lang/pattern/pattern.lang.ts";
 import type { Pattern } from "../runtime/patterns/pattern.ts";
 import {
@@ -23,6 +24,8 @@ import { valueOf } from "../match.ts";
 
 export enum CliStreamFailureCode {
   ParseFailure = "CLI_STREAM_PARSE_FAILURE",
+  /** Input the parse skipped by recovering; see error-recovery.spec.md. */
+  Recovered = "CLI_STREAM_PARSE_RECOVERED",
 }
 
 export type CliStreamFailureLocation = {
@@ -64,9 +67,18 @@ export type CliStreamResult =
   }
   | {
     ok: false;
+    /** The parse failure, or the first recovery of a recovered parse. */
     error: CliStreamFailure;
     /**
-     * The raw `Match` tree that produced this failure (`Fail`/`Error`/`LR`).
+     * Every diagnostic of the parse, in document order: one per recovery,
+     * then the parse failure when the parse failed.
+     */
+    diagnostics: CliStreamFailure[];
+    /** The AST of a parse that succeeded only by recovering. */
+    ast?: UffdaSyntaxModule | Pattern | Expression;
+    /**
+     * The raw `Match` tree that produced this outcome (`Fail`/`Error`/`LR`,
+     * or a recovered success).
      * Present so consumers that derive editor features from the parse tree
      * (LSP semantic tokens, see
      * `.agents/requirements/cli-language-server/005-syntax-highlighting.requirement.md`)
@@ -167,23 +179,77 @@ async function toParseFailure(
   language: CliLanguage,
   sourcePath: string,
   sourceText: string,
-): Promise<CliStreamResult> {
+): Promise<CliStreamFailure> {
   const analysis = match.kind === MatchKind.Fail
     ? await analyzeMatchFailure(match)
     : undefined;
   return {
-    ok: false,
-    error: {
-      code: CliStreamFailureCode.ParseFailure,
-      phase: "parse",
-      sourcePath,
-      language,
-      message: analysis
-        ? formatMatchFailureSummary(analysis)
-        : await parseFailureMessage(match),
-      location: locationFromAnalysis(sourceText, analysis, match),
+    code: CliStreamFailureCode.ParseFailure,
+    phase: "parse",
+    sourcePath,
+    language,
+    message: analysis
+      ? formatMatchFailureSummary(analysis)
+      : await parseFailureMessage(match),
+    location: locationFromAnalysis(sourceText, analysis, match),
+  };
+}
+
+/** One `CliStreamFailure` per recovery in `match`, in document order. */
+export async function recoveryFailures(
+  match: Match,
+  language: CliLanguage,
+  sourcePath: string,
+  sourceText: string,
+): Promise<CliStreamFailure[]> {
+  return (await diagnoseRecoveries(match)).map(({ span, message }) => ({
+    code: CliStreamFailureCode.Recovered,
+    phase: "parse",
+    sourcePath,
+    language,
+    message,
+    location: {
+      ...locationFromOffset(sourceText, span.start),
+      endOffset: Math.min(sourceText.length, span.end),
     },
-    match,
+  }));
+}
+
+async function toStreamResult(
+  parsed: Match<UffdaSyntaxModule | Pattern | Expression>,
+  language: CliLanguage,
+  sourcePath: string,
+  sourceText: string,
+): Promise<CliStreamResult> {
+  if (isSuccess(parsed) && !parsed.recovered) {
+    return { ok: true, ast: valueOf(parsed), match: parsed };
+  }
+  const recoveries = await recoveryFailures(
+    parsed,
+    language,
+    sourcePath,
+    sourceText,
+  );
+  if (isSuccess(parsed)) {
+    return {
+      ok: false,
+      error: recoveries[0],
+      diagnostics: recoveries,
+      ast: valueOf(parsed),
+      match: parsed,
+    };
+  }
+  const failure = await toParseFailure(
+    parsed,
+    language,
+    sourcePath,
+    sourceText,
+  );
+  return {
+    ok: false,
+    error: failure,
+    diagnostics: [...recoveries, failure],
+    match: parsed,
   };
 }
 
@@ -204,24 +270,27 @@ export async function parseSourceToAst(
   incremental?: CliStreamIncrementalOptions,
 ): Promise<CliStreamResult> {
   switch (language) {
-    case CliLanguage.FullUffda: {
-      const parsed = await uffdaGrammar(sourceText, incremental);
-      return isSuccess(parsed)
-        ? { ok: true, ast: valueOf(parsed), match: parsed }
-        : await toParseFailure(parsed, language, sourcePath, sourceText);
-    }
-    case CliLanguage.Pattern: {
-      const parsed = await patternGrammar(sourceText);
-      return isSuccess(parsed)
-        ? { ok: true, ast: valueOf(parsed), match: parsed }
-        : await toParseFailure(parsed, language, sourcePath, sourceText);
-    }
-    case CliLanguage.Expression: {
-      const parsed = await expressionGrammar(sourceText);
-      return isSuccess(parsed)
-        ? { ok: true, ast: valueOf(parsed), match: parsed }
-        : await toParseFailure(parsed, language, sourcePath, sourceText);
-    }
+    case CliLanguage.FullUffda:
+      return await toStreamResult(
+        await uffdaGrammar(sourceText, incremental),
+        language,
+        sourcePath,
+        sourceText,
+      );
+    case CliLanguage.Pattern:
+      return await toStreamResult(
+        await patternGrammar(sourceText),
+        language,
+        sourcePath,
+        sourceText,
+      );
+    case CliLanguage.Expression:
+      return await toStreamResult(
+        await expressionGrammar(sourceText),
+        language,
+        sourcePath,
+        sourceText,
+      );
   }
 }
 

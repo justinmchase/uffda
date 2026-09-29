@@ -15,8 +15,9 @@ Preconditions:
 Expected behavior:
 
 - The runtime MUST return every recovery reachable through the accepted parse
-  (`Ok` beneath `Ok`, and everything beneath a `Fail` root), each paired with
-  the failure it replaced.
+  (successes beneath successes, and everything beneath a `Fail` root), each
+  paired with the failure it replaced.
+- A match produced with recovery disabled MUST yield no recoveries.
 - Recoveries MUST be returned in document order, each once, even when shared by
   several paths.
 - Recoveries inside rejected attempts beneath an `Ok` MUST NOT be returned.
@@ -31,4 +32,4 @@ Postconditions:
 `src/runtime/recovery.test.ts`: none for a clean parse (RECOVERY00), one with
 its failure (RECOVERY01), several in document order (RECOVERY02), beneath a
 failed recovery phase (RECOVERY03), none inside a rejected `or` alternative
-(RECOVERY06).
+(RECOVERY06). A match produced with recovery disabled yields none (RECOVERY08).

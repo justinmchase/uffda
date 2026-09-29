@@ -1475,3 +1475,78 @@ Deno.test("cli.mcp.session RuntimeSession.walk", async (t) => {
     },
   );
 });
+
+Deno.test("cli.mcp.session reports recoveries", async (t) => {
+  await t.step(
+    "a recovered rule invocation fails with its value, diagnostics, and a walkable tree",
+    async () => {
+      const session = new RuntimeSession("r1");
+      const loaded = await session.load(
+        `export Main; rule Main = (ope "a" sneak by any)* end;`,
+      );
+      assert(loaded.ok);
+
+      const evaluated = await session.eval({ rule: "Main", input: "axa" });
+      assert(!evaluated.ok);
+      assertEquals(evaluated.value, [["a", "x", "a"], undefined]);
+      assertEquals(evaluated.error.code, SessionEvalFailureCode.Recovered);
+      assertEquals(evaluated.error.inputSpan, { start: 1, end: 2 });
+      assertEquals(evaluated.diagnostics?.length, 1);
+      const matchResultId = evaluated.error.matchResultId;
+      assert(typeof matchResultId === "string");
+
+      const walked = session.walk({ matchResultId, maxNodes: 1000 });
+      assert(walked.ok);
+      assertEquals(walked.nodes[0].recovered, true);
+      assert(
+        walked.nodes.some((node) =>
+          node.recovered && node.pattern.kind === PatternKind.Recover
+        ),
+      );
+    },
+  );
+
+  await t.step("a clean rule invocation is unchanged", async () => {
+    const session = new RuntimeSession("r2");
+    await session.load(`export Main; rule Main = (ope "a" sneak by any)* end;`);
+    const evaluated = await session.eval({ rule: "Main", input: "aa" });
+    assert(evaluated.ok);
+    const walked = session.walk({ matchResultId: evaluated.matchResultId! });
+    assert(walked.ok);
+    assertEquals(walked.nodes[0].recovered, undefined);
+  });
+
+  await t.step("a parse failure lists its diagnostics", async () => {
+    const session = new RuntimeSession("r3");
+    const loaded = await session.load("rule A = ;");
+    assert(!loaded.ok);
+    assertEquals(loaded.error.code, SessionLoadFailureCode.ParseFailure);
+    assertEquals(loaded.diagnostics, [loaded.error]);
+  });
+
+  await t.step(
+    "a failed patch without recovery points skips the second phase",
+    async () => {
+      const session = new RuntimeSession("r5");
+      const source = "export Main; rule Main = any;";
+      assert((await session.load(source)).ok);
+      const patched = await session.patch({
+        start: source.length,
+        end: source.length,
+        replacement: " rule B = ;",
+      });
+      assert(!patched.ok);
+      assertEquals(patched.diagnostics, [patched.error]);
+      assertEquals(session.getLatestParseState()?.match.scope.recovery, false);
+    },
+  );
+
+  await t.step("a predicate parse failure lists its diagnostics", async () => {
+    const session = new RuntimeSession("r4");
+    await session.load("export Main; rule Main = any;");
+    const queried = await session.queryByMetadata("D", "(");
+    assert(!queried.ok);
+    assertEquals(queried.error.code, SessionQueryFailureCode.ParseFailure);
+    assertEquals(queried.diagnostics, [queried.error]);
+  });
+});

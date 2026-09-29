@@ -3,7 +3,11 @@ import {
   type DiagnosticRelatedInformation,
   DiagnosticSeverity,
 } from "vscode-languageserver-types";
-import type { SessionLoadResult, SessionPatchResult } from "./mcp.session.ts";
+import type {
+  SessionLoadResult,
+  SessionPatchFailure,
+  SessionPatchResult,
+} from "./mcp.session.ts";
 import { locationFromOffset } from "./stream.ts";
 
 /**
@@ -15,7 +19,10 @@ import { locationFromOffset } from "./stream.ts";
  *
  * A successful outcome always yields an empty array — diagnostics are never
  * accumulated across calls, only replaced, matching `publishDiagnostics`'
- * "full current state" contract.
+ * "full current state" contract. A parse-phase failure yields one diagnostic
+ * per recovery (ranged over the skipped source) and one for the parse failure
+ * itself, if the parse failed (see
+ * `.agents/specifications/runtime/error-recovery.spec.md#diagnostics`).
  *
  * `source` is the document's current full text, used both to compute the
  * range of a located failure (a parse failure's token, or the specifier of
@@ -28,8 +35,15 @@ export function diagnosticsForSessionResult(
   source: string,
 ): Diagnostic[] {
   if (result.ok) return [];
+  return (result.diagnostics ?? [result.error]).map((error) =>
+    diagnosticForFailure(error, source)
+  );
+}
 
-  const { error } = result;
+function diagnosticForFailure(
+  error: SessionPatchFailure,
+  source: string,
+): Diagnostic {
   const location = "location" in error ? error.location : undefined;
 
   const range = location
@@ -70,14 +84,14 @@ export function diagnosticsForSessionResult(
       }]
       : [];
 
-  return [{
+  return {
     severity: DiagnosticSeverity.Error,
     range,
     message: error.message,
     source: `uffda (${error.phase})`,
     code: error.code,
     ...(relatedInformation.length > 0 ? { relatedInformation } : {}),
-  }];
+  };
 }
 
 function pointFromEnd(source: string) {
