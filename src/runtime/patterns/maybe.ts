@@ -1,4 +1,4 @@
-import { error, MatchErrorCode, MatchKind, ok } from "../../match.ts";
+import { error, forward, MatchErrorCode, MatchKind, ok } from "../../match.ts";
 import { compile } from "../match.ts";
 import type { Scope } from "../scope.ts";
 import type { MaybePattern } from "./pattern.ts";
@@ -18,13 +18,8 @@ export function maybe(
         case MatchKind.Error:
           return m;
         case MatchKind.Ok:
-          return ok(
-            invocationScope,
-            m.scope,
-            pattern,
-            m.value,
-            [m],
-          );
+        case MatchKind.Skip:
+          return forward(invocationScope, m.scope, pattern, m);
         case MatchKind.Fail:
           return ok(
             invocationScope,

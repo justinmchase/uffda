@@ -130,3 +130,36 @@ await Deno.test("runtime/patterns/and", async (t) => {
     }),
   });
 });
+
+Deno.test("runtime/patterns/and skip", async (t) => {
+  await t.step({
+    name: "AND_SKIP00 - a skipped final child is skipped",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.And,
+        patterns: [{ kind: PatternKind.Any }, {
+          kind: PatternKind.Skip,
+          pattern: { kind: PatternKind.Any },
+        }],
+      },
+      input: Input.Iterable("a"),
+      kind: MatchKind.Skip,
+    }),
+  });
+
+  await t.step({
+    name: "AND_SKIP01 - a skipped earlier child does not matter",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.And,
+        patterns: [{
+          kind: PatternKind.Skip,
+          pattern: { kind: PatternKind.Any },
+        }, { kind: PatternKind.Any }],
+      },
+      input: Input.Iterable("a"),
+      kind: MatchKind.Ok,
+      value: "a",
+    }),
+  });
+});

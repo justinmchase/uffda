@@ -83,3 +83,21 @@ Deno.test("runtime.patterns.except", async (t) => {
     }),
   });
 });
+
+Deno.test("runtime/patterns/except skip", async (t) => {
+  await t.step({
+    name: "EXCEPT_SKIP00 - a skipped child counts as success",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Except,
+        pattern: {
+          kind: PatternKind.Skip,
+          pattern: { kind: PatternKind.Equal, value: lit("a") },
+        },
+      },
+      input: Input.Iterable("a"),
+      kind: MatchKind.Fail,
+      done: false,
+    }),
+  });
+});

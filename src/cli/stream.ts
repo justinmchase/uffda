@@ -1,6 +1,11 @@
 import { expressionGrammar } from "../lang/expression/expression.lang.ts";
 import type { Expression } from "../runtime/expressions/expression.ts";
-import { getRightmostFailure, type Match, MatchKind } from "../match.ts";
+import {
+  getRightmostFailure,
+  isSuccess,
+  type Match,
+  MatchKind,
+} from "../match.ts";
 import {
   analyzeMatchFailure,
   formatMatchFailureSummary,
@@ -201,19 +206,19 @@ export async function parseSourceToAst(
   switch (language) {
     case CliLanguage.FullUffda: {
       const parsed = await uffdaGrammar(sourceText, incremental);
-      return parsed.kind === MatchKind.Ok
+      return isSuccess(parsed)
         ? { ok: true, ast: valueOf(parsed), match: parsed }
         : await toParseFailure(parsed, language, sourcePath, sourceText);
     }
     case CliLanguage.Pattern: {
       const parsed = await patternGrammar(sourceText);
-      return parsed.kind === MatchKind.Ok
+      return isSuccess(parsed)
         ? { ok: true, ast: valueOf(parsed), match: parsed }
         : await toParseFailure(parsed, language, sourcePath, sourceText);
     }
     case CliLanguage.Expression: {
       const parsed = await expressionGrammar(sourceText);
-      return parsed.kind === MatchKind.Ok
+      return isSuccess(parsed)
         ? { ok: true, ast: valueOf(parsed), match: parsed }
         : await toParseFailure(parsed, language, sourcePath, sourceText);
     }

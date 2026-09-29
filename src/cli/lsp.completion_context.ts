@@ -1,4 +1,4 @@
-import { type Match, MatchKind } from "../match.ts";
+import { isSuccess, type Match } from "../match.ts";
 import {
   type AnnotatableMatch,
   EditorDecorator,
@@ -90,11 +90,11 @@ export function completionContextsAt(
   const expected: CompletionContext[] = [];
 
   walkAnnotatable(match, (node, ancestors) => {
-    const typing = node.kind === MatchKind.Ok &&
+    const typing = isSuccess(node) &&
       node.originalSpan.end === cursor &&
       node.originalSpan.start < cursor;
     const reaches = typing ||
-      (node.kind === MatchKind.Ok
+      (isSuccess(node)
         ? node.originalSpan.end === cursor
         : node.originalSpan.start >= significantEnd &&
           node.originalSpan.start <= cursor);
@@ -130,7 +130,7 @@ function lastSignificantEnd(match: Match, prefix: string): number {
 }
 
 function typedRange(node: AnnotatableMatch, cursor: number): CompletionReplace {
-  return node.kind === MatchKind.Ok
+  return isSuccess(node)
     ? { start: node.originalSpan.start, end: cursor }
     : { start: cursor, end: cursor };
 }
@@ -195,7 +195,7 @@ function listedNames(
   const names = new Set<string>();
   walkAnnotatable(importNode, (node) => {
     if (
-      node.kind === MatchKind.Ok &&
+      isSuccess(node) &&
       node.originalSpan.start !== typing.originalSpan.start &&
       hasEditorMetadata(node, EditorDecorator.ImportedName)
     ) {

@@ -341,3 +341,23 @@ Deno.test("runtime/patterns/into matches the wrapped elements of a wrapped item"
   assert(m.kind === MatchKind.Ok);
   assertStrictEquals(m.value, element);
 });
+
+Deno.test("runtime/patterns/into skip", async (t) => {
+  await t.step({
+    name: "INTO_SKIP00 - a skipped inner match is skipped",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Into,
+        pattern: {
+          kind: PatternKind.Skip,
+          pattern: {
+            kind: PatternKind.Quantifier,
+            pattern: { kind: PatternKind.Any },
+          },
+        },
+      },
+      input: Input.Iterable([["a", "b"]]),
+      kind: MatchKind.Skip,
+    }),
+  });
+});

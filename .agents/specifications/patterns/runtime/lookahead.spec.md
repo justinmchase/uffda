@@ -41,7 +41,8 @@ zero-width negative assertion.
 ## Expected output
 
 - When the child pattern succeeds, the `lookahead` pattern MUST report
-  `undefined` as its output value.
+  `undefined` as its output value, as an ordinary success, even when the child's
+  outcome is a skipped success (see [skip](./skip.spec.md)).
 - When the child pattern fails, the `lookahead` pattern MUST report failure
   output.
 

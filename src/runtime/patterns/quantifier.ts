@@ -103,10 +103,11 @@ export function quantifier(
     }
 
     let end: Scope = invocationScope;
+    let count = 0;
     const values: unknown[] = [];
     const matches: Match[] = [];
     const finish = (): Match =>
-      !min || values.length >= min
+      !min || count >= min
         ? ok(invocationScope, end, pattern, values, matches)
         : fail(invocationScope, pattern, matches);
     return repeatUntil(
@@ -129,15 +130,18 @@ export function quantifier(
           case MatchKind.Ok:
             values.push(m.value);
             break;
+          case MatchKind.Skip:
+            break;
         }
+        count++;
         // Prevent infinite loops on patterns that succeed without consuming input.
         if (m.scope.stream.path.compareTo(end.stream.path) <= 0) {
-          if (values.length >= (min ? min : 1)) {
+          if (count >= (min ? min : 1)) {
             return finish();
           }
         }
         end = m.scope;
-        if (max != null && values.length >= max) {
+        if (max != null && count >= max) {
           return finish();
         }
         return undefined;

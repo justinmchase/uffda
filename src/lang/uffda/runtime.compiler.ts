@@ -1,5 +1,5 @@
 import type { Match } from "../../match.ts";
-import { MatchKind } from "../../match.ts";
+import { isSuccess, MatchKind } from "../../match.ts";
 import { InputNormalizationMode } from "../../input.ts";
 import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
@@ -39,7 +39,7 @@ function findCompilerRuleFailure(
     }
   }
 
-  if (match.kind !== MatchKind.Ok && match.kind !== MatchKind.Fail) {
+  if (!isSuccess(match) && match.kind !== MatchKind.Fail) {
     return undefined;
   }
 

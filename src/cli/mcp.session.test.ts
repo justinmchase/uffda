@@ -1445,6 +1445,22 @@ Deno.test("cli.mcp.session RuntimeSession.walk", async (t) => {
   );
 
   await t.step(
+    "a skipped match evaluates as a success and walks as a skip node",
+    async () => {
+      const session = new RuntimeSession("w-skip");
+      await session.load(`export Main; rule Main = skip any;`);
+      const evaluated = await session.eval({ rule: "Main", input: "x" });
+      assert(evaluated.ok);
+      const walked = session.walk({
+        matchResultId: evaluated.matchResultId!,
+      });
+      assert(walked.ok);
+      assertEquals(walked.nodes[0].kind, "skip");
+      assertEquals(walked.nodes[0].value, undefined);
+    },
+  );
+
+  await t.step(
     "closing the session releases retained match results",
     async () => {
       const session = new RuntimeSession("w8");

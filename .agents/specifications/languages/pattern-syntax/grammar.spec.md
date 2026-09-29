@@ -46,6 +46,7 @@ The grammar MUST be able to express the following pattern families:
   `resolve`;
 - boundary and lookaround forms, including `lookahead`;
 - committed-choice dispatch, via `switch`;
+- non-contributing matches, via `skip`;
 - runtime-adjacent forms whose syntax normalizes to the corresponding pattern
   runtime contract.
 
@@ -147,6 +148,18 @@ The grammar MUST be able to express the following pattern families:
   closing `}` MUST be accepted.
 - Case order in source MUST be preserved as declared-order dispatch priority in
   the normalized `switch` pattern.
+
+## Skip
+
+- `skip P` MUST normalize to the [skip](../../patterns/runtime/skip.spec.md)
+  runtime pattern with child `P`. `skip` is a prefix operator: `P` binds as a
+  prefix operand, so `skip P*` skips the whole repetition and `skip v:P` skips
+  the capture.
+- A bare `skip` (not followed by a prefix operand) MUST normalize to the `skip`
+  pattern with an `any` child, skipping exactly one item.
+- `skip` MUST be a reserved keyword: it MUST NOT be accepted as a bare
+  rule-reference identifier. A rule named `skip` remains referenceable as
+  `@skip`.
 
 ## Precedence
 

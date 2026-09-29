@@ -3,7 +3,7 @@ import {
   executeModuleDeclaration,
   type ExecuteModuleDeclarationOptions,
 } from "../../runtime/module.execute.ts";
-import { type Match, MatchKind } from "../../match.ts";
+import { isSuccess, type Match } from "../../match.ts";
 import { parseGrammar } from "../grammar.ts";
 import {
   diagnoseUffdaRuntimeCompilerFailure,
@@ -30,7 +30,7 @@ export async function compileUffdaSyntaxModule(
   syntaxModule: UffdaSyntaxModule,
 ): Promise<ModuleDeclaration> {
   const compiled = await runUffdaRuntimeCompiler(syntaxModule);
-  if (compiled.kind === MatchKind.Ok) {
+  if (isSuccess(compiled)) {
     return valueOf(compiled);
   }
 
@@ -64,12 +64,12 @@ export async function executeUffdaSource(
   options?: ExecuteUffdaSourceOptions,
 ): Promise<Match> {
   const parsed = await uffdaGrammar(source);
-  if (parsed.kind !== MatchKind.Ok) {
+  if (!isSuccess(parsed)) {
     return parsed;
   }
 
   const compiled = await runUffdaRuntimeCompiler(valueOf(parsed));
-  if (compiled.kind !== MatchKind.Ok) {
+  if (!isSuccess(compiled)) {
     return compiled;
   }
 

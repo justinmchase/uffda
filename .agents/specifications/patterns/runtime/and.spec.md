@@ -36,6 +36,9 @@ express constraints that are all required for a successful match.
 
 - When all child patterns succeed, the `and` pattern MUST report success using
   the output produced by the final child pattern evaluation.
+- When the final child's outcome is a skipped success (see
+  [skip](./skip.spec.md)), the `and` pattern MUST report a skipped success.
+  Skipped earlier children do not affect the outcome.
 - When an `and` pattern has no child patterns, it MUST succeed as the
   conjunction identity case.
 - For the identity case with no child patterns, the reported success output MUST

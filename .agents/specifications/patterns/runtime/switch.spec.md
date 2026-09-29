@@ -73,6 +73,8 @@ FIRST-set from a pattern whose match behavior includes error paths.
 
 - On success, the `switch` pattern MUST report the chosen case's (or
   `default`'s) matched value as its output value.
+- When the chosen case's outcome is a skipped success (see
+  [skip](./skip.spec.md)), the `switch` pattern MUST report a skipped success.
 - On failure, the `switch` pattern MUST report failure output.
 
 ## Error conditions

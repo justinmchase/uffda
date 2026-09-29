@@ -1,6 +1,11 @@
 import type { Awaitable } from "../runtime/awaitable.ts";
 import { assertEquals } from "@std/assert";
-import { type Match, MatchKind, type MatchOk } from "../match.ts";
+import {
+  isSuccess,
+  type Match,
+  MatchKind,
+  type MatchSuccess,
+} from "../match.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "../runtime/patterns/pattern.ts";
 import { Scope } from "../runtime/scope.ts";
@@ -23,7 +28,7 @@ export type GrammarParse<TAst, TOptions> = (
 
 export type GrammarEvaluate<TAst, TResult> = (
   ast: TAst,
-  match: MatchOk<TAst>,
+  match: MatchSuccess<TAst>,
 ) => Awaitable<TResult>;
 
 export type GrammarCase<TAst, TResult, TOptions> = {
@@ -40,7 +45,7 @@ export type GrammarRunResult<TAst, TResult> =
   }
   | {
     kind: "result";
-    match: MatchOk<TAst>;
+    match: MatchSuccess<TAst>;
     result: TResult;
   };
 
@@ -165,7 +170,7 @@ export function createGrammarRunner<TAst, TResult, TOptions>(
     options?: TOptions,
   ): Promise<GrammarRunResult<TAst, TResult>> => {
     const match = await parse(source, options);
-    if (match.kind !== MatchKind.Ok) {
+    if (!isSuccess(match)) {
       return {
         kind: "match",
         match,
@@ -198,7 +203,7 @@ export async function assertGrammarCases<TAst, TResult, TOptions>(options: {
       testCase.options ?? defaultOptions,
     );
     assertEquals(match.kind, MatchKind.Ok, `syntax: ${testCase.syntax}`);
-    if (match.kind === MatchKind.Ok) {
+    if (isSuccess(match)) {
       assertEquals(valueOf(match), testCase.expectedAst);
       const value = await evaluate(valueOf(match), match);
       assertEquals(unwrap(value), testCase.expectedValue);

@@ -1,4 +1,4 @@
-import type { MatchOk } from "../../match.ts";
+import type { MatchSuccess } from "../../match.ts";
 import { andThen, type Awaitable } from "../awaitable.ts";
 import { exec } from "../exec.ts";
 import type { MemberExpression } from "./expression.ts";
@@ -6,7 +6,7 @@ import { wrap, type Wrapped } from "../../wrapped.ts";
 
 export function member(
   expression: MemberExpression,
-  match: MatchOk,
+  match: MatchSuccess,
 ): Awaitable<Wrapped> {
   const { name, expression: expr } = expression;
   return andThen(

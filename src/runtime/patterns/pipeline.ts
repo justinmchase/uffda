@@ -1,5 +1,5 @@
-import { fail, MatchKind, ok } from "../../match.ts";
-import type { Match } from "../../match.ts";
+import { fail, forward, MatchKind, ok } from "../../match.ts";
+import type { Match, MatchSuccess } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import { Input, InputNormalizationMode } from "../../input.ts";
 import { compile } from "../match.ts";
@@ -16,7 +16,12 @@ export function pipeline(
   const { steps } = pattern;
   const children = steps.map((p) => compile(p, scope));
   return async (invocationScope: Scope) => {
-    let last = ok(invocationScope, invocationScope, pattern, undefined);
+    let last: MatchSuccess = ok(
+      invocationScope,
+      invocationScope,
+      pattern,
+      undefined,
+    );
     let lastValue: Wrapped = last.value;
     let next = invocationScope;
     let outerEnd = invocationScope;
@@ -68,6 +73,14 @@ export function pipeline(
           matches.push(last);
           break;
         }
+        case MatchKind.Skip:
+          last = m;
+          if (i === 0) {
+            outerEnd = m.scope;
+          }
+          lastValue = m.value;
+          matches.push(m);
+          break;
       }
 
       // A stage that read an open input to its end may produce more once
@@ -89,11 +102,11 @@ export function pipeline(
       // it is up to the caller to utilize the end pattern to enforce this if desired.
     }
 
-    return ok(
+    return forward(
       invocationScope,
       outerEnd.addVariables(last.scope.variables),
       pattern,
-      lastValue,
+      last,
       matches,
     );
   };

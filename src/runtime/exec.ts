@@ -1,4 +1,4 @@
-import type { MatchOk } from "../match.ts";
+import type { MatchSuccess } from "../match.ts";
 import type { Awaitable } from "./awaitable.ts";
 import type { Wrapped } from "../wrapped.ts";
 import {
@@ -20,7 +20,7 @@ import {
 
 export function exec(
   expression: Expression,
-  match: MatchOk,
+  match: MatchSuccess,
 ): Awaitable<Wrapped> {
   switch (expression.kind) {
     case ExpressionKind.Array:

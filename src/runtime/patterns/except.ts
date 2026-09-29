@@ -23,6 +23,7 @@ export function except(
           case MatchKind.Error:
             return assertion;
           case MatchKind.Ok:
+          case MatchKind.Skip:
             return fail(invocationScope, pattern, [assertion]);
           case MatchKind.Fail: {
             const end = invocationScope.withInput(next);

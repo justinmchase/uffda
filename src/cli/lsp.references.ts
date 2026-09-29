@@ -5,7 +5,7 @@ import type {
   TextEdit,
   WorkspaceEdit,
 } from "vscode-languageserver-types";
-import { type Match, MatchKind } from "../match.ts";
+import { isSuccess, type Match } from "../match.ts";
 import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
 import { highlightSpansFromMatch, isNameRole } from "./highlight.ts";
 import { offsetToPosition } from "./lsp.positions.ts";
@@ -312,7 +312,7 @@ async function readsBackAsName(
   newName: string,
 ): Promise<boolean> {
   const match = await uffdaGrammar(renamed);
-  if (document.match.kind === MatchKind.Ok && match.kind !== MatchKind.Ok) {
+  if (isSuccess(document.match) && !isSuccess(match)) {
     return false;
   }
   const names = new Set(

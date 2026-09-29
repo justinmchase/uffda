@@ -1,7 +1,7 @@
 import { expandGlob } from "@std/fs/expand-glob";
 import { dirname, isAbsolute, join, resolve } from "@std/path";
 import { isGlob } from "@std/path/is-glob";
-import { type Match, MatchKind } from "../match.ts";
+import { isSuccess, type Match, MatchKind } from "../match.ts";
 import {
   analyzeMatchFailure,
   formatMatchFailureSummary,
@@ -319,7 +319,7 @@ export async function compileSourcesToAstArtifacts(
     }
 
     const compiled = await compileUffdaSource(sourceText);
-    if (compiled.kind !== MatchKind.Ok) {
+    if (!isSuccess(compiled)) {
       const failure: CliCompileFailure = {
         code: CliCompileFailureCode.ParseFailure,
         sourcePath: plan.sourcePath,

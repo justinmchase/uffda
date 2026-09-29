@@ -25,6 +25,7 @@ import {
   projection,
   quantifier,
   regexp,
+  skip,
   switchPattern,
   then,
   type as typePattern,
@@ -97,6 +98,8 @@ export function compile(pattern: Pattern, scope: Scope): CompiledPattern {
         return regexp(pattern);
       case PatternKind.Resolve:
         return buildResolve(pattern);
+      case PatternKind.Skip:
+        return skip(pattern, scope);
       case PatternKind.Switch:
         return switchPattern(pattern, scope);
       case PatternKind.Then:

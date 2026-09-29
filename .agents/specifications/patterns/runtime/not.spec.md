@@ -44,6 +44,8 @@ pattern succeeds.
 - When the child pattern succeeds, the `not` pattern MUST report failure output.
 - When the child pattern fails, the `not` pattern MUST report `undefined` as its
   output value.
+- A skipped child success (see [skip](./skip.spec.md)) counts as success, so the
+  `not` pattern fails.
 
 ## Error conditions
 

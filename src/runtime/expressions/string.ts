@@ -1,14 +1,14 @@
 import { Type, type } from "@justinmchase/type";
 import { andThen, type Awaitable, mapInOrder } from "../awaitable.ts";
 import { exec } from "../exec.ts";
-import type { MatchOk } from "../../match.ts";
+import type { MatchSuccess } from "../../match.ts";
 import type { Expression, StringExpression } from "./mod.ts";
 import { isExpression } from "./expression.ts";
 import { concat, originOf, rawOf, unwrap, Wrapped } from "../../wrapped.ts";
 
 export function string(
   expression: StringExpression,
-  match: MatchOk,
+  match: MatchSuccess,
 ): Awaitable<Wrapped<string>> {
   const { values } = expression;
   // Evaluated sequentially (not `Promise.all`) — see invocation.ts for why

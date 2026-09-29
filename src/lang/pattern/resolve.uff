@@ -37,6 +37,7 @@ rule ReservedKeyword =
   | "pipeline"
   | "quantifier"
   | "set"
+  | "skip"
   | "string"
   | "switch"
   | "symbol"

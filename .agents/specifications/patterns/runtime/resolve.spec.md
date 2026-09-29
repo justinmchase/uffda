@@ -56,6 +56,11 @@ for all identifier-based matching.
 
 - On success, the `resolve` pattern MUST report the match result of the resolved
   value or pattern.
+- When the resolved pattern's outcome is a skipped success (see
+  [skip](./skip.spec.md)), the `resolve` pattern MUST report a skipped success.
+  A rule with a rule expression reports the expression result as an ordinary
+  success; a rule without one reports its body's outcome, so a rule whose body
+  is skipped is skipped wherever it is referenced.
 - On failure, the `resolve` pattern MUST report failure.
 
 ## Error conditions

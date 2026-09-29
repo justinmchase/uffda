@@ -58,3 +58,22 @@ Deno.test("runtime.patterns.lookahead", async (t) => {
     }),
   });
 });
+
+Deno.test("runtime/patterns/lookahead skip", async (t) => {
+  await t.step({
+    name: "LOOKAHEAD_SKIP00 - looking ahead at a skip is ordinary",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Lookahead,
+        pattern: {
+          kind: PatternKind.Skip,
+          pattern: { kind: PatternKind.Equal, value: lit("a") },
+        },
+      },
+      input: Input.Iterable("a"),
+      kind: MatchKind.Ok,
+      value: undefined,
+      done: false,
+    }),
+  });
+});

@@ -142,3 +142,20 @@ Deno.test("runtime/patterns/over matches raw property values of a wrapped object
   assert(m.kind === MatchKind.Ok);
   assertStrictEquals(m.value, item);
 });
+
+Deno.test("runtime/patterns/over skip", async (t) => {
+  await t.step({
+    name: "OVER_SKIP00 - a skipped field keeps the object value",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Over,
+        keys: {
+          a: { kind: PatternKind.Skip, pattern: { kind: PatternKind.Any } },
+        },
+      },
+      input: Input.Iterable([{ a: 1 }]),
+      kind: MatchKind.Ok,
+      value: { a: 1 },
+    }),
+  });
+});

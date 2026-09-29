@@ -1,10 +1,10 @@
-import type { MatchOk } from "../../match.ts";
+import type { MatchSuccess } from "../../match.ts";
 import type { NativeExpression } from "./expression.ts";
 import { wrapFrom, type Wrapped } from "../../wrapped.ts";
 
 export async function native(
   expression: NativeExpression,
-  match: MatchOk,
+  match: MatchSuccess,
 ): Promise<Wrapped> {
   const variables = {
     _: match.value,

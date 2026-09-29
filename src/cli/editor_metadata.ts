@@ -1,5 +1,5 @@
 import { Type, type } from "@justinmchase/type";
-import { type Match, MatchKind } from "../match.ts";
+import { isSuccess, type Match, MatchKind } from "../match.ts";
 import { rawOf, shallow } from "../wrapped.ts";
 
 /**
@@ -21,10 +21,10 @@ export enum EditorDecorator {
   Documentation = "Documentation",
 }
 
-/** A parse node that carries rule metadata (`Ok` or `Fail`). */
+/** A parse node that carries rule metadata (`Ok`, `Skip`, or `Fail`). */
 export type AnnotatableMatch = Extract<
   Match,
-  { kind: MatchKind.Ok | MatchKind.Fail }
+  { kind: MatchKind.Ok | MatchKind.Skip | MatchKind.Fail }
 >;
 
 /** The raw value of `decorator`'s metadata on `node`'s rule, if applied. */
@@ -32,7 +32,7 @@ export function editorMetadata(
   node: Match,
   decorator: EditorDecorator,
 ): unknown {
-  if (node.kind !== MatchKind.Ok && node.kind !== MatchKind.Fail) {
+  if (!isSuccess(node) && node.kind !== MatchKind.Fail) {
     return undefined;
   }
   return node.origin?.rule.metadata?.[decorator];
@@ -110,7 +110,7 @@ export function documentationOf(
 
 /** The `name` field of a node's projected value (a `[Declaration]`). */
 export function declaredName(node: Match): string | undefined {
-  if (node.kind !== MatchKind.Ok) return undefined;
+  if (!isSuccess(node)) return undefined;
   const name = field(shallow(node.value), "name");
   return type(name)[0] === Type.String ? name as string : undefined;
 }
@@ -120,7 +120,7 @@ export function declaredName(node: Match): string | undefined {
  * string (e.g. an unescaped module path), otherwise its source text.
  */
 export function nodeText(node: AnnotatableMatch, source: string): string {
-  const value = node.kind === MatchKind.Ok ? rawOf(node.value) : undefined;
+  const value = isSuccess(node) ? rawOf(node.value) : undefined;
   if (type(value)[0] === Type.String) {
     return value as string;
   }
@@ -128,7 +128,7 @@ export function nodeText(node: AnnotatableMatch, source: string): string {
 }
 
 function isAnnotatable(node: Match): node is AnnotatableMatch {
-  return node.kind === MatchKind.Ok || node.kind === MatchKind.Fail;
+  return isSuccess(node) || node.kind === MatchKind.Fail;
 }
 
 /**
@@ -198,8 +198,8 @@ function walkDag(
   walk(
     root,
     (node) =>
-      node.kind === MatchKind.Ok
-        ? node.matches.filter((child) => child.kind === MatchKind.Ok)
+      isSuccess(node)
+        ? node.matches.filter((child) => isSuccess(child))
         : node.matches,
     new Set(),
   );
@@ -218,7 +218,7 @@ export function findAnnotated(
   let found: AnnotatableMatch | undefined;
   walkAnnotatable(root, (node) => {
     if (
-      !found && node.kind === MatchKind.Ok &&
+      !found && isSuccess(node) &&
       hasEditorMetadata(node, decorator) && predicate(node)
     ) {
       found = node;

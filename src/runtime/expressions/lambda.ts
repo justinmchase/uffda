@@ -1,4 +1,4 @@
-import { fail, MatchKind, type MatchOk } from "../../match.ts";
+import { fail, MatchKind, type MatchSuccess } from "../../match.ts";
 import { Input, InputNormalizationMode } from "../../input.ts";
 import { exec } from "../exec.ts";
 import { match } from "../match.ts";
@@ -14,7 +14,7 @@ export type LambdaCallable = (...args: unknown[]) => Promise<unknown>;
  */
 export function lambda(
   e: LambdaExpression,
-  m: MatchOk,
+  m: MatchSuccess,
 ): Promise<Wrapped<LambdaCallable>> {
   const { pattern, expression } = e;
   const callable = async (...args: unknown[]) => {
@@ -39,6 +39,7 @@ export function lambda(
       case MatchKind.Fail:
         return fail(scope, pattern, [result]);
       case MatchKind.Ok:
+      case MatchKind.Skip:
         return await exec(expression, result);
     }
   };

@@ -117,6 +117,7 @@ body { background:#282c34; color:#e5e5e5; font-family:monospace;
 .hl-variable { color:#e06c75; }
 .hl-property { color:#d19a66; }
 .match-ok { color:#98c379; }
+.match-skip { color:#7f848e; }
 .match-fail { color:#e06c75; }
 .match-error { color:#e5c07b; }
 .match-lr { color:#61afef; }

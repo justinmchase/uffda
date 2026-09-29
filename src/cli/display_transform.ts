@@ -1,4 +1,4 @@
-import { type Match, MatchKind } from "../match.ts";
+import { isSuccess, type Match, MatchKind } from "../match.ts";
 import { type HighlightResult, HighlightRole } from "./highlight.ts";
 
 /**
@@ -80,6 +80,7 @@ export function highlightResultToDisplayNodes(
 
 const MATCH_KIND_CSS_CLASS: Record<MatchKind, string> = {
   [MatchKind.Ok]: "match-ok",
+  [MatchKind.Skip]: "match-skip",
   [MatchKind.Fail]: "match-fail",
   [MatchKind.Error]: "match-error",
   [MatchKind.LR]: "match-lr",
@@ -105,7 +106,7 @@ export function matchResultToDisplayNodes(root: Match): DisplayNode[] {
 
   function convert(node: Match): DisplayNode {
     count++;
-    const isOkOrFail = node.kind === MatchKind.Ok ||
+    const isOkOrFail = isSuccess(node) ||
       node.kind === MatchKind.Fail;
     const ruleName = isOkOrFail ? node.origin?.rule.name : undefined;
     const label = ruleName ?? node.kind;

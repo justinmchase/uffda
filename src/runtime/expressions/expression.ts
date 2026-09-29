@@ -2,13 +2,13 @@ import { ExpressionKind } from "./expression.kind.ts";
 import { Type, type } from "@justinmchase/type";
 import type { Pattern } from "../patterns/pattern.ts";
 import type { Serializable } from "@justinmchase/serializable";
-import type { MatchOk } from "../../match.ts";
+import type { MatchSuccess } from "../../match.ts";
 
 export type ProjectionFunction = (
   // deno-lint-ignore no-explicit-any
   args: any,
   capabilities: Map<string, unknown>,
-  match: MatchOk,
+  match: MatchSuccess,
 ) => unknown;
 
 export function isExpression(value: unknown): value is Expression {

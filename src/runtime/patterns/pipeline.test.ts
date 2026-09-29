@@ -1,3 +1,4 @@
+import { patternTest } from "../../test.ts";
 import { assert, assertEquals } from "@std/assert";
 import { Type } from "@justinmchase/type";
 import { Input, InputNormalizationMode } from "../../input.ts";
@@ -557,5 +558,38 @@ Deno.test("runtime.patterns.pipeline open input", async (t) => {
 
   await t.step("a closed input feeds a closed input", async () => {
     assertEquals(await lastStageKinds(false), [MatchKind.Ok]);
+  });
+});
+
+Deno.test("runtime/patterns/pipeline skip", async (t) => {
+  await t.step({
+    name: "PIPELINE_SKIP00 - a skipped final step is skipped",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Pipeline,
+        steps: [{ kind: PatternKind.Any }, {
+          kind: PatternKind.Skip,
+          pattern: { kind: PatternKind.Equal, value: lit("a") },
+        }],
+      },
+      input: Input.Iterable("a"),
+      kind: MatchKind.Skip,
+    }),
+  });
+
+  await t.step({
+    name: "PIPELINE_SKIP01 - a skipped earlier step passes undefined on",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Pipeline,
+        steps: [{
+          kind: PatternKind.Skip,
+          pattern: { kind: PatternKind.Equal, value: lit("a") },
+        }, { kind: PatternKind.Equal, value: lit(undefined) }],
+      },
+      input: Input.Iterable("a"),
+      kind: MatchKind.Ok,
+      value: undefined,
+    }),
   });
 });

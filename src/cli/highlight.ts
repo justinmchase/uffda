@@ -1,5 +1,10 @@
 import { Type, type } from "@justinmchase/type";
-import { getRightmostFailure, type Match, MatchKind } from "../match.ts";
+import {
+  getRightmostFailure,
+  isSuccess,
+  type Match,
+  MatchKind,
+} from "../match.ts";
 import {
   EditorDecorator,
   editorMetadata,
@@ -182,7 +187,7 @@ function collectSpans(
   }
 
   function walkOnce(node: Match, ancestor: AnnotatedSpan | undefined): boolean {
-    if (node.kind !== MatchKind.Ok && node.kind !== MatchKind.Fail) {
+    if (!isSuccess(node) && node.kind !== MatchKind.Fail) {
       return false;
     }
 
@@ -196,7 +201,7 @@ function collectSpans(
     const ownRole = highlightRoleOf(node);
     const { start, end } = node.originalSpan;
     const annotated = ownRole !== undefined &&
-      !isNameRefinementRole(ownRole) && node.kind === MatchKind.Ok &&
+      !isNameRefinementRole(ownRole) && isSuccess(node) &&
       isNonEmptySpan(start, end - start);
     const self = annotated ? { start, end, role: ownRole } : undefined;
     let emitted = false;
@@ -306,11 +311,11 @@ function roleFor(
 function collectNameRefinements(root: Match): AnnotatedSpan[] {
   const refinements: AnnotatedSpan[] = [];
   walkAccepted(root, (node, ancestors) => {
-    if (node.kind !== MatchKind.Ok) return;
+    if (!isSuccess(node)) return;
     const role = highlightRoleOf(node);
     if (role === undefined || !isNameRefinementRole(role)) return;
     const nested = ancestors.some((ancestor) => {
-      if (ancestor.kind !== MatchKind.Ok) return false;
+      if (!isSuccess(ancestor)) return false;
       const outer = highlightRoleOf(ancestor);
       return outer !== undefined && isNameRefinementRole(outer);
     });
@@ -421,7 +426,7 @@ export async function highlightSource(
   })();
 
   const spans = highlightSpansFromMatch(match, sourceText);
-  if (match.kind === MatchKind.Ok) return { ok: true, spans };
+  if (isSuccess(match)) return { ok: true, spans };
 
   const rightmost = match.kind === MatchKind.Fail
     ? getRightmostFailure(match)
