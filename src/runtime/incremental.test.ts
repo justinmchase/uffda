@@ -328,10 +328,14 @@ Deno.test("runtime.incremental", async (t) => {
       );
       assertEquals(freshParse.kind, MatchKind.Ok);
       if (freshParse.kind !== MatchKind.Ok) return;
-      assertEquals(freshParse.value, [[["n", "+", "n"], "+", "n"], "+", "n"]);
+      assertEquals(unwrap(freshParse.value), [
+        [["n", "+", "n"], "+", "n"],
+        "+",
+        "n",
+      ]);
       assertEquals(reparsed.kind, MatchKind.Ok);
       if (reparsed.kind !== MatchKind.Ok) return;
-      assertEquals(reparsed.value, freshParse.value);
+      assertEquals(unwrap(reparsed.value), unwrap(freshParse.value));
     },
   });
 });

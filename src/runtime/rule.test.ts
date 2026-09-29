@@ -18,7 +18,7 @@ import {
   ImportDeclarationKind,
 } from "./declarations/mod.ts";
 import type { ModuleDeclaration } from "./declarations/module.ts";
-import type { Wrapped } from "../wrapped.ts";
+import { unwrap, type Wrapped } from "../wrapped.ts";
 import type { Match, MatchOrigin } from "../match.ts";
 
 Deno.test("runtime.rule", async (t) => {
@@ -745,7 +745,7 @@ Deno.test("runtime.rule", async (t) => {
 
       assertEquals(m.kind, MatchKind.Ok);
       if (m.kind !== MatchKind.Ok) return;
-      assertEquals(m.value, ["n", "+", "n"]);
+      assertEquals(unwrap(m.value), ["n", "+", "n"]);
       assertEquals(m.origin?.rule.name, "E");
       assertEquals(m.origin?.seeded, undefined);
       const origins: MatchOrigin[] = [];

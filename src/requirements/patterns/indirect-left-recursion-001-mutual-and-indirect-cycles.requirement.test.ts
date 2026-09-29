@@ -9,6 +9,7 @@ import { moduleDeclarationTest } from "../../test.ts";
 import type { Expression } from "../../runtime/expressions/expression.ts";
 import type { Pattern } from "../../runtime/patterns/pattern.ts";
 import type { RuleDeclaration } from "../../runtime/declarations/mod.ts";
+import type { Wrapped } from "../../wrapped.ts";
 
 const ref = (name: string, ...args: Pattern[]): Pattern => ({
   kind: PatternKind.Resolve,
@@ -248,7 +249,8 @@ Deno.test("req:indirect-left-recursion-001 - Indirect and mutual left-recursive 
               pattern: then(ref("E"), eq("+"), eq("n")),
               expression: {
                 kind: ExpressionKind.Native,
-                fn: ({ _ }: { _: unknown[] }) => Promise.resolve(["add", _[0]]),
+                fn: ({ _ }: { _: Wrapped<unknown[]> }) =>
+                  Promise.resolve(["add", _.raw[0]]),
               },
             },
             eq("n"),
