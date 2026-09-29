@@ -15,8 +15,9 @@ Reference expressions resolve a name from expression-visible runtime context.
 
 - The reserved name `_` MUST resolve to the current match value.
 - The reserved name `this` MUST resolve to the current successful `MatchOk`
-  itself (not just its value), giving expressions direct access to match
-  metadata (for example `this.normalizedSpan.start`) via member expressions.
+  itself (not just its value). Reading its source span this way is allowed, but
+  foundational components MUST NOT rely on it for provenance (see
+  [value provenance](../runtime/value-provenance.spec.md#data-model)).
 - Within decorator invocation (a distinct evaluation phase from match-time
   expression evaluation), `this` MUST instead resolve to the `Rule` or `Func`
   declaration being decorated; see

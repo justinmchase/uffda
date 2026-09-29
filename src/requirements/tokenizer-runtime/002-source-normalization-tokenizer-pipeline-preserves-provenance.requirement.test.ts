@@ -1,7 +1,8 @@
 import { assertEquals } from "@std/assert";
 import { collect } from "../../testing.ts";
 import { Input } from "../../input.ts";
-import { MatchKind } from "../../match.ts";
+import { MatchKind, type MatchOk, valueOf } from "../../match.ts";
+import { charOrigins, type Wrapped } from "../../wrapped.ts";
 import type { TokenizerLangValue } from "../../lang/tokenizer/tokenizer.lang.ts";
 import { Resolver } from "../../runtime/resolve.ts";
 import { Scope } from "../../runtime/scope.ts";
@@ -13,6 +14,13 @@ import { ModuleImportResultKind } from "../../runtime/resolvers/resolver.ts";
 const moduleUrl =
   new URL("../../lang/tokenizer/tokenizer.lang.uff", import.meta.url)
     .href;
+
+/** The wrapped normalized text of the `TokenizerLang` value in `m`. */
+function sourceText(m: MatchOk): Wrapped<string> {
+  const [lang] = m.value.raw as Wrapped[];
+  const { source } = lang.raw as Record<string, Wrapped>;
+  return (source.raw as Record<string, Wrapped<string>>).text;
+}
 
 Deno.test("req:tokenizer-runtime-002 - Source-normalization and tokenizer pipeline preserves reconstructable provenance", async () => {
   const resolver = new Resolver();
@@ -72,12 +80,15 @@ Deno.test("req:tokenizer-runtime-002 - Source-normalization and tokenizer pipeli
   assertEquals(m.kind, MatchKind.Ok);
   if (m.kind !== MatchKind.Ok) return;
 
-  const [value] = m.value as [TokenizerLangValue, unknown];
+  const [value] = valueOf(m) as [TokenizerLangValue, unknown];
   assertEquals(value.source.text, "a\nb\nc\n");
-  assertEquals(value.source.normalizationMap, [0, 1, 3, 4, 5, 6, 7]);
 
-  const newlineUnits = value.source.units.filter((u) => u.value === "\n");
-  assertEquals(newlineUnits.length, 3);
-  assertEquals(newlineUnits.map((u) => u.originalOffsetStart), [1, 4, 6]);
+  const text = sourceText(m);
+  const newlines = charOrigins(text).filter((_, i) => text.raw[i] === "\n");
+  assertEquals(newlines, [
+    { start: 1, end: 3 },
+    { start: 4, end: 5 },
+    { start: 6, end: 7 },
+  ]);
   assertEquals(await collect(value.tokens), ["a", "\n", "b", "\n", "c", "\n"]);
 });

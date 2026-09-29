@@ -10,6 +10,7 @@ import type { Module } from "./modules/module.ts";
 import type { Rule } from "./modules/rule.ts";
 import { PatternKind } from "./patterns/pattern.kind.ts";
 import type { Scope } from "./scope.ts";
+import { unwrap } from "../wrapped.ts";
 
 function resolveDecorator(
   module: Module,
@@ -79,8 +80,8 @@ export async function applyAttributes(
 
     const invoke = funcCallable(decorator, baseMatch, target);
     const result = await invoke(...resolvedArgs);
-    metadata[name] = result;
-    attributes.push({ decorator, args: resolvedArgs });
+    metadata[name] = unwrap(result);
+    attributes.push({ decorator, args: resolvedArgs.map(unwrap) });
   }
 
   target.attributes = attributes;

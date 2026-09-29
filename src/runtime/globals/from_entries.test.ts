@@ -1,6 +1,7 @@
-import { assertEquals, assertThrows } from "@std/assert";
+import { assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
 import { from_entries } from "./from_entries.ts";
 import { metadataOf } from "../value_metadata.ts";
+import { rootOrigin, Wrapped } from "../../wrapped.ts";
 
 Deno.test("std.from_entries builds an object from [key, value] pairs", () => {
   assertEquals(from_entries([["a", 1], ["b", 2]]), { a: 1, b: 2 });
@@ -41,4 +42,15 @@ Deno.test("globals.from_entries carries metadata", () => {
     metadataOf(from_entries)?.parameters.map((p) => p.name),
     ["entries"],
   );
+});
+
+Deno.test("globals.from_entries keys by raw keys and carries values", () => {
+  const value = new Wrapped(1, rootOrigin(2));
+  const entry = new Wrapped(
+    [new Wrapped("a", rootOrigin(0)), value],
+    rootOrigin(0, 3),
+  );
+  const record = from_entries(new Wrapped([entry], rootOrigin(0, 3)));
+  assertEquals(Object.keys(record), ["a"]);
+  assertStrictEquals(record.a, value);
 });

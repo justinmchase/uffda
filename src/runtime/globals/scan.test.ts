@@ -2,6 +2,8 @@ import { assertEquals } from "@std/assert";
 import { assertRejects } from "@std/assert/rejects";
 import { scan } from "./scan.ts";
 import { metadataOf } from "../value_metadata.ts";
+import { unwrap } from "../../wrapped.ts";
+import { rootOrigin, Wrapped } from "../../wrapped.ts";
 
 async function collect<T>(it: AsyncGenerator<T>): Promise<T[]> {
   const result: T[] = [];
@@ -35,7 +37,7 @@ Deno.test("globals.scan is lazy", async () => {
   // Nothing has run yet — scan must not eagerly drain.
   assertEquals(calls, []);
   const first = await it.next();
-  assertEquals(first.value, 1);
+  assertEquals(unwrap(first.value), 1);
   assertEquals(calls, [1]);
 });
 
@@ -151,5 +153,18 @@ Deno.test("globals.scan carries metadata", () => {
   assertEquals(
     metadataOf(scan)?.parameters.map((p) => p.name),
     ["self", "initial", "fn"],
+  );
+});
+
+Deno.test("globals.scan passes wrapped elements to a wrapped callback", async () => {
+  const items = new Wrapped([
+    new Wrapped(1, rootOrigin(0)),
+    new Wrapped(2, rootOrigin(1)),
+  ], rootOrigin(0, 2));
+  const step = (acc: unknown, item: unknown) =>
+    (acc as number) + (item as Wrapped<number>).raw;
+  assertEquals(
+    await Array.fromAsync(scan(items, 0, new Wrapped(step, rootOrigin(0)))),
+    [1, 3],
   );
 });

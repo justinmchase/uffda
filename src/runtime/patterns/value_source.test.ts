@@ -5,6 +5,12 @@ import { Scope } from "../scope.ts";
 import type { EqualPattern } from "./pattern.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { resolveValueSource, ValueSourceKind } from "./value_source.ts";
+import { assert, assertStrictEquals } from "@std/assert";
+import { rootOrigin, Wrapped } from "../../wrapped.ts";
+import { InputNormalizationMode } from "../../input.ts";
+import { match } from "../match.ts";
+import type { Pattern } from "./pattern.ts";
+import { varRef } from "./value_source.ts";
 
 Deno.test("runtime.patterns.value_source", async (t) => {
   const pattern: EqualPattern = {
@@ -51,4 +57,27 @@ Deno.test("runtime.patterns.value_source", async (t) => {
     if (resolved.match.kind !== MatchKind.Error) return;
     assertEquals(resolved.match.code, MatchErrorCode.UnknownReference);
   });
+});
+
+async function matchWrapped(
+  pattern: Pattern,
+  item: Wrapped,
+  variables = new Map<string, unknown>(),
+) {
+  const scope = Scope.From(new Wrapped([item], item.origin), {
+    kind: InputNormalizationMode.Iterable,
+  }).addVariables(Object.fromEntries(variables));
+  return await match(pattern, scope);
+}
+
+Deno.test("runtime/patterns/value_source a variable value source compares the variable's raw value", async () => {
+  const item = new Wrapped("a", rootOrigin(4));
+  const bound = new Wrapped("a", rootOrigin(0));
+  const m = await matchWrapped(
+    { kind: PatternKind.Equal, value: varRef("x") },
+    item,
+    new Map([["x", bound]]),
+  );
+  assert(m.kind === MatchKind.Ok);
+  assertStrictEquals(m.value, item);
 });

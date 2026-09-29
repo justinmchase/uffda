@@ -1,13 +1,14 @@
 import { assertEquals } from "@std/assert";
 import { MatchKind } from "../../mod.ts";
 import { uffdaGrammar } from "../../lang/uffda/uffda.lang.ts";
+import { valueOf } from "../../match.ts";
 
 Deno.test("req:uffda-language-syntax-004 - Import declarations cover empty module, multi-module, repeated-module, and one-or-more imported names", async (t) => {
   await t.step("module may contain no imports", async () => {
     const m = await uffdaGrammar("");
     assertEquals(m.kind, MatchKind.Ok);
     if (m.kind === MatchKind.Ok) {
-      assertEquals(m.value.declarations.length, 0);
+      assertEquals(valueOf(m).declarations.length, 0);
     }
   });
 
@@ -17,7 +18,7 @@ Deno.test("req:uffda-language-syntax-004 - Import declarations cover empty modul
       const m = await uffdaGrammar('import "./a.ts" A; import "./b.ts" B;');
       assertEquals(m.kind, MatchKind.Ok);
       if (m.kind === MatchKind.Ok) {
-        assertEquals(m.value.declarations, [
+        assertEquals(valueOf(m).declarations, [
           { kind: "import", moduleUrl: "./a.ts", names: ["A"] },
           { kind: "import", moduleUrl: "./b.ts", names: ["B"] },
         ]);
@@ -29,7 +30,7 @@ Deno.test("req:uffda-language-syntax-004 - Import declarations cover empty modul
     const m = await uffdaGrammar('import "./a.ts" A; import "./a.ts" B;');
     assertEquals(m.kind, MatchKind.Ok);
     if (m.kind === MatchKind.Ok) {
-      assertEquals(m.value.declarations, [
+      assertEquals(valueOf(m).declarations, [
         { kind: "import", moduleUrl: "./a.ts", names: ["A"] },
         { kind: "import", moduleUrl: "./a.ts", names: ["B"] },
       ]);
@@ -42,7 +43,7 @@ Deno.test("req:uffda-language-syntax-004 - Import declarations cover empty modul
       const one = await uffdaGrammar('import "./a.ts" A;');
       assertEquals(one.kind, MatchKind.Ok);
       if (one.kind === MatchKind.Ok) {
-        assertEquals(one.value.declarations[0], {
+        assertEquals(valueOf(one).declarations[0], {
           kind: "import",
           moduleUrl: "./a.ts",
           names: ["A"],
@@ -52,7 +53,7 @@ Deno.test("req:uffda-language-syntax-004 - Import declarations cover empty modul
       const many = await uffdaGrammar('import "./a.ts" A B C;');
       assertEquals(many.kind, MatchKind.Ok);
       if (many.kind === MatchKind.Ok) {
-        assertEquals(many.value.declarations[0], {
+        assertEquals(valueOf(many).declarations[0], {
           kind: "import",
           moduleUrl: "./a.ts",
           names: ["A", "B", "C"],

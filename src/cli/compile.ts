@@ -16,6 +16,7 @@ import {
   type CliStreamFailureLocation,
   parseFailureLocation,
 } from "./stream.ts";
+import { valueOf } from "../match.ts";
 
 export enum CliCompileFailureCode {
   InvalidContext = "CLI_COMPILE_INVALID_CONTEXT",
@@ -335,7 +336,7 @@ export async function compileSourcesToAstArtifacts(
       });
       continue;
     }
-    const module = compiled.value;
+    const module = valueOf(compiled);
 
     try {
       await Deno.writeTextFile(

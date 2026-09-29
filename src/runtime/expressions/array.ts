@@ -4,11 +4,12 @@ import { collect } from "../collect.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import type { MatchOk } from "../../match.ts";
 import type { ArrayExpression } from "./expression.ts";
+import { originOf, Wrapped } from "../../wrapped.ts";
 
 export function array(
   expression: ArrayExpression,
   match: MatchOk,
-): Awaitable<unknown> {
+): Awaitable<Wrapped<unknown[]>> {
   const { expressions } = expression;
   // Evaluated sequentially (not `Promise.all`) — see invocation.ts for why
   // concurrent sibling-expression evaluation against a shared `match` is
@@ -31,7 +32,7 @@ export function array(
               throw new Error("Unexpected array initializer");
           }
         }),
-        (parts) => parts.flat(1),
+        (parts) => new Wrapped(parts.flat(1), originOf(match)),
       ),
   );
 }

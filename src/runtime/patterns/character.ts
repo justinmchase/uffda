@@ -2,6 +2,7 @@ import { error, fail, MatchErrorCode, ok } from "../../match.ts";
 import { CharacterClass } from "./pattern.ts";
 import type { CharacterPattern } from "./pattern.ts";
 import type { Scope } from "../scope.ts";
+import { rawOf } from "../../wrapped.ts";
 import { andThen } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 
@@ -75,15 +76,16 @@ export function character(pattern: CharacterPattern): CompiledPattern {
       if (!next) {
         return fail(scope, pattern);
       }
-      if (typeof next.value !== "string") {
+      const value = rawOf(next.value);
+      if (typeof value !== "string") {
         return error(
           scope,
           pattern,
           MatchErrorCode.Type,
-          `expected value to be a string but got ${typeof next.value}`,
+          `expected value to be a string but got ${typeof value}`,
         );
       }
-      if (!regexp.test(next.value)) {
+      if (!regexp.test(value)) {
         return fail(scope, pattern);
       }
       return ok(scope, scope.withInput(next), pattern, next.value);

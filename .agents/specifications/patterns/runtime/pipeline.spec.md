@@ -79,14 +79,12 @@ receives input derived from the previous step's matched value.
 - A step's matched value MAY be a lazily produced sequence — an actual generator
   or async-generator instance (for example, the result of a std
   `enumerate`/`map`/`filter` call) — rather than an already-materialized array.
-- Before such a value is used to build the next step's derived input stream, and
-  before source provenance is computed for that step (see
-  [Source provenance](#source-provenance) below), the `pipeline` pattern MUST
-  drain the generator into a concrete array. This is a stage-boundary
-  eager-evaluation point, exactly like array-spread and invocation-spread
-  contexts elsewhere in the runtime: laziness is preserved _within_ a single
-  step's composition of `map`/`filter`/`enumerate`, but each `|>` boundary is a
-  sink.
+- Before such a value is used to build the next step's derived input stream, the
+  `pipeline` pattern MUST drain the generator into a concrete array. This is a
+  stage-boundary eager-evaluation point, exactly like array-spread and
+  invocation-spread contexts elsewhere in the runtime: laziness is preserved
+  _within_ a single step's composition of `map`/`filter`/`enumerate`, but each
+  `|>` boundary is a sink.
 - This draining MUST reflect back onto the step's reported match value (for
   example, in diagnostic/visualization output), so callers and tooling never
   observe an opaque, already-exhausted generator object where a concrete array
@@ -103,13 +101,13 @@ receives input derived from the previous step's matched value.
 
 ## Source provenance
 
-- When a step output is used to build the next derived input stream, the
-  `pipeline` pattern MUST retain reconstructable source provenance from the
-  prior step match and parent stream whenever that provenance is available.
-- For string outputs, derived streams SHOULD carry a normalization map anchored
-  at the prior step's original source span.
-- For string-array outputs that represent token streams, derived streams SHOULD
-  carry per-item source spans so later failures can resolve to authored offsets.
+- A step's value MUST be carried into the next derived input stream unchanged,
+  so that stream's items keep their origins (see
+  [value provenance](../../runtime/value-provenance.spec.md)). The characters of
+  a string value keep their per-character spans.
+- Match spans in a derived stream derive from those item origins. The `pipeline`
+  pattern MUST NOT compute per-item span tables or recognize any language's
+  value shapes.
 - Provenance loss at a pipeline step boundary is a contract regression relative
   to the language-layer debuggability requirements unless a higher-authority
   chapter explicitly allows it.

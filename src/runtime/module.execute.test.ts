@@ -4,6 +4,7 @@ import { executeModuleDeclaration } from "./module.execute.ts";
 import { ExportDeclarationKind } from "./declarations/export.ts";
 import { PatternKind } from "./patterns/pattern.kind.ts";
 import { ExpressionKind } from "./expressions/expression.kind.ts";
+import { unwrap } from "../wrapped.ts";
 
 Deno.test("runtime.module.execute executes default exported rule", async () => {
   const m = await executeModuleDeclaration(
@@ -25,7 +26,7 @@ Deno.test("runtime.module.execute executes default exported rule", async () => {
 
   assertEquals(m.kind, MatchKind.Ok);
   if (m.kind === MatchKind.Ok) {
-    assertEquals(m.value, "x");
+    assertEquals(unwrap(m.value), "x");
   }
 });
 
@@ -46,6 +47,6 @@ Deno.test("runtime.module.execute executes named exported rule", async () => {
 
   assertEquals(m.kind, MatchKind.Ok);
   if (m.kind === MatchKind.Ok) {
-    assertEquals(m.value, 1);
+    assertEquals(unwrap(m.value), 1);
   }
 });

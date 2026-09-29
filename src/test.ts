@@ -26,6 +26,7 @@ import type { ModuleDeclaration } from "./runtime/declarations/module.ts";
 import type { Match } from "./mod.ts";
 import type { Path } from "./path.ts";
 import type { RuleDeclaration } from "./runtime/declarations/mod.ts";
+import { unwrap } from "./wrapped.ts";
 
 type ExpressionTestOptions = {
   scope?: Scope;
@@ -54,7 +55,7 @@ export function expressionTest(options: ExpressionTestOptions) {
         `Expression was expected to throw`,
       );
     } else {
-      const r = await exec(expression, m);
+      const r = unwrap(await exec(expression, m));
       assert(
         equal(r, result),
         `Expression result did not match expected value\n` +
@@ -84,7 +85,7 @@ export function immediateExpressionTest(
       !(r instanceof Promise),
       "expected synchronous evaluation over immediate values",
     );
-    assertEquals(r, result);
+    assertEquals(unwrap(r), result);
   };
 }
 
@@ -142,7 +143,7 @@ export function awaitableAgreementTest(options: AwaitableAgreementOptions) {
     );
   const outcome = (m: Match) => ({
     kind: m.kind,
-    value: m.kind === MatchKind.Ok ? m.value : undefined,
+    value: m.kind === MatchKind.Ok ? unwrap(m.value) : undefined,
     end: m.scope.stream.path.toString(),
   });
   return async () => {
@@ -488,9 +489,6 @@ async function matchDebug(match: Match): Promise<string> {
   if (match.kind !== MatchKind.LR) {
     lines.push(`  span: ${spanText(match)}`);
     lines.push(
-      `  normalizedSpan: ${match.normalizedSpan.start} -> ${match.normalizedSpan.end}`,
-    );
-    lines.push(
       `  originalSpan: ${match.originalSpan.start} -> ${match.originalSpan.end}`,
     );
     lines.push(`  stream done: ${await match.scope.stream.done()}`);
@@ -620,7 +618,9 @@ async function assertOk(m: MatchOk, assertion: MatchAssertion) {
   // A rule/func result may be a lazily produced sequence (an actual
   // generator instance from `map`/`filter`/`enumerate`), which `equal`
   // can't meaningfully compare against a literal array — drain it first.
-  const actualValue = isGenerator(m.value) ? await collect(m.value) : m.value;
+  const actualValue = unwrap(
+    isGenerator(m.value) ? await collect(m.value) : m.value,
+  );
   assert(
     equal(actualValue, assertion.value),
     `Match value did not equal expected value\n` +

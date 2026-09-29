@@ -67,12 +67,12 @@ input item, treating that item as a nested input stream.
 
 ## Source provenance
 
-- When the outer stream carries per-item source spans and the current item is a
-  string, the nested stream MUST expose a normalization map that maps nested
-  character offsets back to those original item spans.
-- When the current item is an iterable token stream and the outer stream carries
-  per-item source spans, the nested stream MUST retain those spans so nested
-  Match results can report authored-source `originalSpan` values.
+- The nested stream's items MUST be the current item's wrapped elements, or, for
+  a string, its characters with their character provenance (see
+  [value provenance](../../runtime/value-provenance.spec.md)), so nested Match
+  spans resolve to the caller's input through their origins.
+- `into` MUST NOT compute per-item span tables or recognize any language's value
+  shapes.
 - Provenance loss at an `into` boundary is a contract regression relative to the
   language-layer debuggability requirements unless a higher-authority chapter
   explicitly allows it.

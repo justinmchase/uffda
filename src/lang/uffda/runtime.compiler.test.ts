@@ -10,6 +10,7 @@ import {
   diagnoseUffdaRuntimeCompilerFailure,
   runUffdaRuntimeCompiler,
 } from "./runtime.compiler.ts";
+import { unwrap } from "../../wrapped.ts";
 
 Deno.test("lang.uffda.runtime-compiler compiles an empty syntax module", async () => {
   const match = await runUffdaRuntimeCompiler({
@@ -19,7 +20,7 @@ Deno.test("lang.uffda.runtime-compiler compiles an empty syntax module", async (
 
   assertEquals(match.kind, MatchKind.Ok);
   if (match.kind === MatchKind.Ok) {
-    assertEquals(match.value, {
+    assertEquals(unwrap(match.value), {
       imports: [],
       exports: [],
       rules: [],
@@ -64,7 +65,7 @@ Deno.test("lang.uffda.runtime-compiler compiles declaration families", async () 
 
   assertEquals(match.kind, MatchKind.Ok);
   if (match.kind === MatchKind.Ok) {
-    assertEquals(match.value, {
+    assertEquals(unwrap(match.value), {
       imports: [{
         kind: ImportDeclarationKind.Module,
         moduleUrl: "./symbols.ts",
@@ -114,7 +115,7 @@ Deno.test(
     const match = await runUffdaRuntimeCompiler(syntaxModule);
     assertEquals(match.kind, MatchKind.Ok);
     if (match.kind === MatchKind.Ok) {
-      assertEquals(match.value, {
+      assertEquals(unwrap(match.value), {
         imports: [{
           kind: ImportDeclarationKind.Module,
           moduleUrl: "./digit.uff",
@@ -155,7 +156,7 @@ Deno.test(
     const match = await runUffdaRuntimeCompiler(syntaxModule);
     assertEquals(match.kind, MatchKind.Ok);
     if (match.kind === MatchKind.Ok) {
-      assertEquals(match.value, {
+      assertEquals(unwrap(match.value), {
         imports: [],
         exports: [{
           kind: ExportDeclarationKind.Decorator,

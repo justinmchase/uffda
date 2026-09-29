@@ -2,6 +2,7 @@ import { assertEquals } from "@std/assert";
 import { MatchKind } from "../../mod.ts";
 import { uffdaGrammar } from "../../lang/uffda/uffda.lang.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
+import { valueOf } from "../../match.ts";
 
 Deno.test("req:uffda-language-syntax-005 - Rule declarations and module declaration ordering follow Uffda syntax contracts", async (t) => {
   await t.step("one rule pattern body appears per declaration", async () => {
@@ -11,7 +12,7 @@ Deno.test("req:uffda-language-syntax-005 - Rule declarations and module declarat
     const sequenceBody = await uffdaGrammar("rule P = any end;");
     assertEquals(sequenceBody.kind, MatchKind.Ok);
     if (sequenceBody.kind === MatchKind.Ok) {
-      const declaration = sequenceBody.value.declarations[0];
+      const declaration = valueOf(sequenceBody).declarations[0];
       assertEquals(declaration.kind, "rule");
       if (declaration.kind === "rule") {
         assertEquals(declaration.pattern.kind, PatternKind.Then);

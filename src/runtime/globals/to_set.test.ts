@@ -2,6 +2,7 @@ import { assertEquals } from "@std/assert";
 import { assertThrows } from "@std/assert/throws";
 import { to_set } from "./to_set.ts";
 import { metadataOf } from "../value_metadata.ts";
+import { rootOrigin, Wrapped } from "../../wrapped.ts";
 
 Deno.test("std.to_set builds a Set from an array", () => {
   const values = to_set(["a", "b", "a"]);
@@ -29,4 +30,14 @@ Deno.test("globals.to_set carries metadata", () => {
     metadataOf(to_set)?.parameters.map((p) => p.name),
     ["items"],
   );
+});
+
+Deno.test("globals.to_set holds raw members", () => {
+  const set = to_set(
+    new Wrapped(
+      [new Wrapped(1, rootOrigin(0)), new Wrapped(1, rootOrigin(1))],
+      rootOrigin(0, 2),
+    ),
+  );
+  assertEquals([...set], [1]);
 });

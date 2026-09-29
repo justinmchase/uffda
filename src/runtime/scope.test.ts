@@ -16,6 +16,7 @@ import { ExpressionKind } from "./expressions/mod.ts";
 import type { Pattern } from "./patterns/mod.ts";
 import type { Expression } from "./expressions/mod.ts";
 import { StackFrameKind } from "./stack/stackFrameKind.ts";
+import { unwrap } from "../wrapped.ts";
 
 Deno.test("runtime.scope", async (t) => {
   await t.step({
@@ -129,7 +130,7 @@ Deno.test("runtime.scope", async (t) => {
         name: "x",
       };
       const result = await exec(expression, match);
-      assertEquals(result, 7);
+      assertEquals(unwrap(result), 7);
     },
   });
 

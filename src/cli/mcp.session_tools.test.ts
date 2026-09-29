@@ -456,6 +456,7 @@ Deno.test("cli.mcp session tools end to end", async (t) => {
             path: number[];
             kind: string;
             rule?: string;
+            originalSpan?: { start: number; end: number };
             metadata: { rule: string; metadata: unknown }[];
           }[];
         };
@@ -463,6 +464,8 @@ Deno.test("cli.mcp session tools end to end", async (t) => {
         assertEquals(walked.truncated, false);
         assertEquals(walked.nodes?.length, 4);
         assertEquals(walked.nodes?.[0].rule, "Main");
+        assertEquals(walked.nodes?.[0].originalSpan, { start: 0, end: 1 });
+        assertEquals("normalizedSpan" in (walked.nodes?.[0] ?? {}), false);
 
         const innerNode = walked.nodes?.find((n) => n.rule === "Inner");
         assert(innerNode);

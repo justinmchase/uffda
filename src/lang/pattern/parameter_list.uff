@@ -18,28 +18,28 @@ rule ParameterQuotedTokenContent =
   ;
 
 rule ParameterQuotedTokenSequence =
-  "\""
+  o:"\""
   c:ParameterQuotedTokenContent*
-  "\""
-  -> (flat (pack "\"" (flat c) "\""));
+  e:"\""
+  -> (flat (pack o (flat c) e));
 
 rule ParameterChunkNestedAngle =
-  "<"
+  o:"<"
   c:ParameterChunk*
-  ">"
-  -> (flat (pack "<" (flat c) ">"));
+  e:">"
+  -> (flat (pack o (flat c) e));
 
 rule ParameterChunkNestedParen =
-  "("
+  o:"("
   c:ParameterChunk*
-  ")"
-  -> (flat (pack "(" (flat c) ")"));
+  e:")"
+  -> (flat (pack o (flat c) e));
 
 rule ParameterChunkNestedBracket =
-  "["
+  o:"["
   c:ParameterChunk*
-  "]"
-  -> (flat (pack "[" (flat c) "]"));
+  e:"]"
+  -> (flat (pack o (flat c) e));
 
 rule ParameterChunkNestedBrace =
   o:"{"

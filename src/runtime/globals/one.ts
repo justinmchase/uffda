@@ -1,4 +1,5 @@
 import { defineMetadata } from "../value_metadata.ts";
+import { carryItem, rawOf } from "../../wrapped.ts";
 
 /**
  * Length-1 list collapse for pattern wrappers (conversion blocker B4).
@@ -10,9 +11,10 @@ import { defineMetadata } from "../value_metadata.ts";
  * Required for modules in PatternLang import cycles where `Tail+ | child`
  * backtracking is unsafe under left recursion.
  */
-export function one(items: unknown[], full: unknown): unknown {
+export function one(self: unknown, full: unknown): unknown {
+  const items = rawOf(self);
   if (Array.isArray(items) && items.length === 1) {
-    return items[0];
+    return carryItem(self, items[0], 0);
   }
   return full;
 }

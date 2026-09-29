@@ -19,13 +19,17 @@ precise authored source locations.
 - Every language layer MUST preserve source context sufficiently to report exact
   failure location and origin through layered transformations.
 - Tokenization MUST preserve stable source spans for token outputs.
-- Match results MUST expose normalized and original source spans for every
-  successful, failed, and error outcome. Rule projections MUST NOT embed those
-  spans in AST values.
+- Match results MUST expose a source span (`originalSpan`), in the caller's
+  input coordinates, for every successful, failed, and error outcome. Rule
+  projections MUST NOT embed those spans in AST values.
 - Intermediate language artifacts SHOULD retain source-provenance metadata where
   layer transitions could otherwise lose diagnostic fidelity.
 
 ## Provenance mapping requirements
+
+- Provenance mapping is satisfied by value origins (see
+  [value provenance](../runtime/value-provenance.spec.md)): every value carries
+  where it came from, across every layer and stage boundary.
 
 - Higher layers MUST retain or map source provenance so diagnostics can resolve
   from compiled/runtime failures back to authored source locations.

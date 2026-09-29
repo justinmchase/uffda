@@ -2,6 +2,10 @@ import { Scope } from "../scope.ts";
 import { expressionTest } from "../../test.ts";
 import { PatternKind } from "../patterns/pattern.kind.ts";
 import { ExpressionKind } from "./expression.kind.ts";
+import { assertEquals, assertStrictEquals } from "@std/assert";
+import { originOf, rootOrigin, Wrapped } from "../../wrapped.ts";
+import { type MatchOk, ok } from "../../match.ts";
+import { exec } from "../exec.ts";
 
 await Deno.test("runtime/expressions/lambda", async (t) => {
   await t.step({
@@ -94,4 +98,22 @@ await Deno.test("runtime/expressions/lambda", async (t) => {
       },
     }),
   });
+});
+
+function wrappedMatch(variables: Record<string, unknown> = {}): MatchOk {
+  const scope = Scope.Default().addVariables(variables);
+  return ok(scope, scope, { kind: PatternKind.Ok }, undefined);
+}
+
+Deno.test("runtime/expressions/lambda the callable takes the match's spans as origin and returns wrapped results", async () => {
+  const m = wrappedMatch();
+  const r = await exec({
+    kind: ExpressionKind.Lambda,
+    pattern: { kind: PatternKind.Any },
+    expression: { kind: ExpressionKind.Reference, name: "_" },
+  }, m);
+  assertEquals(r.origin, originOf(m));
+  const item = new Wrapped(1, rootOrigin(3));
+  const result = await (r.raw as (...args: unknown[]) => unknown)(item);
+  assertStrictEquals(result, item);
 });

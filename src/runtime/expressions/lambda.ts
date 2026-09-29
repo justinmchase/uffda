@@ -3,6 +3,7 @@ import { Input, InputNormalizationMode } from "../../input.ts";
 import { exec } from "../exec.ts";
 import { match } from "../match.ts";
 import type { LambdaExpression } from "./expression.ts";
+import { originOf, Wrapped } from "../../wrapped.ts";
 
 export type LambdaCallable = (...args: unknown[]) => Promise<unknown>;
 
@@ -14,15 +15,20 @@ export type LambdaCallable = (...args: unknown[]) => Promise<unknown>;
 export function lambda(
   e: LambdaExpression,
   m: MatchOk,
-): Promise<LambdaCallable> {
+): Promise<Wrapped<LambdaCallable>> {
   const { pattern, expression } = e;
-  return Promise.resolve(async (...args: unknown[]) => {
+  const callable = async (...args: unknown[]) => {
+    // Raw arguments (for example from a host global) take `m` as origin.
     const stream = new Input(
       args,
       m.scope.stream.path.push(0), // todo: should this have a lambda segment?
       0,
       undefined,
       InputNormalizationMode.Iterable,
+      false,
+      false,
+      false,
+      originOf(m),
     );
     const scope = m.scope.withInput(stream);
     const result = await match(pattern, scope);
@@ -35,5 +41,6 @@ export function lambda(
       case MatchKind.Ok:
         return await exec(expression, result);
     }
-  });
+  };
+  return Promise.resolve(new Wrapped(callable, originOf(m)));
 }

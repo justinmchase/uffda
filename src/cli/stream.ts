@@ -14,6 +14,7 @@ import {
 import { CliLanguage } from "./contract.ts";
 import type { Input } from "../input.ts";
 import type { Memos } from "../memo.ts";
+import { valueOf } from "../match.ts";
 
 export enum CliStreamFailureCode {
   ParseFailure = "CLI_STREAM_PARSE_FAILURE",
@@ -201,19 +202,19 @@ export async function parseSourceToAst(
     case CliLanguage.FullUffda: {
       const parsed = await uffdaGrammar(sourceText, incremental);
       return parsed.kind === MatchKind.Ok
-        ? { ok: true, ast: parsed.value, match: parsed }
+        ? { ok: true, ast: valueOf(parsed), match: parsed }
         : await toParseFailure(parsed, language, sourcePath, sourceText);
     }
     case CliLanguage.Pattern: {
       const parsed = await patternGrammar(sourceText);
       return parsed.kind === MatchKind.Ok
-        ? { ok: true, ast: parsed.value, match: parsed }
+        ? { ok: true, ast: valueOf(parsed), match: parsed }
         : await toParseFailure(parsed, language, sourcePath, sourceText);
     }
     case CliLanguage.Expression: {
       const parsed = await expressionGrammar(sourceText);
       return parsed.kind === MatchKind.Ok
-        ? { ok: true, ast: parsed.value, match: parsed }
+        ? { ok: true, ast: valueOf(parsed), match: parsed }
         : await toParseFailure(parsed, language, sourcePath, sourceText);
     }
   }

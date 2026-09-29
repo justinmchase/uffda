@@ -3,6 +3,11 @@ import { Scope } from "../scope.ts";
 import { expressionTest } from "../../test.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import type { ArrayElementExpression } from "./expression.ts";
+import { assertEquals, assertStrictEquals } from "@std/assert";
+import { originOf, rootOrigin, Wrapped } from "../../wrapped.ts";
+import { type MatchOk, ok } from "../../match.ts";
+import { PatternKind } from "../patterns/pattern.kind.ts";
+import { exec } from "../exec.ts";
 
 await Deno.test("runtime/expressions/array", async (t) => {
   await t.step({
@@ -340,4 +345,23 @@ await Deno.test("runtime/expressions/array", async (t) => {
       result: [1, 2, 3],
     }),
   });
+});
+
+function wrappedMatch(variables: Record<string, unknown> = {}): MatchOk {
+  const scope = Scope.Default().addVariables(variables);
+  return ok(scope, scope, { kind: PatternKind.Ok }, undefined);
+}
+
+Deno.test("runtime/expressions/array carries wrapped elements and takes the match's spans as origin", async () => {
+  const x = new Wrapped(1, rootOrigin(2));
+  const m = wrappedMatch({ x });
+  const r = await exec({
+    kind: ExpressionKind.Array,
+    expressions: [{
+      kind: ExpressionKind.ArrayElement,
+      expression: { kind: ExpressionKind.Reference, name: "x" },
+    }],
+  }, m);
+  assertStrictEquals((r.raw as unknown[])[0], x);
+  assertEquals(r.origin, originOf(m));
 });

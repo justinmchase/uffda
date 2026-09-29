@@ -1,4 +1,5 @@
 import { defineMetadata } from "../value_metadata.ts";
+import { carryItem, rawOf } from "../../wrapped.ts";
 
 /**
  * Last element of a string or array, or `fallback` when empty.
@@ -6,11 +7,10 @@ import { defineMetadata } from "../value_metadata.ts";
  * arguments mean `fallback` is not evaluated lazily, so keep it cheap (a
  * literal or already-computed value).
  */
-export function last(
-  self: ArrayLike<unknown>,
-  fallback: unknown,
-): unknown {
-  return self.length > 0 ? self[self.length - 1] : fallback;
+export function last(self: unknown, fallback: unknown): unknown {
+  const items = rawOf(self) as ArrayLike<unknown>;
+  const i = items.length - 1;
+  return i >= 0 ? carryItem(self, items[i], i) : fallback;
 }
 
 defineMetadata(last, {

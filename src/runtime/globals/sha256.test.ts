@@ -2,6 +2,7 @@ import { assertEquals } from "@std/assert";
 import { assertRejects } from "@std/assert/rejects";
 import { sha256 } from "./sha256.ts";
 import { metadataOf } from "../value_metadata.ts";
+import { rootOrigin, Wrapped } from "../../wrapped.ts";
 
 Deno.test("globals.sha256 is stable for fixed text", async () => {
   const a = await sha256("hello");
@@ -30,5 +31,12 @@ Deno.test("globals.sha256 carries metadata", () => {
   assertEquals(
     metadataOf(sha256)?.parameters.map((p) => p.name),
     ["text"],
+  );
+});
+
+Deno.test("globals.sha256 observes the raw string", async () => {
+  assertEquals(
+    await sha256(new Wrapped("abc", rootOrigin(0))),
+    await sha256("abc"),
   );
 });

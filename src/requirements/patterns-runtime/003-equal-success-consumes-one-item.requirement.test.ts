@@ -6,6 +6,7 @@ import { Path } from "../../path.ts";
 import { match } from "../../runtime/match.ts";
 import { type Pattern, PatternKind } from "../../runtime/patterns/mod.ts";
 import { Scope } from "../../runtime/scope.ts";
+import { unwrap } from "../../wrapped.ts";
 
 Deno.test("req:equal-003 - Equal success consumes exactly one item and reports the consumed value", async () => {
   const scope = Scope.From(["a", "b"], {
@@ -17,7 +18,7 @@ Deno.test("req:equal-003 - Equal success consumes exactly one item and reports t
   assertEquals(m.kind, MatchKind.Ok);
   if (m.kind !== MatchKind.Ok) return;
 
-  assertEquals(m.value, "a");
+  assertEquals(unwrap(m.value), "a");
   assertEquals(m.scope.stream.path, Path.From(1));
   assertEquals(await m.scope.stream.done(), false);
 });

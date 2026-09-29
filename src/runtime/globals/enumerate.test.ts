@@ -1,7 +1,8 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertStrictEquals } from "@std/assert";
 import { collect } from "../collect.ts";
 import { enumerate } from "./enumerate.ts";
 import { metadataOf } from "../value_metadata.ts";
+import { rootOrigin, Wrapped } from "../../wrapped.ts";
 
 Deno.test("globals.enumerate pairs each array element with its index", async () => {
   assertEquals(await collect(enumerate(["a", "b", "c"])), [
@@ -79,4 +80,18 @@ Deno.test("globals.enumerate carries metadata", () => {
     metadataOf(enumerate)?.parameters.map((p) => p.name),
     ["self"],
   );
+});
+
+Deno.test("globals.enumerate carries wrapped elements and object values", async () => {
+  const item = new Wrapped("a", rootOrigin(4));
+  const [entry] = await Array.fromAsync(
+    enumerate(new Wrapped([item], rootOrigin(4))),
+  );
+  assertStrictEquals(entry.value, item);
+  const value = new Wrapped(1, rootOrigin(2));
+  const [prop] = await Array.fromAsync(
+    enumerate(new Wrapped({ x: value }, rootOrigin(0, 3))),
+  );
+  assertEquals(prop.index, "x");
+  assertStrictEquals(prop.value, value);
 });

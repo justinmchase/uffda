@@ -1,5 +1,6 @@
 import { assertEquals, assertThrows } from "@std/assert";
 import { Input } from "../../input.ts";
+import { unwrap } from "../../wrapped.ts";
 
 Deno.test("req:runtime-core-002 - Iterable normalization requires iterable input and preserves item order", async (t) => {
   await t.step("iterable mode reads iterable items in order", async () => {
@@ -9,9 +10,9 @@ Deno.test("req:runtime-core-002 - Iterable normalization requires iterable input
     const i2 = await i1.next();
     const i3 = await i2.next();
 
-    assertEquals(i1.value, "x");
-    assertEquals(i2.value, "y");
-    assertEquals(i3.value, "z");
+    assertEquals(unwrap(i1.value), "x");
+    assertEquals(unwrap(i2.value), "y");
+    assertEquals(unwrap(i3.value), "z");
     assertEquals(await i3.done(), true);
   });
 

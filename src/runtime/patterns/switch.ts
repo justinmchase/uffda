@@ -12,6 +12,7 @@ import { resolveValueSource } from "./value_source.ts";
 import { ValueSourceKind } from "./value_source.ts";
 import type { Scope } from "../scope.ts";
 import type { Pattern, SwitchKey, SwitchPattern } from "./pattern.ts";
+import { rawOf } from "../../wrapped.ts";
 import { andThen } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 
@@ -156,7 +157,7 @@ export function switchPattern(
   return (invocationScope: Scope) =>
     andThen(invocationScope.stream.step(), (next) => {
       const isEof = next === undefined;
-      const value = next?.value;
+      const value = rawOf(next?.value);
       const run = (child: CompiledPattern) =>
         andThen(
           child(invocationScope),

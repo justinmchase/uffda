@@ -2,6 +2,12 @@ import { immediateExpressionTest } from "../../test.ts";
 import { expressionTest } from "../../test.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import type { NativeExpression } from "./expression.ts";
+import { assertEquals } from "@std/assert";
+import { charOrigin, originOf, rootOrigin, Wrapped } from "../../wrapped.ts";
+import { type MatchOk, ok } from "../../match.ts";
+import { PatternKind } from "../patterns/pattern.kind.ts";
+import { Scope } from "../scope.ts";
+import { exec } from "../exec.ts";
 
 await Deno.test("runtime/expressions/string", async (t) => {
   await t.step({
@@ -89,4 +95,20 @@ await Deno.test("runtime/expressions/string", async (t) => {
       result: "a1",
     }),
   });
+});
+
+function wrappedMatch(variables: Record<string, unknown> = {}): MatchOk {
+  const scope = Scope.Default().addVariables(variables);
+  return ok(scope, scope, { kind: PatternKind.Ok }, undefined);
+}
+
+Deno.test("runtime/expressions/string keeps each interpolated character's provenance", async () => {
+  const m = wrappedMatch({ x: new Wrapped("a", rootOrigin(6)) });
+  const r = await exec({
+    kind: ExpressionKind.String,
+    values: [{ kind: ExpressionKind.Reference, name: "x" }, "!"],
+  }, m) as Wrapped<string>;
+  assertEquals(r.raw, "a!");
+  assertEquals(charOrigin(r, 0), rootOrigin(6));
+  assertEquals(charOrigin(r, 1), originOf(m));
 });

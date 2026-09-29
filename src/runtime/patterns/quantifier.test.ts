@@ -9,6 +9,7 @@ import { Scope } from "../scope.ts";
 import type { Pattern } from "./pattern.ts";
 import { PatternKind } from "./pattern.kind.ts";
 import { lit, ValueSourceKind } from "./value_source.ts";
+import { unwrap } from "../../wrapped.ts";
 
 Deno.test("runtime.patterns.quantifier", async (t) => {
   await t.step({
@@ -253,7 +254,7 @@ Deno.test("runtime.patterns.quantifier at the end of an open input", async (t) =
     const m = await match(pattern, Scope.Default().withInput(input));
     assertEquals(m.kind, MatchKind.Ok);
     assert(m.kind === MatchKind.Ok);
-    assertEquals(m.value, ["a", "b"]);
+    assertEquals(unwrap(m.value), ["a", "b"]);
     return m.matches.map((child) => child.kind);
   };
 

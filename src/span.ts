@@ -1,6 +1,6 @@
 import type { Path } from "./mod.ts";
 import type { Scope } from "./runtime/scope.ts";
-import type { SourceProvenance } from "./input.ts";
+import type { Input } from "./input.ts";
 
 export type Span = {
   start: Path;
@@ -10,11 +10,6 @@ export type Span = {
 export type SourceSpan = {
   start: number;
   end: number;
-};
-
-export type ItemSourceSpan = {
-  normalized: SourceSpan;
-  original: SourceSpan;
 };
 
 export function spanFrom(start: Scope, end: Scope): Span {
@@ -34,139 +29,33 @@ export function leafOffset(path: Path): number {
   return 0;
 }
 
-export function mapSourceSpan(
-  span: SourceSpan,
-  normalizationMap?: readonly number[],
-): SourceSpan {
-  if (!normalizationMap) {
-    return span;
-  }
-  return {
-    start: normalizationMap[span.start] ?? span.start,
-    end: normalizationMap[span.end] ?? span.end,
-  };
+function point(offset: number): SourceSpan {
+  return { start: offset, end: offset };
 }
 
 /**
- * Input streams use 1-based leaf indices: path leaf 0 is before the first
- * item, leaf k holds the k-th item. `itemSpans` is 0-based, so a span from
- * leaf a to leaf b covers `itemSpans[a]` through `itemSpans[b - 1]`.
+ * The source position between `input` and the item after it: the start of
+ * the next item when it has already been read, otherwise the end of the item
+ * at `input`, otherwise the start of the stream.
  */
-function spansFromItemTable(
-  startIdx: number,
-  endIdx: number,
-  itemSpans: readonly ItemSourceSpan[],
-  startDone: boolean,
-  endDone: boolean,
-): { normalizedSpan: SourceSpan; originalSpan: SourceSpan } {
-  if (itemSpans.length === 0) {
-    return {
-      normalizedSpan: { start: startIdx, end: endIdx },
-      originalSpan: { start: startIdx, end: endIdx },
-    };
-  }
-
-  const point = (
-    normalized: number,
-    original: number,
-  ): { normalizedSpan: SourceSpan; originalSpan: SourceSpan } => ({
-    normalizedSpan: { start: normalized, end: normalized },
-    originalSpan: { start: original, end: original },
-  });
-
-  const eofPoint = (
-    leaf: number,
-  ): { normalizedSpan: SourceSpan; originalSpan: SourceSpan } => {
-    if (leaf <= 0) {
-      const first = itemSpans[0];
-      return point(first.normalized.start, first.original.start);
-    }
-    const item = itemSpans[Math.min(leaf, itemSpans.length) - 1];
-    return point(item.normalized.end, item.original.end);
-  };
-
-  // A match starting at leaf k has consumed k items, so it begins at the
-  // (k+1)-th item: 0-based `itemSpans[k]`.
-  const itemStart = (
-    leaf: number,
-  ): { normalized: number; original: number } => {
-    const index = Math.max(0, leaf);
-    if (index >= itemSpans.length) {
-      const last = itemSpans[itemSpans.length - 1];
-      return { normalized: last.normalized.end, original: last.original.end };
-    }
-    const item = itemSpans[index];
-    return {
-      normalized: item.normalized.start,
-      original: item.original.start,
-    };
-  };
-
-  const itemEnd = (
-    leaf: number,
-    done: boolean,
-  ): { normalized: number; original: number } => {
-    if (done) {
-      const eof = eofPoint(leaf);
-      return {
-        normalized: eof.normalizedSpan.start,
-        original: eof.originalSpan.start,
-      };
-    }
-    if (leaf <= 0) {
-      const first = itemSpans[0];
-      return {
-        normalized: first.normalized.start,
-        original: first.original.start,
-      };
-    }
-    const index = leaf - 1;
-    if (index >= itemSpans.length) {
-      const last = itemSpans[itemSpans.length - 1];
-      return { normalized: last.normalized.end, original: last.original.end };
-    }
-    const item = itemSpans[index];
-    return { normalized: item.normalized.end, original: item.original.end };
-  };
-
-  if (startDone) {
-    return eofPoint(startIdx);
-  }
-
-  const start = itemStart(startIdx);
-  if (endIdx < startIdx || (endIdx === startIdx && !endDone)) {
-    return point(start.normalized, start.original);
-  }
-
-  const end = itemEnd(endIdx, endDone);
-  return {
-    normalizedSpan: { start: start.normalized, end: end.normalized },
-    originalSpan: { start: start.original, end: end.original },
-  };
+function pointAt(input: Input): SourceSpan {
+  const next = input.following?.value;
+  if (next) return point(next.origin.start);
+  if (input.value) return point(input.value.origin.end);
+  return point(input.base);
 }
 
-export function sourceSpansFrom(
-  start: Scope,
-  end: Scope,
-): { normalizedSpan: SourceSpan; originalSpan: SourceSpan } {
-  const startIdx = leafOffset(start.stream.path);
-  const endIdx = leafOffset(end.stream.path);
-  const provenance: SourceProvenance | undefined = start.stream.provenance ??
-    end.stream.provenance;
-
-  if (provenance?.itemSpans && provenance.itemSpans.length > 0) {
-    return spansFromItemTable(
-      startIdx,
-      endIdx,
-      provenance.itemSpans,
-      start.stream.isEof,
-      end.stream.isEof,
-    );
-  }
-
-  const normalizedSpan = { start: startIdx, end: endIdx };
-  return {
-    normalizedSpan,
-    originalSpan: mapSourceSpan(normalizedSpan, provenance?.normalizationMap),
-  };
+/**
+ * The source span of a Match from `start` to `end`, derived from the origins
+ * of the input items it consumed (see
+ * `.agents/specifications/runtime/value-provenance.spec.md#root-input`): from
+ * the start of the first consumed item to the end of the last. A Match that
+ * consumed nothing is a point (see {@link pointAt}).
+ */
+export function sourceSpanFrom(start: Scope, end: Scope): SourceSpan {
+  const from = start.stream;
+  const to = end.stream;
+  if (to.index <= from.index || !to.value) return pointAt(from);
+  const first = from.following?.value ?? to.value;
+  return { start: first.origin.start, end: to.value.origin.end };
 }

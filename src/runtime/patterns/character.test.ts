@@ -5,6 +5,12 @@ import { PatternKind } from "./pattern.kind.ts";
 import { Input } from "../../input.ts";
 import { MatchErrorCode, MatchKind } from "../../match.ts";
 import { Path } from "../../path.ts";
+import { assert, assertStrictEquals } from "@std/assert";
+import { rootOrigin, Wrapped } from "../../wrapped.ts";
+import { InputNormalizationMode } from "../../input.ts";
+import { match } from "../match.ts";
+import { Scope } from "../scope.ts";
+import type { Pattern } from "./pattern.ts";
 
 Deno.test("patterns/character", async (t) => {
   await t.step({
@@ -445,4 +451,25 @@ Deno.test("patterns/character", async (t) => {
       items: ["a"],
     }),
   });
+});
+
+async function matchWrapped(
+  pattern: Pattern,
+  item: Wrapped,
+  variables = new Map<string, unknown>(),
+) {
+  const scope = Scope.From(new Wrapped([item], item.origin), {
+    kind: InputNormalizationMode.Iterable,
+  }).addVariables(Object.fromEntries(variables));
+  return await match(pattern, scope);
+}
+
+Deno.test("runtime/patterns/character observes the raw value of a wrapped item and carries it", async () => {
+  const item = new Wrapped("a", rootOrigin(4));
+  const m = await matchWrapped({
+    kind: PatternKind.Character,
+    characterClass: CharacterClass.Letter,
+  }, item);
+  assert(m.kind === MatchKind.Ok);
+  assertStrictEquals(m.value, item);
 });

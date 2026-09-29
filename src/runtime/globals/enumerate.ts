@@ -1,6 +1,8 @@
 import { Type, type } from "@justinmchase/type";
 import { Input } from "../../input.ts";
 import { defineMetadata } from "../value_metadata.ts";
+import { carryItem, rawOf } from "../../wrapped.ts";
+import { iterable } from "./iterable.ts";
 
 function isPlainObject(
   value: unknown,
@@ -36,19 +38,21 @@ function isPlainObject(
 export async function* enumerate(
   self: unknown,
 ): AsyncGenerator<{ index: number | string; value: unknown }> {
+  const raw = rawOf(self);
   if (
-    isPlainObject(self) && !Input.isIterable(self) &&
-    !Input.isAsyncIterable(self)
+    isPlainObject(raw) && !Input.isIterable(raw) &&
+    !Input.isAsyncIterable(raw)
   ) {
-    for (const [index, value] of Object.entries(self)) {
-      yield { index, value };
+    let i = 0;
+    for (const [index, value] of Object.entries(raw)) {
+      yield { index, value: carryItem(self, value, i++) };
     }
     return;
   }
 
-  if (Input.isIterable(self) || Input.isAsyncIterable(self)) {
+  if (Input.isIterable(raw) || Input.isAsyncIterable(raw)) {
     let index = 0;
-    for await (const value of self) {
+    for await (const value of iterable(self)) {
       yield { index, value };
       index += 1;
     }

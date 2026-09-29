@@ -1,12 +1,13 @@
 import { assertEquals } from "@std/assert";
 import { fromFileUrl, join } from "@std/path";
 import { Input } from "../../input.ts";
-import { MatchKind } from "../../match.ts";
+import { MatchKind, valueOf } from "../../match.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { executeUffdaSource } from "../../lang/uffda/execute.ts";
 import { uffdaGrammar } from "../../lang/uffda/uffda.lang.ts";
 import { runUffdaRuntimeCompiler } from "../../lang/uffda/runtime.compiler.ts";
 import type { UffdaRuleSyntaxDeclaration } from "../../lang/uffda/syntax.types.ts";
+import { unwrap } from "../../wrapped.ts";
 
 const repoRoot = fromFileUrl(new URL("../../../", import.meta.url));
 
@@ -27,7 +28,7 @@ Deno.test(
     assertEquals(parsed.kind, MatchKind.Ok);
     if (parsed.kind !== MatchKind.Ok) return;
 
-    const rule = parsed.value.declarations.find(
+    const rule = valueOf(parsed).declarations.find(
       (d): d is UffdaRuleSyntaxDeclaration => d.kind === "rule",
     );
     assertEquals(rule?.kind, "rule");
@@ -43,10 +44,10 @@ Deno.test(
       });
     }
 
-    const compiled = await runUffdaRuntimeCompiler(parsed.value);
+    const compiled = await runUffdaRuntimeCompiler(valueOf(parsed));
     assertEquals(compiled.kind, MatchKind.Ok);
     if (compiled.kind === MatchKind.Ok) {
-      assertEquals(compiled.value.rules[0]?.parameters, [
+      assertEquals(valueOf(compiled).rules[0]?.parameters, [
         { name: "L" },
         { name: "P" },
         { name: "R" },
@@ -59,7 +60,7 @@ Deno.test(
     );
     assertEquals(run.kind, MatchKind.Ok);
     if (run.kind === MatchKind.Ok) {
-      assertEquals(run.value, "x");
+      assertEquals(unwrap(run.value), "x");
     }
   },
 );

@@ -5,14 +5,21 @@ import { Scope } from "./scope.ts";
 import { exec } from "./exec.ts";
 import { ExpressionKind } from "./expressions/expression.kind.ts";
 import type { Expression } from "./expressions/expression.ts";
+import { unwrap } from "../wrapped.ts";
 
 Deno.test("runtime/exec", async (t) => {
   const scope = Scope.Default();
   const match = ok(scope, scope, { kind: PatternKind.Ok }, 7);
 
   await t.step("EXEC00 - immediate expressions evaluate synchronously", () => {
-    assertEquals(exec({ kind: ExpressionKind.Number, value: 1 }, match), 1);
-    assertEquals(exec({ kind: ExpressionKind.Reference, name: "_" }, match), 7);
+    assertEquals(
+      unwrap(exec({ kind: ExpressionKind.Number, value: 1 }, match)),
+      1,
+    );
+    assertEquals(
+      unwrap(exec({ kind: ExpressionKind.Reference, name: "_" }, match)),
+      7,
+    );
   });
 
   await t.step(
@@ -23,7 +30,7 @@ Deno.test("runtime/exec", async (t) => {
         match,
       );
       assert(result instanceof Promise);
-      assertEquals(await result, 2);
+      assertEquals(unwrap(await result), 2);
     },
   );
 

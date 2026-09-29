@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { MatchKind } from "../../match.ts";
+import { MatchKind, valueOf } from "../../match.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { lit } from "../../runtime/patterns/value_source.ts";
 import { uffdaGrammar } from "./uffda.lang.ts";
@@ -16,7 +16,7 @@ Deno.test("lang.uffda.attribute-rules", async (t) => {
       const match = await uffdaGrammar("rule Main = any;");
       assertEquals(match.kind, MatchKind.Ok);
       if (match.kind !== MatchKind.Ok) return;
-      const declaration = match.value.declarations[0];
+      const declaration = valueOf(match).declarations[0];
       assertEquals("attributes" in declaration && declaration.attributes, []);
     },
   );
@@ -27,7 +27,7 @@ Deno.test("lang.uffda.attribute-rules", async (t) => {
       const match = await uffdaGrammar("[Foo] rule Main = any;");
       assertEquals(match.kind, MatchKind.Ok);
       if (match.kind !== MatchKind.Ok) return;
-      const declaration = match.value.declarations[0];
+      const declaration = valueOf(match).declarations[0];
       assertEquals(
         "attributes" in declaration && declaration.attributes,
         [{ kind: "attribute", name: "Foo", args: [] }],
@@ -41,7 +41,7 @@ Deno.test("lang.uffda.attribute-rules", async (t) => {
       const match = await uffdaGrammar('[Foo 1 "bar"] rule Main = any;');
       assertEquals(match.kind, MatchKind.Ok);
       if (match.kind !== MatchKind.Ok) return;
-      const declaration = match.value.declarations[0];
+      const declaration = valueOf(match).declarations[0];
       if (!("attributes" in declaration)) {
         throw new Error("expected attributes");
       }
@@ -57,7 +57,7 @@ Deno.test("lang.uffda.attribute-rules", async (t) => {
       const match = await uffdaGrammar("[Foo][Bar] rule Main = any;");
       assertEquals(match.kind, MatchKind.Ok);
       if (match.kind !== MatchKind.Ok) return;
-      const declaration = match.value.declarations[0];
+      const declaration = valueOf(match).declarations[0];
       assertEquals(
         "attributes" in declaration && declaration.attributes,
         [
@@ -74,7 +74,7 @@ Deno.test("lang.uffda.attribute-rules", async (t) => {
       const match = await uffdaGrammar("[Foo] func Main<a:any> = a;");
       assertEquals(match.kind, MatchKind.Ok);
       if (match.kind !== MatchKind.Ok) return;
-      const declaration = match.value.declarations[0];
+      const declaration = valueOf(match).declarations[0];
       assertEquals(declaration.kind, "func");
       assertEquals(
         "attributes" in declaration && declaration.attributes,
@@ -89,7 +89,7 @@ Deno.test("lang.uffda.attribute-rules", async (t) => {
       const match = await uffdaGrammar("export [Foo] rule Main = any;");
       assertEquals(match.kind, MatchKind.Ok);
       if (match.kind !== MatchKind.Ok) return;
-      const declaration = match.value.declarations.find((d) =>
+      const declaration = valueOf(match).declarations.find((d) =>
         d.kind === "rule"
       );
       if (!declaration || !("attributes" in declaration)) {
@@ -107,7 +107,7 @@ Deno.test("lang.uffda.attribute-rules", async (t) => {
       const match = await uffdaGrammar('[Foo] rule Main = "." end;');
       assertEquals(match.kind, MatchKind.Ok);
       if (match.kind !== MatchKind.Ok) return;
-      const declaration = match.value.declarations[0];
+      const declaration = valueOf(match).declarations[0];
       if (declaration.kind !== "rule") throw new Error("expected rule");
       assertEquals(declaration.pattern, {
         kind: PatternKind.Then,

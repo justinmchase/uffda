@@ -1,6 +1,7 @@
 import { iterable } from "./globals/iterable.ts";
 import { Input } from "../input.ts";
 import type { Awaitable } from "./awaitable.ts";
+import { isWrapped, rawOf, wrapItem } from "../wrapped.ts";
 
 // The real, shared intrinsic prototypes for generator/async-generator
 // instances, captured once from throwaway generator functions. Note: a
@@ -32,6 +33,7 @@ const AsyncGeneratorPrototype =
  * not be mistaken for a lazy sequence and drained/replaced.
  */
 export function isGenerator(value: unknown): boolean {
+  value = rawOf(value);
   return (
     value != null &&
     (Object.prototype.isPrototypeOf.call(GeneratorPrototype, value) ||
@@ -49,11 +51,16 @@ export function isGenerator(value: unknown): boolean {
  * and throws the same `TypeError` for anything else.
  *
  * A value that is only synchronously iterable is drained immediately; a
- * promise is returned only when the value is async iterable.
+ * promise is returned only when the value is async iterable. The items of a
+ * wrapped value are wrapped (see `wrapItem`), so draining keeps provenance.
  */
 export function collect(value: unknown): Awaitable<unknown[]> {
-  if (!Input.isAsyncIterable(value) && Input.isIterable(value)) {
-    return [...value];
+  const raw = rawOf(value);
+  if (!Input.isAsyncIterable(raw) && Input.isIterable(raw)) {
+    const items = [...raw];
+    return isWrapped(value)
+      ? items.map((item, i) => wrapItem(value, item, i))
+      : items;
   }
   return drain(iterable(value));
 }

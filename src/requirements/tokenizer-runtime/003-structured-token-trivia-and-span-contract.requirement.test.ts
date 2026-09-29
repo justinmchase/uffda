@@ -1,13 +1,14 @@
-import { assertEquals } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
+import { shallow } from "../../wrapped.ts";
 import { collect } from "../../testing.ts";
 import { Input } from "../../input.ts";
-import { type Match, MatchKind, type MatchOk } from "../../match.ts";
-import type { TokenizerLangValue } from "../../lang/tokenizer/tokenizer.lang.ts";
+import { type Match, MatchKind, type MatchOk, valueOf } from "../../match.ts";
 import {
   isTokenValue,
   StructuredTokenKind,
+  type TokenizerLangValue,
   type TokenValue,
-} from "../../lang/tokenizer/structured.ts";
+} from "../../lang/tokenizer/tokenizer.lang.ts";
 import { Resolver } from "../../runtime/resolve.ts";
 import { Scope } from "../../runtime/scope.ts";
 import { match } from "../../runtime/match.ts";
@@ -20,8 +21,8 @@ const moduleUrl =
     .href;
 
 function tokenKey(node: MatchOk): string {
-  const token = node.value as TokenValue;
-  return `${token.kind}:${token.text}:${node.normalizedSpan.start}:${node.normalizedSpan.end}`;
+  const token = valueOf(node) as TokenValue;
+  return `${token.kind}:${token.text}:${node.originalSpan.start}:${node.originalSpan.end}`;
 }
 
 function uniqueTokenMatches(nodes: MatchOk[]): MatchOk[] {
@@ -109,7 +110,7 @@ Deno.test("req:tokenizer-runtime-003 - match results carry trivia-compatible tok
   assertEquals(m.kind, MatchKind.Ok);
   if (m.kind !== MatchKind.Ok) return;
 
-  const [value] = m.value as [TokenizerLangValue, unknown];
+  const [value] = valueOf(m) as [TokenizerLangValue, unknown];
   // Normalized text: "a\n# hi\nb"
   assertEquals(value.source.text, "a\n# hi\nb");
   assertEquals(await collect(value.tokens), ["a", "\n", "\n", "b"]);
@@ -120,44 +121,35 @@ Deno.test("req:tokenizer-runtime-003 - match results carry trivia-compatible tok
   );
 
   const tokenMatches = uniqueTokenMatches(
-    [...walk(m)].filter((node) => isTokenValue(node.value)),
+    [...walk(m)].filter((node) => isTokenValue(shallow(node.value))),
   );
   for (const node of tokenMatches) {
-    const token = node.value as TokenValue;
+    const token = valueOf(node) as TokenValue;
     assertEquals(
-      "normalizedSpan" in token || "originalSpan" in token,
+      "originalSpan" in token,
       false,
       `token value ${token.kind}:${token.text} must not embed source spans`,
     );
   }
 
   const words = tokenMatches.filter((node) =>
-    (node.value as TokenValue).kind === StructuredTokenKind.Word
+    (valueOf(node) as TokenValue).kind === StructuredTokenKind.Word
   );
   assertEquals(
     words.map((node) => ({
-      text: (node.value as TokenValue).text,
-      normalized: node.normalizedSpan,
+      text: (valueOf(node) as TokenValue).text,
       original: node.originalSpan,
     })),
     [
-      {
-        text: "a",
-        normalized: { start: 0, end: 1 },
-        original: { start: 0, end: 1 },
-      },
-      {
-        text: "b",
-        normalized: { start: 7, end: 8 },
-        original: { start: 9, end: 10 },
-      },
+      { text: "a", original: { start: 0, end: 1 } },
+      { text: "b", original: { start: 9, end: 10 } },
     ],
   );
 
   const comment = tokenMatches.find((node) =>
-    (node.value as TokenValue).kind === StructuredTokenKind.Comment
+    (valueOf(node) as TokenValue).kind === StructuredTokenKind.Comment
   );
-  assertEquals((comment?.value as TokenValue | undefined)?.text, "# hi");
-  assertEquals(comment?.normalizedSpan, { start: 2, end: 6 });
+  assert(comment);
+  assertEquals((valueOf(comment) as TokenValue).text, "# hi");
   assertEquals(comment?.originalSpan, { start: 3, end: 7 });
 });

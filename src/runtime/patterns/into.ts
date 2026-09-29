@@ -1,44 +1,12 @@
 import { type } from "@justinmchase/type";
 import { error, fail, MatchErrorCode, MatchKind, ok } from "../../match.ts";
-import {
-  Input,
-  InputNormalizationMode,
-  type SourceProvenance,
-  sourceProvenanceFrom,
-} from "../../input.ts";
+import { Input, InputNormalizationMode } from "../../input.ts";
 import { compile } from "../match.ts";
 import type { Scope } from "../scope.ts";
 import type { IntoPattern } from "./pattern.ts";
-import { leafOffset } from "../../span.ts";
 import { andThen, type AwaitableMatch } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
-
-function provenanceForIntoItem(
-  value: unknown,
-  parent: Input,
-  item: Input,
-): SourceProvenance | undefined {
-  const fromValue = sourceProvenanceFrom(value);
-  if (fromValue) return fromValue;
-
-  if (typeof value === "string" && parent.provenance?.itemSpans) {
-    // Stream leaf indices are 1-based; itemSpans is 0-based.
-    const index = leafOffset(item.path) - 1;
-    const span = index >= 0
-      ? parent.provenance.itemSpans[index]
-      : parent.provenance.itemSpans[0];
-    if (span) {
-      return {
-        normalizationMap: Array.from(
-          { length: value.length + 1 },
-          (_, offset) => span.original.start + offset,
-        ),
-      };
-    }
-  }
-
-  return parent.provenance;
-}
+import { rawOf } from "../../wrapped.ts";
 
 /** Compiles an `Into` pattern into a flattened, reusable closure. */
 export function into(
@@ -51,8 +19,9 @@ export function into(
       if (!next) {
         return fail(invocationScope, pattern);
       }
-      if (!Input.isIterable(next.value) && !Input.isAsyncIterable(next.value)) {
-        const [t] = type(next.value);
+      const raw = rawOf(next.value);
+      if (!Input.isIterable(raw) && !Input.isAsyncIterable(raw)) {
+        const [t] = type(raw);
         return error(
           invocationScope,
           pattern,
@@ -71,7 +40,6 @@ export function into(
           undefined,
           InputNormalizationMode.Iterable,
           false,
-          provenanceForIntoItem(next.value, invocationScope.stream, next),
           false,
           innerOpen,
         );

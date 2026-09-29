@@ -10,31 +10,14 @@ export rule Source =
   |> SourceDocument
   ;
 
-# `normalized_unit`/`normalization_map` are module-local: they are only
-# needed by NormalizedUnit's arms and NormalizedText's projection, and are
-# not part of the general globals toolbox (#124).
-func normalized_unit<value:string start:number end:number> =
-  { value: value, originalOffsetStart: start, originalOffsetEnd: end };
+# Each unit carries its provenance: a replacement `"\n"` takes the span of the
+# characters it replaces, and a kept character is carried as is, so the joined
+# text maps every character back to the original input.
+rule CrLfUnit = "\r" "\n" -> "\n";
 
-func LastOriginalOffsetEnd<{originalOffsetEnd: u:number}> = u;
+rule CrUnit = "\r" -> "\n";
 
-func normalization_map<items:array> =
-  [
-    ...(pluck items "originalOffsetStart")
-    (LastOriginalOffsetEnd (last items { originalOffsetEnd: 0 }))
-  ];
-
-rule CrLfUnit =
-  "\r" "\n"
-  -> (normalized_unit "\n" this.normalizedSpan.start this.normalizedSpan.end);
-
-rule CrUnit =
-  "\r"
-  -> (normalized_unit "\n" this.normalizedSpan.start this.normalizedSpan.end);
-
-rule SourceUnit =
-  except "\r"
-  -> (normalized_unit _ this.normalizedSpan.start this.normalizedSpan.end);
+rule SourceUnit = except "\r";
 
 rule NormalizedUnit =
   | CrLfUnit
@@ -46,8 +29,7 @@ rule NormalizedText =
   string & [NormalizedUnit*]
   -> {
     kind: "NormalizedText",
-    text: (join (pluck _ "value") ""),
-    normalizationMap: (normalization_map _)
+    text: (join _ "")
   };
 
 # `line_starts` is module-local: it is only needed by LineIndex and is not
@@ -64,13 +46,11 @@ func line_starts<s:string> =
 rule LineIndex =
   {
     kind: "NormalizedText",
-    text: t:string,
-    normalizationMap: m:array
+    text: t:string
   }
   -> {
     kind: "LineIndex",
     text: t,
-    normalizationMap: m,
     lineStarts: (line_starts t)
   };
 
@@ -117,7 +97,6 @@ func unit_positions<text:string> =
 
 func build_source_unit<
   bsEntry:{index: bsIndex:number, value: bsValue:string, offsetStart: bsOffsetStart:number, offsetEnd: bsOffsetEnd:number}
-  bsMap:array
   bsPos:{line: bsLine:number, lineStart: bsLineStart:number}
 > =
   {
@@ -128,9 +107,7 @@ func build_source_unit<
     lineStart: bsLine,
     columnStart: (add (sub bsOffsetStart bsLineStart) 1),
     lineEnd: bsLine,
-    columnEnd: (add (add (sub bsOffsetStart bsLineStart) 1) (sub bsOffsetEnd bsOffsetStart)),
-    originalOffsetStart: (at bsMap bsOffsetStart),
-    originalOffsetEnd: (at bsMap bsOffsetEnd)
+    columnEnd: (add (add (sub bsOffsetStart bsLineStart) 1) (sub bsOffsetEnd bsOffsetStart))
   };
 
 # `next_ptr` clamps the candidate index to the current `ptr` when there is no
@@ -171,7 +148,6 @@ func advance_line_position_at<
 # `out` so `scan` can keep threading `{line, lineStart, ptr}` forward while
 # still producing one output per unit.
 func build_indexed_source_unit<
-  bisMap:array
   bisEntry:{index: number, value: string, offsetStart: number, offsetEnd: number}
   bisPos:{line: number, lineStart: number, ptr: number}
 > =
@@ -179,16 +155,15 @@ func build_indexed_source_unit<
     line: bisPos.line,
     lineStart: bisPos.lineStart,
     ptr: bisPos.ptr,
-    out: (build_source_unit bisEntry bisMap bisPos)
+    out: (build_source_unit bisEntry bisPos)
   };
 
 func to_source_unit_step<
   tsuStarts:array
-  tsuMap:array
   tsuPos:{line: number, lineStart: number, ptr: number}
   tsuEntry:{index: number, value: string, offsetStart: number, offsetEnd: number}
 > =
-  (build_indexed_source_unit tsuMap tsuEntry (advance_line_position tsuPos tsuStarts tsuEntry.offsetStart));
+  (build_indexed_source_unit tsuEntry (advance_line_position tsuPos tsuStarts tsuEntry.offsetStart));
 
 func indexed_source_unit_out<{out: isuOut:any}> = isuOut;
 
@@ -196,19 +171,17 @@ rule UnitIndex =
   {
     kind: "LineIndex",
     text: t:string,
-    normalizationMap: m:array,
     lineStarts: s:array
   }
   -> {
     kind: "UnitIndex",
     text: t,
-    normalizationMap: m,
     lineStarts: s,
     units: [
       ...(map
         (scan (unit_positions t) { line: 1, lineStart: 0, ptr: 0 }
           <acc:{line: number, lineStart: number, ptr: number} entry:{index: number, value: string, offsetStart: number, offsetEnd: number}> ->
-            (to_source_unit_step s m acc entry))
+            (to_source_unit_step s acc entry))
         indexed_source_unit_out)
     ]
   };
@@ -221,7 +194,6 @@ rule SourceDocument =
   {
     kind: "UnitIndex",
     text: t:string,
-    normalizationMap: m:array,
     lineStarts: s:array,
     units: u:array
   }
@@ -230,6 +202,5 @@ rule SourceDocument =
     documentId: (document_id t),
     text: t,
     lineStarts: s,
-    units: u,
-    normalizationMap: m
+    units: u
   };

@@ -1,6 +1,7 @@
 import { type as typeCheck } from "@justinmchase/type";
 import { fail, ok } from "../../match.ts";
 import type { Scope } from "../scope.ts";
+import { rawOf } from "../../wrapped.ts";
 import { andThen } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 import type { TypePattern } from "./pattern.ts";
@@ -13,7 +14,7 @@ export function type(pattern: TypePattern): CompiledPattern {
       if (!next) {
         return fail(scope, pattern);
       }
-      const [actualType] = typeCheck(next.value);
+      const [actualType] = typeCheck(rawOf(next.value));
       if (actualType === expectedType) {
         return ok(scope, scope.withInput(next), pattern, next.value);
       }

@@ -1,8 +1,21 @@
 import type { MatchOk } from "../../match.ts";
 import type { ReferenceExpression } from "./expression.ts";
 import { funcCallable } from "./func_callable.ts";
+import { wrapFrom, type Wrapped } from "../../wrapped.ts";
 
 export function reference(
+  expression: ReferenceExpression,
+  match: MatchOk,
+): Wrapped {
+  return wrapFrom(resolveReference(expression, match), match);
+}
+
+/**
+ * The value `expression` names, as stored: wrapped when it was carried there,
+ * raw for funcs, globals, specials, and `this`. For callers that observe the
+ * value immediately (an invocation target), so it is never wrapped.
+ */
+export function resolveReference(
   expression: ReferenceExpression,
   match: MatchOk,
 ): unknown {

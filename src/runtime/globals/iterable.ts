@@ -1,4 +1,5 @@
 import { defineMetadata } from "../value_metadata.ts";
+import { isWrapped, wrapItem, type Wrapped } from "../../wrapped.ts";
 
 function hasAsyncIterator(
   value: unknown,
@@ -36,6 +37,12 @@ function hasIterator(value: unknown): value is Iterable<unknown> {
  * via a computed `[(symbol "asyncIterator")]` object key.
  */
 export function iterable(value: unknown): AsyncIterable<unknown> {
+  if (isWrapped(value)) {
+    const source = value;
+    return {
+      [Symbol.asyncIterator]: () => wrappedItems(source),
+    };
+  }
   if (hasAsyncIterator(value)) {
     return value;
   }
@@ -53,6 +60,14 @@ export function iterable(value: unknown): AsyncIterable<unknown> {
   throw new TypeError(
     "iterable expects a value with Symbol.iterator or Symbol.asyncIterator",
   );
+}
+
+/** The items of a wrapped sequence, each wrapped (see `wrapItem`). */
+async function* wrappedItems(source: Wrapped): AsyncGenerator<Wrapped> {
+  let index = 0;
+  for await (const item of iterable(source.raw)) {
+    yield wrapItem(source, item, index++);
+  }
 }
 
 defineMetadata(iterable, {

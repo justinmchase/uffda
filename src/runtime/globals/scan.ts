@@ -1,5 +1,8 @@
 import { iterable } from "./iterable.ts";
 import { defineMetadata } from "../value_metadata.ts";
+import { rawOf, type Wrapped } from "../../wrapped.ts";
+
+type Step = (acc: unknown, item: unknown) => unknown;
 
 /**
  * Lazily thread a running accumulator across a value, yielding the updated
@@ -29,11 +32,12 @@ import { defineMetadata } from "../value_metadata.ts";
 export async function* scan(
   self: unknown,
   initial: unknown,
-  fn: (acc: unknown, item: unknown) => unknown,
+  fn: Step | Wrapped<Step>,
 ): AsyncGenerator<unknown> {
+  const step = rawOf(fn);
   let acc = initial;
   for await (const item of iterable(self)) {
-    acc = await fn(acc, item);
+    acc = await step(acc, item);
     yield acc;
   }
 }

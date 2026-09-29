@@ -12,6 +12,7 @@ import {
 } from "./runtime.compiler.ts";
 import { uffdaGrammar } from "./uffda.lang.ts";
 import type { UffdaSyntaxModule } from "./syntax.types.ts";
+import { valueOf } from "../../match.ts";
 
 export class UffdaCompilationError extends Error {
   constructor(
@@ -30,7 +31,7 @@ export async function compileUffdaSyntaxModule(
 ): Promise<ModuleDeclaration> {
   const compiled = await runUffdaRuntimeCompiler(syntaxModule);
   if (compiled.kind === MatchKind.Ok) {
-    return compiled.value;
+    return valueOf(compiled);
   }
 
   const diagnostic = diagnoseUffdaRuntimeCompilerFailure(compiled);
@@ -67,10 +68,10 @@ export async function executeUffdaSource(
     return parsed;
   }
 
-  const compiled = await runUffdaRuntimeCompiler(parsed.value);
+  const compiled = await runUffdaRuntimeCompiler(valueOf(parsed));
   if (compiled.kind !== MatchKind.Ok) {
     return compiled;
   }
 
-  return await executeModuleDeclaration(compiled.value, options);
+  return await executeModuleDeclaration(valueOf(compiled), options);
 }

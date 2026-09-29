@@ -2,6 +2,7 @@ import { assertEquals } from "@std/assert";
 import { MatchKind } from "../../match.ts";
 import { runUffdaRuntimeCompiler } from "../../lang/uffda/runtime.compiler.ts";
 import { fromFileUrl, join } from "@std/path";
+import { unwrap } from "../../wrapped.ts";
 
 Deno.test("req:uffda-runtime-compilation-001 - compiler is an executable runtime language", async () => {
   const uff = await Deno.readTextFile(
@@ -23,7 +24,7 @@ Deno.test("req:uffda-runtime-compilation-001 - compiler is an executable runtime
 
   assertEquals(match.kind, MatchKind.Ok);
   if (match.kind === MatchKind.Ok) {
-    assertEquals(match.value, {
+    assertEquals(unwrap(match.value), {
       imports: [],
       exports: [],
       rules: [],

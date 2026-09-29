@@ -3,10 +3,11 @@ import type { Scope } from "./runtime/scope.ts";
 import type { Rule } from "./runtime/modules/mod.ts";
 import {
   type SourceSpan,
-  sourceSpansFrom,
+  sourceSpanFrom,
   type Span,
   spanFrom,
 } from "./span.ts";
+import { unwrap, wrapFrom, type Wrapped } from "./wrapped.ts";
 
 export type { SourceSpan } from "./span.ts";
 
@@ -64,10 +65,10 @@ export type MatchOk<T = unknown> = {
   pattern: Pattern;
   scope: Scope;
   span: Span;
-  normalizedSpan: SourceSpan;
   originalSpan: SourceSpan;
   matches: Match[];
-  value: T;
+  /** Carried as a wrapped value; see `./wrapped.ts`. */
+  value: Wrapped<T>;
   /** Set only for the Ok produced by a fresh rule invocation; see {@link MatchOrigin}. */
   origin?: MatchOrigin;
   /**
@@ -86,7 +87,6 @@ export type MatchFail = {
   pattern: Pattern;
   scope: Scope;
   span: Span;
-  normalizedSpan: SourceSpan;
   originalSpan: SourceSpan;
   matches: Match[];
   /** Set only for the Fail produced by a fresh rule invocation; see {@link MatchOrigin}. */
@@ -98,7 +98,6 @@ export type MatchError = {
   pattern: Pattern;
   scope: Scope;
   span: Span;
-  normalizedSpan: SourceSpan;
   originalSpan: SourceSpan;
   code: MatchErrorCode;
   message: string;
@@ -126,11 +125,10 @@ export function error(
   message: string,
   cause?: unknown,
 ): MatchError {
-  const { normalizedSpan, originalSpan } = sourceSpansFrom(scope, scope);
+  const originalSpan = sourceSpanFrom(scope, scope);
   return {
     kind: MatchKind.Error,
     span: spanFrom(scope, scope),
-    normalizedSpan,
     originalSpan,
     pattern,
     scope,
@@ -141,6 +139,9 @@ export function error(
   };
 }
 
+// Replaced before `ok()` returns; the match must exist to be its value's origin.
+const PENDING = undefined as unknown as Wrapped;
+
 export function ok(
   start: Scope,
   end: Scope,
@@ -149,18 +150,26 @@ export function ok(
   matches: Match[] = [],
   origin?: MatchOrigin,
 ): MatchOk {
-  const { normalizedSpan, originalSpan } = sourceSpansFrom(start, end);
-  return {
+  const originalSpan = sourceSpanFrom(start, end);
+  const m: MatchOk = {
     kind: MatchKind.Ok,
     span: spanFrom(start, end),
-    normalizedSpan,
     originalSpan,
     pattern,
     scope: end,
-    value,
+    value: PENDING,
     matches,
     origin,
   };
+  // A value that is not already carried was computed by this match, so it
+  // takes this match's span as its origin.
+  m.value = wrapFrom(value, m);
+  return m;
+}
+
+/** The fully raw value of `match`, for host code (see `unwrap`). */
+export function valueOf<T>(match: MatchOk<T>): T {
+  return unwrap(match.value) as T;
 }
 
 export function fail(
@@ -169,11 +178,10 @@ export function fail(
   matches: Match[] = [],
   origin?: MatchOrigin,
 ): MatchFail {
-  const { normalizedSpan, originalSpan } = sourceSpansFrom(scope, scope);
+  const originalSpan = sourceSpanFrom(scope, scope);
   return {
     kind: MatchKind.Fail,
     span: spanFrom(scope, scope),
-    normalizedSpan,
     originalSpan,
     scope,
     pattern,

@@ -10,6 +10,7 @@ import { PatternKind } from "./pattern.kind.ts";
 import { lit, ValueSourceKind } from "./value_source.ts";
 import { match } from "../match.ts";
 import { Scope } from "../scope.ts";
+import { unwrap, Wrapped } from "../../wrapped.ts";
 
 Deno.test("runtime.patterns.pipeline", async (t) => {
   await t.step({
@@ -127,7 +128,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
               },
               expression: {
                 kind: ExpressionKind.Native,
-                fn: ({ _ }) => _.map((n: number) => n + 1),
+                fn: ({ _ }) => (unwrap(_) as number[]).map((n) => n + 1),
               },
             },
             {
@@ -139,7 +140,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
               },
               expression: {
                 kind: ExpressionKind.Native,
-                fn: ({ _ }) => _.map((n: number) => n * 2),
+                fn: ({ _ }) => (unwrap(_) as number[]).map((n) => n * 2),
               },
             },
             {
@@ -197,7 +198,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
               },
               expression: {
                 kind: ExpressionKind.Native,
-                fn: ({ _ }) => _.map((n: number) => n * 2),
+                fn: ({ _ }) => (unwrap(_) as number[]).map((n) => n * 2),
               },
             },
             {
@@ -247,7 +248,8 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
               },
               expression: {
                 kind: ExpressionKind.Native,
-                fn: ({ _ }) => _.reduce((i: number, n: number) => i + n, 0),
+                fn: ({ _ }) =>
+                  (unwrap(_) as number[]).reduce((i, n) => i + n, 0),
               },
             },
             {
@@ -298,7 +300,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
               },
               expression: {
                 kind: ExpressionKind.Native,
-                fn: ({ _ }) => _.join("-"),
+                fn: ({ _ }) => (unwrap(_) as unknown[]).join("-"),
               },
             },
             {
@@ -425,20 +427,13 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
   });
 
   await t.step({
-    name: "PIPELINE08 carries string originalSpan into next step provenance",
+    name:
+      "PIPELINE08 a carried string keeps its characters' origins in the next step",
     fn: async () => {
-      const itemSpans = [
-        {
-          normalized: { start: 0, end: 3 },
-          original: { start: 40, end: 43 },
-        },
-      ];
-      const scope = Scope.From(
-        Input.From(["abc"], {
-          kind: InputNormalizationMode.Iterable,
-          provenance: { itemSpans },
-        }),
-      );
+      const origin = { start: 40, end: 43 };
+      const scope = Scope.From(Input.Iterable([
+        new Wrapped("abc", origin, [{ length: 3, origin, linear: true }]),
+      ]));
       const m = await match(
         {
           kind: PatternKind.Pipeline,
@@ -465,28 +460,13 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
   });
 
   await t.step({
-    name: "PIPELINE09 slices parent itemSpans for string-array stages",
+    name: "PIPELINE09 carried items keep their origins in the next step",
     fn: async () => {
-      const itemSpans = [
-        {
-          normalized: { start: 0, end: 1 },
-          original: { start: 10, end: 11 },
-        },
-        {
-          normalized: { start: 1, end: 2 },
-          original: { start: 11, end: 12 },
-        },
-        {
-          normalized: { start: 2, end: 3 },
-          original: { start: 12, end: 13 },
-        },
-      ];
-      const scope = Scope.From(
-        Input.From(["a", "!", "c"], {
-          kind: InputNormalizationMode.Iterable,
-          provenance: { itemSpans },
-        }),
-      );
+      const scope = Scope.From(Input.Iterable([
+        new Wrapped("a", { start: 10, end: 11 }),
+        new Wrapped("!", { start: 11, end: 12 }),
+        new Wrapped("c", { start: 12, end: 13 }),
+      ]));
       const m = await match(
         {
           kind: PatternKind.Pipeline,
@@ -540,7 +520,7 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       );
       assertEquals(m.kind, MatchKind.Ok);
       if (m.kind !== MatchKind.Ok) return;
-      assertEquals(m.value, 5);
+      assertEquals(unwrap(m.value), 5);
     },
   });
 });

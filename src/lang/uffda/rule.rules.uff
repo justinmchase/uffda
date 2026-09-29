@@ -42,10 +42,10 @@ rule RuleQuotedTokenContent =
   ;
 
 rule RuleQuotedTokenSequence =
-  "\""
+  o:"\""
   c:RuleQuotedTokenContent*
-  "\""
-  -> (flat (pack "\"" (flat c) "\""));
+  e:"\""
+  -> (flat (pack o (flat c) e));
 
 rule RuleProjectionToken =
   (
@@ -62,16 +62,16 @@ rule RulePatternTokenUntilSemicolon =
   -> (flat _);
 
 rule RulePatternChunkNestedParen =
-  "("
+  o:"("
   c:RulePatternChunkNested*
-  ")"
-  -> (flat (pack "(" (flat c) ")"));
+  e:")"
+  -> (flat (pack o (flat c) e));
 
 rule RulePatternChunkNestedBracket =
-  "["
+  o:"["
   c:RulePatternChunkNested*
-  "]"
-  -> (flat (pack "[" (flat c) "]"));
+  e:"]"
+  -> (flat (pack o (flat c) e));
 
 rule RulePatternChunkNestedBrace =
   o:"{"
@@ -93,16 +93,16 @@ rule RulePatternChunkNested =
   ;
 
 rule RulePatternChunkAtDepth0Paren =
-  "("
+  o:"("
   c:RulePatternChunkNested*
-  ")"
-  -> (flat (pack "(" (flat c) ")"));
+  e:")"
+  -> (flat (pack o (flat c) e));
 
 rule RulePatternChunkAtDepth0Bracket =
-  "["
+  o:"["
   c:RulePatternChunkNested*
-  "]"
-  -> (flat (pack "[" (flat c) "]"));
+  e:"]"
+  -> (flat (pack o (flat c) e));
 
 rule RulePatternChunkAtDepth0Brace =
   o:"{"

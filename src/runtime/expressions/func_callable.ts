@@ -6,6 +6,7 @@ import { andThen, type Awaitable } from "../awaitable.ts";
 import type { Func } from "../modules/func.ts";
 import { PatternKind } from "../patterns/pattern.kind.ts";
 import type { Pattern } from "../patterns/pattern.ts";
+import { originOf } from "../../wrapped.ts";
 
 export type FuncCallable = (...args: unknown[]) => Awaitable<unknown>;
 
@@ -49,12 +50,17 @@ export function funcCallable(
 ): FuncCallable {
   return (...args: unknown[]) => {
     const pattern = argsPattern(fn.pattern);
+    // Raw arguments (for example from a host global) take `matchOk` as origin.
     const stream = new Input(
       args,
       matchOk.scope.stream.path.push(0),
       0,
       undefined,
       InputNormalizationMode.Iterable,
+      false,
+      false,
+      false,
+      originOf(matchOk),
     );
     const scope = matchOk.scope.withInput(stream);
     return andThen(match(pattern, scope), (result) => {

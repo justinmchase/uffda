@@ -1,5 +1,6 @@
 import { Type, type } from "@justinmchase/type";
 import { type Match, MatchKind } from "../match.ts";
+import { rawOf, shallow } from "../wrapped.ts";
 
 /**
  * Readers for the editor metadata vocabulary declared in
@@ -110,7 +111,7 @@ export function documentationOf(
 /** The `name` field of a node's projected value (a `[Declaration]`). */
 export function declaredName(node: Match): string | undefined {
   if (node.kind !== MatchKind.Ok) return undefined;
-  const name = field(node.value, "name");
+  const name = field(shallow(node.value), "name");
   return type(name)[0] === Type.String ? name as string : undefined;
 }
 
@@ -119,8 +120,9 @@ export function declaredName(node: Match): string | undefined {
  * string (e.g. an unescaped module path), otherwise its source text.
  */
 export function nodeText(node: AnnotatableMatch, source: string): string {
-  if (node.kind === MatchKind.Ok && type(node.value)[0] === Type.String) {
-    return node.value as string;
+  const value = node.kind === MatchKind.Ok ? rawOf(node.value) : undefined;
+  if (type(value)[0] === Type.String) {
+    return value as string;
   }
   return source.slice(node.originalSpan.start, node.originalSpan.end);
 }

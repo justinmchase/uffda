@@ -11,6 +11,8 @@ import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { Scope } from "../../runtime/scope.ts";
 import { ModuleImportResultKind } from "../../runtime/resolvers/resolver.ts";
 import { resolve } from "../../runtime/patterns/resolve.ts";
+import { unwrap } from "../../wrapped.ts";
+import { valueOf } from "../../match.ts";
 
 const moduleUrl = new URL("./expression.lang.uff", import.meta.url);
 
@@ -64,8 +66,8 @@ Deno.test(
       ]);
       assertEquals(m.kind, MatchKind.Ok);
       if (m.kind === MatchKind.Ok) {
-        const value = await exec(m.value as Expression, m);
-        assertEquals(value, [1, 2]);
+        const value = await exec(valueOf(m) as Expression, m);
+        assertEquals(unwrap(value), [1, 2]);
       }
     });
 
@@ -75,8 +77,8 @@ Deno.test(
         const m = await expressionGrammar("(add 1 2)");
         switch (m.kind) {
           case MatchKind.Ok: {
-            const value = await exec(m.value, m);
-            assertEquals(value, 3);
+            const value = await exec(valueOf(m), m);
+            assertEquals(unwrap(value), 3);
             break;
           }
           case MatchKind.Fail:
@@ -99,8 +101,8 @@ Deno.test(
         const m = await expressionGrammar("( add   1   2 )");
         switch (m.kind) {
           case MatchKind.Ok: {
-            const value = await exec(m.value, m);
-            assertEquals(value, 3);
+            const value = await exec(valueOf(m), m);
+            assertEquals(unwrap(value), 3);
             break;
           }
           case MatchKind.Fail:
@@ -123,8 +125,8 @@ Deno.test(
         const m = await expressionGrammar("(coalesce null 7)");
         switch (m.kind) {
           case MatchKind.Ok: {
-            const value = await exec(m.value, m);
-            assertEquals(value, 7);
+            const value = await exec(valueOf(m), m);
+            assertEquals(unwrap(value), 7);
             break;
           }
           case MatchKind.Fail:
@@ -147,8 +149,8 @@ Deno.test(
         const m = await expressionGrammar("[1 2 true null]");
         switch (m.kind) {
           case MatchKind.Ok: {
-            const value = await exec(m.value, m);
-            assertEquals(value, [1, 2, true, null]);
+            const value = await exec(valueOf(m), m);
+            assertEquals(unwrap(value), [1, 2, true, null]);
             break;
           }
           case MatchKind.Fail:
@@ -173,8 +175,8 @@ Deno.test(
         );
         switch (m.kind) {
           case MatchKind.Ok: {
-            const value = await exec(m.value, m);
-            assertEquals(value, {
+            const value = await exec(valueOf(m), m);
+            assertEquals(unwrap(value), {
               name: 1,
               enabled: true,
               fallback: undefined,
@@ -205,8 +207,8 @@ Deno.test(
         const m = await expressionGrammar("[1 ...xs]", { globals });
         switch (m.kind) {
           case MatchKind.Ok: {
-            const value = await exec(m.value, m);
-            assertEquals(value, [1, 2, 3]);
+            const value = await exec(valueOf(m), m);
+            assertEquals(unwrap(value), [1, 2, 3]);
             break;
           }
           case MatchKind.Fail:
@@ -233,8 +235,8 @@ Deno.test(
         const m = await expressionGrammar("{...base, count: 1}", { globals });
         switch (m.kind) {
           case MatchKind.Ok: {
-            const value = await exec(m.value, m);
-            assertEquals(value, { enabled: true, count: 1 });
+            const value = await exec(valueOf(m), m);
+            assertEquals(unwrap(value), { enabled: true, count: 1 });
             break;
           }
           case MatchKind.Fail:
@@ -288,8 +290,8 @@ Deno.test(
         const m = await expressionGrammar("(<x:any> -> (add x 1) 5)");
         switch (m.kind) {
           case MatchKind.Ok: {
-            const value = await exec(m.value, m);
-            assertEquals(value, 6);
+            const value = await exec(valueOf(m), m);
+            assertEquals(unwrap(value), 6);
             break;
           }
           default:
@@ -304,8 +306,8 @@ Deno.test(
         const m = await expressionGrammar("(<a:any b:any> -> (add a b) 2 3)");
         switch (m.kind) {
           case MatchKind.Ok: {
-            const value = await exec(m.value, m);
-            assertEquals(value, 5);
+            const value = await exec(valueOf(m), m);
+            assertEquals(unwrap(value), 5);
             break;
           }
           default:
@@ -320,8 +322,8 @@ Deno.test(
         const m = await expressionGrammar("(<x:any> -> x 9)");
         switch (m.kind) {
           case MatchKind.Ok: {
-            const value = await exec(m.value, m);
-            assertEquals(value, 9);
+            const value = await exec(valueOf(m), m);
+            assertEquals(unwrap(value), 9);
             break;
           }
           default:
@@ -338,8 +340,8 @@ Deno.test(
         );
         switch (m.kind) {
           case MatchKind.Ok: {
-            const value = await exec(m.value, m);
-            assertEquals(value, 10);
+            const value = await exec(valueOf(m), m);
+            assertEquals(unwrap(value), 10);
             break;
           }
           default:
@@ -354,7 +356,7 @@ Deno.test("lang.expression string literals keep whitespace", async () => {
   const match = await expressionGrammar('"a b {  (length s) } c"');
   assertEquals(match.kind, MatchKind.Ok);
   if (match.kind !== MatchKind.Ok) return;
-  assertEquals(match.value, {
+  assertEquals(unwrap(match.value), {
     kind: ExpressionKind.String,
     values: [
       "a b ",

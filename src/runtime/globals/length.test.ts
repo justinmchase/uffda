@@ -2,6 +2,7 @@ import { assertEquals } from "@std/assert";
 import { assertThrows } from "@std/assert/throws";
 import { length } from "./length.ts";
 import { metadataOf } from "../value_metadata.ts";
+import { rootOrigin, Wrapped } from "../../wrapped.ts";
 
 Deno.test("globals.length returns the length of a string", () => {
   assertEquals(length("abc"), 3);
@@ -31,5 +32,13 @@ Deno.test("globals.length carries metadata", () => {
   assertEquals(
     metadataOf(length)?.parameters.map((p) => p.name),
     ["value"],
+  );
+});
+
+Deno.test("globals.length observes the raw value", () => {
+  assertEquals(length(new Wrapped("abc", rootOrigin(0, 3))), 3);
+  assertEquals(
+    length(new Wrapped([new Wrapped(1, rootOrigin(0))], rootOrigin(0))),
+    1,
   );
 });

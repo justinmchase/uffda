@@ -44,12 +44,10 @@ import { when } from "./when.ts";
  * precursors (B6/B7) have since moved to author-defined `func` declarations
  * in their owning language modules
  * (https://github.com/justinmchase/uffda/issues/124). The one remaining
- * domain need — reading span/offset metadata off the current match — no
- * longer requires a global at all: the reserved `this` reference resolves to
- * the current `MatchOk`, so expressions read it directly (for example
- * `this.normalizedSpan.start`; see
- * `.agents/specifications/expressions/reference.spec.md`). Do not grow more
- * stack-specific globals without considering that path first.
+ * domain need — mapping values back to source offsets — needs no global at
+ * all: every value carries its origin (see
+ * `.agents/specifications/runtime/value-provenance.spec.md`). Do not grow
+ * more stack-specific globals without considering that path first.
  */
 export const defaultGlobals = new Map<string, unknown>([
   ["add", add],

@@ -8,6 +8,7 @@ import { type Expression, isExpression } from "../runtime/expressions/mod.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 import { globals } from "../runtime/runtime.ts";
 import { isAbsolute, join, toFileUrl } from "@std/path";
+import { valueOf } from "../match.ts";
 
 export enum CliExecFailureCode {
   InvalidJson = "CLI_EXEC_INVALID_JSON",
@@ -176,7 +177,7 @@ export async function executeCliAst(
     },
   });
   return execution.kind === MatchKind.Ok
-    ? { ok: true, value: execution.value }
+    ? { ok: true, value: valueOf(execution) }
     : { ok: false, error: executionFailure(execution) };
 }
 
@@ -237,7 +238,7 @@ export async function executeCliModule(
     },
   });
   return execution.kind === MatchKind.Ok
-    ? { ok: true, value: execution.value }
+    ? { ok: true, value: valueOf(execution) }
     : { ok: false, error: executionFailure(execution) };
 }
 

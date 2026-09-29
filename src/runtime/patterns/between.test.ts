@@ -8,6 +8,12 @@ import { MatchErrorCode } from "../../match.ts";
 import { Path } from "../../mod.ts";
 import type { ToJson } from "@justinmchase/serializable";
 import type { Comparable } from "../../comparable.ts";
+import { assert, assertStrictEquals } from "@std/assert";
+import { rootOrigin, Wrapped } from "../../wrapped.ts";
+import { InputNormalizationMode } from "../../input.ts";
+import { match } from "../match.ts";
+import { Scope } from "../scope.ts";
+import type { Pattern } from "./pattern.ts";
 
 class Test implements ToJson {
   constructor(public readonly value: number) {}
@@ -370,4 +376,26 @@ Deno.test("runtime.patterns.between", async (t) => {
       items: ["m"],
     }),
   });
+});
+
+async function matchWrapped(
+  pattern: Pattern,
+  item: Wrapped,
+  variables = new Map<string, unknown>(),
+) {
+  const scope = Scope.From(new Wrapped([item], item.origin), {
+    kind: InputNormalizationMode.Iterable,
+  }).addVariables(Object.fromEntries(variables));
+  return await match(pattern, scope);
+}
+
+Deno.test("runtime/patterns/between observes the raw value of a wrapped item and carries it", async () => {
+  const item = new Wrapped(5, rootOrigin(4));
+  const m = await matchWrapped({
+    kind: PatternKind.Between,
+    left: lit(1),
+    right: lit(9),
+  }, item);
+  assert(m.kind === MatchKind.Ok);
+  assertStrictEquals(m.value, item);
 });

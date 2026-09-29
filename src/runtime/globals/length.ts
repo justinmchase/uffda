@@ -1,10 +1,12 @@
 import { defineMetadata } from "../value_metadata.ts";
+import { rawOf } from "../../wrapped.ts";
 
 /**
  * Generic length: works for strings, arrays, Sets, and Maps.
  * Authors write `(length value)`.
  */
-export function length(value: unknown): number {
+export function length(self: unknown): number {
+  const value = rawOf(self);
   if (typeof value === "string" || Array.isArray(value)) {
     return value.length;
   }

@@ -7,6 +7,7 @@ import { assertEquals } from "@std/assert";
 import { Input } from "../../src/input.ts";
 import { MatchKind } from "../../src/match.ts";
 import { executeUffdaSource } from "../../src/lang/uffda/uffda.lang.ts";
+import { unwrap } from "../../src/wrapped.ts";
 
 const MorseLang = await Deno.readTextFile(
   new URL("../../examples/morse/morse.uff", import.meta.url),
@@ -79,7 +80,7 @@ Deno.test("req:uffda-runtime-compilation-006 - source-authored Morse targets the
   assertEquals(match.kind, MatchKind.Ok);
   if (match.kind === MatchKind.Ok) {
     assertEquals(
-      match.value,
+      unwrap(match.value),
       repertoire.map(([, symbol]) => symbol).join(""),
     );
   }

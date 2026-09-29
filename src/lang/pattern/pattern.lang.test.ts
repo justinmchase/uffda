@@ -10,6 +10,7 @@ import { Type } from "@justinmchase/type";
 import { assertEquals } from "@std/assert";
 import { patternGrammar } from "./pattern.lang.ts";
 import { moduleDeclarationTest } from "../../test.ts";
+import { unwrap } from "../../wrapped.ts";
 
 const moduleUrl = new URL("./pattern.lang.uff", import.meta.url).href;
 
@@ -30,7 +31,7 @@ Deno.test(
         const m = await patternGrammar("any");
         assertEquals(m.kind, MatchKind.Ok);
         if (m.kind === MatchKind.Ok) {
-          assertEquals(m.value, { kind: PatternKind.Any });
+          assertEquals(unwrap(m.value), { kind: PatternKind.Any });
         }
       },
     });
@@ -675,7 +676,7 @@ Deno.test("lang.pattern string literals keep whitespace", async () => {
   const match = await patternGrammar('" a b "');
   assertEquals(match.kind, MatchKind.Ok);
   if (match.kind !== MatchKind.Ok) return;
-  assertEquals(match.value, {
+  assertEquals(unwrap(match.value), {
     kind: PatternKind.Equal,
     value: { kind: ValueSourceKind.Literal, value: " a b " },
   });

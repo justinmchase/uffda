@@ -1,4 +1,5 @@
 import { defineMetadata } from "../value_metadata.ts";
+import { rawOf } from "../../wrapped.ts";
 
 /**
  * Well-known symbol names (`iterator`, `asyncIterator`, `toStringTag`, …)
@@ -28,7 +29,8 @@ const wellKnownSymbolNames = new Set(
  * intentionally never used here, since it would mint a new, distinct
  * symbol on every call.
  */
-export function symbol(name: string): symbol {
+export function symbol(value: unknown): symbol {
+  const name = rawOf(value) as string;
   if (wellKnownSymbolNames.has(name)) {
     return (Symbol as unknown as Record<string, symbol>)[name];
   }

@@ -3,6 +3,7 @@ import { error, MatchErrorCode } from "../../match.ts";
 import type { Match } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import type { Pattern } from "./pattern.ts";
+import { rawOf } from "../../wrapped.ts";
 
 export enum ValueSourceKind {
   Literal = "value.literal",
@@ -61,7 +62,7 @@ export function resolveValueSource(
           ),
         };
       }
-      return { kind: "ok", value: scope.variables.get(source.name) };
+      return { kind: "ok", value: rawOf(scope.variables.get(source.name)) };
     }
     default: {
       const _exhaustive: never = source;

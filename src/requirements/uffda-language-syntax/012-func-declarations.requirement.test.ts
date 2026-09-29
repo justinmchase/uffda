@@ -1,17 +1,18 @@
 import { assertEquals } from "@std/assert";
 import { compileUffdaSyntaxModule } from "../../lang/uffda/execute.ts";
 import { uffdaGrammar } from "../../lang/uffda/uffda.lang.ts";
-import { MatchKind } from "../../match.ts";
+import { MatchKind, valueOf } from "../../match.ts";
 import { ExportDeclarationKind } from "../../runtime/declarations/export.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
+import { unwrap } from "../../wrapped.ts";
 
 Deno.test("req:uffda-language-syntax-012 - func declarations parse and lower", async () => {
   const parsed = await uffdaGrammar("func Double<a:number> = (add a a);");
   assertEquals(parsed.kind, MatchKind.Ok);
   if (parsed.kind !== MatchKind.Ok) return;
 
-  const lowered = await compileUffdaSyntaxModule(parsed.value);
+  const lowered = await compileUffdaSyntaxModule(valueOf(parsed));
   assertEquals(lowered.funcs?.length, 1);
   assertEquals(lowered.funcs?.[0].name, "Double");
   assertEquals(lowered.funcs?.[0].pattern.kind, PatternKind.Variable);
@@ -24,7 +25,7 @@ Deno.test("req:uffda-language-syntax-012 - multi-param list is Then of captures"
   assertEquals(parsed.kind, MatchKind.Ok);
   if (parsed.kind !== MatchKind.Ok) return;
 
-  const lowered = await compileUffdaSyntaxModule(parsed.value);
+  const lowered = await compileUffdaSyntaxModule(valueOf(parsed));
   const pattern = lowered.funcs?.[0].pattern;
   assertEquals(pattern?.kind, PatternKind.Then);
   if (pattern?.kind === PatternKind.Then) {
@@ -41,9 +42,9 @@ Deno.test("req:uffda-language-syntax-012 - export func normalizes like split exp
   assertEquals(split.kind, MatchKind.Ok);
   if (inline.kind !== MatchKind.Ok || split.kind !== MatchKind.Ok) return;
 
-  assertEquals(inline.value, split.value);
+  assertEquals(unwrap(inline.value), unwrap(split.value));
 
-  const lowered = await compileUffdaSyntaxModule(inline.value);
+  const lowered = await compileUffdaSyntaxModule(valueOf(inline));
   assertEquals(lowered.exports, [{
     kind: ExportDeclarationKind.Func,
     name: "Id",

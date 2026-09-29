@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { MatchKind } from "../../match.ts";
+import { MatchKind, valueOf } from "../../match.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { uffdaGrammar } from "./uffda.lang.ts";
 
@@ -16,7 +16,7 @@ Deno.test("lang.uffda.decorator-rules", async (t) => {
       const match = await uffdaGrammar('decorator Example = "example";');
       assertEquals(match.kind, MatchKind.Ok);
       if (match.kind !== MatchKind.Ok) return;
-      const declaration = match.value.declarations[0];
+      const declaration = valueOf(match).declarations[0];
       assertEquals(declaration.kind, "decorator");
       if (declaration.kind !== "decorator") return;
       assertEquals(declaration.name, "Example");
@@ -32,7 +32,7 @@ Deno.test("lang.uffda.decorator-rules", async (t) => {
       );
       assertEquals(match.kind, MatchKind.Ok);
       if (match.kind !== MatchKind.Ok) return;
-      const declaration = match.value.declarations[0];
+      const declaration = valueOf(match).declarations[0];
       assertEquals(declaration.kind, "decorator");
       if (declaration.kind !== "decorator") return;
       assertEquals(declaration.name, "Deprecated");
@@ -45,8 +45,10 @@ Deno.test("lang.uffda.decorator-rules", async (t) => {
       const match = await uffdaGrammar('export decorator Example = "example";');
       assertEquals(match.kind, MatchKind.Ok);
       if (match.kind !== MatchKind.Ok) return;
-      const decl = match.value.declarations.find((d) => d.kind === "decorator");
-      const exportDecl = match.value.declarations.find((d) =>
+      const decl = valueOf(match).declarations.find((d) =>
+        d.kind === "decorator"
+      );
+      const exportDecl = valueOf(match).declarations.find((d) =>
         d.kind === "export"
       );
       assertEquals(decl?.kind, "decorator");
@@ -60,7 +62,7 @@ Deno.test("lang.uffda.decorator-rules", async (t) => {
       const match = await uffdaGrammar("[Foo] [Bar] decorator Bar = end;");
       assertEquals(match.kind, MatchKind.Ok);
       if (match.kind !== MatchKind.Ok) return;
-      const declaration = match.value.declarations[0];
+      const declaration = valueOf(match).declarations[0];
       assertEquals(declaration.kind, "decorator");
       if (declaration.kind !== "decorator") return;
       assertEquals(

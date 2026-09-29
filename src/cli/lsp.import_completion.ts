@@ -14,6 +14,7 @@ import type {
 } from "./lsp.completion_context.ts";
 import { offsetToPosition } from "./lsp.positions.ts";
 import type { RuntimeSession } from "./mcp.session.ts";
+import { valueOf } from "../match.ts";
 
 /**
  * Completion items for import contexts (requirement 006): module files while
@@ -155,7 +156,7 @@ async function exportedNames(
   }
   const compiled = await compileUffdaSource(text);
   if (compiled.kind !== MatchKind.Ok) return [];
-  return compiled.value.exports.map((e) => ({
+  return valueOf(compiled).exports.map((e) => ({
     name: e.name,
     detail: e.kind === ExportDeclarationKind.Import
       ? "re-exported import"

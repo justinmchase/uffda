@@ -1,5 +1,6 @@
 import { assertEquals, assertThrows } from "@std/assert";
 import { Input, InputNormalizationMode } from "../../input.ts";
+import { unwrap } from "../../wrapped.ts";
 
 Deno.test("req:runtime-core-001 - Runtime defaults to scalar normalization and rejects unknown normalization modes", async (t) => {
   await t.step(
@@ -9,7 +10,7 @@ Deno.test("req:runtime-core-001 - Runtime defaults to scalar normalization and r
       const next = await input.next();
 
       assertEquals(input.kind, InputNormalizationMode.Scalar);
-      assertEquals(next.value, "abc");
+      assertEquals(unwrap(next.value), "abc");
       assertEquals(await next.done(), true);
     },
   );
@@ -22,7 +23,7 @@ Deno.test("req:runtime-core-001 - Runtime defaults to scalar normalization and r
       });
       const next = await input.next();
 
-      assertEquals(next.value, [1, 2, 3]);
+      assertEquals(unwrap(next.value), [1, 2, 3]);
       assertEquals(await next.done(), true);
     },
   );

@@ -1,5 +1,6 @@
 import { Type, type } from "@justinmchase/type";
 import { defineMetadata } from "../value_metadata.ts";
+import { rawOf } from "../../wrapped.ts";
 
 /**
  * Generic three-way comparison. Authors write `(compare left right)`.
@@ -9,8 +10,8 @@ import { defineMetadata } from "../value_metadata.ts";
  * throws so callers don't get a silently wrong ordering.
  */
 export function compare(left: unknown, right: unknown): number {
-  const [lt, lv] = type(left);
-  const [rt, rv] = type(right);
+  const [lt, lv] = type(rawOf(left));
+  const [rt, rv] = type(rawOf(right));
   if (lt !== rt) {
     throw new TypeError("compare expects two numbers or two strings");
   }

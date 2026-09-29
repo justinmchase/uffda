@@ -1,8 +1,9 @@
 import { assertEquals, assertNotEquals } from "@std/assert";
-import { MatchKind } from "../../match.ts";
+import { MatchKind, valueOf } from "../../match.ts";
 import { expressionGrammar } from "../../lang/expression/expression.lang.ts";
 import { defaultGlobals } from "../../runtime/globals/mod.ts";
 import { exec } from "../../runtime/exec.ts";
+import { unwrap } from "../../wrapped.ts";
 
 Deno.test("req:expression-language-syntax-012 - Explicit coalescing syntax supports deterministic fallback behavior without infix precedence", async (t) => {
   await t.step(
@@ -19,8 +20,8 @@ Deno.test("req:expression-language-syntax-012 - Explicit coalescing syntax suppo
       });
       assertEquals(m.kind, MatchKind.Ok);
       if (m.kind === MatchKind.Ok) {
-        const value = await exec(m.value, m);
-        assertEquals(value, "ok");
+        const value = await exec(valueOf(m), m);
+        assertEquals(unwrap(value), "ok");
       }
     },
   );
@@ -43,10 +44,10 @@ Deno.test("req:expression-language-syntax-012 - Explicit coalescing syntax suppo
     assertEquals(two.kind, MatchKind.Ok);
 
     if (one.kind === MatchKind.Ok && two.kind === MatchKind.Ok) {
-      const oneValue = await exec(one.value, one);
-      const twoValue = await exec(two.value, two);
-      assertEquals(oneValue, twoValue);
-      assertEquals(oneValue, 11);
+      const oneValue = await exec(valueOf(one), one);
+      const twoValue = await exec(valueOf(two), two);
+      assertEquals(unwrap(oneValue), unwrap(twoValue));
+      assertEquals(unwrap(oneValue), 11);
     }
   });
 

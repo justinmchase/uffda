@@ -3,6 +3,7 @@ import type { Comparable } from "../../comparable.ts";
 import type { Scope } from "../scope.ts";
 import type { BetweenPattern } from "./pattern.ts";
 import { resolveValueSource } from "./value_source.ts";
+import { rawOf } from "../../wrapped.ts";
 import { andThen } from "../awaitable.ts";
 import type { Match } from "../../match.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
@@ -42,7 +43,7 @@ export function between(pattern: BetweenPattern): CompiledPattern {
         return fail(scope, pattern);
       }
       const end = scope.withInput(next);
-      const { value } = next as { value: Comparable };
+      const value = rawOf(next.value) as Comparable;
       if (value == null) {
         return error(
           scope,

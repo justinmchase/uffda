@@ -33,6 +33,16 @@ Each input item has value-surface semantics used by runtime patterns:
 - A **keyed item** (object or `Map`) can be traversed with `over`, which
   evaluates declared keys against nested single-item streams.
 
+## Item provenance
+
+- Stream items are wrapped values (see
+  [value provenance](../runtime/value-provenance.spec.md)). Host-supplied items
+  are wrapped on entry with their root position; items of a wrapped value keep
+  their own wrappers, and a string's characters keep their character provenance.
+- A scalar input's single item is its whole value.
+- Match source spans derive from the origins of the items a Match consumed (see
+  [root input](../runtime/value-provenance.spec.md#root-input)).
+
 ## Open inputs
 
 An input stream is either **closed** (the default) or **open**. An open stream

@@ -1,5 +1,8 @@
 import { iterable } from "./iterable.ts";
 import { defineMetadata } from "../value_metadata.ts";
+import { rawOf, type Wrapped } from "../../wrapped.ts";
+
+type Callback = (value: unknown) => unknown;
 
 /**
  * Project each element of a value through an (async) callback. Lazy —
@@ -16,10 +19,11 @@ import { defineMetadata } from "../value_metadata.ts";
  */
 export async function* map(
   self: unknown,
-  callback: (value: unknown) => unknown,
+  callback: Callback | Wrapped<Callback>,
 ): AsyncGenerator<unknown> {
+  const fn = rawOf(callback);
   for await (const item of iterable(self)) {
-    yield await callback(item);
+    yield await fn(item);
   }
 }
 

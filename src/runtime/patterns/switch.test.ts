@@ -9,6 +9,11 @@ import type { SwitchPattern } from "./pattern.ts";
 import { lit, ValueSourceKind } from "./value_source.ts";
 import { switchPattern } from "./switch.ts";
 import { Scope } from "../scope.ts";
+import { assert, assertStrictEquals } from "@std/assert";
+import { rootOrigin, Wrapped } from "../../wrapped.ts";
+import { InputNormalizationMode } from "../../input.ts";
+import { match } from "../match.ts";
+import type { Pattern } from "./pattern.ts";
 
 await Deno.test("runtime/patterns/switch", async (t) => {
   await t.step({
@@ -260,4 +265,28 @@ await Deno.test("runtime/patterns/switch", async (t) => {
       items: ["a"],
     }),
   });
+});
+
+async function matchWrapped(
+  pattern: Pattern,
+  item: Wrapped,
+  variables = new Map<string, unknown>(),
+) {
+  const scope = Scope.From(new Wrapped([item], item.origin), {
+    kind: InputNormalizationMode.Iterable,
+  }).addVariables(Object.fromEntries(variables));
+  return await match(pattern, scope);
+}
+
+Deno.test("runtime/patterns/switch dispatches on the raw value of a wrapped item and carries it", async () => {
+  const item = new Wrapped("#", rootOrigin(4));
+  const m = await matchWrapped({
+    kind: PatternKind.Switch,
+    cases: [{
+      key: { kind: "values", values: [lit("#")] },
+      pattern: { kind: PatternKind.Any },
+    }],
+  }, item);
+  assert(m.kind === MatchKind.Ok);
+  assertStrictEquals(m.value, item);
 });

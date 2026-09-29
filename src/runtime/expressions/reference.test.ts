@@ -2,10 +2,12 @@ import { immediateExpressionTest } from "../../test.ts";
 import { Scope } from "../scope.ts";
 import { expressionTest } from "../../test.ts";
 import { ExpressionKind } from "./expression.kind.ts";
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertStrictEquals } from "@std/assert";
 import { ok } from "../../match.ts";
 import { PatternKind } from "../patterns/pattern.kind.ts";
 import { exec } from "../exec.ts";
+import { reference, resolveReference } from "./reference.ts";
+import { rawOf, unwrap } from "../../wrapped.ts";
 
 await Deno.test("runtime/expressions/reference", async (t) => {
   await t.step({
@@ -58,7 +60,7 @@ await Deno.test("runtime/expressions/reference", async (t) => {
         { kind: ExpressionKind.Reference, name: "this" },
         m,
       );
-      assertEquals(r, m);
+      assertStrictEquals(rawOf(r), m);
     },
   );
 
@@ -72,7 +74,7 @@ await Deno.test("runtime/expressions/reference", async (t) => {
         { kind: ExpressionKind.Reference, name: "this" },
         { ...m, subject },
       );
-      assertEquals(r, subject);
+      assertEquals(unwrap(r), subject);
     },
   );
 
@@ -84,4 +86,33 @@ await Deno.test("runtime/expressions/reference", async (t) => {
       result: 1,
     }),
   });
+
+  await t.step(
+    "REFERENCE_RESOLVE - resolveReference returns the stored value unwrapped",
+    () => {
+      const join = (...parts: unknown[]) => parts.join("");
+      const scope = Scope.Default()
+        .withOptions({ globals: new Map([["join", join]]) })
+        .addVariables({ x: 1 });
+      const m = ok(scope, scope, { kind: PatternKind.Ok }, "value");
+      assertStrictEquals(
+        resolveReference({ kind: ExpressionKind.Reference, name: "join" }, m),
+        join,
+      );
+      assertStrictEquals(
+        resolveReference({ kind: ExpressionKind.Reference, name: "this" }, m),
+        m,
+      );
+      assertStrictEquals(
+        resolveReference({ kind: ExpressionKind.Reference, name: "_" }, m),
+        m.value,
+      );
+      const wrapped = reference(
+        { kind: ExpressionKind.Reference, name: "join" },
+        m,
+      );
+      assertStrictEquals(wrapped.raw, join);
+      assertEquals(wrapped.origin, m.originalSpan);
+    },
+  );
 });

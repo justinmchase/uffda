@@ -4,6 +4,7 @@ import { Scope } from "../../runtime/scope.ts";
 import { exec } from "../../runtime/exec.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
+import { unwrap } from "../../wrapped.ts";
 
 Deno.test("req:expressions-runtime-008 - Exec completes synchronously for immediate children and propagates awaitables otherwise", async (t) => {
   const scope = Scope.Default();
@@ -22,7 +23,7 @@ Deno.test("req:expressions-runtime-008 - Exec completes synchronously for immedi
         },
         match,
       );
-      assertEquals(stringImmediateResult, "a1");
+      assertEquals(unwrap(stringImmediateResult), "a1");
 
       const arrayResult = exec(
         {
@@ -40,7 +41,7 @@ Deno.test("req:expressions-runtime-008 - Exec completes synchronously for immedi
         },
         match,
       );
-      assertEquals(arrayResult, [7, 11]);
+      assertEquals(unwrap(arrayResult), [7, 11]);
 
       const objectResult = exec(
         {
@@ -60,7 +61,7 @@ Deno.test("req:expressions-runtime-008 - Exec completes synchronously for immedi
         },
         match,
       );
-      assertEquals(objectResult, { x: 7, y: 11 });
+      assertEquals(unwrap(objectResult), { x: 7, y: 11 });
     },
   );
 
@@ -87,7 +88,7 @@ Deno.test("req:expressions-runtime-008 - Exec completes synchronously for immedi
         match,
       );
       assert(arrayAwaitableResult instanceof Promise);
-      assertEquals(await arrayAwaitableResult, [7, 11]);
+      assertEquals(unwrap(await arrayAwaitableResult), [7, 11]);
 
       const stringResult = exec(
         {
@@ -107,7 +108,7 @@ Deno.test("req:expressions-runtime-008 - Exec completes synchronously for immedi
         match,
       );
       assert(stringResult instanceof Promise);
-      assertEquals(await stringResult, "a12");
+      assertEquals(unwrap(await stringResult), "a12");
 
       const notResult = exec(
         {
@@ -120,7 +121,7 @@ Deno.test("req:expressions-runtime-008 - Exec completes synchronously for immedi
         match,
       );
       assert(notResult instanceof Promise);
-      assertEquals(await notResult, false);
+      assertEquals(unwrap(await notResult), false);
     },
   );
 
@@ -150,7 +151,7 @@ Deno.test("req:expressions-runtime-008 - Exec completes synchronously for immedi
         match,
       );
       assert(result instanceof Promise);
-      assertEquals(await result, [1, 2, 3]);
+      assertEquals(unwrap(await result), [1, 2, 3]);
       assertEquals(order, ["a", "b", "c"]);
     },
   );

@@ -8,6 +8,7 @@ import {
 } from "./match.describe_pattern.ts";
 import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
 import { StackFrameKind } from "./runtime/stack/stackFrameKind.ts";
+import { unwrap } from "./wrapped.ts";
 
 type MatchNode = {
   match: Match;
@@ -27,7 +28,7 @@ function childrenOf(match: Match): Match[] {
 function currentValue(match: Match): Promise<unknown> {
   if (match.kind === MatchKind.LR) return Promise.resolve(undefined);
   return Promise.resolve(match.scope.stream.next()).then((input) =>
-    input.value
+    unwrap(input.value)
   );
 }
 
@@ -286,10 +287,10 @@ function selectPipelineBoundary(
     if (failedIndex <= 0) continue;
 
     const previous = stages[failedIndex - 1];
-    if (previous.kind !== MatchKind.Ok || !Array.isArray(previous.value)) {
-      continue;
-    }
-    const tokens = previous.value;
+    const tokens = previous.kind === MatchKind.Ok
+      ? unwrap(previous.value)
+      : undefined;
+    if (!Array.isArray(tokens)) continue;
     if (!tokens.every((token) => typeof token === "string")) continue;
 
     let cursor = 0;
@@ -876,7 +877,7 @@ export async function visualizeMatchFailure(match: Match): Promise<string> {
         }`,
       );
       if (stage.kind === MatchKind.Ok) {
-        pipelineLines.push(`      output: ${formatValue(stage.value)}`);
+        pipelineLines.push(`      output: ${formatValue(unwrap(stage.value))}`);
       }
     }
   }

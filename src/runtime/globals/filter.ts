@@ -1,5 +1,8 @@
 import { iterable } from "./iterable.ts";
 import { defineMetadata } from "../value_metadata.ts";
+import { rawOf, type Wrapped } from "../../wrapped.ts";
+
+type Predicate = (value: unknown) => unknown;
 
 /**
  * Keep elements of a value whose (async) predicate is truthy. Lazy —
@@ -16,10 +19,11 @@ import { defineMetadata } from "../value_metadata.ts";
  */
 export async function* filter(
   self: unknown,
-  predicate: (value: unknown) => unknown,
+  predicate: Predicate | Wrapped<Predicate>,
 ): AsyncGenerator<unknown> {
+  const test = rawOf(predicate);
   for await (const item of iterable(self)) {
-    if (await predicate(item)) {
+    if (rawOf(await test(item))) {
       yield item;
     }
   }

@@ -10,9 +10,8 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-
 
 Preconditions:
 
-- Published CLI includes B6 std helpers (`normalized_unit`, `normalization_map`,
-  `line_starts`, `units`, `iterable`, `symbol`), object computed keys, the
-  reserved `this` reference, and async-iterable stream support (0.2.1+).
+- Published CLI includes B6 std helpers (`line_starts`, `units`, `iterable`,
+  `symbol`), object computed keys, and async-iterable stream support (0.2.1+).
 
 Expected behavior:
 
@@ -20,9 +19,10 @@ Expected behavior:
   `UnitIndex`, and `SourceDocument`.
 - `Source` MUST pipeline those stages and assemble documents as an object
   literal spreading `(iterable t)` (attaching `Symbol.asyncIterator`) alongside
-  `documentId`, `text`, `lineStarts`, `units`, and `normalizationMap`.
-- Unit projections MUST use
-  `this.normalizedSpan.start`/`this.normalizedSpan.end` with `normalized_unit`.
+  `documentId`, `text`, `lineStarts`, and `units`.
+- Normalized text MUST be the `join` of units that carry their provenance (a
+  literal `"\n"` for `\r\n`/`\r`, the original character otherwise); unit
+  projections MUST NOT rely on reading spans.
 - Compiling that file with the bootstrap compile path MUST succeed and emit AST
   JSON under `./bin/`.
 

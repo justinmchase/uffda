@@ -6,7 +6,7 @@ import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { moduleDeclarationTest } from "../../test.ts";
-import { StructuredTokenKind, type TokenValue } from "./structured.ts";
+import { StructuredTokenKind, type TokenValue } from "./tokenizer.lang.ts";
 
 const moduleUrl = new URL("./mod.uff", import.meta.url).href;
 

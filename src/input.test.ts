@@ -2,6 +2,7 @@ import { assert, assertStrictEquals } from "@std/assert";
 import { assertEquals } from "@std/assert/equals";
 import { Input, InputNormalizationMode } from "./input.ts";
 import { Path } from "./path.ts";
+import { rootOrigin, unwrap, Wrapped } from "./wrapped.ts";
 
 Deno.test({
   name: "runtime/input",
@@ -12,7 +13,7 @@ Deno.test({
         const input = Input.Default();
         const { path, index, value } = input;
         const done = await input.done();
-        assertEquals({ path, index, value, done }, {
+        assertEquals({ path, index, value: unwrap(value), done }, {
           path: Path.From(0),
           index: 0,
           value: undefined,
@@ -26,7 +27,7 @@ Deno.test({
         const input = Input.Iterable([1, 2, 3]);
         const { path, index, value } = input;
         const done = await input.done();
-        assertEquals({ path, index, value, done }, {
+        assertEquals({ path, index, value: unwrap(value), done }, {
           path: Path.From(0),
           index: 0,
           value: undefined,
@@ -41,7 +42,7 @@ Deno.test({
           .next();
         const { path, index, value } = input;
         const done = await input.done();
-        assertEquals({ path, index, value, done }, {
+        assertEquals({ path, index, value: unwrap(value), done }, {
           path: Path.From(1),
           index: 1,
           value: "x",
@@ -56,7 +57,7 @@ Deno.test({
           .next()).next();
         const { path, index, value } = input;
         const done = await input.done();
-        assertEquals({ path, index, value, done }, {
+        assertEquals({ path, index, value: unwrap(value), done }, {
           path: Path.From(2),
           index: 2,
           value: "y",
@@ -71,7 +72,7 @@ Deno.test({
           .next()).next()).next();
         const { path, index, value } = input;
         const done = await input.done();
-        assertEquals({ path, index, value, done }, {
+        assertEquals({ path, index, value: unwrap(value), done }, {
           path: Path.From(3),
           index: 3,
           value: "z",
@@ -87,7 +88,7 @@ Deno.test({
           .next()).next()).next()).next();
         const { path, index, value } = input;
         const done = await input.done();
-        assertEquals({ path, index, value, done }, {
+        assertEquals({ path, index, value: unwrap(value), done }, {
           path: Path.From(3),
           index: 3,
           value: "z",
@@ -102,7 +103,7 @@ Deno.test({
         const input = await Input.From(null).next();
         const { path, index, value } = input;
         const done = await input.done();
-        assertEquals({ path, index, value, done }, {
+        assertEquals({ path, index, value: unwrap(value), done }, {
           path: Path.From(1),
           index: 1,
           value: null,
@@ -119,7 +120,7 @@ Deno.test({
         const input = await i2.next();
         const { path, index, value } = input;
         const done = await input.done();
-        assertEquals({ path, index, value, done }, {
+        assertEquals({ path, index, value: unwrap(value), done }, {
           path: Path.From(3),
           index: 3,
           value: "c",
@@ -135,7 +136,7 @@ Deno.test({
           .next();
         const { path, index, value, kind } = input;
         const done = await input.done();
-        assertEquals({ path, index, value, done, kind }, {
+        assertEquals({ path, index, value: unwrap(value), done, kind }, {
           path: Path.From(1),
           index: 1,
           value: "abc",
@@ -169,11 +170,11 @@ Deno.test({
         assertEquals(await start.done(), false);
         const atItem = await start.next();
         assertEquals(atItem.isEof, false);
-        assertEquals(atItem.value, "x");
+        assertEquals(unwrap(atItem.value), "x");
         const eof = await atItem.next();
         assertEquals(eof.isEof, true);
         assertEquals(await eof.done(), true);
-        assertEquals(eof.value, "x");
+        assertEquals(unwrap(eof.value), "x");
       },
     });
   },
@@ -194,10 +195,10 @@ Deno.test("input advances synchronously over immediate items", () => {
   const input = Input.From("ab", { kind: InputNormalizationMode.Iterable });
   const first = input.step();
   assert(first instanceof Input);
-  assertEquals(first.value, "a");
+  assertEquals(unwrap(first.value), "a");
   assertEquals(input.done(), false);
   const second = first.next() as Input;
-  assertEquals(second.value, "b");
+  assertEquals(unwrap(second.value), "b");
   assertEquals(second.step(), undefined);
   assertEquals(second.done(), true);
 });
@@ -211,7 +212,7 @@ Deno.test("input advances through promises over async items", async () => {
   );
   const first = input.step();
   assert(first instanceof Promise);
-  assertEquals((await first)?.value, "a");
+  assertEquals(unwrap((await first)?.value), "a");
   assertEquals(input.done(), false);
   const eof = (await input.next()).step();
   assert(eof instanceof Promise);
@@ -226,4 +227,66 @@ Deno.test("input step reuses a known next position without re-pulling", async ()
   const end = await second!.step();
   assertEquals(end, undefined);
   assertEquals(second!.step(), undefined);
+});
+
+Deno.test("input items of host input carry root origins", async () => {
+  const input = Input.From("ab", { kind: InputNormalizationMode.Iterable });
+  const first = await input.next();
+  const second = await first.next();
+  assertEquals(first.value?.raw, "a");
+  assertEquals(first.value?.origin, rootOrigin(0, 1));
+  assertEquals(second.value?.origin, rootOrigin(1, 2));
+});
+
+Deno.test("input items of a wrapped string carry each character's origin", async () => {
+  const origin = rootOrigin(10, 12);
+  const linear = new Wrapped("ab", origin, [{
+    length: 2,
+    origin,
+    linear: true,
+  }]);
+  const shared = new Wrapped("ab", origin);
+  const kind = InputNormalizationMode.Iterable;
+  const first = await Input.From(linear, { kind }).next();
+  const second = await first.next();
+  assertEquals(first.value?.origin, rootOrigin(10, 11));
+  assertEquals(second.value?.raw, "b");
+  assertEquals(second.value?.origin, rootOrigin(11, 12));
+  const unmapped = await (await Input.From(shared, { kind }).next()).next();
+  assertStrictEquals(unmapped.value?.origin, origin);
+});
+
+Deno.test("input scalar item is the whole value", async (t) => {
+  await t.step("a host string's characters take their offsets", async () => {
+    const { value } = await Input.Scalar("héllo").next();
+    assertEquals(value?.raw, "héllo");
+    assertEquals(value?.origin, rootOrigin(0, 5));
+  });
+
+  await t.step("a wrapped value is carried unchanged", async () => {
+    const source = new Wrapped("abc", rootOrigin(7, 10));
+    const { value } = await Input.Scalar(source).next();
+    assertStrictEquals(value, source);
+  });
+
+  await t.step("other host values sit at offset 0", async () => {
+    const { value } = await Input.Scalar([1, 2]).next();
+    assertEquals(value?.origin, rootOrigin(0));
+  });
+});
+
+Deno.test("input following is the next position only once read", async () => {
+  const input = Input.Iterable("ab");
+  assertEquals(input.following, undefined);
+  const first = await input.next();
+  assertStrictEquals(input.following, first);
+  assertEquals(first.following, undefined);
+});
+
+Deno.test("input base is the start of the stream's origin", () => {
+  assertEquals(Input.Iterable("ab").base, 0);
+  const kind = InputNormalizationMode.Iterable;
+  const wrapped = new Wrapped(["a"], rootOrigin(4, 9));
+  assertEquals(Input.From(wrapped, { kind }).base, 4);
+  assertEquals(Input.From(["a"], { kind, origin: rootOrigin(3, 5) }).base, 3);
 });

@@ -58,7 +58,6 @@ rule named `SourceNormalizationAndIndex`.
 - `text`: normalized text payload.
 - `lineStarts`: ordered list of line-start offsets for normalized text.
 - `units`: ordered list of source units covering the normalized text.
-- `normalizationMap`: mapping from normalized offsets to original offsets.
 
 ### SourceUnit
 
@@ -69,15 +68,16 @@ Each `SourceUnit` MUST include:
 - `offsetStart` and `offsetEnd`: normalized offsets.
 - `lineStart` and `columnStart`: normalized line/column start location.
 - `lineEnd` and `columnEnd`: normalized line/column end location.
-- `originalOffsetStart` and `originalOffsetEnd`: source offsets prior to
-  normalization.
 
-### Normalization map
+### Provenance
 
-- The normalization map MUST support deterministic provenance lookup from any
-  normalized offset range back to original source offsets.
-- The map MUST remain valid under all required normalization transforms in this
-  chapter.
+- Every character of `text` MUST carry the source span of the original
+  characters it came from (see
+  [string character provenance](../runtime/value-provenance.spec.md#string-character-provenance)).
+  A canonical newline that replaces `"\r\n"` spans both original characters.
+- Provenance MUST NOT be exposed as ordinary values: the document carries no
+  offset tables, and the characters it yields when iterated carry their own
+  provenance.
 
 ## Normalization requirements
 
@@ -151,22 +151,19 @@ conversion.
 
 ### Pure std (no match injection)
 
-| Name                | Contract                                                                |
-| ------------------- | ----------------------------------------------------------------------- |
-| `sha256`            | SHA-256 digest of a string, as raw bytes                                |
-| `base58`            | Base58 (Bitcoin alphabet) encoding of bytes                             |
-| `slice`             | Slice of a string or array (JS `slice` semantics: exclusive end)        |
-| `length`            | Length/size of a string, array, Set, or Map                             |
-| `line_starts`       | Ordered normalized line-start offsets for a string                      |
-| `units`             | Ordered `SourceUnit` rows from text, lineStarts, and normalizationMap   |
-| `document_id`       | Stable `source:{length}:{digest}` identifier                            |
-| `normalized_unit`   | `{ value, originalOffsetStart, originalOffsetEnd }`                     |
-| `normalization_map` | Map from ordered normalized units (ends with final original end offset) |
-| `iterable`          | Normalizes any `Symbol.iterator`/`Symbol.asyncIterator` value to async  |
+| Name          | Contract                                                               |
+| ------------- | ---------------------------------------------------------------------- |
+| `sha256`      | SHA-256 digest of a string, as raw bytes                               |
+| `base58`      | Base58 (Bitcoin alphabet) encoding of bytes                            |
+| `slice`       | Slice of a string or array (JS `slice` semantics: exclusive end)       |
+| `length`      | Length/size of a string, array, Set, or Map                            |
+| `line_starts` | Ordered normalized line-start offsets for a string                     |
+| `units`       | Ordered `SourceUnit` rows from text and lineStarts                     |
+| `document_id` | Stable `source:{length}:{digest}` identifier                           |
+| `iterable`    | Normalizes any `Symbol.iterator`/`Symbol.asyncIterator` value to async |
 
 `sha256`, `base58`, `slice`, `length`, `units`, and `iterable` are runtime
-globals; `line_starts`, `document_id`, `normalized_unit`, and
-`normalization_map` are module-local `func` declarations in
+globals; `line_starts` and `document_id` are module-local `func` declarations in
 `src/lang/source/mod.uff` composed from those globals (for example `document_id`
 is `"source:{(length text)}:{(slice (base58 (sha256 text)) 0 8)}"` via string
 interpolation — `sha256` is async, but ExpressionLang invocations already await
@@ -177,11 +174,10 @@ as object literals using computed keys and the `iterable` global — for example
 `{ ...(iterable t), documentId: (document_id t), text: t, ... }` — rather than a
 dedicated constructor global.
 
-### Match access
+### Provenance without match access
 
-Rule projections that need span/offset metadata off the current match read it
-directly through the reserved `this` reference (see
-[reference](../expressions/reference.spec.md#behavioral-expectations)), which
-resolves to the current successful `MatchOk`. Authors write
-`this.normalizedSpan.start` / `this.normalizedSpan.end` — no dedicated global or
-implicit match injection is required.
+Normalization needs no span metadata: `CrLfUnit` and `CrUnit` project a literal
+`"\n"`, which takes the span of the characters it replaces, `SourceUnit` carries
+the original character, and `join` keeps each character's span (see
+[value provenance](../runtime/value-provenance.spec.md)). As a foundational
+module, it MUST NOT rely on reading spans.

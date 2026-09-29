@@ -11,8 +11,8 @@ import "../editor/editor.uff" Highlight;
 
 export Sequence;
 
-rule OpenParen = "(" -> "(";
-rule CloseParen = ")" -> ")";
+rule OpenParen = "(";
+rule CloseParen = ")";
 
 [Highlight { role: "function" }]
 rule InvokedName = Reference;

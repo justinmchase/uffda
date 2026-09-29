@@ -6,6 +6,7 @@ import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { MatchErrorCode } from "../../match.ts";
 import { Path } from "../../mod.ts";
+import type { Wrapped } from "../../wrapped.ts";
 
 Deno.test("runtime.patterns.variable", async (t) => {
   await t.step({
@@ -22,7 +23,7 @@ Deno.test("runtime.patterns.variable", async (t) => {
         },
         expression: {
           kind: ExpressionKind.Native,
-          fn: ({ x }: { x: number }) => x + 11,
+          fn: ({ x }: { x: Wrapped<number> }) => x.raw + 11,
         },
       },
       input: Input.Iterable([7]),
@@ -58,7 +59,7 @@ Deno.test("runtime.patterns.variable", async (t) => {
         },
         expression: {
           kind: ExpressionKind.Native,
-          fn: ({ x, y }) => x + y,
+          fn: ({ x, y }: Record<string, Wrapped<number>>) => x.raw + y.raw,
         },
       },
       input: Input.Iterable([7, 11]),
@@ -90,7 +91,7 @@ Deno.test("runtime.patterns.variable", async (t) => {
         },
         expression: {
           kind: ExpressionKind.Native,
-          fn: ({ x, y }) => x + y,
+          fn: ({ x, y }: Record<string, Wrapped<number>>) => x.raw + y.raw,
         },
       },
       input: Input.Iterable([{ X: 7, Y: 11 }]),
@@ -142,7 +143,7 @@ Deno.test("runtime.patterns.variable", async (t) => {
         },
         expression: {
           kind: ExpressionKind.Native,
-          fn: ({ x, y }) => x + y,
+          fn: ({ x, y }: Record<string, Wrapped<number>>) => x.raw + y.raw,
         },
       },
       input: Input.Iterable([{ X: [6, 7], Y: [10, 11] }]),

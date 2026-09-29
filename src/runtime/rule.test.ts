@@ -18,6 +18,7 @@ import {
   ImportDeclarationKind,
 } from "./declarations/mod.ts";
 import type { ModuleDeclaration } from "./declarations/module.ts";
+import type { Wrapped } from "../wrapped.ts";
 
 Deno.test("runtime.rule", async (t) => {
   await t.step({
@@ -297,7 +298,7 @@ Deno.test("runtime.rule", async (t) => {
               },
               expression: {
                 kind: ExpressionKind.Native,
-                fn: ({ x }: { x: "a" }) => (assertEquals(x, "a"), x),
+                fn: ({ x }: { x: Wrapped }) => (assertEquals(x.raw, "a"), x),
               },
             },
             {

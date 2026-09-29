@@ -1,6 +1,7 @@
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import { assertThrows } from "@std/assert/throws";
 import { collect, isGenerator } from "./collect.ts";
+import { concat, rootOrigin, Wrapped } from "../wrapped.ts";
 
 Deno.test("runtime.collect drains an array unchanged", async () => {
   assertEquals(await collect([1, 2, 3]), [1, 2, 3]);
@@ -57,4 +58,18 @@ Deno.test("runtime.isGenerator is not fooled by a spoofed Symbol.toStringTag", (
   const spoof = { [Symbol.toStringTag]: "Generator" };
   assertEquals(Object.prototype.toString.call(spoof), "[object Generator]");
   assertEquals(isGenerator(spoof), false);
+});
+
+Deno.test("runtime.collect wraps the items of a wrapped value", async () => {
+  const item = new Wrapped(1, rootOrigin(2));
+  const drained = await collect(new Wrapped([item, 2], rootOrigin(0, 3)));
+  assertStrictEquals(drained[0], item);
+  assertEquals((drained[1] as Wrapped).raw, 2);
+  const text = concat([new Wrapped("a", rootOrigin(4)), "b"], rootOrigin(9));
+  const chars = await collect(text) as Wrapped[];
+  assertEquals(chars.map((c) => c.origin), [rootOrigin(4), rootOrigin(9)]);
+});
+
+Deno.test("runtime.isGenerator sees through a wrapper", () => {
+  assert(isGenerator(new Wrapped((function* () {})(), rootOrigin(0))));
 });
