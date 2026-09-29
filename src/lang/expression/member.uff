@@ -1,13 +1,10 @@
-# Member matches `base.name…` as left-associative MemberExpression nodes via DLR.
-# Both arms require at least one `.name` so bare targets fall through Primary to
-# Boolean/Nullish/Terminal (same as the former segments min:1 semantics).
-# Nested Projection requires a published CLI with Projection (0.1.14+).
-# Variable bindings are single-letter (published CLI PatternLang).
+# Member matches `base.name…` as left-associative MemberExpression nodes. The
+# base is any Primary, and Primary tries Member first, so `Primary -> Member ->
+# Primary` is indirect left recursion: each growth step wraps the previous
+# Primary in one more `.name`. Member requires a `.name`, so a bare base falls
+# through to Primary's other alternatives.
 import "../tokenizer/token.uff" Token;
-import "./sequence.uff" Sequence;
-import "./array.uff" Array;
-import "./object.uff" Object;
-import "./terminal.uff" Terminal;
+import "./primary.uff" Primary;
 import "./reference.uff" Reference;
 import "../editor/editor.uff" Highlight;
 
@@ -16,14 +13,6 @@ export Member;
 [Highlight { role: "property" }]
 rule MemberName = Reference;
 
-rule MemberTarget =
-  | Token<Sequence>
-  | Token<Array>
-  | Token<Object>
-  | Token<Terminal>
-  ;
-
 rule Member =
-  (e:Member "." n:Token<MemberName> -> { kind: "member", expression: e, name: n.name })
-  | (b:Token<MemberTarget> "." n:Token<MemberName> -> { kind: "member", expression: b, name: n.name })
-  ;
+  e:Token<Primary> "." n:Token<MemberName>
+  -> { kind: "member", expression: e, name: n.name };

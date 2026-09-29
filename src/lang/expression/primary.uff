@@ -11,12 +11,14 @@ import "./lambda.uff" Lambda;
 
 export Primary;
 
+# Member comes first: it extends a shorter Primary, and ordered choice would
+# otherwise stop at that shorter alternative during left-recursion growth.
 rule Primary =
+  | Member
   | Lambda
   | Sequence
   | Array
   | Object
-  | Member
   | Boolean
   | Nullish
   | Terminal

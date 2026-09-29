@@ -92,13 +92,13 @@ relying on a single rule-level projection.
 
 ## Illustrative examples
 
-Member-style DLR with a projected recursive arm (grouped so Uffda depth-0 `->`
-remains available for whole-body rule projection):
+DLR with a projected recursive arm (grouped so Uffda depth-0 `->` remains
+available for whole-body rule projection):
 
 ```text
-rule Member =
-  (e:Member "." n:Token<Reference> -> { kind: "member", expression: e, name: n.name })
-  | (b:Token<MemberTarget> "." n:Token<Reference> -> { kind: "member", expression: b, name: n.name })
+rule Sum =
+  (l:Sum "+" r:Term -> { kind: "add", left: l, right: r })
+  | Term
   ;
 ```
 

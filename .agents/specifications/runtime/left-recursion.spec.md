@@ -62,6 +62,13 @@ through other rules.
 - Growth MUST require progress: the first iteration that fails, or succeeds
   without ending strictly further along the input than the seed, MUST terminate
   growth, and the head's outcome is the last seed.
+- When the first growth iteration fails, no seed ever succeeded and that
+  iteration is the head's only real attempt: the head's failure MUST record it
+  as a child, so the sub-matches it accumulated before failing stay reachable
+  for diagnostics and tooling (see
+  [editor metadata](../languages/cli/editor-metadata.spec.md#walking-the-parse)).
+  Iterations superseded by a successful seed, and the final non-progressing
+  iteration after one, are not recorded.
 - The head of a cycle is the first invocation of that cycle entered at the
   position. The outcome of a mutual cycle therefore depends on which of its
   rules is entered first; for a given grammar and input it MUST be
@@ -119,9 +126,12 @@ through other rules.
   for later growth. Transforming left-associative AST folds MUST use nested
   projection (or whole-body projection desugared to the same mechanism), not
   solely a post-grow rule-level expression that never runs during growth.
-- The head's rule-level expression applies only to its stabilized outcome.
-  Involved invocations complete normally on every iteration, so their rule-level
-  expressions apply to every iteration's outcome.
+- The head's rule-level expression MUST apply to every successful growth
+  iteration before that iteration's outcome becomes the seed, exactly as a
+  projection wrapping the whole body would, and MUST NOT apply again to the
+  stabilized outcome. Involved invocations complete normally on every iteration,
+  so their rule-level expressions also apply to every iteration's outcome. A
+  rule therefore projects the same value whether it is the head or involved.
 - When left-recursive growth succeeds, the caller-visible scope MUST match
   non-LR rule success: retain the caller's bindings and advanced input stream,
   and MUST NOT expose rule-local bindings created during growth.
@@ -207,7 +217,5 @@ through other rules.
 
 ## Open questions
 
-- Whether the head's rule-level expression should also apply to each growth
-  seed, so a head and an involved rule project uniformly.
 - Whether a statically computed head (as in pegen) should replace first-entry
   head selection, making mutual-cycle outcomes independent of entry order.

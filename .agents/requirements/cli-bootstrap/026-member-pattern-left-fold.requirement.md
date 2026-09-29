@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-026
-title: Member left-fold must use DLR with nested Projection
-spec_ref: ".agents/specifications/languages/pattern-idioms-map-reduce.spec.md#general-left-fold-as-direct-left-recursion; .agents/specifications/patterns/runtime/projection.spec.md; .agents/specifications/runtime/left-recursion.spec.md"
+title: Member left-fold must use left recursion through Primary
+spec_ref: ".agents/specifications/languages/pattern-idioms-map-reduce.spec.md#general-left-fold-as-left-recursion; .agents/specifications/languages/expression-syntax/member-access.spec.md; .agents/specifications/runtime/left-recursion.spec.md"
 ---
 
 # Member Pattern Left-Fold
@@ -10,19 +10,20 @@ spec_ref: ".agents/specifications/languages/pattern-idioms-map-reduce.spec.md#ge
 
 Preconditions:
 
-- Nested `PatternKind.Projection` is available in a published CLI (0.1.14+).
-- Direct left recursion is supported by the runtime for left-associative
-  constructs.
-- Pattern idioms for map/reduce prescribe DLR + nested Projection for
-  Member-style AST chains.
+- Indirect left recursion is supported by the runtime (see
+  `indirect-left-recursion-001`).
+- Member access projects a named property from any evaluated base expression.
 
 Expected behavior:
 
 - `src/lang/expression/member.uff` MUST express the member-chain left-fold as
-  same-rule DLR with a nested projection on the recursive arm, for example:
-  `(e:Member "." n:Token<MemberName> -> { kind: "member", expression: e, name: n.name }) | (b:Token<MemberTarget> "." n:Token<MemberName> -> { kind: "member", expression: b, name: n.name })`,
+  indirect left recursion through `Primary`:
+  `e:Token<Primary> "." n:Token<MemberName> -> { kind: "member", expression: e, name: n.name }`,
   where `MemberName` is a `Reference` annotated as a `property` name (see
   [editor metadata](../../specifications/languages/cli/editor-metadata.spec.md#highlighting)).
+- `src/lang/expression/primary.uff` MUST try `Member` before every alternative
+  it can extend.
+- Member MUST NOT keep a separate hand-maintained list of base forms.
 - The Member projection MUST NOT use Native `for` / `.reduce`, std `reduce`,
   ExpressionLang lambdas, or a domain-specific fold helper to build nested
   `{ kind: "member", … }` AST nodes.
@@ -31,7 +32,7 @@ Expected behavior:
 
 Postconditions:
 
-- Dependents import `./member.uff`; the TypeScript twin is gone.
-- Runtime loads Member from `./bin` via `.uff` remapping (not
-  `builtInLanguageDeclarations`).
+- `a.b.c` parses as `(member (member a b) c)`.
+- Member access applies to every primary form, for example `(f x).y`,
+  `[1].length`, `{ a: 1 }.a`, and `"abc".length`.
 - Similar left-associative AST folds SHOULD follow the same pattern-fold idiom.

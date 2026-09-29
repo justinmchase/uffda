@@ -47,5 +47,37 @@ Deno.test(
         value: { kind: ExpressionKind.String, values: ["abc"] },
       }),
     });
+
+    await t.step({
+      name: "PRIMARY_EXPRESSION_03 - member access extends a longer primary",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "Primary",
+        input: Input.Iterable(["[", "1", "]", ".", "length"]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: ExpressionKind.Member,
+          expression: {
+            kind: ExpressionKind.Array,
+            expressions: [{
+              kind: "arrayElement",
+              expression: { kind: ExpressionKind.Number, value: 1 },
+            }],
+          },
+          name: "length",
+        },
+      }),
+    });
+
+    await t.step({
+      name: "PRIMARY_EXPRESSION_04 - incomplete input fails at its progress",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "Primary",
+        input: Input.Iterable(["[", "1"]),
+        kind: MatchKind.Fail,
+        done: false,
+      }),
+    });
   },
 );
