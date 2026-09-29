@@ -238,3 +238,21 @@ Deno.test("runtime.scope", async (t) => {
     },
   });
 });
+
+Deno.test("runtime.scope recovery", async (t) => {
+  await t.step({
+    name:
+      "SCOPE_RECOVERY - recovery is disabled by default and carried through derivations",
+    fn: () => {
+      const scope = Scope.Default();
+      assertEquals(scope.recovery, false);
+      assertStrictEquals(scope.withRecovery(false), scope);
+      const recovering = scope.withRecovery(true);
+      assertEquals(recovering.recovery, true);
+      assertStrictEquals(recovering.options, scope.options);
+      assertEquals(recovering.withInput(Input.Default()).recovery, true);
+      assertEquals(recovering.withOptions({ trace: true }).recovery, true);
+      assertEquals(recovering.addVariable("x", 1).recovery, true);
+    },
+  });
+});

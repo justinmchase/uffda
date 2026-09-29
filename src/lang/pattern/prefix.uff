@@ -205,6 +205,48 @@ rule SkipAny =
   not Prefix
   -> { kind: "skip", pattern: { kind: "any" } };
 
+[Keyword]
+rule OpeKeyword = "ope";
+
+[Keyword]
+rule SneakKeyword = "sneak";
+
+[Keyword]
+rule ByKeyword = "by";
+
+[Keyword]
+rule UntilKeyword = "until";
+
+# `sneak by until T` skips one or more items up to, but not including, `T`,
+# so a recovery never swallows its parent's terminator.
+rule SneakByUntil =
+  UntilKeyword
+  t:Prefix
+  -> {
+    kind: "quantifier",
+    pattern: {
+      kind: "then",
+      patterns: [{ kind: "not", pattern: t } { kind: "any" }]
+    },
+    min: { kind: "value.literal", value: 1 },
+    max: undefined
+  };
+
+rule SneakBy =
+  | SneakByUntil
+  | Prefix
+  ;
+
+# `ope P sneak by S` is a recovery point: when `P` fails with recovery
+# enabled, `S` skips the erroneous input instead.
+rule Ope =
+  OpeKeyword
+  p:Prefix
+  SneakKeyword
+  ByKeyword
+  s:SneakBy
+  -> { kind: "recover", pattern: p, skip: s };
+
 rule Capture =
   n:IdToken
   ":"
@@ -219,6 +261,7 @@ rule Prefix =
   | Except
   | Skip
   | SkipAny
+  | Ope
   | Capture
   | Postfix
   ;

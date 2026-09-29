@@ -24,6 +24,7 @@ import {
   pipeline,
   projection,
   quantifier,
+  recover,
   regexp,
   skip,
   switchPattern,
@@ -100,6 +101,8 @@ export function compile(pattern: Pattern, scope: Scope): CompiledPattern {
         return buildResolve(pattern);
       case PatternKind.Skip:
         return skip(pattern, scope);
+      case PatternKind.Recover:
+        return recover(pattern, scope);
       case PatternKind.Switch:
         return switchPattern(pattern, scope);
       case PatternKind.Then:

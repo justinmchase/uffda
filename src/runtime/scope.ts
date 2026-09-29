@@ -58,6 +58,12 @@ export class Scope {
     public readonly memos: Memos = new Memos(),
     public readonly stack: CallStack = CallStack.Empty,
     options?: Partial<ScopeOptions>,
+    /**
+     * Whether `recover` patterns may recover from a failed child; part of
+     * every memo key (see
+     * `.agents/specifications/runtime/error-recovery.spec.md`).
+     */
+    public readonly recovery: boolean = false,
   ) {
     // Accepting a plain `Map` here too (normalized via `VariableScope.From`)
     // keeps every existing caller that constructs a `Scope` directly with a
@@ -126,6 +132,7 @@ export class Scope {
       this.memos,
       this.stack,
       this.options,
+      this.recovery,
     );
   }
 
@@ -144,6 +151,7 @@ export class Scope {
       memos,
       this.stack,
       this.options,
+      this.recovery,
     );
   }
 
@@ -168,6 +176,7 @@ export class Scope {
       this.memos,
       this.stack,
       this.options,
+      this.recovery,
     );
   }
 
@@ -189,6 +198,7 @@ export class Scope {
       this.memos,
       this.stack,
       this.options,
+      this.recovery,
     );
   }
 
@@ -202,6 +212,7 @@ export class Scope {
       this.memos,
       this.stack.push({ kind: StackFrameKind.Rule, rule }),
       this.options,
+      this.recovery,
     );
   }
 
@@ -215,6 +226,7 @@ export class Scope {
       this.memos,
       this.stack.push({ kind: StackFrameKind.Pipeline, pipeline }),
       this.options,
+      this.recovery,
     );
   }
 
@@ -233,6 +245,7 @@ export class Scope {
         ? this.stack.push({ kind: StackFrameKind.Module, module })
         : this.stack,
       this.options,
+      this.recovery,
     );
   }
 
@@ -250,6 +263,7 @@ export class Scope {
       this.memos,
       scope.stack,
       scope.options,
+      scope.recovery,
     );
   }
 
@@ -268,6 +282,23 @@ export class Scope {
         globals: options.globals ?? this.options.globals,
         resolver: options.resolver ?? this.options.resolver,
       },
+      this.recovery,
+    );
+  }
+
+  /** This scope with recovery enabled or disabled; itself when unchanged. */
+  public withRecovery(recovery: boolean): Scope {
+    if (this.recovery === recovery) return this;
+    return new Scope(
+      this.module,
+      this.parent,
+      this.variables,
+      this.args,
+      this.stream,
+      this.memos,
+      this.stack,
+      this.options,
+      recovery,
     );
   }
 }

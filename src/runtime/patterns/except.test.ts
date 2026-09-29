@@ -101,3 +101,25 @@ Deno.test("runtime/patterns/except skip", async (t) => {
     }),
   });
 });
+
+Deno.test("runtime/patterns/except recovery", async (t) => {
+  await t.step(
+    "EXCEPT_RECOVERY - matches its assertion with recovery disabled",
+    async () => {
+      const m = await match(
+        {
+          kind: PatternKind.Except,
+          pattern: {
+            kind: PatternKind.Recover,
+            pattern: { kind: PatternKind.Equal, value: lit("z") },
+            skip: { kind: PatternKind.Any },
+          },
+        },
+        Scope.From(Input.Iterable("x")).withRecovery(true),
+      );
+      assertEquals(m.kind, MatchKind.Ok);
+      assertEquals(m.scope.stream.path.toString(), "[1]");
+      assertEquals(m.scope.recovery, true);
+    },
+  );
+});

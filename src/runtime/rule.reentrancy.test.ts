@@ -187,4 +187,30 @@ Deno.test("rule.reentrancy", async (t) => {
       assertEquals(canSkipMemo(leaf), true);
     },
   );
+
+  await t.step(
+    "REENTRANCY11 - recover traverses its child and its skip pattern",
+    () => {
+      const module = DefaultModule();
+      makeRule(module, "leaf", character);
+      const viaChild = makeRule(module, "viaChild", {
+        kind: PatternKind.Recover,
+        pattern: resolveRef("viaChild"),
+        skip: resolveRef("leaf"),
+      });
+      const viaSkip = makeRule(module, "viaSkip", {
+        kind: PatternKind.Recover,
+        pattern: resolveRef("leaf"),
+        skip: resolveRef("viaSkip"),
+      });
+      const neither = makeRule(module, "neither", {
+        kind: PatternKind.Recover,
+        pattern: resolveRef("leaf"),
+        skip: resolveRef("leaf"),
+      });
+      assertEquals(canSkipMemo(viaChild), false);
+      assertEquals(canSkipMemo(viaSkip), false);
+      assertEquals(canSkipMemo(neither), true);
+    },
+  );
 });

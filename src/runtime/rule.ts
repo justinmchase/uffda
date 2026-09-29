@@ -93,19 +93,24 @@ export function rule(
   }
 
   const { path } = scope.stream;
-  const { key, memo: hit } = scope.memos.resolve(path, rule, [
-    ...mergedArgs.values(),
-  ]);
+  const { key, memo: hit } = scope.memos.resolve(
+    path,
+    rule,
+    [...mergedArgs.values()],
+    scope.recovery,
+  );
   if (!hit) {
     const marker = lr(scope, pattern);
     const memo = scope.memos.set(path, key, marker);
     const subScope = scope
       .pushModule(module)
       .pushRule(rule, mergedArgs);
-    const originOf = (): MatchOrigin =>
-      memo.seed
-        ? { rule, args: mergedArgs, seeded: true }
-        : { rule, args: mergedArgs };
+    const originOf = (): MatchOrigin => {
+      const origin: MatchOrigin = { rule, args: mergedArgs };
+      if (memo.seed) origin.seeded = true;
+      if (scope.recovery) origin.recovery = true;
+      return origin;
+    };
     // Left recursion re-entering some other in-progress entry passes through
     // this one; its outcome depends on that entry's growth, so it is dropped.
     const passThrough = (m: Match) => {
@@ -233,6 +238,7 @@ function runUnmemoized(
       .pushModule(rule.module)
       .pushRule(rule, mergedArgs);
     const origin: MatchOrigin = { rule, args: mergedArgs };
+    if (scope.recovery) origin.recovery = true;
 
     return andThen(ruleBody(() => match(rule.pattern, subScope)), (m) => {
       switch (m.kind) {

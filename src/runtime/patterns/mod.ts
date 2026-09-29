@@ -20,6 +20,7 @@ export * from "./quantifier.ts";
 export * from "./regexp.ts";
 export * from "./resolve.ts";
 export * from "./skip.ts";
+export * from "./recover.ts";
 export * from "./switch.ts";
 export * from "./then.ts";
 export * from "./type.ts";

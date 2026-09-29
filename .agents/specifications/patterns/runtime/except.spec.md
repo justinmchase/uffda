@@ -26,6 +26,8 @@ primitive for the common idiom of "consume any item except this".
   consuming input.
 - An `except` pattern MUST report the consumed input item as its output value on
   success.
+- An `except` pattern MUST evaluate its child with recovery disabled (see
+  [runtime error recovery](../../runtime/error-recovery.spec.md#predicates)).
 
 ## Left-recursion behavior
 

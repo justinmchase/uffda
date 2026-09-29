@@ -1,6 +1,6 @@
 import { RedBlackTree } from "@std/data-structures";
 import type { Path } from "./path.ts";
-import type { Match } from "./match.ts";
+import { type Match, MatchKind } from "./match.ts";
 import type { Rule } from "./runtime/modules/mod.ts";
 import { type Awaitable, ensure } from "./runtime/awaitable.ts";
 
@@ -69,6 +69,29 @@ function liveSeed(memo: Memo): Memo | undefined {
 export class Memos {
   private readonly keys: RecursiveWeakMap = new WeakMap();
   /**
+   * Key tree for invocations evaluated with recovery enabled (see
+   * `.agents/specifications/runtime/error-recovery.spec.md#phase-isolation`):
+   * the same rule, arguments and position yield a distinct key, so an outcome
+   * computed under one recovery setting is never served to the other.
+   */
+  private readonly recoveryKeys: RecursiveWeakMap = new WeakMap();
+
+  /**
+   * Whether a `recover` pattern's child failed while recovery was disabled.
+   * When a discovery phase fails without reaching one, a recovery phase could
+   * not change the outcome and is skipped. A table rehydrated for an
+   * incremental re-parse starts `true`, since its reused entries are never
+   * re-evaluated.
+   */
+  public recoverable = false;
+
+  /**
+   * The lowest active-frame index of an in-progress entry whose still-failing
+   * seed was read since the innermost open {@link watchFailedSeeds}; see
+   * `.agents/specifications/runtime/error-recovery.spec.md#left-recursion`.
+   */
+  private failedSeedFrame = Infinity;
+  /**
    * Keyed by `path.toString()` rather than by `Path` object identity.
    * `Path` has value-based equality (`compareTo`) but no value-based `Map`
    * key semantics, and incremental re-parsing rehydrates entries against a
@@ -131,8 +154,12 @@ export class Memos {
     path: Path,
     rule: Rule,
     args: Rule[],
+    recovery = false,
   ): { key: symbol; memo: Memo | undefined } {
-    const key = this.getKey([rule, ...args]);
+    const key = this.getKey(recovery ? this.recoveryKeys : this.keys, [
+      rule,
+      ...args,
+    ]);
     const { memo } = this.get(path, key);
     if (!memo) return { key, memo };
     if (memo.frame !== undefined) {
@@ -152,6 +179,7 @@ export class Memos {
    * reaches `seed`, because it is marked by this same walk.
    */
   private observe(seed: Memo): void {
+    this.noteFailedSeeds(seed);
     const dependency: Seed = { memo: seed, iteration: seed.iteration };
     for (let i = this.active.length - 1; i > seed.frame!; i--) {
       const { memo } = this.active[i];
@@ -163,12 +191,52 @@ export class Memos {
     }
   }
 
+  /**
+   * Records every in-progress entry along `seed`'s dependency chain whose
+   * current seed is still a failure: reading it makes the reader fail as a
+   * control signal of growth, not because of the input.
+   */
+  private noteFailedSeeds(seed: Memo): void {
+    for (let s: Memo | undefined = seed; s; s = s.seed?.memo) {
+      if (s.frame !== undefined && s.match.kind === MatchKind.Fail) {
+        this.failedSeedFrame = Math.min(this.failedSeedFrame, s.frame);
+      }
+    }
+  }
+
+  /** The number of rule frames currently in progress. */
+  public get depth(): number {
+    return this.active.length;
+  }
+
+  /**
+   * Opens a watch for reads of still-failing seeds, returning the enclosing
+   * watch's state to hand back to {@link endFailedSeedWatch}.
+   */
+  public watchFailedSeeds(): number {
+    const outer = this.failedSeedFrame;
+    this.failedSeedFrame = Infinity;
+    return outer;
+  }
+
+  /**
+   * Closes a watch opened at frame depth `depth`, merging what it saw into
+   * the enclosing watch. Returns whether it read a still-failing seed of an
+   * entry that was already in progress when the watch opened; growth that
+   * began inside the watch settles before it closes.
+   */
+  public endFailedSeedWatch(outer: number, depth: number): boolean {
+    const read = this.failedSeedFrame;
+    this.failedSeedFrame = Math.min(outer, read);
+    return read < depth;
+  }
+
   public get(path: Path, key: symbol): { key: symbol; memo: Memo | undefined } {
     return { key, memo: this.memos.get(path.toString())?.entries.get(key) };
   }
 
-  private getKey(rules: Rule[]): symbol {
-    let keys = this.keys;
+  private getKey(root: RecursiveWeakMap, rules: Rule[]): symbol {
+    let keys = root;
     let key: symbol;
     for (const rule of rules) {
       if (!keys.has(rule)) {

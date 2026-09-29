@@ -12,7 +12,7 @@ export function lookahead(
 ): CompiledPattern {
   const child = compile(pattern.pattern, scope);
   return (invocationScope: Scope) =>
-    andThen(child(invocationScope), (m) => {
+    andThen(child(invocationScope.withRecovery(false)), (m) => {
       switch (m.kind) {
         case MatchKind.LR:
         case MatchKind.Error:

@@ -35,6 +35,11 @@ export type MatchOrigin = {
    * `.agents/specifications/runtime/left-recursion.spec.md`.
    */
   seeded?: true;
+  /**
+   * Set when the invocation ran with recovery enabled; part of its memo key
+   * (see `.agents/specifications/runtime/error-recovery.spec.md`).
+   */
+  recovery?: true;
 };
 
 export enum MatchErrorCode {
@@ -98,6 +103,11 @@ export type MatchOk<T = unknown> = {
    * ordinary match-time evaluation.
    */
   subject?: unknown;
+  /**
+   * Set when this match is a recovery, or accepted one as a successful child;
+   * see `.agents/specifications/runtime/error-recovery.spec.md#recovered-matches`.
+   */
+  recovered?: true;
 };
 
 /**
@@ -197,6 +207,7 @@ export function ok(
   // A value that is not already carried was computed by this match, so it
   // takes this match's span as its origin.
   m.value = wrapFrom(value, m);
+  if (start.recovery && matches.some(isRecovered)) m.recovered = true;
   return m;
 }
 
@@ -219,7 +230,13 @@ export function skip(
     origin,
   };
   m.value = wrapFrom(undefined, m) as Wrapped<undefined>;
+  if (start.recovery && matches.some(isRecovered)) m.recovered = true;
   return m;
+}
+
+/** Whether `match` is a success that is, or accepted, a recovery. */
+export function isRecovered(match: Match): match is MatchSuccess {
+  return isSuccess(match) && match.recovered === true;
 }
 
 /**

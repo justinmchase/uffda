@@ -25,6 +25,9 @@ any child pattern succeeds.
 - An `or` pattern with no child patterns MUST fail.
 - If any child pattern reports an error, the `or` pattern MUST propagate that
   error immediately.
+- A recovered success does not end the choice immediately: the `or` pattern MUST
+  prefer a later clean success, per
+  [runtime error recovery](../../runtime/error-recovery.spec.md#ordered-choice).
 
 ## Left-recursion behavior
 

@@ -4,6 +4,8 @@ import { executeModuleDeclaration } from "./module.execute.ts";
 import { ExportDeclarationKind } from "./declarations/export.ts";
 import { PatternKind } from "./patterns/pattern.kind.ts";
 import { ExpressionKind } from "./expressions/expression.kind.ts";
+import { ValueSourceKind } from "./patterns/value_source.ts";
+import type { ModuleDeclaration } from "./declarations/module.ts";
 import { unwrap } from "../wrapped.ts";
 
 Deno.test("runtime.module.execute executes default exported rule", async () => {
@@ -27,6 +29,48 @@ Deno.test("runtime.module.execute executes default exported rule", async () => {
   assertEquals(m.kind, MatchKind.Ok);
   if (m.kind === MatchKind.Ok) {
     assertEquals(unwrap(m.value), "x");
+  }
+});
+
+Deno.test("runtime.module.execute recovers when recovery is requested", async () => {
+  const declaration: ModuleDeclaration = {
+    imports: [],
+    exports: [{
+      kind: ExportDeclarationKind.Rule,
+      name: "Main",
+      default: true,
+    }],
+    rules: [{
+      name: "Main",
+      parameters: [],
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Recover,
+            pattern: {
+              kind: PatternKind.Equal,
+              value: { kind: ValueSourceKind.Literal, value: "a" },
+            },
+            skip: { kind: PatternKind.Any },
+          },
+          { kind: PatternKind.End },
+        ],
+      },
+    }],
+  };
+
+  const clean = await executeModuleDeclaration(declaration, { input: "x" });
+  assertEquals(clean.kind, MatchKind.Fail);
+
+  const m = await executeModuleDeclaration(declaration, {
+    input: "x",
+    recovery: true,
+  });
+  assertEquals(m.kind, MatchKind.Ok);
+  if (m.kind === MatchKind.Ok) {
+    assertEquals(m.recovered, true);
+    assertEquals(unwrap(m.value), ["x", undefined]);
   }
 });
 

@@ -434,3 +434,42 @@ Deno.test("memo.Memos", async (t) => {
     },
   });
 });
+
+Deno.test("memo recovery", async (t) => {
+  await t.step({
+    name: "MEMO_RECOVERY - keys are isolated by recovery setting",
+    fn: () => {
+      const memos = new Memos();
+      const rule = fakeRule("a");
+      const path = Path.From(0);
+      const clean = memos.resolve(path, rule, []);
+      const recovering = memos.resolve(path, rule, [], true);
+      assertEquals(clean.key === recovering.key, false);
+      memos.set(path, clean.key, fakeMatch());
+      assertEquals(memos.resolve(path, rule, [], true).memo, undefined);
+      assertEquals(memos.resolve(path, rule, [], true).key, recovering.key);
+    },
+  });
+
+  await t.step({
+    name: "MEMO_FAILED_SEED - a watch reports only enclosing failing seeds",
+    fn: async () => {
+      const memos = new Memos();
+      const rule = fakeRule("a");
+      const path = Path.From(0);
+      const { key } = memos.resolve(path, rule, []);
+      const head = memos.set(path, key, fakeMatch());
+      head.match = { ...fakeMatch(), kind: "fail" } as unknown as Match;
+      await memos.withFrame(path, () => {
+        const depth = memos.depth;
+        const outer = memos.watchFailedSeeds();
+        memos.resolve(path, rule, []);
+        assertEquals(memos.endFailedSeedWatch(outer, depth), true);
+
+        const nested = memos.watchFailedSeeds();
+        assertEquals(memos.endFailedSeedWatch(nested, 0), false);
+        return undefined;
+      }, head);
+    },
+  });
+});
