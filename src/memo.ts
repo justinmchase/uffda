@@ -4,9 +4,48 @@ import type { Match } from "./match.ts";
 import type { Rule } from "./runtime/modules/mod.ts";
 import { type Awaitable, ensure } from "./runtime/awaitable.ts";
 
-export type Memo = { match: Match };
+export type Memo = {
+  match: Match;
+  /**
+   * This entry's index on the active-frame stack while its own rule
+   * invocation is in progress (see {@link Memos.withFrame}), otherwise
+   * `undefined`. Re-entering an in-progress entry is left recursion.
+   */
+  frame?: number;
+  /** How many left-recursive growth iterations this entry has started. */
+  iteration: number;
+  /**
+   * The innermost in-progress entry whose left-recursive seed this entry's
+   * outcome observed, and that entry's iteration at the time; see
+   * `.agents/specifications/runtime/left-recursion.spec.md`.
+   */
+  seed?: Seed;
+};
+
+type Seed = { memo: Memo; iteration: number };
+
+type Frame = { mark: Path; memo?: Memo };
 
 type RecursiveWeakMap = WeakMap<Rule, { key: symbol; keys: RecursiveWeakMap }>;
+
+/**
+ * Whether `memo` was computed against a left-recursive seed that a later
+ * growth iteration has since replaced, anywhere along its dependency chain.
+ */
+function isStale(memo: Memo): boolean {
+  for (let seed = memo.seed; seed; seed = seed.memo.seed) {
+    if (seed.iteration !== seed.memo.iteration) return true;
+  }
+  return false;
+}
+
+/** The innermost still in-progress entry along `memo`'s dependency chain. */
+function liveSeed(memo: Memo): Memo | undefined {
+  for (let seed = memo.seed; seed; seed = seed.memo.seed) {
+    if (seed.memo.frame !== undefined) return seed.memo;
+  }
+  return undefined;
+}
 
 /**
  * Packrat memo table with proof-driven eviction (see
@@ -73,17 +112,55 @@ export class Memos {
    * than frame `i`'s own start, so the mark is always the top entry. Frames
    * nest as a stack, so this stays exact across pops while keeping the mark
    * O(1) to read no matter how deeply rules nest; scanning every active
-   * frame on each return would make deeply nested input quadratic.
+   * frame on each return would make deeply nested input quadratic. Frames
+   * also carry their memo entry (absent for rules that skip memoization),
+   * which is how left-recursive seed dependencies are recorded.
    */
-  private readonly marks: Path[] = [];
+  private readonly active: Frame[] = [];
 
+  /**
+   * Looks up the reusable entry for `rule` with `args` at `path`.
+   *
+   * Reusing an in-progress entry (left recursion), or an entry computed
+   * against an in-progress entry's current seed, makes every frame above that
+   * in-progress entry depend on its seed too. An entry computed against a
+   * seed that has since been superseded by a later growth iteration is stale
+   * and reported as absent, so it is recomputed.
+   */
   public resolve(
     path: Path,
     rule: Rule,
     args: Rule[],
   ): { key: symbol; memo: Memo | undefined } {
     const key = this.getKey([rule, ...args]);
-    return this.get(path, key);
+    const { memo } = this.get(path, key);
+    if (!memo) return { key, memo };
+    if (memo.frame !== undefined) {
+      this.observe(memo);
+      return { key, memo };
+    }
+    if (isStale(memo)) return { key, memo: undefined };
+    const live = liveSeed(memo);
+    if (live) this.observe(live);
+    return { key, memo };
+  }
+
+  /**
+   * Records that every frame above `seed`'s own frame observed `seed`'s
+   * current value. A frame keeps an existing dependency on a more deeply
+   * nested in-progress entry: that entry's own dependency chain already
+   * reaches `seed`, because it is marked by this same walk.
+   */
+  private observe(seed: Memo): void {
+    const dependency: Seed = { memo: seed, iteration: seed.iteration };
+    for (let i = this.active.length - 1; i > seed.frame!; i--) {
+      const { memo } = this.active[i];
+      if (!memo) continue;
+      const nested = memo.seed?.memo.frame;
+      if (nested === undefined || nested <= seed.frame!) {
+        memo.seed = dependency;
+      }
+    }
   }
 
   public get(path: Path, key: symbol): { key: symbol; memo: Memo | undefined } {
@@ -107,7 +184,7 @@ export class Memos {
   }
 
   public set(path: Path, key: symbol, match: Match): Memo {
-    const memo = { match };
+    const memo: Memo = { match, iteration: 0 };
     const pathKey = path.toString();
     const existing = this.memos.get(pathKey);
     if (existing) {
@@ -117,6 +194,10 @@ export class Memos {
       this.order.insert({ path, pathKey });
     }
     return memo;
+  }
+
+  public delete(path: Path, key: symbol): void {
+    this.memos.get(path.toString())?.entries.delete(key);
   }
 
   /**
@@ -132,21 +213,27 @@ export class Memos {
    * Marks a fresh rule invocation as active at `path` for the duration of
    * `fn`, then evicts memo entries that become provably unreachable once it
    * completes. Every fresh (non-memo-hit) rule call MUST be run through this
-   * so eviction has an accurate view of what is still in progress.
+   * so eviction has an accurate view of what is still in progress. `memo` is
+   * the invocation's own entry, marked in progress for the duration of `fn`.
    */
-  public withFrame<T>(path: Path, fn: () => Awaitable<T>): Awaitable<T> {
-    const enclosing = this.marks.at(-1);
-    this.marks.push(
-      enclosing && enclosing.compareTo(path) <= 0 ? enclosing : path,
-    );
+  public withFrame<T>(
+    path: Path,
+    fn: () => Awaitable<T>,
+    memo?: Memo,
+  ): Awaitable<T> {
+    const enclosing = this.active.at(-1)?.mark;
+    const mark = enclosing && enclosing.compareTo(path) <= 0 ? enclosing : path;
+    if (memo) memo.frame = this.active.length;
+    this.active.push({ mark, memo });
     return ensure(fn, () => {
-      this.marks.pop();
+      if (memo) memo.frame = undefined;
+      this.active.pop();
       this.evict();
     });
   }
 
   private evict(): void {
-    const mark = this.marks.at(-1);
+    const mark = this.active.at(-1)?.mark;
     if (!mark) {
       // Nothing is in progress any more (the outermost rule frame just
       // returned): nothing currently reachable through this table is still

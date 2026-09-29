@@ -121,8 +121,8 @@ These roles are refined by the runtime pattern subtopics indexed in
 
 ## Left-recursion interactions
 
-- Composition MUST NOT reinterpret unsupported indirect left recursion as
-  ordinary failure.
+- Composition MUST NOT reinterpret a left-recursion outcome, direct or indirect,
+  as ordinary failure.
 - Composition forms that delegate into recursive rules MUST follow the runtime
   left-recursion contract defined in
   [runtime left recursion](../runtime/left-recursion.spec.md).

@@ -1,7 +1,7 @@
 ---
 id: direct-left-recursion-002
 title: Direct-left-recursive growth invariants hold when recursive rule projections are awaited
-spec_ref: ".agents/specifications/patterns/direct-left-recursion.spec.md#behavioral-expectations; .agents/specifications/runtime/left-recursion.spec.md#growth-and-fixpoint-behavior"
+spec_ref: ".agents/specifications/patterns/direct-left-recursion.spec.md#behavioral-expectations; .agents/specifications/runtime/left-recursion.spec.md#detection-and-growth"
 ---
 
 # Async Projection Left-Recursion Growth Invariants
@@ -20,10 +20,10 @@ Expected behavior:
   position boundaries while projection values are awaited.
 - A directly left-recursive rule with a base case MUST still stabilize to a
   successful fixed point.
-- Unsupported indirect left recursion MUST remain rejected on the active
-  evaluation path even when related projections are asynchronous.
+- A left-recursive cycle with no base case MUST still fail when a cycle
+  participant's projection is asynchronous.
 
 Postconditions:
 
-- Awaited expression projections do not alter direct vs indirect left-recursion
-  acceptance semantics.
+- Awaited expression projections do not alter left-recursion growth or
+  termination semantics.

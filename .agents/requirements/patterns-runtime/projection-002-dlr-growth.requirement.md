@@ -24,7 +24,8 @@ Expected behavior:
 - The final matched value MUST be the nested left-associative structure produced
   by successive Projection applications (Member-shaped).
 - Splitting the arms into separate helper rules that re-enter R through another
-  rule MUST remain rejected as unsupported indirect left recursion.
+  rule is indirect left recursion and MUST grow under the same mechanism (see
+  `indirect-left-recursion-001`).
 
 Postconditions:
 

@@ -57,7 +57,7 @@ Deno.test("req:direct-left-recursion-002 - Left-recursive growth invariants hold
   );
 
   await t.step(
-    "indirect left recursion remains rejected even when a cycle participant has an async projection",
+    "a left-recursive cycle with no base case still fails when a cycle participant has an async projection",
     moduleDeclarationTest({
       moduleUrl: import.meta.url,
       declarations: {

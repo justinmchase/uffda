@@ -51,8 +51,10 @@ import type { Path } from "../path.ts";
  *     this node's position will short-circuit before a fresh parse ever
  *     queries any of its descendants, so indexing them too would be pure
  *     waste (see the "captured node" note below).
- *  4. Nodes that are not themselves reusable (no `origin`, or a span
- *     crossing into/after the affected region) are still walked through —
+ *  4. Nodes that are not themselves reusable (no `origin`, an origin
+ *     `seeded` by an in-progress left-recursive growth, whose outcome is only
+ *     valid as part of that growth, or a span crossing into/after the
+ *     affected region) are still walked through —
  *     never captured directly, but visited so any reusable descendants
  *     nested within them are still found.
  *
@@ -75,6 +77,7 @@ export async function rehydrateMemos(
 
     if (
       node.origin &&
+      !node.origin.seeded &&
       node.span.end.compareTo(edit.at) <= 0 &&
       !canSkipMemo(node.origin.rule)
     ) {

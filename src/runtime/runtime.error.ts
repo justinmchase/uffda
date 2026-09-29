@@ -2,7 +2,6 @@ import { Scope } from "./scope.ts";
 
 export enum RuntimeErrorCode {
   Unknown = "E_UNKNOWN",
-  IndirectLeftRecursion = "E_INDIRECT_LEFT_RECURSION",
   PatternNotFound = "E_PATTERN_NOT_FOUND",
   PatternUnmatched = "E_PATTERN_UNMATCHED",
   MatchError = "E_MATCH_ERROR",
@@ -19,8 +18,6 @@ type RuntimeErrorArgs = {
 
 export const RuntimeErrorMessages = {
   [RuntimeErrorCode.Unknown]: () => "An unknown error occurred",
-  [RuntimeErrorCode.IndirectLeftRecursion]: () =>
-    "Left recursion was detected but no rules are in the stack",
   [RuntimeErrorCode.PatternNotFound]: (
     { metadata: { name = "unknown" }, scope }: RuntimeErrorArgs,
   ) =>

@@ -1,5 +1,7 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertStrictEquals } from "@std/assert";
 import { fail, getRightmostFailure, MatchKind, ok } from "./match.ts";
+import type { MatchOrigin } from "./match.ts";
+import type { Rule } from "./runtime/modules/mod.ts";
 import { Path } from "./path.ts";
 import { Scope } from "./runtime/scope.ts";
 import { match } from "./runtime/match.ts";
@@ -240,6 +242,28 @@ Deno.test({
         assertEquals(result.kind, MatchKind.Ok);
         if (result.kind !== MatchKind.Ok) return;
         assertEquals(result.originalSpan, { start: 0, end: 3 });
+      },
+    });
+  },
+});
+
+Deno.test({
+  name: "match/origin",
+  fn: async (t) => {
+    await t.step({
+      name: "ORIGIN00 - Ok and Fail carry a seeded origin unchanged",
+      fn: () => {
+        const scope = Scope.From(Input.Iterable("a"));
+        const origin: MatchOrigin = {
+          rule: { name: "R" } as Rule,
+          args: new Map(),
+          seeded: true,
+        };
+        assertStrictEquals(
+          ok(scope, scope, testPattern, undefined, [], origin).origin,
+          origin,
+        );
+        assertStrictEquals(fail(scope, testPattern, [], origin).origin, origin);
       },
     });
   },

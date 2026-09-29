@@ -36,9 +36,10 @@ any child pattern succeeds.
   alternative position of an `or` branch SHOULD be treated as direct left
   recursion (DLR) and evaluated according to
   [runtime left recursion](../../runtime/left-recursion.spec.md).
-- Indirect left recursion (ILR) that flows through different rules is not a
-  generally supported `or` composition strategy and MUST follow
-  [runtime left recursion](../../runtime/left-recursion.spec.md#supported-and-unsupported-forms).
+- Indirect left recursion (ILR) that flows through different rules MUST follow
+  the same contract; the left-recursion outcome propagates unchanged through
+  each involved rule's `or` to the cycle's head, as defined in
+  [runtime left recursion](../../runtime/left-recursion.spec.md#detection-and-growth).
 
 ## Input consumption
 

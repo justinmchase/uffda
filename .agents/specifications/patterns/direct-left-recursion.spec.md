@@ -61,9 +61,10 @@ non-left-recursive forms.
   [projection](./runtime/projection.spec.md) pattern so each growth step carries
   a projected value (for example a nested AST node) rather than the raw child
   match value.
-- Pattern authors MUST NOT rely on splitting recursive and base arms into
-  separate rules solely to attach different projections; that shape becomes
-  unsupported indirect left recursion.
+- Pattern authors MAY split recursive and base arms into separate rules, for
+  example to attach different projections; that shape is indirect left recursion
+  and grows under the same runtime mechanism (see
+  [runtime left recursion](../runtime/left-recursion.spec.md#supported-forms)).
 
 ## Scope and input-position invariants
 
@@ -80,18 +81,17 @@ non-left-recursive forms.
 ## Supported and unsupported forms
 
 - Direct left recursion MUST be supported.
-- This chapter does not extend support to indirect left recursion as a general
-  pattern-authoring capability.
-- Grammars that rely on indirect left recursion MUST follow the rejection or
-  error behavior defined in
-  [runtime left recursion](../runtime/left-recursion.spec.md#supported-and-unsupported-forms).
+- Direct left recursion is the length-one case of a left-recursive cycle.
+  Indirect and mutual left recursion MUST be supported as defined in
+  [runtime left recursion](../runtime/left-recursion.spec.md#supported-forms);
+  this chapter's authoring guidance applies to the rule that heads such a cycle.
 
 ## Composition intent
 
 - Grammar authors SHOULD prefer direct left recursion over manual grammar
   rewriting when expressing left-associative constructs.
-- Grammar authors MAY refactor recursive structures into direct left-recursive
-  form to stay within the supported recursion model.
+- Grammar authors MAY keep recursive structures in indirect form; refactoring
+  into direct left-recursive form is no longer required.
 - Runtime pattern chapters that commonly participate in directly left-recursive
   structures, especially ordered choice and reference-like delegation, SHOULD
   refine this chapter where they impose stricter local rules.
