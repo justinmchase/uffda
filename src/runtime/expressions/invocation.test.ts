@@ -303,4 +303,49 @@ Deno.test("runtime.expressions.invocation", async (t) => {
       result: 3,
     }),
   });
+
+  await t.step({
+    name:
+      "INVOKE_COMPUTED_CALLEE - a callee computed by an expression is called",
+    fn: expressionTest({
+      scope: Scope.Default().withOptions({
+        globals: new Map([[
+          "pick",
+          () => (a: Wrapped<number>) => a.raw * 2,
+        ]]),
+      }),
+      expression: {
+        kind: ExpressionKind.Invocation,
+        expression: {
+          kind: ExpressionKind.Invocation,
+          expression: { kind: ExpressionKind.Reference, name: "pick" },
+          args: [],
+        },
+        args: [{ kind: ExpressionKind.Number, value: 4 }],
+      },
+      result: 8,
+    }),
+  });
+
+  await t.step({
+    name:
+      "INVOKE_NAIVE_GLOBAL - a global coercing its arguments sees raw values",
+    fn: expressionTest({
+      scope: Scope.Default().withOptions({
+        globals: new Map([[
+          "add",
+          (a: number, b: number) => a + b,
+        ]]),
+      }),
+      expression: {
+        kind: ExpressionKind.Invocation,
+        expression: { kind: ExpressionKind.Reference, name: "add" },
+        args: [{ kind: ExpressionKind.Number, value: 1 }, {
+          kind: ExpressionKind.Number,
+          value: 2,
+        }],
+      },
+      result: 3,
+    }),
+  });
 });

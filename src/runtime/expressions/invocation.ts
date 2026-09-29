@@ -8,7 +8,8 @@ import type {
   InvocationExpression,
   InvocationSpreadExpression,
 } from "./expression.ts";
-import { wrapFrom, type Wrapped } from "../../wrapped.ts";
+import { rawOf, wrapFrom, type Wrapped } from "../../wrapped.ts";
+import { resolveReference } from "./reference.ts";
 
 const isSpread = (
   arg: InvocationArgument,
@@ -21,8 +22,8 @@ export function invocation(
 ): Awaitable<Wrapped> {
   const { expression: expr, args } = expression;
   // A raw result was computed by this invocation, so `match` is its origin.
-  const invoke = (callee: Wrapped, a: unknown[]) => {
-    const fn = callee.raw;
+  const invoke = (callee: unknown, a: unknown[]) => {
+    const fn = rawOf(callee);
     if (typeof fn !== "function") {
       throw new Error(
         `Unable to invoke function [${fn}] for expression (${expr.kind}:${
@@ -33,7 +34,11 @@ export function invocation(
     return andThen(fn(...a), (result) => wrapFrom(result, match));
   };
 
-  return andThen(exec(expr, match), (fn) =>
+  // A named callee is called, never carried, so it is resolved unwrapped.
+  const callee = expr.kind === ExpressionKind.Reference
+    ? resolveReference(expr, match)
+    : exec(expr, match);
+  return andThen(callee, (fn) =>
     // Evaluated sequentially (not `Promise.all`) so sibling argument
     // expressions never run concurrently against the same shared `match`
     // scope/stream. This is both simpler (a deterministic left-to-right

@@ -40,6 +40,32 @@ export class Wrapped<T = unknown> {
     public readonly origin: Origin,
     public readonly chars?: readonly CharRun[],
   ) {}
+
+  /**
+   * Converts like the raw value, so host code that coerces a wrapped value
+   * (`w + 1`, `` `${w}` ``, `w == "a"`) sees the raw value. Identity and
+   * `typeof` still see the wrapper; use {@link rawOf} to observe.
+   */
+  [Symbol.toPrimitive](hint: "number" | "string" | "default"): unknown {
+    const [t, v] = type(this.raw);
+    switch (t) {
+      case Type.Null:
+      case Type.Undefined:
+      case Type.BigInt:
+      case Type.Boolean:
+      case Type.Number:
+      case Type.String:
+      case Type.Symbol:
+        return v;
+      default:
+        return hint === "number" ? Number(v) : String(v);
+    }
+  }
+
+  /** Serializes as the raw value; nested wrappers serialize the same way. */
+  toJSON(): T {
+    return this.raw;
+  }
 }
 
 export function isWrapped(value: unknown): value is Wrapped {

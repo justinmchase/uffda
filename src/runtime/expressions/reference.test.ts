@@ -6,6 +6,7 @@ import { assertEquals, assertStrictEquals } from "@std/assert";
 import { ok } from "../../match.ts";
 import { PatternKind } from "../patterns/pattern.kind.ts";
 import { exec } from "../exec.ts";
+import { reference, resolveReference } from "./reference.ts";
 import { rawOf, unwrap } from "../../wrapped.ts";
 
 await Deno.test("runtime/expressions/reference", async (t) => {
@@ -85,4 +86,33 @@ await Deno.test("runtime/expressions/reference", async (t) => {
       result: 1,
     }),
   });
+
+  await t.step(
+    "REFERENCE_RESOLVE - resolveReference returns the stored value unwrapped",
+    () => {
+      const join = (...parts: unknown[]) => parts.join("");
+      const scope = Scope.Default()
+        .withOptions({ globals: new Map([["join", join]]) })
+        .addVariables({ x: 1 });
+      const m = ok(scope, scope, { kind: PatternKind.Ok }, "value");
+      assertStrictEquals(
+        resolveReference({ kind: ExpressionKind.Reference, name: "join" }, m),
+        join,
+      );
+      assertStrictEquals(
+        resolveReference({ kind: ExpressionKind.Reference, name: "this" }, m),
+        m,
+      );
+      assertStrictEquals(
+        resolveReference({ kind: ExpressionKind.Reference, name: "_" }, m),
+        m.value,
+      );
+      const wrapped = reference(
+        { kind: ExpressionKind.Reference, name: "join" },
+        m,
+      );
+      assertStrictEquals(wrapped.raw, join);
+      assertEquals(wrapped.origin, m.originalSpan);
+    },
+  );
 });

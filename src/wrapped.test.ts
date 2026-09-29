@@ -236,6 +236,23 @@ Deno.test("wrapped", async (t) => {
     },
   );
 
+  await t.step("coercion sees the raw value", () => {
+    const n = new Wrapped(2, at(0)) as unknown as number;
+    assertEquals(n + 1, 3);
+    assertEquals(`${new Wrapped("a", at(0))}!`, "a!");
+    assertEquals(new Wrapped("a", at(0)) == ("a" as unknown), true);
+    assertEquals(`${new Wrapped([1, 2], at(0))}`, "1,2");
+    assertEquals(+new Wrapped(new Date(5), at(0)), 5);
+    assertEquals(typeof new Wrapped("a", at(0)), "object");
+  });
+
+  await t.step("JSON serializes the raw value at every level", () => {
+    const value = new Wrapped([new Wrapped(1, at(0)), {
+      k: new Wrapped("v", at(1)),
+    }], at(0, 2));
+    assertEquals(JSON.stringify(value), '[1,{"k":"v"}]');
+  });
+
   await t.step("wrapRoot gives a string's characters their offsets", () => {
     const w = wrapRoot("héy");
     assertEquals(w.origin, at(0, 3));

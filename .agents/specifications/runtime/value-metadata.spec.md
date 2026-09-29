@@ -43,6 +43,27 @@ rearranging globals carry the values they move, computing globals observe raw
 inputs, and a raw result is wrapped with the evaluating Match's source span.
 Globals never inspect origins.
 
+### Writing a global
+
+A global author follows four rules; provenance then needs no further thought:
+
+1. **Observe raw.** Read an argument's raw value with `rawOf` before testing or
+   computing with it (`unwrap` for a deep, raw copy). Coercion (`a + 1`,
+   `` `${s}` ``, `a == "x"`) already sees the raw value, but identity (`===`),
+   `typeof`, and property access see the wrapper.
+2. **Return raw when computing.** A computed result is returned raw; the runtime
+   wraps it with the invocation's source span.
+3. **Carry what you rearrange.** Elements, properties, and callback results that
+   are moved rather than inspected are placed in the result unchanged, so each
+   keeps its own origin (for example `filter` returns the wrapped elements it
+   kept).
+4. **Build strings with the helpers.** A string built from strings uses `concat`
+   (and `sliceString` for substrings) so each character keeps its provenance;
+   converted non-string parts take the call's origin.
+
+A global that ignores rules 3 and 4 still works; its results fall back to the
+invocation's source span.
+
 ## Default globals
 
 - Every default runtime global (`defaultGlobals`) MUST carry function metadata.

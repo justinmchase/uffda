@@ -239,7 +239,11 @@ original characters it replaced.
   origin reference) so property access stays monomorphic.
 - Implementations SHOULD avoid wrapping values that are discarded without being
   carried (for example intermediate values inside a single computing
-  expression), provided the transparency invariant holds.
+  expression), provided the transparency invariant holds. A named invocation
+  target is resolved without wrapping, since it is called rather than carried.
+- A wrapped value SHOULD convert like its raw value (`Symbol.toPrimitive`) and
+  serialize as its raw value (`toJSON`), so host code that coerces or serializes
+  a wrapped value gets the raw result.
 - Before adoption, parse time and retained heap for `src/lang/source/mod.uff`
   MUST be benchmarked against the unwrapped model and reported on #219.
 
