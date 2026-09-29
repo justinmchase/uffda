@@ -1,6 +1,7 @@
 import { Type, type } from "@justinmchase/type";
 import {
   getRightmostFailure,
+  isClean,
   isSuccess,
   type Match,
   MatchKind,
@@ -428,16 +429,16 @@ export async function highlightSource(
   const match = await (() => {
     switch (language) {
       case CliLanguage.FullUffda:
-        return uffdaGrammar(sourceText, { recovery: true });
+        return uffdaGrammar(sourceText);
       case CliLanguage.Pattern:
-        return patternGrammar(sourceText, { recovery: true });
+        return patternGrammar(sourceText);
       case CliLanguage.Expression:
-        return expressionGrammar(sourceText, { recovery: true });
+        return expressionGrammar(sourceText);
     }
   })();
 
   const spans = highlightSpansFromMatch(match, sourceText);
-  if (isSuccess(match) && !match.recovered) return { ok: true, spans };
+  if (isClean(match)) return { ok: true, spans };
 
   const recoveries = await recoveryFailures(
     match,

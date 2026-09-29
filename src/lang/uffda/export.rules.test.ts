@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { MatchKind, valueOf } from "../../match.ts";
+import { isClean, MatchKind, valueOf } from "../../match.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { uffdaGrammar } from "./uffda.lang.ts";
 import { unwrap } from "../../wrapped.ts";
@@ -27,13 +27,13 @@ Deno.test("lang.uffda.export-rules parses direct export names", async () => {
 Deno.test("lang.uffda.export-rules requires at least one name", async () => {
   const match = await uffdaGrammar("export;");
 
-  assertEquals(match.kind, MatchKind.Fail);
+  assertEquals(isClean(match), false);
 });
 
 Deno.test("lang.uffda.export-rules rejects exports after rules", async () => {
   const match = await uffdaGrammar("rule Main = any; export Main;");
 
-  assertEquals(match.kind, MatchKind.Fail);
+  assertEquals(isClean(match), false);
 });
 
 Deno.test("lang.uffda.export-rules normalizes inline exported rules", async () => {

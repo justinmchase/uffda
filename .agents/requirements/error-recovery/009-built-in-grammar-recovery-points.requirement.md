@@ -1,7 +1,7 @@
 ---
 id: error-recovery-009
 title: The built-in grammars recover declarations, pattern tokens, and expression tokens
-spec_ref: ".agents/specifications/languages/uffda-syntax/module-structure.spec.md#error-recovery; .agents/specifications/languages/pattern-syntax/grammar.spec.md#recovery-points; .agents/specifications/languages/expression-layer.spec.md#recovery-points; .agents/specifications/runtime/error-recovery.spec.md#host-surface"
+spec_ref: ".agents/specifications/languages/uffda-syntax/module-structure.spec.md#error-recovery; .agents/specifications/languages/pattern-syntax/grammar.spec.md#recovery-points; .agents/specifications/languages/expression-layer.spec.md#recovery-points"
 ---
 
 # Built-in Grammar Recovery Points
@@ -14,9 +14,8 @@ Preconditions:
 
 Expected behavior:
 
-- Without recovery requested, a parse MUST either succeed cleanly or fail.
-- With recovery requested, a source the grammar accepts MUST parse cleanly, with
-  the same syntax tree as without recovery.
+- A source the grammar accepts MUST parse cleanly (a success that is not
+  recovered).
 - A Uffda declaration that fails to parse MUST be skipped through its `;`,
   stopping before a reserved declaration keyword, and every other declaration
   MUST still appear in the syntax tree. A broken import MUST NOT cause later
@@ -31,7 +30,7 @@ Expected behavior:
 
 Postconditions:
 
-- Hosts that request recovery report one diagnostic per skipped region (see
+- Hosts report one diagnostic per skipped region (see
   [error-recovery-008](./008-recovery-diagnostics.requirement.md)).
 
 ## Test plan

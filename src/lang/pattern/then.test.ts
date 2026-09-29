@@ -44,13 +44,12 @@ const skipped = (source: string, match: Match) =>
 
 Deno.test("lang.pattern.then recovers a stray token", async () => {
   const source = "a ! b";
-  assertEquals((await patternGrammar(source)).kind, MatchKind.Fail);
 
-  const match = await patternGrammar(source, { recovery: true });
+  const match = await patternGrammar(source);
   assert(isSuccess(match));
   assertEquals(valueOf(match).kind, PatternKind.Then);
   assertEquals(skipped(source, match), ["!"]);
 
-  const delimited = await patternGrammar("(a !) | b", { recovery: true });
+  const delimited = await patternGrammar("(a !) | b");
   assertEquals(skipped("(a !) | b", delimited), ["!"]);
 });

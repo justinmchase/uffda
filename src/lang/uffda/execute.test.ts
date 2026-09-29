@@ -12,7 +12,8 @@ import {
 import { uffdaGrammar } from "./uffda.lang.ts";
 import type { UffdaSyntaxModule } from "./syntax.types.ts";
 import { unwrap } from "../../wrapped.ts";
-import { valueOf } from "../../match.ts";
+import { isClean, isRecovered, valueOf } from "../../match.ts";
+import { collectRecoveries } from "../../runtime/recovery.ts";
 
 Deno.test("lang.uffda.execute compiles through UffdaRuntimeCompiler", async () => {
   const module = await compileUffdaSyntaxModule({
@@ -111,5 +112,18 @@ Deno.test("lang.uffda.execute compileUffdaSource matches uffdaGrammar + compileU
 
 Deno.test("lang.uffda.execute compileUffdaSource surfaces parse failures", async () => {
   const failed = await compileUffdaSource("rule Main = ;");
-  assertEquals(failed.kind === MatchKind.Ok, false);
+  assertEquals(isClean(failed), false);
+});
+
+Deno.test("lang.uffda.execute executeUffdaSource never runs a recovered source", async () => {
+  const source = "export Main; rule Main = ; rule Other = any;";
+  const parsed = await uffdaGrammar(source);
+  const executed = await executeUffdaSource(source, {
+    input: Input.Iterable(["x"]),
+  });
+  assertEquals(isRecovered(executed), true);
+  assertEquals(
+    collectRecoveries(executed).map(({ match }) => match.originalSpan),
+    collectRecoveries(parsed).map(({ match }) => match.originalSpan),
+  );
 });

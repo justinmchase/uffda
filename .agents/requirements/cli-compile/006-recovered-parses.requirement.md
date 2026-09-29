@@ -14,7 +14,6 @@ Preconditions:
 
 Expected behavior:
 
-- Parsing MUST request error recovery.
 - A parse diagnostic payload MUST carry a `diagnostics` list of every parse
   diagnostic in document order (one `CLI_STREAM_PARSE_RECOVERED` entry per
   recovery, located over the skipped source, then the parse failure if any); its

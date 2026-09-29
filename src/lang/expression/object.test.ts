@@ -140,9 +140,8 @@ const skipped = (source: string, match: Match) =>
 
 Deno.test("lang.expression.object recovers a broken entry", async () => {
   const source = "{ a: 1, b: ?, c: 2 }";
-  assertEquals((await expressionGrammar(source)).kind, MatchKind.Fail);
 
-  const match = await expressionGrammar(source, { recovery: true });
+  const match = await expressionGrammar(source);
   assert(isSuccess(match));
   assertEquals(valueOf(match), {
     kind: ExpressionKind.Object,
@@ -161,6 +160,6 @@ Deno.test("lang.expression.object recovers a broken entry", async () => {
   });
   assertEquals(skipped(source, match), ["b: ?"]);
 
-  const first = await expressionGrammar("{ ?, c: 2 }", { recovery: true });
+  const first = await expressionGrammar("{ ?, c: 2 }");
   assertEquals(skipped("{ ?, c: 2 }", first), ["?"]);
 });

@@ -13,7 +13,7 @@ import { Scope } from "../../runtime/scope.ts";
 import { ModuleImportResultKind } from "../../runtime/resolvers/resolver.ts";
 import { resolve } from "../../runtime/patterns/resolve.ts";
 import { unwrap } from "../../wrapped.ts";
-import { isSuccess, type Match, valueOf } from "../../match.ts";
+import { isClean, isSuccess, type Match, valueOf } from "../../match.ts";
 
 const moduleUrl = new URL("./expression.lang.uff", import.meta.url);
 
@@ -258,7 +258,7 @@ Deno.test(
       name: "EXPR_LANG_07",
       fn: async () => {
         const m = await expressionGrammar("(add 1 2) trailing");
-        assertEquals(m.kind, MatchKind.Fail);
+        assertEquals(isClean(m), false);
       },
     });
 
@@ -378,9 +378,8 @@ const skipped = (source: string, match: Match) =>
 
 Deno.test("lang.expression.lang recovers trailing input", async () => {
   const source = "x ) y";
-  assertEquals((await expressionGrammar(source)).kind, MatchKind.Fail);
 
-  const match = await expressionGrammar(source, { recovery: true });
+  const match = await expressionGrammar(source);
   assert(isSuccess(match));
   assertEquals(valueOf(match), { kind: ExpressionKind.Reference, name: "x" });
   assertEquals(skipped(source, match), [") y"]);

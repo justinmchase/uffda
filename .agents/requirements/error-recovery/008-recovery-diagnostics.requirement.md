@@ -10,7 +10,8 @@ spec_ref: ".agents/specifications/runtime/error-recovery.spec.md#diagnostics"
 
 Preconditions:
 
-- A match produced with recovery requested.
+- A match produced by an entry point (see
+  [error-recovery-001](./001-two-phase-matching.requirement.md)).
 
 Expected behavior:
 

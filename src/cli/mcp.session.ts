@@ -30,6 +30,7 @@ import type { Edit } from "../edit.ts";
 import { rehydrateMemos } from "../runtime/incremental.ts";
 import {
   getRightmostFailure,
+  isClean,
   isSuccess,
   type Match,
   MatchKind,
@@ -1214,7 +1215,7 @@ export class RuntimeSession {
       },
       scope,
     );
-    if (isSuccess(result) && !result.recovered) {
+    if (isClean(result)) {
       return {
         ok: true,
         value: valueOf(result),

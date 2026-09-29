@@ -311,7 +311,6 @@ Deno.test("cli.stream reports parse diagnostics", async (t) => {
       {
         entryRuleName: "Main",
         input: Input.From(source, { kind: InputNormalizationMode.Iterable }),
-        recovery: true,
       },
     );
     const [failure] = await recoveryFailures(

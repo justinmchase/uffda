@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { MatchKind, valueOf } from "../match.ts";
+import { isClean, MatchKind, valueOf } from "../match.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 import type { Pattern } from "../runtime/patterns/pattern.ts";
 import { expressionGrammar } from "./expression/expression.lang.ts";
@@ -38,7 +38,7 @@ Deno.test({
           entryRuleName: "PatternLang",
         });
 
-        assertEquals(m.kind, MatchKind.Fail);
+        assertEquals(isClean(m), false);
       },
     });
 
@@ -58,7 +58,7 @@ Deno.test({
     });
 
     await t.step({
-      name: "GRAMMAR_03 parses with two-phase recovery only when requested",
+      name: "GRAMMAR_03 parses with two-phase recovery",
       fn: async () => {
         const moduleUrl = new URL("file:///grammar.recovery.uff");
         const declarations: Record<string, ModuleDeclaration> = {
@@ -92,23 +92,20 @@ Deno.test({
             }],
           },
         };
-        const parse = (source: string, recovery?: boolean) =>
+        const parse = (source: string) =>
           parseGrammar({
             source,
             moduleUrl,
             entryRuleName: "Main",
-            grammarOptions: { declarations, recovery },
+            grammarOptions: { declarations },
           });
 
-        const discovery = await parse("axa");
-        assertEquals(discovery.kind, MatchKind.Fail);
-
-        const clean = await parse("aa", true);
+        const clean = await parse("aa");
         assertEquals(clean.kind, MatchKind.Ok);
         if (clean.kind !== MatchKind.Ok) return;
         assertEquals(clean.recovered, undefined);
 
-        const recovered = await parse("axa", true);
+        const recovered = await parse("axa");
         assertEquals(recovered.kind, MatchKind.Ok);
         if (recovered.kind !== MatchKind.Ok) return;
         assertEquals(recovered.recovered, true);

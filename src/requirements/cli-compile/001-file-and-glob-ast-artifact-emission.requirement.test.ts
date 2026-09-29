@@ -45,7 +45,7 @@ Deno.test({
       failure.sourcePath === "a/bad.uff"
     );
     assert(parseFailure != null);
-    assertEquals(parseFailure.code, CliCompileFailureCode.ParseFailure);
+    assertEquals(parseFailure.code, CliCompileFailureCode.Recovered);
 
     assertEquals(result.successes.length, 2);
     assertEquals(

@@ -8,7 +8,6 @@ async function run(source: string, input: Input) {
   return await executeUffdaSource(source, {
     entryRuleName: "Main",
     input,
-    recovery: true,
   });
 }
 

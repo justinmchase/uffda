@@ -2,8 +2,7 @@ import type { Match } from "../match.ts";
 import type { Input, InputNormalizationMode } from "../input.ts";
 import type { ModuleDeclaration } from "./declarations/module.ts";
 import { PatternKind } from "./patterns/pattern.kind.ts";
-import { type Pattern, ResolveTargetKind } from "./patterns/pattern.ts";
-import { resolve } from "./patterns/resolve.ts";
+import { ResolveTargetKind } from "./patterns/pattern.ts";
 import { matchWithRecovery } from "./recovery.ts";
 import { Resolver } from "./resolve.ts";
 import { Scope, type ScopeOptions } from "./scope.ts";
@@ -19,12 +18,6 @@ export type ExecuteModuleDeclarationOptions = {
   scopeOptions?: Partial<ScopeOptions>;
   cwd?: string;
   artifactRoot?: string;
-  /**
-   * Match in two phases, recovering at grammar-declared recovery points when
-   * the first fails; see
-   * `.agents/specifications/runtime/error-recovery.spec.md#two-phase-matching`.
-   */
-  recovery?: boolean;
 };
 
 export async function executeModuleDeclaration(
@@ -64,13 +57,12 @@ export async function executeModuleDeclaration(
     return imported.error;
   }
 
-  const entry: Pattern = {
-    kind: PatternKind.Resolve,
-    targetKind: ResolveTargetKind.Run,
-    name: options?.entryRuleName,
-  };
-  const entryScope = scope.pushModule(imported.module);
-  return await (options?.recovery
-    ? matchWithRecovery(entry, entryScope)
-    : resolve(entry, entryScope));
+  return await matchWithRecovery(
+    {
+      kind: PatternKind.Resolve,
+      targetKind: ResolveTargetKind.Run,
+      name: options?.entryRuleName,
+    },
+    scope.pushModule(imported.module),
+  );
 }

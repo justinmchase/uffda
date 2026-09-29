@@ -5,7 +5,7 @@ import {
   type Range,
 } from "vscode-languageserver-types";
 import { compileUffdaSource } from "../lang/uffda/execute.ts";
-import { isSuccess } from "../match.ts";
+import { isClean } from "../match.ts";
 import { ExportDeclarationKind } from "../runtime/declarations/export.ts";
 import type {
   CompletionContext,
@@ -155,7 +155,7 @@ async function exportedNames(
     return [];
   }
   const compiled = await compileUffdaSource(text);
-  if (!isSuccess(compiled)) return [];
+  if (!isClean(compiled)) return [];
   return valueOf(compiled).exports.map((e) => ({
     name: e.name,
     detail: e.kind === ExportDeclarationKind.Import

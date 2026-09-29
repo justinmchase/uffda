@@ -2,7 +2,13 @@ import {
   compileUffdaSyntaxModule,
   type UffdaSyntaxModule,
 } from "../lang/uffda/uffda.lang.ts";
-import { isSuccess, type Match, MatchKind, type SourceSpan } from "../match.ts";
+import {
+  isClean,
+  isSuccess,
+  type Match,
+  MatchKind,
+  type SourceSpan,
+} from "../match.ts";
 import { diagnoseRecoveries } from "../match.recovery_diagnostics.ts";
 import { executeModuleDeclaration } from "../runtime/module.execute.ts";
 import { type Expression, isExpression } from "../runtime/expressions/mod.ts";
@@ -107,7 +113,7 @@ function executionFailure(match: Match): CliExecFailure {
 }
 
 async function executionResult(execution: Match): Promise<CliExecResult> {
-  if (isSuccess(execution) && !execution.recovered) {
+  if (isClean(execution)) {
     return { ok: true, value: valueOf(execution) };
   }
   const recoveries: CliExecFailure[] = (await diagnoseRecoveries(execution))
@@ -215,7 +221,6 @@ export async function executeCliAst(
     scopeOptions: {
       globals: new Map([...globals, ["echo", (output: unknown) => output]]),
     },
-    recovery: true,
   });
   return await executionResult(execution);
 }
@@ -275,7 +280,6 @@ export async function executeCliModule(
     scopeOptions: {
       globals: new Map([...globals, ["echo", (output: unknown) => output]]),
     },
-    recovery: true,
   });
   return await executionResult(execution);
 }

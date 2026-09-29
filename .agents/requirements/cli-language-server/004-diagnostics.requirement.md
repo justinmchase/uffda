@@ -20,10 +20,9 @@ Expected behavior:
   (for example `getRightmostFailure` / match-failure analysis in
   `src/match.visualize.ts`) into LSP diagnostic ranges (line/character
   positions, not raw stream offsets).
-- Documents MUST be parsed with error recovery requested, and the server MUST
-  publish every parse diagnostic: one per recovery, ranged over the source the
-  recovery skipped, whose message is the analysis of the failure it replaced,
-  then the parse failure if the parse failed (see
+- The server MUST publish every parse diagnostic: one per recovery, ranged over
+  the source the recovery skipped, whose message is the analysis of the failure
+  it replaced, then the parse failure if the parse failed (see
   [error recovery](../../specifications/runtime/error-recovery.spec.md#diagnostics)).
   A document that parsed only by recovering MUST NOT be compiled or resolved,
   while highlighting and symbols read the recovered parse.

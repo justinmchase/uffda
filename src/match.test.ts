@@ -3,6 +3,7 @@ import {
   fail,
   forward,
   getRightmostFailure,
+  isClean,
   isRecovered,
   isSuccess,
   MatchKind,
@@ -356,6 +357,16 @@ Deno.test("match/recovered", async (t) => {
         undefined,
       );
       assertEquals(isRecovered(rejected), false);
+    },
+  );
+
+  await t.step(
+    "RECOVERED03 - only an unrecovered success is clean",
+    () => {
+      const clean = ok(recovering, recovering, testPattern, undefined);
+      assertEquals(isClean(clean), true);
+      assertEquals(isClean(recovered), false);
+      assertEquals(isClean(fail(recovering, testPattern)), false);
     },
   );
 

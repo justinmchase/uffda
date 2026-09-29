@@ -16,7 +16,6 @@ Preconditions:
 
 Expected behavior:
 
-- The parse or match MUST request error recovery.
 - A failure MUST carry a `diagnostics` list of every diagnostic of the parse or
   match, in document order.
 - A result that succeeded only by recovering MUST be a failure whose `error` is

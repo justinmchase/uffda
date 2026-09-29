@@ -30,8 +30,9 @@ never hard-codes them.
   layer's input, and how recovered outcomes compose with memoization, left
   recursion, incremental re-parsing, and pipelines.
 - It does not change any outcome of a match evaluated with recovery disabled
-  (see [Recovery setting](#recovery-setting)). Grammars that declare no recovery
-  points, and hosts that never enable recovery, observe no difference.
+  (see [Recovery setting](#recovery-setting)), nor any input a grammar accepts
+  (see [Two-phase matching](#two-phase-matching)). Grammars that declare no
+  recovery points observe no difference.
 - It defines what diagnostics recoveries yield (see
   [Diagnostics](#diagnostics)); each host's chapter defines how it reports them.
 
@@ -59,8 +60,7 @@ never hard-codes them.
   a success on the grounds of error recovery.
 - Host code (CLI, language server, MCP server, compiler drivers) MUST NOT
   hard-code synchronization tokens, rule names, or text patterns to recover from
-  errors; it MAY only enable or disable the recovery setting and read the
-  resulting match.
+  errors; it MAY only read the resulting match.
 - Recovery MUST NOT be introduced through rule metadata:
   [rule metadata](./rule-metadata.spec.md#boundary-non-goal-for-this-chapter)
   may never alter matching behavior, and recovery alters it. A decorator MAY
@@ -69,7 +69,9 @@ never hard-codes them.
 
 ## Recovery setting
 
-- The recovery setting MUST default to disabled.
+- The recovery setting MUST default to disabled. It is internal to matching:
+  [two-phase matching](#two-phase-matching) drives it, and no entry point
+  exposes it as an option (see [Host surface](#host-surface)).
 - With recovery disabled, a `recover` pattern MUST behave exactly as its child
   pattern does (outcome, consumption, value), and every other pattern MUST
   behave exactly as it does in a runtime without this chapter.
@@ -81,11 +83,11 @@ never hard-codes them.
 
 ## Two-phase matching
 
-- A host requesting recovery MUST match in two phases: first the discovery
-  phase, with recovery disabled; then, only when discovery fails, the recovery
-  phase, from the same input position with recovery enabled. The result is the
-  discovery phase's result when discovery did not fail, and the recovery phase's
-  result otherwise.
+- Matching a module's entry rule MUST always proceed in two phases: first the
+  discovery phase, with recovery disabled; then, only when discovery fails, the
+  recovery phase, from the same input position with recovery enabled. The result
+  is the discovery phase's result when discovery did not fail, and the recovery
+  phase's result otherwise.
 - A discovery-phase `Error` or left-recursion outcome MUST be returned as is:
   errors are not syntax errors, and MUST NOT trigger the recovery phase.
 - Two phases are required, not one: a recovery point can pre-empt input a later
@@ -236,12 +238,15 @@ never hard-codes them.
 
 ## Host surface
 
-- The runtime MUST expose two-phase matching to hosts as an explicit option of
-  matching a module's entry rule, off by default.
-- Parsing source with a built-in language (Uffda, pattern, or expression) MUST
-  take the same option, off by default: without it, a parse either succeeds
-  cleanly or fails, so a caller that never asks for recovery never receives a
-  recovered result.
+- Every entry point that matches a module's entry rule (executing a module
+  declaration, parsing source with a built-in or user grammar) MUST match in two
+  phases, and MUST NOT offer a way to disable recovery. A recovery point is part
+  of its grammar's language; a flag outside the language that made it inert
+  would give the same source two meanings.
+- An entry point's result MAY therefore be a recovered success. The runtime MUST
+  expose a check for a clean result (a success that is not recovered), and every
+  consumer that treats a result as clean (compiling, resolving, or evaluating
+  it) MUST use it instead of a bare success check.
 
 ## Diagnostics
 
@@ -263,8 +268,8 @@ never hard-codes them.
   [language server](../languages/cli/language-server.spec.md#diagnostics), and
   the
   [MCP server](../languages/cli/mcp-server.spec.md#error-and-determinism-contract)
-  MUST match with recovery requested for every parse and every module or pattern
-  execution; their chapters specify how diagnostics are reported (see also
+  report the diagnostics of every parse and every module or pattern execution;
+  their chapters specify how (see also
   [compile and stream](../languages/cli/compile-and-stream.spec.md#parse-contracts)).
 
 ## Why this design
@@ -286,6 +291,11 @@ never hard-codes them.
   argument is Theorem 3 of the squirrel parser paper (Hutchison, 2026,
   arXiv:2601.05012), whose constraints on bounded recovery, phase isolation, and
   left-recursion separation this chapter adopts.
+- **Always on.** A recovery point is grammar syntax; an option that switched it
+  off would let a flag outside the language decide what the grammar means. Two
+  phases already keep every accepted input's result unchanged, so the only thing
+  such an option could protect is a consumer that mistakes a recovered success
+  for a clean one, and a clean-result check protects that consumer directly.
 
 ## Related
 

@@ -1,5 +1,5 @@
-import { assertEquals, assertNotEquals } from "@std/assert";
-import { MatchKind, valueOf } from "../../match.ts";
+import { assertEquals } from "@std/assert";
+import { isClean, MatchKind, valueOf } from "../../match.ts";
 import { expressionGrammar } from "../../lang/expression/expression.lang.ts";
 import { defaultGlobals } from "../../runtime/globals/mod.ts";
 import { exec } from "../../runtime/exec.ts";
@@ -62,7 +62,7 @@ Deno.test("req:expression-language-syntax-012 - Explicit coalescing syntax suppo
         ]),
       });
 
-      assertNotEquals(m.kind, MatchKind.Ok);
+      assertEquals(isClean(m), false);
     },
   );
 });

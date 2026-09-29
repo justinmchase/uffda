@@ -2,6 +2,7 @@ import { assert, assertEquals } from "@std/assert";
 import { join, toFileUrl } from "@std/path";
 import type { TextEdit } from "vscode-languageserver-types";
 import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
+import { patternGrammar } from "../lang/pattern/pattern.lang.ts";
 import {
   localDefinition,
   occurrenceAt,
@@ -206,9 +207,9 @@ Deno.test("cli.lsp.references in one document", async (t) => {
 });
 
 Deno.test("cli.lsp.references parseQuality orders failed, recovered, clean", async () => {
-  const clean = await uffdaGrammar("rule A = any;", { recovery: true });
-  const recovered = await uffdaGrammar("rule A = ;", { recovery: true });
-  const failed = await uffdaGrammar("rule A = ;");
+  const clean = await uffdaGrammar("rule A = any;");
+  const recovered = await uffdaGrammar("rule A = ;");
+  const failed = await patternGrammar(")");
   assertEquals(parseQuality(failed), 0);
   assertEquals(parseQuality(recovered), 1);
   assertEquals(parseQuality(clean), 2);

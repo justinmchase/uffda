@@ -161,9 +161,8 @@ const skipped = (source: string, match: Match) =>
 
 Deno.test("lang.expression.sequence recovers a stray argument token", async () => {
   const source = "(f x ? y)";
-  assertEquals((await expressionGrammar(source)).kind, MatchKind.Fail);
 
-  const match = await expressionGrammar(source, { recovery: true });
+  const match = await expressionGrammar(source);
   assert(isSuccess(match));
   assertEquals(valueOf(match), {
     kind: ExpressionKind.Invocation,

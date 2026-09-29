@@ -12,7 +12,6 @@ async function diagnose(input: string) {
   const m = await executeUffdaSource(statements, {
     entryRuleName: "Main",
     input: Input.Iterable(input),
-    recovery: true,
   });
   return {
     kind: m.kind,

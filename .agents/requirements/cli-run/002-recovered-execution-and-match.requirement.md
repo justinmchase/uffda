@@ -14,7 +14,6 @@ Preconditions:
 
 Expected behavior:
 
-- Execution and matching MUST request error recovery.
 - A result that succeeded only by recovering MUST be written to STDOUT exactly
   as a clean result would be, its diagnostics MUST be written to STDERR, and the
   process MUST exit with the usage-failure status.

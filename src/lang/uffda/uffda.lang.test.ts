@@ -10,7 +10,7 @@ import { Path } from "../../path.ts";
 import type { Edit } from "../../edit.ts";
 import { rehydrateMemos } from "../../runtime/incremental.ts";
 import { unwrap } from "../../wrapped.ts";
-import { isSuccess, type Match, valueOf } from "../../match.ts";
+import { isClean, isSuccess, type Match, valueOf } from "../../match.ts";
 import { collectRecoveries } from "../../runtime/recovery.ts";
 
 const uffdaDir = fromFileUrl(new URL(".", import.meta.url));
@@ -57,7 +57,7 @@ Deno.test({
       name: "UFFDA_LANG_01A rejects trailing tokens after declaration sequence",
       fn: async () => {
         const m = await uffdaGrammar('import "./a.ts" A; trailing');
-        assertEquals(m.kind, MatchKind.Fail);
+        assertEquals(isClean(m), false);
       },
     });
 
@@ -140,7 +140,7 @@ Deno.test({
         }
 
         const commaSeparated = await uffdaGrammar('import "./a.ts" A, B, C;');
-        assertEquals(commaSeparated.kind, MatchKind.Fail);
+        assertEquals(isClean(commaSeparated), false);
       },
     });
 
@@ -295,7 +295,7 @@ Deno.test({
         const invalid = await uffdaGrammar(
           'rule P = any; import "./a.ts" A;',
         );
-        assertEquals(invalid.kind, MatchKind.Fail);
+        assertEquals(isClean(invalid), false);
       },
     });
 
@@ -308,7 +308,7 @@ Deno.test({
         const missingSeparator = await uffdaGrammar(
           'import "./a.ts" A rule P = any;',
         );
-        assertEquals(missingSeparator.kind, MatchKind.Fail);
+        assertEquals(isClean(missingSeparator), false);
       },
     });
 
@@ -469,8 +469,7 @@ Deno.test("lang.uffda.uffda-lang recovery points", async (t) => {
   ];
   for (const c of cases) {
     await t.step(c.name, async () => {
-      assertEquals((await uffdaGrammar(c.source)).kind, MatchKind.Fail);
-      const match = await uffdaGrammar(c.source, { recovery: true });
+      const match = await uffdaGrammar(c.source);
       assertEquals(skipped(c.source, match), c.skipped);
       assertEquals(declarationNames(match), c.declarations);
     });
@@ -478,7 +477,7 @@ Deno.test("lang.uffda.uffda-lang recovery points", async (t) => {
 
   await t.step("clean modules parse without recovering", async () => {
     const source = 'import "a" A;\nexport B;\nrule B = x:any -> { rule: x };';
-    const match = await uffdaGrammar(source, { recovery: true });
+    const match = await uffdaGrammar(source);
     assert(isSuccess(match));
     assertEquals(match.recovered, undefined);
     assertEquals(declarationNames(match), ["import a", "export B", "rule B"]);

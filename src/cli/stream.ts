@@ -2,6 +2,7 @@ import { expressionGrammar } from "../lang/expression/expression.lang.ts";
 import type { Expression } from "../runtime/expressions/expression.ts";
 import {
   getRightmostFailure,
+  isClean,
   isSuccess,
   type Match,
   MatchKind,
@@ -221,7 +222,7 @@ async function toStreamResult(
   sourcePath: string,
   sourceText: string,
 ): Promise<CliStreamResult> {
-  if (isSuccess(parsed) && !parsed.recovered) {
+  if (isClean(parsed)) {
     return { ok: true, ast: valueOf(parsed), match: parsed };
   }
   const recoveries = await recoveryFailures(
@@ -272,21 +273,21 @@ export async function parseSourceToAst(
   switch (language) {
     case CliLanguage.FullUffda:
       return await toStreamResult(
-        await uffdaGrammar(sourceText, { ...incremental, recovery: true }),
+        await uffdaGrammar(sourceText, incremental),
         language,
         sourcePath,
         sourceText,
       );
     case CliLanguage.Pattern:
       return await toStreamResult(
-        await patternGrammar(sourceText, { recovery: true }),
+        await patternGrammar(sourceText),
         language,
         sourcePath,
         sourceText,
       );
     case CliLanguage.Expression:
       return await toStreamResult(
-        await expressionGrammar(sourceText, { recovery: true }),
+        await expressionGrammar(sourceText),
         language,
         sourcePath,
         sourceText,

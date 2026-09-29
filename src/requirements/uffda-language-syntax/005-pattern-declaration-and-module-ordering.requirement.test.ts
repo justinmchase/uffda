@@ -2,7 +2,7 @@ import { assertEquals } from "@std/assert";
 import { MatchKind } from "../../mod.ts";
 import { uffdaGrammar } from "../../lang/uffda/uffda.lang.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
-import { valueOf } from "../../match.ts";
+import { isClean, valueOf } from "../../match.ts";
 
 Deno.test("req:uffda-language-syntax-005 - Rule declarations and module declaration ordering follow Uffda syntax contracts", async (t) => {
   await t.step("one rule pattern body appears per declaration", async () => {
@@ -34,7 +34,7 @@ Deno.test("req:uffda-language-syntax-005 - Rule declarations and module declarat
     const invalidOrder = await uffdaGrammar(
       'rule P = any; import "./a.ts" A;',
     );
-    assertEquals(invalidOrder.kind, MatchKind.Fail);
+    assertEquals(isClean(invalidOrder), false);
   });
 
   await t.step("declarations are separated by semicolons", async () => {
@@ -46,13 +46,13 @@ Deno.test("req:uffda-language-syntax-005 - Rule declarations and module declarat
     const missingSeparator = await uffdaGrammar(
       'import "./a.ts" A rule P = any;',
     );
-    assertEquals(missingSeparator.kind, MatchKind.Fail);
+    assertEquals(isClean(missingSeparator), false);
   });
 
   await t.step("module source must be fully consumed", async () => {
     const trailing = await uffdaGrammar(
       'import "./a.ts" A; rule P = any; trailing',
     );
-    assertEquals(trailing.kind, MatchKind.Fail);
+    assertEquals(isClean(trailing), false);
   });
 });

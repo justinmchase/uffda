@@ -158,7 +158,7 @@ async function* documentsMentioning(
         uri: moduleUrl,
         moduleUrl,
         source,
-        match: await uffdaGrammar(source, { recovery: true }),
+        match: await uffdaGrammar(source),
       };
     }
   } catch (error) {
@@ -317,7 +317,7 @@ async function readsBackAsName(
   spans: readonly { start: number; end: number }[],
   newName: string,
 ): Promise<boolean> {
-  const match = await uffdaGrammar(renamed, { recovery: true });
+  const match = await uffdaGrammar(renamed);
   if (parseQuality(match) < parseQuality(document.match)) return false;
   const names = new Set(
     highlightSpansFromMatch(match, renamed)

@@ -54,9 +54,10 @@ Normative key words in this chapter use the conventions defined in the
   an editor that already highlights the failure site still makes clear what
   would have matched.
 - Empty full-Uffda stream input MUST emit an empty module AST.
-- Parsing MUST request [error recovery](../../runtime/error-recovery.spec.md).
-  Every parse diagnostic payload MUST carry the parse's diagnostics, in document
-  order, as a `diagnostics` list (see
+- Parsing recovers at the grammar's
+  [recovery points](../../runtime/error-recovery.spec.md). Every parse
+  diagnostic payload MUST carry the parse's diagnostics, in document order, as a
+  `diagnostics` list (see
   [error recovery](../../runtime/error-recovery.spec.md#diagnostics)), each
   located by source position; a recovery's location spans the source it skipped.
   The payload's `error` MUST be the parse failure, or the first recovery when

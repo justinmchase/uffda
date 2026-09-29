@@ -1,5 +1,6 @@
 import {
   getRightmostFailure,
+  isClean,
   isSuccess,
   type Match,
   MatchKind,
@@ -131,7 +132,7 @@ export async function matchCliPattern(
         : InputNormalizationMode.Iterable,
     }),
   );
-  if (isSuccess(result) && !result.recovered) {
+  if (isClean(result)) {
     return { ok: true, value: valueOf(result) };
   }
   const recoveries: CliMatchFailure[] = (await diagnoseRecoveries(result))

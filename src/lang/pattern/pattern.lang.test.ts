@@ -691,14 +691,13 @@ const skipped = (source: string, match: Match) =>
 
 Deno.test("lang.pattern.lang recovers trailing input", async () => {
   const source = "a ) b";
-  assertEquals((await patternGrammar(source)).kind, MatchKind.Fail);
 
-  const match = await patternGrammar(source, { recovery: true });
+  const match = await patternGrammar(source);
   assert(isSuccess(match));
   assertEquals(valueOf(match).kind, PatternKind.Resolve);
   assertEquals(skipped(source, match), [") b"]);
 
-  const clean = await patternGrammar("a b", { recovery: true });
+  const clean = await patternGrammar("a b");
   assert(isSuccess(clean));
   assertEquals(clean.recovered, undefined);
 });
