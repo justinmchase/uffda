@@ -119,12 +119,14 @@ rule ExpressionLang =
 See [pipeline](../patterns/runtime/pipeline.spec.md) and
 [into](../patterns/runtime/into.spec.md).
 
-## General left-fold as direct left recursion
+## General left-fold as left recursion
 
 When a grammar builds a left-associative structure from a base and repeated
 tails (member chains, binary operator chains, similar AST folds), authors SHOULD
-express the fold as direct left recursion (DLR) rather than collecting a segment
-list and folding it in a projection.
+express the fold as left recursion rather than collecting a segment list and
+folding it in a projection. Use direct left recursion (DLR) when the base is a
+separate rule, and indirect left recursion through the enclosing rule when the
+base is that rule itself (for example, any `Primary` may be a member base).
 
 ### Why not collect-then-fold
 
@@ -133,24 +135,48 @@ duplicates associativity that patterns can build incrementally. Conversion of
 such modules MUST prefer a pattern fold over introducing std `reduce` solely for
 that purpose.
 
-### Member example
+### Binary operator example (direct)
 
-Instead of matching a base and a list of `.name` segments and folding in
-projection, express Member as DLR with a nested projection on the recursive arm.
-In Uffda rule declarations, depth-0 `->` is reserved for whole-body rule
-projection, so the projected arm MUST be grouped:
+A left-associative operator chain over a separate operand rule is DLR, with a
+nested projection on the recursive arm. In Uffda rule declarations, depth-0 `->`
+is reserved for whole-body rule projection, so the projected arm MUST be
+grouped:
 
 ```text
-rule Member =
-  (e:Member "." n:Token<Reference> -> { kind: "member", expression: e, name: n.name })
-  | (b:Token<MemberTarget> "." n:Token<Reference> -> { kind: "member", expression: b, name: n.name })
+rule Sum =
+  (l:Sum "+" r:Term -> { kind: "add", left: l, right: r })
+  | Term
   ;
 ```
 
 In standalone PatternLang, `P -> E | Q` is also valid because projection binds
 more tightly than alternation.
 
-Seed-and-grow DLR builds nested left-associative `member` AST nodes without
+### Member example (indirect)
+
+A member base may be any primary expression, including another member access.
+Instead of matching a base and a list of `.name` segments and folding in
+projection, Member takes `Primary` as its base and `Primary` tries `Member`
+first, so `Primary -> Member -> Primary` is indirect left recursion:
+
+```text
+rule Member =
+  e:Token<Primary> "." n:Token<MemberName>
+  -> { kind: "member", expression: e, name: n.name };
+
+rule Primary =
+  | Member
+  | Sequence
+  | Array
+  | ...
+  ;
+```
+
+`Member` MUST come before the alternatives it extends: ordered choice stops at
+the first success, so during growth a shorter alternative listed first would end
+every iteration without progress.
+
+Seed-and-grow left recursion builds nested left-associative AST nodes without
 expression loops, because each growth step observes the projection result. See
 [projection](../patterns/runtime/projection.spec.md) and
 [runtime left recursion](../runtime/left-recursion.spec.md).
@@ -161,8 +187,8 @@ Optional `recursive rule` sugar is deferred:
 
 ### Authoring implication
 
-Left-associative AST folds such as `expression/member` SHOULD use DLR with
-nested Projection. They MUST NOT wait on ExpressionLang lambda syntax or std
+Left-associative AST folds such as `expression/member` SHOULD use left recursion
+with Projection. They MUST NOT wait on ExpressionLang lambda syntax or std
 `reduce`. Optional `recursive rule` sugar remains deferred
 ([issue #98](https://github.com/justinmchase/uffda/issues/98)).
 

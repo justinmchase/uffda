@@ -10,6 +10,7 @@ import { PatternKind } from "./patterns/pattern.kind.ts";
 import { lit } from "./patterns/value_source.ts";
 import { Input } from "../input.ts";
 import { MatchErrorCode, MatchKind, Path } from "../mod.ts";
+import { getRightmostFailure } from "../match.ts";
 import { ModuleImportResultKind } from "./resolvers/resolver.ts";
 import { Scope } from "./scope.ts";
 import { resolve } from "./patterns/resolve.ts";
@@ -757,6 +758,147 @@ Deno.test("runtime.rule", async (t) => {
       visit(m);
       assert(origins.length > 0);
       assert(origins.every((origin) => origin.seeded === true));
+    },
+  });
+
+  await t.step({
+    name: "RULE15 - a head that never grows records its failed attempt",
+    // A = A "x" | "a" "b" "c" over "ab": the first growth iteration fails
+    // after consuming "a" "b", and that progress stays reachable.
+    fn: async () => {
+      const eq = (value: string) => ({
+        kind: PatternKind.Equal as const,
+        value: lit(value),
+      });
+      const declarations: Record<string, ModuleDeclaration> = {
+        [import.meta.url]: {
+          imports: [],
+          exports: [
+            { kind: ExportDeclarationKind.Rule, name: "A", default: true },
+          ],
+          rules: [{
+            name: "A",
+            parameters: [],
+            pattern: {
+              kind: PatternKind.Or,
+              patterns: [
+                {
+                  kind: PatternKind.Then,
+                  patterns: [
+                    {
+                      kind: PatternKind.Resolve,
+                      targetKind: ResolveTargetKind.Reference,
+                      name: "A",
+                      args: [],
+                    },
+                    eq("x"),
+                  ],
+                },
+                {
+                  kind: PatternKind.Then,
+                  patterns: [eq("a"), eq("b"), eq("c")],
+                },
+              ],
+            },
+          }],
+        },
+      };
+      const resolver = new Resolver({ declarations });
+      const module = await resolver.import(new URL(import.meta.url), {
+        scope: Scope.From("", { kind: InputNormalizationMode.Iterable }),
+        pattern: {
+          kind: PatternKind.Resolve,
+          targetKind: ResolveTargetKind.Run,
+        },
+      });
+      assertEquals(module.kind, ModuleImportResultKind.Module);
+      if (module.kind !== ModuleImportResultKind.Module) return;
+      const scope = new Scope(
+        module.module,
+        undefined,
+        undefined,
+        undefined,
+        Input.Iterable("ab"),
+        undefined,
+        undefined,
+        { resolver },
+      );
+
+      const m = await resolve(
+        { kind: PatternKind.Resolve, targetKind: ResolveTargetKind.Run },
+        scope,
+      );
+
+      assertEquals(m.kind, MatchKind.Fail);
+      if (m.kind !== MatchKind.Fail) return;
+      assertEquals(getRightmostFailure(m).span.start, Path.From(2));
+    },
+  });
+
+  await t.step({
+    name: "RULE16 - a head's rule expression runs once per growth step",
+    // R = e:(R | "a") "." n:any -> [e, n] over "a.b.c": two growth steps
+    // succeed, so the expression runs twice and each step nests the last.
+    fn: async () => {
+      let calls = 0;
+      const moduleUrl = `${import.meta.url}#RULE16`;
+      await moduleDeclarationTest({
+        moduleUrl,
+        declarations: {
+          [moduleUrl]: {
+            imports: [],
+            exports: [{
+              kind: ExportDeclarationKind.Rule,
+              name: "R",
+              default: true,
+            }],
+            rules: [{
+              name: "R",
+              parameters: [],
+              pattern: {
+                kind: PatternKind.Then,
+                patterns: [
+                  {
+                    kind: PatternKind.Variable,
+                    name: "e",
+                    pattern: {
+                      kind: PatternKind.Or,
+                      patterns: [
+                        {
+                          kind: PatternKind.Resolve,
+                          targetKind: ResolveTargetKind.Reference,
+                          name: "R",
+                          args: [],
+                        },
+                        { kind: PatternKind.Equal, value: lit("a") },
+                      ],
+                    },
+                  },
+                  { kind: PatternKind.Equal, value: lit(".") },
+                  {
+                    kind: PatternKind.Variable,
+                    name: "n",
+                    pattern: { kind: PatternKind.Any },
+                  },
+                ],
+              },
+              expression: {
+                kind: ExpressionKind.Native,
+                fn: (
+                  { e, n }: { e: Wrapped<unknown>; n: Wrapped<unknown> },
+                ) => {
+                  calls++;
+                  return [e.raw, n.raw];
+                },
+              },
+            }],
+          },
+        },
+        input: Input.Iterable("a.b.c"),
+        kind: MatchKind.Ok,
+        value: [["a", "b"], "c"],
+      })();
+      assertEquals(calls, 2);
     },
   });
 

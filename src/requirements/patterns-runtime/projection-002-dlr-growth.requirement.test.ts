@@ -1,3 +1,6 @@
+import { assertEquals } from "@std/assert";
+import { executeUffdaSource } from "../../lang/uffda/execute.ts";
+import { unwrap } from "../../wrapped.ts";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
 import { ExportDeclarationKind } from "../../runtime/declarations/mod.ts";
@@ -277,4 +280,29 @@ Deno.test("req:projection-002 - DLR growth observes transforming Projection on t
       },
     }),
   );
+
+  const wholeBody = `export Member Primary Direct;
+    rule Member = e:Primary "." n:any -> { kind: "member", expression: e, name: n };
+    rule Primary = Member | "a";
+    rule Direct = e:(Direct | "a") "." n:any -> { kind: "member", expression: e, name: n };`;
+  const nested = {
+    kind: "member",
+    expression: { kind: "member", expression: "a", name: "b" },
+    name: "c",
+  };
+
+  for (const entryRuleName of ["Member", "Primary", "Direct"]) {
+    await t.step(
+      `whole-body rule projection applies on every growth step (${entryRuleName})`,
+      async () => {
+        const m = await executeUffdaSource(wholeBody, {
+          entryRuleName,
+          input: Input.Iterable("a.b.c"),
+        });
+        assertEquals(m.kind, MatchKind.Ok);
+        if (m.kind !== MatchKind.Ok) return;
+        assertEquals(unwrap(m.value), nested);
+      },
+    );
+  }
 });

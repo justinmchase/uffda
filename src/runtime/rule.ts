@@ -16,7 +16,6 @@ import type { Match, MatchOrigin, MatchSuccess } from "../match.ts";
 import type { Memo } from "../memo.ts";
 import type { Rule } from "./modules/mod.ts";
 import type { Scope } from "./scope.ts";
-import type { Pattern } from "./patterns/pattern.ts";
 
 /**
  * The rule boundary: every fresh rule body evaluation starts on a new
@@ -121,7 +120,7 @@ export function rule(
           switch (m.kind) {
             case MatchKind.LR: {
               if (m !== marker) return passThrough(m);
-              return andThen(grow(pattern, memo, subScope), (grown) => {
+              return andThen(grow(rule, memo, subScope), (grown) => {
                 const origin = originOf();
                 switch (grown.kind) {
                   case MatchKind.LR:
@@ -138,15 +137,18 @@ export function rule(
                   case MatchKind.Skip: {
                     // Match the non-LR Ok path: expose only the caller scope plus the
                     // advanced stream so inner growth bindings do not leak outward.
-                    // Apply rule-level projection to the stabilized growth result, then
-                    // memoize that caller-visible value for later non-growth reuse.
-                    return andThen(
-                      finishRuleSuccess(rule, grown, scope, origin),
-                      (finished) => {
-                        memo.match = finished;
-                        return finished;
-                      },
+                    // Growth already applied the rule-level projection to every
+                    // step, so the stabilized value is final.
+                    const finished = forward(
+                      scope,
+                      scope.withInput(grown.scope.stream),
+                      rule.pattern,
+                      grown,
+                      [grown],
+                      origin,
                     );
+                    memo.match = finished;
+                    return finished;
                   }
                 }
                 return error(
@@ -257,16 +259,36 @@ function runUnmemoized(
 }
 
 /**
+ * Applies the rule-level expression to one growth step, so the seed a
+ * re-entry observes is the same value `(P -> E)` would produce.
+ */
+function projectStep(
+  rule: Rule,
+  step: MatchSuccess,
+  scope: Scope,
+): AwaitableMatch {
+  const { pattern, expression } = rule;
+  if (!expression) return step;
+  return attempt(
+    () => exec(expression, step),
+    (value) => ok(scope, step.scope, pattern, value, [step]),
+    (err) => expressionError(scope, pattern, err),
+  );
+}
+
+/**
  * Iterates `memo`'s left-recursive fixed point: each iteration re-evaluates
- * `pattern` with the previous iteration's result as the seed, until an
- * iteration fails to consume further. Advancing `memo.iteration` retires every
- * entry computed against the previous seed (see `Memos.resolve`).
+ * the rule's pattern with the previous iteration's projected result as the
+ * seed, until an iteration fails to consume further. Advancing
+ * `memo.iteration` retires every entry computed against the previous seed
+ * (see `Memos.resolve`).
  */
 async function grow(
-  pattern: Pattern,
+  rule: Rule,
   memo: Memo,
   scope: Scope,
 ): Promise<Match> {
+  const { pattern } = rule;
   let growing = true;
   let m: Match = fail(scope, pattern);
   const start = scope.stream;
@@ -284,6 +306,9 @@ async function grow(
       case MatchKind.Error:
         return result;
       case MatchKind.Fail:
+        // With no successful seed yet, this is the head's only real attempt;
+        // its rejected sub-matches stay reachable for diagnostics and tooling.
+        if (m.kind === MatchKind.Fail) m = result;
         growing = false;
         break;
       case MatchKind.Ok:
@@ -291,7 +316,9 @@ async function grow(
         if (!progressed) {
           growing = false;
         } else {
-          m = result;
+          const projected = await projectStep(rule, result, growScope);
+          if (projected.kind === MatchKind.Error) return projected;
+          m = projected;
         }
         break;
     }

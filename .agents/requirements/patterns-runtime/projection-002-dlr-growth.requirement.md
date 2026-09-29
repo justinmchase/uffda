@@ -23,6 +23,10 @@ Expected behavior:
   value carried into later growth steps (not the raw child Then/sequence value).
 - The final matched value MUST be the nested left-associative structure produced
   by successive Projection applications (Member-shaped).
+- A whole-body rule-level projection (`rule R = P -> E`) on a left-recursive
+  head MUST apply to every growth step, exactly once per step, so R produces the
+  same nested value as `rule R = (P -> E)` and the same value it produces when
+  entered as an involved rule of a cycle headed elsewhere.
 - Splitting the arms into separate helper rules that re-enter R through another
   rule is indirect left recursion and MUST grow under the same mechanism (see
   `indirect-left-recursion-001`).
