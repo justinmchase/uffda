@@ -7,7 +7,11 @@ import {
   type MatchSuccess,
 } from "../match.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
-import { ResolveTargetKind } from "../runtime/patterns/pattern.ts";
+import {
+  type Pattern,
+  ResolveTargetKind,
+} from "../runtime/patterns/pattern.ts";
+import { match } from "../runtime/match.ts";
 import { Scope } from "../runtime/scope.ts";
 import { globals as defaultGlobals } from "../runtime/runtime.ts";
 import { matchWithRecovery } from "../runtime/recovery.ts";
@@ -70,6 +74,13 @@ export type GrammarOptions = {
    * scratch.
    */
   input?: Input;
+  /**
+   * Requests two-phase matching (see
+   * `.agents/specifications/runtime/error-recovery.spec.md#two-phase-matching`):
+   * a parse that fails may then succeed as a recovered match, which callers
+   * must not consume as clean. Off by default.
+   */
+  recovery?: boolean;
 };
 
 export type ResolvedGrammarModule = {
@@ -149,14 +160,15 @@ export async function parseGrammar<TAst>(options: {
 
   const { module, scope } = resolved.resolved;
   const scoped = scope.pushModule(module);
-  const parsed = await matchWithRecovery(
-    {
-      kind: PatternKind.Resolve,
-      targetKind: ResolveTargetKind.Run,
-      name: entryRuleName,
-    },
-    scoped,
-  );
+  const entry: Pattern = {
+    kind: PatternKind.Resolve,
+    targetKind: ResolveTargetKind.Run,
+    name: entryRuleName,
+  };
+  const parsed =
+    await (grammarOptions?.recovery
+      ? matchWithRecovery(entry, scoped)
+      : match(entry, scoped));
 
   return parsed as Match<TAst>;
 }

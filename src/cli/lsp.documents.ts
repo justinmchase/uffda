@@ -317,7 +317,10 @@ export class LspDocumentManager {
     const offset = positionToOffset(doc.source, position);
     const prefix = doc.source.slice(0, offset);
     const contexts = completionContextsAt(
-      await uffdaGrammar(prefix, { input: Input.From(prefix, { open: true }) }),
+      await uffdaGrammar(prefix, {
+        input: Input.From(prefix, { open: true }),
+        recovery: true,
+      }),
       prefix,
     );
     const items: CompletionItem[] = [];

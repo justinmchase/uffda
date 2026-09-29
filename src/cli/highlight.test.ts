@@ -169,7 +169,7 @@ Deno.test("cli.highlight classifies uffda module source by syntactic role", asyn
       const source = 'import "x.uff" A\nrule B = any;\n';
       const result = await highlightSource(source, CliLanguage.FullUffda);
       assert(!result.ok);
-      assertEquals(result.error.code, "CLI_STREAM_PARSE_FAILURE");
+      assertEquals(result.error.code, "CLI_STREAM_PARSE_RECOVERED");
       assertEquals(result.error.phase, "parse");
       assertFullCoverage(result.spans, source.length);
       // The portion that did parse successfully is still classified.
@@ -373,7 +373,7 @@ Deno.test("cli.highlight refines names by what they reference", async (t) => {
 });
 
 Deno.test("cli.highlight reports parse diagnostics", async () => {
-  const result = await highlightSource("rule A = ;");
+  const result = await highlightSource(")", CliLanguage.Pattern);
   assert(!result.ok);
   assertEquals(result.error.code, "CLI_STREAM_PARSE_FAILURE");
   assertEquals(result.diagnostics, [result.error]);

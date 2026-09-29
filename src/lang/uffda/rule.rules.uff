@@ -4,7 +4,7 @@
 # Brace tokens project via bindings (B13: `-> "{"` parses as an object).
 import "../pattern/pattern.lang.uff" PatternTokens;
 import "../expression/expression.lang.uff" ExpressionTokens;
-import "./shared.rules.uff" IdentifierToken RuleKeyword;
+import "./shared.rules.uff" IdentifierToken RuleKeyword DeclarationBodyEnd;
 import "../editor/editor.uff" Declaration Parameter;
 import "./attribute.rules.uff" AttributeSyntax;
 
@@ -20,6 +20,7 @@ export RuleDeclarationSyntax;
 export RuleDeclarationWithoutProjection;
 export RuleDeclarationWithProjection;
 export RuleProjectionTail;
+export RuleQuotedTokenSequence;
 
 rule RulePatternBody =
   RulePatternToken
@@ -50,14 +51,14 @@ rule RuleQuotedTokenSequence =
 rule RuleProjectionToken =
   (
     | RuleQuotedTokenSequence
-    | ((not ";") & string)
+    | ((not DeclarationBodyEnd) & string)
   )+
   -> (flat _);
 
 rule RulePatternTokenUntilSemicolon =
   (
     | RuleQuotedTokenSequence
-    | ((not ";") & string)
+    | ((not DeclarationBodyEnd) & string)
   )+
   -> (flat _);
 
@@ -116,7 +117,7 @@ rule RulePatternChunkAtDepth0 =
   | RulePatternChunkAtDepth0Bracket
   | RulePatternChunkAtDepth0Brace
   | (
-    (not ";")
+    (not DeclarationBodyEnd)
     & (not ("-" ">"))
     & string
   )

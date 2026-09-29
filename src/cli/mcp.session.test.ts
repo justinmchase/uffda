@@ -12,6 +12,7 @@ import {
 } from "./mcp.session.ts";
 import { compileSourcesToAstArtifacts } from "./compile.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
+import { isSuccess } from "../match.ts";
 
 Deno.test("cli.mcp.session RuntimeSession", async (t) => {
   await t.step("loads a module and reports its exports", async () => {
@@ -46,7 +47,7 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
     const result = await session.load("rule Main = ");
     assertEquals(result.ok, false);
     assert(!result.ok);
-    assertEquals(result.error.code, SessionLoadFailureCode.ParseFailure);
+    assertEquals(result.error.code, SessionLoadFailureCode.ParseRecovered);
     assertEquals(result.error.phase, "parse");
     assertEquals(result.partiallyLoadedModules, []);
   });
@@ -357,7 +358,7 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
   );
 
   await t.step(
-    "anchors a parse failure at the end of an unfinished line",
+    "ranges an unfinished import over the skipped declaration",
     async () => {
       const session = new RuntimeSession("s16");
       const line = 'import "./dep.uff"';
@@ -365,7 +366,8 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
       assert(!result.ok);
       assertEquals(result.error.phase, "parse");
       assertEquals(result.error.location?.line, 0);
-      assertEquals(result.error.location?.column, line.length);
+      assertEquals(result.error.location?.column, 0);
+      assertEquals(result.error.location?.endOffset, line.length);
     },
   );
 
@@ -626,7 +628,7 @@ Deno.test("cli.mcp.session RuntimeSession.patch", async (t) => {
       });
       assertEquals(result.ok, false);
       assert(!result.ok);
-      assertEquals(result.error.code, SessionLoadFailureCode.ParseFailure);
+      assertEquals(result.error.code, SessionLoadFailureCode.ParseRecovered);
       assertEquals(result.error.phase, "parse");
     },
   );
@@ -1516,16 +1518,18 @@ Deno.test("cli.mcp.session reports recoveries", async (t) => {
     assertEquals(walked.nodes[0].recovered, undefined);
   });
 
-  await t.step("a parse failure lists its diagnostics", async () => {
+  await t.step("a recovered load lists each skipped declaration", async () => {
     const session = new RuntimeSession("r3");
-    const loaded = await session.load("rule A = ;");
+    const loaded = await session.load("rule A = ;\nrule B = any;\nrule C = ;");
     assert(!loaded.ok);
-    assertEquals(loaded.error.code, SessionLoadFailureCode.ParseFailure);
-    assertEquals(loaded.diagnostics, [loaded.error]);
+    assertEquals(loaded.error.code, SessionLoadFailureCode.ParseRecovered);
+    assertEquals(loaded.diagnostics?.map((d) => d.location?.line), [0, 2]);
+    assertEquals(loaded.diagnostics?.[0], loaded.error);
+    assertEquals(loaded.partiallyLoadedModules, []);
   });
 
   await t.step(
-    "a failed patch without recovery points skips the second phase",
+    "a patch that only recovers retains its recovered parse",
     async () => {
       const session = new RuntimeSession("r5");
       const source = "export Main; rule Main = any;";
@@ -1536,8 +1540,11 @@ Deno.test("cli.mcp.session reports recoveries", async (t) => {
         replacement: " rule B = ;",
       });
       assert(!patched.ok);
+      assertEquals(patched.error.code, SessionLoadFailureCode.ParseRecovered);
       assertEquals(patched.diagnostics, [patched.error]);
-      assertEquals(session.getLatestParseState()?.match.scope.recovery, false);
+      const latest = session.getLatestParseState()?.match;
+      assert(latest && isSuccess(latest));
+      assertEquals(latest.recovered, true);
     },
   );
 

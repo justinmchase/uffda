@@ -154,13 +154,16 @@ Deno.test("cli.main runCli validates mode support and compile routing", async (t
     );
 
     assertEquals(result.exitCode, CliExitCode.Usage);
-    assertEquals(result.stdout, undefined);
+    assertEquals(JSON.parse(result.stdout ?? "{}"), {
+      kind: "module",
+      declarations: [{ kind: "export", name: "Main" }],
+    });
     const diagnostic = JSON.parse(result.stderr ?? "{}") as {
       ok: boolean;
       error: { code: string; phase: string; sourcePath: string };
     };
     assertEquals(diagnostic.ok, false);
-    assertEquals(diagnostic.error.code, "CLI_STREAM_PARSE_FAILURE");
+    assertEquals(diagnostic.error.code, "CLI_STREAM_PARSE_RECOVERED");
     assertEquals(diagnostic.error.phase, "parse");
     assertEquals(diagnostic.error.sourcePath, "<stdin>");
   });
@@ -495,7 +498,10 @@ Deno.test("cli.main runCli reports recoveries", async (t) => {
   );
 
   await t.step("a parse failure writes its diagnostics", async () => {
-    const result = await runCli(["parse", "-e", "rule A = ;"], Deno.cwd());
+    const result = await runCli(
+      ["parse", "--lang", "pattern", "-e", ")"],
+      Deno.cwd(),
+    );
     assertEquals(result.exitCode, CliExitCode.Usage);
     assertEquals(result.stdout, undefined);
     const payload = JSON.parse(result.stderr!);

@@ -1,6 +1,7 @@
+import { collectRecoveries } from "../../runtime/recovery.ts";
 import { MatchKind, Resolver } from "../../mod.ts";
 import { expressionGrammar } from "./expression.lang.ts";
-import { assertEquals, assertStringIncludes } from "@std/assert";
+import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { defaultGlobals } from "../../runtime/globals/mod.ts";
 import { exec } from "../../runtime/exec.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
@@ -12,7 +13,7 @@ import { Scope } from "../../runtime/scope.ts";
 import { ModuleImportResultKind } from "../../runtime/resolvers/resolver.ts";
 import { resolve } from "../../runtime/patterns/resolve.ts";
 import { unwrap } from "../../wrapped.ts";
-import { valueOf } from "../../match.ts";
+import { isSuccess, type Match, valueOf } from "../../match.ts";
 
 const moduleUrl = new URL("./expression.lang.uff", import.meta.url);
 
@@ -368,4 +369,19 @@ Deno.test("lang.expression string literals keep whitespace", async () => {
       " c",
     ],
   });
+});
+
+const skipped = (source: string, match: Match) =>
+  collectRecoveries(match).map(({ match: { originalSpan } }) =>
+    source.slice(originalSpan.start, originalSpan.end)
+  );
+
+Deno.test("lang.expression.lang recovers trailing input", async () => {
+  const source = "x ) y";
+  assertEquals((await expressionGrammar(source)).kind, MatchKind.Fail);
+
+  const match = await expressionGrammar(source, { recovery: true });
+  assert(isSuccess(match));
+  assertEquals(valueOf(match), { kind: ExpressionKind.Reference, name: "x" });
+  assertEquals(skipped(source, match), [") y"]);
 });

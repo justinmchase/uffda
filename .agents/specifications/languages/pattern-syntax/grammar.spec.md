@@ -177,6 +177,18 @@ The grammar MUST be able to express the following pattern families:
   accepted as bare rule-reference identifiers. Rules with those names remain
   referenceable as `@ope`, `@sneak`, and `@until`.
 
+## Recovery points
+
+The pattern grammar itself declares these recovery points (see
+[runtime error recovery](../../runtime/error-recovery.spec.md)). Each skips the
+erroneous tokens and contributes nothing to the pattern AST.
+
+- After a sequence's first element, a token that does not start an element MUST
+  be skipped, unless it is a delimiter an enclosing construct consumes: `)`,
+  `]`, `}`, `|`, `&`, `-`, `>`, `,`, or `:`.
+- Tokens left over after a complete pattern MUST be skipped through the end of
+  the input.
+
 ## Precedence
 
 From tightest to loosest, pattern syntax MUST apply primary/grouping, postfix

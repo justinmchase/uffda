@@ -428,11 +428,11 @@ export async function highlightSource(
   const match = await (() => {
     switch (language) {
       case CliLanguage.FullUffda:
-        return uffdaGrammar(sourceText);
+        return uffdaGrammar(sourceText, { recovery: true });
       case CliLanguage.Pattern:
-        return patternGrammar(sourceText);
+        return patternGrammar(sourceText, { recovery: true });
       case CliLanguage.Expression:
-        return expressionGrammar(sourceText);
+        return expressionGrammar(sourceText, { recovery: true });
     }
   })();
 

@@ -272,21 +272,21 @@ export async function parseSourceToAst(
   switch (language) {
     case CliLanguage.FullUffda:
       return await toStreamResult(
-        await uffdaGrammar(sourceText, incremental),
+        await uffdaGrammar(sourceText, { ...incremental, recovery: true }),
         language,
         sourcePath,
         sourceText,
       );
     case CliLanguage.Pattern:
       return await toStreamResult(
-        await patternGrammar(sourceText),
+        await patternGrammar(sourceText, { recovery: true }),
         language,
         sourcePath,
         sourceText,
       );
     case CliLanguage.Expression:
       return await toStreamResult(
-        await expressionGrammar(sourceText),
+        await expressionGrammar(sourceText, { recovery: true }),
         language,
         sourcePath,
         sourceText,

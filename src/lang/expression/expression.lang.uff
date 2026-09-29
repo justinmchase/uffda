@@ -6,9 +6,10 @@ import "./expression.uff" Expression;
 export ExpressionLang;
 export ExpressionTokens;
 
+# Input left over after the expression is a recovery point.
 rule ExpressionComplete =
   e:Expression
-  end
+  (ope end sneak by skip any*)
   -> e;
 
 rule ExpressionTokens = [ExpressionComplete];

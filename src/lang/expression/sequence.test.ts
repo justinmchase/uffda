@@ -1,3 +1,7 @@
+import { assert, assertEquals } from "@std/assert";
+import { isSuccess, type Match, valueOf } from "../../match.ts";
+import { collectRecoveries } from "../../runtime/recovery.ts";
+import { expressionGrammar } from "./expression.lang.ts";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
@@ -149,3 +153,25 @@ Deno.test(
     });
   },
 );
+
+const skipped = (source: string, match: Match) =>
+  collectRecoveries(match).map(({ match: { originalSpan } }) =>
+    source.slice(originalSpan.start, originalSpan.end)
+  );
+
+Deno.test("lang.expression.sequence recovers a stray argument token", async () => {
+  const source = "(f x ? y)";
+  assertEquals((await expressionGrammar(source)).kind, MatchKind.Fail);
+
+  const match = await expressionGrammar(source, { recovery: true });
+  assert(isSuccess(match));
+  assertEquals(valueOf(match), {
+    kind: ExpressionKind.Invocation,
+    expression: { kind: ExpressionKind.Reference, name: "f" },
+    args: [
+      { kind: ExpressionKind.Reference, name: "x" },
+      { kind: ExpressionKind.Reference, name: "y" },
+    ],
+  });
+  assertEquals(skipped(source, match), ["?"]);
+});

@@ -1,17 +1,16 @@
 import { assert, assertEquals } from "@std/assert";
-import { CliLanguage } from "./contract.ts";
 import { anchorParseFailureLocation } from "./parse_failure_anchor.ts";
-import { parseSourceToAst } from "./stream.ts";
+import { parseFailureLocation } from "./stream.ts";
+import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
+import { MatchKind } from "../match.ts";
 
+// Without recovery, so the module fails where discovery stopped.
 async function anchored(source: string) {
-  const parsed = await parseSourceToAst(source, CliLanguage.FullUffda, "t");
-  assert(!parsed.ok);
-  assert(parsed.error.location);
-  return anchorParseFailureLocation(
-    parsed.match,
-    source,
-    parsed.error.location,
-  );
+  const match = await uffdaGrammar(source);
+  assertEquals(match.kind, MatchKind.Fail);
+  const location = await parseFailureLocation(match, source);
+  assert(location);
+  return anchorParseFailureLocation(match, source, location);
 }
 
 Deno.test("cli.parse_failure_anchor", async (t) => {

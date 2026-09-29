@@ -3,6 +3,7 @@
 import "../tokenizer/token.uff" Token;
 import "./primary.uff" Primary;
 import "../common/spread.uff" SpreadMarker;
+import "./sequence.uff" ExpressionDelimiter;
 
 export Array;
 
@@ -23,8 +24,9 @@ rule ArrayInitializer =
   | ArrayElement
   ;
 
+# A stray element token is a recovery point.
 rule Array =
   Token<OpenBracket>
-  e:ArrayInitializer*
+  e:(ope ArrayInitializer sneak by skip ((not ExpressionDelimiter) any))*
   Token<CloseBracket>
   -> { kind: "array", expressions: e };

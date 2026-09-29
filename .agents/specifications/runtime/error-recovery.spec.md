@@ -227,12 +227,21 @@ never hard-codes them.
   [pattern grammar](../languages/pattern-syntax/grammar.spec.md#recovery).
 - Adopting recovery points in the repository's own grammars requires a published
   CLI that parses the syntax (see
-  [compiler bootstrap](../languages/compiler-bootstrap.spec.md)).
+  [compiler bootstrap](../languages/compiler-bootstrap.spec.md)). The built-in
+  grammars declare theirs in the
+  [module structure](../languages/uffda-syntax/module-structure.spec.md#error-recovery),
+  [pattern grammar](../languages/pattern-syntax/grammar.spec.md#recovery-points),
+  and [expression layer](../languages/expression-layer.spec.md#recovery-points)
+  chapters.
 
 ## Host surface
 
 - The runtime MUST expose two-phase matching to hosts as an explicit option of
   matching a module's entry rule, off by default.
+- Parsing source with a built-in language (Uffda, pattern, or expression) MUST
+  take the same option, off by default: without it, a parse either succeeds
+  cleanly or fails, so a caller that never asks for recovery never receives a
+  recovered result.
 
 ## Diagnostics
 

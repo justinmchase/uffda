@@ -58,7 +58,7 @@ Deno.test({
     });
 
     await t.step({
-      name: "GRAMMAR_03 parses with two-phase recovery",
+      name: "GRAMMAR_03 parses with two-phase recovery only when requested",
       fn: async () => {
         const moduleUrl = new URL("file:///grammar.recovery.uff");
         const declarations: Record<string, ModuleDeclaration> = {
@@ -92,20 +92,23 @@ Deno.test({
             }],
           },
         };
-        const parse = (source: string) =>
+        const parse = (source: string, recovery?: boolean) =>
           parseGrammar({
             source,
             moduleUrl,
             entryRuleName: "Main",
-            grammarOptions: { declarations },
+            grammarOptions: { declarations, recovery },
           });
 
-        const clean = await parse("aa");
+        const discovery = await parse("axa");
+        assertEquals(discovery.kind, MatchKind.Fail);
+
+        const clean = await parse("aa", true);
         assertEquals(clean.kind, MatchKind.Ok);
         if (clean.kind !== MatchKind.Ok) return;
         assertEquals(clean.recovered, undefined);
 
-        const recovered = await parse("axa");
+        const recovered = await parse("axa", true);
         assertEquals(recovered.kind, MatchKind.Ok);
         if (recovered.kind !== MatchKind.Ok) return;
         assertEquals(recovered.recovered, true);

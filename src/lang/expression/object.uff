@@ -4,6 +4,7 @@ import "../tokenizer/token.uff" Token;
 import "./reference.uff" Reference;
 import "./primary.uff" Primary;
 import "../common/spread.uff" SpreadMarker;
+import "./sequence.uff" ExpressionDelimiter;
 
 export Object;
 
@@ -39,15 +40,18 @@ rule ObjectEntry =
   | ObjectPair
   ;
 
+# A broken entry is a recovery point, skipped up to the next delimiter.
+rule RecoverableObjectEntry =
+  ope ObjectEntry sneak by skip ((not ExpressionDelimiter) any)+;
+
 rule ObjectPairTail =
-  Token<Comma>
-  p:ObjectEntry
-  -> p;
+  skip Token<Comma>
+  RecoverableObjectEntry;
 
 rule ObjectPairs =
-  ObjectEntry
+  RecoverableObjectEntry
   ObjectPairTail*
-  -> (flat _);
+  -> (flat _ 2);
 
 rule OptPairs = ObjectPairs?;
 

@@ -206,9 +206,10 @@ Deno.test("cli.lsp.references in one document", async (t) => {
 });
 
 Deno.test("cli.lsp.references parseQuality orders failed, recovered, clean", async () => {
-  const clean = await uffdaGrammar("rule A = any;");
+  const clean = await uffdaGrammar("rule A = any;", { recovery: true });
+  const recovered = await uffdaGrammar("rule A = ;", { recovery: true });
   const failed = await uffdaGrammar("rule A = ;");
   assertEquals(parseQuality(failed), 0);
-  assertEquals(parseQuality({ ...clean, recovered: true } as typeof clean), 1);
+  assertEquals(parseQuality(recovered), 1);
   assertEquals(parseQuality(clean), 2);
 });

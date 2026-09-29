@@ -43,6 +43,35 @@ rule Declaration<Keyword Pattern> = Keyword Pattern ';' ;
 - Declaration bodies MUST be parsed according to the declaration family selected
   by the leading keyword.
 
+## Error recovery
+
+The module grammar declares
+[recovery points](../../runtime/error-recovery.spec.md) so a module with syntax
+errors still yields every declaration around them. None of them changes which
+modules parse cleanly.
+
+- Each of the module's import, export, and remaining declaration sequences MUST
+  recover a declaration that fails to parse. The recovery MUST skip, and
+  contribute nothing to the syntax tree (see
+  [skip](../../patterns/runtime/skip.spec.md)), the declaration's tokens through
+  its terminating `;`, stopping early before a reserved declaration keyword so a
+  missing `;` does not swallow the next declaration. A quoted literal MUST be
+  skipped as a unit, so a keyword or `;` inside it never ends the recovery.
+- An import recovery MUST begin with `import` and an export recovery with
+  `export`, so neither sequence skips a declaration that a later sequence
+  matches.
+- A declaration body (a rule's pattern and projection, a func's or decorator's
+  expression) MUST end at its `;` or before the head of the next rule, func, or
+  decorator declaration (its keyword, name, and tokens through `=`, with no `;`
+  between). `=` never appears in pattern or expression syntax, so a clean body
+  never contains a declaration head; a body that reaches one is missing its `;`,
+  and the declaration fails there instead of absorbing the next one.
+- Pattern and expression bodies recover inside themselves as their grammars
+  declare (see
+  [pattern grammar](../pattern-syntax/grammar.spec.md#recovery-points) and
+  [expression layer](../expression-layer.spec.md#recovery-points)), so a local
+  error inside a body does not discard the declaration.
+
 ## Composition intent
 
 - Module structure syntax SHOULD remain deterministic and tooling-friendly.

@@ -6,9 +6,10 @@ import "./pattern.uff" Pattern;
 export PatternLang;
 export PatternTokens;
 
+# Input left over after the pattern is a recovery point.
 rule PatternComplete =
   p:Pattern
-  end
+  (ope end sneak by skip any*)
   -> p;
 
 rule PatternTokens = [PatternComplete];

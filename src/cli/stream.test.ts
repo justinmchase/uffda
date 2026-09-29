@@ -13,6 +13,7 @@ import { Path } from "../path.ts";
 import type { Edit } from "../edit.ts";
 import { rehydrateMemos } from "../runtime/incremental.ts";
 import { MatchKind } from "../match.ts";
+import type { UffdaSyntaxModule } from "../lang/uffda/uffda.lang.ts";
 
 Deno.test("cli.stream parses one stdin source unit into a raw AST", async (t) => {
   await t.step("emits a module AST for valid full-Uffda input", async () => {
@@ -28,8 +29,8 @@ Deno.test("cli.stream parses one stdin source unit into a raw AST", async (t) =>
   await t.step(
     "parseFailureLocation agrees with a failed parse's reported location",
     async () => {
-      const source = "export Main;\nrule Main = ( any ;";
-      const parsed = await parseSourceToAst(source, CliLanguage.FullUffda, "t");
+      const source = "\n) any";
+      const parsed = await parseSourceToAst(source, CliLanguage.Pattern, "t");
       assertEquals(parsed.ok, false);
       if (parsed.ok) return;
       assertEquals(
@@ -47,15 +48,15 @@ Deno.test("cli.stream parses one stdin source unit into a raw AST", async (t) =>
 
     assertEquals(result.ok, false);
     if (result.ok) return;
-    assertEquals(result.error.code, CliStreamFailureCode.ParseFailure);
+    assertEquals(result.error.code, CliStreamFailureCode.Recovered);
     assertEquals(result.error.phase, "parse");
     assertEquals(result.error.sourcePath, "<stdin>");
     assertEquals(result.error.language, CliLanguage.FullUffda);
     assertEquals(result.error.location?.line, 0);
-    // Points at the unexpected "=" token (pattern body still required after it).
+    // Covers the skipped declaration, whose pattern body is missing.
     assertEquals(
       result.error.location?.offset,
-      "export Main; rule Main ".length,
+      "export Main; ".length,
     );
     assertEquals(
       result.error.location?.endOffset,
@@ -91,12 +92,9 @@ Deno.test("cli.stream parses one stdin source unit into a raw AST", async (t) =>
       assertStringIncludes(result.error.message, '"["');
       assertStringIncludes(result.error.message, "Identifier");
       assertStringIncludes(result.error.message, 'Unexpected ")"');
-      // Squiggle on `)`, immediately after the incomplete `|>`, not the final `;`.
-      assertEquals(result.error.location?.offset, source.lastIndexOf(")"));
-      assertEquals(
-        result.error.location?.endOffset,
-        source.lastIndexOf(")") + 1,
-      );
+      // The skipped declaration runs from `rule` through its `;`.
+      assertEquals(result.error.location?.offset, source.indexOf("rule"));
+      assertEquals(result.error.location?.endOffset, source.length);
     },
   );
 
@@ -106,13 +104,13 @@ Deno.test("cli.stream parses one stdin source unit into a raw AST", async (t) =>
       const result = await compileStdinToArtifact("rule A = any");
       assertEquals(result.ok, false);
       if (result.ok) return;
-      // Expected leads; squiggle covers "any".
+      // Expected leads; the squiggle covers the skipped declaration.
       assertStringIncludes(result.error.message, "Expected");
       assertStringIncludes(result.error.message, ";");
       assertStringIncludes(result.error.message, "Unexpected");
       assertStringIncludes(result.error.message, "any");
       assertStringIncludes(result.error.message, "RuleDeclarationSyntax");
-      assertEquals(result.error.location?.offset, "rule A = ".length);
+      assertEquals(result.error.location?.offset, 0);
       assertEquals(
         result.error.location?.endOffset,
         "rule A = any".length,
@@ -128,10 +126,10 @@ Deno.test("cli.stream parses one stdin source unit into a raw AST", async (t) =>
 
       assertEquals(result.ok, false);
       if (result.ok) return;
-      assertEquals(result.error.location?.offset, source.lastIndexOf("="));
+      assertEquals(result.error.location?.offset, source.indexOf("rule"));
       assertEquals(result.error.location?.endOffset, source.length);
       assertEquals(result.error.location?.line, 1);
-      assertEquals(result.error.location?.column, "rule Main ".length);
+      assertEquals(result.error.location?.column, 0);
     },
   );
 
@@ -143,11 +141,8 @@ Deno.test("cli.stream parses one stdin source unit into a raw AST", async (t) =>
 
       assertEquals(result.ok, false);
       if (result.ok) return;
-      assertEquals(result.error.location !== undefined, true);
-      assertEquals(
-        (result.error.location?.offset ?? -1) >= source.indexOf("!"),
-        true,
-      );
+      assertEquals(result.error.location?.offset, source.indexOf("rule"));
+      assertEquals(result.error.location?.endOffset, source.length);
       assertEquals(result.error.location?.line, 0);
       assertStringIncludes(result.error.message, "Expected");
       assertStringIncludes(result.error.message, "Unexpected");
@@ -260,12 +255,53 @@ Deno.test("cli.stream parses one stdin source unit into a raw AST", async (t) =>
 
 Deno.test("cli.stream reports parse diagnostics", async (t) => {
   await t.step("a failed parse lists its failure", async () => {
-    const result = await parseSourceToAst("rule A = ;");
+    const result = await parseSourceToAst(")", CliLanguage.Pattern);
     assertEquals(result.ok, false);
     if (result.ok) return;
     assertEquals(result.error.code, CliStreamFailureCode.ParseFailure);
     assertEquals(result.diagnostics, [result.error]);
     assertEquals(result.ast, undefined);
+  });
+
+  await t.step(
+    "a module missing a `;` keeps the declarations after it",
+    async () => {
+      const source = "rule A = a\nrule B = b;";
+      const result = await parseSourceToAst(source);
+      assertEquals(result.ok, false);
+      if (result.ok) return;
+      assertEquals(result.diagnostics.length, 1);
+      assertEquals(result.error.code, CliStreamFailureCode.Recovered);
+      assertEquals(
+        source.slice(
+          result.error.location?.offset,
+          result.error.location?.endOffset,
+        ),
+        "rule A = a",
+      );
+      assertEquals(
+        (result.ast as UffdaSyntaxModule).declarations.map((d) =>
+          "name" in d ? d.name : d.kind
+        ),
+        ["B"],
+      );
+    },
+  );
+
+  await t.step("a broken rule body recovers inside the body", async () => {
+    const source = "rule A = a -> { a: 1, b: ?, c: 2 };";
+    const result = await parseSourceToAst(source);
+    assertEquals(result.ok, false);
+    if (result.ok) return;
+    assertEquals(result.diagnostics.length, 1);
+    assertEquals(
+      source.slice(
+        result.error.location?.offset,
+        result.error.location?.endOffset,
+      ),
+      "b: ?",
+    );
+    assertEquals((result.ast as UffdaSyntaxModule).declarations.length, 1);
   });
 
   await t.step("recoveries are ranged over the skipped source", async () => {
