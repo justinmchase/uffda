@@ -22,6 +22,7 @@ export function projection(
         case MatchKind.Fail:
           return fail(invocationScope, pattern, [m]);
         case MatchKind.Ok:
+        case MatchKind.Skip:
           return attempt(
             () => exec(pattern.expression, m),
             (value) => ok(invocationScope, m.scope, pattern, value, [m]),

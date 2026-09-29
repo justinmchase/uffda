@@ -55,6 +55,8 @@ any child pattern succeeds.
 
 - When a child pattern succeeds, the `or` pattern MUST report that child
   pattern's matched value as its output value.
+- When the chosen child's outcome is a skipped success (see
+  [skip](./skip.spec.md)), the `or` pattern MUST report a skipped success.
 - When every child pattern fails, the `or` pattern MUST report failure output.
 
 ## Error conditions

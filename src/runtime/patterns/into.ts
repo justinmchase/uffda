@@ -1,5 +1,11 @@
 import { type } from "@justinmchase/type";
-import { error, fail, MatchErrorCode, MatchKind, ok } from "../../match.ts";
+import {
+  error,
+  fail,
+  forward,
+  MatchErrorCode,
+  MatchKind,
+} from "../../match.ts";
 import { Input, InputNormalizationMode } from "../../input.ts";
 import { compile } from "../match.ts";
 import type { Scope } from "../scope.ts";
@@ -54,6 +60,7 @@ export function into(
             case MatchKind.Fail:
               return fail(invocationScope, pattern, [m]);
             case MatchKind.Ok:
+            case MatchKind.Skip:
               return andThen(m.scope.stream.done(), (done) => {
                 if (!done) {
                   // Must consume entire stream to succeed
@@ -62,7 +69,7 @@ export function into(
                 const end = invocationScope
                   .withInput(next)
                   .addVariables(m.scope.variables);
-                return ok(invocationScope, end, pattern, m.value, [m]);
+                return forward(invocationScope, end, pattern, m);
               });
           }
 

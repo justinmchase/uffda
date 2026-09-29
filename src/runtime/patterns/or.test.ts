@@ -129,3 +129,20 @@ await Deno.test("runtime/patterns/or", async (t) => {
     }),
   });
 });
+
+Deno.test("runtime/patterns/or skip", async (t) => {
+  await t.step({
+    name: "OR_SKIP00 - a skipped chosen branch is skipped",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Or,
+        patterns: [{ kind: PatternKind.Fail }, {
+          kind: PatternKind.Skip,
+          pattern: { kind: PatternKind.Equal, value: lit("a") },
+        }],
+      },
+      input: Input.Iterable("a"),
+      kind: MatchKind.Skip,
+    }),
+  });
+});

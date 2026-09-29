@@ -68,6 +68,12 @@ Prefix =
   | "except"
     pattern:Prefix
     -> { kind: "except", pattern }
+  | "skip"
+    pattern:Prefix
+    -> { kind: "skip", pattern }
+  | "skip"
+    not Prefix
+    -> { kind: "skip", pattern: { kind: "any" } }
   | Capture
   | Postfix
   ;

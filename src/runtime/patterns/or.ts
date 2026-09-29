@@ -1,4 +1,4 @@
-import { fail, MatchKind, ok } from "../../match.ts";
+import { fail, forward, MatchKind } from "../../match.ts";
 import type { Match } from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import { compile } from "../match.ts";
@@ -24,7 +24,8 @@ export function or(pattern: OrPattern, scope: Scope): CompiledPattern {
           case MatchKind.Fail:
             return undefined;
           case MatchKind.Ok:
-            return ok(invocationScope, m.scope, pattern, m.value, matches);
+          case MatchKind.Skip:
+            return forward(invocationScope, m.scope, pattern, m, matches);
         }
       },
       () => fail(invocationScope, pattern, matches),

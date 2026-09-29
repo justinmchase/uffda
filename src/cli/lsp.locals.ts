@@ -1,5 +1,5 @@
 import { Type, type } from "@justinmchase/type";
-import { type Match, MatchKind } from "../match.ts";
+import { isSuccess, type Match, MatchKind } from "../match.ts";
 import { ExpressionKind } from "../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 import { isPattern } from "../runtime/patterns/pattern.ts";
@@ -22,7 +22,10 @@ import { shallow } from "../wrapped.ts";
  * production projects — never through grammar rule names.
  */
 
-type OkMatch = Extract<AnnotatableMatch, { kind: MatchKind.Ok }>;
+type SuccessMatch = Extract<
+  AnnotatableMatch,
+  { kind: MatchKind.Ok | MatchKind.Skip }
+>;
 
 /** Where an identifier sits in the parse tree. */
 export type IdentifierPosition = {
@@ -44,15 +47,15 @@ export function identifierPosition(
   match: Match,
   span: { start: number; end: number },
 ): IdentifierPosition {
-  let chain: OkMatch[] = [];
+  let chain: SuccessMatch[] = [];
   walkAccepted(match, (node, ancestors) => {
-    if (node.kind !== MatchKind.Ok) return;
-    if (ancestors.some((a) => a.kind !== MatchKind.Ok)) return;
+    if (!isSuccess(node)) return;
+    if (ancestors.some((a) => !isSuccess(a))) return;
     if (
       node.originalSpan.start > span.start || node.originalSpan.end < span.end
     ) return;
     if (ancestors.length + 1 > chain.length) {
-      chain = [...ancestors, node] as OkMatch[];
+      chain = [...ancestors, node] as SuccessMatch[];
     }
   });
   return positionOf(chain);
@@ -80,7 +83,7 @@ export function identifierPositions(
 ): IdentifierPosition[] {
   // The accepted parse of an `Ok` root is `Ok` throughout; a `Fail` root
   // leaves no node with only `Ok` ancestors.
-  if (match.kind !== MatchKind.Ok) return spans.map(() => positionOf([]));
+  if (!isSuccess(match)) return spans.map(() => positionOf([]));
   const parent = new Map<AnnotatableMatch, AnnotatableMatch | undefined>();
   const deepest: (AnnotatableMatch | undefined)[] = spans.map(() => undefined);
   const deepestLevel: number[] = spans.map(() => -1);
@@ -172,7 +175,7 @@ function isLambda(value: unknown): boolean {
  */
 function isScope(node: AnnotatableMatch): boolean {
   return hasEditorMetadata(node, EditorDecorator.Declaration) ||
-    (node.kind === MatchKind.Ok && isLambda(shallow(node.value)));
+    (isSuccess(node) && isLambda(shallow(node.value)));
 }
 
 function variableName(value: unknown): string | undefined {
@@ -191,16 +194,16 @@ function variableName(value: unknown): string | undefined {
 function walkScope(
   scope: AnnotatableMatch,
   chain: ReadonlySet<AnnotatableMatch>,
-  visit: (node: OkMatch) => void,
+  visit: (node: SuccessMatch) => void,
 ): void {
   const seen = new Set<Match>();
   const walk = (node: AnnotatableMatch) => {
     if (seen.has(node) || (node !== scope && isScope(node))) return;
     seen.add(node);
-    if (node.kind === MatchKind.Ok) visit(node);
+    if (isSuccess(node)) visit(node);
     for (const child of node.matches) {
       if (
-        child.kind === MatchKind.Ok ||
+        isSuccess(child) ||
         (child.kind === MatchKind.Fail && chain.has(child))
       ) walk(child);
     }
@@ -216,8 +219,8 @@ function walkScope(
 function variablesIn(
   scope: AnnotatableMatch,
   chain: ReadonlySet<AnnotatableMatch>,
-): Map<string, OkMatch> {
-  const found = new Map<string, OkMatch>();
+): Map<string, SuccessMatch> {
+  const found = new Map<string, SuccessMatch>();
   walkScope(scope, chain, (node) => {
     const name = variableName(shallow(node.value));
     if (name === undefined || found.has(name)) return;
@@ -226,7 +229,7 @@ function variablesIn(
   return found;
 }
 
-function narrowed(node: OkMatch, name: string): OkMatch {
+function narrowed(node: SuccessMatch, name: string): SuccessMatch {
   for (const child of node.matches) {
     const inner = firstBinding(child, name);
     if (inner) return inner;
@@ -234,8 +237,8 @@ function narrowed(node: OkMatch, name: string): OkMatch {
   return node;
 }
 
-function firstBinding(node: Match, name: string): OkMatch | undefined {
-  if (node.kind !== MatchKind.Ok || isScope(node)) return undefined;
+function firstBinding(node: Match, name: string): SuccessMatch | undefined {
+  if (!isSuccess(node) || isScope(node)) return undefined;
   if (variableName(shallow(node.value)) === name) return narrowed(node, name);
   for (const child of node.matches) {
     const inner = firstBinding(child, name);
@@ -262,7 +265,7 @@ function parametersOf(
 
 /** Per-scope bindings shared across `localBindingsAt` calls. */
 export class LocalScopeMemo {
-  readonly variables = new Map<AnnotatableMatch, Map<string, OkMatch>>();
+  readonly variables = new Map<AnnotatableMatch, Map<string, SuccessMatch>>();
   readonly parameters = new Map<AnnotatableMatch, string[]>();
 }
 
@@ -301,7 +304,7 @@ export function localBindingsAt(
   const bound = new Set<string>();
   const chain = new Set(position.chain);
   const shared = memo &&
-      position.chain.every((node) => node.kind === MatchKind.Ok)
+      position.chain.every((node) => isSuccess(node))
     ? memo
     : undefined;
   const variablesOf = (scope: AnnotatableMatch) =>

@@ -1,3 +1,4 @@
+import { lit } from "./value_source.ts";
 import { awaitableAgreementTest } from "../../test.ts";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
@@ -64,6 +65,24 @@ await Deno.test("runtime/patterns/not", async (t) => {
     fn: awaitableAgreementTest({
       pattern: { kind: PatternKind.Not, pattern: { kind: PatternKind.Any } },
       items: ["a"],
+    }),
+  });
+});
+
+Deno.test("runtime/patterns/not skip", async (t) => {
+  await t.step({
+    name: "NOT_SKIP00 - a skipped child counts as success",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Not,
+        pattern: {
+          kind: PatternKind.Skip,
+          pattern: { kind: PatternKind.Equal, value: lit("a") },
+        },
+      },
+      input: Input.Iterable("a"),
+      kind: MatchKind.Fail,
+      done: false,
     }),
   });
 });

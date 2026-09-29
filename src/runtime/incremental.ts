@@ -1,5 +1,5 @@
 import { Memos } from "../memo.ts";
-import { MatchKind } from "../match.ts";
+import { isSuccess, MatchKind } from "../match.ts";
 import { canSkipMemo } from "./rule.reentrancy.ts";
 import type { Match } from "../match.ts";
 import type { Edit } from "../edit.ts";
@@ -71,7 +71,7 @@ export async function rehydrateMemos(
   const positions = await buildPositionIndex(freshInput, edit.at);
 
   const visit = (node: Match): void => {
-    if (node.kind !== MatchKind.Ok && node.kind !== MatchKind.Fail) {
+    if (!isSuccess(node) && node.kind !== MatchKind.Fail) {
       return;
     }
 

@@ -1,4 +1,4 @@
-import { MatchKind, type MatchOk } from "../../match.ts";
+import { MatchKind, type MatchSuccess } from "../../match.ts";
 import { Input, InputNormalizationMode } from "../../input.ts";
 import { exec } from "../exec.ts";
 import { match } from "../match.ts";
@@ -45,7 +45,7 @@ export function argsPattern(pattern: Pattern): Pattern {
  */
 export function funcCallable(
   fn: Func,
-  matchOk: MatchOk,
+  matchOk: MatchSuccess,
   subject?: unknown,
 ): FuncCallable {
   return (...args: unknown[]) => {
@@ -73,6 +73,7 @@ export function funcCallable(
             `func ${fn.name}: arguments did not match parameter pattern`,
           );
         case MatchKind.Ok:
+        case MatchKind.Skip:
           return exec(
             fn.expression,
             subject === undefined ? result : { ...result, subject },

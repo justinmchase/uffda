@@ -1,4 +1,4 @@
-import type { MatchOk } from "../../match.ts";
+import type { MatchSuccess } from "../../match.ts";
 import { Type, type } from "@justinmchase/type";
 import { andThen, type Awaitable, mapInOrder } from "../awaitable.ts";
 import { exec } from "../exec.ts";
@@ -44,7 +44,7 @@ function spreadProperties(value: Wrapped): Record<PropertyKey, unknown> {
 
 export function object(
   expression: ObjectExpression,
-  match: MatchOk,
+  match: MatchSuccess,
 ): Awaitable<Wrapped> {
   const { keys } = expression;
   // Evaluated sequentially (not `Promise.all`) — see invocation.ts for why

@@ -12,13 +12,14 @@ import { resolve } from "./runtime/patterns/resolve.ts";
 import { ExportDeclarationKind } from "./runtime/declarations/mod.ts";
 import { ModuleImportResultKind } from "./runtime/resolvers/resolver.ts";
 import { DEFAULT_ARTIFACT_ROOT } from "./runtime/resolvers/artifact_path.ts";
-import { getRightmostFailure, MatchKind } from "./match.ts";
+import { getRightmostFailure, isSuccess, MatchKind } from "./match.ts";
 import type {
   MatchError,
   MatchErrorCode,
   MatchFail,
   MatchLR,
   MatchOk,
+  MatchSuccess,
 } from "./match.ts";
 import type { Pattern } from "./runtime/patterns/pattern.ts";
 import type { Expression } from "./runtime/expressions/expression.ts";
@@ -117,6 +118,7 @@ export function patternTest(options: PatternTestOptions & MatchAssertion) {
       case MatchKind.Fail:
         return await assertFail(m, options);
       case MatchKind.Ok:
+      case MatchKind.Skip:
         return await assertOk(m, options);
     }
   };
@@ -143,7 +145,7 @@ export function awaitableAgreementTest(options: AwaitableAgreementOptions) {
     );
   const outcome = (m: Match) => ({
     kind: m.kind,
-    value: m.kind === MatchKind.Ok ? unwrap(m.value) : undefined,
+    value: isSuccess(m) ? unwrap(m.value) : undefined,
     end: m.scope.stream.path.toString(),
   });
   return async () => {
@@ -163,7 +165,8 @@ type MatchAssertion =
   | MatchAssertionLR
   | MatchAssertionError
   | MatchAssertionFail
-  | MatchAssertionOk;
+  | MatchAssertionOk
+  | MatchAssertionSkip;
 
 type MatchAssertionLR = {
   kind: MatchKind.LR;
@@ -191,6 +194,12 @@ type MatchAssertionFail = {
 type MatchAssertionOk = {
   kind: MatchKind.Ok;
   value?: unknown;
+  done?: boolean;
+};
+
+/** A skipped success; its value is always `undefined`. */
+type MatchAssertionSkip = {
+  kind: MatchKind.Skip;
   done?: boolean;
 };
 
@@ -308,6 +317,7 @@ export function moduleDeclarationTest(options: ModuleDeclarationTestOptions) {
         case MatchKind.Fail:
           return await assertFail(m, options);
         case MatchKind.Ok:
+        case MatchKind.Skip:
           return await assertOk(m, options);
       }
     } catch (err) {
@@ -421,6 +431,7 @@ export function ruleTest(options: RuleTestOptions) {
         case MatchKind.Fail:
           return await assertFail(m, options);
         case MatchKind.Ok:
+        case MatchKind.Skip:
           return await assertOk(m, options);
       }
     } catch (err) {
@@ -468,6 +479,7 @@ function* fails(match: Match): Iterable<MatchFail> {
       break;
     }
     case MatchKind.Ok:
+    case MatchKind.Skip:
       if (match.matches.length > 0) {
         yield* fails(match.matches.slice(-1)[0]);
       }
@@ -475,7 +487,7 @@ function* fails(match: Match): Iterable<MatchFail> {
   }
 }
 
-function spanText(match: MatchFail | MatchOk | MatchError): string {
+function spanText(match: MatchFail | MatchSuccess | MatchError): string {
   return `${match.span.start.toString()} -> ${match.span.end.toString()}`;
 }
 
@@ -494,7 +506,7 @@ async function matchDebug(match: Match): Promise<string> {
     lines.push(`  stream done: ${await match.scope.stream.done()}`);
   }
 
-  if (match.kind === MatchKind.Fail || match.kind === MatchKind.Ok) {
+  if (match.kind === MatchKind.Fail || isSuccess(match)) {
     lines.push(`  child matches: ${match.matches.length}`);
   }
 
@@ -608,7 +620,7 @@ async function assertFail(m: MatchFail, assertion: MatchAssertion) {
   );
 }
 
-async function assertOk(m: MatchOk, assertion: MatchAssertion) {
+async function assertOk(m: MatchSuccess, assertion: MatchAssertion) {
   assert(
     m.kind === assertion.kind,
     `Match was [${m.kind}] but expected to be ${assertion.kind}${await matchDebug(
@@ -621,11 +633,12 @@ async function assertOk(m: MatchOk, assertion: MatchAssertion) {
   const actualValue = unwrap(
     isGenerator(m.value) ? await collect(m.value) : m.value,
   );
+  const expectedValue = "value" in assertion ? assertion.value : undefined;
   assert(
-    equal(actualValue, assertion.value),
+    equal(actualValue, expectedValue),
     `Match value did not equal expected value\n` +
       `expected value: ${
-        Deno.inspect(assertion.value, { colors: true, depth: 10 })
+        Deno.inspect(expectedValue, { colors: true, depth: 10 })
       }\n` +
       `  actual value: ${
         Deno.inspect(actualValue, { colors: true, depth: 10 })

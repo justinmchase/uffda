@@ -1,4 +1,4 @@
-import type { MatchOk } from "../../match.ts";
+import type { MatchSuccess } from "../../match.ts";
 import { andThen, type Awaitable, mapInOrder } from "../awaitable.ts";
 import { exec } from "../exec.ts";
 import { collect } from "../collect.ts";
@@ -18,7 +18,7 @@ const isSpread = (
 
 export function invocation(
   expression: InvocationExpression,
-  match: MatchOk,
+  match: MatchSuccess,
 ): Awaitable<Wrapped> {
   const { expression: expr, args } = expression;
   // A raw result was computed by this invocation, so `match` is its origin.

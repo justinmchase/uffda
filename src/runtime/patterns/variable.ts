@@ -1,4 +1,10 @@
-import { error, fail, MatchErrorCode, MatchKind, ok } from "../../match.ts";
+import {
+  error,
+  fail,
+  forward,
+  MatchErrorCode,
+  MatchKind,
+} from "../../match.ts";
 import type { Scope } from "../scope.ts";
 import { compile } from "../match.ts";
 import { andThen } from "../awaitable.ts";
@@ -29,12 +35,12 @@ export function variable(
         case MatchKind.Fail:
           return fail(invocationScope, pattern, [m]);
         case MatchKind.Ok:
-          return ok(
+        case MatchKind.Skip:
+          return forward(
             invocationScope,
             m.scope.addVariable(name, m.value),
             pattern,
-            m.value,
-            [m],
+            m,
           );
       }
       return error(

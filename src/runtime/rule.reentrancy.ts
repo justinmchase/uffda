@@ -69,6 +69,7 @@ function childPatterns(pattern: Pattern): Pattern[] {
     case PatternKind.Not:
     case PatternKind.Projection:
     case PatternKind.Quantifier:
+    case PatternKind.Skip:
     case PatternKind.Variable:
       return [pattern.pattern];
     case PatternKind.Over:

@@ -45,7 +45,7 @@ primitive for the common idiom of "consume any item except this".
 ## Expected output
 
 - On success, the `except` pattern MUST report the consumed input item as its
-  output value.
+  output value, as an ordinary success.
 - On failure, the `except` pattern MUST report failure output.
 
 ## Error conditions

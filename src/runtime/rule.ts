@@ -1,10 +1,18 @@
-import { error, fail, lr, MatchErrorCode, MatchKind, ok } from "../match.ts";
+import {
+  error,
+  fail,
+  forward,
+  lr,
+  MatchErrorCode,
+  MatchKind,
+  ok,
+} from "../match.ts";
 import { match } from "./match.ts";
 import { exec } from "./exec.ts";
 import { expressionError } from "./expression_error.ts";
 import { canSkipMemo } from "./rule.reentrancy.ts";
 import { andThen, attempt, type AwaitableMatch } from "./awaitable.ts";
-import type { Match, MatchOk, MatchOrigin } from "../match.ts";
+import type { Match, MatchOrigin, MatchSuccess } from "../match.ts";
 import type { Memo } from "../memo.ts";
 import type { Rule } from "./modules/mod.ts";
 import type { Scope } from "./scope.ts";
@@ -26,23 +34,24 @@ function ruleBody(body: () => AwaitableMatch): Promise<Match> {
 
 function finishRuleSuccess(
   rule: Rule,
-  patternMatch: MatchOk,
+  patternMatch: MatchSuccess,
   callerScope: Scope,
   origin: MatchOrigin,
 ): AwaitableMatch {
   const { pattern, expression } = rule;
-  const succeed = (value: unknown) =>
-    ok(
+  const end = callerScope.withInput(patternMatch.scope.stream);
+  if (!expression) {
+    return forward(
       callerScope,
-      callerScope.withInput(patternMatch.scope.stream),
+      end,
       pattern,
-      value,
+      patternMatch,
       [patternMatch],
       origin,
     );
-  if (!expression) {
-    return succeed(patternMatch.value);
   }
+  const succeed = (value: unknown) =>
+    ok(callerScope, end, pattern, value, [patternMatch], origin);
   return attempt(
     () => exec(expression, patternMatch),
     succeed,
@@ -125,7 +134,8 @@ export function rule(
                     memo.match = failed;
                     return failed;
                   }
-                  case MatchKind.Ok: {
+                  case MatchKind.Ok:
+                  case MatchKind.Skip: {
                     // Match the non-LR Ok path: expose only the caller scope plus the
                     // advanced stream so inner growth bindings do not leak outward.
                     // Apply rule-level projection to the stabilized growth result, then
@@ -157,7 +167,8 @@ export function rule(
               memo.match = failed;
               return failed;
             }
-            case MatchKind.Ok: {
+            case MatchKind.Ok:
+            case MatchKind.Skip: {
               // Store the post-expression success so Or backtracking that
               // re-enters this rule at the same position observes the
               // projected value.
@@ -190,12 +201,12 @@ export function rule(
       case MatchKind.Fail:
         return fail(scope, rule.pattern, [m]);
       case MatchKind.Ok:
-        return ok(
+      case MatchKind.Skip:
+        return forward(
           scope,
           scope.withInput(m.scope.stream),
           rule.pattern,
-          m.value,
-          [m],
+          m,
         );
     }
   }
@@ -238,6 +249,7 @@ function runUnmemoized(
         case MatchKind.Fail:
           return fail(scope, rule.pattern, [m], origin);
         case MatchKind.Ok:
+        case MatchKind.Skip:
           return finishRuleSuccess(rule, m, scope, origin);
       }
     });
@@ -275,6 +287,7 @@ async function grow(
         growing = false;
         break;
       case MatchKind.Ok:
+      case MatchKind.Skip:
         if (!progressed) {
           growing = false;
         } else {
@@ -288,7 +301,8 @@ async function grow(
     case MatchKind.Fail:
       return fail(scope, pattern, [m]);
     case MatchKind.Ok:
-      return ok(scope, m.scope, pattern, m.value, [m]);
+    case MatchKind.Skip:
+      return forward(scope, m.scope, pattern, m);
   }
 
   return error(

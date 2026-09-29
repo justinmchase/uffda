@@ -1,6 +1,7 @@
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { patternGrammar } from "../lang/pattern/pattern.lang.ts";
 import { MatchKind } from "../match.ts";
+import { executeUffdaSource } from "../lang/uffda/execute.ts";
 import { CliLanguage } from "./contract.ts";
 import { highlightSource } from "./highlight.ts";
 import {
@@ -70,6 +71,16 @@ Deno.test("cli.display_transform converts a match result tree to display nodes",
       assertEquals(nodes[0].cssClass, "match-ok");
     },
   );
+
+  await t.step("a skipped match gets its own css class", async () => {
+    const m = await executeUffdaSource(`export Main; rule Main = skip any;`, {
+      entryRuleName: "Main",
+      input: "x",
+    });
+    assertEquals(m.kind, MatchKind.Skip);
+    const nodes = matchResultToDisplayNodes(m);
+    assertEquals(nodes[0].cssClass, "match-skip");
+  });
 
   await t.step("a failed match still converts (best effort)", async () => {
     const parsed = await patternGrammar("fail");

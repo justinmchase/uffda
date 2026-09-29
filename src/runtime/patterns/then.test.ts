@@ -1,3 +1,4 @@
+import { lit } from "./value_source.ts";
 import { awaitableAgreementTest } from "../../test.ts";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
@@ -103,6 +104,50 @@ await Deno.test("patterns/end", async (t) => {
         patterns: [{ kind: PatternKind.Any }, { kind: PatternKind.Any }],
       },
       items: ["a", "b"],
+    }),
+  });
+});
+
+Deno.test("runtime/patterns/then skip", async (t) => {
+  await t.step({
+    name: "THEN_SKIP00 - skipped children are omitted",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [
+          {
+            kind: PatternKind.Skip,
+            pattern: { kind: PatternKind.Equal, value: lit("a") },
+          },
+          { kind: PatternKind.Any },
+          {
+            kind: PatternKind.Skip,
+            pattern: { kind: PatternKind.Equal, value: lit("a") },
+          },
+        ],
+      },
+      input: Input.Iterable("aba"),
+      kind: MatchKind.Ok,
+      value: ["b"],
+    }),
+  });
+
+  await t.step({
+    name: "THEN_SKIP01 - every child skipped is an ordinary empty array",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Then,
+        patterns: [{
+          kind: PatternKind.Skip,
+          pattern: { kind: PatternKind.Equal, value: lit("a") },
+        }, {
+          kind: PatternKind.Skip,
+          pattern: { kind: PatternKind.Equal, value: lit("a") },
+        }],
+      },
+      input: Input.Iterable("aa"),
+      kind: MatchKind.Ok,
+      value: [],
     }),
   });
 });

@@ -1,10 +1,10 @@
 import {
   error,
   fail,
+  forward,
   type Match,
   MatchErrorCode,
   MatchKind,
-  ok,
 } from "../../match.ts";
 import { characterClassToRegexp } from "./character.ts";
 import { compile } from "../match.ts";
@@ -132,7 +132,8 @@ function wrap(scope: Scope, pattern: SwitchPattern, m: Match): Match {
     case MatchKind.Fail:
       return fail(scope, pattern, [m]);
     case MatchKind.Ok:
-      return ok(scope, m.scope, pattern, m.value, [m]);
+    case MatchKind.Skip:
+      return forward(scope, m.scope, pattern, m);
   }
 }
 

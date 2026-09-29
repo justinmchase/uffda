@@ -29,6 +29,7 @@ import type { Edit } from "../edit.ts";
 import { rehydrateMemos } from "../runtime/incremental.ts";
 import {
   getRightmostFailure,
+  isSuccess,
   type Match,
   MatchKind,
   ok as matchOk,
@@ -273,10 +274,10 @@ export type SessionWalkMetadataContribution = {
 export type SessionWalkNode = {
   /** Child indices from the walked tree's root down to this node. */
   path: number[];
-  kind: "ok" | "fail" | "error" | "lr";
+  kind: "ok" | "skip" | "fail" | "error" | "lr";
   pattern: Pattern;
   originalSpan?: SourceSpan;
-  /** Only present for `kind: "ok"`. */
+  /** Only present for `kind: "ok"` (always `undefined` for `"skip"`). */
   value?: unknown;
   /** Only present for `kind: "error"`. */
   code?: string;
@@ -1149,6 +1150,7 @@ export class RuntimeSession {
 
     switch (result.kind) {
       case MatchKind.Ok:
+      case MatchKind.Skip:
         return {
           ok: true,
           value: valueOf(result),
@@ -1393,7 +1395,7 @@ export class RuntimeSession {
         const value = metadata[decorator];
         if (pattern) {
           const result = await match(pattern, Scope.From(value));
-          if (result.kind !== MatchKind.Ok) continue;
+          if (!isSuccess(result)) continue;
         }
         matches.push({ moduleUrl: href, name, kind, metadata: value });
       }
@@ -1455,7 +1457,7 @@ export class RuntimeSession {
     let start = root;
     const ancestry: Match[] = [root];
     for (const index of path) {
-      if (start.kind !== MatchKind.Ok && start.kind !== MatchKind.Fail) {
+      if (!isSuccess(start) && start.kind !== MatchKind.Fail) {
         return {
           ok: false,
           error: {
@@ -1497,7 +1499,7 @@ export class RuntimeSession {
       }
       nodes.push(projectWalkNode(node, nodePath, nodeAncestry));
 
-      const hasChildren = node.kind === MatchKind.Ok ||
+      const hasChildren = isSuccess(node) ||
         node.kind === MatchKind.Fail;
       if (!hasChildren) return;
       const children = (node as { matches: Match[] }).matches;
@@ -1549,7 +1551,7 @@ function projectWalkNode(
 ): SessionWalkNode {
   const metadata: SessionWalkMetadataContribution[] = [];
   for (const ancestor of ancestry) {
-    if (ancestor.kind !== MatchKind.Ok && ancestor.kind !== MatchKind.Fail) {
+    if (!isSuccess(ancestor) && ancestor.kind !== MatchKind.Fail) {
       continue;
     }
     const rule = ancestor.origin?.rule;
@@ -1564,9 +1566,10 @@ function projectWalkNode(
 
   switch (node.kind) {
     case MatchKind.Ok:
+    case MatchKind.Skip:
       return {
         path,
-        kind: "ok",
+        kind: node.kind === MatchKind.Ok ? "ok" : "skip",
         pattern: node.pattern,
         originalSpan: node.originalSpan,
         value: unwrap(node.value),

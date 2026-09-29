@@ -192,6 +192,19 @@ rule Except =
   p:Prefix
   -> { kind: "except", pattern: p };
 
+[Keyword]
+rule SkipKeyword = "skip";
+
+rule Skip =
+  SkipKeyword
+  p:Prefix
+  -> { kind: "skip", pattern: p };
+
+rule SkipAny =
+  SkipKeyword
+  not Prefix
+  -> { kind: "skip", pattern: { kind: "any" } };
+
 rule Capture =
   n:IdToken
   ":"
@@ -204,6 +217,8 @@ rule Prefix =
   | Lookahead
   | Into
   | Except
+  | Skip
+  | SkipAny
   | Capture
   | Postfix
   ;

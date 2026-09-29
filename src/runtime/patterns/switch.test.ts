@@ -290,3 +290,23 @@ Deno.test("runtime/patterns/switch dispatches on the raw value of a wrapped item
   assert(m.kind === MatchKind.Ok);
   assertStrictEquals(m.value, item);
 });
+
+Deno.test("runtime/patterns/switch skip", async (t) => {
+  await t.step({
+    name: "SWITCH_SKIP00 - a skipped chosen case is skipped",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Switch,
+        cases: [{
+          key: { kind: "values", values: [lit("a")] },
+          pattern: {
+            kind: PatternKind.Skip,
+            pattern: { kind: PatternKind.Equal, value: lit("a") },
+          },
+        }],
+      },
+      input: Input.Iterable("a"),
+      kind: MatchKind.Skip,
+    }),
+  });
+});

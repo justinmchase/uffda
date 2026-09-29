@@ -1,11 +1,11 @@
-import type { MatchOk } from "../../match.ts";
+import type { MatchSuccess } from "../../match.ts";
 import type { ReferenceExpression } from "./expression.ts";
 import { funcCallable } from "./func_callable.ts";
 import { wrapFrom, type Wrapped } from "../../wrapped.ts";
 
 export function reference(
   expression: ReferenceExpression,
-  match: MatchOk,
+  match: MatchSuccess,
 ): Wrapped {
   return wrapFrom(resolveReference(expression, match), match);
 }
@@ -17,7 +17,7 @@ export function reference(
  */
 export function resolveReference(
   expression: ReferenceExpression,
-  match: MatchOk,
+  match: MatchSuccess,
 ): unknown {
   const { name } = expression;
   switch (name) {

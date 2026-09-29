@@ -1,5 +1,5 @@
 import { Type, type } from "@justinmchase/type";
-import { type Match, MatchKind } from "../match.ts";
+import { isSuccess, type Match } from "../match.ts";
 import type { ImportFrame } from "../runtime/resolvers/resolver.ts";
 import {
   type AnnotatableMatch,
@@ -55,7 +55,7 @@ function collectImportNodes(match: Match): ImportNode[] {
   const seenStarts = new Set<number>();
   walkAnnotatable(match, (node) => {
     if (
-      node.kind !== MatchKind.Ok ||
+      !isSuccess(node) ||
       !hasEditorMetadata(node, EditorDecorator.Import)
     ) return;
     const start = node.originalSpan.start;

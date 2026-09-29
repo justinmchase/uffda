@@ -1,5 +1,12 @@
 import type { Scope } from "../scope.ts";
-import { fail, type Match, MatchKind, type MatchOk, ok } from "../../match.ts";
+import {
+  fail,
+  forward,
+  type Match,
+  MatchKind,
+  type MatchSuccess,
+  ok,
+} from "../../match.ts";
 import { compile } from "../match.ts";
 import { eachInOrder } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
@@ -11,7 +18,7 @@ export function and(pattern: AndPattern, scope: Scope): CompiledPattern {
   const children = patterns.map((p) => compile(p, scope));
   return (invocationScope: Scope) => {
     let s = invocationScope;
-    const matches: MatchOk[] = [];
+    const matches: MatchSuccess[] = [];
     return eachInOrder<Match, Match>(
       children.length,
       (i) => children[i](s),
@@ -23,14 +30,17 @@ export function and(pattern: AndPattern, scope: Scope): CompiledPattern {
           case MatchKind.Fail:
             return fail(invocationScope, patterns[i], [...matches, m]);
           case MatchKind.Ok:
+          case MatchKind.Skip:
             matches.push(m);
             s = s.addVariables(m.scope.variables);
             return undefined;
         }
       },
       () => {
-        const last = matches.slice(-1)?.[0];
-        return ok(s, last?.scope ?? s, pattern, last?.value, matches);
+        const last = matches.at(-1);
+        return last
+          ? forward(s, last.scope, pattern, last, matches)
+          : ok(s, s, pattern, undefined, matches);
       },
     );
   };

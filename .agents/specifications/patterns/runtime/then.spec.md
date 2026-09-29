@@ -48,8 +48,12 @@ pattern runs after the previous child pattern succeeds.
 
 - On success, the `then` pattern MUST report an ordered array of each child
   pattern's matched value.
-- On success with no child patterns, the `then` pattern MUST report an empty
-  array.
+- A child whose outcome is a skipped success (see [skip](./skip.spec.md)) MUST
+  be omitted from that array. Its bindings and input consumption still apply.
+- On success with no child patterns, or when every child was skipped, the `then`
+  pattern MUST report an empty array.
+- A `then` pattern MUST report an ordinary success even when every child was
+  skipped.
 - On failure, the `then` pattern MUST report failure output.
 
 ## Error conditions

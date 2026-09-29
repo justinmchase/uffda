@@ -2,7 +2,7 @@ import {
   compileUffdaSyntaxModule,
   type UffdaSyntaxModule,
 } from "../lang/uffda/uffda.lang.ts";
-import { type Match, MatchKind } from "../match.ts";
+import { isSuccess, type Match, MatchKind } from "../match.ts";
 import { executeModuleDeclaration } from "../runtime/module.execute.ts";
 import { type Expression, isExpression } from "../runtime/expressions/mod.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
@@ -85,6 +85,7 @@ function executionFailure(match: Match): CliExecFailure {
         message: "execution failed with left recursion outcome",
       };
     case MatchKind.Ok:
+    case MatchKind.Skip:
       throw new Error("Expected execution failure");
   }
 }
@@ -176,7 +177,7 @@ export async function executeCliAst(
       globals: new Map([...globals, ["echo", (output: unknown) => output]]),
     },
   });
-  return execution.kind === MatchKind.Ok
+  return isSuccess(execution)
     ? { ok: true, value: valueOf(execution) }
     : { ok: false, error: executionFailure(execution) };
 }
@@ -237,7 +238,7 @@ export async function executeCliModule(
       globals: new Map([...globals, ["echo", (output: unknown) => output]]),
     },
   });
-  return execution.kind === MatchKind.Ok
+  return isSuccess(execution)
     ? { ok: true, value: valueOf(execution) }
     : { ok: false, error: executionFailure(execution) };
 }

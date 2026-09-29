@@ -54,11 +54,23 @@ export enum MatchErrorCode {
 export enum MatchKind {
   LR = "lr",
   Ok = "ok",
+  Skip = "skip",
   Fail = "fail",
   Error = "error",
 }
 
-export type Match<T = unknown> = MatchLR | MatchOk<T> | MatchFail | MatchError;
+export type Match<T = unknown> =
+  | MatchLR
+  | MatchOk<T>
+  | MatchSkip
+  | MatchFail
+  | MatchError;
+
+/**
+ * A success, ordinary or skipped. Both recognize input and carry a resulting
+ * scope; see `.agents/specifications/patterns/pattern-matching.spec.md`.
+ */
+export type MatchSuccess<T = unknown> = MatchOk<T> | MatchSkip;
 
 export type MatchLR = {
   kind: MatchKind.LR;
@@ -88,6 +100,15 @@ export type MatchOk<T = unknown> = {
   subject?: unknown;
 };
 
+/**
+ * A success that contributes no value: sequences and repetitions omit it from
+ * what they collect. Its value is always `undefined`; see
+ * `.agents/specifications/patterns/runtime/skip.spec.md`.
+ */
+export type MatchSkip = Omit<MatchOk<undefined>, "kind"> & {
+  kind: MatchKind.Skip;
+};
+
 export type MatchFail = {
   kind: MatchKind.Fail;
   pattern: Pattern;
@@ -110,6 +131,12 @@ export type MatchError = {
   error?: Error;
   cause?: unknown;
 };
+
+export function isSuccess<M extends Match>(
+  match: M,
+): match is Extract<M, { kind: MatchKind.Ok | MatchKind.Skip }> {
+  return match.kind === MatchKind.Ok || match.kind === MatchKind.Skip;
+}
 
 export function isMatchError(value: unknown): value is MatchError {
   return value != null && typeof value === "object" &&
@@ -173,8 +200,47 @@ export function ok(
   return m;
 }
 
+/** A skipped success spanning `start` to `end`; its value is `undefined`. */
+export function skip(
+  start: Scope,
+  end: Scope,
+  pattern: Pattern,
+  matches: Match[] = [],
+  origin?: MatchOrigin,
+): MatchSkip {
+  const m: MatchSkip = {
+    kind: MatchKind.Skip,
+    span: spanFrom(start, end),
+    originalSpan: sourceSpanFrom(start, end),
+    pattern,
+    scope: end,
+    value: PENDING as Wrapped<undefined>,
+    matches,
+    origin,
+  };
+  m.value = wrapFrom(undefined, m) as Wrapped<undefined>;
+  return m;
+}
+
+/**
+ * A success whose value is exactly `child`'s: skipped when `child` was
+ * skipped, otherwise ordinary with `child`'s value.
+ */
+export function forward(
+  start: Scope,
+  end: Scope,
+  pattern: Pattern,
+  child: MatchSuccess,
+  matches: Match[] = [child],
+  origin?: MatchOrigin,
+): MatchSuccess {
+  return child.kind === MatchKind.Skip
+    ? skip(start, end, pattern, matches, origin)
+    : ok(start, end, pattern, child.value, matches, origin);
+}
+
 /** The fully raw value of `match`, for host code (see `unwrap`). */
-export function valueOf<T>(match: MatchOk<T>): T {
+export function valueOf<T>(match: MatchSuccess<T>): T {
   return unwrap(match.value) as T;
 }
 
@@ -236,7 +302,7 @@ export function getRightmostFailure(match: MatchFail): MatchFail {
       for (const child of node.matches) visit(child);
       return;
     }
-    if (node.kind === MatchKind.Ok) {
+    if (isSuccess(node)) {
       for (const child of node.matches) visit(child);
     }
   };

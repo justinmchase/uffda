@@ -1,4 +1,9 @@
-import { getRightmostFailure, type Match, MatchKind } from "./match.ts";
+import {
+  getRightmostFailure,
+  isSuccess,
+  type Match,
+  MatchKind,
+} from "./match.ts";
 import type { Path } from "./path.ts";
 import {
   describePattern,
@@ -19,7 +24,7 @@ type MatchNode = {
 };
 
 function childrenOf(match: Match): Match[] {
-  if (match.kind === MatchKind.Ok || match.kind === MatchKind.Fail) {
+  if (isSuccess(match) || match.kind === MatchKind.Fail) {
     return match.matches;
   }
   return [];
@@ -62,7 +67,7 @@ async function collectNodes(root: Match): Promise<MatchNode[]> {
       suppressed,
     });
     const suppressChildren = suppressed ||
-      (match.kind === MatchKind.Ok &&
+      (isSuccess(match) &&
         (match.pattern.kind === PatternKind.Or ||
           match.pattern.kind === PatternKind.Not ||
           match.pattern.kind === PatternKind.Except ||
@@ -281,15 +286,11 @@ function selectPipelineBoundary(
   for (const node of nodes) {
     const stages = pipelineStages(node.match);
     if (!stages) continue;
-    const failedIndex = stages.findIndex((stage) =>
-      stage.kind !== MatchKind.Ok
-    );
+    const failedIndex = stages.findIndex((stage) => !isSuccess(stage));
     if (failedIndex <= 0) continue;
 
     const previous = stages[failedIndex - 1];
-    const tokens = previous.kind === MatchKind.Ok
-      ? unwrap(previous.value)
-      : undefined;
+    const tokens = isSuccess(previous) ? unwrap(previous.value) : undefined;
     if (!Array.isArray(tokens)) continue;
     if (!tokens.every((token) => typeof token === "string")) continue;
 
@@ -863,7 +864,7 @@ export async function visualizeMatchFailure(match: Match): Promise<string> {
   for (const node of nodes) {
     const stages = pipelineStages(node.match);
     if (!stages || seenStageLists.has(stages)) continue;
-    if (!stages.some((stage) => stage.kind !== MatchKind.Ok)) continue;
+    if (!stages.some((stage) => !isSuccess(stage))) continue;
     seenStageLists.add(stages);
     pipelineCount++;
     pipelineLines.push(
@@ -876,7 +877,7 @@ export async function visualizeMatchFailure(match: Match): Promise<string> {
           describePattern(stage.pattern)
         }`,
       );
-      if (stage.kind === MatchKind.Ok) {
+      if (isSuccess(stage)) {
         pipelineLines.push(`      output: ${formatValue(unwrap(stage.value))}`);
       }
     }

@@ -61,3 +61,37 @@ await Deno.test("runtime/patterns/end", async (t) => {
     }),
   });
 });
+
+Deno.test("runtime/patterns/maybe skip", async (t) => {
+  await t.step({
+    name: "MAYBE_SKIP00 - a skipped child is skipped",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Maybe,
+        pattern: {
+          kind: PatternKind.Skip,
+          pattern: { kind: PatternKind.Equal, value: lit("a") },
+        },
+      },
+      input: Input.Iterable("a"),
+      kind: MatchKind.Skip,
+    }),
+  });
+
+  await t.step({
+    name: "MAYBE_SKIP01 - an absent skip is an ordinary undefined",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Maybe,
+        pattern: {
+          kind: PatternKind.Skip,
+          pattern: { kind: PatternKind.Equal, value: lit("a") },
+        },
+      },
+      input: Input.Iterable("b"),
+      kind: MatchKind.Ok,
+      value: undefined,
+      done: false,
+    }),
+  });
+});

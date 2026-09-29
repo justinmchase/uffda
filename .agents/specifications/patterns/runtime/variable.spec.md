@@ -47,6 +47,10 @@ child pattern's matched value to a named variable in the resulting scope.
 
 - On success, the `variable` pattern MUST report the child pattern's matched
   value as its output value.
+- When the child's outcome is a skipped success (see [skip](./skip.spec.md)),
+  the `variable` pattern MUST bind `undefined` and report a skipped success. To
+  bind a value while skipping it, place the capture inside the skip
+  (`skip v:P`).
 - On failure, the `variable` pattern MUST report failure output.
 
 ## Scope binding behavior

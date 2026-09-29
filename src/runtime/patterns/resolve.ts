@@ -1,4 +1,10 @@
-import { error, fail, MatchErrorCode, MatchKind, ok } from "../../match.ts";
+import {
+  error,
+  fail,
+  forward,
+  MatchErrorCode,
+  MatchKind,
+} from "../../match.ts";
 import { rule } from "../rule.ts";
 import { andThen, type AwaitableMatch } from "../awaitable.ts";
 import { PatternKind } from "./pattern.kind.ts";
@@ -93,7 +99,8 @@ function resolveReference(
       case MatchKind.Error:
         return m;
       case MatchKind.Ok:
-        return ok(scope, m.scope, pattern, m.value, [m]);
+      case MatchKind.Skip:
+        return forward(scope, m.scope, pattern, m);
       case MatchKind.Fail:
         return fail(scope, pattern, [m]);
     }
@@ -178,7 +185,8 @@ function resolveSpecial(
       case MatchKind.Fail:
         return fail(scope, pattern, [m]);
       case MatchKind.Ok:
-        return ok(scope, m.scope.pop(scope), pattern, m.value, [m]);
+      case MatchKind.Skip:
+        return forward(scope, m.scope.pop(scope), pattern, m);
     }
   });
 }

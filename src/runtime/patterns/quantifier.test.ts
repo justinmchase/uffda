@@ -288,3 +288,66 @@ Deno.test("runtime.patterns.quantifier at the end of an open input", async (t) =
     }),
   });
 });
+
+Deno.test("runtime/patterns/quantifier skip", async (t) => {
+  await t.step({
+    name: "QUANTIFIER_SKIP00 - skipped repetitions are omitted",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Quantifier,
+        pattern: {
+          kind: PatternKind.Or,
+          patterns: [{ kind: PatternKind.Type, type: Type.String }, {
+            kind: PatternKind.Skip,
+            pattern: { kind: PatternKind.Any },
+          }],
+        },
+      },
+      input: Input.Iterable(["a", 1, "b", 2]),
+      kind: MatchKind.Ok,
+      value: ["a", "b"],
+    }),
+  });
+
+  await t.step({
+    name: "QUANTIFIER_SKIP01 - skipped repetitions count toward min",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Quantifier,
+        pattern: { kind: PatternKind.Skip, pattern: { kind: PatternKind.Any } },
+        min: lit(2),
+      },
+      input: Input.Iterable("ab"),
+      kind: MatchKind.Ok,
+      value: [],
+    }),
+  });
+
+  await t.step({
+    name: "QUANTIFIER_SKIP02 - too few skipped repetitions fail min",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Quantifier,
+        pattern: { kind: PatternKind.Skip, pattern: { kind: PatternKind.Any } },
+        min: lit(2),
+      },
+      input: Input.Iterable("a"),
+      kind: MatchKind.Fail,
+    }),
+  });
+
+  await t.step({
+    name: "QUANTIFIER_SKIP03 - skipped repetitions count toward max",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Quantifier,
+        pattern: { kind: PatternKind.Skip, pattern: { kind: PatternKind.Any } },
+        max: lit(1),
+      },
+      input: Input.Iterable("ab"),
+      kind: MatchKind.Ok,
+      value: [],
+      done: false,
+    }),
+  });
+});

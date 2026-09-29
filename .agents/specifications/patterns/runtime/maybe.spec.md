@@ -44,6 +44,9 @@ into success with an undefined value.
   matched value as its output value.
 - When the child pattern fails, the `maybe` pattern MUST report `undefined` as
   its output value.
+- When the child's outcome is a skipped success (see [skip](./skip.spec.md)),
+  the `maybe` pattern MUST report a skipped success. When the child fails, the
+  `maybe` pattern MUST report an ordinary success.
 
 ## Error conditions
 

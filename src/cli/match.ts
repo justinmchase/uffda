@@ -1,4 +1,9 @@
-import { getRightmostFailure, type Match, MatchKind } from "../match.ts";
+import {
+  getRightmostFailure,
+  isSuccess,
+  type Match,
+  MatchKind,
+} from "../match.ts";
 import { match } from "../runtime/match.ts";
 import { InputNormalizationMode } from "../input.ts";
 import { isPattern, type Pattern } from "../runtime/patterns/pattern.ts";
@@ -91,6 +96,7 @@ async function matchFailure(
         },
       };
     case MatchKind.Ok:
+    case MatchKind.Skip:
       throw new Error("Expected match failure");
   }
 }
@@ -120,7 +126,7 @@ export async function matchCliPattern(
         : InputNormalizationMode.Iterable,
     }),
   );
-  return result.kind === MatchKind.Ok
+  return isSuccess(result)
     ? { ok: true, value: valueOf(result) }
     : await matchFailure(result, source);
 }

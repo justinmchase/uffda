@@ -64,8 +64,13 @@ and maximum repetition bounds.
 
 - On success, the `quantifier` pattern MUST report an ordered array of child
   matched values.
-- On success with zero repetitions, the `quantifier` pattern MUST report an
-  empty array.
+- A repetition whose outcome is a skipped success (see [skip](./skip.spec.md))
+  MUST be omitted from that array, but MUST still count toward the `min` and
+  `max` repetition bounds.
+- On success with zero repetitions, or when every repetition was skipped, the
+  `quantifier` pattern MUST report an empty array.
+- A `quantifier` pattern MUST report an ordinary success even when every
+  repetition was skipped.
 - On failure from unmet minimum repetition count, the `quantifier` pattern MUST
   report failure output.
 

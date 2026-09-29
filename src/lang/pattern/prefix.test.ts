@@ -120,5 +120,55 @@ Deno.test({
         kind: MatchKind.Fail,
       }),
     });
+
+    await t.step({
+      name: "PREFIX_07_skip_operand",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "Prefix",
+        input: Input.Iterable(["skip", "any", "*"]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Skip,
+          pattern: {
+            kind: PatternKind.Quantifier,
+            pattern: { kind: PatternKind.Any },
+            min: undefined,
+            max: undefined,
+          },
+        },
+      }),
+    });
+
+    await t.step({
+      name: "PREFIX_08_skip_bare",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "Prefix",
+        input: Input.Iterable(["skip"]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Skip,
+          pattern: { kind: PatternKind.Any },
+        },
+      }),
+    });
+
+    await t.step({
+      name: "PREFIX_09_skip_nested",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "Prefix",
+        input: Input.Iterable(["skip", "skip"]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Skip,
+          pattern: {
+            kind: PatternKind.Skip,
+            pattern: { kind: PatternKind.Any },
+          },
+        },
+      }),
+    });
   },
 });

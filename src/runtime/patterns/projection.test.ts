@@ -98,3 +98,22 @@ Deno.test("runtime.patterns.projection", async (t) => {
     }),
   });
 });
+
+Deno.test("runtime/patterns/projection skip", async (t) => {
+  await t.step({
+    name: "PROJECTION_SKIP00 - projecting a skip is ordinary, with _ undefined",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Projection,
+        pattern: {
+          kind: PatternKind.Skip,
+          pattern: { kind: PatternKind.Equal, value: lit("a") },
+        },
+        expression: { kind: ExpressionKind.Reference, name: "_" },
+      },
+      input: Input.Iterable("a"),
+      kind: MatchKind.Ok,
+      value: undefined,
+    }),
+  });
+});

@@ -64,6 +64,7 @@ export function over(pattern: OverPattern, scope: Scope): CompiledPattern {
             case MatchKind.Fail:
               return fail(invocationScope, children[i][1], matches);
             case MatchKind.Ok:
+            case MatchKind.Skip:
               last = m.scope;
               return undefined;
           }

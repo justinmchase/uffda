@@ -1,4 +1,4 @@
-import { type Match, MatchKind } from "../match.ts";
+import { isSuccess, type Match } from "../match.ts";
 import {
   type AnnotatableMatch,
   declaredName,
@@ -91,7 +91,7 @@ function moduleScope(
 ): ModuleScope {
   const scope: ModuleScope = { declared: new Map(), imported: new Map() };
   walkAccepted(match, (node) => {
-    if (node.kind !== MatchKind.Ok) return;
+    if (!isSuccess(node)) return;
     if (hasEditorMetadata(node, EditorDecorator.Declaration)) {
       const name = declaredName(node);
       if (name !== undefined && !scope.declared.has(name)) {
@@ -109,7 +109,7 @@ function moduleScope(
     }
     walkAccepted(node, (inner) => {
       if (
-        inner.kind === MatchKind.Ok &&
+        isSuccess(inner) &&
         hasEditorMetadata(inner, EditorDecorator.ImportedName)
       ) {
         scope.imported.set(nodeText(inner, source), target);

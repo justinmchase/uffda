@@ -1,4 +1,4 @@
-import { MatchKind, type MatchOk } from "../../match.ts";
+import { isSuccess, type MatchSuccess } from "../../match.ts";
 import { Resolver } from "../../runtime/resolve.ts";
 import { Scope } from "../../runtime/scope.ts";
 import { resolve } from "../../runtime/patterns/resolve.ts";
@@ -40,7 +40,7 @@ export async function normalizeSource(value: string): Promise<SourceDocument> {
  * The `Source` match for `value`. Its value is the wrapped document, whose
  * `text` characters carry their origins in `value`.
  */
-export async function sourceMatch(value: string): Promise<MatchOk> {
+export async function sourceMatch(value: string): Promise<MatchSuccess> {
   const moduleUrl = new URL("./mod.uff", import.meta.url);
   const resolver = new Resolver();
   const inputScope = Scope.From(value);
@@ -64,7 +64,7 @@ export async function sourceMatch(value: string): Promise<MatchOk> {
     },
     importScope.pushModule(imported.module),
   );
-  if (result.kind !== MatchKind.Ok) {
+  if (!isSuccess(result)) {
     throw new Error(`Source normalization failed with ${result.kind}`);
   }
   return result;

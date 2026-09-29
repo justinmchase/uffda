@@ -44,8 +44,17 @@ Pattern matching outcomes fall into four categories:
   left-recursion mechanism instead of being interpreted as ordinary success or
   failure.
 
+A success is either **ordinary** or **skipped**. A skipped success recognizes
+input like any other success but contributes no value: its output value is
+`undefined`, and sequences and repetitions omit it from the values they collect.
+Skipped successes originate only from the [skip](./runtime/skip.spec.md)
+pattern, and each composite pattern's chapter states whether a skipped child
+makes its own success skipped.
+
 - A pattern evaluation MUST produce an outcome that is distinguishable among
   these categories.
+- A skipped success MUST be distinguishable from an ordinary success, and MUST
+  satisfy every success-semantics rule below.
 - Failure MUST remain semantically distinct from error.
 - Left-recursion handling MUST remain semantically distinct from ordinary
   success and failure.

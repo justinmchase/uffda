@@ -1,5 +1,14 @@
-import { assertEquals, assertStrictEquals } from "@std/assert";
-import { fail, getRightmostFailure, MatchKind, ok } from "./match.ts";
+import { assert, assertEquals, assertStrictEquals } from "@std/assert";
+import {
+  fail,
+  forward,
+  getRightmostFailure,
+  isSuccess,
+  MatchKind,
+  ok,
+  skip,
+  valueOf,
+} from "./match.ts";
 import type { MatchOrigin } from "./match.ts";
 import type { Rule } from "./runtime/modules/mod.ts";
 import { Path } from "./path.ts";
@@ -267,4 +276,49 @@ Deno.test({
       },
     });
   },
+});
+
+Deno.test("match/skip", async (t) => {
+  const start = Scope.From(Input.Iterable("ab"));
+  const end = start;
+
+  await t.step("MATCH_SKIP00 - skip is a success with value undefined", () => {
+    const m = skip(start, end, testPattern);
+    assertEquals(m.kind, MatchKind.Skip);
+    assert(isSuccess(m));
+    assertEquals(valueOf(m), undefined);
+  });
+
+  await t.step("MATCH_SKIP01 - isSuccess rejects failures", () => {
+    assert(!isSuccess(fail(start, testPattern)));
+  });
+
+  await t.step("MATCH_SKIP02 - forward keeps an ordinary child's value", () => {
+    const child = ok(start, end, testPattern, "a");
+    const m = forward(start, end, testPattern, child);
+    assertEquals(m.kind, MatchKind.Ok);
+    assertEquals(valueOf(m), "a");
+    assertEquals(m.matches, [child]);
+  });
+
+  await t.step("MATCH_SKIP03 - forward skips over a skipped child", () => {
+    const child = skip(start, end, testPattern);
+    const m = forward(start, end, testPattern, child);
+    assertEquals(m.kind, MatchKind.Skip);
+    assertEquals(valueOf(m), undefined);
+    assertEquals(m.matches, [child]);
+  });
+
+  await t.step(
+    "MATCH_SKIP04 - getRightmostFailure looks inside skipped matches",
+    async () => {
+      const input = Input.Iterable("ab");
+      const scope0 = Scope.From(input);
+      const scope1 = scope0.withInput(await input.next());
+      const failure = fail(scope1, testPattern);
+      const skipped = skip(scope0, scope1, testPattern, [failure]);
+      const parent = fail(scope0, testPattern, [skipped]);
+      assertEquals(getRightmostFailure(parent), failure);
+    },
+  );
 });

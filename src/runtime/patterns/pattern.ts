@@ -34,6 +34,7 @@ export type Pattern =
   | QuantifierPattern
   | RegExpPattern
   | ResolvePattern
+  | SkipPattern
   | SwitchPattern
   | ThenPattern
   | TypePattern
@@ -138,6 +139,11 @@ export type MaybePattern = {
   kind: PatternKind.Maybe;
   pattern: Pattern;
 };
+export type SkipPattern = {
+  kind: PatternKind.Skip;
+  pattern: Pattern;
+};
+
 export type NotPattern = {
   kind: PatternKind.Not;
   pattern: Pattern;

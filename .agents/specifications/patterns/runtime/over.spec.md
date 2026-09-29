@@ -60,7 +60,8 @@ key-addressable input value.
 ## Expected output
 
 - On success, the `over` pattern MUST report the original input value as its
-  output value.
+  output value, as an ordinary success, even when a field pattern's outcome is a
+  skipped success (see [skip](./skip.spec.md)).
 - On failure, the `over` pattern MUST report failure output.
 
 ## Error conditions

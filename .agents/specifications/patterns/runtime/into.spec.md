@@ -53,6 +53,8 @@ input item, treating that item as a nested input stream.
 
 - On success, the `into` pattern MUST report the child pattern's matched value
   as its output value.
+- When the child's outcome is a skipped success (see [skip](./skip.spec.md)),
+  the `into` pattern MUST report a skipped success.
 - On failure, the `into` pattern MUST report failure output.
 
 ## Error conditions

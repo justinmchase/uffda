@@ -63,6 +63,9 @@ receives input derived from the previous step's matched value.
   final step's matched value as its output value.
 - On success with no steps, the `pipeline` pattern MUST report `undefined` as
   its output value.
+- When the final step's outcome is a skipped success (see
+  [skip](./skip.spec.md)), the `pipeline` pattern MUST report a skipped success.
+  A skipped earlier step passes `undefined` to the next step.
 - On failure, the `pipeline` pattern MUST report failure output.
 
 ## Error conditions

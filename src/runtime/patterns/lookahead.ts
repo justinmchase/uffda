@@ -20,6 +20,7 @@ export function lookahead(
         case MatchKind.Fail:
           return fail(invocationScope, pattern, [m]);
         case MatchKind.Ok:
+        case MatchKind.Skip:
           return ok(invocationScope, invocationScope, pattern, m.value, [m]);
       }
 

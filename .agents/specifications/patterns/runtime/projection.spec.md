@@ -53,6 +53,9 @@ relying on a single rule-level projection.
 
 - On success, the `projection` pattern MUST report the expression result as its
   output value.
+- The `projection` pattern MUST report an ordinary success even when its child's
+  outcome is a skipped success (see [skip](./skip.spec.md)); the expression then
+  observes `_` as `undefined` and the child's bindings as usual.
 - On success, the caller-visible input position and scope MUST advance as
   defined by the successful child match.
 - On failure, the `projection` pattern MUST report failure output without

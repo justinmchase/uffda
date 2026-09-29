@@ -1,3 +1,4 @@
+import { lit } from "./value_source.ts";
 import { awaitableAgreementTest } from "../../test.ts";
 import { patternTest, ruleTest } from "../../test.ts";
 import { PatternKind } from "./pattern.kind.ts";
@@ -217,6 +218,45 @@ Deno.test("runtime.patterns.variable", async (t) => {
         pattern: { kind: PatternKind.Any },
       },
       items: ["a"],
+    }),
+  });
+});
+
+Deno.test("runtime/patterns/variable skip", async (t) => {
+  await t.step({
+    name: "VARIABLE_SKIP00 - capturing a skip is skipped",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Variable,
+        name: "x",
+        pattern: {
+          kind: PatternKind.Skip,
+          pattern: { kind: PatternKind.Equal, value: lit("a") },
+        },
+      },
+      input: Input.Iterable("a"),
+      kind: MatchKind.Skip,
+    }),
+  });
+
+  await t.step({
+    name: "VARIABLE_SKIP01 - capturing a skip binds undefined",
+    fn: patternTest({
+      pattern: {
+        kind: PatternKind.Projection,
+        pattern: {
+          kind: PatternKind.Variable,
+          name: "x",
+          pattern: {
+            kind: PatternKind.Skip,
+            pattern: { kind: PatternKind.Equal, value: lit("a") },
+          },
+        },
+        expression: { kind: ExpressionKind.Reference, name: "x" },
+      },
+      input: Input.Iterable("a"),
+      kind: MatchKind.Ok,
+      value: undefined,
     }),
   });
 });

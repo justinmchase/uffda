@@ -29,6 +29,9 @@ export function then(pattern: ThenPattern, scope: Scope): CompiledPattern {
             values.push(m.value);
             end = m.scope;
             return undefined;
+          case MatchKind.Skip:
+            end = m.scope;
+            return undefined;
         }
       },
       () => ok(invocationScope, end, pattern, values, matches),

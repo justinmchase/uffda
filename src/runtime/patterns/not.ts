@@ -15,6 +15,7 @@ export function not(pattern: NotPattern, scope: Scope): CompiledPattern {
         case MatchKind.Error:
           return m;
         case MatchKind.Ok:
+        case MatchKind.Skip:
           return fail(invocationScope, pattern, [m]);
         case MatchKind.Fail:
           return ok(invocationScope, m.scope, pattern, undefined, [m]);
