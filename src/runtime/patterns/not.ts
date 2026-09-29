@@ -9,7 +9,7 @@ import type { CompiledPattern } from "../compiled_pattern.ts";
 export function not(pattern: NotPattern, scope: Scope): CompiledPattern {
   const child = compile(pattern.pattern, scope);
   return (invocationScope: Scope) =>
-    andThen(child(invocationScope), (m) => {
+    andThen(child(invocationScope.withRecovery(false)), (m) => {
       switch (m.kind) {
         case MatchKind.LR:
         case MatchKind.Error:
@@ -18,7 +18,13 @@ export function not(pattern: NotPattern, scope: Scope): CompiledPattern {
         case MatchKind.Skip:
           return fail(invocationScope, pattern, [m]);
         case MatchKind.Fail:
-          return ok(invocationScope, m.scope, pattern, undefined, [m]);
+          return ok(
+            invocationScope,
+            m.scope.withRecovery(invocationScope.recovery),
+            pattern,
+            undefined,
+            [m],
+          );
       }
 
       return error(

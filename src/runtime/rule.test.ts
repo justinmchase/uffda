@@ -902,6 +902,79 @@ Deno.test("runtime.rule", async (t) => {
     },
   });
 
+  await t.step({
+    name: "RULE17 - a rule's origin records the recovery setting",
+    // Memoized = "a" | fail Memoized (the self-reference keeps it memoized);
+    // Leaf = "a" is unmemoized.
+    fn: async () => {
+      const a = { kind: PatternKind.Equal as const, value: lit("a") };
+      const reference = (name: string) => ({
+        kind: PatternKind.Resolve as const,
+        targetKind: ResolveTargetKind.Reference as const,
+        name,
+        args: [],
+      });
+      const moduleUrl = `${import.meta.url}#RULE17`;
+      const resolver = new Resolver({
+        declarations: {
+          [moduleUrl]: {
+            imports: [],
+            exports: [],
+            rules: [
+              {
+                name: "Memoized",
+                parameters: [],
+                pattern: {
+                  kind: PatternKind.Or,
+                  patterns: [a, {
+                    kind: PatternKind.Then,
+                    patterns: [
+                      { kind: PatternKind.Fail },
+                      reference("Memoized"),
+                    ],
+                  }],
+                },
+              },
+              { name: "Leaf", parameters: [], pattern: a },
+            ],
+          },
+        },
+      });
+      const module = await resolver.import(new URL(moduleUrl), {
+        scope: Scope.From("", { kind: InputNormalizationMode.Iterable }),
+        pattern: {
+          kind: PatternKind.Resolve,
+          targetKind: ResolveTargetKind.Run,
+        },
+      });
+      assertEquals(module.kind, ModuleImportResultKind.Module);
+      if (module.kind !== ModuleImportResultKind.Module) return;
+
+      for (const name of ["Memoized", "Leaf"]) {
+        for (const recovery of [false, true]) {
+          const scope = new Scope(
+            module.module,
+            undefined,
+            undefined,
+            undefined,
+            Input.Iterable("a"),
+            undefined,
+            undefined,
+            { resolver },
+          ).withRecovery(recovery);
+          const m = await resolve(reference(name), scope);
+          assertEquals(m.kind, MatchKind.Ok);
+          if (m.kind !== MatchKind.Ok) return;
+          const [ruleMatch] = m.matches;
+          assertEquals(ruleMatch.kind, MatchKind.Ok);
+          if (ruleMatch.kind !== MatchKind.Ok) return;
+          assertEquals(ruleMatch.origin?.rule.name, name);
+          assertEquals(ruleMatch.origin?.recovery, recovery || undefined);
+        }
+      }
+    },
+  });
+
   // todo: two identical rules with different native projections should not trigger DLR?
 
   await t.step(

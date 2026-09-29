@@ -21,6 +21,7 @@ export enum PatternKind {
   RegExp = "regexp",
   Resolve = "resolve",
   Skip = "skip",
+  Recover = "recover",
   Switch = "switch",
   Then = "then",
   Type = "type",

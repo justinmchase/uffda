@@ -16,29 +16,32 @@ export function except(
       if (!next) {
         return fail(invocationScope, pattern);
       }
-      return andThen(assertionChild(invocationScope), (assertion) => {
-        switch (assertion.kind) {
-          case MatchKind.LR:
-            return assertion;
-          case MatchKind.Error:
-            return assertion;
-          case MatchKind.Ok:
-          case MatchKind.Skip:
-            return fail(invocationScope, pattern, [assertion]);
-          case MatchKind.Fail: {
-            const end = invocationScope.withInput(next);
-            return ok(invocationScope, end, pattern, next.value, [assertion]);
+      return andThen(
+        assertionChild(invocationScope.withRecovery(false)),
+        (assertion) => {
+          switch (assertion.kind) {
+            case MatchKind.LR:
+              return assertion;
+            case MatchKind.Error:
+              return assertion;
+            case MatchKind.Ok:
+            case MatchKind.Skip:
+              return fail(invocationScope, pattern, [assertion]);
+            case MatchKind.Fail: {
+              const end = invocationScope.withInput(next);
+              return ok(invocationScope, end, pattern, next.value, [assertion]);
+            }
           }
-        }
 
-        return error(
-          invocationScope,
-          pattern,
-          MatchErrorCode.InvalidArgument,
-          `unexpected match kind ${
-            (assertion as { kind?: unknown }).kind
-          } in except assertion`,
-        );
-      });
+          return error(
+            invocationScope,
+            pattern,
+            MatchErrorCode.InvalidArgument,
+            `unexpected match kind ${
+              (assertion as { kind?: unknown }).kind
+            } in except assertion`,
+          );
+        },
+      );
     });
 }

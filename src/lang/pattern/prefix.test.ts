@@ -170,5 +170,56 @@ Deno.test({
         },
       }),
     });
+
+    await t.step({
+      name: "PREFIX_10_ope",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "Prefix",
+        input: Input.Iterable(["ope", "any", "sneak", "by", "skip"]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Recover,
+          pattern: { kind: PatternKind.Any },
+          skip: { kind: PatternKind.Skip, pattern: { kind: PatternKind.Any } },
+        },
+      }),
+    });
+
+    await t.step({
+      name: "PREFIX_11_ope_until",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "Prefix",
+        input: Input.Iterable(["ope", "any", "sneak", "by", "until", "any"]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Recover,
+          pattern: { kind: PatternKind.Any },
+          skip: {
+            kind: PatternKind.Quantifier,
+            pattern: {
+              kind: PatternKind.Then,
+              patterns: [
+                { kind: PatternKind.Not, pattern: { kind: PatternKind.Any } },
+                { kind: PatternKind.Any },
+              ],
+            },
+            min: { kind: ValueSourceKind.Literal, value: 1 },
+            max: undefined,
+          },
+        },
+      }),
+    });
+
+    await t.step({
+      name: "PREFIX_12_ope_requires_sneak_by",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "Prefix",
+        input: Input.Iterable(["ope", "any", "any"]),
+        kind: MatchKind.Fail,
+      }),
+    });
   },
 });

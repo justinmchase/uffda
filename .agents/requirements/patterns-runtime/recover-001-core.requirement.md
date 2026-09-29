@@ -36,3 +36,6 @@ Postconditions:
 span/value/children/setting (RECOVER02), zero-width skip fails (RECOVER04), skip
 matched without recovery (RECOVER05), recovery continuing after a recovery
 (RECOVER06), synchronous/async agreement (RECOVER_AWAITABLE).
+`src/requirements/patterns-runtime/recover-001-core.requirement.test.ts`:
+end-to-end through `ope … sneak by …` syntax, including a skipped skip pattern
+yielding a skipped recovery.

@@ -74,6 +74,11 @@ Prefix =
   | "skip"
     not Prefix
     -> { kind: "skip", pattern: { kind: "any" } }
+  | "ope"
+    pattern:Prefix
+    "sneak" "by"
+    skip:SneakBy
+    -> { kind: "recover", pattern, skip }
   | Capture
   | Postfix
   ;
@@ -83,6 +88,20 @@ Capture =
   ":"
   pattern:Prefix
   -> { kind: "variable", name, pattern }
+  ;
+
+SneakBy =
+  | "until"
+    terminator:Prefix
+    -> {
+      kind: "quantifier",
+      pattern: {
+        kind: "then",
+        patterns: [{ kind: "not", pattern: terminator }, { kind: "any" }],
+      },
+      min: 1,
+    }
+  | Prefix
   ;
 
 Postfix =
@@ -389,3 +408,17 @@ Example =
 - Use a leading `|` when vertically aligning alternatives.
 - Put one pipeline step per line in multiline `|>` forms.
 - Use bare `{...}` for keyed matching and `[pattern]` for `into`.
+
+### Error recovery
+
+`ope P sneak by S` declares a recovery point: when matching with recovery
+requested and `P` fails, the parse continues by matching `S` instead, and the
+result is marked recovered. `ope P sneak by until T` skips one or more items up
+to, but not including, `T`:
+
+```uff
+Statements = (ope Statement sneak by until ";" ";")* end;
+```
+
+`ope`, `sneak`, and `until` are reserved; use `@ope`, `@sneak`, or `@until` to
+reference rules with those names.

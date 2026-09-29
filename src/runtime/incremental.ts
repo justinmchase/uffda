@@ -68,6 +68,7 @@ export async function rehydrateMemos(
   freshInput: Input,
 ): Promise<Memos> {
   const memos = new Memos();
+  memos.recoverable = true;
   const positions = await buildPositionIndex(freshInput, edit.at);
 
   const visit = (node: Match): void => {
@@ -87,6 +88,7 @@ export async function rehydrateMemos(
           node.span.start,
           node.origin.rule,
           [...node.origin.args.values()],
+          node.origin.recovery,
         );
         memos.set(node.span.start, key, {
           ...node,

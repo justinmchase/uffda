@@ -1,6 +1,6 @@
 ---
 id: error-recovery-006
-title: Left-recursive growth never accepts a recovered candidate
+title: Recovery never masks a still-failing left-recursive seed
 spec_ref: ".agents/specifications/runtime/error-recovery.spec.md#left-recursion"
 ---
 
@@ -10,23 +10,31 @@ spec_ref: ".agents/specifications/runtime/error-recovery.spec.md#left-recursion"
 
 Preconditions:
 
-- A direct-left-recursive rule is grown with recovery enabled, and a growth step
-  produces a recovered candidate (for example because a recover pattern
-  enclosing the recursive reference recovered from the seed's failure).
+- Matching with recovery enabled, a recover pattern R begins while the growth of
+  a left-recursive head H is in progress, and R's child fails.
 
 Expected behavior:
 
-- Growth MUST stop without accepting the candidate; the rule's outcome MUST be
-  the last accepted seed (a failure when no seed was accepted).
-- Clean growth MUST be unaffected.
+- If R's child failure read H's seed while that seed was still a failure
+  (directly or through an outcome depending on it), R MUST fail instead of
+  recovering.
+- If the only still-failing seeds R's child read belong to heads whose growth
+  began inside R's child, R MUST recover as usual.
+- Growth MUST accept a recovered candidate like any other candidate, subject to
+  the progress rule.
+- The runtime MUST record seed reads while matching; it MUST NOT inspect the
+  grammar to decide.
 
 Postconditions:
 
-- A seed failure MUST never surface as a recovery.
+- A seed's failure, being a control signal of growth, never surfaces as a
+  recovery; ordinary syntax errors inside growth still recover.
 
 ## Test plan
 
-`src/runtime/rule.test.ts` (RULE_RECOVERY00):
-`E = recover (E "+" "n") skip
-any+ | "n"` fails on `x` (it would otherwise
-recover `x` as an `E`) and grows cleanly over `n+n`.
+`src/memo.test.ts` (MEMO_FAILED_SEED): seed-read recording and watch scoping.
+`src/requirements/error-recovery/006-left-recursion-growth.requirement.test.ts`:
+with `Main = (ope Primary sneak by any+) end` and a left-recursive
+`Primary`/`Member`, `x.b` recovers at `Main` over the whole input rather than
+recovering the seed inside `Primary`'s growth; `[a?b].c` recovers `?b` inside a
+bracketed group within `Primary`'s growth and still grows the member access.

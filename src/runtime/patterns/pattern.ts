@@ -35,6 +35,7 @@ export type Pattern =
   | RegExpPattern
   | ResolvePattern
   | SkipPattern
+  | RecoverPattern
   | SwitchPattern
   | ThenPattern
   | TypePattern
@@ -142,6 +143,17 @@ export type MaybePattern = {
 export type SkipPattern = {
   kind: PatternKind.Skip;
   pattern: Pattern;
+};
+
+/**
+ * A grammar-declared error recovery point: when `pattern` fails and recovery
+ * is enabled, `skip` consumes the erroneous input instead; see
+ * `.agents/specifications/patterns/runtime/recover.spec.md`.
+ */
+export type RecoverPattern = {
+  kind: PatternKind.Recover;
+  pattern: Pattern;
+  skip: Pattern;
 };
 
 export type NotPattern = {

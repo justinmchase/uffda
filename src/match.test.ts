@@ -3,6 +3,7 @@ import {
   fail,
   forward,
   getRightmostFailure,
+  isRecovered,
   isSuccess,
   MatchKind,
   ok,
@@ -319,6 +320,52 @@ Deno.test("match/skip", async (t) => {
       const skipped = skip(scope0, scope1, testPattern, [failure]);
       const parent = fail(scope0, testPattern, [skipped]);
       assertEquals(getRightmostFailure(parent), failure);
+    },
+  );
+});
+
+Deno.test("match/recovered", async (t) => {
+  const scope = Scope.From(Input.Iterable("a"));
+  const recovering = scope.withRecovery(true);
+  const recovered = ok(recovering, recovering, testPattern);
+  recovered.recovered = true;
+
+  await t.step(
+    "RECOVERED00 - a success is recovered when a success child is",
+    () => {
+      assertEquals(
+        ok(recovering, recovering, testPattern, undefined, [recovered])
+          .recovered,
+        true,
+      );
+      assertEquals(
+        skip(recovering, recovering, testPattern, [recovered]).recovered,
+        true,
+      );
+      assertEquals(isRecovered(recovered), true);
+    },
+  );
+
+  await t.step(
+    "RECOVERED01 - rejected attempts do not make a success recovered",
+    () => {
+      const rejected = fail(recovering, testPattern, [recovered]);
+      assertEquals(
+        ok(recovering, recovering, testPattern, undefined, [rejected])
+          .recovered,
+        undefined,
+      );
+      assertEquals(isRecovered(rejected), false);
+    },
+  );
+
+  await t.step(
+    "RECOVERED02 - children are not inspected with recovery disabled",
+    () => {
+      assertEquals(
+        ok(scope, scope, testPattern, undefined, [recovered]).recovered,
+        undefined,
+      );
     },
   );
 });

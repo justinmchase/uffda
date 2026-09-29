@@ -38,7 +38,8 @@ one rule:
   outcome is a skipped success. This applies to `or` (the chosen branch),
   `resolve` and rule invocation without a rule expression, `variable`, `maybe`
   (when its child matched), `and` (the final child), `switch` (the chosen case),
-  `into`, and `pipeline` (the final step).
+  `into`, `pipeline` (the final step), and `recover` (its child on success, its
+  skip pattern on a recovery).
 - A pattern that builds its own output value MUST report an ordinary success
   regardless of whether a child was skipped. This applies to `then` and
   `quantifier` (which omit skipped children from their arrays), `projection` and

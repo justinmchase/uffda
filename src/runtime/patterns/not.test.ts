@@ -1,4 +1,7 @@
 import { lit } from "./value_source.ts";
+import { assertEquals } from "@std/assert";
+import { match } from "../match.ts";
+import { Scope } from "../scope.ts";
 import { awaitableAgreementTest } from "../../test.ts";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../match.ts";
@@ -85,4 +88,25 @@ Deno.test("runtime/patterns/not skip", async (t) => {
       done: false,
     }),
   });
+});
+
+Deno.test("runtime/patterns/not recovery", async (t) => {
+  await t.step(
+    "NOT_RECOVERY - matches its child with recovery disabled",
+    async () => {
+      const m = await match(
+        {
+          kind: PatternKind.Not,
+          pattern: {
+            kind: PatternKind.Recover,
+            pattern: { kind: PatternKind.Equal, value: lit("z") },
+            skip: { kind: PatternKind.Any },
+          },
+        },
+        Scope.From(Input.Iterable("x")).withRecovery(true),
+      );
+      assertEquals(m.kind, MatchKind.Ok);
+      assertEquals(m.scope.recovery, true);
+    },
+  );
 });

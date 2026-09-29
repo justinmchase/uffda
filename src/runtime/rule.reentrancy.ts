@@ -72,6 +72,8 @@ function childPatterns(pattern: Pattern): Pattern[] {
     case PatternKind.Skip:
     case PatternKind.Variable:
       return [pattern.pattern];
+    case PatternKind.Recover:
+      return [pattern.pattern, pattern.skip];
     case PatternKind.Over:
       return Object.values(pattern.keys ?? {});
     case PatternKind.Switch:

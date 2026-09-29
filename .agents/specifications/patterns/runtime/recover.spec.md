@@ -50,10 +50,15 @@ setting and how recovered matches compose.
 
 ## Expected output
 
-- On child success, the value MUST be the child's value.
+- On child success, the value MUST be the child's value, and the outcome MUST be
+  a skipped success when the child's is (see [skip](./skip.spec.md)).
 - On recovery, the value MUST be the skip pattern's value, and the match MUST be
   marked recovered, retaining the child's failure and the skip pattern's success
-  as its children, in that order.
+  as its children, in that order. The recovery MUST be a skipped success when
+  the skip pattern's success is skipped.
+- A child failure that read a still-failing left-recursive seed MUST NOT be
+  recovered from; see
+  [runtime error recovery](../../runtime/error-recovery.spec.md#left-recursion).
 
 ## Error conditions
 
@@ -77,6 +82,15 @@ setting and how recovered matches compose.
 ## Examples
 
 ### Recover a statement up to its terminator
+
+In pattern syntax (see
+[pattern grammar](../../languages/pattern-syntax/grammar.spec.md#recovery)):
+
+```
+(ope Statement sneak by until ";" ";")* end
+```
+
+As a pattern object:
 
 ```
 // Pattern object

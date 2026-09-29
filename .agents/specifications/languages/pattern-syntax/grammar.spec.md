@@ -47,6 +47,7 @@ The grammar MUST be able to express the following pattern families:
 - boundary and lookaround forms, including `lookahead`;
 - committed-choice dispatch, via `switch`;
 - non-contributing matches, via `skip`;
+- error recovery points, via `ope … sneak by …`;
 - runtime-adjacent forms whose syntax normalizes to the corresponding pattern
   runtime contract.
 
@@ -160,6 +161,21 @@ The grammar MUST be able to express the following pattern families:
 - `skip` MUST be a reserved keyword: it MUST NOT be accepted as a bare
   rule-reference identifier. A rule named `skip` remains referenceable as
   `@skip`.
+
+## Recovery
+
+- `ope P sneak by S` MUST normalize to the
+  [recover](../../patterns/runtime/recover.spec.md) runtime pattern with child
+  `P` and skip pattern `S`. `P` and `S` each bind as a prefix operand, so
+  `ope a:Stmt sneak by (not ";" any)+` recovers the capture and skips the
+  repetition.
+- `ope P sneak by until T` MUST normalize to the `recover` pattern whose skip
+  pattern matches one or more items that do not start `T` (a quantifier with
+  minimum 1 over `not T` followed by `any`), so the recovery stops before `T`
+  without consuming it and never swallows a parent's terminator.
+- `ope`, `sneak`, and `until` MUST be reserved keywords: they MUST NOT be
+  accepted as bare rule-reference identifiers. Rules with those names remain
+  referenceable as `@ope`, `@sneak`, and `@until`.
 
 ## Precedence
 

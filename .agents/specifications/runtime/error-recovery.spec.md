@@ -42,8 +42,9 @@ never hard-codes them.
   input when the child fails.
 - A **recovery** (activation) is one `recover` pattern succeeding by matching
   its skip pattern after its child failed.
-- A **recovered match** is an `Ok` match that is a recovery or that accepted
-  (has as an `Ok` child) a recovered match. A **clean** `Ok` match is one that
+- A **recovered match** is a success (`Ok` or skipped, see
+  [skip](../patterns/runtime/skip.spec.md)) that is a recovery or that accepted
+  (has as a successful child) a recovered match. A **clean** success is one that
   is not recovered.
 - The **recovery setting** is whether the current evaluation permits recoveries.
   It is part of the evaluation context (the `Scope`), like the input position.
@@ -92,21 +93,32 @@ never hard-codes them.
   over the construct that follows the repetition). Running recovery only after a
   clean parse failed guarantees that every input the grammar accepts parses
   exactly as without recovery.
+- A recovery phase can only differ from the discovery phase at a `recover`
+  pattern whose child failed. When the discovery phase fails without any
+  `recover` pattern's child failing, the recovery phase MUST be skipped and the
+  discovery phase's failure returned. Whether one did MUST be recorded while
+  matching, not derived by inspecting the grammar. A discovery phase that reuses
+  memoized outcomes without re-evaluating them (for example after
+  [incremental re-parsing](./incremental-parsing.spec.md) rehydration) MUST
+  assume one did.
 
 ## Recovered matches
 
-- A recovery MUST produce an `Ok` match that spans from the `recover` pattern's
+- A recovery MUST produce a success that spans from the `recover` pattern's
   position to the end of the skip pattern's match, whose value is the skip
   pattern's value, and whose `matches` are, in order, the child's failure and
-  the skip pattern's success.
-- Every recovered match MUST be marked recovered (`recovered: true` on
-  `MatchOk`). The mark MUST be compositional: an `Ok` is recovered exactly when
-  it is a recovery or one of its `Ok` children is recovered. Rejected attempts
-  (`Fail` children) MUST NOT make an `Ok` recovered.
+  the skip pattern's success. When the skip pattern's success is skipped, the
+  recovery is a skipped success, so a skipped recovery contributes nothing to a
+  sequence (see [skip](../patterns/runtime/skip.spec.md)).
+- Every recovered match MUST be marked recovered (`recovered: true`). The mark
+  MUST be compositional: a success is recovered exactly when it is a recovery or
+  one of its successful children is recovered. Rejected attempts (`Fail`
+  children) MUST NOT make a success recovered. With recovery disabled no match
+  is recovered, so composing the mark MUST cost nothing then.
 - The `Match` union MUST NOT gain a kind for recovery. A recovery is a success
-  of its grammar production — the parse continues after it — so it is an `Ok`,
-  and every pattern composes it as one. The rule that an `Ok` beneath an `Ok`
-  belongs to the accepted parse (see
+  of its grammar production — the parse continues after it — so it is an `Ok`
+  (or a `Skip` when skipped), and every pattern composes it as one. The rule
+  that a success beneath a success belongs to the accepted parse (see
   [editor metadata](../languages/cli/editor-metadata.spec.md#walking-the-parse))
   MUST continue to hold.
 - Grammar authors choose the value a recovery yields (typically an error node of
@@ -163,12 +175,22 @@ never hard-codes them.
 
 ## Left recursion
 
-- The failure of a left-recursive seed is a control signal of
-  [growth](./left-recursion.spec.md), not a syntax error. A growth step MUST NOT
-  accept a recovered candidate: growth stops, and the rule's outcome is the last
-  accepted seed, exactly as when a candidate fails to progress.
-- Consequently, recovery never occurs across a direct-left-recursive rule's
-  growth; recovery points enclosing the rule's invocation handle its errors.
+- While a left-recursive head's seed is still a failure (see
+  [growth](./left-recursion.spec.md)), reading it fails the reader as a control
+  signal of growth, not because of the input. A `recover` pattern MUST NOT
+  recover from a child failure that read a still-failing seed of a head whose
+  growth was already in progress when the `recover` pattern began; it fails
+  instead. The runtime MUST record such reads while matching, including reads
+  through outcomes that depend on the seed.
+- A head whose growth begins inside the `recover` pattern's child settles before
+  the child returns, so its seed reads MUST NOT prevent the recovery.
+- Every other failure inside growth is an ordinary syntax error: growth MUST
+  accept a recovered candidate like any other, subject to the progress rule.
+  Grammars whose left-recursive heads enclose most of the language (for example
+  an expression's `Primary`) therefore still recover inside them.
+- Consequently, a `recover` pattern wrapping a head's own left-recursive
+  reference never recovers; recovery points around the head's invocation, or
+  around the other constructs growth evaluates, handle its errors.
 
 ## Pipelines
 
@@ -187,14 +209,28 @@ never hard-codes them.
 
 ## Collecting recoveries
 
-- The runtime MUST expose the recoveries of a match's accepted parse — `Ok`
-  beneath `Ok`, and everything beneath a `Fail` root — each once, in document
-  order, each paired with the failure it replaced.
+- The runtime MUST expose the recoveries of a match's accepted parse — successes
+  beneath successes, and everything beneath a `Fail` root — each once, in
+  document order, each paired with the failure it replaced.
 - Collection MUST be pure (no mutation of the match graph), deterministic, and
-  MUST visit each node at most once; it MAY skip `Ok` children that are not
-  recovered.
+  MUST visit each node at most once; it MAY skip successful children that are
+  not recovered.
 - The same input, grammar, and recovery setting MUST produce the same
   recoveries.
+
+## Grammar surface
+
+- Pattern syntax spells a recovery point `ope P sneak by S`, and
+  `ope P sneak by until T` for a skip that stops before `T`; see
+  [pattern grammar](../languages/pattern-syntax/grammar.spec.md#recovery).
+- Adopting recovery points in the repository's own grammars requires a published
+  CLI that parses the syntax (see
+  [compiler bootstrap](../languages/compiler-bootstrap.spec.md)).
+
+## Host surface
+
+- The runtime MUST expose two-phase matching to hosts as an explicit option of
+  matching a module's entry rule, off by default.
 
 ## Planned consumers (non-normative)
 
@@ -210,9 +246,6 @@ specified in their own chapters.
   parse of the recovered result.
 - **MCP server.** Parse and session tools report all recoveries and retain the
   recovered match for match-tree walking.
-- **Grammar surface.** Uffda syntax spells the pattern `recover P skip S`,
-  normalizing to the `recover` pattern (requires a published-CLI bootstrap
-  cycle, see [compiler bootstrap](../languages/compiler-bootstrap.spec.md)).
 
 ## Why this design
 
