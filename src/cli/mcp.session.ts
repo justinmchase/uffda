@@ -685,6 +685,21 @@ export class RuntimeSession {
   }
 
   /**
+   * The resolved `Module` this session committed for `moduleUrl` (default:
+   * the most recently loaded root module), or `undefined` when no such
+   * module has been successfully loaded. Read-only; the language server
+   * parses documents of a configured language with it (requirement
+   * cli-language-server-002).
+   */
+  public getModule(moduleUrl?: string): Module | undefined {
+    if (this.closed) {
+      throw new Error(`Session ${this.id} is closed`);
+    }
+    const target = this.resolveTargetModule(moduleUrl);
+    return target.ok ? target.module : undefined;
+  }
+
+  /**
    * Returns the most recently retained parse state (source text + raw
    * `Match` tree), including states retained after a failed parse. Used by
    * the language server to derive semantic tokens from the same tree the

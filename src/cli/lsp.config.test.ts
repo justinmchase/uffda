@@ -3,6 +3,7 @@ import { join } from "@std/path";
 import {
   BUILTIN_UFF_LANGUAGE,
   extensionOf,
+  isBuiltinUffdaLanguage,
   loadLspConfig,
   LspConfigLoadFailureCode,
   normalizeExtension,
@@ -175,5 +176,30 @@ Deno.test("cli.lsp.config resolveLanguageForDocument", async (t) => {
   await t.step("returns undefined for an unrecognized extension", () => {
     const language = resolveLanguageForDocument(config, "file:///a/main.xyz");
     assertEquals(language, undefined);
+  });
+});
+
+Deno.test("cli.lsp.config isBuiltinUffdaLanguage", async (t) => {
+  await t.step("is true for the built-in entry", () => {
+    assertEquals(isBuiltinUffdaLanguage(BUILTIN_UFF_LANGUAGE), true);
+  });
+
+  await t.step("is false for a user language", () => {
+    assertEquals(
+      isBuiltinUffdaLanguage({ id: "kv", extensions: ["kv"] }),
+      false,
+    );
+  });
+
+  await t.step("is false for a uffda id backed by a workspace grammar", () => {
+    assertEquals(
+      isBuiltinUffdaLanguage({
+        id: "uffda",
+        extensions: ["uffx"],
+        modulePath: "./uffx.uff",
+        entryRuleName: "Main",
+      }),
+      false,
+    );
   });
 });

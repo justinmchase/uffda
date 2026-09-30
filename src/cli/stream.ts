@@ -175,25 +175,60 @@ export async function parseFailureLocation(
   return locationFromAnalysis(sourceText, analysis, match);
 }
 
-async function toParseFailure(
+/**
+ * A parse diagnostic of a `Match` over the source text it was parsed from,
+ * independent of which grammar produced the match (see
+ * `.agents/specifications/runtime/error-recovery.spec.md#diagnostics`).
+ */
+export type MatchDiagnostic = {
+  code: CliStreamFailureCode;
+  message: string;
+  location: CliStreamFailureLocation;
+};
+
+async function failureDiagnostic(
   match: Match,
-  language: CliLanguage,
-  sourcePath: string,
   sourceText: string,
-): Promise<CliStreamFailure> {
+): Promise<MatchDiagnostic> {
   const analysis = match.kind === MatchKind.Fail
     ? await analyzeMatchFailure(match)
     : undefined;
   return {
     code: CliStreamFailureCode.ParseFailure,
-    phase: "parse",
-    sourcePath,
-    language,
     message: analysis
       ? formatMatchFailureSummary(analysis)
       : await parseFailureMessage(match),
     location: locationFromAnalysis(sourceText, analysis, match),
   };
+}
+
+async function recoveryDiagnostics(
+  match: Match,
+  sourceText: string,
+): Promise<MatchDiagnostic[]> {
+  return (await diagnoseRecoveries(match)).map(({ span, message }) => ({
+    code: CliStreamFailureCode.Recovered,
+    message,
+    location: {
+      ...locationFromOffset(sourceText, span.start),
+      endOffset: Math.min(sourceText.length, span.end),
+    },
+  }));
+}
+
+/**
+ * Every parse diagnostic of `match`, in document order: one per recovery,
+ * ranged over the source it skipped, then the parse failure when the parse
+ * failed. Empty for a clean parse.
+ */
+export async function matchDiagnostics(
+  match: Match,
+  sourceText: string,
+): Promise<MatchDiagnostic[]> {
+  if (isClean(match)) return [];
+  const recoveries = await recoveryDiagnostics(match, sourceText);
+  if (isSuccess(match)) return recoveries;
+  return [...recoveries, await failureDiagnostic(match, sourceText)];
 }
 
 /** One `CliStreamFailure` per recovery in `match`, in document order. */
@@ -203,16 +238,11 @@ export async function recoveryFailures(
   sourcePath: string,
   sourceText: string,
 ): Promise<CliStreamFailure[]> {
-  return (await diagnoseRecoveries(match)).map(({ span, message }) => ({
-    code: CliStreamFailureCode.Recovered,
+  return (await recoveryDiagnostics(match, sourceText)).map((diagnostic) => ({
+    ...diagnostic,
     phase: "parse",
     sourcePath,
     language,
-    message,
-    location: {
-      ...locationFromOffset(sourceText, span.start),
-      endOffset: Math.min(sourceText.length, span.end),
-    },
   }));
 }
 
@@ -225,31 +255,26 @@ async function toStreamResult(
   if (isClean(parsed)) {
     return { ok: true, ast: valueOf(parsed), match: parsed };
   }
-  const recoveries = await recoveryFailures(
-    parsed,
-    language,
-    sourcePath,
-    sourceText,
-  );
+  const diagnostics: CliStreamFailure[] =
+    (await matchDiagnostics(parsed, sourceText)).map((diagnostic) => ({
+      ...diagnostic,
+      phase: "parse",
+      sourcePath,
+      language,
+    }));
   if (isSuccess(parsed)) {
     return {
       ok: false,
-      error: recoveries[0],
-      diagnostics: recoveries,
+      error: diagnostics[0],
+      diagnostics,
       ast: valueOf(parsed),
       match: parsed,
     };
   }
-  const failure = await toParseFailure(
-    parsed,
-    language,
-    sourcePath,
-    sourceText,
-  );
   return {
     ok: false,
-    error: failure,
-    diagnostics: [...recoveries, failure],
+    error: diagnostics.at(-1)!,
+    diagnostics,
     match: parsed,
   };
 }

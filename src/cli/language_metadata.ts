@@ -1,11 +1,9 @@
-import { resolve as resolvePath } from "@std/path";
-import { resolveGrammarModule } from "../lang/grammar.ts";
 import {
-  BUILTIN_UFF_LANGUAGE,
   type LspConfig,
   type LspLanguageConfigEntry,
   withExtensionFromMetadata,
 } from "./lsp.config.ts";
+import type { LspGrammarProvider } from "./lsp.grammars.ts";
 
 /**
  * Editor-facing language configuration, derived from a grammar's own
@@ -70,15 +68,6 @@ export type LanguageMetadataResult = {
 
 const LANGUAGE_DECORATOR_NAME = "Language";
 
-/** The built-in `.uff` language's own grammar module and entry rule — the
- * only language this CLI version resolves `[Language]` metadata for
- * without a configured `modulePath` (see `grammarTargetFor`). */
-const UFFDA_MODULE_URL = new URL(
-  "../lang/uffda/uffda.lang.uff",
-  import.meta.url,
-);
-const UFFDA_ENTRY_RULE_NAME = "UffdaLang";
-
 function isBracketPair(value: unknown): value is LanguageBracketPair {
   return Array.isArray(value) && value.length === 2 &&
     typeof value[0] === "string" && typeof value[1] === "string";
@@ -140,57 +129,22 @@ export function toEditorLanguageConfiguration(
 }
 
 /**
- * Resolves the module URL + entry rule name `language` should be queried
- * against. The built-in `.uff` entry always resolves to the CLI's own
- * bundled grammar (it declares no `modulePath`); any other configured
- * entry resolves its `modulePath` (relative to `workspaceRoot`) and
- * `entryRuleName` the same way the server already loads/parses documents
- * against it (see `.agents/requirements/cli-language-server/002-language-configuration.requirement.md`).
- * Returns `undefined` for an entry missing the inputs needed to resolve a
- * module at all.
- */
-function grammarTargetFor(
-  language: LspLanguageConfigEntry,
-  workspaceRoot: string,
-): { moduleUrl: URL; entryRuleName: string } | undefined {
-  if (language.id === BUILTIN_UFF_LANGUAGE.id) {
-    return {
-      moduleUrl: UFFDA_MODULE_URL,
-      entryRuleName: UFFDA_ENTRY_RULE_NAME,
-    };
-  }
-  if (!language.modulePath || !language.entryRuleName) return undefined;
-  return {
-    moduleUrl: new URL(
-      `file://${resolvePath(workspaceRoot, language.modulePath)}`,
-    ),
-    entryRuleName: language.entryRuleName,
-  };
-}
-
-/**
  * Queries `language`'s own entry rule for `[Language]` decorator metadata,
  * so an editor extension can derive its language configuration
  * dynamically from the grammar itself instead of a hand-maintained static
- * file. Returns `undefined` if the entry rule carries no `Language`
- * metadata, or if the language's grammar module cannot be resolved (an
- * unresolvable module is not itself surfaced as an error here — document
- * open/change handling already reports that separately).
+ * file. The grammar is the one `grammars` resolves for the language's
+ * documents. Returns `undefined` if the entry rule carries no `Language`
+ * metadata, or if the language's grammar cannot be loaded (not itself
+ * surfaced as an error here — the language's documents already report it).
  */
 export async function loadLanguageMetadata(
   language: LspLanguageConfigEntry,
-  workspaceRoot: string,
+  grammars: LspGrammarProvider,
 ): Promise<LanguageMetadata | undefined> {
-  const target = grammarTargetFor(language, workspaceRoot);
-  if (!target) return undefined;
-
-  const resolved = await resolveGrammarModule({
-    moduleUrl: target.moduleUrl,
-    entryRuleName: target.entryRuleName,
-  });
+  const resolved = await grammars.grammarFor(language);
   if (!resolved.ok) return undefined;
-
-  const rule = resolved.resolved.module.rules.get(target.entryRuleName);
+  const { module, entryRuleName } = resolved.grammar;
+  const rule = module.rules.get(entryRuleName);
   return toLanguageMetadata(rule?.metadata?.[LANGUAGE_DECORATOR_NAME]);
 }
 
@@ -203,7 +157,7 @@ export async function loadLanguageMetadata(
  */
 export async function languageMetadataForConfig(
   config: LspConfig,
-  workspaceRoot: string,
+  grammars: LspGrammarProvider,
   params?: LanguageMetadataParams,
 ): Promise<LanguageMetadataResult> {
   const entries = params?.languageId
@@ -212,7 +166,7 @@ export async function languageMetadataForConfig(
 
   const languages: LanguageMetadataEntry[] = [];
   for (const language of entries) {
-    const metadata = await loadLanguageMetadata(language, workspaceRoot);
+    const metadata = await loadLanguageMetadata(language, grammars);
     if (!metadata) continue;
     languages.push({
       id: language.id,
@@ -229,7 +183,7 @@ export async function languageMetadataForConfig(
  */
 export async function enrichLspConfigWithLanguageMetadata(
   config: LspConfig,
-  workspaceRoot: string,
+  grammars: LspGrammarProvider,
 ): Promise<LspConfig> {
   const languages = [];
   for (const language of config.languages) {
@@ -237,7 +191,7 @@ export async function enrichLspConfigWithLanguageMetadata(
       languages.push(language);
       continue;
     }
-    const metadata = await loadLanguageMetadata(language, workspaceRoot);
+    const metadata = await loadLanguageMetadata(language, grammars);
     languages.push(withExtensionFromMetadata(language, metadata?.ext));
   }
   return { languages };

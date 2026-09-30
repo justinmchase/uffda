@@ -54,11 +54,32 @@ not introduce a parallel parsing or compilation pathway.
 ## Language configuration
 
 - The server MUST support serving more than one Uffda-authored language within a
-  single workspace, each potentially backed by a different compiled grammar.
+  single workspace, each potentially backed by a different grammar.
 - A workspace MUST declare, via a workspace configuration file, which file
-  types/extensions map to which compiled grammar module and entry rule the
-  server should load for that language. The server MUST NOT infer this mapping
-  solely from file extension conventions or auto-discovery.
+  types/extensions map to which grammar module and entry rule the server should
+  load for that language. The server MUST NOT infer this mapping solely from
+  file extension conventions or auto-discovery.
+- Every configured language MUST be served through the same syntax layer: the
+  document's text is parsed by its language's grammar entry rule (as a single
+  string input, with [error recovery](../../runtime/error-recovery.spec.md)
+  always on and
+  [incremental re-parsing](../../runtime/incremental-parsing.spec.md) on
+  change), and the server publishes that parse's diagnostics and highlighting
+  from the grammar's [editor metadata](./editor-metadata.spec.md). A language
+  whose documents are Uffda modules (the built-in `.uff` language) additionally
+  has a module-semantics layer over that parse: compile and resolve diagnostics,
+  and the symbol features under "Hover, navigation, and completions". That layer
+  MAY perform the syntax layer's parse itself (to share its incremental state),
+  but MUST produce the same parse the syntax layer would. Other languages get
+  the syntax layer only until a general mechanism for their semantics exists.
+- A language's grammar module is Uffda source in the workspace. When that module
+  is open in the editor, the server MUST parse the language's documents with the
+  module the open buffer last compiled to, and MUST re-parse and republish the
+  language's open documents whenever that changes (so grammar authors see their
+  edits applied live); otherwise it compiles the module from disk. A grammar
+  that cannot be loaded (missing file, compile failure, missing entry rule) MUST
+  be reported as a diagnostic on each of the language's open documents, and MUST
+  NOT affect any other language.
 - The configuration file's location and shape are a requirement-level concern
   (see the language-server requirements under `.agents/requirements/`); this
   chapter only requires that such a file exist and be the authoritative source
@@ -271,8 +292,15 @@ not introduce a parallel parsing or compilation pathway.
 `uffda lsp`'s server mode/invocation, language configuration, document
 synchronization/incremental re-parsing, diagnostics, and full-document
 semantic-token highlighting (see requirements 001-005 in
-`.agents/requirements/cli-language-server/`) are implemented, `.uff`-only, over
-stdio. Every piece of syntax knowledge the editor tooling uses comes from the
+`.agents/requirements/cli-language-server/`) are implemented over stdio, for
+every language `.uffda/lsp.jsonc` configures. A configured language's documents
+are `SyntaxDocument`s (`src/cli/lsp.syntax_document.ts`), parsed with the
+grammar `LspGrammarProvider` (`src/cli/lsp.grammars.ts`) resolves for them: the
+open buffer's compiled module when the grammar is open, else the module compiled
+from disk through a `RuntimeSession`; the same provider backs
+`uffda/languageMetadata`. Built-in `.uff` documents parse inside their
+`RuntimeSession`, which layers module semantics over the parse. Every piece of
+syntax knowledge the editor tooling uses comes from the
 [editor metadata](./editor-metadata.spec.md) the `.uff` grammar applies to its
 own rules (`src/lang/editor/editor.uff`): classification reads `[Highlight]`
 roles plus `[Keyword]` (`src/cli/highlight.ts`), refining names into pattern

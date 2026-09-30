@@ -1,4 +1,5 @@
 import { assert, assertEquals } from "@std/assert";
+import { join } from "@std/path";
 import {
   BUILTIN_UFF_LANGUAGE,
   type LspLanguageConfigEntry,
@@ -10,6 +11,7 @@ import {
   toEditorLanguageConfiguration,
   toLanguageMetadata,
 } from "./language_metadata.ts";
+import { LspGrammarProvider } from "./lsp.grammars.ts";
 
 Deno.test("cli.language_metadata toLanguageMetadata", async (t) => {
   await t.step("returns undefined for a non-object value", () => {
@@ -78,7 +80,7 @@ Deno.test("cli.language_metadata loadLanguageMetadata", async (t) => {
     async () => {
       const metadata = await loadLanguageMetadata(
         BUILTIN_UFF_LANGUAGE,
-        Deno.cwd(),
+        new LspGrammarProvider(Deno.cwd()),
       );
       assert(
         metadata,
@@ -97,13 +99,41 @@ Deno.test("cli.language_metadata loadLanguageMetadata", async (t) => {
   );
 
   await t.step(
+    "resolves a workspace grammar's [Language] metadata",
+    async () => {
+      const root = await Deno.makeTempDir({ prefix: "uffda-lsp-metadata-" });
+      await Deno.writeTextFile(
+        join(root, "kv.uff"),
+        `export Main;
+decorator Language<c:any> = c;
+[Language { ext: ".kv", comment: ";" }]
+rule Main = string & [any*];
+`,
+      );
+      const metadata = await loadLanguageMetadata(
+        {
+          id: "kv",
+          extensions: [],
+          modulePath: "./kv.uff",
+          entryRuleName: "Main",
+        },
+        new LspGrammarProvider(root),
+      );
+      assertEquals(metadata, { ext: ".kv", comment: ";" });
+    },
+  );
+
+  await t.step(
     "returns undefined for a configured language with no modulePath",
     async () => {
       const language: LspLanguageConfigEntry = {
         id: "example",
         extensions: ["example"],
       };
-      const metadata = await loadLanguageMetadata(language, Deno.cwd());
+      const metadata = await loadLanguageMetadata(
+        language,
+        new LspGrammarProvider(Deno.cwd()),
+      );
       assertEquals(metadata, undefined);
     },
   );
@@ -117,7 +147,10 @@ Deno.test("cli.language_metadata loadLanguageMetadata", async (t) => {
         modulePath: "./does/not/exist.uff",
         entryRuleName: "Main",
       };
-      const metadata = await loadLanguageMetadata(language, Deno.cwd());
+      const metadata = await loadLanguageMetadata(
+        language,
+        new LspGrammarProvider(Deno.cwd()),
+      );
       assertEquals(metadata, undefined);
     },
   );
@@ -129,7 +162,7 @@ Deno.test("cli.language_metadata languageMetadataForConfig", async (t) => {
     async () => {
       const result = await languageMetadataForConfig(
         { languages: [BUILTIN_UFF_LANGUAGE] },
-        Deno.cwd(),
+        new LspGrammarProvider(Deno.cwd()),
         { languageId: "uffda" },
       );
       assertEquals(result.languages.length, 1);
@@ -145,7 +178,7 @@ Deno.test("cli.language_metadata languageMetadataForConfig", async (t) => {
   await t.step("returns an empty list for an unknown language id", async () => {
     const result = await languageMetadataForConfig(
       { languages: [BUILTIN_UFF_LANGUAGE] },
-      Deno.cwd(),
+      new LspGrammarProvider(Deno.cwd()),
       { languageId: "missing" },
     );
     assertEquals(result.languages, []);
@@ -163,7 +196,7 @@ Deno.test("cli.language_metadata enrichLspConfigWithLanguageMetadata", async (t)
             extensions: [],
           }],
         },
-        Deno.cwd(),
+        new LspGrammarProvider(Deno.cwd()),
       );
       assertEquals(enriched.languages[0].extensions, ["uff"]);
     },
@@ -179,7 +212,7 @@ Deno.test("cli.language_metadata enrichLspConfigWithLanguageMetadata", async (t)
             extensions: ["custom"],
           }],
         },
-        Deno.cwd(),
+        new LspGrammarProvider(Deno.cwd()),
       );
       assertEquals(enriched.languages[0].extensions, ["custom"]);
     },
