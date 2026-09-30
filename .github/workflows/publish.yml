@@ -16,4 +16,31 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Setup Uffda CLI
+        # The release being published already carries its CLI binaries, so its
+        # own compiler produces the language artifacts shipped with it.
+        uses: ./.github/actions/uffda-setup
+        with:
+          version: ${{ github.event.release.tag_name || 'latest' }}
+
+      - name: Compile language modules into ./bin
+        run: |
+          set -euo pipefail
+          uffda --version
+          deno task compile:lang
+          test -f ./bin/ast/src/lang/uffda/uffda.lang.uffda.ast.json
+          test -f ./bin/ast/src/lang/uffda/runtime.compiler.uffda.ast.json
+
+      - name: Verify ./bin is in the package
+        run: |
+          set -euo pipefail
+          npx jsr publish --dry-run 2>&1 | tee "$RUNNER_TEMP/jsr-dry-run.log"
+          grep -q "bin/ast/src/lang/uffda/uffda.lang.uffda.ast.json" "$RUNNER_TEMP/jsr-dry-run.log"
+
       - run: npx jsr publish

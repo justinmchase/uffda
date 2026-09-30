@@ -33,9 +33,6 @@ jobs:
       - name: Type Check
         run: deno check mod.ts
 
-      - name: Jsr
-        run: npx jsr publish --dry-run
-
       - name: Compile language modules
         run: |
           set -euo pipefail
@@ -84,6 +81,13 @@ jobs:
           test -f ./bin/ast/src/lang/uffda/uffda.lang.uffda.ast.json
           test -f ./bin/ast/src/lang/uffda/runtime.compiler.uffda.ast.json
           test -f ./bin/ast/src/lang/expression/number.uffda.ast.json
+
+      - name: Jsr
+        # After compile: the published package includes ./bin.
+        run: |
+          set -euo pipefail
+          npx jsr publish --dry-run 2>&1 | tee "$RUNNER_TEMP/jsr-dry-run.log"
+          grep -q "bin/ast/src/lang/uffda/uffda.lang.uffda.ast.json" "$RUNNER_TEMP/jsr-dry-run.log"
 
       - name: Test
         # Allow read is required to run resolve tests. Language `.uff` modules
