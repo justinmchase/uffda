@@ -26,6 +26,13 @@ self-hosting while maintaining deterministic and diagnosable behavior.
   MUST be embedded as compiled `./bin` AST JSON via `deno compile --include`,
   and remapped from the binary extract root when `Deno.build.standalone` is
   true.
+- The published JSR package MUST likewise ship the compiled `./bin` language
+  ModuleDeclaration JSON alongside the `.ts` and `.uff` sources. The release
+  Publish workflow produces it with that release's own published CLI
+  (`deno task compile:lang`, unmodified per "Bin artifact integrity" below) before
+  `jsr publish`; CI verifies the package includes it. Loading those artifacts
+  from the package's remote URLs is tracked separately
+  ([#234](https://github.com/justinmchase/uffda/issues/234)).
 - After self-hosting, language definitions consumed by a released CLI binary
   MUST come from compiled artifacts rather than TypeScript module sources that
   define those languages.

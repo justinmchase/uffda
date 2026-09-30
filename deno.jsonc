@@ -55,7 +55,10 @@
     // Agent docs, CI metadata, tests, and tooling are not part of the library
     // export graph. Long paths under those trees also break JSR's ustar tarball
     // verify step (paths truncated near 100 chars → "not found in the tarball").
+    // `bin/` is gitignored but published: the Publish workflow compiles the
+    // language ModuleDeclaration JSON into it (`deno task compile:lang`) first.
     "exclude": [
+      "!bin/",
       ".agents/",
       ".cursor/",
       ".github/",
