@@ -221,7 +221,7 @@ export class Scope {
       this.module,
       this.parent,
       this.variables,
-      new Map(),
+      this.args,
       this.stream,
       this.memos,
       this.stack.push({ kind: StackFrameKind.Pipeline, pipeline }),

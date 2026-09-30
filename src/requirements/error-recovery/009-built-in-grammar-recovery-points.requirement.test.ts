@@ -54,7 +54,7 @@ Deno.test("req:error-recovery-009 - built-in grammar recovery points", async (t)
         d.kind === "import"
           ? d.moduleUrl
           : d.kind === "comment"
-          ? d.text
+          ? d.kind
           : d.name
       ),
       ["a", "c", "F", "G"],

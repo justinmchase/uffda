@@ -5,7 +5,7 @@
 # `(flat [i e d])` alone would leave those export sublists nested.
 import "../source/mod.uff" Source;
 import "../tokenizer/mod.uff" TokenizerNoWhitespaceWithComments;
-import "./comment.rules.uff" CommentSyntax;
+import "../comment/mod.uff" CommentBlock;
 import "./import.rules.uff" ImportDeclarationSyntax;
 import "./export.rules.uff" ExportDeclarationSyntax;
 import "./rule.rules.uff" RuleDeclarationSyntax RuleQuotedTokenSequence;
@@ -57,21 +57,30 @@ rule DeclarationRecovery =
   | ((RuleQuotedTokenSequence | any) DeclarationRest)
   ;
 
+# The fence parser for comments: ```uffda fences are Uffda modules. Every
+# other tag (apart from untagged and ```text fences, which the comment grammar
+# keeps as written) fails, so it is a syntax error.
+rule UffdaFence =
+  object & { language: "uffda", code: m:UffdaLang }
+  -> m;
+
+rule UffdaComment = CommentBlock<UffdaFence>;
+
 # Comments are accepted only between top-level declarations, so each list
-# admits `CommentSyntax` ahead of its declarations; a comment anywhere else is
-# a syntax error (a declaration's own grammar never accepts one). Comment
-# nodes keep their source order in `declarations`.
+# admits `UffdaComment` ahead of its declarations; a comment anywhere else is
+# a syntax error (a declaration's own grammar never accepts one). Each run of
+# consecutive comments is one comment node, in source order in `declarations`.
 rule ModuleBody =
   i:(
-    | CommentSyntax
+    | UffdaComment
     | (ope ImportDeclarationSyntax sneak by skip ImportRecovery)
   )*
   e:(
-    | CommentSyntax
+    | UffdaComment
     | (ope ExportDeclarationSyntax sneak by skip ExportRecovery)
   )*
   d:(
-    | CommentSyntax
+    | UffdaComment
     | (ope ModuleDeclarationSyntax sneak by skip DeclarationRecovery)
   )*
   -> { kind: "module", declarations: (flat [i (flat e) d]) };

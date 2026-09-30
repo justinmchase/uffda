@@ -593,3 +593,53 @@ Deno.test("runtime/patterns/pipeline skip", async (t) => {
     }),
   });
 });
+
+Deno.test("runtime/patterns/pipeline rule parameters", async (t) => {
+  await t.step({
+    name: "a step resolves the enclosing rule's parameter",
+    fn: moduleDeclarationTest({
+      moduleUrl: import.meta.url,
+      declarations: {
+        [import.meta.url]: {
+          imports: [],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "Main",
+            default: true,
+          }],
+          rules: [
+            {
+              name: "Main",
+              parameters: [],
+              pattern: {
+                kind: PatternKind.Resolve,
+                targetKind: ResolveTargetKind.Reference,
+                name: "Outer",
+                args: [{ kind: PatternKind.Equal, value: lit("a") }],
+              },
+            },
+            {
+              name: "Outer",
+              parameters: [{ name: "P" }],
+              pattern: {
+                kind: PatternKind.Pipeline,
+                steps: [
+                  { kind: PatternKind.Any },
+                  {
+                    kind: PatternKind.Resolve,
+                    targetKind: ResolveTargetKind.Reference,
+                    name: "P",
+                    args: [],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+      input: Input.Iterable("a"),
+      kind: MatchKind.Ok,
+      value: "a",
+    }),
+  });
+});

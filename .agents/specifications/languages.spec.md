@@ -30,6 +30,7 @@ RFC 8174.
 
 - [source normalization and source-context indexing](./languages/source-normalization.spec.md)
 - [tokenization and token model boundaries](./languages/tokenization.spec.md)
+- [comment syntax](./languages/comment-syntax.spec.md)
 - [expression layer contracts](./languages/expression-layer.spec.md)
 - [pattern layer contracts](./languages/pattern-layer.spec.md)
 - [pattern idioms for map and reduce](./languages/pattern-idioms-map-reduce.spec.md)

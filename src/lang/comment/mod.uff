@@ -1,0 +1,126 @@
+# Comment syntax: one comment block (the comment tokens of consecutive comment
+# lines) parsed into paragraphs, lists, and fences. See
+# .agents/specifications/languages/comment-syntax.spec.md.
+#
+# `CommentBlock<F>` takes the fence parser `F` as a rule parameter, so this
+# grammar knows no language: the host grammar decides which fence tags it
+# accepts. Whitespace outside fences carries no meaning, so lines are never
+# indentation-sensitive.
+import "../common/characters/whitespace.uff" Whitespace;
+
+export CommentBlock;
+
+# A comment token's line content: its text without `#` and one following space.
+# `object &` guards the key match, since `over` on a string item is a type error
+# rather than a failure.
+rule CommentLine =
+  object & { kind: "comment", text: ["#" " "? c:any*] }
+  -> (join c "");
+
+rule CommentBlock<F> =
+  b:((CommentLine+) |> [Blocks<F>])
+  -> { kind: "comment", blocks: b };
+
+rule Blocks<F> =
+  (skip BlankLine | Block<F>)*;
+
+rule Block<F> =
+  | FenceBlock<F>
+  | ListBlock
+  | ParagraphBlock
+  ;
+
+rule BlankLine = [Whitespace*];
+
+rule NonWhitespace = (not Whitespace) c:any -> c;
+
+# A line that starts no other block: its text continues a paragraph or item.
+rule ContinuationLine =
+  (not BlankLine)
+  (not ListItemStart)
+  (not FenceOpen)
+  l:string
+  -> l;
+
+rule ParagraphBlock =
+  i:((l:ContinuationLine+ -> (join l " ")) |> [Inlines])
+  -> { kind: "paragraph", inlines: i };
+
+rule ListItemStart = [Whitespace* "-" " " any*];
+
+rule ListItemFirstLine =
+  [Whitespace* "-" " " c:any*]
+  -> (join c "");
+
+rule ListItem =
+  i:(
+    (f:ListItemFirstLine m:ContinuationLine* -> (join (flat [[f] m]) " "))
+    |> [Inlines]
+  )
+  -> { inlines: i };
+
+rule ListBlock =
+  i:ListItem+
+  -> { kind: "list", items: i };
+
+rule FenceMarker = "`" "`" "`";
+
+rule FenceOpen =
+  [Whitespace* FenceMarker t:NonFenceTagEnd* Whitespace*]
+  -> (join t "");
+
+rule NonFenceTagEnd = (not "`") c:NonWhitespace -> c;
+
+rule FenceClose = [Whitespace* FenceMarker Whitespace*];
+
+rule FenceCodeLine = (not FenceClose) l:string -> l;
+
+rule FenceBlock<F> =
+  (
+    t:FenceOpen
+    c:FenceCodeLine*
+    FenceClose
+    -> { language: t, code: (join c "\n") }
+  )
+  |> FenceContent<F>;
+
+rule FenceContent<F> =
+  | RawFence
+  | ParsedFence<F>
+  ;
+
+rule RawFence =
+  object & { language: l:in["" "text"], code: c:string }
+  -> { kind: "fence", language: l, code: c };
+
+rule ParsedFence<F> =
+  (object & { language: l:string, code: c:string }) & r:F
+  -> { kind: "fence", language: l, code: c, tree: r };
+
+# Inline content of a paragraph or list item, as characters. Whitespace runs
+# collapse to one space and the ends are trimmed. A backtick that opens no
+# complete code span fails the whole block.
+rule Inlines =
+  Whitespace*
+  i:Inline*
+  Whitespace*
+  -> i;
+
+rule Inline =
+  | InlineCode
+  | InlineText
+  ;
+
+rule InlineCode =
+  "`" c:InlineCodeChar+ "`"
+  -> { kind: "code", text: (join c "") };
+
+rule InlineCodeChar = (not "`") c:any -> c;
+
+rule InlineText =
+  t:(InlineSpace | InlineChar)+
+  -> { kind: "text", text: (join t "") };
+
+rule InlineSpace = Whitespace+ (not end) -> " ";
+
+rule InlineChar = (not "`") c:NonWhitespace -> c;

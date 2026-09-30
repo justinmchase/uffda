@@ -1,5 +1,6 @@
 import type { Expression } from "../../runtime/expressions/expression.ts";
 import type { Pattern } from "../../runtime/patterns/pattern.ts";
+import type { CommentNode } from "../comment/comment.types.ts";
 
 export type UffdaImportSyntaxDeclaration = {
   kind: "import";
@@ -53,11 +54,8 @@ export type UffdaDecoratorSyntaxDeclaration = {
   attributes: UffdaAttributeSyntax[];
 };
 
-/** A `#` line comment between top-level declarations; `text` starts with `#`. */
-export type UffdaCommentSyntaxDeclaration = {
-  kind: "comment";
-  text: string;
-};
+/** A run of consecutive `#` line comments between top-level declarations. */
+export type UffdaCommentSyntaxDeclaration = CommentNode;
 
 export type UffdaSyntaxDeclaration =
   | UffdaCommentSyntaxDeclaration

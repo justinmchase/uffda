@@ -32,6 +32,11 @@ receives input derived from the previous step's matched value.
 - Pipeline steps MUST observe variable bindings from the surrounding match scope
   (including captures established before the pipeline). Steps MUST NOT start
   with an empty variable map solely because a pipeline frame was pushed.
+- Pipeline steps MUST resolve the enclosing rule's parameters the same way the
+  rest of the rule body does: a step that references a rule parameter (for
+  example `x |> [Inner<P>]` inside `rule Outer<P>`) MUST receive that rule's
+  argument. Steps MUST NOT start with empty rule arguments solely because a
+  pipeline frame was pushed.
 
 ## Left-recursion behavior
 
