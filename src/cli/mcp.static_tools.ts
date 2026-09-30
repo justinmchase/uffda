@@ -106,7 +106,14 @@ export type MatchToolInput = z.infer<typeof matchToolInputSchema>;
  */
 export type MatchToolResult =
   | { ok: true; value: unknown }
-  | { ok: false; error: CliStreamFailure | CliMatchFailure };
+  | {
+    ok: false;
+    error: CliStreamFailure | CliMatchFailure;
+    /** Every diagnostic of the phase that failed or recovered. */
+    diagnostics?: (CliStreamFailure | CliMatchFailure)[];
+    /** The value of a match that succeeded only by recovering. */
+    value?: unknown;
+  };
 
 export async function matchToolHandler(
   input: MatchToolInput,

@@ -193,6 +193,16 @@ chapter(s).
   CLI's error-shape contract (see
   [command model](./command-model.spec.md#error-shape-contract)): an error code,
   message, and processing phase.
+- Every tool that parses source or matches input MUST request
+  [error recovery](../../runtime/error-recovery.spec.md) and MUST report every
+  diagnostic of that parse or match (see
+  [error recovery](../../runtime/error-recovery.spec.md#diagnostics)) as a
+  `diagnostics` list alongside the failure. A result that succeeded only by
+  recovering MUST be reported as a failure whose `error` is its first recovery,
+  and MAY carry the recovered value. A module source that parsed only by
+  recovering MUST NOT be committed to the session.
+- A rule invocation that succeeded only by recovering MUST retain its match tree
+  like any other invocation, and match-tree walking MUST mark recovered nodes.
 - A tool operating on an invalid, closed, or unknown session/module/declaration
   reference MUST fail deterministically rather than returning a partial or
   guessed result.

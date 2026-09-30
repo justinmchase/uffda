@@ -8,11 +8,10 @@ const statements = `export Main;
 rule Stmt = ope ("a" "b") sneak by until ";";
 rule Main = (Stmt ";")* end;`;
 
-async function run(input: string, recovery: boolean) {
+async function run(input: string) {
   return await executeUffdaSource(statements, {
     entryRuleName: "Main",
     input: Input.Iterable(input),
-    recovery,
   });
 }
 
@@ -24,20 +23,15 @@ const spans = (m: Awaited<ReturnType<typeof run>>) =>
 
 Deno.test("req:error-recovery-001 - two-phase matching", async (t) => {
   await t.step("a clean parse is unchanged by recovery", async () => {
-    const m = await run("ab;ab;", true);
+    const m = await run("ab;ab;");
     assertEquals(m.kind, MatchKind.Ok);
     if (m.kind !== MatchKind.Ok) return;
     assertEquals(m.recovered, undefined);
     assertEquals(m.scope.recovery, false);
   });
 
-  await t.step("recovery is off unless requested", async () => {
-    const m = await run("ab;xx;ab;", false);
-    assertEquals(m.kind, MatchKind.Fail);
-  });
-
   await t.step("a failed parse recovers in the second phase", async () => {
-    const m = await run("ab;xx;ab;", true);
+    const m = await run("ab;xx;ab;");
     assertEquals(m.kind, MatchKind.Ok);
     if (m.kind !== MatchKind.Ok) return;
     assertEquals(m.recovered, true);
@@ -47,7 +41,7 @@ Deno.test("req:error-recovery-001 - two-phase matching", async (t) => {
   await t.step(
     "a failure without a failed recovery point skips the second phase",
     async () => {
-      const m = await run("ab;ab", true);
+      const m = await run("ab;ab");
       assertEquals(m.kind, MatchKind.Fail);
       assertEquals(m.scope.recovery, false);
     },

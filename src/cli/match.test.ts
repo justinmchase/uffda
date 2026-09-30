@@ -74,3 +74,60 @@ Deno.test("cli.match applies raw pattern ASTs to text input", async (t) => {
     assertEquals(input.error.phase, "input");
   });
 });
+
+Deno.test("cli.match reports recoveries", async (t) => {
+  const recovering = async () => {
+    const parsed = await patternGrammar(`(ope "a" sneak by any)* end`);
+    assertEquals(parsed.kind, MatchKind.Ok);
+    if (parsed.kind !== MatchKind.Ok) throw new Error("pattern parse failed");
+    return valueOf(parsed);
+  };
+
+  await t.step("a clean match is unchanged", async () => {
+    const result = await matchCliPattern(await recovering(), "aa");
+    assertEquals(result, { ok: true, value: [["a", "a"], undefined] });
+  });
+
+  await t.step(
+    "a recovered match fails with its value and every recovery",
+    async () => {
+      const result = await matchCliPattern(await recovering(), "axay");
+      assertEquals(result.ok, false);
+      if (result.ok) return;
+      assertEquals(result.value, [["a", "x", "a", "y"], undefined]);
+      assertEquals(
+        result.diagnostics?.map(({ code, inputSpan }) => ({ code, inputSpan })),
+        [
+          {
+            code: CliMatchFailureCode.Recovered,
+            inputSpan: { start: 1, end: 2 },
+          },
+          {
+            code: CliMatchFailureCode.Recovered,
+            inputSpan: { start: 3, end: 4 },
+          },
+        ],
+      );
+      assertEquals(result.error, result.diagnostics?.[0]);
+      assertEquals(result.error.message, 'Expected "a"\nUnexpected "x"');
+    },
+  );
+
+  await t.step(
+    "a failed match lists its recoveries before the failure",
+    async () => {
+      const parsed = await patternGrammar(`(ope "a" sneak by "x") "b" end`);
+      assertEquals(parsed.kind, MatchKind.Ok);
+      if (parsed.kind !== MatchKind.Ok) return;
+      const result = await matchCliPattern(valueOf(parsed), "xc");
+      assertEquals(result.ok, false);
+      if (result.ok) return;
+      assertEquals("value" in result, false);
+      assertEquals(result.diagnostics?.map(({ code }) => code), [
+        CliMatchFailureCode.Recovered,
+        CliMatchFailureCode.MatchFailure,
+      ]);
+      assertEquals(result.error, result.diagnostics?.[1]);
+    },
+  );
+});

@@ -7,7 +7,8 @@ import { match } from "../runtime/match.ts";
 import type { Pattern } from "../runtime/patterns/pattern.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "../runtime/patterns/pattern.ts";
-import { resolve as resolvePattern } from "../runtime/patterns/resolve.ts";
+import { matchWithRecovery } from "../runtime/recovery.ts";
+import { diagnoseRecoveries } from "../match.recovery_diagnostics.ts";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 import type { DecoratorFunc } from "../runtime/modules/decorator.ts";
 import type { Func } from "../runtime/modules/func.ts";
@@ -29,6 +30,7 @@ import type { Edit } from "../edit.ts";
 import { rehydrateMemos } from "../runtime/incremental.ts";
 import {
   getRightmostFailure,
+  isClean,
   isSuccess,
   type Match,
   MatchKind,
@@ -46,8 +48,12 @@ import {
 } from "./ensure_import_artifacts.ts";
 import { importFrameLocation } from "./import_location.ts";
 import { anchorParseFailureLocation } from "./parse_failure_anchor.ts";
-import { parseSourceToAst } from "./stream.ts";
-import type { CliStreamFailureLocation } from "./stream.ts";
+import {
+  CliStreamFailureCode,
+  type CliStreamFailureLocation,
+  type CliStreamResult,
+  parseSourceToAst,
+} from "./stream.ts";
 import { valueOf } from "../match.ts";
 import { unwrap } from "../wrapped.ts";
 
@@ -80,6 +86,8 @@ const DEFAULT_SESSION_ARTIFACT_ROOT = ".uffda";
 
 export enum SessionLoadFailureCode {
   ParseFailure = "MCP_SESSION_LOAD_PARSE_FAILURE",
+  /** Source the parse skipped by recovering; see error-recovery.spec.md. */
+  ParseRecovered = "MCP_SESSION_LOAD_PARSE_RECOVERED",
   CompileFailure = "MCP_SESSION_LOAD_COMPILE_FAILURE",
   ResolutionFailure = "MCP_SESSION_LOAD_RESOLUTION_FAILURE",
 }
@@ -124,7 +132,13 @@ export type SessionLoadResult =
   | { ok: true; module: LoadedModuleSummary }
   | {
     ok: false;
+    /** The failure, or the first recovery of a parse that recovered. */
     error: SessionLoadFailure;
+    /**
+     * Every parse diagnostic of a parse-phase failure, in document order: one
+     * per recovery, then the parse failure when the parse failed.
+     */
+    diagnostics?: SessionLoadFailure[];
     /**
      * Modules this session had already successfully loaded prior to this
      * failing `load()` call. Explicitly labeled partial information per
@@ -175,7 +189,10 @@ export type SessionPatchResult =
   | { ok: true; module: LoadedModuleSummary }
   | {
     ok: false;
+    /** The failure, or the first recovery of a parse that recovered. */
     error: SessionPatchFailure;
+    /** As `SessionLoadResult`'s `diagnostics`. */
+    diagnostics?: SessionLoadFailure[];
     partiallyLoadedModules: LoadedModuleSummary[];
     resolvedDuringLoad: LoadedModuleSummary[];
   };
@@ -185,6 +202,8 @@ export enum SessionEvalFailureCode {
   InvalidJson = "MCP_SESSION_EVAL_INVALID_JSON",
   UnknownModule = "MCP_SESSION_EVAL_UNKNOWN_MODULE",
   ParseFailure = "MCP_SESSION_EVAL_PARSE_FAILURE",
+  /** Input skipped by recovering; see error-recovery.spec.md. */
+  Recovered = "MCP_SESSION_EVAL_RECOVERED",
   ExpressionException = "MCP_SESSION_EVAL_EXPRESSION_EXCEPTION",
   MatchFailure = "MCP_SESSION_EVAL_MATCH_FAILURE",
 }
@@ -195,6 +214,8 @@ export type SessionEvalFailure = {
   message: string;
   inputPosition?: string;
   inputDescription?: string;
+  /** Source offsets of the input or expression text a recovery skipped. */
+  inputSpan?: SourceSpan;
   /**
    * Present when a rule invocation produced a match result tree (Ok or
    * Fail) even though evaluation as a whole failed — the tree is retained
@@ -206,7 +227,18 @@ export type SessionEvalFailure = {
 
 export type SessionEvalResult =
   | { ok: true; value: unknown; matchResultId?: string }
-  | { ok: false; error: SessionEvalFailure };
+  | {
+    ok: false;
+    /** The failure, or the first recovery of a recovered evaluation. */
+    error: SessionEvalFailure;
+    /**
+     * Every diagnostic of a parse or rule invocation that ran, in document
+     * order: one per recovery, then the failure when it failed.
+     */
+    diagnostics?: SessionEvalFailure[];
+    /** The value of a rule invocation that succeeded only by recovering. */
+    value?: unknown;
+  };
 
 export type SessionEvalInput = {
   /**
@@ -289,6 +321,9 @@ export type SessionWalkNode = {
   /** Set only when this node is the Ok/Fail produced by a fresh rule
    * invocation (see `MatchOrigin` in `../match.ts`). */
   rule?: string;
+  /** Set only for an ok/skip node that is or contains a recovery (see
+   * `.agents/specifications/runtime/error-recovery.spec.md`). */
+  recovered?: true;
   /** Variables bound in this node's scope, flattened to a plain object. */
   variables: Record<string, unknown>;
   metadata: SessionWalkMetadataContribution[];
@@ -411,6 +446,8 @@ export type SessionDescribeGlobalResult =
 
 export enum SessionQueryFailureCode {
   ParseFailure = "MCP_SESSION_QUERY_PARSE_FAILURE",
+  /** Predicate text the parse skipped by recovering. */
+  ParseRecovered = "MCP_SESSION_QUERY_PARSE_RECOVERED",
 }
 
 export type SessionQueryFailure = {
@@ -429,7 +466,16 @@ export type SessionQueryMatch = {
 
 export type SessionQueryResult =
   | { ok: true; matches: SessionQueryMatch[] }
-  | { ok: false; error: SessionQueryFailure };
+  | {
+    ok: false;
+    /** The parse failure, or the first recovery of a recovered parse. */
+    error: SessionQueryFailure;
+    /**
+     * Every parse diagnostic of the predicate, in document order: one per
+     * recovery, then the parse failure when the parse failed.
+     */
+    diagnostics: SessionQueryFailure[];
+  };
 
 /**
  * Placeholder resolve pattern used only for `ModuleResolutionContext`
@@ -703,24 +749,7 @@ export class RuntimeSession {
     // compile/resolve) succeeds — highlighting and a subsequent incremental
     // `patch()` both need the latest Match aligned with `source`.
     this.retainParseState(moduleUrl.href, source, parsed.match);
-    if (!parsed.ok) {
-      return {
-        ok: false,
-        error: {
-          code: SessionLoadFailureCode.ParseFailure,
-          phase: "parse",
-          message: parsed.error.message,
-          location: parsed.error.location &&
-            anchorParseFailureLocation(
-              parsed.match,
-              source,
-              parsed.error.location,
-            ),
-        },
-        partiallyLoadedModules: this.listLoadedModules(),
-        resolvedDuringLoad: [],
-      };
-    }
+    if (!parsed.ok) return this.parseFailure(parsed, source);
 
     return await this.compileAndCommitModule(
       moduleUrl,
@@ -800,29 +829,48 @@ export class RuntimeSession {
       { memos, input: freshInput },
     );
     this.retainParseState(href, newSource, parsed.match);
-    if (!parsed.ok) {
-      return {
-        ok: false,
-        error: {
-          code: SessionLoadFailureCode.ParseFailure,
-          phase: "parse",
-          message: parsed.error.message,
-          location: parsed.error.location &&
-            anchorParseFailureLocation(
-              parsed.match,
-              newSource,
-              parsed.error.location,
-            ),
-        },
-        partiallyLoadedModules: this.listLoadedModules(),
-        resolvedDuringLoad: [],
-      };
-    }
+    if (!parsed.ok) return this.parseFailure(parsed, newSource);
 
     return await this.compileAndCommitModule(
       new URL(href),
       parsed.ast as UffdaSyntaxModule,
     );
+  }
+
+  /**
+   * The result of a module parse that failed or only recovered: every parse
+   * diagnostic, with the module left uncompiled (see
+   * `.agents/specifications/runtime/error-recovery.spec.md#diagnostics`).
+   */
+  private parseFailure(
+    parsed: Extract<CliStreamResult, { ok: false }>,
+    source: string,
+  ): SessionLoadResult {
+    const diagnostics = parsed.diagnostics.map((
+      { code, message, location },
+    ): SessionLoadFailure =>
+      code === CliStreamFailureCode.Recovered
+        ? {
+          code: SessionLoadFailureCode.ParseRecovered,
+          phase: "parse",
+          message,
+          location,
+        }
+        : {
+          code: SessionLoadFailureCode.ParseFailure,
+          phase: "parse",
+          message,
+          location: location &&
+            anchorParseFailureLocation(parsed.match, source, location),
+        }
+    );
+    return {
+      ok: false,
+      error: diagnostics[parsed.diagnostics.indexOf(parsed.error)],
+      diagnostics,
+      partiallyLoadedModules: this.listLoadedModules(),
+      resolvedDuringLoad: [],
+    };
   }
 
   /**
@@ -1077,13 +1125,33 @@ export class RuntimeSession {
         CliLanguage.Expression,
       );
       if (!parsed.ok) {
+        const diagnostics = parsed.diagnostics.map((
+          { code, message, location },
+        ): SessionEvalFailure =>
+          code === CliStreamFailureCode.Recovered
+            ? {
+              code: SessionEvalFailureCode.Recovered,
+              phase: "parse",
+              message,
+              ...(location
+                ? {
+                  inputSpan: {
+                    start: location.offset,
+                    end: location.endOffset ?? location.offset,
+                  },
+                }
+                : {}),
+            }
+            : {
+              code: SessionEvalFailureCode.ParseFailure,
+              phase: "parse",
+              message,
+            }
+        );
         return {
           ok: false,
-          error: {
-            code: SessionEvalFailureCode.ParseFailure,
-            phase: "parse",
-            message: parsed.error.message,
-          },
+          error: diagnostics[parsed.diagnostics.indexOf(parsed.error)],
+          diagnostics,
         };
       }
 
@@ -1139,7 +1207,7 @@ export class RuntimeSession {
         ? InputNormalizationMode.Scalar
         : InputNormalizationMode.Iterable,
     }).pushModule(module);
-    const result = await resolvePattern(
+    const result = await matchWithRecovery(
       {
         kind: PatternKind.Resolve,
         targetKind: ResolveTargetKind.Run,
@@ -1147,51 +1215,69 @@ export class RuntimeSession {
       },
       scope,
     );
+    if (isClean(result)) {
+      return {
+        ok: true,
+        value: valueOf(result),
+        matchResultId: this.retainMatchResult(result),
+      };
+    }
 
+    const recoveries: SessionEvalFailure[] = (await diagnoseRecoveries(result))
+      .map(({ span, message }) => ({
+        code: SessionEvalFailureCode.Recovered,
+        phase: "eval",
+        message,
+        inputSpan: span,
+      }));
+    if (isSuccess(result)) {
+      const matchResultId = this.retainMatchResult(result);
+      return {
+        ok: false,
+        error: { ...recoveries[0], matchResultId },
+        diagnostics: recoveries,
+        value: valueOf(result),
+      };
+    }
+    const failure = await this.evalMatchFailure(result, input.rule);
+    return { ok: false, error: failure, diagnostics: [...recoveries, failure] };
+  }
+
+  private async evalMatchFailure(
+    result: Match,
+    rule: string | undefined,
+  ): Promise<SessionEvalFailure> {
     switch (result.kind) {
-      case MatchKind.Ok:
-      case MatchKind.Skip:
-        return {
-          ok: true,
-          value: valueOf(result),
-          matchResultId: this.retainMatchResult(result),
-        };
       case MatchKind.Error:
         return {
-          ok: false,
-          error: {
-            code: SessionEvalFailureCode.MatchFailure,
-            phase: "eval",
-            message: `${result.code}: ${result.message}`,
-          },
+          code: SessionEvalFailureCode.MatchFailure,
+          phase: "eval",
+          message: `${result.code}: ${result.message}`,
         };
       case MatchKind.Fail: {
         const rightmost = getRightmostFailure(result);
         return {
-          ok: false,
-          error: {
-            code: SessionEvalFailureCode.MatchFailure,
-            phase: "eval",
-            message: input.rule
-              ? `Rule '${input.rule}' did not match input at ${rightmost.span.start.toString()}`
-              : `Default rule did not match input at ${rightmost.span.start.toString()}`,
-            inputPosition: rightmost.span.start.toString(),
-            inputDescription: await rightmost.scope.stream.done()
-              ? "end of input"
-              : "a value that did not match",
-            matchResultId: this.retainMatchResult(result),
-          },
+          code: SessionEvalFailureCode.MatchFailure,
+          phase: "eval",
+          message: rule
+            ? `Rule '${rule}' did not match input at ${rightmost.span.start.toString()}`
+            : `Default rule did not match input at ${rightmost.span.start.toString()}`,
+          inputPosition: rightmost.span.start.toString(),
+          inputDescription: await rightmost.scope.stream.done()
+            ? "end of input"
+            : "a value that did not match",
+          matchResultId: this.retainMatchResult(result),
         };
       }
       case MatchKind.LR:
         return {
-          ok: false,
-          error: {
-            code: SessionEvalFailureCode.MatchFailure,
-            phase: "eval",
-            message: "match failed with left recursion outcome",
-          },
+          code: SessionEvalFailureCode.MatchFailure,
+          phase: "eval",
+          message: "match failed with left recursion outcome",
         };
+      case MatchKind.Ok:
+      case MatchKind.Skip:
+        throw new Error("Expected match failure");
     }
   }
 
@@ -1359,13 +1445,19 @@ export class RuntimeSession {
     if (predicate !== undefined) {
       const parsed = await parseSourceToAst(predicate, CliLanguage.Pattern);
       if (!parsed.ok) {
+        const diagnostics = parsed.diagnostics.map((
+          { code, message },
+        ): SessionQueryFailure => ({
+          code: code === CliStreamFailureCode.Recovered
+            ? SessionQueryFailureCode.ParseRecovered
+            : SessionQueryFailureCode.ParseFailure,
+          phase: "parse",
+          message,
+        }));
         return {
           ok: false,
-          error: {
-            code: SessionQueryFailureCode.ParseFailure,
-            phase: "parse",
-            message: parsed.error.message,
-          },
+          error: diagnostics[parsed.diagnostics.indexOf(parsed.error)],
+          diagnostics,
         };
       }
       pattern = parsed.ast as Pattern;
@@ -1575,6 +1667,7 @@ function projectWalkNode(
         value: unwrap(node.value),
         childCount: node.matches.length,
         rule: node.origin?.rule.name,
+        ...(node.recovered ? { recovered: true } : {}),
         variables,
         metadata,
       };

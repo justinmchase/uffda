@@ -16,6 +16,8 @@ import {
   parseCliAst,
 } from "./exec.ts";
 import {
+  type CliMatchFailure,
+  CliMatchFailureCode,
   isCliMatchFailure,
   matchCliPattern,
   parseCliMatchInput,
@@ -355,7 +357,12 @@ async function readOperationAst(
     sourcePath: string;
     moduleOrigin: CliModuleOrigin;
   }
-  | { ok: false; result: CliRunResult }
+  | {
+    ok: false;
+    result: CliRunResult;
+    /** The AST of a source that parsed only by recovering. */
+    ast?: unknown;
+  }
 > {
   let input: CommandInput;
   try {
@@ -407,8 +414,13 @@ async function readOperationAst(
       ok: false,
       result: {
         exitCode: CliExitCode.Usage,
-        stderr: toJson({ ok: false, error: parsed.error }),
+        stderr: toJson({
+          ok: false,
+          error: parsed.error,
+          diagnostics: parsed.diagnostics,
+        }),
       },
+      ...(parsed.ast !== undefined ? { ast: parsed.ast } : {}),
     };
 }
 
@@ -422,6 +434,28 @@ function operationResult(value: unknown, jsonOutput = false): CliRunResult {
       : value === undefined
       ? undefined
       : toJson(value),
+  };
+}
+
+/**
+ * A failed operation's result: its diagnostics payload on STDERR and, when it
+ * succeeded only by recovering, its value on STDOUT.
+ */
+function operationFailure(
+  failure: { error: unknown; diagnostics?: unknown[]; value?: unknown },
+  jsonOutput: boolean,
+): CliRunResult {
+  const { error, diagnostics } = failure;
+  return {
+    exitCode: CliExitCode.Usage,
+    ...("value" in failure
+      ? { stdout: operationResult(failure.value, jsonOutput).stdout }
+      : {}),
+    stderr: toJson({
+      ok: false,
+      error,
+      ...(diagnostics ? { diagnostics } : {}),
+    }),
   };
 }
 
@@ -440,16 +474,32 @@ function sourceExcerpt(source: string, offset: number): string[] {
 }
 
 function matchFailureResult(
-  error: import("./match.ts").CliMatchFailure,
+  failure: {
+    error: CliMatchFailure;
+    diagnostics?: CliMatchFailure[];
+    value?: unknown;
+  },
   jsonOutput: boolean,
 ): CliRunResult {
-  if (jsonOutput) {
-    return {
-      exitCode: CliExitCode.Usage,
-      stderr: toJson({ ok: false, error }),
-    };
-  }
+  if (jsonOutput) return operationFailure(failure, jsonOutput);
 
+  const lines = (failure.diagnostics ?? [failure.error]).flatMap(
+    matchFailureLines,
+  );
+  return {
+    exitCode: CliExitCode.Usage,
+    ...("value" in failure
+      ? { stdout: operationResult(failure.value).stdout }
+      : {}),
+    stderr: `${lines.join("\n")}\n`,
+  };
+}
+
+function matchFailureLines(error: CliMatchFailure): string[] {
+  if (error.code === CliMatchFailureCode.Recovered && error.inputSpan) {
+    const { start, end } = error.inputSpan;
+    return [`Match recovered at input ${start}..${end}: ${error.message}`];
+  }
   const lines = [`Match failure: ${error.message}`];
   if (error.inputPosition && error.inputDescription) {
     lines.push(`Input ${error.inputPosition}: ${error.inputDescription}.`);
@@ -460,7 +510,7 @@ function matchFailureResult(
   ) {
     lines.push(...sourceExcerpt(error.source, error.sourceOffset));
   }
-  return { exitCode: CliExitCode.Usage, stderr: `${lines.join("\n")}\n` };
+  return lines;
 }
 
 export function shouldReadStdin(
@@ -564,12 +614,7 @@ export async function runCli(
       artifactRoot: contract.outputRootDir,
       moduleUrl: moduleUrlForCliOrigin(contract.cwd, parsed.moduleOrigin),
     });
-    if (!result.ok) {
-      return {
-        exitCode: CliExitCode.Usage,
-        stderr: toJson({ ok: false, error: result.error }),
-      };
-    }
+    if (!result.ok) return operationFailure(result, contract.jsonOutput);
 
     return operationResult(result.value, contract.jsonOutput);
   }
@@ -587,7 +632,7 @@ export async function runCli(
       input = await readMatchInput(contract);
     } catch (error) {
       if (isCliMatchFailure(error)) {
-        return matchFailureResult(error, contract.jsonOutput);
+        return matchFailureResult({ error }, contract.jsonOutput);
       }
       return usageError(
         `Unable to read match input: ${
@@ -605,9 +650,7 @@ export async function runCli(
       contract.matchInputJson !== undefined,
       contract.astInput ? undefined : parsed.source,
     );
-    if (!result.ok) {
-      return matchFailureResult(result.error, contract.jsonOutput);
-    }
+    if (!result.ok) return matchFailureResult(result, contract.jsonOutput);
     return operationResult(result.value, contract.jsonOutput);
   }
 
@@ -620,7 +663,9 @@ export async function runCli(
     if (parsed.ok) {
       return { exitCode: CliExitCode.Ok, stdout: toJson(parsed.ast) };
     }
-    return parsed.result;
+    return parsed.ast === undefined
+      ? parsed.result
+      : { ...parsed.result, stdout: toJson(parsed.ast) };
   }
 
   if (contract.mode === CliMode.Run) {
@@ -637,10 +682,7 @@ export async function runCli(
       moduleUrl: moduleUrlForCliOrigin(contract.cwd, parsed.moduleOrigin),
     });
     if (result.ok) return operationResult(result.value, contract.jsonOutput);
-    return {
-      exitCode: CliExitCode.Usage,
-      stderr: toJson({ ok: false, error: result.error }),
-    };
+    return operationFailure(result, contract.jsonOutput);
   }
 
   if (contract.mode !== CliMode.Compile) {

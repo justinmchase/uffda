@@ -32,7 +32,7 @@ Deno.test("runtime.module.execute executes default exported rule", async () => {
   }
 });
 
-Deno.test("runtime.module.execute recovers when recovery is requested", async () => {
+Deno.test("runtime.module.execute matches in two phases", async () => {
   const declaration: ModuleDeclaration = {
     imports: [],
     exports: [{
@@ -60,13 +60,7 @@ Deno.test("runtime.module.execute recovers when recovery is requested", async ()
     }],
   };
 
-  const clean = await executeModuleDeclaration(declaration, { input: "x" });
-  assertEquals(clean.kind, MatchKind.Fail);
-
-  const m = await executeModuleDeclaration(declaration, {
-    input: "x",
-    recovery: true,
-  });
+  const m = await executeModuleDeclaration(declaration, { input: "x" });
   assertEquals(m.kind, MatchKind.Ok);
   if (m.kind === MatchKind.Ok) {
     assertEquals(m.recovered, true);

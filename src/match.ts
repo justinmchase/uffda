@@ -240,6 +240,17 @@ export function isRecovered(match: Match): match is MatchSuccess {
 }
 
 /**
+ * A success that is not recovered: the only outcome whose value may be
+ * consumed as clean (see
+ * `.agents/specifications/runtime/error-recovery.spec.md#diagnostics`).
+ */
+export function isClean<M extends Match>(
+  match: M,
+): match is Extract<M, { kind: MatchKind.Ok | MatchKind.Skip }> {
+  return isSuccess(match) && !match.recovered;
+}
+
+/**
  * A success whose value is exactly `child`'s: skipped when `child` was
  * skipped, otherwise ordinary with `child`'s value.
  */

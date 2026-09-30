@@ -83,8 +83,13 @@ Deno.test({
           failure.sourcePath === "a/bad.uff"
         );
         assert(parseFailure != null);
-        assertEquals(parseFailure.code, CliCompileFailureCode.ParseFailure);
+        assertEquals(parseFailure.code, CliCompileFailureCode.Recovered);
         assertEquals(parseFailure.location?.line, 0);
+        const badUnit = result.units.find((unit) =>
+          unit.sourcePath === "a/bad.uff"
+        );
+        assert(badUnit != null && !badUnit.ok);
+        assertEquals(badUnit.diagnostics, [parseFailure]);
 
         assertEquals(result.successes.length, 2);
         assertEquals(

@@ -1,7 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { MatchKind } from "../../mod.ts";
 import { uffdaGrammar } from "../../lang/uffda/uffda.lang.ts";
-import { valueOf } from "../../match.ts";
+import { isClean, valueOf } from "../../match.ts";
 
 Deno.test("req:uffda-language-syntax-004 - Import declarations cover empty module, multi-module, repeated-module, and one-or-more imported names", async (t) => {
   await t.step("module may contain no imports", async () => {
@@ -61,7 +61,7 @@ Deno.test("req:uffda-language-syntax-004 - Import declarations cover empty modul
       }
 
       const commaSeparated = await uffdaGrammar('import "./a.ts" A, B, C;');
-      assertEquals(commaSeparated.kind, MatchKind.Fail);
+      assertEquals(isClean(commaSeparated), false);
     },
   );
 });

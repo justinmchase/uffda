@@ -68,7 +68,7 @@ export async function rehydrateMemos(
   freshInput: Input,
 ): Promise<Memos> {
   const memos = new Memos();
-  memos.recoverable = true;
+  memos.recoverable = priorMatch.scope.memos.recoverable;
   const positions = await buildPositionIndex(freshInput, edit.at);
 
   const visit = (node: Match): void => {

@@ -1,16 +1,11 @@
 import type { Awaitable } from "../runtime/awaitable.ts";
 import { assertEquals } from "@std/assert";
-import {
-  isSuccess,
-  type Match,
-  MatchKind,
-  type MatchSuccess,
-} from "../match.ts";
+import { isClean, type Match, MatchKind, type MatchSuccess } from "../match.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "../runtime/patterns/pattern.ts";
 import { Scope } from "../runtime/scope.ts";
 import { globals as defaultGlobals } from "../runtime/runtime.ts";
-import { resolve } from "../runtime/patterns/resolve.ts";
+import { matchWithRecovery } from "../runtime/recovery.ts";
 import { languageArtifactRoots } from "../runtime/resolvers/language_artifact_roots.ts";
 import { ModuleImportResultKind } from "../runtime/resolvers/resolver.ts";
 import { Resolver } from "../runtime/resolve.ts";
@@ -149,7 +144,7 @@ export async function parseGrammar<TAst>(options: {
 
   const { module, scope } = resolved.resolved;
   const scoped = scope.pushModule(module);
-  const parsed = await resolve(
+  const parsed = await matchWithRecovery(
     {
       kind: PatternKind.Resolve,
       targetKind: ResolveTargetKind.Run,
@@ -170,7 +165,7 @@ export function createGrammarRunner<TAst, TResult, TOptions>(
     options?: TOptions,
   ): Promise<GrammarRunResult<TAst, TResult>> => {
     const match = await parse(source, options);
-    if (!isSuccess(match)) {
+    if (!isClean(match)) {
       return {
         kind: "match",
         match,
@@ -203,7 +198,8 @@ export async function assertGrammarCases<TAst, TResult, TOptions>(options: {
       testCase.options ?? defaultOptions,
     );
     assertEquals(match.kind, MatchKind.Ok, `syntax: ${testCase.syntax}`);
-    if (isSuccess(match)) {
+    assertEquals(isClean(match), true, `syntax: ${testCase.syntax}`);
+    if (isClean(match)) {
       assertEquals(valueOf(match), testCase.expectedAst);
       const value = await evaluate(valueOf(match), match);
       assertEquals(unwrap(value), testCase.expectedValue);

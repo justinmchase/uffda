@@ -1,7 +1,7 @@
 ---
 id: error-recovery-001
-title: Two-phase matching recovers only when a clean parse fails
-spec_ref: ".agents/specifications/runtime/error-recovery.spec.md#two-phase-matching"
+title: Entry points always match in two phases, recovering only when a clean parse fails
+spec_ref: ".agents/specifications/runtime/error-recovery.spec.md#two-phase-matching; .agents/specifications/runtime/error-recovery.spec.md#host-surface"
 ---
 
 # Two-Phase Matching
@@ -10,7 +10,9 @@ spec_ref: ".agents/specifications/runtime/error-recovery.spec.md#two-phase-match
 
 Preconditions:
 
-- A host matches pattern G at position P with recovery requested.
+- An entry point (executing a module declaration, or parsing with a grammar)
+  matches pattern G at position P. No entry point offers a way to disable
+  recovery.
 
 Expected behavior:
 
@@ -23,9 +25,11 @@ Expected behavior:
 - If discovery fails without any recover pattern's child failing, the recovery
   phase MUST be skipped and discovery's failure MUST be the result.
 - A discovery phase that reuses rehydrated incremental memo entries MUST assume
-  a recover pattern's child failed.
+  a recover pattern's child failed exactly when the prior parse recorded one.
 - The recovery setting MUST default to disabled for every evaluation context not
   derived from one that enabled it.
+- A consumer that treats a result as clean MUST check that it is a success that
+  is not recovered (`isClean`), not merely a success.
 
 Postconditions:
 
@@ -40,4 +44,5 @@ the recovery phase (RECOVERY04), no recovery point reached skips the recovery
 phase (RECOVERY07). `src/runtime/scope.test.ts`: default and propagation of the
 setting (SCOPE_RECOVERY). `src/memo.test.ts`: MEMO_RECOVERY.
 `src/requirements/error-recovery/001-two-phase-matching.requirement.test.ts`:
-end-to-end through `executeModuleDeclaration` with `recovery: true`.
+end-to-end through `executeUffdaSource`. `src/match.test.ts`: RECOVERED03
+(`isClean`).

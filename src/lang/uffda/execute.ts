@@ -3,7 +3,7 @@ import {
   executeModuleDeclaration,
   type ExecuteModuleDeclarationOptions,
 } from "../../runtime/module.execute.ts";
-import { isSuccess, type Match } from "../../match.ts";
+import { isClean, type Match } from "../../match.ts";
 import { parseGrammar } from "../grammar.ts";
 import {
   diagnoseUffdaRuntimeCompilerFailure,
@@ -30,7 +30,7 @@ export async function compileUffdaSyntaxModule(
   syntaxModule: UffdaSyntaxModule,
 ): Promise<ModuleDeclaration> {
   const compiled = await runUffdaRuntimeCompiler(syntaxModule);
-  if (isSuccess(compiled)) {
+  if (isClean(compiled)) {
     return valueOf(compiled);
   }
 
@@ -59,17 +59,21 @@ export async function compileUffdaSource(
 
 export type ExecuteUffdaSourceOptions = ExecuteModuleDeclarationOptions;
 
+/**
+ * Parses, compiles, and runs `source`. A source that parses only by
+ * recovering is returned as that recovered parse, never compiled or run.
+ */
 export async function executeUffdaSource(
   source: string,
   options?: ExecuteUffdaSourceOptions,
 ): Promise<Match> {
   const parsed = await uffdaGrammar(source);
-  if (!isSuccess(parsed)) {
+  if (!isClean(parsed)) {
     return parsed;
   }
 
   const compiled = await runUffdaRuntimeCompiler(valueOf(parsed));
-  if (!isSuccess(compiled)) {
+  if (!isClean(compiled)) {
     return compiled;
   }
 

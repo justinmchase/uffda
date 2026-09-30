@@ -111,6 +111,12 @@ not introduce a parallel parsing or compilation pathway.
   turned out not to actually change any diagnostic (an edit that leaves
   diagnostics unchanged MUST still result in a well-defined, not stale,
   diagnostic set).
+- The server MUST publish every parse diagnostic (see
+  [error recovery](../../runtime/error-recovery.spec.md#diagnostics)): one per
+  recovery, ranged over the source it skipped, and the parse failure, if any. A
+  document that parsed only by recovering MUST NOT be compiled or resolved;
+  highlighting, symbols, and other features derived from the parse MUST read the
+  recovered parse.
 - Diagnostics from a downstream pipeline stage MUST be reported at the stage's
   own responsible source-facing range, not merged into or hidden behind an
   upstream stage's diagnostics.
@@ -278,8 +284,9 @@ and globals as `function`, local bindings staying `variable`;
 on the failing root import's `[ModulePath]` or `[ImportedName]` (via the
 resolver's `importChain` and the session's retained parse tree), with the
 dependency's own failure position as `relatedInformation` when known. A parse
-failure on an incomplete line (for example an import missing its names) is
-anchored right after that line's last token. Document operations
+failure on an incomplete line is anchored right after that line's last token; a
+declaration the module grammar recovers from (for example an import missing its
+names) is instead ranged over the skipped declaration. Document operations
 (open/change/close and every query) run through a per-document queue in
 `LspDocumentManager`, since the LSP connection does not await async notification
 handlers. Hover (`textDocument/hover`) and go-to-definition

@@ -20,6 +20,12 @@ Expected behavior:
   (for example `getRightmostFailure` / match-failure analysis in
   `src/match.visualize.ts`) into LSP diagnostic ranges (line/character
   positions, not raw stream offsets).
+- The server MUST publish every parse diagnostic: one per recovery, ranged over
+  the source the recovery skipped, whose message is the analysis of the failure
+  it replaced, then the parse failure if the parse failed (see
+  [error recovery](../../specifications/runtime/error-recovery.spec.md#diagnostics)).
+  A document that parsed only by recovering MUST NOT be compiled or resolved,
+  while highlighting and symbols read the recovered parse.
 - Parse-failure diagnostic messages MUST lead with what was **expected** for the
   match to succeed, then what was found, so editors that already underline the
   unexpected token still make the missing alternative obvious (see
@@ -71,3 +77,10 @@ Postconditions:
 
 - The editor's diagnostic panel for an open document always matches what a
   fresh, non-incremental parse of that document's current content would report.
+
+## Test plan
+
+`src/cli/lsp.diagnostics.test.ts` ("publishes every parse diagnostic", plus the
+single-failure ranging cases), `src/cli/lsp.documents.test.ts`, and
+`src/cli/lsp.references.test.ts` (`parseQuality`: a rename must parse at least
+as cleanly as the document did).

@@ -1,16 +1,17 @@
-import { assertEquals } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import { MatchKind } from "../../mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { lit } from "../../runtime/patterns/value_source.ts";
-import { uffdaGrammar } from "./uffda.lang.ts";
+import { uffdaGrammar, type UffdaSyntaxModule } from "./uffda.lang.ts";
 import { fromFileUrl, join } from "@std/path";
 import { Input, InputNormalizationMode } from "../../input.ts";
 import { Path } from "../../path.ts";
 import type { Edit } from "../../edit.ts";
 import { rehydrateMemos } from "../../runtime/incremental.ts";
 import { unwrap } from "../../wrapped.ts";
-import { valueOf } from "../../match.ts";
+import { isClean, isSuccess, type Match, valueOf } from "../../match.ts";
+import { collectRecoveries } from "../../runtime/recovery.ts";
 
 const uffdaDir = fromFileUrl(new URL(".", import.meta.url));
 
@@ -56,7 +57,7 @@ Deno.test({
       name: "UFFDA_LANG_01A rejects trailing tokens after declaration sequence",
       fn: async () => {
         const m = await uffdaGrammar('import "./a.ts" A; trailing');
-        assertEquals(m.kind, MatchKind.Fail);
+        assertEquals(isClean(m), false);
       },
     });
 
@@ -139,7 +140,7 @@ Deno.test({
         }
 
         const commaSeparated = await uffdaGrammar('import "./a.ts" A, B, C;');
-        assertEquals(commaSeparated.kind, MatchKind.Fail);
+        assertEquals(isClean(commaSeparated), false);
       },
     });
 
@@ -294,7 +295,7 @@ Deno.test({
         const invalid = await uffdaGrammar(
           'rule P = any; import "./a.ts" A;',
         );
-        assertEquals(invalid.kind, MatchKind.Fail);
+        assertEquals(isClean(invalid), false);
       },
     });
 
@@ -307,7 +308,7 @@ Deno.test({
         const missingSeparator = await uffdaGrammar(
           'import "./a.ts" A rule P = any;',
         );
-        assertEquals(missingSeparator.kind, MatchKind.Fail);
+        assertEquals(isClean(missingSeparator), false);
       },
     });
 
@@ -396,4 +397,89 @@ Deno.test({
       },
     });
   },
+});
+
+const skipped = (source: string, match: Match) =>
+  collectRecoveries(match).map(({ match: { originalSpan } }) =>
+    source.slice(originalSpan.start, originalSpan.end)
+  );
+
+const declarationNames = (match: Match<UffdaSyntaxModule>) => {
+  assert(isSuccess(match));
+  return valueOf(match).declarations.map((d) =>
+    d.kind === "import" ? `import ${d.moduleUrl}` : `${d.kind} ${d.name}`
+  );
+};
+
+Deno.test("lang.uffda.uffda-lang recovery points", async (t) => {
+  const cases: {
+    name: string;
+    source: string;
+    skipped: string[];
+    declarations: string[];
+  }[] = [
+    {
+      name: "a broken import between imports",
+      source: 'import "a" A;\nimport "b";\nimport "c" C;\nrule R = any;',
+      skipped: ['import "b";'],
+      declarations: ["import a", "import c", "rule R"],
+    },
+    {
+      name: "a broken export before exports",
+      source: "export ;\nexport B;\nrule B = any;",
+      skipped: ["export ;"],
+      declarations: ["export B", "rule B"],
+    },
+    {
+      name: "a missing `;` before the next declaration",
+      source: "rule A = a\nrule B = b;",
+      skipped: ["rule A = a"],
+      declarations: ["rule B"],
+    },
+    {
+      name: "a missing `;` after a projection",
+      source: "rule A = a -> 1\nfunc F = 2;",
+      skipped: ["rule A = a -> 1"],
+      declarations: ["func F"],
+    },
+    {
+      name: "a missing `;` after a func body",
+      source: "func F = 1\ndecorator D = 2;",
+      skipped: ["func F = 1"],
+      declarations: ["decorator D"],
+    },
+    {
+      name: "a stray `;`",
+      source: "rule A = a;;\nrule B = b;",
+      skipped: [";"],
+      declarations: ["rule A", "rule B"],
+    },
+    {
+      name: "a broken declaration quoting a keyword",
+      source: 'rule A = ) "rule";\nrule B = b;',
+      skipped: ['rule A = ) "rule";'],
+      declarations: ["rule B"],
+    },
+    {
+      name: "a stray token inside a rule body",
+      source: "rule A = a ! b;\nrule B = b;",
+      skipped: ["!"],
+      declarations: ["rule A", "rule B"],
+    },
+  ];
+  for (const c of cases) {
+    await t.step(c.name, async () => {
+      const match = await uffdaGrammar(c.source);
+      assertEquals(skipped(c.source, match), c.skipped);
+      assertEquals(declarationNames(match), c.declarations);
+    });
+  }
+
+  await t.step("clean modules parse without recovering", async () => {
+    const source = 'import "a" A;\nexport B;\nrule B = x:any -> { rule: x };';
+    const match = await uffdaGrammar(source);
+    assert(isSuccess(match));
+    assertEquals(match.recovered, undefined);
+    assertEquals(declarationNames(match), ["import a", "export B", "rule B"]);
+  });
 });

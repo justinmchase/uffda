@@ -8,12 +8,28 @@ Deno.test(
     await t.step(
       "mid-source pattern failures map through token layers to original offsets",
       async () => {
-        const source = "export Main; rule Main = !!!;";
+        const source = "\n  ) any";
+        const result = await compileStdinToArtifact(
+          source,
+          CliLanguage.Pattern,
+        );
+
+        assertEquals(result.ok, false);
+        if (result.ok) return;
+        assertEquals(result.error.location?.offset, source.indexOf(")"));
+      },
+    );
+
+    await t.step(
+      "recoveries in nested layers map to original offsets",
+      async () => {
+        const source = "export Main;\nrule Main = a -> (f x ? y);";
         const result = await compileStdinToArtifact(source);
 
         assertEquals(result.ok, false);
         if (result.ok) return;
-        assertEquals(result.error.location?.offset, source.indexOf("!"));
+        assertEquals(result.error.location?.offset, source.indexOf("?"));
+        assertEquals(result.error.location?.endOffset, source.indexOf("?") + 1);
       },
     );
 
@@ -41,8 +57,9 @@ Deno.test(
 
         assertEquals(result.ok, false);
         if (result.ok) return;
-        // Points at the unexpected `=` (pattern body still required after it).
-        assertEquals(result.error.location?.offset, source.lastIndexOf("="));
+        // Covers the skipped declaration through the original end offset.
+        assertEquals(result.error.location?.offset, source.indexOf("rule"));
+        assertEquals(result.error.location?.endOffset, source.length);
       },
     );
   },

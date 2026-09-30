@@ -5,6 +5,7 @@ import { patternGrammar } from "../../lang/pattern/pattern.lang.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ValueSourceKind } from "../../runtime/patterns/value_source.ts";
 import { moduleDeclarationTest } from "../../test.ts";
+import { isClean } from "../../match.ts";
 
 const moduleUrl =
   new URL("../../lang/pattern/pattern.lang.uff", import.meta.url).href;
@@ -132,13 +133,13 @@ Deno.test(
       "descending digit bounds are rejected at parse",
       async () => {
         const match = await patternGrammar("any*2..1");
-        assertEquals(match.kind, MatchKind.Fail);
+        assertEquals(isClean(match), false);
       },
     );
 
     await t.step("fractional bounds are rejected", async () => {
       const match = await patternGrammar("any*1.5");
-      assertEquals(match.kind, MatchKind.Fail);
+      assertEquals(isClean(match), false);
     });
 
     for (

@@ -52,6 +52,20 @@ semantics for higher language-definition layers.
   from expression projection syntax, with `match` serving as the bridge when a
   projection needs to call into pattern logic.
 
+## Recovery points
+
+The expression grammar declares these recovery points (see
+[runtime error recovery](../runtime/error-recovery.spec.md)). Each skips the
+erroneous tokens and contributes nothing to the expression AST. The delimiters a
+recovery never skips are `)`, `]`, `}`, and `,`.
+
+- In an invocation's arguments and an array's elements, a token that does not
+  start an argument or element MUST be skipped, unless it is a delimiter.
+- A comma-separated object entry that fails to parse MUST be skipped up to the
+  next delimiter.
+- Tokens left over after a complete expression MUST be skipped through the end
+  of the input.
+
 ## Syntax governance requirements
 
 - Every expression-language syntax subtopic MUST define valid, non-conflicting

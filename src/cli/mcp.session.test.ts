@@ -12,6 +12,7 @@ import {
 } from "./mcp.session.ts";
 import { compileSourcesToAstArtifacts } from "./compile.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
+import { isSuccess } from "../match.ts";
 
 Deno.test("cli.mcp.session RuntimeSession", async (t) => {
   await t.step("loads a module and reports its exports", async () => {
@@ -46,7 +47,7 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
     const result = await session.load("rule Main = ");
     assertEquals(result.ok, false);
     assert(!result.ok);
-    assertEquals(result.error.code, SessionLoadFailureCode.ParseFailure);
+    assertEquals(result.error.code, SessionLoadFailureCode.ParseRecovered);
     assertEquals(result.error.phase, "parse");
     assertEquals(result.partiallyLoadedModules, []);
   });
@@ -357,7 +358,7 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
   );
 
   await t.step(
-    "anchors a parse failure at the end of an unfinished line",
+    "ranges an unfinished import over the skipped declaration",
     async () => {
       const session = new RuntimeSession("s16");
       const line = 'import "./dep.uff"';
@@ -365,7 +366,8 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
       assert(!result.ok);
       assertEquals(result.error.phase, "parse");
       assertEquals(result.error.location?.line, 0);
-      assertEquals(result.error.location?.column, line.length);
+      assertEquals(result.error.location?.column, 0);
+      assertEquals(result.error.location?.endOffset, line.length);
     },
   );
 
@@ -626,7 +628,7 @@ Deno.test("cli.mcp.session RuntimeSession.patch", async (t) => {
       });
       assertEquals(result.ok, false);
       assert(!result.ok);
-      assertEquals(result.error.code, SessionLoadFailureCode.ParseFailure);
+      assertEquals(result.error.code, SessionLoadFailureCode.ParseRecovered);
       assertEquals(result.error.phase, "parse");
     },
   );
@@ -1474,4 +1476,84 @@ Deno.test("cli.mcp.session RuntimeSession.walk", async (t) => {
       );
     },
   );
+});
+
+Deno.test("cli.mcp.session reports recoveries", async (t) => {
+  await t.step(
+    "a recovered rule invocation fails with its value, diagnostics, and a walkable tree",
+    async () => {
+      const session = new RuntimeSession("r1");
+      const loaded = await session.load(
+        `export Main; rule Main = (ope "a" sneak by any)* end;`,
+      );
+      assert(loaded.ok);
+
+      const evaluated = await session.eval({ rule: "Main", input: "axa" });
+      assert(!evaluated.ok);
+      assertEquals(evaluated.value, [["a", "x", "a"], undefined]);
+      assertEquals(evaluated.error.code, SessionEvalFailureCode.Recovered);
+      assertEquals(evaluated.error.inputSpan, { start: 1, end: 2 });
+      assertEquals(evaluated.diagnostics?.length, 1);
+      const matchResultId = evaluated.error.matchResultId;
+      assert(typeof matchResultId === "string");
+
+      const walked = session.walk({ matchResultId, maxNodes: 1000 });
+      assert(walked.ok);
+      assertEquals(walked.nodes[0].recovered, true);
+      assert(
+        walked.nodes.some((node) =>
+          node.recovered && node.pattern.kind === PatternKind.Recover
+        ),
+      );
+    },
+  );
+
+  await t.step("a clean rule invocation is unchanged", async () => {
+    const session = new RuntimeSession("r2");
+    await session.load(`export Main; rule Main = (ope "a" sneak by any)* end;`);
+    const evaluated = await session.eval({ rule: "Main", input: "aa" });
+    assert(evaluated.ok);
+    const walked = session.walk({ matchResultId: evaluated.matchResultId! });
+    assert(walked.ok);
+    assertEquals(walked.nodes[0].recovered, undefined);
+  });
+
+  await t.step("a recovered load lists each skipped declaration", async () => {
+    const session = new RuntimeSession("r3");
+    const loaded = await session.load("rule A = ;\nrule B = any;\nrule C = ;");
+    assert(!loaded.ok);
+    assertEquals(loaded.error.code, SessionLoadFailureCode.ParseRecovered);
+    assertEquals(loaded.diagnostics?.map((d) => d.location?.line), [0, 2]);
+    assertEquals(loaded.diagnostics?.[0], loaded.error);
+    assertEquals(loaded.partiallyLoadedModules, []);
+  });
+
+  await t.step(
+    "a patch that only recovers retains its recovered parse",
+    async () => {
+      const session = new RuntimeSession("r5");
+      const source = "export Main; rule Main = any;";
+      assert((await session.load(source)).ok);
+      const patched = await session.patch({
+        start: source.length,
+        end: source.length,
+        replacement: " rule B = ;",
+      });
+      assert(!patched.ok);
+      assertEquals(patched.error.code, SessionLoadFailureCode.ParseRecovered);
+      assertEquals(patched.diagnostics, [patched.error]);
+      const latest = session.getLatestParseState()?.match;
+      assert(latest && isSuccess(latest));
+      assertEquals(latest.recovered, true);
+    },
+  );
+
+  await t.step("a predicate parse failure lists its diagnostics", async () => {
+    const session = new RuntimeSession("r4");
+    await session.load("export Main; rule Main = any;");
+    const queried = await session.queryByMetadata("D", "(");
+    assert(!queried.ok);
+    assertEquals(queried.error.code, SessionQueryFailureCode.ParseFailure);
+    assertEquals(queried.diagnostics, [queried.error]);
+  });
 });

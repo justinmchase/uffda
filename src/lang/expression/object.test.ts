@@ -1,3 +1,7 @@
+import { assert, assertEquals } from "@std/assert";
+import { isSuccess, type Match, valueOf } from "../../match.ts";
+import { collectRecoveries } from "../../runtime/recovery.ts";
+import { expressionGrammar } from "./expression.lang.ts";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
@@ -128,3 +132,34 @@ Deno.test(
     });
   },
 );
+
+const skipped = (source: string, match: Match) =>
+  collectRecoveries(match).map(({ match: { originalSpan } }) =>
+    source.slice(originalSpan.start, originalSpan.end)
+  );
+
+Deno.test("lang.expression.object recovers a broken entry", async () => {
+  const source = "{ a: 1, b: ?, c: 2 }";
+
+  const match = await expressionGrammar(source);
+  assert(isSuccess(match));
+  assertEquals(valueOf(match), {
+    kind: ExpressionKind.Object,
+    keys: [
+      {
+        kind: ExpressionKind.ObjectKey,
+        name: "a",
+        expression: { kind: ExpressionKind.Number, value: 1 },
+      },
+      {
+        kind: ExpressionKind.ObjectKey,
+        name: "c",
+        expression: { kind: ExpressionKind.Number, value: 2 },
+      },
+    ],
+  });
+  assertEquals(skipped(source, match), ["b: ?"]);
+
+  const first = await expressionGrammar("{ ?, c: 2 }");
+  assertEquals(skipped("{ ?, c: 2 }", first), ["?"]);
+});

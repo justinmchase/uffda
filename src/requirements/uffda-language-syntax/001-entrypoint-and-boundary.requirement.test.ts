@@ -2,6 +2,7 @@ import { assertEquals } from "@std/assert";
 import { MatchKind } from "../../mod.ts";
 import { uffdaGrammar } from "../../lang/uffda/uffda.lang.ts";
 import { fromFileUrl, join } from "@std/path";
+import { isClean } from "../../match.ts";
 
 Deno.test("req:uffda-language-syntax-001 - Uffda language entrypoint is declared and enforces full-input consumption", async () => {
   const uffdaLang = await Deno.readTextFile(
@@ -27,5 +28,5 @@ Deno.test("req:uffda-language-syntax-001 - Uffda language entrypoint is declared
   assertEquals(importDeclaration.kind, MatchKind.Ok);
 
   const trailing = await uffdaGrammar('import "./a.ts" A; trailing');
-  assertEquals(trailing.kind, MatchKind.Fail);
+  assertEquals(isClean(trailing), false);
 });

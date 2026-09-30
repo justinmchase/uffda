@@ -177,9 +177,13 @@ Deno.test("runtime.incremental", async (t) => {
       // itself is never captured (it is skip-memo, see the grammar
       // comment above), only its memoized `group` wrapper.
       assertEquals(rehydrated.size, 3);
-      // Reused entries are not re-evaluated, so whether a recovery point
-      // failed inside them is unknown.
-      assertEquals(rehydrated.recoverable, true);
+      // Reused entries are not re-evaluated: they may contain a failed
+      // recovery point only if the prior parse reached one.
+      assertEquals(rehydrated.recoverable, false);
+      priorMatch.scope.memos.recoverable = true;
+      const assumed = await rehydrateMemos(priorMatch, edit, freshInput);
+      assertEquals(assumed.recoverable, true);
+      priorMatch.scope.memos.recoverable = false;
 
       const priorQuantifierMatch = priorMatch.matches[0];
       assertEquals(priorQuantifierMatch.kind, MatchKind.Ok);

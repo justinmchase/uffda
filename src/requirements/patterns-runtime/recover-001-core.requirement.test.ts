@@ -4,11 +4,10 @@ import { MatchKind } from "../../match.ts";
 import { executeUffdaSource } from "../../lang/uffda/execute.ts";
 import { unwrap } from "../../wrapped.ts";
 
-async function run(source: string, input: string, recovery = true) {
+async function run(source: string, input: string) {
   return await executeUffdaSource(`export Main; rule Main = ${source};`, {
     entryRuleName: "Main",
     input: Input.Iterable(input),
-    recovery,
   });
 }
 
@@ -21,10 +20,13 @@ Deno.test("req:recover-001 - recover core semantics", async (t) => {
     assertEquals(m.recovered, undefined);
   });
 
-  await t.step("a failing child fails with recovery disabled", async () => {
-    const m = await run(`ope "a" sneak by any`, "x", false);
-    assertEquals(m.kind, MatchKind.Fail);
-  });
+  await t.step(
+    "a failing child fails when its skip pattern fails",
+    async () => {
+      const m = await run(`ope "a" sneak by "y"`, "x");
+      assertEquals(m.kind, MatchKind.Fail);
+    },
+  );
 
   await t.step(
     "a recovery yields the skip pattern's value and span",

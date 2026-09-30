@@ -105,3 +105,47 @@ Deno.test("cli.lsp.diagnostics diagnosticsForSessionResult", async (t) => {
     },
   );
 });
+
+Deno.test("cli.lsp.diagnostics publishes every parse diagnostic", () => {
+  const recovery = {
+    code: SessionLoadFailureCode.ParseRecovered,
+    phase: "parse" as const,
+    message: 'Expected "a"\nUnexpected "x"',
+    location: { offset: 2, line: 0, column: 2, endOffset: 4 },
+  };
+  const failure = {
+    code: SessionLoadFailureCode.ParseFailure,
+    phase: "parse" as const,
+    message: 'Expected ";"',
+    location: { offset: 7, line: 1, column: 0 },
+  };
+  const result: SessionLoadResult = {
+    ok: false,
+    error: failure,
+    diagnostics: [recovery, failure],
+    partiallyLoadedModules: [],
+    resolvedDuringLoad: [],
+  };
+  const diagnostics = diagnosticsForSessionResult(result, "a xx b\nc");
+  assertEquals(
+    diagnostics.map(({ range, code, message }) => ({ range, code, message })),
+    [
+      {
+        range: {
+          start: { line: 0, character: 2 },
+          end: { line: 0, character: 4 },
+        },
+        code: SessionLoadFailureCode.ParseRecovered,
+        message: recovery.message,
+      },
+      {
+        range: {
+          start: { line: 1, character: 0 },
+          end: { line: 1, character: 0 },
+        },
+        code: SessionLoadFailureCode.ParseFailure,
+        message: failure.message,
+      },
+    ],
+  );
+});

@@ -1,11 +1,14 @@
 import { assertEquals } from "@std/assert";
-import { MatchKind, valueOf } from "../match.ts";
+import { isClean, MatchKind, valueOf } from "../match.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 import type { Pattern } from "../runtime/patterns/pattern.ts";
 import { expressionGrammar } from "./expression/expression.lang.ts";
 import { parseGrammar } from "./grammar.ts";
 import { exec } from "../runtime/exec.ts";
 import { unwrap } from "../wrapped.ts";
+import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
+import { ExportDeclarationKind } from "../runtime/declarations/export.ts";
+import { lit } from "../runtime/patterns/value_source.ts";
 
 Deno.test({
   name: "lang.grammar.parseGrammar",
@@ -35,7 +38,7 @@ Deno.test({
           entryRuleName: "PatternLang",
         });
 
-        assertEquals(m.kind, MatchKind.Fail);
+        assertEquals(isClean(m), false);
       },
     });
 
@@ -51,6 +54,62 @@ Deno.test({
         if (m.kind === MatchKind.Ok) {
           assertEquals(unwrap(await exec(valueOf(m), m)), "ok");
         }
+      },
+    });
+
+    await t.step({
+      name: "GRAMMAR_03 parses with two-phase recovery",
+      fn: async () => {
+        const moduleUrl = new URL("file:///grammar.recovery.uff");
+        const declarations: Record<string, ModuleDeclaration> = {
+          [moduleUrl.href]: {
+            imports: [],
+            exports: [{
+              kind: ExportDeclarationKind.Rule,
+              name: "Main",
+              default: true,
+            }],
+            rules: [{
+              name: "Main",
+              parameters: [],
+              pattern: {
+                kind: PatternKind.Into,
+                pattern: {
+                  kind: PatternKind.Then,
+                  patterns: [
+                    {
+                      kind: PatternKind.Quantifier,
+                      pattern: {
+                        kind: PatternKind.Recover,
+                        pattern: { kind: PatternKind.Equal, value: lit("a") },
+                        skip: { kind: PatternKind.Any },
+                      },
+                    },
+                    { kind: PatternKind.End },
+                  ],
+                },
+              },
+            }],
+          },
+        };
+        const parse = (source: string) =>
+          parseGrammar({
+            source,
+            moduleUrl,
+            entryRuleName: "Main",
+            grammarOptions: { declarations },
+          });
+
+        const clean = await parse("aa");
+        assertEquals(clean.kind, MatchKind.Ok);
+        if (clean.kind !== MatchKind.Ok) return;
+        assertEquals(clean.recovered, undefined);
+
+        const recovered = await parse("axa");
+        assertEquals(recovered.kind, MatchKind.Ok);
+        if (recovered.kind !== MatchKind.Ok) return;
+        assertEquals(recovered.recovered, true);
+        assertEquals(unwrap(recovered.value), [["a", "x", "a"], undefined]);
       },
     });
   },

@@ -1,3 +1,5 @@
+import { isSuccess, type Match, valueOf } from "../../match.ts";
+import { collectRecoveries } from "../../runtime/recovery.ts";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../mod.ts";
 import {
@@ -7,7 +9,7 @@ import {
 } from "../../runtime/patterns/pattern.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { Type } from "@justinmchase/type";
-import { assertEquals } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import { patternGrammar } from "./pattern.lang.ts";
 import { moduleDeclarationTest } from "../../test.ts";
 import { unwrap } from "../../wrapped.ts";
@@ -680,4 +682,22 @@ Deno.test("lang.pattern string literals keep whitespace", async () => {
     kind: PatternKind.Equal,
     value: { kind: ValueSourceKind.Literal, value: " a b " },
   });
+});
+
+const skipped = (source: string, match: Match) =>
+  collectRecoveries(match).map(({ match: { originalSpan } }) =>
+    source.slice(originalSpan.start, originalSpan.end)
+  );
+
+Deno.test("lang.pattern.lang recovers trailing input", async () => {
+  const source = "a ) b";
+
+  const match = await patternGrammar(source);
+  assert(isSuccess(match));
+  assertEquals(valueOf(match).kind, PatternKind.Resolve);
+  assertEquals(skipped(source, match), [") b"]);
+
+  const clean = await patternGrammar("a b");
+  assert(isSuccess(clean));
+  assertEquals(clean.recovered, undefined);
 });

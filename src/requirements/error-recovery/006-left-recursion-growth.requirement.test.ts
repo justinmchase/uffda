@@ -15,7 +15,6 @@ async function run(input: string) {
   return await executeUffdaSource(members, {
     entryRuleName: "Main",
     input: Input.Iterable(input),
-    recovery: true,
   });
 }
 

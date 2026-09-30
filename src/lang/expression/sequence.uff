@@ -10,9 +10,19 @@ import "../common/spread.uff" SpreadMarker;
 import "../editor/editor.uff" Highlight;
 
 export Sequence;
+export ExpressionDelimiter;
 
 rule OpenParen = "(";
 rule CloseParen = ")";
+
+# Tokens that close or separate an enclosing construct; a recovery never
+# skips one.
+rule ExpressionDelimiter =
+  | Token<")">
+  | Token<"]">
+  | Token<"}">
+  | Token<",">
+  ;
 
 [Highlight { role: "function" }]
 rule InvokedName = Reference;
@@ -35,9 +45,10 @@ rule InvocationArgument =
   | Token<Primary>
   ;
 
+# A stray argument token is a recovery point.
 rule Sequence =
   Token<OpenParen>
   e:Callee
-  a:InvocationArgument*
+  a:(ope InvocationArgument sneak by skip ((not ExpressionDelimiter) any))*
   Token<CloseParen>
   -> { kind: "invocation", expression: e, args: a };
