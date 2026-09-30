@@ -407,7 +407,11 @@ const skipped = (source: string, match: Match) =>
 const declarationNames = (match: Match<UffdaSyntaxModule>) => {
   assert(isSuccess(match));
   return valueOf(match).declarations.map((d) =>
-    d.kind === "import" ? `import ${d.moduleUrl}` : `${d.kind} ${d.name}`
+    d.kind === "import"
+      ? `import ${d.moduleUrl}`
+      : d.kind === "comment"
+      ? `comment ${d.text}`
+      : `${d.kind} ${d.name}`
   );
 };
 
@@ -466,6 +470,23 @@ Deno.test("lang.uffda.uffda-lang recovery points", async (t) => {
       skipped: ["!"],
       declarations: ["rule A", "rule B"],
     },
+    {
+      name: "a comment inside a rule body",
+      source: "# head\nrule A = a # c\n b;\nrule B = b;",
+      skipped: ["rule A = a # c\n b;"],
+      declarations: ["comment # head", "rule B"],
+    },
+    {
+      name: "comments around a broken declaration",
+      source: "rule A = a;\n# between\nrule B = ) ;\n# after\nrule C = c;",
+      skipped: ["rule B = ) ;"],
+      declarations: [
+        "rule A",
+        "comment # between",
+        "comment # after",
+        "rule C",
+      ],
+    },
   ];
   for (const c of cases) {
     await t.step(c.name, async () => {
@@ -481,5 +502,34 @@ Deno.test("lang.uffda.uffda-lang recovery points", async (t) => {
     assert(isSuccess(match));
     assertEquals(match.recovered, undefined);
     assertEquals(declarationNames(match), ["import a", "export B", "rule B"]);
+  });
+
+  await t.step("comments between declarations parse cleanly", async () => {
+    const source = [
+      "# head",
+      'import "a" A;',
+      "# among imports",
+      'import "b" B;',
+      "# between groups",
+      "export C; # after a declaration",
+      "# before rule",
+      'rule C = "#";',
+      "# tail",
+    ].join("\n");
+    const match = await uffdaGrammar(source);
+    assert(isSuccess(match));
+    assertEquals(match.recovered, undefined);
+    assertEquals(declarationNames(match), [
+      "comment # head",
+      "import a",
+      "comment # among imports",
+      "import b",
+      "comment # between groups",
+      "export C",
+      "comment # after a declaration",
+      "comment # before rule",
+      "rule C",
+      "comment # tail",
+    ]);
   });
 });

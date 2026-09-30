@@ -327,5 +327,28 @@ Deno.test({
         kind: MatchKind.Ok,
       }),
     });
+
+    await t.step({
+      name: "TOKENIZER13",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "TokenizerNoWhitespaceWithComments",
+        input: Input.Iterable(
+          '#123 punctuation !@*\nany # trailing\n"# quoted"\nend',
+        ),
+        value: [
+          tok(StructuredTokenKind.Comment, "#123 punctuation !@*"),
+          "any",
+          tok(StructuredTokenKind.Comment, "# trailing"),
+          '"',
+          "#",
+          " ",
+          "quoted",
+          '"',
+          "end",
+        ],
+        kind: MatchKind.Ok,
+      }),
+    });
   },
 });

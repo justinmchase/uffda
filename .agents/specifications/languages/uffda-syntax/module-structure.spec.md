@@ -16,8 +16,9 @@ form one Uffda module.
 
 ## Declaration envelope
 
-- Top-level declarations MUST be classified as import, export, rule, or func
-  declarations.
+- Top-level declarations MUST be classified as import, export, rule, func, or
+  decorator declarations. Comment nodes may appear between them (see
+  [Comments](#comments)).
 - Every top-level declaration MUST begin with a distinct declaration keyword
   token that identifies its declaration family.
 - Declaration order MUST be preserved in the canonical syntax tree.
@@ -28,6 +29,31 @@ form one Uffda module.
   [decorator declaration syntax](./decorator-declarations.spec.md). A decorator
   list is a prefix on the declaration it decorates, not a distinct top-level
   declaration family.
+
+## Comments
+
+A Uffda module keeps its comments in the syntax tree. The module grammar reads
+the comment-preserving token view (see
+[tokenization](../tokenization.spec.md#semantic-token-text-helpers)), and this
+section is its attachment policy.
+
+- A `#` line comment MUST appear only between top-level declarations: before the
+  first declaration, between two declarations, or after the last one. This
+  includes comments among imports, among exports, and between those groups.
+- A comment anywhere else MUST be a syntax error. That includes any comment
+  inside a declaration, for example inside a rule body or a decorator list.
+- Line breaks carry no meaning here: a comment after a declaration's closing `;`
+  is between declarations even when it is on the same line.
+- Each comment MUST appear in the canonical syntax tree's declaration sequence
+  as a `{ kind: "comment", text }` node, where `text` is the comment token's
+  text (starting with `#`), in source order relative to the declarations around
+  it.
+- Comment nodes MUST NOT affect compilation: lowering to a ModuleDeclaration
+  (see [runtime compilation](../uffda-runtime-compilation.spec.md)) drops them,
+  so a module compiles to the same ModuleDeclaration with or without its
+  comments.
+- A comment node is not a declaration family: it has no keyword and is never
+  imported, exported, or referenced.
 
 ## Declaration keyword model
 

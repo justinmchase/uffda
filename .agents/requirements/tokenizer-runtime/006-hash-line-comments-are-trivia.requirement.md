@@ -26,5 +26,7 @@ Expected behavior:
 
 Postconditions:
 
-- Downstream language parsers observe the same semantic token sequence as if
-  each comment were absent.
+- Downstream language parsers that use the comment-free view
+  (`TokenizerNoWhitespace`) observe the same semantic token sequence as if each
+  comment were absent. Parsers that use the comment-preserving view receive
+  comments only as comment token values (see tokenizer-runtime-010).

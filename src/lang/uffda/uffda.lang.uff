@@ -1,10 +1,11 @@
-# UffdaLang pipelines Source → tokens → ModuleBody.
+# UffdaLang pipelines Source → tokens (comments kept) → ModuleBody.
 # ModuleBody merges import / export / rule / func lists. Std flat is depth-1, and
 # each ExportDeclarationSyntax value may already be a list (name list or inline
 # export+rule/func pack), so flatten e before concatenating with i and d.
 # `(flat [i e d])` alone would leave those export sublists nested.
 import "../source/mod.uff" Source;
-import "../tokenizer/mod.uff" TokenizerNoWhitespace;
+import "../tokenizer/mod.uff" TokenizerNoWhitespaceWithComments;
+import "./comment.rules.uff" CommentSyntax;
 import "./import.rules.uff" ImportDeclarationSyntax;
 import "./export.rules.uff" ExportDeclarationSyntax;
 import "./rule.rules.uff" RuleDeclarationSyntax RuleQuotedTokenSequence;
@@ -56,10 +57,23 @@ rule DeclarationRecovery =
   | ((RuleQuotedTokenSequence | any) DeclarationRest)
   ;
 
+# Comments are accepted only between top-level declarations, so each list
+# admits `CommentSyntax` ahead of its declarations; a comment anywhere else is
+# a syntax error (a declaration's own grammar never accepts one). Comment
+# nodes keep their source order in `declarations`.
 rule ModuleBody =
-  i:(ope ImportDeclarationSyntax sneak by skip ImportRecovery)*
-  e:(ope ExportDeclarationSyntax sneak by skip ExportRecovery)*
-  d:(ope ModuleDeclarationSyntax sneak by skip DeclarationRecovery)*
+  i:(
+    | CommentSyntax
+    | (ope ImportDeclarationSyntax sneak by skip ImportRecovery)
+  )*
+  e:(
+    | CommentSyntax
+    | (ope ExportDeclarationSyntax sneak by skip ExportRecovery)
+  )*
+  d:(
+    | CommentSyntax
+    | (ope ModuleDeclarationSyntax sneak by skip DeclarationRecovery)
+  )*
   -> { kind: "module", declarations: (flat [i (flat e) d]) };
 
 [Language {
@@ -73,7 +87,7 @@ rule ModuleBody =
 rule UffdaLang =
   m:(
     Source
-    |> [TokenizerNoWhitespace]
+    |> [TokenizerNoWhitespaceWithComments]
     |> [ModuleBody]
   )
   end

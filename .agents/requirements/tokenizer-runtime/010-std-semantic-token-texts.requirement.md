@@ -11,8 +11,9 @@ spec_ref: ".agents/specifications/languages/tokenization.spec.md#semantic-token-
 Preconditions:
 
 - `tokenizer.lang.uff` declares a module-local `semantic_texts` func.
-- `tokenizer/mod.uff` declares a module-local `semantic_no_whitespace_texts`
-  func.
+- `tokenizer/mod.uff` declares module-local `semantic_no_whitespace_texts` and
+  `semantic_no_whitespace_items` funcs, and exports the `TokenizerNoWhitespace`
+  and `TokenizerNoWhitespaceWithComments` views that project them.
 - Structured token values expose `kind` and `text` only.
 
 Expected behavior:
@@ -22,6 +23,10 @@ Expected behavior:
 - `semantic_no_whitespace_texts` MUST retain only `"word"` and `"punctuation"`
   texts. Whitespace and newlines inside a quoted string are string content
   (`"punctuation"` tokens), so they MUST be retained.
+- `semantic_no_whitespace_items` MUST produce the same texts as
+  `semantic_no_whitespace_texts`, in the same order, except that each
+  `"comment"` token MUST also be retained, at its source position, as the
+  tokenizer's own `{ kind: "comment", text }` value rather than as its text.
 - Funcs MUST NOT read Match spans.
 
 Error behavior:

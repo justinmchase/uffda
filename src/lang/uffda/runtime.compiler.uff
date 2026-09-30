@@ -123,7 +123,16 @@ rule CompileDecoratorDeclaration =
     }]
   };
 
+# Comment nodes are syntax only: they contribute nothing to the module.
+rule CompileCommentDeclaration =
+  {
+    kind: "comment",
+    text: string
+  }
+  -> { imports: [], exports: [], rules: [], funcs: [], decorators: [] };
+
 rule CompileDeclaration =
+  | CompileCommentDeclaration
   | CompileImportDeclaration
   | CompileExportDeclaration
   | CompileRuleDeclaration
