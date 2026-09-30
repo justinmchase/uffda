@@ -52,16 +52,22 @@
     ]
   },
   "publish": {
-    // Agent docs, CI metadata, and requirement tests are not part of the library
+    // Agent docs, CI metadata, tests, and tooling are not part of the library
     // export graph. Long paths under those trees also break JSR's ustar tarball
     // verify step (paths truncated near 100 chars → "not found in the tarball").
     "exclude": [
       ".agents/",
       ".cursor/",
       ".github/",
+      ".vscode/",
       "test/",
+      "scripts/",
       "src/requirements/",
-      "editors/"
+      "editors/",
+      "**/*.test.ts",
+      "src/test.ts",
+      "src/testing.ts",
+      "src/runtime/resolvers/test*.module.*"
     ]
   }
 }
