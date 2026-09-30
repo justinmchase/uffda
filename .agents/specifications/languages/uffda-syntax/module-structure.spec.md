@@ -44,10 +44,15 @@ section is its attachment policy.
   inside a declaration, for example inside a rule body or a decorator list.
 - Line breaks carry no meaning here: a comment after a declaration's closing `;`
   is between declarations even when it is on the same line.
-- Each comment MUST appear in the canonical syntax tree's declaration sequence
-  as a `{ kind: "comment", text }` node, where `text` is the comment token's
-  text (starting with `#`), in source order relative to the declarations around
-  it.
+- Each comment block (consecutive comments with no declaration between them)
+  MUST appear in the canonical syntax tree's declaration sequence as one comment
+  node, parsed by the [comment syntax](../comment-syntax.spec.md), in source
+  order relative to the declarations around it.
+- The module grammar MUST supply the comment grammar's fence parser. It MUST
+  accept the tag `uffda` and parse that fence's code as a Uffda module with this
+  grammar. Every other tag, apart from the untagged and `text` fences the
+  comment grammar keeps as written, is a syntax error until languages can be
+  declared per project.
 - Comment nodes MUST NOT affect compilation: lowering to a ModuleDeclaration
   (see [runtime compilation](../uffda-runtime-compilation.spec.md)) drops them,
   so a module compiles to the same ModuleDeclaration with or without its

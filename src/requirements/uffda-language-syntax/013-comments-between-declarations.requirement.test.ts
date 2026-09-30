@@ -4,6 +4,11 @@ import { uffdaGrammar } from "../../lang/uffda/uffda.lang.ts";
 import { isClean, isSuccess, valueOf } from "../../match.ts";
 import { unwrap } from "../../wrapped.ts";
 
+const paragraph = (text: string) => ({
+  kind: "paragraph" as const,
+  inlines: [{ kind: "text" as const, text }],
+});
+
 const commented = [
   "# head",
   'import "./a.uff" A;',
@@ -30,33 +35,82 @@ Deno.test(
     assert(isClean(match));
     assert(isSuccess(match));
     const kinds = valueOf(match).declarations.map((d) =>
-      d.kind === "comment" ? d.text : d.kind
+      d.kind === "comment" ? d.blocks : d.kind
     );
     assertEquals(kinds, [
-      "# head",
+      [paragraph("head")],
       "import",
-      "# among imports",
+      [paragraph("among imports")],
       "import",
-      "# between groups",
+      [paragraph("between groups")],
       "export",
-      "# after a declaration",
-      "# before rule",
+      [paragraph("after a declaration before rule")],
       "rule",
-      "# tail",
+      [paragraph("tail")],
     ]);
   },
 );
 
 Deno.test(
-  "req:uffda-language-syntax-013 - a comment-only module parses to its comments",
+  "req:uffda-language-syntax-013 - a comment-only module parses to one comment block",
   async () => {
     const match = await uffdaGrammar("# one\n# two");
     assert(isClean(match));
     assert(isSuccess(match));
-    assertEquals(valueOf(match).declarations, [
-      { kind: "comment", text: "# one" },
-      { kind: "comment", text: "# two" },
+    assertEquals(unwrap(valueOf(match).declarations), [
+      { kind: "comment", blocks: [paragraph("one two")] },
     ]);
+  },
+);
+
+Deno.test(
+  "req:uffda-language-syntax-013 - a uffda fence is parsed as a Uffda module",
+  async () => {
+    const match = await uffdaGrammar("# ```uffda\n# rule B = b;\n# ```");
+    assert(isClean(match));
+    assert(isSuccess(match));
+    const [comment] = valueOf(match).declarations;
+    assert(comment.kind === "comment");
+    const [fence] = comment.blocks;
+    assert(fence.kind === "fence");
+    assertEquals(fence.language, "uffda");
+    assertEquals(fence.code, "rule B = b;");
+    assertEquals(
+      (unwrap(fence.tree) as { declarations: { name: string }[] })
+        .declarations.map((d) => d.name),
+      ["B"],
+    );
+  },
+);
+
+Deno.test(
+  "req:uffda-language-syntax-013 - a text fence stays raw",
+  async () => {
+    const match = await uffdaGrammar("# ```text\n#   raw\n# ```");
+    assert(isClean(match));
+    assert(isSuccess(match));
+    assertEquals(unwrap(valueOf(match).declarations), [
+      {
+        kind: "comment",
+        blocks: [{ kind: "fence", language: "text", code: "  raw" }],
+      },
+    ]);
+  },
+);
+
+Deno.test(
+  "req:uffda-language-syntax-013 - a broken uffda fence is a syntax error",
+  async () => {
+    const match = await uffdaGrammar("# ```uffda\n# rule B = ;\n# ```");
+    assertEquals(isClean(match), false);
+  },
+);
+
+Deno.test(
+  "req:uffda-language-syntax-013 - other fence tags are syntax errors",
+  async () => {
+    const match = await uffdaGrammar("# ```foo\n# x\n# ```");
+    assertEquals(isClean(match), false);
   },
 );
 

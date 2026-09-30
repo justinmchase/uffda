@@ -127,7 +127,7 @@ rule CompileDecoratorDeclaration =
 rule CompileCommentDeclaration =
   {
     kind: "comment",
-    text: string
+    blocks: array
   }
   -> { imports: [], exports: [], rules: [], funcs: [], decorators: [] };
 

@@ -105,11 +105,29 @@ Deno.test("lang.uffda.runtime-compiler drops comment nodes", async () => {
   const withComments = await runUffdaRuntimeCompiler({
     kind: "module",
     declarations: [
-      { kind: "comment", text: "# head" },
+      {
+        kind: "comment",
+        blocks: [{
+          kind: "paragraph",
+          inlines: [{ kind: "text", text: "head" }],
+        }],
+      },
       { kind: "export", name: "Main" },
-      { kind: "comment", text: "# between" },
+      {
+        kind: "comment",
+        blocks: [{
+          kind: "paragraph",
+          inlines: [{ kind: "text", text: "between" }],
+        }],
+      },
       rule,
-      { kind: "comment", text: "# tail" },
+      {
+        kind: "comment",
+        blocks: [{
+          kind: "paragraph",
+          inlines: [{ kind: "text", text: "tail" }],
+        }],
+      },
     ],
   });
   const withoutComments = await runUffdaRuntimeCompiler({

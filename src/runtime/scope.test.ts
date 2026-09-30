@@ -16,6 +16,7 @@ import { ExpressionKind } from "./expressions/mod.ts";
 import type { Pattern } from "./patterns/mod.ts";
 import type { Expression } from "./expressions/mod.ts";
 import { StackFrameKind } from "./stack/stackFrameKind.ts";
+import type { Rule } from "./modules/rule.ts";
 import { unwrap } from "../wrapped.ts";
 
 Deno.test("runtime.scope", async (t) => {
@@ -180,6 +181,24 @@ Deno.test("runtime.scope", async (t) => {
       assertStrictEquals(inner.stack.parent, outer.stack);
       assertStrictEquals(inner.stack.top?.kind, StackFrameKind.Pipeline);
       assertStrictEquals(inner.withInput(Input.Default()).stack, inner.stack);
+    },
+  });
+
+  await t.step({
+    name: "SCOPE_PIPELINE_KEEPS_ARGS",
+    fn: () => {
+      const argument: Rule = {
+        name: "$arg0",
+        module: Scope.Default().module,
+        parameters: [],
+        pattern: { kind: PatternKind.Ok },
+      };
+      const scope = Scope.Default().pushRule(
+        argument,
+        new Map([["P", argument]]),
+      );
+      const piped = scope.pushPipeline({ kind: PatternKind.Ok });
+      assertStrictEquals(piped.getRule("P"), argument);
     },
   });
 
