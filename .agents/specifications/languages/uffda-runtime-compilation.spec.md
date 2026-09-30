@@ -38,6 +38,9 @@ runtime as a reusable compilation target for Uffda-based language layers.
 - Compilation MUST preserve stable module, rule, import, and export identities.
 - Compilation MUST preserve declaration ordering where ordering is observable by
   module resolution or runtime execution.
+- Compilation MUST drop the syntax tree's comment nodes (see
+  [module structure](./uffda-syntax/module-structure.spec.md#comments)). They
+  contribute nothing to the ModuleDeclaration.
 - A successful compilation MUST produce a runtime `ModuleDeclaration` that can
   be consumed by the standard module resolver and execution path without
   bootstrap-only exceptions.

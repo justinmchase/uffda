@@ -51,7 +51,11 @@ Deno.test("req:error-recovery-009 - built-in grammar recovery points", async (t)
     ]);
     assertEquals(
       valueOf(match).declarations.map((d) =>
-        d.kind === "import" ? d.moduleUrl : d.name
+        d.kind === "import"
+          ? d.moduleUrl
+          : d.kind === "comment"
+          ? d.text
+          : d.name
       ),
       ["a", "c", "F", "G"],
     );

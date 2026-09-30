@@ -53,7 +53,14 @@ export type UffdaDecoratorSyntaxDeclaration = {
   attributes: UffdaAttributeSyntax[];
 };
 
+/** A `#` line comment between top-level declarations; `text` starts with `#`. */
+export type UffdaCommentSyntaxDeclaration = {
+  kind: "comment";
+  text: string;
+};
+
 export type UffdaSyntaxDeclaration =
+  | UffdaCommentSyntaxDeclaration
   | UffdaImportSyntaxDeclaration
   | UffdaExportSyntaxDeclaration
   | UffdaRuleSyntaxDeclaration

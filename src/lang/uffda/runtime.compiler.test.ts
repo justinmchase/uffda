@@ -94,6 +94,38 @@ Deno.test("lang.uffda.runtime-compiler compiles declaration families", async () 
   }
 });
 
+Deno.test("lang.uffda.runtime-compiler drops comment nodes", async () => {
+  const rule: UffdaSyntaxModule["declarations"][number] = {
+    kind: "rule",
+    name: "Main",
+    parameters: [],
+    pattern: { kind: PatternKind.Any },
+    attributes: [],
+  };
+  const withComments = await runUffdaRuntimeCompiler({
+    kind: "module",
+    declarations: [
+      { kind: "comment", text: "# head" },
+      { kind: "export", name: "Main" },
+      { kind: "comment", text: "# between" },
+      rule,
+      { kind: "comment", text: "# tail" },
+    ],
+  });
+  const withoutComments = await runUffdaRuntimeCompiler({
+    kind: "module",
+    declarations: [{ kind: "export", name: "Main" }, rule],
+  });
+
+  assertEquals(withComments.kind, MatchKind.Ok);
+  assertEquals(withoutComments.kind, MatchKind.Ok);
+  if (
+    withComments.kind === MatchKind.Ok && withoutComments.kind === MatchKind.Ok
+  ) {
+    assertEquals(unwrap(withComments.value), unwrap(withoutComments.value));
+  }
+});
+
 Deno.test(
   "lang.uffda.runtime-compiler re-exports imports as ExportDeclarationKind.Import",
   async () => {

@@ -55,8 +55,11 @@ that can be consumed by expression, pattern, and language-definition layers.
 - Outside quoted strings, `#` MUST begin a line comment that extends to the next
   canonical newline or end of input.
 - A `#` inside a quoted string MUST remain ordinary string content.
-- Comment text MUST NOT be emitted as semantic tokens to downstream expression,
-  pattern, or declaration parsers.
+- Comment text MUST NOT be emitted as semantic token texts. A parser receives
+  comments only through the comment-preserving semantic view (see
+  [semantic token text helpers](#semantic-token-text-helpers)), and only when
+  its language's grammar declares where comments may appear. A comment the
+  grammar does not accept at its position is then a syntax error.
 - Removing a line comment MUST preserve the canonical newline boundary and its
   source provenance for diagnostics and optional trivia consumers.
 - Recognition of `#` comments MUST be unconditional and MUST NOT depend on the
@@ -78,7 +81,10 @@ that can be consumed by expression, pattern, and language-definition layers.
 - Comments and whitespace MUST be representable as trivia without becoming
   semantic parser tokens.
 - Trivia attachment policy (leading, trailing, or detached) MUST be explicit and
-  deterministic.
+  deterministic. A language that keeps comments states its policy in its
+  grammar: the positions where it accepts comment items are the only places a
+  comment may appear, and the syntax tree records each comment there, in source
+  order.
 - Comment recognition and string-literal boundaries MUST be expressed through
   tokenizer patterns rather than a host-language state machine.
 
@@ -87,16 +93,29 @@ that can be consumed by expression, pattern, and language-definition layers.
 After structured tokens are produced, language modules project parser-facing
 text streams via module-local `func` declarations (not permanent globals):
 
-| Name                           | Contract                                                    |
-| ------------------------------ | ----------------------------------------------------------- |
-| `semantic_texts`               | Token texts with `kind !== "comment"` (whitespace retained) |
-| `semantic_no_whitespace_texts` | Texts for `kind` in `{ "word", "punctuation" }` only        |
+| Name                           | Contract                                                                                            |
+| ------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `semantic_texts`               | Token texts with `kind !== "comment"` (whitespace retained)                                         |
+| `semantic_no_whitespace_texts` | Texts for `kind` in `{ "word", "punctuation" }` only                                                |
+| `semantic_no_whitespace_items` | Texts for `kind` in `{ "word", "punctuation" }`, plus each `"comment"` token as its own token value |
 
 Authors write `(semantic_texts tokens)` in `tokenizer.lang.uff` and
-`(semantic_no_whitespace_texts tokens)` in `tokenizer/mod.uff`. These funcs
+`(semantic_no_whitespace_texts tokens)` and
+`(semantic_no_whitespace_items tokens)` in `tokenizer/mod.uff`. These funcs
 operate on token values only; they MUST NOT read Match spans. They are
 module-local (not exported, not registered as runtime globals) — see
 [#124](https://github.com/justinmchase/uffda/issues/124).
+
+`tokenizer/mod.uff` exports two parser-facing views:
+
+- `TokenizerNoWhitespace` projects `semantic_no_whitespace_texts`: the
+  comment-free view. Parsers that use it observe the same stream as if every
+  comment were absent.
+- `TokenizerNoWhitespaceWithComments` projects `semantic_no_whitespace_items`:
+  the comment-preserving view. Comment tokens stay in the stream, in source
+  order, as the tokenizer's own `{ kind: "comment", text }` values (so their
+  provenance is unchanged), among the word and punctuation texts. A language
+  chooses this view only when its grammar declares where comments may appear.
 
 ## Escape sequences in quoted strings
 

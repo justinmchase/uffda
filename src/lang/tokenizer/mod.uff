@@ -8,6 +8,7 @@ import "../editor/editor.uff" Highlight;
 
 export Token;
 export TokenizerNoWhitespace;
+export TokenizerNoWhitespaceWithComments;
 export rule Tokenizer =
   Tokens*
   -> (flat _ 2)
@@ -163,7 +164,25 @@ func TokenText<{text: t:string}> = t;
 func semantic_no_whitespace_texts<tokens:array> =
   (map (filter tokens IsWordOrPunctuation) TokenText);
 
+# `semantic_no_whitespace_items` keeps comment tokens as their own token values
+# (not their text, and not a copy) so a grammar that declares where comments
+# may appear can tell them apart from word/punctuation texts and still sees
+# each comment's provenance.
+func IsSemanticOrComment<{kind: k:string}> =
+  (has ["word" "punctuation" "comment"] k);
+
+func SemanticItem<token:{kind: k:string, text: t:string}> =
+  (when (eq k "comment") token t);
+
+func semantic_no_whitespace_items<tokens:array> =
+  (map (filter tokens IsSemanticOrComment) SemanticItem);
+
 rule TokenizerNoWhitespace =
   Tokenizer
   -> (semantic_no_whitespace_texts _)
+  ;
+
+rule TokenizerNoWhitespaceWithComments =
+  Tokenizer
+  -> (semantic_no_whitespace_items _)
   ;

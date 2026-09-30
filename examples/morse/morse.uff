@@ -1,8 +1,10 @@
 # MorseLang is authored in Uffda and compiled through the normal runtime path.
 # 123 Comments are unconditional, even when their text starts with a number.
+# Capture one or more decoded symbols in source order, then reject a valid
+# prefix followed by an unknown Morse sequence.
 export rule Morse =
-  x:Symbol+           # Capture one or more decoded symbols in source order.
-  end                 # Reject a valid prefix followed by an unknown Morse sequence.
+  x:Symbol+
+  end
   -> (join x "");     # Comments may trail a complete declaration.
 
 export rule Text =
