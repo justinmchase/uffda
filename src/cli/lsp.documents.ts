@@ -45,6 +45,13 @@ import { hoverAtPosition } from "./lsp.hover.ts";
 import { positionToOffset } from "./lsp.positions.ts";
 import { buildSemanticTokens } from "./semantic_tokens.ts";
 import { resolveReferenceRoles } from "./lsp.reference_roles.ts";
+import {
+  BUILTIN_UFF_LANGUAGE,
+  isBuiltinUffdaLanguage,
+  type LspLanguageConfigEntry,
+} from "./lsp.config.ts";
+import { LspGrammarProvider, type OpenGrammarModule } from "./lsp.grammars.ts";
+import { SyntaxDocument } from "./lsp.syntax_document.ts";
 
 /**
  * The minimal shape of an LSP `TextDocumentContentChangeEvent` this module
@@ -82,25 +89,54 @@ type OpenDocument = {
   href?: string;
 };
 
+type OpenSyntaxDocument = {
+  document: SyntaxDocument;
+  language: LspLanguageConfigEntry;
+};
+
+export type LspDocumentManagerOptions = {
+  /**
+   * Publishes diagnostics for a document re-parsed because its language's
+   * grammar changed, rather than because of its own notification.
+   */
+  publishDiagnostics?: (uri: string, diagnostics: Diagnostic[]) => void;
+  /** Called after such a re-parse, since the document's highlighting changed. */
+  semanticTokensChanged?: () => void;
+};
+
 /**
- * Owns one `RuntimeSession` per open document (see
+ * Owns every open document of a configured language (see
  * `.agents/requirements/cli-language-server/003-document-synchronization-and-incremental-reparsing.requirement.md`),
- * translating `didOpen`/`didChange`/`didClose` into `RuntimeSession.load()`/
- * `patch()` calls and producing the `Diagnostic[]` each notification should
- * currently publish for that document's URI.
+ * translating `didOpen`/`didChange`/`didClose` into parses and producing the
+ * `Diagnostic[]` each notification should currently publish for that
+ * document's URI.
  *
- * Only `.uff` documents are wired end-to-end in this first phase (see the
- * "uff-only" v1 dogfooding scope in
- * `.agents/specifications/languages/cli/language-server.spec.md`); callers
- * are expected to only construct/feed this manager for documents already
- * resolved to the built-in `.uff` language via `lsp.config.ts`.
+ * Every document is parsed with its language's grammar and reports that
+ * parse's diagnostics and highlighting. A built-in Uffda document is a
+ * module: its `RuntimeSession` performs that parse (reusing memoized state
+ * through `load()`/`patch()`) and layers module semantics over it — compile
+ * and resolve diagnostics, and the symbol features (hover, definition,
+ * completion, references, rename). Any other language's document is a
+ * `SyntaxDocument`, parsed with the grammar `grammars` resolves for it; when
+ * that grammar is open here as a module, its buffer is the grammar, and each
+ * change to it re-parses the language's open documents.
  */
 export class LspDocumentManager {
   private readonly documents = new Map<string, OpenDocument>();
+  private readonly syntaxDocuments = new Map<string, OpenSyntaxDocument>();
   /** Tail of each URI's operation queue (see `serialize`). */
   private readonly queues = new Map<string, Promise<unknown>>();
+  public readonly grammars: LspGrammarProvider;
 
-  constructor(private readonly cwd: string) {}
+  constructor(
+    private readonly cwd: string,
+    private readonly options: LspDocumentManagerOptions = {},
+  ) {
+    this.grammars = new LspGrammarProvider(
+      cwd,
+      (href) => this.openGrammarModule(href),
+    );
+  }
 
   /**
    * Runs `operation` after every operation previously queued for `uri` has
@@ -120,9 +156,22 @@ export class LspDocumentManager {
     return next;
   }
 
-  /** Handles `textDocument/didOpen`, returning the diagnostics to publish. */
-  public open(uri: string, text: string): Promise<Diagnostic[]> {
-    return this.serialize(uri, () => this.openNow(uri, text));
+  /**
+   * Handles `textDocument/didOpen` for a document of `language` (default:
+   * the built-in Uffda language), returning the diagnostics to publish.
+   */
+  public open(
+    uri: string,
+    text: string,
+    language: LspLanguageConfigEntry = BUILTIN_UFF_LANGUAGE,
+  ): Promise<Diagnostic[]> {
+    return this.serialize(
+      uri,
+      () =>
+        isBuiltinUffdaLanguage(language)
+          ? this.openNow(uri, text)
+          : this.openSyntaxNow(uri, text, language),
+    );
   }
 
   private async openNow(uri: string, text: string): Promise<Diagnostic[]> {
@@ -135,7 +184,52 @@ export class LspDocumentManager {
 
     const result = await session.load(text, path);
     if (result.ok) doc.href = result.module.moduleUrl;
+    this.grammarChanged(moduleHref(uri, doc));
     return diagnosticsForSessionResult(result, text);
+  }
+
+  private async openSyntaxNow(
+    uri: string,
+    text: string,
+    language: LspLanguageConfigEntry,
+  ): Promise<Diagnostic[]> {
+    const document = new SyntaxDocument(text);
+    this.syntaxDocuments.set(uri, { document, language });
+    return await document.parse(await this.grammars.grammarFor(language));
+  }
+
+  /**
+   * The grammar module open here at `href`: what its buffer last compiled
+   * to. `undefined` when no module document is open at `href`.
+   */
+  private openGrammarModule(href: string): OpenGrammarModule | undefined {
+    for (const [uri, doc] of this.documents) {
+      if (moduleHref(uri, doc) === href) {
+        return { module: doc.session.getModule(href) };
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Re-parses, after their own queued operations, the open documents whose
+   * language's grammar is the module at `href` — only those whose grammar
+   * actually changed — publishing their new diagnostics.
+   */
+  private grammarChanged(href: string): void {
+    for (const [uri, { document, language }] of this.syntaxDocuments) {
+      if (this.grammars.moduleUrlFor(language)?.href !== href) continue;
+      this.serialize(uri, async () => {
+        if (this.syntaxDocuments.get(uri)?.document !== document) return;
+        const grammar = await this.grammars.grammarFor(language);
+        if (document.parsedWith(grammar)) return;
+        const diagnostics = await document.parse(grammar);
+        this.options.publishDiagnostics?.(uri, diagnostics);
+        this.options.semanticTokensChanged?.();
+      }).catch((error) => {
+        console.error(`uffda lsp: failed to re-parse ${uri}:`, error);
+      });
+    }
   }
 
   /**
@@ -160,6 +254,13 @@ export class LspDocumentManager {
     uri: string,
     changes: readonly LspContentChange[],
   ): Promise<Diagnostic[]> {
+    const syntax = this.syntaxDocuments.get(uri);
+    if (syntax) {
+      return await syntax.document.change(
+        changes,
+        await this.grammars.grammarFor(syntax.language),
+      );
+    }
     const doc = this.documents.get(uri);
     if (!doc) {
       throw new Error(`No open document for change notification: ${uri}`);
@@ -191,16 +292,24 @@ export class LspDocumentManager {
       doc.href = result.ok ? result.module.moduleUrl : doc.href;
     }
 
+    this.grammarChanged(moduleHref(uri, doc));
     return result ? diagnosticsForSessionResult(result, doc.source) : [];
   }
 
-  /** Handles `textDocument/didClose`, tearing down the document's session. */
+  /**
+   * Handles `textDocument/didClose`, tearing down the document's state. A
+   * closed grammar module is reloaded from disk for the documents it backs.
+   */
   public close(uri: string): Promise<void> {
     return this.serialize(uri, () => {
+      this.syntaxDocuments.delete(uri);
       const doc = this.documents.get(uri);
       if (doc) {
+        const href = moduleHref(uri, doc);
         doc.session.close();
         this.documents.delete(uri);
+        this.grammars.invalidate(href);
+        this.grammarChanged(href);
       }
       return Promise.resolve();
     });
@@ -215,6 +324,8 @@ export class LspDocumentManager {
    */
   public semanticTokens(uri: string): Promise<SemanticTokens | undefined> {
     return this.serialize<SemanticTokens | undefined>(uri, () => {
+      const syntax = this.syntaxDocuments.get(uri);
+      if (syntax) return Promise.resolve(syntax.document.semanticTokens());
       const doc = this.documents.get(uri);
       if (!doc) return Promise.resolve(undefined);
       const state = doc.session.getLatestParseState();
@@ -498,6 +609,11 @@ function symbolDocument(
   if (!state) return undefined;
   const moduleUrl = doc.href ?? (doc.path ? toFileUrl(doc.path).href : uri);
   return { uri, moduleUrl, source: state.source, match: state.match };
+}
+
+/** The href a module document's session commits it under. */
+function moduleHref(uri: string, doc: OpenDocument): string {
+  return doc.path ? toFileUrl(doc.path).href : doc.href ?? uri;
 }
 
 function uriToPath(uri: string): string | undefined {

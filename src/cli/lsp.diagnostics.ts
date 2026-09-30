@@ -8,7 +8,14 @@ import type {
   SessionPatchFailure,
   SessionPatchResult,
 } from "./mcp.session.ts";
-import { locationFromOffset } from "./stream.ts";
+import {
+  CliStreamFailureCode,
+  locationFromOffset,
+  type MatchDiagnostic,
+  matchDiagnostics,
+} from "./stream.ts";
+import type { Match } from "../match.ts";
+import { anchorParseFailureLocation } from "./parse_failure_anchor.ts";
 
 /**
  * Translates a `RuntimeSession.load()`/`patch()` outcome into the LSP
@@ -40,8 +47,60 @@ export function diagnosticsForSessionResult(
   );
 }
 
+/**
+ * The LSP `Diagnostic[]` for a document parsed with its language's grammar:
+ * every parse diagnostic of `match` (see `matchDiagnostics`), with a parse
+ * failure anchored like a module's (see `anchorParseFailureLocation`).
+ */
+export async function diagnosticsForMatch(
+  match: Match,
+  source: string,
+): Promise<Diagnostic[]> {
+  return (await matchDiagnostics(match, source)).map((diagnostic) =>
+    diagnosticForFailure({
+      ...diagnostic,
+      phase: "parse",
+      location: diagnostic.code === CliStreamFailureCode.ParseFailure
+        ? anchorParseFailureLocation(match, source, diagnostic.location)
+        : diagnostic.location,
+    }, source)
+  );
+}
+
+/**
+ * The diagnostic a document reports while its language's grammar cannot be
+ * loaded, ranged over the document's first line (requirement
+ * cli-language-server-002).
+ */
+export function grammarUnavailableDiagnostic(
+  message: string,
+  source: string,
+): Diagnostic {
+  const firstLineEnd = source.indexOf("\n");
+  return {
+    severity: DiagnosticSeverity.Error,
+    range: {
+      start: { line: 0, character: 0 },
+      end: {
+        line: 0,
+        character: firstLineEnd === -1 ? source.length : firstLineEnd,
+      },
+    },
+    message,
+    source: "uffda (grammar)",
+    code: LSP_GRAMMAR_UNAVAILABLE,
+  };
+}
+
+/** Diagnostic code of `grammarUnavailableDiagnostic`. */
+export const LSP_GRAMMAR_UNAVAILABLE = "CLI_LSP_GRAMMAR_UNAVAILABLE";
+
+type ReportedFailure =
+  | SessionPatchFailure
+  | (MatchDiagnostic & { phase: "parse" });
+
 function diagnosticForFailure(
-  error: SessionPatchFailure,
+  error: ReportedFailure,
   source: string,
 ): Diagnostic {
   const location = "location" in error ? error.location : undefined;

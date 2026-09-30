@@ -17,10 +17,9 @@ export type LspLanguageConfigEntry = {
    */
   extensions: string[];
   /**
-   * Path (relative to the workspace root) to the compiled grammar module the
-   * server resolves/executes against. Optional for the built-in `.uff`
-   * entry, which uses the CLI's own in-process Uffda grammar instead of a
-   * resolved module.
+   * Path (relative to the workspace root) to the `.uff` grammar module the
+   * server parses this language's documents with. Absent for the built-in
+   * `.uff` entry, whose grammar is the CLI's own bundled Uffda grammar.
    */
   modulePath?: string;
   /** The rule name the server parses/matches documents against. */
@@ -57,6 +56,17 @@ export const BUILTIN_UFF_LANGUAGE: LspLanguageConfigEntry = {
   id: "uffda",
   extensions: ["uff"],
 };
+
+/**
+ * Whether `language` is the built-in Uffda language: its documents are Uffda
+ * modules, parsed with the CLI's own bundled grammar, so the server layers
+ * module semantics (compile, resolve, symbols) over their parse.
+ */
+export function isBuiltinUffdaLanguage(
+  language: LspLanguageConfigEntry,
+): boolean {
+  return language.id === BUILTIN_UFF_LANGUAGE.id && !language.modulePath;
+}
 
 /** Workspace-relative path to the language server's config file. */
 export const LSP_CONFIG_RELATIVE_PATH = ".uffda/lsp.jsonc";

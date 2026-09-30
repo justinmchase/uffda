@@ -1,5 +1,12 @@
 import { assertEquals } from "@std/assert";
-import { diagnosticsForSessionResult } from "./lsp.diagnostics.ts";
+import {
+  diagnosticsForMatch,
+  diagnosticsForSessionResult,
+  grammarUnavailableDiagnostic,
+  LSP_GRAMMAR_UNAVAILABLE,
+} from "./lsp.diagnostics.ts";
+import { patternGrammar } from "../lang/pattern/pattern.lang.ts";
+import { CliStreamFailureCode } from "./stream.ts";
 import {
   SessionLoadFailureCode,
   type SessionLoadResult,
@@ -148,4 +155,63 @@ Deno.test("cli.lsp.diagnostics publishes every parse diagnostic", () => {
       },
     ],
   );
+});
+
+Deno.test("cli.lsp.diagnostics diagnosticsForMatch", async (t) => {
+  await t.step("yields no diagnostics for a clean parse", async () => {
+    const source = "a | b";
+    assertEquals(
+      await diagnosticsForMatch(await patternGrammar(source), source),
+      [],
+    );
+  });
+
+  await t.step("reports a recovery over the source it skipped", async () => {
+    const source = "a ! b";
+    const diagnostics = await diagnosticsForMatch(
+      await patternGrammar(source),
+      source,
+    );
+    assertEquals(diagnostics.length, 1);
+    assertEquals(diagnostics[0].code, CliStreamFailureCode.Recovered);
+    assertEquals(diagnostics[0].source, "uffda (parse)");
+    assertEquals(diagnostics[0].range, {
+      start: { line: 0, character: 2 },
+      end: { line: 0, character: 3 },
+    });
+  });
+
+  await t.step(
+    "anchors a failure after the last token of an unfinished line",
+    async () => {
+      const source = "(a |\n\n)";
+      const diagnostics = await diagnosticsForMatch(
+        await patternGrammar(source),
+        source,
+      );
+      const failure = diagnostics.find((diagnostic) =>
+        diagnostic.code === CliStreamFailureCode.ParseFailure
+      );
+      assertEquals(failure?.range.start, { line: 0, character: 4 });
+    },
+  );
+});
+
+Deno.test("cli.lsp.diagnostics grammarUnavailableDiagnostic", async (t) => {
+  await t.step("ranges the message over the first line", () => {
+    const diagnostic = grammarUnavailableDiagnostic("gone", "abc\ndef");
+    assertEquals(diagnostic.code, LSP_GRAMMAR_UNAVAILABLE);
+    assertEquals(diagnostic.message, "gone");
+    assertEquals(diagnostic.range, {
+      start: { line: 0, character: 0 },
+      end: { line: 0, character: 3 },
+    });
+  });
+
+  await t.step("ranges a single-line document whole", () => {
+    assertEquals(
+      grammarUnavailableDiagnostic("gone", "abc").range.end,
+      { line: 0, character: 3 },
+    );
+  });
 });

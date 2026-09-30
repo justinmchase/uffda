@@ -406,3 +406,96 @@ Deno.test("cli.lsp wireUffdaLspHandlers", async (t) => {
     },
   );
 });
+
+Deno.test("cli.lsp wireUffdaLspHandlers custom languages", async (t) => {
+  const root = await Deno.makeTempDir({ prefix: "uffda-lsp-wire-" });
+  await Deno.mkdir(join(root, ".uffda"));
+  await Deno.writeTextFile(
+    join(root, "kv.uff"),
+    `export Main;
+decorator Language<c:any> = c;
+decorator Highlight<c:any> = c;
+[Highlight { role: "keyword" }]
+rule Key = ("a".."z")+;
+rule Pair = Key "=" (not "\\n" any)* "\\n";
+rule Junk = (not "\\n" any)* "\\n";
+[Language { ext: ".kv" }]
+rule Main = string & [(ope Pair sneak by skip Junk)*];
+`,
+  );
+  await Deno.writeTextFile(
+    join(root, ".uffda", "lsp.jsonc"),
+    JSON.stringify({
+      languages: [
+        { id: "kv", modulePath: "./kv.uff", entryRuleName: "Main" },
+        {
+          id: "gone",
+          extensions: ["gone"],
+          modulePath: "./gone.uff",
+          entryRuleName: "Main",
+        },
+      ],
+    }),
+  );
+
+  await t.step(
+    "diagnoses and highlights a document with its configured grammar",
+    async () => {
+      const { connection, handlers, sentDiagnostics } = createFakeConnection();
+      wireUffdaLspHandlers(connection, { workspaceRoot: root });
+      await handlers.initialize({} as InitializeParams);
+
+      const uri = toFileUrl(join(root, "a.kv")).href;
+      await handlers.open({
+        textDocument: { uri, languageId: "kv", version: 1, text: "ab=1\n9\n" },
+      } as DidOpenTextDocumentParams);
+      assertEquals(sentDiagnostics.length, 1);
+      assertEquals(sentDiagnostics[0].diagnostics.length, 1);
+
+      const tokens = await handlers[SemanticTokensRequest.method]({
+        textDocument: { uri },
+      } as SemanticTokensParams) as { data: number[] };
+      assert(tokens.data.length > 0);
+
+      await handlers.change({
+        textDocument: { uri, version: 2 },
+        contentChanges: [{ text: "ab=1\n" }],
+      } as DidChangeTextDocumentParams);
+      assertEquals(sentDiagnostics.at(-1)?.diagnostics, []);
+    },
+  );
+
+  await t.step(
+    "reports an unresolvable grammar on its documents only",
+    async () => {
+      const { connection, handlers, sentDiagnostics } = createFakeConnection();
+      wireUffdaLspHandlers(connection, { workspaceRoot: root });
+      await handlers.initialize({} as InitializeParams);
+
+      await handlers.open({
+        textDocument: {
+          uri: toFileUrl(join(root, "a.gone")).href,
+          languageId: "gone",
+          version: 1,
+          text: "x",
+        },
+      } as DidOpenTextDocumentParams);
+      await handlers.open({
+        textDocument: {
+          uri: toFileUrl(join(root, "b.kv")).href,
+          languageId: "kv",
+          version: 1,
+          text: "ab=1\n",
+        },
+      } as DidOpenTextDocumentParams);
+
+      const [gone, kv] = sentDiagnostics as {
+        diagnostics: { code?: string }[];
+      }[];
+      assertEquals(gone.diagnostics.map(({ code }) => code), [
+        "CLI_LSP_GRAMMAR_UNAVAILABLE",
+      ]);
+      assertEquals(kv.diagnostics, []);
+    },
+  );
+});

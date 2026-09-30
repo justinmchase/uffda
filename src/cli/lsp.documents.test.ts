@@ -487,3 +487,137 @@ function offsetToPosition(
   const lines = before.split("\n");
   return { line: lines.length - 1, character: lines.at(-1)?.length ?? 0 };
 }
+
+Deno.test("cli.lsp.documents LspDocumentManager custom languages", async (t) => {
+  const grammarSource = `export Main;
+
+decorator Highlight<c:any> = c;
+
+[Highlight { role: "keyword" }]
+rule Key = ("a".."z")+;
+
+rule Pair = Key "=" (not "\\n" any)* "\\n";
+
+rule Junk = (not "\\n" any)* "\\n";
+
+rule Main = string & [(ope Pair sneak by skip Junk)*];
+`;
+  const kv = {
+    id: "kv",
+    extensions: ["kv"],
+    modulePath: "./kv.uff",
+    entryRuleName: "Main",
+  };
+
+  async function setup() {
+    const root = await Deno.makeTempDir({ prefix: "uffda-lsp-custom-" });
+    await Deno.writeTextFile(join(root, "kv.uff"), grammarSource);
+    const published: { uri: string; messages: string[] }[] = [];
+    let refreshed = 0;
+    const manager = new LspDocumentManager(root, {
+      publishDiagnostics: (uri, diagnostics) =>
+        published.push({
+          uri,
+          messages: diagnostics.map((diagnostic) => diagnostic.message),
+        }),
+      semanticTokensChanged: () => refreshed++,
+    });
+    return {
+      manager,
+      published,
+      refreshed: () => refreshed,
+      docUri: toFileUrl(join(root, "a.kv")).href,
+      grammarUri: toFileUrl(join(root, "kv.uff")).href,
+    };
+  }
+
+  await t.step(
+    "parses with the configured grammar, diagnosing and highlighting",
+    async () => {
+      const { manager, docUri } = await setup();
+      const diagnostics = await manager.open(docUri, "ab=1\n9x\n", kv);
+      assertEquals(diagnostics.length, 1);
+      assertEquals(diagnostics[0].range.start, { line: 1, character: 0 });
+      const tokens = await manager.semanticTokens(docUri);
+      assert(tokens && tokens.data.length > 0);
+
+      assertEquals(
+        await manager.change(docUri, [{
+          range: {
+            start: { line: 1, character: 0 },
+            end: { line: 1, character: 2 },
+          },
+          text: "c=2",
+        }]),
+        [],
+      );
+    },
+  );
+
+  await t.step("offers no module symbol features", async () => {
+    const { manager, docUri } = await setup();
+    await manager.open(docUri, "ab=1\n", kv);
+    const at = { line: 0, character: 1 };
+    assertEquals(await manager.hover(docUri, at), null);
+    assertEquals(await manager.definition(docUri, at), []);
+    assertEquals(await manager.completion(docUri, at), []);
+    assertEquals(await manager.references(docUri, at, true), []);
+    assertEquals(await manager.prepareRename(docUri, at), null);
+  });
+
+  await t.step("reports an unavailable grammar on the document", async () => {
+    const { manager, docUri } = await setup();
+    const diagnostics = await manager.open(docUri, "ab=1\n", {
+      ...kv,
+      modulePath: "./missing.uff",
+    });
+    assertEquals(diagnostics.length, 1);
+    assertEquals(diagnostics[0].code, "CLI_LSP_GRAMMAR_UNAVAILABLE");
+    assertEquals(await manager.semanticTokens(docUri), { data: [] });
+  });
+
+  await t.step(
+    "an open grammar's edits re-parse the documents it backs",
+    async () => {
+      const { manager, published, refreshed, docUri, grammarUri } =
+        await setup();
+      await manager.open(docUri, "ab=1\n", kv);
+      await manager.open(grammarUri, grammarSource);
+      await manager.semanticTokens(docUri);
+      published.length = 0;
+
+      await manager.change(grammarUri, [{
+        text: grammarSource.replace('Key "="', 'Key ":"'),
+      }]);
+      await manager.semanticTokens(docUri);
+      assertEquals(published.length, 1);
+      assertEquals(published[0].uri, docUri);
+      assertEquals(published[0].messages.length, 1);
+      assert(refreshed() > 0);
+
+      // An edit that leaves the grammar uncompiled keeps its last module.
+      published.length = 0;
+      await manager.change(grammarUri, [{ text: "rule Main = (" }]);
+      await manager.semanticTokens(docUri);
+      assertEquals(published, []);
+    },
+  );
+
+  await t.step(
+    "closing an open grammar reloads it from disk for its documents",
+    async () => {
+      const { manager, published, docUri, grammarUri } = await setup();
+      await manager.open(docUri, "ab=1\n", kv);
+      await manager.open(
+        grammarUri,
+        grammarSource.replace('Key "="', 'Key ":"'),
+      );
+      await manager.semanticTokens(docUri);
+      assertEquals(published.at(-1)?.messages.length, 1);
+
+      await manager.close(grammarUri);
+      await manager.semanticTokens(docUri);
+      assertEquals(published.at(-1), { uri: docUri, messages: [] });
+    },
+  );
+});

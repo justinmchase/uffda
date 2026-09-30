@@ -985,6 +985,21 @@ Deno.test("cli.mcp.session RuntimeSession introspection", async (t) => {
   );
 
   await t.step(
+    "getModule returns the committed module, or undefined before any load",
+    async () => {
+      const session = new RuntimeSession("i1e");
+      assertEquals(session.getModule(), undefined);
+      const loaded = await session.load(LOUD_MODULE_SOURCE);
+      assert(loaded.ok);
+      const module = session.getModule();
+      assert(module);
+      assert(module.rules.has("Main"));
+      assertEquals(session.getModule(loaded.module.moduleUrl), module);
+      assertEquals(session.getModule("file:///nowhere.uff"), undefined);
+    },
+  );
+
+  await t.step(
     "describeGlobal reports a runtime global's metadata",
     () => {
       const session = new RuntimeSession("i1d");

@@ -20,13 +20,29 @@ Expected behavior:
   convention (see `DEFAULT_SESSION_ARTIFACT_ROOT` in `src/cli/mcp.session.ts`).
 - The configuration file MUST declare a list of served languages, each
   specifying at minimum: a language id, one or more file extensions that map to
-  it, the compiled grammar module to load, and the entry rule name to parse with
-  — the same three inputs `parseGrammar`/`uffdaGrammar`-shaped grammar entry
-  points already require (`moduleUrl`, `entryRuleName`, plus an implicit
-  language id for editor-facing display).
+  it, the grammar module to load (`modulePath`, a workspace-relative `.uff`
+  source path), and the entry rule name to parse with (`entryRuleName`) — the
+  same inputs `parseGrammar`/`uffdaGrammar`-shaped grammar entry points already
+  require (`moduleUrl`, `entryRuleName`, plus a language id for editor-facing
+  display).
 - `.uff` itself MUST be configurable through this same file and mechanism — the
   server MUST NOT special-case `.uff` through a code path unavailable to a
-  user-declared language entry.
+  user-declared language entry. Every configured language's documents MUST be
+  parsed by that language's grammar entry rule, with the document text as a
+  single string input, and the server MUST publish that parse's diagnostics (one
+  per recovery, then the parse failure if any) and semantic tokens (see
+  requirements 004 and 005). The built-in `.uff` language's module semantics
+  (compile/resolve diagnostics, requirement 006's symbol features) are layered
+  over that same parse; other languages' documents answer those symbol requests
+  with empty results.
+- A language's grammar module MUST be compiled like any `.uff` document (its
+  `.uff` imports compiled into the session artifact root on demand). While the
+  grammar module is open in the editor, the server MUST parse the language's
+  documents with the module the open buffer last compiled successfully, and MUST
+  re-parse and republish every open document of the language each time that
+  module changes; a grammar buffer that has never compiled makes the grammar
+  unavailable. When the grammar is not open, the server compiles it from disk,
+  reloading it after the editor closes it.
 - Design note (non-normative for this requirement, see the spec chapter's
   "Language configuration" section): implementations SHOULD avoid hard-coding
   assumptions that a language's file extension(s) can only ever come from this
@@ -50,7 +66,13 @@ Expected behavior:
   that cannot be resolved MUST be reported the same deterministic way (per this
   chapter's conventions) and MUST NOT crash the server process; the affected
   language entry MUST simply be unavailable, and other, validly-configured
-  language entries in the same file MUST remain available.
+  language entries in the same file MUST remain available. A configuration file
+  that fails to parse is reported on standard error. A language whose grammar
+  cannot be loaded (no `modulePath`/`entryRuleName`, a missing or uncompilable
+  module, or no rule named `entryRuleName`) MUST publish, for each of its open
+  documents, exactly one error diagnostic ranged over the document's first line
+  and naming the language, its grammar module, and the reason, and MUST offer no
+  semantic tokens for them.
 
 Postconditions:
 

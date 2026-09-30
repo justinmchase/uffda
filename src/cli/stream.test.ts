@@ -3,11 +3,13 @@ import { CliLanguage } from "./contract.ts";
 import {
   CliStreamFailureCode,
   compileStdinToArtifact,
+  matchDiagnostics,
   parseFailureLocation,
   parseSourceToAst,
   recoveryFailures,
 } from "./stream.ts";
 import { executeUffdaSource } from "../lang/uffda/execute.ts";
+import { patternGrammar } from "../lang/pattern/pattern.lang.ts";
 import { Input, InputNormalizationMode } from "../input.ts";
 import { Path } from "../path.ts";
 import type { Edit } from "../edit.ts";
@@ -327,5 +329,44 @@ Deno.test("cli.stream reports parse diagnostics", async (t) => {
       endOffset: 5,
     });
     assertEquals(failure.message, 'Expected "a"\nUnexpected "x"\nIn Stmt');
+  });
+});
+
+Deno.test("cli.stream matchDiagnostics", async (t) => {
+  await t.step("is empty for a clean parse", async () => {
+    const source = "a | b";
+    assertEquals(
+      await matchDiagnostics(await patternGrammar(source), source),
+      [],
+    );
+  });
+
+  await t.step("reports each recovery over the source it skipped", async () => {
+    const source = "a ! b";
+    const diagnostics = await matchDiagnostics(
+      await patternGrammar(source),
+      source,
+    );
+    assertEquals(diagnostics.map(({ code }) => code), [
+      CliStreamFailureCode.Recovered,
+    ]);
+    assertEquals(diagnostics[0].location, {
+      offset: 2,
+      line: 0,
+      column: 2,
+      endOffset: 3,
+    });
+  });
+
+  await t.step("ends with the failure of a failed parse", async () => {
+    const source = ")";
+    const diagnostics = await matchDiagnostics(
+      await patternGrammar(source),
+      source,
+    );
+    assertEquals(
+      diagnostics.at(-1)?.code,
+      CliStreamFailureCode.ParseFailure,
+    );
   });
 });
