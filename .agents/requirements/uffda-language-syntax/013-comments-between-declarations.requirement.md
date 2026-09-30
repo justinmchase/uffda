@@ -29,8 +29,9 @@ Expected behavior:
   comment between declarations.
 - A `#` inside a quoted string MUST remain string content and MUST NOT be
   treated as a comment.
-- A fence tagged `uffda` MUST be parsed as a Uffda module. A fence with any
-  other tag except `text` MUST fail to parse.
+- A fence tagged `uffda` MUST be parsed as a Uffda module. With no project
+  languages declared (no `uffda.jsonc`, #235), a fence with any other tag except
+  `text` MUST fail to parse.
 
 Postconditions:
 

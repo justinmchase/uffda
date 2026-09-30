@@ -50,9 +50,10 @@ section is its attachment policy.
   order relative to the declarations around it.
 - The module grammar MUST supply the comment grammar's fence parser. It MUST
   accept the tag `uffda` and parse that fence's code as a Uffda module with this
-  grammar. Every other tag, apart from the untagged and `text` fences the
-  comment grammar keeps as written, is a syntax error until languages can be
-  declared per project.
+  grammar. Any other tag MUST name a language declared in the project's
+  `uffda.jsonc` (#235). Until that file exists, every other tag, apart from the
+  untagged and `text` fences the comment grammar keeps as written, is a syntax
+  error.
 - Comment nodes MUST NOT affect compilation: lowering to a ModuleDeclaration
   (see [runtime compilation](../uffda-runtime-compilation.spec.md)) drops them,
   so a module compiles to the same ModuleDeclaration with or without its

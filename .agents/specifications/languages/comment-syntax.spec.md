@@ -69,6 +69,10 @@ Paragraph and list item text MUST parse as a sequence of inlines:
 - A fence with any other tag MUST be parsed by the fence parser. The tag names a
   language by its `[Language]` id. A tag the fence parser does not accept, or
   code its language's grammar does not parse cleanly, MUST be a syntax error.
+- The languages a fence tag can name are the host language itself plus the
+  languages declared in the project's `uffda.jsonc` (#235). A tag MUST NOT
+  resolve to a language the project has not declared, even if a grammar with
+  that id exists elsewhere.
 
 ## Errors
 
