@@ -1,8 +1,9 @@
+import { Type } from "@justinmchase/type";
 import { Scope } from "../scope.ts";
 import { expressionTest } from "../../test.ts";
 import { PatternKind } from "../patterns/pattern.kind.ts";
 import { ExpressionKind } from "./expression.kind.ts";
-import { assertEquals, assertStrictEquals } from "@std/assert";
+import { assertEquals, assertRejects, assertStrictEquals } from "@std/assert";
 import { originOf, rootOrigin, Wrapped } from "../../wrapped.ts";
 import { type MatchOk, ok } from "../../match.ts";
 import { exec } from "../exec.ts";
@@ -116,4 +117,32 @@ Deno.test("runtime/expressions/lambda the callable takes the match's spans as or
   const item = new Wrapped(1, rootOrigin(3));
   const result = await (r.raw as (...args: unknown[]) => unknown)(item);
   assertStrictEquals(result, item);
+});
+
+Deno.test("runtime/expressions/lambda argument mismatches and parameter errors are raised", async () => {
+  const m = wrappedMatch({ a: 1 });
+  const mismatch = await exec({
+    kind: ExpressionKind.Lambda,
+    pattern: { kind: PatternKind.Type, type: Type.String },
+    expression: { kind: ExpressionKind.Reference, name: "_" },
+  }, m);
+  await assertRejects(
+    async () => await (mismatch.raw as (...args: unknown[]) => unknown)(1),
+    Error,
+    "arguments did not match parameter pattern",
+  );
+  const duplicate = await exec({
+    kind: ExpressionKind.Lambda,
+    pattern: {
+      kind: PatternKind.Variable,
+      name: "a",
+      pattern: { kind: PatternKind.Any },
+    },
+    expression: { kind: ExpressionKind.Reference, name: "a" },
+  }, m);
+  await assertRejects(
+    async () => await (duplicate.raw as (...args: unknown[]) => unknown)(2),
+    Error,
+    "Variable a already exists in scope",
+  );
 });

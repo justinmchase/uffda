@@ -206,11 +206,27 @@ export class Scope {
     return new Scope(
       this.module,
       this.parent,
-      new Map(),
+      rule.closureVariables ?? new Map(),
       args,
       this.stream,
       this.memos,
       this.stack.push({ kind: StackFrameKind.Rule, rule }),
+      this.options,
+      this.recovery,
+    );
+  }
+
+  public pushFunc(fn: Func): Scope {
+    return new Scope(
+      fn.module,
+      undefined,
+      VariableScope.Empty,
+      new Map(),
+      this.stream,
+      this.memos,
+      this.module !== fn.module
+        ? this.stack.push({ kind: StackFrameKind.Module, module: fn.module })
+        : this.stack,
       this.options,
       this.recovery,
     );

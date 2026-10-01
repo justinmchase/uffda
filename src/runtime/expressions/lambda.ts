@@ -1,4 +1,4 @@
-import { fail, MatchKind, type MatchSuccess } from "../../match.ts";
+import { MatchKind, type MatchSuccess } from "../../match.ts";
 import { Input, InputNormalizationMode } from "../../input.ts";
 import { exec } from "../exec.ts";
 import { match } from "../match.ts";
@@ -34,10 +34,11 @@ export function lambda(
     const result = await match(pattern, scope);
     switch (result.kind) {
       case MatchKind.LR:
+        throw new Error("lambda: parameter pattern is left recursive");
       case MatchKind.Error:
-        return result;
+        throw new Error(`lambda: ${result.message}`, { cause: result });
       case MatchKind.Fail:
-        return fail(scope, pattern, [result]);
+        throw new Error("lambda: arguments did not match parameter pattern");
       case MatchKind.Ok:
       case MatchKind.Skip:
         return await exec(expression, result);

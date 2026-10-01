@@ -38,6 +38,7 @@ Normative key words in this chapter use the conventions defined in the
 - [declaration attribute syntax](./uffda-syntax/declaration-attributes.spec.md)
 - [rules and funcs (comparison)](./uffda-syntax/rules-and-funcs.spec.md)
 - [rule declaration keyword forms](./uffda-syntax/pattern-declarations.spec.md)
+- [canonical source formatting](./uffda-syntax/formatting.spec.md)
 - [canonical executable examples](./uffda-syntax/canonical-examples.spec.md)
 - [canonical Morse language](./uffda-syntax/morse-language.spec.md)
 

@@ -46,8 +46,13 @@ Func declarations MAY be preceded by a decorator list; see
   require full consumption (parameter pattern then `end`), except when the
   declared pattern is already `end`.
 - Successful matches MUST bind PatternLang variables for the expression body.
-- Failed argument matches MUST fail the invocation (same class of outcome as a
-  failed lambda argument match).
+- The parameter pattern and body MUST be evaluated in the func's declaring
+  module with no variable bindings other than the parameters' own; see
+  [lexical visibility](../../runtime/scopes.spec.md#lexical-visibility-of-rule-and-func-bodies).
+- Failed argument matches MUST fail the invocation by raising an expression
+  exception at the call site (same class of outcome as a failed lambda argument
+  match). A parameter pattern that errors MUST raise the same way; the error
+  MUST NOT be returned as the invocation's value.
 - Func declarations MUST include an expression body slot parsed through
   `ExpressionLang`.
 - Func declarations MUST NOT include a rule-style pattern body or a trailing

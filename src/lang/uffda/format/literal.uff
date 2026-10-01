@@ -1,0 +1,53 @@
+# Literal text: quoted strings, numbers, and value sources. Pattern strings
+# escape quotes, backslashes, and control characters; expression strings also
+# escape `{`, which would otherwise start an interpolation.
+export PatternString;
+export ExpressionStringText;
+export NumberText;
+export LiteralText;
+export ValueSourceText;
+
+rule CommonEscape =
+  | ("\\" -> "\\\\")
+  | ("\"" -> "\\\"")
+  | ("\t" -> "\\t")
+  | ("\n" -> "\\n")
+  | ("\r" -> "\\r")
+  ;
+
+rule PatternStringChar =
+  | CommonEscape
+  | any
+  ;
+
+rule ExpressionStringChar =
+  | CommonEscape
+  | ("{" -> "\\\{")
+  | any
+  ;
+
+rule PatternString =
+  string & [c:PatternStringChar*]
+  -> (join ["\"" (join c "") "\""] "");
+
+rule ExpressionStringText =
+  string & [c:ExpressionStringChar*]
+  -> (join c "");
+
+rule NumberText =
+  n:number
+  -> (join [n] "");
+
+rule LiteralText =
+  | PatternString
+  | NumberText
+  | (true -> "true")
+  | (false -> "false")
+  | (null -> "null")
+  | (undefined -> "undefined")
+  ;
+
+rule ValueSourceText =
+  | (object & { kind: "value.literal", value: v:LiteralText } -> v)
+  | (object & { kind: "value.variable", name: n:string } -> (join ["$" n] ""))
+  ;

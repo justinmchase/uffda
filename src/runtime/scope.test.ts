@@ -17,6 +17,8 @@ import type { Pattern } from "./patterns/mod.ts";
 import type { Expression } from "./expressions/mod.ts";
 import { StackFrameKind } from "./stack/stackFrameKind.ts";
 import type { Rule } from "./modules/rule.ts";
+import type { Func } from "./modules/func.ts";
+import { DefaultModule } from "./modules/module.ts";
 import { unwrap } from "../wrapped.ts";
 
 Deno.test("runtime.scope", async (t) => {
@@ -199,6 +201,57 @@ Deno.test("runtime.scope", async (t) => {
       );
       const piped = scope.pushPipeline({ kind: PatternKind.Ok });
       assertStrictEquals(piped.getRule("P"), argument);
+    },
+  });
+
+  await t.step({
+    name: "SCOPE_RULE_FRAME_VARIABLES",
+    fn: () => {
+      const caller = Scope.Default().addVariable("x", 1);
+      const declared: Rule = {
+        name: "Declared",
+        module: caller.module,
+        parameters: [],
+        pattern: { kind: PatternKind.Ok },
+      };
+      assertEquals(
+        caller.pushRule(declared, new Map()).variables.has("x"),
+        false,
+      );
+      const argument: Rule = {
+        ...declared,
+        closureVariables: caller.variables,
+      };
+      assertStrictEquals(
+        caller.pushRule(argument, new Map()).variables,
+        caller.variables,
+      );
+    },
+  });
+
+  await t.step({
+    name: "SCOPE_FUNC_FRAME",
+    fn: () => {
+      const caller = Scope.Default().addVariable("x", 1);
+      const home = DefaultModule();
+      const fn: Func = {
+        name: "F",
+        module: home,
+        pattern: { kind: PatternKind.End },
+        expression: { kind: ExpressionKind.Value, value: undefined },
+      };
+      const pushed = caller.pushFunc(fn);
+      assertStrictEquals(pushed.module, home);
+      assertEquals(pushed.variables.has("x"), false);
+      assertEquals(pushed.args.size, 0);
+      assertStrictEquals(pushed.stream, caller.stream);
+      assertEquals(pushed.stack.top, {
+        kind: StackFrameKind.Module,
+        module: home,
+      });
+      const local = caller.pushFunc({ ...fn, module: caller.module });
+      assertStrictEquals(local.stack, caller.stack);
+      assertEquals(local.variables.has("x"), false);
     },
   });
 
