@@ -1,7 +1,7 @@
 ---
 id: runtime-core-010
 title: Inline argument patterns see the caller's variables; declared rules do not
-spec_ref: ".agents/specifications/runtime/scopes.spec.md#lexical-visibility-of-rule-bodies"
+spec_ref: ".agents/specifications/runtime/scopes.spec.md#lexical-visibility-of-rule-and-func-bodies"
 ---
 
 # Argument Patterns Close Over the Caller's Scope

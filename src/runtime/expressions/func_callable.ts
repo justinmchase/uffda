@@ -62,12 +62,17 @@ export function funcCallable(
       false,
       originOf(matchOk),
     );
-    const scope = matchOk.scope.withInput(stream);
+    const scope = matchOk.scope.withInput(stream).pushFunc(fn);
     return andThen(match(pattern, scope), (result) => {
       switch (result.kind) {
         case MatchKind.LR:
+          throw new Error(
+            `func ${fn.name}: parameter pattern is left recursive`,
+          );
         case MatchKind.Error:
-          return result;
+          throw new Error(`func ${fn.name}: ${result.message}`, {
+            cause: result,
+          });
         case MatchKind.Fail:
           throw new Error(
             `func ${fn.name}: arguments did not match parameter pattern`,

@@ -4,7 +4,7 @@ import {
   assertRejects,
   assertStrictEquals,
 } from "@std/assert";
-import { MatchKind, ok } from "../../match.ts";
+import { type Match, MatchKind, ok } from "../../match.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 import { PatternKind } from "../patterns/pattern.kind.ts";
 import type { Pattern } from "../patterns/pattern.ts";
@@ -96,6 +96,93 @@ Deno.test("runtime/expressions/func_callable", async (t) => {
       await invoke(2);
       await invoke(3);
       assertEquals(builds, first);
+    },
+  );
+
+  await t.step(
+    "FUNC_CALLABLE05 - parameters do not see or collide with caller variables",
+    async () => {
+      const scope = Scope.Default().addVariables({ x: "caller", y: "hidden" });
+      const m = ok(scope, scope, { kind: PatternKind.Ok }, undefined);
+      const fn: Func = {
+        name: "Echo",
+        module: DefaultModule(),
+        pattern: {
+          kind: PatternKind.Variable,
+          name: "x",
+          pattern: { kind: PatternKind.Any },
+        },
+        expression: { kind: ExpressionKind.Reference, name: "x" },
+      };
+      assertEquals(rawOf(await funcCallable(fn, m)("arg")), "arg");
+      const leak: Func = {
+        ...fn,
+        expression: { kind: ExpressionKind.Reference, name: "y" },
+      };
+      await assertRejects(
+        async () => await funcCallable(leak, m)("arg"),
+        ReferenceError,
+        "unknown reference: y",
+      );
+    },
+  );
+
+  await t.step(
+    "FUNC_CALLABLE06 - the body resolves funcs from its declaring module",
+    async () => {
+      const home = DefaultModule();
+      const helper: Func = {
+        name: "Helper",
+        module: home,
+        pattern: { kind: PatternKind.End },
+        expression: { kind: ExpressionKind.Reference, name: "this" },
+      };
+      home.funcs.set("Helper", helper);
+      const outer: Func = {
+        name: "Outer",
+        module: home,
+        pattern: { kind: PatternKind.End },
+        expression: {
+          kind: ExpressionKind.Invocation,
+          expression: { kind: ExpressionKind.Reference, name: "Helper" },
+          args: [],
+        },
+      };
+      const scope = Scope.Default();
+      const m = ok(scope, scope, { kind: PatternKind.Ok }, undefined);
+      const result = rawOf(await funcCallable(outer, m)()) as Match;
+      assertStrictEquals(result.scope.module, home);
+    },
+  );
+
+  await t.step(
+    "FUNC_CALLABLE07 - a parameter pattern error is raised, not returned",
+    async () => {
+      const scope = Scope.Default();
+      const m = ok(scope, scope, { kind: PatternKind.Ok }, undefined);
+      const fn: Func = {
+        ...identityFn,
+        pattern: {
+          kind: PatternKind.Then,
+          patterns: [
+            {
+              kind: PatternKind.Variable,
+              name: "a",
+              pattern: { kind: PatternKind.Any },
+            },
+            {
+              kind: PatternKind.Variable,
+              name: "a",
+              pattern: { kind: PatternKind.Any },
+            },
+          ],
+        },
+      };
+      await assertRejects(
+        async () => await funcCallable(fn, m)(1, 2),
+        Error,
+        "Variable a already exists in scope",
+      );
     },
   );
 });

@@ -216,6 +216,22 @@ export class Scope {
     );
   }
 
+  public pushFunc(fn: Func): Scope {
+    return new Scope(
+      fn.module,
+      undefined,
+      VariableScope.Empty,
+      new Map(),
+      this.stream,
+      this.memos,
+      this.module !== fn.module
+        ? this.stack.push({ kind: StackFrameKind.Module, module: fn.module })
+        : this.stack,
+      this.options,
+      this.recovery,
+    );
+  }
+
   public pushPipeline(pipeline: Pattern): Scope {
     return new Scope(
       this.module,
