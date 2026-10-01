@@ -1,0 +1,95 @@
+# Formats a comment node (see `mod.uff`) as `#` comment lines. `W` produces
+# the line width, and `F` formats a fence that has a parsed `tree` into its
+# code text. Paragraphs and list items are rewrapped to the line width,
+# without ever splitting inline code or starting a line with a lone `-`
+# (which would begin a list item). Blocks are separated by one empty comment
+# line, and fenced code is written as it is.
+export CommentFormat;
+
+rule CommentFormat<W, F> =
+  (object & { kind: "comment", blocks: [b:(CommentBlockFormat<W, F>)*] })
+  -> (when (eq (length b) 0) "#" (join b "\n#\n"));
+
+rule CommentBlockFormat<W, F> =
+  | ParagraphFormat<W>
+  | ListFormat<W>
+  | FenceFormat<F>
+  ;
+
+rule InlineAtoms =
+  | ((object & { kind: "code", text: t:string }) -> [(join ["`" t "`"] "")])
+  | ((object & { kind: "text", text: [c:any*] }) -> c)
+  ;
+
+rule WordChar = (not " ") c:any -> c;
+
+rule Word = w:WordChar+ -> (join w "");
+
+rule WordList = w:(skip " " | Word)* -> w;
+
+rule Words = ([a:InlineAtoms*] -> (flat a)) |> [WordList];
+
+func Last<lines:array> = (last lines "");
+
+func Init<lines:array> = (slice lines 0 (sub (length lines) 1));
+
+func Joins<line:string word:string width:number> =
+  (when (eq word "-")
+    true
+    (lte (add (length line) (add (length word) 1)) width));
+
+func WrapStep<lines:array word:string width:number> =
+  (when (Joins (Last lines) word width)
+    [...(Init lines) (join [(Last lines) word] " ")]
+    [...lines word]);
+
+func Wrap<words:array width:number> =
+  (reduce (slice words 1) [(at words 0)] <a:array b:string> -> (WrapStep a b width));
+
+func CommentLine<line:string> = (join ["# " line] "");
+
+func ListContinuation<line:string> = (join ["#   " line] "");
+
+func ListItemLines<lines:array> =
+  (join [
+    (join ["# - " (at lines 0)] "")
+    ...(map (slice lines 1) ListContinuation)
+  ] "\n");
+
+rule ParagraphFormat<W> =
+  w:W
+  (object & { kind: "paragraph", inlines: i:Words })
+  -> (join [...(map (Wrap i (sub w 2)) CommentLine)] "\n");
+
+rule ListItemFormat<W> =
+  w:W
+  (object & { inlines: i:Words })
+  -> (ListItemLines (Wrap i (sub w 4)));
+
+rule ListFormat<W> =
+  (object & { kind: "list", items: [x:(ListItemFormat<W>)*] })
+  -> (join x "\n");
+
+rule CodeChar = (not "\n") c:any -> c;
+
+rule CodeLine = c:CodeChar* -> (join c "");
+
+rule NextCodeLine = "\n" l:CodeLine -> l;
+
+rule CodeLines = [f:CodeLine r:NextCodeLine*] -> [f ...r];
+
+rule FenceText<F> =
+  | ((object & { tree: undefined, code: c:string }) -> c)
+  | F
+  ;
+
+func FenceCodeLine<line:string> =
+  (when (eq line "") "#" (join ["# " line] ""));
+
+func FenceBody<lines:array> =
+  (when (eq (join lines "\n") "") [] [...(map lines FenceCodeLine)]);
+
+rule FenceFormat<F> =
+  (object & { kind: "fence", language: t:string })
+  & l:(FenceText<F> |> CodeLines)
+  -> (join [(join ["# ```" t] "") ...(FenceBody l) "# ```"] "\n");

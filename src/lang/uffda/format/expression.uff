@@ -1,0 +1,190 @@
+# Formats expressions. `Expression<L>` takes an expression node and a layout
+# (see `layout.uff`) and produces its source text.
+import "./layout.uff" Fit Shift After Suffix Entry List Call HugHead HugFits Flat NotLast;
+import "./literal.uff" ExpressionStringText NumberText;
+import "./pattern.uff" Parameters;
+
+export Expression;
+
+rule Expression<L> =
+  | ExpressionReference
+  | ExpressionNumber
+  | ExpressionBoolean
+  | ExpressionValue
+  | ExpressionString
+  | ExpressionNot<L>
+  | ExpressionMember<L>
+  | ExpressionLambda<L>
+  | ExpressionArray<L>
+  | ExpressionObject<L>
+  | ExpressionInvocation<L>
+  ;
+
+rule ExpressionReference =
+  (object & { kind: "reference", name: n:string })
+  -> n;
+
+rule ExpressionNumber =
+  (object & { kind: "number", value: n:NumberText })
+  -> n;
+
+rule ExpressionBoolean =
+  (object & { kind: "boolean", value: b:boolean })
+  -> (when b "true" "false");
+
+rule ExpressionValue =
+  (object & {
+    kind: "value",
+    value: v:((null -> "null") | (undefined -> "undefined"))
+  })
+  -> v;
+
+rule ExpressionStringPart =
+  | (string & ExpressionStringText)
+  | (e:Expression<(ok -> (Flat))> -> (join ["\{" e "}"] ""))
+  ;
+
+rule ExpressionString =
+  (object & { kind: "string", values: [p:ExpressionStringPart*] })
+  -> (join ["\"" (join p "") "\""] "");
+
+rule ExpressionNot<L> =
+  l:L
+  (object & {
+    kind: "not",
+    expression: e:Expression<(ok -> (Shift l 4))>
+  })
+  -> (join ["not " e] "");
+
+rule ExpressionMember<L> =
+  l:L
+  (object & {
+    kind: "member",
+    name: n:string,
+    expression: e:Expression<(ok -> (Suffix l (add (length n) 1)))>
+  })
+  -> (join [e "." n] "");
+
+# The body follows `> -> ` on the parameter list's last line.
+rule ExpressionLambda<L> =
+  l:L
+  (object & { kind: "lambda", pattern: p:Parameters<(ok -> (Suffix l 4))> })
+  & o:(
+    | ((ok -> p) |> [(not "\n" any)* end] -> (Shift l (add (length p) 4)))
+    | (ok -> (After l 5))
+  )
+  & (object & { expression: e:Expression<(ok -> o)> })
+  -> (join [p " -> " e] "");
+
+rule ExpressionArrayItem<L> =
+  l:L
+  r:(
+    | (
+      (object & {
+        kind: "arraySpread",
+        expression: e:Expression<(ok -> (Shift l 3))>
+      })
+      -> (join ["..." e] "")
+    )
+    | ((object & { kind: "arrayElement", expression: e:Expression<L> }) -> e)
+  )
+  -> r;
+
+rule ExpressionArrayBody<L> =
+  l:L
+  (object & {
+    kind: "array",
+    expressions: [x:(ExpressionArrayItem<(ok -> (Entry l 0))>)*]
+  })
+  -> (List l "[" "" x "" "]");
+
+rule ExpressionArray<L> = Fit<ExpressionArrayBody, L>;
+
+rule ExpressionObjectEntry<L> =
+  l:L
+  r:(
+    | (
+      (object & {
+        kind: "objectKey",
+        name: n:string,
+        expression: e:Expression<(ok -> (Shift l (add (length n) 2)))>
+      })
+      -> (join [n ": " e] "")
+    )
+    | (
+      (object & {
+        kind: "objectSpread",
+        expression: e:Expression<(ok -> (Shift l 3))>
+      })
+      -> (join ["..." e] "")
+    )
+    | (
+      (object & {
+        kind: "objectComputedKey",
+        keyExpression: k:Expression<(ok -> (Flat))>,
+        expression: e:Expression<(ok -> (Shift l (add (length k) 4)))>
+      })
+      -> (join ["[" k "]: " e] "")
+    )
+  )
+  -> r;
+
+rule ExpressionObjectBody<L> =
+  l:L
+  (object & {
+    kind: "object",
+    keys: [x:(ExpressionObjectEntry<(ok -> (Entry l 1))>)*]
+  })
+  -> (List l "\{" " " x "," "}");
+
+rule ExpressionObject<L> = Fit<ExpressionObjectBody, L>;
+
+rule InvocationArgument<L> =
+  l:L
+  r:(
+    | (
+      (object & {
+        kind: "invocationSpread",
+        expression: e:Expression<(ok -> (Shift l 3))>
+      })
+      -> (join ["..." e] "")
+    )
+    | Expression<L>
+  )
+  -> r;
+
+rule Hugged = object & { kind: in["object" "array"] };
+
+# The last argument, when it is an object or array, starts at the end of the
+# line holding the callee and the other arguments.
+rule InvocationHug<L> =
+  l:L
+  (object & {
+    kind: "invocation",
+    expression: c:Expression<(ok -> (Flat))>,
+    args: [
+      x:(NotLast<InvocationArgument<(ok -> (Flat))>>)*
+      ((ok -> (HugFits l (HugHead (join ["(" c] "") x))) |> true)
+      z:(
+        Hugged
+        & InvocationArgument<(ok -> (Suffix (Shift l (length (HugHead (join ["(" c] "") x))) 1))>
+      )
+    ]
+  })
+  -> (join [(HugHead (join ["(" c] "") x) z ")"] "");
+
+rule InvocationList<L> =
+  l:L
+  (object & {
+    kind: "invocation",
+    expression: c:Expression<(ok -> (Flat))>,
+    args: [x:(InvocationArgument<(ok -> (Entry l 0))>)*]
+  })
+  -> (Call l (join ["(" c] "") x ")");
+
+rule InvocationBody<L> =
+  | InvocationHug<L>
+  | InvocationList<L>
+  ;
+
+rule ExpressionInvocation<L> = Fit<InvocationBody, L>;
