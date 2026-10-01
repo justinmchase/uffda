@@ -73,8 +73,9 @@ Func declarations MAY be preceded by a decorator list; see
 - Importing a func name MUST bind a callable member; the name MUST NOT conflict
   with a local `rule` or local `func` in the importing module.
 - Invoking a func MUST use ordinary ExpressionLang invocation `(Name arg…)`.
-- Expression reference lookup MUST resolve local and imported funcs before
-  std/globals so module funcs shadow same-named std helpers.
+- Expression reference lookup MUST resolve local and imported funcs before rules
+  and std/globals so module funcs shadow same-named std helpers; see
+  [reference expressions](../../expressions/reference.spec.md).
 - Author-defined funcs MUST NOT be match-aware by default.
 
 ## Integration contracts

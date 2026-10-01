@@ -2,7 +2,9 @@ import { immediateExpressionTest } from "../../test.ts";
 import { Scope } from "../scope.ts";
 import { expressionTest } from "../../test.ts";
 import { ExpressionKind } from "./expression.kind.ts";
-import { assertEquals, assertStrictEquals } from "@std/assert";
+import { assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
+import { DefaultModule } from "../modules/module.ts";
+import type { Rule } from "../modules/rule.ts";
 import { ok } from "../../match.ts";
 import { PatternKind } from "../patterns/pattern.kind.ts";
 import { exec } from "../exec.ts";
@@ -113,6 +115,50 @@ await Deno.test("runtime/expressions/reference", async (t) => {
       );
       assertStrictEquals(wrapped.raw, join);
       assertEquals(wrapped.origin, m.originalSpan);
+    },
+  );
+
+  await t.step(
+    "REFERENCE_RULE - a rule name resolves to its rule info, after variables",
+    () => {
+      const module = DefaultModule();
+      const rule: Rule = {
+        name: "Format",
+        module,
+        parameters: [{ name: "W" }],
+        pattern: { kind: PatternKind.Ok },
+      };
+      module.rules.set("Format", rule);
+      const argument: Rule = { ...rule, name: "Argument" };
+      const scope = new Scope(
+        module,
+        undefined,
+        new Map(),
+        new Map([["L", argument]]),
+      );
+      const m = ok(scope, scope, { kind: PatternKind.Ok }, undefined);
+      const ref = (name: string) =>
+        resolveReference({ kind: ExpressionKind.Reference, name }, m);
+      assertEquals(ref("Format"), {
+        kind: "rule",
+        name: "Format",
+        moduleUrl: module.moduleUrl.href,
+        parameters: ["W"],
+      });
+      assertThrows(() => ref("L"), ReferenceError, "unknown reference: L");
+      const shadowed = ok(
+        scope.addVariable("Format", 1),
+        scope.addVariable("Format", 1),
+        { kind: PatternKind.Ok },
+        undefined,
+      );
+      assertEquals(
+        resolveReference(
+          { kind: ExpressionKind.Reference, name: "Format" },
+          shadowed,
+        ),
+        1,
+      );
     },
   );
 });

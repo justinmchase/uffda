@@ -1,6 +1,7 @@
 import type { MatchSuccess } from "../../match.ts";
 import type { ReferenceExpression } from "./expression.ts";
 import { funcCallable } from "./func_callable.ts";
+import { ruleInfo } from "../modules/rule_info.ts";
 import { wrapFrom, type Wrapped } from "../../wrapped.ts";
 
 export function reference(
@@ -33,6 +34,12 @@ export function resolveReference(
         const fn = match.scope.getFunc(name);
         if (fn) {
           return funcCallable(fn, match);
+        }
+      }
+      {
+        const rule = match.scope.getDeclaredRule(name);
+        if (rule) {
+          return ruleInfo(rule);
         }
       }
       if (match.scope.options.globals.has(name)) {

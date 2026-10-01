@@ -53,6 +53,9 @@ without the extra wrapping parens, since `[...]` is already the call delimiter.
   zero-argument normalization.
 - Arguments MUST be parsed as space-separated `ExpressionLang` expressions,
   matching ordinary invocation argument syntax minus the wrapping parens.
+- An argument MAY name a local or imported rule, which evaluates to that rule's
+  rule info (for example `[Formatter UffdaFormat]`); see
+  [rule references](../../expressions/reference.spec.md#rule-references).
 - Multiple attributes on one declaration MUST be written as separate stacked
   bracket groups (`[Foo][Bar]`, `[Foo 0][Bar 1]`), never as a comma-separated
   list inside one bracket pair.
