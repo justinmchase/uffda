@@ -92,10 +92,11 @@ have all of its children written flat.
   when it fits. Otherwise the head `rule Name<P, Q> =` MUST be on its own line,
   the body on the following lines at one level of indentation, and the
   projection on its own line at one level of indentation as `-> expression`.
-- A broken rule whose body is an alternation and that has no projection MUST
-  write each alternative on its own line as `| alternative` and end with `;` on
-  its own line at one level of indentation. Every other rule MUST end with `;`
-  directly after its last line.
+- A broken rule whose body is an alternation MUST write each alternative on its
+  own line as `| alternative`.
+- A declaration written on one line MUST end with `;`. A broken rule, func, or
+  decorator MUST end with `;` on its own line at the declaration's indentation,
+  so the `;` closes the body the `=` opens.
 - A func or decorator MUST be written `func Name<params> = body;` on one line
   when it fits. Otherwise the head MUST be on its own line and the body on the
   following lines at one level of indentation. When the head itself does not

@@ -149,20 +149,16 @@ rule Projection<L> =
 func BodyLayout<l:object head:string> =
   (when l.flat
     l
-    { i: "  ", c: 2, s: 1, w: l.w, flat: false });
+    { i: "  ", c: 2, s: 0, w: l.w, flat: false });
 
 func ProjectionLayout<l:object> =
   (when l.flat
     l
-    { i: "  ", c: 5, s: 1, w: l.w, flat: false });
+    { i: "  ", c: 5, s: 0, w: l.w, flat: false });
 
-rule Line = (not "\n" any)* end;
-
-# A broken rule whose top-level alternation spans lines and has no
-# projection ends with `;` on its own line; every other rule ends with `;`
-# directly after its last line.
-func TerminatorLine<l:object kind:string projection:string> =
-  (when l.flat false (when (eq kind "or") (eq projection "") false));
+# A declaration written on one line ends with `;`; a broken one ends with `;`
+# on its own line, at the declaration's indentation.
+func Terminator<l:object> = (when l.flat ";" "\n;");
 
 rule RuleBody<L> =
   l:L
@@ -170,15 +166,10 @@ rule RuleBody<L> =
     kind: "rule",
     name: n:string,
     parameters: a:ParameterNames,
-    pattern: ({ kind: k:string } & p:Pattern<(ok -> (BodyLayout l (RuleHead n a)))>),
+    pattern: p:Pattern<(ok -> (BodyLayout l (RuleHead n a)))>,
     projection: j:Projection<L>
   })
-  t:(
-    | ((ok -> p) |> [Line] -> ";")
-    | (((ok -> (TerminatorLine l k j)) |> true) -> "\n  ;")
-    | (ok -> ";")
-  )
-  -> (join [(RuleHead n a) (when l.flat " " "\n  ") p j t] "");
+  -> (join [(RuleHead n a) (when l.flat " " "\n  ") p j (Terminator l)] "");
 
 rule RuleDeclaration<L> =
   l:L
@@ -204,7 +195,7 @@ rule FuncBody<L> =
   l:L
   (object & { expression: e:Expression<(ok -> (BodyLayout l ""))> })
   & h:FuncHead<L>
-  -> (join [h (when l.flat " " "\n  ") e ";"] "");
+  -> (join [h (when l.flat " " "\n  ") e (Terminator l)] "");
 
 rule FuncDeclaration<L> =
   l:L

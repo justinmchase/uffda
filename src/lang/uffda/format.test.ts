@@ -53,7 +53,7 @@ Deno.test("lang.uffda.format", async (t) => {
   );
 
   await t.step(
-    "FORMAT03 - a broken alternation ends with `;` on its own line",
+    "FORMAT03 - a broken declaration ends with `;` on its own line",
     () =>
       formats(
         `rule Alternatives = "aaaaaaaaaaaaaaaaaaaa" | "bbbbbbbbbbbbbbbbbbbbbbbbb" | "cccccccccccccccccccccccc" | "dddd";`,
@@ -63,7 +63,7 @@ Deno.test("lang.uffda.format", async (t) => {
           `  | "bbbbbbbbbbbbbbbbbbbbbbbbb"`,
           `  | "cccccccccccccccccccccccc"`,
           `  | "dddd"`,
-          `  ;`,
+          `;`,
           ``,
         ].join("\n"),
       ),
@@ -83,7 +83,8 @@ Deno.test("lang.uffda.format", async (t) => {
           `    second: (add x 1),`,
           `    third: [x x x],`,
           `    fourth: "text"`,
-          `  };`,
+          `  }`,
+          `;`,
           ``,
         ].join("\n"),
       ),
@@ -102,7 +103,8 @@ Deno.test("lang.uffda.format", async (t) => {
           `  delta:Delta`,
           `  epsilon:Epsilon`,
           `  zeta:Zeta`,
-          `  eta:Eta;`,
+          `  eta:Eta`,
+          `;`,
           ``,
         ].join("\n"),
       );
@@ -111,7 +113,8 @@ Deno.test("lang.uffda.format", async (t) => {
         [
           `rule A =`,
           `  (object & { kind: "aaaaaaaaaaaaaaaaaaaa" })`,
-          `  & (object & { name: "bbbbbbbbbbbbbbbbbbbbbbbbbbbb" });`,
+          `  & (object & { name: "bbbbbbbbbbbbbbbbbbbbbbbbbbbb" })`,
+          `;`,
           ``,
         ].join("\n"),
       );
@@ -146,7 +149,8 @@ Deno.test("lang.uffda.format", async (t) => {
           `  firstParameter:{ index: number, value: string }`,
           `  secondParameter:array`,
           `> =`,
-          `  (add 1 2);`,
+          `  (add 1 2)`,
+          `;`,
           ``,
         ].join("\n"),
       ),
@@ -170,7 +174,8 @@ Deno.test("lang.uffda.format", async (t) => {
           `      accumulator`,
           `      item.value`,
           `    )`,
-          `  );`,
+          `  )`,
+          `;`,
           ``,
         ].join("\n"),
       );
@@ -208,7 +213,8 @@ Deno.test("lang.uffda.format", async (t) => {
           `    "cccccccccccccccc"`,
           `    "dddddddddddddddd"`,
           `    "eeeeeeeeeeeee"`,
-          `  ];`,
+          `  ]`,
+          `;`,
           ``,
         ].join("\n"),
       );
