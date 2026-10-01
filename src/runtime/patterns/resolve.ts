@@ -79,6 +79,7 @@ function resolveReference(
       argument = {
         ...argumentRule(argPattern, scope.module, i),
         closureArgs: new Map(scope.args),
+        closureVariables: scope.variables,
       };
     }
 

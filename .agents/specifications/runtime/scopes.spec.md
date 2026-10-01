@@ -64,6 +64,22 @@ state with the scope it derives from rather than copying it:
   rule visibility is determined by the active module and explicit argument
   bindings.
 
+## Lexical visibility of rule bodies
+
+What a rule body can see is fixed by where it is written, not by where it runs.
+
+- A declared rule's body MUST start with no variable bindings and MUST see only
+  its own parameters' bound arguments, whatever scope invokes it.
+- An inline argument pattern (any argument to a parameterized rule reference
+  other than a bare rule name, such as `Rule<(ok -> (add n 1))>`) MUST see
+  everything visible where it is written: the caller's bound rule arguments
+  and the caller's variable bindings at the point of the call.
+- Bindings an inline argument pattern makes MUST stay inside that argument's
+  evaluation; they MUST NOT become visible to the invoked rule or to the
+  caller.
+- A bare rule name passed as an argument (`Rule<Other>`) MUST bind that rule
+  unchanged, so it keeps its own declared-rule visibility.
+
 ## Pattern-matching interactions
 
 - Reference-based pattern matching MUST use scope rule-resolution semantics for

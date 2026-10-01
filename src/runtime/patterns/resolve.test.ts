@@ -9,6 +9,7 @@ import { ResolveTargetKind } from "./pattern.ts";
 import { resolve } from "./resolve.ts";
 import { unwrap } from "../../wrapped.ts";
 import { ExpressionKind } from "../expressions/expression.kind.ts";
+import type { Rule } from "../modules/rule.ts";
 
 Deno.test("runtime/patterns/resolve", async (t) => {
   await t.step(
@@ -111,6 +112,48 @@ Deno.test("runtime/patterns/resolve", async (t) => {
       assertEquals(resolved.kind, MatchKind.Ok);
       if (resolved.kind !== MatchKind.Ok) return;
       assertEquals(unwrap(resolved.value), "ws");
+    },
+  );
+
+  await t.step(
+    "RESOLVE_PATTERN_CLOSURE - an inline argument sees the caller's variables",
+    async () => {
+      const show: Rule = {
+        name: "Show",
+        module: DefaultModule(),
+        parameters: [{ name: "C" }],
+        pattern: {
+          kind: PatternKind.Resolve,
+          targetKind: ResolveTargetKind.Reference,
+          name: "C",
+          args: [],
+        },
+      };
+      const caller: Rule = {
+        name: "Caller",
+        module: DefaultModule(),
+        parameters: [],
+        pattern: { kind: PatternKind.Ok },
+      };
+      const scope = Scope.Default()
+        .pushRule(caller, new Map([["Show", show]]))
+        .addVariable("x", "v");
+      const m = await resolve(
+        {
+          kind: PatternKind.Resolve,
+          targetKind: ResolveTargetKind.Reference,
+          name: "Show",
+          args: [{
+            kind: PatternKind.Projection,
+            pattern: { kind: PatternKind.Ok },
+            expression: { kind: ExpressionKind.Reference, name: "x" },
+          }],
+        },
+        scope,
+      );
+      assertEquals(m.kind, MatchKind.Ok);
+      if (m.kind !== MatchKind.Ok) return;
+      assertEquals(unwrap(m.value), "v");
     },
   );
 });

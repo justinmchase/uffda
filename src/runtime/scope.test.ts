@@ -203,6 +203,31 @@ Deno.test("runtime.scope", async (t) => {
   });
 
   await t.step({
+    name: "SCOPE_RULE_FRAME_VARIABLES",
+    fn: () => {
+      const caller = Scope.Default().addVariable("x", 1);
+      const declared: Rule = {
+        name: "Declared",
+        module: caller.module,
+        parameters: [],
+        pattern: { kind: PatternKind.Ok },
+      };
+      assertEquals(
+        caller.pushRule(declared, new Map()).variables.has("x"),
+        false,
+      );
+      const argument: Rule = {
+        ...declared,
+        closureVariables: caller.variables,
+      };
+      assertStrictEquals(
+        caller.pushRule(argument, new Map()).variables,
+        caller.variables,
+      );
+    },
+  });
+
+  await t.step({
     name: "SCOPE_OPTIONS_SHARED",
     fn: () => {
       const scope = Scope.Default();

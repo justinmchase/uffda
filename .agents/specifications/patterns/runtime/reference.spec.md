@@ -33,6 +33,10 @@ current matching context according to the
   the same rule as the reference target.
 - If self-reference is detected in arguments, the `reference` pattern MUST
   report an invalid-argument error.
+- An argument that is not a bare rule name MUST be bound as an anonymous rule
+  that closes over the calling scope's bound rule arguments and variable
+  bindings, as defined in
+  [lexical visibility of rule bodies](../../runtime/scopes.spec.md#lexical-visibility-of-rule-bodies).
 - After successful resolution and binding, the `reference` pattern MUST evaluate
   the resolved rule with the bound parameter-rule arguments in the current
   scope.

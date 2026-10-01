@@ -206,7 +206,7 @@ export class Scope {
     return new Scope(
       this.module,
       this.parent,
-      new Map(),
+      rule.closureVariables ?? new Map(),
       args,
       this.stream,
       this.memos,

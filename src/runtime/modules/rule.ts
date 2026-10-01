@@ -2,6 +2,7 @@ import type { Expression } from "../expressions/expression.ts";
 import type { Pattern } from "../patterns/mod.ts";
 import type { Attribute } from "./attribute.ts";
 import type { Module } from "./module.ts";
+import type { VariableScope } from "../variable_scope.ts";
 
 export type Rule = {
   name: string;
@@ -10,6 +11,8 @@ export type Rule = {
   parameters: RuleParameter[];
   expression?: Expression;
   closureArgs?: Map<string, Rule>;
+  /** Variables visible where an inline argument pattern was written. */
+  closureVariables?: VariableScope;
   /** Applied attributes, in written order; set once during materialization. */
   attributes?: Attribute[];
   /** Metadata keyed by decorator name -> that decorator's raw return value. */

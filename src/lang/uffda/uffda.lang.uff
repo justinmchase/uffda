@@ -57,9 +57,9 @@ rule DeclarationRecovery =
   | ((RuleQuotedTokenSequence | any) DeclarationRest)
   ;
 
-# The fence parser for comments: ```uffda fences are Uffda modules. Every
-# other tag (apart from untagged and ```text fences, which the comment grammar
-# keeps as written) fails, so it is a syntax error.
+# The fence parser for comments: fences tagged `uffda` are Uffda modules.
+# Every other tag (apart from untagged and `text` fences, which the comment
+# grammar keeps as written) fails, so it is a syntax error.
 rule UffdaFence =
   object & { language: "uffda", code: m:UffdaLang }
   -> m;
