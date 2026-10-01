@@ -81,6 +81,12 @@ export type CliFormatStdinResult = CliFormatResult & {
   text?: string;
 };
 
+/** A language's grammar and the formatter its entry rule names. */
+export type LanguageFormatter = {
+  grammar: LanguageGrammar;
+  formatter: RuleInfo;
+};
+
 /**
  * Formats documents by language, as `.uffda/lsp.jsonc` configures them;
  * see `.agents/specifications/languages/cli/formatting.spec.md`. Each
@@ -89,7 +95,7 @@ export type CliFormatStdinResult = CliFormatResult & {
 export class LanguageFormatting {
   private readonly formatters = new Map<
     string,
-    Promise<RuleInfo | CliFormatFailure>
+    Promise<LanguageFormatter | CliFormatFailure>
   >();
 
   constructor(
@@ -119,31 +125,25 @@ export class LanguageFormatting {
     language: LspLanguageConfigEntry,
     source: string,
   ): Promise<{ text: string } | { diagnostics: CliFormatFailure[] }> {
-    const grammar = grammarTargetFor(language, this.workspaceRoot);
-    if (!grammar) {
-      return {
-        diagnostics: [{
-          code: CliFormatFailureCode.NoFormatter,
-          message:
-            `Language '${language.id}' declares no grammar to format with`,
-        }],
-      };
-    }
-    const formatter = await this.formatterFor(language, grammar);
-    if ("code" in formatter) return { diagnostics: [formatter] };
+    const resolved = await this.formatterOf(language);
+    if ("code" in resolved) return { diagnostics: [resolved] };
+    const { grammar, formatter } = resolved;
     return await toFormatOutcome(
       await formatSource(grammar, source, formatter),
       source,
     );
   }
 
-  private formatterFor(
+  /**
+   * The grammar and formatter of `language`, or why it cannot be formatted
+   * (`NoFormatter` when it names none).
+   */
+  public formatterOf(
     language: LspLanguageConfigEntry,
-    grammar: LanguageGrammar,
-  ): Promise<RuleInfo | CliFormatFailure> {
+  ): Promise<LanguageFormatter | CliFormatFailure> {
     let formatter = this.formatters.get(language.id);
     if (!formatter) {
-      formatter = this.resolve(language, grammar);
+      formatter = this.resolve(language);
       this.formatters.set(language.id, formatter);
     }
     return formatter;
@@ -151,12 +151,18 @@ export class LanguageFormatting {
 
   private async resolve(
     language: LspLanguageConfigEntry,
-    grammar: LanguageGrammar,
-  ): Promise<RuleInfo | CliFormatFailure> {
+  ): Promise<LanguageFormatter | CliFormatFailure> {
+    const grammar = grammarTargetFor(language, this.workspaceRoot);
+    if (!grammar) {
+      return {
+        code: CliFormatFailureCode.NoFormatter,
+        message: `Language '${language.id}' declares no grammar to format with`,
+      };
+    }
     const resolution = await resolveFormatter(grammar);
     switch (resolution.kind) {
       case FormatterResolutionKind.Found:
-        return resolution.formatter;
+        return { grammar, formatter: resolution.formatter };
       case FormatterResolutionKind.NoFormatter:
         return {
           code: CliFormatFailureCode.NoFormatter,
@@ -242,9 +248,19 @@ function noLanguage(path: string): CliFormatFailure {
   };
 }
 
+/** What `fmt` formats when given no paths. */
+export const FMT_DEFAULT_GLOB = "**/*";
+
+/** Directories `fmt`'s globs never descend into. */
+export const FMT_GLOB_EXCLUDES = ["**/.git", "**/node_modules"];
+
 /**
  * Formats files and globs in place, or with `check` only reports which are
- * not canonical. A file that does not parse cleanly is never rewritten.
+ * not canonical; with no paths, every file under `cwd`. A file named by a
+ * path MUST have a language with a formatter. A file matched by a glob is
+ * skipped, and left out of the result, when its extension has no language or
+ * its language has no formatter. A file that does not parse cleanly is never
+ * rewritten.
  */
 export async function formatFiles(options: {
   formatting: LanguageFormatting;
@@ -253,8 +269,14 @@ export async function formatFiles(options: {
   check: boolean;
 }): Promise<CliFormatResult> {
   const { formatting, cwd, sourcePaths, check } = options;
-  const expanded = await expandSourcePaths(cwd, sourcePaths);
-  const files: CliFormatFileResult[] = expanded.failures.map((failure) => ({
+  const defaulted = sourcePaths.length === 0;
+  const expanded = await expandSourcePaths(
+    cwd,
+    defaulted ? [FMT_DEFAULT_GLOB] : sourcePaths,
+    FMT_GLOB_EXCLUDES,
+  );
+  const failures = defaulted ? [] : expanded.failures;
+  const files: CliFormatFileResult[] = failures.map((failure) => ({
     sourcePath: failure.sourcePath,
     status: CliFormatStatus.Failed,
     diagnostics: [{
@@ -266,7 +288,9 @@ export async function formatFiles(options: {
   }));
 
   for (const path of expanded.files) {
-    files.push(await formatFile(formatting, cwd, path, check));
+    const explicit = expanded.explicit.has(path);
+    const file = await formatFile(formatting, cwd, path, check, explicit);
+    if (file) files.push(file);
   }
 
   return {
@@ -284,10 +308,12 @@ async function formatFile(
   cwd: string,
   path: string,
   check: boolean,
-): Promise<CliFormatFileResult> {
+  explicit: boolean,
+): Promise<CliFormatFileResult | undefined> {
   const sourcePath = toStableSourcePath(cwd, path);
   const language = formatting.languageFor(path);
   if (!language) {
+    if (!explicit) return undefined;
     return {
       sourcePath,
       status: CliFormatStatus.Failed,
@@ -300,6 +326,13 @@ async function formatFile(
     language: language.id,
     diagnostics,
   });
+
+  const formatter = await formatting.formatterOf(language);
+  if ("code" in formatter) {
+    const skip = !explicit &&
+      formatter.code === CliFormatFailureCode.NoFormatter;
+    return skip ? undefined : failed([formatter]);
+  }
 
   let source: string;
   try {

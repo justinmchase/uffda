@@ -10,14 +10,19 @@ spec_ref: ".agents/specifications/languages/cli/formatting.spec.md"
 
 Preconditions:
 
-- `uffda fmt` receives one or more file paths and/or glob patterns, or `-`, with
-  optional `--check` and `--json`.
+- `uffda fmt` receives any number of file paths and/or glob patterns, or `-`,
+  with optional `--check` and `--json`.
 
 Expected behavior:
 
 - Each file's language MUST be chosen by extension from the built-in `.uff`
   language and `.uffda/lsp.jsonc`, and the file formatted with the formatter its
   language's entry rule names with `[Formatter]`.
+- Without paths, every file under the working directory MUST be considered,
+  except under `.git` and `node_modules`.
+- A file matched by a glob or the default whose extension no language owns, or
+  whose language has no `[Formatter]`, MUST be skipped silently and left out of
+  the results.
 - A file whose formatted text differs MUST be rewritten in place and listed as
   `changed`; a formatted file MUST be `unchanged` and not written.
 - With `--check`, no file MUST be written; non-canonical files MUST be listed as
@@ -25,9 +30,9 @@ Expected behavior:
 - A file that fails to parse or parses only by recovering MUST NOT be rewritten;
   its parse diagnostics MUST be reported with source locations and the command
   MUST exit non-zero.
-- A missing path, a glob matching no file, an extension no language owns, and a
-  language without `[Formatter]` MUST each be reported as a failure with a
-  non-zero exit.
+- A missing path, an explicit glob matching no file, and a file named by an
+  explicit path whose extension no language owns or whose language has no
+  `[Formatter]` MUST each be reported as a failure with a non-zero exit.
 - `-` MUST format standard input as `.uff` and write the formatted text to
   standard output.
 - Without `--json`, changed paths MUST go to standard output and diagnostics to

@@ -152,7 +152,7 @@ function rootUsageText(): string {
     "",
     "Examples:",
     "  uffda compile 'src/**/*.uff'",
-    "  uffda fmt --check 'src/**/*.uff'",
+    "  uffda fmt --check",
     "  uffda parse --lang expression ./hello.expr | uffda exec --ast",
     "  uffda exec -e '(echo \"hello\")'",
     "  uffda match ./word.pattern --input hello",
@@ -207,14 +207,19 @@ function execUsageText(): string {
 
 function fmtUsageText(): string {
   return [
-    "Usage: uffda fmt [--check] [--json] <file-or-glob|-> [...more paths]",
+    "Usage: uffda fmt [--check] [--json] [file-or-glob|-] [...more paths]",
     "",
     "Formatting:",
-    "  Formats each file with the [Formatter] its language's entry rule names,",
-    "  rewriting it in place and listing the files that changed. A file's",
+    "  Formats files with the [Formatter] their language's entry rule names,",
+    "  rewriting them in place and listing the files that changed. A file's",
     "  language is the .uff language or a .uffda/lsp.jsonc language, by",
-    "  extension. - formats standard input as .uff and writes standard output.",
-    "  A file that does not parse cleanly is never rewritten.",
+    "  extension. A file that does not parse cleanly is never rewritten.",
+    "",
+    "  With no paths, formats every file under the working directory (except",
+    "  .git and node_modules) and skips files whose extension has no language",
+    "  or whose language has no formatter. Files matched by a glob are skipped",
+    "  the same way. A file named explicitly must have a language with a",
+    "  formatter. - formats standard input as .uff and writes standard output.",
     "",
     "Options:",
     "  --check    Write nothing; list files that are not formatted.",
@@ -621,6 +626,7 @@ export function shouldReadStdin(
   }
 
   const { inlineSource, inputPaths } = resolution.contract;
+  if (resolution.contract.mode === CliMode.Fmt) return inputPaths[0] === "-";
   return inlineSource === undefined &&
     (inputPaths.length === 0 || inputPaths[0] === "-");
 }

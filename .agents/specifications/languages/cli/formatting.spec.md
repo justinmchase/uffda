@@ -21,14 +21,19 @@ with the same languages and the same results as the
 ## Invocation
 
 ```sh
+uffda fmt
+uffda fmt --check
 uffda fmt <file-or-glob> [...more paths]
-uffda fmt --check <file-or-glob> [...more paths]
 uffda fmt -
 ```
 
-- `fmt` MUST accept one or more file paths and glob patterns, resolved against
-  the working directory. A glob that matches no file, a missing path, and a path
-  that is not a file MUST each be reported as a failure.
+- Without paths, `fmt` MUST format every file under the working directory, as if
+  given the glob `**/*`, without failing when nothing matches.
+- `fmt` MUST accept file paths and glob patterns, resolved against the working
+  directory. A glob that matches no file, a missing path, and a path that is not
+  a file MUST each be reported as a failure.
+- Globs, including the default, MUST NOT descend into `.git` or `node_modules`
+  directories.
 - `-` MUST format standard input as a `.uff` module and write the formatted text
   to standard output; it MUST NOT be combined with paths.
 - `fmt` MUST accept only paths, `-`, `--check`, and `--json`, and MUST reject
@@ -41,8 +46,15 @@ uffda fmt -
   server chooses it: the built-in `.uff` language or a language declared in
   `.uffda/lsp.jsonc` under the working directory (see
   [language configuration](./language-server.spec.md#language-configuration)).
-- A file whose extension no language owns, or whose language's entry rule has no
-  `[Formatter]`, MUST be reported as a failure, never skipped.
+- Formatting is opportunistic for files matched by a glob (including the
+  default): a file whose extension no language owns, or whose language's entry
+  rule has no `[Formatter]`, MUST be skipped silently and left out of the
+  results.
+- A file named by an explicit path MUST be formatted: if no language owns its
+  extension, or its language has no `[Formatter]`, that MUST be reported as a
+  failure.
+- A language whose grammar cannot be loaded MUST be reported as a failure for
+  each of its files, whether named or matched.
 - An invalid `.uffda/lsp.jsonc` MUST fail the command with a configuration
   failure.
 

@@ -52,6 +52,18 @@ Deno.test("cli.main runCli validates mode support and compile routing", async (t
       processCwd: "/workspace/project",
     });
     assertEquals(shouldReadStdin(standardInput), true);
+
+    const fmtAll = resolveCliProcessContract({
+      argv: ["fmt"],
+      processCwd: "/workspace/project",
+    });
+    assertEquals(shouldReadStdin(fmtAll), false);
+
+    const fmtStdin = resolveCliProcessContract({
+      argv: ["fmt", "-"],
+      processCwd: "/workspace/project",
+    });
+    assertEquals(shouldReadStdin(fmtStdin), true);
   });
 
   await t.step("prints root help when --help is requested", async () => {

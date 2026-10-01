@@ -169,10 +169,20 @@ Deno.test("cli.contract resolves command model and process contracts determinist
     assertEquals(resolution.contract.inputPaths, ["-"]);
   });
 
+  await t.step("fmt accepts no paths", () => {
+    const resolution = resolveCliProcessContract({
+      argv: ["fmt", "--check"],
+      processCwd: cwd,
+      stdinAttached: true,
+    });
+    assertEquals(resolution.ok, true);
+    if (!resolution.ok) return;
+    assertEquals(resolution.contract.inputPaths, []);
+  });
+
   await t.step("rejects invalid fmt invocations", () => {
     for (
       const argv of [
-        ["fmt"],
         ["fmt", "-", "a.uff"],
         ["fmt", "-e", "rule A = a;"],
         ["fmt", "--lang", "pattern", "a.uff"],

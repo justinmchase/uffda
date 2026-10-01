@@ -383,9 +383,6 @@ function fmtValidationError(parsed: ParsedArgs): string | undefined {
   ) {
     return "fmt accepts only paths, globs, -, --check, and --json";
   }
-  if (parsed.inputPaths.length === 0) {
-    return "fmt requires at least one file path, glob pattern, or -";
-  }
   if (parsed.inputPaths.includes("-") && parsed.inputPaths.length > 1) {
     return "fmt cannot combine - with file paths";
   }

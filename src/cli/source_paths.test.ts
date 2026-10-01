@@ -21,11 +21,20 @@ Deno.test("cli.source_paths expandSourcePaths", async (t) => {
               join(cwd, "src", "b.uff"),
               join(cwd, "top.uff"),
             ],
+            explicit: new Set([
+              join(cwd, "src", "a.uff"),
+              join(cwd, "top.uff"),
+            ]),
             failures: [],
           },
         );
       },
     );
+
+    await t.step("globs skip excluded directories", async () => {
+      const { files } = await expandSourcePaths(cwd, ["**/*.uff"], ["src"]);
+      assertEquals(files, [join(cwd, "top.uff")]);
+    });
 
     await t.step("reports globs and paths that name no file", async () => {
       const { files, failures } = await expandSourcePaths(cwd, [

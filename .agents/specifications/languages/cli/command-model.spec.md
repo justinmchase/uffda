@@ -67,9 +67,10 @@ Normative key words in this chapter use the conventions defined in the
 - `match` MUST treat `--input` and `--input-file` content as text by default.
   `--input-json` MUST parse its value as one JSON value and MUST reject invalid
   JSON with deterministic diagnostics.
-- `fmt` MUST accept one or more paths or globs, or `-` alone for standard input,
-  and `--check`; it MUST reject every other input option, and `--check` MUST be
-  rejected by every other command.
+- `fmt` MUST accept any number of paths or globs (none formats every file under
+  the working directory), or `-` alone for standard input, and `--check`; it
+  MUST reject every other input option, and `--check` MUST be rejected by every
+  other command.
 - `--json` MUST select machine-readable command output and diagnostics. Without
   `--json`, match failures MUST be human-readable and include the rightmost
   failed pattern, input position, and source excerpt when source is available.

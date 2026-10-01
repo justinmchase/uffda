@@ -18,18 +18,22 @@ export type SourcePathFailure = {
 export type ExpandedSourcePaths = {
   /** Absolute file paths, deduplicated and sorted. */
   files: string[];
+  /** The files named by a path rather than matched by a glob. */
+  explicit: Set<string>;
   failures: SourcePathFailure[];
 };
 
 async function expandGlobPattern(
   cwd: string,
   pattern: string,
+  exclude: string[],
 ): Promise<string[]> {
   const files: string[] = [];
   for await (
     const entry of expandGlob(pattern, {
       root: cwd,
       includeDirs: false,
+      exclude,
     })
   ) {
     if (entry.isFile) {
@@ -42,17 +46,20 @@ async function expandGlobPattern(
 /**
  * Expands command-line file paths and globs relative to `cwd`. A glob that
  * matches nothing, a missing path, or a path that is not a file is a failure.
+ * Globs never descend into a directory matching an `exclude` glob.
  */
 export async function expandSourcePaths(
   cwd: string,
   sourcePaths: string[],
+  exclude: string[] = [],
 ): Promise<ExpandedSourcePaths> {
   const files: string[] = [];
+  const explicit = new Set<string>();
   const failures: SourcePathFailure[] = [];
 
   for (const sourcePath of sourcePaths) {
     if (isGlob(sourcePath)) {
-      const matched = await expandGlobPattern(cwd, sourcePath);
+      const matched = await expandGlobPattern(cwd, sourcePath, exclude);
       if (matched.length === 0) {
         failures.push({
           code: SourcePathFailureCode.NotFound,
@@ -72,6 +79,7 @@ export async function expandSourcePaths(
       const stat = await Deno.stat(absolutePath);
       if (stat.isFile) {
         files.push(absolutePath);
+        explicit.add(absolutePath);
       } else if (stat.isDirectory) {
         failures.push({
           code: SourcePathFailureCode.NotReadable,
@@ -99,6 +107,7 @@ export async function expandSourcePaths(
 
   return {
     files: [...new Set(files)].sort((a, b) => a.localeCompare(b)),
+    explicit,
     failures,
   };
 }

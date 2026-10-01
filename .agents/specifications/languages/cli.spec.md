@@ -108,8 +108,9 @@ Format files with their language's formatter, check them without writing, or
 format standard input:
 
 ```sh
-uffda fmt 'src/**/*.uff'
-uffda fmt --check 'src/**/*.uff'
+uffda fmt
+uffda fmt --check
+uffda fmt ./src/main.uff
 printf 'rule   A = "a";' | uffda fmt -
 ```
 

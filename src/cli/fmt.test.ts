@@ -110,7 +110,7 @@ Deno.test("cli.fmt formatFiles", async (t) => {
   );
 
   await t.step(
-    "files without a language or formatter, and missing paths, fail",
+    "files named without a language or formatter, and missing paths, fail",
     async () => {
       const cwd = await workspace({
         ".uffda/lsp.jsonc": JSON.stringify({
@@ -155,6 +155,100 @@ Deno.test("cli.fmt formatFiles", async (t) => {
       }
     },
   );
+});
+
+Deno.test("cli.fmt formatFiles without paths or through globs", async (t) => {
+  const files = {
+    ".uffda/lsp.jsonc": JSON.stringify({
+      languages: [{
+        id: "tokens",
+        extensions: ["tok"],
+        modulePath: TOKENIZER,
+        entryRuleName: "Tokenizer",
+      }],
+    }),
+    "a.uff": UNFORMATTED,
+    "sub/b.uff": FORMATTED,
+    "notes.txt": "x",
+    "a.tok": "x",
+    "node_modules/pkg/c.uff": UNFORMATTED,
+    ".git/d.uff": UNFORMATTED,
+  };
+
+  await t.step(
+    "formats every file under cwd, skipping what has no formatter",
+    async () => {
+      const cwd = await workspace(files);
+      try {
+        const result = await formatFiles({
+          formatting: await load(cwd),
+          cwd,
+          sourcePaths: [],
+          check: false,
+        });
+        assertEquals(result, {
+          ok: true,
+          check: false,
+          files: [
+            {
+              sourcePath: "a.uff",
+              status: CliFormatStatus.Changed,
+              language: "uffda",
+            },
+            {
+              sourcePath: "sub/b.uff",
+              status: CliFormatStatus.Unchanged,
+              language: "uffda",
+            },
+          ],
+        });
+        assertEquals(
+          await Deno.readTextFile(join(cwd, "node_modules/pkg/c.uff")),
+          UNFORMATTED,
+        );
+        assertEquals(
+          await Deno.readTextFile(join(cwd, ".git/d.uff")),
+          UNFORMATTED,
+        );
+      } finally {
+        await Deno.remove(cwd, { recursive: true });
+      }
+    },
+  );
+
+  await t.step("a workspace with nothing to format succeeds", async () => {
+    const cwd = await workspace({});
+    try {
+      assertEquals(
+        await formatFiles({
+          formatting: await load(cwd),
+          cwd,
+          sourcePaths: [],
+          check: true,
+        }),
+        { ok: true, check: true, files: [] },
+      );
+    } finally {
+      await Deno.remove(cwd, { recursive: true });
+    }
+  });
+
+  await t.step("files a glob matches are skipped the same way", async () => {
+    const cwd = await workspace(files);
+    try {
+      const result = await formatFiles({
+        formatting: await load(cwd),
+        cwd,
+        sourcePaths: ["a.*", "notes.*"],
+        check: true,
+      });
+      assertEquals(result.files.map(({ sourcePath }) => sourcePath), [
+        "a.uff",
+      ]);
+    } finally {
+      await Deno.remove(cwd, { recursive: true });
+    }
+  });
 });
 
 Deno.test("cli.fmt formatStdin", async (t) => {
