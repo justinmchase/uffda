@@ -17,11 +17,16 @@ pattern matching rather than host code.
 - `UffdaFormat` in `src/lang/uffda/format/mod.uff` MUST take one Uffda syntax
   module as its input value and produce the module's canonical text, ending with
   one line break unless the text is empty.
+- `UffdaLang` MUST name `UffdaFormat` as its formatter with
+  `[Formatter UffdaFormat]` (see
+  [editor metadata](../cli/editor-metadata.spec.md#formatting)), so `uffda fmt`
+  and the language server format `.uff` like any other language.
 - `ModuleFormat<W>` MUST produce the same text, without the final line break, at
   the line width `W` produces.
 - `formatUffdaSource(source)` MUST parse `source` with UffdaLang and format the
-  resulting tree. A source that does not parse cleanly (it fails, or parses only
-  by recovering) MUST be returned as that parse and MUST NOT be formatted.
+  resulting tree with the formatter UffdaLang names. A source that does not
+  parse cleanly (it fails, or parses only by recovering) MUST NOT be formatted;
+  the result reports the parse instead.
 
 ## Core contracts
 

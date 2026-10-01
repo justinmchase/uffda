@@ -487,3 +487,38 @@ function offsetToPosition(
   const lines = before.split("\n");
   return { line: lines.length - 1, character: lines.at(-1)?.length ?? 0 };
 }
+
+Deno.test("cli.lsp.documents LspDocumentManager.format", async (t) => {
+  const uri = "file:///workspace/format.uff";
+
+  await t.step("is undefined for a document that is not open", async () => {
+    const manager = new LspDocumentManager(Deno.cwd());
+    assertEquals(await manager.format(uri), undefined);
+  });
+
+  await t.step(
+    "replaces the whole document with its formatted text",
+    async () => {
+      const manager = new LspDocumentManager(Deno.cwd());
+      await manager.open(uri, 'rule   A =  "a" ;');
+      assertEquals(await manager.format(uri), [{
+        range: {
+          start: { line: 0, character: 0 },
+          end: { line: 0, character: 17 },
+        },
+        newText: 'rule A = "a";\n',
+      }]);
+    },
+  );
+
+  await t.step(
+    "returns no edits for canonical text or an unclean parse",
+    async () => {
+      const manager = new LspDocumentManager(Deno.cwd());
+      await manager.open(uri, 'rule A = "a";\n');
+      assertEquals(await manager.format(uri), []);
+      await manager.change(uri, [{ text: "rule = ;" }]);
+      assertEquals(await manager.format(uri), []);
+    },
+  );
+});

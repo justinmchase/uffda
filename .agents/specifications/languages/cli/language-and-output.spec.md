@@ -21,6 +21,9 @@ Normative key words in this chapter use the conventions defined in the
 - The `match` command MUST select the pattern language and MUST reject `--lang`.
 - The `run` command MUST select the full Uffda module language and MUST reject
   `--lang`.
+- The `fmt` command MUST select each file's language by its extension (see
+  [formatting command](./formatting.spec.md#languages)) and MUST reject
+  `--lang`.
 - The `compile` command MUST compile full Uffda modules into AST artifacts and
   MUST reject `--lang`.
 

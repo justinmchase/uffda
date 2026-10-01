@@ -1,16 +1,16 @@
 import { assert, assertEquals } from "@std/assert";
-import { isClean, isSuccess, type Match, valueOf } from "../../match.ts";
-import { unwrap } from "../../wrapped.ts";
+import { isClean, isSuccess, valueOf } from "../../match.ts";
+import { FormatResultKind } from "../format.ts";
 import { formatUffdaSource, formatUffdaSyntaxModule } from "./format.ts";
 import { uffdaGrammar } from "./uffda.lang.ts";
 
 const formats = async (source: string, expected: string) => {
-  const match = (await formatUffdaSource(source)) as Match<unknown>;
+  const result = await formatUffdaSource(source);
   assert(
-    isClean(match) && isSuccess(match),
+    result.kind === FormatResultKind.Formatted,
     `expected ${JSON.stringify(source)} to format`,
   );
-  assertEquals(unwrap(valueOf(match)), expected);
+  assertEquals(result.text, expected);
 };
 
 Deno.test("lang.uffda.format", async (t) => {
@@ -232,18 +232,18 @@ Deno.test("lang.uffda.format", async (t) => {
   );
 
   await t.step(
-    "FORMAT11 - an unclean parse is returned unformatted",
+    "FORMAT11 - an unclean parse is not formatted",
     async () => {
-      const match = await formatUffdaSource("rule = ;");
-      assertEquals(isClean(match), false);
+      const result = await formatUffdaSource("rule = ;");
+      assert(result.kind === FormatResultKind.ParseFailed);
+      assertEquals(isClean(result.match), false);
     },
   );
 
   await t.step("FORMAT12 - an empty module formats to empty text", async () => {
     const parsed = await uffdaGrammar("");
     assert(isClean(parsed) && isSuccess(parsed));
-    const match = await formatUffdaSyntaxModule(valueOf(parsed));
-    assert(isSuccess(match));
-    assertEquals(unwrap(valueOf(match)), "");
+    const result = await formatUffdaSyntaxModule(valueOf(parsed));
+    assertEquals(result, { kind: FormatResultKind.Formatted, text: "" });
   });
 });

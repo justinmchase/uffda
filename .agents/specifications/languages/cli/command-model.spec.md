@@ -15,7 +15,9 @@ Normative key words in this chapter use the conventions defined in the
   - standard-input parsing workflows selected by `parse`;
   - expression execution workflows selected by `exec`;
   - pattern matching workflows selected by `match`;
-  - Uffda module execution workflows selected by `run`.
+  - Uffda module execution workflows selected by `run`;
+  - source formatting workflows selected by `fmt` (see
+    [formatting command](./formatting.spec.md)).
 - The command topology MUST support global flags that apply consistently across
   command families.
 - Global options MUST include language selection and runtime resolution context.
@@ -65,6 +67,9 @@ Normative key words in this chapter use the conventions defined in the
 - `match` MUST treat `--input` and `--input-file` content as text by default.
   `--input-json` MUST parse its value as one JSON value and MUST reject invalid
   JSON with deterministic diagnostics.
+- `fmt` MUST accept one or more paths or globs, or `-` alone for standard input,
+  and `--check`; it MUST reject every other input option, and `--check` MUST be
+  rejected by every other command.
 - `--json` MUST select machine-readable command output and diagnostics. Without
   `--json`, match failures MUST be human-readable and include the rightmost
   failed pattern, input position, and source excerpt when source is available.

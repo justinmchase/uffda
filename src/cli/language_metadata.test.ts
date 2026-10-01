@@ -5,6 +5,7 @@ import {
 } from "./lsp.config.ts";
 import {
   enrichLspConfigWithLanguageMetadata,
+  grammarTargetFor,
   languageMetadataForConfig,
   loadLanguageMetadata,
   toEditorLanguageConfiguration,
@@ -184,4 +185,34 @@ Deno.test("cli.language_metadata enrichLspConfigWithLanguageMetadata", async (t)
       assertEquals(enriched.languages[0].extensions, ["custom"]);
     },
   );
+});
+
+Deno.test("cli.language_metadata grammarTargetFor", async (t) => {
+  await t.step("the built-in language targets the bundled grammar", () => {
+    const target = grammarTargetFor(BUILTIN_UFF_LANGUAGE, "/workspace");
+    assertEquals(target?.entryRuleName, "UffdaLang");
+    assert(target?.moduleUrl.href.endsWith("/src/lang/uffda/uffda.lang.uff"));
+  });
+
+  await t.step("a configured language resolves against the workspace", () => {
+    assertEquals(
+      grammarTargetFor({
+        id: "morse",
+        extensions: ["morse"],
+        modulePath: "./morse.uff",
+        entryRuleName: "Main",
+      }, "/workspace"),
+      {
+        moduleUrl: new URL("file:///workspace/morse.uff"),
+        entryRuleName: "Main",
+      },
+    );
+  });
+
+  await t.step("a language without a grammar has no target", () => {
+    assertEquals(
+      grammarTargetFor({ id: "text", extensions: ["txt"] }, "/workspace"),
+      undefined,
+    );
+  });
 });

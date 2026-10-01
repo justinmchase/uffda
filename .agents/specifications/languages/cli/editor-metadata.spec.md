@@ -55,6 +55,7 @@ diagnostics, and tooling MUST NOT fall back to guessing.
 | `Import`                     | a module import production                         | projected value is a runtime import declaration       |
 | `ModulePath { extensions? }` | the module path text of an import (no delimiters)  | `extensions`: module file extensions (omitted: any)   |
 | `ImportedName`               | one name bound by an import                        | —                                                     |
+| `Formatter X`                | a language's entry rule                            | the info of the formatter rule `X` (see Formatting)   |
 | `Documentation`              | a rule/func/decorator being documented             | `{ description, parameters }` (see below)             |
 
 `Documentation` differs from the others: it describes a declaration for the
@@ -196,6 +197,24 @@ Completion is driven by the grammar, never by recognizing text:
 - A non-empty token being typed (an `Ok` context node ending at the cursor) wins
   over the tokens expected after it: when one reaches the cursor, `Fail` nodes
   do not.
+
+## Formatting
+
+- `[Formatter X]` on a language's entry rule names the rule that formats the
+  language. `X` is written as a rule name, so the metadata value is that rule's
+  info (`{ kind: "rule", name, moduleUrl, parameters }`; see
+  [rule references](../../expressions/reference.spec.md#rule-references)), and
+  the decorator MUST reject a rule that declares parameters.
+- The formatter rule MUST take the entry rule's parse value as its input and
+  produce the document's formatted text as a string. Tooling runs it, from its
+  declaring module, over the parse value of a source that parsed cleanly, and
+  MUST NOT format a source that failed to parse or parsed only by recovering.
+- Formatting is not tooling's own code: a language without `[Formatter]` cannot
+  be formatted, and tooling MUST say so rather than fall back to any default
+  layout. The `.uff` grammar names
+  [`UffdaFormat`](../uffda-syntax/formatting.spec.md) on `UffdaLang`.
+- [`uffda fmt`](./formatting.spec.md) and the language server's
+  [formatting](./language-server.spec.md#formatting) both format this way.
 
 ## Related
 

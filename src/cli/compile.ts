@@ -1,6 +1,4 @@
-import { expandGlob } from "@std/fs/expand-glob";
-import { dirname, isAbsolute, join, resolve } from "@std/path";
-import { isGlob } from "@std/path/is-glob";
+import { dirname, isAbsolute, join } from "@std/path";
 import { isClean, isSuccess, type Match, MatchKind } from "../match.ts";
 import {
   analyzeMatchFailure,
@@ -18,6 +16,11 @@ import {
   parseFailureLocation,
   recoveryFailures,
 } from "./stream.ts";
+import {
+  expandSourcePaths,
+  type SourcePathFailure,
+  SourcePathFailureCode,
+} from "./source_paths.ts";
 import { valueOf } from "../match.ts";
 
 export enum CliCompileFailureCode {
@@ -103,82 +106,22 @@ async function parseFailureMessage(match: Match): Promise<string> {
   return "unexpected parser outcome";
 }
 
-async function expandGlobPattern(
-  cwd: string,
-  pattern: string,
-): Promise<string[]> {
-  const files: string[] = [];
-  for await (
-    const entry of expandGlob(pattern, {
-      root: cwd,
-      includeDirs: false,
-    })
-  ) {
-    if (entry.isFile) {
-      files.push(entry.path);
-    }
-  }
-  return files;
-}
-
-async function expandSourcePaths(
-  cwd: string,
-  sourcePaths: string[],
-): Promise<{ files: string[]; failures: CliCompileFailure[] }> {
-  const files: string[] = [];
-  const failures: CliCompileFailure[] = [];
-
-  for (const sourcePath of sourcePaths) {
-    if (isGlob(sourcePath)) {
-      const matched = await expandGlobPattern(cwd, sourcePath);
-      if (matched.length === 0) {
-        failures.push({
-          code: CliCompileFailureCode.SourceNotFound,
-          sourcePath,
-          message: `Glob matched no files: ${sourcePath}`,
-        });
-        continue;
-      }
-      files.push(...matched);
-      continue;
-    }
-
-    const absolutePath = isAbsolute(sourcePath)
-      ? sourcePath
-      : resolve(cwd, sourcePath);
-    try {
-      const stat = await Deno.stat(absolutePath);
-      if (stat.isFile) {
-        files.push(absolutePath);
-      } else if (stat.isDirectory) {
-        failures.push({
-          code: CliCompileFailureCode.SourceNotReadable,
-          sourcePath: toStableSourcePath(cwd, absolutePath),
-          message:
-            `Directories are not supported as compile inputs; use a glob pattern (for example '${
-              sourcePath.replace(/\/$/, "")
-            }/**/*.uff')`,
-        });
-      } else {
-        failures.push({
-          code: CliCompileFailureCode.SourceNotReadable,
-          sourcePath: toStableSourcePath(cwd, absolutePath),
-          message: `Source path is not a file: ${absolutePath}`,
-        });
-      }
-    } catch (error) {
-      failures.push({
+function toCompileFailure(failure: SourcePathFailure): CliCompileFailure {
+  const { code, sourcePath, message } = failure;
+  switch (code) {
+    case SourcePathFailureCode.NotFound:
+      return {
         code: CliCompileFailureCode.SourceNotFound,
-        sourcePath: toStableSourcePath(cwd, absolutePath),
-        message: `Source path does not exist: ${absolutePath} (${error})`,
-      });
-    }
+        sourcePath,
+        message,
+      };
+    case SourcePathFailureCode.NotReadable:
+      return {
+        code: CliCompileFailureCode.SourceNotReadable,
+        sourcePath,
+        message,
+      };
   }
-
-  return {
-    files: [...new Set(files)].sort((a, b) => a.localeCompare(b)),
-    failures,
-  };
 }
 
 function planOutputs(
@@ -277,7 +220,7 @@ export async function compileSourcesToAstArtifacts(
 
   const units: CliCompileUnitResult[] = [];
   const failures: CliCompileFailure[] = [
-    ...expanded.failures,
+    ...expanded.failures.map(toCompileFailure),
     ...planned.failures,
   ];
   const successes: CliCompileUnitSuccess[] = [];

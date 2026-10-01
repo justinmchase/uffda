@@ -13,6 +13,7 @@ export NameReference;
 export Import;
 export ModulePath;
 export ImportedName;
+export Formatter;
 export Documentation;
 
 # `[Highlight { role: "comment" }]` — the syntactic role of a token rule's
@@ -70,6 +71,15 @@ decorator ModulePath<c:any> = c;
 # exports of the module named by the enclosing Import's ModulePath.
 [Documentation "One name bound by an import. Completion offers the exports of the module named by the enclosing Import's ModulePath."]
 decorator ImportedName = true;
+
+# `[Formatter Print]` — on a language's entry rule, names the rule that
+# formats the language: it takes the entry rule's parse value and produces
+# the formatted source text. `f` is the rule's info (see rule references).
+[Documentation {
+  description: "The rule that formats this language. Applied to a language's entry rule, it names a parameterless rule that takes the entry rule's parse value and produces the formatted source text.",
+  parameters: { f: "The formatter rule, named directly (for example `[Formatter UffdaFormat]`)." }
+}]
+decorator Formatter<f:{ kind: "rule", parameters: [end] }> = f;
 
 # `[Documentation "…"]` or
 # `[Documentation { description: "…", parameters: { P: "…" } }]` —

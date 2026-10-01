@@ -38,6 +38,9 @@ source and inspecting outcomes without embedding Uffda programmatically.
 - Match mode: pattern matching from source or pattern AST input against explicit
   subject input.
 - Run mode: Uffda module execution from source or module AST input.
+- Format mode: formatting files in place, or checking them, with the formatter
+  each file's language names; see
+  [formatting command](./cli/formatting.spec.md).
 - Language-selection mode: `parse` selects full Uffda, pattern, or expression
   via `--lang` (full Uffda default); `exec`/`match`/`run` own their languages;
   `compile` always targets Uffda module AST artifacts.
@@ -101,6 +104,15 @@ uffda run ./app.uff --entry Main
 uffda parse --lang uffda ./app.uff | uffda run --ast --entry Main
 ```
 
+Format files with their language's formatter, check them without writing, or
+format standard input:
+
+```sh
+uffda fmt 'src/**/*.uff'
+uffda fmt --check 'src/**/*.uff'
+printf 'rule   A = "a";' | uffda fmt -
+```
+
 Start an MCP stdio server for agent-driven parsing, live runtime sessions, and
 introspection:
 
@@ -122,6 +134,7 @@ be human-readable and include the relevant source excerpt and input path.
 - [command model and process contract](./cli/command-model.spec.md)
 - [compile, parse, and operation modes](./cli/compile-and-stream.spec.md)
 - [language-selection and output contracts](./cli/language-and-output.spec.md)
+- [formatting command](./cli/formatting.spec.md)
 - [MCP server mode](./cli/mcp-server.spec.md)
 - [language server mode](./cli/language-server.spec.md)
 - [editor metadata](./cli/editor-metadata.spec.md)
@@ -137,8 +150,8 @@ be human-readable and include the relevant source excerpt and input path.
 ## Status
 
 Required CLI mode families above are shipped: compile, parse, exec, match, run,
-MCP server mode, binary distribution, `uffda-setup`, and self-hosted language
-modules under `./bin`.
+fmt, MCP server mode, binary distribution, `uffda-setup`, and self-hosted
+language modules under `./bin`.
 
 Deferred polish (not release blockers):
 

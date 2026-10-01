@@ -8,6 +8,7 @@ import {
   type DidChangeTextDocumentParams,
   type DidCloseTextDocumentParams,
   type DidOpenTextDocumentParams,
+  type DocumentFormattingParams,
   type HoverParams,
   type InitializeParams,
   type InitializeResult,
@@ -54,6 +55,7 @@ export type UffdaLspConnection = Pick<
   | "onReferences"
   | "onPrepareRename"
   | "onRenameRequest"
+  | "onDocumentFormatting"
   | "onRequest"
   | "sendDiagnostics"
   | "listen"
@@ -107,6 +109,7 @@ export function wireUffdaLspHandlers(
           definitionProvider: true,
           referencesProvider: true,
           renameProvider: { prepareProvider: true },
+          documentFormattingProvider: true,
           completionProvider: {
             resolveProvider: false,
             triggerCharacters: ['"', "/"],
@@ -222,6 +225,15 @@ export function wireUffdaLspHandlers(
       throw new ResponseError(LSPErrorCodes.RequestFailed, plan.message);
     }
     return plan.edit;
+  });
+
+  connection.onDocumentFormatting(async (params: DocumentFormattingParams) => {
+    const { uri } = params.textDocument;
+    const language = resolveLanguageForDocument(config, uri);
+    if (!manager || !language || language.id !== BUILTIN_UFF_LANGUAGE.id) {
+      return [];
+    }
+    return (await manager.format(uri)) ?? [];
   });
 
   connection.onRequest(
