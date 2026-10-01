@@ -95,10 +95,11 @@ export class Scope {
   }
 
   public getRule(name: string): Rule | undefined {
-    if (this.args.has(name)) {
-      return this.args.get(name);
-    }
+    return this.args.get(name) ?? this.getDeclaredRule(name);
+  }
 
+  /** A rule declared in or imported into the module; never a rule argument. */
+  public getDeclaredRule(name: string): Rule | undefined {
     if (this.module.rules.has(name)) {
       return this.module.rules.get(name);
     }

@@ -230,6 +230,33 @@ Deno.test("runtime.scope", async (t) => {
   });
 
   await t.step({
+    name: "SCOPE_DECLARED_RULE",
+    fn: () => {
+      const module = DefaultModule();
+      const declared: Rule = {
+        name: "R",
+        module,
+        parameters: [],
+        pattern: { kind: PatternKind.Ok },
+      };
+      const imported: Rule = { ...declared, name: "I" };
+      module.rules.set("R", declared);
+      module.imports.set("I", imported);
+      const argument: Rule = { ...declared, name: "A" };
+      const scope = new Scope(
+        module,
+        undefined,
+        new Map(),
+        new Map([["R", argument], ["A", argument]]),
+      );
+      assertStrictEquals(scope.getRule("R"), argument);
+      assertStrictEquals(scope.getDeclaredRule("R"), declared);
+      assertStrictEquals(scope.getDeclaredRule("I"), imported);
+      assertEquals(scope.getDeclaredRule("A"), undefined);
+    },
+  });
+
+  await t.step({
     name: "SCOPE_FUNC_FRAME",
     fn: () => {
       const caller = Scope.Default().addVariable("x", 1);
