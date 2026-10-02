@@ -6,4 +6,7 @@
 import "./uffda.lang.uff" UffdaLang;
 import "./runtime.compiler.uff" UffdaRuntimeCompiler;
 
-export rule CompileUffdaSource = UffdaLang |> UffdaRuntimeCompiler;
+export rule CompileUffdaSource =
+  |> UffdaLang
+  |> UffdaRuntimeCompiler
+;

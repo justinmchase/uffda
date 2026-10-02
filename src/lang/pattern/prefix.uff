@@ -13,7 +13,10 @@ export Star;
 
 rule BoundNum = n:Number -> n.value;
 
-rule NonNegNum = BoundNum |> (number & 0..);
+rule NonNegNum =
+  |> BoundNum
+  |> (number & 0..)
+;
 
 rule BoundLiteral = n:NonNegNum -> { kind: "value.literal", value: n };
 

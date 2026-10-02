@@ -11,4 +11,8 @@ rule ExpressionComplete = e:Expression ope end sneak by skip any* -> e;
 
 rule ExpressionTokens = [ExpressionComplete];
 
-rule ExpressionLang = Source |> [TokenizerNoWhitespace] |> [ExpressionComplete];
+rule ExpressionLang =
+  |> Source
+  |> [TokenizerNoWhitespace]
+  |> [ExpressionComplete]
+;

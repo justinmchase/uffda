@@ -73,9 +73,10 @@ have all of its children written flat.
   ("hug"), when the first line fits.
 - **Unbracketed operator chains** (`|`, `&`, `|>`, sequences, and
   `ope … sneak by …`) MUST, when broken, start each continuation line with the
-  operator (`|`, `&`, `|>`, `sneak by`; nothing for a sequence). The
-  continuation lines MUST be at the chain's own indentation when the chain
-  starts its line, and one level deeper otherwise.
+  operator (`|`, `&`, `|>`, `sneak by`; nothing for a sequence). A broken
+  alternation or pipeline MUST also put its operator before the first operand
+  (`| a`, `|> a`). The continuation lines MUST be at the chain's own indentation
+  when the chain starts its line, and one level deeper otherwise.
 
 ## Module layout
 
@@ -97,14 +98,16 @@ have all of its children written flat.
 
 - Each attribute MUST be written on its own line above its declaration.
 - A rule MUST be written `rule Name<P, Q> = body -> projection;` on one line
-  when it fits, unless its body is an alternation. Otherwise the head
-  `rule Name<P, Q> =` MUST be on its own line, the body on the following lines
-  at one level of indentation, and the projection on its own line at one level
-  of indentation as `-> expression`.
+  when it fits, unless its body is an alternation or a pipeline. Otherwise the
+  head `rule Name<P, Q> =` MUST be on its own line, the body on the following
+  lines at one level of indentation, and the projection on its own line at one
+  level of indentation as `-> expression`.
 - A rule whose body is an alternation MUST always be broken, with each
   alternative on its own line as `| alternative`, the first included, even when
-  the rule would fit on one line. An alternation nested inside a body follows
-  the general flat-or-broken rule.
+  the rule would fit on one line. Likewise, a rule whose body is a pipeline MUST
+  always be broken, with each step on its own line as `|> step`, the first
+  included. An alternation or pipeline nested inside a body follows the general
+  flat-or-broken rule.
 - A declaration written on one line MUST end with `;`. A broken rule, func, or
   decorator MUST end with `;` on its own line at the declaration's indentation,
   so the `;` closes the body the `=` opens.

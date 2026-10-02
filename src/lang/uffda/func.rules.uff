@@ -12,7 +12,10 @@ import "./attribute.rules.uff" AttributeSyntax;
 
 export FuncDeclarationSyntax;
 
-export rule FuncExpressionBody = FuncExpressionToken |> ExpressionTokens;
+export rule FuncExpressionBody =
+  |> FuncExpressionToken
+  |> ExpressionTokens
+;
 
 rule FuncEscapedQuotedTokens = "\\" e:("\"" | "{" | "\\") -> (pack "\\" e);
 
