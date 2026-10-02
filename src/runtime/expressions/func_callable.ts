@@ -62,7 +62,7 @@ export function funcCallable(
       false,
       originOf(matchOk),
     );
-    const scope = matchOk.scope.withInput(stream).pushFunc(fn);
+    const scope = matchOk.scope.withLayer(stream).pushFunc(fn);
     return andThen(match(pattern, scope), (result) => {
       switch (result.kind) {
         case MatchKind.LR:

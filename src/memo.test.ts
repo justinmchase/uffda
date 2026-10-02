@@ -472,4 +472,23 @@ Deno.test("memo recovery", async (t) => {
       }, head);
     },
   });
+
+  await t.step({
+    name: "MEMO_LAYER - a layer shares recoverable but no entries",
+    fn: () => {
+      const memos = new Memos();
+      const rule = fakeRule("a");
+      const path = Path.From(0);
+      memos.set(path, memos.resolve(path, rule, []).key, fakeMatch());
+
+      const layer = memos.layer();
+      assertEquals(layer.resolve(path, rule, []).memo, undefined);
+      assertEquals(layer.size, 0);
+
+      layer.recoverable = true;
+      assertEquals(memos.recoverable, true);
+      memos.recoverable = false;
+      assertEquals(layer.recoverable, false);
+    },
+  });
 });

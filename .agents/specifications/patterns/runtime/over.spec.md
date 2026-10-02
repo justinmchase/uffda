@@ -56,6 +56,9 @@ key-addressable input value.
 - An `over` pattern MUST NOT consume outer input when it reports a type error.
 - Each child pattern evaluated for a key MUST consume only within that key's
   single-item nested input stream.
+- Each key's nested stream MUST have its own positions: the object's position
+  extended by the key, then by the item index. Positions in two keys' streams
+  MUST never coincide, before or after the key's value is consumed.
 
 ## Expected output
 

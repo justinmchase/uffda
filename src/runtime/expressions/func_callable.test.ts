@@ -185,4 +185,16 @@ Deno.test("runtime/expressions/func_callable", async (t) => {
       );
     },
   );
+
+  await t.step(
+    "FUNC_CALLABLE_LAYER - arguments are matched with their own memo table",
+    async () => {
+      const scope = Scope.Default();
+      const m = ok(scope, scope, { kind: PatternKind.Ok }, undefined);
+      const result = rawOf(await funcCallable(identityFn, m)()) as Match;
+      assert(result.scope.memos !== scope.memos);
+      result.scope.memos.recoverable = true;
+      assertEquals(scope.memos.recoverable, true);
+    },
+  );
 });

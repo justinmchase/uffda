@@ -138,6 +138,14 @@ export class Scope {
   }
 
   /// <summary>
+  /// Returns a scope over an input computed during this parse (see
+  /// Memos.layer), backed by its own memo table.
+  /// </summary>
+  public withLayer(input: Input): Scope {
+    return this.withInput(input).withMemos(this.memos.layer());
+  }
+
+  /// <summary>
   /// Returns a scope backed by the given memo table instead of this scope's
   /// own. Used to seed a reparse with a memo table rehydrated from a prior
   /// parse's delivered result (see incremental re-parsing).

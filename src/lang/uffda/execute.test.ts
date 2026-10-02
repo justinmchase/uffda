@@ -51,13 +51,13 @@ Deno.test("lang.uffda.execute preserves compiler diagnostics when unwrapping fai
         declarations: [{ kind: "unsupported" }],
       } as unknown as UffdaSyntaxModule),
     UffdaCompilationError,
-    'Uffda runtime compilation failed in CompileDeclaration at [0]."declarations".[0] with fail',
+    'Uffda runtime compilation failed in CompileDeclaration at [0]."declarations".[0].[0] with fail',
   );
 
   assertEquals(error.diagnostic, {
     matchKind: MatchKind.Fail,
     compilerRule: "CompileDeclaration",
-    sourcePath: '[0]."declarations".[0]',
+    sourcePath: '[0]."declarations".[0].[0]',
   });
 });
 

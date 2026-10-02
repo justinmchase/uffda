@@ -354,4 +354,17 @@ Deno.test("runtime.scope recovery", async (t) => {
       assertEquals(recovering.addVariable("x", 1).recovery, true);
     },
   });
+
+  await t.step({
+    name: "SCOPE_LAYER - withLayer reads the input with its own memo table",
+    fn: () => {
+      const scope = Scope.From("abc");
+      const input = Input.Scalar(1);
+      const layered = scope.withLayer(input);
+      assertStrictEquals(layered.stream, input);
+      assert(layered.memos !== scope.memos);
+      layered.memos.recoverable = true;
+      assertEquals(scope.memos.recoverable, true);
+    },
+  });
 });

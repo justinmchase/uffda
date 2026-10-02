@@ -26,6 +26,9 @@ type Seed = { memo: Memo; iteration: number };
 
 type Frame = { mark: Path; memo?: Memo };
 
+/** State shared by every memo table of one parse. */
+type Session = { recoverable: boolean };
+
 type RecursiveWeakMap = WeakMap<Rule, { key: symbol; keys: RecursiveWeakMap }>;
 
 /**
@@ -76,14 +79,32 @@ export class Memos {
    */
   private readonly recoveryKeys: RecursiveWeakMap = new WeakMap();
 
+  constructor(private readonly session: Session = { recoverable: false }) {}
+
   /**
-   * Whether a `recover` pattern's child failed while recovery was disabled.
-   * When a discovery phase fails without reaching one, a recovery phase could
-   * not change the outcome and is skipped. A table rehydrated for an
-   * incremental re-parse starts `true`, since its reused entries are never
-   * re-evaluated.
+   * A table for an input computed during this parse (a pipeline stage's input,
+   * or the arguments of a func or lambda call). Such an input's positions say
+   * nothing about its values, so it never shares entries with this table; it
+   * shares only the parse's {@link recoverable} state.
    */
-  public recoverable = false;
+  public layer(): Memos {
+    return new Memos(this.session);
+  }
+
+  /**
+   * Whether a `recover` pattern's child failed while recovery was disabled,
+   * in any table of this parse. When a discovery phase fails without reaching
+   * one, a recovery phase could not change the outcome and is skipped. A table
+   * rehydrated for an incremental re-parse starts `true`, since its reused
+   * entries are never re-evaluated.
+   */
+  public get recoverable(): boolean {
+    return this.session.recoverable;
+  }
+
+  public set recoverable(value: boolean) {
+    this.session.recoverable = value;
+  }
 
   /**
    * The lowest active-frame index of an in-progress entry whose still-failing

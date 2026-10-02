@@ -642,4 +642,108 @@ Deno.test("runtime/patterns/pipeline rule parameters", async (t) => {
       value: "a",
     }),
   });
+
+  await t.step({
+    name:
+      "PIPELINE_LAYER - pipelines at one position keep their stage memos apart",
+    // Rec = (array & [r:Rec*] -> r) | any
+    // Test = a:((ok -> [1]) |> Rec) b:((ok -> [2]) |> Rec) -> [a b]
+    fn: moduleDeclarationTest({
+      moduleUrl: import.meta.url,
+      declarations: {
+        [import.meta.url]: {
+          imports: [],
+          exports: [{
+            kind: ExportDeclarationKind.Rule,
+            name: "Test",
+            default: true,
+          }],
+          rules: [
+            {
+              name: "Rec",
+              parameters: [],
+              pattern: {
+                kind: PatternKind.Or,
+                patterns: [
+                  {
+                    kind: PatternKind.Projection,
+                    pattern: {
+                      kind: PatternKind.And,
+                      patterns: [
+                        { kind: PatternKind.Type, type: Type.Array },
+                        {
+                          kind: PatternKind.Into,
+                          pattern: {
+                            kind: PatternKind.Variable,
+                            name: "r",
+                            pattern: {
+                              kind: PatternKind.Quantifier,
+                              pattern: {
+                                kind: PatternKind.Resolve,
+                                targetKind: ResolveTargetKind.Reference,
+                                name: "Rec",
+                                args: [],
+                              },
+                            },
+                          },
+                        },
+                      ],
+                    },
+                    expression: { kind: ExpressionKind.Reference, name: "r" },
+                  },
+                  { kind: PatternKind.Any },
+                ],
+              },
+            },
+            {
+              name: "Test",
+              parameters: [],
+              pattern: {
+                kind: PatternKind.Then,
+                patterns: [1, 2].map((n) => ({
+                  kind: PatternKind.Variable,
+                  name: n === 1 ? "a" : "b",
+                  pattern: {
+                    kind: PatternKind.Pipeline,
+                    steps: [
+                      {
+                        kind: PatternKind.Projection,
+                        pattern: { kind: PatternKind.Ok },
+                        expression: {
+                          kind: ExpressionKind.Array,
+                          expressions: [{
+                            kind: ExpressionKind.ArrayElement,
+                            expression: {
+                              kind: ExpressionKind.Number,
+                              value: n,
+                            },
+                          }],
+                        },
+                      },
+                      {
+                        kind: PatternKind.Resolve,
+                        targetKind: ResolveTargetKind.Reference,
+                        name: "Rec",
+                        args: [],
+                      },
+                    ],
+                  },
+                } as Pattern)),
+              },
+              expression: {
+                kind: ExpressionKind.Array,
+                expressions: ["a", "b"].map((name) => ({
+                  kind: ExpressionKind.ArrayElement,
+                  expression: { kind: ExpressionKind.Reference, name },
+                })),
+              },
+            },
+          ],
+        },
+      },
+      input: Input.Iterable([]),
+      kind: MatchKind.Ok,
+      value: [[1], [2]],
+    }),
+  });
 });
