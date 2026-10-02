@@ -52,7 +52,7 @@ rule ListItemFirstLine = [Whitespace* "-" " " c:any*] -> (join c "");
 
 rule ListItem =
   i:(
-    (f:ListItemFirstLine m:ContinuationLine* -> (join (flat [[f] m]) " "))
+    |> (f:ListItemFirstLine m:ContinuationLine* -> (join (flat [[f] m]) " "))
     |> [Inlines]
   )
   -> { inlines: i }
@@ -74,7 +74,7 @@ rule FenceClose = [Whitespace* FenceMarker Whitespace*];
 rule FenceCodeLine = not FenceClose l:string -> l;
 
 rule FenceBlock<F> =
-  (
+  |> (
     t:FenceOpen c:FenceCodeLine* FenceClose
     -> { language: t, code: (join c "\n") }
   )

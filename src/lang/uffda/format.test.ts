@@ -268,11 +268,34 @@ Deno.test("lang.uffda.format", async (t) => {
   );
 
   await t.step(
-    "FORMAT15 - a pipeline may start with a leading |>",
+    "FORMAT15 - a rule whose body is a pipeline always breaks with a leading |>",
     () =>
       formats(
         ["rule A =", "  |> a", "  |> [b]", ";"].join("\n"),
-        "rule A = a |> [b];\n",
+        ["rule A =", "  |> a", "  |> [b]", ";", ""].join("\n"),
+      ),
+  );
+
+  await t.step(
+    "FORMAT16 - a nested pipeline stays flat when it fits and leads with |> when broken",
+    () =>
+      formats(
+        `rule B = (a |> b) c; rule Q = x:(${"a".repeat(30)} |> ${
+          "b".repeat(30)
+        } |> ${"c".repeat(30)}) d;`,
+        [
+          "rule B = (a |> b) c;",
+          "",
+          "rule Q =",
+          "  x:(",
+          `    |> ${"a".repeat(30)}`,
+          `    |> ${"b".repeat(30)}`,
+          `    |> ${"c".repeat(30)}`,
+          "  )",
+          "  d",
+          ";",
+          "",
+        ].join("\n"),
       ),
   );
 

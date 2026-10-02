@@ -50,7 +50,10 @@ rule ParameterChunk =
 
 rule ParameterToken = ParameterChunk+ -> (flat _);
 
-rule ParameterPatterns = ParameterToken |> PatternTokens;
+rule ParameterPatterns =
+  |> ParameterToken
+  |> PatternTokens
+;
 
 rule ParameterList =
   "<" p:ParameterPatterns? ">"

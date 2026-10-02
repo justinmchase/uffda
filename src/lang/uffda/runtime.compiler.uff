@@ -191,11 +191,17 @@ rule FinalizeExports =
   -> { imports: i, rules: r, funcs: f, decorators: d, exports: e }
 ;
 
-rule NormalizeModule = AttachNameSets |> FinalizeExports;
+rule NormalizeModule =
+  |> AttachNameSets
+  |> FinalizeExports
+;
 
 rule CompileSyntaxModule =
   { kind: "module", declarations: m:[CompileDeclarations] } end
   -> m
 ;
 
-rule UffdaRuntimeCompiler = CompileSyntaxModule |> NormalizeModule;
+rule UffdaRuntimeCompiler =
+  |> CompileSyntaxModule
+  |> NormalizeModule
+;

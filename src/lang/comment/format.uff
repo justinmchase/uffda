@@ -26,7 +26,10 @@ rule Word = w:WordChar+ -> (join w "");
 
 rule WordList = w:(skip " " | Word)* -> w;
 
-rule Words = ([a:InlineAtoms*] -> (flat a)) |> [WordList];
+rule Words =
+  |> ([a:InlineAtoms*] -> (flat a))
+  |> [WordList]
+;
 
 func Last<lines:array> = (last lines "");
 

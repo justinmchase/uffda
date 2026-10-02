@@ -4,7 +4,12 @@ export LineIndex;
 export UnitIndex;
 export SourceDocument;
 
-export rule Source = NormalizedText |> LineIndex |> UnitIndex |> SourceDocument;
+export rule Source =
+  |> NormalizedText
+  |> LineIndex
+  |> UnitIndex
+  |> SourceDocument
+;
 
 # Each unit carries its provenance: a replacement `"\n"` takes the span of the
 # characters it replaces, and a kept character is carried as is, so the joined

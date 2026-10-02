@@ -3,7 +3,8 @@ import "../source/mod.uff" Source;
 import "./mod.uff" Tokenizer;
 
 export rule TokenizerLang =
-  s:Source |> [Tokenizer]
+  |> s:Source
+  |> [Tokenizer]
   -> { source: s, tokens: (semantic_texts _) }
 ;
 

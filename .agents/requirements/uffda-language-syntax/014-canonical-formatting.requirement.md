@@ -22,6 +22,10 @@ Expected behavior:
   `uffda fmt --check` passes in CI.
 - A rule whose body is an alternation MUST be broken with each alternative on
   its own line as `| alternative`, even when it fits in 80 columns.
+- A rule whose body is a pipeline MUST be broken with each step on its own line
+  as `|> step`, even when it fits in 80 columns.
+- Any broken alternation or pipeline MUST put its operator before the first
+  operand too.
 - Any other declaration that fits in 80 columns MUST be written on one line; one
   that does not MUST be broken with each child on its own line, brackets opening
   at the end of a line and closing on their own line.

@@ -135,12 +135,15 @@ rule PatternOrBody<L> =
 
 rule PatternOr<L> = Fit<PatternOrBody, L>;
 
-# A rule's body. An alternation is never written on one line, so a rule whose
-# body is one always breaks, with each alternative on its own line.
+# A rule's body. An alternation or pipeline is never written on one line, so a
+# rule whose body is one always breaks, with each alternative or step on its own
+# line.
 rule RuleBodyPattern<L> =
   | (object & { kind: "or" })
     & (l:L ((ok -> l.flat) |> false) p:PatternOrBody<L> -> p)
-  | (not (object & { kind: "or" }) p:Pattern<L> -> p)
+  | (object & { kind: "pipeline" })
+    & (l:L ((ok -> l.flat) |> false) p:PatternPipelineBody<L> -> p)
+  | (not (object & { kind: in["or" "pipeline"] }) p:Pattern<L> -> p)
 ;
 
 rule PatternAndRest<L> =
@@ -165,9 +168,15 @@ rule PatternPipelineBody<L> =
   l:L
   (
     object
-    & { kind: "pipeline", steps: [f:PipelineStep<L> r:PatternPipelineRest<L>*] }
+    & {
+      kind: "pipeline",
+      steps: [
+        f:PipelineStep<(ok -> (Shift l (when l.flat 0 3)))>
+        r:PatternPipelineRest<L>*
+      ]
+    }
   )
-  -> (join [f ...r] "")
+  -> (join [(when l.flat "" "|> ") f ...r] "")
 ;
 
 rule PatternPipeline<L> = Fit<PatternPipelineBody, L>;

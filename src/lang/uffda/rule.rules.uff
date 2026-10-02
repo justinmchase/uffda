@@ -22,9 +22,15 @@ export RuleDeclarationWithProjection;
 export RuleProjectionTail;
 export RuleQuotedTokenSequence;
 
-rule RulePatternBody = RulePatternToken |> PatternTokens;
+rule RulePatternBody =
+  |> RulePatternToken
+  |> PatternTokens
+;
 
-rule RuleProjectionExpression = RuleProjectionToken |> ExpressionTokens;
+rule RuleProjectionExpression =
+  |> RuleProjectionToken
+  |> ExpressionTokens
+;
 
 rule RulePatternToken = string;
 
@@ -99,11 +105,13 @@ rule RulePatternChunkAtDepth0 =
 rule RulePatternTokenUntilProjection = RulePatternChunkAtDepth0+ -> (flat _);
 
 rule RulePatternBodyWithoutProjection =
-  RulePatternTokenUntilSemicolon |> PatternTokens
+  |> RulePatternTokenUntilSemicolon
+  |> PatternTokens
 ;
 
 rule RulePatternBodyBeforeProjection =
-  RulePatternTokenUntilProjection |> PatternTokens
+  |> RulePatternTokenUntilProjection
+  |> PatternTokens
 ;
 
 [Parameter]

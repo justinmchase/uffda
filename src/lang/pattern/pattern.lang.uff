@@ -11,4 +11,8 @@ rule PatternComplete = p:Pattern ope end sneak by skip any* -> p;
 
 rule PatternTokens = [PatternComplete];
 
-rule PatternLang = Source |> [TokenizerNoWhitespace] |> [PatternComplete];
+rule PatternLang =
+  |> Source
+  |> [TokenizerNoWhitespace]
+  |> [PatternComplete]
+;
