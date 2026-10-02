@@ -47,5 +47,55 @@ Deno.test({
         },
       }),
     });
+
+    await t.step({
+      name: "OR_LEADING_PIPE - a leading |> is a pipeline, not a leading |",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "Or",
+        input: Input.Iterable(["|", ">", "any", "|", ">", "end"]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Pipeline,
+          steps: [
+            { kind: PatternKind.Any },
+            { kind: PatternKind.End },
+          ],
+        },
+      }),
+    });
+
+    await t.step({
+      name: "OR_LEADING_PIPE_BRANCH - a leading | before a leading |> branch",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "Or",
+        input: Input.Iterable([
+          "|",
+          "|",
+          ">",
+          "any",
+          "|",
+          ">",
+          "end",
+          "|",
+          "fail",
+        ]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Or,
+          patterns: [
+            {
+              kind: PatternKind.Pipeline,
+              steps: [
+                { kind: PatternKind.Any },
+                { kind: PatternKind.End },
+              ],
+            },
+            { kind: PatternKind.Fail },
+          ],
+        },
+      }),
+    });
   },
 });

@@ -61,5 +61,33 @@ Deno.test({
         },
       }),
     });
+
+    await t.step({
+      name: "PIPE_LEADING_00 - a leading |> is allowed",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "Pipe",
+        input: Input.Iterable(["|", ">", "any", "|", ">", "end"]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Pipeline,
+          steps: [
+            { kind: PatternKind.Any },
+            { kind: PatternKind.End },
+          ],
+        },
+      }),
+    });
+
+    await t.step({
+      name: "PIPE_LEADING_01 - a leading |> on a single step collapses to it",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "Pipe",
+        input: Input.Iterable(["|", ">", "any"]),
+        kind: MatchKind.Ok,
+        value: { kind: PatternKind.Any },
+      }),
+    });
   },
 });

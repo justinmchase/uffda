@@ -55,6 +55,9 @@ Normative key words in this chapter use the conventions defined in the
   operator spellings.
 - Alternation MAY start with an optional leading `|` so vertically aligned
   alternatives remain valid and canonical.
+- Pipeline MAY start with an optional leading `|>` so vertically aligned steps
+  remain valid and canonical. A leading `|` followed by `>` is a leading `|>`,
+  never a leading alternation `|`.
 
 ## Subtopics
 

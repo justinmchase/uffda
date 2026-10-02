@@ -67,6 +67,8 @@ The grammar MUST be able to express the following pattern families:
 - The grammar MUST NOT accept keyword aliases for alternation or conjunction
   operators.
 - The grammar MAY allow a leading `|` before the first alternation branch.
+- The grammar MAY allow a leading `|>` before the first pipeline step. A leading
+  `|` followed by `>` MUST be read as a leading `|>`.
 
 ## Binding and repetition
 
@@ -221,6 +223,16 @@ Example =
   | Foo
   | Bar
   | Baz
+  ;
+```
+
+The following style is valid when leading `|>` pipelines are enabled:
+
+```uff
+Example =
+  |> Source
+  |> [Tokens]
+  |> [Module]
   ;
 ```
 

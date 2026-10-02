@@ -1,5 +1,5 @@
-# Pipe matches Then steps joined by `|>` as a Pipeline AST. Uses std one for
-# length-1 collapse (B4).
+# Pipe matches Then steps joined by `|>` as a Pipeline AST. Optional leading
+# `|>` is allowed. Uses std one for length-1 collapse (B4).
 import "./then.uff" Then;
 
 export Pipe;
@@ -7,6 +7,7 @@ export Pipe;
 rule PipeTail = "|" ">" t:Then -> t;
 
 rule Pipe =
-  Then PipeTail*
-  -> (one (flat _) { kind: "pipeline", steps: (flat _) })
+  ("|" ">")?
+  p:(Then PipeTail* -> (one (flat _) { kind: "pipeline", steps: (flat _) }))
+  -> p
 ;
