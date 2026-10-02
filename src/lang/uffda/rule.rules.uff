@@ -30,7 +30,10 @@ rule RulePatternToken = string;
 
 rule RuleEscapedQuotedTokens = "\\" e:("\"" | "{" | "\\") -> (pack "\\" e);
 
-rule RuleQuotedTokenContent = RuleEscapedQuotedTokens | not "\"" & string;
+rule RuleQuotedTokenContent =
+  | RuleEscapedQuotedTokens
+  | not "\"" & string
+;
 
 rule RuleQuotedTokenSequence =
   o:"\"" c:RuleQuotedTokenContent* e:"\""

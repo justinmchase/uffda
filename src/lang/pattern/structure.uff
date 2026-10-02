@@ -21,4 +21,7 @@ rule Over =
   -> { kind: "over", keys: (from_entries (flat (coalesce k []))) }
 ;
 
-rule Structure = Group | Over;
+rule Structure =
+  | Group
+  | Over
+;

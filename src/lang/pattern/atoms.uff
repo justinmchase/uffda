@@ -15,4 +15,9 @@ rule Ok = "ok" -> { kind: "ok" };
 [Keyword]
 rule Fail = "fail" -> { kind: "fail" };
 
-rule Atoms = Any | End | Ok | Fail;
+rule Atoms =
+  | Any
+  | End
+  | Ok
+  | Fail
+;

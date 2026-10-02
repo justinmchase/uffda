@@ -40,7 +40,11 @@ rule ObjectSpread =
   -> { kind: "objectSpread", expression: e }
 ;
 
-rule ObjectEntry = ObjectSpread | ObjectComputedKey | ObjectPair;
+rule ObjectEntry =
+  | ObjectSpread
+  | ObjectComputedKey
+  | ObjectPair
+;
 
 # A broken entry is a recovery point, skipped up to the next delimiter.
 rule RecoverableObjectEntry =

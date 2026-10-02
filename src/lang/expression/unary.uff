@@ -2,4 +2,7 @@
 import "./primary.uff" Primary;
 import "./not.uff" Not;
 
-export rule Unary = Not | Primary;
+export rule Unary =
+  | Not
+  | Primary
+;

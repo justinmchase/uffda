@@ -19,7 +19,10 @@ rule BoundLiteral = n:NonNegNum -> { kind: "value.literal", value: n };
 
 rule BoundVariable = "$" n:IdToken -> { kind: "value.variable", name: n };
 
-rule Bound = BoundVariable | BoundLiteral;
+rule Bound =
+  | BoundVariable
+  | BoundLiteral
+;
 
 rule StarMinMaxNumNum =
   p:Atomic "*" n:NonNegNum "." "." m:(BoundNum |> (number & $n..))
@@ -78,7 +81,13 @@ rule StarBare =
   -> { kind: "quantifier", pattern: p, min: undefined, max: undefined }
 ;
 
-rule Star = StarMinMax | StarMinOpen | StarMaxOnly | StarMinOnly | StarBare;
+rule Star =
+  | StarMinMax
+  | StarMinOpen
+  | StarMaxOnly
+  | StarMinOnly
+  | StarBare
+;
 
 rule Plus =
   p:Atomic "+"
@@ -92,7 +101,12 @@ rule Plus =
 
 rule Optional = p:Atomic "?" -> { kind: "maybe", pattern: p };
 
-rule Postfix = Star | Plus | Optional | Atomic;
+rule Postfix =
+  | Star
+  | Plus
+  | Optional
+  | Atomic
+;
 
 [Keyword]
 rule NotKeyword = "not";
@@ -153,7 +167,10 @@ rule SneakByUntil =
   }
 ;
 
-rule SneakBy = SneakByUntil | Prefix;
+rule SneakBy =
+  | SneakByUntil
+  | Prefix
+;
 
 # `ope P sneak by S` is a recovery point: when `P` fails with recovery enabled,
 # `S` skips the erroneous input instead.

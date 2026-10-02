@@ -15,7 +15,11 @@ rule CrUnit = "\r" -> "\n";
 
 rule SourceUnit = except "\r";
 
-rule NormalizedUnit = CrLfUnit | CrUnit | SourceUnit;
+rule NormalizedUnit =
+  | CrLfUnit
+  | CrUnit
+  | SourceUnit
+;
 
 rule NormalizedText =
   string & [NormalizedUnit*]

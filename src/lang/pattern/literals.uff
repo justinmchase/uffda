@@ -55,7 +55,11 @@ rule AtomicLiteralSource =
 
 rule IdentifierLiteralSource = v:IdToken -> { kind: "value.literal", value: v };
 
-rule Literal = ContextualValue | AtomicLiteralSource | IdentifierLiteralSource;
+rule Literal =
+  | ContextualValue
+  | AtomicLiteralSource
+  | IdentifierLiteralSource
+;
 
 [Keyword]
 rule TypeArray = "array" -> { kind: "type", type: "array" };
@@ -138,7 +142,11 @@ rule BetweenOpenLower =
   -> { kind: "between", left: undefined, right: r }
 ;
 
-rule BetweenPattern = BetweenClosed | BetweenOpenUpper | BetweenOpenLower;
+rule BetweenPattern =
+  | BetweenClosed
+  | BetweenOpenUpper
+  | BetweenOpenLower
+;
 
 rule Literals =
   | TypeKeyword

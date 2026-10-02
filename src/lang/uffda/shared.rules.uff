@@ -50,4 +50,7 @@ rule DeclarationHead =
 # Where a declaration body's tokens end: its `;`, or the head of the next
 # declaration when the `;` is missing. `=` never appears in a pattern or
 # expression, so a body never contains a declaration head.
-rule DeclarationBodyEnd = ";" | DeclarationHead;
+rule DeclarationBodyEnd =
+  | ";"
+  | DeclarationHead
+;

@@ -219,6 +219,9 @@ rule InvocationList<L> =
   -> (Call l (join ["(" c] "") x ")")
 ;
 
-rule InvocationBody<L> = InvocationHug<L> | InvocationList<L>;
+rule InvocationBody<L> =
+  | InvocationHug<L>
+  | InvocationList<L>
+;
 
 rule ExpressionInvocation<L> = Fit<InvocationBody, L>;

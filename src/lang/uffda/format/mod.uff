@@ -110,7 +110,10 @@ rule Export =
   -> (join ["export " n ";"] "")
 ;
 
-rule Definition<L> = RuleDeclaration<L> | FuncDeclaration<L>;
+rule Definition<L> =
+  | RuleDeclaration<L>
+  | FuncDeclaration<L>
+;
 
 rule AttributeHug<L> =
   l:L
@@ -145,7 +148,10 @@ rule AttributeList<L> =
   -> (Call l (join ["[" n] "") x "]")
 ;
 
-rule AttributeBody<L> = AttributeHug<L> | AttributeList<L>;
+rule AttributeBody<L> =
+  | AttributeHug<L>
+  | AttributeList<L>
+;
 
 rule Attribute<L> = a:Fit<AttributeBody, L> -> (join [a "\n"] "");
 
@@ -204,7 +210,10 @@ rule RuleDeclaration<L> =
   -> (join [a b] "")
 ;
 
-rule ParameterPattern<L> = ((object & { kind: "end" }) -> "") | Parameters<L>;
+rule ParameterPattern<L> =
+  | ((object & { kind: "end" }) -> "")
+  | Parameters<L>
+;
 
 rule FuncHead<L> =
   l:L

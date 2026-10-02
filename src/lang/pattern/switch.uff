@@ -13,7 +13,10 @@ import "../editor/editor.uff" Keyword;
 
 export Switch;
 
-rule SwitchCaseKeyValue = ContextualValue | AtomicLiteralSource;
+rule SwitchCaseKeyValue =
+  | ContextualValue
+  | AtomicLiteralSource
+;
 
 rule SwitchCaseKeyValueTail = "," v:SwitchCaseKeyValue -> v;
 
@@ -27,7 +30,10 @@ rule SwitchCaseKeyCharacterClass =
   -> { kind: "characterClass", characterClass: c.characterClass }
 ;
 
-rule SwitchCaseKey = SwitchCaseKeyCharacterClass | SwitchCaseKeyValues;
+rule SwitchCaseKey =
+  | SwitchCaseKeyCharacterClass
+  | SwitchCaseKeyValues
+;
 
 rule SwitchCase = k:SwitchCaseKey ":" p:Pattern -> { key: k, pattern: p };
 

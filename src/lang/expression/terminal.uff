@@ -4,4 +4,8 @@ import "../tokenizer/token.uff" Token;
 import "./reference.uff" Reference;
 import "./number.uff" Number;
 
-export rule Terminal = Token<Number> | Token<Reference> -> _;
+export rule Terminal =
+  | Token<Number>
+  | Token<Reference>
+  -> _
+;

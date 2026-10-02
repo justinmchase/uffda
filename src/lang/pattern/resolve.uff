@@ -54,7 +54,10 @@ rule EscapedIdentifierToken = "@" n:IdToken -> n;
 
 [NameReference { kinds: ["rule"] }]
 [Highlight { role: "type" }]
-rule ResolveName = EscapedIdentifierToken | not ReservedKeyword & IdToken;
+rule ResolveName =
+  | EscapedIdentifierToken
+  | not ReservedKeyword & IdToken
+;
 
 rule ResolveArg = Pattern;
 

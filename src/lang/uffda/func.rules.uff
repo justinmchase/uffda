@@ -16,7 +16,10 @@ export rule FuncExpressionBody = FuncExpressionToken |> ExpressionTokens;
 
 rule FuncEscapedQuotedTokens = "\\" e:("\"" | "{" | "\\") -> (pack "\\" e);
 
-rule FuncQuotedTokenContent = FuncEscapedQuotedTokens | not "\"" & string;
+rule FuncQuotedTokenContent =
+  | FuncEscapedQuotedTokens
+  | not "\"" & string
+;
 
 rule FuncQuotedTokenSequence =
   o:"\"" c:FuncQuotedTokenContent* e:"\""

@@ -25,7 +25,11 @@ rule CommentBlock<F> =
 
 rule Blocks<F> = (skip BlankLine | Block<F>)*;
 
-rule Block<F> = FenceBlock<F> | ListBlock | ParagraphBlock;
+rule Block<F> =
+  | FenceBlock<F>
+  | ListBlock
+  | ParagraphBlock
+;
 
 rule BlankLine = [Whitespace*];
 
@@ -77,7 +81,10 @@ rule FenceBlock<F> =
   |> FenceContent<F>
 ;
 
-rule FenceContent<F> = RawFence | ParsedFence<F>;
+rule FenceContent<F> =
+  | RawFence
+  | ParsedFence<F>
+;
 
 rule RawFence =
   object & { language: l:in["" "text"], code: c:string }
@@ -94,7 +101,10 @@ rule ParsedFence<F> =
 # complete code span fails the whole block.
 rule Inlines = Whitespace* i:Inline* Whitespace* -> i;
 
-rule Inline = InlineCode | InlineText;
+rule Inline =
+  | InlineCode
+  | InlineText
+;
 
 rule InlineCode =
   "`" c:InlineCodeChar+ "`"

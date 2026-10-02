@@ -97,11 +97,14 @@ have all of its children written flat.
 
 - Each attribute MUST be written on its own line above its declaration.
 - A rule MUST be written `rule Name<P, Q> = body -> projection;` on one line
-  when it fits. Otherwise the head `rule Name<P, Q> =` MUST be on its own line,
-  the body on the following lines at one level of indentation, and the
-  projection on its own line at one level of indentation as `-> expression`.
-- A broken rule whose body is an alternation MUST write each alternative on its
-  own line as `| alternative`.
+  when it fits, unless its body is an alternation. Otherwise the head
+  `rule Name<P, Q> =` MUST be on its own line, the body on the following lines
+  at one level of indentation, and the projection on its own line at one level
+  of indentation as `-> expression`.
+- A rule whose body is an alternation MUST always be broken, with each
+  alternative on its own line as `| alternative`, the first included, even when
+  the rule would fit on one line. An alternation nested inside a body follows
+  the general flat-or-broken rule.
 - A declaration written on one line MUST end with `;`. A broken rule, func, or
   decorator MUST end with `;` on its own line at the declaration's indentation,
   so the `;` closes the body the `=` opens.

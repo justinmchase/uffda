@@ -15,9 +15,16 @@ rule CommonEscape =
   | ("\r" -> "\\r")
 ;
 
-rule PatternStringChar = CommonEscape | any;
+rule PatternStringChar =
+  | CommonEscape
+  | any
+;
 
-rule ExpressionStringChar = CommonEscape | ("{" -> "\\\{") | any;
+rule ExpressionStringChar =
+  | CommonEscape
+  | ("{" -> "\\\{")
+  | any
+;
 
 rule PatternString =
   string & [c:PatternStringChar*]

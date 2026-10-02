@@ -19,7 +19,10 @@ rule ArraySpread =
   -> { kind: "arraySpread", expression: e }
 ;
 
-rule ArrayInitializer = ArraySpread | ArrayElement;
+rule ArrayInitializer =
+  | ArraySpread
+  | ArrayElement
+;
 
 # A stray element token is a recovery point.
 rule Array =

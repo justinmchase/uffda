@@ -18,7 +18,12 @@ rule CloseParen = ")";
 
 # Tokens that close or separate an enclosing construct; a recovery never skips
 # one.
-rule ExpressionDelimiter = Token<")"> | Token<"]"> | Token<"}"> | Token<",">;
+rule ExpressionDelimiter =
+  | Token<")">
+  | Token<"]">
+  | Token<"}">
+  | Token<",">
+;
 
 [Highlight { role: "function" }]
 rule InvokedName = Reference;
@@ -39,7 +44,10 @@ rule InvocationSpread =
   -> { kind: "invocationSpread", expression: e }
 ;
 
-rule InvocationArgument = InvocationSpread | Token<Primary>;
+rule InvocationArgument =
+  | InvocationSpread
+  | Token<Primary>
+;
 
 # A stray argument token is a recovery point.
 rule Sequence =

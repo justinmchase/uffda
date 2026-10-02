@@ -135,9 +135,13 @@ rule PatternOrBody<L> =
 
 rule PatternOr<L> = Fit<PatternOrBody, L>;
 
-# A rule's body: an alternation follows the rule's own layout, so a broken rule
-# writes each alternative on its own line.
-rule RuleBodyPattern<L> = PatternOrBody<L> | Pattern<L>;
+# A rule's body. An alternation is never written on one line, so a rule whose
+# body is one always breaks, with each alternative on its own line.
+rule RuleBodyPattern<L> =
+  | (object & { kind: "or" })
+    & (l:L ((ok -> l.flat) |> false) p:PatternOrBody<L> -> p)
+  | (not (object & { kind: "or" }) p:Pattern<L> -> p)
+;
 
 rule PatternAndRest<L> =
   l:L p:AndOperand<(ok -> (Next l 2))>
@@ -261,7 +265,10 @@ rule SneakByUntil<L> =
   -> (join ["until " t] "")
 ;
 
-rule SneakBy<L> = SneakByUntil<L> | PrefixOperand<L>;
+rule SneakBy<L> =
+  | SneakByUntil<L>
+  | PrefixOperand<L>
+;
 
 rule PatternRecoverBody<L> =
   l:L
@@ -278,7 +285,10 @@ rule PatternRecoverBody<L> =
 
 rule PatternRecover<L> = Fit<PatternRecoverBody, L>;
 
-rule Bound = (undefined -> "") | ValueSourceText;
+rule Bound =
+  | (undefined -> "")
+  | ValueSourceText
+;
 
 func QuantifierSuffix<min:string max:string> =
   (when
@@ -385,7 +395,10 @@ rule ReservedName =
   ]
 ;
 
-rule ResolveName = (n:ReservedName -> (join ["@" n] "")) | string;
+rule ResolveName =
+  | (n:ReservedName -> (join ["@" n] ""))
+  | string
+;
 
 rule PatternResolveBody<L> =
   l:L

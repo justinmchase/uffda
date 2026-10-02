@@ -241,7 +241,7 @@ Deno.test("lang.uffda.format", async (t) => {
   );
 
   await t.step(
-    "FORMAT13 - a broken rule writes each alternative on its own line, even when they fit together",
+    "FORMAT13 - a rule body alternation puts each alternative on its own line",
     () =>
       formats(
         "rule CommentBlockFormat<W, F> = ParagraphFormat<W> | ListFormat<W> | FenceFormat<F>;",
@@ -253,6 +253,17 @@ Deno.test("lang.uffda.format", async (t) => {
           ";",
           "",
         ].join("\n"),
+      ),
+  );
+
+  await t.step(
+    "FORMAT14 - a rule whose body is an alternation always breaks",
+    () =>
+      formats(
+        "rule A = a | b; rule B = (a | b) c;",
+        ["rule A =", "  | a", "  | b", ";", "", "rule B = (a | b) c;", ""].join(
+          "\n",
+        ),
       ),
   );
 
