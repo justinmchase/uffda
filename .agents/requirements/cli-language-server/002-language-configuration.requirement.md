@@ -38,6 +38,12 @@ Expected behavior:
   application uses `[Name arg…]` expression arguments (see
   [declaration attribute syntax](../../specifications/languages/uffda-syntax/declaration-attributes.spec.md));
   a form like `[Language ext: ".uff"]` is not valid Uffda syntax.
+- A workspace language entry claiming an extension of the built-in `.uff`
+  language MUST take that extension over.
+- An extension claimed by two or more workspace language entries (including
+  extensions filled from `[Language]` metadata) MUST be reported the same
+  deterministic way, naming the extension and the entries; no entry MUST serve
+  it, and the entries' other extensions MUST remain served.
 - A document whose extension does not match any configured language entry MUST
   be ignored by the server (no diagnostics, highlighting, or other features
   offered for it) rather than causing a startup or per-document failure.

@@ -66,6 +66,14 @@ not introduce a parallel parsing or compilation pathway.
 - `.uff` itself (Uffda's own grammar language) MUST be configurable the same way
   as any user-authored language — the server MUST NOT hard-code `.uff` handling
   through a path unavailable to other languages.
+- Each extension MUST belong to at most one language, so every document belongs
+  to exactly one language or none. A workspace language claiming an extension of
+  the built-in `.uff` language MUST take that extension over, since an explicit
+  workspace setting wins. An extension claimed by two or more workspace
+  languages (directly, or filled in from `[Language]` metadata) is a
+  configuration error: it MUST be reported naming the extension and the
+  languages, and none of them MUST serve it, while every other extension stays
+  served.
 - This chapter does not yet require it, but implementations SHOULD avoid designs
   that would need to be undone to support it later: a grammar module MAY
   eventually self-declare its own file extension(s) and other editor-facing

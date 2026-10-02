@@ -2,8 +2,12 @@ import { resolve as resolvePath } from "@std/path";
 import { resolveGrammarModule } from "../lang/grammar.ts";
 import {
   BUILTIN_UFF_LANGUAGE,
+  type LanguageExtensionConflict,
+  loadLspConfig,
   type LspConfig,
+  type LspConfigLoadFailure,
   type LspLanguageConfigEntry,
+  resolveExtensionOwnership,
   withExtensionFromMetadata,
 } from "./lsp.config.ts";
 
@@ -141,31 +145,31 @@ export function toEditorLanguageConfiguration(
 
 /**
  * Resolves the module URL + entry rule name `language` should be queried
- * against. The built-in `.uff` entry always resolves to the CLI's own
- * bundled grammar (it declares no `modulePath`); any other configured
- * entry resolves its `modulePath` (relative to `workspaceRoot`) and
- * `entryRuleName` the same way the server already loads/parses documents
- * against it (see `.agents/requirements/cli-language-server/002-language-configuration.requirement.md`).
- * Returns `undefined` for an entry missing the inputs needed to resolve a
- * module at all.
+ * against: its `modulePath` (relative to `workspaceRoot`) and
+ * `entryRuleName` when it declares both (see
+ * `.agents/requirements/cli-language-server/002-language-configuration.requirement.md`),
+ * otherwise the CLI's bundled grammar for the built-in `.uff` language id.
+ * Returns `undefined` for any other entry missing those inputs.
  */
 export function grammarTargetFor(
   language: LspLanguageConfigEntry,
   workspaceRoot: string,
 ): { moduleUrl: URL; entryRuleName: string } | undefined {
+  if (language.modulePath && language.entryRuleName) {
+    return {
+      moduleUrl: new URL(
+        `file://${resolvePath(workspaceRoot, language.modulePath)}`,
+      ),
+      entryRuleName: language.entryRuleName,
+    };
+  }
   if (language.id === BUILTIN_UFF_LANGUAGE.id) {
     return {
       moduleUrl: UFFDA_MODULE_URL,
       entryRuleName: UFFDA_ENTRY_RULE_NAME,
     };
   }
-  if (!language.modulePath || !language.entryRuleName) return undefined;
-  return {
-    moduleUrl: new URL(
-      `file://${resolvePath(workspaceRoot, language.modulePath)}`,
-    ),
-    entryRuleName: language.entryRuleName,
-  };
+  return undefined;
 }
 
 /**
@@ -241,4 +245,31 @@ export async function enrichLspConfigWithLanguageMetadata(
     languages.push(withExtensionFromMetadata(language, metadata?.ext));
   }
   return { languages };
+}
+
+export type WorkspaceLanguagesResult =
+  | {
+    ok: true;
+    config: LspConfig;
+    /** Extensions no language serves because several claim them. */
+    conflicts: LanguageExtensionConflict[];
+  }
+  | { ok: false; error: LspConfigLoadFailure };
+
+/**
+ * The languages a workspace serves, as the language server and `uffda fmt`
+ * both read them: `.uffda/lsp.jsonc`, with omitted extensions filled from
+ * `[Language]` metadata, then each extension given at most one language
+ * (see `resolveExtensionOwnership`).
+ */
+export async function loadWorkspaceLanguages(
+  workspaceRoot: string,
+): Promise<WorkspaceLanguagesResult> {
+  const loaded = await loadLspConfig(workspaceRoot);
+  if (!loaded.ok) return loaded;
+  const enriched = await enrichLspConfigWithLanguageMetadata(
+    loaded.config,
+    workspaceRoot,
+  );
+  return { ok: true, ...resolveExtensionOwnership(enriched) };
 }

@@ -2,10 +2,12 @@ import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import {
   BUILTIN_UFF_LANGUAGE,
+  describeExtensionConflict,
   extensionOf,
   loadLspConfig,
   LspConfigLoadFailureCode,
   normalizeExtension,
+  resolveExtensionOwnership,
   resolveLanguageForDocument,
   withExtensionFromMetadata,
 } from "./lsp.config.ts";
@@ -176,4 +178,59 @@ Deno.test("cli.lsp.config resolveLanguageForDocument", async (t) => {
     const language = resolveLanguageForDocument(config, "file:///a/main.xyz");
     assertEquals(language, undefined);
   });
+});
+
+Deno.test("cli.lsp.config resolveExtensionOwnership", async (t) => {
+  const morse = { id: "morse", extensions: ["morse"] };
+
+  await t.step("leaves a configuration without overlaps unchanged", () => {
+    const config = { languages: [BUILTIN_UFF_LANGUAGE, morse] };
+    const resolved = resolveExtensionOwnership(config);
+    assertEquals(resolved.conflicts, []);
+    assertEquals(resolved.config.languages[0], BUILTIN_UFF_LANGUAGE);
+    assertEquals(resolved.config.languages[1], morse);
+  });
+
+  await t.step("a workspace language takes over a built-in extension", () => {
+    const custom = { id: "custom-uff", extensions: ["uff"] };
+    const { config, conflicts } = resolveExtensionOwnership({
+      languages: [BUILTIN_UFF_LANGUAGE, custom],
+    });
+    assertEquals(conflicts, []);
+    assertEquals(resolveLanguageForDocument(config, "/a/main.uff"), custom);
+  });
+
+  await t.step(
+    "an extension several workspace languages claim belongs to none",
+    () => {
+      const a = { id: "a", extensions: ["foo", "a"] };
+      const b = { id: "b", extensions: ["foo", "b"] };
+      const { config, conflicts } = resolveExtensionOwnership({
+        languages: [BUILTIN_UFF_LANGUAGE, a, b],
+      });
+      assertEquals(conflicts, [{ extension: "foo", languages: ["a", "b"] }]);
+      assertEquals(resolveLanguageForDocument(config, "/x.foo"), undefined);
+      assertEquals(resolveLanguageForDocument(config, "/x.a")?.id, "a");
+      assertEquals(resolveLanguageForDocument(config, "/x.b")?.id, "b");
+    },
+  );
+
+  await t.step("a language listing an extension twice is no conflict", () => {
+    const twice = { id: "twice", extensions: ["t", "t"] };
+    assertEquals(
+      resolveExtensionOwnership({ languages: [BUILTIN_UFF_LANGUAGE, twice] })
+        .conflicts,
+      [],
+    );
+  });
+
+  await t.step(
+    "describes a conflict naming the extension and languages",
+    () => {
+      assertEquals(
+        describeExtensionConflict({ extension: "foo", languages: ["a", "b"] }),
+        "The '.foo' extension is claimed by more than one language ('a', 'b') in .uffda/lsp.jsonc; none of them serves it",
+      );
+    },
+  );
 });

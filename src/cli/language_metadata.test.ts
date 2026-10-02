@@ -8,6 +8,7 @@ import {
   grammarTargetFor,
   languageMetadataForConfig,
   loadLanguageMetadata,
+  loadWorkspaceLanguages,
   toEditorLanguageConfiguration,
   toLanguageMetadata,
 } from "./language_metadata.ts";
@@ -209,10 +210,90 @@ Deno.test("cli.language_metadata grammarTargetFor", async (t) => {
     );
   });
 
+  await t.step(
+    "a .uff entry naming its own grammar uses that grammar",
+    () => {
+      assertEquals(
+        grammarTargetFor({
+          id: "uffda",
+          extensions: ["uff"],
+          modulePath: "./custom.uff",
+          entryRuleName: "Custom",
+        }, "/workspace"),
+        {
+          moduleUrl: new URL("file:///workspace/custom.uff"),
+          entryRuleName: "Custom",
+        },
+      );
+    },
+  );
+
   await t.step("a language without a grammar has no target", () => {
     assertEquals(
       grammarTargetFor({ id: "text", extensions: ["txt"] }, "/workspace"),
       undefined,
     );
+  });
+});
+
+Deno.test("cli.language_metadata loadWorkspaceLanguages", async (t) => {
+  const workspace = async (config?: unknown) => {
+    const root = await Deno.makeTempDir();
+    if (config !== undefined) {
+      await Deno.mkdir(`${root}/.uffda`);
+      await Deno.writeTextFile(
+        `${root}/.uffda/lsp.jsonc`,
+        JSON.stringify(config),
+      );
+    }
+    return root;
+  };
+
+  await t.step(
+    "serves the built-in language without a config file",
+    async () => {
+      const root = await workspace();
+      try {
+        assertEquals(await loadWorkspaceLanguages(root), {
+          ok: true,
+          config: { languages: [BUILTIN_UFF_LANGUAGE] },
+          conflicts: [],
+        });
+      } finally {
+        await Deno.remove(root, { recursive: true });
+      }
+    },
+  );
+
+  await t.step("reports extensions several languages claim", async () => {
+    const root = await workspace({
+      languages: [
+        { id: "a", extensions: ["foo"] },
+        { id: "b", extensions: ["foo"] },
+      ],
+    });
+    try {
+      const loaded = await loadWorkspaceLanguages(root);
+      assert(loaded.ok);
+      assertEquals(loaded.conflicts, [{
+        extension: "foo",
+        languages: ["a", "b"],
+      }]);
+      assertEquals(
+        loaded.config.languages.map(({ extensions }) => extensions),
+        [["uff"], [], []],
+      );
+    } finally {
+      await Deno.remove(root, { recursive: true });
+    }
+  });
+
+  await t.step("reports an invalid config file", async () => {
+    const root = await workspace({ languages: 1 });
+    try {
+      assertEquals((await loadWorkspaceLanguages(root)).ok, false);
+    } finally {
+      await Deno.remove(root, { recursive: true });
+    }
   });
 });

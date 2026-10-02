@@ -301,3 +301,60 @@ Deno.test("cli.fmt LanguageFormatting.load reports invalid configuration", async
     await Deno.remove(cwd, { recursive: true });
   }
 });
+
+Deno.test("cli.fmt language ownership", async (t) => {
+  await t.step(
+    "an extension several languages claim fails the configuration",
+    async () => {
+      const cwd = await workspace({
+        ".uffda/lsp.jsonc": JSON.stringify({
+          languages: [
+            { id: "a", extensions: ["tok"] },
+            { id: "b", extensions: ["tok"] },
+          ],
+        }),
+      });
+      try {
+        const formatting = await LanguageFormatting.load(cwd);
+        assert("error" in formatting);
+        assert(formatting.error.includes("'.tok'"));
+      } finally {
+        await Deno.remove(cwd, { recursive: true });
+      }
+    },
+  );
+
+  await t.step("a workspace language claiming .uff takes it over", async () => {
+    const cwd = await workspace({
+      ".uffda/lsp.jsonc": JSON.stringify({
+        languages: [{
+          id: "tokens",
+          extensions: ["uff"],
+          modulePath: TOKENIZER,
+          entryRuleName: "Tokenizer",
+        }],
+      }),
+      "a.uff": UNFORMATTED,
+    });
+    try {
+      const formatting = await load(cwd);
+      const named = await formatFiles({
+        formatting,
+        cwd,
+        sourcePaths: ["a.uff"],
+        check: true,
+      });
+      assertEquals(named.files[0].language, "tokens");
+      assertEquals(
+        named.files[0].diagnostics?.[0].code,
+        CliFormatFailureCode.NoFormatter,
+      );
+      assertEquals(
+        await formatFiles({ formatting, cwd, sourcePaths: [], check: true }),
+        { ok: true, check: true, files: [] },
+      );
+    } finally {
+      await Deno.remove(cwd, { recursive: true });
+    }
+  });
+});

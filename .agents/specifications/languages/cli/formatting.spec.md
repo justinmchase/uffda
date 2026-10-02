@@ -55,8 +55,10 @@ uffda fmt -
   failure.
 - A language whose grammar cannot be loaded MUST be reported as a failure for
   each of its files, whether named or matched.
-- An invalid `.uffda/lsp.jsonc` MUST fail the command with a configuration
-  failure.
+- An invalid `.uffda/lsp.jsonc`, or one in which two or more languages claim the
+  same extension (see
+  [language configuration](./language-server.spec.md#language-configuration)),
+  MUST fail the command with a configuration failure.
 
 ## Formatting
 

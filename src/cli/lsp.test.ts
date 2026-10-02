@@ -432,6 +432,43 @@ Deno.test("cli.lsp wireUffdaLspHandlers", async (t) => {
   );
 
   await t.step(
+    "logs extensions several languages claim and still serves .uff",
+    async () => {
+      const cwd = await Deno.makeTempDir({ prefix: "uffda-lsp-conflict-" });
+      try {
+        await Deno.mkdir(join(cwd, ".uffda"));
+        await Deno.writeTextFile(
+          join(cwd, ".uffda", "lsp.jsonc"),
+          JSON.stringify({
+            languages: [
+              { id: "a", extensions: ["foo"] },
+              { id: "b", extensions: ["foo"] },
+            ],
+          }),
+        );
+        const logged: string[] = [];
+        const { connection, handlers, sentDiagnostics } =
+          createFakeConnection();
+        wireUffdaLspHandlers(connection, {
+          workspaceRoot: cwd,
+          log: (message) => logged.push(message),
+        });
+        await handlers.initialize({} as InitializeParams);
+        assertEquals(logged.length, 1);
+        assert(logged[0].includes("'.foo'"));
+
+        const uri = toFileUrl(join(cwd, "main.uff")).href;
+        await handlers.open({
+          textDocument: { uri, languageId: "uffda", version: 1, text: "" },
+        } as DidOpenTextDocumentParams);
+        assertEquals(sentDiagnostics, [{ uri, diagnostics: [] }]);
+      } finally {
+        await Deno.remove(cwd, { recursive: true });
+      }
+    },
+  );
+
+  await t.step(
     "advertises and serves uffda/languageMetadata from [Language] decorators",
     async () => {
       const { connection, handlers } = createFakeConnection();

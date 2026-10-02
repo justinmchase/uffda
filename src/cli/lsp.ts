@@ -22,14 +22,14 @@ import {
   TextDocumentSyncKind,
 } from "vscode-languageserver/node";
 import {
-  enrichLspConfigWithLanguageMetadata,
   LANGUAGE_METADATA_METHOD,
   languageMetadataForConfig,
   type LanguageMetadataParams,
+  loadWorkspaceLanguages,
 } from "./language_metadata.ts";
 import {
   BUILTIN_UFF_LANGUAGE,
-  loadLspConfig,
+  describeExtensionConflict,
   type LspConfig,
   resolveLanguageForDocument,
 } from "./lsp.config.ts";
@@ -86,8 +86,13 @@ function rootFromInitializeParams(
  */
 export function wireUffdaLspHandlers(
   connection: UffdaLspConnection,
-  options?: { workspaceRoot?: string },
+  options?: {
+    workspaceRoot?: string;
+    /** Reports configuration problems; standard error by default. */
+    log?: (message: string) => void;
+  },
 ): void {
+  const log = options?.log ?? ((message: string) => console.error(message));
   let manager: LspDocumentManager | undefined;
   let config: LspConfig = { languages: [BUILTIN_UFF_LANGUAGE] };
   let workspaceRoot = options?.workspaceRoot ?? Deno.cwd();
@@ -96,11 +101,16 @@ export function wireUffdaLspHandlers(
     async (params: InitializeParams): Promise<InitializeResult> => {
       workspaceRoot = options?.workspaceRoot ??
         rootFromInitializeParams(params) ?? Deno.cwd();
-      const loaded = await loadLspConfig(workspaceRoot);
-      const base = loaded.ok
-        ? loaded.config
-        : { languages: [BUILTIN_UFF_LANGUAGE] };
-      config = await enrichLspConfigWithLanguageMetadata(base, workspaceRoot);
+      const loaded = await loadWorkspaceLanguages(workspaceRoot);
+      if (loaded.ok) {
+        config = loaded.config;
+        for (const conflict of loaded.conflicts) {
+          log(describeExtensionConflict(conflict));
+        }
+      } else {
+        config = { languages: [BUILTIN_UFF_LANGUAGE] };
+        log(loaded.error.message);
+      }
       manager = new LspDocumentManager(workspaceRoot);
       return {
         capabilities: {
