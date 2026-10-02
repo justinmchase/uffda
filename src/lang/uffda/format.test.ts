@@ -267,6 +267,15 @@ Deno.test("lang.uffda.format", async (t) => {
       ),
   );
 
+  await t.step(
+    "FORMAT15 - a pipeline may start with a leading |>",
+    () =>
+      formats(
+        ["rule A =", "  |> a", "  |> [b]", ";"].join("\n"),
+        "rule A = a |> [b];\n",
+      ),
+  );
+
   await t.step("FORMAT12 - an empty module formats to empty text", async () => {
     const parsed = await uffdaGrammar("");
     assert(isClean(parsed) && isSuccess(parsed));

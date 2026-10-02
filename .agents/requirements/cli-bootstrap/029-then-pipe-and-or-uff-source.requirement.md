@@ -24,11 +24,12 @@ Expected behavior:
   in the PatternLang import cycle, where that shape fails under left recursion.
 - `src/lang/pattern/then.uff` MUST export `Then` projecting
   `(one (flat _) { kind: "then", patterns: (flat _) })`.
-- `src/lang/pattern/pipe.uff` MUST export `Pipe` projecting
+- `src/lang/pattern/pipe.uff` MUST export `Pipe` with optional leading `|>` and
   `(one (flat _) { kind: "pipeline", steps: (flat _) })`.
 - `src/lang/pattern/and.uff` MUST export `And` projecting
   `(one (flat _) { kind: "and", patterns: (flat _) })`.
-- `src/lang/pattern/or.uff` MUST export `Or` with optional leading `|` and
+- `src/lang/pattern/or.uff` MUST export `Or` with optional leading `|` (not when
+  followed by `>`, which begins a leading `|>`) and
   `(one (flat _) { kind: "or", patterns: (flat _) })`.
 - Compiling those files with the bootstrap compile path MUST succeed and emit
   AST JSON under `./bin/`.

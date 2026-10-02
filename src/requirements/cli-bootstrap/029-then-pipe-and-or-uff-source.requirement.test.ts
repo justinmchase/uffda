@@ -23,6 +23,7 @@ Deno.test(
       ),
       true,
     );
+    assertEquals(pipeSrc.includes('("|" ">")?'), true);
 
     const andSrc = await Deno.readTextFile(join(pattern, "and.uff"));
     assertEquals(andSrc.includes("export And"), true);
@@ -39,7 +40,7 @@ Deno.test(
       orSrc.includes('(one (flat _) { kind: "or", patterns: (flat _) })'),
       true,
     );
-    assertEquals(orSrc.includes('"|"?'), true);
+    assertEquals(orSrc.includes('("|" not ">")?'), true);
 
     const patternMod = await Deno.readTextFile(join(pattern, "pattern.uff"));
     assertEquals(patternMod.includes('import "./or.uff" Or'), true);
