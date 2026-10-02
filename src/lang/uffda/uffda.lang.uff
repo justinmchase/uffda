@@ -12,6 +12,8 @@ import "./rule.rules.uff" RuleDeclarationSyntax RuleQuotedTokenSequence;
 import "./func.rules.uff" FuncDeclarationSyntax;
 import "./decorator.rules.uff" DecoratorDeclarationSyntax;
 import "./shared.rules.uff" ReservedKeywordToken ImportKeyword ExportKeyword;
+import "./format/mod.uff" UffdaFormat;
+import "../editor/editor.uff" Formatter;
 
 export UffdaLang;
 
@@ -93,6 +95,7 @@ rule ModuleBody =
   autoClosingPairs: [["\{" "}"] ["[" "]"] ["(" ")"] ["\"" "\""]],
   surroundingPairs: [["\{" "}"] ["[" "]"] ["(" ")"] ["\"" "\""]]
 }]
+[Formatter UffdaFormat]
 rule UffdaLang =
   m:(
     Source

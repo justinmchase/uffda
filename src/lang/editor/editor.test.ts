@@ -16,6 +16,12 @@ const EXPECTED: Array<
     value: unknown,
   ]
 > = [
+  ["../uffda/uffda.lang.uff", "UffdaLang", "UffdaLang", "Formatter", {
+    kind: "rule",
+    name: "UffdaFormat",
+    moduleUrl: new URL("../uffda/format/mod.uff", import.meta.url).href,
+    parameters: [],
+  }],
   ["../tokenizer/mod.uff", "Tokenizer", "WordToken", "Highlight", {
     role: "identifier",
   }],
@@ -166,6 +172,7 @@ Deno.test("lang.editor decorators document themselves", async (t) => {
     Import: [],
     ModulePath: ["c"],
     ImportedName: [],
+    Formatter: ["f"],
     Documentation: ["d"],
   };
   for (const [name, parameters] of Object.entries(parametersOf)) {

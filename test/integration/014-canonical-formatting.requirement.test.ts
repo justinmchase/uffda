@@ -11,6 +11,7 @@ import { isClean, valueOf } from "../../src/match.ts";
 import { unwrap } from "../../src/wrapped.ts";
 import { uffdaGrammar } from "../../src/lang/uffda/uffda.lang.ts";
 import { formatUffdaSyntaxModule } from "../../src/lang/uffda/format.ts";
+import { FormatResultKind } from "../../src/lang/format.ts";
 import type { UffdaSyntaxModule } from "../../src/lang/uffda/syntax.types.ts";
 
 const root = fromFileUrl(new URL("../../", import.meta.url));
@@ -39,9 +40,12 @@ async function parse(source: string, label: string) {
 }
 
 async function format(tree: UffdaSyntaxModule, label: string) {
-  const match = await formatUffdaSyntaxModule(tree);
-  assert(isClean(match), `${label} does not format`);
-  return unwrap(valueOf(match)) as string;
+  const result = await formatUffdaSyntaxModule(tree);
+  assert(
+    result.kind === FormatResultKind.Formatted,
+    `${label} does not format`,
+  );
+  return result.text;
 }
 
 Deno.test(

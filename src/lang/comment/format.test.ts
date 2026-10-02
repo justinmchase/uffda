@@ -1,18 +1,14 @@
 import { assert, assertEquals } from "@std/assert";
-import { isClean, isSuccess, type Match, valueOf } from "../../match.ts";
-import { unwrap } from "../../wrapped.ts";
+import { FormatResultKind } from "../format.ts";
 import { formatUffdaSource } from "../uffda/format.ts";
 
 const formats = async (source: string, expected: string[]) => {
-  const match = (await formatUffdaSource(source)) as Match<unknown>;
+  const result = await formatUffdaSource(source);
   assert(
-    isClean(match) && isSuccess(match),
+    result.kind === FormatResultKind.Formatted,
     `expected ${JSON.stringify(source)} to format`,
   );
-  assertEquals(
-    unwrap(valueOf(match)),
-    [...expected, ""].join("\n"),
-  );
+  assertEquals(result.text, [...expected, ""].join("\n"));
 };
 
 const words = (count: number) =>

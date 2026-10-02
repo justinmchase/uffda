@@ -70,6 +70,10 @@ function createFakeConnection() {
       handlers.rename = handler;
     },
     // deno-lint-ignore no-explicit-any
+    onDocumentFormatting: (handler: (params: any) => unknown) => {
+      handlers.formatting = handler;
+    },
+    // deno-lint-ignore no-explicit-any
     onRequest: (type: any, handler: (params: any) => unknown) => {
       const method = typeof type === "string" ? type : type.method;
       handlers[method] = handler;
@@ -374,6 +378,56 @@ Deno.test("cli.lsp wireUffdaLspHandlers", async (t) => {
         position: { line: 0, character: "export Ma".length },
       }) as Array<{ label: string }>;
       assertEquals(items.map((item) => item.label), ["Main"]);
+    },
+  );
+
+  await t.step(
+    "advertises documentFormattingProvider and formats a .uff document",
+    async () => {
+      const { connection, handlers } = createFakeConnection();
+      wireUffdaLspHandlers(connection, { workspaceRoot: Deno.cwd() });
+      const init = await handlers.initialize(
+        {} as InitializeParams,
+      ) as InitializeResult;
+      assertEquals(init.capabilities.documentFormattingProvider, true);
+
+      const uri = "file:///workspace/format.uff";
+      const text = 'rule   A =   "a"  ;\nrule B = "b";';
+      await handlers.open({
+        textDocument: { uri, languageId: "uffda", version: 1, text },
+      } as DidOpenTextDocumentParams);
+      const format = () =>
+        handlers.formatting({
+          textDocument: { uri },
+          options: { tabSize: 2, insertSpaces: true },
+        });
+      assertEquals(await format(), [{
+        range: {
+          start: { line: 0, character: 0 },
+          end: { line: 1, character: 13 },
+        },
+        newText: 'rule A = "a";\n\nrule B = "b";\n',
+      }]);
+
+      await handlers.change({
+        textDocument: { uri, version: 2 },
+        contentChanges: [{ text: 'rule A = "a";\n\nrule B = "b";\n' }],
+      } as DidChangeTextDocumentParams);
+      assertEquals(await format(), []);
+
+      await handlers.change({
+        textDocument: { uri, version: 3 },
+        contentChanges: [{ text: "rule   = ;" }],
+      } as DidChangeTextDocumentParams);
+      assertEquals(await format(), []);
+
+      assertEquals(
+        await handlers.formatting({
+          textDocument: { uri: "file:///workspace/notes.txt" },
+          options: { tabSize: 2, insertSpaces: true },
+        }),
+        [],
+      );
     },
   );
 

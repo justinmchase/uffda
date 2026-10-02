@@ -177,6 +177,21 @@ not introduce a parallel parsing or compilation pathway.
   none of them MUST mutate a document's parse state as a side effect of being
   queried.
 
+## Formatting
+
+- The server MUST advertise `documentFormattingProvider` and support
+  `textDocument/formatting` for each configured language, formatting a document
+  with the formatter its language's entry rule names (see
+  [editor metadata](./editor-metadata.spec.md#formatting)) exactly as
+  [`uffda fmt`](./formatting.spec.md) formats the same text.
+- The response MUST be one edit replacing the whole document with its formatted
+  text, or no edits when the text is already formatted.
+- The server MUST return no edits when the document's current text did not parse
+  cleanly (the diagnostics already report why) or its language has no
+  `[Formatter]`. Formatting options sent by the client (tab size, spaces) MUST
+  NOT change the result: the format belongs to the language.
+- Formatting MUST be read-only with respect to the document's parse state.
+
 ## VS Code extension
 
 - A VS Code extension MUST register `uffda lsp` as the language server for
@@ -329,7 +344,9 @@ extension also queries the custom `uffda/languageMetadata` request and applies
 workspace-declared languages (static `language-configuration.json` remains as a
 fallback for `.uff`). The LSP config loader fills omitted `extensions` from
 `[Language].ext` when `modulePath`/`entryRuleName` are present. See GitHub issue
-#155 for the tracking issue.
+#155 for the tracking issue. `textDocument/formatting` is implemented for `.uff`
+(requirement 008): `LspDocumentManager.format` formats the session's retained
+parse when it is clean and current, through the formatter `UffdaLang` names.
 
 ## Related
 

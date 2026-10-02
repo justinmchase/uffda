@@ -52,6 +52,18 @@ Deno.test("cli.main runCli validates mode support and compile routing", async (t
       processCwd: "/workspace/project",
     });
     assertEquals(shouldReadStdin(standardInput), true);
+
+    const fmtAll = resolveCliProcessContract({
+      argv: ["fmt"],
+      processCwd: "/workspace/project",
+    });
+    assertEquals(shouldReadStdin(fmtAll), false);
+
+    const fmtStdin = resolveCliProcessContract({
+      argv: ["fmt", "-"],
+      processCwd: "/workspace/project",
+    });
+    assertEquals(shouldReadStdin(fmtStdin), true);
   });
 
   await t.step("prints root help when --help is requested", async () => {
@@ -507,4 +519,67 @@ Deno.test("cli.main runCli reports recoveries", async (t) => {
     const payload = JSON.parse(result.stderr!);
     assertEquals(payload.diagnostics, [payload.error]);
   });
+});
+
+Deno.test("cli.main runCli routes fmt", async (t) => {
+  const cwd = await Deno.makeTempDir();
+  const unformatted = `rule   A =   "a"  ;\n`;
+  const formatted = `rule A = "a";\n`;
+  try {
+    await t.step("prints fmt help", async () => {
+      const result = await runCli(["fmt", "--help"], cwd);
+      assertEquals(result.exitCode, CliExitCode.Ok);
+      assert(result.stdout?.includes("Usage: uffda fmt"));
+    });
+
+    await t.step(
+      "--check lists unformatted files and exits non-zero",
+      async () => {
+        await write(join(cwd, "a.uff"), unformatted);
+        const result = await runCli(["fmt", "--check", "a.uff"], cwd);
+        assertEquals(result.exitCode, CliExitCode.Usage);
+        assertEquals(result.stdout, "a.uff\n");
+        assertEquals(await Deno.readTextFile(join(cwd, "a.uff")), unformatted);
+      },
+    );
+
+    await t.step("rewrites and lists changed files", async () => {
+      const result = await runCli(["fmt", "a.uff"], cwd);
+      assertEquals(result.exitCode, CliExitCode.Ok);
+      assertEquals(result.stdout, "a.uff\n");
+      assertEquals(await Deno.readTextFile(join(cwd, "a.uff")), formatted);
+      const again = await runCli(["fmt", "a.uff"], cwd);
+      assertEquals(again, { exitCode: CliExitCode.Ok });
+    });
+
+    await t.step("- formats standard input to standard output", async () => {
+      const result = await runCli(["fmt", "-"], cwd, true, unformatted);
+      assertEquals(result, { exitCode: CliExitCode.Ok, stdout: formatted });
+    });
+
+    await t.step("failures are written to stderr with locations", async () => {
+      await write(join(cwd, "bad.uff"), "rule = ;\n");
+      const result = await runCli(["fmt", "bad.uff", "a.txt"], cwd);
+      assertEquals(result.exitCode, CliExitCode.Usage);
+      assertEquals(result.stdout, undefined);
+      assert(result.stderr?.startsWith("a.txt: "));
+      assert(result.stderr?.includes("bad.uff:1:1: "));
+    });
+
+    await t.step("--json emits the per-file results", async () => {
+      const result = await runCli(["fmt", "--json", "a.uff"], cwd);
+      assertEquals(result.exitCode, CliExitCode.Ok);
+      assertEquals(JSON.parse(result.stdout!), {
+        ok: true,
+        check: false,
+        files: [{
+          sourcePath: "a.uff",
+          status: "unchanged",
+          language: "uffda",
+        }],
+      });
+    });
+  } finally {
+    await Deno.remove(cwd, { recursive: true });
+  }
 });

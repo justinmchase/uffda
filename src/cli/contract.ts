@@ -3,10 +3,13 @@ import { isAbsolute, resolve } from "@std/path";
 export enum CliMode {
   Compile = "compile",
   Exec = "exec",
+  Fmt = "fmt",
   Match = "match",
   Parse = "parse",
   Run = "run",
 }
+
+export type CliCommand = "compile" | "exec" | "fmt" | "match" | "parse" | "run";
 
 export enum CliLanguage {
   FullUffda = "uffda",
@@ -39,7 +42,7 @@ export type CliProcessInput = {
 };
 
 export type CliProcessContract = {
-  command: "compile" | "exec" | "match" | "parse" | "run";
+  command: CliCommand;
   mode: CliMode;
   language: CliLanguage;
   inputPaths: string[];
@@ -49,6 +52,8 @@ export type CliProcessContract = {
   matchInputJson?: string;
   matchInputPath?: string;
   jsonOutput: boolean;
+  /** `fmt --check`: report non-canonical files without writing them. */
+  check: boolean;
   entryRuleName?: string;
   cwd: string;
   outputRootDir: string;
@@ -68,7 +73,7 @@ export type CliProcessResolution =
   };
 
 type ParsedArgs = {
-  commandToken?: "compile" | "exec" | "match" | "parse" | "run";
+  commandToken?: CliCommand;
   modeFromLong?: CliMode;
   modeFlagOrder: CliMode[];
   language: CliLanguage;
@@ -79,6 +84,7 @@ type ParsedArgs = {
   matchInputJson?: string;
   matchInputPath?: string;
   jsonOutput: boolean;
+  check: boolean;
   entryRuleName?: string;
   outDirOpt?: string;
   inputPaths: string[];
@@ -123,6 +129,8 @@ function toCliMode(value: string): CliMode | undefined {
       return CliMode.Compile;
     case CliMode.Exec:
       return CliMode.Exec;
+    case CliMode.Fmt:
+      return CliMode.Fmt;
     case CliMode.Match:
       return CliMode.Match;
     case CliMode.Parse:
@@ -149,12 +157,14 @@ function toCliLanguage(value: string): CliLanguage | undefined {
 
 function commandFromMode(
   mode: CliMode,
-): "compile" | "exec" | "match" | "parse" | "run" {
+): CliCommand {
   switch (mode) {
     case CliMode.Compile:
       return "compile";
     case CliMode.Exec:
       return "exec";
+    case CliMode.Fmt:
+      return "fmt";
     case CliMode.Match:
       return "match";
     case CliMode.Parse:
@@ -165,13 +175,15 @@ function commandFromMode(
 }
 
 function modeFromCommand(
-  command: "compile" | "exec" | "match" | "parse" | "run",
+  command: CliCommand,
 ): CliMode {
   switch (command) {
     case "compile":
       return CliMode.Compile;
     case "exec":
       return CliMode.Exec;
+    case "fmt":
+      return CliMode.Fmt;
     case "match":
       return CliMode.Match;
     case "parse":
@@ -203,6 +215,7 @@ function parseArgs(argv: string[]): ParsedArgs | ParsedArgsError {
     languageSpecified: false,
     astInput: false,
     jsonOutput: false,
+    check: false,
     inputPaths: [],
   };
 
@@ -218,8 +231,8 @@ function parseArgs(argv: string[]): ParsedArgs | ParsedArgsError {
       if (
         !parsed.commandToken &&
         (
-          token === "compile" || token === "exec" || token === "match" ||
-          token === "parse" || token === "run"
+          token === "compile" || token === "exec" || token === "fmt" ||
+          token === "match" || token === "parse" || token === "run"
         )
       ) {
         parsed.commandToken = token;
@@ -331,6 +344,10 @@ function parseArgs(argv: string[]): ParsedArgs | ParsedArgsError {
       parsed.jsonOutput = true;
       continue;
     }
+    if (token === "--check") {
+      parsed.check = true;
+      continue;
+    }
     if (token === "--entry") {
       const [value, next] = valueAfter(argv, i);
       if (value === undefined) return parseUsage("Missing value for --entry");
@@ -355,6 +372,21 @@ function parseArgs(argv: string[]): ParsedArgs | ParsedArgsError {
   }
 
   return parsed;
+}
+
+function fmtValidationError(parsed: ParsedArgs): string | undefined {
+  if (
+    parsed.astInput || parsed.inlineSource !== undefined ||
+    parsed.languageSpecified || parsed.outDirOpt !== undefined ||
+    parsed.entryRuleName !== undefined || parsed.matchInput !== undefined ||
+    parsed.matchInputJson !== undefined || parsed.matchInputPath !== undefined
+  ) {
+    return "fmt accepts only paths, globs, -, --check, and --json";
+  }
+  if (parsed.inputPaths.includes("-") && parsed.inputPaths.length > 1) {
+    return "fmt cannot combine - with file paths";
+  }
+  return undefined;
 }
 
 export function resolveCliProcessContract(
@@ -388,7 +420,17 @@ export function resolveCliProcessContract(
   const mode = commandMode ?? flagMode ?? CliMode.Compile;
   const command = parsed.commandToken ?? commandFromMode(mode);
 
-  if (mode !== CliMode.Compile && parsed.inputPaths.length > 1) {
+  if (mode === CliMode.Fmt) {
+    const invalid = fmtValidationError(parsed);
+    if (invalid) return usage(invalid, "validation");
+  } else if (parsed.check) {
+    return usage("--check is only valid for fmt", "validation");
+  }
+
+  if (
+    mode !== CliMode.Compile && mode !== CliMode.Fmt &&
+    parsed.inputPaths.length > 1
+  ) {
     return usage(
       `${command} accepts at most one source or AST input path`,
       "validation",
@@ -487,6 +529,7 @@ export function resolveCliProcessContract(
       matchInputJson: parsed.matchInputJson,
       matchInputPath: parsed.matchInputPath,
       jsonOutput: parsed.jsonOutput,
+      check: parsed.check,
       entryRuleName: parsed.entryRuleName,
       cwd,
       outputRootDir,

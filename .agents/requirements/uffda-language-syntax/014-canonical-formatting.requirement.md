@@ -26,8 +26,9 @@ Expected behavior:
   directly above the declaration after it.
 - An export immediately followed by the declaration it names MUST be written
   inline.
-- A source that does not parse cleanly MUST be returned as its parse, not
-  formatted.
+- A source that does not parse cleanly MUST NOT be formatted; the result reports
+  its parse instead.
+- UffdaLang MUST name UffdaFormat with `[Formatter UffdaFormat]`.
 
 Postconditions:
 

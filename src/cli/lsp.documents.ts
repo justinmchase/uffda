@@ -6,6 +6,7 @@ import type {
   Location,
   Range,
   SemanticTokens,
+  TextEdit,
 } from "vscode-languageserver-types";
 import {
   localDefinition,
@@ -20,7 +21,10 @@ import {
 } from "./lsp.references.ts";
 import type { NameOccurrence } from "./lsp.symbols.ts";
 import { highlightSpansFromMatch } from "./highlight.ts";
-import type { Match } from "../match.ts";
+import { isClean, isSuccess, type Match, valueOf } from "../match.ts";
+import { FormatResultKind } from "../lang/format.ts";
+import { formatUffdaSyntaxModule } from "../lang/uffda/format.ts";
+import type { UffdaSyntaxModule } from "../lang/uffda/syntax.types.ts";
 import { RuntimeSession } from "./mcp.session.ts";
 import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
 import { Input } from "../input.ts";
@@ -228,6 +232,40 @@ export class LspDocumentManager {
         doc.session,
       );
       return Promise.resolve(buildSemanticTokens(spans, state.source));
+    });
+  }
+
+  /**
+   * Handles `textDocument/formatting`: one edit replacing the whole document
+   * with its canonical form, formatted from the document's current parse (see
+   * `.agents/requirements/cli-language-server/008-formatting.requirement.md`).
+   * No edits when the text is already canonical, or when the current text
+   * did not parse cleanly. `undefined` when the document is not open.
+   */
+  public format(uri: string): Promise<TextEdit[] | undefined> {
+    return this.serialize<TextEdit[] | undefined>(uri, async () => {
+      const doc = this.documents.get(uri);
+      if (!doc) return undefined;
+      const state = doc.session.getLatestParseState();
+      if (
+        !state || state.source !== doc.source || !isClean(state.match) ||
+        !isSuccess(state.match)
+      ) {
+        return [];
+      }
+      const result = await formatUffdaSyntaxModule(
+        valueOf(state.match) as UffdaSyntaxModule,
+      );
+      if (
+        result.kind !== FormatResultKind.Formatted ||
+        result.text === doc.source
+      ) {
+        return [];
+      }
+      return [{
+        range: rangeOf(doc.source, { start: 0, end: doc.source.length }),
+        newText: result.text,
+      }];
     });
   }
 

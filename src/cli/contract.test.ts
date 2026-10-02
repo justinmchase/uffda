@@ -143,6 +143,62 @@ Deno.test("cli.contract resolves command model and process contracts determinist
     },
   );
 
+  await t.step("recognizes fmt with paths, globs, and --check", () => {
+    const resolution = resolveCliProcessContract({
+      argv: ["fmt", "--check", "a.uff", "src/**/*.uff"],
+      processCwd: cwd,
+    });
+
+    assertEquals(resolution.ok, true);
+    if (!resolution.ok) return;
+    assertEquals(resolution.contract.mode, CliMode.Fmt);
+    assertEquals(resolution.contract.command, "fmt");
+    assertEquals(resolution.contract.check, true);
+    assertEquals(resolution.contract.inputPaths, ["a.uff", "src/**/*.uff"]);
+  });
+
+  await t.step("fmt accepts - alone for standard input", () => {
+    const resolution = resolveCliProcessContract({
+      argv: ["fmt", "-"],
+      processCwd: cwd,
+      stdinAttached: true,
+    });
+    assertEquals(resolution.ok, true);
+    if (!resolution.ok) return;
+    assertEquals(resolution.contract.check, false);
+    assertEquals(resolution.contract.inputPaths, ["-"]);
+  });
+
+  await t.step("fmt accepts no paths", () => {
+    const resolution = resolveCliProcessContract({
+      argv: ["fmt", "--check"],
+      processCwd: cwd,
+      stdinAttached: true,
+    });
+    assertEquals(resolution.ok, true);
+    if (!resolution.ok) return;
+    assertEquals(resolution.contract.inputPaths, []);
+  });
+
+  await t.step("rejects invalid fmt invocations", () => {
+    for (
+      const argv of [
+        ["fmt", "-", "a.uff"],
+        ["fmt", "-e", "rule A = a;"],
+        ["fmt", "--lang", "pattern", "a.uff"],
+        ["fmt", "--ast", "a.uff"],
+        ["fmt", "--out-dir", "out", "a.uff"],
+        ["compile", "--check", "a.uff"],
+      ]
+    ) {
+      const resolution = resolveCliProcessContract({ argv, processCwd: cwd });
+      assertEquals(resolution.ok, false, argv.join(" "));
+      if (resolution.ok) return;
+      assertEquals(resolution.exitCode, CliExitCode.Usage);
+      assertEquals(resolution.error.phase, "validation");
+    }
+  });
+
   await t.step("cwd is derived from process cwd", () => {
     const resolution = resolveCliProcessContract({
       argv: ["compile", "a.uff"],

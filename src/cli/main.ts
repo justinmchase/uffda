@@ -23,6 +23,14 @@ import {
   parseCliMatchInput,
 } from "./match.ts";
 import { parseSourceToAst } from "./stream.ts";
+import {
+  type CliFormatResult,
+  CliFormatStatus,
+  type CliFormatStdinResult,
+  formatFiles,
+  formatStdin,
+  LanguageFormatting,
+} from "./fmt.ts";
 import { runMcpServer } from "./mcp.ts";
 import { runLspServer } from "./lsp.ts";
 import { version } from "../version.ts";
@@ -37,6 +45,7 @@ type HelpTarget =
   | "root"
   | "compile"
   | "exec"
+  | "fmt"
   | "match"
   | "parse"
   | "run"
@@ -76,6 +85,7 @@ function modeFlagToCommand(flag: string): HelpTarget | undefined {
 function modeValueToCommand(mode: string): HelpTarget | undefined {
   if (mode === "compile") return "compile";
   if (mode === "exec") return "exec";
+  if (mode === "fmt") return "fmt";
   if (mode === "match") return "match";
   if (mode === "parse") return "parse";
   if (mode === "run") return "run";
@@ -89,9 +99,9 @@ function resolveHelpTarget(argv: string[]): HelpTarget {
     const token = argv[i];
 
     if (
-      token === "compile" || token === "exec" || token === "match" ||
-      token === "parse" || token === "run" || token === "mcp" ||
-      token === "lsp"
+      token === "compile" || token === "exec" || token === "fmt" ||
+      token === "match" || token === "parse" || token === "run" ||
+      token === "mcp" || token === "lsp"
     ) {
       target = token;
       continue;
@@ -127,6 +137,7 @@ function rootUsageText(): string {
     "Commands:",
     "  compile     Compile source files to AST artifacts.",
     "  exec        Execute one expression source unit or expression AST.",
+    "  fmt         Format source files with their language's formatter.",
     "  match       Match one pattern source unit or pattern AST against input.",
     "  parse       Parse one selected-language source unit to an AST.",
     "  run         Run one Uffda module source unit or module AST.",
@@ -137,10 +148,11 @@ function rootUsageText(): string {
     "  --help, -h             Show usage for the current command or command root.",
     "  --version, -V          Print the CLI version and exit.",
     "  --lang <value>         uffda | pattern | expression (parse only)",
-    "  --mode <value>         compile | exec | match | parse | run",
+    "  --mode <value>         compile | exec | fmt | match | parse | run",
     "",
     "Examples:",
     "  uffda compile 'src/**/*.uff'",
+    "  uffda fmt --check",
     "  uffda parse --lang expression ./hello.expr | uffda exec --ast",
     "  uffda exec -e '(echo \"hello\")'",
     "  uffda match ./word.pattern --input hello",
@@ -189,6 +201,32 @@ function execUsageText(): string {
     "  Executes expression source by default; --ast reads expression AST JSON.",
     "  Use -e/--eval for an inline expression.",
     "  Writes string results as text and other results as JSON.",
+    "",
+  ].join("\n");
+}
+
+function fmtUsageText(): string {
+  return [
+    "Usage: uffda fmt [--check] [--json] [file-or-glob|-] [...more paths]",
+    "",
+    "Formatting:",
+    "  Formats files with the [Formatter] their language's entry rule names,",
+    "  rewriting them in place and listing the files that changed. A file's",
+    "  language is the .uff language or a .uffda/lsp.jsonc language, by",
+    "  extension. A file that does not parse cleanly is never rewritten.",
+    "",
+    "  With no paths, formats every file under the working directory (except",
+    "  .git and node_modules) and skips files whose extension has no language",
+    "  or whose language has no formatter. Files matched by a glob are skipped",
+    "  the same way. A file named explicitly must have a language with a",
+    "  formatter. - formats standard input as .uff and writes standard output.",
+    "",
+    "Options:",
+    "  --check    Write nothing; list files that are not formatted.",
+    "  --json     Emit the per-file results as JSON.",
+    "",
+    "Exits non-zero when a file fails to format, or with --check when a file",
+    "is not formatted.",
     "",
   ].join("\n");
 }
@@ -251,6 +289,8 @@ function usageText(target: HelpTarget): string {
       return compileUsageText();
     case "exec":
       return execUsageText();
+    case "fmt":
+      return fmtUsageText();
     case "match":
       return matchUsageText();
     case "parse":
@@ -513,6 +553,71 @@ function matchFailureLines(error: CliMatchFailure): string[] {
   return lines;
 }
 
+function fmtDiagnosticLines(result: CliFormatResult): string[] {
+  return result.files.flatMap(({ sourcePath, diagnostics = [] }) =>
+    diagnostics.map(({ message, location }) =>
+      location
+        ? `${sourcePath}:${location.line + 1}:${
+          location.column + 1
+        }: ${message}`
+        : `${sourcePath}: ${message}`
+    )
+  );
+}
+
+async function runFmt(
+  contract: CliProcessContract,
+  stdinSource: string,
+): Promise<CliRunResult> {
+  const formatting = await LanguageFormatting.load(contract.cwd);
+  if ("error" in formatting) {
+    return {
+      exitCode: CliExitCode.Config,
+      stderr: toJson({
+        ok: false,
+        error: {
+          code: CliContractErrorCode.Config,
+          phase: "configuration",
+          message: formatting.error,
+        },
+      }),
+    };
+  }
+
+  const stdin = contract.inputPaths[0] === "-";
+  const result: CliFormatStdinResult = stdin
+    ? await formatStdin({
+      formatting,
+      source: stdinSource,
+      check: contract.check,
+    })
+    : await formatFiles({
+      formatting,
+      cwd: contract.cwd,
+      sourcePaths: contract.inputPaths,
+      check: contract.check,
+    });
+  const exitCode = result.ok ? CliExitCode.Ok : CliExitCode.Usage;
+  if (contract.jsonOutput) return { exitCode, stdout: toJson(result) };
+
+  const diagnostics = fmtDiagnosticLines(result);
+  const changed = result.files
+    .filter((file) => file.status === CliFormatStatus.Changed)
+    .map((file) => file.sourcePath);
+  const stdout = stdin && !contract.check
+    ? result.text
+    : changed.length > 0
+    ? `${changed.join("\n")}\n`
+    : undefined;
+  return {
+    exitCode,
+    ...(stdout !== undefined ? { stdout } : {}),
+    ...(diagnostics.length > 0
+      ? { stderr: `${diagnostics.join("\n")}\n` }
+      : {}),
+  };
+}
+
 export function shouldReadStdin(
   resolution: ReturnType<typeof resolveCliProcessContract>,
 ): boolean {
@@ -521,6 +626,7 @@ export function shouldReadStdin(
   }
 
   const { inlineSource, inputPaths } = resolution.contract;
+  if (resolution.contract.mode === CliMode.Fmt) return inputPaths[0] === "-";
   return inlineSource === undefined &&
     (inputPaths.length === 0 || inputPaths[0] === "-");
 }
@@ -617,6 +723,10 @@ export async function runCli(
     if (!result.ok) return operationFailure(result, contract.jsonOutput);
 
     return operationResult(result.value, contract.jsonOutput);
+  }
+
+  if (contract.mode === CliMode.Fmt) {
+    return await runFmt(contract, stdinSource);
   }
 
   if (contract.mode === CliMode.Match) {

@@ -149,7 +149,7 @@ export function toEditorLanguageConfiguration(
  * Returns `undefined` for an entry missing the inputs needed to resolve a
  * module at all.
  */
-function grammarTargetFor(
+export function grammarTargetFor(
   language: LspLanguageConfigEntry,
   workspaceRoot: string,
 ): { moduleUrl: URL; entryRuleName: string } | undefined {
