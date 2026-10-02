@@ -163,3 +163,51 @@ Deno.test("lang.expression.object recovers a broken entry", async () => {
   const first = await expressionGrammar("{ ?, c: 2 }");
   assertEquals(skipped("{ ?, c: 2 }", first), ["?"]);
 });
+
+Deno.test({
+  name: "lang.expression.object comments",
+  ignore: p.state !== "granted",
+  fn: async (t) => {
+    const comment = { kind: "comment", blocks: [] };
+    await t.step({
+      name: "OBJECT_COMMENT_00 - comments before and after entries",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "Object",
+        input: Input.Iterable([
+          "{",
+          comment,
+          "a",
+          ":",
+          "1",
+          ",",
+          comment,
+          "b",
+          ":",
+          "2",
+          comment,
+          "}",
+        ]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: ExpressionKind.Object,
+          keys: [
+            comment,
+            {
+              kind: ExpressionKind.ObjectKey,
+              name: "a",
+              expression: { kind: ExpressionKind.Number, value: 1 },
+            },
+            comment,
+            {
+              kind: ExpressionKind.ObjectKey,
+              name: "b",
+              expression: { kind: ExpressionKind.Number, value: 2 },
+            },
+            comment,
+          ],
+        },
+      }),
+    });
+  },
+});

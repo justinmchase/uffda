@@ -1,10 +1,12 @@
 # Array matches `[` … `]` with element/spread initializers and projects an
 # ArrayExpression. Variable bindings are single-letter (published CLI
-# PatternLang).
+# PatternLang). Comment nodes may appear among the elements, as members of
+# `expressions`.
 import "../tokenizer/token.uff" Token;
 import "./primary.uff" Primary;
 import "../common/spread.uff" SpreadMarker;
 import "./sequence.uff" ExpressionDelimiter;
+import "../common/comment.uff" CommentNode;
 
 export Array;
 
@@ -20,6 +22,7 @@ rule ArraySpread =
 ;
 
 rule ArrayInitializer =
+  | CommentNode
   | ArraySpread
   | ArrayElement
 ;

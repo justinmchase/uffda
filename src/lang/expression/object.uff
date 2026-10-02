@@ -1,11 +1,13 @@
 # Object matches `{` … `}` with key/spread entries and projects an
 # ObjectExpression. Variable bindings are single-letter (published CLI
-# PatternLang).
+# PatternLang). Comment nodes may appear before each entry and after the last
+# one, as members of `keys`.
 import "../tokenizer/token.uff" Token;
 import "./reference.uff" Reference;
 import "./primary.uff" Primary;
 import "../common/spread.uff" SpreadMarker;
 import "./sequence.uff" ExpressionDelimiter;
+import "../common/comment.uff" CommentNode;
 
 export Object;
 
@@ -51,13 +53,13 @@ rule RecoverableObjectEntry =
   ope ObjectEntry sneak by skip (not ExpressionDelimiter any)+
 ;
 
-rule ObjectPairTail = skip Token<Comma> RecoverableObjectEntry;
+rule ObjectItem = CommentNode* RecoverableObjectEntry -> (flat _);
 
-rule ObjectPairs = RecoverableObjectEntry ObjectPairTail* -> (flat _ 2);
+rule ObjectPairTail = skip Token<Comma> i:ObjectItem -> i;
 
-rule OptPairs = ObjectPairs?;
+rule ObjectPairs = f:ObjectItem r:ObjectPairTail* -> (flat [f (flat r)]);
 
 rule Object =
-  Token<OpenBrace> k:OptPairs Token<CloseBrace>
-  -> { kind: "object", keys: (flat (coalesce k [])) }
+  Token<OpenBrace> k:ObjectPairs? t:CommentNode* Token<CloseBrace>
+  -> { kind: "object", keys: (flat [(coalesce k []) t]) }
 ;

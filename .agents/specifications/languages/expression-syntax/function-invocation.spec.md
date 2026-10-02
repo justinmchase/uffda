@@ -19,6 +19,11 @@ Normative key words in this chapter use the conventions defined in the
   scalar values MUST NOT be implicitly coerced into identity-call behavior.
 - Invocation forms MUST normalize deterministically to canonical call expression
   nodes.
+- When the host grammar keeps comments (see
+  [pattern comments](../pattern-syntax/grammar.spec.md#comments)), comment nodes
+  MAY appear before, between, or after the arguments. They MUST be kept in the
+  `args` list in source order. A comment before the invocation target MUST be a
+  syntax error.
 
 ## Valid syntax examples
 

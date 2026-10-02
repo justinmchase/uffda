@@ -18,14 +18,13 @@ import "../editor/editor.uff" Formatter ToggleComment;
 
 export UffdaLang;
 
-# `Language` records this grammar's own editor-facing facts (file extension,
-# display name, and the editor-side settings VS Code has no LSP-standard
-# equivalent for — comment/bracket/pair configuration) directly on its entry
-# rule's metadata, so tooling (see `src/cli/language_metadata.ts`) can derive an
-# editor's language configuration dynamically from the grammar itself instead of
-# a hand-maintained, per-language static file. `c` is a single object literal so
-# any consumer may freely add further properties (for example a future
-# `description` or `wordPattern`) without changing the decorator's shape.
+# `Language` records this grammar's own editor-facing facts (file extension and
+# display name) directly on its entry rule's metadata, so tooling (see
+# `src/cli/language_metadata.ts`) can derive an editor's language configuration
+# from the grammar itself instead of a hand-maintained, per-language static
+# file. `c` is a single object literal so any consumer may freely add further
+# properties (for example a future `description` or `wordPattern`) without
+# changing the decorator's shape.
 decorator Language<c:any> = c;
 
 rule ModuleDeclarationSyntax =
@@ -63,15 +62,33 @@ rule UffdaFence = object & { language: "uffda", code: m:UffdaLang } -> m;
 
 rule UffdaComment = CommentBlock<UffdaFence>;
 
-# Comments are accepted only between top-level declarations, so each list admits
-# `UffdaComment` ahead of its declarations; a comment anywhere else is a syntax
-# error (a declaration's own grammar never accepts one). Each run of consecutive
-# comments is one comment node, in source order in `declarations`.
+# Each run of consecutive comments becomes one comment node before the module
+# grammar runs. A run that starts after code on the same line is wrapped as a
+# `lineEndComment`, which only the module body accepts: inside a declaration,
+# comments must be on their own lines.
+rule LineEndMarker = object & { kind: "lineEnd" };
+
+rule CommentNode =
+  | (LineEndMarker c:UffdaComment -> { kind: "lineEndComment", comment: c })
+  | UffdaComment
+;
+
+rule CommentNodes = i:(string | CommentNode | any)* end -> i;
+
+rule ModuleComment =
+  | object & { kind: "comment", blocks: array }
+  | object & ({ kind: "lineEndComment", comment: c:any } -> c)
+;
+
+# Between top-level declarations, each list admits `ModuleComment` ahead of its
+# declarations, in source order in `declarations`. Inside a declaration, the
+# declaration's own grammar decides where a comment may appear.
 rule ModuleBody =
-  i:(UffdaComment | ope ImportDeclarationSyntax sneak by skip ImportRecovery)*
-  e:(UffdaComment | ope ExportDeclarationSyntax sneak by skip ExportRecovery)*
+  i:(ModuleComment | ope ImportDeclarationSyntax sneak by skip ImportRecovery)*
+  e:(ModuleComment | ope ExportDeclarationSyntax sneak by skip ExportRecovery)*
   d:(
-    UffdaComment | ope ModuleDeclarationSyntax sneak by skip DeclarationRecovery
+    | ModuleComment
+    | ope ModuleDeclarationSyntax sneak by skip DeclarationRecovery
   )*
   -> { kind: "module", declarations: (flat [i (flat e) d]) }
 ;
@@ -80,6 +97,12 @@ rule ModuleBody =
 [Formatter UffdaFormat]
 [ToggleComment ToggleHashComment]
 rule UffdaLang =
-  m:(Source |> [TokenizerNoWhitespaceWithComments] |> [ModuleBody]) end
+  m:(
+    |> Source
+    |> [TokenizerNoWhitespaceWithComments]
+    |> [CommentNodes]
+    |> [ModuleBody]
+  )
+  end
   -> m
 ;

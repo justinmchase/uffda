@@ -483,10 +483,16 @@ Deno.test("lang.uffda.uffda-lang recovery points", async (t) => {
       declarations: ["rule A", "rule B"],
     },
     {
-      name: "a comment inside a rule body",
+      name: "a comment after code inside a rule body",
       source: "# head\nrule A = a # c\n b;\nrule B = b;",
-      skipped: ["rule A = a # c\n b;"],
-      declarations: ["comment head", "rule B"],
+      skipped: ["# c"],
+      declarations: ["comment head", "rule A", "rule B"],
+    },
+    {
+      name: "a comment on its own line inside a rule body",
+      source: "rule A =\n  | a\n  # c\n  | b\n;\nrule B = b;",
+      skipped: [],
+      declarations: ["rule A", "rule B"],
     },
     {
       name: "comments around a broken declaration",

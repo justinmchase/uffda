@@ -2,7 +2,8 @@
 # `layout.uff`) and produces its source text, adding parentheses wherever the
 # pattern grammar's precedence (or its flattening of same-kind nesting) needs
 # them. Projections are always parenthesized, so a nested projection is never
-# cut as a rule-level projection.
+# cut as a rule-level projection. Comments in a list are written on their own
+# lines (see `comment.uff`).
 import "./layout.uff"
   Fit
   Indent
@@ -13,7 +14,10 @@ import "./layout.uff"
   Next
   Sep
   Bracket
-  List;
+  List
+  LineStart
+  LineBreak;
+import "./comment.uff" Lead Trail;
 import "./literal.uff" ValueSourceText;
 import "./expression.uff" Expression;
 
@@ -115,23 +119,59 @@ rule PostfixOperand<L> =
 ;
 
 rule PatternOrRest<L> =
-  l:L p:OrAlternative<(ok -> (Next l 2))>
-  -> (join [(Sep l " | " "| ") p] "")
+  l:L c:Lead<L>* p:OrAlternative<(ok -> (Next l 2))>
+  -> (join [(Sep l " | " "") ...c (when l.flat "" "| ") p] "")
 ;
 
-rule PatternOrBody<L> =
-  l:L
-  (
-    object
-    & {
-      kind: "or",
-      patterns: [
-        f:OrAlternative<(ok -> (Shift l (when l.flat 0 2)))> r:PatternOrRest<L>*
-      ]
-    }
+# An alternation's items: the comments before its first alternative, its
+# alternatives, and the comments after its last. Only comments keep a single
+# alternative from collapsing. With comments before it, it is written by `B`,
+# keeping its `|` so that uncommenting an alternative above it keeps both
+# alternatives; with comments only after it, by `M`, without `|`.
+rule PatternOrItems<L, M, B> =
+  | (
+    l:L
+    (
+      object
+      & {
+        kind: "or",
+        patterns: [
+          c:Lead<L>*
+          f:OrAlternative<(ok -> (Shift l (when l.flat 0 2)))>
+          r:PatternOrRest<L>+
+          t:Trail<L>*
+        ]
+      }
+    )
+    -> (join [...c (when l.flat "" "| ") f ...r ...t] "")
   )
-  -> (join [(when l.flat "" "| ") f ...r] "")
+  | (
+    l:L (object & { kind: "or", patterns: [c:Lead<L>+ f:B<L> t:Trail<L>*] })
+    -> (join [...c f ...t] "")
+  )
+  | (
+    l:L (object & { kind: "or", patterns: [f:M<L> t:Trail<L>+] })
+    -> (join [f ...t] "")
+  )
 ;
+
+# Comments before the first alternative start on a line of their own.
+rule PatternOrLayout<L, M, B> =
+  | l:L
+    (object & { kind: "or", patterns: [(object & { kind: "comment" }) any*] })
+    & (
+      b:PatternOrItems<(ok -> (LineStart l)), M, B>
+      -> (join [(LineBreak l) b] "")
+    )
+  | PatternOrItems<L, M, B>
+;
+
+rule OrBarred<L> =
+  l:L p:OrAlternative<(ok -> (Shift l 2))>
+  -> (join ["| " p] "")
+;
+
+rule PatternOrBody<L> = PatternOrLayout<L, OrAlternative, OrBarred>;
 
 rule PatternOr<L> = Fit<PatternOrBody, L>;
 
@@ -140,15 +180,32 @@ rule PatternOr<L> = Fit<PatternOrBody, L>;
 # line.
 rule RuleBodyPattern<L> =
   | (object & { kind: "or" })
-    & (l:L ((ok -> l.flat) |> false) p:PatternOrBody<L> -> p)
+    & (
+      l:L
+      ((ok -> l.flat) |> false)
+      p:PatternOrLayout<L, RuleBodyMember, RuleBodyBarred>
+      -> p
+    )
   | (object & { kind: "pipeline" })
     & (l:L ((ok -> l.flat) |> false) p:PatternPipelineBody<L> -> p)
   | (not (object & { kind: in["or" "pipeline"] }) p:Pattern<L> -> p)
 ;
 
+# The single alternative of a rule body's alternation keeps its rule-body form;
+# a pipeline leads with `|>` in place of `|`.
+rule RuleBodyMember<L> =
+  | (object & { kind: "or" }) & (g:PatternGroup<L> -> g)
+  | RuleBodyPattern<L>
+;
+
+rule RuleBodyBarred<L> =
+  | (object & { kind: "pipeline" }) & RuleBodyPattern<L>
+  | OrBarred<L>
+;
+
 rule PatternAndRest<L> =
-  l:L p:AndOperand<(ok -> (Next l 2))>
-  -> (join [(Sep l " & " "& ") p] "")
+  l:L c:Lead<L>* p:AndOperand<(ok -> (Next l 2))>
+  -> (join [(Sep l " & " "") ...c (when l.flat "" "& ") p] "")
 ;
 
 rule PatternAndBody<L> =
@@ -160,8 +217,8 @@ rule PatternAndBody<L> =
 rule PatternAnd<L> = Fit<PatternAndBody, L>;
 
 rule PatternPipelineRest<L> =
-  l:L p:PipelineStep<(ok -> (Next l 3))>
-  -> (join [(Sep l " |> " "|> ") p] "")
+  l:L c:Lead<L>* p:PipelineStep<(ok -> (Next l 3))>
+  -> (join [(Sep l " |> " "") ...c (when l.flat "" "|> ") p] "")
 ;
 
 rule PatternPipelineBody<L> =
@@ -182,8 +239,8 @@ rule PatternPipelineBody<L> =
 rule PatternPipeline<L> = Fit<PatternPipelineBody, L>;
 
 rule PatternThenRest<L> =
-  l:L p:ThenItem<(ok -> (Next l 0))>
-  -> (join [(Sep l " " "") p] "")
+  l:L c:Lead<L>* p:ThenItem<(ok -> (Next l 0))>
+  -> (join [(Sep l " " "") ...c p] "")
 ;
 
 rule PatternThenBody<L> =
@@ -336,6 +393,11 @@ rule PatternIntoBody<L> =
 
 rule PatternInto<L> = Fit<PatternIntoBody, L>;
 
+# `label: pattern`, or `label:` when the pattern starts on the next line.
+func Labeled<label:string pattern:string> =
+  (join [label (when (eq (at pattern 0) "\n") ":" ": ") pattern] "")
+;
+
 rule PatternOverEntry<L> =
   l:L
   (
@@ -345,7 +407,7 @@ rule PatternOverEntry<L> =
       value: p:Pattern<(ok -> (Shift l (add (length n) 2)))>
     }
   )
-  -> (join [n ": " p] "")
+  -> (Labeled n p)
 ;
 
 rule PatternOverBody<L> =
@@ -459,12 +521,12 @@ rule SwitchCase<L> =
       pattern: p:Pattern<(ok -> (Shift l (add (length k) 2)))>
     }
   )
-  -> (join [k ": " p] "")
+  -> (Labeled k p)
 ;
 
 rule SwitchDefault<L> =
   | (undefined -> [])
-  | (l:L p:Pattern<(ok -> (Shift l 9))> -> [(join ["default: " p] "")])
+  | (l:L p:Pattern<(ok -> (Shift l 9))> -> [(Labeled "default" p)])
 ;
 
 rule PatternSwitchBody<L> =

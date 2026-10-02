@@ -32,3 +32,26 @@ Deno.test({
     });
   },
 });
+
+Deno.test({
+  name: "lang.pattern.and comments",
+  ignore: p.state !== "granted",
+  fn: async (t) => {
+    const comment = { kind: "comment", blocks: [] };
+    await t.step({
+      name: "AND_COMMENT_00 - a comment before &",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "And",
+        input: Input.Iterable(["any", comment, "&", "fail"]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.And,
+          patterns: [{ kind: PatternKind.Any }, comment, {
+            kind: PatternKind.Fail,
+          }],
+        },
+      }),
+    });
+  },
+});

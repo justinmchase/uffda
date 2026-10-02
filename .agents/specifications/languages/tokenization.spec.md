@@ -93,15 +93,13 @@ that can be consumed by expression, pattern, and language-definition layers.
 After structured tokens are produced, language modules project parser-facing
 text streams via module-local `func` declarations (not permanent globals):
 
-| Name                           | Contract                                                                                            |
-| ------------------------------ | --------------------------------------------------------------------------------------------------- |
-| `semantic_texts`               | Token texts with `kind !== "comment"` (whitespace retained)                                         |
-| `semantic_no_whitespace_texts` | Texts for `kind` in `{ "word", "punctuation" }` only                                                |
-| `semantic_no_whitespace_items` | Texts for `kind` in `{ "word", "punctuation" }`, plus each `"comment"` token as its own token value |
+| Name                           | Contract                                                    |
+| ------------------------------ | ----------------------------------------------------------- |
+| `semantic_texts`               | Token texts with `kind !== "comment"` (whitespace retained) |
+| `semantic_no_whitespace_texts` | Texts for `kind` in `{ "word", "punctuation" }` only        |
 
 Authors write `(semantic_texts tokens)` in `tokenizer.lang.uff` and
-`(semantic_no_whitespace_texts tokens)` and
-`(semantic_no_whitespace_items tokens)` in `tokenizer/mod.uff`. These funcs
+`(semantic_no_whitespace_texts tokens)` in `tokenizer/mod.uff`. These funcs
 operate on token values only; they MUST NOT read Match spans. They are
 module-local (not exported, not registered as runtime globals) — see
 [#124](https://github.com/justinmchase/uffda/issues/124).
@@ -111,10 +109,12 @@ module-local (not exported, not registered as runtime globals) — see
 - `TokenizerNoWhitespace` projects `semantic_no_whitespace_texts`: the
   comment-free view. Parsers that use it observe the same stream as if every
   comment were absent.
-- `TokenizerNoWhitespaceWithComments` projects `semantic_no_whitespace_items`:
-  the comment-preserving view. Comment tokens stay in the stream, in source
-  order, as the tokenizer's own `{ kind: "comment", text }` values (so their
-  provenance is unchanged), among the word and punctuation texts. A language
+- `TokenizerNoWhitespaceWithComments` is the comment-preserving view. It carries
+  the same word and punctuation texts, and keeps each comment token in the
+  stream, in source order, as the tokenizer's own `{ kind: "comment", text }`
+  value (so its provenance is unchanged). A comment that follows code on the
+  same line is preceded by one `{ kind: "lineEnd" }` item, so a grammar can tell
+  a comment on its own line from one at the end of a code line. A language
   chooses this view only when its grammar declares where comments may appear.
 
 ## Escape sequences in quoted strings

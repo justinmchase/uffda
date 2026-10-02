@@ -94,11 +94,22 @@ Deno.test(
 );
 
 Deno.test(
-  "req:tokenizer-runtime-010 - semantic_no_whitespace_items keeps comment tokens in place",
+  "req:tokenizer-runtime-010 - TokenizerNoWhitespaceWithComments marks a line-end comment",
   moduleDeclarationTest({
     moduleUrl: new URL("../../lang/tokenizer/mod.uff", import.meta.url).href,
     entryRuleName: "TokenizerNoWhitespaceWithComments",
     input: Input.Iterable(source),
+    kind: MatchKind.Ok,
+    value: ["a", { kind: "lineEnd" }, { kind: "comment", text: "#x" }, "+"],
+  }),
+);
+
+Deno.test(
+  "req:tokenizer-runtime-010 - TokenizerNoWhitespaceWithComments keeps an own-line comment unmarked",
+  moduleDeclarationTest({
+    moduleUrl: new URL("../../lang/tokenizer/mod.uff", import.meta.url).href,
+    entryRuleName: "TokenizerNoWhitespaceWithComments",
+    input: Input.Iterable("a\n  #x\n+"),
     kind: MatchKind.Ok,
     value: ["a", { kind: "comment", text: "#x" }, "+"],
   }),

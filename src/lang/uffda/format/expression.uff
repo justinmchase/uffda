@@ -1,5 +1,6 @@
 # Formats expressions. `Expression<L>` takes an expression node and a layout
-# (see `layout.uff`) and produces its source text.
+# (see `layout.uff`) and produces its source text. Comments among a list's items
+# are written on their own lines (see `comment.uff`).
 import "./layout.uff"
   Fit
   Shift
@@ -11,7 +12,9 @@ import "./layout.uff"
   HugHead
   HugFits
   Flat
-  NotLast;
+  NotLast
+  Indent;
+import "./comment.uff" CommentAt Commented Trailed;
 import "./literal.uff" ExpressionStringText NumberText;
 import "./pattern.uff" Parameters;
 
@@ -104,10 +107,13 @@ rule ExpressionArrayBody<L> =
     object
     & {
       kind: "array",
-      expressions: [x:ExpressionArrayItem<(ok -> (Entry l 0))>*]
+      expressions: [
+        x:Commented<ExpressionArrayItem, (ok -> (Entry l 0))>*
+        t:CommentAt<(ok -> (Entry l 0)), (ok -> (Indent l.i))>*
+      ]
     }
   )
-  -> (List l "[" "" x "" "]")
+  -> (List l "[" "" (Trailed x t (Indent l.i)) "" "]")
 ;
 
 rule ExpressionArray<L> = Fit<ExpressionArrayBody, L>;
@@ -155,9 +161,15 @@ rule ExpressionObjectBody<L> =
   l:L
   (
     object
-    & { kind: "object", keys: [x:ExpressionObjectEntry<(ok -> (Entry l 1))>*] }
+    & {
+      kind: "object",
+      keys: [
+        x:Commented<ExpressionObjectEntry, (ok -> (Entry l 1))>*
+        t:CommentAt<(ok -> (Entry l 1)), (ok -> (Indent l.i))>*
+      ]
+    }
   )
-  -> (List l "\{" " " x "," "}")
+  -> (List l "\{" " " (Trailed x t (Indent l.i)) "," "}")
 ;
 
 rule ExpressionObject<L> = Fit<ExpressionObjectBody, L>;
@@ -213,10 +225,13 @@ rule InvocationList<L> =
     & {
       kind: "invocation",
       expression: c:Expression<(ok -> (Flat))>,
-      args: [x:InvocationArgument<(ok -> (Entry l 0))>*]
+      args: [
+        x:Commented<InvocationArgument, (ok -> (Entry l 0))>*
+        t:CommentAt<(ok -> (Entry l 0)), (ok -> (Indent l.i))>*
+      ]
     }
   )
-  -> (Call l (join ["(" c] "") x ")")
+  -> (Call l (join ["(" c] "") (Trailed x t (Indent l.i)) ")")
 ;
 
 rule InvocationBody<L> =

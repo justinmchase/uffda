@@ -1,5 +1,6 @@
 import { assertEquals } from "@std/assert";
 import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
+import { EditorDecorator, hasEditorMetadata } from "./editor_metadata.ts";
 import {
   acceptsKind,
   identifierPosition,
@@ -33,6 +34,25 @@ rule Main = n:string -> (join (map [n] <x:any> -> (f x n)) ",");`;
     }
     assertEquals(memo.variables.size > 0, true);
   });
+
+  await t.step(
+    "a later pipeline stage outranks a deeper earlier one",
+    async () => {
+      const source = `import "./dep.uff" Dep;\nrule Main = Dep;`;
+      const match = await uffdaGrammar(source);
+      const start = source.indexOf("Dep;");
+      const [position] = identifierPositions(match, [{
+        start,
+        end: start + 3,
+      }]);
+      assertEquals(
+        position.chain.some((node) =>
+          hasEditorMetadata(node, EditorDecorator.ImportedName)
+        ),
+        true,
+      );
+    },
+  );
 });
 
 async function bindingAt(source: string, needle: string, delta = 0) {

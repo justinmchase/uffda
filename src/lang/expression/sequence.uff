@@ -1,5 +1,6 @@
 # Sequence matches `(callee args…)` and projects an InvocationExpression.
-# Variable bindings are single-letter (published CLI PatternLang).
+# Variable bindings are single-letter (published CLI PatternLang). Comment nodes
+# may appear among the arguments, as members of `args`.
 import "../tokenizer/token.uff" Token;
 import "./primary.uff" Primary;
 import "./member.uff" Member;
@@ -8,6 +9,7 @@ import "./nullish.uff" Nullish;
 import "./reference.uff" Reference;
 import "../common/spread.uff" SpreadMarker;
 import "../editor/editor.uff" Highlight;
+import "../common/comment.uff" CommentNode;
 
 export Sequence;
 export ExpressionDelimiter;
@@ -16,13 +18,14 @@ rule OpenParen = "(";
 
 rule CloseParen = ")";
 
-# Tokens that close or separate an enclosing construct; a recovery never skips
-# one.
+# Tokens that close or separate an enclosing construct, and comment nodes; a
+# recovery never skips one.
 rule ExpressionDelimiter =
   | Token<")">
   | Token<"]">
   | Token<"}">
   | Token<",">
+  | CommentNode
 ;
 
 [Highlight { role: "function" }]
@@ -45,6 +48,7 @@ rule InvocationSpread =
 ;
 
 rule InvocationArgument =
+  | CommentNode
   | InvocationSpread
   | Token<Primary>
 ;
