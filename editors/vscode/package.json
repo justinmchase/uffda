@@ -36,6 +36,21 @@
         "configuration": "./language-configuration.json"
       }
     ],
+    "commands": [
+      {
+        "command": "uffda.toggleLineComment",
+        "title": "Toggle Line Comment",
+        "category": "Uffda"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "uffda.toggleLineComment",
+        "key": "ctrl+/",
+        "mac": "cmd+/",
+        "when": "editorTextFocus && editorLangId == uffda"
+      }
+    ],
     "mcpServerDefinitionProviders": [
       {
         "id": "uffda",

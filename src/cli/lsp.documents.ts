@@ -24,6 +24,11 @@ import { highlightSpansFromMatch } from "./highlight.ts";
 import { isClean, isSuccess, type Match, valueOf } from "../match.ts";
 import { FormatResultKind } from "../lang/format.ts";
 import { formatUffdaSyntaxModule } from "../lang/uffda/format.ts";
+import {
+  toggleComment,
+  ToggleCommentResultKind,
+} from "../lang/toggle_comment.ts";
+import { UFFDA_GRAMMAR } from "../lang/uffda/uffda.lang.ts";
 import type { UffdaSyntaxModule } from "../lang/uffda/syntax.types.ts";
 import { RuntimeSession } from "./mcp.session.ts";
 import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
@@ -266,6 +271,44 @@ export class LspDocumentManager {
         range: rangeOf(doc.source, { start: 0, end: doc.source.length }),
         newText: result.text,
       }];
+    });
+  }
+
+  /**
+   * Handles `uffda/toggleComment`: toggles comments on the whole lines
+   * `range` touches, with the rule the language names with
+   * `[ToggleComment]` (see
+   * `.agents/requirements/cli-language-server/009-comment-toggling.requirement.md`).
+   * A range ending at the start of a later line leaves that line out. No
+   * edits when the toggle fails or changes nothing. `undefined` when the
+   * document is not open.
+   */
+  public toggleComment(
+    uri: string,
+    range: Range,
+  ): Promise<TextEdit[] | undefined> {
+    return this.serialize<TextEdit[] | undefined>(uri, async () => {
+      const doc = this.documents.get(uri);
+      if (!doc) return undefined;
+      const { source } = doc;
+      const first = range.start.line;
+      const last = range.end.character === 0 && range.end.line > first
+        ? range.end.line - 1
+        : range.end.line;
+      const start = positionToOffset(source, { line: first, character: 0 });
+      let end = positionToOffset(source, {
+        line: last,
+        character: Number.MAX_SAFE_INTEGER,
+      });
+      if (end > start && source[end - 1] === "\r") end--;
+      const text = source.slice(start, end);
+      const result = await toggleComment(UFFDA_GRAMMAR, text);
+      if (
+        result.kind !== ToggleCommentResultKind.Toggled || result.text === text
+      ) {
+        return [];
+      }
+      return [{ range: rangeOf(source, { start, end }), newText: result.text }];
     });
   }
 

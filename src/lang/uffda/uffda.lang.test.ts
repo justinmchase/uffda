@@ -3,7 +3,11 @@ import { MatchKind } from "../../mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { lit } from "../../runtime/patterns/value_source.ts";
-import { uffdaGrammar, type UffdaSyntaxModule } from "./uffda.lang.ts";
+import {
+  UFFDA_GRAMMAR,
+  uffdaGrammar,
+  type UffdaSyntaxModule,
+} from "./uffda.lang.ts";
 import { fromFileUrl, join } from "@std/path";
 import { Input, InputNormalizationMode } from "../../input.ts";
 import { Path } from "../../path.ts";
@@ -538,5 +542,12 @@ Deno.test("lang.uffda.uffda-lang recovery points", async (t) => {
       "rule C",
       "comment tail",
     ]);
+  });
+});
+
+Deno.test("lang.uffda.uffda-lang UFFDA_GRAMMAR", () => {
+  assertEquals(UFFDA_GRAMMAR, {
+    moduleUrl: new URL("./uffda.lang.uff", import.meta.url),
+    entryRuleName: "UffdaLang",
   });
 });

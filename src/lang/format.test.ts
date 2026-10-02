@@ -5,11 +5,13 @@ import { compileUffdaSource } from "./uffda/execute.ts";
 import {
   FormatResultKind,
   formatSource,
-  FormatterResolutionKind,
   formatTree,
-  type LanguageGrammar,
   resolveFormatter,
 } from "./format.ts";
+import {
+  type LanguageGrammar,
+  LanguageRuleResolutionKind,
+} from "./language_rule.ts";
 
 const langUrl = new URL("file:///uffda/format/lang.uff.ts");
 const printUrl = new URL("file:///uffda/format/print.uff.ts");
@@ -60,8 +62,8 @@ Deno.test("lang.format", async (t) => {
         await grammar("[Formatter Print]"),
       );
       assertEquals(resolution, {
-        kind: FormatterResolutionKind.Found,
-        formatter: {
+        kind: LanguageRuleResolutionKind.Found,
+        rule: {
           kind: "rule",
           name: "Print",
           moduleUrl: printUrl.href,
@@ -76,7 +78,7 @@ Deno.test("lang.format", async (t) => {
     async () => {
       assertEquals(
         await resolveFormatter(await grammar("[Other Print]")),
-        { kind: FormatterResolutionKind.NoFormatter },
+        { kind: LanguageRuleResolutionKind.Missing },
       );
       assertEquals(
         await formatSource(await grammar(""), "a b"),
@@ -92,7 +94,7 @@ Deno.test("lang.format", async (t) => {
         moduleUrl: new URL("file:///uffda/format/missing.uff.ts"),
         entryRuleName: "Words",
       });
-      assertEquals(resolution.kind, FormatterResolutionKind.Unresolved);
+      assertEquals(resolution.kind, LanguageRuleResolutionKind.Unresolved);
     },
   );
 

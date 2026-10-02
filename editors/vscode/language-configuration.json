@@ -1,22 +1,6 @@
 {
-  "comments": {
-    "lineComment": "#"
-  },
-  "brackets": [
-    ["{", "}"],
-    ["[", "]"],
-    ["(", ")"]
-  ],
-  "autoClosingPairs": [
-    { "open": "{", "close": "}" },
-    { "open": "[", "close": "]" },
-    { "open": "(", "close": ")" },
-    { "open": "\"", "close": "\"", "notIn": ["string"] }
-  ],
-  "surroundingPairs": [
-    ["{", "}"],
-    ["[", "]"],
-    ["(", ")"],
-    ["\"", "\""]
-  ]
+  "brackets": [],
+  "colorizedBracketPairs": [],
+  "autoClosingPairs": [],
+  "surroundingPairs": []
 }

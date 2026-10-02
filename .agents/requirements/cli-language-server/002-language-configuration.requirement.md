@@ -30,9 +30,10 @@ Expected behavior:
 - Design note (non-normative for this requirement, see the spec chapter's
   "Language configuration" section): implementations SHOULD avoid hard-coding
   assumptions that a language's file extension(s) can only ever come from this
-  file. A grammar module MAY self-declare its own extension(s) (and other
-  editor-facing facts) via `[Language { ext: ".uff", … }]` metadata on its entry
-  rule. When a language entry omits `extensions` but supplies `modulePath` and
+  file. A grammar module MAY self-declare its own extension(s) (and its display
+  `name` and `description`) via `[Language { ext: ".uff", … }]` metadata on its
+  entry rule. Comment syntax and bracket pairs are not `[Language]` metadata.
+  When a language entry omits `extensions` but supplies `modulePath` and
   `entryRuleName`, the server MUST fill `extensions` from that metadata's `ext`
   (workspace JSON still wins when `extensions` is present). Attribute
   application uses `[Name arg…]` expression arguments (see

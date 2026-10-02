@@ -22,6 +22,16 @@ const EXPECTED: Array<
     moduleUrl: new URL("../uffda/format/mod.uff", import.meta.url).href,
     parameters: [],
   }],
+  ["../uffda/uffda.lang.uff", "UffdaLang", "UffdaLang", "ToggleComment", {
+    kind: "rule",
+    name: "ToggleHashComment",
+    moduleUrl: new URL("../comment/toggle.uff", import.meta.url).href,
+    parameters: [],
+  }],
+  ["../uffda/uffda.lang.uff", "UffdaLang", "UffdaLang", "Language", {
+    ext: ".uff",
+    name: "Uffda",
+  }],
   ["../tokenizer/mod.uff", "Tokenizer", "WordToken", "Highlight", {
     role: "identifier",
   }],
@@ -173,6 +183,7 @@ Deno.test("lang.editor decorators document themselves", async (t) => {
     ModulePath: ["c"],
     ImportedName: [],
     Formatter: ["f"],
+    ToggleComment: ["t"],
     Documentation: ["d"],
   };
   for (const [name, parameters] of Object.entries(parametersOf)) {

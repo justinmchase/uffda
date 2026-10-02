@@ -4,10 +4,12 @@ import {
   type FormatResult,
   FormatResultKind,
   formatSource,
-  FormatterResolutionKind,
-  type LanguageGrammar,
   resolveFormatter,
 } from "../lang/format.ts";
+import {
+  type LanguageGrammar,
+  LanguageRuleResolutionKind,
+} from "../lang/language_rule.ts";
 import type { RuleInfo } from "../runtime/modules/rule_info.ts";
 import { toStableSourcePath } from "../runtime/resolvers/artifact_path.ts";
 import {
@@ -163,15 +165,15 @@ export class LanguageFormatting {
     }
     const resolution = await resolveFormatter(grammar);
     switch (resolution.kind) {
-      case FormatterResolutionKind.Found:
-        return { grammar, formatter: resolution.formatter };
-      case FormatterResolutionKind.NoFormatter:
+      case LanguageRuleResolutionKind.Found:
+        return { grammar, formatter: resolution.rule };
+      case LanguageRuleResolutionKind.Missing:
         return {
           code: CliFormatFailureCode.NoFormatter,
           message:
             `Language '${language.id}' has no [Formatter] on rule ${grammar.entryRuleName}`,
         };
-      case FormatterResolutionKind.Unresolved:
+      case LanguageRuleResolutionKind.Unresolved:
         return {
           code: CliFormatFailureCode.GrammarUnresolved,
           message:

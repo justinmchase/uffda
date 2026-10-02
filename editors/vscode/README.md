@@ -32,16 +32,20 @@ error instead of silently disabling itself.
 
 ## Design notes
 
-`language-configuration.json` and the single `contributes.languages` entry in
-`package.json` are `.uff`-specific fallback scaffolding when the language
-server does not yet expose `[Language]` metadata. On activation the extension
-requests `uffda/languageMetadata` and:
+`language-configuration.json` declares no comments and no brackets, so VS Code
+adds no bracket matching, bracket colors, auto-closing, or auto-surrounding.
+All coloring comes from the language server's semantic tokens.
 
-- applies editor configuration with `vscode.languages.setLanguageConfiguration()`
-- maps `[Language].ext` → language id and assigns ids at runtime with
-  `vscode.languages.setTextDocumentLanguage()` for workspace-declared
-  languages (so additional languages do not need a second static
-  `contributes.languages` entry)
+Ctrl+/ (Cmd+/ on Mac) runs `Uffda: Toggle Line Comment`, which asks the
+language server to toggle comments on the selected lines with the rule the
+grammar names with `[ToggleComment]`. The Edit menu's built-in toggle does
+nothing in Uffda files.
+
+On activation the extension requests `uffda/languageMetadata`, maps
+`[Language].ext` → language id, and assigns ids at runtime with
+`vscode.languages.setTextDocumentLanguage()` for workspace-declared languages
+(so additional languages do not need a second static `contributes.languages`
+entry).
 
 Workspace `.uffda/lsp.jsonc` entries may omit `extensions` when the grammar's
 `[Language]` metadata supplies `ext` (JSON still wins when present).

@@ -522,3 +522,52 @@ Deno.test("cli.lsp.documents LspDocumentManager.format", async (t) => {
     },
   );
 });
+
+Deno.test("cli.lsp.documents LspDocumentManager.toggleComment", async (t) => {
+  const uri = "file:///workspace/toggle.uff";
+  const at = (line: number, character: number) => ({ line, character });
+
+  await t.step("is undefined for a document that is not open", async () => {
+    const manager = new LspDocumentManager(Deno.cwd());
+    assertEquals(
+      await manager.toggleComment(uri, { start: at(0, 0), end: at(0, 0) }),
+      undefined,
+    );
+  });
+
+  await t.step(
+    "comments the whole lines the range touches",
+    async () => {
+      const manager = new LspDocumentManager(Deno.cwd());
+      await manager.open(uri, "rule A =\r\n  | a\r\n  | b\r\n;\r\n");
+      assertEquals(
+        await manager.toggleComment(uri, { start: at(1, 3), end: at(2, 1) }),
+        [{
+          range: { start: at(1, 0), end: at(2, 5) },
+          newText: "  # | a\r\n  # | b",
+        }],
+      );
+    },
+  );
+
+  await t.step(
+    "uncomments lines that are all comments, leaving out a line the range only reaches the start of",
+    async () => {
+      const manager = new LspDocumentManager(Deno.cwd());
+      await manager.open(uri, "# a\n#  b\nrule A = a;\n");
+      assertEquals(
+        await manager.toggleComment(uri, { start: at(0, 0), end: at(2, 0) }),
+        [{ range: { start: at(0, 0), end: at(1, 4) }, newText: "a\n b" }],
+      );
+    },
+  );
+
+  await t.step("returns no edits when nothing changes", async () => {
+    const manager = new LspDocumentManager(Deno.cwd());
+    await manager.open(uri, "rule A = a;\n\n");
+    assertEquals(
+      await manager.toggleComment(uri, { start: at(1, 0), end: at(1, 0) }),
+      [],
+    );
+  });
+});
