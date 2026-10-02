@@ -10,7 +10,8 @@ export ParameterList;
 rule ParameterEscapedQuotedTokens = "\\" e:("\"" | "{" | "\\") -> (pack "\\" e);
 
 rule ParameterQuotedTokenContent =
-  ParameterEscapedQuotedTokens | not "\"" & string
+  | ParameterEscapedQuotedTokens
+  | not "\"" & string
 ;
 
 rule ParameterQuotedTokenSequence =

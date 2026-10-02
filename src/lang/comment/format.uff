@@ -10,7 +10,9 @@ export rule CommentFormat<W, F> =
 ;
 
 rule CommentBlockFormat<W, F> =
-  ParagraphFormat<W> | ListFormat<W> | FenceFormat<F>
+  | ParagraphFormat<W>
+  | ListFormat<W>
+  | FenceFormat<F>
 ;
 
 rule InlineAtoms =

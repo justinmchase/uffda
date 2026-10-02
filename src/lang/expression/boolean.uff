@@ -11,6 +11,7 @@ rule TrueKeyword = "true" -> true;
 rule FalseKeyword = "false" -> false;
 
 rule Boolean =
-  Token<TrueKeyword> | Token<FalseKeyword>
+  | Token<TrueKeyword>
+  | Token<FalseKeyword>
   -> { kind: "boolean", value: _ }
 ;

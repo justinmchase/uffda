@@ -28,7 +28,9 @@ export UffdaLang;
 decorator Language<c:any> = c;
 
 rule ModuleDeclarationSyntax =
-  FuncDeclarationSyntax | RuleDeclarationSyntax | DecoratorDeclarationSyntax
+  | FuncDeclarationSyntax
+  | RuleDeclarationSyntax
+  | DecoratorDeclarationSyntax
 ;
 
 # Each declaration list is a recovery point. A broken declaration is skipped
@@ -46,7 +48,8 @@ rule ImportRecovery = ImportKeyword DeclarationRest;
 rule ExportRecovery = ExportKeyword DeclarationRest;
 
 rule DeclarationRecovery =
-  ";" | (RuleQuotedTokenSequence | any) DeclarationRest
+  | ";"
+  | (RuleQuotedTokenSequence | any) DeclarationRest
 ;
 
 # The fence parser for comments: fences tagged `uffda` are Uffda modules. Every

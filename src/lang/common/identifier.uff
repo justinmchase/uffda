@@ -18,5 +18,9 @@ export rule IdToken = string & [Identifier];
 rule IdentifierStartCharacter = Letter | "_";
 
 rule IdentifierCharacter =
-  IdentifierStartCharacter | Digit | Connecting | Combining | Formatting
+  | IdentifierStartCharacter
+  | Digit
+  | Connecting
+  | Combining
+  | Formatting
 ;

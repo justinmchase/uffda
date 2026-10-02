@@ -47,7 +47,10 @@ rule StarMinMaxVarNum =
 ;
 
 rule StarMinMax =
-  StarMinMaxNumNum | StarMinMaxVarVar | StarMinMaxNumVar | StarMinMaxVarNum
+  | StarMinMaxNumNum
+  | StarMinMaxVarVar
+  | StarMinMaxNumVar
+  | StarMinMaxVarNum
 ;
 
 rule StarMinOpen =

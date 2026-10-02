@@ -137,7 +137,8 @@ rule CompileDeclarationSequence =
 ;
 
 rule CompileDeclarations =
-  CompileDeclarationSequence | CompileEmptyDeclarations
+  | CompileDeclarationSequence
+  | CompileEmptyDeclarations
 ;
 
 rule AttachNameSets =

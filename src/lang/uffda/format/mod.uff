@@ -18,7 +18,7 @@ import "./layout.uff"
   HugFits
   Flat
   NotLast;
-import "./pattern.uff" Pattern Parameters;
+import "./pattern.uff" Parameters RuleBodyPattern;
 import "./expression.uff" Expression;
 import "../../comment/format.uff" CommentFormat;
 
@@ -191,7 +191,7 @@ rule RuleBody<L> =
       kind: "rule",
       name: n:string,
       parameters: a:ParameterNames,
-      pattern: p:Pattern<(ok -> (BodyLayout l (RuleHead n a)))>,
+      pattern: p:RuleBodyPattern<(ok -> (BodyLayout l (RuleHead n a)))>,
       projection: j:Projection<L>
     }
   )

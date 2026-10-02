@@ -30,7 +30,11 @@ rule FuncKeyword = "func" -> "func";
 rule DecoratorKeyword = "decorator" -> "decorator";
 
 rule ReservedKeywordToken =
-  ImportKeyword | ExportKeyword | RuleKeyword | FuncKeyword | DecoratorKeyword
+  | ImportKeyword
+  | ExportKeyword
+  | RuleKeyword
+  | FuncKeyword
+  | DecoratorKeyword
 ;
 
 rule IdentifierToken = not ReservedKeywordToken & IdToken;

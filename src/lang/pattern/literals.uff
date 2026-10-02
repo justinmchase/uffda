@@ -42,7 +42,10 @@ rule NullishValue = n:Nullish -> n.value;
 rule ContextualValue = "$" n:IdToken -> { kind: "value.variable", name: n };
 
 rule AtomicLiteralValue =
-  StringValue | NumberValue | BooleanValue | NullishValue
+  | StringValue
+  | NumberValue
+  | BooleanValue
+  | NullishValue
 ;
 
 rule AtomicLiteralSource =

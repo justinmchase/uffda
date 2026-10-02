@@ -11,6 +11,7 @@ rule NullKeyword = "null" -> null;
 rule UndefinedKeyword = "undefined" -> undefined;
 
 rule Nullish =
-  Token<NullKeyword> | Token<UndefinedKeyword>
+  | Token<NullKeyword>
+  | Token<UndefinedKeyword>
   -> { kind: "value", value: _ }
 ;
