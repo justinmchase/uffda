@@ -38,6 +38,8 @@ Expected behavior:
 - Without `--json`, changed paths MUST go to standard output and diagnostics to
   standard error as `path:line:column: message`; with `--json`, the result MUST
   be `{ ok, check, files }`.
+- An extension claimed by two or more configured languages MUST fail the command
+  with a configuration failure naming the extension and languages.
 - Options other than paths, `-`, `--check`, and `--json` MUST be rejected, as
   MUST `--check` on any other command.
 

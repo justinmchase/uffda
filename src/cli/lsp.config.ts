@@ -48,10 +48,9 @@ export type LspConfigLoadResult =
 
 /**
  * The always-available `.uff` language entry. Present whether or not a
- * workspace has its own `.uffda/lsp.jsonc`, and merged ahead of any
- * user-declared entries so a workspace can never accidentally shadow it
- * (see requirement 002: "`.uff` using the same mechanism, missing/invalid
- * config handling").
+ * workspace has its own `.uffda/lsp.jsonc`; a workspace language claiming
+ * one of its extensions takes that extension over (see
+ * `resolveExtensionOwnership`).
  */
 export const BUILTIN_UFF_LANGUAGE: LspLanguageConfigEntry = {
   id: "uffda",
@@ -194,14 +193,63 @@ export async function loadLspConfig(
     languages.push(language);
   }
 
-  // Built-in `.uff` first and always present, then user-declared entries.
-  // A user entry that also declares `id: "uffda"` does not replace the
-  // built-in — it is simply an additional, later entry — since resolution
-  // by extension always finds the built-in `.uff` entry first.
+  // Built-in `.uff` first and always present, then user-declared entries;
+  // `resolveExtensionOwnership` settles extensions both claim.
   return {
     ok: true,
     config: { languages: [BUILTIN_UFF_LANGUAGE, ...languages] },
   };
+}
+
+/** An extension more than one workspace language claims. */
+export type LanguageExtensionConflict = {
+  extension: string;
+  /** The ids of the claiming languages, in configuration order. */
+  languages: string[];
+};
+
+/**
+ * Gives every extension at most one language, so each document belongs to
+ * exactly one (see
+ * `.agents/specifications/languages/cli/language-server.spec.md#language-configuration`).
+ * A workspace language claiming an extension of the built-in `.uff` language
+ * takes it over. An extension two or more workspace languages claim is a
+ * conflict: no language keeps it, and it is returned for reporting.
+ */
+export function resolveExtensionOwnership(
+  config: LspConfig,
+): { config: LspConfig; conflicts: LanguageExtensionConflict[] } {
+  const workspace = config.languages.filter(
+    (language) => language !== BUILTIN_UFF_LANGUAGE,
+  );
+  const claims = new Map<string, string[]>();
+  for (const language of workspace) {
+    for (const extension of new Set(language.extensions)) {
+      claims.set(extension, [...claims.get(extension) ?? [], language.id]);
+    }
+  }
+  const conflicts = [...claims]
+    .filter(([, languages]) => languages.length > 1)
+    .map(([extension, languages]) => ({ extension, languages }));
+  const conflicted = new Set(conflicts.map(({ extension }) => extension));
+  const languages = config.languages.map((language) => {
+    const keep = language === BUILTIN_UFF_LANGUAGE
+      ? (extension: string) => !claims.has(extension)
+      : (extension: string) => !conflicted.has(extension);
+    return language.extensions.every(keep)
+      ? language
+      : { ...language, extensions: language.extensions.filter(keep) };
+  });
+  return { config: { languages }, conflicts };
+}
+
+/** A conflict as a one-line message. */
+export function describeExtensionConflict(
+  { extension, languages }: LanguageExtensionConflict,
+): string {
+  return `The '.${extension}' extension is claimed by more than one language (${
+    languages.map((id) => `'${id}'`).join(", ")
+  }) in ${LSP_CONFIG_RELATIVE_PATH}; none of them serves it`;
 }
 
 /** Extracts a document's file extension (lowercased, no leading dot). */

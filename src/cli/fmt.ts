@@ -11,13 +11,13 @@ import {
 import type { RuleInfo } from "../runtime/modules/rule_info.ts";
 import { toStableSourcePath } from "../runtime/resolvers/artifact_path.ts";
 import {
-  enrichLspConfigWithLanguageMetadata,
   grammarTargetFor,
+  loadWorkspaceLanguages,
 } from "./language_metadata.ts";
 import {
   BUILTIN_UFF_LANGUAGE,
+  describeExtensionConflict,
   extensionOf,
-  loadLspConfig,
   type LspConfig,
   type LspLanguageConfigEntry,
   resolveLanguageForDocument,
@@ -107,12 +107,14 @@ export class LanguageFormatting {
   static async load(
     workspaceRoot: string,
   ): Promise<LanguageFormatting | { error: string }> {
-    const loaded = await loadLspConfig(workspaceRoot);
+    const loaded = await loadWorkspaceLanguages(workspaceRoot);
     if (!loaded.ok) return { error: loaded.error.message };
-    return new LanguageFormatting(
-      await enrichLspConfigWithLanguageMetadata(loaded.config, workspaceRoot),
-      workspaceRoot,
-    );
+    if (loaded.conflicts.length > 0) {
+      return {
+        error: loaded.conflicts.map(describeExtensionConflict).join("\n"),
+      };
+    }
+    return new LanguageFormatting(loaded.config, workspaceRoot);
   }
 
   /** The language owning `uriOrPath`, by extension. */
