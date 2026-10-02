@@ -1,5 +1,11 @@
 import { Type, type } from "@justinmchase/type";
-import { parseGrammar, resolveGrammarModule } from "./grammar.ts";
+import { parseGrammar } from "./grammar.ts";
+import {
+  type LanguageGrammar,
+  type LanguageRuleResolution,
+  LanguageRuleResolutionKind,
+  resolveLanguageRule,
+} from "./language_rule.ts";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 import { Input, InputNormalizationMode } from "../input.ts";
 import { isClean, type Match, MatchKind, valueOf } from "../match.ts";
@@ -8,14 +14,6 @@ import { unwrap } from "../wrapped.ts";
 
 /** The decorator naming a language's formatter on its entry rule. */
 export const FORMATTER_DECORATOR_NAME = "Formatter";
-
-/** A language's grammar: the module and entry rule documents parse with. */
-export type LanguageGrammar = {
-  moduleUrl: URL;
-  entryRuleName: string;
-  /** In-memory modules resolved before compiled artifacts. */
-  declarations?: Record<string, ModuleDeclaration>;
-};
 
 export enum FormatResultKind {
   /** The source parsed cleanly and was formatted. */
@@ -37,49 +35,14 @@ export type FormatResult =
   | { kind: FormatResultKind.ParseFailed; match: Match }
   | { kind: FormatResultKind.FormatFailed; match: Match; message: string };
 
-export enum FormatterResolutionKind {
-  Found = "found",
-  NoFormatter = "noFormatter",
-  Unresolved = "unresolved",
-}
-
-export type FormatterResolution =
-  | { kind: FormatterResolutionKind.Found; formatter: RuleInfo }
-  | { kind: FormatterResolutionKind.NoFormatter }
-  | { kind: FormatterResolutionKind.Unresolved; match: Match };
-
-function isRuleInfo(value: unknown): value is RuleInfo {
-  const [t, v] = type(value);
-  switch (t) {
-    case Type.Object:
-      return v.kind === "rule" && type(v.name)[0] === Type.String &&
-        type(v.moduleUrl)[0] === Type.String;
-    default:
-      return false;
-  }
-}
-
 /**
  * The formatter a language's entry rule names with `[Formatter X]`; see
  * `.agents/specifications/languages/cli/editor-metadata.spec.md`.
  */
-export async function resolveFormatter(
+export function resolveFormatter(
   grammar: LanguageGrammar,
-): Promise<FormatterResolution> {
-  const { moduleUrl, entryRuleName, declarations } = grammar;
-  const resolved = await resolveGrammarModule({
-    moduleUrl,
-    entryRuleName,
-    grammarOptions: { declarations },
-  });
-  if (!resolved.ok) {
-    return { kind: FormatterResolutionKind.Unresolved, match: resolved.error };
-  }
-  const rule = resolved.resolved.module.rules.get(entryRuleName);
-  const formatter = rule?.metadata?.[FORMATTER_DECORATOR_NAME];
-  return isRuleInfo(formatter)
-    ? { kind: FormatterResolutionKind.Found, formatter }
-    : { kind: FormatterResolutionKind.NoFormatter };
+): Promise<LanguageRuleResolution> {
+  return resolveLanguageRule(grammar, FORMATTER_DECORATOR_NAME);
 }
 
 /** Runs `formatter` over a parse value, producing the formatted text. */
@@ -124,12 +87,12 @@ export async function formatSource(
   if (!formatter) {
     const resolution = await resolveFormatter(grammar);
     switch (resolution.kind) {
-      case FormatterResolutionKind.NoFormatter:
+      case LanguageRuleResolutionKind.Missing:
         return { kind: FormatResultKind.NoFormatter };
-      case FormatterResolutionKind.Unresolved:
+      case LanguageRuleResolutionKind.Unresolved:
         return { kind: FormatResultKind.Unresolved, match: resolution.match };
     }
-    formatter = resolution.formatter;
+    formatter = resolution.rule;
   }
   const { moduleUrl, entryRuleName, declarations } = grammar;
   const parsed = await parseGrammar({

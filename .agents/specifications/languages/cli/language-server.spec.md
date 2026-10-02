@@ -200,6 +200,21 @@ not introduce a parallel parsing or compilation pathway.
   NOT change the result: the format belongs to the language.
 - Formatting MUST be read-only with respect to the document's parse state.
 
+## Comment toggling
+
+- The server MUST support a custom `uffda/toggleComment` request, with params
+  `{ textDocument: { uri }, range }`, and advertise it as
+  `experimental.uffdaToggleComment`. It toggles comments on the whole lines
+  `range` touches with the rule the document's language names with
+  `[ToggleComment]` (see
+  [editor metadata](./editor-metadata.spec.md#comment-toggling)).
+- A range ending at the start of a later line MUST leave that line out.
+- The response MUST be one edit replacing those lines (without the last line's
+  line ending) with the rule's text, or no edits when the language has no
+  `[ToggleComment]`, the rule fails, or the text would not change.
+- Toggling works on the document's current text, not its parse, and MUST be
+  read-only with respect to the document's parse state.
+
 ## VS Code extension
 
 - A VS Code extension MUST register `uffda lsp` as the language server for
@@ -246,23 +261,26 @@ not introduce a parallel parsing or compilation pathway.
   is intended for developing and debugging `uffda` itself (for example running
   the LSP mode from a local source checkout via `deno run` instead of a released
   binary), not for ordinary end-user use.
-- Editor-side language configuration that VS Code itself has no LSP-standard
-  equivalent for (comments, brackets, auto-closing/surrounding pairs, word
-  pattern) is currently supplied as a static, hand-authored
-  `language-configuration.json` scoped to `.uff` only. This chapter does not yet
-  require anything more general, but this MUST be treated as interim,
-  `.uff`-specific scaffolding, not a pattern to copy-paste per additional
-  language: adding a second served language MUST NOT require a second
-  hand-authored `language-configuration.json` plus a second static
-  `contributes.languages`/`contributes.configuration` entry as the only option.
-  The intended direction (see "Language configuration" above) is for the
-  extension to derive this configuration dynamically — querying the language
-  server for decorator-derived metadata on the grammar's own entry rule and
-  calling `vscode.languages.setLanguageConfiguration()` programmatically — and
-  to assign a language id to arbitrary configured file extensions at runtime
-  (for example via `vscode.languages.setTextDocumentLanguage()` driven by the
-  workspace's language configuration file) rather than requiring a statically
-  contributed `contributes.languages` entry per language.
+- The `uffda` language configuration MUST declare no comments and no brackets:
+  explicit empty `brackets`, `colorizedBracketPairs`, `autoClosingPairs`, and
+  `surroundingPairs`, so VS Code does not fall back to defaults. VS Code's own
+  bracket handling cannot tell a bracket is inside a comment or string without a
+  TextMate grammar; all coloring, including comments and punctuation, comes from
+  the grammar's semantic tokens (`[Highlight]` metadata). Auto-closing and
+  auto-surrounding pairs are deliberately not supported: typing `(` inserts only
+  `(`.
+- Comment toggling MUST come from the grammar: the extension contributes a
+  `uffda.toggleLineComment` command bound to Ctrl+/ (Cmd+/ on Mac) when
+  `editorTextFocus && editorLangId == uffda`. It sends the lines each selection
+  touches to the server's [comment toggling](#comment-toggling) request
+  (selections sharing or adjoining a line go together) and applies the returned
+  edits. Only the shortcut is replaced: the Edit menu and Command Palette
+  entries for VS Code's built-in toggle do nothing in Uffda files.
+- Adding a second served language MUST NOT require a second hand-authored
+  `language-configuration.json` or a second static `contributes.languages`
+  entry. The extension assigns a language id to configured file extensions at
+  runtime (via `vscode.languages.setTextDocumentLanguage()`, driven by the
+  server's `uffda/languageMetadata` request).
 
 ## Performance intent
 
@@ -345,12 +363,13 @@ inside a call) have contexts too. The VS Code extension (requirement 007) has an
 initial implementation at `editors/vscode/`: it registers `uffda lsp` for `.uff`
 files, registers `uffda mcp` as an MCP server, and resolves/downloads a
 compatible `uffda` binary automatically, with debug override settings. The
-extension also queries the custom `uffda/languageMetadata` request and applies
-`[Language]`-derived editor configuration via
-`vscode.languages.setLanguageConfiguration()`, and assigns language ids from
-`[Language].ext` via `vscode.languages.setTextDocumentLanguage()` for
-workspace-declared languages (static `language-configuration.json` remains as a
-fallback for `.uff`). The LSP config loader fills omitted `extensions` from
+extension also queries the custom `uffda/languageMetadata` request and assigns
+language ids from `[Language].ext` via
+`vscode.languages.setTextDocumentLanguage()` for workspace-declared languages.
+Its static `language-configuration.json` declares no comments and no brackets,
+and its Ctrl+/ command runs the server's `uffda/toggleComment` request
+(requirement 009), which toggles through the rule `UffdaLang` names with
+`[ToggleComment]`. The LSP config loader fills omitted `extensions` from
 `[Language].ext` when `modulePath`/`entryRuleName` are present. See GitHub issue
 #155 for the tracking issue. `textDocument/formatting` is implemented for `.uff`
 (requirement 008): `LspDocumentManager.format` formats the session's retained

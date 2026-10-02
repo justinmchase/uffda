@@ -1,0 +1,80 @@
+# Comment toggling for `#` line comments. The input is the text of whole lines;
+# the result is the same lines toggled. When every non-blank line is already a
+# comment, each loses its `#` (and one space after it). Otherwise every
+# non-blank line gets `# ` inserted at the smallest indentation among them.
+# Blank lines and line endings are kept as they are.
+export ToggleHashComment;
+
+rule Indentation = (" " | "\t")* -> (join _ "");
+
+rule LineEnd =
+  | ("\r" "\n" -> "\r\n")
+  | "\n"
+;
+
+rule TextChar = not LineEnd c:any -> c;
+
+rule LineText = t:TextChar* -> (join t "");
+
+rule Line =
+  i:Indentation t:LineText e:LineEnd
+  -> { indent: i, text: t, eol: e }
+;
+
+rule LastLine = i:Indentation t:LineText -> { indent: i, text: t, eol: "" };
+
+rule Lines = l:Line* f:LastLine end -> [...l f];
+
+rule BlankLine = object & { text: "" };
+
+rule CommentedLine = object & { text: ["#" any*] };
+
+func DropSpace<r:string> = (when (eq (at r 0) " ") (slice r 1) r);
+
+func UncommentLine<l:object> =
+  (join [l.indent (DropSpace (slice l.text 1)) l.eol] "")
+;
+
+func IndentWidth<l:object> = (length l.indent);
+
+func Narrower<m:number l:object> =
+  (when (lt (IndentWidth l) m) (IndentWidth l) m)
+;
+
+func IsNotBlank<l:object> = (not (eq l.text ""));
+
+func CommentLine<l:object m:number> =
+  (join
+    (when (eq l.text "") [l.indent l.eol] [
+      (slice l.indent 0 m)
+      "# "
+      (slice l.indent m)
+      l.text
+      l.eol
+    ])
+    ""
+  )
+;
+
+rule Uncomment =
+  l:array & [(BlankLine | CommentedLine)*]
+  -> (join [...(map l UncommentLine)] "")
+;
+
+func MinIndent<c:array> = (reduce (slice c 1) (IndentWidth (at c 0)) Narrower);
+
+func CommentLines<l:array m:number> =
+  (join [...(map l <x:object> -> (CommentLine x m))] "")
+;
+
+# Reached only when some line is neither blank nor a comment, so there is at
+# least one non-blank line to take the indentation from.
+rule Comment =
+  l:array
+  -> (CommentLines l (MinIndent [...(filter l IsNotBlank)]))
+;
+
+rule ToggleHashComment =
+  |> [Lines]
+  |> (Uncomment | Comment)
+;

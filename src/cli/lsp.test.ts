@@ -13,7 +13,11 @@ import {
   SemanticTokensRequest,
 } from "vscode-languageserver/node";
 import { LANGUAGE_METADATA_METHOD } from "./language_metadata.ts";
-import { type UffdaLspConnection, wireUffdaLspHandlers } from "./lsp.ts";
+import {
+  TOGGLE_COMMENT_METHOD,
+  type UffdaLspConnection,
+  wireUffdaLspHandlers,
+} from "./lsp.ts";
 import { SEMANTIC_TOKENS_LEGEND } from "./semantic_tokens.ts";
 
 /**
@@ -382,6 +386,43 @@ Deno.test("cli.lsp wireUffdaLspHandlers", async (t) => {
   );
 
   await t.step(
+    "serves uffda/toggleComment for a .uff document",
+    async () => {
+      const { connection, handlers } = createFakeConnection();
+      wireUffdaLspHandlers(connection, { workspaceRoot: Deno.cwd() });
+      await handlers.initialize({} as InitializeParams);
+
+      const uri = "file:///workspace/toggle.uff";
+      await handlers.open({
+        textDocument: {
+          uri,
+          languageId: "uffda",
+          version: 1,
+          text: "rule A = a;",
+        },
+      } as DidOpenTextDocumentParams);
+      const range = {
+        start: { line: 0, character: 0 },
+        end: { line: 0, character: 0 },
+      };
+      assertEquals(
+        await handlers[TOGGLE_COMMENT_METHOD]({ textDocument: { uri }, range }),
+        [{
+          range: { start: range.start, end: { line: 0, character: 11 } },
+          newText: "# rule A = a;",
+        }],
+      );
+      assertEquals(
+        await handlers[TOGGLE_COMMENT_METHOD]({
+          textDocument: { uri: "file:///workspace/notes.txt" },
+          range,
+        }),
+        [],
+      );
+    },
+  );
+
+  await t.step(
     "advertises documentFormattingProvider and formats a .uff document",
     async () => {
       const { connection, handlers } = createFakeConnection();
@@ -479,20 +520,14 @@ Deno.test("cli.lsp wireUffdaLspHandlers", async (t) => {
       ) as InitializeResult;
       assertEquals(init.capabilities.experimental, {
         uffdaLanguageMetadata: true,
+        uffdaToggleComment: true,
       });
 
       const result = await handlers[LANGUAGE_METADATA_METHOD]({
         languageId: "uffda",
-      }) as {
-        languages: Array<{
-          id: string;
-          configuration: { comments?: { lineComment?: string } };
-        }>;
-      };
-      assertEquals(result.languages.length, 1);
-      assertEquals(result.languages[0].id, "uffda");
-      assertEquals(result.languages[0].configuration.comments, {
-        lineComment: "#",
+      });
+      assertEquals(result, {
+        languages: [{ id: "uffda", metadata: { ext: ".uff", name: "Uffda" } }],
       });
     },
   );

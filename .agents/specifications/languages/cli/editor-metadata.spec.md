@@ -45,18 +45,19 @@ grammar MAY declare decorators with the same names instead of importing that
 module; a grammar that applies none of them gets no editor tooling beyond
 diagnostics, and tooling MUST NOT fall back to guessing.
 
-| Decorator                    | Applied to                                         | Metadata value                                        |
-| ---------------------------- | -------------------------------------------------- | ----------------------------------------------------- |
-| `Highlight { role }`         | a token rule                                       | `role`: a highlight role (see below)                  |
-| `Keyword`                    | a reserved word                                    | `{ role: "keyword" }`                                 |
-| `Declaration`                | a production declaring a named rule/func/decorator | projected value carries the declared `name`           |
-| `Parameter`                  | a production binding a declaration parameter       | projected value carries the bound `name`              |
-| `NameReference { kinds? }`   | a production naming a declaration in scope         | `kinds`: declaration kinds it may name (omitted: all) |
-| `Import`                     | a module import production                         | projected value is a runtime import declaration       |
-| `ModulePath { extensions? }` | the module path text of an import (no delimiters)  | `extensions`: module file extensions (omitted: any)   |
-| `ImportedName`               | one name bound by an import                        | —                                                     |
-| `Formatter X`                | a language's entry rule                            | the info of the formatter rule `X` (see Formatting)   |
-| `Documentation`              | a rule/func/decorator being documented             | `{ description, parameters }` (see below)             |
+| Decorator                    | Applied to                                         | Metadata value                                         |
+| ---------------------------- | -------------------------------------------------- | ------------------------------------------------------ |
+| `Highlight { role }`         | a token rule                                       | `role`: a highlight role (see below)                   |
+| `Keyword`                    | a reserved word                                    | `{ role: "keyword" }`                                  |
+| `Declaration`                | a production declaring a named rule/func/decorator | projected value carries the declared `name`            |
+| `Parameter`                  | a production binding a declaration parameter       | projected value carries the bound `name`               |
+| `NameReference { kinds? }`   | a production naming a declaration in scope         | `kinds`: declaration kinds it may name (omitted: all)  |
+| `Import`                     | a module import production                         | projected value is a runtime import declaration        |
+| `ModulePath { extensions? }` | the module path text of an import (no delimiters)  | `extensions`: module file extensions (omitted: any)    |
+| `ImportedName`               | one name bound by an import                        | —                                                      |
+| `Formatter X`                | a language's entry rule                            | the info of the formatter rule `X` (see Formatting)    |
+| `ToggleComment X`            | a language's entry rule                            | the info of the toggle rule `X` (see Comment toggling) |
+| `Documentation`              | a rule/func/decorator being documented             | `{ description, parameters }` (see below)              |
 
 `Documentation` differs from the others: it describes a declaration for the
 people using it, not a grammar production for tooling. It is written either
@@ -75,7 +76,11 @@ tooling.
 
 `[Language]` (see the
 [language server](./language-server.spec.md#language-configuration)) are
-existing metadata that tooling reads the same way.
+existing metadata that tooling reads the same way. `[Language]` carries a
+language's `ext`, `name`, and `description` only. Comment syntax and bracket
+pairs are not language metadata: comment toggling comes from `[ToggleComment]`,
+and the editor declares no brackets (see the
+[VS Code extension](./language-server.spec.md#vs-code-extension)).
 
 - The `.uff` grammar applies `[Keyword]` to every reserved word it matches as
   syntax: the module keywords (`import`, `export`, `rule`, `func`, `decorator`),
@@ -215,6 +220,31 @@ Completion is driven by the grammar, never by recognizing text:
   [`UffdaFormat`](../uffda-syntax/formatting.spec.md) on `UffdaLang`.
 - [`uffda fmt`](./formatting.spec.md) and the language server's
   [formatting](./language-server.spec.md#formatting) both format this way.
+- `[Formatter]` and `[ToggleComment]` are found the same way: the rule a
+  decorator on the language's entry rule names.
+
+## Comment toggling
+
+- `[ToggleComment X]` on a language's entry rule names the rule that toggles
+  comments in the language. As with `[Formatter]`, the metadata value is the
+  rule's info, and the decorator MUST reject a rule that declares parameters.
+- The toggle rule MUST take the text of whole lines as its input (one string,
+  lines separated by their own line endings) and produce the replacement text as
+  a string. The language decides what toggling means; conventionally, lines that
+  are all comments are uncommented, and otherwise each line is commented.
+- Comment toggling is not tooling's own code: tooling MUST NOT recognize or
+  produce comment syntax itself, and a language without `[ToggleComment]` has no
+  comment toggling. The `.uff` grammar names `ToggleHashComment`
+  (`src/lang/comment/toggle.uff`) on `UffdaLang`: when every non-blank line is
+  already a `#` comment, each loses its `#` and one following space; otherwise
+  each non-blank line gets `#` at the smallest indentation among them. Blank
+  lines and line endings are kept.
+- Toggling does not check that the result parses: in `.uff`, commenting lines
+  inside a declaration produces a comment where comments are a syntax error (see
+  [module structure](../uffda-syntax/module-structure.spec.md)), which the
+  document's diagnostics then report.
+- The language server's
+  [comment toggling](./language-server.spec.md#comment-toggling) runs it.
 
 ## Related
 

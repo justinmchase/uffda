@@ -6,6 +6,7 @@
 import "../source/mod.uff" Source;
 import "../tokenizer/mod.uff" TokenizerNoWhitespaceWithComments;
 import "../comment/mod.uff" CommentBlock;
+import "../comment/toggle.uff" ToggleHashComment;
 import "./import.rules.uff" ImportDeclarationSyntax;
 import "./export.rules.uff" ExportDeclarationSyntax;
 import "./rule.rules.uff" RuleDeclarationSyntax RuleQuotedTokenSequence;
@@ -13,7 +14,7 @@ import "./func.rules.uff" FuncDeclarationSyntax;
 import "./decorator.rules.uff" DecoratorDeclarationSyntax;
 import "./shared.rules.uff" ReservedKeywordToken ImportKeyword ExportKeyword;
 import "./format/mod.uff" UffdaFormat;
-import "../editor/editor.uff" Formatter;
+import "../editor/editor.uff" Formatter ToggleComment;
 
 export UffdaLang;
 
@@ -75,15 +76,9 @@ rule ModuleBody =
   -> { kind: "module", declarations: (flat [i (flat e) d]) }
 ;
 
-[Language {
-  ext: ".uff",
-  name: "Uffda",
-  comment: "#",
-  brackets: [["\{" "}"] ["[" "]"] ["(" ")"]],
-  autoClosingPairs: [["\{" "}"] ["[" "]"] ["(" ")"] ["\"" "\""]],
-  surroundingPairs: [["\{" "}"] ["[" "]"] ["(" ")"] ["\"" "\""]]
-}]
+[Language { ext: ".uff", name: "Uffda" }]
 [Formatter UffdaFormat]
+[ToggleComment ToggleHashComment]
 rule UffdaLang =
   m:(Source |> [TokenizerNoWhitespaceWithComments] |> [ModuleBody]) end
   -> m

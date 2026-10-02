@@ -34,7 +34,16 @@ import {
   resolveLanguageForDocument,
 } from "./lsp.config.ts";
 import { LspDocumentManager } from "./lsp.documents.ts";
+import type { Range } from "vscode-languageserver-types";
 import { SEMANTIC_TOKENS_LEGEND } from "./semantic_tokens.ts";
+
+/** The custom request that toggles comments on the lines a range touches. */
+export const TOGGLE_COMMENT_METHOD = "uffda/toggleComment";
+
+export type ToggleCommentParams = {
+  textDocument: { uri: string };
+  range: Range;
+};
 
 /**
  * The subset of `vscode-languageserver`'s `Connection` this module drives.
@@ -130,9 +139,11 @@ export function wireUffdaLspHandlers(
           },
           // Advertises the custom `uffda/languageMetadata` request so
           // clients (the VS Code extension) can derive editor language
-          // configuration from grammar `[Language]` metadata (#192).
+          // configuration from grammar `[Language]` metadata (#192), and the
+          // custom `uffda/toggleComment` request behind its Ctrl+/ command.
           experimental: {
             uffdaLanguageMetadata: true,
+            uffdaToggleComment: true,
           },
         },
       };
@@ -255,6 +266,18 @@ export function wireUffdaLspHandlers(
         return { data: [] };
       }
       return (await manager.semanticTokens(uri)) ?? { data: [] };
+    },
+  );
+
+  connection.onRequest(
+    TOGGLE_COMMENT_METHOD,
+    async (params: ToggleCommentParams) => {
+      const { uri } = params.textDocument;
+      const language = resolveLanguageForDocument(config, uri);
+      if (!manager || !language || language.id !== BUILTIN_UFF_LANGUAGE.id) {
+        return [];
+      }
+      return (await manager.toggleComment(uri, params.range)) ?? [];
     },
   );
 

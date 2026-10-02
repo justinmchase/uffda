@@ -9,7 +9,6 @@ import {
   languageMetadataForConfig,
   loadLanguageMetadata,
   loadWorkspaceLanguages,
-  toEditorLanguageConfiguration,
   toLanguageMetadata,
 } from "./language_metadata.ts";
 
@@ -25,53 +24,23 @@ Deno.test("cli.language_metadata toLanguageMetadata", async (t) => {
       ext: ".uff",
       name: "Uffda",
       description: 42, // wrong type, dropped
-      comment: "#",
-      brackets: [["{", "}"], ["not-a-pair"], ["[", "]"]],
-      autoClosingPairs: [['"', '"']],
-      surroundingPairs: "not-an-array",
       extraneous: "ignored",
     });
-    assertEquals(metadata, {
-      ext: ".uff",
-      name: "Uffda",
-      comment: "#",
-      brackets: [["{", "}"], ["[", "]"]],
-      autoClosingPairs: [['"', '"']],
-    });
+    assertEquals(metadata, { ext: ".uff", name: "Uffda" });
   });
 
-  await t.step("returns undefined when every field is dropped", () => {
-    const metadata = toLanguageMetadata({ brackets: ["nope", 1, null] });
-    assertEquals(metadata, undefined);
-  });
-});
-
-Deno.test("cli.language_metadata toEditorLanguageConfiguration", async (t) => {
-  await t.step("projects comment/brackets/pairs into editor shape", () => {
-    assertEquals(
-      toEditorLanguageConfiguration({
-        ext: ".uff",
-        name: "Uffda",
+  await t.step(
+    "comment syntax and bracket pairs are not language metadata",
+    () => {
+      const metadata = toLanguageMetadata({
         comment: "#",
         brackets: [["{", "}"]],
         autoClosingPairs: [['"', '"']],
         surroundingPairs: [["(", ")"]],
-      }),
-      {
-        comments: { lineComment: "#" },
-        brackets: [["{", "}"]],
-        autoClosingPairs: [{ open: '"', close: '"' }],
-        surroundingPairs: [["(", ")"]],
-      },
-    );
-  });
-
-  await t.step("returns undefined when only display fields are set", () => {
-    assertEquals(
-      toEditorLanguageConfiguration({ ext: ".uff", name: "Uffda" }),
-      undefined,
-    );
-  });
+      });
+      assertEquals(metadata, undefined);
+    },
+  );
 });
 
 Deno.test("cli.language_metadata loadLanguageMetadata", async (t) => {
@@ -87,14 +56,7 @@ Deno.test("cli.language_metadata loadLanguageMetadata", async (t) => {
         "expected Language metadata for the built-in .uff language",
       );
       assertEquals(metadata.ext, ".uff");
-      assertEquals(metadata.name, "Uffda");
-      assertEquals(metadata.comment, "#");
-      assert(metadata.brackets && metadata.brackets.length > 0);
-      assert(
-        metadata.brackets!.some(([open, close]) =>
-          open === "{" && close === "}"
-        ),
-      );
+      assertEquals(metadata, { ext: ".uff", name: "Uffda" });
     },
   );
 
@@ -127,7 +89,7 @@ Deno.test("cli.language_metadata loadLanguageMetadata", async (t) => {
 
 Deno.test("cli.language_metadata languageMetadataForConfig", async (t) => {
   await t.step(
-    "returns the built-in .uff language with an editor configuration projection",
+    "returns the built-in .uff language's metadata",
     async () => {
       const result = await languageMetadataForConfig(
         { languages: [BUILTIN_UFF_LANGUAGE] },
@@ -135,12 +97,10 @@ Deno.test("cli.language_metadata languageMetadataForConfig", async (t) => {
         { languageId: "uffda" },
       );
       assertEquals(result.languages.length, 1);
-      assertEquals(result.languages[0].id, "uffda");
-      assertEquals(result.languages[0].metadata.comment, "#");
-      assertEquals(result.languages[0].configuration.comments, {
-        lineComment: "#",
+      assertEquals(result.languages[0], {
+        id: "uffda",
+        metadata: { ext: ".uff", name: "Uffda" },
       });
-      assert(result.languages[0].configuration.brackets);
     },
   );
 

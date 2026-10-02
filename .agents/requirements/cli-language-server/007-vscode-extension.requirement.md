@@ -85,18 +85,20 @@ Expected behavior:
   settings where practical, so a contributor debugging a local `uffda` build
   gets consistent behavior across both the language server and MCP server
   registrations.
-- Design note (non-normative for this requirement, see the spec chapter's "VS
-  Code extension" section): the current
-  `editors/vscode/language-configuration.json` and its single static
-  `contributes.languages` entry are `.uff`-specific interim scaffolding, not a
-  template to duplicate per additional language. Implementations of additional
-  served languages SHOULD prefer deriving editor configuration (comments,
-  brackets, auto-closing pairs) dynamically — from the grammar's own
-  decorator-derived metadata via the language server, set programmatically via
-  `vscode.languages.setLanguageConfiguration()` — and assigning language ids to
-  workspace-configured file extensions at runtime (for example via
-  `vscode.languages.setTextDocumentLanguage()`) over adding a second
-  hand-authored JSON file and a second static package.json contribution.
+- The `uffda` language configuration
+  (`editors/vscode/language-configuration.json`) MUST declare no comments and
+  explicit empty `brackets`, `colorizedBracketPairs`, `autoClosingPairs`, and
+  `surroundingPairs`. Auto-closing and auto-surrounding are deliberately not
+  supported.
+- The extension MUST contribute a `uffda.toggleLineComment` command bound to
+  Ctrl+/ (Cmd+/ on Mac) when `editorTextFocus && editorLangId == uffda`, which
+  toggles comments through the server's `uffda/toggleComment` request (009) and
+  applies the returned edits. Selections sharing or adjoining a line MUST be
+  toggled together.
+- Additional served languages MUST NOT need a second hand-authored JSON file or
+  a second static package.json contribution: the extension assigns language ids
+  to workspace-configured file extensions at runtime via
+  `vscode.languages.setTextDocumentLanguage()`.
 
 Postconditions:
 

@@ -13,6 +13,7 @@ export Import;
 export ModulePath;
 export ImportedName;
 export Formatter;
+export ToggleComment;
 export Documentation;
 
 # `[Highlight { role: "comment" }]` — the syntactic role of a token rule's span.
@@ -96,6 +97,18 @@ decorator ImportedName = true;
   }
 }]
 decorator Formatter<f:{ kind: "rule", parameters: [end] }> = f;
+
+# `[ToggleComment Toggle]` — on a language's entry rule, names the rule that
+# toggles comments: it takes the text of whole lines and produces the same lines
+# commented, or uncommented when they already all are. `t` is the rule's info
+# (see rule references).
+[Documentation {
+  description: "The rule that toggles comments in this language. Applied to a language's entry rule, it names a parameterless rule that takes the text of whole lines and produces them commented, or uncommented when every non-blank line already is a comment.",
+  parameters: {
+    t: "The comment toggle rule, named directly (for example `[ToggleComment ToggleHashComment]`)."
+  }
+}]
+decorator ToggleComment<t:{ kind: "rule", parameters: [end] }> = t;
 
 # `[Documentation "…"]` or
 # `[Documentation { description: "…", parameters: { P: "…" } }]` — documentation
