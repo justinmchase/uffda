@@ -1,5 +1,6 @@
 import { assertEquals } from "@std/assert";
 import { fromFileUrl, join } from "@std/path";
+import { uffExportNames } from "../uff_exports.ts";
 
 const repoRoot = fromFileUrl(new URL("../../../", import.meta.url));
 const pattern = join(repoRoot, "src", "lang", "pattern");
@@ -10,7 +11,12 @@ Deno.test(
     const projectionSrc = await Deno.readTextFile(
       join(pattern, "projection.uff"),
     );
-    assertEquals(projectionSrc.includes("export Projection"), true);
+    assertEquals(
+      (await uffExportNames(join(pattern, "projection.uff"))).includes(
+        "Projection",
+      ),
+      true,
+    );
     assertEquals(projectionSrc.includes('import "./pipe.uff" Pipe'), true);
     assertEquals(
       projectionSrc.includes(
@@ -25,7 +31,7 @@ Deno.test(
       true,
     );
     assertEquals(
-      projectionSrc.includes("p:Pipe t:ProjectionTail ->"),
+      projectionSrc.includes("p:Pipe t:ProjectionTail\n"),
       true,
     );
     assertEquals(projectionSrc.includes("ExpressionKind.Native"), false);

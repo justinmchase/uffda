@@ -35,19 +35,17 @@ rule ReservedKeywordToken =
   | RuleKeyword
   | FuncKeyword
   | DecoratorKeyword
-  ;
+;
 
-rule IdentifierToken =
-  (not ReservedKeywordToken)
-  & IdToken
-  ;
+rule IdentifierToken = not ReservedKeywordToken & IdToken;
 
 # The head of a rule, func, or decorator declaration, through its `=`.
 rule DeclarationHead =
   (RuleKeyword | FuncKeyword | DecoratorKeyword)
   IdentifierToken
   (not (";" | "=") any)*
-  "=";
+  "="
+;
 
 # Where a declaration body's tokens end: its `;`, or the head of the next
 # declaration when the `;` is missing. `=` never appears in a pattern or
@@ -55,4 +53,4 @@ rule DeclarationHead =
 rule DeclarationBodyEnd =
   | ";"
   | DeclarationHead
-  ;
+;

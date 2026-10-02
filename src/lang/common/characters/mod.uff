@@ -6,4 +6,11 @@ import "./formatting.uff" Formatting;
 import "./letter.uff" Letter;
 import "./newLine.uff" NewLine;
 import "./whitespace.uff" Whitespace;
-export Combining Connecting Digit Formatting Letter NewLine Whitespace;
+
+export Combining;
+export Connecting;
+export Digit;
+export Formatting;
+export Letter;
+export NewLine;
+export Whitespace;

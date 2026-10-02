@@ -1,5 +1,6 @@
 # Object matches `{` … `}` with key/spread entries and projects an
-# ObjectExpression. Variable bindings are single-letter (published CLI PatternLang).
+# ObjectExpression. Variable bindings are single-letter (published CLI
+# PatternLang).
 import "../tokenizer/token.uff" Token;
 import "./reference.uff" Reference;
 import "./primary.uff" Primary;
@@ -9,17 +10,21 @@ import "./sequence.uff" ExpressionDelimiter;
 export Object;
 
 rule OpenBrace = "{";
+
 rule CloseBrace = "}";
+
 rule OpenBracket = "[" -> "[";
+
 rule CloseBracket = "]" -> "]";
+
 rule Colon = ":" -> ":";
+
 rule Comma = "," -> ",";
 
 rule ObjectPair =
-  k:Token<Reference>
-  Token<Colon>
-  v:Token<Primary>
-  -> { kind: "objectKey", name: k.name, expression: v };
+  k:Token<Reference> Token<Colon> v:Token<Primary>
+  -> { kind: "objectKey", name: k.name, expression: v }
+;
 
 rule ObjectComputedKey =
   Token<OpenBracket>
@@ -27,36 +32,32 @@ rule ObjectComputedKey =
   Token<CloseBracket>
   Token<Colon>
   v:Token<Primary>
-  -> { kind: "objectComputedKey", keyExpression: k, expression: v };
+  -> { kind: "objectComputedKey", keyExpression: k, expression: v }
+;
 
 rule ObjectSpread =
-  SpreadMarker
-  e:Token<Primary>
-  -> { kind: "objectSpread", expression: e };
+  SpreadMarker e:Token<Primary>
+  -> { kind: "objectSpread", expression: e }
+;
 
 rule ObjectEntry =
   | ObjectSpread
   | ObjectComputedKey
   | ObjectPair
-  ;
+;
 
 # A broken entry is a recovery point, skipped up to the next delimiter.
 rule RecoverableObjectEntry =
-  ope ObjectEntry sneak by skip ((not ExpressionDelimiter) any)+;
+  ope ObjectEntry sneak by skip (not ExpressionDelimiter any)+
+;
 
-rule ObjectPairTail =
-  skip Token<Comma>
-  RecoverableObjectEntry;
+rule ObjectPairTail = skip Token<Comma> RecoverableObjectEntry;
 
-rule ObjectPairs =
-  RecoverableObjectEntry
-  ObjectPairTail*
-  -> (flat _ 2);
+rule ObjectPairs = RecoverableObjectEntry ObjectPairTail* -> (flat _ 2);
 
 rule OptPairs = ObjectPairs?;
 
 rule Object =
-  Token<OpenBrace>
-  k:OptPairs
-  Token<CloseBrace>
-  -> { kind: "object", keys: (flat (coalesce k [])) };
+  Token<OpenBrace> k:OptPairs Token<CloseBrace>
+  -> { kind: "object", keys: (flat (coalesce k [])) }
+;

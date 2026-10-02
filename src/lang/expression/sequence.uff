@@ -13,16 +13,17 @@ export Sequence;
 export ExpressionDelimiter;
 
 rule OpenParen = "(";
+
 rule CloseParen = ")";
 
-# Tokens that close or separate an enclosing construct; a recovery never
-# skips one.
+# Tokens that close or separate an enclosing construct; a recovery never skips
+# one.
 rule ExpressionDelimiter =
   | Token<")">
   | Token<"]">
   | Token<"}">
   | Token<",">
-  ;
+;
 
 [Highlight { role: "function" }]
 rule InvokedName = Reference;
@@ -31,24 +32,28 @@ rule InvokedName = Reference;
 # keep Primary's precedence for its alternatives that can begin with a name
 # (Member, Boolean, Nullish); every other callee is an ordinary Primary.
 rule Callee =
-  | ((not Token<Member>) (not Token<Boolean>) (not Token<Nullish>) n:Token<InvokedName> -> n)
+  | (
+    not Token<Member> not Token<Boolean> not Token<Nullish> n:Token<InvokedName>
+    -> n
+  )
   | Token<Primary>
-  ;
+;
 
 rule InvocationSpread =
-  SpreadMarker
-  e:Token<Primary>
-  -> { kind: "invocationSpread", expression: e };
+  SpreadMarker e:Token<Primary>
+  -> { kind: "invocationSpread", expression: e }
+;
 
 rule InvocationArgument =
   | InvocationSpread
   | Token<Primary>
-  ;
+;
 
 # A stray argument token is a recovery point.
 rule Sequence =
   Token<OpenParen>
   e:Callee
-  a:(ope InvocationArgument sneak by skip ((not ExpressionDelimiter) any))*
+  a:(ope InvocationArgument sneak by skip (not ExpressionDelimiter any))*
   Token<CloseParen>
-  -> { kind: "invocation", expression: e, args: a };
+  -> { kind: "invocation", expression: e, args: a }
+;

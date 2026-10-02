@@ -1,6 +1,6 @@
-# UffdaLang pipelines Source → tokens (comments kept) → ModuleBody.
-# ModuleBody merges import / export / rule / func lists. Std flat is depth-1, and
-# each ExportDeclarationSyntax value may already be a list (name list or inline
+# UffdaLang pipelines Source → tokens (comments kept) → ModuleBody. ModuleBody
+# merges import / export / rule / func lists. Std flat is depth-1, and each
+# ExportDeclarationSyntax value may already be a list (name list or inline
 # export+rule/func pack), so flatten e before concatenating with i and d.
 # `(flat [i e d])` alone would leave those export sublists nested.
 import "../source/mod.uff" Source;
@@ -17,14 +17,13 @@ import "../editor/editor.uff" Formatter;
 
 export UffdaLang;
 
-# `Language` records this grammar's own editor-facing facts (file
-# extension, display name, and the editor-side settings VS Code has no
-# LSP-standard equivalent for — comment/bracket/pair configuration)
-# directly on its entry rule's metadata, so tooling (see
-# `src/cli/language_metadata.ts`) can derive an editor's language
-# configuration dynamically from the grammar itself instead of a
-# hand-maintained, per-language static file. `c` is a single object literal
-# so any consumer may freely add further properties (for example a future
+# `Language` records this grammar's own editor-facing facts (file extension,
+# display name, and the editor-side settings VS Code has no LSP-standard
+# equivalent for — comment/bracket/pair configuration) directly on its entry
+# rule's metadata, so tooling (see `src/cli/language_metadata.ts`) can derive an
+# editor's language configuration dynamically from the grammar itself instead of
+# a hand-maintained, per-language static file. `c` is a single object literal so
+# any consumer may freely add further properties (for example a future
 # `description` or `wordPattern`) without changing the decorator's shape.
 decorator Language<c:any> = c;
 
@@ -32,23 +31,20 @@ rule ModuleDeclarationSyntax =
   | FuncDeclarationSyntax
   | RuleDeclarationSyntax
   | DecoratorDeclarationSyntax
-  ;
+;
 
 # Each declaration list is a recovery point. A broken declaration is skipped
 # through its `;`, stopping early before a reserved keyword so a missing `;`
-# does not swallow the next declaration. Import and export recoveries must
-# start with their own keyword, so neither list pre-empts a later one.
+# does not swallow the next declaration. Import and export recoveries must start
+# with their own keyword, so neither list pre-empts a later one.
 rule DeclarationStop =
   | ";"
   | ReservedKeywordToken
-  ;
+;
 
 rule DeclarationRest =
-  (
-    | RuleQuotedTokenSequence
-    | ((not DeclarationStop) any)
-  )*
-  ";"?;
+  (RuleQuotedTokenSequence | not DeclarationStop any)* ";"?
+;
 
 rule ImportRecovery = ImportKeyword DeclarationRest;
 
@@ -56,36 +52,28 @@ rule ExportRecovery = ExportKeyword DeclarationRest;
 
 rule DeclarationRecovery =
   | ";"
-  | ((RuleQuotedTokenSequence | any) DeclarationRest)
-  ;
+  | (RuleQuotedTokenSequence | any) DeclarationRest
+;
 
-# The fence parser for comments: fences tagged `uffda` are Uffda modules.
-# Every other tag (apart from untagged and `text` fences, which the comment
-# grammar keeps as written) fails, so it is a syntax error.
-rule UffdaFence =
-  object & { language: "uffda", code: m:UffdaLang }
-  -> m;
+# The fence parser for comments: fences tagged `uffda` are Uffda modules. Every
+# other tag (apart from untagged and `text` fences, which the comment grammar
+# keeps as written) fails, so it is a syntax error.
+rule UffdaFence = object & { language: "uffda", code: m:UffdaLang } -> m;
 
 rule UffdaComment = CommentBlock<UffdaFence>;
 
-# Comments are accepted only between top-level declarations, so each list
-# admits `UffdaComment` ahead of its declarations; a comment anywhere else is
-# a syntax error (a declaration's own grammar never accepts one). Each run of
-# consecutive comments is one comment node, in source order in `declarations`.
+# Comments are accepted only between top-level declarations, so each list admits
+# `UffdaComment` ahead of its declarations; a comment anywhere else is a syntax
+# error (a declaration's own grammar never accepts one). Each run of consecutive
+# comments is one comment node, in source order in `declarations`.
 rule ModuleBody =
-  i:(
-    | UffdaComment
-    | (ope ImportDeclarationSyntax sneak by skip ImportRecovery)
-  )*
-  e:(
-    | UffdaComment
-    | (ope ExportDeclarationSyntax sneak by skip ExportRecovery)
-  )*
+  i:(UffdaComment | ope ImportDeclarationSyntax sneak by skip ImportRecovery)*
+  e:(UffdaComment | ope ExportDeclarationSyntax sneak by skip ExportRecovery)*
   d:(
-    | UffdaComment
-    | (ope ModuleDeclarationSyntax sneak by skip DeclarationRecovery)
+    UffdaComment | ope ModuleDeclarationSyntax sneak by skip DeclarationRecovery
   )*
-  -> { kind: "module", declarations: (flat [i (flat e) d]) };
+  -> { kind: "module", declarations: (flat [i (flat e) d]) }
+;
 
 [Language {
   ext: ".uff",
@@ -97,10 +85,6 @@ rule ModuleBody =
 }]
 [Formatter UffdaFormat]
 rule UffdaLang =
-  m:(
-    Source
-    |> [TokenizerNoWhitespaceWithComments]
-    |> [ModuleBody]
-  )
-  end
-  -> m;
+  m:(Source |> [TokenizerNoWhitespaceWithComments] |> [ModuleBody]) end
+  -> m
+;

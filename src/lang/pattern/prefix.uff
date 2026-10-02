@@ -1,7 +1,7 @@
-# Prefix operators, capture, and postfix repetition (* / + / ?).
-# Star bounds are separate arms (B8). Digit StarMinMax requires max >= min via
-# BoundNum |> (number & $n..) (open-upper between). Variable bounds still rely
-# on Quantifier runtime. Avoid capture names min/max/name — they fail to parse.
+# Prefix operators, capture, and postfix repetition (* / + / ?). Star bounds are
+# separate arms (B8). Digit StarMinMax requires max >= min via BoundNum |>
+# (number & $n..) (open-upper between). Variable bounds still rely on Quantifier
+# runtime. Avoid capture names min/max/name — they fail to parse.
 import "./atomic.uff" Atomic;
 import "./pattern.uff" Pattern;
 import "../common/identifier.uff" IdToken;
@@ -11,118 +11,75 @@ import "../editor/editor.uff" Keyword;
 export Prefix;
 export Star;
 
-rule BoundNum =
-  n:Number -> n.value;
+rule BoundNum = n:Number -> n.value;
 
-rule NonNegNum =
-  BoundNum |> (number & 0..);
+rule NonNegNum = BoundNum |> (number & 0..);
 
-rule BoundLiteral =
-  n:NonNegNum -> { kind: "value.literal", value: n };
+rule BoundLiteral = n:NonNegNum -> { kind: "value.literal", value: n };
 
-rule BoundVariable =
-  "$"
-  n:IdToken
-  -> { kind: "value.variable", name: n };
+rule BoundVariable = "$" n:IdToken -> { kind: "value.variable", name: n };
 
 rule Bound =
   | BoundVariable
   | BoundLiteral
-  ;
+;
 
 rule StarMinMaxNumNum =
-  p:Atomic
-  "*"
-  n:NonNegNum
-  "."
-  "."
-  m:(BoundNum |> (number & $n..))
+  p:Atomic "*" n:NonNegNum "." "." m:(BoundNum |> (number & $n..))
   -> {
     kind: "quantifier",
     pattern: p,
     min: { kind: "value.literal", value: n },
     max: { kind: "value.literal", value: m }
-  };
+  }
+;
 
 rule StarMinMaxVarVar =
-  p:Atomic
-  "*"
-  n:BoundVariable
-  "."
-  "."
-  m:BoundVariable
-  -> { kind: "quantifier", pattern: p, min: n, max: m };
+  p:Atomic "*" n:BoundVariable "." "." m:BoundVariable
+  -> { kind: "quantifier", pattern: p, min: n, max: m }
+;
 
 rule StarMinMaxNumVar =
-  p:Atomic
-  "*"
-  n:BoundLiteral
-  "."
-  "."
-  m:BoundVariable
-  -> { kind: "quantifier", pattern: p, min: n, max: m };
+  p:Atomic "*" n:BoundLiteral "." "." m:BoundVariable
+  -> { kind: "quantifier", pattern: p, min: n, max: m }
+;
 
 rule StarMinMaxVarNum =
-  p:Atomic
-  "*"
-  n:BoundVariable
-  "."
-  "."
-  m:BoundLiteral
-  -> { kind: "quantifier", pattern: p, min: n, max: m };
+  p:Atomic "*" n:BoundVariable "." "." m:BoundLiteral
+  -> { kind: "quantifier", pattern: p, min: n, max: m }
+;
 
 rule StarMinMax =
   | StarMinMaxNumNum
   | StarMinMaxVarVar
   | StarMinMaxNumVar
   | StarMinMaxVarNum
-  ;
+;
 
 rule StarMinOpen =
-  p:Atomic
-  "*"
-  n:Bound
-  "."
-  "."
-  not Bound
-  -> {
-    kind: "quantifier",
-    pattern: p,
-    min: n,
-    max: undefined
-  };
+  p:Atomic "*" n:Bound "." "." not Bound
+  -> { kind: "quantifier", pattern: p, min: n, max: undefined }
+;
 
 rule StarMaxOnly =
-  p:Atomic
-  "*"
-  "."
-  "."
-  m:Bound
+  p:Atomic "*" "." "." m:Bound
   -> {
     kind: "quantifier",
     pattern: p,
     min: { kind: "value.literal", value: 0 },
     max: m
-  };
+  }
+;
 
 rule StarMinOnly =
-  p:Atomic
-  "*"
-  n:Bound
-  not ("." ".")
-  -> {
-    kind: "quantifier",
-    pattern: p,
-    min: n,
-    max: undefined
-  };
+  p:Atomic "*" n:Bound not ("." ".")
+  -> { kind: "quantifier", pattern: p, min: n, max: undefined }
+;
 
 rule StarBare =
-  p:Atomic
-  "*"
-  not Bound
-  not "."
-  -> { kind: "quantifier", pattern: p, min: undefined, max: undefined };
+  p:Atomic "*" not Bound not "."
+  -> { kind: "quantifier", pattern: p, min: undefined, max: undefined }
+;
 
 rule Star =
   | StarMinMax
@@ -130,80 +87,58 @@ rule Star =
   | StarMaxOnly
   | StarMinOnly
   | StarBare
-  ;
+;
 
 rule Plus =
-  p:Atomic
-  "+"
+  p:Atomic "+"
   -> {
     kind: "quantifier",
     pattern: p,
     min: { kind: "value.literal", value: 1 },
     max: undefined
-  };
+  }
+;
 
-rule Optional =
-  p:Atomic
-  "?"
-  -> { kind: "maybe", pattern: p };
+rule Optional = p:Atomic "?" -> { kind: "maybe", pattern: p };
 
 rule Postfix =
   | Star
   | Plus
   | Optional
   | Atomic
-  ;
+;
 
 [Keyword]
 rule NotKeyword = "not";
 
-rule Not =
-  NotKeyword
-  p:Prefix
-  -> { kind: "not", pattern: p };
+rule Not = NotKeyword p:Prefix -> { kind: "not", pattern: p };
 
 [Keyword]
 rule MaybeKeyword = "maybe";
 
-rule Maybe =
-  MaybeKeyword
-  p:Prefix
-  -> { kind: "maybe", pattern: p };
+rule Maybe = MaybeKeyword p:Prefix -> { kind: "maybe", pattern: p };
 
 [Keyword]
 rule LookaheadKeyword = "lookahead";
 
-rule Lookahead =
-  LookaheadKeyword
-  p:Prefix
-  -> { kind: "lookahead", pattern: p };
+rule Lookahead = LookaheadKeyword p:Prefix -> { kind: "lookahead", pattern: p };
 
-rule Into =
-  "["
-  p:Pattern
-  "]"
-  -> { kind: "into", pattern: p };
+rule Into = "[" p:Pattern "]" -> { kind: "into", pattern: p };
 
 [Keyword]
 rule ExceptKeyword = "except";
 
-rule Except =
-  ExceptKeyword
-  p:Prefix
-  -> { kind: "except", pattern: p };
+rule Except = ExceptKeyword p:Prefix -> { kind: "except", pattern: p };
 
 [Keyword]
 rule SkipKeyword = "skip";
 
-rule Skip =
-  SkipKeyword
-  p:Prefix
-  -> { kind: "skip", pattern: p };
+rule Skip = SkipKeyword p:Prefix -> { kind: "skip", pattern: p };
 
 rule SkipAny =
-  SkipKeyword
-  not Prefix
-  -> { kind: "skip", pattern: { kind: "any" } };
+  SkipKeyword not Prefix
+  -> { kind: "skip", pattern: { kind: "any" } }
+;
 
 [Keyword]
 rule OpeKeyword = "ope";
@@ -217,11 +152,10 @@ rule ByKeyword = "by";
 [Keyword]
 rule UntilKeyword = "until";
 
-# `sneak by until T` skips one or more items up to, but not including, `T`,
-# so a recovery never swallows its parent's terminator.
+# `sneak by until T` skips one or more items up to, but not including, `T`, so a
+# recovery never swallows its parent's terminator.
 rule SneakByUntil =
-  UntilKeyword
-  t:Prefix
+  UntilKeyword t:Prefix
   -> {
     kind: "quantifier",
     pattern: {
@@ -230,28 +164,25 @@ rule SneakByUntil =
     },
     min: { kind: "value.literal", value: 1 },
     max: undefined
-  };
+  }
+;
 
 rule SneakBy =
   | SneakByUntil
   | Prefix
-  ;
+;
 
-# `ope P sneak by S` is a recovery point: when `P` fails with recovery
-# enabled, `S` skips the erroneous input instead.
+# `ope P sneak by S` is a recovery point: when `P` fails with recovery enabled,
+# `S` skips the erroneous input instead.
 rule Ope =
-  OpeKeyword
-  p:Prefix
-  SneakKeyword
-  ByKeyword
-  s:SneakBy
-  -> { kind: "recover", pattern: p, skip: s };
+  OpeKeyword p:Prefix SneakKeyword ByKeyword s:SneakBy
+  -> { kind: "recover", pattern: p, skip: s }
+;
 
 rule Capture =
-  n:IdToken
-  ":"
-  p:Prefix
-  -> { kind: "variable", name: n, pattern: p };
+  n:IdToken ":" p:Prefix
+  -> { kind: "variable", name: n, pattern: p }
+;
 
 rule Prefix =
   | Not
@@ -264,4 +195,4 @@ rule Prefix =
   | Ope
   | Capture
   | Postfix
-  ;
+;

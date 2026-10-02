@@ -1,7 +1,7 @@
-# Identifier matches a Unicode identifier and projects a joined string.
-# IdToken matches a string stream item that is a valid Identifier when looked
-# into (PatternLang / expression token form). Distinct from Uffda
-# IdentifierToken, which also excludes module keywords.
+# Identifier matches a Unicode identifier and projects a joined string. IdToken
+# matches a string stream item that is a valid Identifier when looked into
+# (PatternLang / expression token form). Distinct from Uffda IdentifierToken,
+# which also excludes module keywords.
 import "./characters/letter.uff" Letter;
 import "./characters/digit.uff" Digit;
 import "./characters/connecting.uff" Connecting;
@@ -10,11 +10,15 @@ import "./characters/formatting.uff" Formatting;
 
 export rule Identifier =
   IdentifierStartCharacter IdentifierCharacter*
-  -> (join (flat _) "");
+  -> (join (flat _) "")
+;
 
 export rule IdToken = string & [Identifier];
 
-rule IdentifierStartCharacter = Letter | "_";
+rule IdentifierStartCharacter =
+  | Letter
+  | "_"
+;
 
 rule IdentifierCharacter =
   | IdentifierStartCharacter
@@ -22,4 +26,4 @@ rule IdentifierCharacter =
   | Connecting
   | Combining
   | Formatting
-  ;
+;

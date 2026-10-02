@@ -1,14 +1,13 @@
-# Then matches one or more Prefix patterns as a Then AST.
-# Uses std one for length-1 collapse (B4); Tail* is required because Then sits
-# in the PatternLang import cycle where Tail+ | child backtracking is unsafe.
-# A stray token after the first Prefix is a recovery point: it is skipped
-# unless it is a delimiter an enclosing construct consumes.
+# Then matches one or more Prefix patterns as a Then AST. Uses std one for
+# length-1 collapse (B4); Tail* is required because Then sits in the PatternLang
+# import cycle where Tail+ | child backtracking is unsafe. A stray token after
+# the first Prefix is a recovery point: it is skipped unless it is a delimiter
+# an enclosing construct consumes.
 import "./prefix.uff" Prefix;
 
 export Then;
-export PatternDelimiter;
 
-rule PatternDelimiter =
+export rule PatternDelimiter =
   | ")"
   | "]"
   | "}"
@@ -18,9 +17,9 @@ rule PatternDelimiter =
   | ">"
   | ","
   | ":"
-  ;
+;
 
 rule Then =
-  Prefix
-  (ope Prefix sneak by skip ((not PatternDelimiter) any))*
-  -> (one (flat _) { kind: "then", patterns: (flat _) });
+  Prefix (ope Prefix sneak by skip (not PatternDelimiter any))*
+  -> (one (flat _) { kind: "then", patterns: (flat _) })
+;

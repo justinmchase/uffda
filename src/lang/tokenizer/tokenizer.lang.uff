@@ -3,19 +3,16 @@ import "../source/mod.uff" Source;
 import "./mod.uff" Tokenizer;
 
 export rule TokenizerLang =
-  s:Source
-  |> [Tokenizer]
-  -> {
-    source: s,
-    tokens: (semantic_texts _)
-  };
+  s:Source |> [Tokenizer]
+  -> { source: s, tokens: (semantic_texts _) }
+;
 
 # `semantic_texts` is module-local: it is only needed here to project tokens
 # down to their text, omitting comments (#124).
-func IsNotComment<{kind: k:string}> =
-  (not (eq k "comment"));
+func IsNotComment<{ kind: k:string }> = (not (eq k "comment"));
 
-func TokenText<{text: t:string}> = t;
+func TokenText<{ text: t:string }> = t;
 
 func semantic_texts<tokens:array> =
-  (map (filter tokens IsNotComment) TokenText);
+  (map (filter tokens IsNotComment) TokenText)
+;

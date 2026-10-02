@@ -5,12 +5,10 @@ import "./resolve.uff" Resolve;
 import "./structure.uff" Structure;
 import "./switch.uff" Switch;
 
-export Atomic;
-
-rule Atomic =
+export rule Atomic =
   | Atoms
   | Literals
   | Resolve
   | Structure
   | Switch
-  ;
+;

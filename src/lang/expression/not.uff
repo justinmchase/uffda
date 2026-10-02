@@ -8,7 +8,4 @@ export Not;
 [Keyword]
 rule NotKeyword = "not";
 
-rule Not =
-  NotKeyword
-  e:Token<Primary>
-  -> { kind: "not", expression: e };
+rule Not = NotKeyword e:Token<Primary> -> { kind: "not", expression: e };

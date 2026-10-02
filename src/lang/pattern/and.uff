@@ -1,13 +1,12 @@
-# And matches Projection patterns joined by `&` as an And AST.
-# Uses std one for length-1 collapse (B4); Tail* is required under PatternLang LR.
+# And matches Projection patterns joined by `&` as an And AST. Uses std one for
+# length-1 collapse (B4); Tail* is required under PatternLang LR.
 import "./projection.uff" Projection;
 
 export And;
 
-rule AndTail =
-  "&" p:Projection -> p;
+rule AndTail = "&" p:Projection -> p;
 
 rule And =
-  Projection
-  AndTail*
-  -> (one (flat _) { kind: "and", patterns: (flat _) });
+  Projection AndTail*
+  -> (one (flat _) { kind: "and", patterns: (flat _) })
+;

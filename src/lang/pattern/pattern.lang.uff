@@ -7,15 +7,8 @@ export PatternLang;
 export PatternTokens;
 
 # Input left over after the pattern is a recovery point.
-rule PatternComplete =
-  p:Pattern
-  (ope end sneak by skip any*)
-  -> p;
+rule PatternComplete = p:Pattern ope end sneak by skip any* -> p;
 
 rule PatternTokens = [PatternComplete];
 
-rule PatternLang =
-  Source
-  |> [TokenizerNoWhitespace]
-  |> [PatternComplete]
-  ;
+rule PatternLang = Source |> [TokenizerNoWhitespace] |> [PatternComplete];

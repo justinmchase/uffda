@@ -5,10 +5,13 @@ export Atoms;
 
 [Keyword]
 rule Any = "any" -> { kind: "any" };
+
 [Keyword]
 rule End = "end" -> { kind: "end" };
+
 [Keyword]
 rule Ok = "ok" -> { kind: "ok" };
+
 [Keyword]
 rule Fail = "fail" -> { kind: "fail" };
 
@@ -17,4 +20,4 @@ rule Atoms =
   | End
   | Ok
   | Fail
-  ;
+;

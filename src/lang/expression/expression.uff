@@ -1,6 +1,4 @@
 # Expression is currently Unary (future binary operators layer here).
 import "./unary.uff" Unary;
 
-export Expression;
-
-rule Expression = Unary;
+export rule Expression = Unary;

@@ -240,6 +240,33 @@ Deno.test("lang.uffda.format", async (t) => {
     },
   );
 
+  await t.step(
+    "FORMAT13 - a rule body alternation puts each alternative on its own line",
+    () =>
+      formats(
+        "rule CommentBlockFormat<W, F> = ParagraphFormat<W> | ListFormat<W> | FenceFormat<F>;",
+        [
+          "rule CommentBlockFormat<W, F> =",
+          "  | ParagraphFormat<W>",
+          "  | ListFormat<W>",
+          "  | FenceFormat<F>",
+          ";",
+          "",
+        ].join("\n"),
+      ),
+  );
+
+  await t.step(
+    "FORMAT14 - a rule whose body is an alternation always breaks",
+    () =>
+      formats(
+        "rule A = a | b; rule B = (a | b) c;",
+        ["rule A =", "  | a", "  | b", ";", "", "rule B = (a | b) c;", ""].join(
+          "\n",
+        ),
+      ),
+  );
+
   await t.step("FORMAT12 - an empty module formats to empty text", async () => {
     const parsed = await uffdaGrammar("");
     assert(isClean(parsed) && isSuccess(parsed));

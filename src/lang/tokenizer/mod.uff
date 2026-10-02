@@ -2,22 +2,24 @@
 #
 # Declare the `"\\"` pattern before other quoted rule bodies so the multi-rule
 # quote scanner (B15) does not break on later backslash literals.
-import "../common/characters/mod.uff" Combining Connecting Digit Formatting Letter Whitespace;
+import "../common/characters/mod.uff"
+  Combining
+  Connecting
+  Digit
+  Formatting
+  Letter
+  Whitespace;
 import "./token.uff" Token;
 import "../editor/editor.uff" Highlight;
 
 export Token;
 export TokenizerNoWhitespace;
 export TokenizerNoWhitespaceWithComments;
-export rule Tokenizer =
-  Tokens*
-  -> (flat _ 2)
-  ;
+
+export rule Tokenizer = Tokens* -> (flat _ 2);
 
 [Highlight { role: "punctuation" }]
-rule SlashPunctuationToken =
-  b:"\\"
-  -> { kind: "punctuation", text: b };
+rule SlashPunctuationToken = b:"\\" -> { kind: "punctuation", text: b };
 
 # Dispatched with `switch` (#158 Stage 2): the leading character after `\`
 # uniquely determines which alternative applies, so a single committed-choice
@@ -38,30 +40,29 @@ rule EscapeFollower =
     \cNd: Digit,
     \cCf: Formatting,
     default: string
-  };
+  }
+;
 
 [Highlight { role: "string" }]
 rule EscapeCharPunctuationToken =
   e:EscapeFollower
-  -> { kind: "punctuation", text: e };
+  -> { kind: "punctuation", text: e }
+;
 
-rule EscapeTokens =
-  SlashPunctuationToken EscapeCharPunctuationToken;
+rule EscapeTokens = SlashPunctuationToken EscapeCharPunctuationToken;
 
 [Highlight { role: "whitespace" }]
 rule WhitespaceToken =
   Whitespace+
-  -> { kind: "whitespace", text: (join (flat _) "") };
+  -> { kind: "whitespace", text: (join (flat _) "") }
+;
 
 [Highlight { role: "newline" }]
-rule NewLineToken =
-  "\n"
-  -> { kind: "newline", text: _ };
+rule NewLineToken = "\n" -> { kind: "newline", text: _ };
 
-
-# `WordChar` is a hot per-character dispatch inside `WordToken`'s `+` loop
-# (#158 Stage 2): each declared character class maps directly to its
-# matcher, so the loop no longer trials up to 5 alternatives per character.
+# `WordChar` is a hot per-character dispatch inside `WordToken`'s `+` loop (#158
+# Stage 2): each declared character class maps directly to its matcher, so the
+# loop no longer trials up to 5 alternatives per character.
 rule WordChar =
   switch {
     \cL: Letter,
@@ -72,41 +73,37 @@ rule WordChar =
     \cMc: Combining,
     \cNd: Digit,
     \cCf: Formatting
-  };
+  }
+;
 
 [Highlight { role: "identifier" }]
-rule WordToken =
-  WordChar+
-  -> { kind: "word", text: (join (flat _) "") };
+rule WordToken = WordChar+ -> { kind: "word", text: (join (flat _) "") };
 
 [Highlight { role: "punctuation" }]
-rule PunctuationToken =
-  string
-  -> { kind: "punctuation", text: _ };
+rule PunctuationToken = string -> { kind: "punctuation", text: _ };
 
 [Highlight { role: "punctuation" }]
-rule DQuoteToken =
-  "\""
-  -> { kind: "punctuation", text: _ };
+rule DQuoteToken = "\"" -> { kind: "punctuation", text: _ };
 
 [Highlight { role: "comment" }]
 rule CommentToken =
   "#" (except "\n")*
-  -> { kind: "comment", text: (join (flat _) "") };
+  -> { kind: "comment", text: (join (flat _) "") }
+;
 
 # A single character of string content (punctuation or whitespace).
 [Highlight { role: "string" }]
 rule StringPunctuationToken =
-  (not "\"") & string
-  -> { kind: "punctuation", text: _ };
+  not "\"" & string
+  -> { kind: "punctuation", text: _ }
+;
 
-# `StringInterior`'s per-character dispatch inside quoted strings (#158
-# Stage 2): committed-choice `switch` replaces trying each alternative
-# in turn per character; a closing `"` (not any declared key) falls to
-# `default`, matching the original last-alternative failure exactly.
-# Whitespace and newlines inside a string are string content, not trivia:
-# they fall to `default` as content tokens so `TokenizerNoWhitespace` keeps
-# them.
+# `StringInterior`'s per-character dispatch inside quoted strings (#158 Stage
+# 2): committed-choice `switch` replaces trying each alternative in turn per
+# character; a closing `"` (not any declared key) falls to `default`, matching
+# the original last-alternative failure exactly. Whitespace and newlines inside
+# a string are string content, not trivia: they fall to `default` as content
+# tokens so `TokenizerNoWhitespace` keeps them.
 rule StringInterior =
   switch {
     "\\": EscapeTokens,
@@ -119,20 +116,20 @@ rule StringInterior =
     \cNd: WordToken,
     \cCf: WordToken,
     default: StringPunctuationToken
-  };
+  }
+;
 
 [Highlight { role: "string" }]
 rule QuotedStringTokens =
-  o:DQuoteToken
-  i:StringInterior*
-  c:DQuoteToken?
-  -> (flat [o i (coalesce c [])] 2);
+  o:DQuoteToken i:StringInterior* c:DQuoteToken?
+  -> (flat [o i (coalesce c [])] 2)
+;
 
-# `Tokens`'s per-token dispatch (#158 Stage 2, the original motivating
-# case): the leading character of each token kind is disjoint, so `switch`
-# replaces the 6-way ordered-choice trial with one committed-choice check.
-# `default` is the exact equivalent of the original last-alternative
-# fallback (`PunctuationToken` matches any remaining single character).
+# `Tokens`'s per-token dispatch (#158 Stage 2, the original motivating case):
+# the leading character of each token kind is disjoint, so `switch` replaces the
+# 6-way ordered-choice trial with one committed-choice check. `default` is the
+# exact equivalent of the original last-alternative fallback (`PunctuationToken`
+# matches any remaining single character).
 rule Tokens =
   switch {
     "\"": QuotedStringTokens,
@@ -151,38 +148,39 @@ rule Tokens =
     \cNd: WordToken,
     \cCf: WordToken,
     default: PunctuationToken
-  };
+  }
+;
 
 # `semantic_no_whitespace_texts` is module-local: it is only needed here to
-# project tokens down to word/punctuation text, omitting whitespace and
-# comments (#124).
-func IsWordOrPunctuation<{kind: k:string}> =
-  (has ["word" "punctuation"] k);
+# project tokens down to word/punctuation text, omitting whitespace and comments
+# (#124).
+func IsWordOrPunctuation<{ kind: k:string }> = (has ["word" "punctuation"] k);
 
-func TokenText<{text: t:string}> = t;
+func TokenText<{ text: t:string }> = t;
 
 func semantic_no_whitespace_texts<tokens:array> =
-  (map (filter tokens IsWordOrPunctuation) TokenText);
+  (map (filter tokens IsWordOrPunctuation) TokenText)
+;
 
 # `semantic_no_whitespace_items` keeps comment tokens as their own token values
-# (not their text, and not a copy) so a grammar that declares where comments
-# may appear can tell them apart from word/punctuation texts and still sees
-# each comment's provenance.
-func IsSemanticOrComment<{kind: k:string}> =
-  (has ["word" "punctuation" "comment"] k);
+# (not their text, and not a copy) so a grammar that declares where comments may
+# appear can tell them apart from word/punctuation texts and still sees each
+# comment's provenance.
+func IsSemanticOrComment<{ kind: k:string }> =
+  (has ["word" "punctuation" "comment"] k)
+;
 
-func SemanticItem<token:{kind: k:string, text: t:string}> =
-  (when (eq k "comment") token t);
+func SemanticItem<token:{ kind: k:string, text: t:string }> =
+  (when (eq k "comment") token t)
+;
 
 func semantic_no_whitespace_items<tokens:array> =
-  (map (filter tokens IsSemanticOrComment) SemanticItem);
+  (map (filter tokens IsSemanticOrComment) SemanticItem)
+;
 
-rule TokenizerNoWhitespace =
-  Tokenizer
-  -> (semantic_no_whitespace_texts _)
-  ;
+rule TokenizerNoWhitespace = Tokenizer -> (semantic_no_whitespace_texts _);
 
 rule TokenizerNoWhitespaceWithComments =
   Tokenizer
   -> (semantic_no_whitespace_items _)
-  ;
+;

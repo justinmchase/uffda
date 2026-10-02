@@ -1,5 +1,5 @@
-# Layout for the formatter. Every formatting rule takes a layout argument `L`,
-# a zero-width pattern producing `{ i, c, s, w, flat }`:
+# Layout for the formatter. Every formatting rule takes a layout argument `L`, a
+# zero-width pattern producing `{ i, c, s, w, flat }`:
 #
 # - `i`: the indentation of the current line;
 # - `c`: the column the construct starts at;
@@ -7,9 +7,9 @@
 # - `w`: the line width;
 # - `flat`: whether the construct must be written on one line.
 #
-# A construct is written flat when it fits in the line width, otherwise
-# broken: each child on its own line, with an opening bracket at the end of
-# the line before and its closing bracket on its own line.
+# A construct is written flat when it fits in the line width, otherwise broken:
+# each child on its own line, with an opening bracket at the end of the line
+# before and its closing bracket on its own line.
 export Fit;
 export Indent;
 export Mode;
@@ -36,7 +36,8 @@ func Fits<l:object f:string> = (lte (add (add l.c (length f)) l.s) l.w);
 func Accept<l:object f:string> = (when l.flat true (Fits l f));
 
 func Mode<l:object flat:boolean> =
-  { i: l.i, c: l.c, s: l.s, w: l.w, flat: flat };
+  { i: l.i, c: l.c, s: l.s, w: l.w, flat: flat }
+;
 
 func Root<w:number> = { i: "", c: 0, s: 0, w: w, flat: false };
 
@@ -48,92 +49,121 @@ rule NotLast<P> = x:P lookahead any -> x;
 
 # Moves the start column right by `n`.
 func Shift<l:object n:number> =
-  { i: l.i, c: (add l.c n), s: l.s, w: l.w, flat: l.flat };
+  { i: l.i, c: (add l.c n), s: l.s, w: l.w, flat: l.flat }
+;
 
 # Starts the construct `n` columns into the current line.
 func After<l:object n:number> =
-  { i: l.i, c: (add (length l.i) n), s: l.s, w: l.w, flat: l.flat };
+  { i: l.i, c: (add (length l.i) n), s: l.s, w: l.w, flat: l.flat }
+;
 
 # Adds `n` to the width of what follows.
 func Suffix<l:object n:number> =
-  { i: l.i, c: l.c, s: (add l.s n), w: l.w, flat: l.flat };
+  { i: l.i, c: l.c, s: (add l.s n), w: l.w, flat: l.flat }
+;
 
 # The layout of a bracketed construct's single child: after the `open`-wide
 # opening bracket, or on its own indented line.
 func Inside<l:object open:number close:number> =
-  (when l.flat
+  (when
+    l.flat
     { i: l.i, c: (add l.c open), s: (add l.s close), w: l.w, flat: true }
-    { i: (Indent l.i), c: (add (length l.i) 2), s: 0, w: l.w, flat: false });
+    { i: (Indent l.i), c: (add (length l.i) 2), s: 0, w: l.w, flat: false }
+  )
+;
 
 # The layout of one entry of a bracketed list whose entries are followed by a
 # `sep`-wide separator.
 func Entry<l:object sep:number> =
-  (when l.flat
-    l
-    { i: (Indent l.i), c: (add (length l.i) 2), s: sep, w: l.w, flat: false });
+  (when l.flat l {
+    i: (Indent l.i),
+    c: (add (length l.i) 2),
+    s: sep,
+    w: l.w,
+    flat: false
+  })
+;
 
 # The indentation of the continuation lines of an unbracketed sequence: the
 # current line's when the sequence starts the line, otherwise one level more.
-func Continuation<l:object> =
-  (when (eq l.c (length l.i)) l.i (Indent l.i));
+func Continuation<l:object> = (when (eq l.c (length l.i)) l.i (Indent l.i));
 
 # The layout of a continuation item that follows an `n`-wide prefix.
 func Next<l:object n:number> =
-  (when l.flat
-    l
-    {
-      i: (Continuation l),
-      c: (add (length (Continuation l)) n),
-      s: l.s,
-      w: l.w,
-      flat: false
-    });
+  (when l.flat l {
+    i: (Continuation l),
+    c: (add (length (Continuation l)) n),
+    s: l.s,
+    w: l.w,
+    flat: false
+  })
+;
 
 # The text before a continuation item: `flat` between items on one line, or a
 # line break, the continuation indentation, and `broken`.
 func Sep<l:object flat:string broken:string> =
-  (when l.flat flat (join ["\n" (Continuation l) broken] ""));
+  (when l.flat flat (join ["\n" (Continuation l) broken] ""))
+;
 
 # A bracketed construct: `open body close` on one line, or the body on its own
 # indented line with the closing bracket on its own line.
 func Bracket<l:object open:string body:string close:string> =
-  (when l.flat
+  (when
+    l.flat
     (join [open body close] "")
-    (join [open "\n" (Indent l.i) body "\n" l.i close] ""));
+    (join [open "\n" (Indent l.i) body "\n" l.i close] "")
+  )
+;
 
-# A bracketed list: `open pad item, item pad close` on one line, or each item
-# on its own indented line followed by `sep`, with no separator after the last.
+# A bracketed list: `open pad item, item pad close` on one line, or each item on
+# its own indented line followed by `sep`, with no separator after the last.
 func List<l:object open:string pad:string items:array sep:string close:string> =
-  (when (eq (length items) 0)
+  (when
+    (eq (length items) 0)
     (join [open close] "")
-    (when l.flat
+    (when
+      l.flat
       (join [open pad (join items (join [sep " "] "")) pad close] "")
-      (join [
-        open
-        "\n"
-        (Indent l.i)
-        (join items (join [sep "\n" (Indent l.i)] ""))
-        "\n"
-        l.i
-        close
-      ] "")));
+      (join
+        [
+          open
+          "\n"
+          (Indent l.i)
+          (join items (join [sep "\n" (Indent l.i)] ""))
+          "\n"
+          l.i
+          close
+        ]
+        ""
+      )
+    )
+  )
+;
 
-# A call-like list: `head item item close` on one line, or the head followed
-# by each item on its own indented line.
+# A call-like list: `head item item close` on one line, or the head followed by
+# each item on its own indented line.
 func Call<l:object head:string items:array close:string> =
-  (when (eq (length items) 0)
+  (when
+    (eq (length items) 0)
     (join [head close] "")
-    (when l.flat
+    (when
+      l.flat
       (join [head " " (join items " ") close] "")
-      (join [
-        head
-        "\n"
-        (Indent l.i)
-        (join items (join ["\n" (Indent l.i)] ""))
-        "\n"
-        l.i
-        close
-      ] "")));
+      (join
+        [
+          head
+          "\n"
+          (Indent l.i)
+          (join items (join ["\n" (Indent l.i)] ""))
+          "\n"
+          l.i
+          close
+        ]
+        ""
+      )
+    )
+  )
+;
 
 # The head of a call whose last item hugs it: `head item item ` with the last
 # item starting right after it.
@@ -141,7 +171,8 @@ func HugHead<head:string items:array> = (join [head ...items ""] " ");
 
 # Whether a hugging head leaves room for the last item's opening bracket.
 func HugFits<l:object head:string> =
-  (when l.flat false (lte (add (add l.c (length head)) 1) l.w));
+  (when l.flat false (lte (add (add l.c (length head)) 1) l.w))
+;
 
 # Writes `B` flat when it fits, otherwise broken.
 rule Fit<B, L> =
@@ -150,4 +181,5 @@ rule Fit<B, L> =
     | (f:B<(ok -> (Mode l true))> ((ok -> (Accept l f)) |> true) -> f)
     | B<(ok -> (Mode l false))>
   )
-  -> r;
+  -> r
+;

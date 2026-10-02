@@ -1,3 +1,8 @@
 # Whitespace matches a Unicode space, line, or paragraph separator, or a tab.
 # Tab is technically Control but is commonly used as whitespace in source code.
-export rule Whitespace = \cZs | \cZl | \cZp | "\t";
+export rule Whitespace =
+  | \cZs
+  | \cZl
+  | \cZp
+  | "\t"
+;

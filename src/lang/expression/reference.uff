@@ -2,10 +2,6 @@
 import "../common/identifier.uff" IdToken;
 import "../editor/editor.uff" Highlight NameReference;
 
-export Reference;
-
-[NameReference { kinds: ["func"] }]
+export [NameReference { kinds: ["func"] }]
 [Highlight { role: "variable" }]
-rule Reference =
-  IdToken
-  -> { kind: "reference", name: _ };
+rule Reference = IdToken -> { kind: "reference", name: _ };

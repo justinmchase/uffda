@@ -5,10 +5,12 @@ import "../expression/expression.uff" Expression;
 
 export Projection;
 
-rule ProjectionTail =
-  "-" ">" e:Expression -> e;
+rule ProjectionTail = "-" ">" e:Expression -> e;
 
 rule Projection =
-  | (p:Pipe t:ProjectionTail -> { kind: "projection", pattern: p, expression: t })
+  | (
+    p:Pipe t:ProjectionTail
+    -> { kind: "projection", pattern: p, expression: t }
+  )
   | Pipe
-  ;
+;

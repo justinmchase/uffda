@@ -23,4 +23,4 @@ rule Primary =
   | Nullish
   | Terminal
   | String
-  ;
+;

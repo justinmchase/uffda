@@ -15,112 +15,109 @@ export CommentBlock;
 # rather than a failure.
 rule CommentLine =
   object & { kind: "comment", text: ["#" " "? c:any*] }
-  -> (join c "");
+  -> (join c "")
+;
 
 rule CommentBlock<F> =
-  b:((CommentLine+) |> [Blocks<F>])
-  -> { kind: "comment", blocks: b };
+  b:(CommentLine+ |> [Blocks<F>])
+  -> { kind: "comment", blocks: b }
+;
 
-rule Blocks<F> =
-  (skip BlankLine | Block<F>)*;
+rule Blocks<F> = (skip BlankLine | Block<F>)*;
 
 rule Block<F> =
   | FenceBlock<F>
   | ListBlock
   | ParagraphBlock
-  ;
+;
 
 rule BlankLine = [Whitespace*];
 
-rule NonWhitespace = (not Whitespace) c:any -> c;
+rule NonWhitespace = not Whitespace c:any -> c;
 
 # A line that starts no other block: its text continues a paragraph or item.
 rule ContinuationLine =
-  (not BlankLine)
-  (not ListItemStart)
-  (not FenceOpen)
-  l:string
-  -> l;
+  not BlankLine not ListItemStart not FenceOpen l:string
+  -> l
+;
 
 rule ParagraphBlock =
   i:((l:ContinuationLine+ -> (join l " ")) |> [Inlines])
-  -> { kind: "paragraph", inlines: i };
+  -> { kind: "paragraph", inlines: i }
+;
 
 rule ListItemStart = [Whitespace* "-" " " any*];
 
-rule ListItemFirstLine =
-  [Whitespace* "-" " " c:any*]
-  -> (join c "");
+rule ListItemFirstLine = [Whitespace* "-" " " c:any*] -> (join c "");
 
 rule ListItem =
   i:(
     (f:ListItemFirstLine m:ContinuationLine* -> (join (flat [[f] m]) " "))
     |> [Inlines]
   )
-  -> { inlines: i };
+  -> { inlines: i }
+;
 
-rule ListBlock =
-  i:ListItem+
-  -> { kind: "list", items: i };
+rule ListBlock = i:ListItem+ -> { kind: "list", items: i };
 
 rule FenceMarker = "`" "`" "`";
 
 rule FenceOpen =
   [Whitespace* FenceMarker t:NonFenceTagEnd* Whitespace*]
-  -> (join t "");
+  -> (join t "")
+;
 
-rule NonFenceTagEnd = (not "`") c:NonWhitespace -> c;
+rule NonFenceTagEnd = not "`" c:NonWhitespace -> c;
 
 rule FenceClose = [Whitespace* FenceMarker Whitespace*];
 
-rule FenceCodeLine = (not FenceClose) l:string -> l;
+rule FenceCodeLine = not FenceClose l:string -> l;
 
 rule FenceBlock<F> =
   (
-    t:FenceOpen
-    c:FenceCodeLine*
-    FenceClose
+    t:FenceOpen c:FenceCodeLine* FenceClose
     -> { language: t, code: (join c "\n") }
   )
-  |> FenceContent<F>;
+  |> FenceContent<F>
+;
 
 rule FenceContent<F> =
   | RawFence
   | ParsedFence<F>
-  ;
+;
 
 rule RawFence =
   object & { language: l:in["" "text"], code: c:string }
-  -> { kind: "fence", language: l, code: c };
+  -> { kind: "fence", language: l, code: c }
+;
 
 rule ParsedFence<F> =
   (object & { language: l:string, code: c:string }) & r:F
-  -> { kind: "fence", language: l, code: c, tree: r };
+  -> { kind: "fence", language: l, code: c, tree: r }
+;
 
 # Inline content of a paragraph or list item, as characters. Whitespace runs
 # collapse to one space and the ends are trimmed. A backtick that opens no
 # complete code span fails the whole block.
-rule Inlines =
-  Whitespace*
-  i:Inline*
-  Whitespace*
-  -> i;
+rule Inlines = Whitespace* i:Inline* Whitespace* -> i;
 
 rule Inline =
   | InlineCode
   | InlineText
-  ;
+;
 
 rule InlineCode =
   "`" c:InlineCodeChar+ "`"
-  -> { kind: "code", text: (join c "") };
+  -> { kind: "code", text: (join c "") }
+;
 
-rule InlineCodeChar = (not "`") c:any -> c;
+rule InlineCodeChar = not "`" c:any -> c;
 
 rule InlineText =
   t:(InlineSpace | InlineChar)+
-  -> { kind: "text", text: (join t "") };
+  -> { kind: "text", text: (join t "") }
+;
 
-rule InlineSpace = Whitespace+ (not end) -> " ";
+rule InlineSpace = Whitespace+ not end -> " ";
 
-rule InlineChar = (not "`") c:NonWhitespace -> c;
+rule InlineChar = not "`" c:NonWhitespace -> c;

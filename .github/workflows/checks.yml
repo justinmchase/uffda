@@ -82,6 +82,11 @@ jobs:
           test -f ./bin/ast/src/lang/uffda/runtime.compiler.uffda.ast.json
           test -f ./bin/ast/src/lang/expression/number.uffda.ast.json
 
+      - name: Format .uff
+        # The in-tree `uffda fmt` loads its grammars and formatter from the
+        # ./bin compiled above, so it checks against this commit's format.
+        run: deno task cli fmt --check
+
       - name: Jsr
         # After compile: the published package includes ./bin.
         run: |
