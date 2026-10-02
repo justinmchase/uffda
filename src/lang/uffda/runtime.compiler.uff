@@ -18,6 +18,36 @@
 # same accumulation/classification pipeline.
 export UffdaRuntimeCompiler;
 
+# Comment nodes inside a declaration are syntax only. `Uncommented` keeps a
+# pattern or expression without them, at any depth, and collapses each list they
+# leave with one member to that member, as the grammar does for a list written
+# without comments.
+rule CommentNode = object & { kind: "comment", blocks: array };
+
+rule UncommentedArray = array & [i:(skip CommentNode | Uncommented)*] -> i;
+
+rule UncommentedEntry = { index: n:string, value: v:Uncommented } -> [n v];
+
+rule Collapsed =
+  | ({ kind: in["or" "and" "then"], patterns: [p:any end] } -> p)
+  | ({ kind: "pipeline", steps: [p:any end] } -> p)
+  | any
+;
+
+rule UncommentedObject =
+  |> (
+    o:object e:((ok -> [...(enumerate o)]) |> [x:UncommentedEntry*] -> x)
+    -> (from_entries e)
+  )
+  |> Collapsed
+;
+
+rule Uncommented =
+  | UncommentedArray
+  | UncommentedObject
+  | any
+;
+
 rule CompileEmptyDeclarations =
   end
   -> { imports: [], exports: [], rules: [], funcs: [], decorators: [] }
@@ -54,9 +84,9 @@ rule CompileRuleDeclaration =
   {
     kind: "rule",
     name: n:string,
-    pattern: t:object,
+    pattern: t:(object & Uncommented),
     parameters: p:any,
-    projection: j:any,
+    projection: j:Uncommented,
     attributes: c:[CompileAttribute*]
   }
   -> {
@@ -80,8 +110,8 @@ rule CompileFuncDeclaration =
   {
     kind: "func",
     name: n:string,
-    pattern: t:object,
-    expression: x:object,
+    pattern: t:(object & Uncommented),
+    expression: x:(object & Uncommented),
     attributes: c:[CompileAttribute*]
   }
   -> {
@@ -97,8 +127,8 @@ rule CompileDecoratorDeclaration =
   {
     kind: "decorator",
     name: n:string,
-    pattern: t:object,
-    expression: x:object,
+    pattern: t:(object & Uncommented),
+    expression: x:(object & Uncommented),
     attributes: c:[CompileAttribute*]
   }
   -> {

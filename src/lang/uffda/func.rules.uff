@@ -6,7 +6,11 @@
 # expressions; see pattern/parameter_list.uff.
 import "../expression/expression.lang.uff" ExpressionTokens;
 import "../pattern/parameter_list.uff" ParameterList;
-import "./shared.rules.uff" IdentifierToken FuncKeyword DeclarationBodyEnd;
+import "./shared.rules.uff"
+  IdentifierToken
+  FuncKeyword
+  DeclarationBodyEnd
+  BodyToken;
 import "../editor/editor.uff" Declaration;
 import "./attribute.rules.uff" AttributeSyntax;
 
@@ -30,7 +34,7 @@ rule FuncQuotedTokenSequence =
 ;
 
 rule FuncExpressionToken =
-  (FuncQuotedTokenSequence | not DeclarationBodyEnd & string)+
+  (FuncQuotedTokenSequence | not DeclarationBodyEnd & BodyToken)+
   -> (flat _)
 ;
 

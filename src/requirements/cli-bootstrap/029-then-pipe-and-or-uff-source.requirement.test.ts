@@ -10,7 +10,7 @@ Deno.test(
     const thenSrc = await Deno.readTextFile(join(pattern, "then.uff"));
     assertEquals(thenSrc.includes("export Then"), true);
     assertEquals(
-      thenSrc.includes('(one (flat _) { kind: "then", patterns: (flat _) })'),
+      thenSrc.includes('(one m { kind: "then", patterns: m })'),
       true,
     );
     assertEquals(thenSrc.includes("patterns.length"), false);
@@ -19,7 +19,7 @@ Deno.test(
     assertEquals(pipeSrc.includes("export Pipe"), true);
     assertEquals(
       pipeSrc.includes(
-        '(one (flat _) { kind: "pipeline", steps: (flat _) })',
+        '(one m { kind: "pipeline", steps: m })',
       ),
       true,
     );
@@ -28,7 +28,7 @@ Deno.test(
     const andSrc = await Deno.readTextFile(join(pattern, "and.uff"));
     assertEquals(andSrc.includes("export And"), true);
     assertEquals(
-      andSrc.includes('(one (flat _) { kind: "and", patterns: (flat _) })'),
+      andSrc.includes('(one m { kind: "and", patterns: m })'),
       true,
     );
     assertEquals(andSrc.includes("AndTail*"), true);
@@ -37,7 +37,7 @@ Deno.test(
     const orSrc = await Deno.readTextFile(join(pattern, "or.uff"));
     assertEquals(orSrc.includes("export Or"), true);
     assertEquals(
-      orSrc.includes('(one (flat _) { kind: "or", patterns: (flat _) })'),
+      orSrc.includes('(one m { kind: "or", patterns: m })'),
       true,
     );
     assertEquals(orSrc.includes('("|" not ">")?'), true);

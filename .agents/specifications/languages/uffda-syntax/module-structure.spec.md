@@ -37,13 +37,24 @@ the comment-preserving token view (see
 [tokenization](../tokenization.spec.md#semantic-token-text-helpers)), and this
 section is its attachment policy.
 
-- A `#` line comment MUST appear only between top-level declarations: before the
-  first declaration, between two declarations, or after the last one. This
-  includes comments among imports, among exports, and between those groups.
-- A comment anywhere else MUST be a syntax error. That includes any comment
-  inside a declaration, for example inside a rule body or a decorator list.
-- Line breaks carry no meaning here: a comment after a declaration's closing `;`
-  is between declarations even when it is on the same line.
+- A `#` line comment MAY appear between top-level declarations: before the first
+  declaration, between two declarations, or after the last one. This includes
+  comments among imports, among exports, and between those groups. A comment
+  after a declaration's closing `;` is between declarations even when it is on
+  the same line.
+- Inside a declaration, a comment on its own line MAY appear in a rule, func, or
+  decorator body wherever the body's grammar admits a comment node: between the
+  members of pattern lists (see
+  [pattern comments](../pattern-syntax/grammar.spec.md#comments)), arrays,
+  objects, and invocation arguments (see
+  [structuring](../expression-syntax/array-and-object-structuring.spec.md) and
+  [invocation](../expression-syntax/function-invocation.spec.md)).
+- A comment that follows code on the same line inside a declaration MUST be a
+  syntax error. Before the module grammar runs, each run of comments becomes one
+  comment node, and a run that starts after code on the same line is marked so
+  the body grammars reject it.
+- A comment anywhere else inside a declaration MUST be a syntax error, for
+  example in a decorator list, a parameter list, or before the `=`.
 - Each comment block (consecutive comments with no declaration between them)
   MUST appear in the canonical syntax tree's declaration sequence as one comment
   node, parsed by the [comment syntax](../comment-syntax.spec.md), in source
@@ -56,8 +67,8 @@ section is its attachment policy.
   error.
 - Comment nodes MUST NOT affect compilation: lowering to a ModuleDeclaration
   (see [runtime compilation](../uffda-runtime-compilation.spec.md)) drops them,
-  so a module compiles to the same ModuleDeclaration with or without its
-  comments.
+  including those inside declarations, so a module compiles to the same
+  ModuleDeclaration with or without its comments.
 - A comment node is not a declaration family: it has no keyword and is never
   imported, exported, or referenced.
 

@@ -339,6 +339,7 @@ Deno.test({
         value: [
           tok(StructuredTokenKind.Comment, "#123 punctuation !@*"),
           "any",
+          { kind: "lineEnd" },
           tok(StructuredTokenKind.Comment, "# trailing"),
           '"',
           "#",

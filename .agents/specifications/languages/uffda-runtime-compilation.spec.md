@@ -39,8 +39,11 @@ runtime as a reusable compilation target for Uffda-based language layers.
 - Compilation MUST preserve declaration ordering where ordering is observable by
   module resolution or runtime execution.
 - Compilation MUST drop the syntax tree's comment nodes (see
-  [module structure](./uffda-syntax/module-structure.spec.md#comments)). They
-  contribute nothing to the ModuleDeclaration.
+  [module structure](./uffda-syntax/module-structure.spec.md#comments)), both
+  between declarations and inside pattern and expression lists. They contribute
+  nothing to the ModuleDeclaration. An alternation, conjunction, sequence, or
+  pipeline left with one member after its comments are dropped MUST compile as
+  that member.
 - A successful compilation MUST produce a runtime `ModuleDeclaration` that can
   be consumed by the standard module resolver and execution path without
   bootstrap-only exceptions.

@@ -27,6 +27,11 @@ Normative key words in this chapter use the conventions defined in the
 - Set and map structuring MUST be expressed in canonical low-sugar forms.
 - Destructuring syntax MUST NOT be defined in expression structuring forms;
   destructuring belongs to pattern/binding layers.
+- When the host grammar keeps comments (see
+  [pattern comments](../pattern-syntax/grammar.spec.md#comments)), comment nodes
+  MAY appear between array elements, before any object entry, and after the last
+  object entry. They MUST be kept in the `expressions` or `keys` list in source
+  order.
 
 ## Canonicalization examples
 

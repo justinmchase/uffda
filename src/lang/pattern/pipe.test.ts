@@ -91,3 +91,26 @@ Deno.test({
     });
   },
 });
+
+Deno.test({
+  name: "lang.pattern.pipe comments",
+  ignore: p.state !== "granted",
+  fn: async (t) => {
+    const comment = { kind: "comment", blocks: [] };
+    await t.step({
+      name: "PIPE_COMMENT_00 - a comment before |>",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "Pipe",
+        input: Input.Iterable(["any", comment, "|", ">", "fail"]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Pipeline,
+          steps: [{ kind: PatternKind.Any }, comment, {
+            kind: PatternKind.Fail,
+          }],
+        },
+      }),
+    });
+  },
+});

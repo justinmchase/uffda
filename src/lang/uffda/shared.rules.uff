@@ -4,6 +4,7 @@
 # keywords without a separately maintained rule-name-to-role mapping.
 import "../common/identifier.uff" IdToken;
 import "../editor/editor.uff" Keyword;
+import "../common/comment.uff" CommentNode;
 
 export IdentifierToken;
 export ReservedKeywordToken;
@@ -13,6 +14,7 @@ export RuleKeyword;
 export FuncKeyword;
 export DecoratorKeyword;
 export DeclarationBodyEnd;
+export BodyToken;
 
 [Keyword]
 rule ImportKeyword = "import" -> "import";
@@ -53,4 +55,13 @@ rule DeclarationHead =
 rule DeclarationBodyEnd =
   | ";"
   | DeclarationHead
+;
+
+# One item of a declaration body: a text, or a comment for the body's own
+# grammar to accept or reject (a comment at the end of a code line is always
+# rejected there).
+rule BodyToken =
+  | string
+  | CommentNode
+  | object & { kind: "lineEndComment", comment: CommentNode }
 ;

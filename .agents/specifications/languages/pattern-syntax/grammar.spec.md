@@ -187,9 +187,31 @@ erroneous tokens and contributes nothing to the pattern AST.
 
 - After a sequence's first element, a token that does not start an element MUST
   be skipped, unless it is a delimiter an enclosing construct consumes: `)`,
-  `]`, `}`, `|`, `&`, `-`, `>`, `,`, or `:`.
+  `]`, `}`, `|`, `&`, `-`, `>`, `,`, `:`, or a comment node (see
+  [Comments](#comments)).
 - Tokens left over after a complete pattern MUST be skipped through the end of
   the input.
+
+## Comments
+
+A host grammar that keeps comments (for example the
+[Uffda module grammar](../uffda-syntax/module-structure.spec.md#comments)) turns
+each run of comments on their own lines into one comment node before the pattern
+grammar runs. The pattern grammar accepts comment nodes as members of the
+pattern lists:
+
+- In an alternation, comment nodes MAY appear before the first alternative,
+  before any `|`, and after the last alternative when it is followed by `)`,
+  `]`, `}`, `>`, or the end of the pattern.
+- In a conjunction, comment nodes MAY appear before any `&`. In a pipeline,
+  before any `|>`. In an ordered sequence, between any two elements.
+- A comment node MUST be kept in the list where it appears, in source order, as
+  `{ kind: "comment", blocks }`. An alternation that holds a comment node MUST
+  NOT collapse to its single alternative, so leading or trailing comments stay
+  in the tree; removing comments (see
+  [runtime compilation](../uffda-runtime-compilation.spec.md#compilation-boundary))
+  collapses it afterwards.
+- A comment node anywhere else in a pattern MUST be a syntax error.
 
 ## Precedence
 

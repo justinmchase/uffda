@@ -1,0 +1,5 @@
+# A comment node: one run of consecutive `#` line comments, already parsed by
+# the comment syntax (see ../comment/mod.uff) before a host grammar runs. The
+# pattern and expression grammars accept comment nodes only at the positions
+# they declare, as members of the list they appear in.
+export rule CommentNode = object & { kind: "comment", blocks: array };

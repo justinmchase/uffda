@@ -1,5 +1,8 @@
 import { assertEquals } from "@std/assert";
 import { fromFileUrl, join } from "@std/path";
+import { Input } from "../../input.ts";
+import { MatchKind } from "../../mod.ts";
+import { moduleDeclarationTest } from "../../test.ts";
 
 const repoRoot = fromFileUrl(new URL("../../../", import.meta.url));
 const uffdaDir = join(repoRoot, "src", "lang", "uffda");
@@ -38,4 +41,36 @@ Deno.test("lang.uffda.rule-modules compose into UffdaLang", async () => {
   );
   assertEquals(exportRules.includes("export ExportDeclarationSyntax"), true);
   assertEquals(exportRules.includes("export ExportNameList"), true);
+});
+
+Deno.test("lang.uffda.rule-modules BodyToken", async (t) => {
+  const moduleUrl = new URL("./shared.rules.uff", import.meta.url).href;
+  const comment = { kind: "comment", blocks: [] };
+  const lineEnd = { kind: "lineEndComment", comment };
+  const accepted: [string, unknown][] = [
+    ["a text", "a"],
+    ["a comment node", comment],
+    ["a line-end comment", lineEnd],
+  ];
+  for (const [name, token] of accepted) {
+    await t.step({
+      name: `accepts ${name}`,
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "BodyToken",
+        input: Input.Iterable([token]),
+        kind: MatchKind.Ok,
+        value: token,
+      }),
+    });
+  }
+  await t.step({
+    name: "rejects a raw comment token",
+    fn: moduleDeclarationTest({
+      moduleUrl,
+      entryRuleName: "BodyToken",
+      input: Input.Iterable([{ kind: "comment", text: "# x" }]),
+      kind: MatchKind.Fail,
+    }),
+  });
 });

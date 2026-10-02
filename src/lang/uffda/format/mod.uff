@@ -20,7 +20,7 @@ import "./layout.uff"
   NotLast;
 import "./pattern.uff" Parameters RuleBodyPattern;
 import "./expression.uff" Expression;
-import "../../comment/format.uff" CommentFormat;
+import "./comment.uff" Comment;
 
 export UffdaFormat;
 export ModuleFormat;
@@ -51,15 +51,6 @@ rule ModuleFormat<W> =
     -> (reduce r f Append).text
   )
 ;
-
-# The fence parser keeps the Uffda module each `uffda` fence holds as its
-# `tree`, so the fence's code is that module, formatted to fit after `# `.
-rule UffdaFence<W> =
-  w:W (object & { language: "uffda", tree: m:ModuleFormat<(ok -> (sub w 2))> })
-  -> m
-;
-
-rule Comment<W> = CommentFormat<W, UffdaFence<W>>;
 
 rule DeclarationGroup<W> =
   | (

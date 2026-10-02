@@ -306,3 +306,63 @@ Deno.test("lang.uffda.format", async (t) => {
     assertEquals(result, { kind: FormatResultKind.Formatted, text: "" });
   });
 });
+
+Deno.test("lang.uffda.format inner comments", async (t) => {
+  const cases = [
+    {
+      name: "a comment forces the or onto separate lines",
+      source: "rule A = a\n# b\n| c;",
+      expected: "rule A =\n  | a\n  # b\n  | c\n;\n",
+    },
+    {
+      name: "a single alternative after comments keeps its bar",
+      source: "rule A =\n  # only\n  | a\n;",
+      expected: "rule A =\n  # only\n  | a\n;\n",
+    },
+    {
+      name: "comments between and, then and pipeline members",
+      source:
+        "rule A = x\n# c\n& y;\nrule B = a\n# c\nb;\nrule C = |> p\n# c\n|> q;",
+      expected: [
+        "rule A =\n  x\n  # c\n  & y\n;\n",
+        "rule B =\n  a\n  # c\n  b\n;\n",
+        "rule C =\n  |> p\n  # c\n  |> q\n;\n",
+      ].join("\n"),
+    },
+    {
+      name: "comments in objects, arrays and call arguments",
+      source:
+        "rule A = x:any -> {\n# k\na: [\n# e\nx\n],\nb: (f\n# arg\nx)\n# t\n};",
+      expected: [
+        "rule A =",
+        "  x:any",
+        "  -> {",
+        "    # k",
+        "    a: [",
+        "      # e",
+        "      x",
+        "    ],",
+        "    b: (f",
+        "      # arg",
+        "      x",
+        "    )",
+        "    # t",
+        "  }",
+        ";",
+        "",
+      ].join("\n"),
+    },
+    {
+      name: "a labeled pattern starting with a comment ends its label line",
+      source: "rule A = {\n  a:\n    # c\n    | x\n    | y\n};",
+      expected:
+        "rule A =\n  {\n    a:\n      # c\n      | x\n      | y\n  }\n;\n",
+    },
+  ];
+  for (const c of cases) {
+    await t.step(c.name, async () => {
+      await formats(c.source, c.expected);
+      await formats(c.expected, c.expected);
+    });
+  }
+});

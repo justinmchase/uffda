@@ -115,14 +115,6 @@ Deno.test(
 );
 
 Deno.test(
-  "req:uffda-language-syntax-013 - a comment inside a declaration fails to parse",
-  async () => {
-    const match = await uffdaGrammar('rule Main = "a" # inside\n "b";');
-    assertEquals(isClean(match), false);
-  },
-);
-
-Deno.test(
   "req:uffda-language-syntax-013 - a quoted # is string content",
   async () => {
     const match = await uffdaGrammar('rule Main = "# not a comment";');

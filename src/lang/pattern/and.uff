@@ -1,12 +1,14 @@
 # And matches Projection patterns joined by `&` as an And AST. Uses std one for
-# length-1 collapse (B4); Tail* is required under PatternLang LR.
+# length-1 collapse (B4); Tail* is required under PatternLang LR. Comment nodes
+# before an `&` are members of the list.
 import "./projection.uff" Projection;
+import "../common/comment.uff" CommentNode;
 
 export And;
 
-rule AndTail = "&" p:Projection -> p;
+rule AndTail = c:CommentNode* "&" p:Projection -> (flat [c [p]]);
 
 rule And =
-  Projection AndTail*
-  -> (one (flat _) { kind: "and", patterns: (flat _) })
+  m:(f:Projection r:AndTail* -> (flat [[f] (flat r)]))
+  -> (one m { kind: "and", patterns: m })
 ;
