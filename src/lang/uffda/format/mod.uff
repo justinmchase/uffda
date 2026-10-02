@@ -1,12 +1,23 @@
-# Formats a Uffda syntax tree (see `syntax.types.ts`) as canonical source
-# text. `UffdaFormat` writes a whole file at 80 columns; `ModuleFormat<W>`
-# writes a module at the width `W` produces, without a final line break.
+# Formats a Uffda syntax tree (see `syntax.types.ts`) as canonical source text.
+# `UffdaFormat` writes a whole file at 80 columns; `ModuleFormat<W>` writes a
+# module at the width `W` produces, without a final line break.
 #
-# Imports are written together, then exports, with one empty line between
-# those groups and around every other declaration. A comment block sits
-# directly above the declaration after it. An export followed by the
-# declaration it names is written as one inline `export` declaration.
-import "./layout.uff" Fit Root Shift Suffix Entry Call List HugHead HugFits Flat NotLast;
+# Imports are written together, then exports, with one empty line between those
+# groups and around every other declaration. A comment block sits directly above
+# the declaration after it. An export followed by the declaration it names is
+# written as one inline `export` declaration.
+import "./layout.uff"
+  Fit
+  Root
+  Shift
+  Suffix
+  Entry
+  Call
+  List
+  HugHead
+  HugFits
+  Flat
+  NotLast;
 import "./pattern.uff" Pattern Parameters;
 import "./expression.uff" Expression;
 import "../../comment/format.uff" CommentFormat;
@@ -16,43 +27,48 @@ export ModuleFormat;
 
 rule UffdaFormat =
   m:ModuleFormat<(ok -> 80)>
-  -> (when (eq m "") "" (join [m "\n"] ""));
+  -> (when (eq m "") "" (join [m "\n"] ""))
+;
 
 func Gap<a:string b:string> =
-  (when (eq a b) (when (eq a "declaration") "\n\n" "\n") "\n\n");
+  (when (eq a b) (when (eq a "declaration") "\n\n" "\n") "\n\n")
+;
 
 func Append<a:object b:object> =
-  { kind: b.kind, text: (join [a.text (Gap a.kind b.kind) b.text] "") };
+  { kind: b.kind, text: (join [a.text (Gap a.kind b.kind) b.text] "") }
+;
 
 rule ModuleFormat<W> =
   | ((object & { kind: "module", declarations: [end] }) -> "")
   | (
-    (object & {
-      kind: "module",
-      declarations: [f:DeclarationGroup<W> r:(DeclarationGroup<W>)*]
-    })
+    (
+      object
+      & {
+        kind: "module",
+        declarations: [f:DeclarationGroup<W> r:DeclarationGroup<W>*]
+      }
+    )
     -> (reduce r f Append).text
   )
-  ;
+;
 
 # The fence parser keeps the Uffda module each `uffda` fence holds as its
 # `tree`, so the fence's code is that module, formatted to fit after `# `.
 rule UffdaFence<W> =
-  w:W
-  (object & { language: "uffda", tree: m:ModuleFormat<(ok -> (sub w 2))> })
-  -> m;
+  w:W (object & { language: "uffda", tree: m:ModuleFormat<(ok -> (sub w 2))> })
+  -> m
+;
 
 rule Comment<W> = CommentFormat<W, UffdaFence<W>>;
 
 rule DeclarationGroup<W> =
   | (
-    c:Comment<W>
-    d:Declaration<W>
+    c:Comment<W> d:Declaration<W>
     -> { kind: d.kind, text: (join [c "\n" d.text] "") }
   )
   | Declaration<W>
   | (c:Comment<W> -> { kind: "comment", text: c })
-  ;
+;
 
 rule Declaration<W> =
   w:W
@@ -62,143 +78,157 @@ rule Declaration<W> =
     | (t:Export -> { kind: "export", text: t })
     | (t:Definition<(ok -> (Root w))> -> { kind: "declaration", text: t })
   )
-  -> d;
+  -> d
+;
 
 rule InlineExport<L> =
   l:L
   (object & { kind: "export", name: n:string })
   d:((object & { name: $n }) & Definition<(ok -> (Shift l 7))>)
-  -> { kind: "declaration", text: (join ["export " d] "") };
+  -> { kind: "declaration", text: (join ["export " d] "") }
+;
 
 rule ImportBody<L> =
-  l:L
-  (object & { kind: "import", moduleUrl: u:string, names: [n:string*] })
-  -> (join [
-    "import \""
-    u
-    "\""
-    (when l.flat " " "\n  ")
-    (join n (when l.flat " " "\n  "))
-    ";"
-  ] "");
+  l:L (object & { kind: "import", moduleUrl: u:string, names: [n:string*] })
+  -> (join
+    [
+      "import \""
+      u
+      "\""
+      (when l.flat " " "\n  ")
+      (join n (when l.flat " " "\n  "))
+      ";"
+    ]
+    ""
+  )
+;
 
 rule Import<L> = Fit<ImportBody, L>;
 
 rule Export =
-  (object & { kind: "export", name: n:string })
-  -> (join ["export " n ";"] "");
+  object & { kind: "export", name: n:string }
+  -> (join ["export " n ";"] "")
+;
 
-rule Definition<L> =
-  | RuleDeclaration<L>
-  | FuncDeclaration<L>
-  ;
+rule Definition<L> = RuleDeclaration<L> | FuncDeclaration<L>;
 
 rule AttributeHug<L> =
   l:L
-  (object & {
-    kind: "attribute",
-    name: n:string,
-    args: [
-      x:(NotLast<Expression<(ok -> (Flat))>>)*
-      ((ok -> (HugFits l (HugHead (join ["[" n] "") x))) |> true)
-      z:(
-        (object & { kind: in["object" "array"] })
-        & Expression<(ok -> (Shift l (length (HugHead (join ["[" n] "") x))))>
-      )
-    ]
-  })
-  -> (join [(HugHead (join ["[" n] "") x) z "]"] "");
+  (
+    object
+    & {
+      kind: "attribute",
+      name: n:string,
+      args: [
+        x:NotLast<Expression<(ok -> (Flat))>>*
+        ((ok -> (HugFits l (HugHead (join ["[" n] "") x))) |> true)
+        z:(
+          (object & { kind: in["object" "array"] })
+          & Expression<(ok -> (Shift l (length (HugHead (join ["[" n] "") x))))>
+        )
+      ]
+    }
+  )
+  -> (join [(HugHead (join ["[" n] "") x) z "]"] "")
+;
 
 rule AttributeList<L> =
   l:L
-  (object & {
-    kind: "attribute",
-    name: n:string,
-    args: [x:(Expression<(ok -> (Entry l 0))>)*]
-  })
-  -> (Call l (join ["[" n] "") x "]");
+  (
+    object
+    & {
+      kind: "attribute",
+      name: n:string,
+      args: [x:Expression<(ok -> (Entry l 0))>*]
+    }
+  )
+  -> (Call l (join ["[" n] "") x "]")
+;
 
-rule AttributeBody<L> =
-  | AttributeHug<L>
-  | AttributeList<L>
-  ;
+rule AttributeBody<L> = AttributeHug<L> | AttributeList<L>;
 
 rule Attribute<L> = a:Fit<AttributeBody, L> -> (join [a "\n"] "");
 
-rule Attributes<L> = [a:(Attribute<L>)*] -> (join a "");
+rule Attributes<L> = [a:Attribute<L>*] -> (join a "");
 
-rule ParameterName = (object & { name: n:string }) -> n;
+rule ParameterName = object & { name: n:string } -> n;
 
 rule ParameterNames = [p:ParameterName*] -> p;
 
 func ParameterList<names:array> =
-  (when (eq (length names) 0) "" (join ["<" (join names ", ") ">"] ""));
+  (when (eq (length names) 0) "" (join ["<" (join names ", ") ">"] ""))
+;
 
 func RuleHead<name:string parameters:array> =
-  (join ["rule " name (ParameterList parameters) " ="] "");
+  (join ["rule " name (ParameterList parameters) " ="] "")
+;
 
 rule Projection<L> =
   | (undefined -> "")
   | (
-    l:L
-    e:Expression<(ok -> (ProjectionLayout l))>
+    l:L e:Expression<(ok -> (ProjectionLayout l))>
     -> (join [(when l.flat " -> " "\n  -> ") e] "")
   )
-  ;
+;
 
 func BodyLayout<l:object head:string> =
-  (when l.flat
-    l
-    { i: "  ", c: 2, s: 0, w: l.w, flat: false });
+  (when l.flat l { i: "  ", c: 2, s: 0, w: l.w, flat: false })
+;
 
 func ProjectionLayout<l:object> =
-  (when l.flat
-    l
-    { i: "  ", c: 5, s: 0, w: l.w, flat: false });
+  (when l.flat l { i: "  ", c: 5, s: 0, w: l.w, flat: false })
+;
 
-# A declaration written on one line ends with `;`; a broken one ends with `;`
-# on its own line, at the declaration's indentation.
+# A declaration written on one line ends with `;`; a broken one ends with `;` on
+# its own line, at the declaration's indentation.
 func Terminator<l:object> = (when l.flat ";" "\n;");
 
 rule RuleBody<L> =
   l:L
-  (object & {
-    kind: "rule",
-    name: n:string,
-    parameters: a:ParameterNames,
-    pattern: p:Pattern<(ok -> (BodyLayout l (RuleHead n a)))>,
-    projection: j:Projection<L>
-  })
-  -> (join [(RuleHead n a) (when l.flat " " "\n  ") p j (Terminator l)] "");
+  (
+    object
+    & {
+      kind: "rule",
+      name: n:string,
+      parameters: a:ParameterNames,
+      pattern: p:Pattern<(ok -> (BodyLayout l (RuleHead n a)))>,
+      projection: j:Projection<L>
+    }
+  )
+  -> (join [(RuleHead n a) (when l.flat " " "\n  ") p j (Terminator l)] "")
+;
 
 rule RuleDeclaration<L> =
-  l:L
-  (object & { kind: "rule", attributes: a:Attributes<L> })
+  l:L (object & { kind: "rule", attributes: a:Attributes<L> })
   & b:Fit<RuleBody, L>
-  -> (join [a b] "");
+  -> (join [a b] "")
+;
 
-rule ParameterPattern<L> =
-  | ((object & { kind: "end" }) -> "")
-  | Parameters<L>
-  ;
+rule ParameterPattern<L> = ((object & { kind: "end" }) -> "") | Parameters<L>;
 
 rule FuncHead<L> =
   l:L
-  (object & {
-    kind: k:in["func" "decorator"],
-    name: n:string,
-    pattern: a:ParameterPattern<(ok -> (Suffix (Shift l (add (length k) (add (length n) 1))) 2))>
-  })
-  -> (join [k " " n a " ="] "");
+  (
+    object
+    & {
+      kind: k:in["func" "decorator"],
+      name: n:string,
+      pattern: a:ParameterPattern<
+        (ok -> (Suffix (Shift l (add (length k) (add (length n) 1))) 2))
+      >
+    }
+  )
+  -> (join [k " " n a " ="] "")
+;
 
 rule FuncBody<L> =
-  l:L
-  (object & { expression: e:Expression<(ok -> (BodyLayout l ""))> })
+  l:L (object & { expression: e:Expression<(ok -> (BodyLayout l ""))> })
   & h:FuncHead<L>
-  -> (join [h (when l.flat " " "\n  ") e (Terminator l)] "");
+  -> (join [h (when l.flat " " "\n  ") e (Terminator l)] "")
+;
 
 rule FuncDeclaration<L> =
-  l:L
-  (object & { kind: in["func" "decorator"], attributes: a:Attributes<L> })
+  l:L (object & { kind: in["func" "decorator"], attributes: a:Attributes<L> })
   & b:Fit<FuncBody, L>
-  -> (join [a b] "");
+  -> (join [a b] "")
+;

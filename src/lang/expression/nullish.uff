@@ -6,9 +6,11 @@ export Nullish;
 
 [Keyword]
 rule NullKeyword = "null" -> null;
+
 [Keyword]
 rule UndefinedKeyword = "undefined" -> undefined;
+
 rule Nullish =
-  | Token<NullKeyword>
-  | Token<UndefinedKeyword>
-  -> { kind: "value", value: _ };
+  Token<NullKeyword> | Token<UndefinedKeyword>
+  -> { kind: "value", value: _ }
+;

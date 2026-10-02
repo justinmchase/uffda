@@ -1,6 +1,6 @@
-# Export declaration syntax: `export rule …`, `export func …`, or `export Name*;`.
-# Per-item ExportName projection avoids map/lambda (pattern idioms).
-# Inline export packs [export-decl, rule/func-decl] via std pack.
+# Export declaration syntax: `export rule …`, `export func …`, or
+# `export Name*;`. Per-item ExportName projection avoids map/lambda (pattern
+# idioms). Inline export packs [export-decl, rule/func-decl] via std pack.
 # Variable bindings are single-letter (published CLI PatternLang).
 import "./shared.rules.uff" IdentifierToken ExportKeyword;
 import "./rule.rules.uff" RuleDeclarationSyntax;
@@ -12,39 +12,33 @@ export ExportDeclarationSyntax;
 export ExportNameList;
 
 [NameReference {}]
-rule ExportName =
-  n:IdentifierToken
-  -> { kind: "export", name: n };
+rule ExportName = n:IdentifierToken -> { kind: "export", name: n };
 
-rule ExportNameList =
-  ExportName
-  ExportName*
-  -> (flat _);
+rule ExportNameList = ExportName ExportName* -> (flat _);
 
 rule InlineExportedRuleDeclarationSyntax =
-  ExportKeyword
-  r:RuleDeclarationSyntax
-  -> (pack { kind: "export", name: r.name } r);
+  ExportKeyword r:RuleDeclarationSyntax
+  -> (pack { kind: "export", name: r.name } r)
+;
 
 rule InlineExportedFuncDeclarationSyntax =
-  ExportKeyword
-  f:FuncDeclarationSyntax
-  -> (pack { kind: "export", name: f.name } f);
+  ExportKeyword f:FuncDeclarationSyntax
+  -> (pack { kind: "export", name: f.name } f)
+;
 
 rule InlineExportedDecoratorDeclarationSyntax =
-  ExportKeyword
-  d:DecoratorDeclarationSyntax
-  -> (pack { kind: "export", name: d.name } d);
+  ExportKeyword d:DecoratorDeclarationSyntax
+  -> (pack { kind: "export", name: d.name } d)
+;
 
 rule StandaloneExportDeclarationSyntax =
-  ExportKeyword
-  n:ExportNameList
-  ";"
-  -> n;
+  ExportKeyword n:ExportNameList ";"
+  -> n
+;
 
 rule ExportDeclarationSyntax =
   | InlineExportedRuleDeclarationSyntax
   | InlineExportedFuncDeclarationSyntax
   | InlineExportedDecoratorDeclarationSyntax
   | StandaloneExportDeclarationSyntax
-  ;
+;

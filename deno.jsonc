@@ -15,7 +15,8 @@
     "bench": "deno bench --allow-read --allow-write test/bench/",
     "bench:memo": "deno run --allow-read --allow-write test/bench/memo-eviction.report.ts",
     "perf": "deno task compile:lang && deno run --allow-read --allow-write --allow-env=GITHUB_STEP_SUMMARY test/perf/morse-compile.report.ts",
-    "pre": "deno fmt && deno lint --fix && deno task test && npx jsr publish --dry-run --allow-dirty"
+    "fmt:uff": "deno task compile:lang && deno task cli fmt",
+    "pre": "deno fmt && deno task fmt:uff && deno lint --fix && deno task test && npx jsr publish --dry-run --allow-dirty"
   },
   "imports": {
     "@modelcontextprotocol/sdk/server/mcp.js": "npm:@modelcontextprotocol/sdk@1.30.0/server/mcp.js",

@@ -3,7 +3,17 @@
 # pattern grammar's precedence (or its flattening of same-kind nesting) needs
 # them. Projections are always parenthesized, so a nested projection is never
 # cut as a rule-level projection.
-import "./layout.uff" Fit Indent Shift Suffix Inside Entry Next Sep Bracket List;
+import "./layout.uff"
+  Fit
+  Indent
+  Shift
+  Suffix
+  Inside
+  Entry
+  Next
+  Sep
+  Bracket
+  List;
 import "./literal.uff" ValueSourceText;
 import "./expression.uff" Expression;
 
@@ -30,63 +40,57 @@ rule Pattern<L> =
   | PatternResolve<L>
   | PatternSwitch<L>
   | PatternIncludes<L>
-  ;
+;
 
 rule PatternGroupBody<L> =
-  l:L
-  p:Pattern<(ok -> (Inside l 1 1))>
-  -> (Bracket l "(" p ")");
+  l:L p:Pattern<(ok -> (Inside l 1 1))>
+  -> (Bracket l "(" p ")")
+;
 
 rule PatternGroup<L> = Fit<PatternGroupBody, L>;
 
 rule OrAlternative<L> =
-  | ((object & { kind: "or" }) & g:PatternGroup<L> -> g)
-  | Pattern<L>
-  ;
+  (object & { kind: "or" }) & (g:PatternGroup<L> -> g) | Pattern<L>
+;
 
 rule AndOperand<L> =
-  | ((object & { kind: in["or" "and"] }) & g:PatternGroup<L> -> g)
-  | Pattern<L>
-  ;
+  (object & { kind: in["or" "and"] }) & (g:PatternGroup<L> -> g) | Pattern<L>
+;
 
 rule PipelineStep<L> =
-  | ((object & { kind: in["or" "and" "pipeline"] }) & g:PatternGroup<L> -> g)
+  | (object & { kind: in["or" "and" "pipeline"] }) & (g:PatternGroup<L> -> g)
   | Pattern<L>
-  ;
+;
 
 rule ThenItem<L> =
-  | (
-    (object & { kind: in["or" "and" "pipeline" "then"] })
-    & g:PatternGroup<L>
-    -> g
-  )
+  | (object & { kind: in["or" "and" "pipeline" "then"] })
+    & (g:PatternGroup<L> -> g)
   | Pattern<L>
-  ;
+;
 
 rule PrefixOperand<L> = ThenItem<L>;
 
-# A parameter list: `<a b>` on one line, or each parameter on its own
-# indented line with `>` on its own line.
+# A parameter list: `<a b>` on one line, or each parameter on its own indented
+# line with `>` on its own line.
 rule ParametersBody<L> =
   l:L
   r:(
     | ((object & { kind: "end" }) -> [])
     | (
-      (object & {
-        kind: "then",
-        patterns: [x:(ThenItem<(ok -> (Entry l 0))>)*]
-      })
+      (object & { kind: "then", patterns: [x:ThenItem<(ok -> (Entry l 0))>*] })
       -> x
     )
     | (p:Pattern<(ok -> (Entry l 0))> -> [p])
   )
-  -> (List l "<" "" r "" ">");
+  -> (List l "<" "" r "" ">")
+;
 
 rule Parameters<L> = Fit<ParametersBody, L>;
 
 rule PostfixOperand<L> =
   | (
-    (object & {
+    object
+    & {
       kind: in[
         "or"
         "and"
@@ -101,206 +105,232 @@ rule PostfixOperand<L> =
         "quantifier"
         "maybe"
       ]
-    })
-    & g:PatternGroup<L>
-    -> g
+    }
   )
+    & (g:PatternGroup<L> -> g)
   | Pattern<L>
-  ;
+;
 
 rule PatternOrRest<L> =
-  l:L
-  p:OrAlternative<(ok -> (Next l 2))>
-  -> (join [(Sep l " | " "| ") p] "");
+  l:L p:OrAlternative<(ok -> (Next l 2))>
+  -> (join [(Sep l " | " "| ") p] "")
+;
 
 rule PatternOrBody<L> =
   l:L
-  (object & {
-    kind: "or",
-    patterns: [
-      f:OrAlternative<(ok -> (Shift l (when l.flat 0 2)))>
-      r:(PatternOrRest<L>)*
-    ]
-  })
-  -> (join [(when l.flat "" "| ") f ...r] "");
+  (
+    object
+    & {
+      kind: "or",
+      patterns: [
+        f:OrAlternative<(ok -> (Shift l (when l.flat 0 2)))> r:PatternOrRest<L>*
+      ]
+    }
+  )
+  -> (join [(when l.flat "" "| ") f ...r] "")
+;
 
 rule PatternOr<L> = Fit<PatternOrBody, L>;
 
 rule PatternAndRest<L> =
-  l:L
-  p:AndOperand<(ok -> (Next l 2))>
-  -> (join [(Sep l " & " "& ") p] "");
+  l:L p:AndOperand<(ok -> (Next l 2))>
+  -> (join [(Sep l " & " "& ") p] "")
+;
 
 rule PatternAndBody<L> =
   l:L
-  (object & {
-    kind: "and",
-    patterns: [f:AndOperand<L> r:(PatternAndRest<L>)*]
-  })
-  -> (join [f ...r] "");
+  (object & { kind: "and", patterns: [f:AndOperand<L> r:PatternAndRest<L>*] })
+  -> (join [f ...r] "")
+;
 
 rule PatternAnd<L> = Fit<PatternAndBody, L>;
 
 rule PatternPipelineRest<L> =
-  l:L
-  p:PipelineStep<(ok -> (Next l 3))>
-  -> (join [(Sep l " |> " "|> ") p] "");
+  l:L p:PipelineStep<(ok -> (Next l 3))>
+  -> (join [(Sep l " |> " "|> ") p] "")
+;
 
 rule PatternPipelineBody<L> =
   l:L
-  (object & {
-    kind: "pipeline",
-    steps: [f:PipelineStep<L> r:(PatternPipelineRest<L>)*]
-  })
-  -> (join [f ...r] "");
+  (
+    object
+    & { kind: "pipeline", steps: [f:PipelineStep<L> r:PatternPipelineRest<L>*] }
+  )
+  -> (join [f ...r] "")
+;
 
 rule PatternPipeline<L> = Fit<PatternPipelineBody, L>;
 
 rule PatternThenRest<L> =
-  l:L
-  p:ThenItem<(ok -> (Next l 0))>
-  -> (join [(Sep l " " "") p] "");
+  l:L p:ThenItem<(ok -> (Next l 0))>
+  -> (join [(Sep l " " "") p] "")
+;
 
 rule PatternThenBody<L> =
   l:L
-  (object & {
-    kind: "then",
-    patterns: [f:ThenItem<L> r:(PatternThenRest<L>)*]
-  })
-  -> (join [f ...r] "");
+  (object & { kind: "then", patterns: [f:ThenItem<L> r:PatternThenRest<L>*] })
+  -> (join [f ...r] "")
+;
 
 rule PatternThen<L> = Fit<PatternThenBody, L>;
 
 rule PatternProjectionBody<L> =
   l:L
-  (object & {
-    kind: "projection",
-    pattern: p:AndOperand<(ok -> (Inside l 1 1))>,
-    expression: e:Expression<(ok -> (Shift (Inside l 1 1) 3))>
-  })
+  (
+    object
+    & {
+      kind: "projection",
+      pattern: p:AndOperand<(ok -> (Inside l 1 1))>,
+      expression: e:Expression<(ok -> (Shift (Inside l 1 1) 3))>
+    }
+  )
   -> (Bracket
     l
     "("
     (join [p (when l.flat " -> " (join ["\n" (Indent l.i) "-> "] "")) e] "")
-    ")");
+    ")"
+  )
+;
 
 rule PatternProjection<L> = Fit<PatternProjectionBody, L>;
 
 rule PatternVariable<L> =
   l:L
-  (object & {
-    kind: "variable",
-    name: n:string,
-    pattern: p:PrefixOperand<(ok -> (Shift l (add (length n) 1)))>
-  })
-  -> (join [n ":" p] "");
+  (
+    object
+    & {
+      kind: "variable",
+      name: n:string,
+      pattern: p:PrefixOperand<(ok -> (Shift l (add (length n) 1)))>
+    }
+  )
+  -> (join [n ":" p] "")
+;
 
 rule PatternNot<L> =
-  l:L
-  (object & { kind: "not", pattern: p:PrefixOperand<(ok -> (Shift l 4))> })
-  -> (join ["not " p] "");
+  l:L (object & { kind: "not", pattern: p:PrefixOperand<(ok -> (Shift l 4))> })
+  -> (join ["not " p] "")
+;
 
 rule PatternSkip<L> =
-  l:L
-  (object & { kind: "skip", pattern: p:PrefixOperand<(ok -> (Shift l 5))> })
-  -> (join ["skip " p] "");
+  l:L (object & { kind: "skip", pattern: p:PrefixOperand<(ok -> (Shift l 5))> })
+  -> (join ["skip " p] "")
+;
 
 rule PatternExcept<L> =
   l:L
   (object & { kind: "except", pattern: p:PrefixOperand<(ok -> (Shift l 7))> })
-  -> (join ["except " p] "");
+  -> (join ["except " p] "")
+;
 
 rule PatternLookahead<L> =
   l:L
-  (object & {
-    kind: "lookahead",
-    pattern: p:PrefixOperand<(ok -> (Shift l 10))>
-  })
-  -> (join ["lookahead " p] "");
+  (
+    object
+    & { kind: "lookahead", pattern: p:PrefixOperand<(ok -> (Shift l 10))> }
+  )
+  -> (join ["lookahead " p] "")
+;
 
-# `ope P sneak by until T` desugars to this quantifier, so it is written back
-# as `until T`.
+# `ope P sneak by until T` desugars to this quantifier, so it is written back as
+# `until T`.
 rule SneakByUntil<L> =
   l:L
-  (object & {
-    kind: "quantifier",
-    min: { kind: "value.literal", value: 1 },
-    max: undefined,
-    pattern: {
-      kind: "then",
-      patterns: [
-        { kind: "not", pattern: t:PrefixOperand<(ok -> (Shift l 6))> }
-        { kind: "any" }
-      ]
+  (
+    object
+    & {
+      kind: "quantifier",
+      min: { kind: "value.literal", value: 1 },
+      max: undefined,
+      pattern: {
+        kind: "then",
+        patterns: [
+          { kind: "not", pattern: t:PrefixOperand<(ok -> (Shift l 6))> }
+          { kind: "any" }
+        ]
+      }
     }
-  })
-  -> (join ["until " t] "");
+  )
+  -> (join ["until " t] "")
+;
 
-rule SneakBy<L> =
-  | SneakByUntil<L>
-  | PrefixOperand<L>
-  ;
+rule SneakBy<L> = SneakByUntil<L> | PrefixOperand<L>;
 
 rule PatternRecoverBody<L> =
   l:L
-  (object & {
-    kind: "recover",
-    pattern: p:PrefixOperand<(ok -> (Shift l 4))>,
-    skip: s:SneakBy<(ok -> (Next l 9))>
-  })
-  -> (join ["ope " p (Sep l " sneak by " "sneak by ") s] "");
+  (
+    object
+    & {
+      kind: "recover",
+      pattern: p:PrefixOperand<(ok -> (Shift l 4))>,
+      skip: s:SneakBy<(ok -> (Next l 9))>
+    }
+  )
+  -> (join ["ope " p (Sep l " sneak by " "sneak by ") s] "")
+;
 
 rule PatternRecover<L> = Fit<PatternRecoverBody, L>;
 
-rule Bound =
-  | (undefined -> "")
-  | ValueSourceText
-  ;
+rule Bound = (undefined -> "") | ValueSourceText;
 
 func QuantifierSuffix<min:string max:string> =
-  (when (eq max "")
+  (when
+    (eq max "")
     (when (eq min "") "*" (when (eq min "1") "+" (join ["*" min] "")))
-    (when (eq min "0") (join ["*.." max] "") (join ["*" min ".." max] "")));
+    (when (eq min "0") (join ["*.." max] "") (join ["*" min ".." max] ""))
+  )
+;
 
 rule PatternQuantifier<L> =
   l:L
-  (object & {
-    kind: "quantifier",
-    min: a:Bound,
-    max: b:Bound,
-    pattern: p:PostfixOperand<(ok -> (Suffix l (length (QuantifierSuffix a b))))>
-  })
-  -> (join [p (QuantifierSuffix a b)] "");
+  (
+    object
+    & {
+      kind: "quantifier",
+      min: a:Bound,
+      max: b:Bound,
+      pattern: p:PostfixOperand<
+        (ok -> (Suffix l (length (QuantifierSuffix a b))))
+      >
+    }
+  )
+  -> (join [p (QuantifierSuffix a b)] "")
+;
 
 rule PatternMaybe<L> =
   l:L
   (object & { kind: "maybe", pattern: p:PostfixOperand<(ok -> (Suffix l 1))> })
-  -> (join [p "?"] "");
+  -> (join [p "?"] "")
+;
 
 rule PatternIntoBody<L> =
-  l:L
-  (object & { kind: "into", pattern: p:Pattern<(ok -> (Inside l 1 1))> })
-  -> (Bracket l "[" p "]");
+  l:L (object & { kind: "into", pattern: p:Pattern<(ok -> (Inside l 1 1))> })
+  -> (Bracket l "[" p "]")
+;
 
 rule PatternInto<L> = Fit<PatternIntoBody, L>;
 
 rule PatternOverEntry<L> =
   l:L
-  (object & {
-    index: n:string,
-    value: p:Pattern<(ok -> (Shift l (add (length n) 2)))>
-  })
-  -> (join [n ": " p] "");
+  (
+    object
+    & {
+      index: n:string,
+      value: p:Pattern<(ok -> (Shift l (add (length n) 2)))>
+    }
+  )
+  -> (join [n ": " p] "")
+;
 
 rule PatternOverBody<L> =
   l:L
   (object & { kind: "over", keys: k:object })
   e:(
-    (ok -> [...(enumerate k)])
-    |> [x:(PatternOverEntry<(ok -> (Entry l 1))>)*]
+    (ok -> [...(enumerate k)]) |> [x:PatternOverEntry<(ok -> (Entry l 1))>*]
     -> x
   )
-  -> (List l "\{" " " e "," "}");
+  -> (List l "\{" " " e "," "}")
+;
 
 rule PatternOver<L> = Fit<PatternOverBody, L>;
 
@@ -345,35 +375,40 @@ rule ReservedName =
     "undefined"
     "until"
     "variable"
-  ];
+  ]
+;
 
-rule ResolveName =
-  | (n:ReservedName -> (join ["@" n] ""))
-  | string
-  ;
+rule ResolveName = (n:ReservedName -> (join ["@" n] "")) | string;
 
 rule PatternResolveBody<L> =
   l:L
-  (object & {
-    kind: "resolve",
-    targetKind: "reference",
-    name: n:ResolveName,
-    args: [a:(Pattern<(ok -> (Entry l 1))>)*]
-  })
-  -> (List l (join [n "<"] "") "" a "," ">");
-
-rule PatternResolve<L> =
-  | (
-    (object & {
+  (
+    object
+    & {
       kind: "resolve",
       targetKind: "reference",
       name: n:ResolveName,
-      args: [end]
-    })
+      args: [a:Pattern<(ok -> (Entry l 1))>*]
+    }
+  )
+  -> (List l (join [n "<"] "") "" a "," ">")
+;
+
+rule PatternResolve<L> =
+  | (
+    (
+      object
+      & {
+        kind: "resolve",
+        targetKind: "reference",
+        name: n:ResolveName,
+        args: [end]
+      }
+    )
     -> n
   )
   | Fit<PatternResolveBody, L>
-  ;
+;
 
 rule SwitchKey =
   | (
@@ -384,29 +419,37 @@ rule SwitchKey =
     (object & { kind: "characterClass", characterClass: c:string })
     -> (join ["\\c" c] "")
   )
-  ;
+;
 
 rule SwitchCase<L> =
   l:L
-  (object & {
-    key: k:SwitchKey,
-    pattern: p:Pattern<(ok -> (Shift l (add (length k) 2)))>
-  })
-  -> (join [k ": " p] "");
+  (
+    object
+    & {
+      key: k:SwitchKey,
+      pattern: p:Pattern<(ok -> (Shift l (add (length k) 2)))>
+    }
+  )
+  -> (join [k ": " p] "")
+;
 
 rule SwitchDefault<L> =
   | (undefined -> [])
   | (l:L p:Pattern<(ok -> (Shift l 9))> -> [(join ["default: " p] "")])
-  ;
+;
 
 rule PatternSwitchBody<L> =
   l:L
-  (object & {
-    kind: "switch",
-    cases: [c:(SwitchCase<(ok -> (Entry l 1))>)*],
-    default: d:SwitchDefault<(ok -> (Entry l 1))>
-  })
-  -> (List l "switch \{" " " (flat [c d]) "," "}");
+  (
+    object
+    & {
+      kind: "switch",
+      cases: [c:SwitchCase<(ok -> (Entry l 1))>*],
+      default: d:SwitchDefault<(ok -> (Entry l 1))>
+    }
+  )
+  -> (List l "switch \{" " " (flat [c d]) "," "}")
+;
 
 rule PatternSwitch<L> = Fit<PatternSwitchBody, L>;
 
@@ -425,11 +468,11 @@ rule PatternAtom =
     (object & { kind: "between", left: a:Bound, right: b:Bound })
     -> (join [a ".." b] "")
   )
-  ;
+;
 
 rule PatternIncludesBody<L> =
-  l:L
-  (object & { kind: "includes", values: [v:ValueSourceText*] })
-  -> (List l "in[" "" v "" "]");
+  l:L (object & { kind: "includes", values: [v:ValueSourceText*] })
+  -> (List l "in[" "" v "" "]")
+;
 
 rule PatternIncludes<L> = Fit<PatternIncludesBody, L>;

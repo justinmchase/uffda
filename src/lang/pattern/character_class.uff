@@ -1,129 +1,184 @@
-# CharacterClass parses \\c… token pairs into Character pattern AST.
-# These are meta-syntax Equals, not Digit-style \\cNd match sugar.
-
+# CharacterClass parses \\c… token pairs into Character pattern AST. These are
+# meta-syntax Equals, not Digit-style \\cNd match sugar.
 import "../editor/editor.uff" Highlight;
 
 export CharacterClass;
 
-rule CharacterClassA =
-  "\\" "cA" -> { kind: "character", characterClass: "A" };
+rule CharacterClassA = "\\" "cA" -> { kind: "character", characterClass: "A" };
 
 rule CharacterClassAc =
-  "\\" "cAc" -> { kind: "character", characterClass: "Ac" };
+  "\\" "cAc"
+  -> { kind: "character", characterClass: "Ac" }
+;
 
 rule CharacterClassAs =
-  "\\" "cAs" -> { kind: "character", characterClass: "As" };
+  "\\" "cAs"
+  -> { kind: "character", characterClass: "As" }
+;
 
-rule CharacterClassC =
-  "\\" "cC" -> { kind: "character", characterClass: "C" };
+rule CharacterClassC = "\\" "cC" -> { kind: "character", characterClass: "C" };
 
 rule CharacterClassCc =
-  "\\" "cCc" -> { kind: "character", characterClass: "Cc" };
+  "\\" "cCc"
+  -> { kind: "character", characterClass: "Cc" }
+;
 
 rule CharacterClassCf =
-  "\\" "cCf" -> { kind: "character", characterClass: "Cf" };
+  "\\" "cCf"
+  -> { kind: "character", characterClass: "Cf" }
+;
 
 rule CharacterClassCn =
-  "\\" "cCn" -> { kind: "character", characterClass: "Cn" };
+  "\\" "cCn"
+  -> { kind: "character", characterClass: "Cn" }
+;
 
 rule CharacterClassCo =
-  "\\" "cCo" -> { kind: "character", characterClass: "Co" };
+  "\\" "cCo"
+  -> { kind: "character", characterClass: "Co" }
+;
 
 rule CharacterClassCs =
-  "\\" "cCs" -> { kind: "character", characterClass: "Cs" };
+  "\\" "cCs"
+  -> { kind: "character", characterClass: "Cs" }
+;
 
-rule CharacterClassL =
-  "\\" "cL" -> { kind: "character", characterClass: "L" };
+rule CharacterClassL = "\\" "cL" -> { kind: "character", characterClass: "L" };
 
 rule CharacterClassLl =
-  "\\" "cLl" -> { kind: "character", characterClass: "Ll" };
+  "\\" "cLl"
+  -> { kind: "character", characterClass: "Ll" }
+;
 
 rule CharacterClassLm =
-  "\\" "cLm" -> { kind: "character", characterClass: "Lm" };
+  "\\" "cLm"
+  -> { kind: "character", characterClass: "Lm" }
+;
 
 rule CharacterClassLo =
-  "\\" "cLo" -> { kind: "character", characterClass: "Lo" };
+  "\\" "cLo"
+  -> { kind: "character", characterClass: "Lo" }
+;
 
 rule CharacterClassLt =
-  "\\" "cLt" -> { kind: "character", characterClass: "Lt" };
+  "\\" "cLt"
+  -> { kind: "character", characterClass: "Lt" }
+;
 
 rule CharacterClassLu =
-  "\\" "cLu" -> { kind: "character", characterClass: "Lu" };
+  "\\" "cLu"
+  -> { kind: "character", characterClass: "Lu" }
+;
 
-rule CharacterClassM =
-  "\\" "cM" -> { kind: "character", characterClass: "M" };
+rule CharacterClassM = "\\" "cM" -> { kind: "character", characterClass: "M" };
 
 rule CharacterClassMc =
-  "\\" "cMc" -> { kind: "character", characterClass: "Mc" };
+  "\\" "cMc"
+  -> { kind: "character", characterClass: "Mc" }
+;
 
 rule CharacterClassMe =
-  "\\" "cMe" -> { kind: "character", characterClass: "Me" };
+  "\\" "cMe"
+  -> { kind: "character", characterClass: "Me" }
+;
 
 rule CharacterClassMn =
-  "\\" "cMn" -> { kind: "character", characterClass: "Mn" };
+  "\\" "cMn"
+  -> { kind: "character", characterClass: "Mn" }
+;
 
-rule CharacterClassN =
-  "\\" "cN" -> { kind: "character", characterClass: "N" };
+rule CharacterClassN = "\\" "cN" -> { kind: "character", characterClass: "N" };
 
 rule CharacterClassNd =
-  "\\" "cNd" -> { kind: "character", characterClass: "Nd" };
+  "\\" "cNd"
+  -> { kind: "character", characterClass: "Nd" }
+;
 
 rule CharacterClassNl =
-  "\\" "cNl" -> { kind: "character", characterClass: "Nl" };
+  "\\" "cNl"
+  -> { kind: "character", characterClass: "Nl" }
+;
 
 rule CharacterClassNo =
-  "\\" "cNo" -> { kind: "character", characterClass: "No" };
+  "\\" "cNo"
+  -> { kind: "character", characterClass: "No" }
+;
 
-rule CharacterClassP =
-  "\\" "cP" -> { kind: "character", characterClass: "P" };
+rule CharacterClassP = "\\" "cP" -> { kind: "character", characterClass: "P" };
 
 rule CharacterClassPc =
-  "\\" "cPc" -> { kind: "character", characterClass: "Pc" };
+  "\\" "cPc"
+  -> { kind: "character", characterClass: "Pc" }
+;
 
 rule CharacterClassPd =
-  "\\" "cPd" -> { kind: "character", characterClass: "Pd" };
+  "\\" "cPd"
+  -> { kind: "character", characterClass: "Pd" }
+;
 
 rule CharacterClassPe =
-  "\\" "cPe" -> { kind: "character", characterClass: "Pe" };
+  "\\" "cPe"
+  -> { kind: "character", characterClass: "Pe" }
+;
 
 rule CharacterClassPf =
-  "\\" "cPf" -> { kind: "character", characterClass: "Pf" };
+  "\\" "cPf"
+  -> { kind: "character", characterClass: "Pf" }
+;
 
 rule CharacterClassPi =
-  "\\" "cPi" -> { kind: "character", characterClass: "Pi" };
+  "\\" "cPi"
+  -> { kind: "character", characterClass: "Pi" }
+;
 
 rule CharacterClassPo =
-  "\\" "cPo" -> { kind: "character", characterClass: "Po" };
+  "\\" "cPo"
+  -> { kind: "character", characterClass: "Po" }
+;
 
 rule CharacterClassPs =
-  "\\" "cPs" -> { kind: "character", characterClass: "Ps" };
+  "\\" "cPs"
+  -> { kind: "character", characterClass: "Ps" }
+;
 
-rule CharacterClassS =
-  "\\" "cS" -> { kind: "character", characterClass: "S" };
+rule CharacterClassS = "\\" "cS" -> { kind: "character", characterClass: "S" };
 
 rule CharacterClassSc =
-  "\\" "cSc" -> { kind: "character", characterClass: "Sc" };
+  "\\" "cSc"
+  -> { kind: "character", characterClass: "Sc" }
+;
 
 rule CharacterClassSk =
-  "\\" "cSk" -> { kind: "character", characterClass: "Sk" };
+  "\\" "cSk"
+  -> { kind: "character", characterClass: "Sk" }
+;
 
 rule CharacterClassSm =
-  "\\" "cSm" -> { kind: "character", characterClass: "Sm" };
+  "\\" "cSm"
+  -> { kind: "character", characterClass: "Sm" }
+;
 
 rule CharacterClassSo =
-  "\\" "cSo" -> { kind: "character", characterClass: "So" };
+  "\\" "cSo"
+  -> { kind: "character", characterClass: "So" }
+;
 
-rule CharacterClassZ =
-  "\\" "cZ" -> { kind: "character", characterClass: "Z" };
+rule CharacterClassZ = "\\" "cZ" -> { kind: "character", characterClass: "Z" };
 
 rule CharacterClassZl =
-  "\\" "cZl" -> { kind: "character", characterClass: "Zl" };
+  "\\" "cZl"
+  -> { kind: "character", characterClass: "Zl" }
+;
 
 rule CharacterClassZp =
-  "\\" "cZp" -> { kind: "character", characterClass: "Zp" };
+  "\\" "cZp"
+  -> { kind: "character", characterClass: "Zp" }
+;
 
 rule CharacterClassZs =
-  "\\" "cZs" -> { kind: "character", characterClass: "Zs" };
+  "\\" "cZs"
+  -> { kind: "character", characterClass: "Zs" }
+;
 
 [Highlight { role: "string" }]
 rule CharacterClass =
@@ -167,4 +222,4 @@ rule CharacterClass =
   | CharacterClassZl
   | CharacterClassZp
   | CharacterClassZs
-  ;
+;

@@ -1,8 +1,8 @@
 # Member matches `base.name…` as left-associative MemberExpression nodes. The
-# base is any Primary, and Primary tries Member first, so `Primary -> Member ->
-# Primary` is indirect left recursion: each growth step wraps the previous
-# Primary in one more `.name`. Member requires a `.name`, so a bare base falls
-# through to Primary's other alternatives.
+# base is any Primary, and Primary tries Member first, so
+# `Primary -> Member -> Primary` is indirect left recursion: each growth step
+# wraps the previous Primary in one more `.name`. Member requires a `.name`, so
+# a bare base falls through to Primary's other alternatives.
 import "../tokenizer/token.uff" Token;
 import "./primary.uff" Primary;
 import "./reference.uff" Reference;
@@ -15,4 +15,5 @@ rule MemberName = Reference;
 
 rule Member =
   e:Token<Primary> "." n:Token<MemberName>
-  -> { kind: "member", expression: e, name: n.name };
+  -> { kind: "member", expression: e, name: n.name }
+;

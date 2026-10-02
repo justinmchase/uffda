@@ -13,30 +13,20 @@ rule CommonEscape =
   | ("\t" -> "\\t")
   | ("\n" -> "\\n")
   | ("\r" -> "\\r")
-  ;
+;
 
-rule PatternStringChar =
-  | CommonEscape
-  | any
-  ;
+rule PatternStringChar = CommonEscape | any;
 
-rule ExpressionStringChar =
-  | CommonEscape
-  | ("{" -> "\\\{")
-  | any
-  ;
+rule ExpressionStringChar = CommonEscape | ("{" -> "\\\{") | any;
 
 rule PatternString =
   string & [c:PatternStringChar*]
-  -> (join ["\"" (join c "") "\""] "");
+  -> (join ["\"" (join c "") "\""] "")
+;
 
-rule ExpressionStringText =
-  string & [c:ExpressionStringChar*]
-  -> (join c "");
+rule ExpressionStringText = string & [c:ExpressionStringChar*] -> (join c "");
 
-rule NumberText =
-  n:number
-  -> (join [n] "");
+rule NumberText = n:number -> (join [n] "");
 
 rule LiteralText =
   | PatternString
@@ -45,9 +35,9 @@ rule LiteralText =
   | (false -> "false")
   | (null -> "null")
   | (undefined -> "undefined")
-  ;
+;
 
 rule ValueSourceText =
-  | (object & { kind: "value.literal", value: v:LiteralText } -> v)
-  | (object & { kind: "value.variable", name: n:string } -> (join ["$" n] ""))
-  ;
+  | object & ({ kind: "value.literal", value: v:LiteralText } -> v)
+  | object & ({ kind: "value.variable", name: n:string } -> (join ["$" n] ""))
+;

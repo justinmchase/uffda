@@ -4,8 +4,5 @@ import "../tokenizer/token.uff" Token;
 export SpreadMarker;
 
 rule Dot = ".";
-rule SpreadMarker =
-  Token<Dot>
-  Token<Dot>
-  Token<Dot>
-  ;
+
+rule SpreadMarker = Token<Dot> Token<Dot> Token<Dot>;

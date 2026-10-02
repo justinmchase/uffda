@@ -3,12 +3,8 @@ export NormalizedText;
 export LineIndex;
 export UnitIndex;
 export SourceDocument;
-export rule Source =
-  NormalizedText
-  |> LineIndex
-  |> UnitIndex
-  |> SourceDocument
-  ;
+
+export rule Source = NormalizedText |> LineIndex |> UnitIndex |> SourceDocument;
 
 # Each unit carries its provenance: a replacement `"\n"` takes the span of the
 # characters it replaces, and a kept character is carried as is, so the joined
@@ -19,79 +15,81 @@ rule CrUnit = "\r" -> "\n";
 
 rule SourceUnit = except "\r";
 
-rule NormalizedUnit =
-  | CrLfUnit
-  | CrUnit
-  | SourceUnit
-  ;
+rule NormalizedUnit = CrLfUnit | CrUnit | SourceUnit;
 
 rule NormalizedText =
   string & [NormalizedUnit*]
-  -> {
-    kind: "NormalizedText",
-    text: (join _ "")
-  };
+  -> { kind: "NormalizedText", text: (join _ "") }
+;
 
-# `line_starts` is module-local: it is only needed by LineIndex and is not
-# part of the general globals toolbox (#124).
-func LineStart<{index: i:number, value: v:string}> =
-  (when (eq v "\n") (add i 1) null);
+# `line_starts` is module-local: it is only needed by LineIndex and is not part
+# of the general globals toolbox (#124).
+func LineStart<{ index: i:number, value: v:string }> =
+  (when (eq v "\n") (add i 1) null)
+;
 
-func NotNull<v:any> =
-  (not (eq v null));
+func NotNull<v:any> = (not (eq v null));
 
 func line_starts<s:string> =
-  [0 ...(filter (map (enumerate s) LineStart) NotNull)];
+  [0 ...(filter (map (enumerate s) LineStart) NotNull)]
+;
 
 rule LineIndex =
-  {
-    kind: "NormalizedText",
-    text: t:string
-  }
-  -> {
-    kind: "LineIndex",
-    text: t,
-    lineStarts: (line_starts t)
-  };
+  { kind: "NormalizedText", text: t:string }
+  -> { kind: "LineIndex", text: t, lineStarts: (line_starts t) }
+;
 
-# `units` is module-local: it is only needed by UnitIndex and is not part of
-# the general globals toolbox (#124). Built in two passes:
+# `units` is module-local: it is only needed by UnitIndex and is not part of the
+# general globals toolbox (#124). Built in two passes:
 #
-# - `unit_positions` prefix-sums each code point's UTF-16 width via
-#   `scan` to get {index, value, offsetStart, offsetEnd} per unit — a
-#   running accumulator is unavoidable here since each offset depends on
-#   every preceding unit's width. `scan` (unlike hand-rolling this with
-#   `reduce` and `[...acc, item]`) threads only the small running
-#   `{offset}` accumulator between steps rather than rebuilding a growing
-#   output array on every step, so this stays O(n) instead of O(n^2) for
-#   large source texts.
+# - `unit_positions` prefix-sums each code point's UTF-16 width via `scan` to
+#   get {index, value, offsetStart, offsetEnd} per unit — a running accumulator
+#   is unavoidable here since each offset depends on every preceding unit's
+#   width. `scan` (unlike hand-rolling this with `reduce` and `[...acc, item]`)
+#   threads only the small running `{offset}` accumulator between steps rather
+#   than rebuilding a growing output array on every step, so this stays O(n)
+#   instead of O(n^2) for large source texts.
 # - `to_source_unit_step` adds line/column by threading a running
-#   `{line, lineStart, ptr}` pointer across *units* via `scan`, advancing
-#   at most one `lineStarts` entry per unit (a unit is exactly one raw
-#   character, so it can cross at most one line boundary). This used to
-#   look up each unit's line independently via a `line_lookup` helper
-#   that `reduce`d over the *entire* `lineStarts` array for every single
-#   unit (O(units * lines) — units and lines both scale with source
-#   size, so this was effectively quadratic for large files: profiling
-#   `examples/morse/morse.uff` showed this one lookup accounting for
-#   roughly 70% of all pattern-node invocations in a full grammar
-#   compile). Threading the pointer forward instead — valid because
-#   units are processed in strictly increasing offset order and
-#   `lineStarts` is sorted ascending — makes this O(units + lines).
-func UnitPosition<{offset: po:number} entry:{index: ei:number, value: ev:string}> =
+#   `{line, lineStart, ptr}` pointer across *units* via `scan`, advancing at
+#   most one `lineStarts` entry per unit (a unit is exactly one raw character,
+#   so it can cross at most one line boundary). This used to look up each unit's
+#   line independently via a `line_lookup` helper that `reduce`d over the
+#   *entire* `lineStarts` array for every single unit (O(units * lines) — units
+#   and lines both scale with source size, so this was effectively quadratic for
+#   large files: profiling `examples/morse/morse.uff` showed this one lookup
+#   accounting for roughly 70% of all pattern-node invocations in a full grammar
+#   compile). Threading the pointer forward instead — valid because units are
+#   processed in strictly increasing offset order and `lineStarts` is sorted
+#   ascending — makes this O(units + lines).
+func UnitPosition<
+  { offset: po:number }
+  entry:{ index: ei:number, value: ev:string }
+> =
   {
     offset: (add po (length ev)),
-    entry: { index: ei, value: ev, offsetStart: po, offsetEnd: (add po (length ev)) }
-  };
+    entry: {
+      index: ei,
+      value: ev,
+      offsetStart: po,
+      offsetEnd: (add po (length ev))
+    }
+  }
+;
 
-func UnitPositionEntry<{entry: upe:any}> = upe;
+func UnitPositionEntry<{ entry: upe:any }> = upe;
 
 func unit_positions<text:string> =
-  (map (scan (enumerate text) { offset: 0 } UnitPosition) UnitPositionEntry);
+  (map (scan (enumerate text) { offset: 0 } UnitPosition) UnitPositionEntry)
+;
 
 func build_source_unit<
-  bsEntry:{index: bsIndex:number, value: bsValue:string, offsetStart: bsOffsetStart:number, offsetEnd: bsOffsetEnd:number}
-  bsPos:{line: bsLine:number, lineStart: bsLineStart:number}
+  bsEntry:{
+    index: bsIndex:number,
+    value: bsValue:string,
+    offsetStart: bsOffsetStart:number,
+    offsetEnd: bsOffsetEnd:number
+  }
+  bsPos:{ line: bsLine:number, lineStart: bsLineStart:number }
 > =
   {
     index: bsIndex,
@@ -101,100 +99,141 @@ func build_source_unit<
     lineStart: bsLine,
     columnStart: (add (sub bsOffsetStart bsLineStart) 1),
     lineEnd: bsLine,
-    columnEnd: (add (add (sub bsOffsetStart bsLineStart) 1) (sub bsOffsetEnd bsOffsetStart))
-  };
+    columnEnd: (add
+      (add (sub bsOffsetStart bsLineStart) 1)
+      (sub bsOffsetEnd bsOffsetStart)
+    )
+  }
+;
 
 # `next_ptr` clamps the candidate index to the current `ptr` when there is no
-# next `lineStarts` entry, so it is always a valid `alpStarts` index. This
-# keeps every downstream lookup safe to evaluate eagerly: `when` (unlike a
+# next `lineStarts` entry, so it is always a valid `alpStarts` index. This keeps
+# every downstream lookup safe to evaluate eagerly: `when` (unlike a
 # short-circuiting `and`) always evaluates all three of its arguments, so a
 # naive `(when (lt ...) (lte (at alpStarts (add ptr 1)) offset) alpPos)` would
 # still evaluate the out-of-bounds `at`/`lte` even when the guard is false.
-func next_ptr<pos:{ptr: number} starts:array> =
-  (when (lt (add pos.ptr 1) (length starts)) (add pos.ptr 1) pos.ptr);
+func next_ptr<pos:{ ptr: number } starts:array> =
+  (when (lt (add pos.ptr 1) (length starts)) (add pos.ptr 1) pos.ptr)
+;
 
 # Advances the running `{line, lineStart, ptr}` pointer by at most one
-# `lineStarts` entry per call. `ptr` is the index of the most recently
-# matched `lineStarts` entry, pre-matched at entry `0` from the start
-# (`lineStarts[0]` is always `0`, which is always `<=` any offset), so
-# callers never need a negative sentinel to mean "nothing matched yet".
+# `lineStarts` entry per call. `ptr` is the index of the most recently matched
+# `lineStarts` entry, pre-matched at entry `0` from the start (`lineStarts[0]`
+# is always `0`, which is always `<=` any offset), so callers never need a
+# negative sentinel to mean "nothing matched yet".
 func advance_line_position<
-  alpPos:{line: number, lineStart: number, ptr: number}
+  alpPos:{ line: number, lineStart: number, ptr: number }
   alpStarts:array
   alpOffset:number
 > =
-  (advance_line_position_at alpPos alpStarts alpOffset (next_ptr alpPos alpStarts));
+  (advance_line_position_at
+    alpPos
+    alpStarts
+    alpOffset
+    (next_ptr alpPos alpStarts)
+  )
+;
 
 func advance_line_position_at<
-  alpaPos:{line: number, lineStart: number, ptr: number}
+  alpaPos:{ line: number, lineStart: number, ptr: number }
   alpaStarts:array
   alpaOffset:number
   alpaNextPtr:number
 > =
-  (when (gt alpaNextPtr alpaPos.ptr)
-    (when (lte (at alpaStarts alpaNextPtr) alpaOffset)
-      { line: (add alpaPos.line 1), lineStart: (at alpaStarts alpaNextPtr), ptr: alpaNextPtr }
-      alpaPos)
-    alpaPos);
+  (when
+    (gt alpaNextPtr alpaPos.ptr)
+    (when
+      (lte (at alpaStarts alpaNextPtr) alpaOffset)
+      {
+        line: (add alpaPos.line 1),
+        lineStart: (at alpaStarts alpaNextPtr),
+        ptr: alpaNextPtr
+      }
+      alpaPos
+    )
+    alpaPos
+  )
+;
 
-# Advances the pointer for this unit's offset, then builds the unit record
-# with it, bundling the next pointer state alongside the built record as
-# `out` so `scan` can keep threading `{line, lineStart, ptr}` forward while
-# still producing one output per unit.
+# Advances the pointer for this unit's offset, then builds the unit record with
+# it, bundling the next pointer state alongside the built record as `out` so
+# `scan` can keep threading `{line, lineStart, ptr}` forward while still
+# producing one output per unit.
 func build_indexed_source_unit<
-  bisEntry:{index: number, value: string, offsetStart: number, offsetEnd: number}
-  bisPos:{line: number, lineStart: number, ptr: number}
+  bisEntry:{
+    index: number,
+    value: string,
+    offsetStart: number,
+    offsetEnd: number
+  }
+  bisPos:{ line: number, lineStart: number, ptr: number }
 > =
   {
     line: bisPos.line,
     lineStart: bisPos.lineStart,
     ptr: bisPos.ptr,
     out: (build_source_unit bisEntry bisPos)
-  };
+  }
+;
 
 func to_source_unit_step<
   tsuStarts:array
-  tsuPos:{line: number, lineStart: number, ptr: number}
-  tsuEntry:{index: number, value: string, offsetStart: number, offsetEnd: number}
+  tsuPos:{ line: number, lineStart: number, ptr: number }
+  tsuEntry:{
+    index: number,
+    value: string,
+    offsetStart: number,
+    offsetEnd: number
+  }
 > =
-  (build_indexed_source_unit tsuEntry (advance_line_position tsuPos tsuStarts tsuEntry.offsetStart));
+  (build_indexed_source_unit
+    tsuEntry
+    (advance_line_position tsuPos tsuStarts tsuEntry.offsetStart)
+  )
+;
 
-func indexed_source_unit_out<{out: isuOut:any}> = isuOut;
+func indexed_source_unit_out<{ out: isuOut:any }> = isuOut;
 
 rule UnitIndex =
-  {
-    kind: "LineIndex",
-    text: t:string,
-    lineStarts: s:array
-  }
+  { kind: "LineIndex", text: t:string, lineStarts: s:array }
   -> {
     kind: "UnitIndex",
     text: t,
     lineStarts: s,
     units: [
       ...(map
-        (scan (unit_positions t) { line: 1, lineStart: 0, ptr: 0 }
-          <acc:{line: number, lineStart: number, ptr: number} entry:{index: number, value: string, offsetStart: number, offsetEnd: number}> ->
-            (to_source_unit_step s acc entry))
-        indexed_source_unit_out)
+        (scan
+          (unit_positions t)
+          { line: 1, lineStart: 0, ptr: 0 }
+          <
+            acc:{ line: number, lineStart: number, ptr: number }
+            entry:{
+              index: number,
+              value: string,
+              offsetStart: number,
+              offsetEnd: number
+            }
+          > -> (to_source_unit_step s acc entry)
+        )
+        indexed_source_unit_out
+      )
     ]
-  };
+  }
+;
 
 # `document_id` is module-local: it is only needed by SourceDocument's
 # projection and is not part of the general globals toolbox (#124).
-func document_id<text:string> = "source:{(length text)}:{(slice (base58 (sha256 text)) 0 8)}";
+func document_id<text:string> =
+  "source:{(length text)}:{(slice (base58 (sha256 text)) 0 8)}"
+;
 
 rule SourceDocument =
-  {
-    kind: "UnitIndex",
-    text: t:string,
-    lineStarts: s:array,
-    units: u:array
-  }
+  { kind: "UnitIndex", text: t:string, lineStarts: s:array, units: u:array }
   -> {
     ...(iterable t),
     documentId: (document_id t),
     text: t,
     lineStarts: s,
     units: u
-  };
+  }
+;

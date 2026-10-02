@@ -1,5 +1,6 @@
 import { assertEquals } from "@std/assert";
 import { fromFileUrl, join } from "@std/path";
+import { uffExportNames } from "../uff_exports.ts";
 
 const repoRoot = fromFileUrl(new URL("../../../", import.meta.url));
 const pattern = join(repoRoot, "src", "lang", "pattern");
@@ -8,7 +9,10 @@ Deno.test(
   "req:cli-bootstrap-030 - pattern .uff source is converted",
   async () => {
     const patternSrc = await Deno.readTextFile(join(pattern, "pattern.uff"));
-    assertEquals(patternSrc.includes("export Pattern"), true);
+    assertEquals(
+      (await uffExportNames(join(pattern, "pattern.uff"))).includes("Pattern"),
+      true,
+    );
     assertEquals(patternSrc.includes('import "./or.uff" Or'), true);
     assertEquals(patternSrc.includes("rule Pattern = Or"), true);
 

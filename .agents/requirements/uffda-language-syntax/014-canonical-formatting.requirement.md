@@ -18,6 +18,8 @@ Expected behavior:
   the source's, apart from source spans.
 - Formatting that text again MUST reproduce it exactly.
 - Both MUST hold for every `.uff` file in this repository.
+- Every `.uff` file in this repository MUST already be formatted:
+  `uffda fmt --check` passes in CI.
 - A declaration that fits in 80 columns MUST be written on one line; one that
   does not MUST be broken with each child on its own line, brackets opening at
   the end of a line and closing on their own line.
