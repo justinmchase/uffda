@@ -3,8 +3,13 @@ import { Scope } from "../scope.ts";
 import { expressionTest } from "../../test.ts";
 import { PatternKind } from "../patterns/pattern.kind.ts";
 import { ExpressionKind } from "./expression.kind.ts";
-import { assertEquals, assertRejects, assertStrictEquals } from "@std/assert";
-import { originOf, rootOrigin, Wrapped } from "../../wrapped.ts";
+import {
+  assert,
+  assertEquals,
+  assertRejects,
+  assertStrictEquals,
+} from "@std/assert";
+import { originOf, rawOf, rootOrigin, Wrapped } from "../../wrapped.ts";
 import { type MatchOk, ok } from "../../match.ts";
 import { exec } from "../exec.ts";
 
@@ -145,4 +150,24 @@ Deno.test("runtime/expressions/lambda argument mismatches and parameter errors a
     Error,
     "Variable a already exists in scope",
   );
+});
+
+Deno.test("runtime/expressions/lambda arguments are matched with their own memo table", async () => {
+  const scope = Scope.Default();
+  const result = await exec(
+    {
+      kind: ExpressionKind.Invocation,
+      args: [],
+      expression: {
+        kind: ExpressionKind.Lambda,
+        pattern: { kind: PatternKind.End },
+        expression: { kind: ExpressionKind.Reference, name: "this" },
+      },
+    },
+    ok(scope, scope, { kind: PatternKind.Ok }, undefined),
+  );
+  const match = rawOf(result) as MatchOk;
+  assert(match.scope.memos !== scope.memos);
+  match.scope.memos.recoverable = true;
+  assertEquals(scope.memos.recoverable, true);
 });

@@ -44,7 +44,7 @@ export function over(pattern: OverPattern, scope: Scope): CompiledPattern {
           // A raw property of a host-supplied object takes the object's origin.
           const propertyStream = new Input(
             [objValue[key]],
-            invocationScope.stream.path.push(key),
+            invocationScope.stream.path.push(key).push(0),
             0,
             undefined,
             InputNormalizationMode.Iterable,

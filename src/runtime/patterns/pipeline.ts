@@ -96,7 +96,7 @@ export function pipeline(
         false,
         consumed.open && await consumed.done(),
       );
-      next = invocationScope.withInput(input);
+      next = invocationScope.withLayer(input);
 
       // we do not fail if the last pattern in the pipeline does not consume the entire stream
       // it is up to the caller to utilize the end pattern to enforce this if desired.

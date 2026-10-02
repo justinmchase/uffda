@@ -235,7 +235,7 @@ Deno.test("lang.uffda.runtime-compiler rejects unsupported declarations", async 
   assertEquals(diagnoseUffdaRuntimeCompilerFailure(match), {
     matchKind: MatchKind.Fail,
     compilerRule: "CompileDeclaration",
-    sourcePath: '[0]."declarations".[0]',
+    sourcePath: '[0]."declarations".[0].[0]',
   });
 });
 

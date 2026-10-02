@@ -21,7 +21,7 @@ export function lambda(
     // Raw arguments (for example from a host global) take `m` as origin.
     const stream = new Input(
       args,
-      m.scope.stream.path.push(0), // todo: should this have a lambda segment?
+      m.scope.stream.path.push(0),
       0,
       undefined,
       InputNormalizationMode.Iterable,
@@ -30,7 +30,7 @@ export function lambda(
       false,
       originOf(m),
     );
-    const scope = m.scope.withInput(stream);
+    const scope = m.scope.withLayer(stream);
     const result = await match(pattern, scope);
     switch (result.kind) {
       case MatchKind.LR:

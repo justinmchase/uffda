@@ -87,7 +87,7 @@ await Deno.test("runtime/patterns/object", async (t) => {
   });
 
   await t.step(
-    "OBJECT05 preserves the source object property path",
+    "OBJECT05 places a key's value at the property path's first stream item",
     async () => {
       const result = await match({
         kind: PatternKind.Over,
@@ -100,7 +100,7 @@ await Deno.test("runtime/patterns/object", async (t) => {
       if (result.kind === MatchKind.Fail) {
         assertEquals(
           getRightmostFailure(result).span.start.toString(),
-          '[0]."x"',
+          '[0]."x".[0]',
         );
       }
     },
@@ -158,4 +158,23 @@ Deno.test("runtime/patterns/over skip", async (t) => {
       value: { a: 1 },
     }),
   });
+
+  await t.step(
+    "OBJECT_KEY_POSITIONS - each key's stream has its own positions",
+    async () => {
+      const result = await match({
+        kind: PatternKind.Over,
+        keys: {
+          a: { kind: PatternKind.Any },
+          b: { kind: PatternKind.Any },
+        },
+      }, Scope.From({ a: 1, b: 2 }));
+
+      assert(result.kind === MatchKind.Ok);
+      assertEquals(
+        result.matches.map((m) => m.scope.stream.path.toString()),
+        ['[0]."a".[1]', '[0]."b".[1]'],
+      );
+    },
+  );
 });

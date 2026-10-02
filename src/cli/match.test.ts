@@ -49,7 +49,7 @@ Deno.test("cli.match applies raw pattern ASTs to text input", async (t) => {
     if (result.ok) return;
     assertEquals(
       result.error.message,
-      `Pattern 'type' did not match input at [0]."hello"`,
+      `Pattern 'type' did not match input at [0]."hello".[0]`,
     );
   });
 

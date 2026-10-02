@@ -40,6 +40,18 @@ including any rule-level projection.
 - Alternation backtracking that re-enters a previously successful rule at the
   same position (for example `(R X) | R` after `X` fails) MUST therefore observe
   the projected rule value, not an unprojected pattern intermediate.
+- A memo entry MUST be reused only for the input it was computed against. An
+  input computed during a match (a later
+  [pipeline](../patterns/runtime/pipeline.spec.md) stage's input, or the
+  arguments of a func or lambda call) has no positions in common with any other
+  input, even one computed at the same position, so its rule outcomes MUST be
+  memoized apart from every other input's. Recovery state (whether a recovery
+  point was reached; see [error recovery](./error-recovery.spec.md)) is still
+  shared by the whole match.
+- Positions within one input MUST be distinct: inputs nested inside an item
+  ([into](../patterns/runtime/into.spec.md),
+  [over](../patterns/runtime/over.spec.md)) MUST extend that item's position, so
+  no two of them share a position.
 
 ## Left-recursion interaction
 

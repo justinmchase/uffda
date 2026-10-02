@@ -21,7 +21,7 @@ Deno.test("req:uffda-runtime-compilation-005 - compiler diagnostics identify a r
   assertEquals(first, {
     matchKind: "fail",
     compilerRule: "CompileDeclaration",
-    sourcePath: '[0]."declarations".[0]',
+    sourcePath: '[0]."declarations".[0].[0]',
   });
   assertEquals(second, first);
 });
