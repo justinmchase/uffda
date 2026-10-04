@@ -16,7 +16,8 @@ import "./layout.uff"
   Bracket
   List
   LineStart
-  LineBreak;
+  LineBreak
+;
 import "./comment.uff" Lead Trail;
 import "./literal.uff" ValueSourceText;
 import "./expression.uff" Expression;

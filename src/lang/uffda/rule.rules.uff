@@ -8,7 +8,8 @@ import "./shared.rules.uff"
   IdentifierToken
   RuleKeyword
   DeclarationBodyEnd
-  BodyToken;
+  BodyToken
+;
 import "../editor/editor.uff" Declaration Parameter;
 import "./attribute.rules.uff" AttributeSyntax;
 

@@ -92,7 +92,7 @@ have all of its children written flat.
   names MUST be written as one inline `export` declaration (`export rule A …`).
   Any other export MUST be written as `export Name;`.
 - An import MUST be written `import "url" A B;` when it fits, otherwise with
-  each name on its own indented line.
+  each name on its own indented line and `;` on its own line.
 
 ## Declarations
 
@@ -108,9 +108,9 @@ have all of its children written flat.
   always be broken, with each step on its own line as `|> step`, the first
   included. An alternation or pipeline nested inside a body follows the general
   flat-or-broken rule.
-- A declaration written on one line MUST end with `;`. A broken rule, func, or
-  decorator MUST end with `;` on its own line at the declaration's indentation,
-  so the `;` closes the body the `=` opens.
+- A declaration written on one line MUST end with `;`. A broken import, rule,
+  func, or decorator MUST end with `;` on its own line at the declaration's
+  indentation, so the `;` closes what the head opens.
 - A func or decorator MUST be written `func Name<params> = body;` on one line
   when it fits. Otherwise the head MUST be on its own line and the body on the
   following lines at one level of indentation. When the head itself does not

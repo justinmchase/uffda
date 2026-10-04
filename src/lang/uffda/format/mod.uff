@@ -17,7 +17,8 @@ import "./layout.uff"
   HugHead
   HugFits
   Flat
-  NotLast;
+  NotLast
+;
 import "./pattern.uff" Parameters RuleBodyPattern;
 import "./expression.uff" Expression;
 import "./comment.uff" Comment;
@@ -88,7 +89,7 @@ rule ImportBody<L> =
       "\""
       (when l.flat " " "\n  ")
       (join n (when l.flat " " "\n  "))
-      ";"
+      (Terminator l)
     ]
     ""
   )

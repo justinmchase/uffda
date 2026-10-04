@@ -307,6 +307,24 @@ Deno.test("lang.uffda.format", async (t) => {
   });
 });
 
+Deno.test("lang.uffda.format a broken import ends with ; on its own line", async () => {
+  const names = [
+    "Aaaaaaaaaaaaaaaaaaaa",
+    "Bbbbbbbbbbbbbbbbbbbb",
+    "Cccccccccccccccccccc",
+    "Dddddddddddddddddddd",
+  ];
+  const expected = [
+    'import "./example.uff"',
+    ...names.map((n) => `  ${n}`),
+    ";",
+    "",
+  ]
+    .join("\n");
+  await formats(`import "./example.uff" ${names.join(" ")};`, expected);
+  await formats(expected, expected);
+});
+
 Deno.test("lang.uffda.format inner comments", async (t) => {
   const cases = [
     {

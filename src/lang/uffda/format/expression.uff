@@ -13,7 +13,8 @@ import "./layout.uff"
   HugFits
   Flat
   NotLast
-  Indent;
+  Indent
+;
 import "./comment.uff" CommentAt Commented Trailed;
 import "./literal.uff" ExpressionStringText NumberText;
 import "./pattern.uff" Parameters;
