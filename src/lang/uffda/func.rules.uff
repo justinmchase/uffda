@@ -10,7 +10,8 @@ import "./shared.rules.uff"
   IdentifierToken
   FuncKeyword
   DeclarationBodyEnd
-  BodyToken;
+  BodyToken
+;
 import "../editor/editor.uff" Declaration;
 import "./attribute.rules.uff" AttributeSyntax;
 
