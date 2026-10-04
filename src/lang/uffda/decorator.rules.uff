@@ -12,7 +12,8 @@ import "./shared.rules.uff"
   DeclarationName
   DeclarationEquals
   DeclarationEnd
-  DeclarationKeyword;
+  DeclarationKeyword
+;
 import "../editor/editor.uff" Declaration;
 import "./func.rules.uff" FuncExpressionBody;
 import "./attribute.rules.uff" AttributeSyntax;
