@@ -9,7 +9,7 @@ import {
   MatchKind,
   type SourceSpan,
 } from "../match.ts";
-import { diagnoseRecoveries } from "../match.recovery_diagnostics.ts";
+import { diagnoseRecoveries } from "./diagnostics.ts";
 import { executeModuleDeclaration } from "../runtime/module.execute.ts";
 import { type Expression, isExpression } from "../runtime/expressions/mod.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";

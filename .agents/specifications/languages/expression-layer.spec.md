@@ -63,6 +63,9 @@ recovery never skips are `)`, `]`, `}`, and `,`.
   start an argument or element MUST be skipped, unless it is a delimiter.
 - A comma-separated object entry that fails to parse MUST be skipped up to the
   next delimiter.
+- Tokens after a complete object entry that are neither a delimiter nor a
+  comment node MUST be skipped up to the next delimiter or comment node, so a
+  stray token costs only itself and not the object.
 - Tokens left over after a complete expression MUST be skipped through the end
   of the input.
 

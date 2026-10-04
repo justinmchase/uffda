@@ -164,6 +164,28 @@ Deno.test("lang.expression.object recovers a broken entry", async () => {
   assertEquals(skipped("{ ?, c: 2 }", first), ["?"]);
 });
 
+Deno.test("lang.expression.object skips what follows a complete entry", async () => {
+  const source = "{ a: 1 y z, b: 2 }";
+  const match = await expressionGrammar(source);
+  assert(isSuccess(match));
+  assertEquals(valueOf(match), {
+    kind: ExpressionKind.Object,
+    keys: [
+      {
+        kind: ExpressionKind.ObjectKey,
+        name: "a",
+        expression: { kind: ExpressionKind.Number, value: 1 },
+      },
+      {
+        kind: ExpressionKind.ObjectKey,
+        name: "b",
+        expression: { kind: ExpressionKind.Number, value: 2 },
+      },
+    ],
+  });
+  assertEquals(skipped(source, match), ["y z"]);
+});
+
 Deno.test({
   name: "lang.expression.object comments",
   ignore: p.state !== "granted",

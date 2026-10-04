@@ -18,6 +18,12 @@ Normative key words in this chapter use the conventions defined in the
   alternatives (or the pattern/rule being matched), then unexpected input, and
   MAY include the nearest rule name — without requiring the full failure-tree
   rendering.
+- A host MAY supply an explanation for rules. The analysis MUST ask it only
+  about the failure's innermost rule (the nearest rule name above), and when it
+  answers, the compact summary MUST lead with that explanation, ahead of the
+  expected alternatives. The runtime MUST NOT read any particular rule metadata
+  itself; the CLI hosts explain a rule with its `[Documentation]` `error` (see
+  [editor metadata](../languages/cli/editor-metadata.spec.md)).
 - The visualization MUST preserve enough match hierarchy to connect named rules
   and composite patterns to the reported failure.
 - Pipeline diagnostics MUST identify each completed and failed step and MUST

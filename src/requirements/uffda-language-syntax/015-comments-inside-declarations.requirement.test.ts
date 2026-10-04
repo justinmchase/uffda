@@ -1,4 +1,5 @@
 import { assert, assertEquals } from "@std/assert";
+import { diagnoseRecoveries } from "../../cli/diagnostics.ts";
 import { compileUffdaSyntaxModule } from "../../lang/uffda/execute.ts";
 import { formatUffdaSource } from "../../lang/uffda/format.ts";
 import { uffdaGrammar } from "../../lang/uffda/uffda.lang.ts";
@@ -101,5 +102,27 @@ Deno.test(
     const second = await formatUffdaSource(first.text);
     assert(second.kind === FormatResultKind.Formatted);
     assertEquals(second.text, first.text);
+  },
+);
+
+Deno.test(
+  "req:uffda-language-syntax-015 - a comment after code is explained",
+  async () => {
+    for (
+      const source of [
+        "rule A =\n  |> B # c\n  |> C\n;",
+        "rule A =\n  | a # c\n  | b\n;",
+        "rule A = x:any -> [x # c\n x];",
+        "rule A = x:any -> (f x # c\n x);",
+        "rule A = x:any -> { a: x # c\n };",
+      ]
+    ) {
+      const diagnostics = await diagnoseRecoveries(await uffdaGrammar(source));
+      assertEquals(diagnostics.length, 1, source);
+      assert(
+        diagnostics[0].message.startsWith("Comments are part of the syntax"),
+        source,
+      );
+    }
   },
 );

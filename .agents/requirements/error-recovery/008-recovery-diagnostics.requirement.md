@@ -19,7 +19,8 @@ Expected behavior:
   whose range is the source offsets of the input the recovery skipped (through
   pipeline stages, the original source offsets) and whose message is the
   match-diagnostics summary of the failure the recovery replaced (expected
-  alternatives first, then the unexpected input, then the rule).
+  alternatives first, then the unexpected input, then the rule). When the host
+  explains the failure's innermost rule, the explanation MUST come first.
 - Diagnostics MUST be in document order. A failed match MUST list its
   recoveries' diagnostics before its failure diagnostic.
 - A clean success MUST yield no diagnostics.
@@ -32,5 +33,6 @@ Postconditions:
 
 ## Test plan
 
-`src/match.recovery_diagnostics.test.ts` (RECOVERY_DIAGNOSTICS00–03).
+`src/match.recovery_diagnostics.test.ts` (RECOVERY_DIAGNOSTICS00–03, and the
+innermost-rule explanation). `src/cli/diagnostics.test.ts`.
 `src/requirements/error-recovery/008-recovery-diagnostics.requirement.test.ts`.

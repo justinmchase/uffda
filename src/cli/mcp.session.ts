@@ -8,7 +8,7 @@ import type { Pattern } from "../runtime/patterns/pattern.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "../runtime/patterns/pattern.ts";
 import { matchWithRecovery } from "../runtime/recovery.ts";
-import { diagnoseRecoveries } from "../match.recovery_diagnostics.ts";
+import { diagnoseRecoveries } from "./diagnostics.ts";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 import type { DecoratorFunc } from "../runtime/modules/decorator.ts";
 import type { Func } from "../runtime/modules/func.ts";

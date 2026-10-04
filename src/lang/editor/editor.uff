@@ -111,19 +111,22 @@ decorator Formatter<f:{ kind: "rule", parameters: [end] }> = f;
 decorator ToggleComment<t:{ kind: "rule", parameters: [end] }> = t;
 
 # `[Documentation "…"]` or
-# `[Documentation { description: "…", parameters: { P: "…" } }]` — documentation
-# of a rule/func/decorator for tooling (hover, completion). Either form is
-# normalized to `{ description, parameters }`, `parameters` mapping parameter
-# names to their descriptions.
+# `[Documentation { description: "…", parameters: { P: "…" }, error: "…" }]` —
+# documentation of a rule/func/decorator for tooling (hover, completion, and
+# diagnostics). Either form is normalized to
+# `{ description, parameters, error }`, `parameters` mapping parameter names to
+# their descriptions. `error` explains errors in the declaration and is shown
+# only in a diagnostic whose failure's innermost rule is the declaration.
 [Documentation {
   description: "Documentation of a rule, func, or decorator for editor tooling (hover and completion).",
   parameters: {
-    d: "A description string, or an object with a `description` and optional `parameters` mapping parameter names to their descriptions."
+    d: "A description string, or an object with a `description`, optional `parameters` mapping parameter names to their descriptions, and an optional `error` explaining errors in the declaration."
   }
 }]
 decorator Documentation<d:(string | { description: string })> =
   {
     description: (coalesce d.description d),
-    parameters: (coalesce d.parameters {})
+    parameters: (coalesce d.parameters {}),
+    error: d.error
   }
 ;

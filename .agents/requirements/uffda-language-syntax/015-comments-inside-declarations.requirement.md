@@ -31,7 +31,10 @@ Expected behavior:
   parse, and the alternation MUST keep its comment nodes.
 - A comment that follows code on the same line inside a declaration MUST be a
   syntax error. Recovery MUST skip only that comment, so the declaration around
-  it still parses.
+  it still parses. When the comment follows a pattern member, an alternative, an
+  array element, an invocation argument, or an object entry's value, the
+  diagnostic MUST lead with an explanation that comments must be on their own
+  lines inside a declaration (the `[Documentation]` `error` of `CommentNode`).
 
 Postconditions:
 

@@ -1,9 +1,7 @@
 import { dirname, isAbsolute, join } from "@std/path";
 import { isClean, isSuccess, type Match, MatchKind } from "../match.ts";
-import {
-  analyzeMatchFailure,
-  formatMatchFailureSummary,
-} from "../match.visualize.ts";
+import { formatMatchFailureSummary } from "../match.visualize.ts";
+import { analyzeMatchFailure } from "./diagnostics.ts";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 import {
   outputNameForSource,

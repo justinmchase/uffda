@@ -53,7 +53,22 @@ rule RecoverableObjectEntry =
   ope ObjectEntry sneak by skip (not ExpressionDelimiter any)+
 ;
 
-rule ObjectItem = CommentNode* RecoverableObjectEntry -> (flat _);
+# What may follow an entry. Anything else after a complete entry is skipped up
+# to the next of these, so a stray item costs only itself, not the object.
+rule ObjectEntryEnd =
+  | Token<Comma>
+  | Token<CloseBrace>
+  | CommentNode
+;
+
+rule ObjectEntryRest =
+  ope lookahead ObjectEntryEnd sneak by skip (not ExpressionDelimiter any)+
+;
+
+rule ObjectItem =
+  CommentNode* RecoverableObjectEntry skip ObjectEntryRest
+  -> (flat _)
+;
 
 rule ObjectPairTail = skip Token<Comma> i:ObjectItem -> i;
 

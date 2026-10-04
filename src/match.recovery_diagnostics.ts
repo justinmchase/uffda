@@ -4,6 +4,7 @@ import {
   analyzeMatchFailure,
   formatMatchFailureSummary,
   type MatchFailureAnalysis,
+  type MatchFailureOptions,
 } from "./match.visualize.ts";
 import { collectRecoveries } from "./runtime/recovery.ts";
 
@@ -25,10 +26,11 @@ export type RecoveryDiagnostic = {
  */
 export async function diagnoseRecoveries(
   match: Match,
+  options: MatchFailureOptions = {},
 ): Promise<RecoveryDiagnostic[]> {
   const diagnostics: RecoveryDiagnostic[] = [];
   for (const { match: recovered, failure } of collectRecoveries(match)) {
-    const analysis = await analyzeMatchFailure(failure);
+    const analysis = await analyzeMatchFailure(failure, options);
     diagnostics.push({
       span: recovered.originalSpan,
       message: analysis
