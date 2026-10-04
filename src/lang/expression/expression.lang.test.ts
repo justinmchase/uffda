@@ -269,8 +269,10 @@ Deno.test(
         assertEquals(m.kind, MatchKind.Fail);
 
         const visualization = await visualizeMatchFailure(m);
-        assertStringIncludes(visualization, 'Unexpected: "#"');
-        assertStringIncludes(visualization, "source offset 7");
+        // `#)` is a comment, so the sequence's `)` is missing after `1`.
+        assertStringIncludes(visualization, "Unexpected: <end of input>");
+        assertStringIncludes(visualization, "source offset 6");
+        assertStringIncludes(visualization, "> Primary > Sequence");
         assertStringIncludes(
           visualization,
           "[2] OK into -> resolve TokenizerNoWhitespace",

@@ -4,7 +4,7 @@
 # keywords without a separately maintained rule-name-to-role mapping.
 import "../common/identifier.uff" IdToken;
 import "../editor/editor.uff" Keyword;
-import "../common/comment.uff" CommentNode;
+import "../common/comment.uff" OwnLineComment;
 
 export IdentifierToken;
 export ReservedKeywordToken;
@@ -62,6 +62,6 @@ rule DeclarationBodyEnd =
 # rejected there).
 rule BodyToken =
   | string
-  | CommentNode
-  | object & { kind: "lineEndComment", comment: CommentNode }
+  | OwnLineComment
+  | object & { kind: "lineEndComment", comment: OwnLineComment }
 ;

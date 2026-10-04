@@ -13,17 +13,12 @@ Deno.test(
     const second = await visualizeMatchFailure(match);
 
     assertEquals(second, first);
-    assertStringIncludes(first, 'Unexpected: "#"');
-    assertStringIncludes(first, "source offset 7");
-    // The tokenizer and the source-normalization pass both fail at the same
-    // rightmost boundary for this input; the visualizer's shallowest-depth
-    // tie-break picks whichever candidate is nearer the root. Switching the
-    // tokenizer's hot alternations to `switch` (#158 Stage 2) adds one extra
-    // dispatch layer relative to `or`, which shifts that tie-break to the
-    // source-normalization candidate instead of the tokenizer one.
+    // `#)` is a comment, so the sequence's `)` is missing after `1`.
+    assertStringIncludes(first, "Unexpected: <end of input>");
+    assertStringIncludes(first, "source offset 6");
     assertStringIncludes(
       first,
-      "Rules: ExpressionLang > Source > NormalizedText > NormalizedUnit",
+      "Rules: ExpressionLang > ExpressionComplete > Expression > Unary > Primary > Sequence",
     );
     assertStringIncludes(first, "[2] OK into -> resolve TokenizerNoWhitespace");
     assertStringIncludes(first, 'output: [ "(", "add", "1" ]');

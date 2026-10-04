@@ -1,9 +1,4 @@
-import {
-  getRightmostFailure,
-  isSuccess,
-  type Match,
-  MatchKind,
-} from "./match.ts";
+import { isSuccess, type Match, MatchKind } from "./match.ts";
 import type { Path } from "./path.ts";
 import {
   describePattern,
@@ -21,7 +16,17 @@ type MatchNode = {
   depth: number;
   order: number;
   current: unknown;
-  suppressed: boolean;
+  /**
+   * Whether the node cannot explain the failure being diagnosed (see
+   * `excludesChildren`).
+   */
+  excluded: boolean;
+  /**
+   * How many of the node's ancestors succeeded. A failure under a successful
+   * match was absorbed (an alternative or repetition moved on); one under
+   * failures only is what made its ancestors fail.
+   */
+  absorbed: number;
 };
 
 function childrenOf(match: Match): Match[] {
@@ -33,8 +38,8 @@ function childrenOf(match: Match): Match[] {
 
 function currentValue(match: Match): Promise<unknown> {
   if (match.kind === MatchKind.LR) return Promise.resolve(undefined);
-  return Promise.resolve(match.scope.stream.next()).then((input) =>
-    unwrap(input.value)
+  return Promise.resolve(match.scope.stream.step()).then((input) =>
+    input ? unwrap(input.value) : undefined
   );
 }
 
@@ -49,36 +54,65 @@ function formatValue(value: unknown): string {
   return inspected.length > 240 ? `${inspected.slice(0, 237)}...` : inspected;
 }
 
+/**
+ * Whether no failure under `match` can explain the failure being diagnosed: a
+ * pipeline that succeeded transformed its input, so nothing it tried explains
+ * what fails after it; a negative predicate that succeeded needed its child to
+ * fail.
+ */
+function excludesChildren(match: Match): boolean {
+  if (!isSuccess(match)) return false;
+  switch (match.pattern.kind) {
+    case PatternKind.Pipeline:
+    case PatternKind.Not:
+    case PatternKind.Except:
+      return true;
+    default:
+      return false;
+  }
+}
+
 async function collectNodes(root: Match): Promise<MatchNode[]> {
   const nodes: MatchNode[] = [];
   const seen = new Set<Match>();
+  // A failed pipeline's stages before the failing one succeeded and handed
+  // their output on, so they cannot explain the failure either.
+  const passedStages = new Set<Match>();
 
   async function visit(
     match: Match,
     depth: number,
-    suppressed: boolean,
+    excluded: boolean,
+    absorbed: number,
   ): Promise<void> {
     if (seen.has(match)) return;
     seen.add(match);
+    const nodeExcluded = excluded || passedStages.has(match);
     nodes.push({
       match,
       depth,
       order: nodes.length,
       current: await currentValue(match),
-      suppressed,
+      excluded: nodeExcluded,
+      absorbed,
     });
-    const suppressChildren = suppressed ||
-      (isSuccess(match) &&
-        (match.pattern.kind === PatternKind.Or ||
-          match.pattern.kind === PatternKind.Not ||
-          match.pattern.kind === PatternKind.Except ||
-          match.pattern.kind === PatternKind.Maybe));
+    if (match.kind === MatchKind.Fail) {
+      for (const stage of pipelineStages(match)?.slice(0, -1) ?? []) {
+        passedStages.add(stage);
+      }
+    }
+    const childrenExcluded = nodeExcluded || excludesChildren(match);
     for (const child of childrenOf(match)) {
-      await visit(child, depth + 1, suppressChildren);
+      await visit(
+        child,
+        depth + 1,
+        childrenExcluded,
+        absorbed + (isSuccess(match) ? 1 : 0),
+      );
     }
   }
 
-  await visit(root, 0, false);
+  await visit(root, 0, false, 0);
   return nodes;
 }
 
@@ -99,161 +133,67 @@ function sourceOffset(
   return source.lastIndexOf(value);
 }
 
-/**
- * How far into the authored source a failure progressed. Uses
- * `originalSpan.start` (same notion as `getRightmostFailure`'s usefulness for
- * editors) rather than searching for the unexpected character with
- * `lastIndexOf`, which can rank a later tokenizer red herring (e.g. `WordToken`
- * on a trailing `;`) ahead of the real hole (e.g. a naked `|>`).
- */
+/** How far into the original source a failure got. */
 function failureProgress(node: MatchNode): number {
   if (node.match.kind === MatchKind.LR) return -1;
-  const original = node.match.originalSpan.start;
-  if (typeof original === "number" && Number.isFinite(original)) {
-    return original;
-  }
-  const segment = node.match.span.start.segments.at(-1);
-  return typeof segment === "number" ? segment : -1;
+  return node.match.originalSpan.start;
 }
 
-function isLowSignalTokenizerFailure(node: MatchNode): boolean {
-  if (node.match.kind === MatchKind.LR) return false;
-  const href = node.match.scope.module.moduleUrl.href;
-  // Tokenizer-module alternatives are almost never the author-facing focus:
-  // they fire on later characters while an earlier syntactic hole is open.
-  if (href.includes("/tokenizer/")) return true;
-
-  const rules = node.match.scope.stack.frames()
-    .filter((frame) => frame.kind === StackFrameKind.Rule)
-    .map((frame) => frame.rule.name);
-  if (
-    rules.includes("WhitespaceToken") ||
-    rules.includes("NewLineToken") ||
-    rules.includes("WordToken") ||
-    rules.includes("PunctuationToken") ||
-    rules.includes("CommentToken")
-  ) {
-    return true;
-  }
-  const pattern = node.match.pattern;
-  if (
-    pattern.kind === PatternKind.Resolve &&
-    "name" in pattern &&
-    (pattern.name === "Whitespace" || pattern.name === "NewLine" ||
-      pattern.name === "WordChar")
-  ) {
-    return true;
-  }
-  return false;
+function ruleFramesOf(node: MatchNode): { rule: Rule }[] {
+  return node.match.scope.stack.frames()
+    .filter((frame) => frame.kind === StackFrameKind.Rule);
 }
 
-function hasTerminalExpectation(node: MatchNode): boolean {
-  return expectation(node.match.pattern) !== undefined;
+/** The rule frames that enclose every one of `nodes`. */
+function sharedRuleFrames(nodes: MatchNode[]): { rule: Rule }[] {
+  const [first, ...rest] = nodes.map(ruleFramesOf);
+  let length = first.length;
+  for (const frames of rest) {
+    let i = 0;
+    while (i < length && i < frames.length && frames[i] === first[i]) i++;
+    length = i;
+  }
+  return first.slice(0, length);
 }
 
-function selectDiagnosticCandidate(
+type DiagnosticFocus = {
+  /** The failure reported. */
+  node: MatchNode;
+  /**
+   * The rules enclosing every failure tied with it. An explanation must come
+   * from one of these: a rule around only some of the tied failures is one
+   * of several alternatives that failed there, not the reason for the
+   * failure.
+   */
+  frames: { rule: Rule }[];
+};
+
+/**
+ * The failure a diagnostic reports: of the failures that can explain it (see
+ * {@link MatchNode.excluded}), those furthest into the original source and,
+ * of those, the least absorbed (see {@link MatchNode.absorbed}). The
+ * shallowest of them is reported.
+ */
+function selectDiagnosticFocus(
   nodes: MatchNode[],
-  source: string | undefined,
-  root: Match,
-): MatchNode | undefined {
-  const pipeline = selectPipelineBoundary(nodes, source);
-  const selected = pipeline && !isLowSignalTokenizerFailure(pipeline)
-    ? pipeline
-    : selectFailure(nodes);
-
-  if (root.kind !== MatchKind.Fail) return selected;
-
-  const rightmost = getRightmostFailure(root);
-  const rightNode = nodes.find((node) => node.match === rightmost);
-  if (!rightNode || isLowSignalTokenizerFailure(rightNode)) return selected;
-  if (!selected) return rightNode;
-
-  const selectedProgress = failureProgress(selected);
-  const rightProgress = failureProgress(rightNode);
-
-  // A candidate at or slightly past the rightmost failure is often a recovery
-  // attempt after an incomplete pipeline (`|>` then later `)` / `;`). Prefer
-  // the rightmost hole (e.g. Identifier in PipeTail) — do not pull back from
-  // later high-signal unexpecteds like `#` in `(add 1 #)`.
-  if (
-    rightProgress <= selectedProgress &&
-    selectedProgress - rightProgress <= 32
-  ) {
-    const selectedRules = selected.match.scope.stack.frames()
-      .filter((frame) => frame.kind === StackFrameKind.Rule)
-      .map((frame) => frame.rule.name);
-    const incompletePipelineRecovery =
-      selectedRules.includes("RulePatternTokenUntilProjection") ||
-      selectedRules.includes("PipeTail") ||
-      selected.current === "-" ||
-      selected.current === ">";
-    if (incompletePipelineRecovery) {
-      const rightRules = rightNode.match.scope.stack.frames()
-        .filter((frame) => frame.kind === StackFrameKind.Rule)
-        .map((frame) => frame.rule.name);
-      const rightIsPipelineHole = rightRules.includes("PipeTail") ||
-        rightRules.includes("IdToken") ||
-        (
-          rightNode.match.pattern.kind === PatternKind.Resolve &&
-          "name" in rightNode.match.pattern &&
-          rightNode.match.pattern.name === "Identifier"
-        );
-      if (rightIsPipelineHole || rightProgress < selectedProgress) {
-        return rightNode;
-      }
-    }
-  }
-
-  if (rightProgress === selectedProgress) {
-    const selectedTerminal = hasTerminalExpectation(selected);
-    const rightTerminal = hasTerminalExpectation(rightNode);
-    if (selectedTerminal && !rightTerminal) return selected;
-    if (rightTerminal && !selectedTerminal) return rightNode;
-    // Prefer the shallower (more declaration-level) failure when tied.
-    return selected.depth <= rightNode.depth ? selected : rightNode;
-  }
-
-  return selected;
-}
-
-function selectFailure(
-  nodes: MatchNode[],
-): MatchNode | undefined {
-  const failures = nodes.filter(({ match, suppressed }) =>
-    !suppressed &&
-    (match.kind === MatchKind.Fail || match.kind === MatchKind.Error)
+): DiagnosticFocus | undefined {
+  const failures = nodes.filter(({ match }) =>
+    match.kind === MatchKind.Fail || match.kind === MatchKind.Error
   );
-  let selected: MatchNode | undefined;
-  let selectedProgress = -1;
+  const relevant = failures.filter(({ excluded }) => !excluded);
+  const candidates = relevant.length > 0 ? relevant : failures;
+  if (candidates.length === 0) return undefined;
 
-  for (const node of failures) {
-    if (node.match.kind === MatchKind.LR) continue;
-    if (isLowSignalTokenizerFailure(node)) continue;
-    const progress = failureProgress(node);
-    if (!selected || progress > selectedProgress) {
-      selected = node;
-      selectedProgress = progress;
-      continue;
-    }
-    if (progress === selectedProgress && node.depth < selected.depth) {
-      selected = node;
-    }
-  }
-  // If every failure was low-signal, fall back to the unfiltered furthest.
-  if (selected) return selected;
-  for (const node of failures) {
-    if (node.match.kind === MatchKind.LR) continue;
-    const progress = failureProgress(node);
-    if (!selected || progress > selectedProgress) {
-      selected = node;
-      selectedProgress = progress;
-      continue;
-    }
-    if (progress === selectedProgress && node.depth < selected.depth) {
-      selected = node;
-    }
-  }
-  return selected;
+  const furthest = Math.max(...candidates.map(failureProgress));
+  const atFurthest = candidates.filter((node) =>
+    failureProgress(node) === furthest
+  );
+  const leastAbsorbed = Math.min(...atFurthest.map(({ absorbed }) => absorbed));
+  const tied = atFurthest.filter(({ absorbed }) => absorbed === leastAbsorbed);
+  const [node] = [...tied].sort((a, b) =>
+    a.depth - b.depth || a.order - b.order
+  );
+  return { node, frames: sharedRuleFrames(tied) };
 }
 
 function pipelineStages(match: Match): Match[] | undefined {
@@ -274,49 +214,6 @@ function pipelineStages(match: Match): Match[] | undefined {
     nested.every((child, index) => Object.is(child.pattern, steps[index]))
   ) {
     return nested;
-  }
-  return undefined;
-}
-
-function selectPipelineBoundary(
-  nodes: MatchNode[],
-  source: string | undefined,
-): MatchNode | undefined {
-  if (!source) return undefined;
-
-  for (const node of nodes) {
-    const stages = pipelineStages(node.match);
-    if (!stages) continue;
-    const failedIndex = stages.findIndex((stage) => !isSuccess(stage));
-    if (failedIndex <= 0) continue;
-
-    const previous = stages[failedIndex - 1];
-    const tokens = isSuccess(previous) ? unwrap(previous.value) : undefined;
-    if (!Array.isArray(tokens)) continue;
-    if (!tokens.every((token) => typeof token === "string")) continue;
-
-    let cursor = 0;
-    let aligned = true;
-    for (const token of tokens as string[]) {
-      while (cursor < source.length && /\s/u.test(source[cursor])) cursor++;
-      if (!source.startsWith(token, cursor)) {
-        aligned = false;
-        break;
-      }
-      cursor += token.length;
-    }
-    if (!aligned) continue;
-    while (cursor < source.length && /\s/u.test(source[cursor])) cursor++;
-    if (cursor >= source.length) continue;
-
-    const boundary = source[cursor];
-    const candidates = nodes.filter(({ match, current }) =>
-      (match.kind === MatchKind.Fail || match.kind === MatchKind.Error) &&
-      Object.is(current, boundary) &&
-      sourceOffset(source, current, match.span.start) === cursor
-    );
-    candidates.sort((left, right) => left.depth - right.depth);
-    if (candidates.length > 0) return candidates[0];
   }
   return undefined;
 }
@@ -411,8 +308,9 @@ export type MatchFailureAnalysis = {
   moduleUrl: string;
   failureModuleUrl: string;
   /**
-   * What the failure's innermost rule (the one named on the `In` line) says
-   * about errors in it, from {@link MatchFailureOptions.explain}.
+   * What the nearest explained rule enclosing the failure says about errors
+   * in it, from {@link MatchFailureOptions.explain}: asked of the innermost
+   * rule (the one named on the `In` line) first, then outward.
    */
   explanation?: string;
 };
@@ -421,7 +319,7 @@ export type MatchFailureAnalysis = {
 export type ExplainRule = (rule: Rule) => string | undefined;
 
 export type MatchFailureOptions = {
-  /** Asked for the failure's innermost rule; see `explanation`. */
+  /** Asked of the rules enclosing the failure; see `explanation`. */
   explain?: ExplainRule;
 };
 
@@ -631,11 +529,23 @@ function expectedFromOrAncestors(
   return undefined;
 }
 
-function analysisFromCandidate(
+function nearestExplanation(
+  frames: { rule: Rule }[],
+  explain: ExplainRule | undefined,
+): string | undefined {
+  if (!explain) return undefined;
+  for (let i = frames.length - 1; i >= 0; i--) {
+    const explanation = explain(frames[i].rule);
+    if (explanation) return explanation;
+  }
+  return undefined;
+}
+
+function analysisFromFocus(
   match: Match,
   nodes: MatchNode[],
   source: string | undefined,
-  candidate: MatchNode,
+  { node: candidate, frames }: DiagnosticFocus,
   options: MatchFailureOptions = {},
 ): MatchFailureAnalysis | undefined {
   if (candidate.match.kind === MatchKind.LR) return undefined;
@@ -671,11 +581,9 @@ function analysisFromCandidate(
     offset >= 0 ? ` (source offset ${offset})` : ""
   }`;
 
-  const ruleFrames = candidate.match.scope.stack.frames()
-    .filter((frame) => frame.kind === StackFrameKind.Rule);
+  const ruleFrames = ruleFramesOf(candidate);
   const rules = ruleFrames.map((frame) => frame.rule.name);
-  const innermost = ruleFrames.at(-1);
-  const explanation = innermost && options.explain?.(innermost.rule);
+  const explanation = nearestExplanation(frames, options.explain);
 
   const focusTerminal = expectation(candidate.match.pattern);
   const focusHasTerminal = focusTerminal !== undefined &&
@@ -693,22 +601,11 @@ function analysisFromCandidate(
   }
   if (!fromOr) {
     for (
-      const { match: nodeMatch, current, suppressed, depth, order } of nodes
+      const { match: nodeMatch, current, excluded } of nodes
     ) {
-      if (suppressed && !candidate.suppressed) continue;
+      if (excluded && !candidate.excluded) continue;
       if (
         nodeMatch.kind !== MatchKind.Fail && nodeMatch.kind !== MatchKind.Error
-      ) {
-        continue;
-      }
-      if (
-        isLowSignalTokenizerFailure({
-          match: nodeMatch,
-          current,
-          suppressed,
-          depth,
-          order,
-        })
       ) {
         continue;
       }
@@ -762,7 +659,8 @@ function refineExpected(items: string[]): string[] {
 }
 
 /**
- * Selects the furthest-right failure (same focus as the terminal visualizer)
+ * Selects the reported failure (see `selectDiagnosticFocus`; the same focus
+ * as the terminal visualizer)
  * and collects unexpected input, expected alternatives at that site, and the
  * rule stack — without rendering the full failure tree.
  */
@@ -773,9 +671,9 @@ export async function analyzeMatchFailure(
   const nodes = await collectNodes(match);
   const sourceValue = await currentValue(match);
   const source = typeof sourceValue === "string" ? sourceValue : undefined;
-  const candidate = selectDiagnosticCandidate(nodes, source, match);
-  if (!candidate || candidate.match.kind === MatchKind.LR) return undefined;
-  return analysisFromCandidate(match, nodes, source, candidate, options);
+  const focus = selectDiagnosticFocus(nodes);
+  if (!focus || focus.node.match.kind === MatchKind.LR) return undefined;
+  return analysisFromFocus(match, nodes, source, focus, options);
 }
 
 /** What to show as "Expected …" — Or alternatives, terminals, else the pattern. */
@@ -803,8 +701,8 @@ export function expectedDisplay(analysis: MatchFailureAnalysis): string {
 }
 
 /**
- * Editor/CLI diagnostic text: the innermost rule's explanation when it has
- * one, in place of Expected and its FIRST-set value estimates; otherwise
+ * Editor/CLI diagnostic text: the nearest enclosing rule's explanation when
+ * one has it, in place of Expected and its FIRST-set value estimates; otherwise
  * Expected (the unclear part when the squiggle already marks where) and the
  * estimates. Then Unexpected, then the nearest rule.
  */
@@ -832,19 +730,20 @@ export async function visualizeMatchFailure(match: Match): Promise<string> {
   const nodes = await collectNodes(match);
   const sourceValue = await currentValue(match);
   const source = typeof sourceValue === "string" ? sourceValue : undefined;
-  const candidate = selectDiagnosticCandidate(nodes, source, match);
+  const focus = selectDiagnosticFocus(nodes);
   const lines = [
     "Match failure",
     `Outcome: ${match.kind}`,
     `Module: ${match.scope.module.moduleUrl.href}`,
   ];
 
-  if (!candidate || candidate.match.kind === MatchKind.LR) {
+  const candidate = focus?.node;
+  if (!focus || !candidate || candidate.match.kind === MatchKind.LR) {
     lines.push("No failed match was found.");
     return lines.join("\n");
   }
 
-  const analysis = analysisFromCandidate(match, nodes, source, candidate);
+  const analysis = analysisFromFocus(match, nodes, source, focus);
   if (!analysis) {
     lines.push("No failed match was found.");
     return lines.join("\n");
@@ -869,8 +768,8 @@ export async function visualizeMatchFailure(match: Match): Promise<string> {
   );
   const targets = new Set(
     nodes
-      .filter(({ match: nodeMatch, current, suppressed }) =>
-        (!suppressed || candidate.suppressed) &&
+      .filter(({ match: nodeMatch, current, excluded }) =>
+        (!excluded || candidate.excluded) &&
         (nodeMatch.kind === MatchKind.Fail ||
           nodeMatch.kind === MatchKind.Error) &&
         Object.is(current, candidate.current) &&

@@ -44,8 +44,8 @@ Deno.test(
 
         assertEquals(result.ok, false);
         if (result.ok) return;
-        // Points at the `1` still awaiting a complete array element / closer.
-        assertEquals(result.error.location?.offset, 1);
+        // Points just after the `1`, where the array's `]` is missing.
+        assertEquals(result.error.location?.offset, 2);
       },
     );
 
