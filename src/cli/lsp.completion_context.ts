@@ -1,4 +1,4 @@
-import { isSuccess, type Match } from "../match.ts";
+import { isSuccess, type Match, MatchKind } from "../match.ts";
 import {
   type AnnotatableMatch,
   EditorDecorator,
@@ -73,10 +73,13 @@ const CONTEXT_DECORATORS: readonly EditorDecorator[] = [
  *
  * `match` should be a parse of `prefix` as an open input (`Input.From(prefix,
  * { open: true })`), so repetitions record the element they expect at the
- * cursor. A node reaches the cursor when it is an `Ok` node ending exactly
- * there (the token being typed) or a `Fail` node attempted after the last
- * significant token, i.e. separated from the cursor by trivia only (a token
- * the grammar expected next). A non-empty token being typed wins over tokens
+ * cursor. A node reaches the cursor when it is being typed — an `Ok` node
+ * ending exactly there, or a node that itself, or in a continuation beneath
+ * it, consumed input and then failed expecting more at the cursor (a construct
+ * typed only partway) — or when it
+ * is a `Fail` node attempted after the last significant token, i.e. separated
+ * from the cursor by trivia only (a token the grammar expected next). A
+ * non-empty construct being typed wins over tokens
  * expected after it. Only the outermost node carrying a given decorator on a
  * path counts. Distinct contexts are returned in tree order.
  */
@@ -86,13 +89,23 @@ export function completionContextsAt(
 ): CompletionContext[] {
   const cursor = prefix.length;
   const significantEnd = lastSignificantEnd(match, prefix);
+  const runsOut = within((node) =>
+    node.kind === MatchKind.Fail &&
+    node.originalSpan.start >= significantEnd &&
+    node.originalSpan.start <= cursor
+  );
+  const typedPartway = within((node) =>
+    node.kind === MatchKind.Fail &&
+    node.originalSpan.start < significantEnd &&
+    runsOut(node)
+  );
   const typed: CompletionContext[] = [];
   const expected: CompletionContext[] = [];
 
   walkAnnotatable(match, (node, ancestors) => {
-    const typing = isSuccess(node) &&
-      node.originalSpan.end === cursor &&
-      node.originalSpan.start < cursor;
+    const typing = node.originalSpan.start < cursor &&
+      ((isSuccess(node) && node.originalSpan.end === cursor) ||
+        typedPartway(node));
     const reaches = typing ||
       (isSuccess(node)
         ? node.originalSpan.end === cursor
@@ -103,7 +116,7 @@ export function completionContextsAt(
       if (!hasEditorMetadata(node, decorator)) continue;
       if (ancestors.some((a) => hasEditorMetadata(a, decorator))) continue;
       (typing ? typed : expected).push(
-        contextFor(decorator, node, ancestors, prefix),
+        contextFor(decorator, node, ancestors, prefix, typing),
       );
     }
   });
@@ -129,10 +142,31 @@ function lastSignificantEnd(match: Match, prefix: string): number {
   return end;
 }
 
-function typedRange(node: AnnotatableMatch, cursor: number): CompletionReplace {
-  return isSuccess(node)
-    ? { start: node.originalSpan.start, end: cursor }
-    : { start: cursor, end: cursor };
+/**
+ * Whether `predicate` holds for a node or any match beneath it, accepted or
+ * rejected. Shared sub-matches are decided once.
+ *
+ * Used to find constructs typed only partway: a failure that consumed a
+ * significant token and then ran out where the grammar expected more at the
+ * cursor, either as the construct itself or as a continuation the construct
+ * attempted (such as the `/` and segment after a path that ends in `/`).
+ */
+function within(
+  predicate: (node: Match) => boolean,
+): (node: Match) => boolean {
+  const known = new Map<Match, boolean>();
+  const holds = (node: Match): boolean => {
+    const cached = known.get(node);
+    if (cached !== undefined) return cached;
+    known.set(node, false);
+    const children = isSuccess(node) || node.kind === MatchKind.Fail
+      ? node.matches
+      : [];
+    const result = predicate(node) || children.some(holds);
+    known.set(node, result);
+    return result;
+  };
+  return holds;
 }
 
 function contextFor(
@@ -140,9 +174,12 @@ function contextFor(
   node: AnnotatableMatch,
   ancestors: readonly AnnotatableMatch[],
   prefix: string,
+  typing: boolean,
 ): CompletionContext {
   const cursor = prefix.length;
-  const replace = typedRange(node, cursor);
+  const replace = typing
+    ? { start: node.originalSpan.start, end: cursor }
+    : { start: cursor, end: cursor };
   switch (decorator) {
     case EditorDecorator.ModulePath: {
       const typed = prefix.slice(replace.start, cursor);

@@ -178,9 +178,13 @@ and the editor declares no brackets (see the
 Completion is driven by the grammar, never by recognizing text:
 
 - The document text before the cursor (the prefix) is parsed with the document's
-  grammar. A node **reaches the cursor** when it is an `Ok` node ending exactly
-  at the cursor (the token being typed) or a `Fail` node attempted after the
-  prefix's last non-trivia token (a token the grammar expected next).
+  grammar. A node **reaches the cursor** when it is being typed or is a `Fail`
+  node attempted after the prefix's last non-trivia token (a token the grammar
+  expected next). A node is **being typed** when it begins before the cursor and
+  either is an `Ok` node ending exactly at the cursor (the token being typed),
+  or itself or a match beneath it is a `Fail` that consumed a non-trivia token
+  and then failed expecting more at the cursor (a construct typed only partway,
+  such as a module path ending in `/`, which no complete path matches).
 - Each `ModulePath`, `ImportedName`, or `NameReference` node that reaches the
   cursor, and has no ancestor carrying the same decorator, is a completion
   context. The outermost annotation wins: a reference nested inside an attribute
@@ -209,9 +213,9 @@ Completion is driven by the grammar, never by recognizing text:
   continue past the cursor, so a repetition still attempts its next element
   there and an empty position after it (for example after `import "./a.uff" Foo`
   or inside a call after `(f`) has a context.
-- A non-empty token being typed (an `Ok` context node ending at the cursor) wins
-  over the tokens expected after it: when one reaches the cursor, `Fail` nodes
-  do not.
+- A non-empty construct being typed wins over the tokens expected after it: when
+  one reaches the cursor, nodes that are only expected there do not. The text it
+  replaces runs from where it begins to the cursor.
 
 ## Formatting
 

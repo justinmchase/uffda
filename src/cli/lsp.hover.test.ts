@@ -1,5 +1,5 @@
 import { assert, assertEquals } from "@std/assert";
-import { join } from "@std/path";
+import { fromFileUrl, join, relative, SEPARATOR } from "@std/path";
 import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 import {
@@ -281,7 +281,9 @@ Deno.test("cli.lsp.hover shows [Documentation]", async (t) => {
   try {
     const editor = new URL("../lang/editor/editor.uff", import.meta.url);
     const path = join(cwd, "main.uff");
-    const source = `import "${editor.pathname}" Documentation;
+    const editorPath = relative(cwd, fromFileUrl(editor))
+      .replaceAll(SEPARATOR, "/");
+    const source = `import "${editorPath}" Documentation;
 export Main Pair Words Note;
 [Documentation "Two of P in a row."]
 rule Main = Pair<any>;

@@ -60,16 +60,18 @@ function formatValue(value: unknown): string {
 /**
  * Whether no failure under `match` can explain the failure being diagnosed: a
  * pipeline that succeeded transformed its input, so nothing it tried explains
- * what fails after it; a negative predicate that succeeded needed its child to
- * fail.
+ * what fails after it; a lookahead that succeeded consumed nothing its child
+ * read; and a negative predicate either needed its child to fail or failed
+ * because its child matched, reading ahead without consuming.
  */
 function excludesChildren(match: Match): boolean {
-  if (!isSuccess(match)) return false;
   switch (match.pattern.kind) {
-    case PatternKind.Pipeline:
     case PatternKind.Not:
     case PatternKind.Except:
       return true;
+    case PatternKind.Pipeline:
+    case PatternKind.Lookahead:
+      return isSuccess(match);
     default:
       return false;
   }

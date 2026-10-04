@@ -43,9 +43,12 @@ Normative key words in this chapter use the conventions defined in the
      pipeline that succeeded (it transformed its input, so nothing it tried
      explains what fails after it), those inside a failed pipeline's stages
      before its failing stage (they succeeded and handed their output on), those
-     inside a `not` or `except` that succeeded (it needed its child to fail),
-     and those that fail only by reading a left-recursive head's initial failing
-     seed (a control signal of growth, not a failure of the input; see
+     inside a `lookahead` that succeeded (it consumed nothing its child read),
+     those inside a `not` or `except` whatever its outcome (it either needed its
+     child to fail, or failed because its child matched by reading ahead without
+     consuming; the predicate's own failure remains a candidate), and those that
+     fail only by reading a left-recursive head's initial failing seed (a
+     control signal of growth, not a failure of the input; see
      [left recursion](./left-recursion.spec.md)).
   2. Of the candidates, those furthest into the authored source
      (`Match.originalSpan.start`) are tied for focus.

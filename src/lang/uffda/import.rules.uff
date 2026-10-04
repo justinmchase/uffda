@@ -1,8 +1,10 @@
-# Import declaration syntax: import "path" Name Rest*; Path join uses std join
-# (B2). Variable bindings are single-letter (B12). `ImportModulePath` and
-# `ImportNameEntry` exist so editor metadata (see ../editor/editor.uff) marks
-# exactly the path text and each imported name.
+# Import declaration syntax: import "specifier" Name Rest*; see
+# specifier.rules.uff for the specifier forms. Variable bindings are
+# single-letter (B12). `ImportModulePath` and `ImportNameEntry` exist so editor
+# metadata (see ../editor/editor.uff) marks exactly the path text and each
+# imported name.
 import "./shared.rules.uff" IdentifierToken ImportKeyword DeclarationEnd;
+import "./specifier.rules.uff" ModuleSpecifier;
 import "../editor/editor.uff" Import ModulePath ImportedName Documentation;
 
 export ImportDeclarationSyntax;
@@ -10,7 +12,7 @@ export ImportNameList;
 export ImportModuleSpecifier;
 
 [ModulePath { extensions: [".uff"] }]
-rule ImportModulePath = p:(not "\"" & string)* -> (join p "");
+rule ImportModulePath = ModuleSpecifier;
 
 [Documentation {
   description: "The quoted path of the module an import reads.",
@@ -20,7 +22,7 @@ rule ImportModuleSpecifier = "\"" p:ImportModulePath ImportModulePathEnd -> p;
 
 [Documentation {
   description: "The `\"` that ends an import's module path.",
-  error: "The module path is missing its closing `\"`."
+  error: "Expected `\"` here to end the module path. A path is made of ASCII letters, digits, `_`, `.`, `-` and `/`; check for a missing closing `\"` or a character a path cannot hold."
 }]
 rule ImportModulePathEnd = "\"";
 

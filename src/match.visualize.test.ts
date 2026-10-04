@@ -233,6 +233,31 @@ Deno.test("match.visualize chooses the reported failure", async (t) => {
     assertEquals(analysis?.pattern, 'equal "x"');
   });
 
+  await t.step("never from inside a failed not's matching child", async () => {
+    const [s0, s1, s2] = await positions();
+    const not = { kind: PatternKind.Not, pattern: equal("b") } as const;
+    const match = fail(s0, then, [
+      ok(s0, s1, equal("a"), "a"),
+      fail(s1, not, [ok(s1, s2, equal("b"), "b", [fail(s2, equal("y"))])]),
+    ]);
+    const analysis = await analyzeMatchFailure(match);
+    assertEquals(analysis?.pattern, "not");
+  });
+
+  await t.step("never from inside a successful lookahead", async () => {
+    const [s0, s1, s2] = await positions();
+    const lookahead = {
+      kind: PatternKind.Lookahead,
+      pattern: equal("a"),
+    } as unknown as Pattern;
+    const match = fail(s0, then, [
+      ok(s0, s0, lookahead, "a", [fail(s2, equal("y"))]),
+      fail(s1, equal("x")),
+    ]);
+    const analysis = await analyzeMatchFailure(match);
+    assertEquals(analysis?.pattern, 'equal "x"');
+  });
+
   await t.step(
     "explained only by a rule enclosing every tied failure",
     async () => {

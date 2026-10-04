@@ -436,9 +436,10 @@ Deno.test("lang.uffda.uffda-lang recovery points", async (t) => {
   }[] = [
     {
       name: "a broken import between imports",
-      source: 'import "a" A;\nimport "b";\nimport "c" C;\nrule R = any;',
-      skipped: ['import "b";'],
-      declarations: ["import a", "import c", "rule R"],
+      source:
+        'import "./a.uff" A;\nimport "./b.uff";\nimport "./c.uff" C;\nrule R = any;',
+      skipped: ['import "./b.uff";'],
+      declarations: ["import ./a.uff", "import ./c.uff", "rule R"],
     },
     {
       name: "a broken export before exports",
@@ -515,19 +516,24 @@ Deno.test("lang.uffda.uffda-lang recovery points", async (t) => {
   }
 
   await t.step("clean modules parse without recovering", async () => {
-    const source = 'import "a" A;\nexport B;\nrule B = x:any -> { rule: x };';
+    const source =
+      'import "./a.uff" A;\nexport B;\nrule B = x:any -> { rule: x };';
     const match = await uffdaGrammar(source);
     assert(isSuccess(match));
     assertEquals(match.recovered, undefined);
-    assertEquals(declarationNames(match), ["import a", "export B", "rule B"]);
+    assertEquals(declarationNames(match), [
+      "import ./a.uff",
+      "export B",
+      "rule B",
+    ]);
   });
 
   await t.step("comments between declarations parse cleanly", async () => {
     const source = [
       "# head",
-      'import "a" A;',
+      'import "./a.uff" A;',
       "# among imports",
-      'import "b" B;',
+      'import "./b.uff" B;',
       "# between groups",
       "export C; # after a declaration",
       "# before rule",
@@ -539,9 +545,9 @@ Deno.test("lang.uffda.uffda-lang recovery points", async (t) => {
     assertEquals(match.recovered, undefined);
     assertEquals(declarationNames(match), [
       "comment head",
-      "import a",
+      "import ./a.uff",
       "comment among imports",
-      "import b",
+      "import ./b.uff",
       "comment between groups",
       "export C",
       "comment after a declaration before rule",

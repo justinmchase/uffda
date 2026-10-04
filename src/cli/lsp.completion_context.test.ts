@@ -29,6 +29,22 @@ Deno.test("cli.lsp.completion_context completionContextsAt", async (t) => {
     assertEquals(context.replace.end, prefix.length);
   });
 
+  await t.step(
+    "a module path typed partway, ending in a separator",
+    async () => {
+      for (const typed of ["./", "../", "../../", "./lib/", "@acme/"]) {
+        const prefix = `import "${typed}`;
+        const context = await onlyContextAtEnd(prefix);
+        assert(context.kind === CompletionContextKind.ModulePath);
+        assertEquals(context.typed, typed);
+        assertEquals(context.replace, {
+          start: prefix.length,
+          end: prefix.length,
+        });
+      }
+    },
+  );
+
   await t.step("an empty module path right after its delimiter", async () => {
     const context = await onlyContextAtEnd('import "');
     assert(context.kind === CompletionContextKind.ModulePath);
