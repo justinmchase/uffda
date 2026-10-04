@@ -8,7 +8,7 @@ import {
 } from "./match.visualize.ts";
 import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
 import { lit } from "./runtime/patterns/value_source.ts";
-import type { PipelinePattern } from "./runtime/patterns/pattern.ts";
+import type { Pattern, PipelinePattern } from "./runtime/patterns/pattern.ts";
 import type { Rule } from "./runtime/modules/rule.ts";
 import { Scope } from "./runtime/scope.ts";
 
@@ -92,6 +92,14 @@ Deno.test("match.visualize renders pipeline failures and terminates on cycles", 
     },
   );
 
+  await t.step("reports the end of input once the stream is done", async () => {
+    const start = Scope.From(Input.Iterable("a"));
+    const end = start.withInput(await start.stream.next());
+    const pattern = { kind: PatternKind.Equal, value: lit("b") } as const;
+    const analysis = await analyzeMatchFailure(fail(end, pattern));
+    assertEquals(analysis?.unexpected, "<end of input>");
+  });
+
   await t.step("terminates on a cyclic match graph", async () => {
     const scope = Scope.From(Input.Iterable("#"));
     const pattern = { kind: PatternKind.Fail } as const;
@@ -104,4 +112,96 @@ Deno.test("match.visualize renders pipeline failures and terminates on cycles", 
     assertStringIncludes(visualization, "[shared or cyclic match #1]");
     assertStringIncludes(visualization, MatchKind.Fail.toUpperCase());
   });
+});
+
+Deno.test("match.visualize chooses the reported failure", async (t) => {
+  const equal = (value: string) =>
+    ({ kind: PatternKind.Equal, value: lit(value) }) as const;
+  const then: Pattern = { kind: PatternKind.Then, patterns: [] };
+  const rule = (name: string, scope: Scope): Rule => ({
+    name,
+    module: scope.module,
+    pattern: then,
+    parameters: [],
+  });
+  // Positions before "a", "b" and "c" of "abc".
+  const positions = async () => {
+    const s0 = Scope.From(Input.Iterable("abc"));
+    const s1 = s0.withInput(await s0.stream.next());
+    const s2 = s1.withInput(await s1.stream.next());
+    await s2.stream.next();
+    return [s0, s1, s2] as const;
+  };
+
+  await t.step("the failure furthest into the source", async () => {
+    const [s0, s1] = await positions();
+    const match = fail(s0, then, [
+      fail(s0, equal("z")),
+      ok(s0, s1, equal("a"), "a"),
+      fail(s1, equal("x")),
+    ]);
+    const analysis = await analyzeMatchFailure(match);
+    assertEquals(analysis?.unexpected, '"b"');
+    assertEquals(analysis?.pattern, 'equal "x"');
+  });
+
+  await t.step("over an absorbed failure at the same place", async () => {
+    const [s0, s1] = await positions();
+    const star = { kind: PatternKind.Quantifier } as unknown as Pattern;
+    const match = fail(s0, then, [
+      ok(s0, s1, equal("a"), "a"),
+      ok(s1, s1, star, [], [fail(s1, equal("q"))]),
+      fail(s0, then, [fail(s0, then, [fail(s1, equal("x"))])]),
+    ]);
+    const analysis = await analyzeMatchFailure(match);
+    assertEquals(analysis?.pattern, 'equal "x"');
+  });
+
+  await t.step("never from inside a successful pipeline", async () => {
+    const [s0, s1, s2] = await positions();
+    const pipeline: PipelinePattern = {
+      kind: PatternKind.Pipeline,
+      steps: [equal("a")],
+    };
+    const match = fail(s0, then, [
+      ok(s0, s1, pipeline, "a", [fail(s2, equal("y"))]),
+      fail(s1, equal("x")),
+    ]);
+    const analysis = await analyzeMatchFailure(match);
+    assertEquals(analysis?.pattern, 'equal "x"');
+  });
+
+  await t.step("never from inside a successful not", async () => {
+    const [s0, s1, s2] = await positions();
+    const not = { kind: PatternKind.Not, pattern: equal("b") } as const;
+    const match = fail(s0, then, [
+      ok(s0, s0, not, undefined, [fail(s2, equal("y"))]),
+      fail(s1, equal("x")),
+    ]);
+    const analysis = await analyzeMatchFailure(match);
+    assertEquals(analysis?.pattern, 'equal "x"');
+  });
+
+  await t.step(
+    "explained only by a rule enclosing every tied failure",
+    async () => {
+      const [, s1] = await positions();
+      const outer = rule("Outer", s1);
+      const inner = rule("Inner", s1);
+      const inOuter = s1.pushRule(outer, new Map());
+      const inInner = inOuter.pushRule(inner, new Map());
+      const match = fail(inOuter, then, [
+        fail(inInner, equal("#")),
+        fail(inOuter, equal(",")),
+      ]);
+      const innerOnly = await analyzeMatchFailure(match, {
+        explain: (r) => r === inner ? "inner" : undefined,
+      });
+      assertEquals(innerOnly?.explanation, undefined);
+      const both = await analyzeMatchFailure(match, {
+        explain: (r) => r === inner ? "inner" : r === outer ? "outer" : "",
+      });
+      assertEquals(both?.explanation, "outer");
+    },
+  );
 });

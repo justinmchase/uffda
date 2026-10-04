@@ -71,8 +71,9 @@ A declaration's hover MUST NOT also list `Documentation` as an attribute.
 
 `error` explains errors in the declaration to the person who hits one. It MUST
 NOT appear in hover or completion. Every CLI host (the CLI, the language server,
-and the MCP server) MUST lead a diagnostic with it when the failure's innermost
-rule is the declaration, in place of the expected alternatives (see
+and the MCP server) MUST lead a diagnostic with it when the declaration is the
+nearest explained rule around the failure, in place of the expected alternatives
+(see
 [match diagnostics](../../runtime/match-diagnostics.spec.md#diagnostic-model)),
 so it shows only when that error happens. An `error` should therefore be
 specific enough to say what was expected; a declaration that catches many
