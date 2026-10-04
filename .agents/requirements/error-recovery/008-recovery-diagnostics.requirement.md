@@ -20,7 +20,8 @@ Expected behavior:
   pipeline stages, the original source offsets) and whose message is the
   match-diagnostics summary of the failure the recovery replaced (expected
   alternatives first, then the unexpected input, then the rule). When the host
-  explains the failure's innermost rule, the explanation MUST come first.
+  explains the failure's innermost rule, the explanation MUST come first and
+  MUST replace the expected alternatives.
 - Diagnostics MUST be in document order. A failed match MUST list its
   recoveries' diagnostics before its failure diagnostic.
 - A clean success MUST yield no diagnostics.

@@ -804,18 +804,18 @@ export function expectedDisplay(analysis: MatchFailureAnalysis): string {
 
 /**
  * Editor/CLI diagnostic text: the innermost rule's explanation when it has
- * one, then Expected (the unclear part when the squiggle already marks
- * where), then optional FIRST-set value estimates, then Unexpected, then the
- * nearest rule.
+ * one, in place of Expected and its FIRST-set value estimates; otherwise
+ * Expected (the unclear part when the squiggle already marks where) and the
+ * estimates. Then Unexpected, then the nearest rule.
  */
 export function formatMatchFailureSummary(
   analysis: MatchFailureAnalysis,
 ): string {
-  const lines = [
-    ...(analysis.explanation ? [analysis.explanation] : []),
-    `Expected ${expectedDisplay(analysis)}`,
-  ];
+  const lines = analysis.explanation
+    ? [analysis.explanation]
+    : [`Expected ${expectedDisplay(analysis)}`];
   if (
+    !analysis.explanation &&
     analysis.expectedValues.length > 0 &&
     // Avoid repeating the same list when Expected is already the values.
     analysis.expectedValues.join(", ") !== expectedDisplay(analysis)

@@ -82,7 +82,7 @@ Deno.test("match.recovery_diagnostics explains with the innermost rule", async (
   });
   assertEquals(
     diagnostics.map(({ message }) => message),
-    ['A statement is ab.\nExpected "a"\nUnexpected "x"\nIn Stmt'],
+    ['A statement is ab.\nUnexpected "x"\nIn Stmt'],
   );
   assertEquals(diagnostics[0].analysis?.explanation, "A statement is ab.");
 });

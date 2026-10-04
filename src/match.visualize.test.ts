@@ -81,7 +81,7 @@ Deno.test("match.visualize renders pipeline failures and terminates on cycles", 
       assertEquals(explained?.explanation, "Write expected.");
       assertEquals(
         formatMatchFailureSummary(explained!),
-        'Write expected.\nExpected "expected"\nUnexpected "#"\nIn R',
+        'Write expected.\nUnexpected "#"\nIn R',
       );
       const plain = await analyzeMatchFailure(match);
       assertEquals(plain?.explanation, undefined);
