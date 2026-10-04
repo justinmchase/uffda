@@ -74,3 +74,15 @@ Deno.test("match.recovery_diagnostics", async (t) => {
     },
   );
 });
+
+Deno.test("match.recovery_diagnostics explains with the innermost rule", async () => {
+  const m = await run(statements, Input.Iterable("ab;xx;"));
+  const diagnostics = await diagnoseRecoveries(m, {
+    explain: (rule) => rule.name === "Stmt" ? "A statement is ab." : undefined,
+  });
+  assertEquals(
+    diagnostics.map(({ message }) => message),
+    ['A statement is ab.\nUnexpected "x"\nIn Stmt'],
+  );
+  assertEquals(diagnostics[0].analysis?.explanation, "A statement is ab.");
+});

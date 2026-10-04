@@ -1,4 +1,9 @@
-import { assert, assertEquals, assertThrows } from "@std/assert";
+import {
+  assert,
+  assertEquals,
+  assertStringIncludes,
+  assertThrows,
+} from "@std/assert";
 import { exists } from "@std/fs/exists";
 import { join } from "@std/path";
 import {
@@ -1527,6 +1532,20 @@ Deno.test("cli.mcp.session reports recoveries", async (t) => {
     assertEquals(loaded.diagnostics?.[0], loaded.error);
     assertEquals(loaded.partiallyLoadedModules, []);
   });
+
+  await t.step(
+    "a load diagnostic leads with the failing rule's explanation",
+    async () => {
+      const session = new RuntimeSession("r6");
+      const loaded = await session.load("rule A =\n  |> B # ok?\n  |> C\n;");
+      assert(!loaded.ok);
+      assertEquals(loaded.error.code, SessionLoadFailureCode.ParseRecovered);
+      assertStringIncludes(
+        loaded.error.message.split("\n")[0],
+        "a comment must be on a line of its own",
+      );
+    },
+  );
 
   await t.step(
     "a patch that only recovers retains its recovered parse",

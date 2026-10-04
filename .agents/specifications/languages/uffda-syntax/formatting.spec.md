@@ -148,3 +148,16 @@ have all of its children written flat.
 - Fenced code MUST be written exactly as it is, except a `uffda` fence, whose
   code MUST be written as its module's canonical text at the line width minus
   two.
+- A comment inside a declaration MUST be written on its own lines where it
+  appears in its list, at the indentation of the list's continuation lines,
+  rewrapped to the width left at that indentation. A construct that holds a
+  comment MUST be broken, and so MUST each construct that contains it.
+- A comment before an operator (`|`, `&`, `|>`) MUST be written directly above
+  the operator's line. A comment after the last member of a chain or bracketed
+  list MUST be written after that member, above the closing bracket when there
+  is one.
+- An alternation whose only alternative follows comments MUST keep the `|`
+  before that alternative, so removing the comments leaves the same pattern.
+- A labeled pattern (an object or over-pattern entry, or a switch case) whose
+  pattern starts with a comment MUST end its label line with `:` and start the
+  pattern on the next line.

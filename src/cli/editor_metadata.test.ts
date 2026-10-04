@@ -159,6 +159,16 @@ Deno.test("cli.editor_metadata documentationOf", () => {
     documentationOf({ Documentation: { description: "Only text." } }),
     { description: "Only text.", parameters: {} },
   );
+  assertEquals(
+    documentationOf({
+      Documentation: { description: "Text.", parameters: {}, error: "Why." },
+    }),
+    { description: "Text.", parameters: {}, error: "Why." },
+  );
+  assertEquals(
+    documentationOf({ Documentation: { description: "Text.", error: 1 } }),
+    { description: "Text.", parameters: {} },
+  );
   assertEquals(documentationOf({ Documentation: "raw string" }), undefined);
   assertEquals(documentationOf({ Highlight: { role: "string" } }), undefined);
   assertEquals(documentationOf(undefined), undefined);

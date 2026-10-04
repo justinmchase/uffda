@@ -2,8 +2,10 @@
 # length-1 collapse (B4); Tail* is required because Then sits in the PatternLang
 # import cycle where Tail+ | child backtracking is unsafe. A stray token after
 # the first Prefix is a recovery point: it is skipped unless it is a delimiter
-# an enclosing construct consumes.
+# an enclosing construct consumes. Comment nodes before an item are members of
+# the list, and a comment node is a delimiter, so a recovery never skips one.
 import "./prefix.uff" Prefix;
+import "../common/comment.uff" CommentNode;
 
 export Then;
 
@@ -17,9 +19,15 @@ export rule PatternDelimiter =
   | ">"
   | ","
   | ":"
+  | CommentNode
 ;
 
+rule ThenTail = c:CommentNode* p:Prefix -> (flat [c [p]]);
+
 rule Then =
-  Prefix (ope Prefix sneak by skip (not PatternDelimiter any))*
-  -> (one (flat _) { kind: "then", patterns: (flat _) })
+  m:(
+    f:Prefix r:(ope ThenTail sneak by skip (not PatternDelimiter any))*
+    -> (flat [[f] (flat r)])
+  )
+  -> (one m { kind: "then", patterns: m })
 ;

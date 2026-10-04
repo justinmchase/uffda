@@ -111,3 +111,35 @@ Deno.test("lang.expression.array recovers a stray element token", async () => {
   });
   assertEquals(skipped(source, match), ["?"]);
 });
+
+Deno.test({
+  name: "lang.expression.array comments",
+  ignore: p.state !== "granted",
+  fn: async (t) => {
+    const comment = { kind: "comment", blocks: [] };
+    await t.step({
+      name: "ARRAY_COMMENT_00 - comments between elements",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "Array",
+        input: Input.Iterable(["[", comment, "1", comment, "2", "]"]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: ExpressionKind.Array,
+          expressions: [
+            comment,
+            {
+              kind: ExpressionKind.ArrayElement,
+              expression: { kind: ExpressionKind.Number, value: 1 },
+            },
+            comment,
+            {
+              kind: ExpressionKind.ArrayElement,
+              expression: { kind: ExpressionKind.Number, value: 2 },
+            },
+          ],
+        },
+      }),
+    });
+  },
+});

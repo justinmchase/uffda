@@ -1,11 +1,13 @@
 # Object matches `{` … `}` with key/spread entries and projects an
 # ObjectExpression. Variable bindings are single-letter (published CLI
-# PatternLang).
+# PatternLang). Comment nodes may appear before each entry and after the last
+# one, as members of `keys`.
 import "../tokenizer/token.uff" Token;
 import "./reference.uff" Reference;
 import "./primary.uff" Primary;
 import "../common/spread.uff" SpreadMarker;
 import "./sequence.uff" ExpressionDelimiter;
+import "../common/comment.uff" CommentNode;
 
 export Object;
 
@@ -51,13 +53,28 @@ rule RecoverableObjectEntry =
   ope ObjectEntry sneak by skip (not ExpressionDelimiter any)+
 ;
 
-rule ObjectPairTail = skip Token<Comma> RecoverableObjectEntry;
+# What may follow an entry. Anything else after a complete entry is skipped up
+# to the next of these, so a stray item costs only itself, not the object.
+rule ObjectEntryEnd =
+  | Token<Comma>
+  | Token<CloseBrace>
+  | CommentNode
+;
 
-rule ObjectPairs = RecoverableObjectEntry ObjectPairTail* -> (flat _ 2);
+rule ObjectEntryRest =
+  ope lookahead ObjectEntryEnd sneak by skip (not ExpressionDelimiter any)+
+;
 
-rule OptPairs = ObjectPairs?;
+rule ObjectItem =
+  CommentNode* RecoverableObjectEntry skip ObjectEntryRest
+  -> (flat _)
+;
+
+rule ObjectPairTail = skip Token<Comma> i:ObjectItem -> i;
+
+rule ObjectPairs = f:ObjectItem r:ObjectPairTail* -> (flat [f (flat r)]);
 
 rule Object =
-  Token<OpenBrace> k:OptPairs Token<CloseBrace>
-  -> { kind: "object", keys: (flat (coalesce k [])) }
+  Token<OpenBrace> k:ObjectPairs? t:CommentNode* Token<CloseBrace>
+  -> { kind: "object", keys: (flat [(coalesce k []) t]) }
 ;

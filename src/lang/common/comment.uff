@@ -1,0 +1,13 @@
+import "../editor/editor.uff" Documentation;
+
+export CommentNode;
+
+# A comment node: one run of consecutive `#` line comments, already parsed by
+# the comment syntax (see ../comment/mod.uff) before a host grammar runs. The
+# pattern and expression grammars accept comment nodes only at the positions
+# they declare, as members of the list they appear in.
+[Documentation {
+  description: "A comment on its own line, kept in the syntax tree as a member of the list it appears in.",
+  error: "Comments are part of the syntax: inside a declaration, a comment must be on a line of its own. Code and a comment cannot share a line, so move the comment to the line above or below."
+}]
+rule CommentNode = object & { kind: "comment", blocks: array };

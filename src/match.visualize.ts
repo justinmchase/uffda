@@ -12,6 +12,7 @@ import {
   orAlternativeLabels,
 } from "./match.describe_pattern.ts";
 import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
+import type { Rule } from "./runtime/modules/rule.ts";
 import { StackFrameKind } from "./runtime/stack/stackFrameKind.ts";
 import { unwrap } from "./wrapped.ts";
 
@@ -409,6 +410,19 @@ export type MatchFailureAnalysis = {
   unexpectedLength: number;
   moduleUrl: string;
   failureModuleUrl: string;
+  /**
+   * What the failure's innermost rule (the one named on the `In` line) says
+   * about errors in it, from {@link MatchFailureOptions.explain}.
+   */
+  explanation?: string;
+};
+
+/** Explains errors in `rule`, or `undefined` when it has nothing to say. */
+export type ExplainRule = (rule: Rule) => string | undefined;
+
+export type MatchFailureOptions = {
+  /** Asked for the failure's innermost rule; see `explanation`. */
+  explain?: ExplainRule;
 };
 
 function isNoisyExpectedLabel(item: string): boolean {
@@ -622,6 +636,7 @@ function analysisFromCandidate(
   nodes: MatchNode[],
   source: string | undefined,
   candidate: MatchNode,
+  options: MatchFailureOptions = {},
 ): MatchFailureAnalysis | undefined {
   if (candidate.match.kind === MatchKind.LR) return undefined;
 
@@ -656,9 +671,11 @@ function analysisFromCandidate(
     offset >= 0 ? ` (source offset ${offset})` : ""
   }`;
 
-  const rules = candidate.match.scope.stack.frames()
-    .filter((frame) => frame.kind === StackFrameKind.Rule)
-    .map((frame) => frame.rule.name);
+  const ruleFrames = candidate.match.scope.stack.frames()
+    .filter((frame) => frame.kind === StackFrameKind.Rule);
+  const rules = ruleFrames.map((frame) => frame.rule.name);
+  const innermost = ruleFrames.at(-1);
+  const explanation = innermost && options.explain?.(innermost.rule);
 
   const focusTerminal = expectation(candidate.match.pattern);
   const focusHasTerminal = focusTerminal !== undefined &&
@@ -731,6 +748,7 @@ function analysisFromCandidate(
     unexpectedLength,
     moduleUrl: match.scope.module.moduleUrl.href,
     failureModuleUrl: candidate.match.scope.module.moduleUrl.href,
+    ...(explanation ? { explanation } : {}),
   };
 }
 
@@ -750,13 +768,14 @@ function refineExpected(items: string[]): string[] {
  */
 export async function analyzeMatchFailure(
   match: Match,
+  options: MatchFailureOptions = {},
 ): Promise<MatchFailureAnalysis | undefined> {
   const nodes = await collectNodes(match);
   const sourceValue = await currentValue(match);
   const source = typeof sourceValue === "string" ? sourceValue : undefined;
   const candidate = selectDiagnosticCandidate(nodes, source, match);
   if (!candidate || candidate.match.kind === MatchKind.LR) return undefined;
-  return analysisFromCandidate(match, nodes, source, candidate);
+  return analysisFromCandidate(match, nodes, source, candidate, options);
 }
 
 /** What to show as "Expected …" — Or alternatives, terminals, else the pattern. */
@@ -784,17 +803,19 @@ export function expectedDisplay(analysis: MatchFailureAnalysis): string {
 }
 
 /**
- * Editor/CLI diagnostic text: Expected first (the unclear part when the
- * squiggle already marks where), then optional FIRST-set value estimates,
- * then Unexpected, then the nearest rule.
+ * Editor/CLI diagnostic text: the innermost rule's explanation when it has
+ * one, in place of Expected and its FIRST-set value estimates; otherwise
+ * Expected (the unclear part when the squiggle already marks where) and the
+ * estimates. Then Unexpected, then the nearest rule.
  */
 export function formatMatchFailureSummary(
   analysis: MatchFailureAnalysis,
 ): string {
-  const lines = [
-    `Expected ${expectedDisplay(analysis)}`,
-  ];
+  const lines = analysis.explanation
+    ? [analysis.explanation]
+    : [`Expected ${expectedDisplay(analysis)}`];
   if (
+    !analysis.explanation &&
     analysis.expectedValues.length > 0 &&
     // Avoid repeating the same list when Expected is already the values.
     analysis.expectedValues.join(", ") !== expectedDisplay(analysis)

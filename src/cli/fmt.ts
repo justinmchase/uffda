@@ -1,5 +1,5 @@
 import { isClean, isSuccess, type Match } from "../match.ts";
-import { diagnoseRecoveries } from "../match.recovery_diagnostics.ts";
+import { diagnoseRecoveries } from "./diagnostics.ts";
 import {
   type FormatResult,
   FormatResultKind,

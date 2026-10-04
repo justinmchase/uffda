@@ -1,6 +1,6 @@
 ---
 id: uffda-language-syntax-013
-title: Comments appear only between top-level declarations and stay in the syntax tree
+title: Comments between top-level declarations stay in the syntax tree
 spec_ref: ".agents/specifications/languages/uffda-syntax/module-structure.spec.md#comments"
 ---
 
@@ -23,8 +23,7 @@ Expected behavior:
   relative to the surrounding declarations.
 - A module consisting only of comments MUST parse to a module whose
   `declarations` is that one comment node.
-- A comment inside a declaration (for example inside a rule body) MUST fail to
-  parse.
+- Comments inside declarations are covered by uffda-language-syntax-015.
 - A comment after a declaration's closing `;` on the same line MUST parse as a
   comment between declarations.
 - A `#` inside a quoted string MUST remain string content and MUST NOT be

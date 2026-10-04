@@ -6,7 +6,7 @@ import {
   MatchKind,
 } from "../match.ts";
 import { matchWithRecovery } from "../runtime/recovery.ts";
-import { diagnoseRecoveries } from "../match.recovery_diagnostics.ts";
+import { diagnoseRecoveries } from "./diagnostics.ts";
 import type { SourceSpan } from "../span.ts";
 import { InputNormalizationMode } from "../input.ts";
 import { isPattern, type Pattern } from "../runtime/patterns/pattern.ts";

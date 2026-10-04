@@ -174,3 +174,29 @@ Deno.test("lang.expression.sequence recovers a stray argument token", async () =
   });
   assertEquals(skipped(source, match), ["?"]);
 });
+
+Deno.test({
+  name: "lang.expression.sequence comments",
+  ignore: p.state !== "granted",
+  fn: async (t) => {
+    const comment = { kind: "comment", blocks: [] };
+    await t.step({
+      name: "SEQUENCE_COMMENT_00 - comments between arguments",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "Sequence",
+        input: Input.Iterable(["(", "f", comment, "x", comment, ")"]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: ExpressionKind.Invocation,
+          expression: { kind: ExpressionKind.Reference, name: "f" },
+          args: [
+            comment,
+            { kind: ExpressionKind.Reference, name: "x" },
+            comment,
+          ],
+        },
+      }),
+    });
+  },
+});

@@ -84,12 +84,17 @@ export type Documentation = {
   description: string;
   /** Parameter name -> description. */
   parameters: Record<string, string>;
+  /**
+   * Explains errors in the declaration to whoever hits one: shown only in a
+   * diagnostic whose failure's innermost rule is this declaration.
+   */
+  error?: string;
 };
 
 /**
  * The `[Documentation]` a declaration's metadata carries, validated; a
  * missing or malformed entry yields `undefined`, and non-string parameter
- * descriptions are dropped.
+ * descriptions and a non-string `error` are dropped.
  */
 export function documentationOf(
   metadata: Record<string, unknown> | undefined,
@@ -105,7 +110,12 @@ export function documentationOf(
       ): entry is [string, string] => type(entry[1])[0] === Type.String),
     )
     : {};
-  return { description: description as string, parameters };
+  const error = field(value, "error");
+  return {
+    description: description as string,
+    parameters,
+    ...(type(error)[0] === Type.String ? { error: error as string } : {}),
+  };
 }
 
 /** The `name` field of a node's projected value (a `[Declaration]`). */

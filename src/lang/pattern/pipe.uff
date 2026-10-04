@@ -1,13 +1,14 @@
 # Pipe matches Then steps joined by `|>` as a Pipeline AST. Optional leading
-# `|>` is allowed. Uses std one for length-1 collapse (B4).
+# `|>` is allowed. Uses std one for length-1 collapse (B4). Comment nodes before
+# a `|>` are members of the step list.
 import "./then.uff" Then;
+import "../common/comment.uff" CommentNode;
 
 export Pipe;
 
-rule PipeTail = "|" ">" t:Then -> t;
+rule PipeTail = c:CommentNode* "|" ">" t:Then -> (flat [c [t]]);
 
 rule Pipe =
-  ("|" ">")?
-  p:(Then PipeTail* -> (one (flat _) { kind: "pipeline", steps: (flat _) }))
-  -> p
+  ("|" ">")? m:(f:Then r:PipeTail* -> (flat [[f] (flat r)]))
+  -> (one m { kind: "pipeline", steps: m })
 ;

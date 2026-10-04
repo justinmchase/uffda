@@ -9,6 +9,7 @@ import {
 import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
 import { lit } from "./runtime/patterns/value_source.ts";
 import type { PipelinePattern } from "./runtime/patterns/pattern.ts";
+import type { Rule } from "./runtime/modules/rule.ts";
 import { Scope } from "./runtime/scope.ts";
 
 Deno.test("match.visualize renders pipeline failures and terminates on cycles", async (t) => {
@@ -55,6 +56,39 @@ Deno.test("match.visualize renders pipeline failures and terminates on cycles", 
         'Expected "expected"',
       );
       assertStringIncludes(formatMatchFailureSummary(analysis!), "Unexpected");
+    },
+  );
+
+  await t.step(
+    "an explanation of the innermost rule leads the summary",
+    async () => {
+      const scope = Scope.From(Input.Iterable("#"));
+      const pattern = {
+        kind: PatternKind.Equal,
+        value: lit("expected"),
+      } as const;
+      const rule: Rule = {
+        name: "R",
+        module: scope.module,
+        pattern,
+        parameters: [],
+      };
+      const inner = scope.pushRule(rule, new Map());
+      const match = fail(inner, pattern);
+      const explained = await analyzeMatchFailure(match, {
+        explain: (r) => r === rule ? "Write expected." : undefined,
+      });
+      assertEquals(explained?.explanation, "Write expected.");
+      assertEquals(
+        formatMatchFailureSummary(explained!),
+        'Write expected.\nUnexpected "#"\nIn R',
+      );
+      const plain = await analyzeMatchFailure(match);
+      assertEquals(plain?.explanation, undefined);
+      assertEquals(
+        formatMatchFailureSummary(plain!),
+        'Expected "expected"\nUnexpected "#"\nIn R',
+      );
     },
   );
 

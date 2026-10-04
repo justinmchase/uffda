@@ -1,0 +1,69 @@
+# Formats comments. `Comment<W>` writes a comment block at the width `W`
+# produces. Inside a declaration, a comment is written on its own lines, at the
+# indentation of the item after it, or after the last item of its list. A layout
+# that must be flat rejects it, so every construct around a comment breaks.
+import "./mod.uff" ModuleFormat;
+import "./layout.uff" Continuation;
+import "../../comment/format.uff" CommentFormat;
+
+export Comment;
+export CommentAt;
+export Lead;
+export Trail;
+export Commented;
+export Trailed;
+
+# The fence parser keeps the Uffda module each `uffda` fence holds as its
+# `tree`, so the fence's code is that module, formatted to fit after `# `.
+rule UffdaFence<W> =
+  w:W (object & { language: "uffda", tree: m:ModuleFormat<(ok -> (sub w 2))> })
+  -> m
+;
+
+rule Comment<W> = CommentFormat<W, UffdaFence<W>>;
+
+rule TextChar = not "\n" c:any -> c;
+
+rule TextLine = c:TextChar* -> (join c "");
+
+rule TextLines = [f:TextLine r:("\n" t:TextLine -> t)*] -> [f ...r];
+
+# A comment written at the indentation `I` produces, in a layout that is not
+# flat.
+rule CommentAt<L, I> =
+  l:L
+  ((ok -> l.flat) |> false)
+  i:I
+  c:Comment<(ok -> (sub l.w (length i)))>
+  x:((ok -> c) |> TextLines)
+  -> (join x (join ["\n" i] ""))
+;
+
+# A comment before an item that starts a line at the layout's continuation
+# indentation: its lines, then a line break back to that indentation.
+rule Lead<L> =
+  l:L c:CommentAt<L, (ok -> (Continuation l))>
+  -> (join [c "\n" (Continuation l)] "")
+;
+
+# A comment after the last item: a line break, then its lines.
+rule Trail<L> =
+  l:L c:CommentAt<L, (ok -> (Continuation l))>
+  -> (join ["\n" (Continuation l) c] "")
+;
+
+# An item of a list written by `P`, after the comments before it.
+rule Commented<P, L> = c:Lead<L>* p:P<L> -> (join [...c p] "");
+
+# The items of a list followed by the comments after its last item, each written
+# by `CommentAt` at `indent`: the comments join the last item, or are the only
+# item of an otherwise empty list.
+func Trailed<items:array trail:array indent:string> =
+  (when (eq (length trail) 0) items [
+    ...(slice items 0 (sub (length items) 1))
+    (join
+      [...(slice items (sub (length items) 1)) ...trail]
+      (join ["\n" indent] "")
+    )
+  ])
+;

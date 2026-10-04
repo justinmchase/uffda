@@ -7,11 +7,8 @@ import {
   type Match,
   MatchKind,
 } from "../match.ts";
-import {
-  analyzeMatchFailure,
-  formatMatchFailureSummary,
-} from "../match.visualize.ts";
-import { diagnoseRecoveries } from "../match.recovery_diagnostics.ts";
+import { formatMatchFailureSummary } from "../match.visualize.ts";
+import { analyzeMatchFailure, diagnoseRecoveries } from "./diagnostics.ts";
 import { patternGrammar } from "../lang/pattern/pattern.lang.ts";
 import type { Pattern } from "../runtime/patterns/pattern.ts";
 import {

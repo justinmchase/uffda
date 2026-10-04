@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import { MatchKind } from "../../match.ts";
 import { ExportDeclarationKind } from "../../runtime/declarations/export.ts";
 import { ImportDeclarationKind } from "../../runtime/declarations/import.ts";
@@ -11,6 +11,8 @@ import {
   runUffdaRuntimeCompiler,
 } from "./runtime.compiler.ts";
 import { unwrap } from "../../wrapped.ts";
+import { isSuccess, valueOf } from "../../match.ts";
+import { uffdaGrammar } from "./uffda.lang.ts";
 
 Deno.test("lang.uffda.runtime-compiler compiles an empty syntax module", async () => {
   const match = await runUffdaRuntimeCompiler({
@@ -255,4 +257,45 @@ Deno.test("lang.uffda.runtime-compiler rejects malformed module input", async (t
       true,
     );
   });
+});
+
+Deno.test("lang.uffda.runtime-compiler drops inner comments", async (t) => {
+  const compile = async (source: string) => {
+    const parsed = await uffdaGrammar(source);
+    assert(isSuccess(parsed));
+    const match = await runUffdaRuntimeCompiler(
+      unwrap(valueOf(parsed)) as UffdaSyntaxModule,
+    );
+    assert(isSuccess(match));
+    return unwrap(valueOf(match));
+  };
+  const cases = [
+    {
+      name: "collapses an or left with one alternative",
+      commented: "rule A =\n  # a\n  | a\n  # | b\n;",
+      plain: "rule A = a;",
+    },
+    {
+      name: "keeps an or with alternatives left",
+      commented: "rule A =\n  | a\n  # b\n  | c\n  # d\n;",
+      plain: "rule A = a | c;",
+    },
+    {
+      name: "drops comments between then, and and pipeline members",
+      commented:
+        "rule A =\n  a\n  # c\n  b\n;\nrule B =\n  x\n  # c\n  & y\n;\nrule C =\n  |> p\n  # c\n  |> q\n;",
+      plain: "rule A = a b;\nrule B = x & y;\nrule C = |> p |> q;",
+    },
+    {
+      name: "drops comments in projections and func bodies",
+      commented:
+        "rule A = x:any -> {\n  # k\n  a: [\n    # e\n    x\n  ],\n  b: (f\n    # arg\n    x)\n};\nfunc F<x> = [\n  # e\n  x\n];",
+      plain: "rule A = x:any -> { a: [x], b: (f x) };\nfunc F<x> = [x];",
+    },
+  ];
+  for (const c of cases) {
+    await t.step(c.name, async () => {
+      assertEquals(await compile(c.commented), await compile(c.plain));
+    });
+  }
 });

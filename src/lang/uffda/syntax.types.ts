@@ -23,6 +23,10 @@ export type UffdaAttributeSyntax = {
   args: Expression[];
 };
 
+/**
+ * Body patterns and expressions may hold comment nodes in their lists
+ * (alternatives, sequences, objects, arrays, arguments); compilation drops them.
+ */
 export type UffdaRuleSyntaxDeclaration = {
   kind: "rule";
   name: string;

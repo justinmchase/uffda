@@ -162,25 +162,44 @@ func semantic_no_whitespace_texts<tokens:array> =
   (map (filter tokens IsWordOrPunctuation) TokenText)
 ;
 
-# `semantic_no_whitespace_items` keeps comment tokens as their own token values
-# (not their text, and not a copy) so a grammar that declares where comments may
-# appear can tell them apart from word/punctuation texts and still sees each
-# comment's provenance.
-func IsSemanticOrComment<{ kind: k:string }> =
-  (has ["word" "punctuation" "comment"] k)
+# The comment-preserving view reads the tokens line by line. Word and
+# punctuation tokens become their texts. Comment tokens stay as their own token
+# values (not their text, and not a copy), so a grammar that declares where
+# comments may appear can tell them apart and still sees each comment's
+# provenance. A comment that follows code on its line is preceded by a
+# `{ kind: "lineEnd" }` item, so a grammar can accept comments on their own
+# lines only.
+rule ViewSpace = object & { kind: "whitespace" };
+
+rule ViewNewLine = object & { kind: "newline" };
+
+rule ViewComment = object & { kind: "comment" };
+
+rule ViewText =
+  object & { kind: in["word" "punctuation"], text: t:string }
+  -> t
 ;
 
-func SemanticItem<token:{ kind: k:string, text: t:string }> =
-  (when (eq k "comment") token t)
+rule ViewCode = t:ViewText ViewSpace* -> t;
+
+rule ViewLineEndComment = c:ViewComment ViewSpace* -> [{ kind: "lineEnd" } c];
+
+rule ViewCodeLine =
+  t:ViewCode+ e:ViewLineEndComment?
+  -> (flat [t (coalesce e [])])
 ;
 
-func semantic_no_whitespace_items<tokens:array> =
-  (map (filter tokens IsSemanticOrComment) SemanticItem)
-;
+rule ViewCommentLine = c:ViewComment ViewSpace* -> [c];
+
+rule ViewLine = ViewSpace* l:(ViewCommentLine | ViewCodeLine | (ok -> [])) -> l;
+
+rule ViewNextLine = ViewNewLine l:ViewLine -> l;
+
+rule ViewLines = f:ViewLine r:ViewNextLine* end -> (flat [f (flat r)]);
 
 rule TokenizerNoWhitespace = Tokenizer -> (semantic_no_whitespace_texts _);
 
 rule TokenizerNoWhitespaceWithComments =
-  Tokenizer
-  -> (semantic_no_whitespace_items _)
+  |> Tokenizer
+  |> [ViewLines]
 ;

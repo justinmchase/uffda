@@ -99,3 +99,56 @@ Deno.test({
     });
   },
 });
+
+Deno.test({
+  name: "lang.pattern.or comments",
+  ignore: p.state !== "granted",
+  fn: async (t) => {
+    const comment = { kind: "comment", blocks: [] };
+    await t.step({
+      name: "OR_COMMENT_00 - a comment before |",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "Or",
+        input: Input.Iterable(["any", comment, "|", "fail"]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Or,
+          patterns: [{ kind: PatternKind.Any }, comment, {
+            kind: PatternKind.Fail,
+          }],
+        },
+      }),
+    });
+    await t.step({
+      name: "OR_COMMENT_01 - leading comments keep the or",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "Or",
+        input: Input.Iterable([comment, "|", "any"]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Or,
+          patterns: [comment, { kind: PatternKind.Any }],
+        },
+      }),
+    });
+    await t.step({
+      name: "OR_COMMENT_02 - trailing comments before the end",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "Or",
+        input: Input.Iterable(["any", "|", "fail", comment]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Or,
+          patterns: [
+            { kind: PatternKind.Any },
+            { kind: PatternKind.Fail },
+            comment,
+          ],
+        },
+      }),
+    });
+  },
+});

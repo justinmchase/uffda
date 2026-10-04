@@ -27,7 +27,12 @@ type SuccessMatch = Extract<
   { kind: MatchKind.Ok | MatchKind.Skip }
 >;
 
-/** Where an identifier sits in the parse tree. */
+/**
+ * Where an identifier sits in the parse tree: at the last covering node a
+ * pre-order walk reaches. That is the deepest one, except that a later reading
+ * of the same input (a later pipeline stage, which parses an earlier stage's
+ * output) takes precedence over an earlier one however deep it is.
+ */
 export type IdentifierPosition = {
   /**
    * Nodes covering the identifier, outermost first: `Ok` nodes for a parsed
@@ -54,9 +59,7 @@ export function identifierPosition(
     if (
       node.originalSpan.start > span.start || node.originalSpan.end < span.end
     ) return;
-    if (ancestors.length + 1 > chain.length) {
-      chain = [...ancestors, node] as SuccessMatch[];
-    }
+    chain = [...ancestors, node] as SuccessMatch[];
   });
   return positionOf(chain);
 }
@@ -85,8 +88,7 @@ export function identifierPositions(
   // leaves no node with only `Ok` ancestors.
   if (!isSuccess(match)) return spans.map(() => positionOf([]));
   const parent = new Map<AnnotatableMatch, AnnotatableMatch | undefined>();
-  const deepest: (AnnotatableMatch | undefined)[] = spans.map(() => undefined);
-  const deepestLevel: number[] = spans.map(() => -1);
+  const last: (AnnotatableMatch | undefined)[] = spans.map(() => undefined);
   walkAccepted(match, (node, ancestors) => {
     const level = ancestors.length;
     const { start, end } = node.originalSpan;
@@ -101,10 +103,7 @@ export function identifierPositions(
     for (let i = lo; i < spans.length && spans[i].start < end; i++) {
       if (spans[i].end > end) continue;
       covers = true;
-      if (deepestLevel[i] < level) {
-        deepest[i] = node;
-        deepestLevel[i] = level;
-      }
+      last[i] = node;
     }
     if (!covers) return;
     parent.set(node, ancestors.at(-1));
@@ -112,7 +111,7 @@ export function identifierPositions(
       parent.set(ancestors[i], ancestors[i - 1]);
     }
   });
-  return deepest.map((node) => {
+  return last.map((node) => {
     const chain: AnnotatableMatch[] = [];
     for (
       let at: AnnotatableMatch | undefined = node;

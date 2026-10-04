@@ -57,17 +57,26 @@ diagnostics, and tooling MUST NOT fall back to guessing.
 | `ImportedName`               | one name bound by an import                        | —                                                      |
 | `Formatter X`                | a language's entry rule                            | the info of the formatter rule `X` (see Formatting)    |
 | `ToggleComment X`            | a language's entry rule                            | the info of the toggle rule `X` (see Comment toggling) |
-| `Documentation`              | a rule/func/decorator being documented             | `{ description, parameters }` (see below)              |
+| `Documentation`              | a rule/func/decorator being documented             | `{ description, parameters, error }` (see below)       |
 
 `Documentation` differs from the others: it describes a declaration for the
 people using it, not a grammar production for tooling. It is written either
 `[Documentation "…"]` or
-`[Documentation { description: "…", parameters: { P: "…" } }]` and normalized to
-`{ description, parameters }`, `parameters` mapping parameter names to their
-descriptions. Hover MUST lead with the description and show parameter
-descriptions (on the declaration and on each parameter's own hover), and
-completion items MUST carry the description as their documentation. A
-declaration's hover MUST NOT also list `Documentation` as an attribute.
+`[Documentation { description: "…", parameters: { P: "…" }, error: "…" }]` and
+normalized to `{ description, parameters, error }`, `parameters` mapping
+parameter names to their descriptions. Hover MUST lead with the description and
+show parameter descriptions (on the declaration and on each parameter's own
+hover), and completion items MUST carry the description as their documentation.
+A declaration's hover MUST NOT also list `Documentation` as an attribute.
+
+`error` explains errors in the declaration to the person who hits one. It MUST
+NOT appear in hover or completion. Every CLI host (the CLI, the language server,
+and the MCP server) MUST lead a diagnostic with it when the failure's innermost
+rule is the declaration, in place of the expected alternatives (see
+[match diagnostics](../../runtime/match-diagnostics.spec.md#diagnostic-model)),
+so it shows only when that error happens. An `error` should therefore be
+specific enough to say what was expected; a declaration that catches many
+different mistakes is better split into smaller documented rules.
 
 Every decorator in the editor vocabulary (`src/lang/editor/editor.uff`) carries
 its own `[Documentation]`, including `Documentation` itself, so hover and

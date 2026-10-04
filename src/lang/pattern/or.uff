@@ -1,14 +1,32 @@
 # Or matches And patterns joined by `|` as an Or AST. Optional leading `|` is
 # allowed, unless it begins a leading `|>`. Uses std one for length-1 collapse
 # (B4).
+#
+# Comment nodes are members of the alternation's list: before the first
+# alternative, before each `|`, and after the last alternative when a closing
+# bracket or the end of the pattern follows. An alternation with comments never
+# collapses, even when it has one alternative.
 import "./and.uff" And;
+import "../common/comment.uff" CommentNode;
 
 export Or;
 
-rule OrTail = "|" a:And -> a;
+rule OrTail = c:CommentNode* "|" a:And -> (flat [c [a]]);
+
+rule OrClose =
+  | ")"
+  | "]"
+  | "}"
+  | ">"
+  | end
+;
+
+rule OrTrailing = c:CommentNode+ lookahead OrClose -> c;
 
 rule Or =
-  ("|" not ">")?
-  o:(And OrTail* -> (one (flat _) { kind: "or", patterns: (flat _) }))
-  -> o
+  m:(
+    l:CommentNode* ("|" not ">")? f:And r:OrTail* t:OrTrailing?
+    -> (flat [l [f] (flat r) (coalesce t [])])
+  )
+  -> (one m { kind: "or", patterns: m })
 ;

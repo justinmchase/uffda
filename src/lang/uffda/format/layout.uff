@@ -9,9 +9,14 @@
 #
 # A construct is written flat when it fits in the line width, otherwise broken:
 # each child on its own line, with an opening bracket at the end of the line
-# before and its closing bracket on its own line.
+# before and its closing bracket on its own line. A construct that must be flat
+# and cannot be (it holds a comment) fails, so its parent breaks instead.
 export Fit;
 export Indent;
+export Continuation;
+export Starts;
+export LineStart;
+export LineBreak;
 export Mode;
 export Shift;
 export After;
@@ -86,7 +91,27 @@ func Entry<l:object sep:number> =
 
 # The indentation of the continuation lines of an unbracketed sequence: the
 # current line's when the sequence starts the line, otherwise one level more.
-func Continuation<l:object> = (when (eq l.c (length l.i)) l.i (Indent l.i));
+func Continuation<l:object> = (when (Starts l) l.i (Indent l.i));
+
+# Whether the construct starts its line.
+func Starts<l:object> = (eq l.c (length l.i));
+
+# The layout of the construct moved to the start of a line: itself when it
+# already starts one, otherwise the next line at the continuation indentation.
+func LineStart<l:object> =
+  (when (Starts l) l {
+    i: (Continuation l),
+    c: (length (Continuation l)),
+    s: l.s,
+    w: l.w,
+    flat: l.flat
+  })
+;
+
+# The text that moves the construct to its `LineStart`.
+func LineBreak<l:object> =
+  (when (Starts l) "" (join ["\n" (Continuation l)] ""))
+;
 
 # The layout of a continuation item that follows an `n`-wide prefix.
 func Next<l:object n:number> =
@@ -174,12 +199,12 @@ func HugFits<l:object head:string> =
   (when l.flat false (lte (add (add l.c (length head)) 1) l.w))
 ;
 
-# Writes `B` flat when it fits, otherwise broken.
+# Writes `B` flat when it fits, otherwise broken, unless it must be flat.
 rule Fit<B, L> =
   l:L
   r:(
     | (f:B<(ok -> (Mode l true))> ((ok -> (Accept l f)) |> true) -> f)
-    | B<(ok -> (Mode l false))>
+    | (((ok -> l.flat) |> false) b:B<(ok -> (Mode l false))> -> b)
   )
   -> r
 ;

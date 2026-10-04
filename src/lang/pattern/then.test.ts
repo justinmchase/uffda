@@ -53,3 +53,26 @@ Deno.test("lang.pattern.then recovers a stray token", async () => {
   const delimited = await patternGrammar("(a !) | b");
   assertEquals(skipped("(a !) | b", delimited), ["!"]);
 });
+
+Deno.test({
+  name: "lang.pattern.then comments",
+  ignore: p.state !== "granted",
+  fn: async (t) => {
+    const comment = { kind: "comment", blocks: [] };
+    await t.step({
+      name: "THEN_COMMENT_00 - a comment between items",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "Then",
+        input: Input.Iterable(["any", comment, "fail"]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Then,
+          patterns: [{ kind: PatternKind.Any }, comment, {
+            kind: PatternKind.Fail,
+          }],
+        },
+      }),
+    });
+  },
+});
