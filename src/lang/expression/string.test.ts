@@ -1,7 +1,7 @@
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
-import { moduleDeclarationTest } from "../../test.ts";
+import { explainedMistakesTest, moduleDeclarationTest } from "../../test.ts";
 
 const moduleUrl = new URL("./string.uff", import.meta.url).href;
 
@@ -193,4 +193,12 @@ Deno.test(
       }),
     });
   },
+);
+
+Deno.test(
+  "lang.expression.string explains mistakes where they occur",
+  explainedMistakesTest([[
+    'rule A = a -> "a{x‸";',
+    "An interpolation holds one expression",
+  ], ['rule A = a -> "a{x ‸y}";', "An interpolation holds one expression"]]),
 );

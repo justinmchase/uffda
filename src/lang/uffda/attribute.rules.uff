@@ -6,15 +6,23 @@
 import "../tokenizer/token.uff" Token;
 import "../expression/primary.uff" Primary;
 import "../expression/reference.uff" Reference;
-import "../editor/editor.uff" NameReference;
+import "../editor/editor.uff" NameReference Documentation;
 
 export AttributeSyntax;
 
 rule AttributeOpenBracket = "[" -> "[";
 
+[Documentation {
+  description: "The `]` that ends an attribute.",
+  error: "Expected `]` here to close the attribute, or another argument, as in `[Foo 1]`."
+}]
 rule AttributeCloseBracket = "]" -> "]";
 
 [NameReference { kinds: ["decorator"] }]
+[Documentation {
+  description: "The decorator an attribute applies.",
+  error: "An attribute starts with the name of a decorator, as in `[Foo]`."
+}]
 rule AttributeName = Token<Reference> -> _;
 
 rule AttributeArgument = Token<Primary> -> _;

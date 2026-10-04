@@ -2,7 +2,7 @@ import { Input } from "../../input.ts";
 import { MatchKind } from "../../mod.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ValueSourceKind } from "../../runtime/patterns/value_source.ts";
-import { moduleDeclarationTest } from "../../test.ts";
+import { explainedMistakesTest, moduleDeclarationTest } from "../../test.ts";
 
 const moduleUrl = new URL("./literals.uff", import.meta.url).href;
 
@@ -205,3 +205,12 @@ Deno.test({
     });
   },
 });
+
+Deno.test(
+  "lang.pattern.literals explains mistakes where they occur",
+  explainedMistakesTest([
+    ["rule A = in[‸;", "lists one or more literal values"],
+    ["rule A = $‸;", "`$` must be followed by the name"],
+    ['rule A = "abc‸;', "This string is missing its closing"],
+  ]),
+);

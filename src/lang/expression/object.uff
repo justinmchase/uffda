@@ -8,17 +8,26 @@ import "./primary.uff" Primary;
 import "../common/spread.uff" SpreadMarker;
 import "./sequence.uff" ExpressionDelimiter;
 import "../common/comment.uff" CommentNode;
+import "../editor/editor.uff" Documentation;
 
 export Object;
 
 rule OpenBrace = "{";
 
+[Documentation {
+  description: "The `}` that ends an object.",
+  error: "Expected `}` here to close the object that starts with `\{`."
+}]
 rule CloseBrace = "}";
 
 rule OpenBracket = "[" -> "[";
 
 rule CloseBracket = "]" -> "]";
 
+[Documentation {
+  description: "The `:` between an object entry's key and its value.",
+  error: "Each entry of an object is a key, `:`, and its value, as in `\{ name: n }`."
+}]
 rule Colon = ":" -> ":";
 
 rule Comma = "," -> ",";
@@ -55,6 +64,10 @@ rule RecoverableObjectEntry =
 
 # What may follow an entry. Anything else after a complete entry is skipped up
 # to the next of these, so a stray item costs only itself, not the object.
+[Documentation {
+  description: "What may follow an object entry.",
+  error: "Expected `,` here before the object's next entry, or `}` to close it."
+}]
 rule ObjectEntryEnd =
   | Token<Comma>
   | Token<CloseBrace>

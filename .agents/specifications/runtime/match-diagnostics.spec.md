@@ -18,11 +18,10 @@ Normative key words in this chapter use the conventions defined in the
   alternatives (or the pattern/rule being matched), then unexpected input, and
   MAY include the nearest rule name — without requiring the full failure-tree
   rendering.
-- A host MAY supply an explanation for rules. The analysis MUST ask it only
-  about the failure's innermost rule (the nearest rule name above), and when it
-  answers, the compact summary MUST lead with that explanation in place of the
-  expected alternatives and their value estimates, which it supersedes. The
-  runtime MUST NOT read any particular rule metadata itself; the CLI hosts
+- A host MAY supply an explanation for rules. When there is an explanation (see
+  [Explanations](#explanations)), the compact summary MUST lead with it in place
+  of the expected alternatives and their value estimates, which it supersedes.
+  The runtime MUST NOT read any particular rule metadata itself; the CLI hosts
   explain a rule with its `[Documentation]` `error` (see
   [editor metadata](../languages/cli/editor-metadata.spec.md)).
 - The visualization MUST preserve enough match hierarchy to connect named rules
@@ -38,13 +37,58 @@ Normative key words in this chapter use the conventions defined in the
   candidate. Location MUST prefer `Match.originalSpan` (authored source) over
   searching the source text for the unexpected character with `lastIndexOf`,
   which can rank a later identical character ahead of the real hole.
-- Tokenizer-module alternatives and low-level token rules (`WordToken`,
-  `WhitespaceToken`, and similar) MUST NOT win focus when a higher-level
-  syntactic failure exists at or near the same authored position.
-- An incomplete pipeline (`|>` with no following pattern) MUST focus the missing
-  pipeline operand (typically `Identifier` / `PipeTail`) at the token that
-  closes or follows the hole (for example `)`), not a later recovery attempt
-  such as a trailing `;` or a token-chunk scanner expectation.
+- Focus MUST be chosen by a general rule over the match graph, never by naming
+  particular rules or tokens:
+  1. Failures that cannot explain the outcome are not candidates: those inside a
+     pipeline that succeeded (it transformed its input, so nothing it tried
+     explains what fails after it), those inside a failed pipeline's stages
+     before its failing stage (they succeeded and handed their output on), those
+     inside a `not` or `except` that succeeded (it needed its child to fail),
+     and those that fail only by reading a left-recursive head's initial failing
+     seed (a control signal of growth, not a failure of the input; see
+     [left recursion](./left-recursion.spec.md)).
+  2. Of the candidates, those furthest into the authored source
+     (`Match.originalSpan.start`) are tied for focus.
+  3. Of those, the least absorbed win: a failure under fewer successful matches.
+     A failure under a successful match was absorbed (an alternative or
+     repetition moved on); one under failures only is what made its ancestors
+     fail.
+  4. The shallowest remaining failure is the focus (the first, if several).
+- A match reachable along several paths (a memoized match shared by several
+  callers) takes its best standing over all of them for these rules: the fewest
+  successful ancestors on any path, and excluded only if every path excludes it.
+- A diagnostic for a recovery (see [error recovery](./error-recovery.spec.md))
+  MUST consider the recovery's failure together with the matches that preceded
+  it in its enclosing sequence, so a mistake that a preceding match accepted
+  (for example a trailing `|` that an optional repetition consumed before the
+  pattern after it failed) is reported where it occurred.
+- Unexpected input is the next item of the focused failure's stream, or the end
+  of input when that stream is done (including the end of a pipeline stage's
+  input).
+
+## Explanations
+
+- The failures tied for focus that contain no other tied failure are the
+  innermost tied failures; a failure enclosing another only passes it on.
+- For each innermost tied failure, the rules that can explain it are those of
+  its enclosing rules that began where it failed: whose rule stack frame was
+  entered at the same authored source position as the failure (see
+  [rules](./rules.spec.md#core-contracts)). A rule that consumed input before
+  failing was underway, so its explanation of how it begins does not apply.
+- The explanation MUST be that of the innermost explained rule (by rule
+  identity) that can explain every innermost tied failure. A rule around only
+  some of them is one of several alternatives that failed at the same place, not
+  the reason for the failure, so it MUST NOT explain it.
+- A grammar that wants a specific explanation SHOULD give each required element
+  its own small documented rule (a closing bracket, a separator, a declaration
+  name), so that rule begins exactly where the element is missing. Rules that
+  only pass through to alternatives or precedence levels SHOULD NOT be
+  documented with an error, since they begin where unrelated mistakes also
+  occur.
+- A grammar that wants a specific explanation for a known mistake SHOULD match
+  the mistake and then fail inside a small documented rule (for example a
+  comment after code where comments must be on their own line): the failure lies
+  past the mistake, so it takes focus, and only that rule began there.
 
 ## Expected alternatives
 

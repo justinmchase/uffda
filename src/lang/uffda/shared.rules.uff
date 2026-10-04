@@ -3,8 +3,8 @@
 # ../editor/editor.uff) so editor tooling classifies their matched spans as
 # keywords without a separately maintained rule-name-to-role mapping.
 import "../common/identifier.uff" IdToken;
-import "../editor/editor.uff" Keyword;
-import "../common/comment.uff" CommentNode;
+import "../editor/editor.uff" Keyword Documentation;
+import "../common/comment.uff" OwnLineComment;
 
 export IdentifierToken;
 export ReservedKeywordToken;
@@ -14,6 +14,10 @@ export RuleKeyword;
 export FuncKeyword;
 export DecoratorKeyword;
 export DeclarationBodyEnd;
+export DeclarationKeyword;
+export DeclarationName;
+export DeclarationEquals;
+export DeclarationEnd;
 export BodyToken;
 
 [Keyword]
@@ -41,6 +45,30 @@ rule ReservedKeywordToken =
 
 rule IdentifierToken = not ReservedKeywordToken & IdToken;
 
+[Documentation {
+  description: "The keyword that begins a declaration.",
+  error: "Expected a declaration here: `rule`, `func` or `decorator`, after any attributes."
+}]
+rule DeclarationKeyword<K> = K;
+
+[Documentation {
+  description: "The name a declaration declares.",
+  error: "A declaration needs a name after its keyword: a letter or `_`, then letters, digits or `_`. Keywords such as `rule` and `import` cannot be names."
+}]
+rule DeclarationName = IdentifierToken;
+
+[Documentation {
+  description: "The `=` between a declaration's head and its body.",
+  error: "Expected `=` here: a declaration's name and parameters are followed by `=` and then its body."
+}]
+rule DeclarationEquals = "=";
+
+[Documentation {
+  description: "The `;` that ends a declaration.",
+  error: "A declaration ends with `;`. Add one at the end of it."
+}]
+rule DeclarationEnd = ";";
+
 # The head of a rule, func, or decorator declaration, through its `=`.
 rule DeclarationHead =
   (RuleKeyword | FuncKeyword | DecoratorKeyword)
@@ -62,6 +90,6 @@ rule DeclarationBodyEnd =
 # rejected there).
 rule BodyToken =
   | string
-  | CommentNode
-  | object & { kind: "lineEndComment", comment: CommentNode }
+  | OwnLineComment
+  | object & { kind: "lineEndComment", comment: OwnLineComment }
 ;

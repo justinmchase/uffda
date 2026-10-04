@@ -6,11 +6,15 @@
 import "../tokenizer/token.uff" Token;
 import "./primary.uff" Primary;
 import "./reference.uff" Reference;
-import "../editor/editor.uff" Highlight;
+import "../editor/editor.uff" Highlight Documentation;
 
 export Member;
 
 [Highlight { role: "property" }]
+[Documentation {
+  description: "The name of the member a `.` reads.",
+  error: "A `.` must be followed by the name of the member to read, as in `x.name`."
+}]
 rule MemberName = Reference;
 
 rule Member =

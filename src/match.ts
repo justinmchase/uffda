@@ -30,7 +30,7 @@ export type MatchOrigin = {
   args: Map<string, Rule>;
   /**
    * Set when the invocation's outcome observed an in-progress left-recursive
-   * seed at its start position. Such an outcome is only valid as part of that
+   * seed at its start position, and on a head's initial failing seed itself. Such an outcome is only valid as part of that
    * growth, so it is never reused on its own; see
    * `.agents/specifications/runtime/left-recursion.spec.md`.
    */

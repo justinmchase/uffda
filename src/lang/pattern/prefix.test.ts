@@ -2,7 +2,7 @@ import { Input } from "../../input.ts";
 import { MatchKind } from "../../mod.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ValueSourceKind } from "../../runtime/patterns/value_source.ts";
-import { moduleDeclarationTest } from "../../test.ts";
+import { explainedMistakesTest, moduleDeclarationTest } from "../../test.ts";
 
 const moduleUrl = new URL("./prefix.uff", import.meta.url).href;
 
@@ -223,3 +223,13 @@ Deno.test({
     });
   },
 });
+
+Deno.test(
+  "lang.pattern.prefix explains mistakes where they occur",
+  explainedMistakesTest([
+    ["rule A = ope a‸;", "`ope` and its pattern must be followed"],
+    ["rule A = ope a sneak by‸;", "`sneak by` must be followed"],
+    ["rule A = a*..‸;", "A repetition bound is"],
+    ["rule A = a |‸;", "Expected a pattern here"],
+  ]),
+);

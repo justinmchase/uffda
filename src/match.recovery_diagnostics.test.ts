@@ -86,3 +86,18 @@ Deno.test("match.recovery_diagnostics explains with the innermost rule", async (
   );
   assertEquals(diagnostics[0].analysis?.explanation, "A statement is ab.");
 });
+
+Deno.test("match.recovery_diagnostics looks into the preceding matches", async () => {
+  // `Ops` accepts nothing of "|;", so `Stmt` recovers from "|"; the mistake
+  // is the ";" where `Ops` needed "c".
+  const m = await run(
+    `export Main;
+rule Ops = ("|" "c")*;
+rule Stmt = ope ("a" "b") sneak by until ";";
+rule Main = (Ops Stmt ";")* end;`,
+    Input.Iterable("|;"),
+  );
+  const [diagnostic] = await diagnoseRecoveries(m);
+  assertEquals(diagnostic.span, { start: 0, end: 1 });
+  assertEquals(diagnostic.message, 'Expected "c"\nUnexpected ";"\nIn Ops');
+});

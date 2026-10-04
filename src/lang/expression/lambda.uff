@@ -10,9 +10,14 @@
 import "../tokenizer/token.uff" Token;
 import "../pattern/parameter_list.uff" ParameterList;
 import "./primary.uff" Primary;
+import "../editor/editor.uff" Documentation;
 
 export Lambda;
 
+[Documentation {
+  description: "The `->` between a lambda's parameters and its body.",
+  error: "A lambda's parameters are followed by `->` and its body, as in `<x> -> (add x 1)`."
+}]
 rule LambdaArrow = "-" ">" -> "->";
 
 rule Lambda =

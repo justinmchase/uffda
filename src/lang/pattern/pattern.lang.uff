@@ -2,12 +2,19 @@
 import "../source/mod.uff" Source;
 import "../tokenizer/mod.uff" TokenizerNoWhitespace;
 import "./pattern.uff" Pattern;
+import "../editor/editor.uff" Documentation;
 
 export PatternLang;
 export PatternTokens;
 
 # Input left over after the pattern is a recovery point.
-rule PatternComplete = p:Pattern ope end sneak by skip any* -> p;
+[Documentation {
+  description: "The end of a complete pattern.",
+  error: "The pattern is complete here, so this cannot follow it. Check for a closing bracket without an opening one, or a missing operator such as `|`."
+}]
+rule PatternEnd = end;
+
+rule PatternComplete = p:Pattern ope PatternEnd sneak by skip any* -> p;
 
 rule PatternTokens = [PatternComplete];
 

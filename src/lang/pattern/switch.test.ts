@@ -8,6 +8,7 @@ import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { patternGrammar } from "./pattern.lang.ts";
 import { executeUffdaSource } from "../uffda/execute.ts";
 import { unwrap } from "../../wrapped.ts";
+import { explainedMistakesTest } from "../../test.ts";
 
 const moduleUrl = new URL("./switch.uff", import.meta.url).href;
 
@@ -256,3 +257,11 @@ Deno.test({
     });
   },
 });
+
+Deno.test(
+  "lang.pattern.switch explains mistakes where they occur",
+  explainedMistakesTest([[
+    'rule A = switch { "a" ‸b };',
+    "Each switch case is its values",
+  ], ['rule A = switch { "a": b‸ ;', "Expected `}` here to close the switch"]]),
+);

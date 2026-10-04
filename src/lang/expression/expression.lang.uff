@@ -2,12 +2,22 @@
 import "../source/mod.uff" Source;
 import "../tokenizer/mod.uff" TokenizerNoWhitespace;
 import "./expression.uff" Expression;
+import "../editor/editor.uff" Documentation;
 
 export ExpressionLang;
 export ExpressionTokens;
 
 # Input left over after the expression is a recovery point.
-rule ExpressionComplete = e:Expression ope end sneak by skip any* -> e;
+[Documentation {
+  description: "The end of a complete expression.",
+  error: "The expression is complete here, so nothing more can follow it. To call a function with arguments, wrap the call in parentheses, as in `(add x 1)`."
+}]
+rule ExpressionEnd = end;
+
+rule ExpressionComplete =
+  e:Expression ope ExpressionEnd sneak by skip any*
+  -> e
+;
 
 rule ExpressionTokens = [ExpressionComplete];
 

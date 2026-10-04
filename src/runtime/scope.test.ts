@@ -205,6 +205,24 @@ Deno.test("runtime.scope", async (t) => {
   });
 
   await t.step({
+    name: "SCOPE_RULE_FRAME_INPUT",
+    fn: async () => {
+      const rule: Rule = {
+        name: "R",
+        module: Scope.Default().module,
+        parameters: [],
+        pattern: { kind: PatternKind.Ok },
+      };
+      const start = Scope.From(Input.Iterable("ab"));
+      const at = start.withInput(await start.stream.next());
+      const [frame] = at.pushRule(rule, new Map()).stack.frames().slice(-1);
+      assert(frame.kind === StackFrameKind.Rule);
+      assertStrictEquals(frame.rule, rule);
+      assertStrictEquals(frame.input, at.stream);
+    },
+  });
+
+  await t.step({
     name: "SCOPE_RULE_FRAME_VARIABLES",
     fn: () => {
       const caller = Scope.Default().addVariable("x", 1);

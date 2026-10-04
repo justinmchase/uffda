@@ -3,12 +3,25 @@
 # via Atomic are expected (B9); Resolver import caching breaks recursion.
 import "../common/identifier.uff" IdToken;
 import "./pattern.uff" Pattern;
+import "../editor/editor.uff" Documentation;
 
 export Structure;
 
-rule Group = "(" p:Pattern ")" -> p;
+[Documentation {
+  description: "The `)` that ends a group.",
+  error: "Expected `)` here to close the group that starts with `(`."
+}]
+rule GroupEnd = ")";
 
-rule OverEntry = n:IdToken ":" p:Pattern -> { name: n, pattern: p };
+rule Group = "(" p:Pattern GroupEnd -> p;
+
+[Documentation {
+  description: "The `:` between an object pattern entry's key and its pattern.",
+  error: "Each entry of an object pattern is a key, `:`, and the pattern its value must match, as in `\{ kind: \"rule\" }`."
+}]
+rule OverEntryColon = ":";
+
+rule OverEntry = n:IdToken OverEntryColon p:Pattern -> { name: n, pattern: p };
 
 rule OverEntryTail = "," e:OverEntry -> e;
 
@@ -16,8 +29,14 @@ rule OverEntries = f:OverEntry r:OverEntryTail* -> (flat (pack f r));
 
 rule OverEntriesWithTrailing = e:OverEntries ","? -> e;
 
+[Documentation {
+  description: "The `}` that ends an object pattern.",
+  error: "Expected `}` here to close the object pattern, or `,` before its next `key: pattern` entry."
+}]
+rule OverEnd = "}";
+
 rule Over =
-  "{" k:OverEntriesWithTrailing? "}"
+  "{" k:OverEntriesWithTrailing? OverEnd
   -> { kind: "over", keys: (from_entries (flat (coalesce k []))) }
 ;
 

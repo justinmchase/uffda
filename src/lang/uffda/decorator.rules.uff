@@ -7,7 +7,13 @@
 # FuncExpressionBody for the expression body (identical tokenizing/parsing
 # needs). Variable bindings are single-letter (published CLI PatternLang).
 import "../pattern/parameter_list.uff" ParameterList;
-import "./shared.rules.uff" IdentifierToken DecoratorKeyword;
+import "./shared.rules.uff"
+  DecoratorKeyword
+  DeclarationName
+  DeclarationEquals
+  DeclarationEnd
+  DeclarationKeyword
+;
 import "../editor/editor.uff" Declaration;
 import "./func.rules.uff" FuncExpressionBody;
 import "./attribute.rules.uff" AttributeSyntax;
@@ -15,12 +21,12 @@ import "./attribute.rules.uff" AttributeSyntax;
 export [Declaration]
 rule DecoratorDeclarationSyntax =
   a:AttributeSyntax*
-  DecoratorKeyword
-  n:IdentifierToken
+  DeclarationKeyword<DecoratorKeyword>
+  n:DeclarationName
   p:ParameterList?
-  "="
+  DeclarationEquals
   e:FuncExpressionBody
-  ";"
+  DeclarationEnd
   -> {
     kind: "decorator",
     name: n,

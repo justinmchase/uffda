@@ -8,11 +8,16 @@ import "./boolean.uff" Boolean;
 import "./nullish.uff" Nullish;
 import "./sequence.uff" Sequence;
 import "./lambda.uff" Lambda;
+import "../editor/editor.uff" Documentation;
 
 export Primary;
 
 # Member comes first: it extends a shorter Primary, and ordered choice would
 # otherwise stop at that shorter alternative during left-recursion growth.
+[Documentation {
+  description: "One expression: a value, a name, or a call.",
+  error: "Expected an expression here, such as a name, a number, a quoted string, or a call in `(…)`."
+}]
 rule Primary =
   | Member
   | Lambda

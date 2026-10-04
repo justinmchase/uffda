@@ -836,6 +836,100 @@ Deno.test("runtime.rule", async (t) => {
   });
 
   await t.step({
+    name:
+      "RULE15a - growth records its initial seed and the iteration ending it",
+    // A = A "x" | "a" over "ay": re-entering A first reads the failing initial
+    // seed, then the seed "a"; the iteration that tried "x" after it ended
+    // growth, and stays reachable as a failure.
+    fn: async () => {
+      const eq = (value: string) => ({
+        kind: PatternKind.Equal as const,
+        value: lit(value),
+      });
+      const x = eq("x");
+      const declarations: Record<string, ModuleDeclaration> = {
+        [import.meta.url]: {
+          imports: [],
+          exports: [
+            { kind: ExportDeclarationKind.Rule, name: "A", default: true },
+          ],
+          rules: [{
+            name: "A",
+            parameters: [],
+            pattern: {
+              kind: PatternKind.Or,
+              patterns: [
+                {
+                  kind: PatternKind.Then,
+                  patterns: [
+                    {
+                      kind: PatternKind.Resolve,
+                      targetKind: ResolveTargetKind.Reference,
+                      name: "A",
+                      args: [],
+                    },
+                    x,
+                  ],
+                },
+                eq("a"),
+              ],
+            },
+          }],
+        },
+      };
+      const resolver = new Resolver({ declarations });
+      const module = await resolver.import(new URL(import.meta.url), {
+        scope: Scope.From("", { kind: InputNormalizationMode.Iterable }),
+        pattern: {
+          kind: PatternKind.Resolve,
+          targetKind: ResolveTargetKind.Run,
+        },
+      });
+      assertEquals(module.kind, ModuleImportResultKind.Module);
+      if (module.kind !== ModuleImportResultKind.Module) return;
+      const scope = new Scope(
+        module.module,
+        undefined,
+        undefined,
+        undefined,
+        Input.Iterable("ay"),
+        undefined,
+        undefined,
+        { resolver },
+      );
+
+      const m = await resolve(
+        { kind: PatternKind.Resolve, targetKind: ResolveTargetKind.Run },
+        scope,
+      );
+
+      assertEquals(m.kind, MatchKind.Ok);
+      const nodes = new Set<Match>();
+      const visit = (node: Match) => {
+        if (nodes.has(node)) return;
+        nodes.add(node);
+        if (node.kind === MatchKind.Ok || node.kind === MatchKind.Fail) {
+          node.matches.forEach(visit);
+        }
+      };
+      visit(m);
+      const fails = [...nodes].filter((node) => node.kind === MatchKind.Fail);
+      assert(
+        fails.some((node) =>
+          node.kind === MatchKind.Fail && node.matches.length === 0 &&
+          node.origin?.seeded === true && node.origin.rule.name === "A"
+        ),
+      );
+      assert(
+        fails.some((node) =>
+          node.kind === MatchKind.Fail && node.pattern === x &&
+          node.span.start.compareTo(Path.From(1)) === 0
+        ),
+      );
+    },
+  });
+
+  await t.step({
     name: "RULE16 - a head's rule expression runs once per growth step",
     // R = e:(R | "a") "." n:any -> [e, n] over "a.b.c": two growth steps
     // succeed, so the expression runs twice and each step nests the last.

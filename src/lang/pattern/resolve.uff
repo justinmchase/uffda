@@ -4,7 +4,7 @@
 # recursion.
 import "../common/identifier.uff" IdToken;
 import "./pattern.uff" Pattern;
-import "../editor/editor.uff" Highlight NameReference;
+import "../editor/editor.uff" Highlight NameReference Documentation;
 
 export Resolve;
 
@@ -65,7 +65,16 @@ rule ResolveArgTail = "," v:ResolveArg -> v;
 
 rule ResolveArgList = f:ResolveArg r:ResolveArgTail* ","? -> (flat (pack f r));
 
-rule ResolveArgs = "<" a:ResolveArgList? ">" -> (flat (coalesce a []));
+[Documentation {
+  description: "The `>` that ends a rule's arguments.",
+  error: "Expected `>` here to close the rule's arguments, or `,` before the next one."
+}]
+rule ResolveArgsEnd = ">";
+
+rule ResolveArgs =
+  "<" a:ResolveArgList? ResolveArgsEnd
+  -> (flat (coalesce a []))
+;
 
 rule Resolve =
   n:ResolveName a:ResolveArgs?

@@ -14,6 +14,7 @@ import { ModuleImportResultKind } from "../../runtime/resolvers/resolver.ts";
 import { resolve } from "../../runtime/patterns/resolve.ts";
 import { unwrap } from "../../wrapped.ts";
 import { isClean, isSuccess, type Match, valueOf } from "../../match.ts";
+import { explainedMistakesTest } from "../../test.ts";
 
 const moduleUrl = new URL("./expression.lang.uff", import.meta.url);
 
@@ -269,8 +270,10 @@ Deno.test(
         assertEquals(m.kind, MatchKind.Fail);
 
         const visualization = await visualizeMatchFailure(m);
-        assertStringIncludes(visualization, 'Unexpected: "#"');
-        assertStringIncludes(visualization, "source offset 7");
+        // `#)` is a comment, so the sequence's `)` is missing after `1`.
+        assertStringIncludes(visualization, "Unexpected: <end of input>");
+        assertStringIncludes(visualization, "source offset 6");
+        assertStringIncludes(visualization, "> Primary > Sequence");
         assertStringIncludes(
           visualization,
           "[2] OK into -> resolve TokenizerNoWhitespace",
@@ -384,3 +387,11 @@ Deno.test("lang.expression.lang recovers trailing input", async () => {
   assertEquals(valueOf(match), { kind: ExpressionKind.Reference, name: "x" });
   assertEquals(skipped(source, match), [") y"]);
 });
+
+Deno.test(
+  "lang.expression explains mistakes where they occur",
+  explainedMistakesTest([[
+    "rule A = a -> x ‸y;",
+    "The expression is complete here",
+  ]]),
+);

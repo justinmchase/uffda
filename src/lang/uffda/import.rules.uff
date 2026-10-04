@@ -2,8 +2,8 @@
 # (B2). Variable bindings are single-letter (B12). `ImportModulePath` and
 # `ImportNameEntry` exist so editor metadata (see ../editor/editor.uff) marks
 # exactly the path text and each imported name.
-import "./shared.rules.uff" IdentifierToken ImportKeyword;
-import "../editor/editor.uff" Import ModulePath ImportedName;
+import "./shared.rules.uff" IdentifierToken ImportKeyword DeclarationEnd;
+import "../editor/editor.uff" Import ModulePath ImportedName Documentation;
 
 export ImportDeclarationSyntax;
 export ImportNameList;
@@ -12,15 +12,29 @@ export ImportModuleSpecifier;
 [ModulePath { extensions: [".uff"] }]
 rule ImportModulePath = p:(not "\"" & string)* -> (join p "");
 
-rule ImportModuleSpecifier = "\"" p:ImportModulePath "\"" -> p;
+[Documentation {
+  description: "The quoted path of the module an import reads.",
+  error: "An import names its module with a quoted path, as in `import \"./other.uff\" Name;`."
+}]
+rule ImportModuleSpecifier = "\"" p:ImportModulePath ImportModulePathEnd -> p;
+
+[Documentation {
+  description: "The `\"` that ends an import's module path.",
+  error: "The module path is missing its closing `\"`."
+}]
+rule ImportModulePathEnd = "\"";
 
 [ImportedName]
 rule ImportNameEntry = IdentifierToken;
 
+[Documentation {
+  description: "The names an import takes from its module.",
+  error: "An import lists the names it takes after the module path, as in `import \"./other.uff\" A B;`."
+}]
 rule ImportNameList = ImportNameEntry ImportNameEntry* -> (flat _);
 
 [Import]
 rule ImportDeclarationSyntax =
-  ImportKeyword m:ImportModuleSpecifier n:ImportNameList ";"
+  ImportKeyword m:ImportModuleSpecifier n:ImportNameList DeclarationEnd
   -> { kind: "import", moduleUrl: m, names: n }
 ;

@@ -46,6 +46,15 @@ function pointAt(input: Input): SourceSpan {
 }
 
 /**
+ * The source offset just after `input` (see {@link pointAt}). It depends on
+ * which items have been read, so offsets compared with each other should be
+ * taken at the same time.
+ */
+export function sourceOffsetAt(input: Input): number {
+  return pointAt(input).start;
+}
+
+/**
  * The source span of a Match from `start` to `end`, derived from the origins
  * of the input items it consumed (see
  * `.agents/specifications/runtime/value-provenance.spec.md#root-input`): from

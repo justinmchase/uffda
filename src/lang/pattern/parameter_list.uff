@@ -4,6 +4,7 @@
 # inline lambda expressions (expression/lambda.uff). Omitted or empty `<>` means
 # End (no arguments).
 import "./pattern.lang.uff" PatternTokens;
+import "../editor/editor.uff" Documentation;
 
 export ParameterList;
 
@@ -55,7 +56,13 @@ rule ParameterPatterns =
   |> PatternTokens
 ;
 
+[Documentation {
+  description: "The `>` that ends a parameter list.",
+  error: "Expected `>` here to close the parameter list that starts with `<`."
+}]
+rule ParameterListEnd = ">";
+
 rule ParameterList =
-  "<" p:ParameterPatterns? ">"
+  "<" p:ParameterPatterns? ParameterListEnd
   -> (coalesce p { kind: "end" })
 ;

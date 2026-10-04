@@ -7,12 +7,15 @@
 import "../expression/expression.lang.uff" ExpressionTokens;
 import "../pattern/parameter_list.uff" ParameterList;
 import "./shared.rules.uff"
-  IdentifierToken
   FuncKeyword
+  DeclarationName
+  DeclarationEquals
+  DeclarationEnd
   DeclarationBodyEnd
   BodyToken
+  DeclarationKeyword
 ;
-import "../editor/editor.uff" Declaration;
+import "../editor/editor.uff" Declaration Documentation;
 import "./attribute.rules.uff" AttributeSyntax;
 
 export FuncDeclarationSyntax;
@@ -34,6 +37,10 @@ rule FuncQuotedTokenSequence =
   -> (flat (pack o (flat c) e))
 ;
 
+[Documentation {
+  description: "The tokens of a func or decorator body.",
+  error: "A func or decorator needs an expression after `=`, before its `;`."
+}]
 rule FuncExpressionToken =
   (FuncQuotedTokenSequence | not DeclarationBodyEnd & BodyToken)+
   -> (flat _)
@@ -42,12 +49,12 @@ rule FuncExpressionToken =
 [Declaration]
 rule FuncDeclarationSyntax =
   a:AttributeSyntax*
-  FuncKeyword
-  n:IdentifierToken
+  DeclarationKeyword<FuncKeyword>
+  n:DeclarationName
   p:ParameterList?
-  "="
+  DeclarationEquals
   e:FuncExpressionBody
-  ";"
+  DeclarationEnd
   -> {
     kind: "func",
     name: n,

@@ -46,7 +46,7 @@ export function pipeline(
           return m;
         case MatchKind.Fail:
           matches.push(m);
-          return fail(invocationScope, stepPattern, matches);
+          return fail(invocationScope, pattern, matches);
         case MatchKind.Ok: {
           last = m;
           if (i === 0) {

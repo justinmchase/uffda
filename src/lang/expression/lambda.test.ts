@@ -2,7 +2,7 @@ import { Input } from "../../input.ts";
 import { MatchKind } from "../../mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
-import { moduleDeclarationTest } from "../../test.ts";
+import { explainedMistakesTest, moduleDeclarationTest } from "../../test.ts";
 
 const moduleUrl = new URL("./lambda.uff", import.meta.url).href;
 
@@ -118,4 +118,12 @@ Deno.test(
       }),
     });
   },
+);
+
+Deno.test(
+  "lang.expression.lambda explains mistakes where they occur",
+  explainedMistakesTest([[
+    "rule A = a -> <x>‸ ;",
+    "A lambda's parameters are followed by",
+  ]]),
 );

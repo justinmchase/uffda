@@ -296,7 +296,16 @@ async function grow(
 ): Promise<Match> {
   const { pattern } = rule;
   let growing = true;
-  let m: Match = fail(scope, pattern);
+  // The initial seed: what re-entering the head reads before any iteration
+  // has succeeded. It records no attempt at the input.
+  let m: Match = fail(scope, pattern, [], {
+    rule,
+    args: scope.args,
+    seeded: true,
+  });
+  // The iteration that ended growth after a successful seed, rejected: what
+  // growth tried next, kept like a repetition's final failed attempt.
+  let stopped: Match | undefined;
   const start = scope.stream;
 
   while (growing) {
@@ -315,11 +324,13 @@ async function grow(
         // With no successful seed yet, this is the head's only real attempt;
         // its rejected sub-matches stay reachable for diagnostics and tooling.
         if (m.kind === MatchKind.Fail) m = result;
+        else stopped = result;
         growing = false;
         break;
       case MatchKind.Ok:
       case MatchKind.Skip:
         if (!progressed) {
+          stopped = fail(growScope, pattern, [result]);
           growing = false;
         } else {
           const projected = await projectStep(rule, result, growScope);
@@ -335,7 +346,7 @@ async function grow(
       return fail(scope, pattern, [m]);
     case MatchKind.Ok:
     case MatchKind.Skip:
-      return forward(scope, m.scope, pattern, m);
+      return forward(scope, m.scope, pattern, m, stopped ? [m, stopped] : [m]);
   }
 
   return error(

@@ -6,7 +6,7 @@ import "./atomic.uff" Atomic;
 import "./pattern.uff" Pattern;
 import "../common/identifier.uff" IdToken;
 import "../expression/number.uff" Number;
-import "../editor/editor.uff" Keyword;
+import "../editor/editor.uff" Keyword Documentation;
 
 export Prefix;
 export Star;
@@ -22,6 +22,10 @@ rule BoundLiteral = n:NonNegNum -> { kind: "value.literal", value: n };
 
 rule BoundVariable = "$" n:IdToken -> { kind: "value.variable", name: n };
 
+[Documentation {
+  description: "A repetition bound.",
+  error: "A repetition bound is a non-negative number or a `$variable`, as in `a*2..5` or `a*..$n`."
+}]
 rule Bound =
   | BoundVariable
   | BoundLiteral
@@ -126,7 +130,13 @@ rule LookaheadKeyword = "lookahead";
 
 rule Lookahead = LookaheadKeyword p:Prefix -> { kind: "lookahead", pattern: p };
 
-rule Into = "[" p:Pattern "]" -> { kind: "into", pattern: p };
+[Documentation {
+  description: "The `]` that ends an `into` pattern.",
+  error: "Expected `]` here to close the pattern that starts with `[`."
+}]
+rule IntoEnd = "]";
+
+rule Into = "[" p:Pattern IntoEnd -> { kind: "into", pattern: p };
 
 [Keyword]
 rule ExceptKeyword = "except";
@@ -170,15 +180,25 @@ rule SneakByUntil =
   }
 ;
 
+[Documentation {
+  description: "The pattern that skips input after a recovery point fails.",
+  error: "`sneak by` must be followed by the pattern that skips the input after a failure, as in `ope Item sneak by skip any`."
+}]
 rule SneakBy =
   | SneakByUntil
   | Prefix
 ;
 
+[Documentation {
+  description: "The `sneak by` of a recovery point.",
+  error: "`ope` and its pattern must be followed by `sneak by` and the pattern that skips the input after a failure, as in `ope Item sneak by skip any`."
+}]
+rule OpeSneakBy = SneakKeyword ByKeyword;
+
 # `ope P sneak by S` is a recovery point: when `P` fails with recovery enabled,
 # `S` skips the erroneous input instead.
 rule Ope =
-  OpeKeyword p:Prefix SneakKeyword ByKeyword s:SneakBy
+  OpeKeyword p:Prefix OpeSneakBy s:SneakBy
   -> { kind: "recover", pattern: p, skip: s }
 ;
 
@@ -187,6 +207,10 @@ rule Capture =
   -> { kind: "variable", name: n, pattern: p }
 ;
 
+[Documentation {
+  description: "One pattern of a sequence, with its prefix operators and repetition.",
+  error: "Expected a pattern here, such as a rule name, a quoted string, `any`, or a group in `(…)`."
+}]
 rule Prefix =
   | Not
   | Maybe
