@@ -198,13 +198,16 @@ A host grammar that keeps comments (for example the
 [Uffda module grammar](../uffda-syntax/module-structure.spec.md#comments)) turns
 each run of comments on their own lines into one comment node before the pattern
 grammar runs. The pattern grammar accepts comment nodes as members of the
-pattern lists:
+pattern lists. Where a comment node may appear depends only on its position
+between the surrounding tokens, never on the comment's text:
 
 - In an alternation, comment nodes MAY appear before the first alternative,
-  before any `|`, and after the last alternative when it is followed by `)`,
-  `]`, `}`, `>`, or the end of the pattern.
-- In a conjunction, comment nodes MAY appear before any `&`. In a pipeline,
-  before any `|>`. In an ordered sequence, between any two elements.
+  immediately before the `|` that starts any later alternative, and after the
+  last alternative when it is followed by `)`, `]`, `}`, `>`, or the end of the
+  pattern.
+- In a conjunction, comment nodes MAY appear immediately before any `&`. In a
+  pipeline, immediately before any `|>`. In an ordered sequence, between any two
+  elements.
 - A comment node MUST be kept in the list where it appears, in source order, as
   `{ kind: "comment", blocks }`. An alternation that holds a comment node MUST
   NOT collapse to its single alternative, so leading or trailing comments stay

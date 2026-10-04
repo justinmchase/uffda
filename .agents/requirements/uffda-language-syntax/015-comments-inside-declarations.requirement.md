@@ -22,9 +22,10 @@ Preconditions:
 
 Expected behavior:
 
-- A comment on its own line before an alternative, before a `|`, `&`, or `|>`,
-  between sequence elements, between array elements, before or after object
-  entries, or between invocation arguments MUST parse cleanly, and its comment
+- A comment on its own line MUST parse cleanly, whatever its text, when it sits
+  before the first alternative, on the lines before a later alternative's `|`
+  (or before a `&` or `|>`), between sequence elements, between array elements,
+  before or after object entries, or between invocation arguments. Its comment
   node MUST be kept in that list in source order.
 - Commenting out the alternatives of an alternation down to one MUST still
   parse, and the alternation MUST keep its comment nodes.
