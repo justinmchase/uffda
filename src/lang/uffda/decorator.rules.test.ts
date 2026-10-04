@@ -2,6 +2,7 @@ import { assertEquals } from "@std/assert";
 import { MatchKind, valueOf } from "../../match.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { uffdaGrammar } from "./uffda.lang.ts";
+import { explainedMistakesTest } from "../../test.ts";
 
 /**
  * Grammar-level coverage for `decorator Name<params> = expr;` declarations
@@ -72,3 +73,11 @@ Deno.test("lang.uffda.decorator-rules", async (t) => {
     },
   );
 });
+
+Deno.test(
+  "lang.uffda.decorator-rules explains mistakes where they occur",
+  explainedMistakesTest([["decorator ‸= 1;", "A declaration needs a name"], [
+    "decorator D = ‸;",
+    "A func or decorator needs an expression",
+  ]]),
+);

@@ -17,6 +17,12 @@ Resolve only loads that JSON. Never re-lower on import, seed compiler JSON under
 `src/`, or post-process / migrate / rewrite `./bin` after compile. Wrong AST
 shape → publish emitter → install → `compile:lang` again.
 
+**Authoring `.uff` grammars:** see `.cursor/rules/uffda-authoring.mdc` and
+`.github/instructions/uffda-authoring.instructions.md`. Give each required
+element a small documented rule that begins where it may be missing, test every
+explained mistake in the corpus, and prefer correct, then maintainable, then
+performant grammar.
+
 ## Runtime and dependency conventions
 
 - Prefer Deno-native and Web Platform APIs over Node.js APIs.

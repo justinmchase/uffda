@@ -351,9 +351,9 @@ export type MatchFailureAnalysis = {
   moduleUrl: string;
   failureModuleUrl: string;
   /**
-   * What the nearest explained rule enclosing the failure says about errors
-   * in it, from {@link MatchFailureOptions.explain}: asked of the innermost
-   * rule (the one named on the `In` line) first, then outward.
+   * What the rule that explains the failure says about errors in it, from
+   * {@link MatchFailureOptions.explain}: the innermost explained rule that
+   * began where every innermost failure tied for focus failed.
    */
   explanation?: string;
 };

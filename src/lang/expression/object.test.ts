@@ -5,7 +5,7 @@ import { expressionGrammar } from "./expression.lang.ts";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
-import { moduleDeclarationTest } from "../../test.ts";
+import { explainedMistakesTest, moduleDeclarationTest } from "../../test.ts";
 
 const moduleUrl = new URL("./object.uff", import.meta.url).href;
 
@@ -233,3 +233,14 @@ Deno.test({
     });
   },
 });
+
+Deno.test(
+  "lang.expression.object explains mistakes where they occur",
+  explainedMistakesTest([[
+    "rule A = a -> { a ‸};",
+    "Each entry of an object is a key",
+  ], [
+    "rule A = a -> { a: 1 ‸b: 2 };",
+    "Expected `,` here before the object's",
+  ]]),
+);

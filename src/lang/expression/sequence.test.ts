@@ -5,7 +5,7 @@ import { expressionGrammar } from "./expression.lang.ts";
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
-import { moduleDeclarationTest } from "../../test.ts";
+import { explainedMistakesTest, moduleDeclarationTest } from "../../test.ts";
 
 const moduleUrl = new URL("./sequence.uff", import.meta.url).href;
 
@@ -200,3 +200,11 @@ Deno.test({
     });
   },
 });
+
+Deno.test(
+  "lang.expression.sequence explains mistakes where they occur",
+  explainedMistakesTest([[
+    "rule A = a -> (‸;",
+    "A call starts with the function",
+  ], ["rule A = a -> (f‸;", "Expected `)` here to close the call"]]),
+);

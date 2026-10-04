@@ -11,7 +11,7 @@ import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { Type } from "@justinmchase/type";
 import { assert, assertEquals } from "@std/assert";
 import { patternGrammar } from "./pattern.lang.ts";
-import { moduleDeclarationTest } from "../../test.ts";
+import { explainedMistakesTest, moduleDeclarationTest } from "../../test.ts";
 import { unwrap } from "../../wrapped.ts";
 
 const moduleUrl = new URL("./pattern.lang.uff", import.meta.url).href;
@@ -701,3 +701,8 @@ Deno.test("lang.pattern.lang recovers trailing input", async () => {
   assert(isSuccess(clean));
   assertEquals(clean.recovered, undefined);
 });
+
+Deno.test(
+  "lang.pattern explains mistakes where they occur",
+  explainedMistakesTest([["rule A = a‸);", "The pattern is complete here"]]),
+);

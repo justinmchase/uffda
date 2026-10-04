@@ -1,6 +1,6 @@
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../mod.ts";
-import { moduleDeclarationTest } from "../../test.ts";
+import { explainedMistakesTest, moduleDeclarationTest } from "../../test.ts";
 
 const moduleUrl = new URL("./comment.uff", import.meta.url).href;
 
@@ -79,4 +79,12 @@ Deno.test(
       }),
     });
   },
+);
+
+Deno.test(
+  "lang.common.comment explains mistakes where they occur",
+  explainedMistakesTest([[
+    "rule A =\n  a # note‸\n;",
+    "Comments are part of the syntax",
+  ]]),
 );

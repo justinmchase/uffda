@@ -1,6 +1,11 @@
 import { assertEquals } from "@std/assert";
 import { Input, InputNormalizationMode } from "./input.ts";
-import { leafOffset, sourceSpanFrom, spanFrom } from "./span.ts";
+import {
+  leafOffset,
+  sourceOffsetAt,
+  sourceSpanFrom,
+  spanFrom,
+} from "./span.ts";
 import { Scope } from "./runtime/scope.ts";
 import { Path } from "./path.ts";
 import { Wrapped } from "./wrapped.ts";
@@ -56,6 +61,18 @@ Deno.test("span", async (t) => {
       await first.next();
       const at = Scope.From(first);
       assertEquals(sourceSpanFrom(at, at), { start: 7, end: 7 });
+    },
+  );
+
+  await t.step(
+    "sourceOffsetAt is where a zero-width span there would be",
+    async () => {
+      const stream = tokens();
+      assertEquals(sourceOffsetAt(stream), 0);
+      const first = await stream.next();
+      assertEquals(sourceOffsetAt(first), 6);
+      await first.next();
+      assertEquals(sourceOffsetAt(first), 7);
     },
   );
 

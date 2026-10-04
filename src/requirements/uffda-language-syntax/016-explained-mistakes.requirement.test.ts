@@ -1,10 +1,4 @@
-import { assert, assertEquals, assertStringIncludes } from "@std/assert";
-import {
-  analyzeMatchFailure,
-  diagnoseRecoveries,
-} from "../../cli/diagnostics.ts";
-import { uffdaGrammar } from "../../lang/uffda/uffda.lang.ts";
-import { isSuccess } from "../../match.ts";
+import { explainedMistakesTest } from "../../test.ts";
 
 // Each mistake marks with `‸` the source offset its diagnostic points at, and
 // gives the start of the explanation it leads with.
@@ -93,18 +87,5 @@ const mistakes: [string, string][] = [
 
 Deno.test(
   "req:uffda-language-syntax-016 - common mistakes are explained where they occur",
-  async (t) => {
-    for (const [marked, explanation] of mistakes) {
-      await t.step(JSON.stringify(marked), async () => {
-        const source = marked.replace("‸", "");
-        const match = await uffdaGrammar(source);
-        const [diagnostic] = await diagnoseRecoveries(match);
-        const analysis = diagnostic?.analysis ??
-          (isSuccess(match) ? undefined : await analyzeMatchFailure(match));
-        assert(analysis, "expected a diagnostic");
-        assertEquals(analysis.sourceOffset, marked.indexOf("‸"));
-        assertStringIncludes(analysis.explanation ?? "", explanation);
-      });
-    }
-  },
+  explainedMistakesTest(mistakes),
 );

@@ -28,6 +28,8 @@ import type { Match } from "./mod.ts";
 import type { Path } from "./path.ts";
 import type { RuleDeclaration } from "./runtime/declarations/mod.ts";
 import { unwrap } from "./wrapped.ts";
+import { analyzeMatchFailure, diagnoseRecoveries } from "./cli/diagnostics.ts";
+import { uffdaGrammar } from "./lang/uffda/uffda.lang.ts";
 
 type ExpressionTestOptions = {
   scope?: Scope;
@@ -652,4 +654,31 @@ async function assertOk(m: MatchSuccess, assertion: MatchAssertion) {
       m,
     )}`,
   );
+}
+
+/**
+ * Steps asserting that each Uffda module, with `‸` marking a source offset,
+ * is first diagnosed at that offset, leading with an explanation that includes
+ * the given text.
+ */
+export function explainedMistakesTest(mistakes: [string, string][]) {
+  return async (t: Deno.TestContext) => {
+    for (const [marked, explanation] of mistakes) {
+      await t.step(JSON.stringify(marked), async () => {
+        const source = marked.replace("‸", "");
+        const match = await uffdaGrammar(source);
+        const [diagnostic] = await diagnoseRecoveries(match);
+        const analysis = diagnostic?.analysis ??
+          (isSuccess(match) ? undefined : await analyzeMatchFailure(match));
+        assert(analysis, "expected a diagnostic");
+        assertEquals(analysis.sourceOffset, marked.indexOf("‸"));
+        assert(
+          analysis.explanation?.includes(explanation),
+          `expected an explanation including ${
+            JSON.stringify(explanation)
+          }, got ${JSON.stringify(analysis.explanation)}`,
+        );
+      });
+    }
+  };
 }

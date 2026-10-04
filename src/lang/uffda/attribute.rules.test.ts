@@ -3,6 +3,7 @@ import { MatchKind, valueOf } from "../../match.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { lit } from "../../runtime/patterns/value_source.ts";
 import { uffdaGrammar } from "./uffda.lang.ts";
+import { explainedMistakesTest } from "../../test.ts";
 
 /**
  * Grammar-level coverage for `[Name]` / `[Name arg1 arg2]` attribute syntax
@@ -127,3 +128,11 @@ Deno.test("lang.uffda.attribute-rules", async (t) => {
     },
   );
 });
+
+Deno.test(
+  "lang.uffda.attribute-rules explains mistakes where they occur",
+  explainedMistakesTest([[
+    "[Foo rule A ‸= a;",
+    "Expected `]` here to close the attribute",
+  ], ["[‸] rule A = a;", "An attribute starts with the name"]]),
+);

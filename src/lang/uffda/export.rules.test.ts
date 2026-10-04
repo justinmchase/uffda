@@ -3,6 +3,7 @@ import { isClean, MatchKind, valueOf } from "../../match.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { uffdaGrammar } from "./uffda.lang.ts";
 import { unwrap } from "../../wrapped.ts";
+import { explainedMistakesTest } from "../../test.ts";
 
 Deno.test("lang.uffda.export-rules parses direct export names", async () => {
   const match = await uffdaGrammar("export Main Other; rule Main = any;");
@@ -61,4 +62,12 @@ Deno.test(
       assertEquals(unwrap(inline.value), unwrap(split.value));
     }
   },
+);
+
+Deno.test(
+  "lang.uffda.export-rules explains mistakes where they occur",
+  explainedMistakesTest([
+    ["export ‸;", "`export` is followed by a declaration"],
+    ["export ‸1;", "`export` is followed by a declaration"],
+  ]),
 );

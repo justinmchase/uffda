@@ -1,7 +1,7 @@
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../mod.ts";
 import { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
-import { moduleDeclarationTest } from "../../test.ts";
+import { explainedMistakesTest, moduleDeclarationTest } from "../../test.ts";
 
 const moduleUrl = new URL("./primary.uff", import.meta.url).href;
 
@@ -80,4 +80,12 @@ Deno.test(
       }),
     });
   },
+);
+
+Deno.test(
+  "lang.expression.primary explains mistakes where they occur",
+  explainedMistakesTest([[
+    "rule A = a -> { a: ‸};",
+    "Expected an expression here",
+  ], ["rule A = a -> <x> ->‸ ;", "Expected an expression here"]]),
 );

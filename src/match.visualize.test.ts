@@ -159,6 +159,31 @@ Deno.test("match.visualize chooses the reported failure", async (t) => {
     return [s0, s1, s2] as const;
   };
 
+  await t.step("a shared failure by its least absorbed path", async () => {
+    const [s0, s1] = await positions();
+    const shared = fail(s1, equal("x"));
+    const match = fail(s0, then, [
+      ok(s0, s1, equal("a"), "a", [fail(s1, equal("z")), shared]),
+      shared,
+    ]);
+    const analysis = await analyzeMatchFailure(match);
+    assertEquals(analysis?.pattern, 'equal "x"');
+  });
+
+  await t.step("not a failure that only reads a failing seed", async () => {
+    const [s0, s1, s2] = await positions();
+    const head = rule("Head", s2);
+    const match = fail(s0, then, [
+      ok(s0, s1, equal("a"), "a"),
+      fail(s1, equal("x")),
+      fail(s2, resolve("Head"), [
+        fail(s2, then, [], { rule: head, args: new Map(), seeded: true }),
+      ]),
+    ]);
+    const analysis = await analyzeMatchFailure(match);
+    assertEquals(analysis?.pattern, 'equal "x"');
+  });
+
   await t.step("the failure furthest into the source", async () => {
     const [s0, s1] = await positions();
     const match = fail(s0, then, [

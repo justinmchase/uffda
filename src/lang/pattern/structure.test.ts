@@ -1,7 +1,7 @@
 import { Input } from "../../input.ts";
 import { MatchKind } from "../../mod.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
-import { moduleDeclarationTest } from "../../test.ts";
+import { explainedMistakesTest, moduleDeclarationTest } from "../../test.ts";
 
 const moduleUrl = new URL("./structure.uff", import.meta.url).href;
 
@@ -70,3 +70,12 @@ Deno.test({
     });
   },
 });
+
+Deno.test(
+  "lang.pattern.structure explains mistakes where they occur",
+  explainedMistakesTest([
+    ["rule A = (a‸;", "Expected `)` here to close the group"],
+    ["rule A = {a: x‸;", "Expected `}` here to close the object pattern"],
+    ["rule A = { a ‸};", "Each entry of an object pattern is a key"],
+  ]),
+);
