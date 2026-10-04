@@ -15,7 +15,7 @@ Deno.test("req:error-recovery-009 - built-in grammar recovery points", async (t)
     for (
       const clean of [
         await uffdaGrammar(
-          'import "a" A;\nexport B;\nrule B = a b -> (f [1 2] { k: 3 });',
+          'import "./a.uff" A;\nexport B;\nrule B = a b -> (f [1 2] { k: 3 });',
         ),
         await patternGrammar("a (b | c)* -> [1 2]"),
         await expressionGrammar("(f [1 2] { k: 3 })"),
@@ -32,9 +32,9 @@ Deno.test("req:error-recovery-009 - built-in grammar recovery points", async (t)
 
   await t.step("broken declarations are skipped, the rest kept", async () => {
     const source = [
-      'import "a" A;',
-      'import "b";',
-      'import "c" C;',
+      'import "./a.uff" A;',
+      'import "./b.uff";',
+      'import "./c.uff" C;',
       "rule D = ;",
       "rule E = e",
       "rule F = f ! g;",
@@ -43,7 +43,7 @@ Deno.test("req:error-recovery-009 - built-in grammar recovery points", async (t)
     const match = await uffdaGrammar(source);
     assert(isSuccess(match));
     assertEquals(skipped(source, match), [
-      'import "b";',
+      'import "./b.uff";',
       "rule D = ;",
       "rule E = e",
       "!",
@@ -57,7 +57,7 @@ Deno.test("req:error-recovery-009 - built-in grammar recovery points", async (t)
           ? d.kind
           : d.name
       ),
-      ["a", "c", "F", "G"],
+      ["./a.uff", "./c.uff", "F", "G"],
     );
   });
 });

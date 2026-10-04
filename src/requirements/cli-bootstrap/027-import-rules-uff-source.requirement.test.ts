@@ -12,7 +12,10 @@ Deno.test(
     assertEquals(importRules.includes("export ImportDeclarationSyntax"), true);
     assertEquals(importRules.includes("export ImportNameList"), true);
     assertEquals(importRules.includes("export ImportModuleSpecifier"), true);
-    assertEquals(importRules.includes('(join p "")'), true);
+    assertEquals(
+      importRules.includes('import "./specifier.rules.uff" ModuleSpecifier;'),
+      true,
+    );
     assertEquals(importRules.includes("(flat _)"), true);
     assertEquals(
       importRules.includes('{ kind: "import", moduleUrl: m, names: n }'),

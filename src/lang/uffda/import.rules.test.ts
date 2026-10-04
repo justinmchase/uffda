@@ -4,6 +4,7 @@ Deno.test(
   explainedMistakesTest([
     ["import ‸A;", "An import names its module with a quoted path"],
     ['import "./a.uff"‸;', "An import lists the names"],
-    ['import "./a.uff A;‸', "The module path is missing its closing"],
+    ['import "./a.uff‸ A;', 'Expected `"` here to end the module path'],
+    ['import "./a‸ b.uff" A;', 'Expected `"` here to end the module path'],
   ]),
 );

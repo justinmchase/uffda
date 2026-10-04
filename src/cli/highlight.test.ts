@@ -166,7 +166,7 @@ Deno.test("cli.highlight classifies uffda module source by syntactic role", asyn
     "source that fails to parse still returns best-effort, gap-free spans plus a diagnostic",
     async () => {
       // Missing semicolon after the import declaration.
-      const source = 'import "x.uff" A\nrule B = any;\n';
+      const source = 'import "./x.uff" A\nrule B = any;\n';
       const result = await highlightSource(source, CliLanguage.FullUffda);
       assert(!result.ok);
       assertEquals(result.error.code, "CLI_STREAM_PARSE_RECOVERED");

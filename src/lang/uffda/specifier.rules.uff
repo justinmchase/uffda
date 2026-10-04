@@ -1,0 +1,104 @@
+# Module specifiers: the text inside an import's quotes (see
+# languages/uffda-syntax/imports.spec.md). The tokenizer delivers it as word
+# runs and single punctuation characters. A specifier is a relative path, a
+# module name (an alias from the project file), or a full `jsr:` specifier, and
+# projects to its text. Variable bindings are single-letter (published CLI
+# PatternLang).
+import "../editor/editor.uff" Documentation;
+
+export ModuleSpecifier;
+
+rule AsciiWordChar =
+  | "a".."z"
+  | "A".."Z"
+  | "0".."9"
+  | "_"
+;
+
+rule AsciiWord = w:string & [AsciiWordChar+] -> w;
+
+rule SegmentPart =
+  | AsciiWord
+  | "."
+  | "-"
+;
+
+rule DotSegment = "." "."? not SegmentPart;
+
+[Documentation {
+  description: "One segment of a module specifier.",
+  error: "Expected a path segment here: ASCII letters, digits, `_`, `.` or `-`, but not `.` or `..` on its own."
+}]
+rule Segment = not DotSegment p:SegmentPart+ -> (join p "");
+
+rule SegmentTail = "/" s:Segment -> (join ["/" s] "");
+
+rule SegmentPath = f:Segment r:SegmentTail* -> (join (flat (pack f r)) "");
+
+rule CurrentDirectory = "." "/" -> "./";
+
+rule ParentDirectory = "." "." "/" -> "../";
+
+rule RelativePrefix =
+  | CurrentDirectory
+  | (p:ParentDirectory+ -> (join p ""))
+;
+
+rule RelativePath = p:RelativePrefix s:SegmentPath -> (join [p s] "");
+
+rule ModuleName = "@" s:SegmentPath -> (join ["@" s] "");
+
+rule SemverPart =
+  | AsciiWord
+  | "."
+  | "^"
+  | "~"
+  | "*"
+  | "<"
+  | ">"
+  | "="
+  | "-"
+  | "+"
+;
+
+[Documentation {
+  description: "The version range of a `jsr:` specifier.",
+  error: "Expected a version range after `@`, as in `jsr:@acme/kv@^1.2.0`."
+}]
+rule SemverRange = p:SemverPart+ -> (join p "");
+
+rule JsrVersion = "@" r:SemverRange -> (join ["@" r] "");
+
+[Documentation {
+  description: "The `@` that starts a `jsr:` package's scope.",
+  error: "A `jsr:` specifier names a package by scope and name, as in `jsr:@acme/kv`."
+}]
+rule JsrScope = "@";
+
+[Documentation {
+  description: "The `/` between a `jsr:` package's scope and name.",
+  error: "Expected `/` and the package name after the scope, as in `jsr:@acme/kv`."
+}]
+rule JsrNameSeparator = "/";
+
+rule JsrSpecifier =
+  "jsr"
+  ":"
+  JsrScope
+  s:Segment
+  JsrNameSeparator
+  n:Segment
+  v:JsrVersion?
+  e:SegmentTail*
+  -> (join ["jsr:@" s "/" n (coalesce v "") (join e "")] "")
+;
+
+[Documentation {
+  description: "A module specifier.",
+  error: "A module is named by a relative path starting with `./` or `../`, a module name starting with `@`, or a `jsr:` specifier, as in `\"./tokens.uff\"`, `\"@acme/kv\"` or `\"jsr:@acme/kv@^1.2.0\"`."
+}]
+rule ModuleSpecifier =
+  | RelativePath
+  | ModuleName
+  | JsrSpecifier
+;

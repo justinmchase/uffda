@@ -17,9 +17,10 @@ Expected behavior:
 
 - `src/lang/uffda/import.rules.uff` MUST export `ImportDeclarationSyntax`,
   `ImportNameList`, and `ImportModuleSpecifier`.
-- `ImportModuleSpecifier` MUST project the quoted path, whose parts are joined
-  with `(join p "")` by an inner `[ModulePath]` rule covering exactly the path
-  text.
+- `ImportModuleSpecifier` MUST project the quoted path through an inner
+  `[ModulePath]` rule covering exactly the path text, parsed by
+  `ModuleSpecifier` from `src/lang/uffda/specifier.rules.uff` (see
+  [module specifiers](../../specifications/languages/uffda-syntax/imports.spec.md#module-specifiers)).
 - `ImportNameList` MUST flatten one or more `[ImportedName]`-annotated
   `IdentifierToken` entries with `(flat _)`.
 - `ImportDeclarationSyntax` MUST be `[Import]`-annotated and project
