@@ -269,4 +269,27 @@ Deno.test("runtime.recovery", async (t) => {
       );
     },
   );
+  await t.step(
+    "RECOVERY09 - a recovery carries the matches that ended where it began",
+    async () => {
+      const m = await matchWithRecovery(
+        run,
+        await moduleScope(statements, "ab;xx;"),
+      );
+      const [{ preceding }] = collectRecoveries(m);
+      assertEquals(
+        preceding.map((match) => {
+          assert(match.kind !== MatchKind.LR);
+          return [match.span.start.toString(), match.span.end.toString()];
+        }),
+        [["[0]", "[3]"]],
+      );
+
+      const first = await matchWithRecovery(
+        run,
+        await moduleScope(statements, "xx;"),
+      );
+      assertEquals(collectRecoveries(first)[0].preceding, []);
+    },
+  );
 });

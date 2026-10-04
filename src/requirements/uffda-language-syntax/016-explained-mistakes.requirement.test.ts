@@ -1,0 +1,110 @@
+import { assert, assertEquals, assertStringIncludes } from "@std/assert";
+import {
+  analyzeMatchFailure,
+  diagnoseRecoveries,
+} from "../../cli/diagnostics.ts";
+import { uffdaGrammar } from "../../lang/uffda/uffda.lang.ts";
+import { isSuccess } from "../../match.ts";
+
+// Each mistake marks with `‸` the source offset its diagnostic points at, and
+// gives the start of the explanation it leads with.
+const mistakes: [string, string][] = [
+  ["rule A = a‸", "A declaration ends with `;`. Add one at the"],
+  ["rule A = a\n‸rule B = b;", "A declaration ends with `;`. Add one at the"],
+  ["rule A = ‸;", "A rule needs a pattern after `=`, before"],
+  ["rule ‸= a;", "A declaration needs a name after its"],
+  ["rule A ‸a;", "Expected `=` here: a declaration's name and"],
+  ["rule A =‸= a;", "Expected a pattern here, such as a rule"],
+  ["rule ‸1A = a;", "A declaration needs a name after its"],
+  ["rule ‸rule = a;", "A declaration needs a name after its"],
+  ["rule A<P ‸= P;", "A rule's parameter list ends with `>`:"],
+  ["rule A<‸1> = a;", "A rule's parameter list ends with `>`:"],
+  ["func F = ‸;", "A func or decorator needs an expression"],
+  ["func F<x> = (‸;", "A call starts with the function to call"],
+  ["func ‸= 1;", "A declaration needs a name after its"],
+  ["func F<x = x;‸", "Expected `>` here to close the parameter"],
+  ["func F ‸x = x;", "Expected `=` here: a declaration's name and"],
+  ["decorator D = ‸;", "A func or decorator needs an expression"],
+  ["decorator ‸= 1;", "A declaration needs a name after its"],
+  ["import ‸A;", "An import names its module with a quoted"],
+  ['import "./a.uff"‸;', "An import lists the names it takes after"],
+  ['import "./a.uff" A‸', "A declaration ends with `;`. Add one at the"],
+  ['import "./a.uff A;‸', 'The module path is missing its closing `"`.'],
+  ["import ‸./a.uff A;", "An import names its module with a quoted"],
+  ["export ‸;", "`export` is followed by a declaration"],
+  ["export A‸", "A declaration ends with `;`. Add one at the"],
+  ["export ‸1;", "`export` is followed by a declaration"],
+  ["[Foo rule A ‸= a;", "Expected `]` here to close the attribute,"],
+  ["[‸] rule A = a;", "An attribute starts with the name of a"],
+  ["[Foo] ‸;", "Expected a declaration here: `rule`, `func`"],
+  ["rule A = (a‸;", "Expected `)` here to close the group that"],
+  ["rule A = a‸);", "The pattern is complete here, so this"],
+  ["rule A = [a‸;", "Expected `]` here to close the pattern that"],
+  ["rule A = a‸];", "The pattern is complete here, so this"],
+  ["rule A = {a: x‸;", "Expected `}` here to close the object"],
+  ['rule A = "abc‸;', 'This string is missing its closing `"`.'],
+  ["rule A = a |‸;", "Expected a pattern here, such as a rule"],
+  ["rule A = |‸ ;", "Expected a pattern here, such as a rule"],
+  ["rule A = a &‸;", "Expected a pattern here, such as a rule"],
+  ["rule A = ‸& a;", "Expected a pattern here, such as a rule"],
+  ["rule A = |>‸ ;", "Expected a pattern here, such as a rule"],
+  ["rule A = a |>‸;", "Expected a pattern here, such as a rule"],
+  ["rule A = x:‸ ;", "Expected a pattern here, such as a rule"],
+  ["rule A = a:‸;", "Expected a pattern here, such as a rule"],
+  ["rule A = ‸:a;", "Expected a pattern here, such as a rule"],
+  ["rule A = a*..‸;", "A repetition bound is a non-negative number"],
+  ["rule A = a{‸;", "Expected `}` here to close the object"],
+  ["rule A = ope a‸;", "`ope` and its pattern must be followed by"],
+  ["rule A = ope a sneak by‸;", "`sneak by` must be followed by the pattern"],
+  ["rule A = in[‸;", "`in [ … ]` lists one or more literal"],
+  ["rule A = $‸;", "`$` must be followed by the name of a"],
+  ["rule A = { a ‸};", "Each entry of an object pattern is a key,"],
+  ["rule A = { a: ‸};", "Expected a pattern here, such as a rule"],
+  ["rule A = { a ‸b };", "Each entry of an object pattern is a key,"],
+  ["rule A = { ‸...};", "Expected `}` here to close the object"],
+  ['rule A = switch { "a": ‸};', "Expected a pattern here, such as a rule"],
+  ["rule A = a -> ‸;", "`->` must be followed by the expression the"],
+  ["rule A = a -> (‸;", "A call starts with the function to call"],
+  ["rule A = a -> [x‸;", "Expected `]` here to close the array that"],
+  ["rule A = a -> { a: ‸};", "Expected an expression here, such as a"],
+  ["rule A = a -> (f‸;", "Expected `)` here to close the call that"],
+  ["rule A = a -> (f x y‸;", "Expected `)` here to close the call that"],
+  ['rule A = a -> "x{"‸;', 'This string is missing its closing `"`.'],
+  ["rule A = a -> <x>‸ ;", "A lambda's parameters are followed by `->`"],
+  ["rule A = a -> <x> ->‸ ;", "Expected an expression here, such as a"],
+  ["rule A = a -> x.‸;", "A `.` must be followed by the name of the"],
+  ["rule A = a -> a.b.‸;", "A `.` must be followed by the name of the"],
+  ["rule A = a -> [...‸];", "Expected an expression here, such as a"],
+  ["rule A = a -> { a ‸};", "Each entry of an object is a key, `:`, and"],
+  [
+    "rule A = a -> { a: 1 ‸b: 2 };",
+    "Expected `,` here before the object's next",
+  ],
+  ["rule A = a -> x ‸y;", "The expression is complete here, so nothing"],
+  ["rule A =\n  a # note‸\n;", "Comments are part of the syntax: inside a"],
+  ["rule A = a\n  | b # why‸\n;", "Comments are part of the syntax: inside a"],
+  ["rule A = ‸) ;", "Expected a pattern here, such as a rule"],
+  ["export A B‸", "A declaration ends with `;`. Add one at the"],
+  ["rule A = a -> (f x‸;", "Expected `)` here to close the call that"],
+  ['import "./a.uff" ‸;', "An import lists the names it takes after"],
+  ['rule A = a -> "a{x‸";', "An interpolation holds one expression and"],
+  ['rule A = a -> "a{x ‸y}";', "An interpolation holds one expression and"],
+];
+
+Deno.test(
+  "req:uffda-language-syntax-016 - common mistakes are explained where they occur",
+  async (t) => {
+    for (const [marked, explanation] of mistakes) {
+      await t.step(JSON.stringify(marked), async () => {
+        const source = marked.replace("‸", "");
+        const match = await uffdaGrammar(source);
+        const [diagnostic] = await diagnoseRecoveries(match);
+        const analysis = diagnostic?.analysis ??
+          (isSuccess(match) ? undefined : await analyzeMatchFailure(match));
+        assert(analysis, "expected a diagnostic");
+        assertEquals(analysis.sourceOffset, marked.indexOf("‸"));
+        assertStringIncludes(analysis.explanation ?? "", explanation);
+      });
+    }
+  },
+);

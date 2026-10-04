@@ -31,7 +31,7 @@ Deno.test("match.visualize renders pipeline failures and terminates on cycles", 
     };
     const firstMatch = ok(scope, scope, first, "tokenized");
     const secondMatch = fail(scope, second);
-    const pipelineMatch = fail(scope, second, [firstMatch, secondMatch]);
+    const pipelineMatch = fail(scope, pipeline, [firstMatch, secondMatch]);
     const match = fail(scope, pipeline, [pipelineMatch]);
 
     const visualization = await visualizeMatchFailure(match);
@@ -46,6 +46,24 @@ Deno.test("match.visualize renders pipeline failures and terminates on cycles", 
     assertStringIncludes(visualization, "Failure tree:");
     assertEquals(visualization.includes("Wrapped"), false);
   });
+
+  await t.step(
+    "renders a pipeline that fails before its last step",
+    async () => {
+      const scope = Scope.From(Input.Iterable("#"));
+      const first = { kind: PatternKind.Equal, value: lit("a") } as const;
+      const pipeline: PipelinePattern = {
+        kind: PatternKind.Pipeline,
+        steps: [first, { kind: PatternKind.Any }],
+      };
+      const match = fail(scope, pipeline, [fail(scope, first)]);
+
+      const visualization = await visualizeMatchFailure(match);
+
+      assertStringIncludes(visualization, '[1] FAIL equal "a"');
+      assertEquals(visualization.includes("[2]"), false);
+    },
+  );
 
   await t.step(
     "summarizeMatchFailure shares Unexpected/Expected with the visualizer",

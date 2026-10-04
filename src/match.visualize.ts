@@ -247,26 +247,18 @@ function selectDiagnosticFocus(
   return { node, began: beganRuleFrames(tied) };
 }
 
+/**
+ * The stages a pipeline match ran, in order: every step when it succeeded,
+ * through the failing step when it failed. `undefined` for any other match,
+ * including a rule's match wrapping its pipeline body.
+ */
 function pipelineStages(match: Match): Match[] | undefined {
   if (match.pattern.kind !== PatternKind.Pipeline) return undefined;
   const { steps } = match.pattern;
-  const direct = childrenOf(match);
-  if (
-    direct.length === steps.length &&
-    direct.every((child, index) => Object.is(child.pattern, steps[index]))
-  ) {
-    return direct;
-  }
-  if (direct.length !== 1) return undefined;
-
-  const nested = childrenOf(direct[0]);
-  if (
-    nested.length === steps.length &&
-    nested.every((child, index) => Object.is(child.pattern, steps[index]))
-  ) {
-    return nested;
-  }
-  return undefined;
+  const stages = childrenOf(match);
+  const ran = stages.length > 0 && stages.length <= steps.length &&
+    stages.every((stage, index) => Object.is(stage.pattern, steps[index]));
+  return ran ? stages : undefined;
 }
 
 function markRelevant(

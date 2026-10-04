@@ -524,6 +524,22 @@ Deno.test("runtime.patterns.pipeline", async (t) => {
       assertEquals(unwrap(m.value), 5);
     },
   });
+
+  await t.step({
+    name: "PIPELINE11 a failure reports the pipeline and the steps it ran",
+    fn: async () => {
+      const first = { kind: PatternKind.Equal, value: lit("a") } as const;
+      const pipeline: Pattern = {
+        kind: PatternKind.Pipeline,
+        steps: [first, { kind: PatternKind.Any }],
+      };
+      const m = await match(pipeline, Scope.From(Input.Iterable("b")));
+      assertEquals(m.kind, MatchKind.Fail);
+      if (m.kind !== MatchKind.Fail) return;
+      assertEquals(m.pattern, pipeline);
+      assertEquals(m.matches.map((step) => step.pattern), [first]);
+    },
+  });
 });
 
 Deno.test("runtime.patterns.pipeline open input", async (t) => {

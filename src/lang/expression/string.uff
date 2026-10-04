@@ -43,7 +43,13 @@ rule InterpolationCode =
   -> (flat _)
 ;
 
-rule InterpolationValue = v:Primary end -> v;
+[Documentation {
+  description: "The end of an interpolation's one expression.",
+  error: "An interpolation holds one expression and then `}`, as in `\{name}`. Expected `}` here."
+}]
+rule InterpolationValueEnd = end;
+
+rule InterpolationValue = v:Primary InterpolationValueEnd -> v;
 
 [Documentation {
   description: "The `}` that ends an interpolation in a string.",

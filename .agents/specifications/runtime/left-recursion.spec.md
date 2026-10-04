@@ -67,8 +67,19 @@ through other rules.
   as a child, so the sub-matches it accumulated before failing stay reachable
   for diagnostics and tooling (see
   [editor metadata](../languages/cli/editor-metadata.spec.md#walking-the-parse)).
-  Iterations superseded by a successful seed, and the final non-progressing
-  iteration after one, are not recorded.
+  Iterations superseded by a successful seed are not recorded. The iteration
+  that ends growth after a seed succeeded is a rejected attempt: the head's
+  success MUST record it as a failure child after the seed (an iteration that
+  succeeded without progressing, wrapped in a failure), as a repetition records
+  its final failed attempt (see
+  [quantifier](../patterns/runtime/quantifier.spec.md)), so diagnostics can see
+  what growth tried next (see
+  [match diagnostics](./match-diagnostics.spec.md#failure-focus)) while the
+  accepted parse stays the seed's.
+- The initial failing seed records no attempt at the input. Re-entries that read
+  it MUST be able to tell it apart from a failure of the input (its match origin
+  is marked seeded), so diagnostics do not report it (see
+  [match diagnostics](./match-diagnostics.spec.md#failure-focus)).
 - The head of a cycle is the first invocation of that cycle entered at the
   position. The outcome of a mutual cycle therefore depends on which of its
   rules is entered first; for a given grammar and input it MUST be
