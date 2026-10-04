@@ -36,6 +36,12 @@ export function matchWithRecovery(
 export type Recovery = {
   match: MatchSuccess;
   failure: MatchFail;
+  /**
+   * The matches before the recovery in the same sequence, which ended where
+   * it began. What they failed to match past their end is why the input the
+   * recovery skipped was left over.
+   */
+  preceding: Match[];
 };
 
 /**
@@ -47,7 +53,20 @@ export function collectRecoveries(root: Match): Recovery[] {
   const recoveries: Recovery[] = [];
   if (!root.scope.recovery) return recoveries;
   const visited = new Set<Match>();
-  const visit = (node: Match): void => {
+  const visitChildren = (
+    children: Match[],
+    preceding: Match[],
+    include: (child: Match) => boolean,
+  ): void => {
+    // A child's preceding matches are its earlier siblings or, for a first
+    // child, its parent's.
+    children.forEach((child, i) => {
+      if (include(child)) {
+        visit(child, i > 0 ? children.slice(0, i) : preceding);
+      }
+    });
+  };
+  const visit = (node: Match, preceding: Match[]): void => {
     if (visited.has(node)) return;
     visited.add(node);
     switch (node.kind) {
@@ -58,18 +77,16 @@ export function collectRecoveries(root: Match): Recovery[] {
           node.pattern.kind === PatternKind.Recover &&
           failure?.kind === MatchKind.Fail
         ) {
-          recoveries.push({ match: node, failure });
+          recoveries.push({ match: node, failure, preceding });
         }
-        for (const child of node.matches) {
-          if (isRecovered(child)) visit(child);
-        }
+        visitChildren(node.matches, preceding, isRecovered);
         return;
       }
       case MatchKind.Fail:
-        for (const child of node.matches) visit(child);
+        visitChildren(node.matches, preceding, () => true);
         return;
     }
   };
-  visit(root);
+  visit(root, []);
   return recoveries;
 }

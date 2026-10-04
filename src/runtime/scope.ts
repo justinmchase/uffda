@@ -219,7 +219,11 @@ export class Scope {
       args,
       this.stream,
       this.memos,
-      this.stack.push({ kind: StackFrameKind.Rule, rule }),
+      this.stack.push({
+        kind: StackFrameKind.Rule,
+        rule,
+        input: this.stream,
+      }),
       this.options,
       this.recovery,
     );

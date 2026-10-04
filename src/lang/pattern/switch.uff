@@ -9,7 +9,7 @@
 import "./pattern.uff" Pattern;
 import "./character_class.uff" CharacterClass;
 import "./literals.uff" ContextualValue AtomicLiteralSource;
-import "../editor/editor.uff" Keyword;
+import "../editor/editor.uff" Keyword Documentation;
 
 export Switch;
 
@@ -35,7 +35,16 @@ rule SwitchCaseKey =
   | SwitchCaseKeyValues
 ;
 
-rule SwitchCase = k:SwitchCaseKey ":" p:Pattern -> { key: k, pattern: p };
+[Documentation {
+  description: "The `:` between a switch case's values and its pattern.",
+  error: "Each switch case is its values, `:`, and its pattern, as in `switch \{ \"a\": A, default: B }`."
+}]
+rule SwitchCaseColon = ":";
+
+rule SwitchCase =
+  k:SwitchCaseKey SwitchCaseColon p:Pattern
+  -> { key: k, pattern: p }
+;
 
 rule SwitchCaseTail = "," c:SwitchCase -> c;
 
@@ -44,7 +53,7 @@ rule SwitchCases = f:SwitchCase r:SwitchCaseTail* -> (flat (pack f r));
 [Keyword]
 rule DefaultKeyword = "default";
 
-rule SwitchDefaultCase = DefaultKeyword ":" p:Pattern -> p;
+rule SwitchDefaultCase = DefaultKeyword SwitchCaseColon p:Pattern -> p;
 
 rule SwitchCasesWithDefaultBody =
   c:SwitchCases "," d:SwitchDefaultCase
@@ -67,7 +76,13 @@ rule SwitchBody =
 [Keyword]
 rule SwitchKeyword = "switch";
 
+[Documentation {
+  description: "The `}` that ends a switch.",
+  error: "Expected `}` here to close the switch, or `,` before its next case."
+}]
+rule SwitchEnd = "}";
+
 rule Switch =
-  SwitchKeyword "{" b:SwitchBody ","? "}"
+  SwitchKeyword "{" b:SwitchBody ","? SwitchEnd
   -> { kind: "switch", cases: b.cases, default: b.default }
 ;

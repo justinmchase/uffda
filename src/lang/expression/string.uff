@@ -4,6 +4,7 @@
 # binding (B13: `-> "{"` parses as an object literal).
 import "./primary.uff" Primary;
 import "../common/characters/mod.uff" NewLine Whitespace;
+import "../editor/editor.uff" Documentation;
 
 export String;
 
@@ -44,8 +45,14 @@ rule InterpolationCode =
 
 rule InterpolationValue = v:Primary end -> v;
 
+[Documentation {
+  description: "The `}` that ends an interpolation in a string.",
+  error: "Expected `}` here to close the interpolation that starts with `\{`."
+}]
+rule InterpolationEnd = "}";
+
 rule StringExpression =
-  "{" v:(InterpolationCode |> [InterpolationValue]) "}"
+  "{" v:(InterpolationCode |> [InterpolationValue]) InterpolationEnd
   -> v
 ;
 
@@ -54,7 +61,13 @@ rule StringContent =
   -> (join _ "")
 ;
 
+[Documentation {
+  description: "The `\"` that ends a string.",
+  error: "This string is missing its closing `\"`."
+}]
+rule StringEnd = "\"";
+
 rule String =
-  "\"" v:(StringExpression | StringContent)* "\""
+  "\"" v:(StringExpression | StringContent)* StringEnd
   -> { kind: "string", values: v }
 ;

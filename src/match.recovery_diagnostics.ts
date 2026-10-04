@@ -29,8 +29,13 @@ export async function diagnoseRecoveries(
   options: MatchFailureOptions = {},
 ): Promise<RecoveryDiagnostic[]> {
   const diagnostics: RecoveryDiagnostic[] = [];
-  for (const { match: recovered, failure } of collectRecoveries(match)) {
-    const analysis = await analyzeMatchFailure(failure, options);
+  for (
+    const { match: recovered, failure, preceding } of collectRecoveries(match)
+  ) {
+    const analysis = await analyzeMatchFailure(failure, {
+      ...options,
+      preceding,
+    });
     diagnostics.push({
       span: recovered.originalSpan,
       message: analysis

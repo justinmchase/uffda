@@ -62,11 +62,11 @@ Deno.test("cli.stream parses one stdin source unit into a raw AST", async (t) =>
       result.error.location?.endOffset,
       "export Main; rule Main =".length,
     );
-    assertStringIncludes(result.error.message, "Expected");
     assertStringIncludes(
       result.error.message,
-      "RulePatternBodyBeforeProjection",
+      "A rule needs a pattern after `=`",
     );
+    assertStringIncludes(result.error.message, "RuleDeclarationSyntax");
   });
 
   await t.step(
@@ -84,9 +84,7 @@ Deno.test("cli.stream parses one stdin source unit into a raw AST", async (t) =>
       const result = await compileStdinToArtifact(source);
       assertEquals(result.ok, false);
       if (result.ok) return;
-      assertStringIncludes(result.error.message, "Expected");
-      assertStringIncludes(result.error.message, '"not"');
-      assertStringIncludes(result.error.message, '"["');
+      assertStringIncludes(result.error.message, "Expected a pattern here");
       assertStringIncludes(result.error.message, 'Unexpected ")"');
       assertStringIncludes(result.error.message, "In PipeTail");
       // The skipped declaration runs from `rule` through its `;`.
@@ -101,8 +99,11 @@ Deno.test("cli.stream parses one stdin source unit into a raw AST", async (t) =>
       const result = await compileStdinToArtifact("rule A = any");
       assertEquals(result.ok, false);
       if (result.ok) return;
-      // Expected leads; the squiggle covers the skipped declaration.
-      assertStringIncludes(result.error.message, 'Expected "-", ";"');
+      // The explanation leads; the squiggle covers the skipped declaration.
+      assertStringIncludes(
+        result.error.message,
+        "A declaration ends with `;`",
+      );
       assertStringIncludes(result.error.message, "Unexpected <end of input>");
       assertStringIncludes(result.error.message, "RuleDeclarationSyntax");
       assertEquals(result.error.location?.offset, 0);

@@ -6,11 +6,12 @@ import "../expression/number.uff" Number;
 import "../expression/boolean.uff" Boolean;
 import "../expression/nullish.uff" Nullish;
 import "./character_class.uff" CharacterClass;
-import "../editor/editor.uff" Keyword;
+import "../editor/editor.uff" Keyword Documentation;
 
 export Literals;
 export ContextualValue;
 export AtomicLiteralSource;
+export VariableName;
 
 rule EscapedPatternStringQuote = "\\" "\"" -> "\"";
 
@@ -31,7 +32,16 @@ rule PatternStringToken =
   | not "\"" & string
 ;
 
-rule StringValue = "\"" p:PatternStringToken* "\"" -> (join (flat p) "");
+[Documentation {
+  description: "The `\"` that ends a quoted string.",
+  error: "This string is missing its closing `\"`."
+}]
+rule StringValueEnd = "\"";
+
+rule StringValue =
+  "\"" p:PatternStringToken* StringValueEnd
+  -> (join (flat p) "")
+;
 
 rule NumberValue = n:Number -> n.value;
 
@@ -39,7 +49,16 @@ rule BooleanValue = b:Boolean -> b.value;
 
 rule NullishValue = n:Nullish -> n.value;
 
-rule ContextualValue = "$" n:IdToken -> { kind: "value.variable", name: n };
+[Documentation {
+  description: "The name of a variable read with `$`.",
+  error: "`$` must be followed by the name of a variable, as in `$n`."
+}]
+rule VariableName = IdToken;
+
+rule ContextualValue =
+  "$" n:VariableName
+  -> { kind: "value.variable", name: n }
+;
 
 rule AtomicLiteralValue =
   | StringValue
@@ -117,13 +136,29 @@ rule BareLiteralPattern =
   -> { kind: "equal", value: v }
 ;
 
+[Documentation {
+  description: "The literal values listed in an `in` pattern.",
+  error: "`in [ … ]` lists one or more literal values, as in `in [\"a\" \"b\"]`."
+}]
 rule IncludesValues = f:Literal r:Literal* -> (flat (pack f r));
 
 [Keyword]
 rule InKeyword = "in";
 
+[Documentation {
+  description: "The values an `in` pattern matches.",
+  error: "`in [ … ]` lists the values to match, as in `in [\"a\" \"b\"]`."
+}]
+rule IncludesList = "[" v:IncludesValues IncludesEnd -> v;
+
+[Documentation {
+  description: "The `]` that ends an `in` pattern's values.",
+  error: "Expected `]` here to close the values of `in [ … ]`."
+}]
+rule IncludesEnd = "]";
+
 rule IncludesPattern =
-  InKeyword "[" v:IncludesValues "]"
+  InKeyword v:IncludesList
   -> { kind: "includes", values: v }
 ;
 

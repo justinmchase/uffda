@@ -2,11 +2,11 @@
 # `export Name*;`. Per-item ExportName projection avoids map/lambda (pattern
 # idioms). Inline export packs [export-decl, rule/func-decl] via std pack.
 # Variable bindings are single-letter (published CLI PatternLang).
-import "./shared.rules.uff" IdentifierToken ExportKeyword;
+import "./shared.rules.uff" IdentifierToken ExportKeyword DeclarationEnd;
 import "./rule.rules.uff" RuleDeclarationSyntax;
 import "./func.rules.uff" FuncDeclarationSyntax;
 import "./decorator.rules.uff" DecoratorDeclarationSyntax;
-import "../editor/editor.uff" NameReference;
+import "../editor/editor.uff" NameReference Documentation;
 
 export ExportDeclarationSyntax;
 export ExportNameList;
@@ -16,29 +16,32 @@ rule ExportName = n:IdentifierToken -> { kind: "export", name: n };
 
 rule ExportNameList = ExportName ExportName* -> (flat _);
 
-rule InlineExportedRuleDeclarationSyntax =
-  ExportKeyword r:RuleDeclarationSyntax
+rule ExportedRuleDeclarationSyntax =
+  r:RuleDeclarationSyntax
   -> (pack { kind: "export", name: r.name } r)
 ;
 
-rule InlineExportedFuncDeclarationSyntax =
-  ExportKeyword f:FuncDeclarationSyntax
+rule ExportedFuncDeclarationSyntax =
+  f:FuncDeclarationSyntax
   -> (pack { kind: "export", name: f.name } f)
 ;
 
-rule InlineExportedDecoratorDeclarationSyntax =
-  ExportKeyword d:DecoratorDeclarationSyntax
+rule ExportedDecoratorDeclarationSyntax =
+  d:DecoratorDeclarationSyntax
   -> (pack { kind: "export", name: d.name } d)
 ;
 
-rule StandaloneExportDeclarationSyntax =
-  ExportKeyword n:ExportNameList ";"
-  -> n
+rule ExportedNamesSyntax = n:ExportNameList DeclarationEnd -> n;
+
+[Documentation {
+  description: "What an `export` exports.",
+  error: "`export` is followed by a declaration (`rule`, `func` or `decorator`) or by the names to export and `;`, as in `export A B;`."
+}]
+rule ExportTarget =
+  | ExportedRuleDeclarationSyntax
+  | ExportedFuncDeclarationSyntax
+  | ExportedDecoratorDeclarationSyntax
+  | ExportedNamesSyntax
 ;
 
-rule ExportDeclarationSyntax =
-  | InlineExportedRuleDeclarationSyntax
-  | InlineExportedFuncDeclarationSyntax
-  | InlineExportedDecoratorDeclarationSyntax
-  | StandaloneExportDeclarationSyntax
-;
+rule ExportDeclarationSyntax = ExportKeyword t:ExportTarget -> t;

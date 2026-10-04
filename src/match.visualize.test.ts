@@ -11,6 +11,14 @@ import { lit } from "./runtime/patterns/value_source.ts";
 import type { Pattern, PipelinePattern } from "./runtime/patterns/pattern.ts";
 import type { Rule } from "./runtime/modules/rule.ts";
 import { Scope } from "./runtime/scope.ts";
+import { ResolveTargetKind } from "./runtime/patterns/pattern.ts";
+
+const resolve = (name: string): Pattern => ({
+  kind: PatternKind.Resolve,
+  targetKind: ResolveTargetKind.Reference,
+  name,
+  args: [],
+});
 
 Deno.test("match.visualize renders pipeline failures and terminates on cycles", async (t) => {
   await t.step("renders expected input and prior pipeline output", async () => {
@@ -60,7 +68,7 @@ Deno.test("match.visualize renders pipeline failures and terminates on cycles", 
   );
 
   await t.step(
-    "an explanation of the innermost rule leads the summary",
+    "an explanation of the rule that failed leads the summary",
     async () => {
       const scope = Scope.From(Input.Iterable("#"));
       const pattern = {
@@ -74,20 +82,20 @@ Deno.test("match.visualize renders pipeline failures and terminates on cycles", 
         parameters: [],
       };
       const inner = scope.pushRule(rule, new Map());
-      const match = fail(inner, pattern);
+      const match = fail(scope, resolve("R"), [fail(inner, pattern)]);
       const explained = await analyzeMatchFailure(match, {
         explain: (r) => r === rule ? "Write expected." : undefined,
       });
       assertEquals(explained?.explanation, "Write expected.");
       assertEquals(
         formatMatchFailureSummary(explained!),
-        'Write expected.\nUnexpected "#"\nIn R',
+        'Write expected.\nUnexpected "#"',
       );
       const plain = await analyzeMatchFailure(match);
       assertEquals(plain?.explanation, undefined);
-      assertEquals(
+      assertStringIncludes(
         formatMatchFailureSummary(plain!),
-        'Expected "expected"\nUnexpected "#"\nIn R',
+        'Unexpected "#"',
       );
     },
   );
@@ -190,9 +198,11 @@ Deno.test("match.visualize chooses the reported failure", async (t) => {
       const inner = rule("Inner", s1);
       const inOuter = s1.pushRule(outer, new Map());
       const inInner = inOuter.pushRule(inner, new Map());
-      const match = fail(inOuter, then, [
-        fail(inInner, equal("#")),
-        fail(inOuter, equal(",")),
+      const match = fail(s1, resolve("Outer"), [
+        fail(inOuter, then, [
+          fail(inOuter, resolve("Inner"), [fail(inInner, equal("#"))]),
+          fail(inOuter, equal(",")),
+        ]),
       ]);
       const innerOnly = await analyzeMatchFailure(match, {
         explain: (r) => r === inner ? "inner" : undefined,
@@ -204,4 +214,17 @@ Deno.test("match.visualize chooses the reported failure", async (t) => {
       assertEquals(both?.explanation, "outer");
     },
   );
+
+  await t.step("not by a rule that began before the failure", async () => {
+    const [s0, s1] = await positions();
+    const outer = rule("Outer", s0);
+    const match = fail(s0, resolve("Outer"), [
+      fail(s0.pushRule(outer, new Map()).withInput(s1.stream), equal("x")),
+    ]);
+    const analysis = await analyzeMatchFailure(match, {
+      explain: (r) => r === outer ? "outer" : undefined,
+    });
+    assertEquals(analysis?.pattern, 'equal "x"');
+    assertEquals(analysis?.explanation, undefined);
+  });
 });

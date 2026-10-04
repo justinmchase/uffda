@@ -8,7 +8,9 @@ import {
 } from "./match.describe_pattern.ts";
 import { PatternKind } from "./runtime/patterns/pattern.kind.ts";
 import type { Rule } from "./runtime/modules/rule.ts";
+import type { RuleStackFrame } from "./runtime/stack/rule.ts";
 import { StackFrameKind } from "./runtime/stack/stackFrameKind.ts";
+import { sourceOffsetAt } from "./span.ts";
 import { unwrap } from "./wrapped.ts";
 
 type MatchNode = {
@@ -27,6 +29,7 @@ type MatchNode = {
    * failures only is what made its ancestors fail.
    */
   absorbed: number;
+  parent: MatchNode | undefined;
 };
 
 function childrenOf(match: Match): Match[] {
@@ -72,48 +75,65 @@ function excludesChildren(match: Match): boolean {
   }
 }
 
-async function collectNodes(root: Match): Promise<MatchNode[]> {
-  const nodes: MatchNode[] = [];
-  const seen = new Set<Match>();
+async function collectNodes(
+  root: Match,
+  preceding: Match[] = [],
+): Promise<MatchNode[]> {
+  const nodes = new Map<Match, MatchNode>();
   // A failed pipeline's stages before the failing one succeeded and handed
   // their output on, so they cannot explain the failure either.
   const passedStages = new Set<Match>();
 
+  // A memoized match can be reached along several paths. It takes its best
+  // standing over all of them (least absorbed, excluded only if excluded on
+  // every path), and is revisited when a path improves it.
   async function visit(
     match: Match,
-    depth: number,
+    parent: MatchNode | undefined,
     excluded: boolean,
     absorbed: number,
   ): Promise<void> {
-    if (seen.has(match)) return;
-    seen.add(match);
     const nodeExcluded = excluded || passedStages.has(match);
-    nodes.push({
-      match,
-      depth,
-      order: nodes.length,
-      current: await currentValue(match),
-      excluded: nodeExcluded,
-      absorbed,
-    });
+    let node = nodes.get(match);
+    if (node) {
+      const improves = absorbed < node.absorbed ||
+        (node.excluded && !nodeExcluded);
+      if (!improves) return;
+      node.absorbed = Math.min(node.absorbed, absorbed);
+      node.excluded = node.excluded && nodeExcluded;
+      node.parent = parent;
+      node.depth = parent ? parent.depth + 1 : 0;
+    } else {
+      node = {
+        match,
+        depth: parent ? parent.depth + 1 : 0,
+        order: nodes.size,
+        current: await currentValue(match),
+        excluded: nodeExcluded,
+        absorbed,
+        parent,
+      };
+      nodes.set(match, node);
+    }
     if (match.kind === MatchKind.Fail) {
       for (const stage of pipelineStages(match)?.slice(0, -1) ?? []) {
         passedStages.add(stage);
       }
     }
-    const childrenExcluded = nodeExcluded || excludesChildren(match);
+    const childrenExcluded = node.excluded || excludesChildren(match);
     for (const child of childrenOf(match)) {
       await visit(
         child,
-        depth + 1,
+        node,
         childrenExcluded,
-        absorbed + (isSuccess(match) ? 1 : 0),
+        node.absorbed + (isSuccess(match) ? 1 : 0),
       );
     }
   }
 
-  await visit(root, 0, false, 0);
-  return nodes;
+  for (const match of preceding) await visit(match, undefined, false, 0);
+  await visit(root, undefined, false, 0);
+  return [...nodes.values()];
 }
 
 function sourceOffset(
@@ -134,38 +154,66 @@ function sourceOffset(
 }
 
 /** How far into the original source a failure got. */
+/**
+ * Whether `match` fails only by reading a left-recursive head's initial
+ * failing seed: a control signal of growth, not a failure of the input (see
+ * `.agents/specifications/runtime/left-recursion.spec.md`).
+ */
+function readsOnlyFailingSeed(
+  match: Match,
+  known = new Map<Match, boolean>(),
+): boolean {
+  if (match.kind !== MatchKind.Fail) return false;
+  const cached = known.get(match);
+  if (cached !== undefined) return cached;
+  known.set(match, false);
+  const result = match.matches.length === 0
+    ? match.origin?.seeded === true
+    : match.matches.every((child) => readsOnlyFailingSeed(child, known));
+  known.set(match, result);
+  return result;
+}
+
 function failureProgress(node: MatchNode): number {
   if (node.match.kind === MatchKind.LR) return -1;
   return node.match.originalSpan.start;
 }
 
-function ruleFramesOf(node: MatchNode): { rule: Rule }[] {
+function ruleFramesOf(node: MatchNode): RuleStackFrame[] {
   return node.match.scope.stack.frames()
     .filter((frame) => frame.kind === StackFrameKind.Rule);
 }
 
-/** The rule frames that enclose every one of `nodes`. */
-function sharedRuleFrames(nodes: MatchNode[]): { rule: Rule }[] {
-  const [first, ...rest] = nodes.map(ruleFramesOf);
-  let length = first.length;
-  for (const frames of rest) {
-    let i = 0;
-    while (i < length && i < frames.length && frames[i] === first[i]) i++;
-    length = i;
-  }
-  return first.slice(0, length);
+/**
+ * The failures of `tied` with no other of them inside: the failures that
+ * enclose another only pass it on.
+ */
+function innermostOf(tied: MatchNode[]): MatchNode[] {
+  const tiedMatches = new Set(tied.map(({ match }) => match));
+  return tied.filter(({ match }) =>
+    !childrenOf(match).some((child) => tiedMatches.has(child))
+  );
+}
+
+/**
+ * For each innermost tied failure, the rules around it that began where it
+ * failed, innermost last. A rule that consumed input before failing was
+ * underway, so its explanation of how it begins does not apply.
+ */
+function beganRuleFrames(tied: MatchNode[]): RuleStackFrame[][] {
+  return innermostOf(tied).map((node) => {
+    const failedAt = sourceOffsetAt(node.match.scope.stream);
+    return ruleFramesOf(node).filter(({ input }) =>
+      sourceOffsetAt(input) === failedAt
+    );
+  });
 }
 
 type DiagnosticFocus = {
   /** The failure reported. */
   node: MatchNode;
-  /**
-   * The rules enclosing every failure tied with it. An explanation must come
-   * from one of these: a rule around only some of the tied failures is one
-   * of several alternatives that failed there, not the reason for the
-   * failure.
-   */
-  frames: { rule: Rule }[];
+  /** The rules that can explain it (see `beganRuleFrames`). */
+  began: RuleStackFrame[][];
 };
 
 /**
@@ -180,7 +228,10 @@ function selectDiagnosticFocus(
   const failures = nodes.filter(({ match }) =>
     match.kind === MatchKind.Fail || match.kind === MatchKind.Error
   );
-  const relevant = failures.filter(({ excluded }) => !excluded);
+  const seedReads = new Map<Match, boolean>();
+  const relevant = failures.filter(({ match, excluded }) =>
+    !excluded && !readsOnlyFailingSeed(match, seedReads)
+  );
   const candidates = relevant.length > 0 ? relevant : failures;
   if (candidates.length === 0) return undefined;
 
@@ -193,7 +244,7 @@ function selectDiagnosticFocus(
   const [node] = [...tied].sort((a, b) =>
     a.depth - b.depth || a.order - b.order
   );
-  return { node, frames: sharedRuleFrames(tied) };
+  return { node, began: beganRuleFrames(tied) };
 }
 
 function pipelineStages(match: Match): Match[] | undefined {
@@ -321,6 +372,12 @@ export type ExplainRule = (rule: Rule) => string | undefined;
 export type MatchFailureOptions = {
   /** Asked of the rules enclosing the failure; see `explanation`. */
   explain?: ExplainRule;
+  /**
+   * Matches that came before the failure in its sequence. Failures inside
+   * them are candidates too: what they failed to match past their end can be
+   * why the failure's input was left over.
+   */
+  preceding?: Match[];
 };
 
 function isNoisyExpectedLabel(item: string): boolean {
@@ -529,23 +586,31 @@ function expectedFromOrAncestors(
   return undefined;
 }
 
-function nearestExplanation(
-  frames: { rule: Rule }[],
+/**
+ * The explanation of the innermost explained rule that began where the
+ * innermost failures failed and encloses every one of them. A rule around
+ * only some of them is one of several alternatives that failed at the same
+ * place, not the reason for the failure.
+ */
+function sharedExplanation(
+  began: RuleStackFrame[][],
   explain: ExplainRule | undefined,
 ): string | undefined {
-  if (!explain) return undefined;
-  for (let i = frames.length - 1; i >= 0; i--) {
-    const explanation = explain(frames[i].rule);
-    if (explanation) return explanation;
-  }
-  return undefined;
+  if (!explain || began.length === 0) return undefined;
+  const [first, ...rest] = began.map((frames) =>
+    frames.map(({ rule }) => rule).filter((rule) => explain(rule))
+  );
+  const shared = first.findLast((rule) =>
+    rest.every((rules) => rules.includes(rule))
+  );
+  return shared && explain(shared);
 }
 
 function analysisFromFocus(
   match: Match,
   nodes: MatchNode[],
   source: string | undefined,
-  { node: candidate, frames }: DiagnosticFocus,
+  { node: candidate, began }: DiagnosticFocus,
   options: MatchFailureOptions = {},
 ): MatchFailureAnalysis | undefined {
   if (candidate.match.kind === MatchKind.LR) return undefined;
@@ -583,7 +648,7 @@ function analysisFromFocus(
 
   const ruleFrames = ruleFramesOf(candidate);
   const rules = ruleFrames.map((frame) => frame.rule.name);
-  const explanation = nearestExplanation(frames, options.explain);
+  const explanation = sharedExplanation(began, options.explain);
 
   const focusTerminal = expectation(candidate.match.pattern);
   const focusHasTerminal = focusTerminal !== undefined &&
@@ -668,7 +733,7 @@ export async function analyzeMatchFailure(
   match: Match,
   options: MatchFailureOptions = {},
 ): Promise<MatchFailureAnalysis | undefined> {
-  const nodes = await collectNodes(match);
+  const nodes = await collectNodes(match, options.preceding);
   const sourceValue = await currentValue(match);
   const source = typeof sourceValue === "string" ? sourceValue : undefined;
   const focus = selectDiagnosticFocus(nodes);

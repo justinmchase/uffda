@@ -7,11 +7,16 @@ import "./primary.uff" Primary;
 import "../common/spread.uff" SpreadMarker;
 import "./sequence.uff" ExpressionDelimiter;
 import "../common/comment.uff" CommentNode;
+import "../editor/editor.uff" Documentation;
 
 export Array;
 
 rule OpenBracket = "[" -> "[";
 
+[Documentation {
+  description: "The `]` that ends an array.",
+  error: "Expected `]` here to close the array that starts with `[`."
+}]
 rule CloseBracket = "]" -> "]";
 
 rule ArrayElement = Token<Primary> -> { kind: "arrayElement", expression: _ };

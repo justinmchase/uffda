@@ -8,7 +8,7 @@ import "./boolean.uff" Boolean;
 import "./nullish.uff" Nullish;
 import "./reference.uff" Reference;
 import "../common/spread.uff" SpreadMarker;
-import "../editor/editor.uff" Highlight;
+import "../editor/editor.uff" Highlight Documentation;
 import "../common/comment.uff" CommentNode;
 
 export Sequence;
@@ -16,6 +16,10 @@ export ExpressionDelimiter;
 
 rule OpenParen = "(";
 
+[Documentation {
+  description: "The `)` that ends a call.",
+  error: "Expected `)` here to close the call that starts with `(`."
+}]
 rule CloseParen = ")";
 
 # Tokens that close or separate an enclosing construct, and comment nodes; a
@@ -34,6 +38,10 @@ rule InvokedName = Reference;
 # A callee that is a bare name is the function being invoked. The lookaheads
 # keep Primary's precedence for its alternatives that can begin with a name
 # (Member, Boolean, Nullish); every other callee is an ordinary Primary.
+[Documentation {
+  description: "The function a call invokes.",
+  error: "A call starts with the function to call after `(`, as in `(add 1 2)`."
+}]
 rule Callee =
   | (
     not Token<Member> not Token<Boolean> not Token<Nullish> n:Token<InvokedName>

@@ -16,8 +16,9 @@ Preconditions:
 Expected behavior:
 
 - `visualizeMatchFailure` MUST return deterministic plain text.
-- A failed expression-language parse of `(add 1 #)` MUST identify `#` as the
-  unexpected input.
+- A failed expression-language parse of `(add 1 #)` MUST identify the end of the
+  expression's input after `1` as unexpected, in `Sequence`: `#)` is a comment,
+  so the sequence's `)` is missing.
 - The visualization MUST name the failing pattern hierarchy and its governing
   module.
 - The expression-language pipeline MUST identify tokenization as successful,

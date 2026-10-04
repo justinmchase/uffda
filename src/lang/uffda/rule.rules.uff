@@ -7,23 +7,23 @@ import "../expression/expression.lang.uff" ExpressionTokens;
 import "./shared.rules.uff"
   IdentifierToken
   RuleKeyword
+  DeclarationName
+  DeclarationEquals
+  DeclarationEnd
   DeclarationBodyEnd
   BodyToken
+  DeclarationKeyword
 ;
-import "../editor/editor.uff" Declaration Parameter;
+import "../editor/editor.uff" Declaration Parameter Documentation;
 import "./attribute.rules.uff" AttributeSyntax;
 
 export RulePatternBody;
 export RuleProjectionExpression;
 export RulePatternToken;
 export RuleProjectionToken;
-export RulePatternTokenUntilSemicolon;
 export RulePatternTokenUntilProjection;
-export RulePatternBodyWithoutProjection;
 export RulePatternBodyBeforeProjection;
 export RuleDeclarationSyntax;
-export RuleDeclarationWithoutProjection;
-export RuleDeclarationWithProjection;
 export RuleProjectionTail;
 export RuleQuotedTokenSequence;
 
@@ -51,12 +51,11 @@ rule RuleQuotedTokenSequence =
   -> (flat (pack o (flat c) e))
 ;
 
+[Documentation {
+  description: "The tokens of a rule's projection expression.",
+  error: "`->` must be followed by the expression the rule produces, before the `;`."
+}]
 rule RuleProjectionToken =
-  (RuleQuotedTokenSequence | not DeclarationBodyEnd & BodyToken)+
-  -> (flat _)
-;
-
-rule RulePatternTokenUntilSemicolon =
   (RuleQuotedTokenSequence | not DeclarationBodyEnd & BodyToken)+
   -> (flat _)
 ;
@@ -107,12 +106,11 @@ rule RulePatternChunkAtDepth0 =
   | not DeclarationBodyEnd & not ("-" ">") & BodyToken
 ;
 
+[Documentation {
+  description: "The tokens of a rule's pattern.",
+  error: "A rule needs a pattern after `=`, before its `;` or `->`."
+}]
 rule RulePatternTokenUntilProjection = RulePatternChunkAtDepth0+ -> (flat _);
-
-rule RulePatternBodyWithoutProjection =
-  |> RulePatternTokenUntilSemicolon
-  |> PatternTokens
-;
 
 rule RulePatternBodyBeforeProjection =
   |> RulePatternTokenUntilProjection
@@ -120,6 +118,10 @@ rule RulePatternBodyBeforeProjection =
 ;
 
 [Parameter]
+[Documentation {
+  description: "A rule parameter: a rule passed in by the caller.",
+  error: "Rule parameters are names separated by `,`, as in `rule R<A, B> = A B;`."
+}]
 rule RuleParameterName = n:IdentifierToken -> { name: n };
 
 rule RuleParameterNameTail = "," v:RuleParameterName -> v;
@@ -129,8 +131,14 @@ rule RuleParameterNameList =
   -> (flat (pack f r))
 ;
 
+[Documentation {
+  description: "The `>` that ends a rule's parameter list.",
+  error: "A rule's parameter list ends with `>`: separate the names with `,` and close the list after the last one."
+}]
+rule RuleParameterListEnd = ">";
+
 rule RuleParameterList =
-  "<" p:RuleParameterNameList? ">"
+  "<" p:RuleParameterNameList? RuleParameterListEnd
   -> (flat (coalesce p []))
 ;
 
@@ -139,13 +147,13 @@ rule RuleProjectionTail = "-" ">" p:RuleProjectionExpression -> p;
 [Declaration]
 rule RuleDeclarationSyntax =
   a:AttributeSyntax*
-  RuleKeyword
-  n:IdentifierToken
+  DeclarationKeyword<RuleKeyword>
+  n:DeclarationName
   p:RuleParameterList?
-  "="
+  DeclarationEquals
   t:RulePatternBodyBeforeProjection
   j:RuleProjectionTail?
-  ";"
+  DeclarationEnd
   -> {
     kind: "rule",
     name: n,
@@ -153,38 +161,5 @@ rule RuleDeclarationSyntax =
     pattern: t,
     projection: j,
     attributes: a
-  }
-;
-
-rule RuleDeclarationWithoutProjection =
-  RuleKeyword
-  n:IdentifierToken
-  p:RuleParameterList?
-  "="
-  t:RulePatternBodyWithoutProjection
-  ";"
-  -> {
-    kind: "rule",
-    name: n,
-    parameters: (flat (coalesce p [])),
-    pattern: t,
-    projection: undefined
-  }
-;
-
-rule RuleDeclarationWithProjection =
-  RuleKeyword
-  n:IdentifierToken
-  p:RuleParameterList?
-  "="
-  t:RulePatternBodyBeforeProjection
-  j:RuleProjectionTail
-  ";"
-  -> {
-    kind: "rule",
-    name: n,
-    parameters: (flat (coalesce p [])),
-    pattern: t,
-    projection: j
   }
 ;

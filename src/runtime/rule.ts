@@ -296,7 +296,13 @@ async function grow(
 ): Promise<Match> {
   const { pattern } = rule;
   let growing = true;
-  let m: Match = fail(scope, pattern);
+  // The initial seed: what re-entering the head reads before any iteration
+  // has succeeded. It records no attempt at the input.
+  let m: Match = fail(scope, pattern, [], {
+    rule,
+    args: scope.args,
+    seeded: true,
+  });
   const start = scope.stream;
 
   while (growing) {

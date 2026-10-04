@@ -19,7 +19,9 @@ including any rule-level projection.
 ## Core contracts
 
 - Rule evaluation MUST match the rule's pattern against the current input under
-  a rule stack frame for that rule.
+  a rule stack frame for that rule. The frame records the input the rule was
+  entered at, so diagnostics can tell where each enclosing rule began (see
+  [match diagnostics](./match-diagnostics.spec.md)).
 - When the pattern succeeds and the rule has a projection expression, rule
   evaluation MUST evaluate that expression against the successful pattern match
   and MUST report the expression result as the rule's success value.

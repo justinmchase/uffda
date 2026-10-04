@@ -53,9 +53,20 @@ Deno.test("cli.diagnostics diagnoseRecoveries", async (t) => {
     },
   );
 
-  await t.step("leaves other errors unexplained", async () => {
+  await t.step("explains other errors by their own rules", async () => {
     const [diagnostic] = await diagnoseRecoveries(
       await uffdaGrammar("rule A = ) ;\nrule B = b;"),
+    );
+    assert(diagnostic);
+    assertStringIncludes(
+      diagnostic.analysis?.explanation ?? "",
+      "Expected a pattern here",
+    );
+  });
+
+  await t.step("leaves errors no rule documents unexplained", async () => {
+    const [diagnostic] = await diagnoseRecoveries(
+      await uffdaGrammar("rule A = not;"),
     );
     assert(diagnostic);
     assertEquals(diagnostic.analysis?.explanation, undefined);
