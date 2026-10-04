@@ -44,6 +44,8 @@ performant grammar.
 - Entry point: `mod.ts`
 - Place implementation code under `src/`.
 - Keep tests next to the modules they cover using the `.test.ts` suffix.
+- Put scratch scripts and other throwaway files under `.tmp/` (gitignored),
+  never in the repository root or `src/`.
 - For every source file you create or modify under `src/`, create or update the
   corresponding `*.test.ts` file in the same directory.
 - Follow the existing Deno validation path: `deno fmt`, `deno lint`, and

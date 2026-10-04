@@ -33,6 +33,8 @@ shape → publish → install → recompile.
 
 - Place implementation code under `src/`.
 - Keep tests next to the modules they cover using the `.test.ts` suffix.
+- Put scratch scripts and other throwaway files under `.tmp/` (gitignored),
+  never in the repository root or `src/`.
 - Follow the existing Deno validation path: `deno fmt`, `deno lint`, and
   `deno task test`.
 - **Before pushing** any commit that changes code (`.ts`, `.uff`, etc.) or

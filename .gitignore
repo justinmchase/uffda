@@ -6,3 +6,4 @@ dist
 cov_profile
 *.lcov
 /package*.json
+.tmp
