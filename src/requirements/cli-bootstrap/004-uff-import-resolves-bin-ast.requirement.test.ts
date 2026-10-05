@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { fromFileUrl, join, resolve, toFileUrl } from "@std/path";
+import { fromFileUrl, resolve, toFileUrl } from "@std/path";
 import { compileSourcesToAstArtifacts } from "../../cli/compile.ts";
 import { MatchErrorCode } from "../../match.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
@@ -34,12 +34,14 @@ Deno.test(
       const compiled = await compileSourcesToAstArtifacts({
         cwd: repoRoot,
         sourcePaths: [digitUff],
-        outputDir: join(artifactRoot, "ast"),
+        artifacts: { root: repoRoot, outDir: artifactRoot },
         overwrite: true,
       });
       assertEquals(compiled.ok, true);
 
-      const resolver = new Resolver({ cwd: repoRoot, artifactRoot });
+      const resolver = new Resolver({
+        artifacts: { root: repoRoot, outDir: artifactRoot },
+      });
       const result = await resolver.import(toFileUrl(digitUff), context());
       assertEquals(result.kind, ModuleImportResultKind.Module);
       if (result.kind !== ModuleImportResultKind.Module) return;
@@ -61,7 +63,9 @@ Deno.test(
         repoRoot,
         "src/lang/common/characters/digit.uff",
       );
-      const resolver = new Resolver({ cwd: repoRoot, artifactRoot });
+      const resolver = new Resolver({
+        artifacts: { root: repoRoot, outDir: artifactRoot },
+      });
       const result = await resolver.import(toFileUrl(digitUff), context());
       assertEquals(result.kind, ModuleImportResultKind.Error);
       if (result.kind !== ModuleImportResultKind.Error) return;

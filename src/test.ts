@@ -1,5 +1,4 @@
 import { assert, assertEquals, assertRejects, equal } from "@std/assert";
-import { resolve as resolvePath } from "@std/path";
 import { Scope } from "./runtime/scope.ts";
 import { match } from "./runtime/match.ts";
 import { exec } from "./runtime/exec.ts";
@@ -11,7 +10,6 @@ import { ResolveTargetKind } from "./runtime/patterns/pattern.ts";
 import { resolve } from "./runtime/patterns/resolve.ts";
 import { ExportDeclarationKind } from "./runtime/declarations/mod.ts";
 import { ModuleImportResultKind } from "./runtime/resolvers/resolver.ts";
-import { DEFAULT_ARTIFACT_ROOT } from "./runtime/resolvers/artifact_path.ts";
 import { getRightmostFailure, isSuccess, MatchKind } from "./match.ts";
 import type {
   MatchError,
@@ -219,10 +217,6 @@ type ModuleDeclarationTestOptions = (ThrowsAssertion | MatchAssertion) & {
   variables?: Map<string, unknown>;
   /** Named export to run; omit to use the module default export. */
   entryRuleName?: string;
-  /** Working directory for `.uff` → `./bin` remapping. Defaults to `Deno.cwd()`. */
-  cwd?: string;
-  /** Artifact root for compiled `.uff` modules. Defaults to `<cwd>/bin`. */
-  artifactRoot?: string;
 };
 
 function isThrowsAssertion(value: unknown): value is ThrowsAssertion {
@@ -258,10 +252,7 @@ export function moduleDeclarationTest(options: ModuleDeclarationTestOptions) {
     entryRuleName,
   } = options;
   return async () => {
-    const cwd = options.cwd ?? Deno.cwd();
-    const artifactRoot = options.artifactRoot ??
-      resolvePath(cwd, DEFAULT_ARTIFACT_ROOT);
-    const resolver = new Resolver({ declarations, cwd, artifactRoot });
+    const resolver = new Resolver({ declarations });
     const importScope = new Scope(
       undefined,
       undefined,

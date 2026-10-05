@@ -1,11 +1,12 @@
 import { Type, type } from "@justinmchase/type";
 import { parse as parseJsonc } from "@std/jsonc";
-import { dirname } from "@std/path";
+import { dirname, resolve } from "@std/path";
 import {
   ModuleSpecifierKind,
   parseModuleSpecifier,
 } from "../lang/uffda/specifier.ts";
 import { aliasOf, isUnderAlias } from "../runtime/resolvers/import_map.ts";
+import { DEFAULT_OUT_DIR } from "../runtime/resolvers/artifact_path.ts";
 
 /**
  * The project file (see
@@ -24,6 +25,8 @@ export type UffdaProject = {
   exports: Map<string, string>;
   /** The module specifiers of the grammars the project uses, as written. */
   languages: string[];
+  /** Absolute path of the directory compiled artifacts are written to. */
+  outDir: string;
 };
 
 export enum ProjectProblemCode {
@@ -41,7 +44,7 @@ export type ProjectParseResult =
   | { ok: true; project: UffdaProject }
   | { ok: false; problems: ProjectProblem[] };
 
-const FIELDS = ["imports", "exports", "languages"];
+const FIELDS = ["imports", "exports", "languages", "outDir"];
 
 const SPECIFIER_FORMS =
   "a relative path starting with `./` or `../`, a module name starting with " +
@@ -202,6 +205,24 @@ async function readLanguages(
   return languages;
 }
 
+async function readOutDir(
+  value: unknown,
+  root: string,
+  problems: ProjectProblem[],
+): Promise<string> {
+  if (value === undefined) return resolve(root, DEFAULT_OUT_DIR);
+  const [t, v] = type(value);
+  if (t !== Type.String || !await isProjectPath(v as string)) {
+    problems.push(
+      invalid(
+        '`outDir` must be a directory inside the project starting with "./", as in "./bin".',
+      ),
+    );
+    return resolve(root, DEFAULT_OUT_DIR);
+  }
+  return resolve(root, v as string);
+}
+
 /**
  * Reads the text of the project file at `path`, reporting every problem in it
  * rather than the first.
@@ -235,7 +256,7 @@ export async function parseProject(
     if (!FIELDS.includes(field)) {
       problems.push(
         invalid(
-          `Unknown field \`${field}\`: ${PROJECT_FILE_NAME} has \`imports\`, \`exports\` and \`languages\`.`,
+          `Unknown field \`${field}\`: ${PROJECT_FILE_NAME} has \`imports\`, \`exports\`, \`languages\` and \`outDir\`.`,
         ),
       );
     }
@@ -243,9 +264,11 @@ export async function parseProject(
   const imports = await readImports(fields.imports, problems);
   const exports = await readExports(fields.exports, problems);
   const languages = await readLanguages(fields.languages, imports, problems);
+  const root = dirname(path);
+  const outDir = await readOutDir(fields.outDir, root, problems);
   if (problems.length > 0) return { ok: false, problems };
   return {
     ok: true,
-    project: { root: dirname(path), path, imports, exports, languages },
+    project: { root, path, imports, exports, languages, outDir },
   };
 }

@@ -1,14 +1,37 @@
 import {
   extname,
   fromFileUrl,
+  isAbsolute,
   join,
   relative,
   resolve,
-  toFileUrl,
+  SEPARATOR,
 } from "@std/path";
 
-/** Default product artifact root for self-hosting / bootstrap layouts. */
-export const DEFAULT_ARTIFACT_ROOT = "./bin";
+/** The output directory of a project that does not name one. */
+export const DEFAULT_OUT_DIR = "./bin";
+
+/**
+ * Where compiled artifacts live (see
+ * `.agents/specifications/languages/project-file.spec.md#output-directory`): a source
+ * at `<root>/<path>.uff` compiles to
+ * `<outDir>/ast/<path>.uffda.ast.json`.
+ */
+export type ArtifactLayout = {
+  /**
+   * Absolute path of the directory source paths are taken from: the project
+   * root, or the working directory without a project.
+   */
+  root: string;
+  /** Absolute path of the output directory. */
+  outDir: string;
+};
+
+/** The layout of `root` with the default output directory. */
+export function defaultArtifactLayout(root: string): ArtifactLayout {
+  root = resolve(root);
+  return { root, outDir: resolve(root, DEFAULT_OUT_DIR) };
+}
 
 /**
  * Cwd-relative, forward-slash path used for deterministic artifact placement.
@@ -30,36 +53,28 @@ export function outputNameForSource(sourcePath: string): string {
 }
 
 /**
- * Absolute filesystem path for the compiled AST artifact of a source file.
- * Layout: `<artifactRoot>/ast/<stable-source-without-ext>.uffda.ast.json`
+ * Absolute path of the compiled artifact of a source file, or `undefined`
+ * when the source is not inside the layout's root and so has none.
  */
-export function astArtifactPathForSource(
-  cwd: string,
-  artifactRoot: string,
+export function artifactPathForSource(
+  layout: ArtifactLayout,
   absoluteSourcePath: string,
-): string {
-  const stable = toStableSourcePath(cwd, absoluteSourcePath);
-  return join(resolve(cwd, artifactRoot), "ast", outputNameForSource(stable));
+): string | undefined {
+  const rel = relative(layout.root, absoluteSourcePath);
+  if (rel === "" || isAbsolute(rel) || rel.split(SEPARATOR)[0] === "..") {
+    return undefined;
+  }
+  return join(
+    layout.outDir,
+    "ast",
+    outputNameForSource(rel.replaceAll("\\", "/")),
+  );
 }
 
-/**
- * Absolute artifact path for a logical `.uff` module URL.
- */
-export function astArtifactPathForUffUrl(
-  cwd: string,
-  artifactRoot: string,
+/** Absolute artifact path of a logical `.uff` module URL. */
+export function artifactPathForUffUrl(
+  layout: ArtifactLayout,
   moduleUrl: URL,
-): string {
-  return astArtifactPathForSource(cwd, artifactRoot, fromFileUrl(moduleUrl));
-}
-
-/**
- * File URL for the compiled AST artifact of a logical `.uff` module URL.
- */
-export function astArtifactUrlForUffUrl(
-  cwd: string,
-  artifactRoot: string,
-  moduleUrl: URL,
-): URL {
-  return toFileUrl(astArtifactPathForUffUrl(cwd, artifactRoot, moduleUrl));
+): string | undefined {
+  return artifactPathForSource(layout, fromFileUrl(moduleUrl));
 }

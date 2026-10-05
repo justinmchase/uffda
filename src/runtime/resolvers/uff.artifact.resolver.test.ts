@@ -30,12 +30,14 @@ Deno.test("uff.artifact.resolver loads Digit from mirrored bin AST", async () =>
     const compiled = await compileSourcesToAstArtifacts({
       cwd: repoRoot,
       sourcePaths: [digitUff],
-      outputDir: join(artifactRoot, "ast"),
+      artifacts: { root: repoRoot, outDir: artifactRoot },
       overwrite: true,
     });
     assertEquals(compiled.ok, true);
 
-    const resolver = new Resolver({ cwd: repoRoot, artifactRoot });
+    const resolver = new Resolver({
+      artifacts: { root: repoRoot, outDir: artifactRoot },
+    });
     const result = await resolver.import(toFileUrl(digitUff), context());
     assertEquals(result.kind, ModuleImportResultKind.Module);
     if (result.kind !== ModuleImportResultKind.Module) return;
@@ -55,7 +57,9 @@ Deno.test("uff.artifact.resolver fails clearly when artifact is missing", async 
       repoRoot,
       "src/lang/common/characters/digit.uff",
     );
-    const resolver = new Resolver({ cwd: repoRoot, artifactRoot });
+    const resolver = new Resolver({
+      artifacts: { root: repoRoot, outDir: artifactRoot },
+    });
     const result = await resolver.import(toFileUrl(digitUff), context());
     assertEquals(result.kind, ModuleImportResultKind.Error);
     if (result.kind !== ModuleImportResultKind.Error) return;
@@ -64,6 +68,28 @@ Deno.test("uff.artifact.resolver fails clearly when artifact is missing", async 
     assert(result.error.message.includes("digit.uffda.ast.json"));
   } finally {
     await Deno.remove(artifactRoot, { recursive: true });
+  }
+});
+
+Deno.test("uff.artifact.resolver fails for a module outside the layout's root", async () => {
+  const root = await Deno.makeTempDir({ prefix: "uffda-uff-outside-" });
+  try {
+    const resolver = new Resolver({
+      artifacts: { root, outDir: join(root, "bin") },
+    });
+    const result = await resolver.import(
+      toFileUrl(join(repoRoot, "src/lang/common/characters/digit.uff")),
+      context(),
+    );
+    assertEquals(result.kind, ModuleImportResultKind.Error);
+    if (result.kind !== ModuleImportResultKind.Error) return;
+    assertEquals(result.error.code, MatchErrorCode.ModuleResolution);
+    assert(
+      result.error.message.includes(`is outside ${root}`),
+      result.error.message,
+    );
+  } finally {
+    await Deno.remove(root, { recursive: true });
   }
 });
 
@@ -82,12 +108,14 @@ Deno.test("uff.artifact.resolver resolves nested .uff imports via artifacts", as
     const compiled = await compileSourcesToAstArtifacts({
       cwd,
       sourcePaths: [leafPath, rootPath],
-      outputDir: join(artifactRoot, "ast"),
+      artifacts: { root: cwd, outDir: artifactRoot },
       overwrite: true,
     });
     assertEquals(compiled.ok, true, JSON.stringify(compiled.failures));
 
-    const resolver = new Resolver({ cwd, artifactRoot });
+    const resolver = new Resolver({
+      artifacts: { root: cwd, outDir: artifactRoot },
+    });
     const result = await resolver.import(toFileUrl(rootPath), context());
     assertEquals(result.kind, ModuleImportResultKind.Module);
     if (result.kind !== ModuleImportResultKind.Module) return;

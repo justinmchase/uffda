@@ -23,10 +23,6 @@ Deno.test("cli.contract resolves command model and process contracts determinist
     assertEquals(resolution.contract.command, "compile");
     assertEquals(resolution.contract.language, CliLanguage.FullUffda);
     assertEquals(resolution.contract.inputPaths, ["source/main.uff"]);
-    assertEquals(
-      resolution.contract.outputRootDir,
-      "/workspace/project/.uffda",
-    );
   });
 
   await t.step("recognizes parse as a stdin command", () => {
@@ -210,17 +206,30 @@ Deno.test("cli.contract resolves command model and process contracts determinist
     assertEquals(resolution.contract.cwd, "/workspace/project");
   });
 
-  await t.step("out-dir is resolved relative to process cwd", () => {
+  await t.step("compile --out-dir is resolved relative to process cwd", () => {
+    for (
+      const argv of [
+        ["compile", "a.uff", "--out-dir", "bin"],
+        ["compile", "a.uff", "--out-dir=bin"],
+      ]
+    ) {
+      const resolution = resolveCliProcessContract({ argv, processCwd: cwd });
+      assert(resolution.ok, argv.join(" "));
+      assertEquals(resolution.contract.outDirPath, "/workspace/project/bin");
+    }
+  });
+
+  await t.step("--out-dir is only valid for compile", () => {
     const resolution = resolveCliProcessContract({
-      argv: ["compile", "a.uff", "--out-dir", "build-output"],
+      argv: ["run", "a.uff", "--out-dir", "bin"],
       processCwd: cwd,
     });
-
-    assertEquals(resolution.ok, true);
-    if (!resolution.ok) return;
+    assertEquals(resolution.ok, false);
+    if (resolution.ok) return;
+    assertEquals(resolution.exitCode, CliExitCode.Usage);
     assertEquals(
-      resolution.contract.outputRootDir,
-      "/workspace/project/build-output",
+      resolution.error.message,
+      "--out-dir is only valid for compile",
     );
   });
 

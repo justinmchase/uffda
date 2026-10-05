@@ -1,3 +1,4 @@
+import { defaultArtifactLayout } from "../runtime/resolvers/artifact_path.ts";
 import {
   assert,
   assertEquals,
@@ -103,7 +104,7 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
   });
 
   await t.step(
-    "resolves .uff imports against the default '.uffda' artifact root",
+    "resolves .uff imports against the default layout (cwd's ./bin)",
     async () => {
       const cwd = await Deno.makeTempDir({ prefix: "uffda-mcp-session-" });
       try {
@@ -112,7 +113,7 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
         const compiled = await compileSourcesToAstArtifacts({
           cwd,
           sourcePaths: [depUff],
-          outputDir: join(cwd, ".uffda", "ast"),
+          artifacts: defaultArtifactLayout(cwd),
           overwrite: true,
         });
         assertEquals(compiled.ok, true);
@@ -134,7 +135,7 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
   );
 
   await t.step(
-    "compiles missing .uff imports into the session artifact root on load",
+    "compiles missing .uff imports into the session artifact layout on load",
     async () => {
       const cwd = await Deno.makeTempDir({ prefix: "uffda-mcp-session-" });
       try {
@@ -152,8 +153,8 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
         const loaded = session.listLoadedModules();
         assertEquals(loaded.length, 2);
         assert(
-          await exists(join(cwd, ".uffda", "ast")),
-          "expected compiled artifacts under .uffda/ast",
+          await exists(join(cwd, "bin", "ast")),
+          "expected compiled artifacts under bin/ast",
         );
       } finally {
         await Deno.remove(cwd, { recursive: true });
@@ -162,7 +163,7 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
   );
 
   await t.step(
-    "honors an explicit artifactRoot override",
+    "honors an explicit artifact layout",
     async () => {
       const cwd = await Deno.makeTempDir({ prefix: "uffda-mcp-session-" });
       const artifactRoot = await Deno.makeTempDir({
@@ -174,12 +175,15 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
         const compiled = await compileSourcesToAstArtifacts({
           cwd,
           sourcePaths: [depUff],
-          outputDir: join(artifactRoot, "ast"),
+          artifacts: { root: cwd, outDir: artifactRoot },
           overwrite: true,
         });
         assertEquals(compiled.ok, true);
 
-        const session = new RuntimeSession("s8", { cwd, artifactRoot });
+        const session = new RuntimeSession("s8", {
+          cwd,
+          artifacts: { root: cwd, outDir: artifactRoot },
+        });
         const result = await session.load(
           'import "./dep.uff" Foo;\nexport Foo;',
           "main.uff",
@@ -202,7 +206,7 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
         const compiled = await compileSourcesToAstArtifacts({
           cwd,
           sourcePaths: [depUff],
-          outputDir: join(cwd, ".uffda", "ast"),
+          artifacts: defaultArtifactLayout(cwd),
           overwrite: true,
         });
         assertEquals(compiled.ok, true);
@@ -237,7 +241,7 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
         const compiled = await compileSourcesToAstArtifacts({
           cwd,
           sourcePaths: [depUff],
-          outputDir: join(cwd, ".uffda", "ast"),
+          artifacts: defaultArtifactLayout(cwd),
           overwrite: true,
         });
         assertEquals(compiled.ok, true);
@@ -292,7 +296,7 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
         const compiled = await compileSourcesToAstArtifacts({
           cwd,
           sourcePaths: [depUff],
-          outputDir: join(cwd, ".uffda", "ast"),
+          artifacts: defaultArtifactLayout(cwd),
           overwrite: true,
         });
         assertEquals(compiled.ok, true);
@@ -337,7 +341,7 @@ Deno.test("cli.mcp.session RuntimeSession", async (t) => {
         const compiled = await compileSourcesToAstArtifacts({
           cwd,
           sourcePaths: [badUff],
-          outputDir: join(cwd, ".uffda", "ast"),
+          artifacts: defaultArtifactLayout(cwd),
           overwrite: true,
         });
         assertEquals(compiled.ok, true);
@@ -844,7 +848,7 @@ Deno.test("cli.mcp.session RuntimeSession.eval", async (t) => {
         const compiled = await compileSourcesToAstArtifacts({
           cwd,
           sourcePaths: [depUff],
-          outputDir: join(cwd, ".uffda", "ast"),
+          artifacts: defaultArtifactLayout(cwd),
           overwrite: true,
         });
         assertEquals(compiled.ok, true);
@@ -1124,7 +1128,7 @@ Deno.test("cli.mcp.session RuntimeSession introspection", async (t) => {
       const compiled = await compileSourcesToAstArtifacts({
         cwd,
         sourcePaths: [depUff],
-        outputDir: join(cwd, ".uffda", "ast"),
+        artifacts: defaultArtifactLayout(cwd),
         overwrite: true,
       });
       assertEquals(compiled.ok, true);
@@ -1262,7 +1266,7 @@ Deno.test("cli.mcp.session RuntimeSession introspection", async (t) => {
         const compiled = await compileSourcesToAstArtifacts({
           cwd,
           sourcePaths: [depUff],
-          outputDir: join(cwd, ".uffda", "ast"),
+          artifacts: defaultArtifactLayout(cwd),
           overwrite: true,
         });
         assertEquals(compiled.ok, true);

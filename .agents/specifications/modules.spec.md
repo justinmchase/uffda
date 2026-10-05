@@ -87,10 +87,15 @@ and surfaced to runtime pattern execution.
 - Runtime resolution MUST support logical module URLs ending in `.uff`.
 - A `.uff` import MUST NOT load or parse the `.uff` source text at resolution
   time.
-- A `.uff` import MUST remap to the mirrored compiled syntax-AST JSON artifact
-  under the configured artifact root (default `./bin`), using the same
-  deterministic path layout as CLI compile emission under
-  `<artifact-root>/ast/`.
+- A `.uff` import MUST remap to its compiled artifact in the resolver's artifact
+  layout (see
+  [output directory](./languages/project-file.spec.md#output-directory)): the
+  module `<root>/<path>.uff` loads `<outDir>/ast/<path>.uffda.ast.json`, the
+  path CLI compile writes. A resolver MUST be given its layout before resolution
+  starts, as it is given its import map; without one it uses the working
+  directory and `./bin`.
+- A `.uff` module outside the layout's root MUST fail as a module-resolution
+  error naming the module and the root.
 - The runtime MUST load that JSON artifact and lower it to a module declaration
   through the Uffda runtime compiler (the same lowering used for `run --ast`).
 - Module cache identity MUST remain the logical `.uff` URL; the artifact path is

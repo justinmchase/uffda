@@ -60,15 +60,10 @@ import {
 } from "./stream.ts";
 import { valueOf } from "../match.ts";
 import { unwrap } from "../wrapped.ts";
-
-/**
- * Default artifact root a session resolves `.uff` imports' compiled
- * artifacts under, matching `uffda_compile`'s and the batch CLI's default
- * (`.uffda/ast`) rather than `Resolver`'s own bootstrap-oriented default of
- * `./bin`, so a plain `uffda compile` followed by `uffda_session_load` just
- * works without callers having to pass a matching `artifactRoot` by hand.
- */
-const DEFAULT_SESSION_ARTIFACT_ROOT = ".uffda";
+import {
+  type ArtifactLayout,
+  defaultArtifactLayout,
+} from "../runtime/resolvers/artifact_path.ts";
 
 /**
  * A `RuntimeSession` is the live, in-memory runtime backing `uffda mcp`'s
@@ -355,12 +350,11 @@ export type SessionWalkResult =
 export type RuntimeSessionOptions = {
   cwd?: string;
   /**
-   * Root whose `ast/` subtree mirrors compiled `.uff` artifacts, used to
-   * resolve this session's `.uff` imports. Defaults to
-   * `DEFAULT_SESSION_ARTIFACT_ROOT` (`.uffda`), matching `uffda_compile`'s
-   * default output location.
+   * Where this session's `.uff` imports' artifacts are read from and
+   * compiled to: the project's layout. Defaults to `cwd` with its `./bin`
+   * output directory.
    */
-  artifactRoot?: string;
+  artifacts?: ArtifactLayout;
   /** The project's import map, for imports of module names. */
   imports?: ImportMap;
 };
@@ -621,7 +615,7 @@ function collectResolvedModules(
 export class RuntimeSession {
   public readonly id: string;
   private readonly cwd: string;
-  private readonly artifactRoot: string;
+  private readonly artifacts: ArtifactLayout;
   private readonly imports: ImportMap;
   private readonly declarations = new Map<string, ModuleDeclaration>();
   private readonly modules = new Map<string, Module>();
@@ -662,7 +656,7 @@ export class RuntimeSession {
   constructor(id: string, options?: RuntimeSessionOptions) {
     this.id = id;
     this.cwd = options?.cwd ?? Deno.cwd();
-    this.artifactRoot = options?.artifactRoot ?? DEFAULT_SESSION_ARTIFACT_ROOT;
+    this.artifacts = options?.artifacts ?? defaultArtifactLayout(this.cwd);
     this.imports = options?.imports ?? EMPTY_IMPORT_MAP;
   }
 
@@ -912,12 +906,10 @@ export class RuntimeSession {
     const trialDeclarations = new Map(this.declarations);
     trialDeclarations.set(moduleUrl.href, declaration);
 
-    // Resolve only loads JSON under the session artifact root; compile any
-    // missing/stale file:// `.uff` imports into that root first (default
-    // `.uffda`), rather than assuming `./bin` or an LSP-config override.
+    // Resolve only loads JSON from the session's artifact layout; compile any
+    // missing/stale file:// `.uff` imports into it first.
     const ensured = await ensureCompiledImportArtifacts({
-      cwd: this.cwd,
-      artifactRoot: this.artifactRoot,
+      artifacts: this.artifacts,
       moduleUrl,
       declaration,
       knownDeclarations: trialDeclarations,
@@ -939,8 +931,7 @@ export class RuntimeSession {
 
     const resolver = new Resolver({
       declarations: Object.fromEntries(trialDeclarations),
-      cwd: this.cwd,
-      artifactRoot: this.artifactRoot,
+      artifacts: this.artifacts,
       imports: this.imports,
     });
     const scope = Scope.Default().withOptions({ resolver });

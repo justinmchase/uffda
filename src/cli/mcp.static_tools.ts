@@ -7,7 +7,7 @@ import {
   type CliCompileResult,
   compileSourcesToAstArtifacts,
 } from "./compile.ts";
-import { projectImports } from "./project_imports.ts";
+import { commandProject } from "./command_project.ts";
 import {
   type CliMatchFailure,
   isCliMatchFailure,
@@ -41,17 +41,14 @@ export const compileToolInputShape = {
   cwd: z.string().describe(
     "Absolute working directory paths/globs are resolved against.",
   ),
-  outputDir: z.string().optional().describe(
-    "Absolute directory AST artifacts are written under. Defaults to " +
-      "'<cwd>/.uffda/ast', matching the CLI's default.",
-  ),
   overwrite: z.boolean().optional().describe(
     "Allow overwriting existing artifact files. Defaults to false.",
   ),
   config: z.string().optional().describe(
     "Project file (uffda.jsonc) whose imports the sources' module names " +
-      "resolve through, relative to cwd. Defaults to the nearest uffda.jsonc " +
-      "at or above cwd.",
+      "resolve through and whose outDir (default ./bin) artifacts are " +
+      "written under, relative to cwd. Defaults to the nearest uffda.jsonc " +
+      "at or above cwd; without one, cwd is the project root.",
   ),
 };
 const compileToolInputSchema = z.object(compileToolInputShape);
@@ -60,8 +57,7 @@ export type CompileToolInput = z.infer<typeof compileToolInputSchema>;
 export async function compileToolHandler(
   input: CompileToolInput,
 ): Promise<CliCompileResult> {
-  const outputDir = input.outputDir ?? resolve(input.cwd, ".uffda", "ast");
-  const project = await projectImports(
+  const project = await commandProject(
     input.cwd,
     input.config === undefined ? undefined : resolve(input.cwd, input.config),
   );
@@ -81,7 +77,7 @@ export async function compileToolHandler(
   return await compileSourcesToAstArtifacts({
     cwd: input.cwd,
     sourcePaths: input.paths,
-    outputDir,
+    artifacts: project.artifacts,
     overwrite: input.overwrite,
     imports: project.imports,
   });

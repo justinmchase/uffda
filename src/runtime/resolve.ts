@@ -26,7 +26,10 @@ import {
   withImportFrame,
 } from "./resolvers/resolver.ts";
 import { ImportResolver, JsonResolver } from "./resolvers/mod.ts";
-import { DEFAULT_ARTIFACT_ROOT } from "./resolvers/artifact_path.ts";
+import {
+  type ArtifactLayout,
+  defaultArtifactLayout,
+} from "./resolvers/artifact_path.ts";
 import { UffArtifactResolver } from "./resolvers/uff.artifact.resolver.ts";
 import {
   EMPTY_IMPORT_MAP,
@@ -37,13 +40,11 @@ import {
 export type ResolverOptions = {
   declarations?: Record<string, ModuleDeclaration>;
   resolvers?: IModuleResolvers;
-  /** Working directory used to map `.uff` URLs onto artifact paths. */
-  cwd?: string;
   /**
-   * Artifact root whose `ast/` subtree mirrors compiled `.uff` sources.
-   * Defaults to `./bin`.
+   * Where `.uff` imports' compiled artifacts are read from. Defaults to the
+   * working directory with its `./bin` output directory.
    */
-  artifactRoot?: string;
+  artifacts?: ArtifactLayout;
   /**
    * Module names each import may use, mapped to the `jsr:` specifiers they
    * stand for (the project file's `imports`). Defaults to none.
@@ -75,15 +76,14 @@ export class Resolver {
     const {
       declarations = new Map<string, ModuleDeclaration>(),
       resolvers,
-      cwd = Deno.cwd(),
-      artifactRoot = DEFAULT_ARTIFACT_ROOT,
+      artifacts = defaultArtifactLayout(Deno.cwd()),
       imports = EMPTY_IMPORT_MAP,
     } = opts ?? {};
     this.imports = imports;
     this.declarations = new Map(Object.entries(declarations));
     this.resolvers = {
       ...Resolver.DefaultResolvers,
-      [".uff"]: new UffArtifactResolver({ cwd, artifactRoot }),
+      [".uff"]: new UffArtifactResolver(artifacts),
       ...(resolvers ?? {}),
     };
   }

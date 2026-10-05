@@ -25,7 +25,11 @@ Normative key words in this chapter use the conventions defined in the
 - Compile outputs MUST represent runtime ModuleDeclarations in JSON-serializable
   structures (`imports`, `exports`, `rules`).
 - Artifact emission MUST support one artifact per source unit and MUST define
-  naming/path conventions deterministically.
+  naming/path conventions deterministically: each source's artifact is its path
+  in the project's artifact layout (see
+  [output directory](../project-file.spec.md#output-directory)), never next to
+  the source. A source outside the project root MUST fail its unit without
+  writing.
 - Each emitted JSON file MUST contain the ModuleDeclaration produced by the
   compile pipeline (parse → previous published `UffdaRuntimeCompiler` → write),
   without CLI-specific module identity, version, or source-path metadata.
@@ -42,6 +46,12 @@ Normative key words in this chapter use the conventions defined in the
   the nearest `uffda.jsonc` at or above the working directory. An invalid
   project file MUST fail the command with a configuration failure before any
   unit compiles.
+- `uffda compile` MUST NOT take an output directory argument. For one release,
+  as a
+  [bootstrap bridge](../compiler-bootstrap.spec.md#bin-artifact-integrity-no-post-compile-hacks),
+  `--out-dir <path>` is accepted only when it names the project's output
+  directory; any other value MUST be a usage failure telling the author to set
+  `outDir` in the project file.
 
 ## Parse contracts
 

@@ -2,7 +2,8 @@
 
 This chapter defines `uffda.jsonc`, the Uffda project file. The CLI, the MCP
 server and the language server all read it. It declares the project's module
-aliases, what the project exports, and the languages the project uses.
+aliases, what the project exports, the languages the project uses, and where its
+compiled artifacts go.
 
 ## Conventions
 
@@ -35,12 +36,15 @@ RFC 8174.
   "exports": { ".": "./src/mod.uff", "./lang": "./src/kv.uff" },
 
   // Modules whose exported rules carry [Language] metadata.
-  "languages": ["./src/lang/foo.uff", "@acme/kv/lang"]
+  "languages": ["./src/lang/foo.uff", "@acme/kv/lang"],
+
+  // Directory compiled artifacts are written to. Defaults to "./bin".
+  "outDir": "./bin"
 }
 ```
 
-- The file MUST hold an object whose fields are only `imports`, `exports` and
-  `languages`, each optional. Any other field is a problem.
+- The file MUST hold an object whose fields are only `imports`, `exports`,
+  `languages` and `outDir`, each optional. Any other field is a problem.
 - Specifiers are read with the module specifier grammar of
   [imports](./uffda-syntax/imports.spec.md#module-specifiers), exactly as they
   read between an import's quotes.
@@ -99,6 +103,25 @@ RFC 8174.
   with the modules they import, so a project's grammars need no compiled
   artifacts. Loading entries from packages (module names and `jsr:` specifiers)
   is not supported yet and MUST be reported as a problem for that entry.
+
+## Output directory
+
+- `outDir` MUST be a `./` path inside the project, as in `"./bin"`. It defaults
+  to `./bin`.
+- A project's artifact layout is its root and its output directory: the source
+  `<root>/<path>.uff` compiles to `<outDir>/ast/<path>.uffda.ast.json`. A
+  directory with no project uses the working directory (the language server: its
+  workspace folder) as its root, with `./bin`.
+- Build output MUST NOT be written next to sources: every compiled artifact goes
+  under the output directory.
+- Every tool MUST write and read artifacts through that layout: `uffda compile`
+  and the MCP `uffda_compile` tool write there, and every resolver the project's
+  tools build (`run`, `exec`, MCP sessions, the language server) reads `.uff`
+  imports from there and compiles missing ones into it. No command argument
+  changes the layout, because a module's importers could not see it.
+- A source outside the project root has no place in the layout. Compiling it, or
+  resolving an import of it, MUST fail naming the module and the root.
+- `outDir` is how a published package's consumers find its compiled artifacts.
 
 ## Related
 

@@ -3,7 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { resolve } from "@std/path";
 import type { SessionManager } from "./mcp.sessions.ts";
-import { projectImports } from "./project_imports.ts";
+import { commandProject } from "./command_project.ts";
 
 /**
  * Session lifecycle, evaluation, and introspection tools:
@@ -31,15 +31,11 @@ export const sessionOpenInputShape = {
     "Absolute working directory the session's imports/artifacts resolve " +
       "against. Defaults to the server process's cwd.",
   ),
-  artifactRoot: z.string().optional().describe(
-    "Root whose 'ast/' subtree mirrors compiled .uff artifacts, used to " +
-      "resolve this session's .uff imports. Defaults to '.uffda', matching " +
-      "uffda_compile's default output location.",
-  ),
   config: z.string().optional().describe(
     "Project file (uffda.jsonc) whose imports this session's module names " +
-      "resolve through, relative to cwd. Defaults to the nearest uffda.jsonc " +
-      "at or above cwd.",
+      "resolve through and whose outDir (default ./bin) holds its .uff " +
+      "imports' artifacts, relative to cwd. Defaults to the nearest " +
+      "uffda.jsonc at or above cwd; without one, cwd is the project root.",
   ),
 };
 const sessionOpenInputSchema = z.object(sessionOpenInputShape);
@@ -201,7 +197,7 @@ export function registerSessionTools(
     },
     async (input: SessionOpenInput) => {
       const cwd = input.cwd ?? Deno.cwd();
-      const project = await projectImports(
+      const project = await commandProject(
         cwd,
         input.config === undefined ? undefined : resolve(cwd, input.config),
       );
@@ -215,8 +211,8 @@ export function registerSessionTools(
         });
       }
       const session = sessions.open({
-        cwd: input.cwd,
-        artifactRoot: input.artifactRoot,
+        cwd,
+        artifacts: project.artifacts,
         imports: project.imports,
       });
       return jsonResult({ ok: true, sessionId: session.id });

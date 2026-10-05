@@ -30,7 +30,7 @@ Deno.test({
       const result = await compileSourcesToAstArtifacts({
         cwd: src,
         sourcePaths: ["main.uff"],
-        outputDir: out,
+        artifacts: { root: src, outDir: out },
       });
 
       assertEquals(result.ok, true);
@@ -39,11 +39,11 @@ Deno.test({
       assertEquals(result.successes[0].sourcePath, "main.uff");
       assertEquals(
         result.successes[0].outputPath,
-        join(out, "main.uffda.ast.json"),
+        join(out, "ast", "main.uffda.ast.json"),
       );
 
       const onDisk = JSON.parse(
-        await Deno.readTextFile(join(out, "main.uffda.ast.json")),
+        await Deno.readTextFile(join(out, "ast", "main.uffda.ast.json")),
       ) as {
         imports: unknown[];
         exports: unknown[];
@@ -69,7 +69,7 @@ Deno.test({
         const result = await compileSourcesToAstArtifacts({
           cwd: src,
           sourcePaths: ["**/*.uff"],
-          outputDir: out,
+          artifacts: { root: src, outDir: out },
         });
 
         assertEquals(result.ok, false);
@@ -93,11 +93,15 @@ Deno.test({
 
         assertEquals(result.successes.length, 2);
         assertEquals(
-          await Deno.stat(join(out, "a/ok.uffda.ast.json")).then(() => true),
+          await Deno.stat(join(out, "ast", "a/ok.uffda.ast.json")).then(() =>
+            true
+          ),
           true,
         );
         assertEquals(
-          await Deno.stat(join(out, "b/ok.uffda.ast.json")).then(() => true),
+          await Deno.stat(join(out, "ast", "b/ok.uffda.ast.json")).then(() =>
+            true
+          ),
           true,
         );
       },
@@ -112,7 +116,7 @@ Deno.test({
       const result = await compileSourcesToAstArtifacts({
         cwd: root,
         sourcePaths: ["src"],
-        outputDir: out,
+        artifacts: { root, outDir: out },
       });
 
       assertEquals(result.ok, false);
@@ -133,7 +137,7 @@ Deno.test({
       const result = await compileSourcesToAstArtifacts({
         cwd: root,
         sourcePaths: ["**/*.uff"],
-        outputDir: out,
+        artifacts: { root, outDir: out },
       });
 
       assertEquals(result.ok, false);
@@ -152,7 +156,7 @@ Deno.test({
         const src = join(root, "src");
         const out = join(root, "out");
         const file = join(src, "main.uff");
-        const artifactPath = join(out, "main.uffda.ast.json");
+        const artifactPath = join(out, "ast", "main.uffda.ast.json");
 
         await write(file, "export Main; rule Main = any;");
         await write(artifactPath, "existing\n");
@@ -160,7 +164,7 @@ Deno.test({
         const blocked = await compileSourcesToAstArtifacts({
           cwd: src,
           sourcePaths: ["main.uff"],
-          outputDir: out,
+          artifacts: { root: src, outDir: out },
           overwrite: false,
         });
         assertEquals(blocked.ok, false);
@@ -173,7 +177,7 @@ Deno.test({
         const allowed = await compileSourcesToAstArtifacts({
           cwd: src,
           sourcePaths: ["main.uff"],
-          outputDir: out,
+          artifacts: { root: src, outDir: out },
           overwrite: true,
         });
         assertEquals(allowed.ok, true);
@@ -208,7 +212,7 @@ Deno.test({
         const result = await compileSourcesToAstArtifacts({
           cwd: root,
           sourcePaths: ["main.uff"],
-          outputDir: join(root, "out"),
+          artifacts: { root, outDir: join(root, "out") },
           imports,
         });
         assert(result.ok, JSON.stringify(result.failures));
@@ -231,19 +235,19 @@ Deno.test({
         const result = await compileSourcesToAstArtifacts({
           cwd: root,
           sourcePaths: ["main.uff"],
-          outputDir: join(root, "out"),
+          artifacts: { root, outDir: join(root, "out") },
         });
         assertEquals(result.ok, false);
         assertEquals(result.failures, [{
           code: CliCompileFailureCode.UndeclaredModuleName,
           sourcePath: "main.uff",
-          outputPath: join(root, "out", "main.uffda.ast.json"),
+          outputPath: join(root, "out", "ast", "main.uffda.ast.json"),
           message:
             '"@acme/kv/tokens" is not a module name the project file\'s `imports` declares',
           location: { offset: 32, line: 1, column: 8, endOffset: 47 },
         }]);
         assertEquals(
-          await Deno.stat(join(root, "out", "main.uffda.ast.json")).then(
+          await Deno.stat(join(root, "out", "ast", "main.uffda.ast.json")).then(
             () => true,
             () => false,
           ),

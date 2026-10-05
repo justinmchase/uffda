@@ -1,8 +1,11 @@
-import { fromFileUrl, join, resolve } from "@std/path";
+import { fromFileUrl } from "@std/path";
 import { ImportDeclarationKind } from "../runtime/declarations/import.ts";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 import { isModuleDeclaration } from "../runtime/declarations/is_module_declaration.ts";
-import { astArtifactPathForUffUrl } from "../runtime/resolvers/artifact_path.ts";
+import {
+  type ArtifactLayout,
+  artifactPathForUffUrl,
+} from "../runtime/resolvers/artifact_path.ts";
 import type { ImportFrame } from "../runtime/resolvers/resolver.ts";
 import { compileSourcesToAstArtifacts } from "./compile.ts";
 import {
@@ -13,12 +16,8 @@ import {
 import type { CliStreamFailureLocation } from "./stream.ts";
 
 export type EnsureImportArtifactsOptions = {
-  cwd: string;
-  /**
-   * Session/runtime artifact root (relative to `cwd` or absolute). Compiled
-   * `.uff` imports are written under `<artifactRoot>/ast/…`.
-   */
-  artifactRoot: string;
+  /** Where compiled `.uff` imports are read from and written to. */
+  artifacts: ArtifactLayout;
   /** Logical URL of the module whose imports are being ensured. */
   moduleUrl: URL;
   declaration: ModuleDeclaration;
@@ -67,27 +66,24 @@ function isFileUffUrl(url: URL): boolean {
 
 /**
  * Walks `declaration`'s transitive `.uff` module imports and ensures each
- * file:// dependency has a compiled ModuleDeclaration artifact under the
- * session's artifact root (default `.uffda`), compiling from source when the
- * artifact is missing or older than the source.
+ * file:// dependency has a compiled ModuleDeclaration artifact in the
+ * artifact layout, compiling from source when the artifact is missing or
+ * older than the source.
  *
  * Kept outside `UffArtifactResolver` on purpose: resolve only loads JSON (see
  * compiler-bootstrap). Compile-on-demand belongs at the session/CLI layer that
- * owns the artifact root.
+ * owns the artifact layout.
  */
 export async function ensureCompiledImportArtifacts(
   options: EnsureImportArtifactsOptions,
 ): Promise<EnsureImportArtifactsResult> {
   const {
-    cwd,
-    artifactRoot,
+    artifacts,
     moduleUrl,
     declaration,
     knownDeclarations,
     imports = EMPTY_IMPORT_MAP,
   } = options;
-  const absArtifactRoot = resolve(cwd, artifactRoot);
-  const outputDir = join(absArtifactRoot, "ast");
 
   const pending: URL[] = [];
   const chains = new Map<string, ImportFrame[]>();
@@ -147,7 +143,6 @@ export async function ensureCompiledImportArtifacts(
       continue;
     }
 
-    const artifactPath = astArtifactPathForUffUrl(cwd, absArtifactRoot, url);
     const sourcePath = fromFileUrl(url);
 
     let sourceStat: Deno.FileInfo | undefined;
@@ -159,6 +154,14 @@ export async function ensureCompiledImportArtifacts(
       // `resolvedDuringLoad`. Do not invent a compile failure here.
       missingSources.add(url.href);
       continue;
+    }
+
+    const artifactPath = artifactPathForUffUrl(artifacts, url);
+    if (artifactPath === undefined) {
+      return failure(
+        url,
+        `${url.href} is outside ${artifacts.root}, so it has no compiled artifact under ${artifacts.outDir}`,
+      );
     }
 
     let needsCompile = true;
@@ -192,9 +195,9 @@ export async function ensureCompiledImportArtifacts(
     }
 
     const compiled = await compileSourcesToAstArtifacts({
-      cwd,
+      cwd: artifacts.root,
       sourcePaths: [sourcePath],
-      outputDir,
+      artifacts,
       overwrite: true,
       imports,
     });

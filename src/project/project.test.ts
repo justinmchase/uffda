@@ -20,6 +20,7 @@ Deno.test("project.parseProject reads a valid project file", async (t) => {
         "imports": { "@acme/kv": "jsr:@acme/kv@^1.2.0" },
         "exports": { ".": "./src/mod.uff", "./lang": "./src/kv.uff" },
         "languages": ["./src/foo.uff", "@acme/kv/lang", "jsr:@acme/json@^1/lang"],
+        "outDir": "./build/out",
       }`,
       PATH,
     );
@@ -37,6 +38,7 @@ Deno.test("project.parseProject reads a valid project file", async (t) => {
         "@acme/kv/lang",
         "jsr:@acme/json@^1/lang",
       ],
+      outDir: "/work/app/build/out",
     });
   });
 
@@ -46,6 +48,7 @@ Deno.test("project.parseProject reads a valid project file", async (t) => {
     assertEquals(result.project.imports.size, 0);
     assertEquals(result.project.exports.size, 0);
     assertEquals(result.project.languages, []);
+    assertEquals(result.project.outDir, "/work/app/bin");
   });
 });
 
@@ -72,6 +75,20 @@ Deno.test("project.parseProject reports every problem", async (t) => {
     assertEquals(problems.length, 4);
     assert(problems[0].startsWith("Unknown field `language`"));
   });
+
+  await t.step(
+    "an outDir that is not a directory inside the project",
+    async () => {
+      for (const outDir of ['"../bin"', '"bin"', '"/bin"', "1"]) {
+        assertEquals(
+          problemsOf(await parseProject(`{ "outDir": ${outDir} }`, PATH)),
+          [
+            '`outDir` must be a directory inside the project starting with "./", as in "./bin".',
+          ],
+        );
+      }
+    },
+  );
 
   await t.step("imports that are not module names or jsr:", async () => {
     const problems = problemsOf(

@@ -1,4 +1,4 @@
-import { dirname, isAbsolute, join } from "@std/path";
+import { dirname, isAbsolute } from "@std/path";
 import {
   isClean,
   isSuccess,
@@ -10,7 +10,8 @@ import { formatMatchFailureSummary } from "../match.visualize.ts";
 import { analyzeMatchFailure } from "./diagnostics.ts";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 import {
-  outputNameForSource,
+  type ArtifactLayout,
+  artifactPathForSource,
   toStableSourcePath,
 } from "../runtime/resolvers/artifact_path.ts";
 import { compileUffdaSource } from "../lang/uffda/execute.ts";
@@ -38,6 +39,8 @@ export enum CliCompileFailureCode {
   InvalidContext = "CLI_COMPILE_INVALID_CONTEXT",
   SourceNotFound = "CLI_COMPILE_SOURCE_NOT_FOUND",
   SourceNotReadable = "CLI_COMPILE_SOURCE_NOT_READABLE",
+  /** A source outside the layout's root, which has no artifact path. */
+  SourceOutsideRoot = "CLI_COMPILE_SOURCE_OUTSIDE_ROOT",
   OutputCollision = "CLI_COMPILE_OUTPUT_COLLISION",
   OutputExists = "CLI_COMPILE_OUTPUT_EXISTS",
   ParseFailure = "CLI_COMPILE_PARSE_FAILURE",
@@ -91,9 +94,11 @@ export type CliCompileUnitResult =
   };
 
 export type CliCompileRequest = {
+  /** Directory relative source paths and globs are taken from. */
   cwd: string;
   sourcePaths: string[];
-  outputDir: string;
+  /** Where each source's artifact is written (`<outDir>/ast/...`). */
+  artifacts: ArtifactLayout;
   overwrite?: boolean;
   /**
    * The project's import map. Each import is written to the artifact with
@@ -194,7 +199,7 @@ function toCompileFailure(failure: SourcePathFailure): CliCompileFailure {
 
 function planOutputs(
   cwd: string,
-  outputDir: string,
+  artifacts: ArtifactLayout,
   files: string[],
 ): { plans: PlannedSource[]; failures: CliCompileFailure[] } {
   const failures: CliCompileFailure[] = [];
@@ -203,7 +208,16 @@ function planOutputs(
 
   for (const absolutePath of files) {
     const sourcePath = toStableSourcePath(cwd, absolutePath);
-    const outputPath = join(outputDir, outputNameForSource(sourcePath));
+    const outputPath = artifactPathForSource(artifacts, absolutePath);
+    if (outputPath === undefined) {
+      failures.push({
+        code: CliCompileFailureCode.SourceOutsideRoot,
+        sourcePath,
+        message:
+          `'${sourcePath}' is outside ${artifacts.root}, so it has no artifact under ${artifacts.outDir}`,
+      });
+      continue;
+    }
 
     const collision = seenOutputPaths.get(outputPath);
     if (collision && collision !== sourcePath) {
@@ -261,13 +275,16 @@ export async function compileSourcesToAstArtifacts(
 ): Promise<CliCompileResult> {
   const {
     cwd,
-    outputDir,
+    artifacts,
     sourcePaths,
     overwrite = false,
     imports = EMPTY_IMPORT_MAP,
   } = request;
 
-  if (!isAbsolute(cwd) || !isAbsolute(outputDir)) {
+  if (
+    !isAbsolute(cwd) || !isAbsolute(artifacts.root) ||
+    !isAbsolute(artifacts.outDir)
+  ) {
     const sourcePath = sourcePaths[0] ?? "";
     return {
       ok: false,
@@ -277,20 +294,20 @@ export async function compileSourcesToAstArtifacts(
         failure: {
           code: CliCompileFailureCode.InvalidContext,
           sourcePath,
-          message: "cwd and outputDir must be absolute paths",
+          message: "cwd and the artifact layout must be absolute paths",
         },
       }],
       successes: [],
       failures: [{
         code: CliCompileFailureCode.InvalidContext,
         sourcePath,
-        message: "cwd and outputDir must be absolute paths",
+        message: "cwd and the artifact layout must be absolute paths",
       }],
     };
   }
 
   const expanded = await expandSourcePaths(cwd, sourcePaths);
-  const planned = planOutputs(cwd, outputDir, expanded.files);
+  const planned = planOutputs(cwd, artifacts, expanded.files);
 
   const units: CliCompileUnitResult[] = [];
   const failures: CliCompileFailure[] = [

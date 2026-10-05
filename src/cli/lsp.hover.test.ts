@@ -9,6 +9,7 @@ import {
 } from "./lsp.hover.ts";
 import { type DescribedDeclaration, RuntimeSession } from "./mcp.session.ts";
 import { offsetToPosition } from "./lsp.positions.ts";
+import { defaultArtifactLayout } from "../runtime/resolvers/artifact_path.ts";
 
 const MODULE = `export Main Loud Greet;
 decorator Loud = { shout: true };
@@ -296,7 +297,12 @@ func Words<s:array> = (join s " ");
 decorator Note<n:string> = n;
 `;
     await Deno.writeTextFile(path, source);
-    const session = new RuntimeSession("hover-doc", { cwd });
+    const session = new RuntimeSession("hover-doc", {
+      cwd,
+      artifacts: defaultArtifactLayout(
+        fromFileUrl(new URL("../../../", editor)),
+      ),
+    });
     const load = await session.load(source, path);
     assertEquals(load.ok, true);
     const state = session.getLatestParseState();

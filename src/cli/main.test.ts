@@ -411,39 +411,89 @@ Deno.test("cli.main runCli validates mode support and compile routing", async (t
       assertEquals(summary.successes.length, 1);
       assertEquals(summary.successes[0].sourcePath, "main.uff");
 
-      const artifact = join(src, ".uffda", "ast", "main.uffda.ast.json");
+      const artifact = join(src, "bin", "ast", "main.uffda.ast.json");
       const exists = await Deno.stat(artifact).then(() => true, () => false);
       assertEquals(exists, true);
     },
   });
 
   await t.step({
-    name: "compiles into custom output root via --out-dir",
+    name: "compiles into the project file's outDir, mirroring the project",
     ignore: writePermission.state !== "granted",
     fn: async () => {
       const root = await Deno.makeTempDir({
         prefix: "uffda-cli-main-out-dir-",
       });
+      await write(join(root, "uffda.jsonc"), '{ "outDir": "./build" }');
       const src = join(root, "src");
       const sourceFile = join(src, "nested", "main.uff");
       await write(sourceFile, "export Main; rule Main = any;");
 
-      const result = await runCli(
-        ["compile", "nested/main.uff", "--out-dir", "build"],
-        src,
-        false,
-      );
+      const result = await runCli(["compile", "nested/main.uff"], src, false);
       assertEquals(result.exitCode, CliExitCode.Ok);
 
       const artifact = join(
-        src,
+        root,
         "build",
         "ast",
+        "src",
         "nested",
         "main.uffda.ast.json",
       );
       const exists = await Deno.stat(artifact).then(() => true, () => false);
       assertEquals(exists, true);
+    },
+  });
+
+  await t.step({
+    name: "accepts --out-dir only when it names the project's outDir",
+    ignore: writePermission.state !== "granted",
+    fn: async () => {
+      const root = await Deno.makeTempDir({ prefix: "uffda-cli-main-" });
+      await write(join(root, "main.uff"), "export Main; rule Main = any;");
+
+      const same = await runCli(
+        ["compile", "main.uff", "--out-dir", "./bin"],
+        root,
+        false,
+      );
+      assertEquals(same.exitCode, CliExitCode.Ok, same.stdout);
+      assert(
+        await Deno.stat(join(root, "bin", "ast", "main.uffda.ast.json")).then(
+          () => true,
+          () => false,
+        ),
+      );
+
+      const other = await runCli(
+        ["compile", "main.uff", "--out-dir", "build"],
+        root,
+        false,
+      );
+      assertEquals(other.exitCode, CliExitCode.Usage);
+      assert(other.stderr?.includes("in uffda.jsonc instead"), other.stderr);
+      assertEquals(
+        await Deno.stat(join(root, "build")).then(() => true, () => false),
+        false,
+      );
+    },
+  });
+
+  await t.step({
+    name: "fails for a source outside the project root",
+    ignore: writePermission.state !== "granted",
+    fn: async () => {
+      const root = await Deno.makeTempDir({ prefix: "uffda-cli-main-" });
+      await write(join(root, "app", "uffda.jsonc"), "{}");
+      await write(join(root, "other.uff"), "export Main; rule Main = any;");
+
+      const result = await runCli(
+        ["compile", "../other.uff"],
+        join(root, "app"),
+        false,
+      );
+      assertEquals(result.exitCode, CliExitCode.Usage);
+      assert(result.stdout?.includes("CLI_COMPILE_SOURCE_OUTSIDE_ROOT"));
     },
   });
 });
@@ -454,7 +504,7 @@ Deno.test("cli.main compile resolves module names through the project file", asy
   const artifactImports = async (root: string) =>
     (JSON.parse(
       await Deno.readTextFile(
-        join(root, "src", ".uffda", "ast", "main.uffda.ast.json"),
+        join(root, "bin", "ast", "src", "main.uffda.ast.json"),
       ),
     ) as { imports: { moduleUrl: string }[] }).imports.map(({ moduleUrl }) =>
       moduleUrl
@@ -484,10 +534,10 @@ Deno.test("cli.main compile resolves module names through the project file", asy
     ignore: writePermission.state !== "granted",
     fn: async () => {
       const root = await Deno.makeTempDir({ prefix: "uffda-cli-main-" });
-      await write(join(root, "conf", "project.jsonc"), project);
+      await write(join(root, "project.jsonc"), project);
       await write(join(root, "src", "main.uff"), source);
       const result = await runCli(
-        ["compile", "main.uff", "--config", "../conf/project.jsonc"],
+        ["compile", "main.uff", "--config", "../project.jsonc"],
         join(root, "src"),
         false,
       );

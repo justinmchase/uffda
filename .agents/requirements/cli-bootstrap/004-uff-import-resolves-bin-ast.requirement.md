@@ -10,9 +10,10 @@ spec_ref: ".agents/specifications/modules.spec.md#uffda-source-imports-uff; .age
 
 Preconditions:
 
-- An authored `.uff` source has been compiled into a syntax-AST JSON artifact
-  under the configured artifact root (default `./bin`), using the CLI path
-  layout `<artifact-root>/ast/<stable-source>.uffda.ast.json`.
+- An authored `.uff` source has been compiled into its artifact in the
+  resolver's artifact layout (default root: the working directory; default
+  outDir: `./bin`), using the CLI path layout
+  `<outDir>/ast/<path-from-root>.uffda.ast.json`.
 - A module import names that source with a `.uff` URL (relative or absolute).
 
 Expected behavior:
@@ -28,12 +29,14 @@ Error behavior:
 
 - A missing artifact MUST fail with `MatchErrorCode.ModuleResolution` and MUST
   mention the expected artifact path.
+- A `.uff` module outside the layout's root MUST fail with
+  `MatchErrorCode.ModuleResolution` naming the module and the root.
 - Invalid artifact JSON or lowering failures MUST fail as module-resolution
   errors.
 
 Postconditions:
 
-- Authors can `import "./foo.uff"` once artifacts exist under the configured
-  root; compile-then-import is the supported workflow for `.uff` modules.
+- Authors can `import "./foo.uff"` once artifacts exist in the layout;
+  compile-then-import is the supported workflow for `.uff` modules.
 - Checks SHOULD run a compile-then-import gate against workflow-produced `./bin`
   (see `cli-bootstrap-005`) before language modules switch imports.

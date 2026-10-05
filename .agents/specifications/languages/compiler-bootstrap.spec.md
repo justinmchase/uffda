@@ -134,6 +134,12 @@ artifacts with host-side rewriters.
   recompile) MAY exist for a single publish bridge. That compatibility MUST NOT
   rewrite `./bin` files, MUST NOT be wired into `compile:lang`, and MUST be
   removed in a follow-up once the new CLI has regenerated artifacts.
+- `compile --out-dir` is such a bridge. Releases up to 0.7.0 need
+  `--out-dir ./bin` to write `./bin`; later releases write `./bin` by default
+  (see [output directory](./project-file.spec.md#output-directory)) and accept
+  `--out-dir` only when it names that directory, so `compile:lang` works with
+  both. Once a release without the old default is published, `compile:lang` MUST
+  drop `--out-dir` and the CLI MUST stop accepting it.
 - Authors MUST NOT treat “post-process the bin” or “infer missing tags at load
   by duck-typing arbitrary objects” as substitutes for the publish → install →
   recompile cycle.

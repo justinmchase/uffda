@@ -3,7 +3,10 @@ import { exists } from "@std/fs/exists";
 import { join } from "@std/path";
 import { ImportDeclarationKind } from "../runtime/declarations/import.ts";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
-import { astArtifactPathForUffUrl } from "../runtime/resolvers/artifact_path.ts";
+import {
+  artifactPathForUffUrl,
+  defaultArtifactLayout,
+} from "../runtime/resolvers/artifact_path.ts";
 import { ensureCompiledImportArtifacts } from "./ensure_import_artifacts.ts";
 
 function declWithImport(moduleUrl: string): ModuleDeclaration {
@@ -20,7 +23,7 @@ function declWithImport(moduleUrl: string): ModuleDeclaration {
 
 Deno.test("cli.ensure_import_artifacts", async (t) => {
   await t.step(
-    "compiles a missing file:// .uff import into the artifact root",
+    "compiles a missing file:// .uff import into the artifact layout",
     async () => {
       const cwd = await Deno.makeTempDir({ prefix: "uffda-ensure-imports-" });
       try {
@@ -30,16 +33,46 @@ Deno.test("cli.ensure_import_artifacts", async (t) => {
         const depUrl = new URL(`file://${depPath}`);
 
         const result = await ensureCompiledImportArtifacts({
-          cwd,
-          artifactRoot: ".uffda",
+          artifacts: defaultArtifactLayout(cwd),
           moduleUrl: mainUrl,
           declaration: declWithImport("./dep.uff"),
           knownDeclarations: new Map(),
         });
         assertEquals(result.ok, true);
 
-        const artifactPath = astArtifactPathForUffUrl(cwd, ".uffda", depUrl);
+        const artifactPath = artifactPathForUffUrl(
+          defaultArtifactLayout(cwd),
+          depUrl,
+        )!;
         assertEquals(await exists(artifactPath), true);
+      } finally {
+        await Deno.remove(cwd, { recursive: true });
+      }
+    },
+  );
+
+  await t.step(
+    "fails for an import outside the layout's root",
+    async () => {
+      const cwd = await Deno.makeTempDir({ prefix: "uffda-ensure-imports-" });
+      try {
+        await Deno.mkdir(join(cwd, "app"));
+        await Deno.writeTextFile(
+          join(cwd, "dep.uff"),
+          "export Foo;\nrule Foo = any;",
+        );
+        const result = await ensureCompiledImportArtifacts({
+          artifacts: defaultArtifactLayout(join(cwd, "app")),
+          moduleUrl: new URL(`file://${join(cwd, "app", "main.uff")}`),
+          declaration: declWithImport("../dep.uff"),
+          knownDeclarations: new Map(),
+        });
+        assert(!result.ok);
+        assert(
+          result.message.includes(`is outside ${join(cwd, "app")}`),
+          result.message,
+        );
+        assertEquals(result.importChain.length, 1);
       } finally {
         await Deno.remove(cwd, { recursive: true });
       }
@@ -62,15 +95,16 @@ Deno.test("cli.ensure_import_artifacts", async (t) => {
         };
 
         const result = await ensureCompiledImportArtifacts({
-          cwd,
-          artifactRoot: ".uffda",
+          artifacts: defaultArtifactLayout(cwd),
           moduleUrl: mainUrl,
           declaration: declWithImport("./dep.uff"),
           knownDeclarations: new Map([[depUrl.href, known]]),
         });
         assertEquals(result.ok, true);
         assertEquals(
-          await exists(astArtifactPathForUffUrl(cwd, ".uffda", depUrl)),
+          await exists(
+            artifactPathForUffUrl(defaultArtifactLayout(cwd), depUrl)!,
+          ),
           false,
         );
       } finally {
@@ -95,8 +129,7 @@ Deno.test("cli.ensure_import_artifacts", async (t) => {
         const leafUrl = new URL(`file://${leafPath}`);
 
         const result = await ensureCompiledImportArtifacts({
-          cwd,
-          artifactRoot: ".uffda",
+          artifacts: defaultArtifactLayout(cwd),
           moduleUrl: mainUrl,
           declaration: declWithImport("./mid.uff"),
           knownDeclarations: new Map(),
@@ -104,7 +137,9 @@ Deno.test("cli.ensure_import_artifacts", async (t) => {
         assertEquals(result.ok, true);
         assert(result.ok);
         assertEquals(
-          await exists(astArtifactPathForUffUrl(cwd, ".uffda", leafUrl)),
+          await exists(
+            artifactPathForUffUrl(defaultArtifactLayout(cwd), leafUrl)!,
+          ),
           true,
         );
       } finally {
@@ -120,8 +155,7 @@ Deno.test("cli.ensure_import_artifacts", async (t) => {
       try {
         const mainUrl = new URL(`file://${join(cwd, "main.uff")}`);
         const result = await ensureCompiledImportArtifacts({
-          cwd,
-          artifactRoot: ".uffda",
+          artifacts: defaultArtifactLayout(cwd),
           moduleUrl: mainUrl,
           declaration: declWithImport("./missing.uff"),
           knownDeclarations: new Map(),
@@ -146,8 +180,7 @@ Deno.test("cli.ensure_import_artifacts", async (t) => {
         await Deno.writeTextFile(badPath, "this is not valid uffda !!!");
         const mainUrl = new URL(`file://${join(cwd, "main.uff")}`);
         const result = await ensureCompiledImportArtifacts({
-          cwd,
-          artifactRoot: ".uffda",
+          artifacts: defaultArtifactLayout(cwd),
           moduleUrl: mainUrl,
           declaration: declWithImport("./bad.uff"),
           knownDeclarations: new Map(),
@@ -186,8 +219,7 @@ Deno.test("cli.ensure_import_artifacts", async (t) => {
         const midUrl = new URL(`file://${midPath}`).href;
         const badUrl = new URL(`file://${badPath}`).href;
         const result = await ensureCompiledImportArtifacts({
-          cwd,
-          artifactRoot: ".uffda",
+          artifacts: defaultArtifactLayout(cwd),
           moduleUrl: mainUrl,
           declaration: declWithImport("./mid.uff"),
           knownDeclarations: new Map(),
@@ -226,8 +258,7 @@ Deno.test("cli.ensure_import_artifacts", async (t) => {
           'import "@acme/kv" K;\nexport Foo;\nrule Foo = K;',
         );
         const result = await ensureCompiledImportArtifacts({
-          cwd,
-          artifactRoot: ".uffda",
+          artifacts: defaultArtifactLayout(cwd),
           moduleUrl: new URL(`file://${join(cwd, "main.uff")}`),
           declaration: declWithImport("./dep.uff"),
           knownDeclarations: new Map(),
@@ -236,11 +267,10 @@ Deno.test("cli.ensure_import_artifacts", async (t) => {
         assertEquals(result.ok, true);
         const artifact = JSON.parse(
           await Deno.readTextFile(
-            astArtifactPathForUffUrl(
-              cwd,
-              ".uffda",
+            artifactPathForUffUrl(
+              defaultArtifactLayout(cwd),
               new URL(`file://${depPath}`),
-            ),
+            )!,
           ),
         ) as ModuleDeclaration;
         assertEquals(
@@ -259,8 +289,7 @@ Deno.test("cli.ensure_import_artifacts", async (t) => {
       const cwd = await Deno.makeTempDir({ prefix: "uffda-ensure-imports-" });
       try {
         const result = await ensureCompiledImportArtifacts({
-          cwd,
-          artifactRoot: ".uffda",
+          artifacts: defaultArtifactLayout(cwd),
           moduleUrl: new URL(`file://${join(cwd, "main.uff")}`),
           declaration: declWithImport("@acme/kv/tokens.uff"),
           knownDeclarations: new Map(),

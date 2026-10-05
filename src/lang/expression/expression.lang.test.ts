@@ -1,3 +1,4 @@
+import { defaultArtifactLayout } from "../../runtime/resolvers/artifact_path.ts";
 import { collectRecoveries } from "../../runtime/recovery.ts";
 import { MatchKind, Resolver } from "../../mod.ts";
 import { expressionGrammar } from "./expression.lang.ts";
@@ -28,8 +29,7 @@ async function runExpressionLangRule(
   input: Iterable<unknown>,
 ) {
   const resolver = new Resolver({
-    cwd: Deno.cwd(),
-    artifactRoot: `${Deno.cwd()}/bin`,
+    artifacts: defaultArtifactLayout(Deno.cwd()),
   });
   const scope = Scope.From(input).withOptions({ resolver });
   const imported = await resolver.import(moduleUrl, {

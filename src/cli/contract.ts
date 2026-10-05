@@ -60,8 +60,13 @@ export type CliProcessContract = {
    * file is the nearest `uffda.jsonc` at or above `cwd`.
    */
   configPath?: string;
+  /**
+   * `compile --out-dir`, absolute: a one-release bootstrap bridge for
+   * `compile:lang` (see compiler-bootstrap.spec.md#bin-artifact-integrity-no-post-compile-hacks).
+   * It MUST name the project's outDir; it never changes where artifacts go.
+   */
+  outDirPath?: string;
   cwd: string;
-  outputRootDir: string;
   stdinAttached: boolean;
 };
 
@@ -91,8 +96,8 @@ type ParsedArgs = {
   jsonOutput: boolean;
   check: boolean;
   entryRuleName?: string;
-  outDirOpt?: string;
   configOpt?: string;
+  outDirOpt?: string;
   inputPaths: string[];
 };
 
@@ -541,8 +546,14 @@ export function resolveCliProcessContract(
     );
   }
 
+  if (parsed.outDirOpt !== undefined && mode !== CliMode.Compile) {
+    return usage("--out-dir is only valid for compile", "validation");
+  }
+
   const cwd = resolve(processCwd);
-  const outputRootDir = resolve(cwd, parsed.outDirOpt ?? ".uffda");
+  const outDirPath = parsed.outDirOpt === undefined
+    ? undefined
+    : resolve(cwd, parsed.outDirOpt);
   const configPath = parsed.configOpt === undefined
     ? undefined
     : resolve(cwd, parsed.configOpt);
@@ -564,8 +575,8 @@ export function resolveCliProcessContract(
       check: parsed.check,
       entryRuleName: parsed.entryRuleName,
       configPath,
+      outDirPath,
       cwd,
-      outputRootDir,
       stdinAttached,
     },
   };
