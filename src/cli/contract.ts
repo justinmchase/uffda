@@ -60,12 +60,6 @@ export type CliProcessContract = {
    * file is the nearest `uffda.jsonc` at or above `cwd`.
    */
   configPath?: string;
-  /**
-   * `compile --out-dir`, absolute: a one-release bootstrap bridge for
-   * `compile:lang` (see compiler-bootstrap.spec.md#bin-artifact-integrity-no-post-compile-hacks).
-   * It MUST name the project's outDir; it never changes where artifacts go.
-   */
-  outDirPath?: string;
   cwd: string;
   stdinAttached: boolean;
 };
@@ -97,7 +91,6 @@ type ParsedArgs = {
   check: boolean;
   entryRuleName?: string;
   configOpt?: string;
-  outDirOpt?: string;
   inputPaths: string[];
 };
 
@@ -380,18 +373,6 @@ function parseArgs(argv: string[]): ParsedArgs | ParsedArgsError {
       continue;
     }
 
-    if (token.startsWith("--out-dir=")) {
-      parsed.outDirOpt = token.slice("--out-dir=".length);
-      continue;
-    }
-    if (token === "--out-dir") {
-      const [value, next] = valueAfter(argv, i);
-      if (!value) return parseUsage("Missing value for --out-dir");
-      parsed.outDirOpt = value;
-      i = next;
-      continue;
-    }
-
     return parseUsage(`Unknown flag: ${token}`);
   }
 
@@ -401,8 +382,8 @@ function parseArgs(argv: string[]): ParsedArgs | ParsedArgsError {
 function fmtValidationError(parsed: ParsedArgs): string | undefined {
   if (
     parsed.astInput || parsed.inlineSource !== undefined ||
-    parsed.languageSpecified || parsed.outDirOpt !== undefined ||
-    parsed.entryRuleName !== undefined || parsed.matchInput !== undefined ||
+    parsed.languageSpecified || parsed.entryRuleName !== undefined ||
+    parsed.matchInput !== undefined ||
     parsed.matchInputJson !== undefined || parsed.matchInputPath !== undefined
   ) {
     return "fmt accepts only paths, globs, -, --check, --json, and --config";
@@ -546,14 +527,7 @@ export function resolveCliProcessContract(
     );
   }
 
-  if (parsed.outDirOpt !== undefined && mode !== CliMode.Compile) {
-    return usage("--out-dir is only valid for compile", "validation");
-  }
-
   const cwd = resolve(processCwd);
-  const outDirPath = parsed.outDirOpt === undefined
-    ? undefined
-    : resolve(cwd, parsed.outDirOpt);
   const configPath = parsed.configOpt === undefined
     ? undefined
     : resolve(cwd, parsed.configOpt);
@@ -575,7 +549,6 @@ export function resolveCliProcessContract(
       check: parsed.check,
       entryRuleName: parsed.entryRuleName,
       configPath,
-      outDirPath,
       cwd,
       stdinAttached,
     },

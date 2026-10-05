@@ -17,8 +17,8 @@ must **not** load that same module from workspace `./bin` via
 **Break the cycle:**
 
 1. **Bootstrap compile** (`deno task compile:lang`) shells out to the
-   **previous published `uffda` CLI** (`uffda compile 'src/lang/**/*.uff'
-   --out-dir ./bin`). That binary embeds its own languages and compiler, so it
+   **previous published `uffda` CLI** (`uffda compile 'src/lang/**/*.uff'`,
+   which writes the default `./bin`). That binary embeds its own languages and compiler, so it
    parses **and** lowers `.uff` to **ModuleDeclarations** (`imports` /
    `exports` / `rules`) under `./bin` in one step — no in-tree TypeScript
    lower stage or frozen compiler snapshot is involved.

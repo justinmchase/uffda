@@ -183,7 +183,6 @@ Deno.test("cli.contract resolves command model and process contracts determinist
         ["fmt", "-e", "rule A = a;"],
         ["fmt", "--lang", "pattern", "a.uff"],
         ["fmt", "--ast", "a.uff"],
-        ["fmt", "--out-dir", "out", "a.uff"],
         ["compile", "--check", "a.uff"],
       ]
     ) {
@@ -206,7 +205,7 @@ Deno.test("cli.contract resolves command model and process contracts determinist
     assertEquals(resolution.contract.cwd, "/workspace/project");
   });
 
-  await t.step("compile --out-dir is resolved relative to process cwd", () => {
+  await t.step("--out-dir is not a flag: outDir is the project's", () => {
     for (
       const argv of [
         ["compile", "a.uff", "--out-dir", "bin"],
@@ -214,23 +213,13 @@ Deno.test("cli.contract resolves command model and process contracts determinist
       ]
     ) {
       const resolution = resolveCliProcessContract({ argv, processCwd: cwd });
-      assert(resolution.ok, argv.join(" "));
-      assertEquals(resolution.contract.outDirPath, "/workspace/project/bin");
+      assert(!resolution.ok, argv.join(" "));
+      assertEquals(resolution.exitCode, CliExitCode.Usage);
+      assert(
+        resolution.error.message.startsWith("Unknown flag: --out-dir"),
+        resolution.error.message,
+      );
     }
-  });
-
-  await t.step("--out-dir is only valid for compile", () => {
-    const resolution = resolveCliProcessContract({
-      argv: ["run", "a.uff", "--out-dir", "bin"],
-      processCwd: cwd,
-    });
-    assertEquals(resolution.ok, false);
-    if (resolution.ok) return;
-    assertEquals(resolution.exitCode, CliExitCode.Usage);
-    assertEquals(
-      resolution.error.message,
-      "--out-dir is only valid for compile",
-    );
   });
 
   await t.step("--config is resolved relative to process cwd", () => {

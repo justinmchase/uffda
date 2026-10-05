@@ -65,8 +65,8 @@ workspace `./bin`, so an empty `./bin` cannot be filled by in-tree parse alone.
   syntax module, then run `UffdaRuntimeCompiler` as the next stage, then write
   the resulting **ModuleDeclaration** JSON (`imports` / `exports` / `rules`).
   The published CLI binary embeds this whole pipeline (0.1.17+), so invoking it
-  externally (`uffda compile 'src/lang/**/*.uff' --out-dir ./bin`) already
-  performs both stages.
+  externally (`uffda compile 'src/lang/**/*.uff'`, which writes the default
+  `./bin` output directory) already performs both stages.
 - Bootstrap of workspace `./bin` (`deno task compile:lang`) MUST shell out to
   the **previous published `uffda` CLI** for the full parse + lower pipeline
   (embedded languages and compiler in that binary). It MUST NOT leave syntax
@@ -117,10 +117,9 @@ compile` wrote. Authors and agents MUST NOT “fix” stale or incomplete
 artifacts with host-side rewriters.
 
 - `deno task compile:lang` MUST be only previous published
-  `uffda compile 'src/lang/**/*.uff' --out-dir ./bin` (plus clearing `./bin`
-  beforehand as the task already does). It MUST NOT chain Deno scripts, jq
-  transforms, AST walkers, or other steps that mutate compiled JSON after
-  compile.
+  `uffda compile 'src/lang/**/*.uff'` (plus clearing `./bin` beforehand as the
+  task already does). It MUST NOT chain Deno scripts, jq transforms, AST
+  walkers, or other steps that mutate compiled JSON after compile.
 - Authors MUST NOT add repository scripts or `compile.ts` hooks whose purpose is
   to patch, migrate, wrap, or rewrite fields inside built `./bin` output.
 - When a language/runtime change requires a different shape of compiled AST (for
@@ -134,12 +133,6 @@ artifacts with host-side rewriters.
   recompile) MAY exist for a single publish bridge. That compatibility MUST NOT
   rewrite `./bin` files, MUST NOT be wired into `compile:lang`, and MUST be
   removed in a follow-up once the new CLI has regenerated artifacts.
-- `compile --out-dir` is such a bridge. Releases up to 0.7.0 need
-  `--out-dir ./bin` to write `./bin`; later releases write `./bin` by default
-  (see [output directory](./project-file.spec.md#output-directory)) and accept
-  `--out-dir` only when it names that directory, so `compile:lang` works with
-  both. Once a release without the old default is published, `compile:lang` MUST
-  drop `--out-dir` and the CLI MUST stop accepting it.
 - Authors MUST NOT treat “post-process the bin” or “infer missing tags at load
   by duck-typing arbitrary objects” as substitutes for the publish → install →
   recompile cycle.

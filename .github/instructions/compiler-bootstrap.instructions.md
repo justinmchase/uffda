@@ -16,13 +16,11 @@ Compiling `runtime.compiler.uff` (and other language `.uff`) into `./bin` must
 **Break the cycle:**
 
 1. **Bootstrap compile** (`deno task compile:lang`) shells out to the **previous
-   published `uffda` CLI**
-   (`uffda compile 'src/lang/**/*.uff'
-   --out-dir ./bin`). That binary embeds
-   its own languages and compiler, so it parses **and** lowers `.uff` to
-   **ModuleDeclarations** (`imports` / `exports` / `rules`) under `./bin` in one
-   step — no in-tree TypeScript lower stage or frozen compiler snapshot is
-   involved.
+   published `uffda` CLI** (`uffda compile 'src/lang/**/*.uff'`, which writes
+   the default `./bin`). That binary embeds its own languages and compiler, so
+   it parses **and** lowers `.uff` to **ModuleDeclarations** (`imports` /
+   `exports` / `rules`) under `./bin` in one step — no in-tree TypeScript lower
+   stage or frozen compiler snapshot is involved.
 2. In-tree `uffda compile` (`src/cli/compile.ts`) runs once workspace `./bin`
    already has languages available: parse in-tree, then lower via
    `Resolver.import` of `runtime.compiler.uff` (itself read from `./bin`,
