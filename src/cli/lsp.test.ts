@@ -540,7 +540,7 @@ Deno.test("cli.lsp wireUffdaLspHandlers", async (t) => {
         }[];
         assert(
           diagnostic.message.includes(
-            "jsr:@acme/kv@^1.2.0/tokens: loading modules from packages",
+            "Unable to load jsr:@acme/kv@^1.2.0/tokens:",
           ),
           diagnostic.message,
         );

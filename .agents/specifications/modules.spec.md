@@ -60,8 +60,52 @@ and surfaced to runtime pattern execution.
 - A module name no alias covers MUST be a module-resolution error at that
   import, naming the specifier.
 - Relative and `jsr:` specifiers MUST NOT be changed by the import map.
-- Loading a `jsr:` module is not supported yet and MUST be reported as a
-  module-resolution error naming the module.
+- The import map applies only to the project's own modules. An import in a
+  package's module (see [Packages](#packages)) naming a module name MUST be a
+  module-resolution error: published modules name their packages in full, and a
+  package's import map is never read.
+
+## Packages
+
+A `jsr:@scope/name@range/export` module is loaded from JSR (`https://jsr.io/`)
+the way Deno loads a `jsr:` import.
+
+- **Version:** the version the lockfile records for `jsr:@scope/name@range`;
+  else a version this resolver already chose for the package that satisfies the
+  range, so one version serves the whole graph where it can; else the highest
+  version in the package's `meta.json` that satisfies the range and is not
+  yanked. A specifier without a range takes the highest stable version. No
+  matching version MUST be a module-resolution error.
+- **Export:** the package version's `uffda.jsonc` `exports` maps the export name
+  (`.` when the specifier names none, else `./<export>`) to a `.uff` file. An
+  export the package does not declare, a package without a valid `uffda.jsonc`,
+  or an export that is not a `.uff` file MUST be a module-resolution error.
+- **Identity:** the module's URL is that file's registry URL,
+  `https://jsr.io/@scope/name/<version>/<path>`, so two specifiers that choose
+  the same version and file are one module. Relative imports in it resolve
+  against that URL, within the package version.
+- **Declaration:** the module's declaration is its compiled artifact in the
+  package's [artifact layout](./languages/project-file.spec.md#output-directory)
+  (`<outDir>/ast/<path>.uffda.ast.json` within the package version). A package
+  supplies `.uff` modules only: any other module in a package MUST be a
+  module-resolution error, since remote host code cannot be loaded safely.
+- **Integrity:** every file read from a package version MUST match the sha256
+  checksum its `<version>_meta.json` manifest lists for it; a file the manifest
+  does not list MUST be an error. When the lockfile records an integrity for the
+  package version, its `<version>_meta.json` MUST match it.
+- **Cache:** downloads are kept under `<cache>/uffda/jsr/`, mirroring their
+  registry paths, where `<cache>` is `XDG_CACHE_HOME`, else `LOCALAPPDATA`, else
+  `$HOME/.cache`. A file missing from the cache MUST be downloaded when a module
+  needs it, and a cached file MUST be verified again when read. `meta.json`,
+  which changes as versions are published, MUST be fetched afresh when a version
+  is chosen from it, and read from the cache only when fetching fails.
+- **Lockfile:** the [project file](./languages/project-file.spec.md#lockfile)'s
+  `uffda.lock` records every version chosen and every package version's
+  integrity, and is written when resolution adds to it. Without a project there
+  is no lockfile.
+- Every failure (an unreachable registry, an unknown package, an integrity
+  mismatch, a missing export or artifact) MUST be a module-resolution error
+  naming the module.
 
 ## Supported module sources
 

@@ -82,6 +82,25 @@ export interface IModuleResolvers {
   [extension: string]: IModuleResolver;
 }
 
+export type PackageResolution =
+  | { ok: true; url: URL }
+  | { ok: false; message: string };
+
+/** Loads modules from packages (see `modules.spec.md#packages`). */
+export interface IPackageResolver {
+  /** The URL of the module a package specifier (`jsr:...`) names. */
+  resolve(specifier: string): Promise<PackageResolution>;
+  /**
+   * The package version (as in `@scope/name@1.2.3`) `url` is a module of, which
+   * `load` supplies, or `undefined` when it is not in a package.
+   */
+  packageOf(url: URL): string | undefined;
+  load(
+    url: URL,
+    context: ModuleResolutionContext,
+  ): Promise<ModuleDeclarationResult>;
+}
+
 export function moduleResolutionError(
   message: string,
   context: ModuleResolutionContext,

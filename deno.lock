@@ -7,6 +7,7 @@
     "jsr:@justinmchase/serializable@~0.3.13": "0.3.13",
     "jsr:@justinmchase/type@~0.2.4": "0.2.4",
     "jsr:@std/assert@^1.0.10": "1.0.10",
+    "jsr:@std/assert@^1.0.19": "1.0.19",
     "jsr:@std/crypto@*": "1.0.3",
     "jsr:@std/crypto@^1.0.3": "1.0.3",
     "jsr:@std/data-structures@*": "1.1.0",
@@ -15,12 +16,14 @@
     "jsr:@std/encoding@^1.0.6": "1.0.6",
     "jsr:@std/fs@1": "1.0.24",
     "jsr:@std/fs@^1.0.19": "1.0.24",
+    "jsr:@std/internal@^1.0.12": "1.0.14",
     "jsr:@std/internal@^1.0.14": "1.0.14",
     "jsr:@std/internal@^1.0.5": "1.0.14",
     "jsr:@std/json@^1.0.2": "1.1.0",
     "jsr:@std/jsonc@^1.0.2": "1.0.2",
     "jsr:@std/path@^1.0.8": "1.1.5",
     "jsr:@std/path@^1.1.5": "1.1.5",
+    "jsr:@std/semver@^1.0.8": "1.0.8",
     "jsr:@std/yaml@*": "1.1.1",
     "jsr:@tui/inputs@0": "0.0.1",
     "jsr:@tui/inputs@0.0.1": "0.0.1",
@@ -64,7 +67,7 @@
       "integrity": "d189ca366febb454568d97fb403b63d9d8c11faa7136603923982ea19e1d783f",
       "dependencies": [
         "jsr:@justinmchase/type",
-        "jsr:@std/assert",
+        "jsr:@std/assert@^1.0.10",
         "jsr:@std/fs@^1.0.19",
         "jsr:@std/path@^1.0.8"
       ]
@@ -75,11 +78,20 @@
         "jsr:@std/internal@^1.0.5"
       ]
     },
+    "@std/assert@1.0.19": {
+      "integrity": "eaada96ee120cb980bc47e040f82814d786fe8162ecc53c91d8df60b8755991e",
+      "dependencies": [
+        "jsr:@std/internal@^1.0.12"
+      ]
+    },
     "@std/crypto@1.0.3": {
       "integrity": "a2a32f51ddef632d299e3879cd027c630dcd4d1d9a5285d6e6788072f4e51e7f"
     },
     "@std/data-structures@1.1.0": {
-      "integrity": "c35ae4ad5d8e41a38573c2fe3e19b18ea2505f63cfea201edcb8720aca1f7f58"
+      "integrity": "c35ae4ad5d8e41a38573c2fe3e19b18ea2505f63cfea201edcb8720aca1f7f58",
+      "dependencies": [
+        "jsr:@std/assert@^1.0.19"
+      ]
     },
     "@std/encoding@1.0.6": {
       "integrity": "ca87122c196e8831737d9547acf001766618e78cd8c33920776c7f5885546069"
@@ -114,6 +126,9 @@
       "dependencies": [
         "jsr:@std/internal@^1.0.14"
       ]
+    },
+    "@std/semver@1.0.8": {
+      "integrity": "dc830e8b8b6a380c895d53fbfd1258dc253704ca57bbe1629ac65fd7830179b7"
     },
     "@std/yaml@1.1.1": {
       "integrity": "a57665ecf3d17b926380593a56625d8a10cc7281802f1e993b5ebc94a48e71f8"
@@ -701,6 +716,7 @@
       "jsr:@std/fs@^1.0.19",
       "jsr:@std/jsonc@^1.0.2",
       "jsr:@std/path@^1.0.8",
+      "jsr:@std/semver@^1.0.8",
       "jsr:@tui/inputs@0.0.1",
       "jsr:@tui/nice@0.6.1",
       "jsr:@tui/signals@0.0.10",

@@ -43,6 +43,7 @@ import {
 } from "../match.ts";
 import {
   type ImportFrame,
+  type IPackageResolver,
   ModuleImportResultKind,
 } from "../runtime/resolvers/resolver.ts";
 import { CliLanguage } from "./contract.ts";
@@ -357,6 +358,8 @@ export type RuntimeSessionOptions = {
   artifacts?: ArtifactLayout;
   /** The project's import map, for imports of module names. */
   imports?: ImportMap;
+  /** Loads the `jsr:` modules imported (see `ResolverOptions`). */
+  packages?: IPackageResolver;
 };
 
 /**
@@ -617,6 +620,7 @@ export class RuntimeSession {
   private readonly cwd: string;
   private readonly artifacts: ArtifactLayout;
   private readonly imports: ImportMap;
+  private readonly packages?: IPackageResolver;
   private readonly declarations = new Map<string, ModuleDeclaration>();
   private readonly modules = new Map<string, Module>();
   private readonly moduleOrder: string[] = [];
@@ -658,6 +662,7 @@ export class RuntimeSession {
     this.cwd = options?.cwd ?? Deno.cwd();
     this.artifacts = options?.artifacts ?? defaultArtifactLayout(this.cwd);
     this.imports = options?.imports ?? EMPTY_IMPORT_MAP;
+    this.packages = options?.packages;
   }
 
   public get isClosed(): boolean {
@@ -933,6 +938,7 @@ export class RuntimeSession {
       declarations: Object.fromEntries(trialDeclarations),
       artifacts: this.artifacts,
       imports: this.imports,
+      packages: this.packages,
     });
     const scope = Scope.Default().withOptions({ resolver });
 

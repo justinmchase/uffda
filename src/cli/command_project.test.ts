@@ -1,6 +1,7 @@
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
-import { commandProject } from "./command_project.ts";
+import { commandProject, projectPackages } from "./command_project.ts";
+import { JsrPackages } from "../packages/jsr_packages.ts";
 
 async function withRoot(body: (root: string) => Promise<void>): Promise<void> {
   const root = await Deno.realPath(
@@ -77,6 +78,46 @@ Deno.test("cli.command_project", async (t) => {
     await withRoot(async (root) => {
       const result = await commandProject(root, join(root, "missing.jsonc"));
       assertEquals(result.ok, false);
+    });
+  });
+
+  await t.step("loads packages through the project's lockfile", async () => {
+    await withRoot(async (root) => {
+      await Deno.writeTextFile(join(root, "uffda.jsonc"), "{}");
+      await Deno.writeTextFile(
+        join(root, "uffda.lock"),
+        JSON.stringify({ specifiers: { "jsr:@a/b@^1": "1.0.0" }, jsr: {} }),
+      );
+      const result = await commandProject(root);
+      assert(result.ok);
+      assert(result.packages instanceof JsrPackages);
+    });
+  });
+
+  await t.step("reports an invalid lockfile", async () => {
+    await withRoot(async (root) => {
+      await Deno.writeTextFile(join(root, "uffda.jsonc"), "{}");
+      await Deno.writeTextFile(join(root, "uffda.lock"), "[]");
+      const result = await commandProject(root);
+      assert(!result.ok);
+      assert(result.message.startsWith(join(root, "uffda.lock")));
+    });
+  });
+});
+
+Deno.test("cli.command_project.projectPackages", async (t) => {
+  await t.step("without a project, records nothing", async () => {
+    const result = await projectPackages();
+    assert(result.ok);
+    assert(result.packages instanceof JsrPackages);
+  });
+
+  await t.step("with a project, reads its lockfile", async () => {
+    await withRoot(async (root) => {
+      await Deno.writeTextFile(join(root, "uffda.lock"), "{ nope");
+      const result = await projectPackages({ root });
+      assert(!result.ok);
+      assert(result.message.includes("uffda.lock"));
     });
   });
 });

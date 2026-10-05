@@ -18,3 +18,10 @@ Deno.test("mod exports the value provenance helpers", () => {
     assertEquals(typeof exported[name], "function", name);
   }
 });
+
+Deno.test("mod exports the package loader", () => {
+  const exported = uffda as Record<string, unknown>;
+  for (const name of ["JsrPackages", "Lockfile", "uffdaCacheDir"]) {
+    assertEquals(typeof exported[name], "function", name);
+  }
+});

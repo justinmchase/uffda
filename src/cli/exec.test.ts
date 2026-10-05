@@ -1,4 +1,5 @@
-import { assertEquals } from "@std/assert";
+import { fakeJsrPackages, fakeUffPackage } from "../packages/fake_registry.ts";
+import { assert, assertEquals } from "@std/assert";
 import { join, toFileUrl } from "@std/path";
 import { expressionGrammar } from "../lang/expression/expression.lang.ts";
 import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
@@ -177,18 +178,21 @@ Deno.test("cli.exec resolves module names through the import map", async (t) => 
   if (parsed.kind !== MatchKind.Ok) return;
 
   await t.step("a declared module name resolves to its package", async () => {
+    const kv = await fakeJsrPackages({
+      "@acme/kv": {
+        "1.2.0": fakeUffPackage({ "./tokens": "./tokens.uff" }, {
+          "./tokens": "T",
+        }),
+      },
+    });
     const result = await executeCliModule(valueOf(parsed), "Main", {
       imports: new Map([["@acme/kv", "jsr:@acme/kv@^1.2.0"]]),
+      packages: kv.packages,
+      moduleUrl: new URL("file:///uffda-exec/main.uff"),
     });
-    assertEquals(result.ok, false);
-    if (result.ok) return;
-    assertEquals(
-      result.error.message.includes(
-        "jsr:@acme/kv@^1.2.0/tokens: loading modules from packages is not supported yet",
-      ),
-      true,
-      result.error.message,
-    );
+    assert(!result.ok);
+    // T resolved; it matches nothing here, as there is no input.
+    assertEquals(result.error.code, CliExecFailureCode.ExecutionFailure);
   });
 
   await t.step("an undeclared module name fails to resolve", async () => {

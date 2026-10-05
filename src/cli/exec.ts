@@ -18,6 +18,7 @@ import { globals } from "../runtime/runtime.ts";
 import { isAbsolute, join, toFileUrl } from "@std/path";
 import { valueOf } from "../match.ts";
 import type { ImportMap } from "../runtime/resolvers/import_map.ts";
+import type { IPackageResolver } from "../runtime/resolvers/resolver.ts";
 
 export enum CliExecFailureCode {
   InvalidJson = "CLI_EXEC_INVALID_JSON",
@@ -144,6 +145,8 @@ export type CliExecOptions = {
   moduleUrl?: URL;
   /** The project's import map, for imports of module names. */
   imports?: ImportMap;
+  /** Loads the `jsr:` modules imported. */
+  packages?: IPackageResolver;
 };
 
 /**
@@ -222,6 +225,7 @@ export async function executeCliAst(
     moduleUrl: options?.moduleUrl,
     artifacts: options?.artifacts,
     imports: options?.imports,
+    packages: options?.packages,
     scopeOptions: {
       globals: new Map([...globals, ["echo", (output: unknown) => output]]),
     },
@@ -281,6 +285,7 @@ export async function executeCliModule(
     moduleUrl: options?.moduleUrl,
     artifacts: options?.artifacts,
     imports: options?.imports,
+    packages: options?.packages,
     scopeOptions: {
       globals: new Map([...globals, ["echo", (output: unknown) => output]]),
     },

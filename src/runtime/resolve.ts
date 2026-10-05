@@ -14,10 +14,12 @@ import {
   type IModuleResolvers,
   type ImportFrame,
   type ImportResult,
+  type IPackageResolver,
   moduleDeclarationResolutionResult,
   type ModuleDeclarationResult,
   moduleDeclarationResult,
   ModuleDeclarationResultKind,
+  type ModuleImportError,
   ModuleImportResultKind,
   type ModuleResolutionContext,
   moduleResolutionError,
@@ -50,8 +52,17 @@ export type ResolverOptions = {
    * stand for (the project file's `imports`). Defaults to none.
    */
   imports?: ImportMap;
+  /**
+   * Loads `jsr:` modules (see `modules.spec.md#packages`). Without one, a
+   * `jsr:` import is a module-resolution error.
+   */
+  packages?: IPackageResolver;
   trace?: boolean;
 };
+
+type CanonicalUrl =
+  | { ok: true; url: URL }
+  | { ok: false; error: ModuleImportError };
 
 export class Resolver {
   public static readonly DefaultResolvers: IModuleResolvers = {
@@ -64,6 +75,7 @@ export class Resolver {
   private readonly declarations: Map<string, ModuleDeclaration>;
   private readonly resolvers: IModuleResolvers;
   private readonly imports: ImportMap;
+  private readonly packages?: IPackageResolver;
   /**
    * Per-instance cache of pattern nodes compiled into reusable closures
    * (see `compile()` in `./match.ts`). Kept here — scoped to this
@@ -78,8 +90,10 @@ export class Resolver {
       resolvers,
       artifacts = defaultArtifactLayout(Deno.cwd()),
       imports = EMPTY_IMPORT_MAP,
+      packages,
     } = opts ?? {};
     this.imports = imports;
+    this.packages = packages;
     this.declarations = new Map(Object.entries(declarations));
     this.resolvers = {
       ...Resolver.DefaultResolvers,
@@ -131,6 +145,9 @@ export class Resolver {
     moduleUrl: URL,
     context: ModuleResolutionContext,
   ): Promise<ImportResult> {
+    const canonical = await this.canonicalUrl(moduleUrl, context);
+    if (!canonical.ok) return canonical.error;
+    moduleUrl = canonical.url;
     if (this.modules.has(moduleUrl.href)) {
       return moduleResult(this.modules.get(moduleUrl.href)!);
     } else {
@@ -176,6 +193,31 @@ export class Resolver {
         throw error;
       }
     }
+  }
+
+  /**
+   * The URL a module is known by: a `jsr:` URL is resolved to the URL of the
+   * package module it names, unless a declaration was supplied for it as is.
+   */
+  private async canonicalUrl(
+    moduleUrl: URL,
+    context: ModuleResolutionContext,
+  ): Promise<CanonicalUrl> {
+    if (
+      moduleUrl.protocol !== "jsr:" || this.declarations.has(moduleUrl.href)
+    ) {
+      return { ok: true, url: moduleUrl };
+    }
+    const resolution = this.packages
+      ? await this.packages.resolve(moduleUrl.href)
+      : { ok: false as const, message: "no package resolver is configured" };
+    return resolution.ok ? resolution : {
+      ok: false,
+      error: moduleResolutionResult(moduleResolutionError(
+        `Unable to load ${moduleUrl.href}: ${resolution.message}`,
+        context,
+      )),
+    };
   }
 
   /**
@@ -298,17 +340,43 @@ export class Resolver {
       }
     }
 
+    const importerPackage = this.packages?.packageOf(moduleUrl);
     for (const [importIndex, i] of declaration.imports.entries()) {
-      const unfurled = unfurlSpecifier(this.imports, i.moduleUrl);
-      if (!unfurled.ok) {
-        return withImportFrame(
-          moduleResolutionResult(
-            moduleResolutionError(unfurled.message, context),
-          ),
+      const importFailure = (message: string) =>
+        withImportFrame(
+          moduleResolutionResult(moduleResolutionError(message, context)),
           { importerUrl: moduleUrl.href, importIndex, moduleUrl: i.moduleUrl },
         );
+      const unfurled = importerPackage === undefined
+        ? unfurlSpecifier(this.imports, i.moduleUrl)
+        : i.moduleUrl.startsWith("@")
+        ? {
+          ok: false as const,
+          message:
+            `"${i.moduleUrl}" is a module name, which a module of package ${importerPackage} may not import: it must name the package in full`,
+        }
+        : { ok: true as const, specifier: i.moduleUrl };
+      if (!unfurled.ok) return importFailure(unfurled.message);
+      const specifiedUrl = new URL(unfurled.specifier, moduleUrl);
+      const canonical = await this.canonicalUrl(specifiedUrl, context);
+      if (!canonical.ok) {
+        return withImportFrame(canonical.error, {
+          importerUrl: moduleUrl.href,
+          importIndex,
+          moduleUrl: i.moduleUrl,
+          resolvedUrl: specifiedUrl.href,
+        });
       }
-      const resolvedModuleUrl = new URL(unfurled.specifier, moduleUrl);
+      const resolvedModuleUrl = canonical.url;
+      if (
+        importerPackage !== undefined &&
+        !unfurled.specifier.startsWith("jsr:") &&
+        this.packages?.packageOf(resolvedModuleUrl) !== importerPackage
+      ) {
+        return importFailure(
+          `"${i.moduleUrl}" is outside package ${importerPackage}, which a relative import in it may not reach`,
+        );
+      }
       const frame: ImportFrame = {
         importerUrl: moduleUrl.href,
         importIndex,
@@ -452,13 +520,13 @@ export class Resolver {
   ): Promise<ModuleDeclarationResult> {
     if (this.declarations.has(moduleUrl.href)) {
       return moduleDeclarationResult(this.declarations.get(moduleUrl.href)!);
-    } else if (moduleUrl.protocol === "jsr:") {
-      return moduleDeclarationResolutionResult(
-        moduleResolutionError(
-          `Unable to load ${moduleUrl.href}: loading modules from packages is not supported yet`,
-          context,
-        ),
-      );
+    } else if (this.packages?.packageOf(moduleUrl) !== undefined) {
+      const declaration = await this.packages.load(moduleUrl, context);
+      if (declaration.kind === ModuleDeclarationResultKind.Error) {
+        return declaration;
+      }
+      this.declarations.set(moduleUrl.href, declaration.moduleDeclaration);
+      return declaration;
     } else {
       const ext = extname(moduleUrl.pathname);
       const resolver = this.resolvers[ext];
