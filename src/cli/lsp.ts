@@ -3,7 +3,7 @@ import { fromFileUrl } from "@std/path";
 import {
   type CompletionParams,
   type Connection,
-  createConnection,
+  createProtocolConnection,
   type DefinitionParams,
   type DidChangeTextDocumentParams,
   type DidCloseTextDocumentParams,
@@ -21,6 +21,7 @@ import {
   SemanticTokensRequest,
   TextDocumentSyncKind,
 } from "vscode-languageserver/node";
+import { createConnection, type WatchDog } from "vscode-languageserver/server";
 import {
   LANGUAGE_METADATA_METHOD,
   languageMetadataFor,
@@ -290,6 +291,22 @@ export function wireUffdaLspHandlers(
 }
 
 /**
+ * Ties the language server's lifetime to its stdio connection (see
+ * `language-server.spec.md#server-mode-and-invocation`): `exit` is called for
+ * the client's `exit` notification and when standard input closes. The
+ * client's `processId` is deliberately not polled, because checking whether
+ * another process is alive needs permission to signal processes, which the
+ * release binary is not granted.
+ */
+export function stdioWatchDog(exit: (code: number) => void): WatchDog {
+  return {
+    shutdownReceived: false,
+    initialize() {},
+    exit,
+  };
+}
+
+/**
  * Connects the uffda language server to the standard stdio transport and
  * runs until that transport closes. Per
  * `.agents/specifications/languages/cli/language-server.spec.md#server-mode-and-invocation`,
@@ -297,7 +314,14 @@ export function wireUffdaLspHandlers(
  * running, and stdio is the only supported transport (no TCP/IPC).
  */
 export function runLspServer(): Promise<void> {
-  const connection = createConnection(process.stdin, process.stdout);
+  const watchDog = stdioWatchDog((code) => process.exit(code));
+  const connection = createConnection(
+    (logger) => createProtocolConnection(process.stdin, process.stdout, logger),
+    watchDog,
+  );
+  const disconnected = () => watchDog.exit(watchDog.shutdownReceived ? 0 : 1);
+  process.stdin.on("end", disconnected);
+  process.stdin.on("close", disconnected);
   wireUffdaLspHandlers(connection);
   const closed = new Promise<void>((resolve) => {
     connection.onExit(resolve);

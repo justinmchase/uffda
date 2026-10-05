@@ -144,7 +144,7 @@ jobs:
         # Slow, full-compile end-to-end tests (see test/README.md). Runs as
         # its own job so it never blocks fast feedback (lint/format/unit
         # tests) from the main Checks job.
-        run: deno test --allow-read --allow-write --parallel test/integration/
+        run: deno test --allow-read --allow-write --allow-run=deno --parallel test/integration/
 
   perf:
     name: Perf

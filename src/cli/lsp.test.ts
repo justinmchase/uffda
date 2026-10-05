@@ -14,6 +14,7 @@ import {
 } from "vscode-languageserver/node";
 import { LANGUAGE_METADATA_METHOD } from "./language_metadata.ts";
 import {
+  stdioWatchDog,
   TOGGLE_COMMENT_METHOD,
   type UffdaLspConnection,
   wireUffdaLspHandlers,
@@ -614,4 +615,23 @@ Deno.test("cli.lsp wireUffdaLspHandlers", async (t) => {
       });
     },
   );
+});
+
+Deno.test("cli.lsp stdioWatchDog", async (t) => {
+  await t.step("does not watch the client's processId", () => {
+    const exits: number[] = [];
+    const watchDog = stdioWatchDog((code) => exits.push(code));
+    watchDog.initialize({ processId: Deno.pid } as InitializeParams);
+    assertEquals(exits, []);
+    assertEquals(watchDog.shutdownReceived, false);
+  });
+
+  await t.step("exits with the code the connection gives it", () => {
+    const exits: number[] = [];
+    const watchDog = stdioWatchDog((code) => exits.push(code));
+    watchDog.exit(1);
+    watchDog.shutdownReceived = true;
+    watchDog.exit(0);
+    assertEquals(exits, [1, 0]);
+  });
 });
