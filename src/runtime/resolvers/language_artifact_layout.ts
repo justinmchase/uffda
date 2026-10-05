@@ -1,29 +1,19 @@
-import { dirname, fromFileUrl, resolve } from "@std/path";
+import { fromFileUrl } from "@std/path";
 import { type ArtifactLayout, defaultArtifactLayout } from "./artifact_path.ts";
 
 /**
- * Artifact layout the built-in `.uff` languages are read from.
- *
- * Published CLI binaries embed `./bin` via `deno compile --include`. In
- * standalone mode the layout's root is the binary extract root (not the
- * user's cwd) so included AST JSON is found. In-tree runs keep using
- * `Deno.cwd()`.
+ * Artifact layout the built-in `.uff` languages are read from: the `./bin` of
+ * the uffda package holding this module, whatever the working directory. In a
+ * checkout that is the workspace `./bin` (`compile:lang`); in a published
+ * binary it is the `./bin` embedded with `deno compile --include`, under the
+ * binary's extract root.
  */
-export function languageArtifactLayout(
-  fromImportMetaUrl: string,
-): ArtifactLayout {
-  if (Deno.build.standalone) {
-    // fromImportMetaUrl is under `<extract>/src/...`; package root is the
-    // directory that contains `src/` (e.g. `src/lang/grammar.ts` → extract root).
-    const modulePath = fromFileUrl(fromImportMetaUrl);
-    const idx = modulePath.lastIndexOf("/src/");
-    const winIdx = modulePath.lastIndexOf("\\src\\");
-    const cut = Math.max(idx, winIdx);
-    const packageRoot = cut >= 0
-      ? modulePath.slice(0, cut)
-      : resolve(dirname(modulePath), "../..");
-    return defaultArtifactLayout(packageRoot);
+export function languageArtifactLayout(): ArtifactLayout {
+  const packageRoot = new URL("../../../", import.meta.url);
+  if (packageRoot.protocol !== "file:") {
+    throw new Error(
+      `The built-in languages are read from a local copy of uffda, and ${packageRoot.href} is not one`,
+    );
   }
-
-  return defaultArtifactLayout(Deno.cwd());
+  return defaultArtifactLayout(fromFileUrl(packageRoot));
 }

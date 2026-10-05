@@ -104,7 +104,7 @@ export async function resolveGrammarModule<TAst>(options: {
       ...builtInLanguageDeclarations,
       ...declarations,
     },
-    artifacts: languageArtifactLayout(import.meta.url),
+    artifacts: languageArtifactLayout(),
   });
   let s = (input ? Scope.Default().withInput(input) : Scope.From(source ?? ""))
     .withOptions({ globals: g, resolver: r });
