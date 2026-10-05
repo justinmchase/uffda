@@ -1,7 +1,7 @@
 ---
 id: cli-bootstrap-041
 title: TokenizerLang language module has authored .uff source
-spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/tokenization.spec.md#semantic-token-text-helpers-bootstrap-precursors"
+spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements; .agents/specifications/languages/tokenization.spec.md#semantic-token-text-helpers"
 ---
 
 # TokenizerLang Uff Source

@@ -1,5 +1,5 @@
 ---
-id: tokenizer-runtime-003
+id: tokenizer-runtime-011
 title: Match results carry token trivia and source spans
 spec_ref: ".agents/specifications/languages/tokenization.spec.md#structured-tokens-and-trivia; .agents/specifications/languages/tokenization.spec.md#delivery-milestone-tokenizer-trivia-and-source-spans; .agents/specifications/languages/debuggability.spec.md#source-context-preservation-requirements"
 ---

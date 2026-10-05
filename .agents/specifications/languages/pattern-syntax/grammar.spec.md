@@ -34,6 +34,8 @@ resolution, or expression evaluation.
 - The grammar MUST preserve branch order for choice forms.
 - The grammar MUST preserve explicit grouping where nested pattern structure is
   semantically relevant.
+- Line breaks between tokens MUST NOT be semantic: wherever whitespace may
+  separate two tokens, a line break MUST parse the same as a space.
 
 ## Pattern families
 

@@ -52,7 +52,7 @@ function* walk(node: Match): Iterable<MatchOk> {
   }
 }
 
-Deno.test("req:tokenizer-runtime-003 - match results carry trivia-compatible tokens and source spans", async () => {
+Deno.test("req:tokenizer-runtime-011 - match results carry trivia-compatible tokens and source spans", async () => {
   const resolver = new Resolver();
   const input = Input.Scalar("a\r\n# hi\r\nb");
 

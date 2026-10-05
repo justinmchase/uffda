@@ -33,6 +33,9 @@ jobs:
       - name: Type Check
         run: deno check mod.ts
 
+      - name: Specs audit
+        uses: justinmchase/specs@v1
+
       - name: Compile language modules
         run: |
           set -euo pipefail

@@ -70,31 +70,23 @@ performant grammar.
 - Keep discriminator enums narrow enough that callers do not need to mentally
   filter out irrelevant members.
 
-## Specification authority and change control
+## Specifications
 
-Apply this strict authority order when implementing or evaluating behavior:
+This repository follows the specs method, as declared in `.agents/SPECS`
+(<https://github.com/justinmchase/specs>).
 
-1. Spec documents (`.agents/specifications/**/*.md`)
-2. Requirement documents (`.agents/requirements/**/*.requirement.md`)
-3. Tests (`**/*.test.ts`)
-4. Implementation code (`src/**`, `mod.ts`)
-
-- Specs are intentionally higher level than requirements.
-- Requirements refine and make specific behaviors from the spec testable.
-- If a behavior change is not already covered in the relevant spec or
-  requirement, update the documentation in the same PR as the implementation.
-- Do not silently reinterpret tests or implementation to contradict the spec or
-  requirements.
-- If a requested behavior conflicts with existing spec or requirements, ask for
-  clarification before changing lower-authority artifacts.
-
-## Specification layout
-
-- Specs live under `.agents/specifications/`.
-- `.agents/specifications/README.md` is the entry point and index.
-- Normative chapters use the `{topic}.spec.md` naming pattern.
-- Requirements live under `.agents/requirements/` as `{name}.requirement.md`.
-- Requirement documents should reference the spec file and section they refine.
+- Authority, highest first: specifications (`.agents/specifications/`),
+  requirements (`.agents/requirements/`), tests, implementation. Never change a
+  lower layer to contradict a higher one; if a request conflicts with the
+  specification or a requirement, ask before proceeding.
+- A behavior change updates the specification or requirement that covers it in
+  the same change as the code.
+- Tests cite the requirements they verify with `req:{id}`.
+- Before writing specifications or requirements, use the `specs` and
+  `requirements` skills. Without the plugin installed, read them at
+  <https://raw.githubusercontent.com/justinmchase/specs/v1/skills/specs/SKILL.md>
+  and
+  <https://raw.githubusercontent.com/justinmchase/specs/v1/skills/requirements/SKILL.md>.
 
 ## Releases
 

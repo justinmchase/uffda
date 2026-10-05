@@ -131,6 +131,8 @@ module-local (not exported, not registered as runtime globals) — see
   interpolate code inside strings drop whitespace there themselves (see
   [string and interpolation syntax](./expression-syntax/string-and-interpolation.spec.md)).
 
+## Interpolation boundary requirements
+
 - Tokenization MUST preserve interpolation delimiter boundaries used by
   downstream expression parsing (for example `"`, `$`, `{`, `}`, `.`, and `:`).
 - Tokenization MUST NOT collapse quoted string regions into a single token when
