@@ -33,7 +33,9 @@ Deno.test(
         "language_artifact_layout.ts",
       ),
     );
-    assertEquals(roots.includes("Deno.build.standalone"), true);
+    // The package's own ./bin (embedded or the checkout's), never the cwd's.
+    assertEquals(roots.includes('new URL("../../../", import.meta.url)'), true);
+    assertEquals(roots.includes("Deno.cwd()"), false);
 
     const checks = await Deno.readTextFile(
       join(repoRoot, ".github", "workflows", "checks.yml"),
