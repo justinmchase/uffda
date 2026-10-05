@@ -47,6 +47,12 @@ not introduce a parallel parsing or compilation pathway.
 - Once started, standard input/output MUST carry only LSP protocol traffic;
   diagnostics, logs, or other incidental output MUST NOT be interleaved on these
   streams.
+- The server's lifetime MUST be its stdio connection: it runs until the client
+  sends `exit` or closes standard input. It MUST keep running while connected
+  whatever `processId` the client sends in `initialize`, and staying alive MUST
+  NOT need permissions beyond those the release binary is compiled with (see
+  [distribution and release](./distribution-and-release.spec.md)); in particular
+  it MUST NOT signal or poll the client's process.
 - `uffda lsp` MUST be a mode of the existing `uffda` CLI binary, alongside
   `compile`/`exec`/`match`/`parse`/`run`/`mcp`, not a separately distributed
   binary or package.
