@@ -64,9 +64,10 @@ Normative key words in this chapter use the conventions defined in the
 - `parse` MUST reject `--ast` because it consumes source and produces AST.
 - `exec`, `match`, and `run` MUST select expression, pattern, and Uffda module
   language respectively and MUST reject `--lang` overrides.
-- `match` MUST treat `--input` and `--input-file` content as text by default.
+- `match` and `run` MUST treat `--input` and `--input-file` content as text.
   `--input-json` MUST parse its value as one JSON value and MUST reject invalid
-  JSON with deterministic diagnostics.
+  JSON with deterministic diagnostics. At most one of the three MAY be given,
+  and every other command MUST reject them.
 - `fmt` MUST accept any number of paths or globs (none formats every file under
   the working directory), or `-` alone for standard input, and `--check`; it
   MUST reject every other input option, and `--check` MUST be rejected by every

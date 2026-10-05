@@ -97,7 +97,7 @@ Deno.test("cli.contract resolves command model and process contracts determinist
     assertEquals(resolution.exitCode, CliExitCode.Usage);
   });
 
-  await t.step("limits JSON match input to match", () => {
+  await t.step("limits match input to match and run", () => {
     const resolution = resolveCliProcessContract({
       argv: ["exec", "--input-json", "42"],
       processCwd: cwd,
@@ -106,6 +106,31 @@ Deno.test("cli.contract resolves command model and process contracts determinist
     assertEquals(resolution.ok, false);
     if (resolution.ok) return;
     assertEquals(resolution.exitCode, CliExitCode.Usage);
+    assertEquals(
+      resolution.error.message,
+      "--input, --input-json, and --input-file are only valid for match and run",
+    );
+  });
+
+  await t.step("run takes one match subject", () => {
+    for (
+      const argv of [
+        ["run", "a.uff", "--input", "hi"],
+        ["run", "a.uff", "--input-json", "42"],
+        ["run", "a.uff", "--input-file", "in.txt"],
+      ]
+    ) {
+      assert(resolveCliProcessContract({ argv, processCwd: cwd }).ok, argv[2]);
+    }
+    const both = resolveCliProcessContract({
+      argv: ["run", "a.uff", "--input", "hi", "--input-json", "42"],
+      processCwd: cwd,
+    });
+    assert(!both.ok);
+    assertEquals(
+      both.error.message,
+      "run accepts only one of --input, --input-json, or --input-file",
+    );
   });
 
   await t.step(

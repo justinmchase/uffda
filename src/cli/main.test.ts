@@ -722,3 +722,58 @@ Deno.test({
     assert(result.stderr?.includes("uffda.lock"), result.stderr);
   },
 });
+
+Deno.test("cli.main run matches the module's entry rule against its input", async (t) => {
+  const echo = "export rule Main = x:any* -> (echo x);";
+
+  await t.step("--input is text, matched character by character", async () => {
+    const result = await runCli(
+      ["run", "-e", echo, "--input", "hi"],
+      Deno.cwd(),
+    );
+    assertEquals(result.exitCode, CliExitCode.Ok, result.stderr);
+    assertEquals(JSON.parse(result.stdout!), ["h", "i"]);
+  });
+
+  await t.step("--input-json is one value", async () => {
+    const result = await runCli(
+      [
+        "run",
+        "-e",
+        "export rule Main = x:any -> (echo x);",
+        "--input-json",
+        '{"a":1}',
+      ],
+      Deno.cwd(),
+    );
+    assertEquals(result.exitCode, CliExitCode.Ok, result.stderr);
+    assertEquals(JSON.parse(result.stdout!), { a: 1 });
+  });
+
+  await t.step({
+    name: "--input-file is text",
+    ignore: writePermission.state !== "granted",
+    fn: async () => {
+      const root = await Deno.makeTempDir({ prefix: "uffda-cli-main-" });
+      await write(join(root, "in.txt"), "[1]");
+      const run = await runCli(
+        ["run", "-e", echo, "--input-file", "in.txt"],
+        root,
+      );
+      assertEquals(run.exitCode, CliExitCode.Ok, run.stderr);
+      assertEquals(JSON.parse(run.stdout!), ["[", "1", "]"]);
+      const match = await runCli(
+        ["match", "-e", "any*", "--input-file", "in.txt"],
+        root,
+      );
+      assertEquals(match.exitCode, CliExitCode.Ok, match.stderr);
+      assertEquals(JSON.parse(match.stdout!), ["[", "1", "]"]);
+    },
+  });
+
+  await t.step("without input, the rule matches nothing", async () => {
+    const result = await runCli(["run", "-e", echo], Deno.cwd());
+    assertEquals(result.exitCode, CliExitCode.Ok, result.stderr);
+    assertEquals(JSON.parse(result.stdout!), []);
+  });
+});

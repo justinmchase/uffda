@@ -493,11 +493,12 @@ export function resolveCliProcessContract(
   }
 
   if (
-    mode !== CliMode.Match &&
-    (parsed.matchInput || parsed.matchInputJson || parsed.matchInputPath)
+    mode !== CliMode.Match && mode !== CliMode.Run &&
+    (parsed.matchInput !== undefined || parsed.matchInputJson !== undefined ||
+      parsed.matchInputPath !== undefined)
   ) {
     return usage(
-      "--input, --input-json, and --input-file are only valid for match",
+      "--input, --input-json, and --input-file are only valid for match and run",
       "validation",
     );
   }
@@ -508,7 +509,7 @@ export function resolveCliProcessContract(
     ).length > 1
   ) {
     return usage(
-      "match accepts only one of --input, --input-json, or --input-file",
+      `${command} accepts only one of --input, --input-json, or --input-file`,
       "validation",
     );
   }

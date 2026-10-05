@@ -129,7 +129,8 @@ package's manifest and cached under `~/.cache/uffda/jsr` (or `XDG_CACHE_HOME` /
 `LOCALAPPDATA`). The versions chosen are recorded in `uffda.lock` beside
 `uffda.jsonc`; commit it. A package must therefore publish its `uffda.jsonc` and
 compiled `outDir` (JSR leaves out gitignored files unless `publish.exclude`
-un-ignores them, as in `"!bin"`). See
+un-ignores them, as in `"!bin"`). This package exports its tokenizer that way:
+`import "jsr:@justinmchase/uffda/tokenizer" Tokenizer;`. See
 [`modules.spec.md`](.agents/specifications/modules.spec.md#packages).
 
 ### MCP server

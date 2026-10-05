@@ -90,7 +90,9 @@ Normative key words in this chapter use the conventions defined in the
 - The `run` command MUST execute Uffda module source by default and module AST
   JSON when `--ast` is supplied.
 - A module MUST execute its selected exported rule, defaulting to its first
-  export when no entry rule is selected.
+  export when no entry rule is selected. The rule MUST match the subject
+  `--input`, `--input-file` (text, matched character by character) or
+  `--input-json` (one value) gives; without one it matches no input.
 - An expression AST MUST execute as an implicit `Main` rule.
 - The `match` command MUST match pattern source by default and pattern AST JSON
   when `--ast` is supplied against explicit subject text or a subject file.

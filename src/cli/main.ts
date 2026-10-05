@@ -1,3 +1,4 @@
+import { InputNormalizationMode } from "../input.ts";
 import { isAbsolute, resolve } from "@std/path";
 import {
   CliContractErrorCode,
@@ -290,10 +291,14 @@ function matchUsageText(): string {
 function runUsageText(): string {
   return [
     "Usage: uffda run [--ast] [module-path|-] [--entry <rule>]",
+    "                 [--input <text> | --input-json <json> | --input-file <path>]",
     "",
     "Input and output:",
     "  Runs Uffda module source by default; --ast reads module AST JSON.",
     "  --entry selects an exported rule; the first export is the default.",
+    "  The rule matches the subject --input, --input-json, or --input-file",
+    "  gives (text, or one JSON value with --input-json), else nothing.",
+    "  Writes the successful match value as JSON.",
     "",
   ].join("\n");
 }
@@ -415,7 +420,7 @@ async function readMatchInput(
   } else if (contract.matchInputJson !== undefined) {
     source = contract.matchInputJson;
   } else if (contract.matchInputPath !== undefined) {
-    source = await Deno.readTextFile(
+    return await Deno.readTextFile(
       resolve(contract.cwd, contract.matchInputPath),
     );
   }
@@ -823,11 +828,29 @@ export async function runCli(
     const project = await loadContractProject(contract);
     if (!project.ok) return project.result;
 
+    let input: unknown | undefined;
+    try {
+      input = await readMatchInput(contract);
+    } catch (error) {
+      if (isCliMatchFailure(error)) {
+        return matchFailureResult({ error }, contract.jsonOutput);
+      }
+      return usageError(
+        `Unable to read run input: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+
     const result = await executeCliModule(parsed.ast, contract.entryRuleName, {
       artifacts: project.artifacts,
       imports: project.imports,
       packages: project.packages,
       moduleUrl: moduleUrlForCliOrigin(contract.cwd, parsed.moduleOrigin),
+      input,
+      inputKind: contract.matchInputJson !== undefined
+        ? InputNormalizationMode.Scalar
+        : InputNormalizationMode.Iterable,
     });
     if (result.ok) return operationResult(result.value, contract.jsonOutput);
     return operationFailure(result, contract.jsonOutput);
