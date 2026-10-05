@@ -1,7 +1,9 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { resolve } from "@std/path";
 import type { SessionManager } from "./mcp.sessions.ts";
+import { projectImports } from "./project_imports.ts";
 
 /**
  * Session lifecycle, evaluation, and introspection tools:
@@ -19,6 +21,11 @@ import type { SessionManager } from "./mcp.sessions.ts";
  * process (each session is still isolated from every other session).
  */
 
+export enum SessionOpenFailureCode {
+  /** The project file is invalid, so no import map can be used. */
+  InvalidProject = "MCP_SESSION_OPEN_INVALID_PROJECT",
+}
+
 export const sessionOpenInputShape = {
   cwd: z.string().optional().describe(
     "Absolute working directory the session's imports/artifacts resolve " +
@@ -28,6 +35,11 @@ export const sessionOpenInputShape = {
     "Root whose 'ast/' subtree mirrors compiled .uff artifacts, used to " +
       "resolve this session's .uff imports. Defaults to '.uffda', matching " +
       "uffda_compile's default output location.",
+  ),
+  config: z.string().optional().describe(
+    "Project file (uffda.jsonc) whose imports this session's module names " +
+      "resolve through, relative to cwd. Defaults to the nearest uffda.jsonc " +
+      "at or above cwd.",
   ),
 };
 const sessionOpenInputSchema = z.object(sessionOpenInputShape);
@@ -187,10 +199,25 @@ export function registerSessionTools(
         "State loaded into one session is never visible to another.",
       inputSchema: sessionOpenInputShape,
     },
-    (input: SessionOpenInput) => {
+    async (input: SessionOpenInput) => {
+      const cwd = input.cwd ?? Deno.cwd();
+      const project = await projectImports(
+        cwd,
+        input.config === undefined ? undefined : resolve(cwd, input.config),
+      );
+      if (!project.ok) {
+        return jsonResult({
+          ok: false,
+          error: {
+            code: SessionOpenFailureCode.InvalidProject,
+            message: project.message,
+          },
+        });
+      }
       const session = sessions.open({
         cwd: input.cwd,
         artifactRoot: input.artifactRoot,
+        imports: project.imports,
       });
       return jsonResult({ ok: true, sessionId: session.id });
     },

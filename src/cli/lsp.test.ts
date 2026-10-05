@@ -512,6 +512,45 @@ Deno.test("cli.lsp wireUffdaLspHandlers", async (t) => {
   );
 
   await t.step(
+    "resolves module names through the project file's imports",
+    async () => {
+      const cwd = await Deno.makeTempDir({ prefix: "uffda-lsp-imports-" });
+      try {
+        await Deno.writeTextFile(
+          join(cwd, "uffda.jsonc"),
+          JSON.stringify({ imports: { "@acme/kv": "jsr:@acme/kv@^1.2.0" } }),
+        );
+        const { connection, handlers, sentDiagnostics } =
+          createFakeConnection();
+        wireUffdaLspHandlers(connection, { workspaceRoot: cwd, log: () => {} });
+        await handlers.initialize({} as InitializeParams);
+
+        const uri = toFileUrl(join(cwd, "main.uff")).href;
+        await handlers.open({
+          textDocument: {
+            uri,
+            languageId: "uffda",
+            version: 1,
+            text: 'import "@acme/kv/tokens" T;\nexport Main;\nrule Main = T;',
+          },
+        } as DidOpenTextDocumentParams);
+        assertEquals(sentDiagnostics.length, 1);
+        const [diagnostic] = sentDiagnostics[0].diagnostics as {
+          message: string;
+        }[];
+        assert(
+          diagnostic.message.includes(
+            "jsr:@acme/kv@^1.2.0/tokens: loading modules from packages",
+          ),
+          diagnostic.message,
+        );
+      } finally {
+        await Deno.remove(cwd, { recursive: true });
+      }
+    },
+  );
+
+  await t.step(
     "advertises and serves uffda/languageMetadata from [Language] decorators",
     async () => {
       const { connection, handlers } = createFakeConnection();

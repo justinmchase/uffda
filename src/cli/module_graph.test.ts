@@ -63,13 +63,32 @@ Deno.test("cli.module_graph compileModuleGraph", async (t) => {
 
   await t.step("reports an import from a package", async () => {
     await withFiles({
+      "main.uff": 'import "@acme/kv/tokens" K;\nrule Main = K;',
+    }, async (root) => {
+      const result = await compileModuleGraph(
+        toFileUrl(join(root, "main.uff")),
+        new Map([["@acme/kv", "jsr:@acme/kv@^1"]]),
+      );
+      assert(!result.ok);
+      assertEquals(
+        result.message,
+        'imports "jsr:@acme/kv@^1/tokens", and loading modules from packages is not supported yet',
+      );
+    });
+  });
+
+  await t.step("reports an undeclared module name", async () => {
+    await withFiles({
       "main.uff": 'import "@acme/kv" K;\nrule Main = K;',
     }, async (root) => {
       const result = await compileModuleGraph(
         toFileUrl(join(root, "main.uff")),
       );
       assert(!result.ok);
-      assert(result.message.includes("not supported yet"));
+      assertEquals(
+        result.message,
+        '"@acme/kv" is not a module name the project file\'s `imports` declares',
+      );
     });
   });
 });

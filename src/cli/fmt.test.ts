@@ -305,6 +305,23 @@ Deno.test("cli.fmt LanguageFormatting.load reports invalid configuration", async
   }
 });
 
+Deno.test("cli.fmt LanguageFormatting.load reads the project file a config path names", async () => {
+  const cwd = await workspace({
+    "conf/project.jsonc": JSON.stringify({ languages: ["../grammar/tok.uff"] }),
+    "grammar/tok.uff": grammar("tokens", ".tok"),
+  });
+  try {
+    const formatting = await LanguageFormatting.load(
+      cwd,
+      join(cwd, "conf", "project.jsonc"),
+    );
+    assert(!("error" in formatting), JSON.stringify(formatting));
+    assertEquals(formatting.languageFor("a.tok")?.id, "tokens");
+  } finally {
+    await Deno.remove(cwd, { recursive: true });
+  }
+});
+
 Deno.test("cli.fmt language ownership", async (t) => {
   await t.step(
     "an extension several languages claim fails the configuration",

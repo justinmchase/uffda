@@ -3,9 +3,11 @@ import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { CliLanguage } from "./contract.ts";
 import {
+  CliCompileFailureCode,
   type CliCompileResult,
   compileSourcesToAstArtifacts,
 } from "./compile.ts";
+import { projectImports } from "./project_imports.ts";
 import {
   type CliMatchFailure,
   isCliMatchFailure,
@@ -46,6 +48,11 @@ export const compileToolInputShape = {
   overwrite: z.boolean().optional().describe(
     "Allow overwriting existing artifact files. Defaults to false.",
   ),
+  config: z.string().optional().describe(
+    "Project file (uffda.jsonc) whose imports the sources' module names " +
+      "resolve through, relative to cwd. Defaults to the nearest uffda.jsonc " +
+      "at or above cwd.",
+  ),
 };
 const compileToolInputSchema = z.object(compileToolInputShape);
 export type CompileToolInput = z.infer<typeof compileToolInputSchema>;
@@ -54,11 +61,29 @@ export async function compileToolHandler(
   input: CompileToolInput,
 ): Promise<CliCompileResult> {
   const outputDir = input.outputDir ?? resolve(input.cwd, ".uffda", "ast");
+  const project = await projectImports(
+    input.cwd,
+    input.config === undefined ? undefined : resolve(input.cwd, input.config),
+  );
+  if (!project.ok) {
+    const failure = {
+      code: CliCompileFailureCode.InvalidProject,
+      sourcePath: input.paths[0],
+      message: project.message,
+    };
+    return {
+      ok: false,
+      units: [{ ok: false, sourcePath: failure.sourcePath, failure }],
+      successes: [],
+      failures: [failure],
+    };
+  }
   return await compileSourcesToAstArtifacts({
     cwd: input.cwd,
     sourcePaths: input.paths,
     outputDir,
     overwrite: input.overwrite,
+    imports: project.imports,
   });
 }
 

@@ -214,4 +214,64 @@ Deno.test("cli.ensure_import_artifacts", async (t) => {
       }
     },
   );
+
+  await t.step(
+    "compiles a dependency's module names out in full",
+    async () => {
+      const cwd = await Deno.makeTempDir({ prefix: "uffda-ensure-imports-" });
+      try {
+        const depPath = join(cwd, "dep.uff");
+        await Deno.writeTextFile(
+          depPath,
+          'import "@acme/kv" K;\nexport Foo;\nrule Foo = K;',
+        );
+        const result = await ensureCompiledImportArtifacts({
+          cwd,
+          artifactRoot: ".uffda",
+          moduleUrl: new URL(`file://${join(cwd, "main.uff")}`),
+          declaration: declWithImport("./dep.uff"),
+          knownDeclarations: new Map(),
+          imports: new Map([["@acme/kv", "jsr:@acme/kv@^1.2.0"]]),
+        });
+        assertEquals(result.ok, true);
+        const artifact = JSON.parse(
+          await Deno.readTextFile(
+            astArtifactPathForUffUrl(
+              cwd,
+              ".uffda",
+              new URL(`file://${depPath}`),
+            ),
+          ),
+        ) as ModuleDeclaration;
+        assertEquals(
+          artifact.imports.map(({ moduleUrl }) => moduleUrl),
+          ["jsr:@acme/kv@^1.2.0"],
+        );
+      } finally {
+        await Deno.remove(cwd, { recursive: true });
+      }
+    },
+  );
+
+  await t.step(
+    "skips imports of module names, which need no artifact",
+    async () => {
+      const cwd = await Deno.makeTempDir({ prefix: "uffda-ensure-imports-" });
+      try {
+        const result = await ensureCompiledImportArtifacts({
+          cwd,
+          artifactRoot: ".uffda",
+          moduleUrl: new URL(`file://${join(cwd, "main.uff")}`),
+          declaration: declWithImport("@acme/kv/tokens.uff"),
+          knownDeclarations: new Map(),
+          imports: new Map([["@acme/kv", "jsr:@acme/kv@^1.2.0"]]),
+        });
+        assertEquals(result.ok, true);
+        assert(result.ok);
+        assertEquals(result.missingSources.size, 0);
+      } finally {
+        await Deno.remove(cwd, { recursive: true });
+      }
+    },
+  );
 });

@@ -19,6 +19,10 @@ import {
 } from "../runtime/modules/rule.ts";
 import type { Module } from "../runtime/modules/mod.ts";
 import { Resolver } from "../runtime/resolve.ts";
+import {
+  EMPTY_IMPORT_MAP,
+  type ImportMap,
+} from "../runtime/resolvers/import_map.ts";
 import { Scope } from "../runtime/scope.ts";
 import {
   type FunctionMetadata,
@@ -357,6 +361,8 @@ export type RuntimeSessionOptions = {
    * default output location.
    */
   artifactRoot?: string;
+  /** The project's import map, for imports of module names. */
+  imports?: ImportMap;
 };
 
 /**
@@ -616,6 +622,7 @@ export class RuntimeSession {
   public readonly id: string;
   private readonly cwd: string;
   private readonly artifactRoot: string;
+  private readonly imports: ImportMap;
   private readonly declarations = new Map<string, ModuleDeclaration>();
   private readonly modules = new Map<string, Module>();
   private readonly moduleOrder: string[] = [];
@@ -656,6 +663,7 @@ export class RuntimeSession {
     this.id = id;
     this.cwd = options?.cwd ?? Deno.cwd();
     this.artifactRoot = options?.artifactRoot ?? DEFAULT_SESSION_ARTIFACT_ROOT;
+    this.imports = options?.imports ?? EMPTY_IMPORT_MAP;
   }
 
   public get isClosed(): boolean {
@@ -913,6 +921,7 @@ export class RuntimeSession {
       moduleUrl,
       declaration,
       knownDeclarations: trialDeclarations,
+      imports: this.imports,
     });
     if (!ensured.ok) {
       const { importChain, dependency } = ensured;
@@ -932,6 +941,7 @@ export class RuntimeSession {
       declarations: Object.fromEntries(trialDeclarations),
       cwd: this.cwd,
       artifactRoot: this.artifactRoot,
+      imports: this.imports,
     });
     const scope = Scope.Default().withOptions({ resolver });
 
@@ -975,7 +985,10 @@ export class RuntimeSession {
       const importChain = imported.importChain ?? [];
       const failed = importChain.at(-1);
       let reason = `${imported.error.code}: ${imported.error.message}`;
-      if (failed && ensured.missingSources.has(failed.resolvedUrl)) {
+      if (
+        failed?.resolvedUrl &&
+        ensured.missingSources.has(failed.resolvedUrl)
+      ) {
         const missingPath = fromFileUrl(failed.resolvedUrl);
         reason = importChain.length === 1
           ? `Cannot find module "${failed.moduleUrl}": no such file ${missingPath}`

@@ -8,6 +8,8 @@ import {
   resolveCliProcessContract,
 } from "./contract.ts";
 import { compileSourcesToAstArtifacts } from "./compile.ts";
+import { projectImports } from "./project_imports.ts";
+import type { ImportMap } from "../runtime/resolvers/import_map.ts";
 import {
   type CliModuleOrigin,
   executeCliExpression,
@@ -54,6 +56,35 @@ type HelpTarget =
 
 function toJson(value: unknown): string {
   return `${JSON.stringify(value, null, 2)}\n`;
+}
+
+function configFailure(message: string): CliRunResult {
+  return {
+    exitCode: CliExitCode.Config,
+    stderr: toJson({
+      ok: false,
+      error: {
+        code: CliContractErrorCode.Config,
+        phase: "configuration",
+        message,
+      },
+    }),
+  };
+}
+
+/**
+ * The import map of the project the command uses (see `projectImports`). An
+ * invalid project file fails the command.
+ */
+async function commandImports(
+  contract: CliProcessContract,
+): Promise<
+  { ok: true; imports: ImportMap } | { ok: false; result: CliRunResult }
+> {
+  const project = await projectImports(contract.cwd, contract.configPath);
+  return project.ok
+    ? project
+    : { ok: false, result: configFailure(project.message) };
 }
 
 function usageError(message: string): CliRunResult {
@@ -149,6 +180,8 @@ function rootUsageText(): string {
     "  --version, -V          Print the CLI version and exit.",
     "  --lang <value>         uffda | pattern | expression (parse only)",
     "  --mode <value>         compile | exec | fmt | match | parse | run",
+    "  --config <path>        Project file (compile, exec, fmt, run); defaults",
+    "                         to the nearest uffda.jsonc at or above the cwd.",
     "",
     "Examples:",
     "  uffda compile 'src/**/*.uff'",
@@ -171,9 +204,13 @@ function compileUsageText(): string {
     "Compile options:",
     "  --help, -h       Show compile command usage.",
     "  --out-dir <path> Output root directory (replaces .uffda).",
+    "  --config <path>  Project file whose imports module names resolve",
+    "                   through (default: the nearest uffda.jsonc).",
     "",
     "Output:",
     "  Writes ModuleDeclaration JSON under <out-dir>/ast (default: .uffda/ast).",
+    "  Each import names a relative path or a full jsr: specifier: module",
+    "  names are written out through the project file's imports.",
     "",
     "Examples:",
     "  uffda compile ./file.uff",
@@ -207,7 +244,7 @@ function execUsageText(): string {
 
 function fmtUsageText(): string {
   return [
-    "Usage: uffda fmt [--check] [--json] [file-or-glob|-] [...more paths]",
+    "Usage: uffda fmt [--check] [--json] [--config <path>] [file-or-glob|-] [...]",
     "",
     "Formatting:",
     "  Formats files with the [Formatter] their language's entry rule names,",
@@ -225,6 +262,7 @@ function fmtUsageText(): string {
     "Options:",
     "  --check    Write nothing; list files that are not formatted.",
     "  --json     Emit the per-file results as JSON.",
+    "  --config   The project file (default: the nearest uffda.jsonc).",
     "",
     "Exits non-zero when a file fails to format, or with --check when a file",
     "is not formatted.",
@@ -570,20 +608,11 @@ async function runFmt(
   contract: CliProcessContract,
   stdinSource: string,
 ): Promise<CliRunResult> {
-  const formatting = await LanguageFormatting.load(contract.cwd);
-  if ("error" in formatting) {
-    return {
-      exitCode: CliExitCode.Config,
-      stderr: toJson({
-        ok: false,
-        error: {
-          code: CliContractErrorCode.Config,
-          phase: "configuration",
-          message: formatting.error,
-        },
-      }),
-    };
-  }
+  const formatting = await LanguageFormatting.load(
+    contract.cwd,
+    contract.configPath,
+  );
+  if ("error" in formatting) return configFailure(formatting.error);
 
   const stdin = contract.inputPaths[0] === "-";
   const result: CliFormatStdinResult = stdin
@@ -715,10 +744,13 @@ export async function runCli(
       CliLanguage.Expression,
     );
     if (!parsed.ok) return parsed.result;
+    const project = await commandImports(contract);
+    if (!project.ok) return project.result;
 
     const result = await executeCliExpression(parsed.ast, {
       cwd: contract.cwd,
       artifactRoot: contract.outputRootDir,
+      imports: project.imports,
       moduleUrl: moduleUrlForCliOrigin(contract.cwd, parsed.moduleOrigin),
     });
     if (!result.ok) return operationFailure(result, contract.jsonOutput);
@@ -786,10 +818,13 @@ export async function runCli(
       CliLanguage.FullUffda,
     );
     if (!parsed.ok) return parsed.result;
+    const project = await commandImports(contract);
+    if (!project.ok) return project.result;
 
     const result = await executeCliModule(parsed.ast, contract.entryRuleName, {
       cwd: contract.cwd,
       artifactRoot: contract.outputRootDir,
+      imports: project.imports,
       moduleUrl: moduleUrlForCliOrigin(contract.cwd, parsed.moduleOrigin),
     });
     if (result.ok) return operationResult(result.value, contract.jsonOutput);
@@ -808,10 +843,14 @@ export async function runCli(
     );
   }
 
+  const project = await commandImports(contract);
+  if (!project.ok) return project.result;
+
   const result = await compileSourcesToAstArtifacts({
     cwd: contract.cwd,
     sourcePaths: contract.inputPaths,
     outputDir: resolve(contract.outputRootDir, "ast"),
+    imports: project.imports,
   });
 
   return {

@@ -36,16 +36,16 @@ uffda fmt -
   directories.
 - `-` MUST format standard input as a `.uff` module and write the formatted text
   to standard output; it MUST NOT be combined with paths.
-- `fmt` MUST accept only paths, `-`, `--check`, and `--json`, and MUST reject
-  every other option with a usage failure. `--check` MUST be rejected by every
-  other command.
+- `fmt` MUST accept only paths, `-`, `--check`, `--json`, and `--config <path>`,
+  and MUST reject every other option with a usage failure. `--check` MUST be
+  rejected by every other command.
 
 ## Languages
 
 - A file's language MUST be chosen by its extension, exactly as the language
   server chooses it: the built-in `.uff` language or a language of the
-  [project file](../project-file.spec.md#languages) at or above the working
-  directory.
+  [project file](../project-file.spec.md#languages) `--config` names, else the
+  nearest one at or above the working directory.
 - Formatting is opportunistic for files matched by a glob (including the
   default): a file whose extension no language owns, or whose language's entry
   rule has no `[Formatter]`, MUST be skipped silently and left out of the

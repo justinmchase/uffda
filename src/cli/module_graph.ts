@@ -5,6 +5,11 @@ import { ImportDeclarationKind } from "../runtime/declarations/import.ts";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 import { diagnoseRecoveries } from "./diagnostics.ts";
 import { parseFailureMessage } from "./stream.ts";
+import {
+  EMPTY_IMPORT_MAP,
+  type ImportMap,
+  unfurlSpecifier,
+} from "../runtime/resolvers/import_map.ts";
 
 export type ModuleGraphResult =
   | { ok: true; declarations: Record<string, ModuleDeclaration> }
@@ -14,10 +19,12 @@ export type ModuleGraphResult =
  * Compiles the `.uff` module at `moduleUrl` and every `.uff` module it imports
  * by relative path, in memory, keyed by module URL, so a grammar outside the
  * built-in languages resolves without compiled artifacts on disk. Resolve
- * itself still only loads declarations (see compiler-bootstrap).
+ * itself still only loads declarations (see compiler-bootstrap). Module names
+ * resolve through `imports`, to packages, which cannot be loaded yet.
  */
 export async function compileModuleGraph(
   moduleUrl: URL,
+  imports: ImportMap = EMPTY_IMPORT_MAP,
 ): Promise<ModuleGraphResult> {
   const declarations: Record<string, ModuleDeclaration> = {};
   const pending = [moduleUrl];
@@ -47,15 +54,19 @@ export async function compileModuleGraph(
     declarations[url.href] = declaration;
     for (const imported of declaration.imports) {
       if (imported.kind !== ImportDeclarationKind.Module) continue;
-      if (!imported.moduleUrl.startsWith(".")) {
+      const unfurled = unfurlSpecifier(imports, imported.moduleUrl);
+      if (!unfurled.ok) {
+        return { ok: false, moduleUrl: url.href, message: unfurled.message };
+      }
+      if (unfurled.specifier.startsWith("jsr:")) {
         return {
           ok: false,
           moduleUrl: url.href,
           message:
-            `imports "${imported.moduleUrl}", and loading modules from packages is not supported yet`,
+            `imports "${unfurled.specifier}", and loading modules from packages is not supported yet`,
         };
       }
-      pending.push(new URL(imported.moduleUrl, url));
+      pending.push(new URL(unfurled.specifier, url));
     }
   }
   return { ok: true, declarations };

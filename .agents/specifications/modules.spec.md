@@ -40,10 +40,28 @@ and surfaced to runtime pattern execution.
 - Resolver implementations MUST cache resolved modules by canonical module URL.
 - If a module URL is already cached, subsequent imports MUST reuse the cached
   runtime module instance.
-- Module imports MUST be resolved relative to the importing module URL.
+- A relative import specifier MUST be resolved relative to the importing module
+  URL. A module name MUST be resolved through the resolver's import map (see
+  [Import maps](#import-maps)).
 - Imported names MUST be validated against the imported module's exported names.
 - Import names that conflict with rule or func declarations in the importing
   module MUST be rejected as module-resolution errors.
+
+## Import maps
+
+- A resolver MUST be given its import map before resolution starts: the
+  `imports` of the [project file](./languages/project-file.spec.md#imports) the
+  command uses, or none without a project. Source text never declares or carries
+  an import map.
+- A module name (a specifier starting with `@`) MUST resolve to the `jsr:`
+  specifier of the alias it falls under, segment by segment, followed by the
+  rest of the name: with `@acme/kv` mapped to `jsr:@acme/kv@^1.2.0`,
+  `@acme/kv/tokens` resolves to `jsr:@acme/kv@^1.2.0/tokens`.
+- A module name no alias covers MUST be a module-resolution error at that
+  import, naming the specifier.
+- Relative and `jsr:` specifiers MUST NOT be changed by the import map.
+- Loading a `jsr:` module is not supported yet and MUST be reported as a
+  module-resolution error naming the module.
 
 ## Supported module sources
 

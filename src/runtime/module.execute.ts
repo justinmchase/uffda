@@ -7,6 +7,7 @@ import { matchWithRecovery } from "./recovery.ts";
 import { Resolver } from "./resolve.ts";
 import { Scope, type ScopeOptions } from "./scope.ts";
 import { ModuleImportResultKind } from "./resolvers/resolver.ts";
+import type { ImportMap } from "./resolvers/import_map.ts";
 
 export type ExecuteModuleDeclarationOptions = {
   moduleUrl?: URL;
@@ -18,6 +19,8 @@ export type ExecuteModuleDeclarationOptions = {
   scopeOptions?: Partial<ScopeOptions>;
   cwd?: string;
   artifactRoot?: string;
+  /** The import map module names resolve through (see `ResolverOptions`). */
+  imports?: ImportMap;
 };
 
 export async function executeModuleDeclaration(
@@ -33,6 +36,7 @@ export async function executeModuleDeclaration(
     declarations,
     cwd: options?.cwd,
     artifactRoot: options?.artifactRoot,
+    imports: options?.imports,
   });
 
   let scope = options?.input === undefined

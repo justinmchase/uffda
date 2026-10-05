@@ -16,6 +16,7 @@ import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 import { globals } from "../runtime/runtime.ts";
 import { isAbsolute, join, toFileUrl } from "@std/path";
 import { valueOf } from "../match.ts";
+import type { ImportMap } from "../runtime/resolvers/import_map.ts";
 
 export enum CliExecFailureCode {
   InvalidJson = "CLI_EXEC_INVALID_JSON",
@@ -140,6 +141,8 @@ export type CliExecOptions = {
   artifactRoot?: string;
   /** Logical module URL for relative import resolution. */
   moduleUrl?: URL;
+  /** The project's import map, for imports of module names. */
+  imports?: ImportMap;
 };
 
 /**
@@ -218,6 +221,7 @@ export async function executeCliAst(
     moduleUrl: options?.moduleUrl,
     cwd: options?.cwd,
     artifactRoot: options?.artifactRoot,
+    imports: options?.imports,
     scopeOptions: {
       globals: new Map([...globals, ["echo", (output: unknown) => output]]),
     },
@@ -277,6 +281,7 @@ export async function executeCliModule(
     moduleUrl: options?.moduleUrl,
     cwd: options?.cwd,
     artifactRoot: options?.artifactRoot,
+    imports: options?.imports,
     scopeOptions: {
       globals: new Map([...globals, ["echo", (output: unknown) => output]]),
     },

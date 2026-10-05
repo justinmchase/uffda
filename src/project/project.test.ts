@@ -1,6 +1,5 @@
 import { assert, assertEquals } from "@std/assert";
 import {
-  aliasOf,
   parseProject,
   type ProjectParseResult,
   ProjectProblemCode,
@@ -161,11 +160,4 @@ Deno.test("project.parseProject reports every problem", async (t) => {
       ['`languages[1]` repeats "./a.uff".'],
     );
   });
-});
-
-Deno.test("project.aliasOf finds the declared module name", () => {
-  const imports = new Map([["@acme/kv", "jsr:@acme/kv@^1"]]);
-  assertEquals(aliasOf(imports, "@acme/kv"), "@acme/kv");
-  assertEquals(aliasOf(imports, "@acme/kv/lang"), "@acme/kv");
-  assertEquals(aliasOf(imports, "@acme/kvx"), undefined);
 });

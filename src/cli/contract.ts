@@ -55,6 +55,11 @@ export type CliProcessContract = {
   /** `fmt --check`: report non-canonical files without writing them. */
   check: boolean;
   entryRuleName?: string;
+  /**
+   * `--config`: the project file to use, absolute. When absent, the project
+   * file is the nearest `uffda.jsonc` at or above `cwd`.
+   */
+  configPath?: string;
   cwd: string;
   outputRootDir: string;
   stdinAttached: boolean;
@@ -87,6 +92,7 @@ type ParsedArgs = {
   check: boolean;
   entryRuleName?: string;
   outDirOpt?: string;
+  configOpt?: string;
   inputPaths: string[];
 };
 
@@ -356,6 +362,19 @@ function parseArgs(argv: string[]): ParsedArgs | ParsedArgsError {
       continue;
     }
 
+    if (token.startsWith("--config=")) {
+      parsed.configOpt = token.slice("--config=".length);
+      if (!parsed.configOpt) return parseUsage("Missing value for --config");
+      continue;
+    }
+    if (token === "--config") {
+      const [value, next] = valueAfter(argv, i);
+      if (!value) return parseUsage("Missing value for --config");
+      parsed.configOpt = value;
+      i = next;
+      continue;
+    }
+
     if (token.startsWith("--out-dir=")) {
       parsed.outDirOpt = token.slice("--out-dir=".length);
       continue;
@@ -381,7 +400,7 @@ function fmtValidationError(parsed: ParsedArgs): string | undefined {
     parsed.entryRuleName !== undefined || parsed.matchInput !== undefined ||
     parsed.matchInputJson !== undefined || parsed.matchInputPath !== undefined
   ) {
-    return "fmt accepts only paths, globs, -, --check, and --json";
+    return "fmt accepts only paths, globs, -, --check, --json, and --config";
   }
   if (parsed.inputPaths.includes("-") && parsed.inputPaths.length > 1) {
     return "fmt cannot combine - with file paths";
@@ -512,8 +531,21 @@ export function resolveCliProcessContract(
     return usage("--entry is only valid for run", "validation");
   }
 
+  if (
+    parsed.configOpt !== undefined &&
+    (mode === CliMode.Match || mode === CliMode.Parse)
+  ) {
+    return usage(
+      "--config is only valid for compile, exec, fmt, and run",
+      "validation",
+    );
+  }
+
   const cwd = resolve(processCwd);
   const outputRootDir = resolve(cwd, parsed.outDirOpt ?? ".uffda");
+  const configPath = parsed.configOpt === undefined
+    ? undefined
+    : resolve(cwd, parsed.configOpt);
 
   return {
     ok: true,
@@ -531,6 +563,7 @@ export function resolveCliProcessContract(
       jsonOutput: parsed.jsonOutput,
       check: parsed.check,
       entryRuleName: parsed.entryRuleName,
+      configPath,
       cwd,
       outputRootDir,
       stdinAttached,

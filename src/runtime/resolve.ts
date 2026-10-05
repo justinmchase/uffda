@@ -28,6 +28,11 @@ import {
 import { ImportResolver, JsonResolver } from "./resolvers/mod.ts";
 import { DEFAULT_ARTIFACT_ROOT } from "./resolvers/artifact_path.ts";
 import { UffArtifactResolver } from "./resolvers/uff.artifact.resolver.ts";
+import {
+  EMPTY_IMPORT_MAP,
+  type ImportMap,
+  unfurlSpecifier,
+} from "./resolvers/import_map.ts";
 
 export type ResolverOptions = {
   declarations?: Record<string, ModuleDeclaration>;
@@ -39,6 +44,11 @@ export type ResolverOptions = {
    * Defaults to `./bin`.
    */
   artifactRoot?: string;
+  /**
+   * Module names each import may use, mapped to the `jsr:` specifiers they
+   * stand for (the project file's `imports`). Defaults to none.
+   */
+  imports?: ImportMap;
   trace?: boolean;
 };
 
@@ -52,6 +62,7 @@ export class Resolver {
   private readonly modules = new Map<string, Module>();
   private readonly declarations: Map<string, ModuleDeclaration>;
   private readonly resolvers: IModuleResolvers;
+  private readonly imports: ImportMap;
   /**
    * Per-instance cache of pattern nodes compiled into reusable closures
    * (see `compile()` in `./match.ts`). Kept here — scoped to this
@@ -66,7 +77,9 @@ export class Resolver {
       resolvers,
       cwd = Deno.cwd(),
       artifactRoot = DEFAULT_ARTIFACT_ROOT,
+      imports = EMPTY_IMPORT_MAP,
     } = opts ?? {};
+    this.imports = imports;
     this.declarations = new Map(Object.entries(declarations));
     this.resolvers = {
       ...Resolver.DefaultResolvers,
@@ -286,7 +299,16 @@ export class Resolver {
     }
 
     for (const [importIndex, i] of declaration.imports.entries()) {
-      const resolvedModuleUrl = new URL(i.moduleUrl, moduleUrl);
+      const unfurled = unfurlSpecifier(this.imports, i.moduleUrl);
+      if (!unfurled.ok) {
+        return withImportFrame(
+          moduleResolutionResult(
+            moduleResolutionError(unfurled.message, context),
+          ),
+          { importerUrl: moduleUrl.href, importIndex, moduleUrl: i.moduleUrl },
+        );
+      }
+      const resolvedModuleUrl = new URL(unfurled.specifier, moduleUrl);
       const frame: ImportFrame = {
         importerUrl: moduleUrl.href,
         importIndex,
@@ -430,6 +452,13 @@ export class Resolver {
   ): Promise<ModuleDeclarationResult> {
     if (this.declarations.has(moduleUrl.href)) {
       return moduleDeclarationResult(this.declarations.get(moduleUrl.href)!);
+    } else if (moduleUrl.protocol === "jsr:") {
+      return moduleDeclarationResolutionResult(
+        moduleResolutionError(
+          `Unable to load ${moduleUrl.href}: loading modules from packages is not supported yet`,
+          context,
+        ),
+      );
     } else {
       const ext = extname(moduleUrl.pathname);
       const resolver = this.resolvers[ext];

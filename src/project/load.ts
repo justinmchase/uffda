@@ -51,6 +51,17 @@ export async function findProjectFile(
 export async function loadProject(start: string): Promise<ProjectLoadResult> {
   const path = await findProjectFile(start);
   if (!path) return { kind: ProjectLoadKind.Missing };
+  return await loadProjectFile(path);
+}
+
+/**
+ * Reads the project file at `path`, named explicitly (for example by
+ * `--config`), so a missing file is a problem rather than no project.
+ */
+export async function loadProjectFile(
+  path: string,
+): Promise<ProjectLoadResult> {
+  path = resolve(path);
   let text: string;
   try {
     text = await Deno.readTextFile(path);
@@ -68,4 +79,17 @@ export async function loadProject(start: string): Promise<ProjectLoadResult> {
   return parsed.ok
     ? { kind: ProjectLoadKind.Loaded, project: parsed.project }
     : { kind: ProjectLoadKind.Invalid, path, problems: parsed.problems };
+}
+
+/**
+ * The project a command uses: the project file `configPath` names (from
+ * `--config`) when given, otherwise the project `start` is in.
+ */
+export async function loadCommandProject(
+  start: string,
+  configPath?: string,
+): Promise<ProjectLoadResult> {
+  return configPath === undefined
+    ? await loadProject(start)
+    : await loadProjectFile(configPath);
 }
