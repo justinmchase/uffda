@@ -1,6 +1,11 @@
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
-import { findProjectFile, loadProject, ProjectLoadKind } from "./load.ts";
+import {
+  findProjectFile,
+  loadProject,
+  loadProjectFile,
+  ProjectLoadKind,
+} from "./load.ts";
 
 async function withTree(
   files: Record<string, string>,
@@ -82,5 +87,28 @@ Deno.test("project.loadProject", async (t) => {
     } finally {
       await Deno.remove(root, { recursive: true });
     }
+  });
+});
+
+Deno.test("project.loadProjectFile", async (t) => {
+  await t.step("loads the named file, whatever its name", async () => {
+    await withTree({
+      "config/custom.jsonc": `{ "imports": { "@a/b": "jsr:@a/b@^1" } }`,
+    }, async (root) => {
+      const loaded = await loadProjectFile(join(root, "config/custom.jsonc"));
+      assert(loaded.kind === ProjectLoadKind.Loaded);
+      assertEquals(loaded.project.root, join(root, "config"));
+      assertEquals(loaded.project.imports.get("@a/b"), "jsr:@a/b@^1");
+    });
+  });
+
+  await t.step("reports a missing file as a problem", async () => {
+    await withTree({}, async (root) => {
+      const path = join(root, "uffda.jsonc");
+      const loaded = await loadProjectFile(path);
+      assert(loaded.kind === ProjectLoadKind.Invalid);
+      assertEquals(loaded.path, path);
+      assertEquals(loaded.problems.length, 1);
+    });
   });
 });

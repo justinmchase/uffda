@@ -289,6 +289,77 @@ if (readPermissions.state === "granted") {
       ]);
     },
   });
+
+  Deno.test({
+    name: "RESOLVE11 - module names resolve through the import map",
+    fn: async (t) => {
+      const main = "file:///uffda-resolve11/main.uff";
+      const tokens = "jsr:@acme/kv@^1.2.0/tokens";
+      const importing = (moduleUrl: string) => ({
+        imports: [{
+          kind: ImportDeclarationKind.Module as const,
+          moduleUrl,
+          names: ["T"],
+        }],
+        exports: [],
+        rules: [],
+      });
+      const imports = new Map([["@acme/kv", "jsr:@acme/kv@^1.2.0"]]);
+
+      await t.step("an alias imports the module it stands for", async () => {
+        const resolver = new Resolver({
+          imports,
+          declarations: {
+            [main]: importing("@acme/kv/tokens"),
+            [tokens]: {
+              imports: [],
+              exports: [{ kind: ExportDeclarationKind.Rule, name: "T" }],
+              rules: [{
+                name: "T",
+                parameters: [],
+                pattern: { kind: PatternKind.Any },
+              }],
+            },
+          },
+        });
+        const result = await resolver.import(new URL(main), context());
+        assertEquals(result.kind, ModuleImportResultKind.Module);
+        assert(resolver.resolvedModules.has(tokens));
+      });
+
+      await t.step("an undeclared module name is an import error", async () => {
+        const resolver = new Resolver({
+          imports,
+          declarations: { [main]: importing("@acme/other") },
+        });
+        const result = await resolver.import(new URL(main), context());
+        assert(result.kind === ModuleImportResultKind.Error);
+        assertEquals(
+          result.error.message,
+          '"@acme/other" is not a module name the project file\'s `imports` declares',
+        );
+        assertEquals(result.importChain, [{
+          importerUrl: main,
+          importIndex: 0,
+          moduleUrl: "@acme/other",
+        }]);
+      });
+
+      await t.step("a jsr: module is not loaded yet", async () => {
+        const resolver = new Resolver({
+          imports,
+          declarations: { [main]: importing("@acme/kv/tokens") },
+        });
+        const result = await resolver.import(new URL(main), context());
+        assert(result.kind === ModuleImportResultKind.Error);
+        assertEquals(
+          result.error.message,
+          `Unable to load ${tokens}: loading modules from packages is not supported yet`,
+        );
+        assertEquals(result.importChain?.[0].resolvedUrl, tokens);
+      });
+    },
+  });
 } else {
   Deno.test({
     name: "resolve tests require read permissions",

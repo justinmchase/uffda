@@ -448,6 +448,90 @@ Deno.test("cli.main runCli validates mode support and compile routing", async (t
   });
 });
 
+Deno.test("cli.main compile resolves module names through the project file", async (t) => {
+  const source = 'import "@acme/kv/tokens" T;\n\nrule Main = T;\n';
+  const project = '{ "imports": { "@acme/kv": "jsr:@acme/kv@^1.2.0" } }';
+  const artifactImports = async (root: string) =>
+    (JSON.parse(
+      await Deno.readTextFile(
+        join(root, "src", ".uffda", "ast", "main.uffda.ast.json"),
+      ),
+    ) as { imports: { moduleUrl: string }[] }).imports.map(({ moduleUrl }) =>
+      moduleUrl
+    );
+
+  await t.step({
+    name: "uses the nearest uffda.jsonc at or above cwd",
+    ignore: writePermission.state !== "granted",
+    fn: async () => {
+      const root = await Deno.makeTempDir({ prefix: "uffda-cli-main-" });
+      await write(join(root, "uffda.jsonc"), project);
+      await write(join(root, "src", "main.uff"), source);
+      const result = await runCli(
+        ["compile", "main.uff"],
+        join(root, "src"),
+        false,
+      );
+      assertEquals(result.exitCode, CliExitCode.Ok, result.stdout);
+      assertEquals(await artifactImports(root), [
+        "jsr:@acme/kv@^1.2.0/tokens",
+      ]);
+    },
+  });
+
+  await t.step({
+    name: "uses the project file --config names",
+    ignore: writePermission.state !== "granted",
+    fn: async () => {
+      const root = await Deno.makeTempDir({ prefix: "uffda-cli-main-" });
+      await write(join(root, "conf", "project.jsonc"), project);
+      await write(join(root, "src", "main.uff"), source);
+      const result = await runCli(
+        ["compile", "main.uff", "--config", "../conf/project.jsonc"],
+        join(root, "src"),
+        false,
+      );
+      assertEquals(result.exitCode, CliExitCode.Ok, result.stdout);
+      assertEquals(await artifactImports(root), [
+        "jsr:@acme/kv@^1.2.0/tokens",
+      ]);
+    },
+  });
+
+  await t.step({
+    name: "fails on an undeclared module name without a project",
+    ignore: writePermission.state !== "granted",
+    fn: async () => {
+      const root = await Deno.makeTempDir({ prefix: "uffda-cli-main-" });
+      await write(join(root, "src", "main.uff"), source);
+      const result = await runCli(
+        ["compile", "main.uff"],
+        join(root, "src"),
+        false,
+      );
+      assertEquals(result.exitCode, CliExitCode.Usage);
+      assert(result.stdout?.includes("CLI_COMPILE_UNDECLARED_MODULE_NAME"));
+    },
+  });
+
+  await t.step({
+    name: "an invalid project file is a configuration failure",
+    ignore: writePermission.state !== "granted",
+    fn: async () => {
+      const root = await Deno.makeTempDir({ prefix: "uffda-cli-main-" });
+      await write(join(root, "uffda.jsonc"), '{ "imports": { "kv": 1 } }');
+      await write(join(root, "src", "main.uff"), source);
+      const result = await runCli(
+        ["compile", "main.uff"],
+        join(root, "src"),
+        false,
+      );
+      assertEquals(result.exitCode, CliExitCode.Config);
+      assert(result.stderr?.includes("uffda.jsonc"), result.stderr);
+    },
+  });
+});
+
 Deno.test("cli.main runCli reports recoveries", async (t) => {
   const recovering = `(ope "a" sneak by any)* end`;
 

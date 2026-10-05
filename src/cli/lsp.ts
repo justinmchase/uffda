@@ -112,7 +112,10 @@ export function wireUffdaLspHandlers(
       const loaded = await loadProjectLanguages(workspaceRoot);
       languages = loaded.languages;
       for (const problem of loaded.problems) log(problem);
-      manager = new LspDocumentManager(workspaceRoot);
+      manager = new LspDocumentManager(
+        workspaceRoot,
+        loaded.project?.imports,
+      );
       return {
         capabilities: {
           textDocumentSync: TextDocumentSyncKind.Incremental,

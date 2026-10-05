@@ -16,6 +16,9 @@ RFC 8174.
 - A project's root is the nearest directory at or above the starting directory
   (the working directory, or the editor's workspace folder) that holds a file
   named `uffda.jsonc`. A directory named `uffda.jsonc` is not a project file.
+- A command MAY name its project file explicitly (`--config <path>` on the CLI,
+  `config` on MCP tools); that file is used whatever its name, and a missing one
+  is a problem.
 - One project serves a whole workspace. Nested project files below the root are
   not read for that workspace.
 - A directory with no project file at or above it has no project. Every tool
@@ -52,8 +55,14 @@ RFC 8174.
 - An alias MUST NOT be the start of another alias, segment by segment (`@acme`
   and `@acme/kv` overlap; `@acme/kv` and `@acme/kvx` do not). Every overlapping
   pair is a problem.
-- `imports` is a local development map. Compiled modules name packages by their
-  full `jsr:` specifier, so a project's consumers never read its `imports`.
+- `imports` is the import map of every resolver the project's tools build (see
+  [import maps](../modules.spec.md#import-maps)): the CLI, the language server
+  and the MCP server load it before resolving any import, as Deno loads
+  `deno.json`.
+- `imports` is a local development map. `uffda compile` writes each module name
+  out as its full `jsr:` specifier (see
+  [compile](./cli/compile-and-stream.spec.md#ast-artifact-contracts)), so a
+  project's consumers never read its `imports`.
 
 ## Exports
 

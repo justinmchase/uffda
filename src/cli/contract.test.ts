@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import {
   CliContractErrorCode,
   CliExitCode,
@@ -223,6 +223,51 @@ Deno.test("cli.contract resolves command model and process contracts determinist
       "/workspace/project/build-output",
     );
   });
+
+  await t.step("--config is resolved relative to process cwd", () => {
+    for (
+      const argv of [
+        ["compile", "a.uff", "--config", "conf/uffda.jsonc"],
+        ["fmt", "--config=conf/uffda.jsonc"],
+        ["run", "a.uff", "--config", "conf/uffda.jsonc"],
+        ["exec", "-e", "1", "--config", "conf/uffda.jsonc"],
+      ]
+    ) {
+      const resolution = resolveCliProcessContract({ argv, processCwd: cwd });
+      assert(resolution.ok, argv.join(" "));
+      assertEquals(
+        resolution.contract.configPath,
+        "/workspace/project/conf/uffda.jsonc",
+      );
+    }
+  });
+
+  await t.step("without --config there is no config path", () => {
+    const resolution = resolveCliProcessContract({
+      argv: ["compile", "a.uff"],
+      processCwd: cwd,
+    });
+    assert(resolution.ok);
+    assertEquals(resolution.contract.configPath, undefined);
+  });
+
+  await t.step(
+    "--config needs a value and a command that loads modules",
+    () => {
+      for (
+        const argv of [
+          ["compile", "a.uff", "--config"],
+          ["compile", "a.uff", "--config="],
+          ["match", "-e", "any", "--input", "x", "--config", "u.jsonc"],
+          ["parse", "a.uff", "--config", "u.jsonc"],
+        ]
+      ) {
+        const resolution = resolveCliProcessContract({ argv, processCwd: cwd });
+        assert(!resolution.ok, argv.join(" "));
+        assertEquals(resolution.exitCode, CliExitCode.Usage);
+      }
+    },
+  );
 
   await t.step(
     "non-absolute process cwd is a deterministic configuration failure",

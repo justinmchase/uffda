@@ -92,12 +92,13 @@ published** CLI (bootstrap recursion break).
 ### Project file
 
 A `uffda.jsonc` file marks a Uffda project. Tools use the nearest one at or
-above the working directory (or the editor's workspace):
+above the working directory (or the editor's workspace), or the file
+`--config <path>` names:
 
 ```jsonc
 {
-  // Aliases for packages. Each one maps to a jsr: specifier.
-  "imports": { "@std/": "jsr:@uffda/std@^1.0.0/" },
+  // Module names for packages. Each one maps to a jsr: specifier.
+  "imports": { "@acme/kv": "jsr:@acme/kv@^1.2.0" },
   // What the project offers to others, "." or "./name" to a file inside it.
   "exports": { ".": "./lang/foo.uff" },
   // Modules whose exported rules carry [Language] metadata.
@@ -108,7 +109,12 @@ above the working directory (or the editor's workspace):
 A language's id, name and file extensions come from the `[Language]` decorator
 on the exported rule that parses its files, for example
 `[Language { id: "foo", name: "Foo", extensions: [".foo"] }]`. `.uff` is always
-available, even without a project file. See
+available, even without a project file.
+
+An import may name a module name (`import "@acme/kv/tokens" Token;`). The
+resolver looks it up in `imports`, as Deno does with `deno.json`, and
+`uffda compile` writes it out in full (`"jsr:@acme/kv@^1.2.0/tokens"`), so
+compiled modules never need the project file. See
 [`project-file.spec.md`](.agents/specifications/languages/project-file.spec.md).
 
 ### MCP server

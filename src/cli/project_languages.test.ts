@@ -68,6 +68,20 @@ Deno.test("cli.project_languages loadProjectLanguages", async (t) => {
     });
   });
 
+  await t.step("reads the project file a config path names", async () => {
+    await withProject({
+      "uffda.jsonc": "{ languages: 1 }",
+      "conf/other.jsonc": JSON.stringify({ imports: {} }),
+    }, async (root) => {
+      const loaded = await loadProjectLanguages(
+        root,
+        join(root, "conf", "other.jsonc"),
+      );
+      assertEquals(loaded.problems, []);
+      assertEquals(loaded.project?.path, join(root, "conf", "other.jsonc"));
+    });
+  });
+
   await t.step(
     "serves the built-in language with an invalid project",
     async () => {

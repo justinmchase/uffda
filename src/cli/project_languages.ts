@@ -10,7 +10,7 @@ import { UFFDA_GRAMMAR } from "../lang/uffda/uffda.lang.ts";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 import type { Rule } from "../runtime/modules/rule.ts";
 import {
-  loadProject,
+  loadCommandProject,
   PROJECT_FILE_NAME,
   ProjectLoadKind,
   type UffdaProject,
@@ -135,7 +135,7 @@ async function languagesOfEntry(
     };
   }
   const moduleUrl = new URL(specifier, toFileUrl(join(project.root, "/")));
-  const graph = await compileModuleGraph(moduleUrl);
+  const graph = await compileModuleGraph(moduleUrl, project.imports);
   if (!graph.ok) {
     return {
       ok: false,
@@ -214,14 +214,16 @@ export function settleOwnership(
 
 /**
  * The languages served for documents under `start`: the built-in `.uff`
- * language plus the languages of the nearest project file's `languages`.
- * Problems never stop the rest from being served.
+ * language plus the languages of the project file's `languages` (the file
+ * `configPath` names, else the nearest one). Problems never stop the rest
+ * from being served.
  */
 export async function loadProjectLanguages(
   start: string,
+  configPath?: string,
 ): Promise<ProjectLanguages> {
   const builtin = await builtinLanguages();
-  const loaded = await loadProject(start);
+  const loaded = await loadCommandProject(start, configPath);
   switch (loaded.kind) {
     case ProjectLoadKind.Missing:
       return { languages: [...builtin], problems: [] };

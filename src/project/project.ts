@@ -5,6 +5,7 @@ import {
   ModuleSpecifierKind,
   parseModuleSpecifier,
 } from "../lang/uffda/specifier.ts";
+import { aliasOf, isUnderAlias } from "../runtime/resolvers/import_map.ts";
 
 /**
  * The project file (see
@@ -48,19 +49,6 @@ const SPECIFIER_FORMS =
 
 function invalid(message: string): ProjectProblem {
   return { code: ProjectProblemCode.InvalidField, message };
-}
-
-/** Whether `name` is `alias` or one of its exports (`alias/...`). */
-export function isUnderAlias(name: string, alias: string): boolean {
-  return name === alias || name.startsWith(`${alias}/`);
-}
-
-/** The declared module name `name` falls under, if any. */
-export function aliasOf(
-  imports: ReadonlyMap<string, string>,
-  name: string,
-): string | undefined {
-  return [...imports.keys()].find((alias) => isUnderAlias(name, alias));
 }
 
 async function readImports(

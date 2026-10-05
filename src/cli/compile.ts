@@ -1,5 +1,11 @@
 import { dirname, isAbsolute, join } from "@std/path";
-import { isClean, isSuccess, type Match, MatchKind } from "../match.ts";
+import {
+  isClean,
+  isSuccess,
+  type Match,
+  MatchKind,
+  type MatchSuccess,
+} from "../match.ts";
 import { formatMatchFailureSummary } from "../match.visualize.ts";
 import { analyzeMatchFailure } from "./diagnostics.ts";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
@@ -11,9 +17,16 @@ import { compileUffdaSource } from "../lang/uffda/execute.ts";
 import { CliLanguage } from "./contract.ts";
 import {
   type CliStreamFailureLocation,
+  locationFromOffset,
   parseFailureLocation,
   recoveryFailures,
 } from "./stream.ts";
+import {
+  EMPTY_IMPORT_MAP,
+  type ImportMap,
+  unfurlSpecifier,
+} from "../runtime/resolvers/import_map.ts";
+import { isWrapped, rawOf } from "../wrapped.ts";
 import {
   expandSourcePaths,
   type SourcePathFailure,
@@ -31,6 +44,10 @@ export enum CliCompileFailureCode {
   /** Source the parse skipped by recovering; see error-recovery.spec.md. */
   Recovered = "CLI_COMPILE_PARSE_RECOVERED",
   WriteFailure = "CLI_COMPILE_WRITE_FAILURE",
+  /** The project file is invalid, so no import map can be used. */
+  InvalidProject = "CLI_COMPILE_INVALID_PROJECT",
+  /** An import naming a module name the import map does not declare. */
+  UndeclaredModuleName = "CLI_COMPILE_UNDECLARED_MODULE_NAME",
 }
 
 export type CliCompileFailure = {
@@ -38,7 +55,10 @@ export type CliCompileFailure = {
   sourcePath: string;
   outputPath?: string;
   message: string;
-  /** Source position of a `ParseFailure` or `Recovered` diagnostic. */
+  /**
+   * Source position of a `ParseFailure`, `Recovered`, or
+   * `UndeclaredModuleName` diagnostic.
+   */
   location?: CliStreamFailureLocation;
 };
 
@@ -63,8 +83,9 @@ export type CliCompileUnitResult =
     /** The unit's failure, or the first recovery of a recovered parse. */
     failure: CliCompileFailure;
     /**
-     * Every parse diagnostic of the unit, in document order: one per
-     * recovery, then the parse failure when the parse failed.
+     * Every diagnostic of the unit, in document order: one per recovery,
+     * then the parse failure when the parse failed; or one per import naming
+     * an undeclared module name.
      */
     diagnostics?: CliCompileFailure[];
   };
@@ -74,6 +95,11 @@ export type CliCompileRequest = {
   sourcePaths: string[];
   outputDir: string;
   overwrite?: boolean;
+  /**
+   * The project's import map. Each import is written to the artifact with
+   * its module name in full (see `unfurlSpecifier`). Defaults to none.
+   */
+  imports?: ImportMap;
 };
 
 export type CliCompileResult = {
@@ -102,6 +128,50 @@ async function parseFailureMessage(match: Match): Promise<string> {
     return "parse failed with left recursion outcome";
   }
   return "unexpected parser outcome";
+}
+
+type UnfurledModule =
+  | { ok: true; module: ModuleDeclaration }
+  | {
+    ok: false;
+    failures: { message: string; location?: CliStreamFailureLocation }[];
+  };
+
+/**
+ * The compiled module with every import's module name written out in full, as
+ * a published module names them, so the artifact needs no import map. A
+ * module name the map does not declare is reported at its source.
+ */
+function unfurlImports(
+  compiled: MatchSuccess<ModuleDeclaration>,
+  imports: ImportMap,
+  sourceText: string,
+): UnfurledModule {
+  const module = valueOf(compiled);
+  const written = rawOf(
+    (rawOf(compiled.value as unknown) as { imports?: unknown }).imports,
+  ) as unknown[];
+  const failures: { message: string; location?: CliStreamFailureLocation }[] =
+    [];
+  const unfurled = module.imports.map((declaration, index) => {
+    const result = unfurlSpecifier(imports, declaration.moduleUrl);
+    if (result.ok) return { ...declaration, moduleUrl: result.specifier };
+    const specifier = (rawOf(written[index]) as { moduleUrl?: unknown })
+      ?.moduleUrl;
+    failures.push({
+      message: result.message,
+      location: isWrapped(specifier)
+        ? {
+          ...locationFromOffset(sourceText, specifier.origin.start),
+          endOffset: specifier.origin.end,
+        }
+        : undefined,
+    });
+    return declaration;
+  });
+  return failures.length > 0
+    ? { ok: false, failures }
+    : { ok: true, module: { ...module, imports: unfurled } };
 }
 
 function toCompileFailure(failure: SourcePathFailure): CliCompileFailure {
@@ -189,7 +259,13 @@ async function ensureWritableOutput(
 export async function compileSourcesToAstArtifacts(
   request: CliCompileRequest,
 ): Promise<CliCompileResult> {
-  const { cwd, outputDir, sourcePaths, overwrite = false } = request;
+  const {
+    cwd,
+    outputDir,
+    sourcePaths,
+    overwrite = false,
+    imports = EMPTY_IMPORT_MAP,
+  } = request;
 
   if (!isAbsolute(cwd) || !isAbsolute(outputDir)) {
     const sourcePath = sourcePaths[0] ?? "";
@@ -305,7 +381,26 @@ export async function compileSourcesToAstArtifacts(
       });
       continue;
     }
-    const module = valueOf(compiled);
+    const unfurled = unfurlImports(compiled, imports, sourceText);
+    if (!unfurled.ok) {
+      const diagnostics = unfurled.failures.map(({ message, location }) => ({
+        code: CliCompileFailureCode.UndeclaredModuleName,
+        sourcePath: plan.sourcePath,
+        outputPath: plan.outputPath,
+        message,
+        location,
+      }));
+      failures.push(...diagnostics);
+      units.push({
+        ok: false,
+        sourcePath: plan.sourcePath,
+        outputPath: plan.outputPath,
+        failure: diagnostics[0],
+        diagnostics,
+      });
+      continue;
+    }
+    const { module } = unfurled;
 
     try {
       await Deno.writeTextFile(

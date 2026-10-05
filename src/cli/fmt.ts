@@ -99,11 +99,15 @@ export class LanguageFormatting {
     private readonly languages: readonly ProjectLanguage[],
   ) {}
 
-  /** Loads the workspace's language configuration. */
+  /**
+   * Loads the languages of the project `workspaceRoot` is in, or of the
+   * project file `configPath` names.
+   */
   static async load(
     workspaceRoot: string,
+    configPath?: string,
   ): Promise<LanguageFormatting | { error: string }> {
-    const loaded = await loadProjectLanguages(workspaceRoot);
+    const loaded = await loadProjectLanguages(workspaceRoot, configPath);
     if (loaded.problems.length > 0) {
       return { error: loaded.problems.join("\n") };
     }

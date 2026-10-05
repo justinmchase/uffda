@@ -5,6 +5,11 @@ import { isModuleDeclaration } from "../runtime/declarations/is_module_declarati
 import { astArtifactPathForUffUrl } from "../runtime/resolvers/artifact_path.ts";
 import type { ImportFrame } from "../runtime/resolvers/resolver.ts";
 import { compileSourcesToAstArtifacts } from "./compile.ts";
+import {
+  EMPTY_IMPORT_MAP,
+  type ImportMap,
+  unfurlSpecifier,
+} from "../runtime/resolvers/import_map.ts";
 import type { CliStreamFailureLocation } from "./stream.ts";
 
 export type EnsureImportArtifactsOptions = {
@@ -22,6 +27,11 @@ export type EnsureImportArtifactsOptions = {
    * currently being loaded). Those URLs need no disk artifact for this load.
    */
   knownDeclarations: ReadonlyMap<string, ModuleDeclaration>;
+  /**
+   * The project's import map: module names resolve through it (to packages,
+   * which need no artifact here), and compiled artifacts name them in full.
+   */
+  imports?: ImportMap;
 };
 
 /** The transitive import whose source could not be compiled or read. */
@@ -68,8 +78,14 @@ function isFileUffUrl(url: URL): boolean {
 export async function ensureCompiledImportArtifacts(
   options: EnsureImportArtifactsOptions,
 ): Promise<EnsureImportArtifactsResult> {
-  const { cwd, artifactRoot, moduleUrl, declaration, knownDeclarations } =
-    options;
+  const {
+    cwd,
+    artifactRoot,
+    moduleUrl,
+    declaration,
+    knownDeclarations,
+    imports = EMPTY_IMPORT_MAP,
+  } = options;
   const absArtifactRoot = resolve(cwd, artifactRoot);
   const outputDir = join(absArtifactRoot, "ast");
 
@@ -84,9 +100,11 @@ export async function ensureCompiledImportArtifacts(
   ) => {
     for (const [importIndex, imp] of decl.imports.entries()) {
       if (imp.kind !== ImportDeclarationKind.Module) continue;
+      const unfurled = unfurlSpecifier(imports, imp.moduleUrl);
+      if (!unfurled.ok) continue;
       let url: URL;
       try {
-        url = new URL(imp.moduleUrl, from);
+        url = new URL(unfurled.specifier, from);
       } catch {
         continue;
       }
@@ -178,6 +196,7 @@ export async function ensureCompiledImportArtifacts(
       sourcePaths: [sourcePath],
       outputDir,
       overwrite: true,
+      imports,
     });
     if (!compiled.ok) {
       const compileFailure = compiled.failures[0];

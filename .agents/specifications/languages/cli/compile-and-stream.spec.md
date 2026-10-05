@@ -33,6 +33,15 @@ Normative key words in this chapter use the conventions defined in the
   from the emitted ModuleDeclaration.
 - Compile MUST NOT emit raw syntax ASTs (`kind: "module"` + `declarations`) as
   the on-disk artifact; lowering is a stage of compile, not a post-pass.
+- Compile MUST write every import's module name out in full, resolved through
+  the import map of the project it uses (see
+  [import maps](../../modules.spec.md#import-maps)), as `deno publish` does:
+  every import in an artifact names a relative path or a full `jsr:` specifier,
+  so no consumer of an artifact needs its project file.
+- The project file compile uses MUST be the one `--config <path>` names, else
+  the nearest `uffda.jsonc` at or above the working directory. An invalid
+  project file MUST fail the command with a configuration failure before any
+  unit compiles.
 
 ## Parse contracts
 
@@ -101,8 +110,11 @@ Normative key words in this chapter use the conventions defined in the
 - If one or more compilation units fail for a multi-path or glob compile, the
   CLI MUST produce deterministic per-unit failure diagnostics.
 - A unit whose source parsed only by recovering MUST fail without writing an
-  artifact. A unit that failed to parse MUST report every parse diagnostic of
-  the unit, and the overall failure list MUST include each of them.
+  artifact. A unit importing a module name its import map does not declare MUST
+  fail without writing an artifact, with one diagnostic per such import located
+  at its specifier. A unit that failed to parse MUST report every parse
+  diagnostic of the unit, and the overall failure list MUST include each of
+  them.
 - Exit status MUST indicate whether any input unit failed.
 - Partial success behavior MUST be explicit and reproducible.
 

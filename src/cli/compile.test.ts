@@ -185,3 +185,71 @@ Deno.test({
     );
   },
 });
+
+Deno.test({
+  name: "cli.compile writes module names out in full through the import map",
+  ignore: writePermission.state !== "granted",
+  fn: async (t) => {
+    const imports = new Map([["@acme/kv", "jsr:@acme/kv@^1.2.0"]]);
+    const source = [
+      'import "./local.uff" L;',
+      'import "@acme/kv/tokens" T;',
+      'import "jsr:@x/y@^2/z" Z;',
+      "",
+      "rule Main = L;",
+      "",
+    ].join("\n");
+
+    await t.step(
+      "each import is relative or a full jsr: specifier",
+      async () => {
+        const root = await Deno.makeTempDir({ prefix: "uffda-cli-compile-" });
+        await write(join(root, "main.uff"), source);
+        const result = await compileSourcesToAstArtifacts({
+          cwd: root,
+          sourcePaths: ["main.uff"],
+          outputDir: join(root, "out"),
+          imports,
+        });
+        assert(result.ok, JSON.stringify(result.failures));
+        const onDisk = JSON.parse(
+          await Deno.readTextFile(result.successes[0].outputPath),
+        ) as { imports: { moduleUrl: string }[] };
+        assertEquals(onDisk.imports.map(({ moduleUrl }) => moduleUrl), [
+          "./local.uff",
+          "jsr:@acme/kv@^1.2.0/tokens",
+          "jsr:@x/y@^2/z",
+        ]);
+      },
+    );
+
+    await t.step(
+      "an undeclared module name fails at its specifier and writes nothing",
+      async () => {
+        const root = await Deno.makeTempDir({ prefix: "uffda-cli-compile-" });
+        await write(join(root, "main.uff"), source);
+        const result = await compileSourcesToAstArtifacts({
+          cwd: root,
+          sourcePaths: ["main.uff"],
+          outputDir: join(root, "out"),
+        });
+        assertEquals(result.ok, false);
+        assertEquals(result.failures, [{
+          code: CliCompileFailureCode.UndeclaredModuleName,
+          sourcePath: "main.uff",
+          outputPath: join(root, "out", "main.uffda.ast.json"),
+          message:
+            '"@acme/kv/tokens" is not a module name the project file\'s `imports` declares',
+          location: { offset: 32, line: 1, column: 8, endOffset: 47 },
+        }]);
+        assertEquals(
+          await Deno.stat(join(root, "out", "main.uffda.ast.json")).then(
+            () => true,
+            () => false,
+          ),
+          false,
+        );
+      },
+    );
+  },
+});

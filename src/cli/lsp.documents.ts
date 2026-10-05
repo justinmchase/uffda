@@ -31,6 +31,10 @@ import {
 import { UFFDA_GRAMMAR } from "../lang/uffda/uffda.lang.ts";
 import type { UffdaSyntaxModule } from "../lang/uffda/syntax.types.ts";
 import { RuntimeSession } from "./mcp.session.ts";
+import {
+  EMPTY_IMPORT_MAP,
+  type ImportMap,
+} from "../runtime/resolvers/import_map.ts";
 import { uffdaGrammar } from "../lang/uffda/uffda.lang.ts";
 import { Input } from "../input.ts";
 import {
@@ -109,7 +113,10 @@ export class LspDocumentManager {
   /** Tail of each URI's operation queue (see `serialize`). */
   private readonly queues = new Map<string, Promise<unknown>>();
 
-  constructor(private readonly cwd: string) {}
+  constructor(
+    private readonly cwd: string,
+    private readonly imports: ImportMap = EMPTY_IMPORT_MAP,
+  ) {}
 
   /**
    * Runs `operation` after every operation previously queued for `uri` has
@@ -138,7 +145,10 @@ export class LspDocumentManager {
     const path = uriToPath(uri);
     // RuntimeSession defaults to `.uffda` and compiles missing `.uff` import
     // artifacts there before resolve (see `ensureCompiledImportArtifacts`).
-    const session = new RuntimeSession(uri, { cwd: this.cwd });
+    const session = new RuntimeSession(uri, {
+      cwd: this.cwd,
+      imports: this.imports,
+    });
     const doc: OpenDocument = { session, source: text, path };
     this.documents.set(uri, doc);
 

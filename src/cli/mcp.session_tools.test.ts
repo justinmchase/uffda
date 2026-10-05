@@ -508,3 +508,61 @@ Deno.test("cli.mcp session tools end to end", async (t) => {
     },
   );
 });
+
+Deno.test("cli.mcp session open reads the project file", async (t) => {
+  await t.step("loads module names through its imports", async () => {
+    const root = await Deno.makeTempDir({ prefix: "uffda-mcp-open-" });
+    const { server, client } = await connectedClient();
+    try {
+      await Deno.writeTextFile(
+        `${root}/conf.jsonc`,
+        '{ "imports": { "@acme/kv": "jsr:@acme/kv@^1.2.0" } }',
+      );
+      const opened = textOf(
+        await client.callTool({
+          name: "uffda_session_open",
+          arguments: { cwd: root, config: "conf.jsonc" },
+        }),
+      ) as { ok: boolean; sessionId: string };
+      assertEquals(opened.ok, true);
+      const loaded = textOf(
+        await client.callTool({
+          name: "uffda_session_load",
+          arguments: {
+            sessionId: opened.sessionId,
+            source: 'import "@acme/kv" K;\nexport Main;\nrule Main = K;',
+          },
+        }),
+      ) as { ok: boolean; error?: { message: string } };
+      assertEquals(loaded.ok, false);
+      assert(
+        loaded.error?.message.includes("loading modules from packages"),
+        loaded.error?.message,
+      );
+    } finally {
+      await client.close();
+      await server.close();
+      await Deno.remove(root, { recursive: true });
+    }
+  });
+
+  await t.step("fails on an invalid project file", async () => {
+    const root = await Deno.makeTempDir({ prefix: "uffda-mcp-open-" });
+    const { server, client } = await connectedClient();
+    try {
+      await Deno.writeTextFile(`${root}/uffda.jsonc`, "[]");
+      const opened = textOf(
+        await client.callTool({
+          name: "uffda_session_open",
+          arguments: { cwd: root },
+        }),
+      ) as { ok: boolean; error?: { code: string } };
+      assertEquals(opened.ok, false);
+      assertEquals(opened.error?.code, "MCP_SESSION_OPEN_INVALID_PROJECT");
+    } finally {
+      await client.close();
+      await server.close();
+      await Deno.remove(root, { recursive: true });
+    }
+  });
+});

@@ -169,3 +169,39 @@ Deno.test("cli.exec reports recoveries", async (t) => {
     assertEquals(result.diagnostics, [result.error]);
   });
 });
+
+Deno.test("cli.exec resolves module names through the import map", async (t) => {
+  const parsed = await uffdaGrammar(
+    'import "@acme/kv/tokens" T;\nexport Main;\nrule Main = T;',
+  );
+  assertEquals(parsed.kind, MatchKind.Ok);
+  if (parsed.kind !== MatchKind.Ok) return;
+
+  await t.step("a declared module name resolves to its package", async () => {
+    const result = await executeCliModule(valueOf(parsed), "Main", {
+      imports: new Map([["@acme/kv", "jsr:@acme/kv@^1.2.0"]]),
+    });
+    assertEquals(result.ok, false);
+    if (result.ok) return;
+    assertEquals(
+      result.error.message.includes(
+        "jsr:@acme/kv@^1.2.0/tokens: loading modules from packages is not supported yet",
+      ),
+      true,
+      result.error.message,
+    );
+  });
+
+  await t.step("an undeclared module name fails to resolve", async () => {
+    const result = await executeCliModule(valueOf(parsed), "Main");
+    assertEquals(result.ok, false);
+    if (result.ok) return;
+    assertEquals(
+      result.error.message.includes(
+        '"@acme/kv/tokens" is not a module name the project file\'s `imports` declares',
+      ),
+      true,
+      result.error.message,
+    );
+  });
+});

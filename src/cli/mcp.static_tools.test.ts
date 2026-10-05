@@ -1,6 +1,7 @@
 import { assert, assertEquals } from "@std/assert";
 import { dirname, join } from "@std/path";
 import { CliLanguage } from "./contract.ts";
+import { CliCompileFailureCode } from "./compile.ts";
 import {
   compileToolHandler,
   matchToolHandler,
@@ -49,6 +50,46 @@ Deno.test({
       });
       assertEquals(result.ok, false);
       assertEquals(result.failures.length, 1);
+    });
+
+    await t.step(
+      "writes module names out through the project file",
+      async () => {
+        const root = await Deno.makeTempDir({ prefix: "uffda-mcp-compile-" });
+        await write(
+          join(root, "conf.jsonc"),
+          '{ "imports": { "@acme/kv": "jsr:@acme/kv@^1.2.0" } }',
+        );
+        await write(
+          join(root, "main.uff"),
+          'import "@acme/kv" K;\nrule Main = K;',
+        );
+        const result = await compileToolHandler({
+          cwd: root,
+          paths: ["main.uff"],
+          config: "conf.jsonc",
+        });
+        assert(result.ok, JSON.stringify(result.failures));
+        assertEquals(
+          result.successes[0].module.imports.map(({ moduleUrl }) => moduleUrl),
+          ["jsr:@acme/kv@^1.2.0"],
+        );
+      },
+    );
+
+    await t.step("reports an invalid project file", async () => {
+      const root = await Deno.makeTempDir({ prefix: "uffda-mcp-compile-" });
+      await write(join(root, "uffda.jsonc"), "[]");
+      await write(join(root, "main.uff"), "rule Main = any;");
+      const result = await compileToolHandler({
+        cwd: root,
+        paths: ["main.uff"],
+      });
+      assertEquals(result.ok, false);
+      assertEquals(
+        result.failures.map(({ code }) => code),
+        [CliCompileFailureCode.InvalidProject],
+      );
     });
   },
 });

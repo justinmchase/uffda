@@ -1576,3 +1576,31 @@ Deno.test("cli.mcp.session reports recoveries", async (t) => {
     assertEquals(queried.diagnostics, [queried.error]);
   });
 });
+
+Deno.test("cli.mcp.session resolves module names through its import map", async (t) => {
+  const source = 'import "@acme/kv/tokens" T;\nexport Main;\nrule Main = T;';
+
+  await t.step("a declared module name resolves to its package", async () => {
+    const session = new RuntimeSession("imports-1", {
+      imports: new Map([["@acme/kv", "jsr:@acme/kv@^1.2.0"]]),
+    });
+    const result = await session.load(source);
+    assert(!result.ok);
+    assertEquals(result.error.code, SessionLoadFailureCode.ResolutionFailure);
+    assert(
+      result.error.message.includes("loading modules from packages"),
+      result.error.message,
+    );
+  });
+
+  await t.step("an undeclared module name fails to resolve", async () => {
+    const session = new RuntimeSession("imports-2");
+    const result = await session.load(source);
+    assert(!result.ok);
+    assertEquals(result.error.code, SessionLoadFailureCode.ResolutionFailure);
+    assert(
+      result.error.message.includes("is not a module name"),
+      result.error.message,
+    );
+  });
+});
