@@ -351,5 +351,26 @@ Deno.test({
         kind: MatchKind.Ok,
       }),
     });
+
+    await t.step({
+      name: "TOKENIZER14 string content reads as it does between quotes",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "StringContentTokenizer",
+        input: Input.Iterable("./my-lang v2.uff"),
+        value: [".", "/", "my", "-", "lang", " ", "v2", ".", "uff"],
+        kind: MatchKind.Ok,
+      }),
+    });
+
+    await t.step({
+      name: "TOKENIZER15 string content ends at a quote",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "StringContentTokenizer",
+        input: Input.Iterable('a"b'),
+        kind: MatchKind.Fail,
+      }),
+    });
   },
 });

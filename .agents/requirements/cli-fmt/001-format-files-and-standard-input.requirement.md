@@ -16,8 +16,9 @@ Preconditions:
 Expected behavior:
 
 - Each file's language MUST be chosen by extension from the built-in `.uff`
-  language and `.uffda/lsp.jsonc`, and the file formatted with the formatter its
-  language's entry rule names with `[Formatter]`.
+  language and the languages of the project file at or above the working
+  directory, and the file formatted with the formatter its language's entry rule
+  names with `[Formatter]`.
 - Without paths, every file under the working directory MUST be considered,
   except under `.git` and `node_modules`.
 - A file matched by a glob or the default whose extension no language owns, or
@@ -38,8 +39,9 @@ Expected behavior:
 - Without `--json`, changed paths MUST go to standard output and diagnostics to
   standard error as `path:line:column: message`; with `--json`, the result MUST
   be `{ ok, check, files }`.
-- An extension claimed by two or more configured languages MUST fail the command
-  with a configuration failure naming the extension and languages.
+- Any problem in the project file or its languages — including an id or
+  extension claimed by two or more languages, named in the message — MUST fail
+  the command with a configuration failure.
 - Options other than paths, `-`, `--check`, and `--json` MUST be rejected, as
   MUST `--check` on any other command.
 

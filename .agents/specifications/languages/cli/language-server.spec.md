@@ -55,40 +55,24 @@ not introduce a parallel parsing or compilation pathway.
 
 - The server MUST support serving more than one Uffda-authored language within a
   single workspace, each potentially backed by a different compiled grammar.
-- A workspace MUST declare, via a workspace configuration file, which file
-  types/extensions map to which compiled grammar module and entry rule the
-  server should load for that language. The server MUST NOT infer this mapping
-  solely from file extension conventions or auto-discovery.
-- The configuration file's location and shape are a requirement-level concern
-  (see the language-server requirements under `.agents/requirements/`); this
-  chapter only requires that such a file exist and be the authoritative source
-  for language-to-grammar mapping.
-- `.uff` itself (Uffda's own grammar language) MUST be configurable the same way
-  as any user-authored language — the server MUST NOT hard-code `.uff` handling
-  through a path unavailable to other languages.
-- Each extension MUST belong to at most one language, so every document belongs
-  to exactly one language or none. A workspace language claiming an extension of
-  the built-in `.uff` language MUST take that extension over, since an explicit
-  workspace setting wins. An extension claimed by two or more workspace
-  languages (directly, or filled in from `[Language]` metadata) is a
-  configuration error: it MUST be reported naming the extension and the
-  languages, and none of them MUST serve it, while every other extension stays
-  served.
-- This chapter does not yet require it, but implementations SHOULD avoid designs
-  that would need to be undone to support it later: a grammar module MAY
-  eventually self-declare its own file extension(s) and other editor-facing
-  configuration (see "VS Code extension" below) via decorator-derived metadata
-  on its entry rule — for example a decorator that takes one object-literal
-  argument and an application site like
-  `[Language { ext: ".uff", name: "Uffda" }]` (or a narrower positional form
-  such as `decorator Language<ext:string> = { kind: "language", ext };` applied
-  as `[Language ".uff"]`), queryable the same way `[Token]`/`[Keyword]` metadata
-  already is — see [rule metadata](../../runtime/rule-metadata.spec.md) — rather
-  than requiring every consumer (the workspace configuration file, an editor
-  extension) to separately hard-code per-language facts the grammar already
-  knows about itself. A per-language config entry remains the near-term source
-  of truth and, when present, MUST take precedence over any future self-declared
-  metadata (an explicit workspace override always wins).
+- The server MUST serve the built-in `.uff` language plus the languages the
+  workspace's [project file](../project-file.spec.md#languages) lists, and no
+  others. It MUST NOT discover languages by file extension conventions or by
+  scanning the workspace.
+- A language's id, display name, and extensions come from `[Language]` metadata
+  on its entry rule (see
+  [Language metadata](./editor-metadata.spec.md#language-metadata)). The grammar
+  is the source of truth; the project file only names the modules.
+- `.uff` itself (Uffda's own grammar language) MUST be declared the same way as
+  any user-authored language, through `[Language]` on its entry rule — the
+  server MUST NOT hard-code `.uff` handling through a path unavailable to other
+  languages.
+- Each id and each extension MUST belong to at most one language, so every
+  document belongs to exactly one language or none, as the
+  [project file](../project-file.spec.md#languages) chapter settles ownership.
+- A problem in the project file or with one of its languages MUST be reported
+  (in the server's log) without stopping the server: the server serves every
+  language it could load.
 
 ## Document synchronization and incremental re-parsing
 
@@ -278,9 +262,12 @@ not introduce a parallel parsing or compilation pathway.
   entries for VS Code's built-in toggle do nothing in Uffda files.
 - Adding a second served language MUST NOT require a second hand-authored
   `language-configuration.json` or a second static `contributes.languages`
-  entry. The extension assigns a language id to configured file extensions at
-  runtime (via `vscode.languages.setTextDocumentLanguage()`, driven by the
-  server's `uffda/languageMetadata` request).
+  entry. VS Code cannot register language ids at runtime, so every served
+  language's files use the one `uffda` language id: the extension asks the
+  server's `uffda/languageMetadata` request for every language's extensions and
+  gives matching files that id with
+  `vscode.languages.setTextDocumentLanguage()`. The server picks the grammar
+  from the file's extension.
 
 ## Performance intent
 
@@ -363,17 +350,18 @@ inside a call) have contexts too. The VS Code extension (requirement 007) has an
 initial implementation at `editors/vscode/`: it registers `uffda lsp` for `.uff`
 files, registers `uffda mcp` as an MCP server, and resolves/downloads a
 compatible `uffda` binary automatically, with debug override settings. The
-extension also queries the custom `uffda/languageMetadata` request and assigns
-language ids from `[Language].ext` via
-`vscode.languages.setTextDocumentLanguage()` for workspace-declared languages.
-Its static `language-configuration.json` declares no comments and no brackets,
-and its Ctrl+/ command runs the server's `uffda/toggleComment` request
-(requirement 009), which toggles through the rule `UffdaLang` names with
-`[ToggleComment]`. The LSP config loader fills omitted `extensions` from
-`[Language].ext` when `modulePath`/`entryRuleName` are present. See GitHub issue
-#155 for the tracking issue. `textDocument/formatting` is implemented for `.uff`
-(requirement 008): `LspDocumentManager.format` formats the session's retained
-parse when it is clean and current, through the formatter `UffdaLang` names.
+extension also queries the custom `uffda/languageMetadata` request and gives the
+files of every language's extensions the `uffda` language id via
+`vscode.languages.setTextDocumentLanguage()`. Its static
+`language-configuration.json` declares no comments and no brackets, and its
+Ctrl+/ command runs the server's `uffda/toggleComment` request (requirement
+009), which toggles through the rule `UffdaLang` names with `[ToggleComment]`.
+The server reads its languages from the project file's `languages` (#235),
+compiling relative entries in memory; package entries are not supported yet. See
+GitHub issue #155 for the tracking issue. `textDocument/formatting` is
+implemented for `.uff` (requirement 008): `LspDocumentManager.format` formats
+the session's retained parse when it is clean and current, through the formatter
+`UffdaLang` names.
 
 ## Related
 

@@ -23,16 +23,15 @@ import {
 } from "vscode-languageserver/node";
 import {
   LANGUAGE_METADATA_METHOD,
-  languageMetadataForConfig,
+  languageMetadataFor,
   type LanguageMetadataParams,
-  loadWorkspaceLanguages,
 } from "./language_metadata.ts";
 import {
-  BUILTIN_UFF_LANGUAGE,
-  describeExtensionConflict,
-  type LspConfig,
-  resolveLanguageForDocument,
-} from "./lsp.config.ts";
+  isBuiltinLanguage,
+  languageForDocument,
+  loadProjectLanguages,
+  type ProjectLanguage,
+} from "./project_languages.ts";
 import { LspDocumentManager } from "./lsp.documents.ts";
 import type { Range } from "vscode-languageserver-types";
 import { SEMANTIC_TOKENS_LEGEND } from "./semantic_tokens.ts";
@@ -103,23 +102,16 @@ export function wireUffdaLspHandlers(
 ): void {
   const log = options?.log ?? ((message: string) => console.error(message));
   let manager: LspDocumentManager | undefined;
-  let config: LspConfig = { languages: [BUILTIN_UFF_LANGUAGE] };
+  let languages: ProjectLanguage[] = [];
   let workspaceRoot = options?.workspaceRoot ?? Deno.cwd();
 
   connection.onInitialize(
     async (params: InitializeParams): Promise<InitializeResult> => {
       workspaceRoot = options?.workspaceRoot ??
         rootFromInitializeParams(params) ?? Deno.cwd();
-      const loaded = await loadWorkspaceLanguages(workspaceRoot);
-      if (loaded.ok) {
-        config = loaded.config;
-        for (const conflict of loaded.conflicts) {
-          log(describeExtensionConflict(conflict));
-        }
-      } else {
-        config = { languages: [BUILTIN_UFF_LANGUAGE] };
-        log(loaded.error.message);
-      }
+      const loaded = await loadProjectLanguages(workspaceRoot);
+      languages = loaded.languages;
+      for (const problem of loaded.problems) log(problem);
       manager = new LspDocumentManager(workspaceRoot);
       return {
         capabilities: {
@@ -153,8 +145,8 @@ export function wireUffdaLspHandlers(
   connection.onDidOpenTextDocument(
     async (params: DidOpenTextDocumentParams) => {
       const { uri, text } = params.textDocument;
-      const language = resolveLanguageForDocument(config, uri);
-      if (!manager || !language || language.id !== BUILTIN_UFF_LANGUAGE.id) {
+      const language = languageForDocument(languages, uri);
+      if (!manager || !language || !isBuiltinLanguage(language)) {
         return;
       }
       const diagnostics = await manager.open(uri, text);
@@ -165,8 +157,8 @@ export function wireUffdaLspHandlers(
   connection.onDidChangeTextDocument(
     async (params: DidChangeTextDocumentParams) => {
       const { uri } = params.textDocument;
-      const language = resolveLanguageForDocument(config, uri);
-      if (!manager || !language || language.id !== BUILTIN_UFF_LANGUAGE.id) {
+      const language = languageForDocument(languages, uri);
+      if (!manager || !language || !isBuiltinLanguage(language)) {
         return;
       }
       const diagnostics = await manager.change(uri, params.contentChanges);
@@ -184,8 +176,8 @@ export function wireUffdaLspHandlers(
 
   connection.onHover(async (params: HoverParams) => {
     const { uri } = params.textDocument;
-    const language = resolveLanguageForDocument(config, uri);
-    if (!manager || !language || language.id !== BUILTIN_UFF_LANGUAGE.id) {
+    const language = languageForDocument(languages, uri);
+    if (!manager || !language || !isBuiltinLanguage(language)) {
       return null;
     }
     return await manager.hover(uri, params.position);
@@ -193,8 +185,8 @@ export function wireUffdaLspHandlers(
 
   connection.onDefinition(async (params: DefinitionParams) => {
     const { uri } = params.textDocument;
-    const language = resolveLanguageForDocument(config, uri);
-    if (!manager || !language || language.id !== BUILTIN_UFF_LANGUAGE.id) {
+    const language = languageForDocument(languages, uri);
+    if (!manager || !language || !isBuiltinLanguage(language)) {
       return [];
     }
     return await manager.definition(uri, params.position);
@@ -202,8 +194,8 @@ export function wireUffdaLspHandlers(
 
   connection.onCompletion(async (params: CompletionParams) => {
     const { uri } = params.textDocument;
-    const language = resolveLanguageForDocument(config, uri);
-    if (!manager || !language || language.id !== BUILTIN_UFF_LANGUAGE.id) {
+    const language = languageForDocument(languages, uri);
+    if (!manager || !language || !isBuiltinLanguage(language)) {
       return [];
     }
     return await manager.completion(uri, params.position);
@@ -211,8 +203,8 @@ export function wireUffdaLspHandlers(
 
   connection.onReferences(async (params: ReferenceParams) => {
     const { uri } = params.textDocument;
-    const language = resolveLanguageForDocument(config, uri);
-    if (!manager || !language || language.id !== BUILTIN_UFF_LANGUAGE.id) {
+    const language = languageForDocument(languages, uri);
+    if (!manager || !language || !isBuiltinLanguage(language)) {
       return [];
     }
     return await manager.references(
@@ -224,8 +216,8 @@ export function wireUffdaLspHandlers(
 
   connection.onPrepareRename(async (params: PrepareRenameParams) => {
     const { uri } = params.textDocument;
-    const language = resolveLanguageForDocument(config, uri);
-    if (!manager || !language || language.id !== BUILTIN_UFF_LANGUAGE.id) {
+    const language = languageForDocument(languages, uri);
+    if (!manager || !language || !isBuiltinLanguage(language)) {
       return null;
     }
     const prepared = await manager.prepareRename(uri, params.position);
@@ -237,8 +229,8 @@ export function wireUffdaLspHandlers(
 
   connection.onRenameRequest(async (params: RenameParams) => {
     const { uri } = params.textDocument;
-    const language = resolveLanguageForDocument(config, uri);
-    if (!manager || !language || language.id !== BUILTIN_UFF_LANGUAGE.id) {
+    const language = languageForDocument(languages, uri);
+    if (!manager || !language || !isBuiltinLanguage(language)) {
       return null;
     }
     const plan = await manager.rename(uri, params.position, params.newName);
@@ -250,8 +242,8 @@ export function wireUffdaLspHandlers(
 
   connection.onDocumentFormatting(async (params: DocumentFormattingParams) => {
     const { uri } = params.textDocument;
-    const language = resolveLanguageForDocument(config, uri);
-    if (!manager || !language || language.id !== BUILTIN_UFF_LANGUAGE.id) {
+    const language = languageForDocument(languages, uri);
+    if (!manager || !language || !isBuiltinLanguage(language)) {
       return [];
     }
     return (await manager.format(uri)) ?? [];
@@ -261,8 +253,8 @@ export function wireUffdaLspHandlers(
     SemanticTokensRequest.type,
     async (params: SemanticTokensParams) => {
       const { uri } = params.textDocument;
-      const language = resolveLanguageForDocument(config, uri);
-      if (!manager || !language || language.id !== BUILTIN_UFF_LANGUAGE.id) {
+      const language = languageForDocument(languages, uri);
+      if (!manager || !language || !isBuiltinLanguage(language)) {
         return { data: [] };
       }
       return (await manager.semanticTokens(uri)) ?? { data: [] };
@@ -273,8 +265,8 @@ export function wireUffdaLspHandlers(
     TOGGLE_COMMENT_METHOD,
     async (params: ToggleCommentParams) => {
       const { uri } = params.textDocument;
-      const language = resolveLanguageForDocument(config, uri);
-      if (!manager || !language || language.id !== BUILTIN_UFF_LANGUAGE.id) {
+      const language = languageForDocument(languages, uri);
+      if (!manager || !language || !isBuiltinLanguage(language)) {
         return [];
       }
       return (await manager.toggleComment(uri, params.range)) ?? [];
@@ -284,7 +276,7 @@ export function wireUffdaLspHandlers(
   connection.onRequest(
     LANGUAGE_METADATA_METHOD,
     (params: LanguageMetadataParams = {}) =>
-      languageMetadataForConfig(config, workspaceRoot, params),
+      languageMetadataFor(languages, params),
   );
 }
 

@@ -84,13 +84,7 @@ its own `[Documentation]`, including `Documentation` itself, so hover and
 completion on these names explain them from the grammar rather than from
 tooling.
 
-`[Language]` (see the
-[language server](./language-server.spec.md#language-configuration)) are
-existing metadata that tooling reads the same way. `[Language]` carries a
-language's `ext`, `name`, and `description` only. Comment syntax and bracket
-pairs are not language metadata: comment toggling comes from `[ToggleComment]`,
-and the editor declares no brackets (see the
-[VS Code extension](./language-server.spec.md#vs-code-extension)).
+`[Language]` is read the same way (see [Language metadata](#language-metadata)).
 
 - The `.uff` grammar applies `[Keyword]` to every reserved word it matches as
   syntax: the module keywords (`import`, `export`, `rule`, `func`, `decorator`),
@@ -110,6 +104,29 @@ and the editor declares no brackets (see the
 - The text a `ModulePath` or `ImportedName` node denotes is its projected value
   when that is a string (for example an unescaped path), otherwise its source
   text.
+
+## Language metadata
+
+`[Language]` on an exported rule declares a language whose entry rule is that
+rule (see [project file](../project-file.spec.md#languages)). Its one argument
+is an object:
+
+```text
+[Language { id: "foo", name: "Foo", description: "…", extensions: [".foo"] }]
+```
+
+- `id` MUST be a non-empty string: the language's stable short name, used by
+  settings and commands.
+- `extensions` MUST be a non-empty array of file extensions, each a `.` followed
+  by one or more characters other than `.`, `/`, `\`, and whitespace. Extensions
+  are compared case-insensitively.
+- `name` (the display name) and `description` are optional strings.
+- Malformed `[Language]` metadata MUST be reported naming the rule, and that
+  rule declares no language.
+- `[Language]` carries only these facts. Comment syntax and bracket pairs are
+  not language metadata: comment toggling comes from `[ToggleComment]`, and the
+  editor declares no brackets (see the
+  [VS Code extension](./language-server.spec.md#vs-code-extension)).
 
 ## Highlighting
 

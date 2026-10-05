@@ -102,7 +102,7 @@ type OpenDocument = {
  * "uff-only" v1 dogfooding scope in
  * `.agents/specifications/languages/cli/language-server.spec.md`); callers
  * are expected to only construct/feed this manager for documents already
- * resolved to the built-in `.uff` language via `lsp.config.ts`.
+ * resolved to the built-in `.uff` language via `project_languages.ts`.
  */
 export class LspDocumentManager {
   private readonly documents = new Map<string, OpenDocument>();

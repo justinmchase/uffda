@@ -7,7 +7,7 @@ Language support for [Uffda](../../README.md) `.uff` grammars.
 - **Diagnostics and language server integration.** Launches `uffda lsp`
   (see `.agents/specifications/languages/cli/language-server.spec.md`) as a
   child process over stdio and surfaces live parse diagnostics for open
-  `.uff` files, using the workspace's `.uffda/lsp.jsonc` if present.
+  `.uff` files and for the languages the workspace's `uffda.jsonc` lists.
 - **MCP server registration.** Registers `uffda mcp` as an MCP server via VS
   Code's built-in MCP integration, with no separate configuration step
   required — the editor's agent/chat features immediately get Uffda's MCP
@@ -41,14 +41,12 @@ language server to toggle comments on the selected lines with the rule the
 grammar names with `[ToggleComment]`. The Edit menu's built-in toggle does
 nothing in Uffda files.
 
-On activation the extension requests `uffda/languageMetadata`, maps
-`[Language].ext` → language id, and assigns ids at runtime with
-`vscode.languages.setTextDocumentLanguage()` for workspace-declared languages
-(so additional languages do not need a second static `contributes.languages`
-entry).
-
-Workspace `.uffda/lsp.jsonc` entries may omit `extensions` when the grammar's
-`[Language]` metadata supplies `ext` (JSON still wins when present).
+On activation the extension requests `uffda/languageMetadata` for the
+extensions every language claims in its `[Language]` metadata, and gives
+matching files the `uffda` language id with
+`vscode.languages.setTextDocumentLanguage()`. VS Code cannot register language
+ids at runtime, so every grammar's files share `uffda` (the status bar shows
+"Uffda") and the language server picks the grammar from the file's extension.
 
 See the "Language configuration" and "VS Code extension" sections of
 [`language-server.spec.md`](../../.agents/specifications/languages/cli/language-server.spec.md)

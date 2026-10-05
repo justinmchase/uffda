@@ -82,10 +82,13 @@ export type ResolveGrammarModuleResult<TAst> =
  * only need the compiled `Module` itself (for example to read decorator
  * metadata off an entry rule, see `src/cli/language_metadata.ts`) don't need
  * to also perform a full parse of some source text just to reach it.
+ * `entryRuleName`, when given, is the rule the module is resolved for, named
+ * by resolution errors; a module is resolved for none in particular when its
+ * rules are not yet known (for example to find its `[Language]` rules).
  */
 export async function resolveGrammarModule<TAst>(options: {
   moduleUrl: URL;
-  entryRuleName: string;
+  entryRuleName?: string;
   source?: string;
   grammarOptions?: GrammarOptions;
 }): Promise<ResolveGrammarModuleResult<TAst>> {
@@ -116,7 +119,7 @@ export async function resolveGrammarModule<TAst>(options: {
     pattern: {
       kind: PatternKind.Resolve,
       targetKind: ResolveTargetKind.Run,
-      name: entryRuleName,
+      name: entryRuleName ?? "",
     },
   });
   if (m.kind === ModuleImportResultKind.Error) {

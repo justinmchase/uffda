@@ -4,9 +4,12 @@
 # module name (an alias from the project file), or a full `jsr:` specifier, and
 # projects to its text. Variable bindings are single-letter (published CLI
 # PatternLang).
+import "../source/mod.uff" Source;
+import "../tokenizer/mod.uff" StringContentTokenizer;
 import "../editor/editor.uff" Documentation;
 
 export ModuleSpecifier;
+export ModuleSpecifierText;
 
 rule AsciiWordChar =
   | "a".."z"
@@ -101,4 +104,13 @@ rule ModuleSpecifier =
   | RelativePath
   | ModuleName
   | JsrSpecifier
+;
+
+rule WholeModuleSpecifier = s:ModuleSpecifier end -> s;
+
+# A specifier written on its own, outside any import (for example in the project
+# file), read exactly as it reads between an import's quotes.
+rule ModuleSpecifierText =
+  s:(Source |> [StringContentTokenizer] |> [WholeModuleSpecifier]) end
+  -> s
 ;

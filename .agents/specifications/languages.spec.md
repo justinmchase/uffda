@@ -38,6 +38,7 @@ RFC 8174.
 - [compiler and bootstrap progression layer](./languages/compiler-bootstrap.spec.md)
 - [debuggability and source-context fidelity](./languages/debuggability.spec.md)
 - [command-line interface](./languages/cli.spec.md)
+- [project file](./languages/project-file.spec.md)
 
 ## Composition intent
 
