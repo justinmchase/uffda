@@ -206,7 +206,6 @@ function compileUsageText(): string {
     "  --config <path>  Project file whose imports module names resolve",
     "                   through and whose outDir artifacts are written to",
     "                   (default: the nearest uffda.jsonc).",
-    "  --out-dir <path> Deprecated: must name the project's outDir.",
     "",
     "Output:",
     "  Writes ModuleDeclaration JSON under <outDir>/ast, mirroring each source's",
@@ -848,15 +847,6 @@ export async function runCli(
 
   const project = await loadContractProject(contract);
   if (!project.ok) return project.result;
-  if (
-    contract.outDirPath !== undefined &&
-    contract.outDirPath !== project.artifacts.outDir
-  ) {
-    return usageError(
-      `--out-dir ${contract.outDirPath} is not the project's outDir ` +
-        `(${project.artifacts.outDir}); set "outDir" in uffda.jsonc instead`,
-    );
-  }
 
   const result = await compileSourcesToAstArtifacts({
     cwd: contract.cwd,

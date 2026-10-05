@@ -446,32 +446,18 @@ Deno.test("cli.main runCli validates mode support and compile routing", async (t
   });
 
   await t.step({
-    name: "accepts --out-dir only when it names the project's outDir",
+    name: "rejects --out-dir: outDir is set in uffda.jsonc",
     ignore: writePermission.state !== "granted",
     fn: async () => {
       const root = await Deno.makeTempDir({ prefix: "uffda-cli-main-" });
       await write(join(root, "main.uff"), "export Main; rule Main = any;");
-
-      const same = await runCli(
-        ["compile", "main.uff", "--out-dir", "./bin"],
-        root,
-        false,
-      );
-      assertEquals(same.exitCode, CliExitCode.Ok, same.stdout);
-      assert(
-        await Deno.stat(join(root, "bin", "ast", "main.uffda.ast.json")).then(
-          () => true,
-          () => false,
-        ),
-      );
-
-      const other = await runCli(
+      const result = await runCli(
         ["compile", "main.uff", "--out-dir", "build"],
         root,
         false,
       );
-      assertEquals(other.exitCode, CliExitCode.Usage);
-      assert(other.stderr?.includes("in uffda.jsonc instead"), other.stderr);
+      assertEquals(result.exitCode, CliExitCode.Usage);
+      assert(result.stderr?.includes("Unknown flag: --out-dir"), result.stderr);
       assertEquals(
         await Deno.stat(join(root, "build")).then(() => true, () => false),
         false,

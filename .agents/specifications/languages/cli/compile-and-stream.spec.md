@@ -46,12 +46,8 @@ Normative key words in this chapter use the conventions defined in the
   the nearest `uffda.jsonc` at or above the working directory. An invalid
   project file MUST fail the command with a configuration failure before any
   unit compiles.
-- `uffda compile` MUST NOT take an output directory argument. For one release,
-  as a
-  [bootstrap bridge](../compiler-bootstrap.spec.md#bin-artifact-integrity-no-post-compile-hacks),
-  `--out-dir <path>` is accepted only when it names the project's output
-  directory; any other value MUST be a usage failure telling the author to set
-  `outDir` in the project file.
+- `uffda compile` MUST NOT take an output directory argument: a module's
+  importers find its artifacts through the project file's `outDir` alone.
 
 ## Parse contracts
 
