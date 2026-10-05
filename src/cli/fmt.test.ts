@@ -1,7 +1,7 @@
 // Traces to `.agents/requirements/cli-fmt/001-format-files-and-standard-input.requirement.md`.
 
 import { assert, assertEquals } from "@std/assert";
-import { fromFileUrl, join } from "@std/path";
+import { join } from "@std/path";
 import {
   CliFormatFailureCode,
   CliFormatStatus,
@@ -12,9 +12,21 @@ import {
 
 const UNFORMATTED = `rule   A =   "a"  ;\n`;
 const FORMATTED = `rule A = "a";\n`;
-const TOKENIZER = fromFileUrl(
-  new URL("../lang/tokenizer/mod.uff", import.meta.url),
-);
+/** A grammar declaring the language `id` for `extension`, with no formatter. */
+function grammar(id: string, extension: string): string {
+  return `export Tok;
+
+decorator Language<c:any> = c;
+
+[Language { id: "${id}", extensions: ["${extension}"] }]
+rule Tok = any*;
+`;
+}
+
+const TOKENS_PROJECT = {
+  "uffda.jsonc": JSON.stringify({ languages: ["./grammar/tok.uff"] }),
+  "grammar/tok.uff": grammar("tokens", ".tok"),
+};
 
 async function workspace(files: Record<string, string>): Promise<string> {
   const cwd = await Deno.makeTempDir();
@@ -113,14 +125,7 @@ Deno.test("cli.fmt formatFiles", async (t) => {
     "files named without a language or formatter, and missing paths, fail",
     async () => {
       const cwd = await workspace({
-        ".uffda/lsp.jsonc": JSON.stringify({
-          languages: [{
-            id: "tokens",
-            extensions: ["tok"],
-            modulePath: TOKENIZER,
-            entryRuleName: "Tokenizer",
-          }],
-        }),
+        ...TOKENS_PROJECT,
         "a.txt": "x",
         "a.tok": "x",
       });
@@ -159,14 +164,7 @@ Deno.test("cli.fmt formatFiles", async (t) => {
 
 Deno.test("cli.fmt formatFiles without paths or through globs", async (t) => {
   const files = {
-    ".uffda/lsp.jsonc": JSON.stringify({
-      languages: [{
-        id: "tokens",
-        extensions: ["tok"],
-        modulePath: TOKENIZER,
-        entryRuleName: "Tokenizer",
-      }],
-    }),
+    ...TOKENS_PROJECT,
     "a.uff": UNFORMATTED,
     "sub/b.uff": FORMATTED,
     "notes.txt": "x",
@@ -193,6 +191,11 @@ Deno.test("cli.fmt formatFiles without paths or through globs", async (t) => {
             {
               sourcePath: "a.uff",
               status: CliFormatStatus.Changed,
+              language: "uffda",
+            },
+            {
+              sourcePath: "grammar/tok.uff",
+              status: CliFormatStatus.Unchanged,
               language: "uffda",
             },
             {
@@ -293,7 +296,7 @@ Deno.test("cli.fmt formatStdin", async (t) => {
 });
 
 Deno.test("cli.fmt LanguageFormatting.load reports invalid configuration", async () => {
-  const cwd = await workspace({ ".uffda/lsp.jsonc": "{ languages: 1 }" });
+  const cwd = await workspace({ "uffda.jsonc": "{ languages: 1 }" });
   try {
     const formatting = await LanguageFormatting.load(cwd);
     assert("error" in formatting);
@@ -307,12 +310,9 @@ Deno.test("cli.fmt language ownership", async (t) => {
     "an extension several languages claim fails the configuration",
     async () => {
       const cwd = await workspace({
-        ".uffda/lsp.jsonc": JSON.stringify({
-          languages: [
-            { id: "a", extensions: ["tok"] },
-            { id: "b", extensions: ["tok"] },
-          ],
-        }),
+        "uffda.jsonc": JSON.stringify({ languages: ["./a.uff", "./b.uff"] }),
+        "a.uff": grammar("a", ".tok"),
+        "b.uff": grammar("b", ".tok"),
       });
       try {
         const formatting = await LanguageFormatting.load(cwd);
@@ -326,14 +326,8 @@ Deno.test("cli.fmt language ownership", async (t) => {
 
   await t.step("a workspace language claiming .uff takes it over", async () => {
     const cwd = await workspace({
-      ".uffda/lsp.jsonc": JSON.stringify({
-        languages: [{
-          id: "tokens",
-          extensions: ["uff"],
-          modulePath: TOKENIZER,
-          entryRuleName: "Tokenizer",
-        }],
-      }),
+      "uffda.jsonc": JSON.stringify({ languages: ["./grammar/tok.uff"] }),
+      "grammar/tok.uff": grammar("tokens", ".uff"),
       "a.uff": UNFORMATTED,
     });
     try {

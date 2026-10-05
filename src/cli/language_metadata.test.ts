@@ -1,259 +1,93 @@
 import { assert, assertEquals } from "@std/assert";
 import {
-  BUILTIN_UFF_LANGUAGE,
-  type LspLanguageConfigEntry,
-} from "./lsp.config.ts";
-import {
-  enrichLspConfigWithLanguageMetadata,
-  grammarTargetFor,
-  languageMetadataForConfig,
-  loadLanguageMetadata,
-  loadWorkspaceLanguages,
-  toLanguageMetadata,
+  languageMetadataFor,
+  readLanguageMetadata,
 } from "./language_metadata.ts";
 
-Deno.test("cli.language_metadata toLanguageMetadata", async (t) => {
-  await t.step("returns undefined for a non-object value", () => {
-    assertEquals(toLanguageMetadata(undefined), undefined);
-    assertEquals(toLanguageMetadata("nope"), undefined);
-    assertEquals(toLanguageMetadata(42), undefined);
+Deno.test("cli.language_metadata readLanguageMetadata", async (t) => {
+  await t.step("reads id, name, description and extensions", () => {
+    assertEquals(
+      readLanguageMetadata({
+        id: "foo",
+        name: "Foo",
+        description: "A foo.",
+        extensions: [".foo", ".FOOX"],
+        extraneous: "ignored",
+      }),
+      {
+        ok: true,
+        metadata: {
+          id: "foo",
+          name: "Foo",
+          description: "A foo.",
+          extensions: [".foo", ".foox"],
+        },
+      },
+    );
   });
 
-  await t.step("keeps only recognized, well-typed fields", () => {
-    const metadata = toLanguageMetadata({
-      ext: ".uff",
-      name: "Uffda",
-      description: 42, // wrong type, dropped
-      extraneous: "ignored",
-    });
-    assertEquals(metadata, { ext: ".uff", name: "Uffda" });
+  await t.step("drops optional fields of the wrong type", () => {
+    assertEquals(
+      readLanguageMetadata({ id: "foo", name: 1, extensions: [".foo"] }),
+      { ok: true, metadata: { id: "foo", extensions: [".foo"] } },
+    );
+  });
+
+  await t.step("requires an object", () => {
+    for (const value of [undefined, "nope", 42, [".foo"]]) {
+      assert(!readLanguageMetadata(value).ok);
+    }
+  });
+
+  await t.step("requires an id", () => {
+    const reading = readLanguageMetadata({ extensions: [".foo"] });
+    assert(!reading.ok);
+    assert(reading.message.includes("`id`"));
+  });
+
+  await t.step("requires extensions with their leading dot", () => {
+    for (
+      const extensions of [undefined, [], ["foo"], [".a.b"], [".a b"], [1]]
+    ) {
+      const reading = readLanguageMetadata({ id: "foo", extensions });
+      assert(!reading.ok, JSON.stringify(extensions));
+      assert(reading.message.includes("`extensions`"));
+    }
   });
 
   await t.step(
     "comment syntax and bracket pairs are not language metadata",
     () => {
-      const metadata = toLanguageMetadata({
-        comment: "#",
-        brackets: [["{", "}"]],
-        autoClosingPairs: [['"', '"']],
-        surroundingPairs: [["(", ")"]],
-      });
-      assertEquals(metadata, undefined);
-    },
-  );
-});
-
-Deno.test("cli.language_metadata loadLanguageMetadata", async (t) => {
-  await t.step(
-    "resolves the built-in .uff language's own [Language] metadata",
-    async () => {
-      const metadata = await loadLanguageMetadata(
-        BUILTIN_UFF_LANGUAGE,
-        Deno.cwd(),
-      );
-      assert(
-        metadata,
-        "expected Language metadata for the built-in .uff language",
-      );
-      assertEquals(metadata.ext, ".uff");
-      assertEquals(metadata, { ext: ".uff", name: "Uffda" });
-    },
-  );
-
-  await t.step(
-    "returns undefined for a configured language with no modulePath",
-    async () => {
-      const language: LspLanguageConfigEntry = {
-        id: "example",
-        extensions: ["example"],
-      };
-      const metadata = await loadLanguageMetadata(language, Deno.cwd());
-      assertEquals(metadata, undefined);
-    },
-  );
-
-  await t.step(
-    "returns undefined for a configured language whose module cannot resolve",
-    async () => {
-      const language: LspLanguageConfigEntry = {
-        id: "example",
-        extensions: ["example"],
-        modulePath: "./does/not/exist.uff",
-        entryRuleName: "Main",
-      };
-      const metadata = await loadLanguageMetadata(language, Deno.cwd());
-      assertEquals(metadata, undefined);
-    },
-  );
-});
-
-Deno.test("cli.language_metadata languageMetadataForConfig", async (t) => {
-  await t.step(
-    "returns the built-in .uff language's metadata",
-    async () => {
-      const result = await languageMetadataForConfig(
-        { languages: [BUILTIN_UFF_LANGUAGE] },
-        Deno.cwd(),
-        { languageId: "uffda" },
-      );
-      assertEquals(result.languages.length, 1);
-      assertEquals(result.languages[0], {
-        id: "uffda",
-        metadata: { ext: ".uff", name: "Uffda" },
-      });
-    },
-  );
-
-  await t.step("returns an empty list for an unknown language id", async () => {
-    const result = await languageMetadataForConfig(
-      { languages: [BUILTIN_UFF_LANGUAGE] },
-      Deno.cwd(),
-      { languageId: "missing" },
-    );
-    assertEquals(result.languages, []);
-  });
-});
-
-Deno.test("cli.language_metadata enrichLspConfigWithLanguageMetadata", async (t) => {
-  await t.step(
-    "fills extensions from the built-in .uff [Language].ext when empty",
-    async () => {
-      const enriched = await enrichLspConfigWithLanguageMetadata(
-        {
-          languages: [{
-            id: "uffda",
-            extensions: [],
-          }],
-        },
-        Deno.cwd(),
-      );
-      assertEquals(enriched.languages[0].extensions, ["uff"]);
-    },
-  );
-
-  await t.step(
-    "leaves JSON-declared extensions alone",
-    async () => {
-      const enriched = await enrichLspConfigWithLanguageMetadata(
-        {
-          languages: [{
-            id: "uffda",
-            extensions: ["custom"],
-          }],
-        },
-        Deno.cwd(),
-      );
-      assertEquals(enriched.languages[0].extensions, ["custom"]);
-    },
-  );
-});
-
-Deno.test("cli.language_metadata grammarTargetFor", async (t) => {
-  await t.step("the built-in language targets the bundled grammar", () => {
-    const target = grammarTargetFor(BUILTIN_UFF_LANGUAGE, "/workspace");
-    assertEquals(target?.entryRuleName, "UffdaLang");
-    assert(target?.moduleUrl.href.endsWith("/src/lang/uffda/uffda.lang.uff"));
-  });
-
-  await t.step("a configured language resolves against the workspace", () => {
-    assertEquals(
-      grammarTargetFor({
-        id: "morse",
-        extensions: ["morse"],
-        modulePath: "./morse.uff",
-        entryRuleName: "Main",
-      }, "/workspace"),
-      {
-        moduleUrl: new URL("file:///workspace/morse.uff"),
-        entryRuleName: "Main",
-      },
-    );
-  });
-
-  await t.step(
-    "a .uff entry naming its own grammar uses that grammar",
-    () => {
       assertEquals(
-        grammarTargetFor({
-          id: "uffda",
-          extensions: ["uff"],
-          modulePath: "./custom.uff",
-          entryRuleName: "Custom",
-        }, "/workspace"),
-        {
-          moduleUrl: new URL("file:///workspace/custom.uff"),
-          entryRuleName: "Custom",
-        },
+        readLanguageMetadata({
+          id: "foo",
+          extensions: [".foo"],
+          comment: "#",
+          brackets: [["{", "}"]],
+        }),
+        { ok: true, metadata: { id: "foo", extensions: [".foo"] } },
       );
     },
   );
-
-  await t.step("a language without a grammar has no target", () => {
-    assertEquals(
-      grammarTargetFor({ id: "text", extensions: ["txt"] }, "/workspace"),
-      undefined,
-    );
-  });
 });
 
-Deno.test("cli.language_metadata loadWorkspaceLanguages", async (t) => {
-  const workspace = async (config?: unknown) => {
-    const root = await Deno.makeTempDir();
-    if (config !== undefined) {
-      await Deno.mkdir(`${root}/.uffda`);
-      await Deno.writeTextFile(
-        `${root}/.uffda/lsp.jsonc`,
-        JSON.stringify(config),
-      );
-    }
-    return root;
-  };
+Deno.test("cli.language_metadata languageMetadataFor", async (t) => {
+  const languages = [
+    { id: "uffda", name: "Uffda", extensions: [".uff"] },
+    { id: "foo", extensions: [".foo"] },
+  ];
 
-  await t.step(
-    "serves the built-in language without a config file",
-    async () => {
-      const root = await workspace();
-      try {
-        assertEquals(await loadWorkspaceLanguages(root), {
-          ok: true,
-          config: { languages: [BUILTIN_UFF_LANGUAGE] },
-          conflicts: [],
-        });
-      } finally {
-        await Deno.remove(root, { recursive: true });
-      }
-    },
-  );
+  await t.step("lists every language", () => {
+    assertEquals(languageMetadataFor(languages), { languages });
+  });
 
-  await t.step("reports extensions several languages claim", async () => {
-    const root = await workspace({
-      languages: [
-        { id: "a", extensions: ["foo"] },
-        { id: "b", extensions: ["foo"] },
-      ],
+  await t.step("or one language by id", () => {
+    assertEquals(languageMetadataFor(languages, { languageId: "foo" }), {
+      languages: [{ id: "foo", extensions: [".foo"] }],
     });
-    try {
-      const loaded = await loadWorkspaceLanguages(root);
-      assert(loaded.ok);
-      assertEquals(loaded.conflicts, [{
-        extension: "foo",
-        languages: ["a", "b"],
-      }]);
-      assertEquals(
-        loaded.config.languages.map(({ extensions }) => extensions),
-        [["uff"], [], []],
-      );
-    } finally {
-      await Deno.remove(root, { recursive: true });
-    }
-  });
-
-  await t.step("reports an invalid config file", async () => {
-    const root = await workspace({ languages: 1 });
-    try {
-      assertEquals((await loadWorkspaceLanguages(root)).ok, false);
-    } finally {
-      await Deno.remove(root, { recursive: true });
-    }
+    assertEquals(
+      languageMetadataFor(languages, { languageId: "missing" }),
+      { languages: [] },
+    );
   });
 });

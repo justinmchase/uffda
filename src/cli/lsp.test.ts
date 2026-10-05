@@ -477,15 +477,17 @@ Deno.test("cli.lsp wireUffdaLspHandlers", async (t) => {
     async () => {
       const cwd = await Deno.makeTempDir({ prefix: "uffda-lsp-conflict-" });
       try {
-        await Deno.mkdir(join(cwd, ".uffda"));
         await Deno.writeTextFile(
-          join(cwd, ".uffda", "lsp.jsonc"),
-          JSON.stringify({
-            languages: [
-              { id: "a", extensions: ["foo"] },
-              { id: "b", extensions: ["foo"] },
-            ],
-          }),
+          join(cwd, "uffda.jsonc"),
+          JSON.stringify({ languages: ["./a.uff", "./b.uff"] }),
+        );
+        await Deno.writeTextFile(
+          join(cwd, "a.uff"),
+          'export Tok;\ndecorator Language<c:any> = c;\n[Language { id: "a", extensions: [".foo"] }]\nrule Tok = any*;\n',
+        );
+        await Deno.writeTextFile(
+          join(cwd, "b.uff"),
+          'export Tok;\ndecorator Language<c:any> = c;\n[Language { id: "b", extensions: [".foo"] }]\nrule Tok = any*;\n',
         );
         const logged: string[] = [];
         const { connection, handlers, sentDiagnostics } =
@@ -527,7 +529,7 @@ Deno.test("cli.lsp wireUffdaLspHandlers", async (t) => {
         languageId: "uffda",
       });
       assertEquals(result, {
-        languages: [{ id: "uffda", metadata: { ext: ".uff", name: "Uffda" } }],
+        languages: [{ id: "uffda", name: "Uffda", extensions: [".uff"] }],
       });
     },
   );

@@ -28,9 +28,9 @@ Expected behavior:
   stdio, per the transport contract (001), and MUST surface a clear, actionable
   error (not a silent failure) if the `uffda` binary cannot be located or fails
   to start.
-- The extension MUST be structured so that a workspace whose `.uffda/lsp.jsonc`
-  (002) declares additional languages gets those languages served by the same
-  running server/extension instance, without requiring a separate, per-language
+- The extension MUST be structured so that a workspace whose `uffda.jsonc` (002)
+  declares additional languages gets those languages served by the same running
+  server/extension instance, without requiring a separate, per-language
   extension package or fork. A future per-language thin wrapper extension MAY be
   built on top of this one but MUST NOT be required for a workspace to use the
   server against its own grammar.
@@ -96,15 +96,15 @@ Expected behavior:
   applies the returned edits. Selections sharing or adjoining a line MUST be
   toggled together.
 - Additional served languages MUST NOT need a second hand-authored JSON file or
-  a second static package.json contribution: the extension assigns language ids
-  to workspace-configured file extensions at runtime via
-  `vscode.languages.setTextDocumentLanguage()`.
+  a second static package.json contribution: the extension gives files of every
+  extension the `uffda/languageMetadata` request reports the `uffda` language id
+  at runtime via `vscode.languages.setTextDocumentLanguage()`.
 
 Postconditions:
 
 - Opening a `.uff` file in a workspace with the extension installed yields live
-  diagnostics and highlighting with no additional per-file configuration beyond
-  the workspace's `.uffda/lsp.jsonc`.
+  diagnostics and highlighting with no configuration at all; a project
+  language's files need only the workspace's `uffda.jsonc`.
 - Installing the extension also makes `uffda`'s MCP tools available to the
   editor's agent features with no separate manual MCP configuration step.
 - A user with no `uffda` installation on `PATH` still gets a working extension

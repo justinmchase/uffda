@@ -132,6 +132,7 @@ Deno.test("cli.main runCli validates mode support and compile routing", async (t
     );
     assertEquals(result.exitCode, CliExitCode.Ok);
     assert(result.stdout?.includes("Usage: uffda lsp"));
+    assert(result.stdout?.includes("uffda.jsonc"));
   });
 
   await t.step("root usage text mentions both mcp and lsp", async () => {
@@ -530,6 +531,7 @@ Deno.test("cli.main runCli routes fmt", async (t) => {
       const result = await runCli(["fmt", "--help"], cwd);
       assertEquals(result.exitCode, CliExitCode.Ok);
       assert(result.stdout?.includes("Usage: uffda fmt"));
+      assert(result.stdout?.includes("uffda.jsonc"));
     });
 
     await t.step(

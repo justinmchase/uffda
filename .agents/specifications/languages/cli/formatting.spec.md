@@ -43,9 +43,9 @@ uffda fmt -
 ## Languages
 
 - A file's language MUST be chosen by its extension, exactly as the language
-  server chooses it: the built-in `.uff` language or a language declared in
-  `.uffda/lsp.jsonc` under the working directory (see
-  [language configuration](./language-server.spec.md#language-configuration)).
+  server chooses it: the built-in `.uff` language or a language of the
+  [project file](../project-file.spec.md#languages) at or above the working
+  directory.
 - Formatting is opportunistic for files matched by a glob (including the
   default): a file whose extension no language owns, or whose language's entry
   rule has no `[Formatter]`, MUST be skipped silently and left out of the
@@ -53,12 +53,11 @@ uffda fmt -
 - A file named by an explicit path MUST be formatted: if no language owns its
   extension, or its language has no `[Formatter]`, that MUST be reported as a
   failure.
-- A language whose grammar cannot be loaded MUST be reported as a failure for
-  each of its files, whether named or matched.
-- An invalid `.uffda/lsp.jsonc`, or one in which two or more languages claim the
-  same extension (see
-  [language configuration](./language-server.spec.md#language-configuration)),
-  MUST fail the command with a configuration failure.
+- Any problem in the project file or its languages (see
+  [project file](../project-file.spec.md#languages)) — an invalid file, a
+  language module that cannot be loaded, or an id or extension two or more
+  languages claim — MUST fail the command with a configuration failure, since
+  the files it would leave unformatted cannot be told apart.
 
 ## Formatting
 

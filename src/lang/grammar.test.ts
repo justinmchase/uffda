@@ -1,9 +1,9 @@
-import { assertEquals } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import { isClean, MatchKind, valueOf } from "../match.ts";
 import { PatternKind } from "../runtime/patterns/pattern.kind.ts";
 import type { Pattern } from "../runtime/patterns/pattern.ts";
 import { expressionGrammar } from "./expression/expression.lang.ts";
-import { parseGrammar } from "./grammar.ts";
+import { parseGrammar, resolveGrammarModule } from "./grammar.ts";
 import { exec } from "../runtime/exec.ts";
 import { unwrap } from "../wrapped.ts";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
@@ -113,4 +113,12 @@ Deno.test({
       },
     });
   },
+});
+
+Deno.test("lang.grammar.resolveGrammarModule without an entry rule", async () => {
+  const resolved = await resolveGrammarModule({
+    moduleUrl: new URL("./uffda/uffda.lang.uff", import.meta.url),
+  });
+  assert(resolved.ok);
+  assert(resolved.resolved.module.exports.has("UffdaLang"));
 });

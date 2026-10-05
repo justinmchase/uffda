@@ -18,13 +18,11 @@ import "../editor/editor.uff" Formatter ToggleComment;
 
 export UffdaLang;
 
-# `Language` records this grammar's own editor-facing facts (file extension and
-# display name) directly on its entry rule's metadata, so tooling (see
-# `src/cli/language_metadata.ts`) can derive an editor's language configuration
-# from the grammar itself instead of a hand-maintained, per-language static
-# file. `c` is a single object literal so any consumer may freely add further
-# properties (for example a future `description` or `wordPattern`) without
-# changing the decorator's shape.
+# `Language` makes the rule it decorates a language's entry rule and describes
+# the language (its id, display name and file extensions), so tooling (see
+# `src/cli/language_metadata.ts`) reads a language from its grammar alone. `c`
+# is a single object literal so further properties can be added without changing
+# the decorator's shape.
 decorator Language<c:any> = c;
 
 rule ModuleDeclarationSyntax =
@@ -93,7 +91,7 @@ rule ModuleBody =
   -> { kind: "module", declarations: (flat [i (flat e) d]) }
 ;
 
-[Language { ext: ".uff", name: "Uffda" }]
+[Language { id: "uffda", name: "Uffda", extensions: [".uff"] }]
 [Formatter UffdaFormat]
 [ToggleComment ToggleHashComment]
 rule UffdaLang =

@@ -89,6 +89,28 @@ Writes ModuleDeclaration JSON under `<out-dir>/ast` (default `.uffda/ast`). In
 this repo, `deno task compile:lang` builds workspace `./bin` with the **previous
 published** CLI (bootstrap recursion break).
 
+### Project file
+
+A `uffda.jsonc` file marks a Uffda project. Tools use the nearest one at or
+above the working directory (or the editor's workspace):
+
+```jsonc
+{
+  // Aliases for packages. Each one maps to a jsr: specifier.
+  "imports": { "@std/": "jsr:@uffda/std@^1.0.0/" },
+  // What the project offers to others, "." or "./name" to a file inside it.
+  "exports": { ".": "./lang/foo.uff" },
+  // Modules whose exported rules carry [Language] metadata.
+  "languages": ["./lang/foo.uff"]
+}
+```
+
+A language's id, name and file extensions come from the `[Language]` decorator
+on the exported rule that parses its files, for example
+`[Language { id: "foo", name: "Foo", extensions: [".foo"] }]`. `.uff` is always
+available, even without a project file. See
+[`project-file.spec.md`](.agents/specifications/languages/project-file.spec.md).
+
 ### MCP server
 
 `uffda mcp` starts the stdio MCP server. Use the `uffda_session_*` tools plus
@@ -99,9 +121,9 @@ rendering.
 
 `uffda lsp` starts a stdio Language Server Protocol server. It publishes
 diagnostics for `.uff` documents on `didOpen`/`didChange`/`didClose`, reusing
-incremental re-parsing so edits only reprocess the affected region. A
-workspace's `<workspace>/.uffda/lsp.jsonc` can declare additional languages;
-`.uff` is always available even without one. See
+incremental re-parsing so edits only reprocess the affected region. The
+languages a project's `uffda.jsonc` lists are served too; `.uff` is always
+available even without one. See
 [`language-server.spec.md`](.agents/specifications/languages/cli/language-server.spec.md)
 for the full contract — syntax highlighting and hover/navigation/completions are
 specified but not yet implemented.

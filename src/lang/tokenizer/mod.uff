@@ -16,6 +16,7 @@ import "../editor/editor.uff" Highlight;
 export Token;
 export TokenizerNoWhitespace;
 export TokenizerNoWhitespaceWithComments;
+export StringContentTokenizer;
 
 export rule Tokenizer = Tokens* -> (flat _ 2);
 
@@ -199,6 +200,11 @@ rule ViewNextLine = ViewNewLine l:ViewLine -> l;
 rule ViewLines = f:ViewLine r:ViewNextLine* end -> (flat [f (flat r)]);
 
 rule TokenizerNoWhitespace = Tokenizer -> (semantic_no_whitespace_texts _);
+
+# The content of a quoted string on its own, without its quotes, as the texts of
+# the tokens it reads as between them. A `"` ends the content, so text holding
+# one is not string content.
+rule StringContentTokenizer = t:StringInterior* end -> (map (flat t) TokenText);
 
 rule TokenizerNoWhitespaceWithComments =
   |> Tokenizer

@@ -13,17 +13,12 @@ import {
 import type { RuleInfo } from "../runtime/modules/rule_info.ts";
 import { toStableSourcePath } from "../runtime/resolvers/artifact_path.ts";
 import {
-  grammarTargetFor,
-  loadWorkspaceLanguages,
-} from "./language_metadata.ts";
-import {
-  BUILTIN_UFF_LANGUAGE,
-  describeExtensionConflict,
+  builtinLanguages,
   extensionOf,
-  type LspConfig,
-  type LspLanguageConfigEntry,
-  resolveLanguageForDocument,
-} from "./lsp.config.ts";
+  languageForDocument,
+  loadProjectLanguages,
+  type ProjectLanguage,
+} from "./project_languages.ts";
 import { expandSourcePaths, SourcePathFailureCode } from "./source_paths.ts";
 import {
   type CliStreamFailureLocation,
@@ -90,7 +85,7 @@ export type LanguageFormatter = {
 };
 
 /**
- * Formats documents by language, as `.uffda/lsp.jsonc` configures them;
+ * Formats documents by language, as the project file declares them;
  * see `.agents/specifications/languages/cli/formatting.spec.md`. Each
  * language's formatter is resolved once.
  */
@@ -101,32 +96,28 @@ export class LanguageFormatting {
   >();
 
   constructor(
-    private readonly config: LspConfig,
-    private readonly workspaceRoot: string,
+    private readonly languages: readonly ProjectLanguage[],
   ) {}
 
   /** Loads the workspace's language configuration. */
   static async load(
     workspaceRoot: string,
   ): Promise<LanguageFormatting | { error: string }> {
-    const loaded = await loadWorkspaceLanguages(workspaceRoot);
-    if (!loaded.ok) return { error: loaded.error.message };
-    if (loaded.conflicts.length > 0) {
-      return {
-        error: loaded.conflicts.map(describeExtensionConflict).join("\n"),
-      };
+    const loaded = await loadProjectLanguages(workspaceRoot);
+    if (loaded.problems.length > 0) {
+      return { error: loaded.problems.join("\n") };
     }
-    return new LanguageFormatting(loaded.config, workspaceRoot);
+    return new LanguageFormatting(loaded.languages);
   }
 
   /** The language owning `uriOrPath`, by extension. */
-  public languageFor(uriOrPath: string): LspLanguageConfigEntry | undefined {
-    return resolveLanguageForDocument(this.config, uriOrPath);
+  public languageFor(uriOrPath: string): ProjectLanguage | undefined {
+    return languageForDocument(this.languages, uriOrPath);
   }
 
   /** Formats `source` as `language`, failing with diagnostics. */
   public async format(
-    language: LspLanguageConfigEntry,
+    language: ProjectLanguage,
     source: string,
   ): Promise<{ text: string } | { diagnostics: CliFormatFailure[] }> {
     const resolved = await this.formatterOf(language);
@@ -143,7 +134,7 @@ export class LanguageFormatting {
    * (`NoFormatter` when it names none).
    */
   public formatterOf(
-    language: LspLanguageConfigEntry,
+    language: ProjectLanguage,
   ): Promise<LanguageFormatter | CliFormatFailure> {
     let formatter = this.formatters.get(language.id);
     if (!formatter) {
@@ -154,15 +145,9 @@ export class LanguageFormatting {
   }
 
   private async resolve(
-    language: LspLanguageConfigEntry,
+    language: ProjectLanguage,
   ): Promise<LanguageFormatter | CliFormatFailure> {
-    const grammar = grammarTargetFor(language, this.workspaceRoot);
-    if (!grammar) {
-      return {
-        code: CliFormatFailureCode.NoFormatter,
-        message: `Language '${language.id}' declares no grammar to format with`,
-      };
-    }
+    const { grammar } = language;
     const resolution = await resolveFormatter(grammar);
     switch (resolution.kind) {
       case LanguageRuleResolutionKind.Found:
@@ -247,8 +232,8 @@ function noLanguage(path: string): CliFormatFailure {
   return {
     code: CliFormatFailureCode.NoLanguage,
     message: ext === ""
-      ? "No configured language owns a file without an extension"
-      : `No configured language owns the '.${ext}' extension`,
+      ? "No language owns a file without an extension"
+      : `No language owns the '${ext}' extension`,
   };
 }
 
@@ -381,7 +366,7 @@ export async function formatStdin(options: {
 }): Promise<CliFormatStdinResult> {
   const { formatting, source, check } = options;
   const sourcePath = "<stdin>";
-  const language = BUILTIN_UFF_LANGUAGE;
+  const language = languageForDocument(await builtinLanguages(), ".uff")!;
   const formatted = await formatting.format(language, source);
   if ("diagnostics" in formatted) {
     return {

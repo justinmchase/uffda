@@ -16,9 +16,14 @@ const TOGGLE_COMMENT_METHOD = "uffda/toggleComment";
 type LanguageMetadataResult = {
   languages: Array<{
     id: string;
-    metadata: { ext?: string; name?: string };
+    name?: string;
+    description?: string;
+    extensions: string[];
   }>;
 };
+
+/** The one VS Code language id every Uffda grammar's files use. */
+const UFFDA_LANGUAGE_ID = "uffda";
 
 let client: LanguageClient | undefined;
 let outputChannel: vscode.LogOutputChannel | undefined;
@@ -51,16 +56,12 @@ function workspaceCwd(): string | undefined {
   return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 }
 
+/** The file's extension with its dot, lowercased, as the server reports them. */
 function extensionOf(fsPath: string): string {
   const lastDot = fsPath.lastIndexOf(".");
   const lastSlash = Math.max(fsPath.lastIndexOf("/"), fsPath.lastIndexOf("\\"));
   if (lastDot === -1 || lastDot < lastSlash) return "";
-  return fsPath.slice(lastDot + 1).toLowerCase();
-}
-
-function normalizeExt(ext: string): string {
-  const trimmed = ext.trim().toLowerCase();
-  return trimmed.startsWith(".") ? trimmed.slice(1) : trimmed;
+  return fsPath.slice(lastDot).toLowerCase();
 }
 
 async function startLanguageClient(context: vscode.ExtensionContext): Promise<void> {
@@ -92,9 +93,9 @@ async function startLanguageClient(context: vscode.ExtensionContext): Promise<vo
     // literal `--stdio` argv token, which uffda does not use.
   };
   const clientOptions: LanguageClientOptions = {
-    // Scheme-only selector: the server filters by configured extensions, and
-    // workspace languages may receive a dynamic language id via
-    // `setTextDocumentLanguage` after `[Language].ext` discovery (#192).
+    // Scheme-only selector: the server filters by the extensions languages
+    // claim, and their files get the `uffda` language id via
+    // `setTextDocumentLanguage` once those extensions are known.
     documentSelector: [{ scheme: "file" }],
     outputChannel,
   };
@@ -116,9 +117,11 @@ async function startLanguageClient(context: vscode.ExtensionContext): Promise<vo
 }
 
 /**
- * Queries `uffda/languageMetadata`, maps `[Language].ext` → language id, and
- * assigns language ids at runtime via `setTextDocumentLanguage` for
- * workspace-declared languages (#192).
+ * Queries `uffda/languageMetadata` for every extension a language claims and
+ * gives matching files the `uffda` language id with
+ * `setTextDocumentLanguage`. VS Code cannot register language ids at
+ * runtime, so every grammar shares `uffda` and the server picks the grammar
+ * from the file's extension.
  */
 async function applyLanguageMetadataFromServer(
   context: vscode.ExtensionContext,
@@ -129,16 +132,11 @@ async function applyLanguageMetadataFromServer(
       LANGUAGE_METADATA_METHOD,
       {},
     );
-    const extToLanguageId = new Map<string, string>();
-
-    for (const entry of result.languages) {
-      if (entry.metadata.ext) {
-        extToLanguageId.set(normalizeExt(entry.metadata.ext), entry.id);
-      }
-    }
-
-    if (extToLanguageId.size > 0) {
-      registerDynamicLanguageIds(context, extToLanguageId);
+    const extensions = new Set(
+      result.languages.flatMap((language) => language.extensions),
+    );
+    if (extensions.size > 0) {
+      registerDynamicLanguageIds(context, extensions);
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -149,19 +147,19 @@ async function applyLanguageMetadataFromServer(
 }
 
 /**
- * Assigns language ids to open/opening documents whose extension is declared
- * by a grammar's `[Language].ext` (or equivalent metadata), so workspace
- * languages do not need a static `contributes.languages` package.json entry.
+ * Gives open and opening documents whose extension a grammar's `[Language]`
+ * claims the `uffda` language id, so project languages need no static
+ * `contributes.languages` package.json entry.
  */
 function registerDynamicLanguageIds(
   context: vscode.ExtensionContext,
-  extToLanguageId: Map<string, string>,
+  extensions: Set<string>,
 ): void {
+  const languageId = UFFDA_LANGUAGE_ID;
   const assign = async (document: vscode.TextDocument): Promise<void> => {
     if (document.uri.scheme !== "file") return;
-    const ext = extensionOf(document.uri.fsPath);
-    const languageId = extToLanguageId.get(ext);
-    if (!languageId || document.languageId === languageId) return;
+    if (!extensions.has(extensionOf(document.uri.fsPath))) return;
+    if (document.languageId === languageId) return;
     try {
       await vscode.languages.setTextDocumentLanguage(document, languageId);
       outputChannel?.appendLine(

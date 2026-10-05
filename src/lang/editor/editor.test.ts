@@ -29,8 +29,9 @@ const EXPECTED: Array<
     parameters: [],
   }],
   ["../uffda/uffda.lang.uff", "UffdaLang", "UffdaLang", "Language", {
-    ext: ".uff",
+    id: "uffda",
     name: "Uffda",
+    extensions: [".uff"],
   }],
   ["../tokenizer/mod.uff", "Tokenizer", "WordToken", "Highlight", {
     role: "identifier",

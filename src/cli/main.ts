@@ -212,8 +212,9 @@ function fmtUsageText(): string {
     "Formatting:",
     "  Formats files with the [Formatter] their language's entry rule names,",
     "  rewriting them in place and listing the files that changed. A file's",
-    "  language is the .uff language or a .uffda/lsp.jsonc language, by",
-    "  extension. A file that does not parse cleanly is never rewritten.",
+    "  language is the .uff language or a language of the uffda.jsonc project",
+    "  file, by extension. A file that does not parse cleanly is never",
+    "  rewritten.",
     "",
     "  With no paths, formats every file under the working directory (except",
     "  .git and node_modules) and skips files whose extension has no language",
@@ -277,8 +278,8 @@ function lspUsageText(): string {
     "  Starts a Language Server Protocol (LSP) server over standard input and",
     "  standard output. Standard input/output carry only LSP protocol traffic",
     "  once started; there are no other flags or positional arguments.",
-    "  Language configuration is read from <workspace>/.uffda/lsp.jsonc; .uff",
-    "  is always available even without a config file.",
+    "  Languages are read from the nearest uffda.jsonc project file at or above",
+    "  the workspace; .uff is always available, even without one.",
     "",
   ].join("\n");
 }
