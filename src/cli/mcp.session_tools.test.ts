@@ -546,6 +546,47 @@ Deno.test("cli.mcp session open reads the project file", async (t) => {
     }
   });
 
+  await t.step("compiles imports into its outDir", async () => {
+    const root = await Deno.makeTempDir({ prefix: "uffda-mcp-open-" });
+    const { server, client } = await connectedClient();
+    try {
+      await Deno.writeTextFile(`${root}/uffda.jsonc`, '{ "outDir": "./out" }');
+      await Deno.mkdir(`${root}/src`);
+      await Deno.writeTextFile(
+        `${root}/src/dep.uff`,
+        "export Foo;\nrule Foo = any;",
+      );
+      const opened = textOf(
+        await client.callTool({
+          name: "uffda_session_open",
+          arguments: { cwd: `${root}/src` },
+        }),
+      ) as { ok: boolean; sessionId: string };
+      assertEquals(opened.ok, true);
+      const loaded = textOf(
+        await client.callTool({
+          name: "uffda_session_load",
+          arguments: {
+            sessionId: opened.sessionId,
+            source: 'import "./dep.uff" Foo;\nexport Main;\nrule Main = Foo;',
+            path: "main.uff",
+          },
+        }),
+      ) as { ok: boolean };
+      assertEquals(loaded.ok, true);
+      assert(
+        await Deno.stat(`${root}/out/ast/src/dep.uffda.ast.json`).then(
+          () => true,
+          () => false,
+        ),
+      );
+    } finally {
+      await client.close();
+      await server.close();
+      await Deno.remove(root, { recursive: true });
+    }
+  });
+
   await t.step("fails on an invalid project file", async () => {
     const root = await Deno.makeTempDir({ prefix: "uffda-mcp-open-" });
     const { server, client } = await connectedClient();

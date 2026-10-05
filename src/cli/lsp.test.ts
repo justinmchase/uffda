@@ -551,6 +551,48 @@ Deno.test("cli.lsp wireUffdaLspHandlers", async (t) => {
   );
 
   await t.step(
+    "compiles imports into the project file's outDir",
+    async () => {
+      const cwd = await Deno.makeTempDir({ prefix: "uffda-lsp-out-dir-" });
+      try {
+        await Deno.writeTextFile(
+          join(cwd, "uffda.jsonc"),
+          '{ "outDir": "./out" }',
+        );
+        await Deno.mkdir(join(cwd, "src"));
+        await Deno.writeTextFile(
+          join(cwd, "src", "dep.uff"),
+          "export Foo;\nrule Foo = any;",
+        );
+        const { connection, handlers, sentDiagnostics } =
+          createFakeConnection();
+        wireUffdaLspHandlers(connection, {
+          workspaceRoot: join(cwd, "src"),
+          log: () => {},
+        });
+        await handlers.initialize({} as InitializeParams);
+
+        const uri = toFileUrl(join(cwd, "src", "main.uff")).href;
+        await handlers.open({
+          textDocument: {
+            uri,
+            languageId: "uffda",
+            version: 1,
+            text: 'import "./dep.uff" Foo;\nexport Main;\nrule Main = Foo;',
+          },
+        } as DidOpenTextDocumentParams);
+        assertEquals(sentDiagnostics, [{ uri, diagnostics: [] }]);
+        assert(
+          await Deno.stat(join(cwd, "out", "ast", "src", "dep.uffda.ast.json"))
+            .then(() => true, () => false),
+        );
+      } finally {
+        await Deno.remove(cwd, { recursive: true });
+      }
+    },
+  );
+
+  await t.step(
     "advertises and serves uffda/languageMetadata from [Language] decorators",
     async () => {
       const { connection, handlers } = createFakeConnection();

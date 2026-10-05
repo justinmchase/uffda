@@ -135,3 +135,51 @@ Deno.test("runtime.module.execute resolves module names through its import map",
   );
   assertEquals(m.kind, MatchKind.Ok);
 });
+
+Deno.test("runtime.module.execute reads .uff imports from its artifact layout", async () => {
+  const root = await Deno.makeTempDir({ prefix: "uffda-execute-layout-" });
+  try {
+    const outDir = `${root}/out`;
+    await Deno.mkdir(`${outDir}/ast`, { recursive: true });
+    await Deno.writeTextFile(
+      `${outDir}/ast/dep.uffda.ast.json`,
+      JSON.stringify({
+        imports: [],
+        exports: [{ kind: ExportDeclarationKind.Rule, name: "T" }],
+        rules: [{ name: "T", parameters: [], pattern: { kind: "any" } }],
+      }),
+    );
+    const m = await executeModuleDeclaration(
+      {
+        imports: [{
+          kind: ImportDeclarationKind.Module,
+          moduleUrl: "./dep.uff",
+          names: ["T"],
+        }],
+        exports: [{
+          kind: ExportDeclarationKind.Rule,
+          name: "Main",
+          default: true,
+        }],
+        rules: [{
+          name: "Main",
+          parameters: [],
+          pattern: {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Reference,
+            name: "T",
+            args: [],
+          },
+        }],
+      },
+      {
+        input: "x",
+        moduleUrl: new URL(`file://${root}/main.uff`),
+        artifacts: { root, outDir },
+      },
+    );
+    assertEquals(m.kind, MatchKind.Ok);
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});

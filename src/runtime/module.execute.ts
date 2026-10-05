@@ -8,6 +8,7 @@ import { Resolver } from "./resolve.ts";
 import { Scope, type ScopeOptions } from "./scope.ts";
 import { ModuleImportResultKind } from "./resolvers/resolver.ts";
 import type { ImportMap } from "./resolvers/import_map.ts";
+import type { ArtifactLayout } from "./resolvers/artifact_path.ts";
 
 export type ExecuteModuleDeclarationOptions = {
   moduleUrl?: URL;
@@ -17,8 +18,8 @@ export type ExecuteModuleDeclarationOptions = {
   inputKind?: InputNormalizationMode;
   variables?: Map<string, unknown> | Record<string, unknown>;
   scopeOptions?: Partial<ScopeOptions>;
-  cwd?: string;
-  artifactRoot?: string;
+  /** Where `.uff` imports' artifacts are read from (see `ResolverOptions`). */
+  artifacts?: ArtifactLayout;
   /** The import map module names resolve through (see `ResolverOptions`). */
   imports?: ImportMap;
 };
@@ -34,8 +35,7 @@ export async function executeModuleDeclaration(
   };
   const resolver = new Resolver({
     declarations,
-    cwd: options?.cwd,
-    artifactRoot: options?.artifactRoot,
+    artifacts: options?.artifacts,
     imports: options?.imports,
   });
 

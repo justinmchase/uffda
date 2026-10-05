@@ -1,3 +1,4 @@
+import type { ArtifactLayout } from "../runtime/resolvers/artifact_path.ts";
 import { isAbsolute, resolve } from "@std/path";
 import {
   CliContractErrorCode,
@@ -8,7 +9,7 @@ import {
   resolveCliProcessContract,
 } from "./contract.ts";
 import { compileSourcesToAstArtifacts } from "./compile.ts";
-import { projectImports } from "./project_imports.ts";
+import { commandProject } from "./command_project.ts";
 import type { ImportMap } from "../runtime/resolvers/import_map.ts";
 import {
   type CliModuleOrigin,
@@ -73,15 +74,16 @@ function configFailure(message: string): CliRunResult {
 }
 
 /**
- * The import map of the project the command uses (see `projectImports`). An
- * invalid project file fails the command.
+ * The import map and artifact layout of the project the command uses (see
+ * `commandProject`). An invalid project file fails the command.
  */
-async function commandImports(
+async function loadContractProject(
   contract: CliProcessContract,
 ): Promise<
-  { ok: true; imports: ImportMap } | { ok: false; result: CliRunResult }
+  | { ok: true; imports: ImportMap; artifacts: ArtifactLayout }
+  | { ok: false; result: CliRunResult }
 > {
-  const project = await projectImports(contract.cwd, contract.configPath);
+  const project = await commandProject(contract.cwd, contract.configPath);
   return project.ok
     ? project
     : { ok: false, result: configFailure(project.message) };
@@ -203,12 +205,15 @@ function compileUsageText(): string {
     "",
     "Compile options:",
     "  --help, -h       Show compile command usage.",
-    "  --out-dir <path> Output root directory (replaces .uffda).",
     "  --config <path>  Project file whose imports module names resolve",
-    "                   through (default: the nearest uffda.jsonc).",
+    "                   through and whose outDir artifacts are written to",
+    "                   (default: the nearest uffda.jsonc).",
+    "  --out-dir <path> Deprecated: must name the project's outDir.",
     "",
     "Output:",
-    "  Writes ModuleDeclaration JSON under <out-dir>/ast (default: .uffda/ast).",
+    "  Writes ModuleDeclaration JSON under <outDir>/ast, mirroring each source's",
+    "  path in the project (outDir defaults to ./bin; without a project, the",
+    "  cwd is the project root).",
     "  Each import names a relative path or a full jsr: specifier: module",
     "  names are written out through the project file's imports.",
     "",
@@ -744,12 +749,11 @@ export async function runCli(
       CliLanguage.Expression,
     );
     if (!parsed.ok) return parsed.result;
-    const project = await commandImports(contract);
+    const project = await loadContractProject(contract);
     if (!project.ok) return project.result;
 
     const result = await executeCliExpression(parsed.ast, {
-      cwd: contract.cwd,
-      artifactRoot: contract.outputRootDir,
+      artifacts: project.artifacts,
       imports: project.imports,
       moduleUrl: moduleUrlForCliOrigin(contract.cwd, parsed.moduleOrigin),
     });
@@ -818,12 +822,11 @@ export async function runCli(
       CliLanguage.FullUffda,
     );
     if (!parsed.ok) return parsed.result;
-    const project = await commandImports(contract);
+    const project = await loadContractProject(contract);
     if (!project.ok) return project.result;
 
     const result = await executeCliModule(parsed.ast, contract.entryRuleName, {
-      cwd: contract.cwd,
-      artifactRoot: contract.outputRootDir,
+      artifacts: project.artifacts,
       imports: project.imports,
       moduleUrl: moduleUrlForCliOrigin(contract.cwd, parsed.moduleOrigin),
     });
@@ -843,13 +846,22 @@ export async function runCli(
     );
   }
 
-  const project = await commandImports(contract);
+  const project = await loadContractProject(contract);
   if (!project.ok) return project.result;
+  if (
+    contract.outDirPath !== undefined &&
+    contract.outDirPath !== project.artifacts.outDir
+  ) {
+    return usageError(
+      `--out-dir ${contract.outDirPath} is not the project's outDir ` +
+        `(${project.artifacts.outDir}); set "outDir" in uffda.jsonc instead`,
+    );
+  }
 
   const result = await compileSourcesToAstArtifacts({
     cwd: contract.cwd,
     sourcePaths: contract.inputPaths,
-    outputDir: resolve(contract.outputRootDir, "ast"),
+    artifacts: project.artifacts,
     imports: project.imports,
   });
 

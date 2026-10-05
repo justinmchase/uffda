@@ -1,18 +1,18 @@
 import { assertEquals } from "@std/assert";
 import { join, resolve, toFileUrl } from "@std/path";
 import {
-  astArtifactPathForSource,
-  astArtifactPathForUffUrl,
-  DEFAULT_ARTIFACT_ROOT,
+  artifactPathForSource,
+  artifactPathForUffUrl,
+  defaultArtifactLayout,
   outputNameForSource,
   toStableSourcePath,
 } from "./artifact_path.ts";
 
 Deno.test("artifact_path maps source paths like CLI compile emission", () => {
-  const cwd = "/repo";
-  const source = "/repo/src/lang/common/characters/digit.uff";
+  const root = resolve("/repo");
+  const source = join(root, "src/lang/common/characters/digit.uff");
   assertEquals(
-    toStableSourcePath(cwd, source),
+    toStableSourcePath(root, source),
     "src/lang/common/characters/digit.uff",
   );
   assertEquals(
@@ -20,20 +20,38 @@ Deno.test("artifact_path maps source paths like CLI compile emission", () => {
     "src/lang/common/characters/digit.uffda.ast.json",
   );
   assertEquals(
-    astArtifactPathForSource(cwd, DEFAULT_ARTIFACT_ROOT, source),
-    resolve(cwd, "bin/ast/src/lang/common/characters/digit.uffda.ast.json"),
+    artifactPathForSource(defaultArtifactLayout(root), source),
+    join(root, "bin/ast/src/lang/common/characters/digit.uffda.ast.json"),
   );
   assertEquals(
-    astArtifactPathForUffUrl(cwd, "./bin", toFileUrl(source)),
-    resolve(cwd, "bin/ast/src/lang/common/characters/digit.uffda.ast.json"),
+    artifactPathForUffUrl(defaultArtifactLayout(root), toFileUrl(source)),
+    join(root, "bin/ast/src/lang/common/characters/digit.uffda.ast.json"),
   );
 });
 
-Deno.test("artifact_path joins custom artifact roots under ast/", () => {
-  const cwd = "/repo";
-  const source = join(cwd, "nested", "mod.uff");
+Deno.test("artifact_path places artifacts under the layout's outDir", () => {
+  const root = resolve("/repo");
   assertEquals(
-    astArtifactPathForSource(cwd, ".uffda", source),
-    resolve(cwd, ".uffda/ast/nested/mod.uffda.ast.json"),
+    artifactPathForSource(
+      { root, outDir: join(root, "build") },
+      join(root, "nested", "mod.uff"),
+    ),
+    join(root, "build/ast/nested/mod.uffda.ast.json"),
+  );
+});
+
+Deno.test("artifact_path gives no artifact for a source outside the root", () => {
+  const layout = defaultArtifactLayout(resolve("/repo/project"));
+  assertEquals(
+    artifactPathForSource(layout, resolve("/repo/other/mod.uff")),
+    undefined,
+  );
+  assertEquals(
+    artifactPathForSource(layout, resolve("/repo/project")),
+    undefined,
+  );
+  assertEquals(
+    artifactPathForSource(layout, resolve("/repo/project/..x/mod.uff")),
+    join(layout.outDir, "ast/..x/mod.uffda.ast.json"),
   );
 });

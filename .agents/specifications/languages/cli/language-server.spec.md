@@ -289,10 +289,11 @@ not introduce a parallel parsing or compilation pathway.
   session model, or a wire protocol — only the underlying deterministic
   compiler/runtime pathways.
 - When resolving `.uff` imports from open documents, the server MUST use the
-  session/runtime artifact root (default `.uffda`) with compile-on-demand into
-  that root — the same contract as
+  workspace project's artifact layout (see
+  [output directory](../project-file.spec.md#output-directory)) with
+  compile-on-demand into it — the same contract as
   [MCP session load](./mcp-server.spec.md#session-lifecycle-tools) — and MUST
-  NOT assume workspace `./bin` or introduce an LSP-config `artifactRoot`.
+  NOT introduce an LSP-config setting for it.
 
 ## Status
 

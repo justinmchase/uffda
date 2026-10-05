@@ -22,7 +22,7 @@ Deno.test(
     const grammar = await Deno.readTextFile(
       join(repoRoot, "src", "lang", "grammar.ts"),
     );
-    assertEquals(grammar.includes("languageArtifactRoots"), true);
+    assertEquals(grammar.includes("languageArtifactLayout"), true);
 
     const roots = await Deno.readTextFile(
       join(
@@ -30,7 +30,7 @@ Deno.test(
         "src",
         "runtime",
         "resolvers",
-        "language_artifact_roots.ts",
+        "language_artifact_layout.ts",
       ),
     );
     assertEquals(roots.includes("Deno.build.standalone"), true);

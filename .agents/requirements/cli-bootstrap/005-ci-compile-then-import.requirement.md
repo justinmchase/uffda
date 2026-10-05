@@ -18,7 +18,8 @@ Preconditions:
 Expected behavior:
 
 - A bootstrap integration test MUST import the logical Digit `.uff` URL with a
-  Resolver configured for repo `cwd` and `artifactRoot` `./bin`.
+  Resolver configured with the repo's artifact layout (root: the repo, outDir:
+  `./bin`).
 - That import MUST succeed and MUST export `Digit`.
 - The test MUST NOT recompile; it validates the workflow-produced `./bin` tree.
 

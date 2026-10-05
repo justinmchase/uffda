@@ -37,7 +37,25 @@ Deno.test({
         assertEquals(result.successes.length, 1);
         assertEquals(
           result.successes[0].outputPath,
-          join(src, ".uffda", "ast", "main.uffda.ast.json"),
+          join(src, "bin", "ast", "main.uffda.ast.json"),
+        );
+      },
+    );
+
+    await t.step(
+      "writes under the project file's outDir, from the project root",
+      async () => {
+        const root = await Deno.makeTempDir({ prefix: "uffda-mcp-compile-" });
+        await write(join(root, "uffda.jsonc"), '{ "outDir": "./out" }');
+        await write(join(root, "src", "main.uff"), "rule Main = any;");
+        const result = await compileToolHandler({
+          cwd: join(root, "src"),
+          paths: ["main.uff"],
+        });
+        assert(result.ok, JSON.stringify(result.failures));
+        assertEquals(
+          result.successes[0].outputPath,
+          join(root, "out", "ast", "src", "main.uffda.ast.json"),
         );
       },
     );

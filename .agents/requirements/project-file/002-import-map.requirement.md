@@ -44,7 +44,7 @@ Postconditions:
 - An import means the same module in `compile`, `run`, `exec`, the language
   server, and MCP sessions of one project.
 - Tests: `src/runtime/resolvers/import_map.test.ts`,
-  `src/runtime/resolve.test.ts` (RESOLVE11), `src/cli/project_imports.test.ts`,
+  `src/runtime/resolve.test.ts` (RESOLVE11), `src/cli/command_project.test.ts`,
   `src/cli/contract.test.ts`, `src/cli/main.test.ts`,
   `src/cli/mcp.session.test.ts`, `src/cli/mcp.session_tools.test.ts`,
   `src/cli/lsp.test.ts`.

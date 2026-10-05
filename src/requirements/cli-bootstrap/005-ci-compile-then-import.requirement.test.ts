@@ -1,3 +1,4 @@
+import { defaultArtifactLayout } from "../../runtime/resolvers/artifact_path.ts";
 import { assertEquals } from "@std/assert";
 import { fromFileUrl, join, resolve, toFileUrl } from "@std/path";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
@@ -41,8 +42,7 @@ Deno.test({
   ignore: !binArtifactPresent,
   fn: async () => {
     const resolver = new Resolver({
-      cwd: repoRoot,
-      artifactRoot: join(repoRoot, "bin"),
+      artifacts: defaultArtifactLayout(repoRoot),
     });
     const result = await resolver.import(toFileUrl(digitUff), context());
     assertEquals(result.kind, ModuleImportResultKind.Module);

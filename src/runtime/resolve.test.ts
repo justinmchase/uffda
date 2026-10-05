@@ -360,6 +360,43 @@ if (readPermissions.state === "granted") {
       });
     },
   });
+
+  Deno.test({
+    name: "RESOLVE12 - .uff imports are read from the artifact layout",
+    fn: async (t) => {
+      const root = await Deno.makeTempDir({ prefix: "uffda-resolve12-" });
+      try {
+        const outDir = `${root}/out`;
+        await Deno.mkdir(`${outDir}/ast/lib`, { recursive: true });
+        await Deno.writeTextFile(
+          `${outDir}/ast/lib/dep.uffda.ast.json`,
+          JSON.stringify({
+            imports: [],
+            exports: [{ kind: ExportDeclarationKind.Rule, name: "T" }],
+            rules: [{ name: "T", parameters: [], pattern: { kind: "any" } }],
+          }),
+        );
+        const dep = new URL(`file://${root}/lib/dep.uff`);
+
+        await t.step("from <outDir>/ast/<path from root>", async () => {
+          const resolver = new Resolver({ artifacts: { root, outDir } });
+          const result = await resolver.import(dep, context());
+          assertEquals(result.kind, ModuleImportResultKind.Module);
+        });
+
+        await t.step("by default, from the cwd's ./bin", async () => {
+          const result = await new Resolver().import(dep, context());
+          assert(result.kind === ModuleImportResultKind.Error);
+          assert(
+            result.error.message.includes(`is outside ${Deno.cwd()}`),
+            result.error.message,
+          );
+        });
+      } finally {
+        await Deno.remove(root, { recursive: true });
+      }
+    },
+  });
 } else {
   Deno.test({
     name: "resolve tests require read permissions",

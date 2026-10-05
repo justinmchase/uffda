@@ -1,3 +1,4 @@
+import type { ArtifactLayout } from "../runtime/resolvers/artifact_path.ts";
 import {
   compileUffdaSyntaxModule,
   type UffdaSyntaxModule,
@@ -137,8 +138,8 @@ async function executionResult(execution: Match): Promise<CliExecResult> {
 }
 
 export type CliExecOptions = {
-  cwd?: string;
-  artifactRoot?: string;
+  /** Where `.uff` imports' artifacts are read from. */
+  artifacts?: ArtifactLayout;
   /** Logical module URL for relative import resolution. */
   moduleUrl?: URL;
   /** The project's import map, for imports of module names. */
@@ -219,8 +220,7 @@ export async function executeCliAst(
   const execution = await executeModuleDeclaration(declaration, {
     entryRuleName: defaultEntryRuleName(syntaxModule),
     moduleUrl: options?.moduleUrl,
-    cwd: options?.cwd,
-    artifactRoot: options?.artifactRoot,
+    artifacts: options?.artifacts,
     imports: options?.imports,
     scopeOptions: {
       globals: new Map([...globals, ["echo", (output: unknown) => output]]),
@@ -279,8 +279,7 @@ export async function executeCliModule(
   const execution = await executeModuleDeclaration(declaration, {
     entryRuleName: entryRuleName ?? defaultEntryRuleName(value),
     moduleUrl: options?.moduleUrl,
-    cwd: options?.cwd,
-    artifactRoot: options?.artifactRoot,
+    artifacts: options?.artifacts,
     imports: options?.imports,
     scopeOptions: {
       globals: new Map([...globals, ["echo", (output: unknown) => output]]),

@@ -67,11 +67,12 @@ chapter(s).
   into a session (parse, compile, and resolve it against that session's
   resolver), and close a session.
 - Loading a module that imports other `.uff` modules MUST ensure those imports'
-  compiled artifacts exist under the session's artifact root (default `.uffda`,
-  configurable on the session/runtime — not a hard-coded `./bin` and not an LSP
-  config key) by compiling from source when missing or stale, then resolve by
-  loading that JSON only (see
-  [compiler bootstrap](../compiler-bootstrap.spec.md)).
+  compiled artifacts exist in the session's artifact layout (the project's; see
+  [output directory](../project-file.spec.md#output-directory)) by compiling
+  from source when missing or stale, then resolve by loading that JSON only (see
+  [compiler bootstrap](../compiler-bootstrap.spec.md)). The project file is the
+  one the session open tool's `config` names, else the nearest `uffda.jsonc` at
+  or above the session's `cwd`; no tool argument sets the layout directly.
 - Loading MUST report diagnostics (parse, compile, or resolution failures)
   without silently discarding partial success information: a load that fails
   MUST still report what, if anything, was resolvable before the failure.

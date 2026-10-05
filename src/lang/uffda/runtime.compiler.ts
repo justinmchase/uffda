@@ -5,7 +5,7 @@ import type { ModuleDeclaration } from "../../runtime/declarations/module.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { resolve } from "../../runtime/patterns/resolve.ts";
-import { languageArtifactRoots } from "../../runtime/resolvers/language_artifact_roots.ts";
+import { languageArtifactLayout } from "../../runtime/resolvers/language_artifact_layout.ts";
 import { ModuleImportResultKind } from "../../runtime/resolvers/resolver.ts";
 import { Resolver } from "../../runtime/resolve.ts";
 import { Scope } from "../../runtime/scope.ts";
@@ -91,11 +91,9 @@ export async function runUffdaRuntimeCompiler(
 ): Promise<Match<ModuleDeclaration>> {
   const moduleUrl = new URL("./runtime.compiler.uff", import.meta.url);
   const { builtInLanguageDeclarations } = await import("../declarations.ts");
-  const { cwd, artifactRoot } = languageArtifactRoots(import.meta.url);
   const resolver = new Resolver({
     declarations: { ...builtInLanguageDeclarations },
-    cwd,
-    artifactRoot,
+    artifacts: languageArtifactLayout(import.meta.url),
   });
   const scope = Scope.From(syntaxModule, {
     kind: InputNormalizationMode.Scalar,

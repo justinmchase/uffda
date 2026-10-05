@@ -108,7 +108,7 @@ Deno.test("cli.exec executes raw module and expression AST inputs", async (t) =>
         const compiled = await compileSourcesToAstArtifacts({
           cwd,
           sourcePaths: [leafPath, rootPath],
-          outputDir: join(artifactRoot, "ast"),
+          artifacts: { root: cwd, outDir: artifactRoot },
           overwrite: true,
         });
         assertEquals(compiled.ok, true, JSON.stringify(compiled.failures));
@@ -118,8 +118,7 @@ Deno.test("cli.exec executes raw module and expression AST inputs", async (t) =>
         if (parsed.kind !== MatchKind.Ok) return;
 
         const result = await executeCliModule(valueOf(parsed), "Root", {
-          cwd,
-          artifactRoot,
+          artifacts: { root: cwd, outDir: artifactRoot },
           moduleUrl: moduleUrlForCliOrigin(cwd, {
             kind: "file",
             absolutePath: rootPath,

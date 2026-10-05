@@ -32,6 +32,10 @@ import { UFFDA_GRAMMAR } from "../lang/uffda/uffda.lang.ts";
 import type { UffdaSyntaxModule } from "../lang/uffda/syntax.types.ts";
 import { RuntimeSession } from "./mcp.session.ts";
 import {
+  type ArtifactLayout,
+  defaultArtifactLayout,
+} from "../runtime/resolvers/artifact_path.ts";
+import {
   EMPTY_IMPORT_MAP,
   type ImportMap,
 } from "../runtime/resolvers/import_map.ts";
@@ -116,6 +120,7 @@ export class LspDocumentManager {
   constructor(
     private readonly cwd: string,
     private readonly imports: ImportMap = EMPTY_IMPORT_MAP,
+    private readonly artifacts: ArtifactLayout = defaultArtifactLayout(cwd),
   ) {}
 
   /**
@@ -143,11 +148,12 @@ export class LspDocumentManager {
 
   private async openNow(uri: string, text: string): Promise<Diagnostic[]> {
     const path = uriToPath(uri);
-    // RuntimeSession defaults to `.uffda` and compiles missing `.uff` import
-    // artifacts there before resolve (see `ensureCompiledImportArtifacts`).
+    // RuntimeSession compiles missing `.uff` import artifacts into the
+    // layout before resolve (see `ensureCompiledImportArtifacts`).
     const session = new RuntimeSession(uri, {
       cwd: this.cwd,
       imports: this.imports,
+      artifacts: this.artifacts,
     });
     const doc: OpenDocument = { session, source: text, path };
     this.documents.set(uri, doc);

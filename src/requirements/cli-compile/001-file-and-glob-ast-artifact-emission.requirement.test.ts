@@ -31,7 +31,7 @@ Deno.test({
     const result = await compileSourcesToAstArtifacts({
       cwd: src,
       sourcePaths: ["**/*.uff"],
-      outputDir: out,
+      artifacts: { root: src, outDir: out },
     });
 
     assertEquals(result.ok, false);
@@ -49,16 +49,16 @@ Deno.test({
 
     assertEquals(result.successes.length, 2);
     assertEquals(
-      await Deno.stat(join(out, "a/ok.uffda.ast.json")).then(() => true),
+      await Deno.stat(join(out, "ast", "a/ok.uffda.ast.json")).then(() => true),
       true,
     );
     assertEquals(
-      await Deno.stat(join(out, "z/ok.uffda.ast.json")).then(() => true),
+      await Deno.stat(join(out, "ast", "z/ok.uffda.ast.json")).then(() => true),
       true,
     );
 
     const sample = JSON.parse(
-      await Deno.readTextFile(join(out, "a/ok.uffda.ast.json")),
+      await Deno.readTextFile(join(out, "ast", "a/ok.uffda.ast.json")),
     ) as { imports: unknown[]; exports: unknown[]; rules: unknown[] };
     assert(Array.isArray(sample.imports));
     assert(Array.isArray(sample.exports));

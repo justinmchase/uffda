@@ -18,8 +18,7 @@ Expected behavior:
 
 - Resolver MUST support `.ts`, `.js`, and `.json` declaration module sources.
 - Resolver MUST support logical `.uff` module URLs by remapping to compiled
-  syntax-AST artifacts under the configured artifact root (see
-  `cli-bootstrap-004`).
+  artifacts in the resolver's artifact layout (see `cli-bootstrap-004`).
 - Resolver MUST return a successful module import result when supported
   declaration modules are valid.
 

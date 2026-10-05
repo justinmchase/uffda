@@ -82,11 +82,14 @@ Use `--help` on any command for flags (`uffda match --help`, …).
 
 ```sh
 uffda compile 'src/**/*.uff'
-uffda compile ./file.uff --out-dir ./out
 ```
 
-Writes ModuleDeclaration JSON under `<out-dir>/ast` (default `.uffda/ast`). In
-this repo, `deno task compile:lang` builds workspace `./bin` with the **previous
+Writes ModuleDeclaration JSON under `<outDir>/ast`, mirroring each source's path
+in the project: `src/foo.uff` becomes `bin/ast/src/foo.uffda.ast.json`. `outDir`
+is `./bin` unless the project file says otherwise, and `run`, `exec`, the
+language server and MCP sessions read compiled imports from the same place.
+Build output is never written next to sources. In this repo,
+`deno task compile:lang` builds workspace `./bin` with the **previous
 published** CLI (bootstrap recursion break).
 
 ### Project file
@@ -102,7 +105,9 @@ above the working directory (or the editor's workspace), or the file
   // What the project offers to others, "." or "./name" to a file inside it.
   "exports": { ".": "./lang/foo.uff" },
   // Modules whose exported rules carry [Language] metadata.
-  "languages": ["./lang/foo.uff"]
+  "languages": ["./lang/foo.uff"],
+  // Where compiled artifacts go. Defaults to "./bin".
+  "outDir": "./bin"
 }
 ```
 

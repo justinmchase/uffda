@@ -112,9 +112,11 @@ export function wireUffdaLspHandlers(
       const loaded = await loadProjectLanguages(workspaceRoot);
       languages = loaded.languages;
       for (const problem of loaded.problems) log(problem);
+      const project = loaded.project;
       manager = new LspDocumentManager(
         workspaceRoot,
-        loaded.project?.imports,
+        project?.imports,
+        project && { root: project.root, outDir: project.outDir },
       );
       return {
         capabilities: {

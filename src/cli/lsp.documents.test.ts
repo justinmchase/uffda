@@ -598,3 +598,31 @@ Deno.test("cli.lsp.documents resolves module names through the import map", asyn
     );
   });
 });
+
+Deno.test("cli.lsp.documents compiles imports into its artifact layout", async () => {
+  const root = await Deno.makeTempDir({ prefix: "uffda-lsp-layout-" });
+  try {
+    await Deno.writeTextFile(
+      join(root, "dep.uff"),
+      "export Foo;\nrule Foo = any;",
+    );
+    const manager = new LspDocumentManager(root, new Map(), {
+      root,
+      outDir: join(root, "out"),
+    });
+    const uri = toFileUrl(join(root, "main.uff")).href;
+    const diagnostics = await manager.open(
+      uri,
+      'import "./dep.uff" Foo;\nexport Main;\nrule Main = Foo;',
+    );
+    assertEquals(diagnostics, []);
+    assert(
+      await Deno.stat(join(root, "out", "ast", "dep.uffda.ast.json")).then(
+        () => true,
+        () => false,
+      ),
+    );
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});

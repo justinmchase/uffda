@@ -45,12 +45,10 @@ Deno.test({
     const tempRoot = await Deno.makeTempDir({
       prefix: "uffda-morse-integration-",
     });
-    const outputDir = join(tempRoot, "ast");
-
     const compiled = await compileSourcesToAstArtifacts({
       cwd: projectRoot,
       sourcePaths: [morseSourcePath],
-      outputDir,
+      artifacts: { root: projectRoot, outDir: tempRoot },
     });
 
     assertEquals(compiled.ok, true);

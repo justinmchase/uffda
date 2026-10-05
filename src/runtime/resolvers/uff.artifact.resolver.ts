@@ -8,12 +8,7 @@ import {
   type ModuleResolutionContext,
   moduleResolutionError,
 } from "./resolver.ts";
-import { astArtifactPathForUffUrl } from "./artifact_path.ts";
-
-export type UffArtifactResolverOptions = {
-  cwd: string;
-  artifactRoot: string;
-};
+import { type ArtifactLayout, artifactPathForUffUrl } from "./artifact_path.ts";
 
 function isUffdaSyntaxModule(value: unknown): value is UffdaSyntaxModule {
   if (value === null || typeof value !== "object") return false;
@@ -22,8 +17,8 @@ function isUffdaSyntaxModule(value: unknown): value is UffdaSyntaxModule {
 }
 
 /**
- * Resolves logical `.uff` module URLs by loading the mirrored compiled JSON
- * under `<artifactRoot>/ast/...`.
+ * Resolves logical `.uff` module URLs by loading their compiled JSON from
+ * the artifact layout (`<outDir>/ast/...`).
  *
  * Artifacts are ModuleDeclarations produced by the compile pipeline (parse →
  * previous published UffdaRuntimeCompiler → write). Resolve only loads JSON —
@@ -31,23 +26,21 @@ function isUffdaSyntaxModule(value: unknown): value is UffdaSyntaxModule {
  */
 export class UffArtifactResolver implements IModuleResolver {
   public readonly extension = ".uff";
-  private readonly cwd: string;
-  private readonly artifactRoot: string;
 
-  constructor(options: UffArtifactResolverOptions) {
-    this.cwd = options.cwd;
-    this.artifactRoot = options.artifactRoot;
-  }
+  constructor(private readonly layout: ArtifactLayout) {}
 
   async resolveModule(
     moduleUrl: URL,
     context: ModuleResolutionContext,
   ): Promise<ModuleDeclarationResult> {
-    const artifactPath = astArtifactPathForUffUrl(
-      this.cwd,
-      this.artifactRoot,
-      moduleUrl,
-    );
+    const artifactPath = artifactPathForUffUrl(this.layout, moduleUrl);
+    if (artifactPath === undefined) {
+      return moduleDeclarationResolutionResult(moduleResolutionError(
+        `Unable to resolve ${moduleUrl}: it is outside ${this.layout.root}, ` +
+          `so it has no compiled artifact under ${this.layout.outDir}`,
+        context,
+      ));
+    }
 
     let text: string;
     try {
