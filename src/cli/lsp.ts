@@ -33,6 +33,7 @@ import {
   type ProjectLanguage,
 } from "./project_languages.ts";
 import { LspDocumentManager } from "./lsp.documents.ts";
+import { projectPackages } from "./command_project.ts";
 import type { Range } from "vscode-languageserver-types";
 import { SEMANTIC_TOKENS_LEGEND } from "./semantic_tokens.ts";
 
@@ -113,10 +114,13 @@ export function wireUffdaLspHandlers(
       languages = loaded.languages;
       for (const problem of loaded.problems) log(problem);
       const project = loaded.project;
+      const packages = await projectPackages(project);
+      if (!packages.ok) log(packages.message);
       manager = new LspDocumentManager(
         workspaceRoot,
         project?.imports,
         project && { root: project.root, outDir: project.outDir },
+        packages.ok ? packages.packages : undefined,
       );
       return {
         capabilities: {

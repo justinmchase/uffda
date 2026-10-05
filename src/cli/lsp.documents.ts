@@ -31,6 +31,7 @@ import {
 import { UFFDA_GRAMMAR } from "../lang/uffda/uffda.lang.ts";
 import type { UffdaSyntaxModule } from "../lang/uffda/syntax.types.ts";
 import { RuntimeSession } from "./mcp.session.ts";
+import type { IPackageResolver } from "../runtime/resolvers/resolver.ts";
 import {
   type ArtifactLayout,
   defaultArtifactLayout,
@@ -121,6 +122,7 @@ export class LspDocumentManager {
     private readonly cwd: string,
     private readonly imports: ImportMap = EMPTY_IMPORT_MAP,
     private readonly artifacts: ArtifactLayout = defaultArtifactLayout(cwd),
+    private readonly packages?: IPackageResolver,
   ) {}
 
   /**
@@ -154,6 +156,7 @@ export class LspDocumentManager {
       cwd: this.cwd,
       imports: this.imports,
       artifacts: this.artifacts,
+      packages: this.packages,
     });
     const doc: OpenDocument = { session, source: text, path };
     this.documents.set(uri, doc);

@@ -1,3 +1,4 @@
+import { fakeJsrPackages, fakeUffPackage } from "../packages/fake_registry.ts";
 import { assert, assertEquals, assertRejects } from "@std/assert";
 import { join, toFileUrl } from "@std/path";
 import type { CompletionItem } from "vscode-languageserver-types";
@@ -576,16 +577,21 @@ Deno.test("cli.lsp.documents resolves module names through the import map", asyn
   const source = 'import "@acme/kv/tokens" T;\nexport Main;\nrule Main = T;';
 
   await t.step("a declared module name resolves to its package", async () => {
+    const kv = await fakeJsrPackages({
+      "@acme/kv": {
+        "1.2.0": fakeUffPackage({ "./tokens": "./tokens.uff" }, {
+          "./tokens": "T",
+        }),
+      },
+    });
     const manager = new LspDocumentManager(
       Deno.cwd(),
       new Map([["@acme/kv", "jsr:@acme/kv@^1.2.0"]]),
+      undefined,
+      kv.packages,
     );
     const diagnostics = await manager.open("inline:///imports-1", source);
-    assertEquals(diagnostics.length, 1);
-    assert(
-      diagnostics[0].message.includes("loading modules from packages"),
-      diagnostics[0].message,
-    );
+    assertEquals(diagnostics, []);
   });
 
   await t.step("an undeclared module name is reported", async () => {

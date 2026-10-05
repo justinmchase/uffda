@@ -719,3 +719,20 @@ Deno.test("cli.main runCli routes fmt", async (t) => {
     await Deno.remove(cwd, { recursive: true });
   }
 });
+
+Deno.test({
+  name: "cli.main an invalid lockfile is a configuration failure",
+  ignore: writePermission.state !== "granted",
+  fn: async () => {
+    const root = await Deno.makeTempDir({ prefix: "uffda-cli-main-" });
+    await write(join(root, "uffda.jsonc"), "{}");
+    await write(join(root, "uffda.lock"), "[]");
+    const result = await runCli(
+      ["exec", "-e", "1"],
+      root,
+      false,
+    );
+    assertEquals(result.exitCode, CliExitCode.Config);
+    assert(result.stderr?.includes("uffda.lock"), result.stderr);
+  },
+});

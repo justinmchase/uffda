@@ -536,7 +536,7 @@ Deno.test("cli.mcp session open reads the project file", async (t) => {
       ) as { ok: boolean; error?: { message: string } };
       assertEquals(loaded.ok, false);
       assert(
-        loaded.error?.message.includes("loading modules from packages"),
+        loaded.error?.message.includes("Unable to load jsr:@acme/kv@^1.2.0:"),
         loaded.error?.message,
       );
     } finally {

@@ -189,7 +189,8 @@ jobs:
             --include ./bin \
             --allow-read \
             --allow-write \
-            --allow-env=INIT_CWD,PWD,XDG_RUNTIME_DIR \
+            --allow-net=jsr.io \
+            --allow-env=INIT_CWD,PWD,XDG_RUNTIME_DIR,HOME,XDG_CACHE_HOME,LOCALAPPDATA \
             ./src/cli/main.ts
           sha256sum "${out_dir}/${asset}" | tee "${out_dir}/${asset}.sha256"
 

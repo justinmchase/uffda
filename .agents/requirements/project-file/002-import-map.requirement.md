@@ -35,8 +35,9 @@ Expected behavior:
   `"<specifier>" is not a module name the project file's \`imports\`
   declares`,
   and an import chain frame naming the import with no`resolvedUrl`.
-- A `jsr:` module that no seeded declaration supplies MUST fail with
-  `Unable to load <url>: loading modules from packages is not supported yet`.
+- A `jsr:` module that no seeded declaration supplies MUST be loaded from
+  packages (see
+  [JSR packages](../modules-runtime/006-jsr-packages.requirement.md)).
 - Relative and `jsr:` specifiers MUST resolve as written.
 
 Postconditions:

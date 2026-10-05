@@ -9,6 +9,7 @@ import type { ModuleDeclaration } from "./declarations/module.ts";
 import { unwrap } from "../wrapped.ts";
 import { ImportDeclarationKind } from "./declarations/import.ts";
 import { ResolveTargetKind } from "./patterns/pattern.ts";
+import { fakeJsrPackages, fakeUffPackage } from "../packages/fake_registry.ts";
 
 Deno.test("runtime.module.execute executes default exported rule", async () => {
   const m = await executeModuleDeclaration(
@@ -182,4 +183,44 @@ Deno.test("runtime.module.execute reads .uff imports from its artifact layout", 
   } finally {
     await Deno.remove(root, { recursive: true });
   }
+});
+
+Deno.test("runtime.module.execute loads jsr: modules from its packages", async () => {
+  const kv = await fakeJsrPackages({
+    "@acme/kv": {
+      "1.2.0": fakeUffPackage({ "./tokens": "./tokens.uff" }, {
+        "./tokens": "T",
+      }),
+    },
+  });
+  const m = await executeModuleDeclaration(
+    {
+      imports: [{
+        kind: ImportDeclarationKind.Module,
+        moduleUrl: "jsr:@acme/kv@^1.2.0/tokens",
+        names: ["T"],
+      }],
+      exports: [{
+        kind: ExportDeclarationKind.Rule,
+        name: "Main",
+        default: true,
+      }],
+      rules: [{
+        name: "Main",
+        parameters: [],
+        pattern: {
+          kind: PatternKind.Resolve,
+          targetKind: ResolveTargetKind.Reference,
+          name: "T",
+          args: [],
+        },
+      }],
+    },
+    {
+      input: "x",
+      moduleUrl: new URL("file:///uffda-execute/main.uff"),
+      packages: kv.packages,
+    },
+  );
+  assertEquals(m.kind, MatchKind.Ok);
 });

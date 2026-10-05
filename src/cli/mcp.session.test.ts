@@ -1,3 +1,4 @@
+import { fakeJsrPackages, fakeUffPackage } from "../packages/fake_registry.ts";
 import { defaultArtifactLayout } from "../runtime/resolvers/artifact_path.ts";
 import {
   assert,
@@ -1585,15 +1586,23 @@ Deno.test("cli.mcp.session resolves module names through its import map", async 
   const source = 'import "@acme/kv/tokens" T;\nexport Main;\nrule Main = T;';
 
   await t.step("a declared module name resolves to its package", async () => {
+    const kv = await fakeJsrPackages({
+      "@acme/kv": {
+        "1.2.0": fakeUffPackage({ "./tokens": "./tokens.uff" }, {
+          "./tokens": "T",
+        }),
+      },
+    });
     const session = new RuntimeSession("imports-1", {
       imports: new Map([["@acme/kv", "jsr:@acme/kv@^1.2.0"]]),
+      packages: kv.packages,
     });
     const result = await session.load(source);
-    assert(!result.ok);
-    assertEquals(result.error.code, SessionLoadFailureCode.ResolutionFailure);
+    assert(result.ok, JSON.stringify(!result.ok && result.error));
     assert(
-      result.error.message.includes("loading modules from packages"),
-      result.error.message,
+      session.listLoadedModules().some(({ moduleUrl }) =>
+        moduleUrl === new URL("@acme/kv/1.2.0/tokens.uff", kv.registry).href
+      ),
     );
   });
 

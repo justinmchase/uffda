@@ -123,6 +123,28 @@ RFC 8174.
   resolving an import of it, MUST fail naming the module and the root.
 - `outDir` is how a published package's consumers find its compiled artifacts.
 
+## Lockfile
+
+- A project's lockfile is `uffda.lock` beside its project file. It holds JSON:
+
+  ```json
+  {
+    "specifiers": { "jsr:@acme/kv@^1.2.0": "1.2.3" },
+    "jsr": { "@acme/kv@1.2.3": { "integrity": "<sha256 hex>" } }
+  }
+  ```
+
+  - `specifiers` maps each `jsr:@scope/name@range` the project's modules
+    resolved to the version chosen for it.
+  - `jsr` maps each package version used to the sha256 of its
+    `<version>_meta.json`, whose manifest checksums every file of it (see
+    [packages](../modules.spec.md#packages)).
+- Tools MUST resolve packages through the lockfile and add to it what they
+  resolve, writing it with keys sorted. A lockfile that is not that shape is a
+  problem, reported like a project file problem.
+- The lockfile SHOULD be committed, so every checkout resolves the same
+  versions.
+
 ## Related
 
 - [imports](./uffda-syntax/imports.spec.md) — the module specifier grammar.

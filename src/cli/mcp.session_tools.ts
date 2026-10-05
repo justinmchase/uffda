@@ -214,6 +214,7 @@ export function registerSessionTools(
         cwd,
         artifacts: project.artifacts,
         imports: project.imports,
+        packages: project.packages,
       });
       return jsonResult({ ok: true, sessionId: session.id });
     },

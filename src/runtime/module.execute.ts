@@ -8,6 +8,7 @@ import { Resolver } from "./resolve.ts";
 import { Scope, type ScopeOptions } from "./scope.ts";
 import { ModuleImportResultKind } from "./resolvers/resolver.ts";
 import type { ImportMap } from "./resolvers/import_map.ts";
+import type { IPackageResolver } from "./resolvers/resolver.ts";
 import type { ArtifactLayout } from "./resolvers/artifact_path.ts";
 
 export type ExecuteModuleDeclarationOptions = {
@@ -22,6 +23,8 @@ export type ExecuteModuleDeclarationOptions = {
   artifacts?: ArtifactLayout;
   /** The import map module names resolve through (see `ResolverOptions`). */
   imports?: ImportMap;
+  /** Loads `jsr:` modules (see `ResolverOptions`). */
+  packages?: IPackageResolver;
 };
 
 export async function executeModuleDeclaration(
@@ -37,6 +40,7 @@ export async function executeModuleDeclaration(
     declarations,
     artifacts: options?.artifacts,
     imports: options?.imports,
+    packages: options?.packages,
   });
 
   let scope = options?.input === undefined

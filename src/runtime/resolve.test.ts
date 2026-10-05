@@ -7,6 +7,8 @@ import { ModuleImportResultKind } from "./resolvers/resolver.ts";
 import { ExportDeclarationKind } from "./declarations/export.ts";
 import { ImportDeclarationKind } from "./declarations/import.ts";
 import { Scope } from "./scope.ts";
+import { fakeRegistry } from "../packages/fake_registry.ts";
+import { JsrPackages } from "../packages/jsr_packages.ts";
 
 function context() {
   return {
@@ -345,19 +347,22 @@ if (readPermissions.state === "granted") {
         }]);
       });
 
-      await t.step("a jsr: module is not loaded yet", async () => {
-        const resolver = new Resolver({
-          imports,
-          declarations: { [main]: importing("@acme/kv/tokens") },
-        });
-        const result = await resolver.import(new URL(main), context());
-        assert(result.kind === ModuleImportResultKind.Error);
-        assertEquals(
-          result.error.message,
-          `Unable to load ${tokens}: loading modules from packages is not supported yet`,
-        );
-        assertEquals(result.importChain?.[0].resolvedUrl, tokens);
-      });
+      await t.step(
+        "without a package resolver, a jsr: module fails",
+        async () => {
+          const resolver = new Resolver({
+            imports,
+            declarations: { [main]: importing("@acme/kv/tokens") },
+          });
+          const result = await resolver.import(new URL(main), context());
+          assert(result.kind === ModuleImportResultKind.Error);
+          assertEquals(
+            result.error.message,
+            `Unable to load ${tokens}: no package resolver is configured`,
+          );
+          assertEquals(result.importChain?.[0].resolvedUrl, tokens);
+        },
+      );
     },
   });
 
@@ -395,6 +400,127 @@ if (readPermissions.state === "granted") {
       } finally {
         await Deno.remove(root, { recursive: true });
       }
+    },
+  });
+
+  Deno.test({
+    name: "RESOLVE13 - jsr: modules are loaded from packages",
+    fn: async (t) => {
+      const declaration = (
+        rule: string,
+        imports: { moduleUrl: string; names: string[] }[] = [],
+      ) =>
+        JSON.stringify({
+          imports: imports.map((i) => ({
+            kind: ImportDeclarationKind.Module,
+            ...i,
+          })),
+          exports: [{ kind: ExportDeclarationKind.Rule, name: rule }],
+          rules: [{ name: rule, parameters: [], pattern: { kind: "any" } }],
+        });
+      const project = JSON.stringify({
+        exports: { ".": "./kv.uff", "./tokens": "./tokens.uff" },
+      });
+      const fake = await fakeRegistry({
+        "@acme/kv": {
+          "1.0.0": {
+            files: {
+              "uffda.jsonc": project,
+              "bin/ast/kv.uffda.ast.json": declaration("KV", [
+                { moduleUrl: "./tokens.uff", names: ["T"] },
+              ]),
+              "bin/ast/tokens.uffda.ast.json": declaration("T"),
+              "bin/ast/named.uffda.ast.json": declaration("N", [
+                { moduleUrl: "@acme/kv/tokens", names: ["T"] },
+              ]),
+              "bin/ast/escape.uffda.ast.json": declaration("E", [
+                { moduleUrl: "../../@acme/other/1.0.0/x.uff", names: ["X"] },
+              ]),
+            },
+          },
+        },
+      });
+      const main = "file:///uffda-resolve13/main.uff";
+      const importing = (moduleUrl: string, names: string[]) => ({
+        imports: [{
+          kind: ImportDeclarationKind.Module as const,
+          moduleUrl,
+          names,
+        }],
+        exports: [],
+        rules: [],
+      });
+      const resolverFor = (moduleUrl: string, names: string[]) =>
+        new Resolver({
+          imports: new Map([["@acme/kv", "jsr:@acme/kv@^1.0.0"]]),
+          declarations: { [main]: importing(moduleUrl, names) },
+          packages: new JsrPackages({
+            registry: fake.registry,
+            fetch: fake.fetch,
+            cacheDir: Deno.makeTempDirSync(),
+          }),
+        });
+      const packageUrl = (path: string) =>
+        new URL(`@acme/kv/1.0.0/${path}`, fake.registry).href;
+
+      await t.step("by the URL of the package module", async () => {
+        const resolver = resolverFor("@acme/kv", ["KV"]);
+        const result = await resolver.import(new URL(main), context());
+        assertEquals(result.kind, ModuleImportResultKind.Module);
+        assert(resolver.resolvedModules.has(packageUrl("kv.uff")));
+        assert(resolver.resolvedModules.has(packageUrl("tokens.uff")));
+      });
+
+      await t.step("two specifiers of one module are one module", async () => {
+        const resolver = resolverFor("@acme/kv/tokens", ["T"]);
+        await resolver.import(new URL(main), context());
+        const direct = await resolver.import(
+          new URL("jsr:@acme/kv@1/tokens"),
+          context(),
+        );
+        assert(direct.kind === ModuleImportResultKind.Module);
+        assertEquals(direct.module.moduleUrl.href, packageUrl("tokens.uff"));
+        assertEquals(
+          [...resolver.resolvedModules.keys()].filter((url) =>
+            url.endsWith("tokens.uff")
+          ).length,
+          1,
+        );
+      });
+
+      await t.step(
+        "a package module may not import a module name",
+        async () => {
+          const resolver = resolverFor(packageUrl("named.uff"), ["N"]);
+          const result = await resolver.import(new URL(main), context());
+          assert(result.kind === ModuleImportResultKind.Error);
+          assert(
+            result.error.message.includes("may not import"),
+            result.error.message,
+          );
+        },
+      );
+
+      await t.step("a relative import may not leave its package", async () => {
+        const resolver = resolverFor(packageUrl("escape.uff"), ["E"]);
+        const result = await resolver.import(new URL(main), context());
+        assert(result.kind === ModuleImportResultKind.Error);
+        assert(
+          result.error.message.includes("is outside package @acme/kv@1.0.0"),
+          result.error.message,
+        );
+      });
+
+      await t.step("a failure names the module", async () => {
+        const resolver = resolverFor("jsr:@acme/kv@^2", ["KV"]);
+        const result = await resolver.import(new URL(main), context());
+        assert(result.kind === ModuleImportResultKind.Error);
+        assert(
+          result.error.message.startsWith("Unable to load jsr:@acme/kv@^2:"),
+          result.error.message,
+        );
+        assertEquals(result.importChain?.[0].resolvedUrl, "jsr:@acme/kv@^2");
+      });
     },
   });
 } else {

@@ -1,4 +1,3 @@
-import type { ArtifactLayout } from "../runtime/resolvers/artifact_path.ts";
 import { isAbsolute, resolve } from "@std/path";
 import {
   CliContractErrorCode,
@@ -9,8 +8,7 @@ import {
   resolveCliProcessContract,
 } from "./contract.ts";
 import { compileSourcesToAstArtifacts } from "./compile.ts";
-import { commandProject } from "./command_project.ts";
-import type { ImportMap } from "../runtime/resolvers/import_map.ts";
+import { type CommandProject, commandProject } from "./command_project.ts";
 import {
   type CliModuleOrigin,
   executeCliExpression,
@@ -80,7 +78,7 @@ function configFailure(message: string): CliRunResult {
 async function loadContractProject(
   contract: CliProcessContract,
 ): Promise<
-  | { ok: true; imports: ImportMap; artifacts: ArtifactLayout }
+  | Extract<CommandProject, { ok: true }>
   | { ok: false; result: CliRunResult }
 > {
   const project = await commandProject(contract.cwd, contract.configPath);
@@ -755,6 +753,7 @@ export async function runCli(
     const result = await executeCliExpression(parsed.ast, {
       artifacts: project.artifacts,
       imports: project.imports,
+      packages: project.packages,
       moduleUrl: moduleUrlForCliOrigin(contract.cwd, parsed.moduleOrigin),
     });
     if (!result.ok) return operationFailure(result, contract.jsonOutput);
@@ -828,6 +827,7 @@ export async function runCli(
     const result = await executeCliModule(parsed.ast, contract.entryRuleName, {
       artifacts: project.artifacts,
       imports: project.imports,
+      packages: project.packages,
       moduleUrl: moduleUrlForCliOrigin(contract.cwd, parsed.moduleOrigin),
     });
     if (result.ok) return operationResult(result.value, contract.jsonOutput);

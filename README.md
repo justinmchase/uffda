@@ -122,6 +122,16 @@ resolver looks it up in `imports`, as Deno does with `deno.json`, and
 compiled modules never need the project file. See
 [`project-file.spec.md`](.agents/specifications/languages/project-file.spec.md).
 
+A `jsr:` module is loaded from [JSR](https://jsr.io): the highest version
+matching the range, the `.uff` file its `uffda.jsonc` exports, and that file's
+compiled artifact from the package's `outDir`. Every file is checked against the
+package's manifest and cached under `~/.cache/uffda/jsr` (or `XDG_CACHE_HOME` /
+`LOCALAPPDATA`). The versions chosen are recorded in `uffda.lock` beside
+`uffda.jsonc`; commit it. A package must therefore publish its `uffda.jsonc` and
+compiled `outDir` (JSR leaves out gitignored files unless `publish.exclude`
+un-ignores them, as in `"!bin"`). See
+[`modules.spec.md`](.agents/specifications/modules.spec.md#packages).
+
 ### MCP server
 
 `uffda mcp` starts the stdio MCP server. Use the `uffda_session_*` tools plus
