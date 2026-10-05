@@ -27,7 +27,10 @@ Expected behavior:
 - Standalone grammar loading MUST remap logical `.uff` URLs using the binary
   extract root’s embedded `./bin` (not the consumer process cwd).
 - In-tree runs MUST continue remapping against the workspace `./bin` after
-  `compile:lang`.
+  `compile:lang`: the `./bin` of the checkout holding the running modules, not
+  the process cwd, so the in-tree CLI works from any directory
+  (`languageArtifactLayout` in
+  `src/runtime/resolvers/language_artifact_layout.ts`).
 - Checks and release bootstrap compile MUST install a published CLI via
   `uffda-setup` (normally `latest`; pin a SemVer only when recovering from a bad
   release).

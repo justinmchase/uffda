@@ -93,7 +93,7 @@ export async function runUffdaRuntimeCompiler(
   const { builtInLanguageDeclarations } = await import("../declarations.ts");
   const resolver = new Resolver({
     declarations: { ...builtInLanguageDeclarations },
-    artifacts: languageArtifactLayout(import.meta.url),
+    artifacts: languageArtifactLayout(),
   });
   const scope = Scope.From(syntaxModule, {
     kind: InputNormalizationMode.Scalar,
