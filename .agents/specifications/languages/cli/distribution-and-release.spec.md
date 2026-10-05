@@ -72,6 +72,10 @@ Normative key words in this chapter use the conventions defined in the
   package via `publish.exclude` in `deno.jsonc`.
 - Excluded paths MUST keep every published file path under the length limits
   enforced by the JSR tarball verify step (ustar-compatible packing).
+- The package MUST include the repository's `uffda.jsonc` and its compiled
+  `bin/`, so its grammars load as `jsr:@justinmchase/uffda/<export>` imports
+  (see [packages](../../modules.spec.md#packages)). `uffda.jsonc` MUST export
+  the tokenizer as `./tokenizer`.
 
 ## CI setup action contract
 

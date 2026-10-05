@@ -19,6 +19,7 @@ import { isAbsolute, join, toFileUrl } from "@std/path";
 import { valueOf } from "../match.ts";
 import type { ImportMap } from "../runtime/resolvers/import_map.ts";
 import type { IPackageResolver } from "../runtime/resolvers/resolver.ts";
+import type { InputNormalizationMode } from "../input.ts";
 
 export enum CliExecFailureCode {
   InvalidJson = "CLI_EXEC_INVALID_JSON",
@@ -147,6 +148,10 @@ export type CliExecOptions = {
   imports?: ImportMap;
   /** Loads the `jsr:` modules imported. */
   packages?: IPackageResolver;
+  /** The subject the entry rule matches; without one it matches nothing. */
+  input?: unknown;
+  /** How `input` is presented: text as its characters, JSON as one value. */
+  inputKind?: InputNormalizationMode;
 };
 
 /**
@@ -286,6 +291,8 @@ export async function executeCliModule(
     artifacts: options?.artifacts,
     imports: options?.imports,
     packages: options?.packages,
+    input: options?.input,
+    inputKind: options?.inputKind,
     scopeOptions: {
       globals: new Map([...globals, ["echo", (output: unknown) => output]]),
     },

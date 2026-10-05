@@ -1,3 +1,4 @@
+import { InputNormalizationMode } from "../input.ts";
 import { fakeJsrPackages, fakeUffPackage } from "../packages/fake_registry.ts";
 import { assert, assertEquals } from "@std/assert";
 import { join, toFileUrl } from "@std/path";
@@ -207,4 +208,22 @@ Deno.test("cli.exec resolves module names through the import map", async (t) => 
       result.error.message,
     );
   });
+});
+
+Deno.test("cli.exec executeCliModule matches its input", async () => {
+  const parsed = await uffdaGrammar("export rule Main = x:any -> (echo x);");
+  assertEquals(parsed.kind, MatchKind.Ok);
+  if (parsed.kind !== MatchKind.Ok) return;
+  const text = await executeCliModule(valueOf(parsed), "Main", {
+    input: "ab",
+    inputKind: InputNormalizationMode.Iterable,
+  });
+  assert(text.ok);
+  assertEquals(text.value, "a");
+  const json = await executeCliModule(valueOf(parsed), "Main", {
+    input: ["ab"],
+    inputKind: InputNormalizationMode.Scalar,
+  });
+  assert(json.ok);
+  assertEquals(json.value, ["ab"]);
 });
