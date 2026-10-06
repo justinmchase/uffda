@@ -308,7 +308,7 @@ The following chapters and requirements conform to this chapter:
 - [value metadata](./value-metadata.spec.md): globals contract for wrapped
   arguments and results.
 - Requirements `source-normalization-runtime-001`, `tokenizer-runtime-002`,
-  `tokenizer-runtime-003`, `tokenizer-runtime-007`, and
+  `tokenizer-runtime-007`, `tokenizer-runtime-011`, and
   `patterns-runtime/pipeline-001`.
 
 ## Resolved design decisions

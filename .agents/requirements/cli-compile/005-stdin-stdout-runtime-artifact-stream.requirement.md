@@ -1,7 +1,7 @@
 ---
 id: cli-compile-005
 title: CLI parse command parses one source unit to one AST payload
-spec_ref: ".agents/specifications/languages/cli/compile-and-stream.spec.md#stream-contracts"
+spec_ref: ".agents/specifications/languages/cli/compile-and-stream.spec.md#parse-contracts"
 ---
 
 # Parse Command Standard Input and Output AST Parsing

@@ -1,7 +1,7 @@
 ---
 id: tokenizer-runtime-002
 title: Source-normalization and tokenizer pipeline preserves reconstructable provenance
-spec_ref: ".agents/specifications/languages/tokenization.spec.md#input-and-output-contracts; .agents/specifications/languages/source-normalization.spec.md#normalization-map"
+spec_ref: ".agents/specifications/languages/tokenization.spec.md#input-and-output-contracts; .agents/specifications/languages/source-normalization.spec.md#required-normalization-transforms"
 ---
 
 # Source Normalization + Tokenizer Provenance Contract

@@ -1,7 +1,7 @@
 ---
 id: modules-runtime-006
-title: jsr: modules load from JSR packages through the lockfile, verified and cached
-  spec_ref: ".agents/specifications/modules.spec.md#packages"
+title: "jsr: modules load from JSR packages through the lockfile, verified and cached"
+spec_ref: ".agents/specifications/modules.spec.md#packages"
 ---
 
 # JSR Packages
