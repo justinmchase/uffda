@@ -4,7 +4,7 @@ import { Input, InputNormalizationMode } from "../../input.ts";
 import { compile } from "../match.ts";
 import type { Match } from "../../match.ts";
 import type { Scope } from "../scope.ts";
-import type { OverPattern } from "./pattern.ts";
+import type { OverPattern, Pattern } from "./pattern.ts";
 import { andThen, type AwaitableMatch, eachInOrder } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
 import { rawOf } from "../../wrapped.ts";
@@ -29,43 +29,77 @@ export function over(pattern: OverPattern, scope: Scope): CompiledPattern {
       }
       const [t, raw] = type(rawOf(next.value));
 
-      // todo: handle maps as well...
-      if (t !== Type.Object) {
+      if (t !== Type.Object && t !== Type.Map) {
         return error(
           invocationScope,
           pattern,
           MatchErrorCode.Type,
-          `expected value to be an object but got type ${t}`,
+          `expected value to be an object or Map but got type ${t}`,
         );
       }
 
       let last = invocationScope;
       const matches: Match[] = [];
-      const objValue = raw as Record<PropertyKey, unknown>;
-      const steps = children.map(([key, keyPattern, child]) => ({
-        pattern: keyPattern,
-        child,
-        value: objValue[key],
-        path: invocationScope.stream.path.push(key).push(0),
-      }));
+      const steps: {
+        pattern: Pattern;
+        child: CompiledPattern;
+        value: unknown;
+        path: Input["path"];
+      }[] = [];
+      const mapValue = t === Type.Map
+        ? raw as Map<unknown, unknown>
+        : undefined;
+      const objValue = t === Type.Object
+        ? raw as Record<PropertyKey, unknown>
+        : undefined;
+      for (const [key, keyPattern, child] of children) {
+        steps.push({
+          pattern: keyPattern,
+          child,
+          value: mapValue ? mapValue.get(key) : objValue![key],
+          path: invocationScope.stream.path.push(key).push(0),
+        });
+      }
       if (restChildren && pattern.rest) {
-        for (
-          const key of Object.keys(objValue).filter((key) =>
-            !Object.hasOwn(keys, key)
-          )
-        ) {
-          steps.push({
-            pattern: pattern.rest.key,
-            child: restChildren.key,
-            value: key,
-            path: invocationScope.stream.path.push(key).push("$key").push(0),
-          });
-          steps.push({
-            pattern: pattern.rest.value,
-            child: restChildren.value,
-            value: objValue[key],
-            path: invocationScope.stream.path.push(key).push(0),
-          });
+        if (mapValue) {
+          const entries = [...mapValue.entries()];
+          for (let i = 0; i < entries.length; i++) {
+            const [key, value] = entries[i];
+            if (typeof key === "string" && Object.hasOwn(keys, key)) {
+              continue;
+            }
+            steps.push({
+              pattern: pattern.rest.key,
+              child: restChildren.key,
+              value: key,
+              path: invocationScope.stream.path.push(i).push("$key").push(0),
+            });
+            steps.push({
+              pattern: pattern.rest.value,
+              child: restChildren.value,
+              value,
+              path: invocationScope.stream.path.push(i).push(0),
+            });
+          }
+        } else {
+          for (
+            const key of Object.keys(objValue!).filter((key) =>
+              !Object.hasOwn(keys, key)
+            )
+          ) {
+            steps.push({
+              pattern: pattern.rest.key,
+              child: restChildren.key,
+              value: key,
+              path: invocationScope.stream.path.push(key).push("$key").push(0),
+            });
+            steps.push({
+              pattern: pattern.rest.value,
+              child: restChildren.value,
+              value: objValue![key],
+              path: invocationScope.stream.path.push(key).push(0),
+            });
+          }
         }
       }
       return eachInOrder<Match, Match>(

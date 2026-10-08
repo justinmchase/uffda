@@ -218,6 +218,118 @@ Deno.test("req:over-002 - Over matches undeclared object entries", async (t) => 
   );
 });
 
+Deno.test("req:over-002 - Over matches Map rest entries", async (t) => {
+  const anyPattern = { kind: PatternKind.Any } as const;
+  const numberPattern = { kind: PatternKind.Type, type: Type.Number } as const;
+
+  await t.step(
+    "matches arbitrary Map keys and values in insertion order",
+    async () => {
+      const objectKey = {};
+      const symbolKey = Symbol.for("map-rest-key");
+      const value = new Map<unknown, unknown>([
+        [objectKey, objectKey],
+        [symbolKey, symbolKey],
+      ]);
+      const result = await match({
+        kind: PatternKind.Over,
+        keys: {},
+        rest: { key: anyPattern, value: anyPattern },
+      }, Scope.From(value));
+
+      assert(result.kind === MatchKind.Ok);
+      assertStrictEquals(unwrap(result.value), value);
+      assertEquals(result.matches.length, 4);
+      assertEquals(
+        result.matches.map((m) => m.scope.stream.path.toString()),
+        [
+          '[0].[0]."$key".[1]',
+          "[0].[0].[1]",
+          '[0].[1]."$key".[1]',
+          "[0].[1].[1]",
+        ],
+      );
+    },
+  );
+
+  await t.step("passes the original Map key to the key pattern", async () => {
+    const key = {};
+    const result = await match({
+      kind: PatternKind.Over,
+      keys: {},
+      rest: {
+        key: {
+          kind: PatternKind.Variable,
+          name: "entryKey",
+          pattern: anyPattern,
+        },
+        value: { kind: PatternKind.Equal, value: varRef("entryKey") },
+      },
+    }, Scope.From(new Map([[key, key]])));
+
+    assertEquals(result.kind, MatchKind.Ok);
+  });
+
+  await t.step("does not rest-match declared Map entries", async () => {
+    const result = await match({
+      kind: PatternKind.Over,
+      keys: { id: numberPattern },
+      rest: {
+        key: { kind: PatternKind.Equal, value: lit("extra") },
+        value: numberPattern,
+      },
+    }, Scope.From(new Map([["id", 1], ["extra", 2]])));
+
+    assert(result.kind === MatchKind.Ok);
+    assertEquals(result.matches.length, 3);
+  });
+
+  await t.step("matches Map keys with a symbol type pattern", async () => {
+    const result = await match({
+      kind: PatternKind.Over,
+      keys: {},
+      rest: {
+        key: { kind: PatternKind.Type, type: Type.Symbol },
+        value: numberPattern,
+      },
+    }, Scope.From(new Map([[Symbol.for("map-rest-key"), 1]])));
+
+    assertEquals(result.kind, MatchKind.Ok);
+  });
+
+  await t.step(
+    "fails when a Map entry key or value does not match",
+    async () => {
+      const keyFailure = await match({
+        kind: PatternKind.Over,
+        keys: {},
+        rest: { key: { kind: PatternKind.Fail }, value: anyPattern },
+      }, Scope.From(new Map([[1, 2]])));
+      const valueFailure = await match({
+        kind: PatternKind.Over,
+        keys: {},
+        rest: { key: anyPattern, value: { kind: PatternKind.Fail } },
+      }, Scope.From(new Map([[1, 2]])));
+
+      assertEquals(keyFailure.kind, MatchKind.Fail);
+      assertEquals(valueFailure.kind, MatchKind.Fail);
+    },
+  );
+
+  await t.step("succeeds when all Map entries are declared", async () => {
+    const result = await match({
+      kind: PatternKind.Over,
+      keys: { id: numberPattern },
+      rest: {
+        key: { kind: PatternKind.Fail },
+        value: { kind: PatternKind.Fail },
+      },
+    }, Scope.From(new Map([["id", 1]])));
+
+    assertEquals(result.kind, MatchKind.Ok);
+  });
+});
+
 async function matchWrapped(
   pattern: Pattern,
   item: Wrapped,

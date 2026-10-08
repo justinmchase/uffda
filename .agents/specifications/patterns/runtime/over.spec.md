@@ -22,16 +22,15 @@ key-addressable input value.
   value for the `over` pattern to proceed.
 - If the current input item is neither an object value nor a `Map`, the `over`
   pattern MUST report a type error.
-- An `over` pattern MUST support declared keys using all valid JavaScript key
-  values.
+- An `over` pattern MUST support declared string keys from its key map.
 - An `over` pattern MUST evaluate key patterns in declaration order.
 - For each declared key, the `over` pattern MUST evaluate the corresponding
   child pattern against a single-item input stream containing the current value
   for that key.
 - When the current input item is an object value, declared keys MUST be resolved
   using JavaScript property-key semantics.
-- When the current input item is a `Map`, declared keys MUST be resolved using
-  `Map` key semantics.
+- When the current input item is a `Map`, declared string keys MUST be resolved
+  using `Map` key semantics.
 - For `Map` values, key presence MUST be determined by `map.has(key)` and MUST
   NOT be inferred from `map.get(key)` alone.
 - A key MUST be treated as missing when it is not present in the current target
@@ -42,15 +41,20 @@ key-addressable input value.
 - If any child pattern fails, the `over` pattern MUST fail.
 - If every child pattern succeeds, the `over` pattern MUST succeed.
 
-## Object rest entries
+## Rest entries
 
 - An `over` pattern MAY include a rest-entry matcher with separate key and value
   child patterns.
 - For object values, the rest-entry matcher MUST evaluate the key pattern and
   then the value pattern for each own, enumerable, string-keyed property not
-  declared in the pattern's key map.
-- Rest properties MUST be processed in JavaScript `Object.keys` order.
-- Declared keys MUST NOT be checked again by the rest-entry matcher.
+  declared in the pattern's key map. Symbol-keyed properties MUST be excluded.
+- Object rest properties MUST be processed in JavaScript `Object.keys` order.
+- For `Map` values, the rest-entry matcher MUST evaluate the key pattern and
+  then the value pattern for each entry not declared in the pattern's key map.
+  The key pattern MUST receive the original Map key value, without coercion.
+- Map rest entries MUST be processed in Map insertion order.
+- Declared keys MUST NOT be checked again by the rest-entry matcher. For a Map,
+  declared keys are matched using native Map key identity.
 - Rest matching MUST succeed when there are no remaining properties.
 - A failed rest child MUST fail the `over` pattern; left-recursion and error
   outcomes MUST propagate unchanged.
@@ -69,9 +73,10 @@ key-addressable input value.
 - An `over` pattern MUST NOT consume outer input when it reports a type error.
 - Each child pattern evaluated for a key MUST consume only within that key's
   single-item nested input stream.
-- Each key's nested stream MUST have its own positions: the object's position
-  extended by the key, then by the item index. Positions in two keys' streams
-  MUST never coincide, before or after the key's value is consumed.
+- Each nested key/value stream MUST have a unique position. Object paths extend
+  the object's position by the property key and item index. Map paths extend the
+  Map's position by the entry index, then distinguish the key from its value.
+  Positions in two entries' streams MUST never coincide.
 
 ## Expected output
 
