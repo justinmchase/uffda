@@ -134,15 +134,19 @@ un-ignores them, as in `"!bin"`). This package exports its tokenizer that way:
 [`modules.spec.md`](.agents/specifications/modules.spec.md#packages).
 
 The reusable grammar exports also include `tokenizer-lang`, `pattern`,
-`expression`, `imports`, `exports`, and `language`. For example, a Uffda grammar
-can import and compose the shared parsers and declaration syntax:
+`pattern-syntax`, `expression`, `expression-syntax`, `imports`, `exports`, and
+`language`. The `pattern` and `expression` modules export their complete
+language entry points and raw token-level rules; the `*-syntax` aliases expose
+just those raw rules. A tokenizer-driven grammar can compose the shared rules
+with its own tokenizer and surrounding syntax:
 
 ```uffda
-import "jsr:@justinmchase/uffda/pattern" PatternLang;
-import "jsr:@justinmchase/uffda/expression" ExpressionLang;
+import "jsr:@justinmchase/uffda/pattern-syntax" Pattern;
+import "jsr:@justinmchase/uffda/expression-syntax" Expression;
 import "jsr:@justinmchase/uffda/imports" ImportDeclarationSyntax;
 import "jsr:@justinmchase/uffda/exports" ExportDeclarationSyntax;
-export rule Main = PatternLang;
+export rule PatternAtom = Pattern;
+export rule ExpressionAtom = Expression;
 ```
 
 The `language` export provides `UffdaLang` and its `Language` decorator.

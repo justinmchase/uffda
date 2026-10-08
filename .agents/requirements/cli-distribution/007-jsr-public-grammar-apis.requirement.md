@@ -27,6 +27,11 @@ Expected behavior:
   runtime `Pattern` and `Expression` values in their match results.
 - `tokenizerGrammar` MUST return the tokenizer language result, including its
   normalized source and parser-compatible token text iterable.
+- The `/pattern` and `/expression` `.uff` modules MUST export their raw
+  token-level `Pattern` and `Expression` rules in addition to the complete
+  language entry points.
+- The package MUST provide dedicated `/pattern-syntax` and `/expression-syntax`
+  `.uff` aliases for those raw grammar component modules.
 - `readLanguageMetadata` MUST remain available for validating the raw metadata
   value declared by a language's `Language` decorator.
 

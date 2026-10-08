@@ -62,6 +62,9 @@ RFC 8174.
 - The published Uffda grammar package MUST export reusable `.uff` modules for
   tokenization, pattern and expression grammars, import and export declaration
   syntax, and the Uffda language (including its `Language` decorator).
+- The published package MUST expose composable token-level `Pattern` and
+  `Expression` rules separately from the source-normalizing, tokenizing,
+  end-of-input language entry points.
 - Public grammar APIs MUST remain generic parser and AST-lowering
   infrastructure; they MUST NOT encode downstream application-language
   semantics.

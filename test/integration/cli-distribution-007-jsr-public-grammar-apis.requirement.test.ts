@@ -134,3 +134,57 @@ Deno.test(
     assertEquals(unwrap(lowered.value), { kind: "any" });
   },
 );
+
+Deno.test(
+  "req:cli-distribution-007 - published raw pattern and expression rules compose over tokens",
+  async () => {
+    const { packages } = await fakeJsrPackages({
+      "@justinmchase/uffda": {
+        "1.0.0": { files: await packageFiles() },
+      },
+    });
+    const cases = [
+      {
+        specifier: "pattern",
+        name: "Pattern",
+        input: ["any"],
+        expected: { kind: "any" },
+      },
+      {
+        specifier: "pattern-syntax",
+        name: "Pattern",
+        input: ["any"],
+        expected: { kind: "any" },
+      },
+      {
+        specifier: "expression",
+        name: "Expression",
+        input: ["42"],
+        expected: { kind: "number", value: 42 },
+      },
+      {
+        specifier: "expression-syntax",
+        name: "Expression",
+        input: ["42"],
+        expected: { kind: "number", value: 42 },
+      },
+    ];
+    for (const { specifier, name, input, expected } of cases) {
+      const parsed = await uffdaGrammar(
+        `import "jsr:@justinmchase/uffda@^1/${specifier}" ${name};\n` +
+          `export rule Main = ${name};`,
+      );
+      assert(parsed.kind === MatchKind.Ok);
+      assert(isClean(parsed), await visualizeMatchFailure(parsed));
+
+      const result = await executeCliModule(valueOf(parsed), "Main", {
+        packages,
+        moduleUrl: new URL("file:///uffda-cli-distribution-007/raw.uff"),
+        input,
+        inputKind: InputNormalizationMode.Iterable,
+      });
+      assert(result.ok, JSON.stringify(!result.ok && result.error));
+      assertEquals(result.value, expected);
+    }
+  },
+);
