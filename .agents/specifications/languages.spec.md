@@ -65,6 +65,9 @@ RFC 8174.
 - The published package MUST expose composable token-level `Pattern` and
   `Expression` rules separately from the source-normalizing, tokenizing,
   end-of-input language entry points.
+- The published TypeScript package MUST expose a runtime entry point that allows
+  consumers to execute a `Pattern` against an input using `match` and `Scope`,
+  with public `Pattern` and `Expression` AST types.
 - Public grammar APIs MUST remain generic parser and AST-lowering
   infrastructure; they MUST NOT encode downstream application-language
   semantics.

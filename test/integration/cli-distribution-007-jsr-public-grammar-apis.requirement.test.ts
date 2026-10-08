@@ -7,8 +7,14 @@ import { parse as parseJsonc } from "@std/jsonc";
 import { fromFileUrl, relative } from "@std/path";
 import { isClean, MatchKind, valueOf } from "../../src/match.ts";
 import { visualizeMatchFailure } from "../../src/match.visualize.ts";
-import { expressionGrammar } from "../../src/lang/expression/expression.lang.ts";
-import { patternGrammar } from "../../src/lang/pattern/pattern.lang.ts";
+import {
+  type Expression as ExpressionGrammarAst,
+  expressionGrammar,
+} from "../../src/lang/expression/expression.lang.ts";
+import {
+  type Pattern as PatternGrammarAst,
+  patternGrammar,
+} from "../../src/lang/pattern/pattern.lang.ts";
 import { tokenizerGrammar } from "../../src/lang/tokenizer/tokenizer.lang.ts";
 import { uffdaGrammar } from "../../src/lang/uffda/uffda.lang.ts";
 import { executeCliModule } from "../../src/cli/exec.ts";
@@ -19,6 +25,17 @@ import { parseGrammar } from "../../src/lang/grammar.ts";
 import { compileUffdaSource } from "../../src/lang/uffda/execute.ts";
 import type { Pattern } from "../../src/runtime/patterns/pattern.ts";
 import { unwrap } from "../../src/wrapped.ts";
+import {
+  ExpressionKind,
+  InputNormalizationMode as RuntimeInputNormalizationMode,
+  match as matchPattern,
+  PatternKind,
+  Scope,
+} from "../../src/runtime/public.ts";
+import type {
+  Expression,
+  Pattern as PublicPattern,
+} from "../../src/runtime/public.ts";
 
 const root = fromFileUrl(new URL("../../", import.meta.url));
 
@@ -41,6 +58,7 @@ Deno.test(
       exports: Record<string, string>;
     };
     assertEquals(config.exports["./grammar"], "./src/lang/grammar.ts");
+    assertEquals(config.exports["./runtime"], "./src/runtime/public.ts");
     assertEquals(
       config.exports["./tokenizer"],
       "./src/lang/tokenizer/tokenizer.lang.ts",
@@ -72,6 +90,24 @@ Deno.test(
     assert(isClean(expression));
     const tokens = await tokenizerGrammar("one two");
     assert(isClean(tokens));
+
+    const runtimePattern: PublicPattern = { kind: PatternKind.Any };
+    const grammarPattern: PatternGrammarAst = runtimePattern;
+    const runtimeExpression: Expression = {
+      kind: ExpressionKind.Number,
+      value: 42,
+    };
+    const grammarExpression: ExpressionGrammarAst = runtimeExpression;
+    assertEquals([grammarPattern.kind, grammarExpression.value], [
+      PatternKind.Any,
+      42,
+    ]);
+    const runtimeMatch = await matchPattern(
+      runtimePattern,
+      Scope.From(["token"], { kind: RuntimeInputNormalizationMode.Iterable }),
+    );
+    assert(isClean(runtimeMatch));
+    assertEquals(valueOf(runtimeMatch), "token");
   },
 );
 

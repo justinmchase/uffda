@@ -32,6 +32,10 @@ Expected behavior:
   language entry points.
 - The package MUST provide dedicated `/pattern-syntax` and `/expression-syntax`
   `.uff` aliases for those raw grammar component modules.
+- The `/runtime` TypeScript entry point MUST export `match`, `Scope`, `Pattern`,
+  `Expression`, and the pattern/expression kind enums.
+- The `/pattern` and `/expression` TypeScript entry points MUST re-export their
+  respective runtime AST types.
 - `readLanguageMetadata` MUST remain available for validating the raw metadata
   value declared by a language's `Language` decorator.
 

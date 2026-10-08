@@ -2,6 +2,8 @@ import { type GrammarOptions, parseGrammar } from "../grammar.ts";
 import type { Match } from "../../mod.ts";
 import type { Expression } from "../../runtime/expressions/mod.ts";
 
+export type { Expression } from "../../runtime/expressions/mod.ts";
+
 export type ExprOptions = GrammarOptions;
 
 export async function expressionGrammar(

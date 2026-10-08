@@ -5,6 +5,7 @@
   "exports": {
     ".": "./mod.ts",
     "./grammar": "./src/lang/grammar.ts",
+    "./runtime": "./src/runtime/public.ts",
     "./tokenizer": "./src/lang/tokenizer/tokenizer.lang.ts",
     "./pattern": "./src/lang/pattern/pattern.lang.ts",
     "./expression": "./src/lang/expression/expression.lang.ts",
