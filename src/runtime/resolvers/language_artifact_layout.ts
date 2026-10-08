@@ -1,19 +1,26 @@
-import { fromFileUrl } from "@std/path";
-import { type ArtifactLayout, defaultArtifactLayout } from "./artifact_path.ts";
+import { PackageUffArtifactResolver } from "./uff.artifact.resolver.ts";
 
 /**
- * Artifact layout the built-in `.uff` languages are read from: the `./bin` of
- * the uffda package holding this module, whatever the working directory. In a
- * checkout that is the workspace `./bin` (`compile:lang`); in a published
- * binary it is the `./bin` embedded with `deno compile --include`, under the
- * binary's extract root.
+ * Root URL of the uffda package holding this module, whatever the working
+ * directory: the checkout root in a `file:` checkout, the extract root in a
+ * `deno compile --include ./bin` binary, or the published package root (for
+ * example `https://jsr.io/@justinmchase/uffda/<version>/`) when a consumer
+ * imports `jsr:@justinmchase/uffda`. The built-in `.uff` languages' compiled
+ * artifacts live under this root's `./bin`.
  */
-export function languageArtifactLayout(): ArtifactLayout {
-  const packageRoot = new URL("../../../", import.meta.url);
-  if (packageRoot.protocol !== "file:") {
-    throw new Error(
-      `The built-in languages are read from a local copy of uffda, and ${packageRoot.href} is not one`,
-    );
-  }
-  return defaultArtifactLayout(fromFileUrl(packageRoot));
+export function languageArtifactPackageRoot(): URL {
+  return new URL("../../../", import.meta.url);
+}
+
+/**
+ * The `.uff` resolver for the built-in languages: it reads their compiled
+ * `./bin` ModuleDeclaration JSON from the package this module ships in,
+ * addressed relative to {@link languageArtifactPackageRoot}. This loads the
+ * artifacts from the package wherever it lives — a local checkout or compiled
+ * binary (read directly) or a published JSR package (fetched over the network),
+ * so the built-in grammars work without a repository checkout (see
+ * https://github.com/justinmchase/uffda/issues/271).
+ */
+export function builtInUffResolver(): PackageUffArtifactResolver {
+  return new PackageUffArtifactResolver(languageArtifactPackageRoot());
 }

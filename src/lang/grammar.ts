@@ -6,7 +6,7 @@ import { ResolveTargetKind } from "../runtime/patterns/pattern.ts";
 import { Scope } from "../runtime/scope.ts";
 import { globals as defaultGlobals } from "../runtime/runtime.ts";
 import { matchWithRecovery } from "../runtime/recovery.ts";
-import { languageArtifactLayout } from "../runtime/resolvers/language_artifact_layout.ts";
+import { builtInUffResolver } from "../runtime/resolvers/language_artifact_layout.ts";
 import { ModuleImportResultKind } from "../runtime/resolvers/resolver.ts";
 import { Resolver, type ResolverOptions } from "../runtime/resolve.ts";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
@@ -107,13 +107,20 @@ export async function resolveGrammarModule<TAst>(options: {
   // Caller globals override default entries with the same name; defaults
   // remain available for serializable projections such as `(join (flat _) "")`.
   const g = new Map([...defaultGlobals, ...(globals ?? [])]);
+  // Without a caller-provided artifact layout, the built-in languages' `.uff`
+  // imports resolve from this package's compiled `./bin`, wherever the package
+  // lives (checkout, compiled binary, or published JSR package — see issue
+  // #271). A caller that supplies its own `artifacts` layout keeps the
+  // filesystem resolver the `Resolver` builds from it.
   const r = new Resolver({
     ...resolverOptions,
     declarations: {
       ...builtInLanguageDeclarations,
       ...declarations,
     },
-    artifacts: resolverOptions?.artifacts ?? languageArtifactLayout(),
+    resolvers: resolverOptions?.artifacts
+      ? resolverOptions.resolvers
+      : { ".uff": builtInUffResolver(), ...resolverOptions?.resolvers },
   });
   let s = (input ? Scope.Default().withInput(input) : Scope.From(source ?? ""))
     .withOptions({ globals: g, resolver: r });
