@@ -121,75 +121,111 @@ await Deno.test("runtime/patterns/object", async (t) => {
 
 Deno.test("req:over-002 - Over matches undeclared object entries", async (t) => {
   const stringPattern = { kind: PatternKind.Type, type: Type.String } as const;
+  const numberPattern = { kind: PatternKind.Type, type: Type.Number } as const;
+  const anyClause = { kind: "any" } as const;
 
   await t.step(
-    "matches extra keys and values after declared fields",
+    "claims matching entries then accepts unclaimed entries with a catch-all",
     async () => {
       const result = await match({
         kind: PatternKind.Over,
-        keys: { id: { kind: PatternKind.Type, type: Type.Number } },
-        rest: { key: stringPattern, value: stringPattern },
-      }, Scope.From({ id: 42, name: "Ada", role: "admin" }));
+        keys: { id: numberPattern },
+        rest: [
+          {
+            kind: "pattern",
+            key: { kind: PatternKind.Equal, value: lit("name") },
+            value: stringPattern,
+          },
+          anyClause,
+        ],
+      }, Scope.From({ id: 42, name: "Ada", active: true }));
 
       assert(result.kind === MatchKind.Ok);
       assertEquals(unwrap(result.value), {
         id: 42,
         name: "Ada",
-        role: "admin",
+        active: true,
       });
     },
   );
 
-  await t.step("matches each key before its value", async () => {
+  await t.step("matches each claimed key before its value", async () => {
     const result = await match({
       kind: PatternKind.Over,
       keys: {},
-      rest: {
+      rest: [{
+        kind: "pattern",
         key: {
           kind: PatternKind.Variable,
           name: "key",
           pattern: { kind: PatternKind.Any },
         },
         value: { kind: PatternKind.Equal, value: varRef("key") },
-      },
+      }],
     }, Scope.From({ answer: "answer" }));
 
     assert(result.kind === MatchKind.Ok);
   });
 
-  await t.step("fails when a rest key pattern fails", async () => {
+  await t.step("leaves key-pattern misses for later rest clauses", async () => {
     const result = await match({
       kind: PatternKind.Over,
       keys: {},
-      rest: {
-        key: { kind: PatternKind.Equal, value: lit("expected") },
-        value: { kind: PatternKind.Any },
-      },
+      rest: [
+        {
+          kind: "pattern",
+          key: { kind: PatternKind.Equal, value: lit("expected") },
+          value: { kind: PatternKind.Any },
+        },
+        anyClause,
+      ],
     }, Scope.From({ actual: "value" }));
 
-    assertEquals(result.kind, MatchKind.Fail);
+    assertEquals(result.kind, MatchKind.Ok);
   });
 
   await t.step("fails when a rest value pattern fails", async () => {
     const result = await match({
       kind: PatternKind.Over,
       keys: {},
-      rest: { key: stringPattern, value: stringPattern },
+      rest: [{
+        kind: "pattern",
+        key: stringPattern,
+        value: stringPattern,
+      }],
     }, Scope.From({ actual: 42 }));
 
     assertEquals(result.kind, MatchKind.Fail);
   });
 
   await t.step(
-    "succeeds when there are no remaining enumerable properties",
+    "fails if an entry is left unclaimed without a catch-all",
     async () => {
       const result = await match({
         kind: PatternKind.Over,
-        keys: { id: { kind: PatternKind.Type, type: Type.Number } },
-        rest: {
+        keys: {},
+        rest: [{
+          kind: "pattern",
+          key: { kind: PatternKind.Equal, value: lit("expected") },
+          value: { kind: PatternKind.Any },
+        }],
+      }, Scope.From({ actual: "value" }));
+
+      assertEquals(result.kind, MatchKind.Fail);
+    },
+  );
+
+  await t.step(
+    "succeeds when there are no remaining properties",
+    async () => {
+      const result = await match({
+        kind: PatternKind.Over,
+        keys: { id: numberPattern },
+        rest: [{
+          kind: "pattern",
           key: { kind: PatternKind.Fail },
           value: { kind: PatternKind.Fail },
-        },
+        }],
       }, Scope.From({ id: 42 }));
 
       assertEquals(result.kind, MatchKind.Ok);
@@ -207,10 +243,11 @@ Deno.test("req:over-002 - Over matches undeclared object entries", async (t) => 
       const result = await match({
         kind: PatternKind.Over,
         keys: {},
-        rest: {
+        rest: [{
+          kind: "pattern",
           key: { kind: PatternKind.Fail },
           value: { kind: PatternKind.Fail },
-        },
+        }],
       }, Scope.From(value));
 
       assertEquals(result.kind, MatchKind.Ok);
@@ -221,50 +258,45 @@ Deno.test("req:over-002 - Over matches undeclared object entries", async (t) => 
 Deno.test("req:over-002 - Over matches Map rest entries", async (t) => {
   const anyPattern = { kind: PatternKind.Any } as const;
   const numberPattern = { kind: PatternKind.Type, type: Type.Number } as const;
+  const anyClause = { kind: "any" } as const;
 
   await t.step(
-    "matches arbitrary Map keys and values in insertion order",
+    "matches filtered Map entries and leaves the rest for any",
     async () => {
-      const objectKey = {};
-      const symbolKey = Symbol.for("map-rest-key");
       const value = new Map<unknown, unknown>([
-        [objectKey, objectKey],
-        [symbolKey, symbolKey],
+        [3, "three"],
+        ["name", "Ada"],
       ]);
       const result = await match({
         kind: PatternKind.Over,
         keys: {},
-        rest: { key: anyPattern, value: anyPattern },
+        rest: [{
+          kind: "pattern",
+          key: numberPattern,
+          value: { kind: PatternKind.Type, type: Type.String },
+        }, anyClause],
       }, Scope.From(value));
 
       assert(result.kind === MatchKind.Ok);
       assertStrictEquals(unwrap(result.value), value);
-      assertEquals(result.matches.length, 4);
-      assertEquals(
-        result.matches.map((m) => m.scope.stream.path.toString()),
-        [
-          '[0].[0]."$key".[1]',
-          "[0].[0].[1]",
-          '[0].[1]."$key".[1]',
-          "[0].[1].[1]",
-        ],
-      );
+      assertEquals(result.matches.length, 3);
     },
   );
 
-  await t.step("passes the original Map key to the key pattern", async () => {
+  await t.step("passes arbitrary Map keys to key patterns", async () => {
     const key = {};
     const result = await match({
       kind: PatternKind.Over,
       keys: {},
-      rest: {
+      rest: [{
+        kind: "pattern",
         key: {
           kind: PatternKind.Variable,
           name: "entryKey",
           pattern: anyPattern,
         },
         value: { kind: PatternKind.Equal, value: varRef("entryKey") },
-      },
+      }],
     }, Scope.From(new Map([[key, key]])));
 
     assertEquals(result.kind, MatchKind.Ok);
@@ -274,10 +306,11 @@ Deno.test("req:over-002 - Over matches Map rest entries", async (t) => {
     const result = await match({
       kind: PatternKind.Over,
       keys: { id: numberPattern },
-      rest: {
+      rest: [{
+        kind: "pattern",
         key: { kind: PatternKind.Equal, value: lit("extra") },
         value: numberPattern,
-      },
+      }, anyClause],
     }, Scope.From(new Map([["id", 1], ["extra", 2]])));
 
     assert(result.kind === MatchKind.Ok);
@@ -288,31 +321,44 @@ Deno.test("req:over-002 - Over matches Map rest entries", async (t) => {
     const result = await match({
       kind: PatternKind.Over,
       keys: {},
-      rest: {
+      rest: [{
+        kind: "pattern",
         key: { kind: PatternKind.Type, type: Type.Symbol },
         value: numberPattern,
-      },
+      }],
     }, Scope.From(new Map([[Symbol.for("map-rest-key"), 1]])));
 
     assertEquals(result.kind, MatchKind.Ok);
   });
 
-  await t.step(
-    "fails when a Map entry key or value does not match",
-    async () => {
-      const keyFailure = await match({
-        kind: PatternKind.Over,
-        keys: {},
-        rest: { key: { kind: PatternKind.Fail }, value: anyPattern },
-      }, Scope.From(new Map([[1, 2]])));
-      const valueFailure = await match({
-        kind: PatternKind.Over,
-        keys: {},
-        rest: { key: anyPattern, value: { kind: PatternKind.Fail } },
-      }, Scope.From(new Map([[1, 2]])));
+  await t.step("fails when a claimed Map value does not match", async () => {
+    const result = await match({
+      kind: PatternKind.Over,
+      keys: {},
+      rest: [{
+        kind: "pattern",
+        key: numberPattern,
+        value: { kind: PatternKind.Fail },
+      }],
+    }, Scope.From(new Map([[1, 2]])));
 
-      assertEquals(keyFailure.kind, MatchKind.Fail);
-      assertEquals(valueFailure.kind, MatchKind.Fail);
+    assertEquals(result.kind, MatchKind.Fail);
+  });
+
+  await t.step(
+    "fails when filtered Map keys remain without a catch-all",
+    async () => {
+      const result = await match({
+        kind: PatternKind.Over,
+        keys: {},
+        rest: [{
+          kind: "pattern",
+          key: numberPattern,
+          value: anyPattern,
+        }],
+      }, Scope.From(new Map([["name", "Ada"]])));
+
+      assertEquals(result.kind, MatchKind.Fail);
     },
   );
 
@@ -320,10 +366,11 @@ Deno.test("req:over-002 - Over matches Map rest entries", async (t) => {
     const result = await match({
       kind: PatternKind.Over,
       keys: { id: numberPattern },
-      rest: {
+      rest: [{
+        kind: "pattern",
         key: { kind: PatternKind.Fail },
         value: { kind: PatternKind.Fail },
-      },
+      }],
     }, Scope.From(new Map([["id", 1]])));
 
     assertEquals(result.kind, MatchKind.Ok);

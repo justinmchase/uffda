@@ -77,7 +77,9 @@ function childPatterns(pattern: Pattern): Pattern[] {
     case PatternKind.Over:
       return [
         ...Object.values(pattern.keys ?? {}),
-        ...(pattern.rest ? [pattern.rest.key, pattern.rest.value] : []),
+        ...(pattern.rest ?? []).flatMap((clause) =>
+          clause.kind === "pattern" ? [clause.key, clause.value] : []
+        ),
       ];
     case PatternKind.Switch:
       return pattern.default

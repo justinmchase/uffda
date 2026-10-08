@@ -1,10 +1,10 @@
 ---
 id: pattern-language-syntax-011
-title: Object patterns parse a terminal rest-entry matcher
+title: Object patterns parse ordered rest clauses
 spec_ref: ".agents/specifications/languages/pattern-syntax/grammar.spec.md#object-patterns"
 ---
 
-# Object Rest-Entry Pattern Syntax
+# Object Rest-Clause Syntax
 
 ## Requirement
 
@@ -14,16 +14,16 @@ Preconditions:
 
 Expected behavior:
 
-- The syntax `{ id: number, ...(string : string) }` MUST parse as an `over`
-  pattern with named key `id` and separate string key/value rest patterns.
-- A rest-entry matcher MAY appear without named entries.
-- A rest-entry matcher MAY have a trailing comma.
-- A compound key pattern or key capture MUST be grouped within the left side of
-  the rest-entry matcher.
-- A rest-entry matcher MUST be the final entry in an object pattern.
+- `{ id: number ...[string]: string }` MUST parse to an `over` pattern with
+  named key `id` and one key/value rest clause.
+- Multiple `...[P]: V` clauses MUST parse in source order.
+- `...ope` MUST parse as a catch-all rest clause and MUST be final.
+- Rest clauses MAY appear without named entries and MAY have commas between
+  clauses or a trailing comma.
+- Entries declared after any rest clause MUST be rejected.
 
 Postconditions:
 
-- The normalized `over` pattern MUST preserve its named keys and rest child
-  patterns separately.
+- The normalized `over` pattern MUST preserve named keys, ordered rest clauses,
+  and an optional final catch-all separately.
 - Tests: `src/lang/pattern/structure.test.ts`.

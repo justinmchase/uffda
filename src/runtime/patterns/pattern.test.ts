@@ -24,10 +24,11 @@ Deno.test("runtime.patterns accepts Over patterns with separate rest children", 
   const pattern: Pattern = {
     kind: PatternKind.Over,
     keys: {},
-    rest: {
+    rest: [{
+      kind: "pattern",
       key: { kind: PatternKind.Any },
       value: { kind: PatternKind.Any },
-    },
+    }],
   };
 
   assertEquals(isPattern(pattern), true);

@@ -41,23 +41,27 @@ key-addressable input value.
 - If any child pattern fails, the `over` pattern MUST fail.
 - If every child pattern succeeds, the `over` pattern MUST succeed.
 
-## Rest entries
+## Rest clauses
 
-- An `over` pattern MAY include a rest-entry matcher with separate key and value
-  child patterns.
-- For object values, the rest-entry matcher MUST evaluate the key pattern and
-  then the value pattern for each own, enumerable, string-keyed property not
-  declared in the pattern's key map. Symbol-keyed properties MUST be excluded.
+- An `over` pattern MAY include an ordered list of key/value rest clauses and an
+  optional final catch-all clause.
+- For object values, rest clauses MUST consider each own, enumerable,
+  string-keyed property not declared in the pattern's key map. Symbol-keyed
+  properties MUST be excluded.
 - Object rest properties MUST be processed in JavaScript `Object.keys` order.
-- For `Map` values, the rest-entry matcher MUST evaluate the key pattern and
-  then the value pattern for each entry not declared in the pattern's key map.
-  The key pattern MUST receive the original Map key value, without coercion.
-- Map rest entries MUST be processed in Map insertion order.
-- Declared keys MUST NOT be checked again by the rest-entry matcher. For a Map,
-  declared keys are matched using native Map key identity.
-- Rest matching MUST succeed when there are no remaining properties.
-- A failed rest child MUST fail the `over` pattern; left-recursion and error
-  outcomes MUST propagate unchanged.
+- For `Map` values, rest clauses MUST consider each entry not declared in the
+  pattern's key map, in Map insertion order. The key pattern MUST receive the
+  original Map key value, without coercion.
+- A key-pattern failure MUST leave that entry unclaimed for later rest clauses.
+- When a key pattern succeeds, the corresponding value pattern MUST be run; if
+  it fails, the `over` pattern MUST fail.
+- Named keys and entries claimed by earlier rest clauses MUST NOT be checked by
+  later rest clauses. For a Map, declared keys are matched using native Map key
+  identity.
+- A final catch-all clause MUST accept all entries left unclaimed by earlier
+  clauses. Without a catch-all, any remaining unclaimed entry MUST fail `over`.
+- Left-recursion and error outcomes from key/value patterns MUST propagate
+  unchanged.
 
 ## Left-recursion behavior
 

@@ -111,16 +111,21 @@ The grammar MUST be able to express the following pattern families:
 
 - An object pattern MUST use `{ key: P, ... }`, where each named entry checks
   the value at that property using pattern `P`.
-- An object pattern MAY end with one rest-entry matcher written
-  `...(KeyPattern : ValuePattern)`.
-- The key pattern in a rest-entry matcher MUST be a primary pattern; a compound
-  key pattern or a key capture MUST be grouped.
-- The rest-entry matcher MUST be terminal, apart from an optional trailing
-  comma. Its left pattern matches each remaining property key and its right
-  pattern matches that property's value.
-- Named entries MUST be excluded from rest-entry matching.
-- The rest-entry matcher MUST normalize to an `over` pattern's `rest` object,
-  containing separate `key` and `value` child patterns.
+- An object pattern MAY include one or more ordered rest clauses:
+  - `...[P]: V` matches each remaining entry whose key matches `P`, then
+    requires its value to match `V`.
+  - `...ope` accepts all entries left unmatched by earlier clauses and MUST be
+    the final rest clause.
+- A rest clause MUST inspect only entries not declared by named fields or
+  claimed by earlier rest clauses.
+- A key-pattern miss MUST leave that entry available to later clauses. A key
+  match followed by a value-pattern miss MUST fail the object pattern.
+- When no final `...ope` is present, every entry not claimed by a pattern rest
+  clause MUST cause the object pattern to fail.
+- The key and value patterns MUST each be full patterns, delimited by `[` and
+  `]` around the key pattern and `:` between the key and value patterns.
+- Rest clauses MUST normalize to an ordered `over.rest` list, preserving each
+  key/value clause and the optional final catch-all.
 
 ## Value sources
 

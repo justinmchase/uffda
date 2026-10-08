@@ -533,17 +533,18 @@ Deno.test(
       fn: moduleDeclarationTest({
         moduleUrl,
         entryRuleName: "PatternLang",
-        input: Input.Scalar("{ id: number, ...(string : string) }"),
+        input: Input.Scalar("{ id: number ...[string]: string }"),
         kind: MatchKind.Ok,
         value: {
           kind: PatternKind.Over,
           keys: {
             id: { kind: PatternKind.Type, type: Type.Number },
           },
-          rest: {
+          rest: [{
+            kind: "pattern",
             key: { kind: PatternKind.Type, type: Type.String },
             value: { kind: PatternKind.Type, type: Type.String },
-          },
+          }],
         },
       }),
     });

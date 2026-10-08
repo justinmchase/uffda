@@ -163,11 +163,11 @@ export type NotPattern = {
 export type OverPattern = {
   kind: PatternKind.Over;
   keys?: Record<string, Pattern>;
-  rest?: {
-    key: Pattern;
-    value: Pattern;
-  };
+  rest?: OverRestClause[];
 };
+export type OverRestClause =
+  | { kind: "pattern"; key: Pattern; value: Pattern }
+  | { kind: "any" };
 export type OkPattern = {
   kind: PatternKind.Ok;
 };

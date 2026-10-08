@@ -221,12 +221,20 @@ Deno.test("rule.reentrancy", async (t) => {
       const keyRecursive = makeRule(module, "keyRecursive", {
         kind: PatternKind.Over,
         keys: {},
-        rest: { key: resolveRef("keyRecursive"), value: character },
+        rest: [{
+          kind: "pattern",
+          key: resolveRef("keyRecursive"),
+          value: character,
+        }],
       });
       const valueRecursive = makeRule(module, "valueRecursive", {
         kind: PatternKind.Over,
         keys: {},
-        rest: { key: character, value: resolveRef("valueRecursive") },
+        rest: [{
+          kind: "pattern",
+          key: character,
+          value: resolveRef("valueRecursive"),
+        }],
       });
 
       assertEquals(canSkipMemo(keyRecursive), false);
