@@ -30,9 +30,18 @@ self-hosting while maintaining deterministic and diagnosable behavior.
   ModuleDeclaration JSON alongside the `.ts` and `.uff` sources. The release
   Publish workflow produces it with that release's own published CLI
   (`deno task compile:lang`, unmodified per "Bin artifact integrity" below)
-  before `jsr publish`; CI verifies the package includes it. Loading those
-  artifacts from the package's remote URLs is tracked separately
-  ([#234](https://github.com/justinmchase/uffda/issues/234)).
+  before `jsr publish`; CI verifies the package includes it.
+- Runtime resolution of the built-in languages' `.uff` artifacts MUST address
+  them by URL relative to the package root (`<packageRoot>/<outDir>/ast/...`),
+  so they load wherever the package lives: a `file:` checkout or compiled-binary
+  extract root (read directly), or a non-`file:` published package root such as
+  `https://jsr.io/@justinmchase/uffda/<version>/` (fetched over the network)
+  that a consumer imports `jsr:@justinmchase/uffda` from. Resolution MUST NOT
+  require the package to be a local `file:` copy
+  ([#271](https://github.com/justinmchase/uffda/issues/271)). The same
+  package-root URL resolver MUST be a reusable, published extension point so any
+  DSL built on uffda can load its own published `.uff` grammar artifacts the
+  same way.
 - After self-hosting, language definitions consumed by a released CLI binary
   MUST come from compiled artifacts rather than TypeScript module sources that
   define those languages.

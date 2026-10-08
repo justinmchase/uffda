@@ -1,21 +1,24 @@
 import { assertEquals } from "@std/assert";
-import { fromFileUrl, resolve } from "@std/path";
-import { languageArtifactLayout } from "./language_artifact_layout.ts";
+import {
+  builtInUffResolver,
+  languageArtifactPackageRoot,
+} from "./language_artifact_layout.ts";
+import { PackageUffArtifactResolver } from "./uff.artifact.resolver.ts";
 
-Deno.test("languageArtifactLayout is the package's ./bin, not the cwd's", () => {
-  const packageRoot = resolve(
-    fromFileUrl(new URL("../../../", import.meta.url)),
-  );
-  const layout = languageArtifactLayout();
-  assertEquals(layout, {
-    root: packageRoot,
-    outDir: resolve(packageRoot, "bin"),
-  });
+Deno.test("languageArtifactPackageRoot is the package root, not the cwd's", () => {
+  const packageRoot = new URL("../../../", import.meta.url);
+  assertEquals(languageArtifactPackageRoot().href, packageRoot.href);
   const cwd = Deno.cwd();
   try {
     Deno.chdir(Deno.makeTempDirSync());
-    assertEquals(languageArtifactLayout(), layout);
+    assertEquals(languageArtifactPackageRoot().href, packageRoot.href);
   } finally {
     Deno.chdir(cwd);
   }
+});
+
+Deno.test("builtInUffResolver resolves .uff for the package root", () => {
+  const resolver = builtInUffResolver();
+  assertEquals(resolver instanceof PackageUffArtifactResolver, true);
+  assertEquals(resolver.extension, ".uff");
 });

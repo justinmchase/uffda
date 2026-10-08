@@ -88,16 +88,23 @@ export class Resolver {
     const {
       declarations = new Map<string, ModuleDeclaration>(),
       resolvers,
-      artifacts = defaultArtifactLayout(Deno.cwd()),
+      artifacts,
       imports = EMPTY_IMPORT_MAP,
       packages,
     } = opts ?? {};
     this.imports = imports;
     this.packages = packages;
     this.declarations = new Map(Object.entries(declarations));
+    // Build the filesystem `.uff` resolver (defaulting its layout to the
+    // working directory's `./bin`) only when `resolvers` does not already
+    // supply one, so a caller that overrides `.uff` — for example the built-in
+    // languages' package-URL resolver (see issue #271) — never forces a
+    // `Deno.cwd()` read it does not need.
+    const uffResolver = resolvers?.[".uff"] ??
+      new UffArtifactResolver(artifacts ?? defaultArtifactLayout(Deno.cwd()));
     this.resolvers = {
       ...Resolver.DefaultResolvers,
-      [".uff"]: new UffArtifactResolver(artifacts),
+      [".uff"]: uffResolver,
       ...(resolvers ?? {}),
     };
   }

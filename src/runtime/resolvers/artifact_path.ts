@@ -78,3 +78,33 @@ export function artifactPathForUffUrl(
 ): string | undefined {
   return artifactPathForSource(layout, fromFileUrl(moduleUrl));
 }
+
+/**
+ * URL of the compiled artifact of a `.uff` module addressed by URL, under
+ * `packageRoot`'s output directory, or `undefined` when `moduleUrl` is not
+ * under `packageRoot`.
+ *
+ * Mirrors {@link artifactPathForUffUrl} but over URLs rather than filesystem
+ * paths, so a package's `.uff` modules load wherever the package lives: a
+ * `file:` checkout or compiled-binary extract root, or an `https:` package a
+ * consumer imports over the network. uffda loads its own built-in languages
+ * this way, and any DSL built on uffda can load its published grammar the same
+ * way (see https://github.com/justinmchase/uffda/issues/271).
+ *
+ * `outDir` is the package-relative output directory artifacts were compiled to
+ * (a project's `uffda.jsonc` `outDir`), defaulting to {@link DEFAULT_OUT_DIR}.
+ */
+export function packageArtifactUrl(
+  packageRoot: URL,
+  moduleUrl: URL,
+  outDir: string = DEFAULT_OUT_DIR,
+): URL | undefined {
+  const root = packageRoot.href.endsWith("/")
+    ? packageRoot.href
+    : `${packageRoot.href}/`;
+  if (!moduleUrl.href.startsWith(root)) return undefined;
+  const rel = moduleUrl.href.slice(root.length);
+  if (rel === "") return undefined;
+  const out = outDir.replace(/^\.?\//, "").replace(/\/$/, "");
+  return new URL(`${out}/ast/${outputNameForSource(rel)}`, root);
+}

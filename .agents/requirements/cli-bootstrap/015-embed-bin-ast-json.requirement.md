@@ -29,8 +29,11 @@ Expected behavior:
 - In-tree runs MUST continue remapping against the workspace `./bin` after
   `compile:lang`: the `./bin` of the checkout holding the running modules, not
   the process cwd, so the in-tree CLI works from any directory
-  (`languageArtifactLayout` in
-  `src/runtime/resolvers/language_artifact_layout.ts`).
+  (`builtInUffResolver` / `languageArtifactPackageRoot` in
+  `src/runtime/resolvers/language_artifact_layout.ts`). That resolver addresses
+  the built-in artifacts by URL relative to the package root, so the same path
+  also loads them from a non-`file:` published package
+  ([#271](https://github.com/justinmchase/uffda/issues/271)).
 - Checks and release bootstrap compile MUST install a published CLI via
   `uffda-setup` (normally `latest`; pin a SemVer only when recovering from a bad
   release).

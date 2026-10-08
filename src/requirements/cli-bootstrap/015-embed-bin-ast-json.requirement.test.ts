@@ -22,7 +22,7 @@ Deno.test(
     const grammar = await Deno.readTextFile(
       join(repoRoot, "src", "lang", "grammar.ts"),
     );
-    assertEquals(grammar.includes("languageArtifactLayout"), true);
+    assertEquals(grammar.includes("builtInUffResolver"), true);
 
     const roots = await Deno.readTextFile(
       join(

@@ -44,6 +44,14 @@ Expected behavior:
   value while preserving awaitable evaluation.
 - The `/runtime` TypeScript entry point MUST export `exec`, `Resolver`,
   `ResolverOptions`, `ArtifactLayout`, `ImportMap`, and `IPackageResolver`.
+- The `/runtime` TypeScript entry point MUST export the module-resolver
+  extension points `IModuleResolver`, `IModuleResolvers`, `UffArtifactResolver`,
+  and `PackageUffArtifactResolver`, along with the `packageArtifactUrl` helper,
+  so a DSL built on uffda can load its own published `.uff` grammar artifacts
+  from its package root over any protocol — a local `file:` checkout or a
+  non-`file:` published package (for example its `https:` JSR root) — the same
+  way uffda loads its built-in languages
+  ([#271](https://github.com/justinmchase/uffda/issues/271)).
 - The package root MUST export `Scope` alongside its existing `exec` and `match`
   runtime functions.
 - The `/pattern` and `/expression` TypeScript entry points MUST re-export their

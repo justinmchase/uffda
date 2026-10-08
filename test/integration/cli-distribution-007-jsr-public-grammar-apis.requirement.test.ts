@@ -26,16 +26,22 @@ import { fakeJsrPackages } from "../../src/packages/fake_registry.ts";
 import { parseGrammar } from "../../src/lang/grammar.ts";
 import { compileUffdaSource } from "../../src/lang/uffda/execute.ts";
 import type { Pattern } from "../../src/runtime/patterns/pattern.ts";
+import { ResolveTargetKind } from "../../src/runtime/patterns/pattern.ts";
 import { unwrap } from "../../src/wrapped.ts";
 import {
   ExpressionKind,
   InputNormalizationMode as RuntimeInputNormalizationMode,
   match as matchPattern,
+  packageArtifactUrl,
+  PackageUffArtifactResolver,
   PatternKind,
   Scope,
+  UffArtifactResolver,
 } from "../../src/runtime/public.ts";
 import type {
   Expression,
+  IModuleResolver,
+  IModuleResolvers,
   Pattern as PublicPattern,
 } from "../../src/runtime/public.ts";
 
@@ -257,5 +263,55 @@ Deno.test(
       JSON.stringify(!sourceResult.ok && sourceResult.error),
     );
     assert(sourceResult.value !== undefined);
+  },
+);
+
+Deno.test(
+  "req:cli-distribution-007 - /runtime exposes the package-root .uff resolver extension points",
+  async () => {
+    // A DSL built on uffda must be able to load its own published grammar
+    // artifacts from its package root over any protocol (#271). The resolver
+    // classes, interfaces, and path helper are part of the public surface.
+    const packageRoot = new URL("https://example.test/@acme/dsl/1.0.0/");
+    const resolver: IModuleResolver = new PackageUffArtifactResolver(
+      packageRoot,
+      "./build",
+    );
+    const resolvers: IModuleResolvers = { ".uff": resolver };
+    assert(resolvers[".uff"] instanceof PackageUffArtifactResolver);
+    assert(new UffArtifactResolver({ root: "/", outDir: "/bin" }));
+
+    assertEquals(
+      packageArtifactUrl(
+        packageRoot,
+        new URL("src/grammar.uff", packageRoot),
+        "./build",
+      )?.href,
+      "https://example.test/@acme/dsl/1.0.0/build/ast/src/grammar.uffda.ast.json",
+    );
+
+    const artifactText = await Deno.readTextFile(
+      `${root}bin/ast/src/lang/common/characters/digit.uffda.ast.json`,
+    );
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (() =>
+      Promise.resolve(
+        new Response(artifactText, { status: 200 }),
+      )) as typeof fetch;
+    try {
+      const loaded = await resolver.resolveModule(
+        new URL("src/grammar.uff", packageRoot),
+        {
+          scope: Scope.Default(),
+          pattern: {
+            kind: PatternKind.Resolve,
+            targetKind: ResolveTargetKind.Run,
+          },
+        },
+      );
+      assertEquals(loaded.kind, "moduleDeclaration");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   },
 );

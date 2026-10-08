@@ -9,8 +9,22 @@ export { match } from "./match.ts";
 export type { Pattern } from "./patterns/pattern.ts";
 export { PatternKind } from "./patterns/pattern.kind.ts";
 export type { ArtifactLayout } from "./resolvers/artifact_path.ts";
+export {
+  artifactPathForUffUrl,
+  defaultArtifactLayout,
+  outputNameForSource,
+  packageArtifactUrl,
+} from "./resolvers/artifact_path.ts";
 export type { ImportMap } from "./resolvers/import_map.ts";
-export type { IPackageResolver } from "./resolvers/resolver.ts";
+export type {
+  IModuleResolver,
+  IModuleResolvers,
+  IPackageResolver,
+} from "./resolvers/resolver.ts";
+export {
+  PackageUffArtifactResolver,
+  UffArtifactResolver,
+} from "./resolvers/uff.artifact.resolver.ts";
 export { Resolver, type ResolverOptions } from "./resolve.ts";
 export { Scope } from "./scope.ts";
 export type { ScopeOptions } from "./scope.ts";
