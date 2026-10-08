@@ -1,6 +1,9 @@
 export type { AwaitableMatch } from "./awaitable.ts";
+export type { Awaitable } from "./awaitable.ts";
+export type { ExpressionEvaluationOptions } from "./evaluate_expression.ts";
 export type { Expression } from "./expressions/expression.ts";
 export { ExpressionKind } from "./expressions/expression.kind.ts";
+export { evaluateExpression } from "./evaluate_expression.ts";
 export { match } from "./match.ts";
 export type { Pattern } from "./patterns/pattern.ts";
 export { PatternKind } from "./patterns/pattern.kind.ts";

@@ -38,6 +38,10 @@ Expected behavior:
   `PatternKind` and `ExpressionKind`, respectively.
 - The `/runtime` TypeScript entry point MUST export `match`, `Scope`, `Pattern`,
   `Expression`, and the pattern/expression kind enums.
+- The `/runtime` TypeScript entry point MUST export
+  `evaluateExpression(expression, options)`, resolving references from
+  `options.variables`, `_` from `options.input`, and returning the raw evaluated
+  value while preserving awaitable evaluation.
 - The `/pattern` and `/expression` TypeScript entry points MUST re-export their
   respective runtime AST types.
 - `readLanguageMetadata` MUST remain available for validating the raw metadata

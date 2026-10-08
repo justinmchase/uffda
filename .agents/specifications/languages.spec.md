@@ -72,6 +72,8 @@ RFC 8174.
 - The published TypeScript package MUST expose a runtime entry point that allows
   consumers to execute a `Pattern` against an input using `match` and `Scope`,
   with public `Pattern` and `Expression` AST types.
+- The runtime entry point MUST provide a supported expression evaluator that
+  accepts caller variables and input and returns the evaluated raw value.
 - Public grammar APIs MUST remain generic parser and AST-lowering
   infrastructure; they MUST NOT encode downstream application-language
   semantics.
