@@ -133,7 +133,7 @@ un-ignores them, as in `"!bin"`). This package exports its tokenizer that way:
 `import "jsr:@justinmchase/uffda/tokenizer" Tokenizer;`. See
 [`modules.spec.md`](.agents/specifications/modules.spec.md#packages).
 
-The reusable grammar exports also include `tokenizer-lang`, `pattern`,
+The reusable grammar exports also include `source`, `tokenizer-lang`, `pattern`,
 `pattern-syntax`, `expression`, `expression-syntax`, `imports`, `exports`, and
 `language`. The `pattern` and `expression` modules export their complete
 language entry points and raw token-level rules; the `*-syntax` aliases expose

@@ -32,6 +32,10 @@ Expected behavior:
   language entry points.
 - The package MUST provide dedicated `/pattern-syntax` and `/expression-syntax`
   `.uff` aliases for those raw grammar component modules.
+- The package MUST provide a `/source` `.uff` alias for the source-normalizing
+  grammar module.
+- The TypeScript `/pattern` and `/expression` entry points MUST export
+  `PatternKind` and `ExpressionKind`, respectively.
 - The `/runtime` TypeScript entry point MUST export `match`, `Scope`, `Pattern`,
   `Expression`, and the pattern/expression kind enums.
 - The `/pattern` and `/expression` TypeScript entry points MUST re-export their

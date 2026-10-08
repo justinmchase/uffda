@@ -10,10 +10,12 @@ import { visualizeMatchFailure } from "../../src/match.visualize.ts";
 import {
   type Expression as ExpressionGrammarAst,
   expressionGrammar,
+  ExpressionKind as GrammarExpressionKind,
 } from "../../src/lang/expression/expression.lang.ts";
 import {
   type Pattern as PatternGrammarAst,
   patternGrammar,
+  PatternKind as GrammarPatternKind,
 } from "../../src/lang/pattern/pattern.lang.ts";
 import { tokenizerGrammar } from "../../src/lang/tokenizer/tokenizer.lang.ts";
 import { uffdaGrammar } from "../../src/lang/uffda/uffda.lang.ts";
@@ -57,6 +59,9 @@ Deno.test(
     const config = parseJsonc(await Deno.readTextFile(`${root}deno.jsonc`)) as {
       exports: Record<string, string>;
     };
+    const grammarExports = parseJsonc(
+      await Deno.readTextFile(`${root}uffda.jsonc`),
+    ) as { exports: Record<string, string> };
     assertEquals(config.exports["./grammar"], "./src/lang/grammar.ts");
     assertEquals(config.exports["./runtime"], "./src/runtime/public.ts");
     assertEquals(
@@ -75,6 +80,10 @@ Deno.test(
     assertEquals(
       config.exports["./language-metadata"],
       "./src/cli/language_metadata.ts",
+    );
+    assertEquals(
+      grammarExports.exports["./source"],
+      "./src/lang/source/mod.uff",
     );
 
     const metadata = readLanguageMetadata({
@@ -101,6 +110,10 @@ Deno.test(
     assertEquals([grammarPattern.kind, grammarExpression.value], [
       PatternKind.Any,
       42,
+    ]);
+    assertEquals([GrammarPatternKind.Any, GrammarExpressionKind.Number], [
+      PatternKind.Any,
+      ExpressionKind.Number,
     ]);
     const runtimeMatch = await matchPattern(
       runtimePattern,
@@ -222,5 +235,27 @@ Deno.test(
       assert(result.ok, JSON.stringify(!result.ok && result.error));
       assertEquals(result.value, expected);
     }
+
+    const sourceGrammar = await uffdaGrammar(
+      'import "jsr:@justinmchase/uffda@^1/source" Source;\n' +
+        "export rule Main = Source;",
+    );
+    assert(sourceGrammar.kind === MatchKind.Ok);
+    assert(isClean(sourceGrammar), await visualizeMatchFailure(sourceGrammar));
+    const sourceResult = await executeCliModule(
+      valueOf(sourceGrammar),
+      "Main",
+      {
+        packages,
+        moduleUrl: new URL("file:///uffda-cli-distribution-007/source.uff"),
+        input: ["a", "b", "c"],
+        inputKind: InputNormalizationMode.Iterable,
+      },
+    );
+    assert(
+      sourceResult.ok,
+      JSON.stringify(!sourceResult.ok && sourceResult.error),
+    );
+    assert(sourceResult.value !== undefined);
   },
 );

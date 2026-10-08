@@ -65,6 +65,10 @@ RFC 8174.
 - The published package MUST expose composable token-level `Pattern` and
   `Expression` rules separately from the source-normalizing, tokenizing,
   end-of-input language entry points.
+- The published `.uff` package MUST expose the reusable source-normalization
+  grammar module.
+- The TypeScript `/pattern` and `/expression` entry points MUST export their
+  respective AST-kind enums alongside the AST types.
 - The published TypeScript package MUST expose a runtime entry point that allows
   consumers to execute a `Pattern` against an input using `match` and `Scope`,
   with public `Pattern` and `Expression` AST types.

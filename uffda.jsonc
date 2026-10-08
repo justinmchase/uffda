@@ -3,6 +3,7 @@
   // imports. Their compiled artifacts are published under ./bin.
   "exports": {
     "./tokenizer": "./src/lang/tokenizer/mod.uff",
+    "./source": "./src/lang/source/mod.uff",
     "./tokenizer-lang": "./src/lang/tokenizer/tokenizer.lang.uff",
     "./pattern": "./src/lang/pattern/pattern.lang.uff",
     "./pattern-syntax": "./src/lang/pattern/pattern.uff",

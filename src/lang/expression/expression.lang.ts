@@ -3,6 +3,7 @@ import type { Match } from "../../mod.ts";
 import type { Expression } from "../../runtime/expressions/mod.ts";
 
 export type { Expression } from "../../runtime/expressions/mod.ts";
+export { ExpressionKind } from "../../runtime/expressions/expression.kind.ts";
 
 export type ExprOptions = GrammarOptions;
 
