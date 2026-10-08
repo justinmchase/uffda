@@ -9,6 +9,9 @@ import { unwrap } from "../wrapped.ts";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 import { ExportDeclarationKind } from "../runtime/declarations/export.ts";
 import { lit } from "../runtime/patterns/value_source.ts";
+import { artifactPathForSource } from "../runtime/resolvers/artifact_path.ts";
+import { dirname, join, toFileUrl } from "@std/path";
+import { compileUffdaSource } from "./uffda/execute.ts";
 
 Deno.test({
   name: "lang.grammar.parseGrammar",
@@ -112,6 +115,44 @@ Deno.test({
         assertEquals(unwrap(recovered.value), [["a", "x", "a"], undefined]);
       },
     });
+
+    await t.step({
+      name: "req:cli-distribution-007 - parses an external grammar artifact",
+      fn: async () => {
+        const root = await Deno.makeTempDir();
+        try {
+          const sourcePath = join(root, "src", "foreign.uff");
+          const moduleUrl = toFileUrl(sourcePath);
+          const layout = { root, outDir: join(root, "bin") };
+          const artifactPath = artifactPathForSource(layout, sourcePath);
+          assert(artifactPath);
+          await Deno.mkdir(dirname(artifactPath), { recursive: true });
+          const compiled = await compileUffdaSource(
+            'export rule Main = "a" -> { kind: "foreign" };',
+          );
+          assert(isClean(compiled));
+          await Deno.writeTextFile(
+            artifactPath,
+            JSON.stringify(valueOf(compiled) satisfies ModuleDeclaration),
+          );
+
+          const parsed = await parseGrammar<{ kind: string }>({
+            source: "a",
+            moduleUrl,
+            entryRuleName: "Main",
+            grammarOptions: {
+              resolverOptions: { artifacts: layout },
+            },
+          });
+          assertEquals(parsed.kind, MatchKind.Ok);
+          if (parsed.kind === MatchKind.Ok) {
+            assertEquals(valueOf(parsed), { kind: "foreign" });
+          }
+        } finally {
+          await Deno.remove(root, { recursive: true });
+        }
+      },
+    });
   },
 });
 
@@ -121,4 +162,5 @@ Deno.test("lang.grammar.resolveGrammarModule without an entry rule", async () =>
   });
   assert(resolved.ok);
   assert(resolved.resolved.module.exports.has("UffdaLang"));
+  assert(resolved.resolved.module.exports.has("Language"));
 });

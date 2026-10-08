@@ -133,6 +133,57 @@ un-ignores them, as in `"!bin"`). This package exports its tokenizer that way:
 `import "jsr:@justinmchase/uffda/tokenizer" Tokenizer;`. See
 [`modules.spec.md`](.agents/specifications/modules.spec.md#packages).
 
+The reusable grammar exports also include `source`, `tokenizer-lang`, `pattern`,
+`pattern-syntax`, `expression`, `expression-syntax`, `imports`, `exports`, and
+`language`. The `pattern` and `expression` modules export their complete
+language entry points and raw token-level rules; the `*-syntax` aliases expose
+just those raw rules. A tokenizer-driven grammar can compose the shared rules
+with its own tokenizer and surrounding syntax:
+
+```uffda
+import "jsr:@justinmchase/uffda/pattern-syntax" Pattern;
+import "jsr:@justinmchase/uffda/expression-syntax" Expression;
+import "jsr:@justinmchase/uffda/imports" ImportDeclarationSyntax;
+import "jsr:@justinmchase/uffda/exports" ExportDeclarationSyntax;
+export rule PatternAtom = Pattern;
+export rule ExpressionAtom = Expression;
+```
+
+The `language` export provides `UffdaLang` and its `Language` decorator.
+TypeScript consumers can validate decorator values with `readLanguageMetadata`
+from `language-metadata`.
+
+The TypeScript APIs are available at matching JSR subpaths:
+
+```ts
+import { parseGrammar } from "jsr:@justinmchase/uffda/grammar";
+import { expressionGrammar } from "jsr:@justinmchase/uffda/expression";
+import { patternGrammar } from "jsr:@justinmchase/uffda/pattern";
+import { tokenizerGrammar } from "jsr:@justinmchase/uffda/tokenizer";
+import { readLanguageMetadata } from "jsr:@justinmchase/uffda/language-metadata";
+import {
+  evaluateExpression,
+  match,
+  Resolver,
+  Scope,
+} from "jsr:@justinmchase/uffda/runtime";
+```
+
+`patternGrammar` and `expressionGrammar` parse and lower source to the runtime
+`Pattern` and `Expression` ASTs. `parseGrammar<TAst>` is the generic entry point
+for a foreign grammar: it runs the named entry rule and returns its projected
+AST as a `Match<TAst>`. Its `grammarOptions.resolverOptions` accepts the
+resolver's artifact layout, import map, and package resolver for external
+grammars. These APIs provide parser and AST infrastructure only; a consuming
+language defines its own syntax and semantics.
+
+The `runtime` entry point exposes pattern matching, expression execution,
+`Scope`, `Resolver` and its configuration types, and
+`evaluateExpression(expression, { input, variables, scope })` for evaluating a
+lowered expression with caller-supplied values. The package root also exports
+`JsrPackages` and `Lockfile` for callers that need the concrete JSR package
+resolver; `/runtime` exposes its `IPackageResolver` contract.
+
 ### MCP server
 
 `uffda mcp` starts the stdio MCP server. Use the `uffda_session_*` tools plus

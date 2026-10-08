@@ -1,0 +1,17 @@
+export type { AwaitableMatch } from "./awaitable.ts";
+export type { Awaitable } from "./awaitable.ts";
+export type { ExpressionEvaluationOptions } from "./evaluate_expression.ts";
+export type { Expression } from "./expressions/expression.ts";
+export { ExpressionKind } from "./expressions/expression.kind.ts";
+export { evaluateExpression } from "./evaluate_expression.ts";
+export { exec } from "./exec.ts";
+export { match } from "./match.ts";
+export type { Pattern } from "./patterns/pattern.ts";
+export { PatternKind } from "./patterns/pattern.kind.ts";
+export type { ArtifactLayout } from "./resolvers/artifact_path.ts";
+export type { ImportMap } from "./resolvers/import_map.ts";
+export type { IPackageResolver } from "./resolvers/resolver.ts";
+export { Resolver, type ResolverOptions } from "./resolve.ts";
+export { Scope } from "./scope.ts";
+export type { ScopeOptions } from "./scope.ts";
+export { InputNormalizationMode } from "../input.ts";

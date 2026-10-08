@@ -2,6 +2,9 @@ import { type GrammarOptions, parseGrammar } from "../grammar.ts";
 import type { Match } from "../../mod.ts";
 import type { Pattern } from "../../runtime/patterns/pattern.ts";
 
+export type { Pattern } from "../../runtime/patterns/pattern.ts";
+export { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
+
 export type PatternOptions = GrammarOptions;
 
 export async function patternGrammar(

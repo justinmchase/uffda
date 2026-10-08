@@ -17,6 +17,7 @@ import "./format/mod.uff" UffdaFormat;
 import "../editor/editor.uff" Formatter ToggleComment;
 
 export UffdaLang;
+export Language;
 
 # `Language` makes the rule it decorates a language's entry rule and describes
 # the language (its id, display name and file extensions), so tooling (see

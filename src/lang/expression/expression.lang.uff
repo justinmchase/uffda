@@ -6,6 +6,7 @@ import "../editor/editor.uff" Documentation;
 
 export ExpressionLang;
 export ExpressionTokens;
+export Expression;
 
 # Input left over after the expression is a recovery point.
 [Documentation {

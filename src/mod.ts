@@ -9,6 +9,7 @@ export * from "./cli/compile.ts";
 
 // Execution engine
 export * from "./runtime/mod.ts";
+export * from "./runtime/scope.ts";
 
 // Packages
 export * from "./packages/mod.ts";

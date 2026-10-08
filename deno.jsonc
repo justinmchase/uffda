@@ -3,7 +3,14 @@
   "version": "0.9.1",
   "license": "MIT",
   "exports": {
-    ".": "./mod.ts"
+    ".": "./mod.ts",
+    "./grammar": "./src/lang/grammar.ts",
+    "./runtime": "./src/runtime/public.ts",
+    "./tokenizer": "./src/lang/tokenizer/tokenizer.lang.ts",
+    "./pattern": "./src/lang/pattern/pattern.lang.ts",
+    "./expression": "./src/lang/expression/expression.lang.ts",
+    "./uffda": "./src/lang/uffda/uffda.lang.ts",
+    "./language-metadata": "./src/cli/language_metadata.ts"
   },
   "tasks": {
     "cli": "deno run --allow-read --allow-write --allow-net --allow-run --allow-env=INIT_CWD,PWD,HOME,XDG_CACHE_HOME,XDG_RUNTIME_DIR,LOCALAPPDATA ./src/cli/main.ts",

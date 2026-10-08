@@ -47,3 +47,36 @@ RFC 8174.
 - Language-layer interoperability SHOULD allow downstream users to reuse lower
   layers (for example tokenizer and expression foundations) with alternate
   language-definition layers.
+
+## Public grammar APIs
+
+- The published package MUST expose the generic grammar parser and the
+  tokenizer, pattern, expression, and Uffda grammar entry points as supported
+  TypeScript subpath exports.
+- `parseGrammar` MUST allow callers to parse through a grammar module into a
+  caller-selected AST type without requiring that grammar to be the Uffda
+  language.
+- Generic grammar parsing MUST allow callers to configure the resolver's
+  artifact layout, import map, and package resolver while retaining the built-in
+  language declarations and default globals.
+- The published Uffda grammar package MUST export reusable `.uff` modules for
+  tokenization, pattern and expression grammars, import and export declaration
+  syntax, and the Uffda language (including its `Language` decorator).
+- The published package MUST expose composable token-level `Pattern` and
+  `Expression` rules separately from the source-normalizing, tokenizing,
+  end-of-input language entry points.
+- The published `.uff` package MUST expose the reusable source-normalization
+  grammar module.
+- The TypeScript `/pattern` and `/expression` entry points MUST export their
+  respective AST-kind enums alongside the AST types.
+- The published TypeScript package MUST expose a runtime entry point that allows
+  consumers to execute a `Pattern` against an input using `match` and `Scope`,
+  with public `Pattern` and `Expression` AST types.
+- The runtime entry point MUST provide a supported expression evaluator that
+  accepts caller variables and input and returns the evaluated raw value.
+- Public runtime entry points MUST expose expression execution, scope
+  construction, and resolver/package types required to configure parsing and
+  matching without importing Uffda implementation internals.
+- Public grammar APIs MUST remain generic parser and AST-lowering
+  infrastructure; they MUST NOT encode downstream application-language
+  semantics.

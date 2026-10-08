@@ -6,6 +6,7 @@ import "../editor/editor.uff" Documentation;
 
 export PatternLang;
 export PatternTokens;
+export Pattern;
 
 # Input left over after the pattern is a recovery point.
 [Documentation {
