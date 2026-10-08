@@ -163,6 +163,10 @@ export type NotPattern = {
 export type OverPattern = {
   kind: PatternKind.Over;
   keys?: Record<string, Pattern>;
+  rest?: {
+    key: Pattern;
+    value: Pattern;
+  };
 };
 export type OkPattern = {
   kind: PatternKind.Ok;

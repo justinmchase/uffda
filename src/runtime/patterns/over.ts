@@ -16,6 +16,12 @@ export function over(pattern: OverPattern, scope: Scope): CompiledPattern {
     ([key, keyPattern]) =>
       [key, keyPattern, compile(keyPattern, scope)] as const,
   );
+  const restChildren = pattern.rest
+    ? {
+      key: compile(pattern.rest.key, scope),
+      value: compile(pattern.rest.value, scope),
+    }
+    : undefined;
   return (invocationScope: Scope) =>
     andThen(invocationScope.stream.step(), (next): AwaitableMatch => {
       if (!next) {
@@ -36,15 +42,38 @@ export function over(pattern: OverPattern, scope: Scope): CompiledPattern {
       let last = invocationScope;
       const matches: Match[] = [];
       const objValue = raw as Record<PropertyKey, unknown>;
+      const steps = children.map(([key, keyPattern, child]) => ({
+        pattern: keyPattern,
+        child,
+        value: objValue[key],
+        path: invocationScope.stream.path.push(key).push(0),
+      }));
+      if (restChildren && pattern.rest) {
+        for (
+          const key of Object.keys(objValue).filter((key) =>
+            !Object.hasOwn(keys, key)
+          )
+        ) {
+          steps.push({
+            pattern: pattern.rest.key,
+            child: restChildren.key,
+            value: key,
+            path: invocationScope.stream.path.push(key).push("$key").push(0),
+          });
+          steps.push({
+            pattern: pattern.rest.value,
+            child: restChildren.value,
+            value: objValue[key],
+            path: invocationScope.stream.path.push(key).push(0),
+          });
+        }
+      }
       return eachInOrder<Match, Match>(
-        children.length,
+        steps.length,
         (i) => {
-          const [key, , child] = children[i];
-          // The pattern will define whether or not its an error for this field to exist or not.
-          // A raw property of a host-supplied object takes the object's origin.
           const propertyStream = new Input(
-            [objValue[key]],
-            invocationScope.stream.path.push(key).push(0),
+            [steps[i].value],
+            steps[i].path,
             0,
             undefined,
             InputNormalizationMode.Iterable,
@@ -53,7 +82,7 @@ export function over(pattern: OverPattern, scope: Scope): CompiledPattern {
             false,
             next.value?.origin,
           );
-          return child(last.withInput(propertyStream));
+          return steps[i].child(last.withInput(propertyStream));
         },
         (i, m) => {
           matches.push(m);
@@ -62,7 +91,7 @@ export function over(pattern: OverPattern, scope: Scope): CompiledPattern {
             case MatchKind.Error:
               return m;
             case MatchKind.Fail:
-              return fail(invocationScope, children[i][1], matches);
+              return fail(invocationScope, steps[i].pattern, matches);
             case MatchKind.Ok:
             case MatchKind.Skip:
               last = m.scope;

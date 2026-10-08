@@ -7,9 +7,9 @@ import { patternTest } from "../../test.ts";
 import { match } from "../match.ts";
 import { Scope } from "../scope.ts";
 import { PatternKind } from "./pattern.kind.ts";
-import { lit } from "./value_source.ts";
+import { lit, varRef } from "./value_source.ts";
 import { assert, assertStrictEquals } from "@std/assert";
-import { rootOrigin, Wrapped } from "../../wrapped.ts";
+import { rootOrigin, unwrap, Wrapped } from "../../wrapped.ts";
 import { InputNormalizationMode } from "../../input.ts";
 import type { Pattern } from "./pattern.ts";
 
@@ -117,6 +117,105 @@ await Deno.test("runtime/patterns/object", async (t) => {
       items: [{ x: 1 }],
     }),
   });
+});
+
+Deno.test("req:over-002 - Over matches undeclared object entries", async (t) => {
+  const stringPattern = { kind: PatternKind.Type, type: Type.String } as const;
+
+  await t.step(
+    "matches extra keys and values after declared fields",
+    async () => {
+      const result = await match({
+        kind: PatternKind.Over,
+        keys: { id: { kind: PatternKind.Type, type: Type.Number } },
+        rest: { key: stringPattern, value: stringPattern },
+      }, Scope.From({ id: 42, name: "Ada", role: "admin" }));
+
+      assert(result.kind === MatchKind.Ok);
+      assertEquals(unwrap(result.value), {
+        id: 42,
+        name: "Ada",
+        role: "admin",
+      });
+    },
+  );
+
+  await t.step("matches each key before its value", async () => {
+    const result = await match({
+      kind: PatternKind.Over,
+      keys: {},
+      rest: {
+        key: {
+          kind: PatternKind.Variable,
+          name: "key",
+          pattern: { kind: PatternKind.Any },
+        },
+        value: { kind: PatternKind.Equal, value: varRef("key") },
+      },
+    }, Scope.From({ answer: "answer" }));
+
+    assert(result.kind === MatchKind.Ok);
+  });
+
+  await t.step("fails when a rest key pattern fails", async () => {
+    const result = await match({
+      kind: PatternKind.Over,
+      keys: {},
+      rest: {
+        key: { kind: PatternKind.Equal, value: lit("expected") },
+        value: { kind: PatternKind.Any },
+      },
+    }, Scope.From({ actual: "value" }));
+
+    assertEquals(result.kind, MatchKind.Fail);
+  });
+
+  await t.step("fails when a rest value pattern fails", async () => {
+    const result = await match({
+      kind: PatternKind.Over,
+      keys: {},
+      rest: { key: stringPattern, value: stringPattern },
+    }, Scope.From({ actual: 42 }));
+
+    assertEquals(result.kind, MatchKind.Fail);
+  });
+
+  await t.step(
+    "succeeds when there are no remaining enumerable properties",
+    async () => {
+      const result = await match({
+        kind: PatternKind.Over,
+        keys: { id: { kind: PatternKind.Type, type: Type.Number } },
+        rest: {
+          key: { kind: PatternKind.Fail },
+          value: { kind: PatternKind.Fail },
+        },
+      }, Scope.From({ id: 42 }));
+
+      assertEquals(result.kind, MatchKind.Ok);
+    },
+  );
+
+  await t.step(
+    "ignores inherited, non-enumerable, and symbol properties",
+    async () => {
+      const symbol = Symbol("hidden");
+      const value = Object.create({ inherited: "value" });
+      Object.defineProperty(value, "hidden", { value: "value" });
+      value[symbol] = "value";
+
+      const result = await match({
+        kind: PatternKind.Over,
+        keys: {},
+        rest: {
+          key: { kind: PatternKind.Fail },
+          value: { kind: PatternKind.Fail },
+        },
+      }, Scope.From(value));
+
+      assertEquals(result.kind, MatchKind.Ok);
+    },
+  );
 });
 
 async function matchWrapped(

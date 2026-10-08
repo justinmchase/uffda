@@ -42,6 +42,19 @@ key-addressable input value.
 - If any child pattern fails, the `over` pattern MUST fail.
 - If every child pattern succeeds, the `over` pattern MUST succeed.
 
+## Object rest entries
+
+- An `over` pattern MAY include a rest-entry matcher with separate key and value
+  child patterns.
+- For object values, the rest-entry matcher MUST evaluate the key pattern and
+  then the value pattern for each own, enumerable, string-keyed property not
+  declared in the pattern's key map.
+- Rest properties MUST be processed in JavaScript `Object.keys` order.
+- Declared keys MUST NOT be checked again by the rest-entry matcher.
+- Rest matching MUST succeed when there are no remaining properties.
+- A failed rest child MUST fail the `over` pattern; left-recursion and error
+  outcomes MUST propagate unchanged.
+
 ## Left-recursion behavior
 
 - If any child pattern reports a left-recursion outcome, the `over` pattern MUST

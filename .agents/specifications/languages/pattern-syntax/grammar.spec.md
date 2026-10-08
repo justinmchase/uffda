@@ -107,6 +107,21 @@ The grammar MUST be able to express the following pattern families:
   intervening whitespace. Authors MUST group an unbounded repetition before
   sequencing it with a numeric literal, as in `(P*) 1`.
 
+## Object patterns
+
+- An object pattern MUST use `{ key: P, ... }`, where each named entry checks
+  the value at that property using pattern `P`.
+- An object pattern MAY end with one rest-entry matcher written
+  `...(KeyPattern : ValuePattern)`.
+- The key pattern in a rest-entry matcher MUST be a primary pattern; a compound
+  key pattern or a key capture MUST be grouped.
+- The rest-entry matcher MUST be terminal, apart from an optional trailing
+  comma. Its left pattern matches each remaining property key and its right
+  pattern matches that property's value.
+- Named entries MUST be excluded from rest-entry matching.
+- The rest-entry matcher MUST normalize to an `over` pattern's `rest` object,
+  containing separate `key` and `value` child patterns.
+
 ## Value sources
 
 - A **value source** is a tagged operand with an explicit `kind`:

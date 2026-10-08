@@ -1,7 +1,10 @@
-# Structure matches grouping `(P)` and object-like Over `{ k:P, … }`. Over
-# builds keys via std from_entries (no host Object native). Cycles with Pattern
-# via Atomic are expected (B9); Resolver import caching breaks recursion.
+# Structure matches grouping `(P)` and object-like Over `{ k:P, ... }`. Over
+# builds named keys via std from_entries; an optional terminal
+# `...(KeyPattern : ValuePattern)` checks all other enumerable string keys.
+# Cycles with Pattern via Atomic are expected (B9); Resolver import caching
+# breaks recursion.
 import "../common/identifier.uff" IdToken;
+import "./atomic.uff" Atomic;
 import "./pattern.uff" Pattern;
 import "../editor/editor.uff" Documentation;
 
@@ -30,15 +33,67 @@ rule OverEntries = f:OverEntry r:OverEntryTail* -> (flat (pack f r));
 rule OverEntriesWithTrailing = e:OverEntries ","? -> e;
 
 [Documentation {
+  description: "The `...` that starts an object rest-entry matcher.",
+  error: "Expected `...` here to start an object rest-entry matcher."
+}]
+rule OverRestStart = "." "." ".";
+
+[Documentation {
+  description: "The `(` that starts an object rest-entry pattern pair.",
+  error: "Expected `(` here before the key and value patterns of the object rest entry."
+}]
+rule OverRestOpen = "(";
+
+[Documentation {
+  description: "The `:` between an object rest-entry key pattern and value pattern.",
+  error: "Expected `:` here between the object rest-entry key pattern and value pattern."
+}]
+rule OverRestColon = ":";
+
+[Documentation {
+  description: "The `)` that ends an object rest-entry pattern pair.",
+  error: "Expected `)` here to close the object rest-entry pattern pair."
+}]
+rule OverRestEnd = ")";
+
+rule OverRestEntry =
+  OverRestOpen key:Atomic OverRestColon value:Pattern OverRestEnd
+  -> { key: key, value: value }
+;
+
+rule OverRest = OverRestStart entry:OverRestEntry -> entry;
+
+rule OverEntriesWithRest =
+  entries:OverEntries "," rest:OverRest ","?
+  -> { kind: "over", keys: (from_entries (flat entries)), rest: rest }
+;
+
+rule OverRestOnly =
+  rest:OverRest ","?
+  -> { kind: "over", keys: (from_entries []), rest: rest }
+;
+
+rule OverEntriesOnly =
+  entries:OverEntriesWithTrailing
+  -> { kind: "over", keys: (from_entries (flat entries)) }
+;
+
+rule OverEmpty = ok -> { kind: "over", keys: (from_entries []) };
+
+[Documentation {
   description: "The `}` that ends an object pattern.",
-  error: "Expected `}` here to close the object pattern, or `,` before its next `key: pattern` entry."
+  error: "Expected `}` here to close the object pattern, or `,` before its next `key: pattern` entry or `...` rest matcher."
 }]
 rule OverEnd = "}";
 
-rule Over =
-  "{" k:OverEntriesWithTrailing? OverEnd
-  -> { kind: "over", keys: (from_entries (flat (coalesce k []))) }
+rule OverBody =
+  | OverEntriesWithRest
+  | OverRestOnly
+  | OverEntriesOnly
+  | OverEmpty
 ;
+
+rule Over = "{" body:OverBody OverEnd -> body;
 
 rule Structure =
   | Group

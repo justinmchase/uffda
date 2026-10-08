@@ -58,7 +58,10 @@ const mistakes: [string, string][] = [
   ["rule A = { a ‸};", "Each entry of an object pattern is a key,"],
   ["rule A = { a: ‸};", "Expected a pattern here, such as a rule"],
   ["rule A = { a ‸b };", "Each entry of an object pattern is a key,"],
-  ["rule A = { ‸...};", "Expected `}` here to close the object"],
+  [
+    "rule A = { ...‸};",
+    "Expected `(` here before the key and value patterns of the object rest entry.",
+  ],
   ['rule A = switch { "a": ‸};', "Expected a pattern here, such as a rule"],
   ["rule A = a -> ‸;", "`->` must be followed by the expression the"],
   ["rule A = a -> (‸;", "A call starts with the function to call"],
