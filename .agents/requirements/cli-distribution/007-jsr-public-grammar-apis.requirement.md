@@ -42,6 +42,10 @@ Expected behavior:
   `evaluateExpression(expression, options)`, resolving references from
   `options.variables`, `_` from `options.input`, and returning the raw evaluated
   value while preserving awaitable evaluation.
+- The `/runtime` TypeScript entry point MUST export `exec`, `Resolver`,
+  `ResolverOptions`, `ArtifactLayout`, `ImportMap`, and `IPackageResolver`.
+- The package root MUST export `Scope` alongside its existing `exec` and `match`
+  runtime functions.
 - The `/pattern` and `/expression` TypeScript entry points MUST re-export their
   respective runtime AST types.
 - `readLanguageMetadata` MUST remain available for validating the raw metadata

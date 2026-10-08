@@ -74,6 +74,9 @@ RFC 8174.
   with public `Pattern` and `Expression` AST types.
 - The runtime entry point MUST provide a supported expression evaluator that
   accepts caller variables and input and returns the evaluated raw value.
+- Public runtime entry points MUST expose expression execution, scope
+  construction, and resolver/package types required to configure parsing and
+  matching without importing Uffda implementation internals.
 - Public grammar APIs MUST remain generic parser and AST-lowering
   infrastructure; they MUST NOT encode downstream application-language
   semantics.

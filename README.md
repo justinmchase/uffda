@@ -161,6 +161,12 @@ import { expressionGrammar } from "jsr:@justinmchase/uffda/expression";
 import { patternGrammar } from "jsr:@justinmchase/uffda/pattern";
 import { tokenizerGrammar } from "jsr:@justinmchase/uffda/tokenizer";
 import { readLanguageMetadata } from "jsr:@justinmchase/uffda/language-metadata";
+import {
+  evaluateExpression,
+  match,
+  Resolver,
+  Scope,
+} from "jsr:@justinmchase/uffda/runtime";
 ```
 
 `patternGrammar` and `expressionGrammar` parse and lower source to the runtime
@@ -170,6 +176,13 @@ AST as a `Match<TAst>`. Its `grammarOptions.resolverOptions` accepts the
 resolver's artifact layout, import map, and package resolver for external
 grammars. These APIs provide parser and AST infrastructure only; a consuming
 language defines its own syntax and semantics.
+
+The `runtime` entry point exposes pattern matching, expression execution,
+`Scope`, `Resolver` and its configuration types, and
+`evaluateExpression(expression, { input, variables, scope })` for evaluating a
+lowered expression with caller-supplied values. The package root also exports
+`JsrPackages` and `Lockfile` for callers that need the concrete JSR package
+resolver; `/runtime` exposes its `IPackageResolver` contract.
 
 ### MCP server
 
