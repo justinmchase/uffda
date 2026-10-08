@@ -12,6 +12,7 @@ import { collect } from "../../testing.ts";
 import {
   isTokenValue,
   StructuredTokenKind,
+  tokenizerGrammar,
   type TokenizerLangValue,
 } from "./tokenizer.lang.ts";
 
@@ -102,3 +103,16 @@ Deno.test("lang.tokenizer.tokenizer-lang - pipelines normalization and tokenizat
   ]);
   assertEquals(await collect(value.tokens), ["a", "\n", "b", "\n", "c"]);
 });
+
+Deno.test(
+  "req:cli-distribution-007 - tokenizerGrammar returns normalized source and tokens",
+  async () => {
+    const parsed = await tokenizerGrammar("a\r\nb");
+    assertEquals(parsed.kind, MatchKind.Ok);
+    if (parsed.kind !== MatchKind.Ok) return;
+
+    const value = valueOf(parsed);
+    assertEquals(value.source.text, "a\nb");
+    assertEquals(await collect(value.tokens), ["a", "\n", "b"]);
+  },
+);

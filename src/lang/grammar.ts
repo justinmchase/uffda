@@ -8,7 +8,7 @@ import { globals as defaultGlobals } from "../runtime/runtime.ts";
 import { matchWithRecovery } from "../runtime/recovery.ts";
 import { languageArtifactLayout } from "../runtime/resolvers/language_artifact_layout.ts";
 import { ModuleImportResultKind } from "../runtime/resolvers/resolver.ts";
-import { Resolver } from "../runtime/resolve.ts";
+import { Resolver, type ResolverOptions } from "../runtime/resolve.ts";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
 import type { Module } from "../runtime/modules/module.ts";
 import type { Input } from "../input.ts";
@@ -47,6 +47,8 @@ export type GrammarRunResult<TAst, TResult> =
 export type GrammarOptions = {
   globals?: Map<string, unknown>;
   declarations?: Record<string, ModuleDeclaration>;
+  /** Resolver settings for external grammars and their imports. */
+  resolverOptions?: Omit<ResolverOptions, "declarations">;
   /**
    * Pre-seeded memo table to parse against instead of a fresh, empty one —
    * typically rehydrated from a prior parse's delivered `Match` tree via
@@ -93,18 +95,25 @@ export async function resolveGrammarModule<TAst>(options: {
   grammarOptions?: GrammarOptions;
 }): Promise<ResolveGrammarModuleResult<TAst>> {
   const { moduleUrl, entryRuleName, source, grammarOptions } = options;
-  const { globals, declarations, memos, input } = grammarOptions ?? {};
+  const {
+    globals,
+    declarations,
+    memos,
+    input,
+    resolverOptions,
+  } = grammarOptions ?? {};
   const { builtInLanguageDeclarations } = await import("./declarations.ts");
 
   // Caller globals override default entries with the same name; defaults
   // remain available for serializable projections such as `(join (flat _) "")`.
   const g = new Map([...defaultGlobals, ...(globals ?? [])]);
   const r = new Resolver({
+    ...resolverOptions,
     declarations: {
       ...builtInLanguageDeclarations,
       ...declarations,
     },
-    artifacts: languageArtifactLayout(),
+    artifacts: resolverOptions?.artifacts ?? languageArtifactLayout(),
   });
   let s = (input ? Scope.Default().withInput(input) : Scope.From(source ?? ""))
     .withOptions({ globals: g, resolver: r });
@@ -160,7 +169,10 @@ export async function parseGrammar<TAst>(options: {
 export function createGrammarRunner<TAst, TResult, TOptions>(
   parse: GrammarParse<TAst, TOptions>,
   evaluate: GrammarEvaluate<TAst, TResult>,
-) {
+): (
+  source: string,
+  options?: TOptions,
+) => Promise<GrammarRunResult<TAst, TResult>> {
   return async (
     source: string,
     options?: TOptions,

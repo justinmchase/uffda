@@ -47,3 +47,21 @@ RFC 8174.
 - Language-layer interoperability SHOULD allow downstream users to reuse lower
   layers (for example tokenizer and expression foundations) with alternate
   language-definition layers.
+
+## Public grammar APIs
+
+- The published package MUST expose the generic grammar parser and the
+  tokenizer, pattern, expression, and Uffda grammar entry points as supported
+  TypeScript subpath exports.
+- `parseGrammar` MUST allow callers to parse through a grammar module into a
+  caller-selected AST type without requiring that grammar to be the Uffda
+  language.
+- Generic grammar parsing MUST allow callers to configure the resolver's
+  artifact layout, import map, and package resolver while retaining the built-in
+  language declarations and default globals.
+- The published Uffda grammar package MUST export reusable `.uff` modules for
+  tokenization, pattern and expression grammars, import and export declaration
+  syntax, and the Uffda language (including its `Language` decorator).
+- Public grammar APIs MUST remain generic parser and AST-lowering
+  infrastructure; they MUST NOT encode downstream application-language
+  semantics.

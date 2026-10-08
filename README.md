@@ -133,6 +133,40 @@ un-ignores them, as in `"!bin"`). This package exports its tokenizer that way:
 `import "jsr:@justinmchase/uffda/tokenizer" Tokenizer;`. See
 [`modules.spec.md`](.agents/specifications/modules.spec.md#packages).
 
+The reusable grammar exports also include `tokenizer-lang`, `pattern`,
+`expression`, `imports`, `exports`, and `language`. For example, a Uffda grammar
+can import and compose the shared parsers and declaration syntax:
+
+```uffda
+import "jsr:@justinmchase/uffda/pattern" PatternLang;
+import "jsr:@justinmchase/uffda/expression" ExpressionLang;
+import "jsr:@justinmchase/uffda/imports" ImportDeclarationSyntax;
+import "jsr:@justinmchase/uffda/exports" ExportDeclarationSyntax;
+export rule Main = PatternLang;
+```
+
+The `language` export provides `UffdaLang` and its `Language` decorator.
+TypeScript consumers can validate decorator values with `readLanguageMetadata`
+from `language-metadata`.
+
+The TypeScript APIs are available at matching JSR subpaths:
+
+```ts
+import { parseGrammar } from "jsr:@justinmchase/uffda/grammar";
+import { expressionGrammar } from "jsr:@justinmchase/uffda/expression";
+import { patternGrammar } from "jsr:@justinmchase/uffda/pattern";
+import { tokenizerGrammar } from "jsr:@justinmchase/uffda/tokenizer";
+import { readLanguageMetadata } from "jsr:@justinmchase/uffda/language-metadata";
+```
+
+`patternGrammar` and `expressionGrammar` parse and lower source to the runtime
+`Pattern` and `Expression` ASTs. `parseGrammar<TAst>` is the generic entry point
+for a foreign grammar: it runs the named entry rule and returns its projected
+AST as a `Match<TAst>`. Its `grammarOptions.resolverOptions` accepts the
+resolver's artifact layout, import map, and package resolver for external
+grammars. These APIs provide parser and AST infrastructure only; a consuming
+language defines its own syntax and semantics.
+
 ### MCP server
 
 `uffda mcp` starts the stdio MCP server. Use the `uffda_session_*` tools plus

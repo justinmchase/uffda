@@ -31,6 +31,23 @@ Deno.test(
     const { packages } = await fakeJsrPackages({
       "@justinmchase/uffda": { "1.0.0": { files: await packageFiles() } },
     });
+    for (
+      const name of [
+        "tokenizer",
+        "tokenizer-lang",
+        "pattern",
+        "expression",
+        "imports",
+        "exports",
+        "language",
+      ]
+    ) {
+      const resolved = await packages.resolve(
+        `jsr:@justinmchase/uffda@^1/${name}`,
+      );
+      assert(resolved.ok, `${name}: ${!resolved.ok && resolved.message}`);
+    }
+
     const parsed = await uffdaGrammar(
       'import "jsr:@justinmchase/uffda@^1/tokenizer" Tokenizer;\n' +
         "export rule Main = t:Tokenizer -> t;\n",

@@ -75,7 +75,13 @@ Normative key words in this chapter use the conventions defined in the
 - The package MUST include the repository's `uffda.jsonc` and its compiled
   `bin/`, so its grammars load as `jsr:@justinmchase/uffda/<export>` imports
   (see [packages](../../modules.spec.md#packages)). `uffda.jsonc` MUST export
-  the tokenizer as `./tokenizer`.
+  reusable tokenizer, pattern, expression, import-declaration,
+  export-declaration, and Uffda-language `.uff` modules.
+- `deno.jsonc` MUST publish supported TypeScript subpath exports for the generic
+  grammar API, tokenizer, pattern and expression grammar/lowering APIs, Uffda
+  grammar/compiler APIs, and language metadata.
+- Grammar package exports MUST remain generic parser infrastructure and MUST NOT
+  add downstream application-language behavior.
 
 ## CI setup action contract
 

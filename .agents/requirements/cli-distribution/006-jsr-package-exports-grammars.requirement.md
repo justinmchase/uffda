@@ -1,6 +1,6 @@
 ---
 id: cli-distribution-006
-title: The JSR package exports its grammars through uffda.jsonc and ships their compiled artifacts
+title: The JSR package exports reusable .uff grammars and ships their compiled artifacts
 spec_ref: ".agents/specifications/languages/cli/distribution-and-release.spec.md#jsr-package-contract"
 ---
 
@@ -16,17 +16,19 @@ Preconditions:
 Expected behavior:
 
 - The repository root MUST hold a valid `uffda.jsonc` whose `exports` maps
-  `./tokenizer` to `./src/lang/tokenizer/mod.uff`, with the default `./bin`
-  output directory.
+  `./tokenizer`, `./tokenizer-lang`, `./pattern`, `./expression`, `./imports`,
+  `./exports`, and `./language` to their corresponding `.uff` source modules
+  under `./src/lang/`, with the default `./bin` output directory.
 - `publish.exclude` MUST keep `uffda.jsonc` and `bin/` in the package.
-- A consumer's `import "jsr:@justinmchase/uffda@<range>/tokenizer" Tokenizer;`
-  MUST resolve, through `JsrPackages`, to the compiled tokenizer and every
-  module it imports, with no file the package does not ship.
+- A consumer's Uffda imports of each listed package export MUST resolve, through
+  `JsrPackages`, to the compiled module and every module it imports, with no
+  file the package does not ship.
 
 Postconditions:
 
-- Grammars written against the published package can use its tokenizer.
+- Grammars written against the published package can reuse its tokenization,
+  pattern, expression, import/export syntax, and language modules.
 - Tests:
   `test/integration/cli-distribution-006-jsr-package-grammars.requirement.test.ts`
   (serves the repository's own `uffda.jsonc` and `bin/` as a package from a fake
-  registry and tokenizes text with the imported rule).
+  registry and resolves each exported grammar).

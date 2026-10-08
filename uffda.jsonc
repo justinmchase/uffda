@@ -2,6 +2,12 @@
   // The grammars this package offers to `jsr:@justinmchase/uffda/<export>`
   // imports. Their compiled artifacts are published under ./bin.
   "exports": {
-    "./tokenizer": "./src/lang/tokenizer/mod.uff"
+    "./tokenizer": "./src/lang/tokenizer/mod.uff",
+    "./tokenizer-lang": "./src/lang/tokenizer/tokenizer.lang.uff",
+    "./pattern": "./src/lang/pattern/pattern.lang.uff",
+    "./expression": "./src/lang/expression/expression.lang.uff",
+    "./imports": "./src/lang/uffda/import.rules.uff",
+    "./exports": "./src/lang/uffda/export.rules.uff",
+    "./language": "./src/lang/uffda/uffda.lang.uff"
   }
 }

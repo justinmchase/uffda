@@ -1,4 +1,6 @@
 import type { SourceDocument } from "../source/mod.ts";
+import { type GrammarOptions, parseGrammar } from "../grammar.ts";
+import type { Match } from "../../match.ts";
 
 /** Token kinds emitted by `mod.uff` (see `tokenization.spec.md`). */
 export enum StructuredTokenKind {
@@ -32,3 +34,17 @@ export type TokenizerLangValue = {
    */
   tokens: AsyncIterable<string>;
 };
+
+export type TokenizerOptions = GrammarOptions;
+
+export async function tokenizerGrammar(
+  source: string,
+  opts?: TokenizerOptions,
+): Promise<Match<TokenizerLangValue>> {
+  return await parseGrammar<TokenizerLangValue>({
+    source,
+    moduleUrl: new URL("./tokenizer.lang.uff", import.meta.url),
+    entryRuleName: "TokenizerLang",
+    grammarOptions: opts,
+  });
+}
