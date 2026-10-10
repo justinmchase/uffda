@@ -26,6 +26,7 @@ Deno.test("runtime.patterns accepts Over patterns with separate rest children", 
     keys: {},
     rest: [{
       kind: "pattern",
+      entry: "entry",
       key: { kind: PatternKind.Any },
       value: { kind: PatternKind.Any },
     }],

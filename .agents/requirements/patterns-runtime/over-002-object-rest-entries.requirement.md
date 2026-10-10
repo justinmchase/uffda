@@ -22,6 +22,12 @@ Expected behavior:
 - For each remaining property or entry, `over` MUST try rest clauses in source
   order and accept the first clause whose key and value patterns both match.
 - A key or value pattern failure MUST let `over` try the next rest clause.
+- Variables captured in a rest clause's key or value patterns MUST be
+  accumulated into arrays in entry order, containing the corresponding capture
+  from each entry claimed by that clause. When no entries are claimed, each such
+  capture MUST be an empty array.
+- A rest clause MAY capture the full claimed entry by name; that binding MUST be
+  an array of `[key, value]` pairs in entry order.
 - `over` MUST NOT apply rest clauses to declared keys or re-match an entry
   accepted by an earlier clause.
 - Object properties MUST be processed in `Object.keys` order. Map entries MUST

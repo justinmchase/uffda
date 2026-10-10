@@ -16,6 +16,8 @@ Expected behavior:
 
 - `{ id: number ...[string]: string }` MUST parse to an `over` pattern with
   named key `id` and one key/value rest clause.
+- `... as e [k:string]: v:string` MUST parse to a rest clause with entry capture
+  `e`, key capture `k`, and value capture `v`.
 - Multiple `...[P]: V` clauses MUST parse in source order.
 - `...ope` MUST parse as a catch-all rest clause and MUST be final.
 - Rest clauses MAY appear without named entries and MAY have commas between
@@ -25,5 +27,5 @@ Expected behavior:
 Postconditions:
 
 - The normalized `over` pattern MUST preserve named keys, ordered rest clauses,
-  and an optional final catch-all separately.
+  optional entry capture names, and an optional final catch-all separately.
 - Tests: `src/lang/pattern/structure.test.ts`.

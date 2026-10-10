@@ -4,7 +4,12 @@ import { Input, InputNormalizationMode } from "../../input.ts";
 import { compile } from "../match.ts";
 import type { Match } from "../../match.ts";
 import type { Scope } from "../scope.ts";
-import type { OverPattern } from "./pattern.ts";
+import { PatternKind } from "./pattern.kind.ts";
+import {
+  type OverPattern,
+  type Pattern,
+  ResolveTargetKind,
+} from "./pattern.ts";
 import { andThen, type AwaitableMatch, eachInOrder } from "../awaitable.ts";
 import type { Awaitable } from "../awaitable.ts";
 import type { CompiledPattern } from "../compiled_pattern.ts";
@@ -26,6 +31,71 @@ type EntryResult =
   | { kind: "matched"; scope: Scope; matches: Match[] }
   | { kind: "miss"; matches: Match[] }
   | { kind: "stop"; match: Match; matches: Match[] };
+
+function collectVariableNames(pattern: Pattern, names: Set<string>): void {
+  switch (pattern.kind) {
+    case PatternKind.And:
+    case PatternKind.Or:
+    case PatternKind.Then:
+      pattern.patterns.forEach((child) => collectVariableNames(child, names));
+      return;
+    case PatternKind.Pipeline:
+      pattern.steps.forEach((child) => collectVariableNames(child, names));
+      return;
+    case PatternKind.Except:
+    case PatternKind.Into:
+    case PatternKind.Lookahead:
+    case PatternKind.Maybe:
+    case PatternKind.Not:
+    case PatternKind.Projection:
+    case PatternKind.Quantifier:
+    case PatternKind.Skip:
+      collectVariableNames(pattern.pattern, names);
+      return;
+    case PatternKind.Recover:
+      collectVariableNames(pattern.pattern, names);
+      collectVariableNames(pattern.skip, names);
+      return;
+    case PatternKind.Over:
+      Object.values(pattern.keys ?? {}).forEach((child) =>
+        collectVariableNames(child, names)
+      );
+      for (const clause of pattern.rest ?? []) {
+        if (clause.kind === "pattern") {
+          if (clause.entry) names.add(clause.entry);
+          collectVariableNames(clause.key, names);
+          collectVariableNames(clause.value, names);
+        }
+      }
+      return;
+    case PatternKind.Switch:
+      pattern.cases.forEach((item) =>
+        collectVariableNames(item.pattern, names)
+      );
+      if (pattern.default) collectVariableNames(pattern.default, names);
+      return;
+    case PatternKind.Resolve:
+      if (pattern.targetKind === ResolveTargetKind.Reference) {
+        pattern.args.forEach((child) => collectVariableNames(child, names));
+      }
+      return;
+    case PatternKind.Variable:
+      names.add(pattern.name);
+      collectVariableNames(pattern.pattern, names);
+      return;
+    case PatternKind.Any:
+    case PatternKind.Between:
+    case PatternKind.Character:
+    case PatternKind.End:
+    case PatternKind.Equal:
+    case PatternKind.Fail:
+    case PatternKind.Includes:
+    case PatternKind.Ok:
+    case PatternKind.RegExp:
+    case PatternKind.Type:
+      return;
+  }
+}
 
 /** Compiles an `Over` pattern into a flattened, reusable closure. */
 export function over(pattern: OverPattern, scope: Scope): CompiledPattern {
@@ -92,6 +162,14 @@ export function over(pattern: OverPattern, scope: Scope): CompiledPattern {
           : objValue![key],
         path: invocationScope.stream.path.push(key).push(0),
       }));
+      const restVariableNames = new Set<string>();
+      for (const clause of rest) {
+        if (clause.kind === "pattern") {
+          if (clause.entry) restVariableNames.add(clause.entry);
+          collectVariableNames(clause.key, restVariableNames);
+          collectVariableNames(clause.value, restVariableNames);
+        }
+      }
 
       const finish = (): Match =>
         ok(
@@ -181,12 +259,34 @@ export function over(pattern: OverPattern, scope: Scope): CompiledPattern {
                           childMatches,
                         );
                       case MatchKind.Ok:
-                      case MatchKind.Skip:
+                      case MatchKind.Skip: {
+                        if (
+                          clause.entry &&
+                          valueMatch.scope.variables.has(clause.entry)
+                        ) {
+                          return {
+                            kind: "stop",
+                            match: error(
+                              valueMatch.scope,
+                              pattern,
+                              MatchErrorCode.DuplicateVariable,
+                              `Variable ${clause.entry} already exists in scope`,
+                            ),
+                            matches: childMatches,
+                          };
+                        }
+                        const matchedScope = clause.entry
+                          ? valueMatch.scope.addVariable(
+                            clause.entry,
+                            [entry.key, entry.value],
+                          )
+                          : valueMatch.scope;
                         return {
                           kind: "matched",
-                          scope: valueMatch.scope,
+                          scope: matchedScope,
                           matches: childMatches,
                         };
+                      }
                     }
                   },
                 );
@@ -199,9 +299,16 @@ export function over(pattern: OverPattern, scope: Scope): CompiledPattern {
         if (rest.length === 0) {
           return finish();
         }
+        const entryScope = last;
+        const captured = new Map<string, unknown[]>();
+        for (const name of restVariableNames) {
+          if (!entryScope.variables.has(name)) {
+            captured.set(name, []);
+          }
+        }
         return eachInOrder<EntryResult, Match>(
           remaining.length,
-          (i) => matchEntry(remaining[i], 0, last),
+          (i) => matchEntry(remaining[i], 0, entryScope),
           (_, result) => {
             matches.push(...result.matches);
             switch (result.kind) {
@@ -210,11 +317,18 @@ export function over(pattern: OverPattern, scope: Scope): CompiledPattern {
               case "miss":
                 return fail(invocationScope, pattern, matches);
               case "matched":
-                last = result.scope;
+                for (const [name, values] of captured) {
+                  if (result.scope.variables.has(name)) {
+                    values.push(result.scope.variables.get(name));
+                  }
+                }
                 return undefined;
             }
           },
-          finish,
+          () => {
+            last = entryScope.addVariables(captured);
+            return finish();
+          },
         );
       };
 

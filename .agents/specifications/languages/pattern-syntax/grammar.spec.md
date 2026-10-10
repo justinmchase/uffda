@@ -114,18 +114,26 @@ The grammar MUST be able to express the following pattern families:
 - An object pattern MAY include one or more ordered rest clauses:
   - `...[P]: V` matches each remaining entry whose key matches `P`, then
     requires its value to match `V`.
+  - `... as name [P]: V` additionally captures each claimed entry as a
+    `[key,
+    value]` pair in `name`.
   - `...ope` accepts all entries left unmatched by earlier clauses and MUST be
     the final rest clause.
+- Variable captures in the key or value pattern of a rest clause MUST collect
+  the captured value from every entry claimed by that clause into an array,
+  preserving entry order. With no captured entries, the variable MUST bind to an
+  empty array.
+- The optional `name:` capture before a rest clause MUST collect the claimed
+  entry's `[key, value]` pair into an array, preserving entry order.
 - A rest clause MUST inspect only entries not declared by named fields or
   claimed by earlier rest clauses.
-- A key-pattern miss MUST leave that entry available to later clauses. A key
-  match followed by a value-pattern miss MUST fail the object pattern.
+- A key- or value-pattern miss MUST leave that entry available to later clauses.
 - When no final `...ope` is present, every entry not claimed by a pattern rest
   clause MUST cause the object pattern to fail.
 - The key and value patterns MUST each be full patterns, delimited by `[` and
   `]` around the key pattern and `:` between the key and value patterns.
 - Rest clauses MUST normalize to an ordered `over.rest` list, preserving each
-  key/value clause and the optional final catch-all.
+  key/value clause, optional entry capture name, and optional final catch-all.
 
 ## Value sources
 

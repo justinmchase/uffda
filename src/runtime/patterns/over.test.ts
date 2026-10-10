@@ -167,6 +167,71 @@ Deno.test("req:over-002 - Over matches undeclared object entries", async (t) => 
     assert(result.kind === MatchKind.Ok);
   });
 
+  await t.step(
+    "accumulates rest key, value, and entry captures in entry order",
+    async () => {
+      const result = await match({
+        kind: PatternKind.Over,
+        keys: {},
+        rest: [{
+          kind: "pattern",
+          entry: "entry",
+          key: {
+            kind: PatternKind.Variable,
+            name: "key",
+            pattern: stringPattern,
+          },
+          value: {
+            kind: PatternKind.Variable,
+            name: "value",
+            pattern: stringPattern,
+          },
+        }],
+      }, Scope.From({ a: "x", b: "y" }));
+
+      assertEquals(result.kind, MatchKind.Ok);
+      if (result.kind === MatchKind.Ok) {
+        assertEquals(unwrap(result.scope.variables.get("entry")), [
+          ["a", "x"],
+          ["b", "y"],
+        ]);
+        assertEquals(unwrap(result.scope.variables.get("key")), ["a", "b"]);
+        assertEquals(unwrap(result.scope.variables.get("value")), ["x", "y"]);
+      }
+    },
+  );
+
+  await t.step(
+    "initializes rest captures to empty arrays without entries",
+    async () => {
+      const result = await match({
+        kind: PatternKind.Over,
+        keys: {},
+        rest: [{
+          kind: "pattern",
+          entry: "entry",
+          key: {
+            kind: PatternKind.Variable,
+            name: "key",
+            pattern: stringPattern,
+          },
+          value: {
+            kind: PatternKind.Variable,
+            name: "value",
+            pattern: stringPattern,
+          },
+        }],
+      }, Scope.From({}));
+
+      assertEquals(result.kind, MatchKind.Ok);
+      if (result.kind === MatchKind.Ok) {
+        assertEquals(unwrap(result.scope.variables.get("entry")), []);
+        assertEquals(unwrap(result.scope.variables.get("key")), []);
+        assertEquals(unwrap(result.scope.variables.get("value")), []);
+      }
+    },
+  );
+
   await t.step("leaves key-pattern misses for later rest clauses", async () => {
     const result = await match({
       kind: PatternKind.Over,
@@ -183,6 +248,47 @@ Deno.test("req:over-002 - Over matches undeclared object entries", async (t) => 
 
     assertEquals(result.kind, MatchKind.Ok);
   });
+
+  await t.step(
+    "leaves value-pattern misses for later rest clauses",
+    async () => {
+      const result = await match({
+        kind: PatternKind.Over,
+        keys: {},
+        rest: [
+          {
+            kind: "pattern",
+            key: stringPattern,
+            value: {
+              kind: PatternKind.Variable,
+              name: "first",
+              pattern: stringPattern,
+            },
+          },
+          {
+            kind: "pattern",
+            key: {
+              kind: PatternKind.Variable,
+              name: "key",
+              pattern: stringPattern,
+            },
+            value: {
+              kind: PatternKind.Variable,
+              name: "value",
+              pattern: { kind: PatternKind.Any },
+            },
+          },
+        ],
+      }, Scope.From({ a: 1 }));
+
+      assertEquals(result.kind, MatchKind.Ok);
+      if (result.kind === MatchKind.Ok) {
+        assertEquals(unwrap(result.scope.variables.get("first")), []);
+        assertEquals(unwrap(result.scope.variables.get("key")), ["a"]);
+        assertEquals(unwrap(result.scope.variables.get("value")), [1]);
+      }
+    },
+  );
 
   await t.step("fails when a rest value pattern fails", async () => {
     const result = await match({

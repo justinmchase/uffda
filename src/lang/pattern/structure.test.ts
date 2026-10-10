@@ -1,8 +1,11 @@
 import { Input } from "../../input.ts";
+import { assertEquals } from "@std/assert";
 import { Type } from "@justinmchase/type";
 import { MatchKind } from "../../mod.ts";
 import { PatternKind } from "../../runtime/patterns/pattern.kind.ts";
 import { explainedMistakesTest, moduleDeclarationTest } from "../../test.ts";
+import { executeUffdaSource } from "../uffda/execute.ts";
+import { unwrap } from "../../wrapped.ts";
 
 const moduleUrl = new URL("./structure.uff", import.meta.url).href;
 
@@ -289,6 +292,52 @@ Deno.test({
         },
       }),
     });
+
+    await t.step({
+      name:
+        "req:pattern-language-syntax-011 parses entry, key, and value captures",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "Structure",
+        input: Input.Iterable([
+          "{",
+          ".",
+          ".",
+          ".",
+          "as",
+          "e",
+          "[",
+          "k",
+          ":",
+          "string",
+          "]",
+          ":",
+          "v",
+          ":",
+          "string",
+          "}",
+        ]),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Over,
+          keys: {},
+          rest: [{
+            kind: "pattern",
+            entry: "e",
+            key: {
+              kind: PatternKind.Variable,
+              name: "k",
+              pattern: { kind: PatternKind.Type, type: Type.String },
+            },
+            value: {
+              kind: PatternKind.Variable,
+              name: "v",
+              pattern: { kind: PatternKind.Type, type: Type.String },
+            },
+          }],
+        },
+      }),
+    });
   },
 });
 
@@ -298,9 +347,54 @@ Deno.test(
     ["rule A = (a‸;", "Expected `)` here to close the group"],
     ["rule A = {a: x‸;", "Expected `}` here to close the object pattern"],
     ["rule A = { a ‸};", "Each entry of an object pattern is a key"],
+    ["rule A = { a: ‸};", "Expected a pattern here, such as a rule"],
     [
       "rule A = { ...[string] ‸string };",
       "Expected `:` here between the rest key pattern and value pattern.",
     ],
   ]),
+);
+
+Deno.test(
+  "req:over-002 - rest captures aggregate for projections",
+  async () => {
+    const input = { a: "x", b: "y" };
+    const examples: [string, unknown][] = [
+      [
+        "export rule P = { ...[string]: v:string } -> (echo v);",
+        ["x", "y"],
+      ],
+      [
+        "export rule P = { ...[k:string]: string } -> (echo k);",
+        ["a", "b"],
+      ],
+      [
+        "export rule P = { ...[k:string]: v:string } -> (echo [k v]);",
+        [["a", "b"], ["x", "y"]],
+      ],
+      [
+        "export rule P = { ... as e [string]: string } -> (echo e);",
+        [["a", "x"], ["b", "y"]],
+      ],
+      [
+        "export rule P = { ... as e [k:string]: v:string } -> (echo [e k v]);",
+        [[["a", "x"], ["b", "y"]], ["a", "b"], ["x", "y"]],
+      ],
+    ];
+
+    for (const [source, expected] of examples) {
+      const result = await executeUffdaSource(source, {
+        input,
+        entryRuleName: "P",
+        scopeOptions: {
+          globals: new Map([["echo", (value: unknown) => value]]),
+        },
+      });
+
+      assertEquals(result.kind, MatchKind.Ok);
+      if (result.kind === MatchKind.Ok) {
+        assertEquals(unwrap(result.value), expected, source);
+      }
+    }
+  },
 );

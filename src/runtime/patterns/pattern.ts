@@ -166,7 +166,7 @@ export type OverPattern = {
   rest?: OverRestClause[];
 };
 export type OverRestClause =
-  | { kind: "pattern"; key: Pattern; value: Pattern }
+  | { kind: "pattern"; entry?: string; key: Pattern; value: Pattern }
   | { kind: "any" };
 export type OkPattern = {
   kind: PatternKind.Ok;

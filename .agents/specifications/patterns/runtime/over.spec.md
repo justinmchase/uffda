@@ -53,8 +53,9 @@ key-addressable input value.
   pattern's key map, in Map insertion order. The key pattern MUST receive the
   original Map key value, without coercion.
 - A key-pattern failure MUST leave that entry unclaimed for later rest clauses.
-- When a key pattern succeeds, the corresponding value pattern MUST be run; if
-  it fails, the `over` pattern MUST fail.
+- When a key pattern succeeds, the corresponding value pattern MUST be run. A
+  key- or value-pattern failure MUST leave that entry unclaimed for later rest
+  clauses.
 - Named keys and entries claimed by earlier rest clauses MUST NOT be checked by
   later rest clauses. For a Map, declared keys are matched using native Map key
   identity.
@@ -62,6 +63,11 @@ key-addressable input value.
   clauses. Without a catch-all, any remaining unclaimed entry MUST fail `over`.
 - Left-recursion and error outcomes from key/value patterns MUST propagate
   unchanged.
+- Variables captured by key/value patterns in rest clauses MUST be collected
+  into arrays in the order of entries claimed by those clauses. A variable with
+  no captured entries MUST be bound to an empty array.
+- An optional entry capture name on a rest clause MUST collect each claimed
+  `[key, value]` pair into an array in entry order.
 
 ## Left-recursion behavior
 

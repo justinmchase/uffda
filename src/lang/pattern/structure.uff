@@ -51,7 +51,25 @@ rule OverRestClose = "]";
 }]
 rule OverRestColon = ":";
 
-rule OverRestPattern =
+[Documentation {
+  description: "The name that captures each full entry matched by a rest clause.",
+  error: "Expected a capture name after `as`."
+}]
+rule OverRestEntryName = IdToken;
+
+rule OverRestPatternWithEntry =
+  OverRestStart
+  "as"
+  entry:OverRestEntryName
+  OverRestOpen
+  key:Pattern
+  OverRestClose
+  OverRestColon
+  value:Pattern
+  -> { kind: "pattern", entry: entry, key: key, value: value }
+;
+
+rule OverRestPatternWithoutEntry =
   OverRestStart
   OverRestOpen
   key:Pattern
@@ -59,6 +77,11 @@ rule OverRestPattern =
   OverRestColon
   value:Pattern
   -> { kind: "pattern", key: key, value: value }
+;
+
+rule OverRestPattern =
+  | OverRestPatternWithEntry
+  | OverRestPatternWithoutEntry
 ;
 
 rule OverRestPatternTail = ","? rest:OverRestPattern -> rest;
