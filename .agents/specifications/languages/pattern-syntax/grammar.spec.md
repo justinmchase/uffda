@@ -121,10 +121,11 @@ The grammar MUST be able to express the following pattern families:
     the final rest clause.
 - Variable captures in the key or value pattern of a rest clause MUST collect
   the captured value from every entry claimed by that clause into an array,
-  preserving entry order. With no captured entries, the variable MUST bind to an
-  empty array.
-- The optional `name:` capture before a rest clause MUST collect the claimed
-  entry's `[key, value]` pair into an array, preserving entry order.
+  preserving entry order. If no entries are claimed, those variables MUST remain
+  unbound.
+- The optional entry capture name before a rest clause MUST collect the claimed
+  entry's `[key, value]` pair into an array, preserving entry order. If no
+  entries are claimed, the variable MUST remain unbound.
 - A rest clause MUST inspect only entries not declared by named fields or
   claimed by earlier rest clauses.
 - A key- or value-pattern miss MUST leave that entry available to later clauses.

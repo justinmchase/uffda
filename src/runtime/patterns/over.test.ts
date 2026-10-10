@@ -202,7 +202,7 @@ Deno.test("req:over-002 - Over matches undeclared object entries", async (t) => 
   );
 
   await t.step(
-    "initializes rest captures to empty arrays without entries",
+    "leaves rest captures unbound when there are no entries to match",
     async () => {
       const result = await match({
         kind: PatternKind.Over,
@@ -225,9 +225,9 @@ Deno.test("req:over-002 - Over matches undeclared object entries", async (t) => 
 
       assertEquals(result.kind, MatchKind.Ok);
       if (result.kind === MatchKind.Ok) {
-        assertEquals(unwrap(result.scope.variables.get("entry")), []);
-        assertEquals(unwrap(result.scope.variables.get("key")), []);
-        assertEquals(unwrap(result.scope.variables.get("value")), []);
+        assertEquals(result.scope.variables.has("entry"), false);
+        assertEquals(result.scope.variables.has("key"), false);
+        assertEquals(result.scope.variables.has("value"), false);
       }
     },
   );
@@ -283,7 +283,7 @@ Deno.test("req:over-002 - Over matches undeclared object entries", async (t) => 
 
       assertEquals(result.kind, MatchKind.Ok);
       if (result.kind === MatchKind.Ok) {
-        assertEquals(unwrap(result.scope.variables.get("first")), []);
+        assertEquals(result.scope.variables.has("first"), false);
         assertEquals(unwrap(result.scope.variables.get("key")), ["a"]);
         assertEquals(unwrap(result.scope.variables.get("value")), [1]);
       }

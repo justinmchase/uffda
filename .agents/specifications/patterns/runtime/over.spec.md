@@ -64,10 +64,11 @@ key-addressable input value.
 - Left-recursion and error outcomes from key/value patterns MUST propagate
   unchanged.
 - Variables captured by key/value patterns in rest clauses MUST be collected
-  into arrays in the order of entries claimed by those clauses. A variable with
-  no captured entries MUST be bound to an empty array.
+  into arrays in the order of entries claimed by those clauses. If no entries
+  are claimed, those variables MUST remain unbound.
 - An optional entry capture name on a rest clause MUST collect each claimed
-  `[key, value]` pair into an array in entry order.
+  `[key, value]` pair into an array in entry order. If no entries are claimed,
+  that variable MUST remain unbound.
 
 ## Left-recursion behavior
 
