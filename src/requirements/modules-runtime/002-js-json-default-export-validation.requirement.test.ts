@@ -16,9 +16,9 @@ function context() {
   };
 }
 
-Deno.test("req:modules-runtime-002 - JavaScript and JSON declaration modules require default declaration exports", async (t) => {
+Deno.test("req:modules-runtime-002 - JSON declaration failures are normalized", async (t) => {
   await t.step(
-    "js module missing default declaration export fails",
+    "js module is rejected without examining its exports",
     async () => {
       const resolver = new Resolver();
       const result = await resolver.import(
@@ -31,10 +31,7 @@ Deno.test("req:modules-runtime-002 - JavaScript and JSON declaration modules req
       assertEquals(result.error.code, MatchErrorCode.ModuleResolution);
       assertEquals(
         result.error.message,
-        `Imported module ${new URL(
-          "../../runtime/resolvers/test.bad.module.js",
-          import.meta.url,
-        )} must export a ModuleDeclaration as a default export`,
+        "Unable to resolve file of unknown extension .js",
       );
     },
   );

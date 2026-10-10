@@ -77,9 +77,10 @@ the way Deno loads a `jsr:` import.
   yanked. A specifier without a range takes the highest stable version. No
   matching version MUST be a module-resolution error.
 - **Export:** the package version's `uffda.jsonc` `exports` maps the export name
-  (`.` when the specifier names none, else `./<export>`) to a `.uff` file. An
-  export the package does not declare, a package without a valid `uffda.jsonc`,
-  or an export that is not a `.uff` file MUST be a module-resolution error.
+  (`.` when the specifier names none, else `./<export>`) to a `.uff` or `.json`
+  file. An export the package does not declare, a package without a valid
+  `uffda.jsonc`, or an export with any other extension MUST be a
+  module-resolution error.
 - **Identity:** the module's URL is that file's registry URL,
   `https://jsr.io/@scope/name/<version>/<path>`, so two specifiers that choose
   the same version and file are one module. Relative imports in it resolve
@@ -87,8 +88,9 @@ the way Deno loads a `jsr:` import.
 - **Declaration:** the module's declaration is its compiled artifact in the
   package's [artifact layout](./languages/project-file.spec.md#output-directory)
   (`<outDir>/ast/<path>.uffda.ast.json` within the package version). A package
-  supplies `.uff` modules only: any other module in a package MUST be a
-  module-resolution error, since remote host code cannot be loaded safely.
+  supplies `.uff` and `.json` modules only. A `.json` module loads its actual
+  file as declaration data without artifact remapping. Any other extension MUST
+  be a module-resolution error.
 - **Integrity:** every file read from a package version MUST match the sha256
   checksum its `<version>_meta.json` manifest lists for it; a file the manifest
   does not list MUST be an error. When the lockfile records an integrity for the
@@ -109,21 +111,20 @@ the way Deno loads a `jsr:` import.
 
 ## Supported module sources
 
-### JavaScript and TypeScript declaration modules
+### Retired executable declaration-file imports
 
-- Runtime resolution MUST support loading declaration modules from `.ts` and
-  `.js` sources through host module import.
-- A loaded declaration module MUST provide a default export containing a valid
-  Uffda module declaration.
-- If a declaration module omits the required default declaration export,
-  resolution MUST fail with a module-resolution error.
+- Both runtimes MUST reject arbitrary `.ts` and `.js` declaration-file imports
+  before reading or executing them. Custom extension resolvers MUST NOT
+  re-enable these imports.
+- This restriction does not prohibit explicitly supplied declaration objects or
+  host APIs. Their URLs are identities, not permission to load executable files.
 
 ### JSON declaration modules
 
-- Runtime resolution MUST support loading declaration modules from `.json`
-  sources.
+- Both runtimes MUST support loading declaration modules from `.json` sources.
 - JSON declaration modules MUST be treated as declaration-bearing module sources
-  and validated using the same declaration contract as `.ts`/`.js` sources.
+  and validated using the module declaration contract. JSON is read as data,
+  never through executable host-module loading.
 - JSON parsing or import failures MUST surface as module-resolution errors.
 
 ### Uffda source imports (`.uff`)
@@ -140,19 +141,34 @@ the way Deno loads a `jsr:` import.
   directory and `./bin`.
 - A `.uff` module outside the layout's root MUST fail as a module-resolution
   error naming the module and the root.
-- The runtime MUST load that JSON artifact and lower it to a module declaration
-  through the Uffda runtime compiler (the same lowering used for `run --ast`).
+- The runtime MUST load that JSON artifact as a ModuleDeclaration. Resolution
+  MUST NOT re-run the runtime compiler or re-lower the artifact; the
+  [bootstrap recursion break](./languages/compiler-bootstrap.spec.md#compile-pipeline-and-recursion-break)
+  applies uniformly to built-in and user modules.
 - Module cache identity MUST remain the logical `.uff` URL; the artifact path is
   a load target only.
-- Missing or unreadable artifacts, invalid syntax-AST JSON, and lowering
-  failures MUST surface as module-resolution errors.
-- Direct `.ts`, `.js`, and `.json` imports MUST continue to resolve to their
-  actual paths without artifact remapping.
+- Missing or unreadable artifacts, invalid JSON, and invalid declarations MUST
+  surface as module-resolution errors.
+- Direct `.json` imports MUST resolve to their actual paths without artifact
+  remapping in both runtimes.
+
+### Rust runtime compatibility boundary
+
+- The Rust runtime MUST support `.uff` and `.json` module imports, including
+  package exports resolving to either extension.
+- Direct `.ts` and `.js` file imports MUST be rejected as module-resolution
+  errors.
+- Explicit CLI `--ast` input remains supported independently of module loading.
+- Rust-native globals MUST provide the in-scope runtime capabilities; the Rust
+  runtime MUST NOT use an embedded JavaScript engine to restore retired host
+  imports.
+- The TypeScript reference MUST use the same supported file extensions.
 
 ### Native declaration imports
 
-- Module import declarations MAY specify native imports that provide module
-  declarations directly (inline declaration object or declaration factory).
+- TypeScript module import declarations MAY specify native imports that provide
+  module declarations directly (inline declaration object or declaration
+  factory).
 - Native import declarations MUST resolve to module declarations before normal
   imported-name binding is applied.
 - Native import declarations SHOULD be used for controlled host integration and

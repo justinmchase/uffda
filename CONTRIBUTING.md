@@ -38,4 +38,12 @@ deno task test
 .agents/requirements/     Requirement documents derived from the spec
 src/                      Library implementation (Deno/TypeScript)
 mod.ts                    Public entry point
+rust/                     Side-by-side Rust runtime (not yet the CLI)
 ```
+
+## Rust migration
+
+See the [migration plan](./docs/rust-migration.md) and
+[Rust development instructions](./rust/README.md). Keep the current CLI and
+release pipeline unchanged until the Rust compatibility gates pass. Rust changes
+also run `cargo fmt`, `cargo clippy`, and `cargo test` as documented there.

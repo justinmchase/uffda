@@ -19,8 +19,10 @@ Expected behavior:
   call the resulting callable value.
 - Lambda expressions MUST match invocation arguments against their pattern and
   then evaluate the lambda body in the resulting scope.
-- Native expressions MAY execute host-language callables and return their result
-  directly.
+- In the TypeScript runtime, native expressions MAY execute host-language
+  callables and return their result directly. The Rust runtime MUST reject
+  native-JavaScript expression ASTs; Rust-native globals remain in scope through
+  ordinary invocation.
 - Array and object expressions using spread initializers MUST preserve
   declaration-order composition and host spread semantics.
 - Unary not expressions MUST apply logical negation semantics to their operand.

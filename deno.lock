@@ -5,6 +5,7 @@
     "jsr:@crayon/color-support@2.1.0": "2.1.0",
     "jsr:@crayon/crayon@4.0.0-alpha.4": "4.0.0-alpha.4",
     "jsr:@justinmchase/serializable@~0.3.13": "0.3.13",
+    "jsr:@justinmchase/specs@*": "1.0.0",
     "jsr:@justinmchase/type@~0.2.4": "0.2.4",
     "jsr:@std/assert@^1.0.10": "1.0.10",
     "jsr:@std/assert@^1.0.19": "1.0.19",
@@ -14,6 +15,7 @@
     "jsr:@std/data-structures@^1.1.0": "1.1.0",
     "jsr:@std/encoding@*": "1.0.6",
     "jsr:@std/encoding@^1.0.6": "1.0.6",
+    "jsr:@std/front-matter@1": "1.0.9",
     "jsr:@std/fs@1": "1.0.24",
     "jsr:@std/fs@^1.0.19": "1.0.24",
     "jsr:@std/internal@^1.0.12": "1.0.14",
@@ -21,10 +23,12 @@
     "jsr:@std/internal@^1.0.5": "1.0.14",
     "jsr:@std/json@^1.0.2": "1.1.0",
     "jsr:@std/jsonc@^1.0.2": "1.0.2",
+    "jsr:@std/path@1": "1.1.5",
     "jsr:@std/path@^1.0.8": "1.1.5",
     "jsr:@std/path@^1.1.5": "1.1.5",
     "jsr:@std/semver@^1.0.8": "1.0.8",
     "jsr:@std/yaml@*": "1.1.1",
+    "jsr:@std/yaml@^1.0.5": "1.1.1",
     "jsr:@tui/inputs@0": "0.0.1",
     "jsr:@tui/inputs@0.0.1": "0.0.1",
     "jsr:@tui/nice@0.6.1": "0.6.1",
@@ -58,6 +62,14 @@
       "integrity": "fdddf4a87ec11c75ee528f6c530f3e4209c072ec089f2fc11392e15b197ef93c",
       "dependencies": [
         "jsr:@justinmchase/type"
+      ]
+    },
+    "@justinmchase/specs@1.0.0": {
+      "integrity": "bd032021ae23c95c00c40f9790314cf6c323059e563f5e66b7dab328e982ae8d",
+      "dependencies": [
+        "jsr:@std/front-matter",
+        "jsr:@std/fs@1",
+        "jsr:@std/path@1"
       ]
     },
     "@justinmchase/type@0.2.4": {
@@ -95,6 +107,12 @@
     },
     "@std/encoding@1.0.6": {
       "integrity": "ca87122c196e8831737d9547acf001766618e78cd8c33920776c7f5885546069"
+    },
+    "@std/front-matter@1.0.9": {
+      "integrity": "ee6201d06674cbef137dda2252f62477450b48249e7d8d9ab57a30f85ff6f051",
+      "dependencies": [
+        "jsr:@std/yaml@^1.0.5"
+      ]
     },
     "@std/fs@1.0.24": {
       "integrity": "f3061b45b81673a2bece689da041df32d174be064c89eb6397fb5718d3fb7877",

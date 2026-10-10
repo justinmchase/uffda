@@ -4,6 +4,7 @@ import { ResolveTargetKind } from "../../runtime/patterns/pattern.ts";
 import { Resolver } from "../../runtime/resolve.ts";
 import { ModuleImportResultKind } from "../../runtime/resolvers/resolver.ts";
 import { Scope } from "../../runtime/scope.ts";
+import declaration from "../../runtime/resolvers/test2.module.ts";
 
 function context() {
   return {
@@ -16,7 +17,11 @@ function context() {
 }
 
 Deno.test("req:modules-runtime-003 - Native import declarations provide module declarations for normal import binding", async () => {
-  const resolver = new Resolver();
+  const url = new URL(
+    "../../runtime/resolvers/test2.module.ts",
+    import.meta.url,
+  );
+  const resolver = new Resolver({ declarations: { [url.href]: declaration } });
   const result = await resolver.import(
     new URL("../../runtime/resolvers/test2.module.ts", import.meta.url),
     context(),

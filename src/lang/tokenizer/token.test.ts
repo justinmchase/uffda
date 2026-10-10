@@ -26,6 +26,7 @@ Deno.test(
       name: "TOKEN_00",
       fn: moduleDeclarationTest({
         moduleUrl,
+        declarations: { [moduleUrl]: TokenTest },
         input: Input.Iterable("x"),
         kind: MatchKind.Ok,
         value: "x",
@@ -35,6 +36,7 @@ Deno.test(
       name: "TOKEN_01",
       fn: moduleDeclarationTest({
         moduleUrl,
+        declarations: { [moduleUrl]: TokenTest },
         input: Input.Iterable(["   ", "x"]),
         kind: MatchKind.Ok,
         value: "x",
@@ -44,6 +46,7 @@ Deno.test(
       name: "TOKEN_02",
       fn: moduleDeclarationTest({
         moduleUrl,
+        declarations: { [moduleUrl]: TokenTest },
         input: Input.Iterable(["x", "   "]),
         kind: MatchKind.Ok,
         value: "x",
@@ -53,6 +56,7 @@ Deno.test(
       name: "TOKEN_03",
       fn: moduleDeclarationTest({
         moduleUrl,
+        declarations: { [moduleUrl]: TokenTest },
         input: Input.Iterable(["   ", "x", "   "]),
         kind: MatchKind.Ok,
         value: "x",

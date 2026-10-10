@@ -9,6 +9,9 @@ import { ImportDeclarationKind } from "./declarations/import.ts";
 import { Scope } from "./scope.ts";
 import { fakeRegistry } from "../packages/fake_registry.ts";
 import { JsrPackages } from "../packages/jsr_packages.ts";
+import test1 from "./resolvers/test1.module.ts";
+import test2 from "./resolvers/test2.module.ts";
+import test0 from "./resolvers/test0.module.ts";
 
 function context() {
   return {
@@ -23,6 +26,37 @@ function context() {
 const readPermissions = await Deno.permissions.query({ name: "read" });
 if (readPermissions.state === "granted") {
   Deno.test({
+    name:
+      "req:modules-runtime-001 - injected declarations do not permit executable file loaders",
+    fn: async () => {
+      const empty = { imports: [], exports: [], rules: [] };
+      for (const extension of [".ts", ".js", ".mjs", ".txt"]) {
+        const url = new URL(`./not-executed${extension}`, import.meta.url);
+        let calls = 0;
+        const resolver = new Resolver({
+          resolvers: {
+            [extension]: {
+              resolveModule: () => {
+                calls++;
+                throw new Error("must not invoke executable file loader");
+              },
+            },
+          },
+        });
+        const result = await resolver.import(url, context());
+        assertEquals(result.kind, ModuleImportResultKind.Error);
+        assertEquals(calls, 0);
+        assert(!resolver.resolvedModules.has(url.href));
+        const injected = new Resolver({ declarations: { [url.href]: empty } });
+        assertEquals(
+          (await injected.import(url, context())).kind,
+          ModuleImportResultKind.Module,
+        );
+      }
+    },
+  });
+
+  Deno.test({
     name: "RESOLVE00",
     fn: async () => {
       const resolver = new Resolver();
@@ -32,10 +66,7 @@ if (readPermissions.state === "granted") {
       );
       assertEquals(resolved.kind, ModuleImportResultKind.Module);
       if (resolved.kind !== ModuleImportResultKind.Module) return;
-      assertEquals(
-        [...resolved.module.rules.keys()],
-        ["A", "B"],
-      );
+      assertEquals([...resolved.module.rules.keys()], ["A", "B"]);
     },
   });
 
@@ -47,11 +78,13 @@ if (readPermissions.state === "granted") {
         new URL("./resolvers/test.module.js", import.meta.url),
         context(),
       );
-      assertEquals(resolved.kind, ModuleImportResultKind.Module);
-      if (resolved.kind !== ModuleImportResultKind.Module) return;
+      assertEquals(resolved.kind, ModuleImportResultKind.Error);
+      if (resolved.kind !== ModuleImportResultKind.Error) {
+        throw new Error("expected error");
+      }
       assertEquals(
-        [...resolved.module.rules.keys()],
-        ["A", "B"],
+        resolved.error.message,
+        "Unable to resolve file of unknown extension .js",
       );
     },
   });
@@ -64,11 +97,13 @@ if (readPermissions.state === "granted") {
         new URL("./resolvers/test0.module.ts", import.meta.url),
         context(),
       );
-      assertEquals(resolved.kind, ModuleImportResultKind.Module);
-      if (resolved.kind !== ModuleImportResultKind.Module) return;
+      assertEquals(resolved.kind, ModuleImportResultKind.Error);
+      if (resolved.kind !== ModuleImportResultKind.Error) {
+        throw new Error("expected error");
+      }
       assertEquals(
-        [...resolved.module.rules.keys()],
-        ["A", "B"],
+        resolved.error.message,
+        "Unable to resolve file of unknown extension .ts",
       );
     },
   });
@@ -76,7 +111,12 @@ if (readPermissions.state === "granted") {
   Deno.test({
     name: "RESOLVE03",
     fn: async () => {
-      const resolver = new Resolver();
+      const resolver = new Resolver({
+        declarations: {
+          [new URL("./resolvers/test1.module.ts", import.meta.url).href]: test1,
+          [new URL("./resolvers/test0.module.ts", import.meta.url).href]: test0,
+        },
+      });
       const resolved = await resolver.import(
         new URL("./resolvers/test1.module.ts", import.meta.url),
         context(),
@@ -97,7 +137,13 @@ if (readPermissions.state === "granted") {
   Deno.test({
     name: "RESOLVE04",
     fn: async () => {
-      const resolver = new Resolver();
+      const resolver = new Resolver({
+        declarations: {
+          [new URL("./resolvers/test1.module.ts", import.meta.url).href]: test1,
+          [new URL("./resolvers/test2.module.ts", import.meta.url).href]: test2,
+          [new URL("./resolvers/test0.module.ts", import.meta.url).href]: test0,
+        },
+      });
       const t1 = await resolver.import(
         new URL("./resolvers/test1.module.ts", import.meta.url),
         context(),
@@ -152,10 +198,7 @@ if (readPermissions.state === "granted") {
       assertEquals(m.error.code, MatchErrorCode.ModuleResolution);
       assertEquals(
         m.error.message,
-        `Imported module ${new URL(
-          "./resolvers/test.bad.module.js",
-          import.meta.url,
-        )} must export a ModuleDeclaration as a default export`,
+        "Unable to resolve file of unknown extension .js",
       );
     },
   });

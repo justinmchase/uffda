@@ -12,6 +12,8 @@ Preconditions:
 
 - A module declaration contains a native import declaration with module names
   and a declaration payload.
+- The declaration is explicitly supplied by the host, not loaded from a `.ts` or
+  `.js` file through runtime resolution.
 
 Expected behavior:
 

@@ -4,6 +4,7 @@ import * as posix from "@std/path/posix";
 import { format, maxSatisfying, parse, parseRange } from "@std/semver";
 import { Type, type } from "@justinmchase/type";
 import type { ModuleDeclaration } from "../runtime/declarations/module.ts";
+import { isModuleDeclaration } from "../runtime/declarations/is_module_declaration.ts";
 import { outputNameForSource } from "../runtime/resolvers/artifact_path.ts";
 import {
   type IPackageResolver,
@@ -170,9 +171,9 @@ export class JsrPackages implements IPackageResolver {
         })`,
       );
     }
-    if (posix.extname(path) !== ".uff") {
+    if (![".uff", ".json"].includes(posix.extname(path))) {
       return fail(
-        `${label} exports "${jsr.exportName}" as ${path}, which is not a .uff module`,
+        `${label} exports "${jsr.exportName}" as ${path}, which is not a .uff or .json module`,
       );
     }
     return { ok: true, url: fileUrl(this.registry, { ...file, path }) };
@@ -206,23 +207,28 @@ export class JsrPackages implements IPackageResolver {
   private async loadDeclaration(url: URL): Promise<Result<ModuleDeclaration>> {
     const file = parseFileUrl(this.registry, url);
     if (!file) return fail("it is not a file of a package version");
-    if (posix.extname(file.path) !== ".uff") {
-      return fail("a package supplies .uff modules only");
+    if (![".uff", ".json"].includes(posix.extname(file.path))) {
+      return fail("a package supplies .uff or .json modules only");
     }
     const info = await this.packageVersion(file);
     if (!info.ok) return info;
-    const artifact = posix.join(
-      info.value.outDir,
-      "ast",
-      outputNameForSource(file.path),
-    );
+    const artifact = posix.extname(file.path) === ".json"
+      ? file.path
+      : posix.join(
+        info.value.outDir,
+        "ast",
+        outputNameForSource(file.path),
+      );
     const bytes = await this.packageFile(info.value, artifact);
     if (!bytes.ok) return bytes;
     try {
-      return {
-        ok: true,
-        value: JSON.parse(new TextDecoder().decode(bytes.value)),
-      };
+      const value: unknown = JSON.parse(new TextDecoder().decode(bytes.value));
+      if (!isModuleDeclaration(value)) {
+        return fail(
+          `its declaration at ${artifact} is not a ModuleDeclaration`,
+        );
+      }
+      return { ok: true, value };
     } catch (error) {
       return fail(
         `its compiled artifact ${artifact} is not JSON: ${messageOf(error)}`,

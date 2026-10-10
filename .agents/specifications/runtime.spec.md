@@ -63,6 +63,7 @@ Each runtime subtopic should define:
 
 ## Subtopics
 
+- [runtime memory management](./runtime/memory-management.spec.md)
 - [runtime scopes](./runtime/scopes.spec.md)
 - [runtime rules](./runtime/rules.spec.md)
 - [runtime left recursion](./runtime/left-recursion.spec.md)

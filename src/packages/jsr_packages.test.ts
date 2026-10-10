@@ -216,7 +216,7 @@ Deno.test("jsr_packages.JsrPackages", async (t) => {
     assertStringIncludes(await message("jsr:@acme/missing"), "not found");
   });
 
-  await t.step("loads .uff modules of a package only", async () => {
+  await t.step("loads .uff or .json modules of a package only", async () => {
     const { fake, packages } = await setup({ "1.0.0": kv("A") });
     const result = await packages.load(
       new URL("@acme/kv/1.0.0/mod.ts", fake.registry),
@@ -227,9 +227,44 @@ Deno.test("jsr_packages.JsrPackages", async (t) => {
       result.kind === ModuleDeclarationResultKind.Error
         ? result.error.message
         : "",
-      ".uff modules only",
+      ".uff or .json modules only",
     );
   });
+
+  await t.step(
+    "req:modules-runtime-001 req:modules-runtime-002 - direct JSON package exports load validated data without remapping",
+    async () => {
+      const { fake, packages } = await setup({
+        "1.0.0": {
+          files: {
+            "uffda.jsonc": JSON.stringify({
+              exports: { ".": "./module.json" },
+            }),
+            "module.json": declaration("JSON"),
+            "invalid.json": "{}",
+          },
+        },
+      });
+      const resolution = await packages.resolve("jsr:@acme/kv@1.0.0");
+      assert(resolution.ok);
+      const loaded = await packages.load(resolution.url, context());
+      assertEquals(loaded.kind, ModuleDeclarationResultKind.ModuleDeclaration);
+      if (loaded.kind !== ModuleDeclarationResultKind.ModuleDeclaration) {
+        throw new Error("expected declaration");
+      }
+      assertEquals(loaded.moduleDeclaration.rules[0].name, "JSON");
+      assert(!fake.requests.some((path) => path.endsWith(".uffda.ast.json")));
+      const invalid = await packages.load(
+        new URL("@acme/kv/1.0.0/invalid.json", fake.registry),
+        context(),
+      );
+      assertEquals(invalid.kind, ModuleDeclarationResultKind.Error);
+      if (invalid.kind !== ModuleDeclarationResultKind.Error) {
+        throw new Error("expected error");
+      }
+      assertStringIncludes(invalid.error.message, "not a ModuleDeclaration");
+    },
+  );
 
   await t.step("rejects a file its manifest does not match", async () => {
     const fake = await fakeRegistry({ "@acme/kv": { "1.0.0": kv("A") } });

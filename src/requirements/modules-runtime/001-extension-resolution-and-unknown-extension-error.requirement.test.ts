@@ -18,7 +18,7 @@ function context() {
 
 Deno.test("req:modules-runtime-001 - Module resolution supports configured extensions and rejects unknown extensions", async (t) => {
   await t.step(
-    "ts/js/json declaration modules resolve successfully",
+    "json declarations resolve and ts/js imports fail explicitly",
     async () => {
       const resolver = new Resolver();
 
@@ -26,13 +26,28 @@ Deno.test("req:modules-runtime-001 - Module resolution supports configured exten
         new URL("../../runtime/resolvers/test0.module.ts", import.meta.url),
         context(),
       );
-      assertEquals(tsResult.kind, ModuleImportResultKind.Module);
+      assertEquals(tsResult.kind, ModuleImportResultKind.Error);
+      if (tsResult.kind !== ModuleImportResultKind.Error) {
+        throw new Error("expected error");
+      }
+      assertEquals(tsResult.error.code, MatchErrorCode.ModuleResolution);
+      assertEquals(
+        tsResult.error.message,
+        "Unable to resolve file of unknown extension .ts",
+      );
 
       const jsResult = await resolver.import(
         new URL("../../runtime/resolvers/test.module.js", import.meta.url),
         context(),
       );
-      assertEquals(jsResult.kind, ModuleImportResultKind.Module);
+      assertEquals(jsResult.kind, ModuleImportResultKind.Error);
+      if (jsResult.kind !== ModuleImportResultKind.Error) {
+        throw new Error("expected error");
+      }
+      assertEquals(
+        jsResult.error.message,
+        "Unable to resolve file of unknown extension .js",
+      );
 
       const jsonResult = await resolver.import(
         new URL("../../runtime/resolvers/test.module.json", import.meta.url),

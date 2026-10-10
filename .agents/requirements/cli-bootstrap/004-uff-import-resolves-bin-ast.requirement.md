@@ -1,6 +1,6 @@
 ---
 id: cli-bootstrap-004
-title: .uff imports resolve mirrored bin syntax-AST artifacts
+title: .uff imports resolve mirrored bin ModuleDeclaration artifacts
 spec_ref: ".agents/specifications/modules.spec.md#uffda-source-imports-uff; .agents/specifications/languages/compiler-bootstrap.spec.md#artifact-layout-requirements"
 ---
 
@@ -20,10 +20,12 @@ Expected behavior:
 
 - Runtime resolution MUST remap the logical `.uff` URL to the mirrored artifact
   path and MUST NOT read the `.uff` source text.
-- The runtime MUST load the artifact JSON and lower it to a module declaration
-  via the Uffda runtime compiler.
+- The runtime MUST load the artifact JSON as a ModuleDeclaration without
+  re-lowering it or invoking the runtime compiler.
 - Module identity and resolver cache keys MUST remain the logical `.uff` URL.
-- Direct `.ts`, `.js`, and `.json` imports MUST resolve to their actual paths.
+- In both runtimes, direct `.json` imports MUST resolve to their actual paths.
+  Direct `.ts` and `.js` file imports MUST be rejected; explicit CLI `--ast`
+  input remains supported.
 
 Error behavior:
 
@@ -31,7 +33,7 @@ Error behavior:
   mention the expected artifact path.
 - A `.uff` module outside the layout's root MUST fail with
   `MatchErrorCode.ModuleResolution` naming the module and the root.
-- Invalid artifact JSON or lowering failures MUST fail as module-resolution
+- Invalid artifact JSON or invalid declarations MUST fail as module-resolution
   errors.
 
 Postconditions:

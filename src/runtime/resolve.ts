@@ -27,7 +27,8 @@ import {
   moduleResult,
   withImportFrame,
 } from "./resolvers/resolver.ts";
-import { ImportResolver, JsonResolver } from "./resolvers/mod.ts";
+import { JsonResolver } from "./resolvers/mod.ts";
+import { isModuleDeclaration } from "./declarations/is_module_declaration.ts";
 import {
   type ArtifactLayout,
   defaultArtifactLayout,
@@ -67,8 +68,6 @@ type CanonicalUrl =
 export class Resolver {
   public static readonly DefaultResolvers: IModuleResolvers = {
     [".json"]: new JsonResolver(),
-    [".ts"]: new ImportResolver(),
-    [".js"]: new ImportResolver(),
   };
 
   private readonly modules = new Map<string, Module>();
@@ -527,15 +526,28 @@ export class Resolver {
   ): Promise<ModuleDeclarationResult> {
     if (this.declarations.has(moduleUrl.href)) {
       return moduleDeclarationResult(this.declarations.get(moduleUrl.href)!);
-    } else if (this.packages?.packageOf(moduleUrl) !== undefined) {
+    }
+    const ext = extname(moduleUrl.pathname);
+    if (ext !== ".uff" && ext !== ".json") {
+      return moduleDeclarationResolutionResult(moduleResolutionError(
+        `Unable to resolve file of unknown extension ${ext}`,
+        context,
+      ));
+    }
+    if (this.packages?.packageOf(moduleUrl) !== undefined) {
       const declaration = await this.packages.load(moduleUrl, context);
       if (declaration.kind === ModuleDeclarationResultKind.Error) {
         return declaration;
       }
+      if (!isModuleDeclaration(declaration.moduleDeclaration)) {
+        return moduleDeclarationResolutionResult(moduleResolutionError(
+          `Imported module ${moduleUrl} must export a ModuleDeclaration as a default export`,
+          context,
+        ));
+      }
       this.declarations.set(moduleUrl.href, declaration.moduleDeclaration);
       return declaration;
     } else {
-      const ext = extname(moduleUrl.pathname);
       const resolver = this.resolvers[ext];
       if (!resolver) {
         return moduleDeclarationResolutionResult(
@@ -548,6 +560,12 @@ export class Resolver {
       const declaration = await resolver.resolveModule(moduleUrl, context);
       if (declaration.kind === ModuleDeclarationResultKind.Error) {
         return declaration;
+      }
+      if (!isModuleDeclaration(declaration.moduleDeclaration)) {
+        return moduleDeclarationResolutionResult(moduleResolutionError(
+          `Imported module ${moduleUrl} must export a ModuleDeclaration as a default export`,
+          context,
+        ));
       }
       this.declarations.set(moduleUrl.href, declaration.moduleDeclaration);
       return declaration;
