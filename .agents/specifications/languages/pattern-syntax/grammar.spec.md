@@ -107,6 +107,35 @@ The grammar MUST be able to express the following pattern families:
   intervening whitespace. Authors MUST group an unbounded repetition before
   sequencing it with a numeric literal, as in `(P*) 1`.
 
+## Object patterns
+
+- An object pattern MUST use `{ key: P, ... }`, where each named entry checks
+  the value at that property using pattern `P`.
+- An object pattern MAY include one or more ordered rest clauses:
+  - `...[P]: V` matches each remaining entry whose key matches `P`, then
+    requires its value to match `V`.
+  - `...name:[P]: V` additionally captures each claimed entry as a
+    `[key,
+    value]` pair in `name`.
+  - `...ope` accepts all entries left unmatched by earlier clauses and MUST be
+    the final rest clause.
+- Variable captures in the key or value pattern of a rest clause MUST collect
+  the captured value from every entry claimed by that clause into an array,
+  preserving entry order. If no entries are claimed, those variables MUST remain
+  unbound.
+- The optional entry capture name before a rest clause MUST collect the claimed
+  entry's `[key, value]` pair into an array, preserving entry order. If no
+  entries are claimed, the variable MUST remain unbound.
+- A rest clause MUST inspect only entries not declared by named fields or
+  claimed by earlier rest clauses.
+- A key- or value-pattern miss MUST leave that entry available to later clauses.
+- When no final `...ope` is present, every entry not claimed by a pattern rest
+  clause MUST cause the object pattern to fail.
+- The key and value patterns MUST each be full patterns, delimited by `[` and
+  `]` around the key pattern and `:` between the key and value patterns.
+- Rest clauses MUST normalize to an ordered `over.rest` list, preserving each
+  key/value clause, optional entry capture name, and optional final catch-all.
+
 ## Value sources
 
 - A **value source** is a tagged operand with an explicit `kind`:

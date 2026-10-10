@@ -34,4 +34,19 @@ Deno.test("req:over-001 - Over traverses keyed values through declared key patte
       done: false,
     }),
   );
+
+  await t.step(
+    "over traverses a declared Map key using Map lookup semantics",
+    patternTest({
+      pattern: {
+        kind: PatternKind.Over,
+        keys: {
+          x: { kind: PatternKind.Equal, value: lit("a") },
+        },
+      },
+      input: Input.Iterable([new Map([["x", "a"]])]),
+      kind: MatchKind.Ok,
+      value: new Map([["x", "a"]]),
+    }),
+  );
 });

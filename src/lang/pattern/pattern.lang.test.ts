@@ -529,6 +529,27 @@ Deno.test(
     });
 
     await t.step({
+      name: "req:pattern-language-syntax-011 parses rest-entry object syntax",
+      fn: moduleDeclarationTest({
+        moduleUrl,
+        entryRuleName: "PatternLang",
+        input: Input.Scalar("{ id: number ...[string]: string }"),
+        kind: MatchKind.Ok,
+        value: {
+          kind: PatternKind.Over,
+          keys: {
+            id: { kind: PatternKind.Type, type: Type.Number },
+          },
+          rest: [{
+            kind: "pattern",
+            key: { kind: PatternKind.Type, type: Type.String },
+            value: { kind: PatternKind.Type, type: Type.String },
+          }],
+        },
+      }),
+    });
+
+    await t.step({
       name: "PATTERN_LANG_23",
       fn: moduleDeclarationTest({
         moduleUrl,

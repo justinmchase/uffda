@@ -213,4 +213,32 @@ Deno.test("rule.reentrancy", async (t) => {
       assertEquals(canSkipMemo(neither), true);
     },
   );
+
+  await t.step(
+    "REENTRANCY12 - Over traverses both rest-entry patterns",
+    () => {
+      const module = DefaultModule();
+      const keyRecursive = makeRule(module, "keyRecursive", {
+        kind: PatternKind.Over,
+        keys: {},
+        rest: [{
+          kind: "pattern",
+          key: resolveRef("keyRecursive"),
+          value: character,
+        }],
+      });
+      const valueRecursive = makeRule(module, "valueRecursive", {
+        kind: PatternKind.Over,
+        keys: {},
+        rest: [{
+          kind: "pattern",
+          key: character,
+          value: resolveRef("valueRecursive"),
+        }],
+      });
+
+      assertEquals(canSkipMemo(keyRecursive), false);
+      assertEquals(canSkipMemo(valueRecursive), false);
+    },
+  );
 });

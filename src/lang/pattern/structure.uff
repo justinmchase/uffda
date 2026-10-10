@@ -1,6 +1,8 @@
-# Structure matches grouping `(P)` and object-like Over `{ k:P, … }`. Over
-# builds keys via std from_entries (no host Object native). Cycles with Pattern
-# via Atomic are expected (B9); Resolver import caching breaks recursion.
+# Structure matches grouping `(P)` and object-like Over `{ k:P, ... }`. Over
+# builds named keys via std from_entries; ordered rest clauses can match
+# remaining entries by key/value patterns or accept all leftovers with `...ope`.
+# Cycles with Pattern via Atomic are expected (B9); Resolver import caching
+# breaks recursion.
 import "../common/identifier.uff" IdToken;
 import "./pattern.uff" Pattern;
 import "../editor/editor.uff" Documentation;
@@ -30,15 +32,123 @@ rule OverEntries = f:OverEntry r:OverEntryTail* -> (flat (pack f r));
 rule OverEntriesWithTrailing = e:OverEntries ","? -> e;
 
 [Documentation {
+  description: "The `...` that starts an object rest-entry matcher.",
+  error: "Expected `...` here to start an object rest-entry matcher."
+}]
+rule OverRestStart = "." "." ".";
+
+rule OverRestOpen = "[";
+
+[Documentation {
+  description: "The `]` that ends a rest key pattern.",
+  error: "Expected `]` here to close the rest key pattern."
+}]
+rule OverRestClose = "]";
+
+[Documentation {
+  description: "The `:` between a rest key pattern and value pattern.",
+  error: "Expected `:` here between the rest key pattern and value pattern."
+}]
+rule OverRestColon = ":";
+
+[Documentation {
+  description: "The name that captures each full entry matched by a rest clause.",
+  error: "Expected a capture name after `...`."
+}]
+rule OverRestEntryName = IdToken;
+
+[Documentation {
+  description: "The `:` after an entry capture name.",
+  error: "Expected `:` here after the rest entry capture name."
+}]
+rule OverRestEntryColon = ":";
+
+rule OverRestPatternWithEntry =
+  OverRestStart
+  entry:OverRestEntryName
+  OverRestEntryColon
+  OverRestOpen
+  key:Pattern
+  OverRestClose
+  OverRestColon
+  value:Pattern
+  -> { kind: "pattern", entry: entry, key: key, value: value }
+;
+
+rule OverRestPatternWithoutEntry =
+  OverRestStart
+  OverRestOpen
+  key:Pattern
+  OverRestClose
+  OverRestColon
+  value:Pattern
+  -> { kind: "pattern", key: key, value: value }
+;
+
+rule OverRestPattern =
+  | OverRestPatternWithEntry
+  | OverRestPatternWithoutEntry
+;
+
+rule OverRestPatternTail = ","? rest:OverRestPattern -> rest;
+
+rule OverRestPatterns =
+  first:OverRestPattern rest:OverRestPatternTail*
+  -> (flat [first rest])
+;
+
+[Documentation {
+  description: "The `ope` that accepts all entries left by earlier clauses.",
+  error: "Expected `ope` here to accept all remaining object entries."
+}]
+rule OverRestAnyKeyword = "ope";
+
+rule OverRestAny = OverRestStart OverRestAnyKeyword -> [{ kind: "any" }];
+
+rule OverRestPatternsWithAny =
+  patterns:OverRestPatterns ","? rest:OverRestAny
+  -> (flat [patterns rest])
+;
+
+rule OverRestSequenceBody =
+  | OverRestPatternsWithAny
+  | OverRestPatterns
+  | OverRestAny
+;
+
+rule OverRestSequence = body:OverRestSequenceBody -> body;
+
+rule OverEntriesWithRest =
+  entries:OverEntries ","? rest:OverRestSequence ","?
+  -> { kind: "over", keys: (from_entries (flat entries)), rest: rest }
+;
+
+rule OverRestOnly =
+  rest:OverRestSequence ","?
+  -> { kind: "over", keys: (from_entries []), rest: rest }
+;
+
+rule OverEntriesOnly =
+  entries:OverEntriesWithTrailing
+  -> { kind: "over", keys: (from_entries (flat entries)) }
+;
+
+rule OverEmpty = ok -> { kind: "over", keys: (from_entries []) };
+
+[Documentation {
   description: "The `}` that ends an object pattern.",
-  error: "Expected `}` here to close the object pattern, or `,` before its next `key: pattern` entry."
+  error: "Expected `}` here to close the object pattern, or `,` before its next `key: pattern` entry or `...` rest matcher."
 }]
 rule OverEnd = "}";
 
-rule Over =
-  "{" k:OverEntriesWithTrailing? OverEnd
-  -> { kind: "over", keys: (from_entries (flat (coalesce k []))) }
+rule OverBody =
+  | OverEntriesWithRest
+  | OverRestOnly
+  | OverEntriesOnly
+  | OverEmpty
 ;
+
+rule Over = "{" body:OverBody OverEnd -> body;
 
 rule Structure =
   | Group
