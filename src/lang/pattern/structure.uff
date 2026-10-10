@@ -53,14 +53,20 @@ rule OverRestColon = ":";
 
 [Documentation {
   description: "The name that captures each full entry matched by a rest clause.",
-  error: "Expected a capture name after `as`."
+  error: "Expected a capture name after `...`."
 }]
 rule OverRestEntryName = IdToken;
 
+[Documentation {
+  description: "The `:` after an entry capture name.",
+  error: "Expected `:` here after the rest entry capture name."
+}]
+rule OverRestEntryColon = ":";
+
 rule OverRestPatternWithEntry =
   OverRestStart
-  "as"
   entry:OverRestEntryName
+  OverRestEntryColon
   OverRestOpen
   key:Pattern
   OverRestClose

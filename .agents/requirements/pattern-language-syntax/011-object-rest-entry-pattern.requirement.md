@@ -16,7 +16,7 @@ Expected behavior:
 
 - `{ id: number ...[string]: string }` MUST parse to an `over` pattern with
   named key `id` and one key/value rest clause.
-- `... as e [k:string]: v:string` MUST parse to a rest clause with entry capture
+- `...e:[k:string]: v:string` MUST parse to a rest clause with entry capture
   `e`, key capture `k`, and value capture `v`.
 - Multiple `...[P]: V` clauses MUST parse in source order.
 - `...ope` MUST parse as a catch-all rest clause and MUST be final.

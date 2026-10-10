@@ -304,8 +304,8 @@ Deno.test({
           ".",
           ".",
           ".",
-          "as",
           "e",
+          ":",
           "[",
           "k",
           ":",
@@ -373,11 +373,11 @@ Deno.test(
         [["a", "b"], ["x", "y"]],
       ],
       [
-        "export rule P = { ... as e [string]: string } -> (echo e);",
+        "export rule P = { ...e:[string]: string } -> (echo e);",
         [["a", "x"], ["b", "y"]],
       ],
       [
-        "export rule P = { ... as e [k:string]: v:string } -> (echo [e k v]);",
+        "export rule P = { ...e:[k:string]: v:string } -> (echo [e k v]);",
         [[["a", "x"], ["b", "y"]], ["a", "b"], ["x", "y"]],
       ],
     ];

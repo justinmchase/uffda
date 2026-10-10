@@ -114,7 +114,7 @@ The grammar MUST be able to express the following pattern families:
 - An object pattern MAY include one or more ordered rest clauses:
   - `...[P]: V` matches each remaining entry whose key matches `P`, then
     requires its value to match `V`.
-  - `... as name [P]: V` additionally captures each claimed entry as a
+  - `...name:[P]: V` additionally captures each claimed entry as a
     `[key,
     value]` pair in `name`.
   - `...ope` accepts all entries left unmatched by earlier clauses and MUST be
