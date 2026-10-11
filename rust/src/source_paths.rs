@@ -58,21 +58,29 @@ pub fn expand(cwd: &Path, patterns: &[String], excludes: &[&str]) -> ExpandedPat
             }
             continue;
         }
-        let source = Path::new(pattern);
-        let (root, pattern) = if source.is_absolute() {
-            let root = source.ancestors().last().expect("absolute path has a root");
-            (
-                root,
-                source
-                    .strip_prefix(root)
-                    .expect("root prefix")
-                    .to_string_lossy()
-                    .replace('\\', "/"),
-            )
-        } else {
-            (cwd, pattern.replace('\\', "/"))
+        let pattern = pattern.replace('\\', "/");
+        let wildcard = pattern
+            .char_indices()
+            .find(|(_, character)| matches!(character, '*' | '?' | '[' | '{'))
+            .map(|(index, _)| index)
+            .expect("glob pattern contains a wildcard");
+        let prefix = &pattern[..wildcard];
+        let (root_prefix, relative_pattern) = match prefix.rfind('/') {
+            Some(index) if index == 0 && pattern.starts_with('/') => ("/", &pattern[index + 1..]),
+            Some(index) => (&prefix[..index], &pattern[index + 1..]),
+            None => ("", pattern.as_str()),
         };
-        let mut patterns = vec![pattern];
+        let root = if root_prefix.is_empty() {
+            cwd.to_path_buf()
+        } else {
+            let root = Path::new(root_prefix);
+            if root.is_absolute() {
+                root.to_path_buf()
+            } else {
+                cwd.join(root)
+            }
+        };
+        let mut patterns = vec![relative_pattern.to_owned()];
         patterns.extend(excludes.iter().map(|exclude| format!("!{exclude}")));
         let walker = match globwalk::GlobWalkerBuilder::from_patterns(root, &patterns)
             .file_type(globwalk::FileType::FILE)
@@ -144,5 +152,28 @@ mod tests {
         }
         std::fs::remove_dir(root.join("nested")).unwrap();
         std::fs::remove_dir(root).unwrap();
+    }
+
+    #[test]
+    // req:project-file-003 req:cli-command-model-001
+    fn recursive_glob_walk_is_scoped_to_the_fixed_path_prefix() {
+        let root = std::env::temp_dir().join(format!("uffda-glob-root-{}", std::process::id()));
+        std::fs::create_dir_all(root.join("src/lang/nested")).unwrap();
+        std::fs::create_dir_all(root.join(".tmp/toolchain")).unwrap();
+        std::fs::write(root.join("src/lang/main.uff"), "").unwrap();
+        std::fs::write(root.join("src/lang/nested/child.uff"), "").unwrap();
+        std::fs::write(root.join(".tmp/toolchain/unrelated.uff"), "").unwrap();
+
+        let expanded = expand(&root, &["src/lang/**/*.uff".into()], &[]);
+
+        assert!(expanded.failures.is_empty(), "{:?}", expanded.failures);
+        assert_eq!(expanded.files.len(), 2);
+        assert!(expanded.files.contains(&root.join("src/lang/main.uff")));
+        assert!(
+            expanded
+                .files
+                .contains(&root.join("src/lang/nested/child.uff"))
+        );
+        std::fs::remove_dir_all(root).unwrap();
     }
 }

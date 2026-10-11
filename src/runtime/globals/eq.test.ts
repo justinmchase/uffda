@@ -23,3 +23,9 @@ Deno.test("globals.eq compares raw values, not wrappers", () => {
   );
   assertEquals(eq(new Wrapped(1, rootOrigin(0)), 2), false);
 });
+
+Deno.test("req:runtime-memory-001 - eq compares aggregates by identity", () => {
+  const shared = [1];
+  assertEquals(eq(shared, shared), true);
+  assertEquals(eq(shared, [1]), false);
+});

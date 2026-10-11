@@ -49,7 +49,7 @@ Running `uffda` with no arguments prints help. Commands:
 | `compile` | Compile `.uff` modules to ModuleDeclaration JSON      |
 | `parse`   | Parse source to a raw AST (`--lang` selects language) |
 | `exec`    | Evaluate an expression (source or `--ast`)            |
-| `match`   | Match a pattern against `--input` / `--input-json`    |
+| `match`   | Match a pattern against text, JSON, or codec data     |
 | `run`     | Run a Uffda module (`--entry` selects an export)      |
 | `mcp`     | Start the MCP server and session/display tools        |
 | `lsp`     | Start the Language Server Protocol stdio server       |
@@ -62,9 +62,11 @@ Languages for `parse`: `uffda` (default), `pattern`, `expression`.
 # Expression eval
 uffda exec -e '(echo "Hello, world!")'
 
-# Pattern match (text or JSON subject)
+# Pattern match (text, JSON, or codec data subject)
 uffda match -e 'any' --input hello
 uffda match -e 'number' --input-json 42 --json
+uffda match -e 'any' --input-data '@set[1 2]'
+uffda run ./app.uff --entry Main --input-data-file ./subject.data
 
 # Parse → exec pipeline
 uffda parse --lang expression -e '(echo "Hello, world!")' |
@@ -77,6 +79,48 @@ uffda run ./app.uff --entry Main
 
 See [`examples/morse/morse.uff`](./examples/morse/morse.uff) for a full grammar.
 Use `--help` on any command for flags (`uffda match --help`, …).
+
+### Runtime value input and output
+
+The Rust CLI's `exec`, `match`, and `run` emit one compact
+[Uffda data codec](.agents/specifications/data-codec/values.spec.md) record plus
+newline by default. Strings are quoted and escaped (including top-level
+strings), and undefined emits `undefined`. Codec values include fractional and
+non-finite numbers, BigInt, Date, bytes, registry symbols, Set, Map, and Error.
+Encoding never invokes conversion hooks; unsupported values, cycles and shared
+composite references fail explicitly. Use `--json` for existing JSON value
+output instead.
+
+`match` and `run` accept exactly one subject mode:
+
+| Option                     | Subject                                   |
+| -------------------------- | ----------------------------------------- |
+| `--input <text>`           | Text matched character by character       |
+| `--input-file <path>`      | File contents matched as text             |
+| `--input-json <json>`      | One decoded JSON value                    |
+| `--input-data <data>`      | One decoded codec value                   |
+| `--input-data-file <path>` | One decoded codec value from a UTF-8 file |
+
+All subject options are mutually exclusive, including repeats. Data options
+accept comments and multiline containers, but reject empty or multiple records
+and executable syntax. They never evaluate expressions or interpolate strings.
+Strings and arrays decoded from codec data match as one scalar value, not an
+implicit input sequence. Codec decoding uses the default 16 MiB record-byte and
+1,024 nesting-depth limits.
+
+Program source (`-e`, a path, or stdin) and `--ast` program JSON are separate
+from subject options. For example, runtime output can round-trip without
+executing it as a program:
+
+```sh
+uffda exec -e '"hello"' |
+  uffda match -e any --input-data-file /dev/stdin
+```
+
+Parse output, compiled declaration artifacts, bootstrap files, and structured
+diagnostics remain JSON. Codec-form compiled artifacts are a separate, deferred
+milestone. The Deno CLI is the existing reference implementation; these new
+codec command contracts apply to the Rust migration CLI.
 
 ### Compile layout
 

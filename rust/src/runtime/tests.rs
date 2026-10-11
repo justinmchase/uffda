@@ -3,6 +3,33 @@ use crate::resolver::{Resolver, decode_declaration};
 use serde_json::{Value as Json, json};
 
 #[test]
+// req:cli-match-002 req:cli-run-004 req:data-codec-003 req:runtime-memory-005
+fn codec_subjects_are_native_scalar_values_rooted_in_both_execution_modes() {
+    let mut decoder =
+        crate::codec::data::DataDecoder::new(crate::codec::data::DataLimits::default()).unwrap();
+    let (_, record) = decoder.push_some(b"[42n @bytes\"AA\"]\n").unwrap();
+    let document = record.unwrap().document;
+    let (graph, url) = graph(json!([rule("Main", json!({"kind":"any"}))]), "Main");
+    let mut runtimes = [
+        Runtime::for_pattern_data(Pattern::Any, &document),
+        Runtime::with_data(graph, &url, None, &document).unwrap(),
+    ];
+    for runtime in &mut runtimes {
+        runtime.collect_all();
+        runtime.run().unwrap();
+        runtime.collect_all();
+        runtime.read(|execution| {
+            let result = execution.result().unwrap();
+            assert_eq!(result.kind, MatchKind::Ok);
+            assert_eq!(
+                crate::output::codec_output(result.value).unwrap(),
+                "[42n @bytes\"AA\"]\n"
+            );
+        });
+    }
+}
+
+#[test]
 // req:runtime-strings-002
 fn persistent_runtime_input_normalization_preserves_pairs_and_isolated_units() {
     let input: crate::json::JsonValue = crate::json::from_str(r#""\ud800x😀\udfff""#).unwrap();
@@ -18,6 +45,35 @@ fn persistent_runtime_input_normalization_preserves_pairs_and_isolated_units() {
         runtime.serialize_result().unwrap().unwrap(),
         r#"["\ud800","x","😀","\udfff"]"#
     );
+}
+
+#[test]
+// req:runtime-memory-005 req:rules-001
+fn batched_run_matches_single_step_execution_across_collection_boundaries() {
+    let pattern = || Pattern::Quantifier {
+        pattern: Box::new(Pattern::Any),
+        min: None,
+        max: None,
+    };
+    let input = json!("x".repeat(1024));
+    let mut batched = Runtime::for_pattern(pattern(), input.clone(), InputMode::Iterable).unwrap();
+    batched.run().unwrap();
+    let expected = batched.serialize_result().unwrap();
+
+    let mut stepped = Runtime::for_pattern(pattern(), input, InputMode::Iterable).unwrap();
+    let mut yielded = 0;
+    loop {
+        match stepped.step_status().unwrap() {
+            StepStatus::Complete => break,
+            StepStatus::Yielded => {
+                yielded += 1;
+                stepped.collect_all();
+            }
+            StepStatus::Suspended => panic!("synchronous pattern unexpectedly suspended"),
+        }
+    }
+    assert!(yielded > 512);
+    assert_eq!(stepped.serialize_result().unwrap(), expected);
 }
 
 fn graph(rules: Json, entry: &str) -> (Rc<CompiledModuleGraph>, Url) {
@@ -56,6 +112,136 @@ fn equal(value: Json) -> Json {
 fn text_runtime(rules: Json, entry: &str, input: &str) -> Runtime {
     let (graph, url) = graph(rules, entry);
     Runtime::with_mode(graph, &url, None, json!(input), InputMode::Iterable).unwrap()
+}
+
+#[test]
+// req:memo-eviction-001 req:rules-001
+fn completed_parse_releases_memos_but_retains_its_delivered_match() {
+    let input = "ab".repeat(256);
+    let mut runtime = text_runtime(
+        json!([
+            rule(
+                "Main",
+                json!({"kind":"quantifier","pattern":reference("Atom")})
+            ),
+            rule("Atom", json!({"kind":"any"})),
+        ]),
+        "Main",
+        &input,
+    );
+    runtime.run().unwrap();
+    let expected = serde_json::to_string(
+        &input
+            .chars()
+            .map(|character| character.to_string())
+            .collect::<Vec<_>>(),
+    )
+    .unwrap();
+    assert_eq!(runtime.serialize_result().unwrap(), Some(expected));
+    runtime.read(|execution| {
+        assert!(execution.memos.is_empty());
+        let result = execution.result().expect("completed match is retained");
+        assert_eq!(result.kind, MatchKind::Ok);
+        assert_eq!(result.end, input.len());
+    });
+}
+
+#[test]
+// req:memo-eviction-001
+fn memo_eviction_compacts_entries_before_the_live_low_water_mark() {
+    let mut runtime = Runtime::for_pattern(Pattern::Ok, json!([]), InputMode::Empty).unwrap();
+    runtime.arena.mutate_root(|_, execution| {
+        let Execution::Pattern(pattern) = &execution.frames[0].execution else {
+            panic!("expected root pattern");
+        };
+        let (identity, stream) = pattern.root_input().expect("root input identity");
+        let positions = [1, 5, 7].map(|cursor| MemoKey {
+            target: cursor,
+            position: identity.position(cursor),
+            recovery: false,
+        });
+        for key in &positions {
+            let index = execution.memos.len();
+            execution.memos.push(Memo {
+                input: identity,
+                stream,
+                position: key.position.cursor,
+                state: MemoState::Vacant,
+                version: 0,
+                dependencies: vec![],
+                seed_dependencies: vec![],
+            });
+            execution.memo_keys.insert(key.clone(), index);
+        }
+        execution.active_marks.push(ActiveMark {
+            memo: 1,
+            domain: Some(positions[0].position.domain),
+            low: Some(5),
+        });
+
+        execution.evict_memos();
+
+        assert_eq!(execution.memos.len(), 2);
+        assert!(!execution.memo_keys.contains_key(&positions[0]));
+        assert_eq!(execution.memo_keys.get(&positions[1]), Some(&0));
+        assert_eq!(execution.memo_keys.get(&positions[2]), Some(&1));
+        assert_eq!(execution.active_marks[0].memo, 0);
+
+        execution.active_marks.clear();
+        execution.evict_memos();
+        assert!(execution.memos.is_empty());
+        assert!(execution.memo_keys.is_empty());
+    });
+}
+
+#[test]
+// req:incremental-parsing-001 req:incremental-parsing-002 req:incremental-parsing-003
+fn edit_reuses_only_unchanged_prefix_and_matches_a_fresh_parse() {
+    let (graph, url) = graph(
+        json!([
+            rule(
+                "Main",
+                json!({
+                    "kind":"quantifier",
+                    "pattern":{
+                        "kind":"resolve",
+                        "targetKind":"reference",
+                        "name":"Token",
+                        "args":[{"kind":"any"}]
+                    }
+                })
+            ),
+            json!({"name":"Token","parameters":[{"name":"P"}],"pattern":reference("P")}),
+        ]),
+        "Main",
+    );
+    let mut edited = Runtime::with_mode(
+        graph.clone(),
+        &url,
+        None,
+        json!("abab"),
+        InputMode::Iterable,
+    )
+    .unwrap();
+    edited.run().unwrap();
+    assert_eq!(edited.read(|execution| execution.memos.len()), 0);
+
+    edited
+        .reparse_edit(json!("abbb"), InputMode::Iterable, 2, 1, 1)
+        .unwrap();
+    edited.run().unwrap();
+    let edited_result = edited.serialize_result().unwrap();
+    assert!(
+        edited.read(|execution| execution.memo_hits) >= 2,
+        "the unchanged rule invocations before the edit should be reused"
+    );
+
+    let mut fresh =
+        Runtime::with_mode(graph, &url, None, json!("abbb"), InputMode::Iterable).unwrap();
+    fresh.run().unwrap();
+    assert_eq!(edited_result, fresh.serialize_result().unwrap());
+    assert_eq!(edited.diagnostics(), fresh.diagnostics());
+    edited.read(|execution| assert!(execution.memos.is_empty()));
 }
 
 fn host() -> HostCallable {

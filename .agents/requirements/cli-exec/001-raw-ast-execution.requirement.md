@@ -19,8 +19,8 @@ Expected behavior:
 - Expression source MUST parse before execution.
 - A raw expression AST MUST execute as an implicit `Main` rule.
 - The CLI MUST provide `echo` to expression execution as an identity function.
-- String results MUST be written as text to standard output; other defined
-  results MUST be written as JSON.
+- Results MUST use lossless codec data output by default, including quoted
+  top-level strings; `--json` MUST explicitly select legacy JSON value output.
 - Invalid JSON and runtime failures MUST produce deterministic diagnostics on
   standard error and a non-zero exit code.
 

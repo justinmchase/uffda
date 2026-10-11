@@ -1,6 +1,6 @@
 ---
 id: cli-exec-002
-title: Default operational output uses Uffda data notation without implicit coercion
+title: Default operational output uses lossless Uffda data codec records
 spec_ref: ".agents/specifications/languages/cli/language-and-output.spec.md#execution-output"
 ---
 
@@ -14,17 +14,20 @@ Preconditions:
 
 Expected behavior:
 
-- Without `--json`, a top-level string MUST be emitted as raw text followed by
-  newline, and undefined MUST emit nothing.
-- Other supported data values MUST use Uffda expression notation: whitespace
-  separated arrays, comma separated object entries using computed quoted keys,
-  properly escaped nested strings, scalar literals and negative integral values
-  represented by `(sub 0 magnitude)`.
+- Without `--json`, every supported value MUST be emitted as one compact Uffda
+  data codec record followed by LF. Top-level strings MUST be quoted and
+  escaped; undefined MUST emit `undefined` followed by LF.
+- Output MUST use codec syntax: whitespace-separated arrays and object entries,
+  quoted object keys, negative and fractional numeric literals, preserved
+  negative zero and non-finite numbers, BigInt suffixes, and fixed native tags.
+  Strings MUST preserve isolated surrogate units without replacement and MUST
+  NOT interpolate braces.
 - The renderer MUST NOT call text or JSON hooks. Unsupported values,
-  symbol-keyed properties, cycles, and numbers/strings without a lossless
-  representation in the existing grammar MUST produce explicit output errors,
-  not placeholders, omission, implementation source or JSON fallback.
-- Shared acyclic data MUST remain displayable.
+  symbol-keyed properties, cycles, and values without a lossless representation
+  in the data codec MUST produce explicit output errors, not placeholders,
+  omission, implementation source or JSON fallback.
+- Repeated composite references MUST fail explicitly, including shared acyclic
+  data, following the codec identity contract.
 - `--json` MUST retain explicit JSON output compatibility, subject to callable
   serialization rejection.
 - Parse and compile artifacts and structured diagnostics MUST retain JSON.
@@ -32,3 +35,4 @@ Expected behavior:
 Postconditions:
 
 - CLI display is separate from runtime implicit text conversion.
+- Tests: `rust/tests/cli_data.rs` and `rust/src/output.rs`.

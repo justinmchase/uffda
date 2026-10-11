@@ -215,11 +215,13 @@ impl Languages {
             .serialize_metadata(&member)
             .map_err(|failure| error("output", failure.to_string()))?
             .ok_or_else(|| error("output", "Language rule has no metadata object".into()))?;
+        let value = crate::json::from_str(&value)
+            .map_err(|failure| error("output", failure.to_string()))?;
+        let metadata = crate::json::from_str(&metadata)
+            .map_err(|failure| error("output", failure.to_string()))?;
         Ok(LanguageOutcome {
-            value: crate::json::from_str(&value)
-                .map_err(|failure| error("output", failure.to_string()))?,
-            metadata: crate::json::from_str(&metadata)
-                .map_err(|failure| error("output", failure.to_string()))?,
+            value,
+            metadata,
             diagnostics,
         })
     }

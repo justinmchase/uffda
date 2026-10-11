@@ -10,9 +10,12 @@ Preserve the language and command contracts without new language features.
 Approved scope extension (2026-10-10): design and implement **Uffda data codec
 v1**, a small built-in textual data format with native-type round trips and
 streaming records. This deliberately extends the original no-new-features scope;
-the syntax examples are proposals until specifications and requirements settle
-their contracts. Existing compiled JSON artifacts and bootstrap remain
-unchanged.
+its syntax and supported value contracts are specified below. Codec v1 also
+changes default runtime value output from `exec`, `match`, and `run` to codec
+syntax; `--json` retains the existing JSON compatibility output. Compiled
+declaration JSON artifacts and their bootstrap remain unchanged for codec v1.
+The user approved evaluating codec-form compiled artifacts as a separate
+follow-on migration.
 
 Build alongside the TypeScript implementation. Keep it available as a
 differential-test reference until Rust passes the compatibility gates. Do not
@@ -30,10 +33,13 @@ In scope:
 - Existing authored `.uff` grammars as the language definitions.
 - Uffda data codec v1, including compact/pretty text, incremental record
   streams, native-value encoding/decoding, and explicit CLI/API integration.
+  `match` and `run` will accept codec-decoded subject values explicitly as a
+  native-value hot path, distinct from text input that is parsed by the selected
+  pattern or rule.
 
 MCP and LSP are deferred. Binary codec encoding, compiled-artifact format
-replacement, executable constructors, arbitrary class reconstruction and
-function-source serialization are not part of codec v1.
+replacement during codec v1, executable constructors, arbitrary class
+reconstruction and function-source serialization are not part of codec v1.
 
 Both runtimes support logical `.uff` modules and direct `.json` declarations,
 including package exports resolving to either extension. `.uff` retains artifact
@@ -82,92 +88,141 @@ does not solve cyclic ownership involving closures and environments.
 
 ### 1. Compatibility baseline
 
-- [ ] Trace specifications and requirements to shared fixtures and Rust tests.
-- [ ] Inventory commands, flags, outputs, exit codes, and failure behavior.
-- [ ] Inventory the complete pattern, expression, global, and module surface.
+- [x] Trace implemented Rust tests to requirement documents and shared fixtures
+      with the Rust citation audit and differential corpus.
+- [x] Inventory commands, flags, outputs, exit codes, and failure behavior in
+      the CLI acceptance inventory below.
+- [x] Inventory the pattern, expression, global, module, and command surface;
+      remaining parity gaps are listed below.
 - [x] Record the current expression/pattern discriminators and all 36 default
       global names, separating implemented subsets from unresolved contracts.
-- [ ] Resolve missing or conflicting contracts with explicit decisions.
+- [x] Resolve known asynchronous and value-model differences. The approved Rust
+      contract uses explicit suspension/resumption rather than Promise values,
+      and the Promise-shaped authored `json` hook difference is documented as an
+      intentional platform divergence. No general unhandled-rejection or
+      arbitrary JavaScript prototype-fidelity requirement was found.
+- [x] Define the standard-library surface in a specification: document each
+      global's purpose, signature, value/coercion behavior, errors and purity;
+      retain the small existing library without feature expansion.
+- [x] Broaden the shared behavior corpus to at least two cases per global,
+      including edge/error paths, and enforce the coverage threshold.
+- [ ] Add the normative per-global edge-case acceptance criteria and broaden
+      checks for identity, undefined, native-value and provenance parity.
 - [x] Align module specifications and requirements with the revised `.uff` +
       `.json` boundary in both runtimes and no-re-lowering bootstrap contract.
 - [x] Verify removal of TS/JS file importers, JSON declaration validation,
       injected host integrations, package JSON loading, and Rust data loading.
-- [ ] Build a differential harness; represent identity, undefined, non-JSON
-      values, and provenance without silently reducing them to JSON.
+- [x] Build shared Rust/TypeScript differential fixture runners for the
+      implemented expression, pattern, global, and resolver behavior.
+- [ ] Extend differential coverage across the full contract matrix, including
+      identity, undefined, native values, errors, and provenance, without
+      reducing those observations to JSON.
 
-Gate: a defined parity checklist and an explicit discrepancy list.
+Gate: the inventory, known platform differences and standard-library surface are
+recorded, and the shared corpus now has at least two cases for every global.
+Normative per-global edge-case acceptance and the full differential matrix
+remain open.
 
 ### 2. Dynamic values and memory management
 
-- [ ] Evaluate maintained tracing collectors before committing the full port.
+- [x] Record a comparative fit evaluation of maintained tracing collectors.
+      Retain `gc-arena` 0.7 for its generative arena branding, exact tracing,
+      cycle collection, and external roots suitable for suspended work.
+      `gc`/`rust-gc` and `boa_gc` are credible maintained alternatives, but
+      their documented APIs are a less direct fit for these combined needs. This
+      is a design rationale, not a benchmark or proof alternatives cannot work.
+      Tradeoffs: single-threaded operation, collection outside mutation
+      callbacks, and explicit async-root handling.
 - [x] Prototype `gc-arena` 0.7 with branded pointers, write barriers, external
       roots, and unreachable-cycle reclamation (inherited 38-test suite rerun).
-- [ ] Test primitives, collections, identity, ordering, and coercion.
+- [x] Test primitives, collections, identity, ordering, and coercion through
+      value, evaluator, and native-global tests.
 - [x] Verify primitive strict equality, array/object identity, ordered
       replacement, JavaScript number formatting, truthiness, and basic string
       coercion.
-- [ ] Test closures and cycles across values, environments, scopes, and modules.
-- [x] Verify captured environment graphs and suspended-future external roots;
-      module cycles and actual async invocation remain separate work.
+- [x] Test closures and cycles across values, environments, scopes, and modules,
+      including reclamation after external roots are released.
+- [x] Verify captured environment graphs, suspended-future external roots, and
+      actual async invocation through the rooted continuation driver.
 - [x] Execute real lexical closures, preserve retained captures through GC, and
       reclaim an object/closure/environment cycle after releasing its roots.
 - [x] Verify actual module callable/environment cycles survive collection
       between execution frames and are reclaimed when bindings/execution drop.
-- [ ] Test native callbacks, suspended evaluation, metadata, and provenance.
-- [ ] Test roots for execution, memo tables, caches, and retained matches.
-- [ ] Force collection between evaluation steps and verify reclamation.
+- [x] Test native callbacks, suspended evaluation, metadata, and provenance
+      through evaluator, rule-runtime, and public host integration tests.
+- [x] Test roots for active execution, memo dependencies, resolver/program
+      caches, and retained matches.
+- [x] Force collection between evaluation steps and verify reclamation of
+      abandoned values, closures, environments, and module graphs.
 
 Gate: semantic and cyclic-memory tests pass. Collector integration with actual
-evaluation and suspension must be demonstrated; graph-storage tests alone do not
-complete this milestone.
+evaluation and suspension has been demonstrated. Full language parity remains a
+separate open gate.
 
 ### 3. Execution foundation
 
-- [ ] Deserialize existing artifacts.
+- [x] Deserialize existing compiled artifacts and reject malformed declarations
+      explicitly.
 - [x] Decode the implemented expression subset with typed discriminators and
       explicit errors for unsupported forms.
-- [ ] Implement lexical environments and structurally shared immutable scopes.
+- [x] Implement lexical environments and structurally shared immutable scopes.
 - [x] Verify structurally shared lexical environment storage, shadowing
       including undefined, and iterative lookup through 10,000 parent layers.
-- [ ] Implement input normalization, nested streams, Unicode positions,
-      provenance, match trees, errors, and execution frames.
-- [ ] Implement ordered awaitable execution and stack-safe rule scheduling.
+- [x] Implement input normalization, nested and asynchronous streams, Unicode
+      positions, provenance, match trees, errors, and execution frames.
+- [x] Implement ordered awaitable execution and stack-safe rule scheduling,
+      including explicit host suspension/resumption.
 
 Gate: foundation tests pass, including deep nesting and scope isolation.
 
 ### 4. Expressions and globals
 
-- [ ] Implement every expression form and existing value semantics.
+- [x] Implement all in-scope expression forms: literals, references, members,
+      strings, arrays, objects, invocation, and lambdas. Native JavaScript AST
+      escape hatches remain intentionally unsupported.
 - [x] Verify literals, lexical references, object and array members,
       arrays/objects/spreads/computed keys, interpolation, and unary `not` in 23
       shared fixtures, including collection after every Rust frame.
 - [x] Verify execution and pending-tree cleanup at 20,000 nesting levels.
-- [ ] Implement invocation, lambdas, funcs, argument binding, and errors.
+- [x] Implement invocation, lambdas, declared funcs, argument binding, and
+      errors through rooted evaluator/module continuations.
 - [x] Execute lambdas through actual parameter-pattern matching, including
       invocation spreads, lexical captures, repeated calls, sticky errors, and
       restoration of caller context.
-- [ ] Implement every current default global in Rust.
-- [x] Implement the 36-name native registry, first-class callable lookup, lazy
+- [x] Implement all 36 current default globals in Rust and register them as
+      first-class callable values.
+- [x] Verify the 36-name native registry, first-class callable lookup, lazy
       callback iteration, symbol/map/set operations, and CLI-only `echo`; shared
       fixtures and rooted native-callback tests pass.
-- [ ] Preserve rearranged values' provenance and computed values' call origins.
+- [x] Preserve provenance for tested rearranged values and computed call
+      origins; complete operation-by-operation parity remains in the
+      differential-coverage gate.
 - [x] Verify span-only immutable wrappers, raw equality, carried-wrapper
       identity, Unicode character runs, concatenation, nested-stream character
       origins, and lambda computation origins. Retained values do not retain
       match trees.
-- [ ] Verify supported async behavior.
+- [x] Verify supported async behavior for host calls, authored/native hooks,
+      async input, wake/resume, collection, cancellation, and failures.
 - [x] Remove first-class Promise compatibility artifacts; consume
       authored/native hook results uniformly through rooted execution
       continuations.
-- [ ] Provide explicit suspension/resumption and cooperative scheduling with
+- [x] Provide explicit suspension/resumption and cooperative scheduling with
       executor-independent host futures; no GC mutation or borrowed state across
       await, and deterministic cancellation/error cleanup.
+- [x] Recheck the expression evaluator against the current reference fixtures
+      and requirements; no additional clearly specified expression-only gap was
+      found (59 focused Rust tests and 31 shared expression fixtures pass).
 
-Gate: expression/global differential fixtures and memory stress tests pass.
+Gate: implemented expression/global fixtures and memory stress tests pass.
+Complete semantic parity, the full differential matrix, and final edge-case
+coverage remain open under milestone 1. Automatic Promise scheduling and broader
+prototype/non-JSON behavior remain outside the agreed Rust async and value
+contracts unless milestone 1 identifies a specific required behavior.
 
 ### 5. Patterns and rules
 
-- [ ] Implement the full pattern inventory.
+- [x] Implement the full pattern inventory, including all current pattern kinds
+      and rule-runtime integration.
 - [x] Verify `any`, `ok`, `fail`, `end`, `equal`, `includes`, `then`, `or`,
       `variable`, `maybe`, `not`, `lookahead`, `skip`, `into`, `except`, `type`,
       and `quantifier` on the currently supported value/input types.
@@ -177,45 +232,68 @@ Gate: expression/global differential fixtures and memory stress tests pass.
 - [x] Verify 20,000 nested patterns and calls without host-stack recursion.
 - [x] Verify `and`, `between`, Unicode `character`, ECMAScript `regexp`, object
       `over`/rest, `switch`, and rightmost-failure diagnostics.
-- [ ] Integrate `projection`, `pipeline`, `resolve` host requests, and `recover`
+- [x] Integrate `projection`, `pipeline`, `resolve` host requests, and `recover`
       with complete rule scheduling and stream identity.
-- [ ] Implement lexical rule visibility, parameterized rules, captured inline
+- [x] Implement lexical rule visibility, parameterized rules, captured inline
       arguments, backtracking, and binding isolation.
-- [ ] Implement recursion, memoization, eviction, incremental parsing, recovery,
-      and diagnostics.
-- [ ] Preserve metadata and provenance.
+- [x] Implement recursion, memoization, recovery, and diagnostics.
+- [x] Implement and test conservative memo eviction and incremental edits for
+      supported completed, fixed, flat inputs. The current tests cover eviction,
+      retained results, reused-prefix invalidation, and value/ diagnostic parity
+      with a fresh parse.
+- [ ] Extend incremental-edit and eviction support to uncertain prefixes,
+      recovery, nested/multiple input domains, and establish fresh-input memo
+      identity/remapping. Add acceptance for failed-match reuse, malformed
+      edits, recovery parity, and left-recursive edits. Current low-water
+      eviction may retain entries until parse completion when active frames pin
+      the starting position; it does not establish bounded working memory for
+      large first-pass parses.
+- [x] Preserve metadata and provenance through rule execution, recovery,
+      diagnostics, and retained match results.
 
-Gate: pattern, recursion, recovery, and incremental fixtures pass without host
-stack overflow on deeply nested inputs.
+Gate: pattern, recursion, recovery, and diagnostics fixtures pass without host
+stack overflow on deeply nested inputs. Incremental-edit/eviction is partially
+implemented for a restricted input class; general correctness and bounded
+retention remain open.
 
 ### 6. Self-hosted languages and modules
 
-- [ ] Execute existing compiled tokenizer, pattern, expression, compiler,
+- [x] Execute existing compiled tokenizer, pattern, expression, compiler,
       formatter, and Uffda language modules.
 - [x] Verify filesystem declaration identity/remapping, package export and
       integrity/cache/lockfile fixtures, and iterative module graph linking.
-- [ ] Compile module declarations into executable rule/func/decorator programs
+- [x] Compile module declarations into executable rule/func/decorator programs
       and integrate their shared lexical environments.
-- [ ] Implement `.uff`/`.json` local/package resolution, exports, identity,
+- [x] Implement `.uff`/`.json` local/package resolution, exports, identity,
       caching, integrity verification, and lockfiles.
-- [ ] Embed unmodified artifacts produced by the previous published compiler.
+- [x] Embed unmodified artifacts produced by the previous published compiler.
 - [x] Embed a complete authored-language artifact tree without modifying
       artifacts, validate declaration data, and link embedded language graphs.
-- [ ] Compile the language sources for the next build.
+- [x] Compile the language sources for the next build using the previous
+      published compiler bootstrap.
 
 Imports only load compiled declarations. Never parse or compile on import,
 commit compiler seeds under `src/`, or rewrite artifacts after compilation.
 
-Gate: corpus parsing/compilation and published-compiler bootstrap work.
+Gate: corpus parsing/compilation and published-compiler bootstrap have passed.
+Keep rerunning this gate after changes to compiler or grammar sources.
 
 ### 7. CLI parity
 
-- [ ] Implement all six commands with source, stdin, inline, and AST inputs.
-- [ ] Preserve discovery, paths/globs, machine output, diagnostics, and exits.
-- [ ] Preserve custom formatting and `--check`.
-- [ ] Test both successful and failing invocations end to end.
+- [x] Implement all six commands with their supported source, stdin, inline,
+      file, and AST input modes.
+- [x] Preserve discovery, paths/globs, machine output, diagnostics, and exits
+      for the implemented command paths.
+- [x] Preserve custom formatting and `--check`.
+- [x] Test successful and failing invocations end to end, including standalone
+      optimized-binary smoke tests with user runtime tools absent from `PATH`.
+- [ ] Exercise every supported flag combination and run an installed binary
+      outside the checkout with no repository artifacts available; compare
+      output, diagnostics, and exit codes with the reference CLI.
 
-Gate: observable compatibility, not merely command availability.
+Gate: core command paths are implemented and integration-tested. Full observable
+compatibility across every flag combination and operation outside the repository
+checkout remains open.
 
 ### 8. Uffda data codec v1 (approved scope extension)
 
@@ -346,43 +424,130 @@ fixtures or host-only prototype code are not sufficient acceptance.
 
 #### 8.5. Integration and measured acceptance
 
-- [ ] Replace the interim CLI Uffda value renderer with the codec's defined
-      display/encoding policy, explicitly distinguishing raw top-level string
-      display from encoded string records.
-- [ ] Choose explicit data input/output APIs and CLI selection without confusing
-      codec data, expression source and raw AST input.
+- [x] Decide runtime value output policy: use codec encoding by default,
+      including quoted/round-trippable top-level strings; preserve JSON output
+      through `--json` for compatibility.
+- [x] Replace the interim CLI Uffda value renderer with codec output, including
+      top-level strings and undefined values; `--json` preserves JSON behavior.
+- [x] Decide `match` and `run` subject contract: retain text input for subjects
+      to be parsed by the selected grammar/rule, retain `--input-json`, and add
+      explicit codec-data subject input for native values as a direct
+      performance path. `--ast` remains the program AST input, not the subject.
+- [x] Implement explicit `--input-data` and `--input-data-file` subject options
+      for `match` and `run`, preserving mutually exclusive text, JSON,
+      codec-data, and AST program input modes.
 - [x] Expose explicit Rust library DataDecoder, materialize and compact/pretty
       encode APIs without treating them as CLI data modes.
 - [x] Preserve scalar-only implicit interpolation and explicit existing JSON
       compatibility. Do not add universal `.toString` or automatic JSON
       fallback.
-- [ ] Update directly affected specs, requirements, command documentation and
-      end-to-end tests in the same change.
+- [x] Update directly affected specs, requirements, README command
+      documentation, and end-to-end tests with the CLI integration.
 - [ ] Measure size, throughput and memory against JSON/JSONL, compressed and
       uncompressed, with representative ordinary and native-type records.
 - [ ] Verify standalone Rust operation and streaming on supported platforms.
 
-Gate: lossless supported-type round trips, bounded streaming behavior and
-end-to-end commands pass. Readability and size/performance claims have measured
-evidence, not assumptions based on punctuation removal.
+Gate: codec values and `match`/`run` data-subject CLI paths are implemented and
+covered by focused tests. Comparative size/throughput/memory measurements,
+standalone streaming/platform acceptance, full repository Deno validation, and
+all-platform builds remain open.
 
 #### Deferred artifact adoption
 
 Compiled declarations, bootstrap, package resolution, project/lock files and
-structured diagnostics retain their current formats. After codec v1 is stable,
-evaluate artifact adoption separately: verify JSR asset/entrypoint conventions,
-compatibility/versioning and bootstrap upgrade sequencing. Do not replace JSON
-artifacts incidentally, re-lower on import or rewrite compiled artifacts. Binary
-encoding of the same data model is also deferred.
+structured diagnostics retain their current formats during codec v1. The user
+approved a follow-on migration to encode compiled `ModuleDeclaration` artifacts
+using Uffda data syntax and embed/load those artifacts directly from that
+representation. This is intentionally not part of codec v1's current acceptance
+gate; keep the existing JSON artifact/bootstrap path unchanged until the
+follow-on has an explicit compatibility and rollout design.
 
-### 9. Release and cutover
+Before adopting the new representation, verify that the codec preserves the
+complete declaration data model and establish a bootstrap transition in which
+the previous published compiler can produce the new artifact format before
+`compile:lang` starts requiring it. Build and resolver consumers must load the
+new representation directly. Do not post-process compiler output, re-lower on
+import, or remove JSON compatibility before the published compiler and consumers
+can transition safely. Evaluate JSR asset/entrypoint conventions, artifact
+versioning, mixed-version compatibility, and rollback behavior. Binary encoding
+of the same data model remains deferred.
+
+### 9. Reusable Rust packages
+
+Once the Rust API and command behavior stabilize, split the current
+`publish = false` preview crate into a reusable Rust library and the product
+CLI. The package should let a consumer replace their Uffda/Deno runtime while
+keeping their own grammar, command name, CLI policy and host integration.
+
+- [ ] Define the stable `uffda-runtime` library boundary: dynamic values and GC,
+      expression/pattern/rule execution, native globals, async host suspension,
+      lossless strings/provenance, resolver/project/package loading,
+      diagnostics, formatter and codec APIs.
+- [ ] Keep Uffda's authored grammar bundle, default language registry and
+      product-specific CLI choices outside the generic runtime crate. Allow a
+      host application to register its own compiled module declarations and host
+      functions without forking runtime internals.
+- [ ] Provide a reusable embedding/build component that validates a compiled
+      artifact tree and generates a static Rust declaration registry from
+      unmodified JSON artifacts. Consumers should be able to keep using their
+      existing published compiler; no Rust build step may parse `.uff`, re-lower
+      artifacts or require checked-in compiler seeds.
+- [ ] Decide whether command parsing/dispatch belongs in a separate optional
+      `uffda-cli` support crate or remains a documented reference frontend. Keep
+      it configurable for a consumer's own command name, entry rules, language
+      metadata and output policy.
+- [ ] Add an example custom-language CLI that embeds consumer-owned compiled
+      declarations, resolves project modules, runs a rule, formats source and
+      demonstrates host API injection without depending on Deno at runtime.
+- [ ] Define crate names, workspace/version policy, license and API stability;
+      check registry-name availability and publish the stable library/build
+      components to crates.io only after parity and package tests pass.
+- [ ] Add downstream-consumer tests that build from the published crates and run
+      without access to this repository's `src/lang`, `bin`, or build scripts.
+
+Package gate: an independent project can compile its own grammar with its
+existing compiler, embed the resulting declarations, and build a working
+Rust-backed custom CLI using published crates and documented APIs.
+
+### 10. Side-by-side release binaries and cutover
+
+Do not replace the existing `uffda` release binaries while parity work is
+ongoing. After the Rust preview passes its release smoke gates, extend Release
+Binaries to attach separately named `uffdar-${version}-${target}` assets beside
+the existing `uffda-*` assets. Keep setup/install behavior, stable `uffda` asset
+names, checksums and published TypeScript CLI unchanged. Smoke test `uffdar`
+directly as a preview; only offer it through the existing `uffda` installer
+after the eventual cutover is approved.
+
+Rust can target the current Linux/Windows/macOS x86_64/aarch64 triples, but
+unlike `deno compile`, Cargo cross-target builds need target standard libraries
+and native linkers/SDKs. Do not assume all six targets can be produced by
+`cargo build --target` on one Ubuntu runner: MSVC targets need the MSVC
+toolchain, and Apple targets need the Apple SDK/Xcode toolchain. Use a small
+OS-specific GitHub Actions runner matrix (Linux, Windows, macOS), adding a
+per-architecture cross linker or native ARM runner where the hosted runner
+cannot build the target directly. The current workflow adds the first `uffdar`
+preview for x86_64 Linux: it downloads the unmodified language AST tree produced
+by `compile:lang`, embeds it during the Rust build, smoke-tests source execution
+outside the checkout, and attaches it without changing the existing `uffda`
+assets or installer. Extend the Rust target matrix to the other platforms as
+their native build and smoke-test runners are established. Keep the existing
+artifact/checksum/attach jobs and validate each asset by installing or directly
+executing its target binary on matching runners.
 
 - [ ] Run unit, corpus, integration, differential, and GC-stress suites.
 - [ ] Compare performance and memory against the baseline.
 - [ ] Build/smoke-test Linux, Windows, and macOS on x86_64 and aarch64.
-- [ ] Preserve asset names, checksums, installers, and setup-action behavior.
+- [x] Add a separate x86_64 Linux `uffdar-*` preview build using the
+      bootstrapped AST artifact tree, with an outside-checkout smoke test and
+      dedicated preview checksum; leave `uffda-*` assets, checksums, installer,
+      setup-action behavior and production defaults unchanged.
+- [ ] Extend the `uffdar-*` build, attach and smoke-test path to the other
+      supported release targets.
+- [ ] Preserve asset names, checksums, installers, and setup-action behavior
+      through the eventual approved cutover.
 - [ ] Update implementation-specific specifications and contributor docs.
-- [ ] Switch production only after all gates pass.
+- [ ] Switch production only after all parity and package gates pass.
 
 ## Final acceptance
 
@@ -390,10 +555,34 @@ An installed Rust `uffda` runs every in-scope command without Deno installed,
 preserves agreed contracts, safely handles dynamic values and closures, and
 participates in the published-compiler bootstrap process. The approved codec v1
 additionally passes its defined native-type round-trip, streaming, failure and
-standalone integration gates. Deferred artifact/binary adoption is not required
-for this acceptance.
+standalone integration gates. An independently built custom CLI can consume the
+published Rust runtime and artifact-embedding component. Deferred
+artifact/binary adoption is not required for this acceptance.
 
 ## Implementation progress
+
+The checkpoint entries below are historical snapshots in chronological order;
+their open items may have been completed by later entries. The milestone
+checklists and remaining-runtime inventory above are the current status.
+
+### Parallel milestone review rollup (2026-10-11)
+
+| Milestone        | Latest evidence                                                                                                                                                                                                                                                  | Remaining gate                                                                                                                                                    |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Compatibility | Standard-library surface/coverage requirement strengthened. Shared Rust/TypeScript global corpus: 79 cases across all 36 globals, at least two per global; focused TS corpus/surface tests and Rust differential fixture test pass. Full Deno suite: 867 passed. | Normative per-global edge criteria and identity/undefined/native-value/error/provenance differential gaps remain.                                                 |
+| 2. Memory        | Comparative fit rationale recorded for `gc-arena` 0.7 versus `gc`/`rust-gc` and `boa_gc`; no benchmark claim.                                                                                                                                                    | No implementation gate currently open.                                                                                                                            |
+| 3. Execution     | 25 focused Rust tests passed across artifacts, scopes, streams, diagnostics, host suspension, and deep scheduling.                                                                                                                                               | No implementation gate currently open.                                                                                                                            |
+| 4. Expressions   | 59 focused evaluator tests and 31 shared expression fixtures passed; no additional clearly specified expression-only gap found.                                                                                                                                  | Differential edge cases remain under milestone 1.                                                                                                                 |
+| 5. Patterns      | 71 focused runtime tests and library Clippy passed for memo eviction and fixed-input incremental edits; the final all-target run also passed 382 library tests.                                                                                                  | General nested/recovery/multiple-domain edits, memo identity remapping, failed/left-recursive reuse, and bounded working memory remain unverified or unsupported. |
+| 6. Modules       | 45 focused Rust tests and 39 Deno bootstrap tests passed; 70 compiled grammars had zero structural differences and no bin artifact changes.                                                                                                                      | No implementation gate currently open.                                                                                                                            |
+| 7. CLI           | Rust CLI integration tests: 28 passed, including parse path/stdin, compile fallback, explicit valid config, relocated-binary operation without checkout artifacts, and output-write failure exit 70.                                                             | Exhaustive flag combinations and internal execution-exception handling remain uncovered.                                                                          |
+| 8. Codec         | Rust all-target validation: 382 library, 1 artifact, 28 CLI, 5 codec CLI, and 3 host tests passed; strict Clippy, Rust formatting, Deno formatting/lint, and full Deno tests passed. README/specs/requirements updated.                                          | Size/throughput/memory measurements and Windows/macOS streaming/build validation remain open.                                                                     |
+
+The Rust counts above are from one all-target Cargo run against the consolidated
+worktree. The full Deno suite passed with its temp directory outside the
+checkout; this avoided temporary projects discovering the repository's ancestor
+`uffda.jsonc`. Repository-wide `deno fmt --check`, `deno lint`, and
+`git diff --check` also pass.
 
 ### Continuation baseline (2026-10-10)
 
@@ -407,9 +596,11 @@ Known external/design gates:
 - Rust and the native linker are now installed normally. Use the normal
   rustup/PATH setup; no repository-local toolchain or linker fallback is
   permitted.
-- The standard-library specification remains `SPEC_DEFINITION_PENDING`. Existing
-  narrower requirements can govern individual globals, but missing contracts
-  must not be invented.
+- The standard-library specification remains `SPEC_DEFINITION_PENDING`. Current
+  plan: review each existing global's contract, using TypeScript behavior and
+  requirements as evidence; keep the library small and primarily pure, with no
+  scope expansion. Record any proposed behavior change explicitly before
+  altering implementations.
 - The stale `and`
   [requirement](../.agents/requirements/patterns-runtime/and-001-core.requirement.md)
   was aligned with the higher-authority
@@ -486,42 +677,42 @@ missing Rust test discovery.
 
 ### Remaining runtime inventory
 
-Expression forms: number, boolean, JSON value, string, array, object, reference,
-member, not, invocation, and lambda are decoded and exercised. Native JavaScript
-ASTs are deliberately rejected. Complete member/coercion/non-JSON semantics,
-declared funcs, `this`, rule-info references, capabilities, and async invocation
-are still open.
+Implemented runtime surface: all in-scope expression forms; declared funcs and
+closures; all 36 default globals; all current pattern kinds; rules, parameter
+binding, backtracking, recursion, memoization, recovery, diagnostics, metadata,
+and host-call/async-input suspension. Shared differential fixtures and
+requirement-cited runtime tests cover these areas, including forced collection
+at execution boundaries. Native JavaScript AST escape hatches and implicit
+composite/callable-to-text or callable-to-JSON conversion are intentionally
+rejected under the recorded compatibility decisions.
 
-Remaining pattern kinds pending full integration: `and`, `between`, `character`,
-`over` (including rest entries), `pipeline`, `projection`, `regexp`, `resolve`,
-`recover`, and `switch`. Rules, parameterized/captured rule arguments,
-memoization, left recursion, eviction, incremental edits, recovery, diagnostics,
-and metadata remain open. Open-input repetition tests verify end-attempt
-behavior, not incremental stream mutation or async iterators.
+Remaining runtime gates:
 
-The 36 default globals still requiring Rust implementations and explicit
-contracts are: `add`, `at`, `base58`, `coalesce`, `compare`, `eq`, `enumerate`,
-`filter`, `flat`, `format`, `from_entries`, `gt`, `gte`, `has`, `id`, `int`,
-`iterable`, `join`, `json`, `last`, `length`, `lt`, `lte`, `map`, `not`, `one`,
-`pack`, `pluck`, `reduce`, `scan`, `sha256`, `slice`, `sub`, `symbol`, `to_set`,
-and `when`. The pending standard-library specification is not treated as
-permission to invent contracts.
-
-There is now a runnable Rust AST CLI and filesystem/package/graph resolver.
-Embedded-language execution and release cutover remain unimplemented. Symbols,
-maps/sets, iterators, async suspension in real invocation, and full provenance
-through rules/globals/pipelines remain open. Collector selection remains
-provisional until those actual-runtime gates pass.
+- The standard-library specification and API-surface requirement are now
+  defined. Normative per-global edge-case criteria and broad differential
+  coverage remain incomplete.
+- Memo eviction and incremental edits now work for a restricted fixed, flat,
+  completed-input subset. Current input snapshots avoid quadratic append
+  copying, but uncertain/recovery/nested domains and bounded whole-runtime
+  memory remain unaccepted.
+- The compatibility baseline still needs a complete differential matrix for
+  identity, undefined, native values, failures, and provenance, rather than only
+  the existing shared fixture subsets.
+- General performance/memory acceptance and all six release-platform builds
+  remain open. The Rust compile comparison is workload-specific and remains
+  slower than Deno.
 
 ### CLI acceptance inventory
 
-These are reference requirements; full Rust command parity remains open:
+The command implementations and core source/AST execution paths are present and
+have end-to-end coverage. The table records the reference behavior; complete
+flag-combination and output/exit-code parity remains open.
 
 | Command   | Input and behavior to preserve                                                | Output and failure checks                                                      |
 | --------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | `compile` | Files/globs; project discovery, imports, outDir, overwrite policy             | Mirrored ModuleDeclaration artifacts; per-unit failures; no import re-lowering |
 | `parse`   | Path, `-`, implicit stdin, `-e`/`--eval`; `--lang`; reject `--ast`            | Raw syntax AST; parse diagnostics on stderr                                    |
-| `exec`    | Expression source or explicit `--ast`; reject language overrides              | String results as text, other values as JSON; expression errors                |
+| `exec`    | Expression source or explicit `--ast`; reject language overrides              | Uffda value display by default, explicit `--json`, expression errors           |
 | `match`   | Pattern source or explicit `--ast`; mutually exclusive text/file/JSON subject | Raw match value; human rightmost-failure diagnostics or `--json`               |
 | `run`     | Module source or explicit `--ast`; exported `--entry`; text/file/JSON subject | Raw rule value; module, matching, and recovery diagnostics                     |
 | `fmt`     | Files/globs, default discovery, standalone `-`, custom project formatters     | In-place formatting or no writes with `--check`; refuse unclean parses         |
@@ -530,9 +721,10 @@ Global/process checks include help/version, explicit mode conflict diagnostics,
 compile fallback only when arguments exist, successful root usage with no
 arguments, cwd/config resolution, JSON error code/message/phase, and exit codes
 0 (success), 2 (usage), 3 (configuration), and 70 (internal), plus
-command-specific failure exits. MCP/LSP remain deferred. Complete per-command
-flag combinations and installed-binary end-to-end output/exit verification
-remain unchecked.
+command-specific failure exits. MCP/LSP remain deferred. Core process tests and
+standalone binary smoke tests exist, but exhaustive per-command flag
+combinations and execution from outside the checkout with no repository
+artifacts available remain unchecked.
 
 ### Coordinator integration checkpoint
 
@@ -545,9 +737,12 @@ remain unchecked.
 - [x] Expand the Rust requirement-citation audit to integration tests.
 - [x] Wire native globals and `echo` into AST `exec`, verified through the
       binary.
-- [ ] Complete expression callback/value edge-case parity and async integration.
-- [ ] Complete `run`, source `exec`/`match`, `parse`, `compile`, and `fmt`
-      through the existing self-hosted languages.
+- [x] Integrate rooted expression callbacks, host async execution, and
+      value-path tests. Remaining edge-case parity is tracked in milestones 1
+      and 4.
+- [x] Complete source `run`, `exec`/`match`, `parse`, `compile`, and `fmt`
+      through the existing self-hosted languages; exhaustive flag combinations
+      and outside-checkout acceptance remain open in milestone 7.
 
 Run the current preview from the repository root:
 
@@ -1045,3 +1240,34 @@ strict all-target Clippy and optimized build pass. Rust requirement citation
 audit passes. Existing Deno gates from the immediately preceding integration
 remain 867 tests / 2408 steps, formatting, grammar formatting and lint clean;
 this increment changes no Deno source or `.uff` grammar. No cutover is claimed.
+
+### Rust compile-path profiling and batching
+
+On the same Linux host, a release Rust compile of the 70 language grammars
+initially had a 50.75 s median, versus 17.12 s for Deno. Profiling attributed
+about 53 s of an instrumented run to authored-language execution and about 1 s
+to compiler lowering; JSON serialization and diagnostics were negligible. That
+run executed about 95 million scheduler steps across parse/lower work.
+
+`Runtime::run` now batches up to 512 internal steps within a rooted collector
+mutation and collects debt between batches. The public one-step and suspension
+interfaces remain unchanged. A test compares batched execution with individually
+stepped execution while forcing collection after every step, across multiple
+batch boundaries. Recursive glob expansion now starts at the fixed path prefix
+instead of walking the whole working tree.
+
+Three clean-output trials on the same 70-file glob then compiled successfully
+with both runtimes, with zero failures and structurally identical ASTs:
+
+| Runtime          |  Median |    Mean |         Range |
+| ---------------- | ------: | ------: | ------------: |
+| Rust release CLI | 43.58 s | 43.39 s | 42.31–44.27 s |
+| Deno CLI         | 17.70 s | 18.02 s | 17.27–19.09 s |
+
+The selected batching is about 8% faster than a single 64-step-batch trial on
+the same glob, but Rust remains about 2.5x slower than Deno. Peak Rust RSS was
+about 754 MiB and did not materially change between 64- and 512-step batches.
+Larger 4096-step batches were slower and retain more allocation debt, so were
+rejected. Algorithm-level pattern/runtime work and memory usage remain
+performance priorities; these measurements do not establish general runtime
+performance or migration acceptance.

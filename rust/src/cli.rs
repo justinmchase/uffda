@@ -1,9 +1,10 @@
+use crate::codec::data::{DataDecoder, DataDocument, DataLimits};
 use crate::diagnostics::{self, SourceDiagnostic};
 use crate::evaluate::Evaluation;
 use crate::expression::Expression;
 use crate::languages::{Language, Languages};
 use crate::module::CompiledModuleGraph;
-use crate::output::{serialized_json_output, serialized_output, uffda_output};
+use crate::output::{codec_output, serialized_json_output, serialized_output};
 use crate::pattern::{MatchKind, Pattern};
 use crate::project::Project;
 use crate::resolver::{Resolver, decode_declaration};
@@ -36,6 +37,55 @@ fn success(stdout: String) -> CliResult {
         exit_code: 0,
         stdout,
         stderr: String::new(),
+    }
+}
+
+enum Subject {
+    Json(crate::json::JsonValue, InputMode),
+    Data(DataDocument),
+}
+
+fn decode_subject(source: Option<&str>, json: bool, data: bool) -> Result<Subject, CliResult> {
+    let Some(source) = source else {
+        return Ok(Subject::Json(
+            crate::json::JsonValue::Array(vec![]),
+            InputMode::Empty,
+        ));
+    };
+    if data {
+        let decode = || -> Result<DataDocument, String> {
+            let mut decoder = DataDecoder::new(DataLimits::default()).map_err(|e| e.to_string())?;
+            let mut bytes = source.as_bytes();
+            let mut document = None;
+            while !bytes.is_empty() {
+                let (consumed, record) = decoder.push_some(bytes).map_err(|e| e.to_string())?;
+                bytes = &bytes[consumed..];
+                if let Some(record) = record
+                    && document.replace(record.document).is_some()
+                {
+                    return Err("Expected exactly one codec data subject record".into());
+                }
+            }
+            if let Some(record) = decoder.finish().map_err(|e| e.to_string())?
+                && document.replace(record.document).is_some()
+            {
+                return Err("Expected exactly one codec data subject record".into());
+            }
+            document.ok_or_else(|| "Expected exactly one codec data subject record".into())
+        };
+        return decode()
+            .map(Subject::Data)
+            .map_err(|error| failure("CLI_MATCH_INVALID_DATA", "input", error));
+    }
+    if json {
+        crate::json::from_str(source)
+            .map(|value| Subject::Json(value, InputMode::Scalar))
+            .map_err(|error| failure("CLI_MATCH_INVALID_JSON", "input", error))
+    } else {
+        Ok(Subject::Json(
+            crate::json::JsonValue::String(source.into()),
+            InputMode::Iterable,
+        ))
     }
 }
 
@@ -97,7 +147,33 @@ fn diagnostic_failure(
     }
 }
 
-const HELP: &str = "Usage: uffda <command> [options] [paths...]\n\nRust migration preview:\n  compile       Compile source files or globs to project artifacts.\n  parse         Parse source using --lang uffda, pattern, or expression.\n  exec          Evaluate expression source or --ast JSON.\n  match         Match pattern source or --ast JSON against input.\n  run           Execute an exported rule from module source or --ast syntax JSON.\n  fmt           Format files/globs, or '-' for .uff stdin, with language metadata.\n\nOptions:\n  -e, --eval    Inline source input.\n  --ast         Explicit raw AST JSON input (not compatible with --eval).\n  --json        JSON output, including string results.\n  --config      Explicit project configuration file.\n  --check       Check formatting without writes (fmt only).\n  --help, -h    Show usage.\n  --version, -V Show version.\n";
+const HELP: &str = "\
+Usage: uffda <command> [options] [paths...]
+
+Rust migration preview:
+  compile       Compile source files or globs to project artifacts.
+  parse         Parse source using --lang uffda, pattern, or expression.
+  exec          Evaluate expression source or --ast JSON.
+  match         Match pattern source or --ast JSON against input.
+  run           Execute an exported rule from module source or --ast syntax JSON.
+  fmt           Format files/globs, or '-' for .uff stdin, with language metadata.
+
+Options:
+  -e, --eval         Inline program source input.
+  --ast              Explicit raw program AST JSON (not compatible with --eval).
+  --input            Inline text subject (match/run).
+  --input-file       Text subject file (match/run).
+  --input-json       One inline JSON subject value (match/run).
+  --input-data       One inline codec data subject value (match/run).
+  --input-data-file  One codec data subject value from a file (match/run).
+                     Subject options are mutually exclusive; data is never evaluated.
+  --json             JSON output; exec/match/run otherwise emit codec data records,
+                     including quoted strings and undefined.
+  --config           Explicit project configuration file.
+  --check            Check formatting without writes (fmt only).
+  --help, -h         Show usage.
+  --version, -V      Show version.
+";
 
 fn resolve_mode(args: &[String]) -> Result<(String, Vec<String>), String> {
     let commands = ["compile", "parse", "exec", "match", "run", "fmt"];
@@ -133,6 +209,8 @@ fn resolve_mode(args: &[String]) -> Result<(String, Vec<String>), String> {
                 "--input",
                 "--input-json",
                 "--input-file",
+                "--input-data",
+                "--input-data-file",
                 "--config",
                 "--entry",
                 "--lang",
@@ -174,6 +252,8 @@ pub fn run(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> 
                 "--input",
                 "--input-json",
                 "--input-file",
+                "--input-data",
+                "--input-data-file",
                 "--lang",
                 "--entry",
                 "--config",
@@ -215,6 +295,7 @@ pub fn run(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> 
     let mut compile_paths = Vec::new();
     let mut subject = None;
     let mut subject_json = false;
+    let mut subject_data = false;
     let mut language = Language::Uffda;
     let mut language_selected = false;
     let mut entry = None;
@@ -229,8 +310,8 @@ pub fn run(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> 
         match flag {
             "--ast" if inline.is_none() => ast = true,
             "--json" if inline.is_none() => json_output = true,
-            "-e" | "--eval" | "--input" | "--input-json" | "--input-file" | "--lang"
-            | "--entry" | "--config" => {
+            "-e" | "--eval" | "--input" | "--input-json" | "--input-file" | "--input-data"
+            | "--input-data-file" | "--lang" | "--entry" | "--config" => {
                 let value = if let Some(value) = inline {
                     value.to_owned()
                 } else {
@@ -296,7 +377,8 @@ pub fn run(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> 
                         );
                     }
                     subject_json = flag == "--input-json";
-                    subject = Some(if flag == "--input-file" {
+                    subject_data = matches!(flag, "--input-data" | "--input-data-file");
+                    subject = Some(if matches!(flag, "--input-file" | "--input-data-file") {
                         match std::fs::read_to_string(value) {
                             Ok(value) => value,
                             Err(error) => return failure("CLI_USAGE", "input", error),
@@ -357,7 +439,7 @@ pub fn run(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> 
         return failure(
             "CLI_USAGE",
             "validation",
-            "match requires --input or --input-file",
+            "match requires --input, --input-file, --input-json, --input-data or --input-data-file",
         );
     }
     if command == "compile" && (ast || source.is_some() || compile_paths.is_empty()) {
@@ -367,6 +449,11 @@ pub fn run(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> 
             "compile requires source file paths or globs and cannot use --ast or --eval",
         );
     }
+    let diagnostic_source = subject.as_deref().unwrap_or("").to_owned();
+    let parsed_subject = match decode_subject(subject.as_deref(), subject_json, subject_data) {
+        Ok(subject) => subject,
+        Err(error) => return error,
+    };
     let cwd = match std::env::current_dir() {
         Ok(cwd) => cwd,
         Err(error) => return failure("CLI_CONFIG", "configuration", error),
@@ -561,27 +648,16 @@ pub fn run(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> 
             Ok(graph) => Rc::new(graph),
             Err(error) => return failure("CLI_EXEC_COMPILATION_FAILURE", "compile", error),
         };
-        let input_mode = if subject.is_none() {
-            InputMode::Empty
-        } else if subject_json {
-            InputMode::Scalar
-        } else {
-            InputMode::Iterable
+        let runtime = match parsed_subject {
+            Subject::Json(input, mode) => {
+                Runtime::with_mode(graph, &url, selected.as_deref(), input, mode)
+            }
+            Subject::Data(input) => Runtime::with_data(graph, &url, selected.as_deref(), &input),
         };
-        let diagnostic_source = subject.as_deref().unwrap_or("").to_owned();
-        let input = match subject {
-            None => crate::json::JsonValue::Array(vec![]),
-            Some(subject) if subject_json => match crate::json::from_str(&subject) {
-                Ok(input) => input,
-                Err(error) => return failure("CLI_MATCH_INVALID_JSON", "input", error),
-            },
-            Some(subject) => crate::json::JsonValue::String(subject.into()),
+        let mut runtime = match runtime {
+            Ok(runtime) => runtime,
+            Err(error) => return failure("CLI_EXEC_EXECUTION_FAILURE", "execute", error),
         };
-        let mut runtime =
-            match Runtime::with_mode(graph, &url, selected.as_deref(), input, input_mode) {
-                Ok(runtime) => runtime,
-                Err(error) => return failure("CLI_EXEC_EXECUTION_FAILURE", "execute", error),
-            };
         if let Err(error) = runtime.run() {
             return failure("CLI_EXEC_EXECUTION_FAILURE", "execute", error);
         }
@@ -641,7 +717,7 @@ pub fn run(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> 
             if json_output {
                 return None;
             }
-            Some(match uffda_output(result.value) {
+            Some(match codec_output(result.value) {
                 Ok(output) => success(output),
                 Err(error) => failure("CLI_EXEC_EXECUTION_FAILURE", "output", error),
             })
@@ -664,7 +740,7 @@ pub fn run(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> 
             Err(error) => return failure("CLI_EXEC_EXECUTION_FAILURE", "execute", error),
         };
         let direct =
-            match evaluation.read(&result, |value| (!json_output).then(|| uffda_output(value))) {
+            match evaluation.read(&result, |value| (!json_output).then(|| codec_output(value))) {
                 Ok(direct) => direct,
                 Err(error) => return failure("CLI_EXEC_EXECUTION_FAILURE", "output", error),
             };
@@ -688,19 +764,9 @@ pub fn run(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> 
             Ok(pattern) => pattern,
             Err(error) => return failure("CLI_MATCH_UNSUPPORTED_AST", "parse", error),
         };
-        let subject = subject.unwrap_or_default();
-        let parsed_subject = if subject_json {
-            match crate::json::from_str(&subject) {
-                Ok(value) => value,
-                Err(error) => return failure("CLI_MATCH_INVALID_JSON", "input", error),
-            }
-        } else {
-            crate::json::JsonValue::String(subject.into())
-        };
         match_ast(
             pattern,
             parsed_subject,
-            subject_json,
             json_output,
             (!ast).then_some(source.as_str()),
         )
@@ -868,21 +934,19 @@ fn source_excerpt(source: &str, offset: usize) -> String {
 
 fn match_ast(
     pattern: Pattern,
-    subject: crate::json::JsonValue,
-    scalar: bool,
+    subject: Subject,
     json_output: bool,
     source: Option<&str>,
 ) -> CliResult {
     let subject_text = match &subject {
-        crate::json::JsonValue::String(text) => text.clone(),
+        Subject::Json(crate::json::JsonValue::String(text), _) => text.clone(),
         _ => crate::text::RuntimeString::default(),
     };
-    let mode = if scalar {
-        InputMode::Scalar
-    } else {
-        InputMode::Iterable
+    let runtime = match subject {
+        Subject::Json(input, mode) => Runtime::for_pattern(pattern, input, mode),
+        Subject::Data(input) => Ok(Runtime::for_pattern_data(pattern, &input)),
     };
-    let mut runtime = match Runtime::for_pattern(pattern, subject, mode) {
+    let mut runtime = match runtime {
         Ok(runtime) => runtime,
         Err(error) => return failure("CLI_MATCH_FAILURE", "match", error),
     };
@@ -962,7 +1026,7 @@ fn match_ast(
     } else {
         let direct = runtime.read(|execution| {
             let value = execution.result().expect("completed match").value;
-            (!json_output).then(|| uffda_output(value))
+            (!json_output).then(|| codec_output(value))
         });
         match direct {
             Some(Ok(output)) => output,
@@ -1029,8 +1093,8 @@ mod tests {
             &["exec".into(), "-e".into(), "(at \"😀\" 0)".into()],
             || Ok(String::new()),
         );
-        assert_ne!(result.exit_code, 0);
-        assert!(result.stdout.is_empty());
+        assert_eq!(result.exit_code, 0, "{}", result.stderr);
+        assert_eq!(result.stdout, "\"\\ud83d\"\n");
         let result = run(
             &[
                 "match".into(),
@@ -1068,7 +1132,7 @@ mod tests {
         assert!(!result.stdout.contains("Usage"));
         let result = execute(&["match", "-e", "any", "--input", "--version"]);
         assert_eq!(result.exit_code, 0, "{}", result.stderr);
-        assert_eq!(result.stdout, "-\n");
+        assert_eq!(result.stdout, "\"-\"\n");
     }
 
     #[test]
@@ -1152,7 +1216,7 @@ mod tests {
             ],
             || Ok(r#"{"kind":"any"}"#.into()),
         );
-        assert_eq!(result.stdout, "a\n", "{}", result.stderr);
+        assert_eq!(result.stdout, "\"a\"\n", "{}", result.stderr);
         let result = run(
             &[
                 "match".into(),

@@ -120,6 +120,11 @@
     "args": [[{ "x": 1 }, { "x": 2 }], "x"],
     "expected": [1, 2]
   },
+  {
+    "name": "pluck",
+    "args": [[], "x"],
+    "expected": []
+  },
   { "name": "slice", "args": [[1, 2, 3, 4], -3, -1], "expected": [2, 3] },
   { "name": "when", "args": [false, "yes", "no"], "expected": "no" },
   {
@@ -394,6 +399,239 @@
       }]
     }],
     "spread": true,
+    "expected": null,
+    "error": true
+  },
+  {
+    "name": "add",
+    "args": ["2", 3],
+    "expected": null,
+    "error": true
+  },
+  {
+    "name": "at",
+    "expressions": [
+      {
+        "kind": "invocation",
+        "expression": { "kind": "reference", "name": "to_set" },
+        "args": [{ "kind": "value", "value": ["a", "b"] }]
+      },
+      { "kind": "value", "value": 1 }
+    ],
+    "expected": "b"
+  },
+  {
+    "name": "coalesce",
+    "expressions": [
+      { "kind": "value" },
+      { "kind": "value", "value": null },
+      { "kind": "value", "value": false },
+      { "kind": "value", "value": true }
+    ],
+    "expected": false
+  },
+  {
+    "name": "compare",
+    "args": [1, "1"],
+    "expected": null,
+    "error": true
+  },
+  {
+    "name": "eq",
+    "expressions": [
+      {
+        "kind": "object",
+        "keys": [
+          {
+            "kind": "objectKey",
+            "name": "x",
+            "expression": { "kind": "value", "value": 1 }
+          }
+        ]
+      },
+      {
+        "kind": "object",
+        "keys": [
+          {
+            "kind": "objectKey",
+            "name": "x",
+            "expression": { "kind": "value", "value": 1 }
+          }
+        ]
+      }
+    ],
+    "expected": false
+  },
+  {
+    "name": "enumerate",
+    "args": [{ "first": "a", "second": "b" }],
+    "spread": true,
+    "expected": [
+      { "index": "first", "value": "a" },
+      { "index": "second", "value": "b" }
+    ]
+  },
+  {
+    "name": "filter",
+    "expressions": [
+      { "kind": "value", "value": [] },
+      { "kind": "reference", "name": "id" }
+    ],
+    "spread": true,
+    "expected": []
+  },
+  {
+    "name": "flat",
+    "args": [[1, [2, [3]]], 1],
+    "expected": [1, 2, [3]]
+  },
+  {
+    "name": "format",
+    "args": ["{0}|{1}|{2}", false, null],
+    "expected": "false|{1}|{2}"
+  },
+  {
+    "name": "from_entries",
+    "args": [[]],
+    "expected": {}
+  },
+  {
+    "name": "has",
+    "expressions": [
+      {
+        "kind": "invocation",
+        "expression": { "kind": "reference", "name": "to_set" },
+        "args": [{ "kind": "value", "value": [1, 2] }]
+      },
+      { "kind": "value", "value": 2 }
+    ],
+    "expected": true
+  },
+  {
+    "name": "join",
+    "args": [["a", null, false], "-"],
+    "expected": "a--false"
+  },
+  {
+    "name": "length",
+    "expressions": [
+      {
+        "kind": "invocation",
+        "expression": { "kind": "reference", "name": "to_set" },
+        "args": [{ "kind": "value", "value": [1, 1, 2] }]
+      }
+    ],
+    "expected": 2
+  },
+  {
+    "name": "last",
+    "args": ["", "empty"],
+    "expected": "empty"
+  },
+  {
+    "name": "one",
+    "args": [[1, 2], "fallback"],
+    "expected": "fallback"
+  },
+  {
+    "name": "reduce",
+    "expressions": [
+      { "kind": "value", "value": [] },
+      { "kind": "value", "value": 42 },
+      { "kind": "reference", "name": "add" }
+    ],
+    "expected": 42
+  },
+  {
+    "name": "scan",
+    "expressions": [
+      { "kind": "value", "value": [] },
+      { "kind": "value", "value": 42 },
+      { "kind": "reference", "name": "add" }
+    ],
+    "spread": true,
+    "expected": []
+  },
+  {
+    "name": "slice",
+    "args": ["hello world", -5],
+    "expected": "world"
+  },
+  {
+    "name": "sub",
+    "args": [5, "2"],
+    "expected": null,
+    "error": true
+  },
+  {
+    "name": "to_set",
+    "args": [[1, 2, 1, 2]],
+    "spread": true,
+    "expected": [1, 2]
+  },
+  {
+    "name": "when",
+    "args": [[], "truthy", "falsey"],
+    "expected": "truthy"
+  },
+  {
+    "name": "gt",
+    "args": ["same", "same"],
+    "expected": false
+  },
+  {
+    "name": "gte",
+    "args": ["same", "same"],
+    "expected": true
+  },
+  {
+    "name": "id",
+    "args": [null],
+    "expected": null
+  },
+  {
+    "name": "lt",
+    "args": ["same", "same"],
+    "expected": false
+  },
+  {
+    "name": "lte",
+    "args": ["same", "same"],
+    "expected": true
+  },
+  {
+    "name": "map",
+    "expressions": [
+      { "kind": "value", "value": [] },
+      { "kind": "reference", "name": "id" }
+    ],
+    "spread": true,
+    "expected": []
+  },
+  {
+    "name": "not",
+    "args": [null],
+    "expected": true
+  },
+  {
+    "name": "pack",
+    "args": [],
+    "expected": []
+  },
+  {
+    "name": "base58",
+    "expressions": [
+      {
+        "kind": "invocation",
+        "expression": { "kind": "reference", "name": "sha256" },
+        "args": [{ "kind": "value", "value": "hello" }]
+      }
+    ],
+    "expected": "42TEXg1vFAbcJ65y7qdYG9iCPvYfy3NDdVLd75akX2P5"
+  },
+  {
+    "name": "sha256",
+    "args": [42],
     "expected": null,
     "error": true
   }

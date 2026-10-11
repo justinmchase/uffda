@@ -185,7 +185,6 @@ enum MemoState<'gc> {
     Pending,
     Growing(Gc<'gc, PatternMatch<'gc>>),
     Complete(Gc<'gc, PatternMatch<'gc>>),
-    Error(#[collect(require_static)] RuntimeError),
 }
 
 #[derive(Collect)]
@@ -193,6 +192,7 @@ enum MemoState<'gc> {
 struct Memo<'gc> {
     input: InputIdentity<'gc>,
     stream: input::InputBuffer<'gc>,
+    position: usize,
     state: MemoState<'gc>,
     version: usize,
     dependencies: Vec<Dependency>,
@@ -358,6 +358,8 @@ struct Entry<'gc> {
     context: Gc<'gc, Context>,
     environment: Environment<'gc>,
     input: Vec<Value<'gc>>,
+    #[collect(require_static)]
+    input_mode: Option<InputMode>,
     source: Option<input::InputSource<'gc>>,
     #[collect(require_static)]
     export: Option<String>,
@@ -377,6 +379,14 @@ struct Invocation<'gc> {
     growing: bool,
 }
 
+#[derive(Clone, Copy, Collect)]
+#[collect(no_drop)]
+struct ActiveMark {
+    memo: usize,
+    domain: Option<usize>,
+    low: Option<usize>,
+}
+
 /// An explicit rule stack. Every suspended pattern, expression, closure,
 /// stream, seed and memoized value remains reachable from this collector root.
 #[derive(Collect)]
@@ -391,6 +401,7 @@ pub struct RuleExecution<'gc> {
     memos: Vec<Memo<'gc>>,
     #[collect(require_static)]
     memo_keys: HashMap<MemoKey, usize>,
+    active_marks: Vec<ActiveMark>,
     frames: Vec<Frame<'gc>>,
     result: Option<Gc<'gc, PatternMatch<'gc>>>,
     #[collect(require_static)]
@@ -433,6 +444,7 @@ impl<'gc> RuleExecution<'gc> {
             target_keys: HashMap::new(),
             memos: vec![],
             memo_keys: HashMap::new(),
+            active_marks: vec![],
             frames: vec![Frame {
                 execution: Execution::Pattern(execution),
                 context,
@@ -451,6 +463,7 @@ impl<'gc> RuleExecution<'gc> {
                 context,
                 environment,
                 input,
+                input_mode: Some(InputMode::Scalar),
                 source: None,
                 export: None,
                 target_kind: ResolveTargetKind::Run,
@@ -623,6 +636,7 @@ impl<'gc> RuleExecution<'gc> {
             target_keys: HashMap::new(),
             memos: vec![],
             memo_keys: HashMap::new(),
+            active_marks: vec![],
             frames: vec![Frame {
                 execution,
                 context,
@@ -646,6 +660,7 @@ impl<'gc> RuleExecution<'gc> {
                 context,
                 environment,
                 input: retained_input,
+                input_mode: Some(InputMode::Scalar),
                 source: None,
                 export: export.map(str::to_owned),
                 target_kind: ResolveTargetKind::Run,
@@ -659,6 +674,186 @@ impl<'gc> RuleExecution<'gc> {
 
     pub fn result(&self) -> Option<Gc<'gc, PatternMatch<'gc>>> {
         self.result
+    }
+
+    fn reparse_edit(
+        &mut self,
+        mc: &Mutation<'gc>,
+        post_edit: impl Into<crate::json::JsonValue>,
+        mode: InputMode,
+        at: usize,
+        removed: usize,
+        inserted: usize,
+    ) -> Result<(), RuntimeError> {
+        if !self.frames.is_empty()
+            || self.result.is_none()
+            || self.error.is_some()
+            || self.entry.source.is_some()
+            || self.entry.input_mode != Some(mode)
+        {
+            return Err(RuntimeError::InvalidState);
+        }
+
+        let old_len = self.entry.input.len();
+        if at > old_len || removed > old_len - at {
+            return Err(RuntimeError::InvalidArguments(
+                "edit range is outside the prior input".into(),
+            ));
+        }
+        let mut supplied = runtime_input(mc, post_edit, mode)?;
+        if old_len - removed + inserted != supplied.len() {
+            return Err(RuntimeError::InvalidArguments(
+                "edit counts do not match the post-edit input length".into(),
+            ));
+        }
+
+        let prefix_matches = self.entry.input[..at]
+            .iter()
+            .zip(&supplied[..at])
+            .all(|(old, new)| old.strict_eq(*new));
+        let can_reuse = prefix_matches && !self.entry.recovery.was_reached();
+        if prefix_matches {
+            let mut input = self.entry.input[..at].to_vec();
+            input.extend_from_slice(&supplied[at..]);
+            supplied = input;
+        }
+
+        let recovery = RecoveryContext::new(mc);
+        let pattern = match &self.entry.pattern {
+            Some(program) => PatternExecution::compiled_with_recovery(
+                mc,
+                program.clone(),
+                supplied.clone(),
+                self.entry.environment,
+                0,
+                recovery,
+            ),
+            None => PatternExecution::new_with_recovery(
+                mc,
+                Pattern::Resolve {
+                    target_kind: self.entry.target_kind,
+                    name: self.entry.export.clone(),
+                    args: vec![],
+                    value: None,
+                },
+                supplied.clone(),
+                self.entry.environment,
+                recovery,
+            ),
+        };
+        let (identity, stream) = pattern.root_input().ok_or(RuntimeError::InvalidState)?;
+
+        self.memos.clear();
+        self.memo_keys.clear();
+        if can_reuse && at > 0 {
+            let prior = self.result.ok_or(RuntimeError::InvalidState)?;
+            let old_domain = prior.identity.position(0).domain;
+            self.rehydrate_memos(mc, prior, old_domain, at, identity, stream);
+        }
+
+        self.entry.input = supplied;
+        self.entry.recovery = recovery;
+        self.result = None;
+        self.error = None;
+        self.error_context = None;
+        self.serialized = None;
+        self.memo_hits = 0;
+        self.body_attempts = 0;
+        self.frames.push(Frame {
+            execution: Execution::Pattern(pattern),
+            context: self.entry.context,
+            lexical_environment: self.entry.environment,
+            invocation: None,
+            completion: Completion::Root,
+        });
+        Ok(())
+    }
+
+    fn rehydrate_memos(
+        &mut self,
+        mc: &Mutation<'gc>,
+        root: Gc<'gc, PatternMatch<'gc>>,
+        old_domain: usize,
+        at: usize,
+        identity: InputIdentity<'gc>,
+        stream: input::InputBuffer<'gc>,
+    ) {
+        let mut nodes = Vec::new();
+        let mut parents = HashMap::<usize, Vec<usize>>::new();
+        let mut seen = std::collections::HashSet::new();
+        let mut pending = vec![root];
+        while let Some(node) = pending.pop() {
+            let address = Gc::as_ptr(node) as usize;
+            if !seen.insert(address) {
+                continue;
+            }
+            nodes.push(node);
+            for child in &node.children {
+                parents
+                    .entry(Gc::as_ptr(*child) as usize)
+                    .or_default()
+                    .push(address);
+                pending.push(*child);
+            }
+        }
+
+        let mut seeded = std::collections::HashSet::new();
+        let mut pending: Vec<usize> = nodes
+            .iter()
+            .filter(|node| node.seeded)
+            .map(|node| Gc::as_ptr(*node) as usize)
+            .collect();
+        while let Some(address) = pending.pop() {
+            if !seeded.insert(address) {
+                continue;
+            }
+            pending.extend(parents.get(&address).into_iter().flatten().copied());
+        }
+
+        for node in nodes {
+            let address = Gc::as_ptr(node) as usize;
+            let position = node.identity.position(node.start);
+            if seeded.contains(&address)
+                || !matches!(node.kind, MatchKind::Ok | MatchKind::Fail)
+                || node.start >= at
+                || node.end > at
+                || position.domain != old_domain
+                || !position.path.is_empty()
+            {
+                continue;
+            }
+            let (Some(rule), Some(arguments)) = (node.rule, node.rule_arguments()) else {
+                continue;
+            };
+            let key = TargetKey::Declared(
+                rule.member.module_url.to_string(),
+                rule.member.declaration_index,
+                arguments.to_vec(),
+            );
+            let Some(target) = self.target_keys.get(&key).copied() else {
+                continue;
+            };
+            let memo_key = MemoKey {
+                target,
+                position: identity.position(node.start),
+                recovery: node.recovery.is_enabled(),
+            };
+            if self.memo_keys.contains_key(&memo_key) {
+                continue;
+            }
+            let outcome = PatternMatch::with_rebased_input(mc, node, identity, stream);
+            let memo = self.memos.len();
+            self.memos.push(Memo {
+                input: identity,
+                stream,
+                position: node.start,
+                state: MemoState::Complete(outcome),
+                version: 0,
+                dependencies: vec![],
+                seed_dependencies: vec![],
+            });
+            self.memo_keys.insert(memo_key, memo);
+        }
     }
 
     pub fn error(&self) -> Option<&RuntimeError> {
@@ -1014,19 +1209,10 @@ impl<'gc> RuleExecution<'gc> {
                     .unwrap_or(invocation.request.base),
             })
         });
-        for frame in &self.frames {
-            if let Some(invocation) = &frame.invocation {
-                self.memos[invocation.memo].state = MemoState::Error(error.clone());
-            }
-        }
         self.frames.clear();
-        for memo in &mut self.memos {
-            memo.dependencies.clear();
-            memo.seed_dependencies.clear();
-            if matches!(memo.state, MemoState::Pending | MemoState::Growing(_)) {
-                memo.state = MemoState::Error(error.clone());
-            }
-        }
+        self.active_marks.clear();
+        self.memos.clear();
+        self.memo_keys.clear();
         self.initialization = None;
         self.serialized = None;
         self.error = Some(error);
@@ -1120,6 +1306,20 @@ impl<'gc> RuleExecution<'gc> {
         } else {
             Ok(StepStatus::Yielded)
         }
+    }
+
+    fn run_batch(
+        &mut self,
+        mc: &Mutation<'gc>,
+        limit: usize,
+    ) -> Result<(StepStatus, usize), RuntimeError> {
+        for steps in 1..=limit {
+            let status = self.step_status(mc)?;
+            if status != StepStatus::Yielded {
+                return Ok((status, steps));
+            }
+        }
+        Ok((StepStatus::Yielded, limit))
     }
 
     fn advance(&mut self, mc: &Mutation<'gc>) -> Result<bool, RuntimeError> {
@@ -1580,6 +1780,130 @@ impl<'gc> RuleExecution<'gc> {
         }
     }
 
+    fn enter_active(&mut self, memo: usize, position: InputPosition) {
+        let parent = self.active_marks.last().copied();
+        let (domain, low) = if position.path.is_empty() {
+            match parent {
+                None => (Some(position.domain), Some(position.cursor)),
+                Some(parent) if parent.domain == Some(position.domain) => (
+                    parent.domain,
+                    Some(
+                        parent
+                            .low
+                            .map_or(position.cursor, |low| low.min(position.cursor)),
+                    ),
+                ),
+                _ => (None, None),
+            }
+        } else {
+            (None, None)
+        };
+        self.active_marks.push(ActiveMark { memo, domain, low });
+    }
+
+    fn leave_active(&mut self, memo: usize) -> Result<(), RuntimeError> {
+        let active = self.active_marks.pop().ok_or(RuntimeError::InvalidState)?;
+        if active.memo != memo {
+            return Err(RuntimeError::InvalidState);
+        }
+        Ok(())
+    }
+
+    fn evict_memos(&mut self) {
+        if self.active_marks.is_empty() {
+            self.memos.clear();
+            self.memo_keys.clear();
+            return;
+        }
+
+        let mark = self
+            .active_marks
+            .last()
+            .and_then(|active| Some((active.domain?, active.low?)));
+        let Some((domain, low)) = mark else {
+            return;
+        };
+
+        let mut keep = vec![true; self.memos.len()];
+        for (index, memo) in self.memos.iter().enumerate() {
+            let position = memo.input.position(memo.position);
+            if position.domain == domain
+                && position.path.is_empty()
+                && position.cursor < low
+                && !matches!(memo.state, MemoState::Pending | MemoState::Growing(_))
+            {
+                keep[index] = false;
+            }
+        }
+
+        let mut protected = vec![false; self.memos.len()];
+        let mut pending: Vec<usize> = self.active_marks.iter().map(|active| active.memo).collect();
+        while let Some(index) = pending.pop() {
+            if index >= protected.len() || protected[index] {
+                continue;
+            }
+            protected[index] = true;
+            for dependency in self.memos[index]
+                .dependencies
+                .iter()
+                .chain(&self.memos[index].seed_dependencies)
+            {
+                pending.push(dependency.memo);
+            }
+        }
+        for (index, protected) in protected.into_iter().enumerate() {
+            keep[index] |= protected;
+        }
+
+        if keep.iter().all(|keep| *keep) {
+            return;
+        }
+
+        let mut remap = vec![None; self.memos.len()];
+        let mut retained = Vec::with_capacity(keep.iter().filter(|keep| **keep).count());
+        for (index, memo) in std::mem::take(&mut self.memos).into_iter().enumerate() {
+            if keep[index] {
+                remap[index] = Some(retained.len());
+                retained.push(memo);
+            }
+        }
+        for memo in &mut retained {
+            memo.dependencies
+                .retain_mut(|dependency| match remap[dependency.memo] {
+                    Some(index) => {
+                        dependency.memo = index;
+                        true
+                    }
+                    None => false,
+                });
+            memo.seed_dependencies
+                .retain_mut(|dependency| match remap[dependency.memo] {
+                    Some(index) => {
+                        dependency.memo = index;
+                        true
+                    }
+                    None => false,
+                });
+        }
+        for active in &mut self.active_marks {
+            active.memo = remap[active.memo].expect("active memo is retained");
+        }
+        for frame in &mut self.frames {
+            if let Some(invocation) = &mut frame.invocation {
+                invocation.memo = remap[invocation.memo].expect("active memo is retained");
+            }
+        }
+        self.memo_keys.retain(|_, index| {
+            if let Some(mapped) = remap[*index] {
+                *index = mapped;
+                true
+            } else {
+                false
+            }
+        });
+        self.memos = retained;
+    }
+
     fn invoke(
         &mut self,
         mc: &Mutation<'gc>,
@@ -1598,6 +1922,7 @@ impl<'gc> RuleExecution<'gc> {
             self.memos.push(Memo {
                 input: request.identity,
                 stream: request.stream,
+                position: request.position,
                 state: MemoState::Vacant,
                 version: 0,
                 dependencies: vec![],
@@ -1659,7 +1984,6 @@ impl<'gc> RuleExecution<'gc> {
                     )?;
                 return Ok(());
             }
-            MemoState::Error(error) => return Err(error.clone()),
             MemoState::Pending => {
                 // LR is a control signal, not a failed child. Unwind suspended
                 // combinators to the cycle head before any can swallow it.
@@ -1677,6 +2001,7 @@ impl<'gc> RuleExecution<'gc> {
                     let discarded = self.frames.pop().ok_or(RuntimeError::InvalidState)?;
                     if let Some(invocation) = discarded.invocation {
                         self.memos[invocation.memo].state = MemoState::Vacant;
+                        self.leave_active(invocation.memo)?;
                     }
                 }
                 let head_request = self.frames[head]
@@ -1707,6 +2032,7 @@ impl<'gc> RuleExecution<'gc> {
         self.memos[memo].dependencies.clear();
         self.memos[memo].seed_dependencies.clear();
         let (body, environment) = self.body(mc, &request, target)?;
+        self.enter_active(memo, request.identity.position(request.position));
         self.frames.push(Frame {
             execution: Execution::Pattern(body),
             context: self.targets[target].context(),
@@ -1854,6 +2180,7 @@ impl<'gc> RuleExecution<'gc> {
                 return Ok(());
             }
             self.result = Some(outcome);
+            self.evict_memos();
             return Ok(());
         };
         let progresses = if invocation.growing {
@@ -1950,6 +2277,8 @@ impl<'gc> RuleExecution<'gc> {
                 .execution
                 .resume(mc, outcome)?;
         }
+        self.leave_active(memo)?;
+        self.evict_memos();
         Ok(())
     }
 
@@ -1965,7 +2294,15 @@ impl<'gc> RuleExecution<'gc> {
                 .iter()
                 .position(|declaration| &declaration.member == member)
         {
-            PatternMatch::with_rule(mc, outcome, self.declarations[index])
+            let arguments = match &self.targets[target] {
+                Target::Declared { context, .. } => context
+                    .arguments
+                    .iter()
+                    .map(|(_, target)| *target)
+                    .collect(),
+                Target::Inline { .. } => unreachable!(),
+            };
+            PatternMatch::with_rule(mc, outcome, self.declarations[index], arguments)
         } else {
             outcome
         }
@@ -2454,6 +2791,24 @@ impl Runtime {
         self.collect_all();
     }
 
+    /// Re-evaluates a completed fixed-input parse after one flat-stream edit.
+    /// Only rule matches wholly before `at` are eligible for rehydration;
+    /// uncertain prefixes fall back to a full parse of `post_edit`.
+    pub fn reparse_edit(
+        &mut self,
+        post_edit: impl Into<crate::json::JsonValue>,
+        mode: InputMode,
+        at: usize,
+        removed: usize,
+        inserted: usize,
+    ) -> Result<(), RuntimeError> {
+        let result = self.arena.mutate_root(|mc, execution| {
+            execution.reparse_edit(mc, post_edit, mode, at, removed, inserted)
+        });
+        self.arena.collect_debt();
+        result
+    }
+
     pub fn for_pattern(
         pattern: Pattern,
         input: impl Into<crate::json::JsonValue>,
@@ -2461,9 +2816,19 @@ impl Runtime {
     ) -> Result<Self, RuntimeError> {
         let arena = Arena::try_new(|mc| {
             let input = runtime_input(mc, input, mode)?;
-            Ok::<_, RuntimeError>(RuleExecution::for_pattern(mc, pattern, input))
+            let mut execution = RuleExecution::for_pattern(mc, pattern, input);
+            execution.entry.input_mode = Some(mode);
+            Ok::<_, RuntimeError>(execution)
         })?;
         Ok(Self { arena })
+    }
+
+    pub fn for_pattern_data(pattern: Pattern, input: &crate::codec::data::DataDocument) -> Self {
+        Self {
+            arena: Arena::new(|mc| {
+                RuleExecution::for_pattern(mc, pattern, vec![input.materialize(mc)])
+            }),
+        }
     }
     pub fn diagnostics(&self) -> Vec<RuntimeDiagnostic> {
         self.read(|execution| execution.diagnostics())
@@ -2498,9 +2863,24 @@ impl Runtime {
     ) -> Result<Self, RuntimeError> {
         let arena = Arena::try_new(|mc| {
             let items = runtime_input(mc, input, mode)?;
-            RuleExecution::new(mc, graph, module, export, items)
+            let mut execution = RuleExecution::new(mc, graph, module, export, items)?;
+            execution.entry.input_mode = Some(mode);
+            Ok::<_, RuntimeError>(execution)
         })?;
         Ok(Self { arena })
+    }
+
+    pub fn with_data(
+        graph: Rc<CompiledModuleGraph>,
+        module: &Url,
+        export: Option<&str>,
+        input: &crate::codec::data::DataDocument,
+    ) -> Result<Self, RuntimeError> {
+        Ok(Self {
+            arena: Arena::try_new(|mc| {
+                RuleExecution::new(mc, graph, module, export, vec![input.materialize(mc)])
+            })?,
+        })
     }
 
     pub fn for_member(
@@ -2533,8 +2913,19 @@ impl Runtime {
     }
 
     pub fn run(&mut self) -> Result<(), RuntimeError> {
-        while !self.step()? {}
-        Ok(())
+        const STEPS_PER_MUTATION: usize = 512;
+        loop {
+            // Keep collector debt bounded without exposing every internal step.
+            let (status, _) = self
+                .arena
+                .mutate_root(|mc, execution| execution.run_batch(mc, STEPS_PER_MUTATION))?;
+            self.arena.collect_debt();
+            match status {
+                StepStatus::Complete => return Ok(()),
+                StepStatus::Yielded => {}
+                StepStatus::Suspended => return Err(EvaluationError::HostPending.into()),
+            }
+        }
     }
 
     pub fn collect_all(&mut self) {

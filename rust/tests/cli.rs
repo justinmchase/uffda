@@ -13,9 +13,8 @@ fn uffda_display_and_strict_interpolation_are_separate() {
     assert_eq!(text(&result.stdout), "[1 2]\n");
     let result = invoke(&["exec", "-e", "{ a: [1 2] }"], "");
     assert!(result.status.success(), "{}", text(&result.stderr));
-    assert_eq!(text(&result.stdout), "{[\"a\"]: [1 2]}\n");
-    let rendered = text(&result.stdout).trim();
-    let roundtrip = invoke(&["exec", "-e", rendered, "--json"], "");
+    assert_eq!(text(&result.stdout), "{\"a\":[1 2]}\n");
+    let roundtrip = invoke(&["exec", "-e", "{ a: [1 2] }", "--json"], "");
     assert!(roundtrip.status.success(), "{}", text(&roundtrip.stderr));
     assert_eq!(
         serde_json::from_slice::<serde_json::Value>(&roundtrip.stdout).unwrap(),
@@ -25,7 +24,11 @@ fn uffda_display_and_strict_interpolation_are_separate() {
     let ast = serde_json::json!({"kind":"value", "value": data}).to_string();
     let rendered = invoke(&["exec", "--ast"], &ast);
     assert!(rendered.status.success(), "{}", text(&rendered.stderr));
-    let roundtrip = invoke(&["exec", "-e", text(&rendered.stdout).trim(), "--json"], "");
+    assert_eq!(
+        text(&rendered.stdout),
+        "{\"a{b\":[\"quote\\\"slash\\\\\\n\\t{\" -2 true null]}\n"
+    );
+    let roundtrip = invoke(&["exec", "--ast", "--json"], &ast);
     assert!(roundtrip.status.success(), "{}", text(&roundtrip.stderr));
     assert_eq!(
         serde_json::from_slice::<serde_json::Value>(&roundtrip.stdout).unwrap(),
@@ -38,11 +41,25 @@ fn uffda_display_and_strict_interpolation_are_separate() {
     }
     let result = invoke(&["exec", "-e", "(json [1 2])"], "");
     assert!(result.status.success(), "{}", text(&result.stderr));
-    assert_eq!(text(&result.stdout), "[1,2]\n");
+    assert_eq!(text(&result.stdout), "\"[1,2]\"\n");
 }
 
 fn invoke_in(args: &[&str], input: &str, cwd: Option<&std::path::Path>) -> Output {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_uffda"));
+    invoke_binary_in(
+        std::path::Path::new(env!("CARGO_BIN_EXE_uffda")),
+        args,
+        input,
+        cwd,
+    )
+}
+
+fn invoke_binary_in(
+    binary: &std::path::Path,
+    args: &[&str],
+    input: &str,
+    cwd: Option<&std::path::Path>,
+) -> Output {
+    let mut command = Command::new(binary);
     command.args(args);
     if let Some(cwd) = cwd {
         command.current_dir(cwd);
@@ -66,6 +83,204 @@ fn text(bytes: &[u8]) -> &str {
     std::str::from_utf8(bytes).expect("UTF-8 process output")
 }
 
+struct TestDirectory(std::path::PathBuf);
+
+impl TestDirectory {
+    fn outside_workspace() -> Self {
+        let home = std::env::var_os("HOME")
+            .or_else(|| std::env::var_os("USERPROFILE"))
+            .expect("home for external CLI test directory");
+        let path = std::path::PathBuf::from(home).join(format!(
+            "uffda-cli-acceptance-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir(&path).expect("create external CLI test directory");
+        Self(path)
+    }
+}
+
+impl Drop for TestDirectory {
+    fn drop(&mut self) {
+        std::fs::remove_dir_all(&self.0).expect("remove external CLI test directory");
+    }
+}
+
+#[test]
+// req:cli-command-model-001 req:cli-command-model-002
+fn process_help_version_and_empty_invocation_have_successful_root_usage() {
+    for args in [&[][..], &["--help"][..], &["-h"][..]] {
+        let result = invoke(args, "");
+        assert_eq!(result.status.code(), Some(0));
+        assert!(text(&result.stdout).starts_with("Usage: uffda <command>"));
+        assert!(text(&result.stdout).contains("--version, -V"));
+        assert!(result.stderr.is_empty());
+    }
+    for args in [&["--version"][..], &["-V"][..]] {
+        let result = invoke(args, "");
+        assert_eq!(result.status.code(), Some(0));
+        assert_eq!(text(&result.stdout), "0.0.0\n");
+        assert!(result.stderr.is_empty());
+    }
+}
+
+#[test]
+// req:cli-language-001
+fn parse_eval_alias_selects_pattern_and_expression_languages() {
+    for (language, source, expected_kind) in
+        [("pattern", "any", "any"), ("expression", "42", "number")]
+    {
+        let result = invoke(&["parse", "--lang", language, "--eval", source], "");
+        assert_eq!(result.status.code(), Some(0), "{}", text(&result.stderr));
+        let ast: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
+        assert_eq!(ast["kind"], expected_kind);
+        assert!(result.stderr.is_empty());
+    }
+}
+
+#[test]
+// req:cli-command-model-001
+fn output_write_failure_uses_internal_failure_exit_code() {
+    let mut child = Command::new(env!("CARGO_BIN_EXE_uffda"))
+        .args(["exec", "-e", "42"])
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("spawn Rust CLI");
+    drop(child.stdout.take());
+    let result = child.wait_with_output().expect("wait for Rust CLI");
+    assert_eq!(result.status.code(), Some(70));
+    assert!(text(&result.stderr).contains("unable to write output"));
+}
+
+#[test]
+// req:cli-language-001 req:cli-command-model-001
+fn parse_reads_source_from_dash_and_file_path() {
+    let directory = TestDirectory::outside_workspace();
+    let source = "rule Main = any;";
+    let path = directory.0.join("input.uff");
+    std::fs::write(&path, source).unwrap();
+
+    let from_stdin = invoke_in(&["parse", "-"], source, Some(&directory.0));
+    assert_eq!(
+        from_stdin.status.code(),
+        Some(0),
+        "{}",
+        text(&from_stdin.stderr)
+    );
+    let stdin_ast: serde_json::Value = serde_json::from_slice(&from_stdin.stdout).unwrap();
+    assert_eq!(stdin_ast["kind"], "module");
+
+    let from_path = invoke_in(&["parse", path.to_str().unwrap()], "", Some(&directory.0));
+    assert_eq!(
+        from_path.status.code(),
+        Some(0),
+        "{}",
+        text(&from_path.stderr)
+    );
+    let path_ast: serde_json::Value = serde_json::from_slice(&from_path.stdout).unwrap();
+    assert_eq!(path_ast, stdin_ast);
+}
+
+#[test]
+// req:cli-command-model-002 req:cli-command-model-001
+fn process_mode_conflicts_report_a_usage_diagnostic_and_exit() {
+    let result = invoke(&["exec", "--match", "--json"], "");
+    assert_eq!(result.status.code(), Some(2));
+    assert!(result.stdout.is_empty());
+    let diagnostic: serde_json::Value = serde_json::from_slice(&result.stderr).unwrap();
+    assert_eq!(diagnostic["error"]["code"], "CLI_USAGE");
+    assert_eq!(diagnostic["error"]["phase"], "validation");
+    assert!(
+        diagnostic["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("Conflicting mode selection")
+    );
+
+    let result = invoke(&["--mode=parse", "--lang=pattern", "--eval=any"], "");
+    assert_eq!(result.status.code(), Some(0), "{}", text(&result.stderr));
+    let ast: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
+    assert_eq!(ast["kind"], "any");
+    assert!(result.stderr.is_empty());
+}
+
+#[test]
+// req:cli-command-model-001 req:cli-match-001 req:cli-run-002
+fn mode_aliases_accept_inline_option_values() {
+    let result = invoke(&["--match", "--eval=any", "--input-json=42", "--json"], "");
+    assert_eq!(result.status.code(), Some(0), "{}", text(&result.stderr));
+    assert_eq!(text(&result.stdout), "42\n");
+    assert!(result.stderr.is_empty());
+
+    let result = invoke(
+        &[
+            "--run",
+            "--eval=export Main; rule Main = any;",
+            "--input-data=42n",
+        ],
+        "",
+    );
+    assert_eq!(result.status.code(), Some(0), "{}", text(&result.stderr));
+    assert_eq!(text(&result.stdout), "42n\n");
+    assert!(result.stderr.is_empty());
+}
+
+#[test]
+// req:cli-command-model-001 req:cli-run-003
+fn relocated_binary_runs_without_project_artifacts_and_reads_run_input_file_as_text() {
+    let directory = TestDirectory::outside_workspace();
+    let workspace = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .canonicalize()
+        .unwrap();
+    assert!(!directory.0.canonicalize().unwrap().starts_with(&workspace));
+
+    let binary = std::path::Path::new(env!("CARGO_BIN_EXE_uffda"));
+    let artifact_tree = binary.parent().unwrap().canonicalize().unwrap();
+    assert!(
+        !directory
+            .0
+            .canonicalize()
+            .unwrap()
+            .starts_with(&artifact_tree)
+            && !artifact_tree.starts_with(&directory.0)
+    );
+    let relocated_binary = directory
+        .0
+        .join(format!("uffda{}", std::env::consts::EXE_SUFFIX));
+    std::fs::copy(binary, &relocated_binary).expect("copy built CLI outside its artifact tree");
+    let subject = directory.0.join("subject.txt");
+    std::fs::write(&subject, "hello").unwrap();
+    let parsed = invoke(&["parse"], "export Main; rule Main = any;");
+    assert_eq!(parsed.status.code(), Some(0), "{}", text(&parsed.stderr));
+
+    let result = invoke_binary_in(
+        &relocated_binary,
+        &[
+            "run",
+            "--ast",
+            "--entry",
+            "Main",
+            "--input-file",
+            subject.to_str().unwrap(),
+            "--json",
+        ],
+        text(&parsed.stdout),
+        Some(&directory.0),
+    );
+    assert_eq!(result.status.code(), Some(0), "{}", text(&result.stderr));
+    assert_eq!(text(&result.stdout), "\"h\"\n");
+    assert!(result.stderr.is_empty());
+    assert!(!directory.0.join("bin").exists());
+    assert!(!directory.0.join("uffda.jsonc").exists());
+}
+
 #[test]
 // req:cli-exec-001
 fn expression_stdin_and_inline_outputs() {
@@ -75,7 +290,7 @@ fn expression_stdin_and_inline_outputs() {
     assert!(result.stderr.is_empty());
     let result = invoke(&["exec", "--ast"], r#"{"kind":"value","value":"hello"}"#);
     assert!(result.status.success(), "{}", text(&result.stderr));
-    assert_eq!(text(&result.stdout), "hello\n");
+    assert_eq!(text(&result.stdout), "\"hello\"\n");
     let result = invoke(
         &["exec", "--ast", "--json"],
         r#"{"kind":"value","value":"hello"}"#,
@@ -87,18 +302,24 @@ fn expression_stdin_and_inline_outputs() {
 // req:cli-exec-001 req:expressions-runtime-007
 fn expression_output_runs_json_hooks_and_preserves_undefined_contract() {
     let cwd = std::env::temp_dir();
-    for args in [
-        vec!["exec", "-e", "(json { toJSON: <any> -> 42 })"],
-        vec![
-            "run",
-            "-e",
-            "export Main; rule Main = end -> { toJSON: <any> -> 42 };",
-            "--json",
-        ],
+    for (args, expected) in [
+        (
+            vec!["exec", "-e", "(json { toJSON: <any> -> 42 })"],
+            "\"42\"\n",
+        ),
+        (
+            vec![
+                "run",
+                "-e",
+                "export Main; rule Main = end -> { toJSON: <any> -> 42 };",
+                "--json",
+            ],
+            "42\n",
+        ),
     ] {
         let result = invoke_in(&args, "", Some(&cwd));
         assert!(result.status.success(), "{}", text(&result.stderr));
-        assert_eq!(text(&result.stdout), "42\n");
+        assert_eq!(text(&result.stdout), expected);
     }
     let result = invoke_in(
         &["exec", "-e", "(json { toJSON: <missingRule> -> 42 })"],
@@ -159,7 +380,7 @@ fn expression_output_runs_json_hooks_and_preserves_undefined_contract() {
     assert_eq!(text(&result.stdout), "undefined\n");
     let result = invoke_in(&["exec", "--ast"], r#"{"kind":"value"}"#, Some(&cwd));
     assert!(result.status.success(), "{}", text(&result.stderr));
-    assert_eq!(text(&result.stdout), "");
+    assert_eq!(text(&result.stdout), "undefined\n");
     let pattern = serde_json::json!({
         "kind":"projection","pattern":{"kind":"any"},
         "expression":serde_json::from_str::<serde_json::Value>(native_hook).unwrap()
@@ -219,7 +440,7 @@ fn invalid_input_runtime_and_options_have_usage_exit() {
 fn subjects_use_text_or_scalar_normalization() {
     let result = invoke(&["match", "--ast", "--input", "hello"], r#"{"kind":"any"}"#);
     assert!(result.status.success(), "{}", text(&result.stderr));
-    assert_eq!(text(&result.stdout), "h\n");
+    assert_eq!(text(&result.stdout), "\"h\"\n");
     let result = invoke(
         &["match", "--ast", "--input-json", "[1,2]"],
         r#"{"kind":"any"}"#,
@@ -253,13 +474,13 @@ fn actual_expression_and_subject_paths_are_read() {
     std::fs::write(&subject, "world").unwrap();
     let result = invoke(&["exec", "--ast", expression.to_str().unwrap()], "");
     assert!(result.status.success(), "{}", text(&result.stderr));
-    assert_eq!(text(&result.stdout), "{[\"answer\"]: 42}\n");
+    assert_eq!(text(&result.stdout), "{\"answer\":42}\n");
     let result = invoke(
         &["match", "--ast", "--input-file", subject.to_str().unwrap()],
         r#"{"kind":"any"}"#,
     );
     assert!(result.status.success(), "{}", text(&result.stderr));
-    assert_eq!(text(&result.stdout), "w\n");
+    assert_eq!(text(&result.stdout), "\"w\"\n");
     std::fs::remove_file(expression).unwrap();
     std::fs::remove_file(subject).unwrap();
     std::fs::remove_dir(directory).unwrap();
@@ -315,7 +536,7 @@ fn source_expression_exec_and_parse_execute_embedded_grammars() {
 fn source_pattern_matches_text_and_json_subjects() {
     let result = invoke(&["match", "-e", "\"x\"", "--input", "x"], "");
     assert!(result.status.success(), "{}", text(&result.stderr));
-    assert_eq!(text(&result.stdout), "x\n");
+    assert_eq!(text(&result.stdout), "\"x\"\n");
 }
 
 #[test]
@@ -332,7 +553,7 @@ fn source_and_syntax_ast_modules_run_the_selected_export() {
         text(&parsed.stdout),
     );
     assert!(result.status.success(), "{}", text(&result.stderr));
-    assert_eq!(text(&result.stdout), "x\n");
+    assert_eq!(text(&result.stdout), "\"x\"\n");
     let result = invoke(&["run", "-e", "export Main; rule Main = end;"], "");
     assert!(result.status.success(), "{}", text(&result.stderr));
 }
@@ -348,6 +569,22 @@ fn explicit_configuration_errors_use_configuration_exit_code() {
     let diagnostic: serde_json::Value = serde_json::from_slice(&result.stderr).unwrap();
     assert_eq!(diagnostic["error"]["phase"], "configuration");
     assert!(result.stdout.is_empty());
+}
+
+#[test]
+// req:project-file-001 req:cli-command-model-001
+fn explicit_valid_configuration_is_used_for_execution() {
+    let directory = TestDirectory::outside_workspace();
+    let config = directory.0.join("uffda.jsonc");
+    std::fs::write(&config, "{}").unwrap();
+    let result = invoke_in(
+        &["exec", "--ast", "--config", config.to_str().unwrap()],
+        r#"{"kind":"number","value":42}"#,
+        Some(&directory.0),
+    );
+    assert_eq!(result.status.code(), Some(0), "{}", text(&result.stderr));
+    assert_eq!(text(&result.stdout), "42\n");
+    assert!(result.stderr.is_empty());
 }
 
 #[test]
@@ -378,10 +615,25 @@ fn compile_process_uses_project_layout_and_reports_existing_output() {
     ] {
         std::fs::remove_file(root.join(file)).unwrap();
     }
+
     for directory in ["build/ast/src", "build/ast", "build", "src"] {
         std::fs::remove_dir(root.join(directory)).unwrap();
     }
     std::fs::remove_dir(root).unwrap();
+}
+
+#[test]
+// req:cli-bootstrap-034 req:project-file-003 req:cli-command-model-001
+fn source_path_without_command_selects_compile_mode() {
+    let directory = TestDirectory::outside_workspace();
+    let source_dir = directory.0.join("src");
+    std::fs::create_dir(&source_dir).unwrap();
+    std::fs::write(source_dir.join("main.uff"), "export Main; rule Main = any;").unwrap();
+    let result = invoke_in(&["src/main.uff"], "", Some(&directory.0));
+    assert_eq!(result.status.code(), Some(0), "{}", text(&result.stderr));
+    let payload: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
+    assert_eq!(payload["ok"], true);
+    assert_eq!(payload["successes"][0]["sourcePath"], "src/main.uff");
 }
 
 #[test]

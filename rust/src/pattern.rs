@@ -169,6 +169,7 @@ impl<'gc> PatternMatch<'gc> {
                     program: request.program.clone(),
                     index: request.pattern_index,
                     authored: false,
+                    rule_arguments: None,
                 },
                 pattern_index: 0,
                 pattern_kind: PatternKind::Fail,
@@ -238,7 +239,10 @@ impl<'gc> PatternMatch<'gc> {
         mc: &Mutation<'gc>,
         child: Gc<'gc, Self>,
         rule: Gc<'gc, crate::runtime::DeclarationMetadata<'gc>>,
+        arguments: Vec<usize>,
     ) -> Gc<'gc, Self> {
+        let mut provenance = child.provenance.clone();
+        provenance.rule_arguments = Some(arguments);
         Gc::new(
             mc,
             Self {
@@ -254,7 +258,41 @@ impl<'gc> PatternMatch<'gc> {
                 recovery: child.recovery,
                 rule: Some(rule),
                 children: child.children.clone(),
-                provenance: child.provenance.clone(),
+                provenance,
+                pattern_index: child.pattern_index,
+                pattern_kind: child.pattern_kind,
+            },
+        )
+    }
+
+    pub fn rule_arguments(&self) -> Option<&[usize]> {
+        self.provenance.rule_arguments.as_deref()
+    }
+
+    pub fn with_rebased_input(
+        mc: &Mutation<'gc>,
+        child: Gc<'gc, Self>,
+        identity: InputIdentity<'gc>,
+        input: crate::runtime::input::InputBuffer<'gc>,
+    ) -> Gc<'gc, Self> {
+        let mut provenance = child.provenance.clone();
+        provenance.input = input;
+        Gc::new(
+            mc,
+            Self {
+                kind: child.kind,
+                value: child.value,
+                start: child.start,
+                end: child.end,
+                environment: child.environment,
+                origin: child.origin,
+                identity,
+                seeded: child.seeded,
+                recovered: child.recovered,
+                recovery: child.recovery,
+                rule: child.rule,
+                children: child.children.clone(),
+                provenance,
                 pattern_index: child.pattern_index,
                 pattern_kind: child.pattern_kind,
             },
@@ -806,6 +844,8 @@ struct PatternProvenance<'gc> {
     program: Rc<PatternProgram>,
     index: usize,
     authored: bool,
+    #[collect(require_static)]
+    rule_arguments: Option<Vec<usize>>,
 }
 
 impl<'gc> PatternProvenance<'gc> {
@@ -1175,6 +1215,16 @@ impl<'gc> PatternExecution<'gc> {
             program: self.program.clone(),
             index: scope.pattern_index,
             authored: true,
+            rule_arguments: None,
+        }
+    }
+
+    pub(crate) fn root_input(
+        &self,
+    ) -> Option<(InputIdentity<'gc>, crate::runtime::input::InputBuffer<'gc>)> {
+        match self.frames.first()? {
+            Frame::Match(_, scope) => Some((scope.identity, scope.input)),
+            _ => None,
         }
     }
 

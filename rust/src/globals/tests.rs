@@ -305,28 +305,81 @@ fn indexing_and_slicing_preserve_isolated_surrogates() {
 }
 
 #[test]
-// req:expressions-runtime-005 req:expressions-runtime-007
+// req:expressions-runtime-005 req:expressions-runtime-007 req:standard-library-001
 fn native_callable_own_fields_match_all_typescript_names_and_arities() {
-    let arities = [
-        2, 2, 1, 0, 2, 2, 1, 2, 2, 1, 1, 2, 2, 2, 1, 1, 1, 2, 1, 2, 1, 2, 2, 2, 1, 2, 0, 2, 3, 3,
-        1, 3, 2, 1, 1, 3,
-    ];
-    for ((name, global), arity) in GLOBALS.iter().zip(arities) {
-        assert_eq!(global.name(), *name);
-        assert_eq!(global.arity(), arity);
+    #[derive(serde::Deserialize)]
+    struct Fixture {
+        name: String,
+        arity: usize,
+    }
+    let fixtures: Vec<Fixture> = serde_json::from_str(include_str!(
+        "../../../test/rust/globals-surface-fixtures.json"
+    ))
+    .unwrap();
+    assert_eq!(GLOBALS.len(), fixtures.len());
+    let actual_names = GLOBALS
+        .iter()
+        .map(|(name, _)| name.to_string())
+        .collect::<std::collections::HashSet<_>>();
+    let expected_names = fixtures
+        .iter()
+        .map(|fixture| fixture.name.clone())
+        .collect::<std::collections::HashSet<_>>();
+    assert_eq!(actual_names, expected_names);
+    assert_eq!(expected_names.len(), fixtures.len());
+    fn collect_invocations(
+        value: &serde_json::Value,
+        names: &mut std::collections::HashSet<String>,
+    ) {
+        match value {
+            serde_json::Value::Array(items) => {
+                for item in items {
+                    collect_invocations(item, names);
+                }
+            }
+            serde_json::Value::Object(object) => {
+                if object.get("kind").and_then(serde_json::Value::as_str) == Some("invocation")
+                    && let Some(name) = object
+                        .get("expression")
+                        .and_then(|expression| expression.get("name"))
+                        .and_then(serde_json::Value::as_str)
+                {
+                    names.insert(name.to_string());
+                }
+                for item in object.values() {
+                    collect_invocations(item, names);
+                }
+            }
+            _ => {}
+        }
+    }
+    let behavior_fixtures: serde_json::Value =
+        serde_json::from_str(include_str!("../../../test/rust/globals-fixtures.json")).unwrap();
+    let mut behavior_names = std::collections::HashSet::new();
+    for fixture in behavior_fixtures.as_array().unwrap() {
+        behavior_names.insert(fixture["name"].as_str().unwrap().to_string());
+        if let Some(expressions) = fixture.get("expressions") {
+            collect_invocations(expressions, &mut behavior_names);
+        }
+    }
+    assert_eq!(behavior_names, expected_names);
+    for fixture in fixtures {
+        let global = lookup(&fixture.name).expect("fixture global exists");
+        assert_eq!(global.name(), fixture.name.as_str());
+        assert_eq!(global.arity(), fixture.arity);
         assert_eq!(
             evaluate(Expression::Member {
                 name: "name".into(),
-                expression: Box::new(reference(name)),
+                expression: Box::new(reference(&fixture.name)),
             }),
-            serde_json::to_string(name).unwrap()
+            serde_json::to_string(&fixture.name).unwrap()
         );
         assert_eq!(
             evaluate(Expression::Member {
                 name: "length".into(),
-                expression: Box::new(reference(name)),
+                expression: Box::new(reference(&fixture.name)),
             }),
-            arity.to_string()
+            fixture.arity.to_string()
         );
     }
 }
@@ -694,6 +747,45 @@ fn native_hashing_sets_symbols_and_provenance_follow_existing_contracts() {
         );
         assert_eq!(sliced.char_origin(0), Some(Origin { start: 2, end: 3 }));
         assert_eq!(text(sliced).unwrap(), "cd");
+    });
+}
+
+#[test]
+// req:runtime-memory-001 req:runtime-strings-002
+fn shared_global_identity_and_root_provenance_contracts_match_typescript() {
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        let call_value = |global, args| match invoke(mc, global, args, origin).unwrap() {
+            NativeResult::Value(value) => value,
+            _ => panic!("expected immediate result"),
+        };
+        let shared = Value::array(mc, vec![Value::Number(1.0)]);
+        let copied = call_value(NativeGlobal::Id, vec![shared]);
+        assert!(shared.strict_eq(copied));
+        assert!(matches!(
+            call_value(NativeGlobal::Eq, vec![shared, copied]),
+            Value::Boolean(true)
+        ));
+        let equal_contents = Value::array(mc, vec![Value::Number(1.0)]);
+        assert!(matches!(
+            call_value(NativeGlobal::Eq, vec![shared, equal_contents]),
+            Value::Boolean(false)
+        ));
+        let chosen = Value::object(mc, vec![]);
+        let coalesced = call_value(
+            NativeGlobal::Coalesce,
+            vec![Value::Undefined, Value::Null, chosen],
+        );
+        assert!(chosen.strict_eq(coalesced));
+
+        let source = Value::string(mc, "abcdef").wrap_root(mc);
+        let sliced = call_value(
+            NativeGlobal::Slice,
+            vec![source, Value::Number(2.0), Value::Number(4.0)],
+        );
+        assert_eq!(text(sliced).unwrap(), "cd");
+        assert_eq!(sliced.char_origin(0), Some(Origin { start: 2, end: 3 }));
+        assert_eq!(sliced.char_origin(1), Some(Origin { start: 3, end: 4 }));
     });
 }
 

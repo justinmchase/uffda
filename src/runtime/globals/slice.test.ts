@@ -44,3 +44,17 @@ Deno.test("globals.slice keeps character provenance and carries elements", () =>
     item,
   );
 });
+
+Deno.test("req:runtime-strings-002 - slice preserves root input character offsets", () => {
+  const source = concat(
+    Array.from(
+      "abcdef",
+      (character, index) => new Wrapped(character, rootOrigin(index)),
+    ),
+    rootOrigin(0, 6),
+  );
+  const result = slice(source, 2, 4) as Wrapped<string>;
+  assertEquals(result.raw, "cd");
+  assertEquals(charOrigin(result, 0), rootOrigin(2));
+  assertEquals(charOrigin(result, 1), rootOrigin(3));
+});

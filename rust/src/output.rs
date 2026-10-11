@@ -21,6 +21,17 @@ impl fmt::Display for OutputError {
 
 impl std::error::Error for OutputError {}
 
+/// Encodes one lossless data record, independently of runtime conversion hooks.
+pub fn codec_output(value: Value<'_>) -> Result<String, OutputError> {
+    let limits = crate::codec::data::DataLimits::default();
+    let document = crate::codec::data::DataDocument::from_value(value, limits)
+        .map_err(|error| OutputError::Encoding(error.to_string()))?;
+    let source = document
+        .encode(false, limits)
+        .map_err(|error| OutputError::Encoding(error.to_string()))?;
+    Ok(format!("{source}\n"))
+}
+
 enum Frame<'gc> {
     Value(Value<'gc>),
     Text(String),
@@ -391,6 +402,36 @@ pub fn operation_output(value: Value<'_>, json: bool) -> Result<String, OutputEr
 mod tests {
     use super::*;
     use gc_arena::arena::rootless_mutate;
+
+    #[test]
+    // req:cli-exec-002 req:data-codec-003 req:runtime-strings-002
+    fn codec_records_include_top_level_strings_undefined_and_native_values() {
+        rootless_mutate(|mc| {
+            assert_eq!(codec_output(Value::Undefined).unwrap(), "undefined\n");
+            assert_eq!(
+                codec_output(Value::string(mc, "raw\n\0{")).unwrap(),
+                "\"raw\\n\\u0000{\"\n"
+            );
+            assert_eq!(
+                codec_output(Value::string(mc, RuntimeString::from_utf16(vec![0xd800]))).unwrap(),
+                "\"\\ud800\"\n"
+            );
+            assert_eq!(
+                codec_output(Value::object(
+                    mc,
+                    vec![("a".into(), Value::array(mc, vec![Value::Number(-2.5)]))]
+                ))
+                .unwrap(),
+                "{\"a\":[-2.5]}\n"
+            );
+            assert_eq!(
+                codec_output(Value::bigint(mc, num_bigint::BigInt::from(42))).unwrap(),
+                "42n\n"
+            );
+            let shared = Value::array(mc, vec![]);
+            assert!(codec_output(Value::array(mc, vec![shared, shared])).is_err());
+        });
+    }
 
     #[test]
     // req:runtime-strings-002
