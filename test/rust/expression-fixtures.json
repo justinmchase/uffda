@@ -195,17 +195,17 @@
         { "kind": "value", "value": {} }
       ]
     },
-    "expected": "value=42;true;null;[object Object]"
+    "error": true
   },
   {
-    "name": "nested arrays interpolate using join semantics",
+    "name": "nested arrays reject implicit text conversion",
     "ast": {
       "kind": "string",
       "values": [
         { "kind": "value", "value": [[1, null], [2, 3], null, {}] }
       ]
     },
-    "expected": "1,,2,3,,[object Object]"
+    "error": true
   },
   {
     "name": "nested string expressions preserve ordering",

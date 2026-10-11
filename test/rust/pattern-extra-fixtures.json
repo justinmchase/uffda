@@ -1,0 +1,41 @@
+[
+  {
+    "name": "character Unicode letter",
+    "ast": { "kind": "character", "characterClass": "L" },
+    "input": ["é"],
+    "kind": "ok",
+    "end": 1,
+    "expected": "é"
+  },
+  {
+    "name": "over fixed field and unmatched rest",
+    "ast": {
+      "kind": "over",
+      "keys": {
+        "known": { "kind": "type", "type": "number" }
+      },
+      "rest": [{ "kind": "any" }]
+    },
+    "input": [{ "known": 1, "extra": 2 }],
+    "kind": "ok",
+    "end": 1,
+    "expected": { "known": 1, "extra": 2 }
+  },
+  {
+    "name": "switch character-class key",
+    "ast": {
+      "kind": "switch",
+      "cases": [
+        {
+          "key": { "kind": "characterClass", "characterClass": "L" },
+          "pattern": { "kind": "any" }
+        }
+      ],
+      "default": { "kind": "fail" }
+    },
+    "input": ["é"],
+    "kind": "ok",
+    "end": 1,
+    "expected": "é"
+  }
+]

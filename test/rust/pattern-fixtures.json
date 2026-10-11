@@ -254,6 +254,126 @@
     "expected": []
   },
   {
+    "name": "between inclusive number bounds",
+    "ast": {
+      "kind": "between",
+      "left": { "kind": "value.literal", "value": 40 },
+      "right": { "kind": "value.literal", "value": 42 }
+    },
+    "input": [42],
+    "kind": "ok",
+    "end": 1,
+    "expected": 42
+  },
+  {
+    "name": "between lower half interval",
+    "ast": {
+      "kind": "between",
+      "left": { "kind": "value.literal", "value": 40 }
+    },
+    "input": [42],
+    "kind": "ok",
+    "end": 1,
+    "expected": 42
+  },
+  {
+    "name": "between upper half interval",
+    "ast": {
+      "kind": "between",
+      "right": { "kind": "value.literal", "value": 42 }
+    },
+    "input": [40],
+    "kind": "ok",
+    "end": 1,
+    "expected": 40
+  },
+  {
+    "name": "between out of bounds restores position",
+    "ast": {
+      "kind": "between",
+      "right": { "kind": "value.literal", "value": 42 }
+    },
+    "input": [43],
+    "kind": "fail",
+    "end": 0,
+    "expected": null
+  },
+  {
+    "name": "between requires matching bound type",
+    "ast": {
+      "kind": "between",
+      "left": { "kind": "value.literal", "value": "40" }
+    },
+    "input": [42],
+    "kind": "fail",
+    "end": 0,
+    "expected": null
+  },
+  {
+    "name": "between string inclusive bounds",
+    "ast": {
+      "kind": "between",
+      "left": { "kind": "value.literal", "value": "a" },
+      "right": { "kind": "value.literal", "value": "z" }
+    },
+    "input": ["z"],
+    "kind": "ok",
+    "end": 1,
+    "expected": "z"
+  },
+  {
+    "name": "between string ordering follows UTF16 rather than Unicode scalar order",
+    "ast": {
+      "kind": "between",
+      "right": { "kind": "value.literal", "value": "\ue000" }
+    },
+    "input": ["😀"],
+    "kind": "ok",
+    "end": 1,
+    "expected": "😀"
+  },
+  {
+    "name": "between captures contextual bound",
+    "ast": {
+      "kind": "then",
+      "patterns": [
+        { "kind": "variable", "name": "minimum", "pattern": { "kind": "any" } },
+        {
+          "kind": "between",
+          "left": { "kind": "value.variable", "name": "minimum" }
+        }
+      ]
+    },
+    "input": [40, 42],
+    "kind": "ok",
+    "end": 2,
+    "expected": [40, 42]
+  },
+  {
+    "name": "between unavailable input fails",
+    "ast": {
+      "kind": "between",
+      "left": { "kind": "value.literal", "value": 40 }
+    },
+    "input": [],
+    "kind": "fail",
+    "end": 0,
+    "expected": null
+  },
+  {
+    "name": "quantifier zero maximum does not invoke child",
+    "ast": {
+      "kind": "quantifier",
+      "pattern": { "kind": "fail" },
+      "min": { "kind": "value.literal", "value": 0 },
+      "max": { "kind": "value.literal", "value": 0 }
+    },
+    "input": ["x"],
+    "kind": "ok",
+    "end": 0,
+    "expected": []
+  },
+  {
     "name": "empty choice fails",
     "ast": { "kind": "or", "patterns": [] },
     "input": [42],

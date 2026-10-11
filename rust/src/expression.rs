@@ -11,7 +11,8 @@ pub enum Expression {
         value: bool,
     },
     Value {
-        value: serde_json::Value,
+        #[serde(default, deserialize_with = "deserialize_literal")]
+        value: Option<serde_json::Value>,
     },
     Reference {
         name: String,
@@ -40,6 +41,12 @@ pub enum Expression {
         pattern: Pattern,
         expression: Box<Self>,
     },
+}
+
+fn deserialize_literal<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<serde_json::Value>, D::Error> {
+    serde_json::Value::deserialize(deserializer).map(Some)
 }
 
 #[derive(Debug, Deserialize)]
@@ -89,6 +96,20 @@ pub enum ObjectInitializer {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    // req:expressions-runtime-003
+    fn missing_literal_value_is_undefined_and_explicit_null_remains_null() {
+        let undefined: Expression = serde_json::from_str(r#"{"kind":"value"}"#).unwrap();
+        assert!(matches!(undefined, Expression::Value { value: None }));
+        let null: Expression = serde_json::from_str(r#"{"kind":"value","value":null}"#).unwrap();
+        assert!(matches!(
+            null,
+            Expression::Value {
+                value: Some(serde_json::Value::Null)
+            }
+        ));
+    }
 
     #[test]
     // req:expressions-runtime-003 req:expressions-runtime-006

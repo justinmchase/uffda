@@ -50,6 +50,9 @@ Implementations MAY use a host collector or a tracing collector. Collection
 boundaries MUST retain execution state before temporarily relinquishing access
 to that state, including when yielding for asynchronous work. Storage and
 rooting tests alone do not establish correctness of suspension or evaluation.
+Rust pending execution is rooted continuation state, not a language Promise
+value. Host asynchronous work MUST run outside collector mutation/borrow scopes;
+resumption MUST re-enter the collector safely before installing values.
 
 Failure or abandonment MUST release temporary evaluation state. Deeply nested
 pending syntax MUST NOT overflow the host stack during that cleanup.

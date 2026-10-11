@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertRejects } from "@std/assert";
 import { MatchKind, valueOf } from "../../match.ts";
 import { expressionGrammar } from "../../lang/expression/expression.lang.ts";
 import { assertGrammarCases } from "../../lang/grammar.ts";
@@ -27,6 +27,7 @@ type Case = {
   syntax: string;
   expectedAst: Expression;
   expectedValue: unknown;
+  conversionError: boolean;
 };
 
 type CallCase = {
@@ -134,6 +135,9 @@ function buildCases(): Case[] {
         const syntax = wrapSyntax(expr1, wrapSyntax(expr2, leaf.syntax));
         const expectedAst = wrapAst(expr1, wrapAst(expr2, leafAst));
         const expectedValue = wrapValue(expr1, wrapValue(expr2, leaf.value));
+        const conversionError = (expr1 === "string" && expr2 !== "string") ||
+          (expr2 === "string" &&
+            ["array", "object", "reference"].includes(leaf.name));
         out.push({
           id,
           expr1,
@@ -142,6 +146,7 @@ function buildCases(): Case[] {
           syntax,
           expectedAst,
           expectedValue,
+          conversionError,
         });
         id += 1;
       }
@@ -213,7 +218,7 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
     await assertGrammarCases({
       parse: expressionGrammar,
       evaluate: exec,
-      cases,
+      cases: cases.filter((item) => !item.conversionError),
       options: { globals },
     });
     await assertGrammarCases({
@@ -222,6 +227,19 @@ Deno.test("req:expressions-runtime-009 - Every valid 3-level syntax combination 
       cases: callCases,
       options: { globals },
     });
+    for (const item of cases.filter((item) => item.conversionError)) {
+      const match = await expressionGrammar(item.syntax, { globals });
+      assertEquals(match.kind, MatchKind.Ok);
+      if (match.kind !== MatchKind.Ok) {
+        throw new Error(`Invalid syntax ${item.syntax}`);
+      }
+      assertEquals(unwrap(match.value), item.expectedAst);
+      await assertRejects(
+        async () => await exec(valueOf(match), match),
+        TypeError,
+        "composite",
+      );
+    }
   });
 
   await t.step("spread S1: array spread with leading element", async () => {

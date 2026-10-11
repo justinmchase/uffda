@@ -1,21 +1,19 @@
-use crate::value::{Array, Value};
-use gc_arena::Gc;
-use std::collections::HashSet;
+use crate::value::Value;
 use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum StringCoercionError {
     CannotConvertObject,
-    CyclicArray,
     CallableConversion,
+    CompositeConversion,
 }
 
 impl fmt::Display for StringCoercionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::CannotConvertObject => write!(f, "cannot convert object to primitive value"),
-            Self::CyclicArray => write!(f, "cyclic array string conversion is not implemented"),
-            Self::CallableConversion => write!(f, "callable string conversion is not implemented"),
+            Self::CallableConversion => write!(f, "cannot convert callable to string"),
+            Self::CompositeConversion => write!(f, "cannot convert composite value to string"),
         }
     }
 }
@@ -28,7 +26,20 @@ pub fn truthy(value: Value<'_>) -> bool {
         Value::Boolean(value) => value,
         Value::Number(value) => value != 0.0 && !value.is_nan(),
         Value::String(value) => !value.is_empty(),
-        Value::Array(_) | Value::Object(_) | Value::Lambda(_) => true,
+        Value::Array(_)
+        | Value::Object(_)
+        | Value::Declaration(_)
+        | Value::Url(_)
+        | Value::Lambda(_)
+        | Value::Native(_)
+        | Value::Host(_)
+        | Value::IteratorFactory(_)
+        | Value::Symbol(_)
+        | Value::Set(_)
+        | Value::Map(_)
+        | Value::Bytes(_)
+        | Value::Iterable(_)
+        | Value::Match(_) => true,
         Value::Located(_) => unreachable!("wrappers cannot contain wrappers"),
     }
 }
@@ -37,67 +48,157 @@ pub fn number_text(value: f64) -> String {
     ryu_js::Buffer::new().format(value).to_owned()
 }
 
-enum TextFrame<'gc> {
-    Value(Value<'gc>),
-    ArrayItem(Array<'gc>, usize),
-}
-
 pub fn string_text(value: Value<'_>) -> Result<String, StringCoercionError> {
-    let mut frames = vec![TextFrame::Value(value)];
-    let mut ancestors = HashSet::new();
-    let mut output = String::new();
-    while let Some(frame) = frames.pop() {
-        match frame {
-            TextFrame::Value(value) => match value.raw() {
-                Value::Undefined => output.push_str("undefined"),
-                Value::Null => output.push_str("null"),
-                Value::Boolean(value) => output.push_str(if value { "true" } else { "false" }),
-                Value::Number(value) => output.push_str(&number_text(value)),
-                Value::String(value) => output.push_str(&value),
-                Value::Object(properties) => {
-                    // Own non-callable toString shadows the inherited conversion method.
-                    if properties.borrow().get("toString").is_some() {
-                        return Err(StringCoercionError::CannotConvertObject);
-                    }
-                    output.push_str("[object Object]");
-                }
-                Value::Array(array) => {
-                    if !ancestors.insert(Gc::as_ptr(array)) {
-                        return Err(StringCoercionError::CyclicArray);
-                    }
-                    frames.push(TextFrame::ArrayItem(array, 0));
-                }
-                Value::Lambda(_) => return Err(StringCoercionError::CallableConversion),
-                Value::Located(_) => unreachable!("wrappers cannot contain wrappers"),
-            },
-            TextFrame::ArrayItem(array, index) => {
-                let item = array.borrow().get(index).copied();
-                if let Some(item) = item {
-                    if index != 0 {
-                        output.push(',');
-                    }
-                    frames.push(TextFrame::ArrayItem(array, index + 1));
-                    // Array joining renders null and undefined as empty entries.
-                    if !matches!(item.raw(), Value::Null | Value::Undefined) {
-                        frames.push(TextFrame::Value(item));
-                    }
-                } else {
-                    ancestors.remove(&Gc::as_ptr(array));
-                }
-            }
+    match value.raw() {
+        Value::Undefined => Ok("undefined".into()),
+        Value::Null => Ok("null".into()),
+        Value::Boolean(value) => Ok(if value { "true" } else { "false" }.into()),
+        Value::Number(value) => Ok(number_text(value)),
+        Value::String(value) => Ok((*value).clone()),
+        Value::Native(_) | Value::Host(_) | Value::Lambda(_) | Value::IteratorFactory(_) => {
+            Err(StringCoercionError::CallableConversion)
         }
+        Value::Symbol(name) => Ok(crate::globals::symbol_text(&name)),
+        Value::Array(_)
+        | Value::Object(_)
+        | Value::Declaration(_)
+        | Value::Url(_)
+        | Value::Set(_)
+        | Value::Map(_)
+        | Value::Bytes(_)
+        | Value::Iterable(_)
+        | Value::Match(_) => Err(StringCoercionError::CompositeConversion),
+        Value::Located(_) => unreachable!("wrappers cannot contain wrappers"),
     }
-    Ok(output)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use gc_arena::Gc;
     use gc_arena::arena::rootless_mutate;
 
     #[test]
-    // req:expressions-runtime-004
-    fn unsupported_cyclic_conversion_fails_instead_of_looping() {
+    // req:runtime-core-012 req:expressions-runtime-004
+    fn scalar_symbols_have_the_same_descriptor_in_all_text_conversions() {
+        rootless_mutate(|mc| {
+            for (name, expected) in [
+                ("iterator", "Symbol(Symbol.iterator)"),
+                ("custom", "Symbol(custom)"),
+            ] {
+                let value = Value::Symbol(Gc::new(mc, name.into()));
+                assert_eq!(string_text(value).unwrap(), expected);
+                assert_eq!(
+                    string_text(value.wrap(mc, crate::provenance::Origin { start: 0, end: 0 }))
+                        .unwrap(),
+                    expected
+                );
+            }
+        });
+    }
+
+    #[test]
+    // req:runtime-core-012 req:expressions-runtime-004
+    fn all_object_like_values_reject_text_conversion_without_hooks() {
+        rootless_mutate(|mc| {
+            let origin = crate::provenance::Origin { start: 0, end: 0 };
+            let iterator = Value::Iterable(Gc::new(
+                mc,
+                gc_arena::RefLock::new(crate::globals::IterableState::Source {
+                    value: Value::Null,
+                    index: 0,
+                    offset: 0,
+                }),
+            ));
+            for value in [
+                Value::array(mc, vec![]),
+                Value::object(mc, vec![]),
+                Value::Set(Gc::new(mc, gc_arena::RefLock::new(vec![]))),
+                Value::map(mc, vec![]),
+                Value::Bytes(Gc::new(mc, vec![])),
+                Value::Url(Gc::new(
+                    mc,
+                    crate::value::RuntimeUrl(url::Url::parse("file:///test").unwrap()),
+                )),
+                iterator,
+            ] {
+                assert_eq!(
+                    string_text(value),
+                    Err(StringCoercionError::CompositeConversion)
+                );
+                assert_eq!(
+                    string_text(value.wrap(mc, origin)),
+                    Err(StringCoercionError::CompositeConversion)
+                );
+            }
+        });
+    }
+
+    #[test]
+    // req:expressions-runtime-004 req:runtime-core-012 req:runtime-core-013
+    fn callable_conversion_errors_without_source_or_metadata_disclosure() {
+        rootless_mutate(|mc| {
+            let environment = crate::environment::Environment::new(mc, None, vec![]);
+            let authored =
+                crate::evaluate::CompiledExpression::new(crate::expression::Expression::Boolean {
+                    value: true,
+                })
+                .bind(
+                    mc,
+                    environment,
+                    crate::provenance::Origin { start: 0, end: 0 },
+                    crate::pattern::Pattern::End,
+                );
+            for value in [
+                authored,
+                Value::Native(crate::globals::NativeGlobal::Add),
+                Value::host(
+                    mc,
+                    crate::value::HostCallable {
+                        id: 1,
+                        name: "private".into(),
+                        arity: 0,
+                    },
+                ),
+                Value::IteratorFactory(Gc::new(mc, Value::Null)),
+            ] {
+                let error = string_text(value).unwrap_err();
+                assert!(truthy(value));
+                assert_eq!(error, StringCoercionError::CallableConversion);
+                assert_eq!(error.to_string(), "cannot convert callable to string");
+            }
+        });
+    }
+
+    #[test]
+    // req:expressions-runtime-004 req:expressions-runtime-007 req:runtime-core-012
+    fn native_values_and_new_collections_have_explicit_coercion() {
+        rootless_mutate(|mc| {
+            assert!(truthy(Value::Native(crate::globals::NativeGlobal::Id)));
+            assert_eq!(
+                string_text(Value::Native(crate::globals::NativeGlobal::Id)),
+                Err(StringCoercionError::CallableConversion)
+            );
+            assert_eq!(
+                string_text(Value::IteratorFactory(Gc::new(mc, Value::Null))),
+                Err(StringCoercionError::CallableConversion)
+            );
+            let bytes = Value::Bytes(Gc::new(mc, vec![0, 128, 255]));
+            assert_eq!(
+                string_text(bytes),
+                Err(StringCoercionError::CompositeConversion)
+            );
+            let set = Value::Set(Gc::new(mc, gc_arena::RefLock::new(vec![])));
+            assert_eq!(
+                string_text(set),
+                Err(StringCoercionError::CompositeConversion)
+            );
+        });
+    }
+
+    #[test]
+    // req:expressions-runtime-004 req:runtime-core-012
+    fn cyclic_array_conversion_fails_without_traversing_entries() {
         rootless_mutate(|mc| {
             let value = Value::array(mc, vec![]);
             let Value::Array(array) = value else {
@@ -105,8 +206,13 @@ mod tests {
             };
             array.borrow_mut(mc).push(value);
             assert_eq!(
-                string_text(value).unwrap_err(),
-                StringCoercionError::CyclicArray
+                string_text(value),
+                Err(StringCoercionError::CompositeConversion)
+            );
+            array.borrow_mut(mc).extend([Value::Number(1.0), value]);
+            assert_eq!(
+                string_text(value),
+                Err(StringCoercionError::CompositeConversion)
             );
         });
     }
@@ -160,40 +266,57 @@ mod tests {
     }
 
     #[test]
-    // req:expressions-runtime-004
-    fn nested_arrays_join_nullish_elements_without_losing_shared_arrays() {
+    // req:expressions-runtime-004 req:runtime-core-012
+    fn nested_arrays_fail_while_scalar_nullish_representations_are_preserved() {
         rootless_mutate(|mc| {
             let shared = Value::array(mc, vec![Value::Number(1.0), Value::Null]);
             let value = Value::array(
                 mc,
                 vec![shared, shared, Value::Undefined, Value::object(mc, vec![])],
             );
-            assert_eq!(string_text(value).unwrap(), "1,,1,,,[object Object]");
+            assert_eq!(
+                string_text(value),
+                Err(StringCoercionError::CompositeConversion)
+            );
             assert_eq!(string_text(Value::Null).unwrap(), "null");
             assert_eq!(string_text(Value::Undefined).unwrap(), "undefined");
         });
     }
 
     #[test]
-    // req:expressions-runtime-004 req:runtime-memory-005
+    // req:expressions-runtime-004 req:runtime-memory-005 req:runtime-core-012
     fn deep_array_string_conversion_is_stack_safe() {
         rootless_mutate(|mc| {
             let mut value = Value::Number(42.0);
             for _ in 0..20_000 {
                 value = Value::array(mc, vec![value]);
             }
-            assert_eq!(string_text(value).unwrap(), "42");
+            assert_eq!(
+                string_text(value),
+                Err(StringCoercionError::CompositeConversion)
+            );
         });
     }
 
     #[test]
-    // req:expressions-runtime-004
+    // req:expressions-runtime-004 req:runtime-core-012
     fn object_conversion_errors_are_explicit() {
         rootless_mutate(|mc| {
             let value = Value::object(mc, vec![("toString".into(), Value::Number(42.0))]);
             assert_eq!(
                 string_text(value).unwrap_err(),
-                StringCoercionError::CannotConvertObject
+                StringCoercionError::CompositeConversion
+            );
+            let tagged = Value::object(mc, vec![]);
+            let Value::Object(properties) = tagged else {
+                unreachable!()
+            };
+            properties
+                .borrow_mut(mc)
+                .set_symbol("toStringTag".into(), Value::string(mc, "Record"));
+            assert_eq!(
+                string_text(tagged),
+                Err(StringCoercionError::CompositeConversion)
             );
         });
     }

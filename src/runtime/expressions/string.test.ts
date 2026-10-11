@@ -2,7 +2,7 @@ import { immediateExpressionTest } from "../../test.ts";
 import { expressionTest } from "../../test.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import type { NativeExpression } from "./expression.ts";
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertRejects } from "@std/assert";
 import { charOrigin, originOf, rootOrigin, Wrapped } from "../../wrapped.ts";
 import { type MatchOk, ok } from "../../match.ts";
 import { PatternKind } from "../patterns/pattern.kind.ts";
@@ -101,6 +101,34 @@ function wrappedMatch(variables: Record<string, unknown> = {}): MatchOk {
   const scope = Scope.Default().addVariables(variables);
   return ok(scope, scope, { kind: PatternKind.Ok }, undefined);
 }
+
+Deno.test("req:runtime-core-012 - interpolation requires explicit composite formatting", async () => {
+  for (const x of [{}, [], { toString: () => "hidden" }]) {
+    await assertRejects(
+      async () => {
+        await exec({
+          kind: ExpressionKind.String,
+          values: [{ kind: ExpressionKind.Reference, name: "x" }],
+        }, wrappedMatch({ x }));
+      },
+      TypeError,
+      "composite",
+    );
+  }
+});
+
+Deno.test("req:expressions-runtime-004 - interpolation rejects callables", async () => {
+  await assertRejects(
+    async () => {
+      await exec({
+        kind: ExpressionKind.String,
+        values: [{ kind: ExpressionKind.Reference, name: "x" }],
+      }, wrappedMatch({ x: () => 1 }));
+    },
+    TypeError,
+    "Cannot convert a callable",
+  );
+});
 
 Deno.test("runtime/expressions/string keeps each interpolated character's provenance", async () => {
   const m = wrappedMatch({ x: new Wrapped("a", rootOrigin(6)) });

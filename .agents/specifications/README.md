@@ -28,6 +28,7 @@ This directory holds the Uffda specification as a set of smaller documents.
 - [standard library](./standard-library.spec.md)
 - [modules](./modules.spec.md)
 - [languages](./languages.spec.md)
+- [data codec](./data-codec.spec.md)
 
 ## Authoring pattern
 

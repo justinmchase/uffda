@@ -42,6 +42,16 @@ Normative key words in this chapter use the conventions defined in the
 - Operational commands MUST accept raw selected-language AST JSON only with
   explicit `--ast` rather than a CLI-specific artifact envelope.
 - String execution results MUST be suitable for direct shell-pipeline output.
+- Default operational value display MUST use Uffda data notation, not implicit
+  JSON conversion. Top-level strings remain raw text; undefined emits nothing.
+- Value display MUST be separate from runtime text conversion and MUST NOT
+  invoke text or JSON hooks. Values without a lossless representation in the
+  existing Uffda grammar MUST fail explicitly. It MUST NOT silently omit values
+  or substitute empty containers or null.
+- `--json` MUST retain explicitly selected JSON value output for compatibility.
+  Parse/compile artifacts and structured diagnostics remain JSON.
+- Authored patterns and expressions SHOULD be preferred for domain-specific
+  serialization and parsing rather than assuming universal native conversion.
 
 ## JSON stability and compatibility
 

@@ -17,16 +17,22 @@ Preconditions:
 
 Expected behavior:
 
-- Over an immediately available iterable, matching MUST return a match, not a
-  promise.
-- Over an async iterable, matching MUST return a promise.
+- In the TypeScript host, immediate input MUST return a match and async input
+  MUST return an awaitable. Rust MUST represent availability in execution state,
+  not first-class Promise values.
 - Sequential composites (`Then`, `And`, `Or`, `Over`, `Quantifier`) MUST produce
   the same match kind, value, and end position in both cases, including when a
   composite continues past children that completed asynchronously.
 - An expression exception inside a projection MUST be normalized to the same
   `ExpressionException` error match whether the expression throws synchronously
   or rejects asynchronously.
-- A thenable that is not a native promise MUST be adopted like a promise.
+- TypeScript thenables MUST be adopted like promises. Rust data objects with a
+  `then` property MUST remain data; actual host suspension is explicit.
+- Rust native and authored hook invocations MUST consume their completed values
+  through the same continuation scheduler. Pending execution MUST NOT become an
+  empty-object serialization or protocol placeholder.
+- Suspended Rust execution MUST retain live roots without holding a collector
+  mutation context or borrow across a host await.
 
 Postconditions:
 

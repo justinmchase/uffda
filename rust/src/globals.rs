@@ -1,0 +1,1094 @@
+//! Pure native globals. Lazy iteration is driven by the evaluator's frames.
+use crate::coercion::{number_text, string_text, truthy};
+use crate::evaluate::EvaluationError;
+use crate::provenance::{CharRun, Located, Origin, concatenate};
+use crate::value::Value;
+use gc_arena::{Collect, Gc, Mutation, RefLock};
+use sha2::Digest;
+use std::collections::HashSet;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Collect)]
+#[collect(require_static)]
+pub enum NativeGlobal {
+    Add,
+    At,
+    Base58,
+    Coalesce,
+    Compare,
+    Eq,
+    Enumerate,
+    Filter,
+    Flat,
+    Format,
+    FromEntries,
+    Gt,
+    Gte,
+    Has,
+    Id,
+    Int,
+    Iterable,
+    Join,
+    Json,
+    Last,
+    Length,
+    Lt,
+    Lte,
+    Map,
+    Not,
+    One,
+    Pack,
+    Pluck,
+    Reduce,
+    Scan,
+    Sha256,
+    Slice,
+    Sub,
+    Symbol,
+    ToSet,
+    When,
+}
+
+pub const GLOBALS: &[(&str, NativeGlobal)] = &[
+    ("add", NativeGlobal::Add),
+    ("at", NativeGlobal::At),
+    ("base58", NativeGlobal::Base58),
+    ("coalesce", NativeGlobal::Coalesce),
+    ("compare", NativeGlobal::Compare),
+    ("eq", NativeGlobal::Eq),
+    ("enumerate", NativeGlobal::Enumerate),
+    ("filter", NativeGlobal::Filter),
+    ("flat", NativeGlobal::Flat),
+    ("format", NativeGlobal::Format),
+    ("from_entries", NativeGlobal::FromEntries),
+    ("gt", NativeGlobal::Gt),
+    ("gte", NativeGlobal::Gte),
+    ("has", NativeGlobal::Has),
+    ("id", NativeGlobal::Id),
+    ("int", NativeGlobal::Int),
+    ("iterable", NativeGlobal::Iterable),
+    ("join", NativeGlobal::Join),
+    ("json", NativeGlobal::Json),
+    ("last", NativeGlobal::Last),
+    ("length", NativeGlobal::Length),
+    ("lt", NativeGlobal::Lt),
+    ("lte", NativeGlobal::Lte),
+    ("map", NativeGlobal::Map),
+    ("not", NativeGlobal::Not),
+    ("one", NativeGlobal::One),
+    ("pack", NativeGlobal::Pack),
+    ("pluck", NativeGlobal::Pluck),
+    ("reduce", NativeGlobal::Reduce),
+    ("scan", NativeGlobal::Scan),
+    ("sha256", NativeGlobal::Sha256),
+    ("slice", NativeGlobal::Slice),
+    ("sub", NativeGlobal::Sub),
+    ("symbol", NativeGlobal::Symbol),
+    ("to_set", NativeGlobal::ToSet),
+    ("when", NativeGlobal::When),
+];
+
+pub fn lookup(name: &str) -> Option<NativeGlobal> {
+    GLOBALS
+        .iter()
+        .find(|(key, _)| *key == name)
+        .map(|(_, value)| *value)
+}
+
+impl NativeGlobal {
+    pub fn name(self) -> &'static str {
+        GLOBALS
+            .iter()
+            .find(|(_, global)| *global == self)
+            .expect("registered native global")
+            .0
+    }
+
+    pub fn arity(self) -> usize {
+        use NativeGlobal::*;
+        match self {
+            Coalesce | Pack => 0,
+            Base58 | Enumerate | Format | FromEntries | Id | Int | Iterable | Json | Length
+            | Not | Sha256 | Symbol | ToSet => 1,
+            Reduce | Scan | Slice | When => 3,
+            Add | At | Compare | Eq | Filter | Flat | Gt | Gte | Has | Join | Last | Lt | Lte
+            | Map | One | Pluck | Sub => 2,
+        }
+    }
+}
+
+pub(crate) fn symbol_text(name: &str) -> String {
+    let description = match name {
+        "asyncIterator" | "hasInstance" | "isConcatSpreadable" | "iterator" | "match"
+        | "matchAll" | "replace" | "search" | "species" | "split" | "toPrimitive"
+        | "toStringTag" | "unscopables" | "dispose" | "asyncDispose" => format!("Symbol.{name}"),
+        _ => name.to_owned(),
+    };
+    format!("Symbol({description})")
+}
+
+pub type Iterator<'gc> = Gc<'gc, RefLock<IterableState<'gc>>>;
+
+#[derive(Collect)]
+#[collect(no_drop)]
+pub enum IterableState<'gc> {
+    Source {
+        value: Value<'gc>,
+        index: usize,
+        offset: usize,
+    },
+    Map {
+        source: Iterator<'gc>,
+        callback: Value<'gc>,
+    },
+    Filter {
+        source: Iterator<'gc>,
+        callback: Value<'gc>,
+    },
+    Scan {
+        source: Iterator<'gc>,
+        callback: Value<'gc>,
+        acc: Value<'gc>,
+    },
+    Enumerate {
+        source: Iterator<'gc>,
+        index: usize,
+    },
+    Deferred {
+        value: Value<'gc>,
+    },
+    Custom {
+        value: Value<'gc>,
+        factory: Value<'gc>,
+        cursor: Option<Value<'gc>>,
+        index: usize,
+        done: bool,
+    },
+    Delegate {
+        source: Iterator<'gc>,
+    },
+}
+
+pub fn iterator<'gc>(
+    mc: &Mutation<'gc>,
+    value: Value<'gc>,
+) -> Result<Iterator<'gc>, EvaluationError> {
+    match value.raw() {
+        Value::Iterable(iterator) => Ok(iterator),
+        Value::Array(_) | Value::String(_) | Value::Set(_) | Value::Map(_) | Value::Bytes(_) => {
+            Ok(Gc::new(
+                mc,
+                RefLock::new(IterableState::Source {
+                    value,
+                    index: 0,
+                    offset: 0,
+                }),
+            ))
+        }
+        Value::Object(object) => {
+            let properties = object.borrow();
+            let factory = properties
+                .get_symbol("asyncIterator")
+                .filter(|v| {
+                    matches!(
+                        v.raw(),
+                        Value::Lambda(_)
+                            | Value::Native(_)
+                            | Value::Host(_)
+                            | Value::IteratorFactory(_)
+                    )
+                })
+                .or_else(|| {
+                    properties.get_symbol("iterator").filter(|v| {
+                        matches!(
+                            v.raw(),
+                            Value::Lambda(_)
+                                | Value::Native(_)
+                                | Value::Host(_)
+                                | Value::IteratorFactory(_)
+                        )
+                    })
+                });
+            match factory {
+                Some(factory) => Ok(Gc::new(
+                    mc,
+                    RefLock::new(IterableState::Custom {
+                        value,
+                        factory,
+                        cursor: None,
+                        index: 0,
+                        done: false,
+                    }),
+                )),
+                None => Err(error(
+                    "iterable expects a value with Symbol.iterator or Symbol.asyncIterator",
+                )),
+            }
+        }
+        _ => Err(error(
+            "iterable expects a value with Symbol.iterator or Symbol.asyncIterator",
+        )),
+    }
+}
+
+pub fn source_item<'gc>(mc: &Mutation<'gc>, value: Value<'gc>, index: usize) -> Option<Value<'gc>> {
+    let item = match value.raw() {
+        Value::Array(values) | Value::Set(values) => values.borrow().get(index).copied(),
+        Value::Map(values) => values
+            .borrow()
+            .get(index)
+            .copied()
+            .map(|entry| match entry.raw() {
+                Value::Array(pair) => Value::array(mc, pair.borrow().clone()),
+                _ => entry,
+            }),
+        Value::String(text) => text
+            .chars()
+            .nth(index)
+            .map(|c| Value::string(mc, c.to_string())),
+        Value::Bytes(bytes) => bytes.get(index).map(|byte| Value::Number(*byte as f64)),
+        _ => None,
+    };
+    item.map(|item| value.carry_item(mc, item, index))
+}
+
+pub enum NativeResult<'gc> {
+    Value(Value<'gc>),
+    Reduce {
+        source: Iterator<'gc>,
+        callback: Value<'gc>,
+        acc: Value<'gc>,
+    },
+}
+
+fn error(message: &str) -> EvaluationError {
+    EvaluationError::Native(message.into())
+}
+
+fn number(value: Value<'_>) -> Result<f64, EvaluationError> {
+    match value.raw() {
+        Value::Number(n) => Ok(n),
+        _ => Err(error("expected number")),
+    }
+}
+
+fn text(value: Value<'_>) -> Result<String, EvaluationError> {
+    string_text(value).map_err(EvaluationError::StringCoercion)
+}
+
+pub fn property_key(value: Value<'_>) -> Result<String, EvaluationError> {
+    text(value)
+}
+
+pub fn same_value_zero<'gc>(left: Value<'gc>, right: Value<'gc>) -> bool {
+    left.strict_eq(right)
+        || matches!((left.raw(), right.raw()),
+        (Value::Number(l), Value::Number(r)) if l.is_nan() && r.is_nan())
+}
+
+fn ordinal(value: Value<'_>) -> Option<usize> {
+    let index = match value.raw() {
+        Value::Number(n) => n,
+        Value::String(s) => {
+            let n = s.parse::<f64>().ok()?;
+            if number_text(n) != *s {
+                return None;
+            }
+            n
+        }
+        _ => return None,
+    };
+    (index.is_finite() && index >= 0.0 && index.fract() == 0.0 && index < usize::MAX as f64)
+        .then_some(index as usize)
+}
+
+fn length(value: Value<'_>) -> Result<usize, EvaluationError> {
+    match value.raw() {
+        Value::String(text) => Ok(text.encode_utf16().count()),
+        Value::Array(array) | Value::Set(array) | Value::Map(array) => Ok(array.borrow().len()),
+        _ => Err(error("length expects a string, array, Set, or Map")),
+    }
+}
+
+fn at<'gc>(
+    mc: &Mutation<'gc>,
+    value: Value<'gc>,
+    index: Value<'gc>,
+) -> Result<Value<'gc>, EvaluationError> {
+    match value.raw() {
+        Value::String(_) | Value::Array(_) | Value::Set(_) | Value::Map(_) => {}
+        _ => return Err(error("at expects a string, array, Set, or Map")),
+    }
+    let Some(index) = ordinal(index) else {
+        return Ok(Value::Undefined);
+    };
+    match value.raw() {
+        Value::String(text) => {
+            // Rust strings cannot represent a lone UTF-16 surrogate.
+            let units: Vec<_> = text.encode_utf16().collect();
+            let Some(unit) = units.get(index).copied() else {
+                return Ok(Value::Undefined);
+            };
+            let c = char::from_u32(unit as u32)
+                .ok_or_else(|| error("lone UTF-16 surrogate values are not supported"))?;
+            let codepoint_index = text
+                .encode_utf16()
+                .take(index)
+                .filter(|c| !(0xdc00..=0xdfff).contains(c))
+                .count();
+            Ok(value.carry_item(mc, Value::string(mc, c.to_string()), codepoint_index))
+        }
+        _ => Ok(source_item(mc, value, index).unwrap_or(Value::Undefined)),
+    }
+}
+
+fn elements(value: Value<'_>) -> Result<Vec<Value<'_>>, EvaluationError> {
+    match value.raw() {
+        Value::Array(array) | Value::Set(array) => Ok(array.borrow().clone()),
+        Value::Map(array) => array
+            .borrow()
+            .iter()
+            .map(|entry| {
+                let Value::Array(pair) = entry.raw() else {
+                    return Err(error("invalid Map entry"));
+                };
+                Ok(pair.borrow().get(1).copied().unwrap_or(Value::Undefined))
+            })
+            .collect(),
+        Value::Object(object) => Ok(object
+            .borrow()
+            .entries()
+            .iter()
+            .map(|(_, value)| *value)
+            .collect()),
+        _ => Err(error("expects an array, object, Map, or Set")),
+    }
+}
+
+fn js_whitespace(c: char) -> bool {
+    matches!(
+        c,
+        '\t' | '\n' | '\u{b}' | '\u{c}' | '\r' | ' ' | '\u{a0}' | '\u{1680}' | '\u{2000}'
+            ..='\u{200a}'
+                | '\u{2028}'
+                | '\u{2029}'
+                | '\u{202f}'
+                | '\u{205f}'
+                | '\u{3000}'
+                | '\u{feff}'
+    )
+}
+
+fn to_number(value: Value<'_>) -> Result<f64, EvaluationError> {
+    match value.raw() {
+        Value::Number(n) => Ok(n),
+        Value::Undefined => Ok(f64::NAN),
+        Value::Null => Ok(0.0),
+        Value::Boolean(b) => Ok(if b { 1.0 } else { 0.0 }),
+        _ => {
+            let s = text(value)?;
+            let s = s.trim_matches(js_whitespace);
+            if s.is_empty() {
+                return Ok(0.0);
+            }
+            for (prefix, radix) in [
+                ("0x", 16),
+                ("0X", 16),
+                ("0o", 8),
+                ("0O", 8),
+                ("0b", 2),
+                ("0B", 2),
+            ] {
+                if let Some(digits) = s.strip_prefix(prefix) {
+                    if digits.is_empty() {
+                        return Ok(f64::NAN);
+                    }
+                    let mut result = 0.0;
+                    for c in digits.chars() {
+                        let Some(digit) = c.to_digit(radix) else {
+                            return Ok(f64::NAN);
+                        };
+                        result = result * radix as f64 + digit as f64;
+                    }
+                    return Ok(result);
+                }
+            }
+            if matches!(
+                s,
+                "inf" | "+inf" | "-inf" | "infinity" | "+infinity" | "-infinity"
+            ) {
+                return Ok(f64::NAN);
+            }
+            Ok(s.parse().unwrap_or(f64::NAN))
+        }
+    }
+}
+
+fn slice_index(value: Value<'_>, length: usize, default: usize) -> Result<usize, EvaluationError> {
+    if matches!(value.raw(), Value::Undefined) {
+        return Ok(default);
+    }
+    let n = to_number(value)?;
+    let n = if n.is_nan() { 0.0 } else { n.trunc() };
+    Ok(if n < 0.0 {
+        (length as f64 + n).max(0.0)
+    } else {
+        n.min(length as f64)
+    } as usize)
+}
+
+pub(crate) fn string_slice<'gc>(
+    mc: &Mutation<'gc>,
+    value: Value<'gc>,
+    start: usize,
+    end: usize,
+) -> Result<Value<'gc>, EvaluationError> {
+    let Value::String(source) = value.raw() else {
+        return Err(error("expected string"));
+    };
+    let units: Vec<_> = source.encode_utf16().collect();
+    let result = String::from_utf16(&units[start..end.max(start)])
+        .map_err(|_| error("lone UTF-16 surrogate values are not supported"))?;
+    let before = String::from_utf16(&units[..start])
+        .map_err(|_| error("lone UTF-16 surrogate values are not supported"))?
+        .chars()
+        .count();
+    let origin = value.origin().unwrap_or(Origin { start: 0, end: 0 });
+    let chars = result
+        .chars()
+        .enumerate()
+        .map(|(i, _)| CharRun {
+            length: 1,
+            origin: value.char_origin(before + i).unwrap_or(origin),
+            linear: false,
+        })
+        .collect();
+    Ok(Value::Located(Gc::new(
+        mc,
+        Located {
+            raw: Value::string(mc, result),
+            origin,
+            chars,
+        },
+    )))
+}
+
+pub(crate) fn join_parts<'gc>(
+    mc: &Mutation<'gc>,
+    args: &[Value<'gc>],
+) -> Result<Vec<Value<'gc>>, EvaluationError> {
+    let array = args.first().copied().unwrap_or(Value::Undefined);
+    let Value::Array(items) = array.raw() else {
+        return Err(error("join expects an array"));
+    };
+    let separator = args
+        .get(1)
+        .copied()
+        .filter(|v| !matches!(v.raw(), Value::Undefined))
+        .unwrap_or_else(|| Value::string(mc, ","));
+    let separator = if matches!(separator.raw(), Value::String(_)) {
+        separator
+    } else {
+        Value::string(mc, text(separator)?)
+    };
+    let mut parts = vec![];
+    for (index, item) in items.borrow().iter().enumerate() {
+        if index > 0 {
+            parts.push(separator);
+        }
+        if !matches!(item.raw(), Value::Null | Value::Undefined) {
+            parts.push(*item);
+        }
+    }
+    Ok(parts)
+}
+
+pub(crate) fn format_parts<'gc>(
+    mc: &Mutation<'gc>,
+    args: &[Value<'gc>],
+) -> Result<Vec<Value<'gc>>, EvaluationError> {
+    let template = args.first().copied().unwrap_or(Value::Undefined);
+    let Value::String(source) = template.raw() else {
+        return Err(error("format expects a string"));
+    };
+    let units: Vec<_> = source.encode_utf16().collect();
+    let mut parts = vec![];
+    let mut offset = 0;
+    let mut literal_start = 0;
+    while offset < units.len() {
+        if units[offset] == b'{' as u16 {
+            let mut end = offset + 1;
+            let mut index = 0usize;
+            while end < units.len() && (b'0' as u16..=b'9' as u16).contains(&units[end]) {
+                index = index
+                    .saturating_mul(10)
+                    .saturating_add((units[end] - b'0' as u16) as usize);
+                end += 1;
+            }
+            if end > offset + 1 && units.get(end) == Some(&(b'}' as u16)) {
+                let replacement = index
+                    .checked_add(1)
+                    .and_then(|i| args.get(i).copied())
+                    .unwrap_or(Value::Undefined);
+                if !matches!(replacement.raw(), Value::Null | Value::Undefined) {
+                    parts.push(string_slice(mc, template, literal_start, offset)?);
+                    parts.push(replacement);
+                    offset = end + 1;
+                    literal_start = offset;
+                    continue;
+                }
+            }
+        }
+        offset += if (0xd800..=0xdbff).contains(&units[offset]) {
+            2
+        } else {
+            1
+        };
+    }
+    parts.push(string_slice(mc, template, literal_start, offset)?);
+    Ok(parts)
+}
+
+pub fn invoke<'gc>(
+    mc: &Mutation<'gc>,
+    global: NativeGlobal,
+    args: Vec<Value<'gc>>,
+    origin: Origin,
+) -> Result<NativeResult<'gc>, EvaluationError> {
+    use NativeGlobal::*;
+    let arg = |i: usize| args.get(i).copied().unwrap_or(Value::Undefined);
+    let result = match global {
+        Id => arg(0),
+        Pack => Value::array(mc, args),
+        Add => Value::Number(number(arg(0))? + number(arg(1))?),
+        Sub => Value::Number(number(arg(0))? - number(arg(1))?),
+        Eq => Value::Boolean(arg(0).strict_eq(arg(1))),
+        Not => Value::Boolean(!truthy(arg(0))),
+        When => {
+            if truthy(arg(0)) {
+                arg(1)
+            } else {
+                arg(2)
+            }
+        }
+        Coalesce => args
+            .iter()
+            .copied()
+            .find(|v| !matches!(v.raw(), Value::Null | Value::Undefined))
+            .unwrap_or(Value::Undefined),
+        Compare | Lt | Lte | Gt | Gte => {
+            let order = match (arg(0).raw(), arg(1).raw()) {
+                (Value::Number(l), Value::Number(r)) => {
+                    if l == r {
+                        0
+                    } else if l < r {
+                        -1
+                    } else {
+                        1
+                    }
+                }
+                (Value::String(l), Value::String(r)) => {
+                    if l == r {
+                        0
+                    } else if l.encode_utf16().cmp(r.encode_utf16()).is_lt() {
+                        -1
+                    } else {
+                        1
+                    }
+                }
+                _ => return Err(error("compare expects two numbers or two strings")),
+            };
+            match global {
+                Compare => Value::Number(order as f64),
+                Lt => Value::Boolean(order < 0),
+                Lte => Value::Boolean(order <= 0),
+                Gt => Value::Boolean(order > 0),
+                _ => Value::Boolean(order >= 0),
+            }
+        }
+        Length => Value::Number(length(arg(0))? as f64),
+        At => at(mc, arg(0), arg(1))?,
+        Last => match arg(0).raw() {
+            Value::Array(_) | Value::String(_) => {
+                let len = length(arg(0))?;
+                if len == 0 {
+                    arg(1)
+                } else {
+                    at(mc, arg(0), Value::Number((len - 1) as f64))?
+                }
+            }
+            _ => arg(1),
+        },
+        One => match arg(0).raw() {
+            Value::Array(a) if a.borrow().len() == 1 => arg(0).carry_item(mc, a.borrow()[0], 0),
+            _ => arg(1),
+        },
+        Int => {
+            let s = text(arg(0))?;
+            let s = s.trim_start_matches(js_whitespace);
+            let (sign, digits) = if let Some(s) = s.strip_prefix('-') {
+                (-1.0, s)
+            } else {
+                (1.0, s.strip_prefix('+').unwrap_or(s))
+            };
+            let mut n = 0.0;
+            let mut count = 0;
+            for c in digits.chars().take_while(char::is_ascii_digit) {
+                n = n * 10.0 + c.to_digit(10).unwrap() as f64;
+                count += 1;
+            }
+            Value::Number(if count == 0 { f64::NAN } else { sign * n })
+        }
+        Symbol => Value::Symbol(Gc::new(mc, text(arg(0))?)),
+        Has => {
+            let found = match arg(0).raw() {
+                Value::Array(a) | Value::Set(a) => {
+                    a.borrow().iter().any(|v| same_value_zero(*v, arg(1)))
+                }
+                Value::Map(a) => a.borrow().iter().any(|entry| match entry.raw() {
+                    Value::Array(pair) => pair
+                        .borrow()
+                        .first()
+                        .is_some_and(|key| same_value_zero(*key, arg(1))),
+                    _ => false,
+                }),
+                Value::Object(o) => match arg(1).raw() {
+                    Value::Symbol(s) => o.borrow().get_symbol(&s).is_some(),
+                    _ => o.borrow().get(&property_key(arg(1))?).is_some(),
+                },
+                _ => false,
+            };
+            Value::Boolean(found)
+        }
+        Flat => {
+            let Value::Array(a) = arg(0).raw() else {
+                return Err(error("flat expects an array"));
+            };
+            let depth = if matches!(arg(1).raw(), Value::Undefined | Value::Null) {
+                1.0
+            } else {
+                to_number(arg(1))?
+            };
+            let mut pending = a
+                .borrow()
+                .iter()
+                .rev()
+                .map(|v| (Some(*v), depth, 0usize))
+                .collect::<Vec<_>>();
+            let mut ancestors = HashSet::new();
+            let mut out = vec![];
+            while let Some((v, depth, id)) = pending.pop() {
+                let Some(v) = v else {
+                    ancestors.remove(&id);
+                    continue;
+                };
+                if let Value::Array(a) = v.raw()
+                    && depth > 0.0
+                {
+                    let id = Gc::as_ptr(a) as usize;
+                    if depth.is_infinite() && !ancestors.insert(id) {
+                        return Err(error("cyclic array cannot be flattened at infinite depth"));
+                    }
+                    if depth.is_infinite() {
+                        pending.push((None, depth, id));
+                    }
+                    pending.extend(a.borrow().iter().rev().map(|v| (Some(*v), depth - 1.0, 0)));
+                } else {
+                    out.push(v);
+                }
+            }
+            Value::array(mc, out)
+        }
+        Slice => match arg(0).raw() {
+            Value::Array(a) => {
+                let len = a.borrow().len();
+                let start = slice_index(arg(1), len, 0)?;
+                let end = slice_index(arg(2), len, len)?.max(start);
+                Value::array(mc, a.borrow()[start..end].to_vec())
+            }
+            Value::String(s) => {
+                let len = s.encode_utf16().count();
+                string_slice(
+                    mc,
+                    arg(0),
+                    slice_index(arg(1), len, 0)?,
+                    slice_index(arg(2), len, len)?,
+                )?
+            }
+            _ => return Err(error("slice expects a string or array")),
+        },
+        Join => {
+            let Value::Array(a) = arg(0).raw() else {
+                return Err(error("join expects an array"));
+            };
+            let sep = if matches!(arg(1).raw(), Value::Undefined) {
+                Value::string(mc, ",")
+            } else if matches!(arg(1).raw(), Value::String(_)) {
+                arg(1)
+            } else {
+                Value::string(mc, text(arg(1))?)
+            };
+            let mut parts = vec![];
+            for (i, v) in a.borrow().iter().enumerate() {
+                if i > 0 {
+                    parts.push(sep);
+                }
+                match v.raw() {
+                    Value::Null | Value::Undefined => {}
+                    Value::String(_) => parts.push(*v),
+                    _ => parts.push(Value::string(mc, text(*v)?)),
+                }
+            }
+            concatenate(mc, &parts, arg(0).origin().unwrap_or(origin))
+                .map_err(EvaluationError::StringCoercion)?
+        }
+        Format => {
+            let Value::String(template) = arg(0).raw() else {
+                return Err(error("format expects a string"));
+            };
+            let mut parts = vec![];
+            let mut offset = 0;
+            let mut literal_start = 0;
+            let units: Vec<_> = template.encode_utf16().collect();
+            while offset < units.len() {
+                if units[offset] == b'{' as u16 {
+                    let mut end = offset + 1;
+                    let mut index = 0usize;
+                    while end < units.len() && (b'0' as u16..=b'9' as u16).contains(&units[end]) {
+                        index = index
+                            .saturating_mul(10)
+                            .saturating_add((units[end] - b'0' as u16) as usize);
+                        end += 1;
+                    }
+                    if end > offset + 1 && units.get(end) == Some(&(b'}' as u16)) {
+                        let replacement = index.checked_add(1).map(arg).unwrap_or(Value::Undefined);
+                        if !matches!(replacement.raw(), Value::Null | Value::Undefined) {
+                            parts.push(string_slice(mc, arg(0), literal_start, offset)?);
+                            parts.push(if matches!(replacement.raw(), Value::String(_)) {
+                                replacement
+                            } else {
+                                Value::string(mc, text(replacement)?)
+                            });
+                            offset = end + 1;
+                            literal_start = offset;
+                            continue;
+                        }
+                    }
+                }
+                offset += if (0xd800..=0xdbff).contains(&units[offset]) {
+                    2
+                } else {
+                    1
+                };
+            }
+            parts.push(string_slice(mc, arg(0), literal_start, offset)?);
+            concatenate(mc, &parts, arg(0).origin().unwrap_or(origin))
+                .map_err(EvaluationError::StringCoercion)?
+        }
+        Pluck => {
+            let mut out = vec![];
+            for v in elements(arg(0))? {
+                let item = match v.raw() {
+                    Value::Object(o) => match arg(1).raw() {
+                        Value::Symbol(s) => o.borrow().get_symbol(&s).unwrap_or(Value::Undefined),
+                        _ => o
+                            .borrow()
+                            .get(&property_key(arg(1))?)
+                            .unwrap_or(Value::Undefined),
+                    },
+                    Value::Array(a) => {
+                        if property_key(arg(1))? == "length" {
+                            Value::Number(a.borrow().len() as f64)
+                        } else {
+                            ordinal(arg(1))
+                                .and_then(|i| a.borrow().get(i).copied())
+                                .unwrap_or(Value::Undefined)
+                        }
+                    }
+                    _ => Value::Undefined,
+                };
+                out.push(if let Some(origin) = v.origin() {
+                    item.wrap(mc, origin)
+                } else {
+                    item
+                });
+            }
+            Value::array(mc, out)
+        }
+        ToSet => Value::set(
+            mc,
+            elements(arg(0))?
+                .into_iter()
+                .map(|item| item.unwrap_deep(mc))
+                .collect(),
+        ),
+        FromEntries => {
+            let Value::Array(a) = arg(0).raw() else {
+                return Err(error("from_entries expects an array"));
+            };
+            let out = Value::object(mc, vec![]);
+            let Value::Object(o) = out else {
+                unreachable!()
+            };
+            for (i, entry) in a.borrow().iter().enumerate() {
+                let (key, value) = match entry.raw() {
+                    Value::Array(a) if a.borrow().len() >= 2 => (a.borrow()[0], a.borrow()[1]),
+                    Value::Object(o) if o.borrow().get("name").is_some() => {
+                        let p = o.borrow();
+                        (
+                            p.get("name").unwrap(),
+                            p.get("pattern")
+                                .or_else(|| p.get("value"))
+                                .unwrap_or(Value::Undefined),
+                        )
+                    }
+                    _ => {
+                        return Err(error(&format!(
+                            "from_entries entry {i} must be a [key, value] pair or {{ name, ... }}"
+                        )));
+                    }
+                };
+                match key.raw() {
+                    Value::Symbol(s) => o.borrow_mut(mc).set_symbol((*s).clone(), value),
+                    _ => o.borrow_mut(mc).set(property_key(key)?, value),
+                }
+            }
+            out
+        }
+        Json => match json_text(arg(0))? {
+            Some(s) => Value::string(mc, s),
+            None => Value::Undefined,
+        },
+        Sha256 => {
+            let Value::String(s) = arg(0).raw() else {
+                return Err(error("sha256 expects a string"));
+            };
+            Value::Bytes(Gc::new(mc, sha2::Sha256::digest(s.as_bytes()).to_vec()))
+        }
+        Base58 => {
+            let Value::Bytes(b) = arg(0).raw() else {
+                return Err(error("base58 expects a Uint8Array"));
+            };
+            Value::string(mc, bs58::encode(&**b).into_string())
+        }
+        Iterable => {
+            let value = arg(0);
+            if value.origin().is_none()
+                && (matches!(value.raw(), Value::Iterable(_))
+                    || matches!(value.raw(), Value::Object(object) if object.borrow().get_symbol("asyncIterator").is_some_and(|factory| factory.runtime_type() == crate::value::RuntimeType::Function)))
+            {
+                value
+            } else {
+                if value.origin().is_none() {
+                    iterator(mc, value)?;
+                }
+                // The normalizer owns its protocol hook; object spread must retain it.
+                let object = Value::object(mc, vec![]);
+                let Value::Object(properties) = object else {
+                    unreachable!()
+                };
+                properties.borrow_mut(mc).set_symbol(
+                    "asyncIterator".into(),
+                    Value::IteratorFactory(Gc::new(mc, value)),
+                );
+                object
+            }
+        }
+        Enumerate => match arg(0).raw() {
+            Value::Object(o)
+                if !["asyncIterator", "iterator"].iter().any(|key| {
+                    o.borrow().get_symbol(key).is_some_and(|v| {
+                        matches!(
+                            v.raw(),
+                            Value::Lambda(_)
+                                | Value::Native(_)
+                                | Value::Host(_)
+                                | Value::IteratorFactory(_)
+                        )
+                    })
+                }) =>
+            {
+                let items = o
+                    .borrow()
+                    .entries()
+                    .iter()
+                    .enumerate()
+                    .map(|(i, (key, item))| {
+                        Value::object(
+                            mc,
+                            vec![
+                                ("index".into(), Value::string(mc, key)),
+                                ("value".into(), arg(0).carry_item(mc, *item, i)),
+                            ],
+                        )
+                    })
+                    .collect();
+                Value::Iterable(iterator(mc, Value::array(mc, items))?)
+            }
+            _ => match iterator(mc, arg(0)) {
+                Ok(source) => Value::Iterable(Gc::new(
+                    mc,
+                    RefLock::new(IterableState::Enumerate { source, index: 0 }),
+                )),
+                Err(_) => {
+                    let record = Value::object(
+                        mc,
+                        vec![
+                            ("index".into(), Value::Number(0.0)),
+                            ("value".into(), arg(0)),
+                        ],
+                    );
+                    Value::Iterable(iterator(mc, Value::array(mc, vec![record]))?)
+                }
+            },
+        },
+        Map | Filter | Scan | Reduce => {
+            let source = Gc::new(mc, RefLock::new(IterableState::Deferred { value: arg(0) }));
+            let callback = arg(if matches!(global, Scan | Reduce) {
+                2
+            } else {
+                1
+            });
+            let state = match global {
+                Map => IterableState::Map { source, callback },
+                Filter => IterableState::Filter { source, callback },
+                Scan => IterableState::Scan {
+                    source,
+                    callback,
+                    acc: arg(1),
+                },
+                Reduce => {
+                    return Ok(NativeResult::Reduce {
+                        source,
+                        callback,
+                        acc: arg(1),
+                    });
+                }
+                _ => unreachable!(),
+            };
+            Value::Iterable(Gc::new(mc, RefLock::new(state)))
+        }
+    };
+    Ok(NativeResult::Value(result))
+}
+
+/// Serializes runtime data, rejecting callable values rather than omitting them.
+pub fn json_text(value: Value<'_>) -> Result<Option<String>, EvaluationError> {
+    enum Frame<'gc> {
+        Value(Value<'gc>, bool),
+        Text(String),
+        Exit(usize),
+    }
+    let mut frames = vec![Frame::Value(value, false)];
+    let mut ancestors = HashSet::new();
+    let mut out = String::new();
+    while let Some(frame) = frames.pop() {
+        match frame {
+            Frame::Text(s) => out.push_str(&s),
+            Frame::Exit(id) => {
+                ancestors.remove(&id);
+            }
+            Frame::Value(v, array) => match v.raw() {
+                Value::Native(_)
+                | Value::Host(_)
+                | Value::Lambda(_)
+                | Value::IteratorFactory(_) => {
+                    return Err(error("cannot serialize callable to JSON"));
+                }
+                Value::Undefined | Value::Symbol(_) => {
+                    if array {
+                        out.push_str("null");
+                    } else if out.is_empty() && frames.is_empty() {
+                        return Ok(None);
+                    }
+                }
+                Value::Null => out.push_str("null"),
+                Value::Boolean(b) => out.push_str(if b { "true" } else { "false" }),
+                Value::Number(n) => out.push_str(&if n.is_finite() {
+                    number_text(n)
+                } else {
+                    "null".into()
+                }),
+                Value::String(s) => {
+                    out.push_str(&serde_json::to_string(&*s).map_err(|e| error(&e.to_string()))?)
+                }
+                Value::Set(_) | Value::Map(_) | Value::Iterable(_) => out.push_str("{}"),
+                Value::Match(_) => {
+                    return Err(error("current match scope serialization is not supported"));
+                }
+                Value::Declaration(declaration) => {
+                    frames.push(Frame::Value(Value::Object(declaration.properties), array))
+                }
+                Value::Url(url) => out.push_str(
+                    &serde_json::to_string(url.0.as_str()).map_err(|e| error(&e.to_string()))?,
+                ),
+                Value::Bytes(bytes) => {
+                    out.push('{');
+                    for (i, byte) in bytes.iter().enumerate() {
+                        if i > 0 {
+                            out.push(',');
+                        }
+                        out.push_str(&format!("\"{i}\":{byte}"));
+                    }
+                    out.push('}');
+                }
+                Value::Array(a) => {
+                    let id = Gc::as_ptr(a) as usize;
+                    if !ancestors.insert(id) {
+                        return Err(error("Converting circular structure to JSON"));
+                    }
+                    frames.push(Frame::Exit(id));
+                    frames.push(Frame::Text("]".into()));
+                    for (i, item) in a.borrow().iter().enumerate().rev() {
+                        frames.push(Frame::Value(*item, true));
+                        if i > 0 {
+                            frames.push(Frame::Text(",".into()));
+                        }
+                    }
+                    out.push('[');
+                }
+                Value::Object(o) => {
+                    let id = Gc::as_ptr(o) as usize;
+                    if !ancestors.insert(id) {
+                        return Err(error("Converting circular structure to JSON"));
+                    }
+                    if o.borrow().get("toJSON").is_some_and(|v| {
+                        matches!(
+                            v.raw(),
+                            Value::Lambda(_)
+                                | Value::Native(_)
+                                | Value::Host(_)
+                                | Value::IteratorFactory(_)
+                        )
+                    }) {
+                        return Err(error("callable toJSON conversion is not supported"));
+                    }
+                    frames.push(Frame::Exit(id));
+                    frames.push(Frame::Text("}".into()));
+                    let entries = o
+                        .borrow()
+                        .entries()
+                        .iter()
+                        .filter(|(_, v)| !matches!(v.raw(), Value::Undefined | Value::Symbol(_)))
+                        .cloned()
+                        .collect::<Vec<_>>();
+                    for (i, (key, item)) in entries.into_iter().enumerate().rev() {
+                        frames.push(Frame::Value(item, false));
+                        frames.push(Frame::Text(format!(
+                            "{}:",
+                            serde_json::to_string(&key).unwrap()
+                        )));
+                        if i > 0 {
+                            frames.push(Frame::Text(",".into()));
+                        }
+                    }
+                    out.push('{');
+                }
+                Value::Located(_) => unreachable!(),
+            },
+        }
+    }
+    Ok(Some(out))
+}
+
+#[cfg(test)]
+mod tests;

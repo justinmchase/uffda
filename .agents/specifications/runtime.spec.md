@@ -10,6 +10,11 @@ RFC 8174.
 
 ## Runtime chapter structure
 
+Related contracts:
+
+- [Lossless strings](./runtime/strings.spec.md)
+- [Host execution](./runtime/host-execution.spec.md)
+
 Each runtime subtopic should define:
 
 - the runtime concern it governs;
@@ -29,6 +34,14 @@ Each runtime subtopic should define:
   even when current implementations still expose synchronous entry points.
 - Error normalization, memoization, and left-recursion handling MUST remain
   well-defined under awaitable evaluation.
+- In the Rust runtime, pending work MUST be execution state, not a first-class
+  Promise/Future language value. Completed invocation results MUST be ordinary
+  values, independent of whether the callable is native or authored.
+- Rust execution MUST distinguish completed work, external suspension and
+  cooperative yielding. Host futures MAY drive suspension outside the collector;
+  GC mutation contexts and borrowed objects MUST NOT cross an await boundary.
+- Pending execution MUST NOT be serialized as an empty object, undefined or a
+  placeholder. Cancellation and errors MUST release temporary roots.
 
 ## Synchronous completion and the rule boundary
 
@@ -42,8 +55,9 @@ Each runtime subtopic should define:
   patterns, expressions, or rules as synchronous or asynchronous ahead of time
   (by inspecting their structure, marking them, or compiling separate
   synchronous and asynchronous variants).
-- Any thenable (an object with a callable `then`) MUST be treated as awaitable,
-  matching the adoption behavior of `await`.
+- In the TypeScript host adapter, a thenable MUST be adopted according to that
+  host's await behavior. Rust MUST NOT infer suspension by inspecting a data
+  object's `then` property; host operations use explicit execution requests.
 - Composites that evaluate children in sequence (`Then`, `And`, `Or`, `Over`,
   `Quantifier`, and sequential expression lists) MUST evaluate each child only
   after the previous child has completed, in declared order, whether earlier
@@ -52,14 +66,37 @@ Each runtime subtopic should define:
 - Errors MUST be normalized identically whether an expression throws
   synchronously or rejects asynchronously. Cleanup obligations (such as leaving
   a memo frame) MUST run on success, synchronous throw, and rejection alike.
-- **Rule boundary.** Every fresh (non-memoized) rule body evaluation MUST begin
-  asynchronously, on a new task or microtask, so that the host call stack holds
-  at most the patterns of one rule body at a time. Grammar recursion only
-  happens through rules, so this bounds host stack depth independently of how
-  deeply the input nests. Memoized rule results MAY be returned synchronously
-  since they do not re-enter evaluation.
-- Top-level entry points (grammar execution, module resolution/import) MUST
-  continue to return promises.
+- **Rule boundary.** Fresh rule evaluation MUST bound host stack growth
+  independently of input depth. The TypeScript host schedules a new task or
+  microtask at fresh rule boundaries. Rust MAY use explicit continuation frames
+  instead; authored rules MUST NOT be classified as asynchronous solely to
+  achieve stack safety. Memoized results MAY complete immediately.
+- Top-level TypeScript entry points continue to return promises. Rust entry
+  points MAY expose resumable execution and synchronous/asynchronous host
+  drivers with identical resolved outcomes.
+- Explicit Rust JSON hooks and iterator factories MUST invoke native and
+  authored callables through the same scheduler and consume their completed
+  results. Hook errors and actual external suspension MUST follow ordinary
+  execution behavior, not JavaScript Promise serialization/protocol accidents.
+
+## Callable conversion
+
+- Implicit text conversion MUST accept scalar values only: strings, numbers,
+  booleans, null, undefined, bigint and symbols. Objects, arrays and callables
+  MUST fail with an explicit error, even if they have text-conversion hooks.
+  This applies to interpolation, positional formatting and scalar conversion
+  within functions such as `join` and `int`.
+- Callers MUST format composite values explicitly, for example by selecting
+  fields, joining scalar elements, constructing strings, or requesting JSON.
+- Explicit JSON serialization MUST continue to support data objects and arrays,
+  but MUST reject callable values, including callable array elements and object
+  properties. It MUST NOT expose implementation source, silently omit a callable
+  property, or substitute `null`.
+- A callable's conversion hooks MUST NOT make it serializable. Non-callable
+  objects MAY retain JSON hooks, but a hook returning a callable MUST fail.
+- Explicit callable metadata access remains supported. Implementation-source
+  reflection and implicit composite/callable `toString` are not runtime
+  capabilities.
 
 ## Subtopics
 

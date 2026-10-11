@@ -57,13 +57,21 @@ export class Wrapped<T = unknown> {
       case Type.String:
       case Type.Symbol:
         return v;
+      case Type.Function:
+        throw new TypeError("Cannot convert a callable to text or JSON");
       default:
-        return hint === "number" ? Number(v) : String(v);
+        if (hint === "number") return Number(v);
+        throw new TypeError(
+          "Cannot implicitly convert a composite value to text",
+        );
     }
   }
 
   /** Serializes as the raw value; nested wrappers serialize the same way. */
   toJSON(): T {
+    if (type(this.raw)[0] === Type.Function) {
+      throw new TypeError("Cannot convert a callable to text or JSON");
+    }
     return this.raw;
   }
 }
@@ -339,7 +347,10 @@ function toWrappedString(value: unknown, origin: Origin): Wrapped<string> {
   const wrapped = wrap(value, origin);
   const [t] = type(wrapped.raw);
   if (t === Type.String) return wrapped as Wrapped<string>;
-  return new Wrapped(String(wrapped.raw), wrapped.origin);
+  return new Wrapped(
+    String(wrapped[Symbol.toPrimitive]("string")),
+    wrapped.origin,
+  );
 }
 
 /**

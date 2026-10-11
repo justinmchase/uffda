@@ -27,13 +27,15 @@ Expected behavior:
   and verify every other file it reads against the manifest's `sha256-`
   checksum. A file the manifest does not list fails.
 - It MUST map the export name (`.` or `./<export>`) through the package
-  version's `uffda.jsonc` (read with `parseProject`) to a `.uff` path, and
-  resolve the specifier to `https://jsr.io/@scope/name/<version>/<path>`. The
-  `Resolver` MUST key the module, and its import chain frame's `resolvedUrl`, by
-  that URL, so two specifiers choosing the same file are one module.
+  version's `uffda.jsonc` (read with `parseProject`) to a `.uff` or `.json`
+  path, and resolve the specifier to
+  `https://jsr.io/@scope/name/<version>/<path>`. The `Resolver` MUST key the
+  module, and its import chain frame's `resolvedUrl`, by that URL, so two
+  specifiers choosing the same file are one module.
 - Loading that URL MUST read `<outDir>/ast/<path>.uffda.ast.json` within the
-  package version, with `outDir` from its `uffda.jsonc`. A URL in a package that
-  is not a `.uff` file fails.
+  package version for `.uff`, with `outDir` from its `uffda.jsonc`. A `.json`
+  module MUST read and validate its actual declaration file without remapping.
+  Any other module extension in a package MUST fail before reading its file.
 - In a package's module, an import of a module name MUST fail, and a relative
   import that resolves outside its package version MUST fail.
 - Files MUST be cached under `<cache>/uffda/jsr/<registry path>`

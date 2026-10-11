@@ -1,0 +1,400 @@
+[
+  { "name": "add", "args": [3, 4], "expected": 7 },
+  { "name": "sub", "args": [3, 4], "expected": -1 },
+  { "name": "at", "args": [["a", "b"], 1], "expected": "b" },
+  { "name": "coalesce", "args": [null, 0, false], "expected": 0 },
+  { "name": "compare", "args": ["b", "a"], "expected": 1 },
+  { "name": "eq", "args": [3, 3], "expected": true },
+  { "name": "flat", "args": [[1, [2, [3]]], 2], "expected": [1, 2, 3] },
+  {
+    "name": "format",
+    "args": ["A{0}B{1}C{2}", "x", null, 4],
+    "expected": "AxB{1}C4"
+  },
+  {
+    "name": "from_entries",
+    "args": [
+      [["a", 1], { "name": "b", "pattern": 2 }, { "name": "a", "value": 3 }]
+    ],
+    "expected": { "a": 3, "b": 2 }
+  },
+  { "name": "gt", "args": [4, 3], "expected": true },
+  { "name": "gte", "args": [3, 3], "expected": true },
+  { "name": "has", "args": [[1, 2], 2], "expected": true },
+  { "name": "id", "args": [{ "a": 1 }], "expected": { "a": 1 } },
+  { "name": "int", "args": [" -123.45tail"], "expected": -123 },
+  {
+    "name": "join",
+    "args": [["a", null, 3, ["x", "y"]], "|"],
+    "expected": null,
+    "error": true
+  },
+  {
+    "name": "iterable",
+    "expressions": [{
+      "kind": "object",
+      "keys": [
+        {
+          "kind": "objectSpread",
+          "expression": {
+            "kind": "invocation",
+            "expression": { "kind": "reference", "name": "iterable" },
+            "args": [{ "kind": "value", "value": "ab" }]
+          }
+        },
+        {
+          "kind": "objectKey",
+          "name": "text",
+          "expression": { "kind": "value", "value": "ab" }
+        }
+      ]
+    }],
+    "spread": true,
+    "expected": ["a", "b"]
+  },
+  {
+    "name": "coalesce",
+    "expressions": [
+      {
+        "kind": "member",
+        "name": "description",
+        "expression": { "kind": "value", "value": "documentation" }
+      },
+      { "kind": "value", "value": "fallback" }
+    ],
+    "expected": "fallback"
+  },
+  {
+    "name": "pack",
+    "expressions": [
+      {
+        "kind": "member",
+        "name": "name",
+        "expression": { "kind": "reference", "name": "add" }
+      },
+      {
+        "kind": "member",
+        "name": "length",
+        "expression": { "kind": "reference", "name": "add" }
+      },
+      {
+        "kind": "member",
+        "name": "length",
+        "expression": { "kind": "reference", "name": "pack" }
+      },
+      {
+        "kind": "member",
+        "name": "name",
+        "expression": {
+          "kind": "lambda",
+          "pattern": { "kind": "end" },
+          "expression": { "kind": "value", "value": 1 }
+        }
+      },
+      {
+        "kind": "member",
+        "name": "length",
+        "expression": {
+          "kind": "lambda",
+          "pattern": { "kind": "end" },
+          "expression": { "kind": "value", "value": 1 }
+        }
+      }
+    ],
+    "expected": ["add", 2, 0, "callable", 0]
+  },
+  {
+    "name": "json",
+    "args": [{ "a": 1, "items": [null, "x"] }],
+    "expected": "{\"a\":1,\"items\":[null,\"x\"]}"
+  },
+  { "name": "last", "args": [[], 9], "expected": 9 },
+  { "name": "length", "args": ["😀x"], "expected": 3 },
+  { "name": "lt", "args": ["a", "b"], "expected": true },
+  { "name": "lte", "args": [3, 3], "expected": true },
+  { "name": "not", "args": [[]], "expected": false },
+  { "name": "one", "args": [[42], 0], "expected": 42 },
+  { "name": "pack", "args": [1, null, "x"], "expected": [1, null, "x"] },
+  {
+    "name": "pluck",
+    "args": [[{ "x": 1 }, { "x": 2 }], "x"],
+    "expected": [1, 2]
+  },
+  { "name": "slice", "args": [[1, 2, 3, 4], -3, -1], "expected": [2, 3] },
+  { "name": "when", "args": [false, "yes", "no"], "expected": "no" },
+  {
+    "name": "map",
+    "expressions": [
+      { "kind": "value", "value": [1, 2, 3] },
+      { "kind": "reference", "name": "id" }
+    ],
+    "spread": true,
+    "expected": [1, 2, 3]
+  },
+  {
+    "name": "filter",
+    "expressions": [
+      { "kind": "value", "value": [0, 1, false, 2] },
+      { "kind": "reference", "name": "id" }
+    ],
+    "spread": true,
+    "expected": [1, 2]
+  },
+  {
+    "name": "scan",
+    "expressions": [
+      { "kind": "value", "value": [1, 2, 3] },
+      { "kind": "value", "value": 0 },
+      { "kind": "reference", "name": "add" }
+    ],
+    "spread": true,
+    "expected": [1, 3, 6]
+  },
+  {
+    "name": "reduce",
+    "expressions": [
+      { "kind": "value", "value": [1, 2, 3] },
+      { "kind": "value", "value": 0 },
+      { "kind": "reference", "name": "add" }
+    ],
+    "expected": 6
+  },
+  {
+    "name": "enumerate",
+    "args": ["😀a"],
+    "spread": true,
+    "expected": [{ "index": 0, "value": "😀" }, { "index": 1, "value": "a" }]
+  },
+  {
+    "name": "iterable",
+    "args": [[1, 2, 3]],
+    "spread": true,
+    "expected": [1, 2, 3]
+  },
+  { "name": "to_set", "args": [[1, 2, 1]], "spread": true, "expected": [1, 2] },
+  {
+    "name": "eq",
+    "expressions": [
+      {
+        "kind": "invocation",
+        "expression": { "kind": "reference", "name": "symbol" },
+        "args": [{ "kind": "value", "value": "iterator" }]
+      },
+      {
+        "kind": "invocation",
+        "expression": { "kind": "reference", "name": "symbol" },
+        "args": [{ "kind": "value", "value": "iterator" }]
+      }
+    ],
+    "expected": true
+  },
+  {
+    "name": "base58",
+    "expressions": [
+      {
+        "kind": "invocation",
+        "expression": { "kind": "reference", "name": "sha256" },
+        "args": [{ "kind": "value", "value": "abc" }]
+      }
+    ],
+    "expected": "DYu3G8aGTMBW1WrTw76zxQJQU4DHLw9MLyy7peG4LKkY"
+  },
+  {
+    "name": "int",
+    "expressions": [
+      {
+        "kind": "object",
+        "keys": [
+          {
+            "kind": "objectKey",
+            "name": "toString",
+            "expression": {
+              "kind": "lambda",
+              "pattern": { "kind": "end" },
+              "expression": { "kind": "value", "value": "42" }
+            }
+          }
+        ]
+      }
+    ],
+    "expected": null,
+    "error": true
+  },
+  {
+    "name": "format",
+    "expressions": [
+      { "kind": "value", "value": "<{0}>" },
+      {
+        "kind": "object",
+        "keys": [
+          {
+            "kind": "objectKey",
+            "name": "toString",
+            "expression": {
+              "kind": "lambda",
+              "pattern": { "kind": "end" },
+              "expression": { "kind": "value", "value": {} }
+            }
+          },
+          {
+            "kind": "objectKey",
+            "name": "valueOf",
+            "expression": {
+              "kind": "lambda",
+              "pattern": { "kind": "end" },
+              "expression": { "kind": "value", "value": 7 }
+            }
+          }
+        ]
+      }
+    ],
+    "expected": null,
+    "error": true
+  },
+  {
+    "name": "json",
+    "expressions": [
+      {
+        "kind": "object",
+        "keys": [
+          {
+            "kind": "objectKey",
+            "name": "name",
+            "expression": {
+              "kind": "object",
+              "keys": [
+                {
+                  "kind": "objectKey",
+                  "name": "toJSON",
+                  "expression": {
+                    "kind": "reference",
+                    "name": "id"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "expected": "{\"name\":\"name\"}"
+  },
+  {
+    "name": "format",
+    "expressions": [
+      { "kind": "value", "value": "{0}" },
+      {
+        "kind": "invocation",
+        "expression": { "kind": "reference", "name": "symbol" },
+        "args": [{ "kind": "value", "value": "iterator" }]
+      }
+    ],
+    "expected": "Symbol(Symbol.iterator)"
+  },
+  {
+    "name": "format",
+    "expressions": [
+      { "kind": "value", "value": "{0}" },
+      {
+        "kind": "object",
+        "keys": [
+          {
+            "kind": "objectComputedKey",
+            "keyExpression": {
+              "kind": "invocation",
+              "expression": { "kind": "reference", "name": "symbol" },
+              "args": [{ "kind": "value", "value": "toStringTag" }]
+            },
+            "expression": { "kind": "value", "value": "Record" }
+          }
+        ]
+      }
+    ],
+    "expected": null,
+    "error": true
+  },
+  {
+    "name": "json",
+    "expressions": [{
+      "kind": "object",
+      "keys": [{
+        "kind": "objectKey",
+        "name": "toJSON",
+        "expression": {
+          "kind": "lambda",
+          "pattern": { "kind": "any" },
+          "expression": { "kind": "value", "value": 42 }
+        }
+      }]
+    }],
+    "expected": "{}",
+    "rustExpected": "42"
+  },
+  {
+    "name": "json",
+    "expressions": [{
+      "kind": "array",
+      "expressions": [{
+        "kind": "arrayElement",
+        "expression": {
+          "kind": "object",
+          "keys": [{
+            "kind": "objectKey",
+            "name": "toJSON",
+            "expression": {
+              "kind": "lambda",
+              "pattern": { "kind": "any" },
+              "expression": { "kind": "value", "value": null }
+            }
+          }]
+        }
+      }]
+    }],
+    "expected": "[{}]",
+    "rustExpected": "[null]"
+  },
+  {
+    "name": "iterable",
+    "expressions": [{
+      "kind": "object",
+      "keys": [{
+        "kind": "objectComputedKey",
+        "keyExpression": {
+          "kind": "invocation",
+          "expression": { "kind": "reference", "name": "symbol" },
+          "args": [{ "kind": "value", "value": "asyncIterator" }]
+        },
+        "expression": {
+          "kind": "lambda",
+          "pattern": { "kind": "end" },
+          "expression": { "kind": "value", "value": { "done": true } }
+        }
+      }]
+    }],
+    "spread": true,
+    "expected": null,
+    "error": true
+  },
+  {
+    "name": "iterable",
+    "expressions": [{
+      "kind": "object",
+      "keys": [{
+        "kind": "objectComputedKey",
+        "keyExpression": {
+          "kind": "invocation",
+          "expression": { "kind": "reference", "name": "symbol" },
+          "args": [{ "kind": "value", "value": "iterator" }]
+        },
+        "expression": {
+          "kind": "lambda",
+          "pattern": { "kind": "end" },
+          "expression": { "kind": "value", "value": { "done": true } }
+        }
+      }]
+    }],
+    "spread": true,
+    "expected": null,
+    "error": true
+  }
+]

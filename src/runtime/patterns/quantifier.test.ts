@@ -11,6 +11,41 @@ import { PatternKind } from "./pattern.kind.ts";
 import { lit, ValueSourceKind } from "./value_source.ts";
 import { unwrap } from "../../wrapped.ts";
 
+Deno.test("req:quantifier-001 - max zero never evaluates the child", async () => {
+  for (
+    const input of [
+      Input.Iterable([42]),
+      Input.Iterable([]),
+      Input.Iterable("abc"),
+    ]
+  ) {
+    for (
+      const pattern of [
+        { kind: PatternKind.Any },
+        { kind: PatternKind.Fail },
+        {
+          kind: PatternKind.Equal,
+          value: { kind: ValueSourceKind.Variable, name: "unbound" },
+        },
+      ] satisfies Pattern[]
+    ) {
+      const scope = Scope.From(input);
+      const result = await match({
+        kind: PatternKind.Quantifier,
+        pattern,
+        min: lit(0),
+        max: lit(0),
+      }, scope);
+      assertEquals(result.kind, MatchKind.Ok);
+      if (result.kind === MatchKind.Ok) {
+        assertEquals(unwrap(result.value), []);
+        assertEquals(result.scope.stream.path, scope.stream.path);
+        assertEquals(result.matches.length, 0);
+      }
+    }
+  }
+});
+
 Deno.test("runtime.patterns.quantifier", async (t) => {
   await t.step({
     name: "QUANTIFIER00",

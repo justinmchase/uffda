@@ -1,0 +1,204 @@
+[
+  {
+    "name": "local rule default",
+    "entry": "main.json",
+    "modules": {
+      "main.json": {
+        "imports": [],
+        "exports": [{ "kind": "rule", "name": "R", "default": true }],
+        "rules": [
+          { "name": "R", "parameters": [], "pattern": { "kind": "any" } }
+        ]
+      }
+    },
+    "exports": { "R": "main.json" },
+    "default": "main.json",
+    "error": false
+  },
+  {
+    "name": "relative rule reexport",
+    "entry": "main.json",
+    "modules": {
+      "main.json": {
+        "imports": [
+          { "kind": "module", "moduleUrl": "./leaf.json", "names": ["R"] }
+        ],
+        "exports": [{ "kind": "import", "name": "R", "default": true }],
+        "rules": []
+      },
+      "leaf.json": {
+        "imports": [],
+        "exports": [{ "kind": "rule", "name": "R" }],
+        "rules": [
+          { "name": "R", "parameters": [], "pattern": { "kind": "any" } }
+        ]
+      }
+    },
+    "exports": { "R": "leaf.json" },
+    "default": "leaf.json",
+    "error": false
+  },
+  {
+    "name": "imported func reexport",
+    "entry": "main.json",
+    "modules": {
+      "main.json": {
+        "imports": [
+          { "kind": "module", "moduleUrl": "./func.json", "names": ["f"] }
+        ],
+        "exports": [{ "kind": "import", "name": "f" }],
+        "rules": []
+      },
+      "func.json": {
+        "imports": [],
+        "exports": [{ "kind": "func", "name": "f" }],
+        "rules": [],
+        "funcs": [
+          {
+            "name": "f",
+            "pattern": { "kind": "end" },
+            "expression": { "kind": "number", "value": 42 }
+          }
+        ]
+      }
+    },
+    "exports": { "f": "func.json" },
+    "default": null,
+    "error": false
+  },
+  {
+    "name": "cycle local exports",
+    "entry": "main.json",
+    "modules": {
+      "main.json": {
+        "imports": [
+          { "kind": "module", "moduleUrl": "./leaf.json", "names": ["B"] }
+        ],
+        "exports": [{ "kind": "rule", "name": "A" }],
+        "rules": [
+          { "name": "A", "parameters": [], "pattern": { "kind": "any" } }
+        ]
+      },
+      "leaf.json": {
+        "imports": [
+          { "kind": "module", "moduleUrl": "./main.json", "names": ["A"] }
+        ],
+        "exports": [{ "kind": "rule", "name": "B" }],
+        "rules": [
+          { "name": "B", "parameters": [], "pattern": { "kind": "any" } }
+        ]
+      }
+    },
+    "exports": { "A": "main.json" },
+    "default": null,
+    "error": false
+  },
+  {
+    "name": "unknown local export",
+    "entry": "main.json",
+    "modules": {
+      "main.json": {
+        "imports": [],
+        "exports": [{ "kind": "rule", "name": "missing" }],
+        "rules": []
+      }
+    },
+    "exports": {},
+    "default": null,
+    "error": true
+  },
+  {
+    "name": "duplicate defaults",
+    "entry": "main.json",
+    "modules": {
+      "main.json": {
+        "imports": [],
+        "exports": [
+          { "kind": "rule", "name": "R", "default": true },
+          { "kind": "rule", "name": "R", "default": true }
+        ],
+        "rules": [
+          { "name": "R", "parameters": [], "pattern": { "kind": "any" } }
+        ]
+      }
+    },
+    "exports": {},
+    "default": null,
+    "error": true
+  },
+  {
+    "name": "unknown imported name",
+    "entry": "main.json",
+    "modules": {
+      "main.json": {
+        "imports": [
+          { "kind": "module", "moduleUrl": "./leaf.json", "names": ["missing"] }
+        ],
+        "exports": [],
+        "rules": []
+      },
+      "leaf.json": {
+        "imports": [],
+        "exports": [{ "kind": "rule", "name": "R" }],
+        "rules": [
+          { "name": "R", "parameters": [], "pattern": { "kind": "any" } }
+        ]
+      }
+    },
+    "exports": {},
+    "default": null,
+    "error": true
+  },
+  {
+    "name": "import conflicts with local",
+    "entry": "main.json",
+    "modules": {
+      "main.json": {
+        "imports": [
+          { "kind": "module", "moduleUrl": "./leaf.json", "names": ["R"] }
+        ],
+        "exports": [],
+        "rules": [
+          { "name": "R", "parameters": [], "pattern": { "kind": "any" } }
+        ]
+      },
+      "leaf.json": {
+        "imports": [],
+        "exports": [{ "kind": "rule", "name": "R" }],
+        "rules": [
+          { "name": "R", "parameters": [], "pattern": { "kind": "any" } }
+        ]
+      }
+    },
+    "exports": {},
+    "default": null,
+    "error": true
+  },
+  {
+    "name": "controlled host declaration payload",
+    "entry": "main.json",
+    "modules": {
+      "main.json": {
+        "imports": [
+          {
+            "kind": "native",
+            "moduleUrl": "./provided.ts",
+            "names": ["R"],
+            "module": {
+              "imports": [],
+              "exports": [{ "kind": "rule", "name": "R" }],
+              "rules": [
+                { "name": "R", "parameters": [], "pattern": { "kind": "any" } }
+              ]
+            }
+          }
+        ],
+        "exports": [{ "kind": "import", "name": "R" }],
+        "rules": []
+      }
+    },
+    "exports": { "R": "provided.ts" },
+    "default": null,
+    "error": false
+  }
+]

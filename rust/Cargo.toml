@@ -6,9 +6,22 @@ publish = false
 license = "MIT"
 description = "Side-by-side Rust implementation of the Uffda runtime"
 
+[[bin]]
+name = "uffda"
+path = "src/main.rs"
+
 [dependencies]
 gc-arena = "=0.7.0"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 ryu-js = "1"
 url = "2"
+ureq = { version = "3", features = ["json"] }
+sha2 = "0.10"
+jsonc-parser = { version = "0.29", features = ["serde"] }
+deno_semver = "0.10"
+bs58 = "0.5"
+regex = "1"
+regress = "0.11"
+globwalk = "0.9"
+pathdiff = "0.2"

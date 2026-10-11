@@ -8,10 +8,51 @@ const writePermission = await Deno.permissions.query({
   name: "write",
 });
 
+Deno.test("req:runtime-core-012 - CLI reports callable output and interpolation errors", async () => {
+  for (const expression of ["add", '"{add}"', "(json add)", "[add]"]) {
+    const result = await runCli(
+      ["exec", "-e", expression, "--json"],
+      Deno.cwd(),
+      false,
+    );
+    assertEquals(result.exitCode, CliExitCode.Usage);
+    assertEquals(result.stdout, undefined);
+    assert(result.stderr?.includes("callable"));
+    assert(!result.stderr?.includes("function add("));
+  }
+});
+
+Deno.test("req:runtime-core-012 - CLI requires explicit composite text formatting", async () => {
+  for (const expression of ['"{[1 2]}"', '"{{a:1}}"']) {
+    const result = await runCli(["exec", "-e", expression], Deno.cwd(), false);
+    assertEquals(result.exitCode, CliExitCode.Usage);
+    assertEquals(result.stdout, undefined);
+    assert(result.stderr?.includes("composite"));
+  }
+  const result = await runCli(
+    ["exec", "-e", "(json [1 2])"],
+    Deno.cwd(),
+    false,
+  );
+  assertEquals(result.exitCode, CliExitCode.Ok);
+  assertEquals(result.stdout, "[1,2]\n");
+});
+
 async function write(path: string, content: string): Promise<void> {
   await Deno.mkdir(dirname(path), { recursive: true });
   await Deno.writeTextFile(path, content);
 }
+
+Deno.test("req:cli-exec-002 - CLI displays Uffda notation with explicit JSON compatibility", async () => {
+  const plain = await runCli(["exec", "-e", "[1 2]"], Deno.cwd(), false);
+  assertEquals(plain.stdout, "[1 2]\n");
+  const json = await runCli(
+    ["exec", "-e", "[1 2]", "--json"],
+    Deno.cwd(),
+    false,
+  );
+  assertEquals(JSON.parse(json.stdout!), [1, 2]);
+});
 
 Deno.test("cli.main runCli validates mode support and compile routing", async (t) => {
   await t.step("resolveProcessCwd prefers INIT_CWD, then PWD, then cwd", () => {
@@ -579,7 +620,7 @@ Deno.test("cli.main runCli reports recoveries", async (t) => {
         Deno.cwd(),
       );
       assertEquals(result.exitCode, CliExitCode.Usage);
-      assertEquals(JSON.parse(result.stdout!), [["a", "x", "a"], null]);
+      assertEquals(result.stdout, '[["a" "x" "a"] undefined]\n');
       assertEquals(
         result.stderr,
         'Match recovered at input 1..2: Expected "a"\nUnexpected "x"\n',
@@ -623,7 +664,7 @@ Deno.test("cli.main runCli reports recoveries", async (t) => {
         Deno.cwd(),
       );
       assertEquals(result.exitCode, CliExitCode.Usage);
-      assertEquals(JSON.parse(result.stdout!), [["a", "x", "a"], null]);
+      assertEquals(result.stdout, '[["a" "x" "a"] undefined]\n');
       const payload = JSON.parse(result.stderr!);
       assertEquals(payload.error.code, "CLI_EXEC_RECOVERED");
       assertEquals(payload.diagnostics, [payload.error]);
@@ -732,7 +773,7 @@ Deno.test("cli.main run matches the module's entry rule against its input", asyn
       Deno.cwd(),
     );
     assertEquals(result.exitCode, CliExitCode.Ok, result.stderr);
-    assertEquals(JSON.parse(result.stdout!), ["h", "i"]);
+    assertEquals(result.stdout, '["h" "i"]\n');
   });
 
   await t.step("--input-json is one value", async () => {
@@ -747,7 +788,7 @@ Deno.test("cli.main run matches the module's entry rule against its input", asyn
       Deno.cwd(),
     );
     assertEquals(result.exitCode, CliExitCode.Ok, result.stderr);
-    assertEquals(JSON.parse(result.stdout!), { a: 1 });
+    assertEquals(result.stdout, '{["a"]: 1}\n');
   });
 
   await t.step({
@@ -761,13 +802,13 @@ Deno.test("cli.main run matches the module's entry rule against its input", asyn
         root,
       );
       assertEquals(run.exitCode, CliExitCode.Ok, run.stderr);
-      assertEquals(JSON.parse(run.stdout!), ["[", "1", "]"]);
+      assertEquals(run.stdout, '["[" "1" "]"]\n');
       const match = await runCli(
         ["match", "-e", "any*", "--input-file", "in.txt"],
         root,
       );
       assertEquals(match.exitCode, CliExitCode.Ok, match.stderr);
-      assertEquals(JSON.parse(match.stdout!), ["[", "1", "]"]);
+      assertEquals(match.stdout, '["[" "1" "]"]\n');
     },
   });
 

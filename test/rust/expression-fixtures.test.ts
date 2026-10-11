@@ -1,4 +1,4 @@
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertRejects } from "@std/assert";
 import fixtures from "./expression-fixtures.json" with { type: "json" };
 import { ok } from "../../src/match.ts";
 import { exec } from "../../src/runtime/exec.ts";
@@ -11,9 +11,14 @@ Deno.test("req:expressions-runtime-003 req:expressions-runtime-004 req:expressio
   for (const fixture of fixtures) {
     await t.step(fixture.name, async () => {
       assert(isExpression(fixture.ast));
+      const ast = fixture.ast;
       const scope = Scope.Default();
       const match = ok(scope, scope, { kind: PatternKind.Ok }, undefined);
-      assertEquals(unwrap(await exec(fixture.ast, match)), fixture.expected);
+      if ("error" in fixture && fixture.error) {
+        await assertRejects(async () => await exec(ast, match));
+      } else {
+        assertEquals(unwrap(await exec(fixture.ast, match)), fixture.expected);
+      }
     });
   }
 });

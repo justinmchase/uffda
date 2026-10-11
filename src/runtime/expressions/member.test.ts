@@ -2,7 +2,7 @@ import { immediateExpressionTest } from "../../test.ts";
 import { Scope } from "../scope.ts";
 import { ExpressionKind } from "./expression.kind.ts";
 import { expressionTest } from "../../test.ts";
-import { assertStrictEquals } from "@std/assert";
+import { assertEquals, assertRejects, assertStrictEquals } from "@std/assert";
 import { rootOrigin, Wrapped } from "../../wrapped.ts";
 import { type MatchOk, ok } from "../../match.ts";
 import { PatternKind } from "../patterns/pattern.kind.ts";
@@ -76,6 +76,31 @@ function wrappedMatch(variables: Record<string, unknown> = {}): MatchOk {
   const scope = Scope.Default().addVariables(variables);
   return ok(scope, scope, { kind: PatternKind.Ok }, undefined);
 }
+
+Deno.test("req:runtime-core-012 - callables retain metadata but not toString", async () => {
+  const named = () => 1;
+  const match = wrappedMatch({ x: named });
+  const expression = {
+    kind: ExpressionKind.Member,
+    name: "name",
+    expression: { kind: ExpressionKind.Reference, name: "x" },
+  } as const;
+  assertEquals((await exec(expression, match)).raw, "named");
+  await assertRejects(
+    async () => {
+      await exec({ ...expression, name: "toString" }, match);
+    },
+    TypeError,
+    "Cannot convert a callable",
+  );
+  await assertRejects(
+    async () => {
+      await exec({ ...expression, name: "toString" }, wrappedMatch({ x: {} }));
+    },
+    TypeError,
+    "composite",
+  );
+});
 
 Deno.test("runtime/expressions/member carries the property's own wrapper", async () => {
   const name = new Wrapped("a", rootOrigin(5));

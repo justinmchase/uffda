@@ -100,8 +100,10 @@ Normative key words in this chapter use the conventions defined in the
   before matching; `--input` and `--input-file` subjects MUST remain text.
 - Match failures MUST render human-readable diagnostics by default. `--json`
   MUST select structured JSON diagnostics.
-- String execution results MUST be emitted as text to STDOUT; other defined
-  results MUST be emitted as JSON.
+- String execution results MUST be emitted as text to STDOUT; other supported
+  defined results MUST use Uffda value display by default, with JSON only when
+  explicitly selected (see
+  [execution output](./language-and-output.spec.md#execution-output)).
 - Invalid JSON, unsupported ASTs, parse failures, compilation failures, match
   failures, and execution failures MUST emit deterministic diagnostics to
   STDERR.

@@ -11,6 +11,7 @@ import {
 import { compileSourcesToAstArtifacts } from "./compile.ts";
 import { type CommandProject, commandProject } from "./command_project.ts";
 import {
+  CliExecFailureCode,
   type CliModuleOrigin,
   executeCliExpression,
   executeCliModule,
@@ -36,6 +37,8 @@ import {
 import { runMcpServer } from "./mcp.ts";
 import { runLspServer } from "./lsp.ts";
 import { version } from "../version.ts";
+import { jsonText } from "../runtime/conversion.ts";
+import { uffdaOutput } from "./value_output.ts";
 
 export type CliRunResult = {
   exitCode: number;
@@ -55,7 +58,7 @@ type HelpTarget =
   | "lsp";
 
 function toJson(value: unknown): string {
-  return `${JSON.stringify(value, null, 2)}\n`;
+  return `${jsonText(value, 2)}\n`;
 }
 
 function configFailure(message: string): CliRunResult {
@@ -511,15 +514,25 @@ async function readOperationAst(
 }
 
 function operationResult(value: unknown, jsonOutput = false): CliRunResult {
+  let stdout: string | undefined;
+  try {
+    stdout = jsonOutput ? toJson(value) : uffdaOutput(value);
+  } catch (error) {
+    return {
+      exitCode: CliExitCode.Usage,
+      stderr: toJson({
+        ok: false,
+        error: {
+          code: CliExecFailureCode.ExecutionFailure,
+          phase: "execute",
+          message: error instanceof Error ? error.message : String(error),
+        },
+      }),
+    };
+  }
   return {
     exitCode: CliExitCode.Ok,
-    stdout: jsonOutput
-      ? toJson(value)
-      : typeof value === "string"
-      ? `${value}\n`
-      : value === undefined
-      ? undefined
-      : toJson(value),
+    stdout,
   };
 }
 

@@ -9,7 +9,12 @@ Deno.test("req:runtime-memory-005 - Rust inline tests cite existing requirement 
     if (id) ids.add(id);
   }
   let tests = 0;
-  for await (const file of walk("rust/src", { exts: [".rs"] })) {
+  for await (
+    const file of walk("rust", {
+      exts: [".rs"],
+      skip: [/[/\\]target(?:[/\\]|$)/],
+    })
+  ) {
     const source = await Deno.readTextFile(file.path);
     const annotations = source.match(/#\[test\]/g) ?? [];
     const declarations = [

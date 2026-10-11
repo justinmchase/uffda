@@ -243,7 +243,10 @@ original characters it replaced.
   target is resolved without wrapping, since it is called rather than carried.
 - A wrapped value SHOULD convert like its raw value (`Symbol.toPrimitive`) and
   serialize as its raw value (`toJSON`), so host code that coerces or serializes
-  a wrapped value gets the raw result.
+  a wrapped value gets the raw result, subject to the
+  [composite/callable conversion restrictions](../runtime.spec.md#callable-conversion).
+  Wrapping MUST NOT enable implicit composite text conversion or callable
+  serialization.
 - Before adoption, parse time and retained heap for `src/lang/source/mod.uff`
   MUST be benchmarked against the unwrapped model and reported on #219.
 

@@ -1,7 +1,16 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertThrows } from "@std/assert";
 import { metadataOf } from "../value_metadata.ts";
 import { join } from "./join.ts";
 import { charOrigin, rootOrigin, Wrapped } from "../../wrapped.ts";
+
+Deno.test("req:runtime-core-012 - join explicitly formats scalar elements only", () => {
+  for (const value of [{}, [], () => 1]) {
+    assertThrows(() => join([value]), TypeError);
+    assertThrows(() => join(new Wrapped([value], rootOrigin(0))), TypeError);
+    assertThrows(() => join(["a", "b"], value), TypeError);
+  }
+  assertEquals(join([1, null, true], "-"), "1--true");
+});
 
 Deno.test("globals.join joins elements with a separator", () => {
   assertEquals(join(["a", "b"], "-"), "a-b");

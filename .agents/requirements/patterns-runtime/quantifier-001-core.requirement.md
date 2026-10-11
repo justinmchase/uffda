@@ -19,6 +19,9 @@ Expected behavior:
 - Quantifier MUST preserve original position when minimum bound is not
   satisfied.
 - Quantifier MUST terminate non-progressing repetition attempts.
+- A maximum of zero MUST succeed with an empty output array and unchanged
+  position without evaluating its child, even on an open or nonempty input.
+  Invalid bounds MUST still be rejected before this zero-repetition success.
 - Quantifier MUST stop without evaluating its child at the end of a closed
   input, and MUST evaluate its child once more at the end of an open input,
   recording that attempt among its matches without changing its value when the

@@ -10,6 +10,7 @@ pub(crate) struct Program {
 }
 
 pub(crate) enum Node {
+    Undefined,
     Number(f64),
     Boolean(bool),
     Value(serde_json::Value),
@@ -46,18 +47,19 @@ impl Program {
             let node = match expression {
                 Expression::Number { value } => Node::Number(value),
                 Expression::Boolean { value } => Node::Boolean(value),
-                Expression::Value { value } => match value {
+                Expression::Value { value: None } => Node::Undefined,
+                Expression::Value { value: Some(value) } => match value {
                     serde_json::Value::Array(values) => Node::Array(
                         values
                             .into_iter()
-                            .map(|value| (child(Expression::Value { value }), false))
+                            .map(|value| (child(Expression::Value { value: Some(value) }), false))
                             .collect(),
                     ),
                     serde_json::Value::Object(values) => Node::Object(
                         values
                             .into_iter()
                             .map(|(name, value)| {
-                                Key::Named(name, child(Expression::Value { value }))
+                                Key::Named(name, child(Expression::Value { value: Some(value) }))
                             })
                             .collect(),
                     ),
@@ -102,7 +104,7 @@ impl Program {
                             child(match value {
                                 StringSegment::Expression(expression) => expression,
                                 StringSegment::Literal(value) => Expression::Value {
-                                    value: serde_json::Value::String(value),
+                                    value: Some(serde_json::Value::String(value)),
                                 },
                             })
                         })
@@ -136,6 +138,20 @@ impl Program {
 mod tests {
     use super::*;
     use crate::pattern::Pattern;
+
+    #[test]
+    // req:expressions-runtime-003
+    fn absent_value_literal_has_a_distinct_compiled_node_from_null() {
+        let undefined = Program::compile(Expression::Value { value: None });
+        assert!(matches!(undefined.nodes[0], Node::Undefined));
+        let null = Program::compile(Expression::Value {
+            value: Some(serde_json::Value::Null),
+        });
+        assert!(matches!(
+            null.nodes[0],
+            Node::Value(serde_json::Value::Null)
+        ));
+    }
 
     #[test]
     // req:runtime-memory-005 req:expressions-runtime-007

@@ -31,6 +31,9 @@ expression values.
 ## Error conditions
 
 - Child-expression exceptions MUST propagate unchanged.
+- Object, array and callable segments MUST fail implicit text conversion, rather
+  than expose implementation source or invent a composite representation, as
+  defined by [callable conversion](../runtime.spec.md#callable-conversion).
 
 ## Composition intent
 

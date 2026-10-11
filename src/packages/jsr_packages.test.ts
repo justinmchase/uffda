@@ -232,7 +232,7 @@ Deno.test("jsr_packages.JsrPackages", async (t) => {
   });
 
   await t.step(
-    "req:modules-runtime-001 req:modules-runtime-002 - direct JSON package exports load validated data without remapping",
+    "req:modules-runtime-001 req:modules-runtime-002 req:modules-runtime-006 - direct JSON package exports load validated data without remapping",
     async () => {
       const { fake, packages } = await setup({
         "1.0.0": {

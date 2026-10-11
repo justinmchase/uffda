@@ -1,7 +1,7 @@
 ---
 id: expressions-runtime-007
 title: Callable, lambda, native, spread, and unary expressions compose runtime projection behavior
-spec_ref: ".agents/specifications/expressions/invocation.spec.md#behavioral-expectations; .agents/specifications/expressions/lambda.spec.md#behavioral-expectations; .agents/specifications/expressions/native.spec.md#logical-purpose; .agents/specifications/expressions/array-spread.spec.md#behavioral-expectations; .agents/specifications/expressions/object-spread.spec.md#behavioral-expectations; .agents/specifications/expressions/not.spec.md#behavioral-expectations"
+spec_ref: ".agents/specifications/expressions/invocation.spec.md#behavioral-expectations; .agents/specifications/expressions/lambda.spec.md#behavioral-expectations; .agents/specifications/expressions/native.spec.md#logical-purpose; .agents/specifications/expressions/array-spread.spec.md#behavioral-expectations; .agents/specifications/expressions/object-spread.spec.md#behavioral-expectations; .agents/specifications/expressions/not.spec.md#behavioral-expectations; .agents/specifications/runtime.spec.md#synchronous-completion-and-the-rule-boundary"
 ---
 
 # Callable and Logical Projection Composition
@@ -26,8 +26,14 @@ Expected behavior:
 - Array and object expressions using spread initializers MUST preserve
   declaration-order composition and host spread semantics.
 - Unary not expressions MUST apply logical negation semantics to their operand.
+- Rust callable results MUST be normalized by execution, not represented as
+  first-class Promise values. Native and authored JSON hooks/iterator factories
+  MUST use completed invocation results rather than JavaScript Promise-shaped
+  placeholders.
 
 Error behavior:
 
 - Child-expression errors MUST propagate unchanged.
 - Non-callable invocation targets MUST report the governed invocation error.
+- A standalone host driver that cannot service a requested rule reference MUST
+  report an unknown-reference error instead of repeatedly yielding forever.
