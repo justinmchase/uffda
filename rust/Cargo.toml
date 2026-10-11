@@ -13,7 +13,7 @@ path = "src/main.rs"
 [dependencies]
 gc-arena = "=0.7.0"
 serde = { version = "1", features = ["derive"] }
-serde_json = { version = "1", features = ["preserve_order"] }
+serde_json = { version = "1", features = ["preserve_order", "raw_value"] }
 ryu-js = "1"
 url = "2"
 ureq = { version = "3", features = ["json"] }
@@ -22,6 +22,9 @@ jsonc-parser = { version = "0.29", features = ["serde"] }
 deno_semver = "0.10"
 bs58 = "0.5"
 regex = "1"
-regress = "0.11"
+regress = { version = "0.11", features = ["utf16"] }
 globwalk = "0.9"
 pathdiff = "0.2"
+time = { version = "0.3", features = ["parsing", "formatting"] }
+base64 = "0.22"
+num-bigint = "0.4"

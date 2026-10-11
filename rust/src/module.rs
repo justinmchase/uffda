@@ -93,7 +93,7 @@ struct CompiledModule {
 
 pub struct CompiledModuleGraph {
     pub graph: Rc<ModuleGraph>,
-    modules: HashMap<Url, CompiledModule>,
+    modules: HashMap<Url, Rc<CompiledModule>>,
 }
 
 #[derive(Collect)]
@@ -385,10 +385,28 @@ fn attributes(syntax: Vec<AttributeSyntax>) -> Vec<Attribute> {
 
 impl CompiledModuleGraph {
     pub fn compile(graph: Rc<ModuleGraph>) -> Result<Self, ModuleCompileError> {
+        Self::compile_reusing(graph, std::iter::empty())
+    }
+
+    pub(crate) fn compile_reusing<'a>(
+        graph: Rc<ModuleGraph>,
+        previous: impl IntoIterator<Item = &'a CompiledModuleGraph>,
+    ) -> Result<Self, ModuleCompileError> {
+        let previous: Vec<_> = previous.into_iter().collect();
         let mut modules = HashMap::new();
         let mut source_modules: Vec<_> = graph.modules.iter().collect();
         source_modules.sort_by(|(left, _), (right, _)| left.as_str().cmp(right.as_str()));
         for (url, module) in source_modules {
+            let reusable = previous.iter().find_map(|cached| {
+                let source = cached.graph.modules.get(url)?;
+                Rc::ptr_eq(&source.declaration, &module.declaration)
+                    .then(|| cached.modules.get(url).cloned())
+                    .flatten()
+            });
+            if let Some(compiled) = reusable {
+                modules.insert(url.clone(), compiled);
+                continue;
+            }
             let mut compiled = CompiledModule {
                 rules: Vec::new(),
                 funcs: Vec::new(),
@@ -396,7 +414,7 @@ impl CompiledModuleGraph {
             };
             for (index, value) in module.declaration.rules.iter().enumerate() {
                 let syntax: RuleSyntax =
-                    serde_json::from_value(value.clone()).map_err(|error| ModuleCompileError {
+                    crate::json::from_value(value.clone()).map_err(|error| ModuleCompileError {
                         module_url: Box::new(url.clone()),
                         kind: MemberKind::Rule,
                         declaration_index: index,
@@ -436,7 +454,7 @@ impl CompiledModuleGraph {
             ] {
                 for (index, value) in values.iter().enumerate() {
                     let syntax: FuncSyntax =
-                        serde_json::from_value(value.clone()).map_err(|error| {
+                        crate::json::from_value(value.clone()).map_err(|error| {
                             ModuleCompileError {
                                 module_url: Box::new(url.clone()),
                                 kind,
@@ -453,7 +471,7 @@ impl CompiledModuleGraph {
                     }));
                 }
             }
-            modules.insert(url.clone(), compiled);
+            modules.insert(url.clone(), Rc::new(compiled));
         }
         Ok(Self { graph, modules })
     }
@@ -503,6 +521,35 @@ mod tests {
     use crate::resolver::{Resolver, decode_declaration};
     use serde_json::json;
 
+    #[test]
+    // req:runtime-strings-002
+    fn compiled_module_literals_keep_units_through_linking_and_invocation() {
+        let url = Url::parse("file:///lossless-module.json").unwrap();
+        let source = r#"{"imports":[],"exports":[{"kind":"func","name":"Text"}],"rules":[],"funcs":[{"name":"Text","pattern":{"kind":"end"},"expression":{"kind":"value","value":{"\ud800":"\udfff"}}}]}"#;
+        let mut resolver = Resolver::from_cwd().unwrap();
+        resolver.insert_declaration(url.clone(), decode_declaration(&url, source).unwrap());
+        let graph = CompiledModuleGraph::compile(resolver.load_graph(&url).unwrap()).unwrap();
+        gc_arena::arena::rootless_mutate(|mc| {
+            let bindings = ModuleBindings::new(mc, &graph).unwrap();
+            let member = graph.resolve(&url, "Text").unwrap();
+            let mut execution = ExpressionExecution::call(
+                mc,
+                bindings.callable(&member).unwrap(),
+                vec![],
+                bindings.environment(&url).unwrap(),
+                Origin { start: 0, end: 0 },
+                Value::Undefined,
+            );
+            while !execution.step(mc).unwrap() {}
+            assert_eq!(
+                crate::globals::json_text(execution.result().unwrap())
+                    .unwrap()
+                    .unwrap(),
+                r#"{"\ud800":"\udfff"}"#
+            );
+        });
+    }
+
     fn graph(declaration: serde_json::Value) -> Rc<ModuleGraph> {
         let url = Url::parse("file:///injected-module.json").unwrap();
         let mut resolver = Resolver::from_cwd().unwrap();
@@ -511,6 +558,37 @@ mod tests {
             decode_declaration(&url, &declaration.to_string()).unwrap(),
         );
         resolver.load_graph(&url).unwrap()
+    }
+
+    #[test]
+    // req:modules-runtime-004 req:runtime-memory-005
+    fn graph_compilation_reuses_only_identical_immutable_declarations() {
+        let declaration = json!({
+            "imports": [], "exports": [{"kind":"rule","name":"Main","default":true}],
+            "rules": [{"name":"Main","parameters":[],"pattern":{"kind":"any"}}],
+            "funcs": [], "decorators": []
+        });
+        let source = graph(declaration.clone());
+        let cached = CompiledModuleGraph::compile(source.clone()).unwrap();
+        let reused = CompiledModuleGraph::compile_reusing(source, [&cached]).unwrap();
+        let member = cached.resolve(&cached.graph.entry, "Main").unwrap();
+        assert!(Rc::ptr_eq(
+            &cached.declaration(&member).unwrap(),
+            &reused.declaration(&member).unwrap(),
+        ));
+        let changed_source = graph(declaration);
+        let independent = CompiledModuleGraph::compile_reusing(changed_source, [&cached]).unwrap();
+        assert!(!Rc::ptr_eq(
+            &cached.declaration(&member).unwrap(),
+            &independent.declaration(&member).unwrap(),
+        ));
+        let mut invalid = json!({
+            "imports": [], "exports": [{"kind":"rule","name":"Main","default":true}],
+            "rules": [{"name":"Main","parameters":[],"pattern":{"kind":"any"}}],
+            "funcs": [], "decorators": []
+        });
+        invalid["rules"][0]["pattern"]["kind"] = "invalid".into();
+        assert!(CompiledModuleGraph::compile_reusing(graph(invalid), [&cached]).is_err());
     }
 
     #[test]

@@ -37,6 +37,10 @@ Expected behavior:
 - Checks and release bootstrap compile MUST install a published CLI via
   `uffda-setup` (normally `latest`; pin a SemVer only when recovering from a bad
   release).
+- The Rust preview MUST embed the unmodified published-compiler declaration
+  bytes and MAY decode them lazily through the ordinary resolver. Registering
+  embedded modules MUST NOT require decoding unused declarations; first access
+  MUST validate and cache the declaration without file reads or re-lowering.
 
 Postconditions:
 

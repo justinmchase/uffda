@@ -1,7 +1,6 @@
 use crate::languages::Languages;
 use crate::resolver::Resolver;
 use crate::resolver::packages::{JsrPackages, Lockfile};
-use serde_json::Value;
 use std::collections::BTreeMap;
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -96,7 +95,7 @@ impl Project {
         }
         let mut classify = |text: &str| -> Result<Option<&'static str>, ProjectError> {
             match grammar.module_specifier(text) {
-                Ok(Value::String(parsed)) if parsed == text => {
+                Ok(crate::json::JsonValue::String(parsed)) if parsed == text => {
                     Ok(Some(if text.starts_with("jsr:") {
                         "jsr"
                     } else if text.starts_with('@') {
@@ -291,7 +290,10 @@ mod tests {
         std::fs::create_dir_all(base.join("uffda.jsonc")).unwrap();
         assert!(Project::discover(&base, Some("missing.json")).is_err());
         assert!(Project::discover(&base, Some("uffda.jsonc")).is_err());
-        assert!(Project::discover(&base, None).unwrap().is_none());
+        assert_eq!(
+            Project::discover(&base, None).unwrap(),
+            Project::discover(base.parent().unwrap(), None).unwrap(),
+        );
         std::fs::remove_dir(base.join("uffda.jsonc")).unwrap();
         std::fs::remove_dir(base).unwrap();
     }

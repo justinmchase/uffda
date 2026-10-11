@@ -1,5 +1,5 @@
+use crate::json::JsonValue as Value;
 use serde::Deserialize;
-use serde_json::Value;
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -41,6 +41,7 @@ pub struct Resolver {
     root: PathBuf,
     out_dir: PathBuf,
     declarations: HashMap<Url, Rc<ModuleDeclaration>>,
+    declaration_sources: HashMap<Url, &'static str>,
     packages: Option<packages::JsrPackages>,
     import_map: BTreeMap<String, String>,
     graphs: HashMap<Url, Rc<graph::ModuleGraph>>,
@@ -74,6 +75,7 @@ impl Resolver {
             root: normalize_path(&root)?,
             out_dir: normalize_path(&out_dir)?,
             declarations: HashMap::new(),
+            declaration_sources: HashMap::new(),
             packages: None,
             import_map: BTreeMap::new(),
             graphs: HashMap::new(),
@@ -109,7 +111,10 @@ impl Resolver {
     }
 
     pub fn canonical_url(&mut self, url: &Url) -> Result<Url, ModuleResolutionError> {
-        if url.scheme() != "jsr" || self.declarations.contains_key(url) {
+        if url.scheme() != "jsr"
+            || self.declarations.contains_key(url)
+            || self.declaration_sources.contains_key(url)
+        {
             return Ok(url.clone());
         }
         self.packages
@@ -120,7 +125,17 @@ impl Resolver {
 
     /// Explicit host injection uses a URL as identity; it never loads a file.
     pub fn insert_declaration(&mut self, url: Url, declaration: ModuleDeclaration) {
+        if self.declaration_sources.remove(&url).is_some() {
+            self.graphs.clear();
+        }
         self.declarations.insert(url, Rc::new(declaration));
+    }
+
+    /// Register immutable declaration data; validation occurs on first access.
+    pub fn insert_declaration_source(&mut self, url: Url, source: &'static str) {
+        self.declarations.remove(&url);
+        self.graphs.clear();
+        self.declaration_sources.insert(url, source);
     }
 
     pub fn load_declaration(
@@ -131,6 +146,12 @@ impl Resolver {
         let url = &canonical;
         if let Some(declaration) = self.declarations.get(url) {
             return Ok(Rc::clone(declaration));
+        }
+        if let Some(source) = self.declaration_sources.get(url) {
+            let declaration = Rc::new(decode_declaration(url, source)?);
+            self.declarations
+                .insert(url.clone(), Rc::clone(&declaration));
+            return Ok(declaration);
         }
         if let Some(packages) = self.packages.as_mut()
             && packages.belongs_to_registry(url)
@@ -288,7 +309,7 @@ pub fn decode_declaration(
     url: &Url,
     text: &str,
 ) -> Result<ModuleDeclaration, ModuleResolutionError> {
-    let value: Value = serde_json::from_str(text).map_err(|cause| {
+    let value: Value = crate::json::from_str(text).map_err(|cause| {
         error(
             url,
             "invalid declaration JSON".into(),
@@ -302,7 +323,7 @@ pub fn decode_declaration(
             Some("expected a declaration object".into()),
         ));
     }
-    serde_json::from_value(value).map_err(|cause| {
+    crate::json::from_value(value).map_err(|cause| {
         error(
             url,
             "declaration must be a ModuleDeclaration".into(),
@@ -348,6 +369,24 @@ fn error(url: &Url, message: String, cause: Option<String>) -> ModuleResolutionE
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    // req:runtime-strings-002
+    fn raw_declarations_preserve_literal_strings_but_scalar_names_error() {
+        let url = Url::parse("file:///lossless.json").unwrap();
+        let declaration = decode_declaration(&url, r#"{"imports":[],"exports":[],"rules":[],"funcs":[{"name":"Text","pattern":{"kind":"end"},"expression":{"kind":"value","value":{"\ud800":"\udfff"}}}]}"#).unwrap();
+        let literal = &declaration.funcs[0]["expression"]["value"];
+        let Value::Object(properties) = literal else {
+            panic!()
+        };
+        assert_eq!(properties.iter().next().unwrap().0.as_utf16(), &[0xd800]);
+        assert!(
+            crate::json::from_value::<crate::expression::Expression>(
+                crate::json::from_str(r#"{"kind":"reference","name":"\ud800"}"#).unwrap()
+            )
+            .is_err()
+        );
+    }
     use std::sync::atomic::{AtomicU64, Ordering};
 
     #[test]
@@ -391,6 +430,38 @@ mod tests {
     }
 
     const DECLARATION: &str = r#"{"imports":[],"exports":[],"rules":[]}"#;
+
+    #[test]
+    // req:cli-bootstrap-015 req:modules-runtime-001
+    fn registered_sources_decode_on_demand_and_cache_without_io() {
+        let dir = Directory::new();
+        let mut resolver = dir.resolver();
+        let url = dir.url("embedded.uff");
+        let invalid = dir.url("unused.uff");
+        resolver.insert_declaration_source(url.clone(), DECLARATION);
+        resolver.insert_declaration_source(invalid.clone(), "{");
+        assert_eq!(resolver.declaration_count(), 0);
+        let first = resolver.load_declaration(&url).unwrap();
+        let second = resolver.load_declaration(&url).unwrap();
+        assert!(Rc::ptr_eq(&first, &second));
+        let graph = resolver.load_graph(&url).unwrap();
+        assert_eq!(resolver.declaration_count(), 1);
+        assert!(resolver.load_declaration(&invalid).is_err());
+        assert_eq!(resolver.declaration_count(), 1);
+        resolver.insert_declaration_source(
+            url.clone(),
+            r#"{"imports":[],"exports":[],"rules":[{"name":"New","parameters":[],"pattern":{"kind":"any"}}]}"#,
+        );
+        let replaced = resolver.load_declaration(&url).unwrap();
+        assert!(!Rc::ptr_eq(&first, &replaced));
+        assert_eq!(replaced.rules[0]["name"], "New");
+        let replaced_graph = resolver.load_graph(&url).unwrap();
+        assert!(!Rc::ptr_eq(&graph, &replaced_graph));
+        resolver.insert_declaration(url.clone(), decode_declaration(&url, DECLARATION).unwrap());
+        assert!(resolver.load_declaration(&url).unwrap().rules.is_empty());
+        let direct_graph = resolver.load_graph(&url).unwrap();
+        assert!(!Rc::ptr_eq(&replaced_graph, &direct_graph));
+    }
 
     #[test]
     // req:cli-bootstrap-004

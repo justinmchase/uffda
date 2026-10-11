@@ -44,8 +44,16 @@ described in RFC 2119 and RFC 8174 when they appear in all capitals.
 - JSON string decoding MUST preserve `\uXXXX` units, including isolated
   surrogates. Encoding MUST escape isolated surrogates so its output is valid
   UTF-8 and can be decoded without information loss.
+- Structural JSON ingestion and serialization MUST preserve these contents in
+  nested values and object keys. Typed AST decoding MUST operate on that
+  lossless structure; scalar-only intermediate JSON values MUST NOT be used to
+  ingest arbitrary runtime text.
+- Scalar-only source display and host operations MUST report encoding errors
+  rather than emit source syntax that changes isolated surrogates on reparse.
 - JSON string decoding MUST reject malformed escapes, unescaped controls,
   missing closing quotes and trailing input with source byte locations.
+- An explicit WTF-8 host boundary MAY carry surrogate code units. It MUST
+  validate its encoding and remain distinct from scalar UTF-8 conversion.
 
 ## Mechanism
 

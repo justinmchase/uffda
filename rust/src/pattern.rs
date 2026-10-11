@@ -7,6 +7,7 @@ use crate::expression::Expression;
 use crate::provenance::Origin;
 use crate::runtime::input::{InputIdentity, InputPosition, PathSegment, RecoveryContext};
 use crate::value::{RuntimeType, Value};
+use crate::{json::JsonValue, text::RuntimeString};
 use gc_arena::{Collect, DynamicRootSet, Gc, Mutation, RefLock};
 use serde::Deserialize;
 use std::rc::Rc;
@@ -70,7 +71,7 @@ pub enum Pattern {
     },
     Over {
         #[serde(default, deserialize_with = "deserialize_pattern_keys")]
-        keys: Option<Vec<(String, Self)>>,
+        keys: Option<Vec<(RuntimeString, Self)>>,
         rest: Option<Vec<OverRestClause>>,
     },
     Switch {
@@ -92,7 +93,7 @@ pub enum Pattern {
         #[serde(default)]
         args: Vec<Self>,
         #[serde(default)]
-        value: Option<serde_json::Value>,
+        value: Option<JsonValue>,
     },
     Projection {
         pattern: Box<Self>,
@@ -295,9 +296,9 @@ pub enum ResolveTargetKind {
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 pub enum RegExpSpec {
-    Source(String),
+    Source(RuntimeString),
     Detailed {
-        source: String,
+        source: RuntimeString,
         #[serde(default)]
         flags: String,
     },
@@ -305,17 +306,17 @@ pub enum RegExpSpec {
 
 fn deserialize_pattern_keys<'de, D>(
     deserializer: D,
-) -> Result<Option<Vec<(String, Pattern)>>, D::Error>
+) -> Result<Option<Vec<(RuntimeString, Pattern)>>, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
-    let value = Option::<serde_json::Value>::deserialize(deserializer)?;
+    let value = Option::<JsonValue>::deserialize(deserializer)?;
     match value {
         None => Ok(None),
-        Some(serde_json::Value::Object(values)) => values
+        Some(JsonValue::Object(values)) => values
             .into_iter()
             .map(|(key, value)| {
-                serde_json::from_value(value)
+                crate::json::from_value(value)
                     .map(|pattern| (key, pattern))
                     .map_err(serde::de::Error::custom)
             })
@@ -438,7 +439,7 @@ pub enum ValueSource {
 pub enum LiteralValue {
     #[default]
     Missing,
-    Present(serde_json::Value),
+    Present(JsonValue),
 }
 
 impl ValueSource {
@@ -451,8 +452,8 @@ impl ValueSource {
             Self::Literal {
                 value: LiteralValue::Present(value),
             } => match value {
-                serde_json::Value::Array(_) => "array literal".into(),
-                serde_json::Value::Object(_) => "object literal".into(),
+                JsonValue::Array(_) => "array literal".into(),
+                JsonValue::Object(_) => "object literal".into(),
                 _ => value.to_string(),
             },
         }
@@ -463,7 +464,7 @@ fn deserialize_literal_value<'de, D>(deserializer: D) -> Result<LiteralValue, D:
 where
     D: serde::Deserializer<'de>,
 {
-    serde_json::Value::deserialize(deserializer).map(LiteralValue::Present)
+    JsonValue::deserialize(deserializer).map(LiteralValue::Present)
 }
 
 pub(crate) struct PatternProgram {
@@ -485,7 +486,7 @@ enum PatternNode {
     Unary(Unary, usize),
     Type(RuntimeType),
     Quantifier(usize, Option<ValueSource>, Option<ValueSource>),
-    Over(Vec<(String, usize)>, Vec<OverRestNode>),
+    Over(Vec<(RuntimeString, usize)>, Vec<OverRestNode>),
     Switch(Vec<(SwitchKey, usize)>, Option<usize>),
     Character(String),
     Regexp(RegExpSpec),
@@ -493,7 +494,7 @@ enum PatternNode {
         target_kind: ResolveTargetKind,
         name: Option<String>,
         args: Vec<usize>,
-        value: Option<serde_json::Value>,
+        value: Option<JsonValue>,
     },
     Projection(usize, CompiledExpression),
     Pipeline(Vec<usize>),
@@ -517,7 +518,7 @@ struct OverState<'gc> {
     start: Scope<'gc>,
     source: Value<'gc>,
     fields: Vec<(Value<'gc>, Value<'gc>)>,
-    declared: Vec<(String, usize)>,
+    declared: Vec<(RuntimeString, usize)>,
     rest: Vec<OverRestNode>,
     fixed_index: usize,
     entry_index: usize,
@@ -688,7 +689,7 @@ impl Drop for PatternProgram {
                 value: LiteralValue::Present(value),
             } = source
             {
-                pending.push(std::mem::replace(value, serde_json::Value::Null));
+                pending.push(std::mem::replace(value, JsonValue::Null));
             }
         };
         for node in &mut self.nodes {
@@ -715,8 +716,8 @@ impl Drop for PatternProgram {
         }
         while let Some(value) = pending.pop() {
             match value {
-                serde_json::Value::Array(values) => pending.extend(values),
-                serde_json::Value::Object(values) => pending.extend(values.into_values()),
+                JsonValue::Array(values) => pending.extend(values),
+                JsonValue::Object(values) => pending.extend(values.into_iter().map(|(_, v)| v)),
                 _ => {}
             }
         }
@@ -764,7 +765,8 @@ pub enum MatchKind {
 #[derive(Clone, Copy, Collect)]
 #[collect(no_drop)]
 struct Scope<'gc> {
-    input: Gc<'gc, Vec<Value<'gc>>>,
+    input: crate::runtime::input::InputBuffer<'gc>,
+    source: Option<crate::runtime::input::InputSource<'gc>>,
     identity: InputIdentity<'gc>,
     recovery: RecoveryContext<'gc>,
     position: usize,
@@ -797,7 +799,7 @@ pub struct PatternMatch<'gc> {
 #[derive(Clone, Collect)]
 #[collect(no_drop)]
 struct PatternProvenance<'gc> {
-    input: Gc<'gc, Vec<Value<'gc>>>,
+    input: crate::runtime::input::InputBuffer<'gc>,
     position: usize,
     base: usize,
     #[collect(require_static)]
@@ -925,6 +927,7 @@ enum Frame<'gc> {
     Into {
         start: Scope<'gc>,
         length: usize,
+        source: Option<crate::runtime::input::InputSource<'gc>>,
     },
     Recover {
         start: Scope<'gc>,
@@ -1008,7 +1011,8 @@ pub struct PatternRequest<'gc> {
     pub argument_count: usize,
     arguments: Vec<usize>,
     pattern_index: usize,
-    pub stream: Gc<'gc, Vec<Value<'gc>>>,
+    pub stream: crate::runtime::input::InputBuffer<'gc>,
+    pub source: Option<crate::runtime::input::InputSource<'gc>>,
     pub identity: InputIdentity<'gc>,
     pub position: usize,
     pub environment: Environment<'gc>,
@@ -1021,7 +1025,8 @@ pub struct PatternRequest<'gc> {
 #[derive(Clone, Copy, Collect)]
 #[collect(no_drop)]
 pub struct PatternInput<'gc> {
-    pub stream: Gc<'gc, Vec<Value<'gc>>>,
+    pub stream: crate::runtime::input::InputBuffer<'gc>,
+    pub source: Option<crate::runtime::input::InputSource<'gc>>,
     pub identity: InputIdentity<'gc>,
     pub position: usize,
     pub base: usize,
@@ -1032,6 +1037,7 @@ impl<'gc> PatternRequest<'gc> {
     pub fn input(&self) -> PatternInput<'gc> {
         PatternInput {
             stream: self.stream,
+            source: self.source,
             identity: self.identity,
             position: self.position,
             base: self.base,
@@ -1113,7 +1119,7 @@ impl PatternArgument {
         environment: Environment<'gc>,
         base: usize,
     ) -> PatternExecution<'gc> {
-        let stream = Gc::new(
+        let stream: Gc<'gc, Vec<Value<'gc>>> = Gc::new(
             mc,
             input
                 .into_iter()
@@ -1132,7 +1138,8 @@ impl PatternArgument {
         self.execution_on_input(
             mc,
             PatternInput {
-                stream,
+                stream: stream.into(),
+                source: None,
                 identity: InputIdentity::root(stream),
                 position: 0,
                 base,
@@ -1162,7 +1169,7 @@ pub struct ResolveInfo {
 impl<'gc> PatternExecution<'gc> {
     fn provenance(&self, scope: Scope<'gc>) -> PatternProvenance<'gc> {
         PatternProvenance {
-            input: scope.input,
+            input: scope.source.map_or(scope.input, |source| source.prefix()),
             position: scope.position,
             base: scope.base,
             program: self.program.clone(),
@@ -1277,7 +1284,8 @@ impl<'gc> PatternExecution<'gc> {
             mc,
             program,
             PatternInput {
-                stream: input,
+                stream: input.into(),
+                source: None,
                 identity,
                 position: 0,
                 base,
@@ -1297,6 +1305,7 @@ impl<'gc> PatternExecution<'gc> {
     ) -> Self {
         let scope = Scope {
             input: input.stream,
+            source: input.source,
             identity: input.identity,
             recovery: input.recovery,
             position: input.position,
@@ -1331,6 +1340,103 @@ impl<'gc> PatternExecution<'gc> {
 
     pub(crate) fn set_external(&mut self, external: DynamicRootSet<'gc>) {
         self.external = external;
+    }
+
+    pub fn from_source(
+        mc: &Mutation<'gc>,
+        pattern: Pattern,
+        source: crate::runtime::input::InputSource<'gc>,
+        environment: Environment<'gc>,
+    ) -> Self {
+        Self::compiled_on_input(
+            mc,
+            PatternProgram::compile(pattern),
+            PatternInput {
+                stream: source.prefix(),
+                source: Some(source),
+                identity: source.identity(),
+                position: 0,
+                base: 0,
+                recovery: RecoveryContext::new(mc),
+            },
+            environment,
+            0,
+        )
+    }
+
+    pub(crate) fn set_source(&mut self, source: crate::runtime::input::InputSource<'gc>) {
+        if let Some(Frame::Match(_, scope)) = self.frames.first_mut() {
+            scope.source = Some(source);
+            scope.input = source.prefix();
+            scope.identity = source.identity();
+        }
+    }
+
+    fn input_source(&self) -> Option<crate::runtime::input::InputSource<'gc>> {
+        self.frames.iter().rev().find_map(|frame| match frame {
+            Frame::Match(_, scope) => scope.source.filter(|source| source.pending()),
+            Frame::Into { source, .. } => source.filter(|source| source.pending()),
+            _ => None,
+        })
+    }
+
+    pub fn input_pending(&self) -> bool {
+        self.input_source().is_some()
+            || self
+                .host_execution_all()
+                .is_some_and(|execution| execution.borrow().input_pending())
+    }
+
+    fn host_execution_all(&self) -> Option<Gc<'gc, RefLock<ExpressionExecution<'gc>>>> {
+        self.frames.iter().rev().find_map(|frame| {
+            let execution = match frame {
+                Frame::Projection { execution, .. } | Frame::IntoDrain { execution, .. } => {
+                    Some(*execution)
+                }
+                Frame::Pipeline(state) => state.drain,
+                _ => None,
+            }?;
+            (execution.borrow().host_pending() || execution.borrow().input_pending())
+                .then_some(execution)
+        })
+    }
+
+    pub fn take_input_request(
+        &mut self,
+        mc: &Mutation<'gc>,
+    ) -> Option<crate::runtime::input::InputRequest> {
+        if let Some(source) = self.input_source() {
+            return source.take_request(mc, self.external);
+        }
+        self.host_execution_all()?
+            .borrow_mut(mc)
+            .take_input_request(mc)
+    }
+
+    pub fn complete_input(
+        &mut self,
+        mc: &Mutation<'gc>,
+        request: &crate::runtime::input::InputRequest,
+        completion: Result<crate::runtime::input::InputCompletion, String>,
+    ) -> Result<(), PatternError> {
+        if let Some(error) = &self.error {
+            return Err(error.clone());
+        }
+        let outcome = if let Some(source) = self.input_source() {
+            source.complete(mc, self.external, request, completion)
+        } else if let Some(execution) = self.host_execution_all() {
+            execution
+                .borrow_mut(mc)
+                .complete_input(mc, request, completion)
+        } else {
+            Err(EvaluationError::StaleInputRequest)
+        };
+        if let Err(error) = &outcome
+            && !crate::evaluate::is_stale_request(error)
+        {
+            self.fail(pattern_expression_error(error.clone()));
+        }
+        outcome.map_err(pattern_expression_error)
     }
 
     fn host_execution(&self) -> Option<Gc<'gc, RefLock<ExpressionExecution<'gc>>>> {
@@ -1397,7 +1503,7 @@ impl<'gc> PatternExecution<'gc> {
     pub fn step_status(&mut self, mc: &Mutation<'gc>) -> Result<StepStatus, PatternError> {
         if self.step(mc)? {
             Ok(StepStatus::Complete)
-        } else if self.host_pending() || self.take_request().is_some() {
+        } else if self.host_pending() || self.input_pending() || self.take_request().is_some() {
             Ok(StepStatus::Suspended)
         } else {
             Ok(StepStatus::Yielded)
@@ -1521,7 +1627,7 @@ impl<'gc> PatternExecution<'gc> {
         if let Some(error) = &self.error {
             return Err(error.clone());
         }
-        if self.host_pending() {
+        if self.host_pending() || self.input_pending() {
             return Ok(false);
         }
         let result = self.execute(mc);
@@ -1540,6 +1646,35 @@ impl<'gc> PatternExecution<'gc> {
         };
         match frame {
             Frame::Match(index, mut scope) => {
+                if let Some(source) = scope.source {
+                    scope.input = source.prefix();
+                    let needs_item = match &self.program.nodes[index] {
+                        PatternNode::Ok
+                        | PatternNode::Fail
+                        | PatternNode::Projection(..)
+                        | PatternNode::Pipeline(..)
+                        | PatternNode::Resolve { .. }
+                        | PatternNode::Variable(..)
+                        | PatternNode::And(..)
+                        | PatternNode::Then(..)
+                        | PatternNode::Or(..)
+                        | PatternNode::Recover(..) => false,
+                        PatternNode::Unary(unary, _) => {
+                            matches!(unary, Unary::Into | Unary::Except)
+                        }
+                        PatternNode::Quantifier(..) => false,
+                        _ => true,
+                    };
+                    if needs_item
+                        && !source
+                            .require(mc, scope.position)
+                            .map_err(pattern_expression_error)?
+                    {
+                        self.frames.push(Frame::Match(index, scope));
+                        return Ok(false);
+                    }
+                    scope.input = source.prefix();
+                }
                 scope.pattern_index = index;
                 match &self.program.nodes[index] {
                     PatternNode::Any => self.set(
@@ -1670,7 +1805,14 @@ impl<'gc> PatternExecution<'gc> {
                             )));
                         };
                         let expression = character_class_regex(character_class)?;
-                        self.set(mc, scope, expression.is_match(&text), true, value, vec![]);
+                        self.set(
+                            mc,
+                            scope,
+                            character_class_matches(&expression, &text),
+                            true,
+                            value,
+                            vec![],
+                        );
                     }
                     PatternNode::Regexp(spec) => {
                         let Some(value) = scope.input.get(scope.position).copied() else {
@@ -1684,21 +1826,34 @@ impl<'gc> PatternExecution<'gc> {
                             )));
                         };
                         let (source, flags) = match spec {
-                            RegExpSpec::Source(source) => (source.as_str(), ""),
-                            RegExpSpec::Detailed { source, flags } => {
-                                (source.as_str(), flags.as_str())
-                            }
+                            RegExpSpec::Source(source) => (source, ""),
+                            RegExpSpec::Detailed { source, flags } => (source, flags.as_str()),
                         };
-                        let expression =
-                            regress::Regex::with_flags(source, flags).map_err(|error| {
-                                PatternError::InvalidArgument(format!(
-                                    "invalid regular expression: {error}"
-                                ))
-                            })?;
+                        let expression = regress::Regex::from_unicode(
+                            source.code_points().map(|point| {
+                                if point.len() == 2 {
+                                    0x10000
+                                        + ((u32::from(point[0]) - 0xd800) << 10)
+                                        + u32::from(point[1])
+                                        - 0xdc00
+                                } else {
+                                    u32::from(point[0])
+                                }
+                            }),
+                            flags,
+                        )
+                        .map_err(|error| {
+                            PatternError::InvalidArgument(format!(
+                                "invalid regular expression: {error}"
+                            ))
+                        })?;
                         self.set(
                             mc,
                             scope,
-                            expression.find(&text).is_some(),
+                            expression
+                                .find_from_utf16(text.as_utf16(), 0)
+                                .next()
+                                .is_some(),
                             true,
                             value,
                             vec![],
@@ -1718,11 +1873,12 @@ impl<'gc> PatternExecution<'gc> {
                         self.pending_request = Some(PatternRequest {
                             target_kind: *target_kind,
                             name: name.clone(),
-                            value: value.as_ref().map(serde_json::Value::to_string),
+                            value: value.as_ref().map(ToString::to_string),
                             argument_count: args.len(),
                             arguments: args.clone(),
                             pattern_index: scope.pattern_index,
                             stream: scope.input,
+                            source: scope.source,
                             identity: scope.identity,
                             position: scope.position,
                             environment: scope.environment,
@@ -1773,7 +1929,7 @@ impl<'gc> PatternExecution<'gc> {
                             .into_iter()
                             .filter(|(key, _)| {
                                 !declared.iter().any(|(name, _)| {
-                                matches!(key.raw(), Value::String(value) if value.as_str() == name)
+                                matches!(key.raw(), Value::String(value) if *value == *name)
                             })
                             })
                             .collect();
@@ -1816,7 +1972,7 @@ impl<'gc> PatternExecution<'gc> {
                                             "expected value to be a string for character-class switch key".into(),
                                         ));
                                         };
-                                        expression.is_match(&text)
+                                        character_class_matches(&expression, &text)
                                     }
                                 };
                                 if matches {
@@ -1838,6 +1994,24 @@ impl<'gc> PatternExecution<'gc> {
                                 self.set(mc, scope, false, false, Value::Undefined, vec![]);
                                 return Ok(self.frames.is_empty());
                             };
+                            if let Value::InputSource(source) = value.raw() {
+                                let mut inner = scope;
+                                inner.source = Some(source);
+                                inner.input = source.prefix();
+                                inner.identity =
+                                    source
+                                        .identity()
+                                        .nested(mc, scope.position, PathSegment::Into);
+                                inner.position = 0;
+                                inner.open = false;
+                                self.frames.push(Frame::Into {
+                                    start: scope,
+                                    length: 0,
+                                    source: Some(source),
+                                });
+                                self.frames.push(Frame::Match(*child, inner));
+                                return Ok(false);
+                            }
                             if !is_iterable_candidate(value) {
                                 return Err(PatternError::IterableExpected);
                             }
@@ -1912,7 +2086,11 @@ impl<'gc> PatternExecution<'gc> {
                                 "max must be greater than or equal to min but is {max} < {min}"
                             )));
                         }
-                        if max == 0.0 || (!scope.open && scope.position == scope.input.len()) {
+                        if max == 0.0
+                            || (!scope.open
+                                && scope.position == scope.input.len()
+                                && scope.source.is_none_or(|source| source.is_eof()))
+                        {
                             self.repeat_result(mc, scope, scope, 0, min, vec![], vec![]);
                         } else {
                             self.frames.push(Frame::Repeat {
@@ -2143,7 +2321,8 @@ impl<'gc> PatternExecution<'gc> {
                     };
                     let input = Gc::new(mc, values.borrow().clone());
                     let mut inner = start;
-                    inner.input = input;
+                    inner.input = input.into();
+                    inner.source = None;
                     inner.identity = start.identity.nested(mc, start.position, PathSegment::Into);
                     inner.position = 0;
                     inner.base = value.origin().map_or(start.base, |origin| origin.start);
@@ -2151,11 +2330,32 @@ impl<'gc> PatternExecution<'gc> {
                     self.frames.push(Frame::Into {
                         start,
                         length: input.len(),
+                        source: None,
                     });
                     self.frames.push(Frame::Match(node, inner));
                 }
             }
-            Frame::Into { start, length } => {
+            Frame::Into {
+                start,
+                mut length,
+                source,
+            } => {
+                if let Some(source) = source {
+                    let child = self.result.as_ref().ok_or(PatternError::InvalidState)?;
+                    if child.kind != MatchKind::Fail
+                        && !source
+                            .require(mc, child.end)
+                            .map_err(pattern_expression_error)?
+                    {
+                        self.frames.push(Frame::Into {
+                            start,
+                            length,
+                            source: Some(source),
+                        });
+                        return Ok(false);
+                    }
+                    length = source.prefix().len();
+                }
                 let child = self.result.take().ok_or(PatternError::InvalidState)?;
                 let complete = child.kind != MatchKind::Fail && child.end == length;
                 let end = if complete {
@@ -2280,7 +2480,7 @@ impl<'gc> PatternExecution<'gc> {
                         let consumed = child.end;
                         let length = match start.input[start.position].raw() {
                             Value::Array(values) => values.borrow().len(),
-                            Value::String(value) => value.chars().count(),
+                            Value::String(value) => value.code_points().count(),
                             _ => return Err(PatternError::IterableExpected),
                         };
                         if !matched || consumed != length {
@@ -2328,6 +2528,9 @@ impl<'gc> PatternExecution<'gc> {
                     self.set(mc, start, false, false, Value::Undefined, children);
                 } else {
                     current.position = child.end;
+                    if let Some(source) = current.source {
+                        current.input = source.prefix();
+                    }
                     current.environment = child.environment;
                     current.recovery = child.recovery;
                     if child.kind == MatchKind::Ok {
@@ -2478,10 +2681,15 @@ impl<'gc> PatternExecution<'gc> {
                     }
                     let progress = child.end > current.position;
                     current.position = child.end;
+                    if let Some(source) = current.source {
+                        current.input = source.prefix();
+                    }
                     current.environment = child.environment;
                     if count as f64 >= max
                         || (!progress && count as f64 >= min.max(1.0))
-                        || (!current.open && current.position == current.input.len())
+                        || (!current.open
+                            && current.position == current.input.len()
+                            && current.source.is_none_or(|source| source.is_eof()))
                     {
                         self.repeat_result(mc, start, current, count, min, children, values);
                     } else {
@@ -2603,13 +2811,14 @@ impl<'gc> PatternExecution<'gc> {
             let last = state.last.ok_or(PatternError::InvalidState)?;
             let stream = Gc::new(mc, vec![input]);
             let mut scope = state.start;
-            scope.input = stream;
+            scope.input = stream.into();
             scope.identity = InputIdentity::root(stream);
             scope.position = 0;
             scope.environment = last.environment;
             scope.recovery = last.recovery;
             scope.base = last.origin.start;
             scope.open = false;
+            scope.source = None;
             let node = *state
                 .nodes
                 .get(state.stage)
@@ -2692,7 +2901,8 @@ impl<'gc> PatternExecution<'gc> {
                 vec![state.source.carry_item(mc, value, state.fixed_index)],
             );
             let mut child_scope = state.start;
-            child_scope.input = input;
+            child_scope.input = input.into();
+            child_scope.source = None;
             child_scope.identity = state.start.identity.nested(
                 mc,
                 state.start.position,
@@ -2779,11 +2989,12 @@ impl<'gc> PatternExecution<'gc> {
                         OverStage::Fixed => return Err(PatternError::InvalidState),
                     };
                     let mut child_scope = state.start;
-                    child_scope.input = Gc::new(mc, vec![child_value]);
+                    child_scope.input = Gc::new(mc, vec![child_value]).into();
+                    child_scope.source = None;
                     let is_key = matches!(state.stage, OverStage::RestKey);
                     let segment = match (field.0.raw(), is_key) {
-                        (Value::String(key), true) => PathSegment::RestKey(key.to_string()),
-                        (Value::String(key), false) => PathSegment::RestValue(key.to_string()),
+                        (Value::String(key), true) => PathSegment::RestKey((*key).clone()),
+                        (Value::String(key), false) => PathSegment::RestValue((*key).clone()),
                         (_, true) => PathSegment::RestEntryKey(state.entry_index),
                         (_, false) => PathSegment::RestEntryValue(state.entry_index),
                     };
@@ -2942,7 +3153,10 @@ fn pattern_expression_error(error: EvaluationError) -> PatternError {
     PatternError::Expression(Box::new(error))
 }
 
-fn span(scope: Scope<'_>, end: usize) -> Origin {
+fn span(mut scope: Scope<'_>, end: usize) -> Origin {
+    if let Some(source) = scope.source {
+        scope.input = source.prefix();
+    }
     let point = scope
         .input
         .get(scope.position)
@@ -3021,14 +3235,14 @@ fn equal(
                 },
             ) {
                 (Some(Value::Undefined), None) => true,
-                (Some(Value::Null), Some(serde_json::Value::Null)) => true,
-                (Some(Value::Boolean(actual)), Some(serde_json::Value::Bool(expected))) => {
+                (Some(Value::Null), Some(JsonValue::Null)) => true,
+                (Some(Value::Boolean(actual)), Some(JsonValue::Bool(expected))) => {
                     actual == *expected
                 }
-                (Some(Value::Number(actual)), Some(serde_json::Value::Number(expected))) => {
+                (Some(Value::Number(actual)), Some(JsonValue::Number(expected))) => {
                     Some(actual) == expected.as_f64()
                 }
-                (Some(Value::String(actual)), Some(serde_json::Value::String(expected))) => {
+                (Some(Value::String(actual)), Some(JsonValue::String(expected))) => {
                     *actual == *expected
                 }
                 // Literal aggregates have independent identity and never compare
@@ -3041,7 +3255,7 @@ fn equal(
 
 enum OrderedValue {
     Number(f64),
-    String(String),
+    String(RuntimeString),
     Unordered,
 }
 
@@ -3060,12 +3274,10 @@ fn ordered_source(source: &ValueSource, scope: Scope<'_>) -> Result<OrderedValue
         }
         ValueSource::Literal { value } => Ok(match value {
             LiteralValue::Missing => OrderedValue::Unordered,
-            LiteralValue::Present(serde_json::Value::Number(value)) => {
+            LiteralValue::Present(JsonValue::Number(value)) => {
                 OrderedValue::Number(value.as_f64().expect("JSON numbers fit f64"))
             }
-            LiteralValue::Present(serde_json::Value::String(value)) => {
-                OrderedValue::String(value.clone())
-            }
+            LiteralValue::Present(JsonValue::String(value)) => OrderedValue::String(value.clone()),
             _ => OrderedValue::Unordered,
         }),
     }
@@ -3081,7 +3293,7 @@ fn within_bound(bound: &OrderedValue, value: Value<'_>, lower: bool) -> bool {
             }
         }
         (OrderedValue::String(bound), Value::String(value)) => {
-            let ordering = bound.encode_utf16().cmp(value.encode_utf16());
+            let ordering = bound.as_utf16().cmp(value.as_utf16());
             if lower {
                 ordering != std::cmp::Ordering::Greater
             } else {
@@ -3134,7 +3346,11 @@ fn keyed_entries<'gc>(
     }
 }
 
-fn keyed_lookup<'gc>(mc: &Mutation<'gc>, source: Value<'gc>, key: &str) -> Option<Value<'gc>> {
+fn keyed_lookup<'gc>(
+    mc: &Mutation<'gc>,
+    source: Value<'gc>,
+    key: &RuntimeString,
+) -> Option<Value<'gc>> {
     match source.raw() {
         Value::Object(properties) => properties.borrow().get(key),
         Value::Map(entries) => {
@@ -3163,7 +3379,13 @@ fn push_capture<'gc>(
     }
 }
 
-fn character_class_regex(character_class: &str) -> Result<regex::Regex, PatternError> {
+fn character_class_matches(expression: &regress::Regex, text: &RuntimeString) -> bool {
+    expression
+        .find_from_utf16(text.as_utf16(), 0)
+        .any(|matched| matched.range() == (0..text.len()))
+}
+
+fn character_class_regex(character_class: &str) -> Result<regress::Regex, PatternError> {
     let expression = match character_class {
         "A" => r"[\s\S]",
         "Ac" => r"[\x00-\x7F]",
@@ -3171,11 +3393,13 @@ fn character_class_regex(character_class: &str) -> Result<regex::Regex, PatternE
         "L" | "Lu" | "Ll" | "Lt" | "Lm" | "Lo" | "M" | "Mn" | "Mc" | "Me" | "N" | "Nd" | "Nl"
         | "No" | "S" | "Sm" | "Sc" | "Sk" | "So" | "P" | "Pc" | "Pd" | "Ps" | "Pe" | "Pi"
         | "Pf" | "Po" | "Z" | "Zs" | "Zl" | "Zp" | "C" | "Cc" | "Cf" | "Cs" | "Co" | "Cn" => {
-            return regex::Regex::new(&format!(r"\A\p{{{character_class}}}\z")).map_err(|error| {
-                PatternError::InvalidArgument(format!(
-                    "invalid character class {character_class}: {error}"
-                ))
-            });
+            return regress::Regex::with_flags(&format!(r"\p{{{character_class}}}"), "u").map_err(
+                |error| {
+                    PatternError::InvalidArgument(format!(
+                        "invalid character class {character_class}: {error}"
+                    ))
+                },
+            );
         }
         _ => {
             return Err(PatternError::InvalidArgument(format!(
@@ -3183,7 +3407,7 @@ fn character_class_regex(character_class: &str) -> Result<regex::Regex, PatternE
             )));
         }
     };
-    regex::Regex::new(&format!(r"\A{expression}\z")).map_err(|error| {
+    regress::Regex::with_flags(expression, "u").map_err(|error| {
         PatternError::InvalidArgument(format!(
             "invalid character class {character_class}: {error}"
         ))

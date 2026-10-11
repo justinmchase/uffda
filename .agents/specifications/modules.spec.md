@@ -40,6 +40,10 @@ and surfaced to runtime pattern execution.
 - Resolver implementations MUST cache resolved modules by canonical module URL.
 - If a module URL is already cached, subsequent imports MUST reuse the cached
   runtime module instance.
+- Hosts MAY register immutable declaration JSON for deferred decoding. Such data
+  MUST pass the normal declaration decoder on first access, be cached by URL,
+  and never be executed or re-lowered. Invalid registered data MUST report a
+  resolution error when loaded, not become a successful empty declaration.
 - A relative import specifier MUST be resolved relative to the importing module
   URL. A module name MUST be resolved through the resolver's import map (see
   [Import maps](#import-maps)).

@@ -1,10 +1,143 @@
 use super::*;
+
+#[test]
+// req:runtime-core-014
+fn external_input_iterator_creation_does_not_pull_or_require_an_executor() {
+    gc_arena::arena::rootless_mutate(|mc| {
+        let source = crate::runtime::input::InputSource::new(
+            mc,
+            crate::runtime::input::Source {
+                id: 1,
+                name: "source".into(),
+            },
+        );
+        let iterator = iterator(mc, Value::InputSource(source)).unwrap();
+        assert!(matches!(
+            &*iterator.borrow(),
+            IterableState::External { index: 0, .. }
+        ));
+        assert!(!source.pending());
+        assert!(source.prefix().is_empty());
+    });
+}
 use crate::environment::Environment;
 use crate::evaluate::Evaluation;
 use crate::expression::{ArrayInitializer, Expression, InvocationArgument};
 use crate::value::RuntimeType;
 use gc_arena::arena::rootless_mutate;
 use serde_json::json;
+
+#[test]
+// req:runtime-strings-002
+fn shared_lossless_strings_cover_globals_iteration_and_property_lookup() {
+    #[derive(serde::Deserialize)]
+    struct Fixture {
+        source: String,
+        units: Vec<u16>,
+    }
+    let fixtures: Vec<Fixture> =
+        serde_json::from_str(include_str!("../../../test/rust/string-fixtures.json")).unwrap();
+    for fixture in fixtures {
+        let text = RuntimeString::from_json_string(&fixture.source).unwrap();
+        let literal = || Expression::Value {
+            value: Some(crate::json::JsonValue::String(text.clone())),
+        };
+        assert_eq!(
+            evaluate(call("length", vec![literal()])),
+            fixture.units.len().to_string()
+        );
+        for (index, unit) in fixture.units.iter().enumerate() {
+            let expected = serde_json::to_string(&RuntimeString::from_utf16(vec![*unit])).unwrap();
+            assert_eq!(
+                evaluate(call("at", vec![literal(), super_literal(index)])),
+                expected
+            );
+            assert_eq!(
+                evaluate(call(
+                    "slice",
+                    vec![literal(), super_literal(index), super_literal(index + 1)]
+                )),
+                expected
+            );
+        }
+        let spread = Expression::Array {
+            expressions: vec![ArrayInitializer::ArraySpread {
+                expression: literal(),
+            }],
+        };
+        let expected = crate::json::JsonValue::Array(
+            text.code_points()
+                .map(|point| {
+                    crate::json::JsonValue::String(RuntimeString::from_utf16(point.to_vec()))
+                })
+                .collect(),
+        );
+        assert_eq!(evaluate(spread), serde_json::to_string(&expected).unwrap());
+        let object = Expression::Object {
+            keys: vec![crate::expression::ObjectInitializer::ObjectKey {
+                name: text.clone(),
+                expression: literal(),
+            }],
+        };
+        assert_eq!(evaluate(call("has", vec![object, literal()])), "true");
+    }
+    fn super_literal(index: usize) -> Expression {
+        Expression::Number {
+            value: index as f64,
+        }
+    }
+}
+
+#[test]
+// req:runtime-strings-002
+fn lossless_join_format_compare_symbols_and_scalar_hash_errors() {
+    let high = || Expression::Value {
+        value: Some(crate::json::JsonValue::String(RuntimeString::from_utf16(
+            vec![0xd800],
+        ))),
+    };
+    let low = || Expression::Value {
+        value: Some(crate::json::JsonValue::String(RuntimeString::from_utf16(
+            vec![0xdc00],
+        ))),
+    };
+    let array = Expression::Array {
+        expressions: vec![
+            ArrayInitializer::ArrayElement { expression: high() },
+            ArrayInitializer::ArrayElement { expression: low() },
+        ],
+    };
+    assert_eq!(
+        evaluate(call("join", vec![array, literal(json!(""))])),
+        "\"𐀀\""
+    );
+    assert_eq!(
+        evaluate(call(
+            "format",
+            vec![literal(json!("{0}{1}")), high(), low()]
+        )),
+        "\"𐀀\""
+    );
+    assert_eq!(
+        evaluate(call("compare", vec![high(), literal(json!("\u{e000}"))])),
+        "-1"
+    );
+    assert_eq!(
+        evaluate(Expression::String {
+            values: vec![crate::expression::StringSegment::Expression(call(
+                "symbol",
+                vec![high()]
+            ))]
+        }),
+        r#""Symbol(\ud800)""#
+    );
+    assert!(matches!(
+        Evaluation::new(call("sha256", vec![high()])).finish(),
+        Err(EvaluationError::StringCoercion(
+            crate::coercion::StringCoercionError::NonScalarText
+        ))
+    ));
+}
 
 #[test]
 // req:runtime-core-012 req:expressions-runtime-004
@@ -136,21 +269,39 @@ fn direct_json_serializer_rejects_callable_roots_elements_and_properties() {
 }
 
 #[test]
-// req:expressions-runtime-005
-fn lone_surrogate_production_is_explicitly_rejected_without_replacement_characters() {
-    for ast in [
-        call("at", vec![literal(json!("😀")), literal(json!(0))]),
-        call(
-            "slice",
-            vec![literal(json!("😀")), literal(json!(1)), literal(json!(2))],
-        ),
-    ] {
-        let mut execution = Evaluation::new(ast);
-        assert!(
-            matches!(execution.finish(), Err(EvaluationError::Native(message)) if message.contains("surrogate"))
+// req:data-codec-003 req:expressions-runtime-007
+fn json_serializer_handles_dates_errors_and_rejects_bigint_without_data_codec() {
+    rootless_mutate(|mc| {
+        let date = Value::date(mc, time::OffsetDateTime::UNIX_EPOCH);
+        let error = Value::error(mc, "TypeError".into(), "invalid".into(), None, None);
+        let bigint = Value::bigint(mc, num_bigint::BigInt::from(1));
+        assert_eq!(
+            json_text(date).unwrap().as_deref(),
+            Some("\"1970-01-01T00:00:00Z\"")
         );
-    }
-    assert!(serde_json::from_str::<Expression>(r#"{"kind":"value","value":"\ud83d"}"#).is_err());
+        assert_eq!(json_text(error).unwrap().as_deref(), Some("{}"));
+        assert!(
+            matches!(json_text(bigint), Err(EvaluationError::Native(message)) if message.contains("BigInt"))
+        );
+    });
+}
+
+#[test]
+// req:runtime-strings-001 req:expressions-runtime-005
+fn indexing_and_slicing_preserve_isolated_surrogates() {
+    assert_eq!(
+        evaluate(call("at", vec![literal(json!("😀")), literal(json!(0))])),
+        r#""\ud83d""#
+    );
+    assert_eq!(
+        evaluate(call(
+            "slice",
+            vec![literal(json!("😀")), literal(json!(1)), literal(json!(2))]
+        )),
+        r#""\ude00""#
+    );
+    let expression = crate::json::from_str(r#"{"kind":"value","value":"\ud83d"}"#).unwrap();
+    assert_eq!(evaluate(expression), r#""\ud83d""#);
 }
 
 #[test]
@@ -242,7 +393,9 @@ fn native_symbol_protocol_factories_resume_and_delegate_without_host_recursion()
 }
 
 fn literal(value: serde_json::Value) -> Expression {
-    Expression::Value { value: Some(value) }
+    Expression::Value {
+        value: Some(value.into()),
+    }
 }
 fn reference(name: &str) -> Expression {
     Expression::Reference { name: name.into() }

@@ -1,4 +1,5 @@
 use crate::pattern::Pattern;
+use crate::{json::JsonValue, text::RuntimeString};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -12,13 +13,13 @@ pub enum Expression {
     },
     Value {
         #[serde(default, deserialize_with = "deserialize_literal")]
-        value: Option<serde_json::Value>,
+        value: Option<JsonValue>,
     },
     Reference {
         name: String,
     },
     Member {
-        name: String,
+        name: RuntimeString,
         expression: Box<Self>,
     },
     Array {
@@ -45,8 +46,8 @@ pub enum Expression {
 
 fn deserialize_literal<'de, D: serde::Deserializer<'de>>(
     deserializer: D,
-) -> Result<Option<serde_json::Value>, D::Error> {
-    serde_json::Value::deserialize(deserializer).map(Some)
+) -> Result<Option<JsonValue>, D::Error> {
+    JsonValue::deserialize(deserializer).map(Some)
 }
 
 #[derive(Debug, Deserialize)]
@@ -65,7 +66,7 @@ pub enum InvocationSpread {
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 pub enum StringSegment {
-    Literal(String),
+    Literal(RuntimeString),
     Expression(Expression),
 }
 
@@ -80,7 +81,7 @@ pub enum ArrayInitializer {
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum ObjectInitializer {
     ObjectKey {
-        name: String,
+        name: RuntimeString,
         expression: Expression,
     },
     ObjectComputedKey {
@@ -98,6 +99,32 @@ mod tests {
     use super::*;
 
     #[test]
+    // req:runtime-strings-002
+    fn lossless_typed_ast_keeps_segments_member_names_and_object_keys() {
+        let ast: Expression = crate::json::from_str(r#"{"kind":"object","keys":[{"kind":"objectKey","name":"\ud800","expression":{"kind":"member","name":"\udfff","expression":{"kind":"string","values":["\ud800","\udc00"]}}}]}"#).unwrap();
+        let Expression::Object { keys } = ast else {
+            panic!()
+        };
+        let ObjectInitializer::ObjectKey { name, expression } = &keys[0] else {
+            panic!()
+        };
+        assert_eq!(name.as_utf16(), &[0xd800]);
+        let Expression::Member { name, expression } = expression else {
+            panic!()
+        };
+        assert_eq!(name.as_utf16(), &[0xdfff]);
+        let Expression::String { values } = &**expression else {
+            panic!()
+        };
+        for (segment, unit) in values.iter().zip([0xd800, 0xdc00]) {
+            let StringSegment::Literal(text) = segment else {
+                panic!()
+            };
+            assert_eq!(text.as_utf16(), &[unit]);
+        }
+    }
+
+    #[test]
     // req:expressions-runtime-003
     fn missing_literal_value_is_undefined_and_explicit_null_remains_null() {
         let undefined: Expression = serde_json::from_str(r#"{"kind":"value"}"#).unwrap();
@@ -106,7 +133,7 @@ mod tests {
         assert!(matches!(
             null,
             Expression::Value {
-                value: Some(serde_json::Value::Null)
+                value: Some(JsonValue::Null)
             }
         ));
     }

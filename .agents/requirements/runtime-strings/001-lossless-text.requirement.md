@@ -25,6 +25,11 @@ Expected behavior:
   trailing data MUST NOT be accepted.
 - JSON string decoding MUST NOT invoke expression evaluation or host
   constructors.
+- Typed JSON fields and map keys using runtime text MUST preserve escaped
+  surrogate units rather than going through scalar-only host strings.
+- An explicit WTF-8 boundary MUST accept surrogate code-unit encodings and valid
+  UTF-8, and MUST reject malformed/truncated/overlong encodings instead of
+  substituting replacement characters.
 
 Postconditions:
 

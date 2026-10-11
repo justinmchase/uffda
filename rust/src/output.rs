@@ -1,3 +1,4 @@
+use crate::text::RuntimeString;
 use crate::value::Value;
 use gc_arena::Gc;
 use std::collections::HashSet;
@@ -26,8 +27,11 @@ enum Frame<'gc> {
     Leave(usize),
 }
 
-fn quote(text: &str) -> Result<String, OutputError> {
-    serde_json::to_string(text).map_err(|error| OutputError::Encoding(error.to_string()))
+fn quote(text: &RuntimeString) -> Result<String, OutputError> {
+    let mut output = String::new();
+    text.write_json_string(&mut output)
+        .map_err(|error| OutputError::Encoding(error.to_string()))?;
+    Ok(output)
 }
 
 fn omitted(value: Value<'_>) -> bool {
@@ -40,27 +44,18 @@ enum UffdaFrame<'gc> {
     Object(crate::value::Object<'gc>, usize),
 }
 
-fn uffda_quote(text: &str) -> Result<String, OutputError> {
-    let mut output = String::from("\"");
-    for character in text.chars() {
-        match character {
-            '\\' => output.push_str("\\\\"),
-            '"' => output.push_str("\\\""),
-            '{' => output.push_str("\\{"),
-            '\t' => output.push_str("\\t"),
-            '\n' => output.push_str("\\n"),
-            '\r' => output.push_str("\\r"),
-            character if character.is_control() => {
-                return Err(OutputError::Encoding(format!(
-                    "Uffda display does not support control character U+{:04X}",
-                    character as u32
-                )));
-            }
-            character => output.push(character),
+fn uffda_quote(text: &RuntimeString) -> Result<String, OutputError> {
+    text.to_utf8()
+        .map_err(|error| OutputError::Encoding(error.to_string()))?;
+    for unit in text.as_utf16() {
+        if (*unit < 0x20 || (0x7f..=0x9f).contains(unit)) && !matches!(*unit, 0x09 | 0x0a | 0x0d) {
+            return Err(OutputError::Encoding(format!(
+                "Uffda display does not support control character U+{:04X}",
+                unit
+            )));
         }
     }
-    output.push('"');
-    Ok(output)
+    Ok(quote(text)?.replace('{', "\\{"))
 }
 
 fn unsupported_display(name: &str) -> OutputError {
@@ -71,7 +66,13 @@ fn unsupported_display(name: &str) -> OutputError {
 /// Top-level strings are raw text, and top-level undefined produces no output.
 pub fn uffda_output(value: Value<'_>) -> Result<String, OutputError> {
     match value.raw() {
-        Value::String(text) => return Ok(format!("{text}\n")),
+        Value::String(text) => {
+            return Ok(format!(
+                "{}\n",
+                text.to_utf8()
+                    .map_err(|error| OutputError::Encoding(error.to_string()))?
+            ));
+        }
         Value::Undefined => return Ok(String::new()),
         _ => {}
     }
@@ -128,6 +129,7 @@ pub fn uffda_output(value: Value<'_>) -> Result<String, OutputError> {
                     }
                 }
                 Value::String(text) => output.push_str(&uffda_quote(&text)?),
+                Value::BigInt(_) => return Err(unsupported_display("BigInt values")),
                 Value::Array(array) => {
                     if !ancestors.insert(Gc::as_ptr(array) as usize) {
                         return Err(OutputError::CircularValue);
@@ -154,8 +156,11 @@ pub fn uffda_output(value: Value<'_>) -> Result<String, OutputError> {
                 Value::Map(_) => return Err(unsupported_display("Map values")),
                 Value::Set(_) => return Err(unsupported_display("Set values")),
                 Value::Iterable(_) => return Err(unsupported_display("iterable values")),
+                Value::InputSource(_) => return Err(unsupported_display("external input sources")),
                 Value::Bytes(_) => return Err(unsupported_display("Bytes values")),
                 Value::Url(_) => return Err(unsupported_display("URL values")),
+                Value::Date(_) => return Err(unsupported_display("Date values")),
+                Value::Error(_) => return Err(unsupported_display("Error values")),
                 Value::Match(_) => return Err(unsupported_display("match scopes")),
                 Value::Declaration(_) => return Err(unsupported_display("declarations")),
                 Value::Symbol(_) => return Err(unsupported_display("Symbol values")),
@@ -226,7 +231,11 @@ fn pretty_json(compact: &str) -> String {
 
 pub(crate) fn serialized_output(value: Value<'_>) -> Result<String, OutputError> {
     match value.raw() {
-        Value::String(text) => Ok(serialized_json_output(Some(&text))),
+        Value::String(text) => {
+            Ok(serialized_json_output(Some(&text.to_utf8().map_err(
+                |error| OutputError::Encoding(error.to_string()),
+            )?)))
+        }
         Value::Undefined => Ok(serialized_json_output(None)),
         _ => Err(OutputError::Encoding(
             "JSON serializer returned neither text nor undefined".into(),
@@ -251,7 +260,11 @@ pub fn operation_output(value: Value<'_>, json: bool) -> Result<String, OutputEr
         });
     }
     if !json && let Value::String(text) = value.raw() {
-        return Ok(format!("{text}\n"));
+        return Ok(format!(
+            "{}\n",
+            text.to_utf8()
+                .map_err(|error| OutputError::Encoding(error.to_string()))?
+        ));
     }
     let mut frames = vec![Frame::Value(value)];
     let mut ancestors = HashSet::new();
@@ -272,7 +285,14 @@ pub fn operation_output(value: Value<'_>, json: bool) -> Result<String, OutputEr
                         "callable values cannot be serialized".into(),
                     ));
                 }
-                Value::Map(_) | Value::Set(_) | Value::Iterable(_) => output.push_str("{}"),
+                Value::BigInt(_) => {
+                    return Err(OutputError::Encoding(
+                        "BigInt values require the Uffda data codec".into(),
+                    ));
+                }
+                Value::Map(_) | Value::Set(_) | Value::Iterable(_) | Value::InputSource(_) => {
+                    output.push_str("{}")
+                }
                 Value::Match(_) => {
                     return Err(OutputError::Encoding(
                         "current match scope serialization is not supported".into(),
@@ -284,7 +304,7 @@ pub fn operation_output(value: Value<'_>, json: bool) -> Result<String, OutputEr
                         if index != 0 {
                             output.push(',');
                         }
-                        output.push_str(&quote(&index.to_string())?);
+                        output.push_str(&quote(&index.to_string().into())?);
                         output.push(':');
                         output.push_str(&byte.to_string());
                     }
@@ -299,7 +319,15 @@ pub fn operation_output(value: Value<'_>, json: bool) -> Result<String, OutputEr
                     }
                 }
                 Value::String(text) => output.push_str(&quote(&text)?),
-                Value::Url(url) => output.push_str(&quote(url.0.as_str())?),
+                Value::Url(url) => output.push_str(&quote(&url.0.as_str().into())?),
+                Value::Date(date) => {
+                    let date = date.0.to_offset(time::UtcOffset::UTC);
+                    let formatted = date
+                        .format(&time::format_description::well_known::Rfc3339)
+                        .map_err(|error| OutputError::Encoding(error.to_string()))?;
+                    output.push_str(&quote(&formatted.into())?);
+                }
+                Value::Error(_) => output.push_str("{}"),
                 Value::Declaration(declaration) => {
                     frames.push(Frame::Value(Value::Object(declaration.properties)));
                 }
@@ -334,9 +362,9 @@ pub fn operation_output(value: Value<'_>, json: bool) -> Result<String, OutputEr
                         .collect();
                     // JavaScript enumerates array-index keys before other string keys.
                     entries.sort_by_key(|(name, _)| {
-                        name.parse::<u32>()
-                            .ok()
-                            .filter(|index| *index != u32::MAX && index.to_string() == *name)
+                        name.as_scalar_str()
+                            .and_then(|name| name.parse::<u32>().ok())
+                            .filter(|index| *index != u32::MAX && *name == index.to_string())
                             .map(|index| (false, index))
                             .unwrap_or((true, 0))
                     });
@@ -365,6 +393,23 @@ mod tests {
     use gc_arena::arena::rootless_mutate;
 
     #[test]
+    // req:runtime-strings-002
+    fn json_output_is_lossless_and_scalar_source_display_errors() {
+        rootless_mutate(|mc| {
+            let text = RuntimeString::from_utf16(vec![0xd800]);
+            let value = Value::string(mc, text.clone());
+            let object = Value::object(mc, vec![(text, value)]);
+            assert_eq!(
+                operation_output(object, true).unwrap(),
+                "{\n  \"\\ud800\": \"\\ud800\"\n}\n"
+            );
+            assert!(uffda_output(value).is_err());
+            assert!(uffda_output(Value::array(mc, vec![value])).is_err());
+            assert!(uffda_output(object).is_err());
+        });
+    }
+
+    #[test]
     // req:cli-exec-001
     fn serialized_json_is_pretty_printed_without_double_encoding() {
         rootless_mutate(|mc| {
@@ -388,6 +433,35 @@ mod tests {
                 operation_output(Value::object(mc, vec![("iterator".into(), factory)]), true)
                     .is_err()
             );
+        });
+    }
+
+    #[test]
+    // req:data-codec-003 req:cli-exec-002
+    fn native_json_values_follow_json_boundaries_and_bigint_fails_explicitly() {
+        rootless_mutate(|mc| {
+            let date = Value::date(
+                mc,
+                time::OffsetDateTime::parse(
+                    "2026-10-10T18:00:00.123-05:00",
+                    &time::format_description::well_known::Rfc3339,
+                )
+                .unwrap(),
+            );
+            let error = Value::error(mc, "TypeError".into(), "invalid".into(), None, None);
+            let bigint = Value::bigint(mc, num_bigint::BigInt::from(42));
+            assert_eq!(
+                operation_output(date, true).unwrap(),
+                "\"2026-10-10T23:00:00.123Z\"\n"
+            );
+            assert_eq!(operation_output(error, true).unwrap(), "{}\n");
+            assert!(
+                operation_output(bigint, true)
+                    .unwrap_err()
+                    .to_string()
+                    .contains("BigInt")
+            );
+            assert!(uffda_output(bigint).is_err());
         });
     }
 
@@ -451,7 +525,7 @@ mod tests {
             ] {
                 let text = control.to_string();
                 assert!(uffda_output(Value::array(mc, vec![Value::string(mc, &text)])).is_err());
-                assert!(uffda_output(Value::object(mc, vec![(text, Value::Null)])).is_err());
+                assert!(uffda_output(Value::object(mc, vec![(text.into(), Value::Null)])).is_err());
             }
         });
     }
@@ -765,4 +839,23 @@ mod tests {
             "{\n  \"answer\": 42\n}\n"
         );
     }
+}
+#[test]
+// req:runtime-core-014
+fn external_source_output_never_pulls_input_or_serializes_pending_work() {
+    gc_arena::arena::rootless_mutate(|mc| {
+        let source = crate::runtime::input::InputSource::new(
+            mc,
+            crate::runtime::input::Source {
+                id: 1,
+                name: "source".into(),
+            },
+        );
+        assert!(uffda_output(Value::InputSource(source)).is_err());
+        assert!(!source.pending());
+        assert_eq!(
+            operation_output(Value::InputSource(source), true).unwrap(),
+            "{}\n"
+        );
+    });
 }

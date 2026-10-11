@@ -3,12 +3,92 @@ use crate::expression::ArrayInitializer;
 use crate::globals::NativeGlobal;
 use serde_json::json;
 
+#[test]
+// req:runtime-strings-002
+fn typed_member_computed_key_and_json_hook_arguments_preserve_surrogates() {
+    for source in [
+        r#"{"kind":"member","name":"\ud800","expression":{"kind":"value","value":{"\ud800":"\udfff"}}}"#,
+        r#"{"kind":"member","name":"\ud800","expression":{"kind":"object","keys":[{"kind":"objectComputedKey","keyExpression":{"kind":"value","value":"\ud800"},"expression":{"kind":"value","value":"\udfff"}}]}}"#,
+        r#"{"kind":"member","name":"0","expression":{"kind":"value","value":"\udfff"}}"#,
+    ] {
+        let mut evaluation = Evaluation::new(crate::json::from_str(source).unwrap());
+        let result = evaluation.finish().unwrap();
+        evaluation.collect();
+        assert_eq!(
+            evaluation
+                .read(&result, |v| crate::coercion::string_text(v)
+                    .unwrap()
+                    .as_utf16()
+                    .to_vec())
+                .unwrap(),
+            vec![0xdfff]
+        );
+    }
+    let ast = crate::json::from_str(r#"{"kind":"object","keys":[{"kind":"objectKey","name":"\ud800","expression":{"kind":"object","keys":[{"kind":"objectKey","name":"toJSON","expression":{"kind":"lambda","pattern":{"kind":"into","pattern":{"kind":"variable","name":"key","pattern":{"kind":"any"}}},"expression":{"kind":"reference","name":"key"}}}]}}]}"#).unwrap();
+    let mut evaluation = Evaluation::new(ast);
+    let value = evaluation.finish().unwrap();
+    let serialized = evaluation.serialize_rooted(&value).unwrap();
+    evaluation.collect();
+    assert_eq!(
+        evaluation
+            .read(&serialized, |v| crate::coercion::scalar_text(v).unwrap())
+            .unwrap(),
+        r#"{"\ud800":"\ud800"}"#
+    );
+}
+
 fn host_callable(name: &str) -> HostCallable {
     HostCallable {
         id: 17,
         name: name.into(),
         arity: 1,
     }
+}
+
+#[test]
+// req:runtime-core-014
+fn evaluation_external_driver_reads_async_iterable_without_changing_native_invocation() {
+    let ast = expression(json!({"kind":"invocation",
+        "expression":{"kind":"reference","name":"reduce"},
+        "args":[{"kind":"reference","name":"source"},{"kind":"value","value":0},{"kind":"reference","name":"add"}]}));
+    let mut evaluation = Evaluation::with_environment(ast, |mc| {
+        let source = crate::runtime::input::InputSource::new(
+            mc,
+            crate::runtime::input::Source {
+                id: 1,
+                name: "source".into(),
+            },
+        );
+        Environment::new(
+            mc,
+            None,
+            vec![("source".into(), Value::InputSource(source))],
+        )
+    });
+    let mut requests = vec![];
+    let future = evaluation.drive_external(|evaluation, request| {
+        let ExternalRequest::Input(request) = request else {
+            panic!("native callback must stay immediate")
+        };
+        evaluation.collect();
+        requests.push(request.position);
+        std::future::ready(ExternalCompletion::Input(Ok(if request.position < 2 {
+            let number = request.position as f64 + 1.0;
+            crate::runtime::input::InputCompletion::Item(HostCompletion::materialize(
+                vec![],
+                move |_, _| Ok(Value::Number(number)),
+            ))
+        } else {
+            crate::runtime::input::InputCompletion::Eof
+        })))
+    });
+    let result = bounded_drive(future).unwrap();
+    assert_eq!(requests, [0, 1, 2]);
+    assert!(
+        evaluation
+            .read(&result, |v| v.strict_eq(Value::Number(3.0)))
+            .unwrap()
+    );
 }
 
 #[test]
@@ -573,6 +653,12 @@ fn authored_parameter_projection_forwards_child_host_request_and_shared_roots() 
     let mut evaluation = Evaluation::with_hosts(ast, vec![host_callable("host")]);
     let mut retained = None;
     let result = bounded_drive(evaluation.drive(|evaluation, request| {
+        evaluation.arena.mutate(|_, state| {
+            assert!(matches!(
+                state.frames.last(),
+                Some(Frame::Parameters { .. })
+            ));
+        });
         evaluation.collect();
         assert_eq!(
             evaluation
@@ -664,7 +750,7 @@ fn callable_returned_by_json_hook_is_rejected_without_another_hook() {
                 ExpressionExecution::serialize(mc, Value::Null, environment, origin);
             execution.values.push(callable);
             execution.frames = vec![Frame::JsonHook {
-                key: String::new(),
+                key: RuntimeString::default(),
                 path: Gc::new(mc, JsonPath::default()),
             }];
             assert!(!execution.step(mc).unwrap());
@@ -703,7 +789,7 @@ fn serializer_paths_release_shared_siblings_and_isolate_reentrant_json_hooks() {
         let Value::String(text) = execution.result().unwrap().raw() else {
             panic!("expected JSON")
         };
-        assert_eq!(&**text, r#"[[1],[1],"\"2\""]"#);
+        assert_eq!(*text, r#"[[1],[1],"\"2\""]"#);
     });
     gc_arena::arena::rootless_mutate(|mc| {
         let cyclic = Value::array(mc, vec![]);
@@ -753,7 +839,7 @@ fn rooted_serializer_active_paths_use_linear_space_and_survive_frame_collection(
                     panic!("expected JSON text")
                 };
                 assert_eq!(text.len(), depth * 2 + 1);
-                assert_eq!(text.as_bytes()[depth], b'0');
+                assert_eq!(text.as_utf16()[depth], u16::from(b'0'));
             })
             .unwrap();
         evaluation
@@ -814,7 +900,7 @@ fn custom_iterator_next_consumes_completed_wrapped_records() {
             (json!({"done":true,"value":42}), true),
         ] {
             let next = CompiledExpression::new(Expression::Value {
-                value: Some(record),
+                value: Some(record.into()),
             })
             .bind(mc, environment, origin, Pattern::End);
             let cursor = Value::object(mc, vec![("next".into(), next)]);
@@ -1010,7 +1096,7 @@ fn serialization_factory_retains_live_callable_hooks_and_undefined() {
         let Value::String(text) = execution.result().unwrap().raw() else {
             unreachable!()
         };
-        assert_eq!(&**text, "\"\"");
+        assert_eq!(*text, "\"\"");
         for value in [Value::Undefined] {
             let mut serialization = ExpressionExecution::serialize(
                 mc,
@@ -1159,7 +1245,7 @@ fn data_then_properties_do_not_suspend_rust_execution() {
         let mut execution = ExpressionExecution::new(
             mc,
             Expression::Value {
-                value: Some(json!({"then":42})),
+                value: Some(json!({"then":42}).into()),
             },
             Environment::new(mc, None, vec![]),
             Origin { start: 0, end: 0 },
@@ -1526,15 +1612,24 @@ fn snapshot(value: Value<'_>) -> serde_json::Value {
                 .borrow()
                 .entries()
                 .iter()
-                .map(|(name, value)| (name.clone(), snapshot(*value)))
+                .map(|(name, value)| {
+                    (
+                        name.to_utf8().expect("scalar fixture key"),
+                        snapshot(*value),
+                    )
+                })
                 .collect(),
         ),
         Value::Undefined => panic!("undefined must be checked directly, not flattened into JSON"),
         Value::Lambda(_)
         | Value::Native(_)
         | Value::Host(_)
+        | Value::InputSource(_)
         | Value::IteratorFactory(_)
         | Value::Symbol(_)
+        | Value::BigInt(_)
+        | Value::Date(_)
+        | Value::Error(_)
         | Value::Iterable(_)
         | Value::Declaration(_)
         | Value::Url(_)
@@ -2169,7 +2264,7 @@ fn failed_lambda_body_unwinds_context_and_releases_parameter_allocations() {
             },
         ),
         vec![Expression::Value {
-            value: Some(json!({"nested":[1,2,3]})),
+            value: Some(json!({"nested":[1,2,3]}).into()),
         }],
     );
     let mut evaluation = Evaluation::new(ast);

@@ -1,6 +1,6 @@
 use super::{ModuleDeclaration, ModuleResolutionError, Resolver, error};
+use crate::json::JsonValue as Value;
 use serde::Deserialize;
-use serde_json::Value;
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::rc::Rc;
 use url::Url;
@@ -154,7 +154,7 @@ impl Resolver {
                         &parents,
                     ));
                 }
-                let import: Import = serde_json::from_value(value.clone()).map_err(|cause| {
+                let import: Import = crate::json::from_value(value.clone()).map_err(|cause| {
                     annotate(
                         error(
                             &url,
@@ -280,7 +280,7 @@ impl Resolver {
                         ));
                     }
                     let export: Export =
-                        serde_json::from_value(value.clone()).map_err(|cause| {
+                        crate::json::from_value(value.clone()).map_err(|cause| {
                             error(
                                 url,
                                 "invalid export declaration".into(),
@@ -328,7 +328,7 @@ impl Resolver {
             let module = &graph.modules[url];
             for value in &module.declaration.exports {
                 let export: Export =
-                    serde_json::from_value(value.clone()).expect("previously validated export");
+                    crate::json::from_value(value.clone()).expect("previously validated export");
                 if !module.exports.contains_key(&export.name) {
                     return Err(annotate(
                         error(url, format!("Unknown import {}", export.name), None),
@@ -476,7 +476,7 @@ fn materialize(
     };
     let mut default_count = 0;
     for value in &module.declaration.exports {
-        let export: Export = serde_json::from_value(value.clone()).map_err(|cause| {
+        let export: Export = crate::json::from_value(value.clone()).map_err(|cause| {
             error(
                 url,
                 "invalid export declaration".into(),

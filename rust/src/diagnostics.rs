@@ -23,25 +23,30 @@ pub struct SourceDiagnostic {
     pub location: SourceLocation,
 }
 
-pub fn location(source: &str, start: usize, end: usize) -> SourceLocation {
+pub fn location(
+    source: impl Into<crate::text::RuntimeString>,
+    start: usize,
+    end: usize,
+) -> SourceLocation {
+    let source = source.into();
     let mut line = 0;
     let mut column = 0;
     let mut offset = 0;
-    for character in source.chars() {
-        if offset + character.len_utf16() > start {
+    for unit in source.as_utf16() {
+        if offset >= start {
             break;
         }
-        offset += character.len_utf16();
-        if character == '\n' {
+        offset += 1;
+        if *unit == 0x0a {
             line += 1;
             column = 0;
         } else {
-            column += character.len_utf16();
+            column += 1;
         }
     }
     SourceLocation {
         offset,
-        end_offset: Some(end.min(source.encode_utf16().count())),
+        end_offset: Some(end.min(source.len())),
         line,
         column,
     }
@@ -49,12 +54,14 @@ pub fn location(source: &str, start: usize, end: usize) -> SourceLocation {
 
 pub fn collect(
     runtime: &Runtime,
-    source: &str,
+    source: impl Into<crate::text::RuntimeString>,
     recovery_code: &str,
     failure_code: &str,
     phase: &'static str,
-) -> Vec<SourceDiagnostic> {
-    runtime
+) -> Result<Vec<SourceDiagnostic>, crate::coercion::StringCoercionError> {
+    let source = source.into();
+    let encoding_error = std::cell::Cell::new(false);
+    let diagnostics = runtime
         .diagnostics_with(|declaration| {
             let Value::Object(metadata) = declaration.metadata.raw() else {
                 return None;
@@ -65,7 +72,13 @@ pub fn collect(
             let Value::String(error) = documentation.borrow().get("error")?.raw() else {
                 return None;
             };
-            Some((*error).clone())
+            match error.to_utf8() {
+                Ok(error) => Some(error),
+                Err(_) => {
+                    encoding_error.set(true);
+                    None
+                }
+            }
         })
         .into_iter()
         .map(|diagnostic| SourceDiagnostic {
@@ -80,7 +93,7 @@ pub fn collect(
             message: diagnostic.message,
             location: {
                 let mut location = if phase == "parse" {
-                    location(source, diagnostic.span.start, diagnostic.span.end)
+                    location(&source, diagnostic.span.start, diagnostic.span.end)
                 } else {
                     SourceLocation {
                         offset: diagnostic.span.start,
@@ -95,12 +108,26 @@ pub fn collect(
                 location
             },
         })
-        .collect()
+        .collect();
+    if encoding_error.get() {
+        Err(crate::coercion::StringCoercionError::NonScalarText)
+    } else {
+        Ok(diagnostics)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    // req:runtime-strings-002
+    fn utf16_locations_accept_lossless_text_without_scalar_conversion() {
+        let source = crate::text::RuntimeString::from_utf16(vec![0xd800, 0x0a, 0xdfff]);
+        let point = location(source, 2, 3);
+        assert_eq!((point.offset, point.line, point.column), (2, 1, 0));
+        assert_eq!(point.end_offset, Some(3));
+    }
 
     #[test]
     // req:cli-fmt-001 req:cli-command-model-001

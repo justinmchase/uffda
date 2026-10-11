@@ -3,6 +3,7 @@ use crate::expression::{
     StringSegment,
 };
 use crate::pattern::PatternProgram;
+use crate::{json::JsonValue, text::RuntimeString};
 use std::rc::Rc;
 
 pub(crate) struct Program {
@@ -13,9 +14,9 @@ pub(crate) enum Node {
     Undefined,
     Number(f64),
     Boolean(bool),
-    Value(serde_json::Value),
+    Value(JsonValue),
     Reference(String),
-    Member(String, usize),
+    Member(RuntimeString, usize),
     Array(Vec<(usize, bool)>),
     Object(Vec<Key>),
     String(Vec<usize>),
@@ -25,7 +26,7 @@ pub(crate) enum Node {
 }
 
 pub(crate) enum Key {
-    Named(String, usize),
+    Named(RuntimeString, usize),
     Computed(usize, usize),
     Spread(usize),
 }
@@ -49,13 +50,13 @@ impl Program {
                 Expression::Boolean { value } => Node::Boolean(value),
                 Expression::Value { value: None } => Node::Undefined,
                 Expression::Value { value: Some(value) } => match value {
-                    serde_json::Value::Array(values) => Node::Array(
+                    JsonValue::Array(values) => Node::Array(
                         values
                             .into_iter()
                             .map(|value| (child(Expression::Value { value: Some(value) }), false))
                             .collect(),
                     ),
-                    serde_json::Value::Object(values) => Node::Object(
+                    JsonValue::Object(values) => Node::Object(
                         values
                             .into_iter()
                             .map(|(name, value)| {
@@ -104,7 +105,7 @@ impl Program {
                             child(match value {
                                 StringSegment::Expression(expression) => expression,
                                 StringSegment::Literal(value) => Expression::Value {
-                                    value: Some(serde_json::Value::String(value)),
+                                    value: Some(JsonValue::String(value)),
                                 },
                             })
                         })
@@ -140,17 +141,32 @@ mod tests {
     use crate::pattern::Pattern;
 
     #[test]
+    // req:runtime-strings-002
+    fn compiled_segments_and_literal_object_keys_remain_lossless() {
+        let ast = crate::json::from_str(r#"{"kind":"value","value":{"\ud800":"\udfff"}}"#).unwrap();
+        let program = Program::compile(ast);
+        let Node::Object(keys) = &program.nodes[0] else {
+            panic!()
+        };
+        let Key::Named(name, child) = &keys[0] else {
+            panic!()
+        };
+        assert_eq!(name.as_utf16(), &[0xd800]);
+        let Node::Value(JsonValue::String(value)) = &program.nodes[*child] else {
+            panic!()
+        };
+        assert_eq!(value.as_utf16(), &[0xdfff]);
+    }
+
+    #[test]
     // req:expressions-runtime-003
     fn absent_value_literal_has_a_distinct_compiled_node_from_null() {
         let undefined = Program::compile(Expression::Value { value: None });
         assert!(matches!(undefined.nodes[0], Node::Undefined));
         let null = Program::compile(Expression::Value {
-            value: Some(serde_json::Value::Null),
+            value: Some(JsonValue::Null),
         });
-        assert!(matches!(
-            null.nodes[0],
-            Node::Value(serde_json::Value::Null)
-        ));
+        assert!(matches!(null.nodes[0], Node::Value(JsonValue::Null)));
     }
 
     #[test]

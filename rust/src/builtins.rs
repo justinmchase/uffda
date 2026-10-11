@@ -1,4 +1,4 @@
-use crate::resolver::{ModuleResolutionError, Resolver, decode_declaration};
+use crate::resolver::{ModuleResolutionError, Resolver};
 use url::Url;
 
 include!(concat!(env!("OUT_DIR"), "/languages.rs"));
@@ -18,8 +18,7 @@ pub fn register(resolver: &mut Resolver) -> Result<Url, ModuleResolutionError> {
             cause: Some(error.to_string()),
             import_chain: Vec::new(),
         })?;
-        let declaration = decode_declaration(&url, source)?;
-        resolver.insert_declaration(url, declaration);
+        resolver.insert_declaration_source(url, source);
     }
     Ok(root)
 }
@@ -27,6 +26,7 @@ pub fn register(resolver: &mut Resolver) -> Result<Url, ModuleResolutionError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::resolver::decode_declaration;
 
     #[test]
     // req:cli-bootstrap-015
@@ -34,6 +34,7 @@ mod tests {
         let mut resolver = Resolver::from_cwd().unwrap();
         let root = register(&mut resolver).unwrap();
         assert!(!DECLARATIONS.is_empty());
+        assert_eq!(resolver.declaration_count(), 0);
         for (path, source) in DECLARATIONS {
             let url = root.join(path).unwrap();
             let actual = resolver.load_declaration(&url).unwrap();

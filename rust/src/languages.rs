@@ -1,10 +1,10 @@
 use crate::builtins;
 use crate::diagnostics::{self, SourceDiagnostic};
+use crate::json::JsonValue as Value;
 use crate::module::CompiledModuleGraph;
 use crate::pattern::MatchKind;
 use crate::resolver::Resolver;
 use crate::runtime::{InputMode, Runtime};
-use serde_json::Value;
 use std::collections::HashMap;
 use std::fmt;
 use std::rc::Rc;
@@ -160,7 +160,12 @@ impl Languages {
             message,
             diagnostics: vec![],
         };
-        let source = input.as_str().map(str::to_owned).unwrap_or_default();
+        let source = match &input {
+            Value::String(text) => text
+                .to_utf8()
+                .map_err(|failure| error("input", failure.to_string()))?,
+            _ => String::new(),
+        };
         let graph = self.graph(url)?;
         let member = graph
             .export(url, Some(entry))
@@ -177,7 +182,8 @@ impl Languages {
             "CLI_STREAM_PARSE_RECOVERED",
             "CLI_STREAM_PARSE_FAILURE",
             "parse",
-        );
+        )
+        .map_err(|failure| error("output", failure.to_string()))?;
         runtime.read(|execution| {
             let result = execution
                 .result()
@@ -210,9 +216,9 @@ impl Languages {
             .map_err(|failure| error("output", failure.to_string()))?
             .ok_or_else(|| error("output", "Language rule has no metadata object".into()))?;
         Ok(LanguageOutcome {
-            value: serde_json::from_str(&value)
+            value: crate::json::from_str(&value)
                 .map_err(|failure| error("output", failure.to_string()))?,
-            metadata: serde_json::from_str(&metadata)
+            metadata: crate::json::from_str(&metadata)
                 .map_err(|failure| error("output", failure.to_string()))?,
             diagnostics,
         })
@@ -233,8 +239,11 @@ impl Languages {
                     .load_graph(url)
                     .map_err(|failure| error("resolve", failure.to_string()))?;
                 let graph = Rc::new(
-                    CompiledModuleGraph::compile(graph)
-                        .map_err(|failure| error("compile", failure.to_string()))?,
+                    CompiledModuleGraph::compile_reusing(
+                        graph,
+                        self.programs.values().map(Rc::as_ref),
+                    )
+                    .map_err(|failure| error("compile", failure.to_string()))?,
                 );
                 self.programs.insert(url.clone(), Rc::clone(&graph));
                 graph
@@ -273,7 +282,7 @@ impl Languages {
                 .map_err(|failure| error(failure.to_string()))?
                 .ok_or_else(|| error("Missing declaration metadata".into()))?;
             let metadata: Value =
-                serde_json::from_str(&text).map_err(|failure| error(failure.to_string()))?;
+                crate::json::from_str(&text).map_err(|failure| error(failure.to_string()))?;
             let Some(language) = metadata.get("Language") else {
                 continue;
             };
@@ -441,7 +450,7 @@ impl Languages {
                 failure
             })?;
         match value {
-            Value::String(text) => Ok(text),
+            Value::String(text) => text.to_utf8().map_err(|failure| error(failure.to_string())),
             _ => Err(error("Formatter rule did not produce text".into())),
         }
     }
@@ -449,6 +458,67 @@ impl Languages {
     pub fn parse(&mut self, source: &str, language: Language) -> Result<Value, LanguageError> {
         let (path, entry) = language.entry();
         self.execute(path, entry, Value::String(source.into()), InputMode::Scalar)
+    }
+
+    /// Parse the data language's scalar-safe AST (string contents remain JSON tokens).
+    pub fn parse_data(&mut self, source: &str) -> Result<serde_json::Value, LanguageError> {
+        let path = "src/lang/data/data.lang.uff";
+        let encode_error = |message: String| LanguageError {
+            phase: "output",
+            module_url: path.into(),
+            message,
+            diagnostics: vec![],
+        };
+        let url = self
+            .root
+            .join(path)
+            .map_err(|failure| encode_error(failure.to_string()))?;
+        let graph = self.graph(&url)?;
+        let member = graph
+            .export(&url, Some("DataLang"))
+            .or_else(|| graph.resolve(&url, "DataLang"))
+            .ok_or_else(|| encode_error("Unknown rule DataLang".into()))?;
+        let mut runtime = Runtime::for_member(
+            graph,
+            &member,
+            Value::String(source.into()),
+            InputMode::Scalar,
+        )
+        .map_err(|failure| encode_error(failure.to_string()))?;
+        runtime
+            .run()
+            .map_err(|failure| encode_error(failure.to_string()))?;
+        let diagnostics = diagnostics::collect(
+            &runtime,
+            source,
+            "CLI_STREAM_PARSE_RECOVERED",
+            "CLI_STREAM_PARSE_FAILURE",
+            "parse",
+        )
+        .map_err(|failure| encode_error(failure.to_string()))?;
+        if !diagnostics.is_empty() {
+            return Err(LanguageError {
+                phase: "parse",
+                module_url: url.to_string(),
+                message: diagnostics
+                    .iter()
+                    .map(|diagnostic| diagnostic.message.as_str())
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+                diagnostics,
+            });
+        }
+        runtime.read(|execution| {
+            let matched = execution
+                .result()
+                .ok_or_else(|| encode_error("Missing data AST".into()))?;
+            if matched.kind != MatchKind::Ok {
+                return Err(encode_error(
+                    "Data language did not match the record".into(),
+                ));
+            }
+            scalar_data_ast(matched.value).map_err(encode_error)
+        })
     }
 
     pub fn parse_source(
@@ -514,10 +584,108 @@ impl Languages {
         let module = Url::parse(module).map_err(|failure| error(failure.to_string()))?;
         let (value, _) = self.execute_url(&module, name, syntax, InputMode::Scalar)?;
         match value {
-            Value::String(text) => Ok(text),
+            Value::String(text) => text.to_utf8().map_err(|failure| error(failure.to_string())),
             _ => Err(error("Formatter rule did not produce text".into())),
         }
     }
+}
+
+fn scalar_data_ast(value: crate::value::Value<'_>) -> Result<serde_json::Value, String> {
+    use crate::value::Value as RuntimeValue;
+    enum Work<'gc> {
+        Visit(RuntimeValue<'gc>),
+        Array(usize, usize),
+        Object(Vec<String>, usize),
+    }
+    let mut pending = vec![Work::Visit(value)];
+    struct Values(Vec<serde_json::Value>);
+    impl std::ops::Deref for Values {
+        type Target = Vec<serde_json::Value>;
+        fn deref(&self) -> &Self::Target {
+            &self.0
+        }
+    }
+    impl std::ops::DerefMut for Values {
+        fn deref_mut(&mut self) -> &mut Self::Target {
+            &mut self.0
+        }
+    }
+    impl Drop for Values {
+        fn drop(&mut self) {
+            let mut pending = std::mem::take(&mut self.0);
+            while let Some(value) = pending.pop() {
+                match value {
+                    serde_json::Value::Array(items) => pending.extend(items),
+                    serde_json::Value::Object(items) => pending.extend(items.into_values()),
+                    _ => {}
+                }
+            }
+        }
+    }
+    let mut values = Values(Vec::new());
+    let mut active = std::collections::HashSet::new();
+    while let Some(work) = pending.pop() {
+        match work {
+            Work::Visit(value) => match value.raw() {
+                RuntimeValue::Null => values.push(serde_json::Value::Null),
+                RuntimeValue::Boolean(value) => values.push(serde_json::Value::Bool(value)),
+                RuntimeValue::Number(value) => values.push(serde_json::Value::Number(
+                    serde_json::Number::from_f64(value).ok_or("Nonfinite data AST number")?,
+                )),
+                RuntimeValue::String(value) => values.push(serde_json::Value::String(
+                    value.to_utf8().map_err(|failure| failure.to_string())?,
+                )),
+                RuntimeValue::Array(array) => {
+                    let identity = gc_arena::Gc::as_ptr(array) as usize;
+                    if !active.insert(identity) {
+                        return Err("Cyclic data AST".into());
+                    }
+                    let array = array.borrow();
+                    pending.push(Work::Array(array.len(), identity));
+                    pending.extend(array.iter().rev().copied().map(Work::Visit));
+                }
+                RuntimeValue::Object(object) => {
+                    let identity = gc_arena::Gc::as_ptr(object) as usize;
+                    if !active.insert(identity) {
+                        return Err("Cyclic data AST".into());
+                    }
+                    let object = object.borrow();
+                    if !object.symbol_entries().is_empty() {
+                        return Err("Symbol data AST keys".into());
+                    }
+                    let keys = object
+                        .entries()
+                        .iter()
+                        .map(|(key, _)| key.to_utf8().map_err(|failure| failure.to_string()))
+                        .collect::<Result<Vec<_>, _>>()?;
+                    pending.push(Work::Object(keys, identity));
+                    pending.extend(
+                        object
+                            .entries()
+                            .iter()
+                            .rev()
+                            .map(|(_, value)| Work::Visit(*value)),
+                    );
+                }
+                _ => return Err("Unsupported data AST value".into()),
+            },
+            Work::Array(count, identity) => {
+                let start = values.len() - count;
+                let items = values.split_off(start);
+                values.push(serde_json::Value::Array(items));
+                active.remove(&identity);
+            }
+            Work::Object(keys, identity) => {
+                let start = values.len() - keys.len();
+                let items = values.split_off(start);
+                values.push(serde_json::Value::Object(
+                    keys.into_iter().zip(items).collect(),
+                ));
+                active.remove(&identity);
+            }
+        }
+    }
+    values.pop().ok_or_else(|| "Missing data AST value".into())
 }
 
 #[cfg(test)]
@@ -525,12 +693,66 @@ mod tests {
     use super::*;
 
     #[test]
+    // req:runtime-strings-002 req:data-codec-003
+    fn data_language_ast_depth_is_not_limited_by_json_reparsing() {
+        let source = "[".repeat(128) + "null" + &"]".repeat(128);
+        let ast = Languages::new().unwrap().parse_data(&source).unwrap();
+        let limits = crate::codec::data::DataLimits {
+            max_bytes: 10_000,
+            max_depth: 128,
+        };
+        let document = crate::codec::data::DataDocument::from_ast(ast, limits).unwrap();
+        assert_eq!(document.encode(false, limits).unwrap(), source);
+        gc_arena::arena::rootless_mutate(|mc| {
+            let non_scalar = crate::value::Value::string(
+                mc,
+                crate::text::RuntimeString::from_utf16(vec![0xd800]),
+            );
+            assert!(scalar_data_ast(non_scalar).is_err());
+        });
+    }
+
+    #[test]
+    // req:runtime-strings-002 req:data-codec-002
+    fn data_language_tokens_are_scalar_safe_without_decoding_surrogates_early() {
+        let mut languages = Languages::new().unwrap();
+        let ast = languages.parse_data(r#""\ud800""#).unwrap();
+        assert_eq!(ast["kind"], "string");
+        assert_eq!(ast["token"], r#""\ud800""#);
+        assert!(languages.parse_data(r#""\ud80""#).is_err());
+    }
+
+    #[test]
+    // req:cli-bootstrap-024 req:modules-runtime-004
+    fn overlapping_language_graphs_reuse_compiled_declaration_identity() {
+        let mut languages = Languages::new().unwrap();
+        let expression = languages.root.join(Language::Expression.entry().0).unwrap();
+        let pattern = languages.root.join(Language::Pattern.entry().0).unwrap();
+        let first = languages.graph(&expression).unwrap();
+        let second = languages.graph(&pattern).unwrap();
+        let mut shared = 0;
+        for (url, module) in &first.graph.modules {
+            if second.graph.modules.contains_key(url) {
+                for member in module.locals.values() {
+                    assert!(Rc::ptr_eq(
+                        &first.declaration(member).unwrap(),
+                        &second.declaration(member).unwrap(),
+                    ));
+                    shared += 1;
+                }
+            }
+        }
+        assert!(shared > 0);
+        assert!(Rc::ptr_eq(&first, &languages.graph(&expression).unwrap()));
+    }
+
+    #[test]
     // req:cli-exec-001 req:cli-bootstrap-024
     fn embedded_expression_language_parses_literals_and_invocations() {
         let mut languages = Languages::new().unwrap();
         let ast = languages.parse("42", Language::Expression).unwrap();
         assert_eq!(ast["kind"], "number");
-        assert_eq!(ast["value"], 42);
+        assert_eq!(ast["value"].as_f64(), Some(42.0));
         let ast = languages
             .parse("(add 20 22)", Language::Expression)
             .unwrap();
@@ -557,7 +779,7 @@ mod tests {
         assert_eq!(syntax["kind"], "module");
         let declaration = languages.compile(syntax).unwrap();
         assert!(declaration["rules"].is_array());
-        assert_eq!(declaration["rules"][0]["name"], "Main");
+        assert_eq!(declaration["rules"].as_array().unwrap()[0]["name"], "Main");
     }
 
     #[test]

@@ -7,6 +7,7 @@ use gc_arena::{Arena, Collect, DynamicRootSet, Gc, GcWeak, RefLock, Rootable};
 struct Roots<'gc> {
     values: Vec<Value<'gc>>,
     weak_objects: Vec<GcWeak<'gc, RefLock<crate::value::ObjectProperties<'gc>>>>,
+    weak_errors: Vec<GcWeak<'gc, crate::value::RuntimeErrorValue<'gc>>>,
     capture: Option<Gc<'gc, Capture<'gc>>>,
     weak_capture: Option<GcWeak<'gc, Capture<'gc>>>,
     external: DynamicRootSet<'gc>,
@@ -24,10 +25,90 @@ fn arena() -> Arena<Rootable![Roots<'_>]> {
     Arena::new(|mc| Roots {
         values: vec![],
         weak_objects: vec![],
+        weak_errors: vec![],
         capture: None,
         weak_capture: None,
         external: DynamicRootSet::new(mc),
     })
+}
+
+#[test]
+// req:runtime-memory-001 req:runtime-memory-002 req:data-codec-003
+fn codec_native_values_and_error_causes_are_traced_and_reclaimed() {
+    let mut arena = arena();
+    arena.mutate_root(|mc, roots| {
+        let ast = serde_json::json!({
+            "kind":"array",
+            "items":[
+                {"kind":"bigint","token":"123456789n"},
+                {"kind":"tag","tag":"date","value":{"kind":"string","token":"\"1970-01-01T00:00:00Z\""}},
+                {"kind":"tag","tag":"error","value":{
+                    "kind":"object","entries":[
+                        {"key":"name","value":{"kind":"string","token":"\"TypeError\""}},
+                        {"key":"message","value":{"kind":"string","token":"\"failed\""}},
+                        {"key":"cause","value":{"kind":"object","entries":[
+                            {"key":"detail","value":{"kind":"boolean","value":true}}
+                        ]}}
+                    ]
+                }}
+            ]
+        });
+        let document = crate::codec::data::DataDocument::from_ast(
+            ast,
+            crate::codec::data::DataLimits::default(),
+        )
+        .unwrap();
+        let root = document.materialize(mc);
+        let Value::Array(items) = root else {
+            panic!("expected array")
+        };
+        let items = items.borrow();
+        let Value::Error(error_value) = items[2] else {
+            panic!("expected Error")
+        };
+        let Value::Object(object) = error_value.cause.expect("error cause") else {
+            panic!("expected cause object")
+        };
+        roots.weak_errors.push(Gc::downgrade(error_value));
+        roots.weak_objects.push(Gc::downgrade(object));
+        roots.values.push(root);
+    });
+    arena.finish_cycle();
+    arena.mutate(|mc, roots| {
+        let Value::Array(items) = roots.values[0] else {
+            panic!("expected array")
+        };
+        let items = items.borrow();
+        let Value::BigInt(bigint) = items[0] else {
+            panic!("expected BigInt")
+        };
+        assert_eq!(bigint.0, num_bigint::BigInt::from(123456789));
+        let Value::Date(date) = items[1] else {
+            panic!("expected Date")
+        };
+        assert_eq!(date.0, time::OffsetDateTime::UNIX_EPOCH);
+        let Value::Error(error) = items[2] else {
+            panic!("expected Error")
+        };
+        let Value::Object(cause) = error.cause.expect("retained cause") else {
+            panic!("expected cause object")
+        };
+        assert!(
+            cause
+                .borrow()
+                .get("detail")
+                .unwrap()
+                .strict_eq(Value::Boolean(true))
+        );
+        assert!(roots.weak_errors[0].upgrade(mc).is_some());
+        assert!(roots.weak_objects[0].upgrade(mc).is_some());
+    });
+    arena.mutate_root(|_, roots| roots.values.clear());
+    arena.finish_cycle();
+    arena.mutate(|mc, roots| {
+        assert!(roots.weak_errors[0].upgrade(mc).is_none());
+        assert!(roots.weak_objects[0].upgrade(mc).is_none());
+    });
 }
 
 fn object(value: Value<'_>) -> Object<'_> {

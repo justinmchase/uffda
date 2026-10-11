@@ -8,6 +8,7 @@ use crate::pattern::{
 use crate::program::{Key, Node, Program};
 use crate::provenance::{Origin, concatenate};
 use crate::value::{Closure, HostCallable, Value};
+use crate::{json::JsonValue, text::RuntimeString};
 use gc_arena::{Arena, Collect, DynamicRoot, DynamicRootSet, Gc, Mutation, Rootable};
 use std::fmt;
 use std::future::Future;
@@ -30,6 +31,58 @@ impl RootedValue {
     }
 }
 
+impl<'gc> ExpressionExecution<'gc> {
+    fn input_source(&self) -> Option<crate::runtime::input::InputSource<'gc>> {
+        match self.frames.last() {
+            Some(Frame::Pull(iterator)) => match &*iterator.borrow() {
+                IterableState::External { source, .. } if source.pending() => Some(*source),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+
+    pub fn input_pending(&self) -> bool {
+        self.input_source().is_some()
+            || matches!(self.frames.last(), Some(Frame::Parameters { execution, .. }) if execution.input_pending())
+    }
+
+    pub fn take_input_request(
+        &mut self,
+        mc: &Mutation<'gc>,
+    ) -> Option<crate::runtime::input::InputRequest> {
+        if let Some(source) = self.input_source() {
+            return source.take_request(mc, self.external);
+        }
+        self.pattern_execution()?.take_input_request(mc)
+    }
+
+    pub fn complete_input(
+        &mut self,
+        mc: &Mutation<'gc>,
+        request: &crate::runtime::input::InputRequest,
+        completion: Result<crate::runtime::input::InputCompletion, String>,
+    ) -> Result<(), EvaluationError> {
+        if let Some(error) = &self.error {
+            return Err(error.clone());
+        }
+        let outcome = if let Some(source) = self.input_source() {
+            source.complete(mc, self.external, request, completion)
+        } else {
+            self.pattern_execution()
+                .ok_or(EvaluationError::StaleInputRequest)?
+                .complete_input(mc, request, completion)
+                .map_err(EvaluationError::Pattern)
+        };
+        if let Err(error) = &outcome
+            && !is_stale_request(error)
+        {
+            self.fail(error.clone());
+        }
+        outcome
+    }
+}
+
 /// Owned request arguments are roots, never borrowed arena values.
 #[derive(Clone, Debug)]
 pub struct HostRequest {
@@ -47,6 +100,23 @@ pub enum HostCompletion {
         roots: Vec<RootedValue>,
         build: Box<HostMaterializer>,
     },
+}
+
+impl HostCompletion {
+    pub(crate) fn materialize_in<'gc>(
+        self,
+        mc: &Mutation<'gc>,
+        external: DynamicRootSet<'gc>,
+    ) -> Result<Value<'gc>, EvaluationError> {
+        match self {
+            Self::Rooted(root) => root.fetch(external),
+            Self::Materialize { roots, build } => {
+                let values: Result<Vec<_>, _> =
+                    roots.iter().map(|root| root.fetch(external)).collect();
+                values.and_then(|values| build(mc, &values).map_err(EvaluationError::Host))
+            }
+        }
+    }
 }
 
 impl HostCompletion {
@@ -92,7 +162,7 @@ pub enum EvaluationError {
     UnknownReference(String),
     NotIterable,
     InvalidPropertyKey,
-    NullishMember(String),
+    NullishMember(RuntimeString),
     UnsupportedMember,
     ForeignRoot,
     InvalidState,
@@ -104,7 +174,9 @@ pub enum EvaluationError {
     Host(String),
     HostPending,
     StaleHostRequest,
+    StaleInputRequest,
     Cancelled,
+    Input(String),
 }
 
 impl fmt::Display for EvaluationError {
@@ -114,7 +186,7 @@ impl fmt::Display for EvaluationError {
             Self::NotIterable => write!(f, "array spread value is not iterable"),
             Self::InvalidPropertyKey => write!(f, "object computed key must be a string or number"),
             Self::NullishMember(name) => {
-                write!(f, "cannot read property {name} of null or undefined")
+                write!(f, "cannot read property {name:?} of null or undefined")
             }
             Self::UnsupportedMember => write!(f, "member access for this value is not implemented"),
             Self::ForeignRoot => write!(f, "value belongs to another runtime"),
@@ -129,7 +201,11 @@ impl fmt::Display for EvaluationError {
             Self::StaleHostRequest => {
                 write!(f, "host request is stale or belongs to another execution")
             }
+            Self::StaleInputRequest => {
+                write!(f, "input request is stale or belongs to another execution")
+            }
             Self::Cancelled => write!(f, "expression evaluation cancelled"),
+            Self::Input(message) => write!(f, "input delivery failed: {message}"),
         }
     }
 }
@@ -138,7 +214,7 @@ impl std::error::Error for EvaluationError {}
 
 pub(crate) fn is_stale_request(error: &EvaluationError) -> bool {
     match error {
-        EvaluationError::StaleHostRequest => true,
+        EvaluationError::StaleHostRequest | EvaluationError::StaleInputRequest => true,
         EvaluationError::Pattern(PatternError::Expression(error)) => is_stale_request(error),
         _ => false,
     }
@@ -369,7 +445,7 @@ impl<'gc> ExpressionExecution<'gc> {
             Frame::JsonFinish,
             Frame::JsonValue {
                 value: value.unwrap_deep(mc),
-                key: String::new(),
+                key: RuntimeString::default(),
                 path: Gc::new(mc, JsonPath::default()),
                 hook: true,
             },
@@ -444,7 +520,7 @@ impl<'gc> ExpressionExecution<'gc> {
         if let Some(error) = &self.error {
             return Err(error.clone());
         }
-        if self.host_pending() {
+        if self.host_pending() || self.input_pending() {
             return Ok(false);
         }
         let outcome = match self.frames.pop() {
@@ -489,7 +565,7 @@ impl<'gc> ExpressionExecution<'gc> {
     pub fn step_status(&mut self, mc: &Mutation<'gc>) -> Result<StepStatus, EvaluationError> {
         if self.step(mc)? {
             Ok(StepStatus::Complete)
-        } else if self.host_pending() || self.take_request().is_some() {
+        } else if self.host_pending() || self.input_pending() || self.take_request().is_some() {
             Ok(StepStatus::Suspended)
         } else {
             Ok(StepStatus::Yielded)
@@ -670,10 +746,10 @@ impl<'gc> ExpressionExecution<'gc> {
 #[collect(no_drop)]
 enum Frame<'gc> {
     Evaluate(usize),
-    Literal(#[collect(require_static)] serde_json::Value),
+    Literal(#[collect(require_static)] JsonValue),
     Array(Vec<bool>),
     Object(#[collect(require_static)] Vec<ObjectKey>),
-    Member(String),
+    Member(RuntimeString),
     String(usize),
     ToString {
         value: Value<'gc>,
@@ -699,12 +775,12 @@ enum Frame<'gc> {
     },
     JsonValue {
         value: Value<'gc>,
-        key: String,
+        key: RuntimeString,
         path: Gc<'gc, JsonPath>,
         hook: bool,
     },
     JsonHook {
-        key: String,
+        key: RuntimeString,
         path: Gc<'gc, JsonPath>,
     },
     JsonLeave {
@@ -712,7 +788,7 @@ enum Frame<'gc> {
         container: Value<'gc>,
     },
     JsonArray(usize),
-    JsonObject(Vec<String>),
+    JsonObject(Vec<RuntimeString>),
     JsonFinish,
     Not,
     Invoke(Vec<bool>),
@@ -763,7 +839,7 @@ enum Frame<'gc> {
         acc: Value<'gc>,
     },
     Parameters {
-        execution: PatternExecution<'gc>,
+        execution: Box<PatternExecution<'gc>>,
         closure: Gc<'gc, Closure<'gc>>,
         subject: Option<Value<'gc>>,
     },
@@ -779,7 +855,7 @@ enum Frame<'gc> {
 }
 
 enum ObjectKey {
-    Named(String),
+    Named(RuntimeString),
     Computed,
     Spread,
 }
@@ -805,19 +881,90 @@ pub trait HostExecution {
     fn host_cancel(&mut self);
     fn host_invalid_state(&self) -> Self::Error;
     fn host_unavailable(&self) -> Self::Error;
+
+    fn external_request(&mut self) -> Option<ExternalRequest> {
+        self.host_request().map(ExternalRequest::Host)
+    }
+    fn external_complete(
+        &mut self,
+        request: &ExternalRequest,
+        completion: ExternalCompletion,
+    ) -> Result<(), Self::Error> {
+        match (request, completion) {
+            (ExternalRequest::Host(request), ExternalCompletion::Host(completion)) => {
+                self.host_complete(request, completion)
+            }
+            _ => Err(self.host_invalid_state()),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum ExternalRequest {
+    Host(HostRequest),
+    Input(crate::runtime::input::InputRequest),
+}
+
+pub enum ExternalCompletion {
+    Host(Result<HostCompletion, String>),
+    Input(Result<crate::runtime::input::InputCompletion, String>),
+}
+
+pub trait DriverProtocol<E: HostExecution> {
+    type Request: Clone;
+    type Completion;
+    fn request(execution: &mut E) -> Option<Self::Request>;
+    fn complete(
+        execution: &mut E,
+        request: &Self::Request,
+        completion: Self::Completion,
+    ) -> Result<(), E::Error>;
+}
+
+pub struct HostProtocol;
+pub struct ExternalProtocol;
+impl<E: HostExecution> DriverProtocol<E> for HostProtocol {
+    type Request = HostRequest;
+    type Completion = Result<HostCompletion, String>;
+    fn request(execution: &mut E) -> Option<Self::Request> {
+        execution.host_request()
+    }
+    fn complete(
+        execution: &mut E,
+        request: &Self::Request,
+        completion: Self::Completion,
+    ) -> Result<(), E::Error> {
+        execution.host_complete(request, completion)
+    }
+}
+impl<E: HostExecution> DriverProtocol<E> for ExternalProtocol {
+    type Request = ExternalRequest;
+    type Completion = ExternalCompletion;
+    fn request(execution: &mut E) -> Option<Self::Request> {
+        execution.external_request()
+    }
+    fn complete(
+        execution: &mut E,
+        request: &Self::Request,
+        completion: Self::Completion,
+    ) -> Result<(), E::Error> {
+        execution.external_complete(request, completion)
+    }
 }
 
 pub type EvaluationDriver<'a, H, F> = HostDriver<'a, Evaluation, H, F>;
+pub type ExternalDriver<'a, E, H, F> = HostDriver<'a, E, H, F, ExternalProtocol>;
 
-pub struct HostDriver<'a, E: HostExecution, H, F> {
+pub struct HostDriver<'a, E: HostExecution, H, F, P: DriverProtocol<E> = HostProtocol> {
     evaluation: &'a mut E,
     host: Box<H>,
     future: Option<Pin<Box<F>>>,
-    request: Option<HostRequest>,
+    request: Option<P::Request>,
+    protocol: std::marker::PhantomData<fn() -> P>,
     finished: bool,
 }
 
-impl<'a, E: HostExecution, H, F> HostDriver<'a, E, H, F> {
+impl<'a, E: HostExecution, H, F, P: DriverProtocol<E>> HostDriver<'a, E, H, F, P> {
     pub fn new(evaluation: &'a mut E, host: H) -> Self {
         Self {
             evaluation,
@@ -825,15 +972,18 @@ impl<'a, E: HostExecution, H, F> HostDriver<'a, E, H, F> {
             future: None,
             request: None,
             finished: false,
+            protocol: std::marker::PhantomData,
         }
     }
 }
 
-impl<E, H, F> Future for HostDriver<'_, E, H, F>
+impl<E, H, F, P> Future for HostDriver<'_, E, H, F, P>
 where
     E: HostExecution,
-    H: FnMut(&mut E, HostRequest) -> F,
-    F: Future<Output = Result<HostCompletion, String>>,
+    P: DriverProtocol<E>,
+    P::Request: Unpin,
+    H: FnMut(&mut E, P::Request) -> F,
+    F: Future<Output = P::Completion>,
 {
     type Output = Result<E::Output, E::Error>;
 
@@ -851,7 +1001,8 @@ where
                 };
                 driver.future = None;
                 let request = driver.request.take().expect("future owns a request");
-                if let Err(error) = driver.evaluation.host_complete(&request, completion) {
+                if let Err(error) = P::complete(driver.evaluation, &request, completion) {
+                    driver.evaluation.host_cancel();
                     driver.finished = true;
                     return Poll::Ready(Err(error));
                 }
@@ -863,9 +1014,11 @@ where
                 }
                 Ok(StepStatus::Yielded) => {}
                 Ok(StepStatus::Suspended) => {
-                    let Some(request) = driver.evaluation.host_request() else {
+                    let Some(request) = P::request(driver.evaluation) else {
+                        let error = driver.evaluation.host_unavailable();
+                        driver.evaluation.host_cancel();
                         driver.finished = true;
-                        return Poll::Ready(Err(driver.evaluation.host_unavailable()));
+                        return Poll::Ready(Err(error));
                     };
                     driver.future =
                         Some(Box::pin((driver.host)(driver.evaluation, request.clone())));
@@ -882,7 +1035,7 @@ where
     }
 }
 
-impl<E: HostExecution, H, F> Drop for HostDriver<'_, E, H, F> {
+impl<E: HostExecution, H, F, P: DriverProtocol<E>> Drop for HostDriver<'_, E, H, F, P> {
     fn drop(&mut self) {
         if !self.finished {
             self.evaluation.host_cancel();
@@ -918,9 +1071,62 @@ impl HostExecution for Evaluation {
     fn host_unavailable(&self) -> Self::Error {
         EvaluationError::HostPending
     }
+    fn external_request(&mut self) -> Option<ExternalRequest> {
+        self.take_input_request()
+            .map(ExternalRequest::Input)
+            .or_else(|| self.take_host_request().map(ExternalRequest::Host))
+    }
+    fn external_complete(
+        &mut self,
+        request: &ExternalRequest,
+        completion: ExternalCompletion,
+    ) -> Result<(), Self::Error> {
+        match (request, completion) {
+            (ExternalRequest::Host(request), ExternalCompletion::Host(completion)) => {
+                self.complete_host(request, completion)
+            }
+            (ExternalRequest::Input(request), ExternalCompletion::Input(completion)) => {
+                self.complete_input(request, completion)
+            }
+            _ => Err(EvaluationError::InvalidState),
+        }
+    }
 }
 
 impl Evaluation {
+    pub fn drive_external<H, F>(&mut self, host: H) -> ExternalDriver<'_, Self, H, F>
+    where
+        H: FnMut(&mut Self, ExternalRequest) -> F,
+        F: Future<Output = ExternalCompletion>,
+    {
+        HostDriver::new(self, host)
+    }
+
+    pub fn take_input_request(&mut self) -> Option<crate::runtime::input::InputRequest> {
+        self.arena
+            .mutate_root(|mc, state| state.take_input_request(mc))
+    }
+
+    pub fn complete_input(
+        &mut self,
+        request: &crate::runtime::input::InputRequest,
+        completion: Result<crate::runtime::input::InputCompletion, String>,
+    ) -> Result<(), EvaluationError> {
+        if let Some(error) = &self.error {
+            return Err(error.clone());
+        }
+        let outcome = self
+            .arena
+            .mutate_root(|mc, state| state.complete_input(mc, request, completion));
+        if let Err(error) = &outcome
+            && !is_stale_request(error)
+        {
+            self.error = Some(error.clone());
+        }
+        self.arena.collect_debt();
+        outcome
+    }
+
     pub fn new(expression: Expression) -> Self {
         Self::with_environment(expression, |mc| Environment::new(mc, None, vec![]))
     }
@@ -947,13 +1153,7 @@ impl Evaluation {
         H: FnMut(&mut Evaluation, HostRequest) -> F,
         F: Future<Output = Result<HostCompletion, String>>,
     {
-        EvaluationDriver {
-            evaluation: self,
-            host: Box::new(host),
-            future: None,
-            request: None,
-            finished: false,
-        }
+        HostDriver::new(self, host)
     }
 
     pub fn take_host_request(&mut self) -> Option<HostRequest> {
@@ -1058,7 +1258,7 @@ impl Evaluation {
         let outcome: Result<StepStatus, EvaluationError> =
             self.arena
                 .mutate_root(|mc, state| match state.step_status(mc)? {
-                    StepStatus::Suspended if !state.host_pending() => {
+                    StepStatus::Suspended if !state.host_pending() && !state.input_pending() => {
                         let error = unserviceable_request(state.take_request());
                         state.fail(error.clone());
                         Err(error)
@@ -1126,7 +1326,7 @@ impl Evaluation {
                 Frame::JsonFinish,
                 Frame::JsonValue {
                     value: value.unwrap_deep(mc),
-                    key: String::new(),
+                    key: RuntimeString::default(),
                     path: Gc::new(mc, JsonPath::default()),
                     hook: true,
                 },
@@ -1262,25 +1462,28 @@ fn execute<'gc>(
             }
         },
         Frame::Literal(value) => match value {
-            serde_json::Value::Null => state.values.push(Value::Null),
-            serde_json::Value::Bool(value) => state.values.push(Value::Boolean(value)),
-            serde_json::Value::Number(value) => state.values.push(Value::Number(
+            JsonValue::Null => state.values.push(Value::Null),
+            JsonValue::Bool(value) => state.values.push(Value::Boolean(value)),
+            JsonValue::Number(value) => state.values.push(Value::Number(
                 value.as_f64().ok_or(EvaluationError::InvalidState)?,
             )),
-            serde_json::Value::String(value) => state.values.push(Value::string(mc, value)),
-            serde_json::Value::Array(values) => {
+            JsonValue::String(value) => state.values.push(Value::string(mc, value)),
+            JsonValue::Array(values) => {
                 state.frames.push(Frame::Array(vec![false; values.len()]));
                 state
                     .frames
                     .extend(values.into_iter().rev().map(Frame::Literal));
             }
-            serde_json::Value::Object(values) => {
+            JsonValue::Object(values) => {
                 state.frames.push(Frame::Object(
-                    values.keys().cloned().map(ObjectKey::Named).collect(),
+                    values
+                        .iter()
+                        .map(|(k, _)| ObjectKey::Named(k.clone()))
+                        .collect(),
                 ));
                 state
                     .frames
-                    .extend(values.into_values().rev().map(Frame::Literal));
+                    .extend(values.into_iter().map(|(_, v)| v).rev().map(Frame::Literal));
             }
         },
         Frame::Array(spreads) => {
@@ -1318,7 +1521,7 @@ fn execute<'gc>(
                                 symbols.push(((*name).clone(), item.unwrap_deep(mc)))
                             }
                             Value::String(name) => result.push(((*name).clone(), item)),
-                            Value::Number(name) => result.push((number_text(name), item)),
+                            Value::Number(name) => result.push((number_text(name).into(), item)),
                             _ => return Err(EvaluationError::InvalidPropertyKey),
                         }
                     }
@@ -1347,11 +1550,11 @@ fn execute<'gc>(
                                     },
                                 ));
                             }
-                            Value::Array(values) => {
-                                result.extend(values.borrow().iter().enumerate().map(
-                                    |(i, item)| (i.to_string(), value.carry_item(mc, *item, i)),
-                                ))
-                            }
+                            Value::Array(values) => result.extend(
+                                values.borrow().iter().enumerate().map(|(i, item)| {
+                                    (i.to_string().into(), value.carry_item(mc, *item, i))
+                                }),
+                            ),
                             // Current object spreading ignores non-object primitives.
                             _ => {}
                         }
@@ -1368,6 +1571,7 @@ fn execute<'gc>(
         }
         Frame::Member(name) => {
             let value = state.values.pop().ok_or(EvaluationError::InvalidState)?;
+            let scalar_name = name.to_utf8().ok();
             if name == "toString"
                 && !matches!(
                     value.raw(),
@@ -1396,7 +1600,7 @@ fn execute<'gc>(
                 Value::Native(_)
                 | Value::Host(_)
                 | Value::Lambda(_)
-                | Value::IteratorFactory(_) => match name.as_str() {
+                | Value::IteratorFactory(_) => match scalar_name.as_deref().unwrap_or("") {
                     "call" | "apply" | "bind" | "toString" | "constructor" | "prototype" => {
                         return Err(EvaluationError::UnsupportedMember);
                     }
@@ -1410,11 +1614,11 @@ fn execute<'gc>(
                     .borrow()
                     .get(&name)
                     .unwrap_or(Value::Undefined),
-                Value::Url(url) => match name.as_str() {
+                Value::Url(url) => match scalar_name.as_deref().unwrap_or("") {
                     "href" => Value::string(mc, url.0.as_str()),
                     _ => return Err(EvaluationError::UnsupportedMember),
                 },
-                Value::Match(matched) => match name.as_str() {
+                Value::Match(matched) => match scalar_name.as_deref().unwrap_or("") {
                     "kind" => Value::string(
                         mc,
                         match matched.kind {
@@ -1447,29 +1651,18 @@ fn execute<'gc>(
                         .get(index)
                         .copied()
                         .unwrap_or(Value::Undefined),
-                    None => match name.as_str() {
+                    None => match scalar_name.as_deref().unwrap_or("") {
                         "constructor" | "toString" | "valueOf" | "map" | "filter" | "reduce"
                         | "slice" | "join" | "at" | "push" | "pop" | "entries" | "keys"
                         | "values" => return Err(EvaluationError::UnsupportedMember),
                         _ => Value::Undefined,
                     },
                 },
-                Value::String(text) if name == "length" => {
-                    Value::Number(text.encode_utf16().count() as f64)
-                }
+                Value::String(text) if name == "length" => Value::Number(text.len() as f64),
                 Value::String(text) => {
-                    match array_index(&name).and_then(|index| text.encode_utf16().nth(index)) {
-                        Some(unit) => Value::string(
-                            mc,
-                            char::from_u32(unit as u32)
-                                .ok_or_else(|| {
-                                    EvaluationError::Native(
-                                        "lone UTF-16 surrogate values are not supported".into(),
-                                    )
-                                })?
-                                .to_string(),
-                        ),
-                        None => match name.as_str() {
+                    match array_index(&name).and_then(|index| text.as_utf16().get(index).copied()) {
+                        Some(unit) => Value::string(mc, RuntimeString::from_utf16(vec![unit])),
+                        None => match scalar_name.as_deref().unwrap_or("") {
                             "constructor" | "toString" | "valueOf" | "slice" | "substring"
                             | "charAt" | "charCodeAt" | "at" | "includes" | "split" | "replace"
                             | "match" | "trim" => return Err(EvaluationError::UnsupportedMember),
@@ -1485,12 +1678,14 @@ fn execute<'gc>(
                     .and_then(|i| bytes.get(i))
                     .map(|byte| Value::Number(*byte as f64))
                     .unwrap_or(Value::Undefined),
-                Value::Boolean(_) | Value::Number(_) | Value::Symbol(_) => match name.as_str() {
-                    "toString" | "valueOf" | "constructor" | "toLocaleString" => {
-                        return Err(EvaluationError::UnsupportedMember);
+                Value::Boolean(_) | Value::Number(_) | Value::Symbol(_) => {
+                    match scalar_name.as_deref().unwrap_or("") {
+                        "toString" | "valueOf" | "constructor" | "toLocaleString" => {
+                            return Err(EvaluationError::UnsupportedMember);
+                        }
+                        _ => Value::Undefined,
                     }
-                    _ => Value::Undefined,
-                },
+                }
                 Value::Null | Value::Undefined => return Err(EvaluationError::NullishMember(name)),
                 _ => return Err(EvaluationError::UnsupportedMember),
             };
@@ -1658,7 +1853,7 @@ fn execute<'gc>(
                             .extend(items.iter().enumerate().rev().map(|(i, value)| {
                                 Frame::JsonValue {
                                     value: *value,
-                                    key: i.to_string(),
+                                    key: i.to_string().into(),
                                     path,
                                     hook: true,
                                 }
@@ -1738,14 +1933,14 @@ fn execute<'gc>(
         }
         Frame::CallSubject(callee, args, subject) => match callee.raw() {
             Value::Lambda(closure) => state.frames.push(Frame::Parameters {
-                execution: PatternExecution::compiled_with_recovery(
+                execution: Box::new(PatternExecution::compiled_with_recovery(
                     mc,
                     closure.pattern.clone(),
                     args,
                     closure.environment,
                     closure.origin.start,
                     state.recovery,
-                ),
+                )),
                 closure,
                 subject: Some(subject),
             }),
@@ -1764,14 +1959,14 @@ fn execute<'gc>(
                 .values
                 .push(Value::Iterable(globals::iterator(mc, *source)?)),
             Value::Lambda(closure) => state.frames.push(Frame::Parameters {
-                execution: PatternExecution::compiled_with_recovery(
+                execution: Box::new(PatternExecution::compiled_with_recovery(
                     mc,
                     closure.pattern.clone(),
                     args,
                     closure.environment,
                     closure.origin.start,
                     state.recovery,
-                ),
+                )),
                 closure,
                 subject: closure.subject,
             }),
@@ -1829,7 +2024,7 @@ fn execute<'gc>(
                 state.frames.push(Frame::JsonFinish);
                 state.frames.push(Frame::JsonValue {
                     value,
-                    key: String::new(),
+                    key: RuntimeString::default(),
                     path: Gc::new(mc, JsonPath::default()),
                     hook: true,
                 });
@@ -1928,6 +2123,17 @@ fn execute<'gc>(
         Frame::Pull(iterator) => {
             let mut inner = iterator.borrow_mut(mc);
             match &mut *inner {
+                IterableState::External { source, index } => {
+                    if !source.require(mc, *index)? {
+                        state.frames.push(Frame::Pull(iterator));
+                    } else {
+                        let item = source.prefix().get(*index).copied();
+                        if item.is_some() {
+                            *index += 1;
+                        }
+                        state.items.push(item);
+                    }
+                }
                 IterableState::Deferred { value } => {
                     let source = globals::iterator(mc, *value)?;
                     *inner = IterableState::Delegate { source };
@@ -1971,9 +2177,13 @@ fn execute<'gc>(
                     offset,
                 } => {
                     let item = if let Value::String(text) = value.raw() {
-                        text[*offset..].chars().next().map(|c| {
-                            *offset += c.len_utf8();
-                            value.carry_item(mc, Value::string(mc, c.to_string()), *index)
+                        text.code_point_at(*offset).map(|point| {
+                            *offset += point.len();
+                            value.carry_item(
+                                mc,
+                                Value::string(mc, RuntimeString::from_utf16(point.to_vec())),
+                                *index,
+                            )
                         })
                     } else {
                         globals::source_item(mc, *value, *index)
@@ -2201,9 +2411,9 @@ fn take_values<'gc>(
     Ok(values.split_off(start))
 }
 
-fn array_index(name: &str) -> Option<usize> {
-    let index = name.parse::<u32>().ok()?;
-    (index != u32::MAX && index.to_string() == name).then_some(index as usize)
+fn array_index(name: &RuntimeString) -> Option<usize> {
+    let index = name.to_utf8().ok()?.parse::<u32>().ok()?;
+    (index != u32::MAX && *name == index.to_string()).then_some(index as usize)
 }
 
 #[cfg(test)]

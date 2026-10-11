@@ -1,7 +1,8 @@
 # Uffda data codec
 
-This chapter specifies the data codec's byte-stream framing layer. It does not
-define the value grammar, value construction, native-value tags, or encoding.
+This chapter specifies the data codec's byte-stream framing layer.
+[V1 values](data-codec/values.spec.md) defines value syntax, fixed native tags,
+identity policy and encoding contracts.
 
 ## Conventions
 
@@ -120,12 +121,6 @@ pretending to implement or validate the still-separate value grammar.
 
 ## Open questions
 
-The following parts of codec v1 remain unspecified by this framing chapter and
-MUST be settled before claiming a complete codec:
-
-- The data value grammar, including exact scalar, array, record, key, and
-  separator syntax.
-- Supported value types, exact native tags, escaping semantics beyond lexical
-  quote detection, numeric representation, and value/identity round trips.
-- Encoding, including compact and pretty output.
-- Value parser diagnostics and reconstruction of native values.
+Artifact adoption and binary encoding remain deferred. Complete codec acceptance
+requires authored value parsing, native reconstruction, encoding and their
+integration tests; structural framing alone is not a complete codec.

@@ -448,8 +448,8 @@ pub fn run(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> 
         }
     };
     let mut parse_diagnostics = Vec::new();
-    let ast_value: serde_json::Value = if ast {
-        match serde_json::from_str(&source) {
+    let ast_value: crate::json::JsonValue = if ast {
+        match crate::json::from_str(&source) {
             Ok(value) => value,
             Err(error) => return failure("CLI_EXEC_INVALID_JSON", "parse", error),
         }
@@ -570,12 +570,12 @@ pub fn run(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> 
         };
         let diagnostic_source = subject.as_deref().unwrap_or("").to_owned();
         let input = match subject {
-            None => serde_json::Value::Array(vec![]),
-            Some(subject) if subject_json => match serde_json::from_str(&subject) {
+            None => crate::json::JsonValue::Array(vec![]),
+            Some(subject) if subject_json => match crate::json::from_str(&subject) {
                 Ok(input) => input,
                 Err(error) => return failure("CLI_MATCH_INVALID_JSON", "input", error),
             },
-            Some(subject) => serde_json::Value::String(subject),
+            Some(subject) => crate::json::JsonValue::String(subject.into()),
         };
         let mut runtime =
             match Runtime::with_mode(graph, &url, selected.as_deref(), input, input_mode) {
@@ -585,13 +585,16 @@ pub fn run(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> 
         if let Err(error) = runtime.run() {
             return failure("CLI_EXEC_EXECUTION_FAILURE", "execute", error);
         }
-        let mut runtime_diagnostics = diagnostics::collect(
+        let mut runtime_diagnostics = match diagnostics::collect(
             &runtime,
             &diagnostic_source,
             "CLI_EXEC_RECOVERED",
             "CLI_EXEC_EXECUTION_FAILURE",
             "execute",
-        );
+        ) {
+            Ok(diagnostics) => diagnostics,
+            Err(error) => return failure("CLI_EXEC_EXECUTION_FAILURE", "output", error),
+        };
         if let Some(position) = runtime.read(|execution| {
             execution
                 .result()
@@ -651,7 +654,7 @@ pub fn run(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> 
             Err(error) => failure("CLI_EXEC_EXECUTION_FAILURE", "output", error),
         }
     } else if command == "exec" {
-        let expression: Expression = match serde_json::from_value(ast_value) {
+        let expression: Expression = match crate::json::from_value(ast_value) {
             Ok(expression) => expression,
             Err(error) => return failure("CLI_EXEC_UNSUPPORTED_AST", "parse", error),
         };
@@ -681,18 +684,18 @@ pub fn run(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> 
             Err(error) => failure("CLI_EXEC_EXECUTION_FAILURE", "execute", error),
         }
     } else {
-        let pattern: Pattern = match serde_json::from_value(ast_value) {
+        let pattern: Pattern = match crate::json::from_value(ast_value) {
             Ok(pattern) => pattern,
             Err(error) => return failure("CLI_MATCH_UNSUPPORTED_AST", "parse", error),
         };
         let subject = subject.unwrap_or_default();
         let parsed_subject = if subject_json {
-            match serde_json::from_str(&subject) {
+            match crate::json::from_str(&subject) {
                 Ok(value) => value,
                 Err(error) => return failure("CLI_MATCH_INVALID_JSON", "input", error),
             }
         } else {
-            serde_json::Value::String(subject)
+            crate::json::JsonValue::String(subject.into())
         };
         match_ast(
             pattern,
@@ -865,12 +868,15 @@ fn source_excerpt(source: &str, offset: usize) -> String {
 
 fn match_ast(
     pattern: Pattern,
-    subject: serde_json::Value,
+    subject: crate::json::JsonValue,
     scalar: bool,
     json_output: bool,
     source: Option<&str>,
 ) -> CliResult {
-    let subject_text = subject.as_str().unwrap_or("").to_owned();
+    let subject_text = match &subject {
+        crate::json::JsonValue::String(text) => text.clone(),
+        _ => crate::text::RuntimeString::default(),
+    };
     let mode = if scalar {
         InputMode::Scalar
     } else {
@@ -895,13 +901,16 @@ fn match_ast(
             matched.current().is_none(),
         ))
     });
-    let diagnostics = diagnostics::collect(
+    let diagnostics = match diagnostics::collect(
         &runtime,
         &subject_text,
         "CLI_MATCH_RECOVERED",
         "CLI_MATCH_FAILURE",
         "match",
-    );
+    ) {
+        Ok(diagnostics) => diagnostics,
+        Err(error) => return failure("CLI_MATCH_FAILURE", "output", error),
+    };
     let mut payloads = Vec::new();
     let mut human = String::new();
     for diagnostic in &diagnostics {
@@ -996,6 +1005,45 @@ fn match_ast(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    // req:runtime-strings-002
+    fn ast_and_source_commands_preserve_surrogates_or_report_scalar_output_errors() {
+        let result = run(&["exec".into(), "--ast".into(), "--json".into()], || {
+            Ok(r#"{"kind":"value","value":{"\ud800":"\udfff"}}"#.into())
+        });
+        assert_eq!(result.exit_code, 0, "{}", result.stderr);
+        assert!(result.stdout.contains(r#""\ud800": "\udfff""#));
+        let result = run(
+            &[
+                "exec".into(),
+                "--json".into(),
+                "-e".into(),
+                "(at \"😀\" 0)".into(),
+            ],
+            || Ok(String::new()),
+        );
+        assert_eq!(result.exit_code, 0, "{}", result.stderr);
+        assert_eq!(result.stdout, "\"\\ud83d\"\n");
+        let result = run(
+            &["exec".into(), "-e".into(), "(at \"😀\" 0)".into()],
+            || Ok(String::new()),
+        );
+        assert_ne!(result.exit_code, 0);
+        assert!(result.stdout.is_empty());
+        let result = run(
+            &[
+                "match".into(),
+                "--ast".into(),
+                "--json".into(),
+                "--input-json".into(),
+                r#""\ud800""#.into(),
+            ],
+            || Ok(r#"{"kind":"any"}"#.into()),
+        );
+        assert_eq!(result.exit_code, 0, "{}", result.stderr);
+        assert_eq!(result.stdout, "\"\\ud800\"\n");
+    }
 
     fn execute(args: &[&str]) -> CliResult {
         run(

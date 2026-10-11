@@ -14,6 +14,7 @@ Related contracts:
 
 - [Lossless strings](./runtime/strings.spec.md)
 - [Host execution](./runtime/host-execution.spec.md)
+- [Asynchronous input](./runtime/async-input.spec.md)
 
 Each runtime subtopic should define:
 

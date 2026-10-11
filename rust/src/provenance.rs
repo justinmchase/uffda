@@ -68,7 +68,7 @@ impl<'gc> Value<'gc> {
         let Self::String(text) = value.raw else {
             return None;
         };
-        if index >= text.chars().count() {
+        if index >= text.code_points().count() {
             return None;
         }
         let mut offset = index;
@@ -101,7 +101,7 @@ impl<'gc> Value<'gc> {
         }
         match self {
             Self::String(text) => {
-                let length = text.chars().count();
+                let length = text.code_points().count();
                 let origin = Origin {
                     start: 0,
                     end: length,
@@ -133,41 +133,40 @@ pub fn concatenate<'gc>(
     values: &[Value<'gc>],
     origin: Origin,
 ) -> Result<Value<'gc>, crate::coercion::StringCoercionError> {
-    let mut text = String::new();
-    let mut chars: Vec<CharRun> = Vec::new();
+    let mut units = Vec::new();
+    let mut origins = Vec::new();
     for value in values {
         let part = crate::coercion::string_text(*value)?;
-        let length = part.chars().count();
-        if length == 0 {
-            continue;
+        for (index, point) in part.code_points().enumerate() {
+            let point_origin = value
+                .char_origin(index)
+                .or_else(|| value.origin())
+                .unwrap_or(origin);
+            units.extend_from_slice(point);
+            origins.extend(std::iter::repeat_n(point_origin, point.len()));
         }
-        let runs = match value {
-            Value::Located(value)
-                if matches!(value.raw, Value::String(_)) && !value.chars.is_empty() =>
-            {
-                value.chars.clone()
-            }
-            _ => vec![CharRun {
-                length,
-                origin: value.origin().unwrap_or(origin),
+    }
+    let text = crate::text::RuntimeString::from_utf16(units);
+    let mut chars: Vec<CharRun> = Vec::new();
+    let mut offset = 0;
+    for point in text.code_points() {
+        let mut origin = origins[offset];
+        if point.len() == 2 {
+            origin.start = origin.start.min(origins[offset + 1].start);
+            origin.end = origin.end.max(origins[offset + 1].end);
+        }
+        offset += point.len();
+        if let Some(last) = chars.last_mut()
+            && last.origin == origin
+        {
+            last.length += 1;
+        } else {
+            chars.push(CharRun {
+                length: 1,
+                origin,
                 linear: false,
-            }],
-        };
-        for run in runs {
-            if let Some(last) = chars.last_mut()
-                && last.linear == run.linear
-                && ((!last.linear && last.origin == run.origin)
-                    || (last.linear && last.origin.end == run.origin.start))
-            {
-                last.length += run.length;
-                if last.linear {
-                    last.origin.end = run.origin.end;
-                }
-                continue;
-            }
-            chars.push(run);
+            });
         }
-        text.push_str(&part);
     }
     Ok(Value::Located(Gc::new(
         mc,
@@ -182,6 +181,30 @@ pub fn concatenate<'gc>(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    // req:runtime-strings-002
+    fn split_pairs_keep_origins_and_new_pairs_cover_both_segments() {
+        gc_arena::arena::rootless_mutate(|mc| {
+            let high = Value::string(mc, crate::text::RuntimeString::from_utf16(vec![0xd800]))
+                .wrap(mc, Origin { start: 2, end: 3 });
+            let low = Value::string(mc, crate::text::RuntimeString::from_utf16(vec![0xdc00]))
+                .wrap(mc, Origin { start: 5, end: 7 });
+            let joined = concatenate(
+                mc,
+                &[high, low, Value::string(mc, "x")],
+                Origin { start: 2, end: 7 },
+            )
+            .unwrap();
+            assert_eq!(joined.char_origin(0), Some(Origin { start: 2, end: 7 }));
+            assert_eq!(joined.char_origin(1), Some(Origin { start: 2, end: 7 }));
+            assert_eq!(joined.char_origin(2), None);
+            let Value::String(text) = joined.raw() else {
+                panic!()
+            };
+            assert_eq!(text.code_points().count(), 2);
+        });
+    }
 
     #[test]
     // req:into-001 req:runtime-memory-001

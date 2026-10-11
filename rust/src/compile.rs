@@ -1,9 +1,9 @@
+use crate::json::JsonValue as Value;
 use crate::languages::{Language, Languages};
 use crate::resolver::graph::unfurl_specifier;
 use crate::resolver::{decode_declaration, normalize_path};
 use crate::source_paths::{expand, stable_path};
 use serde::Serialize;
-use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
 use std::path::Path;
@@ -296,7 +296,7 @@ pub fn compile(request: CompileRequest<'_>, languages: &mut Languages) -> Compil
                 continue;
             };
             match unfurl_specifier(request.imports, specifier) {
-                Ok(full) => import["moduleUrl"] = Value::String(full),
+                Ok(full) => import["moduleUrl"] = Value::String(full.into()),
                 Err(error) => {
                     diagnostics.push(failure(
                         "CLI_COMPILE_UNDECLARED_MODULE_NAME",
@@ -434,7 +434,7 @@ mod tests {
         let module: Value =
             serde_json::from_str(&std::fs::read_to_string(&output).unwrap()).unwrap();
         assert!(module.get("kind").is_none());
-        assert_eq!(module["rules"][0]["name"], "Main");
+        assert_eq!(module["rules"].as_array().unwrap()[0]["name"], "Main");
         let result = compile(request(), &mut languages);
         assert!(!result.ok);
         assert_eq!(result.failures[0].code, "CLI_COMPILE_OUTPUT_EXISTS");

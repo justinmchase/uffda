@@ -147,3 +147,80 @@ fn public_future_driver_completes_after_an_actual_pending_host_future() {
         "[1,2,3]"
     );
 }
+
+#[test]
+// req:runtime-core-014
+fn public_input_driver_is_lazy_and_suspends_before_delivering_a_composite() {
+    use uffda_runtime::evaluate::{ExternalCompletion, ExternalRequest};
+    use uffda_runtime::runtime::Runtime;
+    use uffda_runtime::runtime::input::{InputCompletion, Source};
+    let mut runtime = Runtime::pattern_from_source(
+        serde_json::from_str(r#"{"kind":"any"}"#).unwrap(),
+        Source {
+            id: 41,
+            name: "records".into(),
+        },
+    );
+    let requests = Arc::new(AtomicUsize::new(0));
+    let observed = requests.clone();
+    let wakes = Arc::new(WakeCounter(AtomicUsize::new(0)));
+    let waker = Waker::from(wakes.clone());
+    let mut context = Context::from_waker(&waker);
+    let mut driver = Box::pin(runtime.drive_external(move |runtime, request| {
+        let ExternalRequest::Input(request) = request else {
+            panic!("no host calls");
+        };
+        assert_eq!(request.source.id, 41);
+        assert_eq!(request.position, 0, "no read-ahead or EOF probe is needed");
+        observed.fetch_add(1, Ordering::SeqCst);
+        runtime.collect_all();
+        async move {
+            let mut pending = true;
+            poll_fn(move |context| {
+                if pending {
+                    pending = false;
+                    context.waker().wake_by_ref();
+                    Poll::Pending
+                } else {
+                    Poll::Ready(ExternalCompletion::Input(Ok(InputCompletion::Item(
+                        HostCompletion::materialize(vec![], |mc, _| {
+                            Ok(Value::object(
+                                mc,
+                                vec![("answer".into(), Value::Number(42.0))],
+                            ))
+                        }),
+                    ))))
+                }
+            })
+            .await
+        }
+    }));
+    assert_eq!(requests.load(Ordering::SeqCst), 0);
+    let mut complete = false;
+    for _ in 0..1_000 {
+        if let Poll::Ready(result) = driver.as_mut().poll(&mut context) {
+            result.unwrap();
+            complete = true;
+            break;
+        }
+    }
+    assert!(complete);
+    drop(driver);
+    assert_eq!(requests.load(Ordering::SeqCst), 1);
+    assert!(wakes.0.load(Ordering::SeqCst) > 0);
+    runtime.collect_all();
+    runtime.read(|execution| {
+        let result = execution.result().unwrap();
+        assert_eq!(result.end, 1);
+        let Value::Object(object) = result.value.raw() else {
+            panic!("expected rich value");
+        };
+        assert!(
+            object
+                .borrow()
+                .get("answer")
+                .unwrap()
+                .strict_eq(Value::Number(42.0))
+        );
+    });
+}

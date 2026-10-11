@@ -2,6 +2,24 @@ use super::*;
 use crate::resolver::{Resolver, decode_declaration};
 use serde_json::{Value as Json, json};
 
+#[test]
+// req:runtime-strings-002
+fn persistent_runtime_input_normalization_preserves_pairs_and_isolated_units() {
+    let input: crate::json::JsonValue = crate::json::from_str(r#""\ud800x😀\udfff""#).unwrap();
+    let pattern = Pattern::Quantifier {
+        pattern: Box::new(Pattern::Any),
+        min: None,
+        max: None,
+    };
+    let mut runtime = Runtime::for_pattern(pattern, input, InputMode::Iterable).unwrap();
+    runtime.run().unwrap();
+    runtime.collect_all();
+    assert_eq!(
+        runtime.serialize_result().unwrap().unwrap(),
+        r#"["\ud800","x","😀","\udfff"]"#
+    );
+}
+
 fn graph(rules: Json, entry: &str) -> (Rc<CompiledModuleGraph>, Url) {
     module_graph(json!({
         "imports": [],
@@ -46,6 +64,605 @@ fn host() -> HostCallable {
         name: "host".into(),
         arity: 1,
     }
+}
+
+fn source(id: u64) -> input::Source {
+    input::Source {
+        id,
+        name: format!("source-{id}"),
+    }
+}
+
+struct DelayedExternal {
+    pending: bool,
+    completion: Option<crate::evaluate::ExternalCompletion>,
+}
+
+impl Future for DelayedExternal {
+    type Output = crate::evaluate::ExternalCompletion;
+    fn poll(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        if self.pending {
+            self.pending = false;
+            cx.waker().wake_by_ref();
+            std::task::Poll::Pending
+        } else {
+            std::task::Poll::Ready(self.completion.take().unwrap())
+        }
+    }
+}
+
+fn item_number(value: f64) -> input::InputCompletion {
+    input::InputCompletion::Item(HostCompletion::materialize(vec![], move |_, _| {
+        Ok(Value::Number(value))
+    }))
+}
+
+#[test]
+// req:runtime-core-014 req:rules-001
+fn asynchronous_rule_quantifier_preserves_values_across_many_prefix_tree_boundaries() {
+    let (graph, url) = graph(
+        json!([rule(
+            "Main",
+            json!({"kind":"quantifier","pattern":{"kind":"any"}})
+        )]),
+        "Main",
+    );
+    let mut runtime = Runtime::from_source(graph, &url, None, source(19), vec![]).unwrap();
+    let mut count = 0;
+    drive_bounded(runtime.drive_external(|runtime, request| {
+        let crate::evaluate::ExternalRequest::Input(request) = request else {
+            panic!("expected input");
+        };
+        assert_eq!(request.position, count);
+        count += 1;
+        if request.position % 32 == 0 {
+            runtime.collect_all();
+        }
+        DelayedExternal {
+            pending: true,
+            completion: Some(crate::evaluate::ExternalCompletion::Input(Ok(
+                if request.position < 257 {
+                    item_number(request.position as f64)
+                } else {
+                    input::InputCompletion::Eof
+                },
+            ))),
+        }
+    }))
+    .unwrap();
+    assert_eq!(count, 258);
+    runtime.collect_all();
+    runtime.read(|execution| {
+        let result = execution.result().unwrap();
+        assert_eq!(result.kind, MatchKind::Ok);
+        assert_eq!(result.end, 257);
+        let mut pending = vec![result];
+        let mut items = 0;
+        while let Some(child) = pending.pop() {
+            if child.children.is_empty()
+                && child.kind == MatchKind::Ok
+                && child.pattern_kind == crate::pattern::PatternKind::Any
+            {
+                assert!(
+                    child
+                        .current()
+                        .unwrap()
+                        .raw()
+                        .strict_eq(Value::Number(items as f64))
+                );
+                assert_eq!(child.start, items);
+                assert_eq!(child.end, items + 1);
+                items += 1;
+            }
+            pending.extend(child.children.iter().rev().copied());
+        }
+        assert_eq!(items, 257);
+    });
+}
+
+#[test]
+// req:runtime-core-014
+fn input_future_remains_pending_without_self_wakes_until_producer_signals() {
+    struct Waiting {
+        signal: std::sync::Arc<std::sync::Mutex<(bool, Option<std::task::Waker>)>>,
+    }
+    impl Future for Waiting {
+        type Output = crate::evaluate::ExternalCompletion;
+        fn poll(
+            self: std::pin::Pin<&mut Self>,
+            cx: &mut std::task::Context<'_>,
+        ) -> std::task::Poll<Self::Output> {
+            let mut signal = self.signal.lock().unwrap();
+            if !signal.0 {
+                signal.1 = Some(cx.waker().clone());
+                std::task::Poll::Pending
+            } else {
+                std::task::Poll::Ready(crate::evaluate::ExternalCompletion::Input(Ok(item_number(
+                    42.0,
+                ))))
+            }
+        }
+    }
+    let signal = std::sync::Arc::new(std::sync::Mutex::new((false, None)));
+    let mut runtime = Runtime::pattern_from_source(Pattern::Any, source(1));
+    let wakes = std::sync::Arc::new(HostWake::default());
+    let waker = std::task::Waker::from(wakes.clone());
+    let mut cx = std::task::Context::from_waker(&waker);
+    let mut driver = Box::pin(runtime.drive_external(|runtime, _| {
+        runtime.collect_all();
+        Waiting {
+            signal: signal.clone(),
+        }
+    }));
+    assert!(driver.as_mut().poll(&mut cx).is_pending());
+    assert!(driver.as_mut().poll(&mut cx).is_pending());
+    assert_eq!(wakes.0.load(std::sync::atomic::Ordering::SeqCst), 0);
+    let producer = signal.clone();
+    std::thread::spawn(move || {
+        let mut signal = producer.lock().unwrap();
+        signal.0 = true;
+        signal.1.take().unwrap().wake();
+    })
+    .join()
+    .unwrap();
+    assert_eq!(wakes.0.load(std::sync::atomic::Ordering::SeqCst), 1);
+    assert!(matches!(
+        driver.as_mut().poll(&mut cx),
+        std::task::Poll::Ready(Ok(()))
+    ));
+    drop(driver);
+    runtime.collect_all();
+    assert_eq!(runtime.read(|execution| execution.result().unwrap().end), 1);
+}
+
+#[test]
+// req:runtime-core-014
+fn input_wrong_owner_stale_and_foreign_items_are_explicit_without_invalidating_prefix() {
+    let make = || Runtime::pattern_from_source(Pattern::Any, source(1));
+    let mut left = make();
+    let mut right = make();
+    let take = |runtime: &mut Runtime| {
+        for _ in 0..100 {
+            if runtime.step_status().unwrap() == StepStatus::Suspended {
+                return runtime.take_input_request().unwrap();
+            }
+        }
+        panic!("no input suspension")
+    };
+    let a = take(&mut left);
+    let b = take(&mut right);
+    let error = left
+        .complete_input(&b, Ok(input::InputCompletion::Eof))
+        .unwrap_err();
+    assert!(runtime_stale_request(&error));
+    assert_eq!(left.step_status().unwrap(), StepStatus::Suspended);
+    left.complete_input(&a, Ok(item_number(1.0))).unwrap();
+    left.run().unwrap();
+    assert!(runtime_stale_request(
+        &left
+            .complete_input(&a, Ok(input::InputCompletion::Eof))
+            .unwrap_err()
+    ));
+    let mut foreign = crate::evaluate::Evaluation::new(Expression::Number { value: 3.0 });
+    let root = foreign.finish().unwrap();
+    let error = right
+        .complete_input(
+            &b,
+            Ok(input::InputCompletion::Item(HostCompletion::Rooted(root))),
+        )
+        .unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("value belongs to another runtime")
+    );
+    assert_eq!(right.step_status().unwrap_err(), error);
+}
+
+#[test]
+// req:runtime-core-014 req:runtime-core-013
+fn pipeline_streams_external_source_through_native_map_and_suspended_callback() {
+    let (graph, url) = graph(
+        json!([rule(
+            "Main",
+            json!({"kind":"pipeline","steps":[
+                {"kind":"projection","pattern":{"kind":"any"},"expression":{
+                    "kind":"invocation","expression":{"kind":"reference","name":"map"},
+                    "args":[{"kind":"reference","name":"_"},{"kind":"reference","name":"host"}]}},
+                {"kind":"into","pattern":{"kind":"quantifier","pattern":{"kind":"any"}}}
+            ]})
+        )]),
+        "Main",
+    );
+    let mut runtime = Runtime::from_source(graph, &url, None, source(1), vec![host()]).unwrap();
+    let mut order = vec![];
+    drive_bounded(runtime.drive_external(|runtime, request| {
+        runtime.collect_all();
+        let completion = match request {
+            crate::evaluate::ExternalRequest::Input(request) => {
+                order.push(format!("input:{}:{}", request.source.id, request.position));
+                let item = match (request.source.id, request.position) {
+                    (1, 0) => input::InputCompletion::Item(HostCompletion::materialize(
+                        vec![],
+                        |mc, _| Ok(Value::InputSource(input::InputSource::new(mc, source(2)))),
+                    )),
+                    (2, 0) => item_number(1.0),
+                    (2, 1) => item_number(2.0),
+                    (2, 2) => input::InputCompletion::Eof,
+                    _ => panic!("unexpected read ahead"),
+                };
+                crate::evaluate::ExternalCompletion::Input(Ok(item))
+            }
+            crate::evaluate::ExternalRequest::Host(request) => {
+                order.push("host".into());
+                crate::evaluate::ExternalCompletion::Host(Ok(HostCompletion::Rooted(
+                    request.arguments[0].clone(),
+                )))
+            }
+        };
+        DelayedExternal {
+            pending: true,
+            completion: Some(completion),
+        }
+    }))
+    .unwrap();
+    assert_eq!(
+        order,
+        [
+            "input:1:0",
+            "input:2:0",
+            "host",
+            "input:2:1",
+            "host",
+            "input:2:2"
+        ]
+    );
+    runtime.read(|execution| assert_eq!(execution.result().unwrap().kind, MatchKind::Ok));
+}
+
+#[test]
+// req:runtime-core-014
+fn async_source_requests_one_item_only_when_consumed_and_distinguishes_eof() {
+    for eof_sensitive in [false, true] {
+        let pattern = if eof_sensitive {
+            Pattern::Then {
+                patterns: vec![Pattern::Any, Pattern::End],
+            }
+        } else {
+            Pattern::Any
+        };
+        let mut runtime = Runtime::pattern_from_source(pattern, source(1));
+        let mut positions = vec![];
+        drive_bounded(runtime.drive_external(|runtime, request| {
+            let crate::evaluate::ExternalRequest::Input(request) = request else {
+                panic!("not input")
+            };
+            positions.push(request.position);
+            runtime.collect_all();
+            assert_eq!(runtime.step_status().unwrap(), StepStatus::Suspended);
+            assert!(runtime.take_input_request().is_none());
+            assert!(runtime.take_host_request().is_none());
+            DelayedExternal {
+                pending: true,
+                completion: Some(crate::evaluate::ExternalCompletion::Input(Ok(
+                    if request.position == 0 {
+                        item_number(42.0)
+                    } else {
+                        input::InputCompletion::Eof
+                    },
+                ))),
+            }
+        }))
+        .unwrap();
+        assert_eq!(positions, if eof_sensitive { vec![0, 1] } else { vec![0] });
+        runtime.collect_all();
+        runtime.read(|execution| {
+            let result = execution.result().unwrap();
+            assert_eq!(result.kind, MatchKind::Ok);
+            assert_eq!(result.end, 1);
+            assert_eq!(
+                result.origin,
+                crate::provenance::Origin { start: 0, end: 1 }
+            );
+        });
+    }
+}
+
+#[test]
+// req:runtime-core-014 req:rules-001
+fn async_source_backtracking_and_rule_memos_reuse_cached_prefix_with_stable_identity() {
+    let (graph, url) = graph(
+        json!([
+            rule(
+                "Main",
+                json!({"kind":"or","patterns":[
+                    {"kind":"then","patterns":[reference("A"),equal(json!(9))]},
+                    {"kind":"then","patterns":[reference("A"),equal(json!(2)),{"kind":"end"}]}
+                ]})
+            ),
+            rule("A", equal(json!(1))),
+        ]),
+        "Main",
+    );
+    let mut runtime = Runtime::from_source(graph, &url, None, source(5), vec![]).unwrap();
+    let mut positions = vec![];
+    let mut domains = vec![];
+    drive_bounded(runtime.drive_external(|runtime, request| {
+        let crate::evaluate::ExternalRequest::Input(request) = request else {
+            panic!("not input")
+        };
+        positions.push(request.position);
+        runtime.collect_all();
+        domains.extend(runtime.read(|execution| {
+            execution
+                .memos
+                .iter()
+                .map(|memo| memo.input.position(0).domain)
+                .collect::<Vec<_>>()
+        }));
+        DelayedExternal {
+            pending: true,
+            completion: Some(crate::evaluate::ExternalCompletion::Input(Ok(
+                match request.position {
+                    0 => item_number(1.0),
+                    1 => item_number(2.0),
+                    2 => input::InputCompletion::Eof,
+                    _ => panic!("read ahead"),
+                },
+            ))),
+        }
+    }))
+    .unwrap();
+    assert_eq!(positions, [0, 1, 2]);
+    assert!(domains.iter().all(|domain| *domain == domains[0]));
+    runtime.read(|execution| {
+        assert!(execution.memo_hits() > 0);
+        assert_eq!(execution.result().unwrap().kind, MatchKind::Ok);
+        assert_eq!(execution.result().unwrap().end, 2);
+    });
+}
+
+#[test]
+// req:runtime-core-014 req:direct-left-recursion-001
+fn async_source_left_recursive_growth_never_memoizes_unknown_availability_as_eof() {
+    let (graph, url) = graph(
+        json!([
+            rule(
+                "Main",
+                json!({"kind":"then","patterns":[reference("A"),{"kind":"end"}]})
+            ),
+            rule(
+                "A",
+                json!({"kind":"or","patterns":[
+                    {"kind":"then","patterns":[reference("A"),equal(json!(1))]}, equal(json!(1))
+                ]})
+            ),
+        ]),
+        "Main",
+    );
+    let mut runtime = Runtime::from_source(graph, &url, None, source(7), vec![]).unwrap();
+    let mut requests = vec![];
+    drive_bounded(runtime.drive_external(|runtime, request| {
+        let crate::evaluate::ExternalRequest::Input(request) = request else {
+            panic!("not input")
+        };
+        requests.push(request.position);
+        runtime.collect_all();
+        DelayedExternal {
+            pending: true,
+            completion: Some(crate::evaluate::ExternalCompletion::Input(Ok(
+                if request.position < 2 {
+                    item_number(1.0)
+                } else {
+                    input::InputCompletion::Eof
+                },
+            ))),
+        }
+    }))
+    .unwrap();
+    assert_eq!(requests, [0, 1, 2]);
+    runtime.read(|execution| {
+        assert_eq!(execution.result().unwrap().kind, MatchKind::Ok);
+        assert_eq!(execution.result().unwrap().end, 2);
+        assert!(
+            !execution
+                .memos
+                .iter()
+                .any(|memo| matches!(memo.state, MemoState::Pending | MemoState::Growing(_)))
+        );
+    });
+}
+
+#[test]
+// req:runtime-core-014 req:runtime-core-013
+fn async_input_and_host_invocation_share_one_driver_and_rooted_composite_values() {
+    let (graph, url) = graph(
+        json!([rule(
+            "Main",
+            json!({
+                "kind":"projection","pattern":{"kind":"any"},
+                "expression":host_call(json!({"kind":"reference","name":"_"}))
+            })
+        )]),
+        "Main",
+    );
+    let mut runtime = Runtime::from_source(graph, &url, None, source(3), vec![host()]).unwrap();
+    let mut order = vec![];
+    let mut retained = None;
+    drive_bounded(runtime.drive_external(|runtime, request| {
+        runtime.collect_all();
+        let completion = match request {
+            crate::evaluate::ExternalRequest::Input(request) => {
+                assert_eq!(request.position, 0);
+                order.push("input");
+                crate::evaluate::ExternalCompletion::Input(Ok(input::InputCompletion::Item(
+                    HostCompletion::materialize(vec![], |mc, _| {
+                        Ok(Value::map(
+                            mc,
+                            vec![(
+                                Value::string(mc, "key"),
+                                Value::set(mc, vec![Value::Number(7.0)]),
+                            )],
+                        ))
+                    }),
+                )))
+            }
+            crate::evaluate::ExternalRequest::Host(request) => {
+                order.push("host");
+                assert_eq!(
+                    runtime
+                        .read_rooted(&request.arguments[0], |value| value.runtime_type())
+                        .unwrap(),
+                    crate::value::RuntimeType::Map
+                );
+                retained = Some(request.arguments[0].clone());
+                crate::evaluate::ExternalCompletion::Host(Ok(HostCompletion::Rooted(
+                    request.arguments[0].clone(),
+                )))
+            }
+        };
+        DelayedExternal {
+            pending: true,
+            completion: Some(completion),
+        }
+    }))
+    .unwrap();
+    assert_eq!(order, ["input", "host"]);
+    runtime.collect_all();
+    assert_eq!(
+        runtime
+            .read_rooted(&retained.unwrap(), |v| v.runtime_type())
+            .unwrap(),
+        crate::value::RuntimeType::Map
+    );
+}
+
+#[test]
+// req:runtime-core-014
+fn streamed_nested_into_waits_for_its_own_source_and_preserves_positions() {
+    let pattern = Pattern::Then {
+        patterns: vec![
+            Pattern::Into {
+                pattern: Box::new(Pattern::Quantifier {
+                    pattern: Box::new(Pattern::Any),
+                    min: None,
+                    max: None,
+                }),
+            },
+            Pattern::End,
+        ],
+    };
+    let mut runtime = Runtime::pattern_from_source(pattern, source(1));
+    let mut requests = vec![];
+    drive_bounded(runtime.drive_external(|runtime, request| {
+        let crate::evaluate::ExternalRequest::Input(request) = request else {
+            panic!("not input")
+        };
+        requests.push((request.source.id, request.position));
+        runtime.collect_all();
+        let item = match (request.source.id, request.position) {
+            (1, 0) => input::InputCompletion::Item(HostCompletion::materialize(vec![], |mc, _| {
+                Ok(Value::InputSource(input::InputSource::new(mc, source(2))))
+            })),
+            (2, 0) => item_number(10.0),
+            (2, 1) => item_number(20.0),
+            (2, 2) | (1, 1) => input::InputCompletion::Eof,
+            _ => panic!("unexpected prefetch"),
+        };
+        DelayedExternal {
+            pending: true,
+            completion: Some(crate::evaluate::ExternalCompletion::Input(Ok(item))),
+        }
+    }))
+    .unwrap();
+    assert_eq!(requests, [(1, 0), (2, 0), (2, 1), (2, 2), (1, 1)]);
+    runtime.collect_all();
+    runtime.read(|execution| {
+        let result = execution.result().unwrap();
+        assert_eq!(result.kind, MatchKind::Ok);
+        assert_eq!(result.end, 1);
+    });
+}
+
+#[test]
+// req:runtime-core-014
+fn async_source_empty_eof_error_and_cancel_are_distinct_and_sticky() {
+    let mut empty = Runtime::pattern_from_source(Pattern::End, source(1));
+    drive_bounded(empty.drive_external(|_, _| DelayedExternal {
+        pending: true,
+        completion: Some(crate::evaluate::ExternalCompletion::Input(Ok(
+            input::InputCompletion::Eof,
+        ))),
+    }))
+    .unwrap();
+    assert_eq!(
+        empty.read(|execution| execution.result().unwrap().kind),
+        MatchKind::Ok
+    );
+    let mut failing = Runtime::pattern_from_source(Pattern::Any, source(2));
+    let error = drive_bounded(failing.drive_external(|_, _| DelayedExternal {
+        pending: true,
+        completion: Some(crate::evaluate::ExternalCompletion::Input(Err(
+            "source failed".into(),
+        ))),
+    }))
+    .unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("input delivery failed: source failed")
+    );
+    failing.collect_all();
+    assert_eq!(failing.step_status().unwrap_err(), error);
+    failing.read(|execution| assert!(execution.frames.is_empty()));
+    let mut cancelled = Runtime::pattern_from_source(Pattern::Any, source(3));
+    let guard = Rc::new(());
+    let weak = Rc::downgrade(&guard);
+    let mut driver = Box::pin(cancelled.drive_external(move |_, request| {
+        let guard = guard.clone();
+        async move {
+            let _keep = (guard, request);
+            std::future::pending::<crate::evaluate::ExternalCompletion>().await
+        }
+    }));
+    let waker = std::task::Waker::from(std::sync::Arc::new(HostWake::default()));
+    assert!(
+        driver
+            .as_mut()
+            .poll(&mut std::task::Context::from_waker(&waker))
+            .is_pending()
+    );
+    drop(driver);
+    assert!(weak.upgrade().is_none());
+    assert_eq!(
+        cancelled.step_status().unwrap_err(),
+        RuntimeError::Expression(EvaluationError::Cancelled)
+    );
+    cancelled.read(|execution| {
+        assert!(execution.frames.is_empty());
+        assert!(execution.entry.source.is_none());
+    });
+}
+
+#[test]
+// req:runtime-core-014
+fn wrong_external_completion_discriminator_cancels_instead_of_leaking_pending_frames() {
+    let mut runtime = Runtime::pattern_from_source(Pattern::Any, source(1));
+    let error = drive_bounded(runtime.drive_external(|_, _| {
+        std::future::ready(crate::evaluate::ExternalCompletion::Host(Err(
+            "wrong kind".into()
+        )))
+    }))
+    .unwrap_err();
+    assert_eq!(error, RuntimeError::InvalidState);
+    runtime.read(|execution| assert!(execution.frames.is_empty()));
+    assert_eq!(
+        runtime.step_status().unwrap_err(),
+        RuntimeError::Expression(EvaluationError::Cancelled)
+    );
 }
 
 fn host_call(argument: Json) -> Json {
@@ -1483,7 +2100,7 @@ fn explain_test_rule(declaration: &DeclarationMetadata<'_>) -> Option<String> {
     let Value::String(text) = metadata.borrow().get("Why")?.raw() else {
         return None;
     };
-    Some((*text).clone())
+    Some(text.to_utf8().expect("scalar explanation"))
 }
 
 fn explained_graph(rules: Json) -> (Rc<CompiledModuleGraph>, Url) {
@@ -1699,7 +2316,7 @@ fn published_grammar_diagnostics_use_the_real_documentation_error() {
         let Value::String(error) = documentation.borrow().get("error")?.raw() else {
             return None;
         };
-        Some((*error).clone())
+        Some(error.to_utf8().expect("scalar documentation"))
     });
     assert!(!diagnostics.is_empty());
     assert!(

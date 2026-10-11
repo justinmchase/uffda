@@ -235,35 +235,36 @@ expressions remain the preferred mechanism for domain-specific conversions.
 
 #### 8.1. Data model, syntax and authority
 
-- [ ] Write focused codec specifications and requirement-cited acceptance cases
+- [x] Write focused codec specifications and requirement-cited acceptance cases
       before implementation, following the repository's specs method.
-- [ ] Define exact supported types and round-trip guarantees, distinguishing
+- [x] Define exact supported types and round-trip guarantees, distinguishing
       value equality from identity preservation.
-- [ ] Define comma-free arrays and records; settle identifier grammar, token
+- [x] Define comma-free arrays and records; settle identifier grammar, token
       boundaries and separators explicitly rather than borrowing expression
       syntax implicitly.
-- [ ] Support bare identifier keys and quoted literal string keys with identical
+- [x] Support bare identifier keys and quoted literal string keys with identical
       string-key semantics; quoted keys have no interpolation. Reject duplicate
       record keys.
-- [ ] Define lossless Unicode/string escaping, fractional and integral numbers,
+- [x] Define lossless Unicode/string escaping, fractional and integral numbers,
       BigInt, negative zero, NaN and infinities.
-- [ ] Define explicit native tags for bytes, dates/instants, symbols and
+- [x] Define explicit native tags for bytes, dates/instants, symbols and
       structured errors; decide map/set inclusion and exact tag spelling before
       implementation.
-- [ ] Specify date precision/timezone semantics, well-known/global/local symbol
+- [x] Specify date precision/timezone semantics, well-known/global/local symbol
       identity, error fields/causes and reconstruction without arbitrary
       exception classes. A symbol description alone must not be treated as
       identity.
-- [ ] Define explicit failures for unsupported values and unknown/invalid tags.
+- [x] Define explicit failures for unsupported values and unknown/invalid tags.
       Never omit values, invent placeholders, expose implementation source or
       silently stringify native values.
-- [ ] Keep v1 free of functions, executable constructors, arbitrary classes and
+- [x] Keep v1 free of functions, executable constructors, arbitrary classes and
       cyclic graphs. Decide shared-reference/local-symbol handling explicitly;
       reject cases whose required identity cannot be preserved.
-- [ ] Make decoding a fixed, validated data operation, not callable lookup,
+- [x] Make decoding a fixed, validated data operation, not callable lookup,
       imports or arbitrary expression evaluation.
 
-Illustrative only; neither this syntax nor these tags are implemented today:
+Approved v1 syntax, now parsed by the authored data grammar and reconstructed by
+the Rust owned-data boundary:
 
 ```uff
 {
@@ -287,27 +288,30 @@ source records incrementally, preserving byte spans across arbitrary chunk
 boundaries, comments and multiline containers. `push_some` supports consumer
 backpressure; record/depth limits, cancellation/reset, poisoned error state and
 offset-overflow diagnostics are covered by 11 passing integrated tests. This is
-structural framing only, not a data-value decoder or complete codec; the
-authored value grammar and native construction/encoding remain pending.
+structural framing. `codec::data::DataDecoder` now composes it with the authored
+grammar and owned native construction, stopping after one record per call.
+Collector-backed materialization is available explicitly inside the caller's
+arena mutation; CLI selection remains pending.
 
-- [ ] Define newline-framed top-level records within the same codec
+- [x] Define newline-framed top-level records within the same codec
       specification, not a second JSONL-like language.
-- [ ] Permit multiline containers; newlines inside containers are whitespace.
+- [x] Permit multiline containers; newlines inside containers are whitespace.
       Outside containers/strings, require a newline between top-level records;
       EOF may terminate the final complete record.
-- [ ] Define blank lines, `#` comment-only lines and trailing line comments.
+- [x] Define blank lines, `#` comment-only lines and trailing line comments.
       Comments do not erase record-boundary newlines; `#` inside strings is
       text.
-- [ ] Provide compact one-physical-line encoding and pretty multiline encoding
+- [x] Provide compact one-physical-line encoding and pretty multiline encoding
       of the same values. Escape string newlines in compact output.
-- [ ] Incrementally decode arbitrary byte chunks, including boundaries inside
+- [x] Incrementally decode arbitrary byte chunks, including boundaries inside
       UTF-8 characters, escapes, tags and comments.
-- [ ] Emit completed records without retaining prior records; integrate consumer
-      backpressure and cancellation with rooted runtime values.
-- [ ] Define truncated-record/EOF behavior, record/source locations, explicit
+- [x] Emit one owned record per `push_some` call with caller-controlled
+      backpressure; cancellation/reset discard decoder state. Materialization
+      occurs explicitly inside the caller's collector mutation.
+- [x] Define truncated-record/EOF behavior, record/source locations, explicit
       size/nesting limits and failure behavior. Do not silently resynchronize
       past malformed data.
-- [ ] Test mixed scalar/container records, empty streams, comments, final
+- [x] Test mixed scalar/container records, empty streams, comments, final
       records without newline and malformed records.
 
 Gate: chunking cannot change results or errors. Decoder memory scales with the
@@ -315,30 +319,26 @@ current record and bounded consumer backlog, not total stream size.
 
 #### 8.3. Optional metadata decision
 
-- [ ] Decide whether v1 includes an optional leading `@meta{version:1}` header.
-      No header/version syntax is committed by this plan.
-- [ ] If included, define its position before data records, the version when
-      absent, unsupported-version errors and separate metadata delivery.
-- [ ] Do not add a `multi` flag: structural nesting already determines whether a
+- [x] V1 has no metadata header. Unknown tags, including `@meta`, fail.
+- [x] Do not add a `multi` flag: structural nesting already determines whether a
       newline terminates a record.
-- [ ] Ensure metadata cannot enable imports, executable decoders or
-      constructors.
+- [x] Decoding never enables imports, executable decoders or constructors.
 
 Gate: a reader can interpret an unadorned stream, and any header cannot be
 mistaken for application data or silently alter decoding capabilities.
 
 #### 8.4. Authored grammar and Rust implementation
 
-- [ ] Author the data grammar in `.uff` with documented failures and corpus
+- [x] Author the data grammar in `.uff` with documented failures and corpus
       tests, preserving the published-compiler bootstrap rules.
-- [ ] Define a validated data AST/tag representation and materialize native
+- [x] Define a validated data AST/tag representation and materialize native
       values through a fixed codec boundary; keep genuinely native construction
       in Rust.
-- [ ] Implement compact/pretty encoders and incremental decoder with stack-safe
+- [x] Implement compact/pretty encoders and incremental decoder with stack-safe
       traversal, deterministic output and explicit failures.
-- [ ] Verify GC/root safety across encoding, partial decoding, record delivery,
+- [x] Verify GC/root safety across encoding, partial decoding, record delivery,
       suspension, cancellation and failure.
-- [ ] Test every supported type's round trip, escaping, malformed input, deep
+- [x] Test every supported type's round trip, escaping, malformed input, deep
       nesting, identity policies and native-type reconstruction.
 
 Gate: the actual authored grammar and native runtime work together; generic JSON
@@ -351,7 +351,9 @@ fixtures or host-only prototype code are not sufficient acceptance.
       display from encoded string records.
 - [ ] Choose explicit data input/output APIs and CLI selection without confusing
       codec data, expression source and raw AST input.
-- [ ] Preserve scalar-only implicit interpolation and explicit existing JSON
+- [x] Expose explicit Rust library DataDecoder, materialize and compact/pretty
+      encode APIs without treating them as CLI data modes.
+- [x] Preserve scalar-only implicit interpolation and explicit existing JSON
       compatibility. Do not add universal `.toString` or automatic JSON
       fallback.
 - [ ] Update directly affected specs, requirements, command documentation and
@@ -873,3 +875,173 @@ This is a foundational module, not completion of the string migration.
 still require consistent migration before the compatibility gate can pass. Do
 not use the new module to claim arbitrary AST JSON lone-surrogate ingestion is
 already supported.
+
+Typed JSON string fields and map keys can now deserialize directly into the
+lossless primitive using a validated WTF-8 boundary; all 65,536 individual units
+round-trip through typed serde deserialization as well as the dedicated token
+codec. Invalid byte encodings fail explicitly. This does not change scalar-only
+`serde_json::Value` or complete the runtime/AST migration.
+
+### Immutable declaration loading and compilation
+
+Embedded declarations register unmodified source bytes and decode on first
+normal resolver access. Unused malformed declarations remain deferred; accessing
+one reports the normal decoding error. Replacing registered sources invalidates
+their decoded declarations and linked graph cache.
+
+Overlapping language graphs now share compiled modules only when their source
+declarations are pointer-identical immutable resolver objects. Runtime bindings
+remain graph-specific. Equal-looking but separately allocated declarations are
+recompiled and validated; changed or malformed declarations cannot reuse stale
+programs. Tests verify both rejection and shared callable/rule identity.
+
+The integrated Rust suite at this checkpoint passes 315 library tests, 1
+artifact test, 19 CLI tests and 2 public-host tests; strict Clippy and optimized
+build pass. These counts include intermediate async-input implementation, which
+still requires its dedicated acceptance tests. Final formatting and Deno gates
+will run after the input integration settles.
+
+Seven warm whole-process startup samples after compilation reuse give medians of
+284.2 ms for tiny `exec` and 273.7 ms for tiny `match` on this shared Linux
+host. Deferred decoding alone previously measured 276.2 / 269.6 ms. Neither
+change demonstrates a startup improvement over the recorded baseline; the
+performance acceptance gate remains open.
+
+### Asynchronous input integration
+
+External input now suspends patterns and rule execution on actual unknown
+availability, rather than treating it as EOF or collecting the whole stream. The
+shared external driver distinguishes host invocations and input requests; each
+source has at most one outstanding delivery. Rich runtime values remain rooted
+across suspension and collection. Cached positions preserve backtracking, rule
+memo identity, nested Into traversal and iterator callbacks without repeating
+producer side effects.
+
+Requirement-cited tests cover Pending/wake, lazy consumption, EOF, sticky
+errors, stale/foreign completions, cancellation and collection. A public API
+integration test additionally proves exactly one request for a one-item pattern,
+without read-ahead or an unnecessary EOF probe, and collector-safe composite
+delivery. The existing host-only driver remains compatible.
+
+Memo eviction remains unimplemented: delivered prefixes are retained and copied
+on append. Do not claim bounded retained-memory or scalable append performance
+from this functional async-input acceptance.
+
+Final serialized validation after integration: 327 Rust library tests, 1
+artifact test, 19 CLI process tests and 3 public host/input tests pass. Rust
+formatting, strict all-target Clippy and optimized build pass. Deno formatting,
+grammar formatting and full lint pass; 863 tests / 2357 steps pass with one
+ignored step. The previous published compiler regenerated artifacts after the
+Deno suite, before final Rust validation. No commits, pushes or releases.
+
+### Structurally shared input prefixes
+
+External delivery no longer copies the entire prefix on append. Immutable
+binary-tree snapshots share untouched branches and preserve earlier lengths,
+values and provenance; append and indexed lookup take logarithmic work.
+Synchronous fixed inputs keep their original vector allocation and identity.
+Pattern scopes, requests, match provenance, rule continuations and iterable
+callbacks read the same snapshot interface. Host-created fixed streams convert
+to `InputBuffer` with `.into()`.
+
+Allocation acceptance tests exercise 4097 appends: each allocates at most one
+leaf plus logarithmic branch nodes. With only the latest prefix retained,
+collection leaves at most `2N + usize::BITS` storage nodes. Separate tests prove
+old snapshots stay unchanged and do not retain subsequently appended cyclic
+values once the newer snapshot is dropped. A 257-item asynchronous rule test
+checks every retained leaf's value and span after collection across growth
+boundaries.
+
+The larger input snapshots exposed an oversized expression parameter frame;
+boxing that child continuation avoids inflating every evaluator frame. Existing
+suspended authored-parameter tests explicitly verify the owning frame and
+collector-safe arguments.
+
+This removes quadratic prefix-copy work, not all retention limits. Live sources
+still retain the full delivered prefix; many retained historical matches and
+memo entries can retain additional shared branch versions. Memo eviction and
+whole-runtime bounded-memory acceptance remain open. No wall-clock performance
+improvement is claimed from allocation tests alone.
+
+Final gates for this increment: 332 Rust library tests, 1 artifact test, 19 CLI
+tests and 3 public host/input tests pass; strict Clippy, formatting and
+optimized build pass. Deno: 863 tests / 2357 steps pass with one ignored step,
+full lint, formatting and grammar formatting pass. Published bootstrap
+regenerated artifacts after the Deno suite and before Rust validation.
+
+### Authored native data codec
+
+V1 now has an approved value contract: comma-free containers, JSON escapes,
+fixed date/bytes/registry-symbol/set/map/error tags, no metadata header, and
+explicit rejection of cycles, shared composites and local symbols.
+`src/lang/data/data.lang.uff` parses through the ordinary resolver and published
+compiler bootstrap; it produces safe token-bearing data ASTs, not executable
+expressions. Companion Deno tests cover syntax and focused failure locations.
+
+`rust/src/codec/data.rs` constructs a flat owned native document with exact
+BigInt, millisecond dates, bytes, lossless strings and registry-symbol keys.
+Compact and pretty encoding preserve insertion order and native payloads. The
+bounded writer prevents output growth past the configured byte limit. Incoming
+ASTs are flattened iteratively so successful and failed construction, including
+invalid options and 10,000-level input, do not recursively destroy host JSON.
+Physical container nesting, including map entry pairs, determines depth limits.
+
+`DataDecoder` combines the existing framer, authored grammar and fixed
+construction. Each call returns at most one record with its frame span and
+consumed-byte count; malformed syntax/payloads poison delivery until reset.
+Tests traverse every two-chunk byte split of a mixed UTF-8/native stream, plus
+one-byte compact/pretty round trips, exact byte-limit boundaries, duplicates,
+alias rejection and cancellation.
+
+The collector-backed runtime now has genuine BigInt, Date and Error values.
+`DataDocument::materialize` constructs them inside the arena; iterative
+`DataDocument::from_value` exports supported trees and rejects aliases, cycles,
+symbol keys and execution values. GC tests prove Error causes remain traced and
+the native graph is reclaimed after roots are dropped. Ordinary JSON rejects
+BigInt, serializes Date as UTC RFC3339 and emits an Error without enumerable
+fields as `{}`; codec encoding remains lossless and preserves a valid date's
+offset. These additions do not yet provide a CLI codec selection.
+
+### Lossless runtime integration and combined validation
+
+Lossless UTF-16 is now wired through runtime string values, symbols, property
+keys, expression/pattern ASTs, native string operations, provenance, module
+decoding and JSON/CLI boundaries. Typed structural JSON preserves escaped
+isolated surrogate units; scalar-only host boundaries fail explicitly instead of
+substituting replacement characters. Native operations retain their distinct
+code-unit versus code-point contracts.
+
+DataLang converts its matched AST directly and iteratively into owned JSON
+structure. It no longer serializes and reparses through an unrelated JSON depth
+limit. Actual source parsing accepts the full default 1,024-container boundary
+and rejects the next opening delimiter. Codec tests additionally round-trip
+every individual UTF-16 unit and lossless quoted property keys.
+
+Final serialized gates: 367 Rust library tests, 1 artifact test, 19 CLI process
+tests and 3 public host/input tests pass. Rust formatting, strict all-target
+Clippy and optimized build pass. Deno formatting, grammar formatting and lint
+pass; 867 tests / 2408 steps pass, with one ignored step. The previous published
+compiler regenerated artifacts after Deno validation and before final Rust
+validation. Specification audit reports 0 errors and 87 warnings, including
+Rust-only test citations not discovered by the current audit.
+
+Next codec work is explicit CLI input/output selection, end-to-end command
+acceptance and representative compressed/uncompressed size/throughput/memory
+measurements. Runtime parity, memo eviction, broader performance acceptance and
+six-platform validation remain open. No commits, pushes, tags, releases or
+production cutover.
+
+### Native runtime materialization validation
+
+The codec tree now materializes into first-class GC-backed BigInt, Date and
+Error values and exports back through a stack-safe graph walk. Date/error
+identity, BigInt value equality, date precision, explicit JSON behavior,
+alias/cycle rejection, a 10,000-level runtime graph, exact stream EOF/comment
+cases and Error-cause retention/reclamation have targeted tests.
+
+Final Rust gates for this increment: 375 library tests, 1 embedded-artifact
+test, 19 CLI process tests and 3 public host/input tests pass. Rust formatting,
+strict all-target Clippy and optimized build pass. Rust requirement citation
+audit passes. Existing Deno gates from the immediately preceding integration
+remain 867 tests / 2408 steps, formatting, grammar formatting and lint clean;
+this increment changes no Deno source or `.uff` grammar. No cutover is claimed.

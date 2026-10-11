@@ -192,7 +192,7 @@ enum MemoState<'gc> {
 #[collect(no_drop)]
 struct Memo<'gc> {
     input: InputIdentity<'gc>,
-    stream: Gc<'gc, Vec<Value<'gc>>>,
+    stream: input::InputBuffer<'gc>,
     state: MemoState<'gc>,
     version: usize,
     dependencies: Vec<Dependency>,
@@ -208,6 +208,35 @@ enum Execution<'gc> {
 }
 
 impl<'gc> Execution<'gc> {
+    fn input_pending(&self) -> bool {
+        match self {
+            Self::Pattern(execution) => execution.input_pending(),
+            Self::Expression(execution) => execution.input_pending(),
+            Self::Metadata => false,
+        }
+    }
+
+    fn take_input_request(&mut self, mc: &Mutation<'gc>) -> Option<input::InputRequest> {
+        match self {
+            Self::Pattern(execution) => execution.take_input_request(mc),
+            Self::Expression(execution) => execution.take_input_request(mc),
+            Self::Metadata => None,
+        }
+    }
+
+    fn complete_input(
+        &mut self,
+        mc: &Mutation<'gc>,
+        request: &input::InputRequest,
+        completion: Result<input::InputCompletion, String>,
+    ) -> Result<(), RuntimeError> {
+        match self {
+            Self::Pattern(execution) => Ok(execution.complete_input(mc, request, completion)?),
+            Self::Expression(execution) => Ok(execution.complete_input(mc, request, completion)?),
+            Self::Metadata => Err(RuntimeError::InvalidState),
+        }
+    }
+
     fn set_external(&mut self, external: DynamicRootSet<'gc>) {
         match self {
             Self::Pattern(execution) => execution.set_external(external),
@@ -329,6 +358,7 @@ struct Entry<'gc> {
     context: Gc<'gc, Context>,
     environment: Environment<'gc>,
     input: Vec<Value<'gc>>,
+    source: Option<input::InputSource<'gc>>,
     #[collect(require_static)]
     export: Option<String>,
     target_kind: ResolveTargetKind,
@@ -421,6 +451,7 @@ impl<'gc> RuleExecution<'gc> {
                 context,
                 environment,
                 input,
+                source: None,
                 export: None,
                 target_kind: ResolveTargetKind::Run,
                 pattern: Some(pattern),
@@ -615,6 +646,7 @@ impl<'gc> RuleExecution<'gc> {
                 context,
                 environment,
                 input: retained_input,
+                source: None,
                 export: export.map(str::to_owned),
                 target_kind: ResolveTargetKind::Run,
                 pattern: None,
@@ -696,7 +728,10 @@ impl<'gc> RuleExecution<'gc> {
 
     pub fn serialized_json(&self) -> Result<Option<String>, RuntimeError> {
         match self.serialized.ok_or(RuntimeError::InvalidState)?.raw() {
-            Value::String(text) => Ok(Some((*text).clone())),
+            Value::String(text) => Ok(Some(
+                text.to_utf8()
+                    .map_err(|e| RuntimeError::Module(e.to_string()))?,
+            )),
             Value::Undefined => Ok(None),
             _ => Err(RuntimeError::InvalidState),
         }
@@ -1003,6 +1038,7 @@ impl<'gc> RuleExecution<'gc> {
             self.memos.clear();
             self.memo_keys.clear();
             self.result = None;
+            self.entry.source = None;
         }
     }
 
@@ -1014,6 +1050,39 @@ impl<'gc> RuleExecution<'gc> {
 
     pub fn take_host_request(&mut self, mc: &Mutation<'gc>) -> Option<HostRequest> {
         self.frames.last_mut()?.execution.take_host_request(mc)
+    }
+
+    pub fn input_pending(&self) -> bool {
+        self.frames
+            .last()
+            .is_some_and(|frame| frame.execution.input_pending())
+    }
+
+    pub fn take_input_request(&mut self, mc: &Mutation<'gc>) -> Option<input::InputRequest> {
+        self.frames.last_mut()?.execution.take_input_request(mc)
+    }
+
+    pub fn complete_input(
+        &mut self,
+        mc: &Mutation<'gc>,
+        request: &input::InputRequest,
+        completion: Result<input::InputCompletion, String>,
+    ) -> Result<(), RuntimeError> {
+        if let Some(error) = &self.error {
+            return Err(error.clone());
+        }
+        let outcome = match self.frames.last_mut() {
+            Some(frame) if frame.execution.input_pending() => {
+                frame.execution.complete_input(mc, request, completion)
+            }
+            _ => Err(EvaluationError::StaleInputRequest.into()),
+        };
+        if let Err(error) = &outcome
+            && !runtime_stale_request(error)
+        {
+            self.fail(error.clone());
+        }
+        outcome
     }
 
     pub fn fetch_rooted(&self, root: &RootedValue) -> Result<Value<'gc>, EvaluationError> {
@@ -1046,7 +1115,7 @@ impl<'gc> RuleExecution<'gc> {
     pub fn step_status(&mut self, mc: &Mutation<'gc>) -> Result<StepStatus, RuntimeError> {
         if self.step(mc)? {
             Ok(StepStatus::Complete)
-        } else if self.host_pending() {
+        } else if self.host_pending() || self.input_pending() {
             Ok(StepStatus::Suspended)
         } else {
             Ok(StepStatus::Yielded)
@@ -1054,7 +1123,7 @@ impl<'gc> RuleExecution<'gc> {
     }
 
     fn advance(&mut self, mc: &Mutation<'gc>) -> Result<bool, RuntimeError> {
-        if self.host_pending() {
+        if self.host_pending() || self.input_pending() {
             return Ok(false);
         }
         if self.frames.len() == 1 && self.initialization.is_some() {
@@ -1699,7 +1768,9 @@ impl<'gc> RuleExecution<'gc> {
                 let Value::Object(metadata) = record.metadata else {
                     return Err(RuntimeError::InvalidState);
                 };
-                metadata.borrow_mut(mc).set(attribute.name.clone(), value);
+                metadata
+                    .borrow_mut(mc)
+                    .set(attribute.name.clone().into(), value);
                 record.attributes.borrow_mut(mc).push(ResolvedAttribute {
                     decorator: initialization
                         .decorator
@@ -1772,6 +1843,14 @@ impl<'gc> RuleExecution<'gc> {
                     invocation: None,
                     completion: Completion::Root,
                 });
+                if let Some(source) = self.entry.source
+                    && let Some(Frame {
+                        execution: Execution::Pattern(pattern),
+                        ..
+                    }) = self.frames.last_mut()
+                {
+                    pattern.set_source(source);
+                }
                 return Ok(());
             }
             self.result = Some(outcome);
@@ -2185,14 +2264,112 @@ impl HostExecution for Runtime {
     fn host_unavailable(&self) -> Self::Error {
         EvaluationError::HostPending.into()
     }
+
+    fn external_request(&mut self) -> Option<crate::evaluate::ExternalRequest> {
+        self.take_input_request()
+            .map(crate::evaluate::ExternalRequest::Input)
+            .or_else(|| {
+                self.take_host_request()
+                    .map(crate::evaluate::ExternalRequest::Host)
+            })
+    }
+
+    fn external_complete(
+        &mut self,
+        request: &crate::evaluate::ExternalRequest,
+        completion: crate::evaluate::ExternalCompletion,
+    ) -> Result<(), Self::Error> {
+        match (request, completion) {
+            (
+                crate::evaluate::ExternalRequest::Host(request),
+                crate::evaluate::ExternalCompletion::Host(completion),
+            ) => self.complete_host(request, completion),
+            (
+                crate::evaluate::ExternalRequest::Input(request),
+                crate::evaluate::ExternalCompletion::Input(completion),
+            ) => self.complete_input(request, completion),
+            _ => Err(RuntimeError::InvalidState),
+        }
+    }
 }
 
 impl Runtime {
+    pub fn from_source(
+        graph: Rc<CompiledModuleGraph>,
+        module: &Url,
+        export: Option<&str>,
+        source: input::Source,
+        callables: Vec<HostCallable>,
+    ) -> Result<Self, RuntimeError> {
+        Ok(Self {
+            arena: Arena::try_new(|mc| {
+                let parent = Environment::new(
+                    mc,
+                    None,
+                    callables
+                        .into_iter()
+                        .map(|callable| (callable.name.clone(), Value::host(mc, callable)))
+                        .collect(),
+                );
+                let source = input::InputSource::new(mc, source);
+                let mut execution =
+                    RuleExecution::with_environment(mc, graph, module, export, vec![], parent)?;
+                execution.entry.source = Some(source);
+                if let Execution::Pattern(pattern) = &mut execution.frames[0].execution {
+                    pattern.set_source(source);
+                }
+                Ok::<_, RuntimeError>(execution)
+            })?,
+        })
+    }
+
+    pub fn pattern_from_source(pattern: Pattern, source: input::Source) -> Self {
+        Self {
+            arena: Arena::new(|mc| {
+                let source = input::InputSource::new(mc, source);
+                let mut execution = RuleExecution::for_pattern(mc, pattern, vec![]);
+                execution.entry.source = Some(source);
+                if let Execution::Pattern(pattern) = &mut execution.frames[0].execution {
+                    pattern.set_source(source);
+                }
+                execution
+            }),
+        }
+    }
+
+    pub fn drive_external<H, F>(
+        &mut self,
+        host: H,
+    ) -> crate::evaluate::ExternalDriver<'_, Self, H, F>
+    where
+        H: FnMut(&mut Self, crate::evaluate::ExternalRequest) -> F,
+        F: Future<Output = crate::evaluate::ExternalCompletion>,
+    {
+        crate::evaluate::HostDriver::new(self, host)
+    }
+
+    pub fn take_input_request(&mut self) -> Option<input::InputRequest> {
+        self.arena
+            .mutate_root(|mc, execution| execution.take_input_request(mc))
+    }
+
+    pub fn complete_input(
+        &mut self,
+        request: &input::InputRequest,
+        completion: Result<input::InputCompletion, String>,
+    ) -> Result<(), RuntimeError> {
+        let outcome = self
+            .arena
+            .mutate_root(|mc, execution| execution.complete_input(mc, request, completion));
+        self.arena.collect_debt();
+        outcome
+    }
+
     pub fn with_hosts(
         graph: Rc<CompiledModuleGraph>,
         module: &Url,
         export: Option<&str>,
-        input: serde_json::Value,
+        input: impl Into<crate::json::JsonValue>,
         mode: InputMode,
         callables: Vec<HostCallable>,
     ) -> Result<Self, RuntimeError> {
@@ -2279,7 +2456,7 @@ impl Runtime {
 
     pub fn for_pattern(
         pattern: Pattern,
-        input: serde_json::Value,
+        input: impl Into<crate::json::JsonValue>,
         mode: InputMode,
     ) -> Result<Self, RuntimeError> {
         let arena = Arena::try_new(|mc| {
@@ -2307,7 +2484,7 @@ impl Runtime {
         graph: Rc<CompiledModuleGraph>,
         module: &Url,
         export: Option<&str>,
-        input: serde_json::Value,
+        input: impl Into<crate::json::JsonValue>,
     ) -> Result<Self, RuntimeError> {
         Self::with_mode(graph, module, export, input, InputMode::Scalar)
     }
@@ -2316,7 +2493,7 @@ impl Runtime {
         graph: Rc<CompiledModuleGraph>,
         module: &Url,
         export: Option<&str>,
-        input: serde_json::Value,
+        input: impl Into<crate::json::JsonValue>,
         mode: InputMode,
     ) -> Result<Self, RuntimeError> {
         let arena = Arena::try_new(|mc| {
@@ -2329,7 +2506,7 @@ impl Runtime {
     pub fn for_member(
         graph: Rc<CompiledModuleGraph>,
         member: &ModuleMember,
-        input: serde_json::Value,
+        input: impl Into<crate::json::JsonValue>,
         mode: InputMode,
     ) -> Result<Self, RuntimeError> {
         let arena = Arena::try_new(|mc| {
@@ -2390,13 +2567,15 @@ impl Runtime {
 
 fn runtime_input<'gc>(
     mc: &Mutation<'gc>,
-    input: serde_json::Value,
+    input: impl Into<crate::json::JsonValue>,
     mode: InputMode,
 ) -> Result<Vec<Value<'gc>>, RuntimeError> {
     let environment = Environment::new(mc, None, vec![]);
     let mut literal = ExpressionExecution::new(
         mc,
-        Expression::Value { value: Some(input) },
+        Expression::Value {
+            value: Some(input.into()),
+        },
         environment,
         crate::provenance::Origin { start: 0, end: 0 },
         Value::Undefined,
@@ -2412,10 +2591,14 @@ fn runtime_input<'gc>(
         InputMode::Empty => vec![],
         InputMode::Iterable => match value.raw() {
             Value::String(text) => text
-                .chars()
+                .code_points()
                 .enumerate()
-                .map(|(index, character)| {
-                    value.carry_item(mc, Value::string(mc, character.to_string()), index)
+                .map(|(index, point)| {
+                    value.carry_item(
+                        mc,
+                        Value::string(mc, crate::text::RuntimeString::from_utf16(point.to_vec())),
+                        index,
+                    )
                 })
                 .collect(),
             Value::Array(values) => values.borrow().clone(),

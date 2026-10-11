@@ -2,10 +2,35 @@ use super::*;
 use gc_arena::{Arena, Rootable};
 use serde_json::json;
 
+#[test]
+// req:runtime-strings-002
+fn literal_bounds_regex_and_character_classes_accept_lossless_subjects() {
+    let subject: crate::json::JsonValue = crate::json::from_str(r#""\ud800""#).unwrap();
+    for source in [
+        r#"{"kind":"equal","value":{"kind":"value.literal","value":"\ud800"}}"#,
+        r#"{"kind":"between","left":{"kind":"value.literal","value":"\ud800"},"right":{"kind":"value.literal","value":"\udfff"}}"#,
+        r#"{"kind":"character","characterClass":"Cs"}"#,
+        r#"{"kind":"regexp","pattern":{"source":"\ud800","flags":"u"}}"#,
+    ] {
+        let mut runtime = crate::runtime::Runtime::for_pattern(
+            crate::json::from_str(source).unwrap(),
+            subject.clone(),
+            crate::runtime::InputMode::Iterable,
+        )
+        .unwrap();
+        runtime.run().unwrap();
+        assert_eq!(
+            runtime.read(|execution| execution.result().unwrap().kind),
+            MatchKind::Ok,
+            "{source}"
+        );
+    }
+}
+
 fn literal(value: serde_json::Value) -> Pattern {
     Pattern::Equal {
         value: ValueSource::Literal {
-            value: LiteralValue::Present(value),
+            value: LiteralValue::Present(value.into()),
         },
     }
 }
@@ -165,6 +190,64 @@ fn pattern_cancellation_releases_suspended_projection_argument_cycle() {
     });
 }
 
+#[test]
+// req:runtime-core-014
+fn direct_pattern_source_preserves_continuation_and_does_not_prefetch_zero_width_patterns() {
+    for zero_width in [false, true] {
+        let mut arena = Arena::<Rootable![PatternExecution<'_>]>::new(|mc| {
+            let pattern = if zero_width {
+                Pattern::Ok
+            } else {
+                Pattern::Any
+            };
+            let source = crate::runtime::input::InputSource::new(
+                mc,
+                crate::runtime::input::Source {
+                    id: 1,
+                    name: "source".into(),
+                },
+            );
+            PatternExecution::from_source(mc, pattern, source, Environment::new(mc, None, vec![]))
+        });
+        let status = arena.mutate_root(|mc, state| state.step_status(mc).unwrap());
+        if zero_width {
+            assert_eq!(status, StepStatus::Complete);
+            assert!(
+                arena
+                    .mutate_root(|mc, state| state.take_input_request(mc))
+                    .is_none()
+            );
+        } else {
+            assert_eq!(status, StepStatus::Suspended);
+            let request = arena.mutate_root(|mc, state| state.take_input_request(mc).unwrap());
+            arena.finish_cycle();
+            arena.mutate_root(|mc, state| {
+                assert!(state.result().is_none());
+                assert_eq!(state.step_status(mc).unwrap(), StepStatus::Suspended);
+                state
+                    .complete_input(
+                        mc,
+                        &request,
+                        Ok(crate::runtime::input::InputCompletion::Item(
+                            HostCompletion::materialize(vec![], |mc, _| {
+                                Ok(Value::object(mc, vec![("ok".into(), Value::Boolean(true))]))
+                            }),
+                        )),
+                    )
+                    .unwrap();
+                assert_eq!(state.step_status(mc).unwrap(), StepStatus::Complete);
+            });
+            arena.finish_cycle();
+            arena.mutate(|_, state| {
+                assert_eq!(
+                    state.result().unwrap().value.runtime_type(),
+                    RuntimeType::Object
+                )
+            });
+        }
+    }
+}
+
 fn run(pattern: Pattern, input: Vec<f64>) -> (MatchKind, usize) {
     let mut arena = Arena::<Rootable![PatternExecution<'_>]>::new(|mc| {
         PatternExecution::new(
@@ -214,7 +297,7 @@ fn resolve_suspends_and_resumes_with_host_match_and_argument_patterns() {
         assert_eq!(request.position, 0);
         assert_eq!(request.stream.len(), 2);
         let input = request.input();
-        assert!(Gc::ptr_eq(input.stream, request.stream));
+        assert!(input.stream.same_storage(request.stream));
         assert_eq!(input.position, request.position);
         assert_eq!(input.base, request.base);
         let mut shared = PatternExecution::from_input(mc, Pattern::Any, input, environment);
@@ -432,7 +515,7 @@ fn skipped_recovery_preserves_kind_and_is_omitted_from_repetition_values() {
                     Pattern::Quantifier {
                         pattern: Box::new(recovery()),
                         min: Some(ValueSource::Literal {
-                            value: LiteralValue::Present(json!(1)),
+                            value: LiteralValue::Present(json!(1).into()),
                         }),
                         max: None,
                     }
@@ -747,7 +830,7 @@ fn between_checks_bounds_before_input_and_preserves_errors_and_provenance() {
                     name: "minimum".into(),
                 }),
                 right: Some(ValueSource::Literal {
-                    value: LiteralValue::Present(json!(42)),
+                    value: LiteralValue::Present(json!(42).into()),
                 }),
             },
             vec![carried],
@@ -762,7 +845,7 @@ fn between_checks_bounds_before_input_and_preserves_errors_and_provenance() {
                 mc,
                 Pattern::Between {
                     left: Some(ValueSource::Literal {
-                        value: LiteralValue::Present(json!(0)),
+                        value: LiteralValue::Present(json!(0).into()),
                     }),
                     right: None,
                 },
@@ -810,7 +893,7 @@ fn between_checks_bounds_before_input_and_preserves_errors_and_provenance() {
 fn between_nan_and_incomparable_values_fail_without_consumption() {
     let pattern = || Pattern::Between {
         left: Some(ValueSource::Literal {
-            value: LiteralValue::Present(json!(0)),
+            value: LiteralValue::Present(json!(0).into()),
         }),
         right: None,
     };
@@ -1394,7 +1477,7 @@ fn fixture_value<'gc>(mc: &Mutation<'gc>, value: &serde_json::Value) -> Value<'g
             mc,
             values
                 .iter()
-                .map(|(key, value)| (key.clone(), fixture_value(mc, value)))
+                .map(|(key, value)| (key.clone().into(), fixture_value(mc, value)))
                 .collect(),
         ),
     }
@@ -1424,8 +1507,8 @@ fn assert_fixture_value(value: Value<'_>, expected: &serde_json::Value) {
                 assert_fixture_value(
                     *value,
                     expected
-                        .get(key)
-                        .unwrap_or_else(|| panic!("unexpected object key {key}")),
+                        .get(key.as_scalar_str().expect("scalar fixture key"))
+                        .unwrap_or_else(|| panic!("unexpected object key {key:?}")),
                 );
             }
         }
@@ -1553,7 +1636,7 @@ fn includes_uses_same_value_zero_and_resolves_all_operands_before_comparing() {
             Pattern::Includes {
                 values: vec![
                     ValueSource::Literal {
-                        value: LiteralValue::Present(json!(42)),
+                        value: LiteralValue::Present(json!(42).into()),
                     },
                     ValueSource::Variable {
                         name: "missing".into(),
@@ -1583,7 +1666,7 @@ fn zero_maximum_does_not_run_child_even_when_input_is_available() {
         }),
         min: None,
         max: Some(ValueSource::Literal {
-            value: LiteralValue::Present(json!(0)),
+            value: LiteralValue::Present(json!(0).into()),
         }),
     };
     assert_eq!(run(pattern, vec![42.0]), (MatchKind::Ok, 0));
@@ -1634,7 +1717,7 @@ fn invalid_bounds_fail_before_any_child_evaluation() {
                 Pattern::Quantifier {
                     pattern: Box::new(Pattern::Any),
                     min: Some(ValueSource::Literal {
-                        value: LiteralValue::Present(value),
+                        value: LiteralValue::Present(value.into()),
                     }),
                     max: None,
                 },

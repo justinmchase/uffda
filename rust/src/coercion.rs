@@ -1,3 +1,4 @@
+use crate::text::RuntimeString;
 use crate::value::Value;
 use std::fmt;
 
@@ -6,6 +7,7 @@ pub enum StringCoercionError {
     CannotConvertObject,
     CallableConversion,
     CompositeConversion,
+    NonScalarText,
 }
 
 impl fmt::Display for StringCoercionError {
@@ -14,6 +16,7 @@ impl fmt::Display for StringCoercionError {
             Self::CannotConvertObject => write!(f, "cannot convert object to primitive value"),
             Self::CallableConversion => write!(f, "cannot convert callable to string"),
             Self::CompositeConversion => write!(f, "cannot convert composite value to string"),
+            Self::NonScalarText => write!(f, "isolated UTF-16 surrogate at scalar host boundary"),
         }
     }
 }
@@ -26,6 +29,7 @@ pub fn truthy(value: Value<'_>) -> bool {
         Value::Boolean(value) => value,
         Value::Number(value) => value != 0.0 && !value.is_nan(),
         Value::String(value) => !value.is_empty(),
+        Value::BigInt(value) => value.0.sign() != num_bigint::Sign::NoSign,
         Value::Array(_)
         | Value::Object(_)
         | Value::Declaration(_)
@@ -35,10 +39,13 @@ pub fn truthy(value: Value<'_>) -> bool {
         | Value::Host(_)
         | Value::IteratorFactory(_)
         | Value::Symbol(_)
+        | Value::Date(_)
+        | Value::Error(_)
         | Value::Set(_)
         | Value::Map(_)
         | Value::Bytes(_)
         | Value::Iterable(_)
+        | Value::InputSource(_)
         | Value::Match(_) => true,
         Value::Located(_) => unreachable!("wrappers cannot contain wrappers"),
     }
@@ -48,17 +55,25 @@ pub fn number_text(value: f64) -> String {
     ryu_js::Buffer::new().format(value).to_owned()
 }
 
-pub fn string_text(value: Value<'_>) -> Result<String, StringCoercionError> {
+pub fn scalar_text(value: Value<'_>) -> Result<String, StringCoercionError> {
+    string_text(value)?
+        .to_utf8()
+        .map_err(|_| StringCoercionError::NonScalarText)
+}
+
+pub fn string_text(value: Value<'_>) -> Result<RuntimeString, StringCoercionError> {
     match value.raw() {
         Value::Undefined => Ok("undefined".into()),
         Value::Null => Ok("null".into()),
         Value::Boolean(value) => Ok(if value { "true" } else { "false" }.into()),
-        Value::Number(value) => Ok(number_text(value)),
+        Value::Number(value) => Ok(number_text(value).into()),
+        Value::BigInt(value) => Ok(value.0.to_string().into()),
         Value::String(value) => Ok((*value).clone()),
         Value::Native(_) | Value::Host(_) | Value::Lambda(_) | Value::IteratorFactory(_) => {
             Err(StringCoercionError::CallableConversion)
         }
         Value::Symbol(name) => Ok(crate::globals::symbol_text(&name)),
+        Value::Date(_) | Value::Error(_) => Err(StringCoercionError::CompositeConversion),
         Value::Array(_)
         | Value::Object(_)
         | Value::Declaration(_)
@@ -67,6 +82,7 @@ pub fn string_text(value: Value<'_>) -> Result<String, StringCoercionError> {
         | Value::Map(_)
         | Value::Bytes(_)
         | Value::Iterable(_)
+        | Value::InputSource(_)
         | Value::Match(_) => Err(StringCoercionError::CompositeConversion),
         Value::Located(_) => unreachable!("wrappers cannot contain wrappers"),
     }
@@ -77,6 +93,47 @@ mod tests {
     use super::*;
     use gc_arena::Gc;
     use gc_arena::arena::rootless_mutate;
+
+    #[test]
+    // req:runtime-strings-002
+    fn text_coercion_preserves_units_and_scalar_host_conversion_errors() {
+        rootless_mutate(|mc| {
+            let text = RuntimeString::from_utf16(vec![0xd800]);
+            let value = Value::string(mc, text.clone());
+            assert_eq!(string_text(value).unwrap(), text);
+            assert_eq!(scalar_text(value), Err(StringCoercionError::NonScalarText));
+            let symbol = Value::Symbol(Gc::new(mc, text));
+            assert_eq!(
+                string_text(symbol).unwrap().as_utf16(),
+                &[83, 121, 109, 98, 111, 108, 40, 0xd800, 41]
+            );
+        });
+    }
+
+    #[test]
+    // req:runtime-core-012 req:data-codec-003
+    fn bigint_is_a_truthy_decimal_scalar_while_date_and_error_stay_objects() {
+        rootless_mutate(|mc| {
+            let zero = Value::bigint(mc, num_bigint::BigInt::from(0));
+            let bigint = Value::bigint(mc, num_bigint::BigInt::from(123456789));
+            let date = Value::date(mc, time::OffsetDateTime::UNIX_EPOCH);
+            let error = Value::error(mc, "Error".into(), "failed".into(), None, None);
+            assert!(!truthy(zero));
+            assert!(truthy(bigint));
+            assert_eq!(string_text(bigint).unwrap(), "123456789");
+            assert_eq!(scalar_text(bigint).unwrap(), "123456789");
+            assert!(truthy(date));
+            assert!(truthy(error));
+            assert_eq!(
+                string_text(date),
+                Err(StringCoercionError::CompositeConversion)
+            );
+            assert_eq!(
+                string_text(error),
+                Err(StringCoercionError::CompositeConversion)
+            );
+        });
+    }
 
     #[test]
     // req:runtime-core-012 req:expressions-runtime-004
@@ -98,7 +155,7 @@ mod tests {
     }
 
     #[test]
-    // req:runtime-core-012 req:expressions-runtime-004
+    // req:runtime-core-012 req:expressions-runtime-004 req:runtime-core-014
     fn all_object_like_values_reject_text_conversion_without_hooks() {
         rootless_mutate(|mc| {
             let origin = crate::provenance::Origin { start: 0, end: 0 };
@@ -121,6 +178,13 @@ mod tests {
                     crate::value::RuntimeUrl(url::Url::parse("file:///test").unwrap()),
                 )),
                 iterator,
+                Value::InputSource(crate::runtime::input::InputSource::new(
+                    mc,
+                    crate::runtime::input::Source {
+                        id: 1,
+                        name: "source".into(),
+                    },
+                )),
             ] {
                 assert_eq!(
                     string_text(value),

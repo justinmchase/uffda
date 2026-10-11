@@ -2,9 +2,12 @@ use crate::environment::Environment;
 use crate::globals::{IterableState, NativeGlobal};
 use crate::pattern::PatternProgram;
 use crate::program::Program;
+use crate::text::RuntimeString;
 use gc_arena::{Collect, Gc, Mutation, RefLock};
+use num_bigint::BigInt;
 use serde::Deserialize;
 use std::rc::Rc;
+use time::OffsetDateTime;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -49,6 +52,26 @@ impl std::fmt::Display for RuntimeType {
 pub type Array<'gc> = Gc<'gc, RefLock<Vec<Value<'gc>>>>;
 pub type Object<'gc> = Gc<'gc, RefLock<ObjectProperties<'gc>>>;
 
+#[derive(Collect)]
+#[collect(no_drop)]
+pub struct RuntimeBigInt(#[collect(require_static)] pub BigInt);
+
+#[derive(Collect)]
+#[collect(no_drop)]
+pub struct RuntimeDate(#[collect(require_static)] pub OffsetDateTime);
+
+#[derive(Collect)]
+#[collect(no_drop)]
+pub struct RuntimeErrorValue<'gc> {
+    #[collect(require_static)]
+    pub name: RuntimeString,
+    #[collect(require_static)]
+    pub message: RuntimeString,
+    #[collect(require_static)]
+    pub stack: Option<RuntimeString>,
+    pub cause: Option<Value<'gc>>,
+}
+
 /// Explicit host routing metadata; no future or executor is stored in a value.
 #[derive(Clone, Debug, PartialEq, Eq, Collect)]
 #[collect(require_static)]
@@ -65,7 +88,10 @@ pub enum Value<'gc> {
     Null,
     Boolean(bool),
     Number(f64),
-    String(Gc<'gc, String>),
+    BigInt(Gc<'gc, RuntimeBigInt>),
+    Date(Gc<'gc, RuntimeDate>),
+    Error(Gc<'gc, RuntimeErrorValue<'gc>>),
+    String(Gc<'gc, RuntimeString>),
     Array(Array<'gc>),
     Object(Object<'gc>),
     Declaration(Gc<'gc, Declaration<'gc>>),
@@ -73,8 +99,9 @@ pub enum Value<'gc> {
     Lambda(Gc<'gc, Closure<'gc>>),
     Native(NativeGlobal),
     Host(Gc<'gc, HostCallable>),
+    InputSource(crate::runtime::input::InputSource<'gc>),
     IteratorFactory(Gc<'gc, Value<'gc>>),
-    Symbol(Gc<'gc, String>),
+    Symbol(Gc<'gc, RuntimeString>),
     Set(Array<'gc>),
     Map(Array<'gc>),
     Bytes(Gc<'gc, Vec<u8>>),
@@ -117,6 +144,9 @@ impl<'gc> Value<'gc> {
             Self::Null => RuntimeType::Null,
             Self::Boolean(_) => RuntimeType::Boolean,
             Self::Number(_) => RuntimeType::Number,
+            Self::BigInt(_) => RuntimeType::BigInt,
+            Self::Date(_) => RuntimeType::Date,
+            Self::Error(_) => RuntimeType::Error,
             Self::String(_) => RuntimeType::String,
             Self::Array(_) => RuntimeType::Array,
             Self::Object(_) | Self::Declaration(_) | Self::Url(_) => RuntimeType::Object,
@@ -125,13 +155,41 @@ impl<'gc> Value<'gc> {
             Self::Symbol(_) => RuntimeType::Symbol,
             Self::Set(_) => RuntimeType::Set,
             Self::Map(_) => RuntimeType::Map,
-            Self::Bytes(_) | Self::Iterable(_) | Self::Match(_) => RuntimeType::Object,
+            Self::Bytes(_) | Self::Iterable(_) | Self::Match(_) | Self::InputSource(_) => {
+                RuntimeType::Object
+            }
             Self::Located(_) => unreachable!("wrappers cannot contain wrappers"),
         }
     }
 
-    pub fn string(mc: &Mutation<'gc>, value: impl Into<String>) -> Self {
+    pub fn string(mc: &Mutation<'gc>, value: impl Into<RuntimeString>) -> Self {
         Self::String(Gc::new(mc, value.into()))
+    }
+
+    pub fn bigint(mc: &Mutation<'gc>, value: BigInt) -> Self {
+        Self::BigInt(Gc::new(mc, RuntimeBigInt(value)))
+    }
+
+    pub fn date(mc: &Mutation<'gc>, value: OffsetDateTime) -> Self {
+        Self::Date(Gc::new(mc, RuntimeDate(value)))
+    }
+
+    pub fn error(
+        mc: &Mutation<'gc>,
+        name: RuntimeString,
+        message: RuntimeString,
+        stack: Option<RuntimeString>,
+        cause: Option<Self>,
+    ) -> Self {
+        Self::Error(Gc::new(
+            mc,
+            RuntimeErrorValue {
+                name,
+                message,
+                stack,
+                cause,
+            },
+        ))
     }
 
     pub fn host(mc: &Mutation<'gc>, callable: HostCallable) -> Self {
@@ -142,7 +200,7 @@ impl<'gc> Value<'gc> {
         Self::Array(Gc::new(mc, RefLock::new(values)))
     }
 
-    pub fn object(mc: &Mutation<'gc>, properties: Vec<(String, Self)>) -> Self {
+    pub fn object(mc: &Mutation<'gc>, properties: Vec<(RuntimeString, Self)>) -> Self {
         let mut result = ObjectProperties::default();
         for (name, value) in properties {
             result.set(name, value);
@@ -255,12 +313,18 @@ impl<'gc> Value<'gc> {
             (Self::Undefined, Self::Undefined) | (Self::Null, Self::Null) => true,
             (Self::Boolean(left), Self::Boolean(right)) => left == right,
             (Self::Number(left), Self::Number(right)) => left == right,
+            (Self::BigInt(left), Self::BigInt(right)) => left.0 == right.0,
+            (Self::Date(left), Self::Date(right)) => Gc::ptr_eq(left, right),
+            (Self::Error(left), Self::Error(right)) => Gc::ptr_eq(left, right),
             (Self::String(left), Self::String(right)) => *left == *right,
             (Self::Array(left), Self::Array(right)) => Gc::ptr_eq(left, right),
             (Self::Object(left), Self::Object(right)) => Gc::ptr_eq(left, right),
             (Self::Lambda(left), Self::Lambda(right)) => Gc::ptr_eq(left, right),
             (Self::Native(left), Self::Native(right)) => left == right,
             (Self::Host(left), Self::Host(right)) => Gc::ptr_eq(left, right),
+            (Self::InputSource(left), Self::InputSource(right)) => {
+                left.identity().position(0) == right.identity().position(0)
+            }
             (Self::Symbol(left), Self::Symbol(right)) => *left == *right,
             (Self::Set(left), Self::Set(right)) | (Self::Map(left), Self::Map(right)) => {
                 Gc::ptr_eq(left, right)
@@ -279,6 +343,46 @@ impl<'gc> Value<'gc> {
 #[cfg(test)]
 mod host_tests {
     use super::*;
+
+    #[test]
+    // req:runtime-core-014
+    fn external_source_is_an_object_value_with_source_identity_not_a_promise() {
+        gc_arena::arena::rootless_mutate(|mc| {
+            let source = crate::runtime::input::Source {
+                id: 1,
+                name: "source".into(),
+            };
+            let a = Value::InputSource(crate::runtime::input::InputSource::new(mc, source.clone()));
+            let b = Value::InputSource(crate::runtime::input::InputSource::new(mc, source));
+            assert_eq!(a.runtime_type(), RuntimeType::Object);
+            assert!(a.strict_eq(a));
+            assert!(!a.strict_eq(b));
+        });
+    }
+
+    #[test]
+    // req:runtime-core-012 req:data-codec-003
+    fn native_bigint_date_and_error_values_have_runtime_types_and_identity() {
+        gc_arena::arena::rootless_mutate(|mc| {
+            let bigint = Value::bigint(mc, BigInt::from(42));
+            let equal_bigint = Value::bigint(mc, BigInt::from(42));
+            assert_eq!(bigint.runtime_type(), RuntimeType::BigInt);
+            assert!(bigint.strict_eq(equal_bigint));
+            assert!(!bigint.strict_eq(Value::bigint(mc, BigInt::from(43))));
+
+            let instant = OffsetDateTime::UNIX_EPOCH;
+            let date = Value::date(mc, instant);
+            let equal_instant = Value::date(mc, instant);
+            assert_eq!(date.runtime_type(), RuntimeType::Date);
+            assert!(!date.strict_eq(equal_instant));
+
+            let error = Value::error(mc, "Error".into(), "failed".into(), None, Some(bigint));
+            let other_error = Value::error(mc, "Error".into(), "failed".into(), None, Some(bigint));
+            assert_eq!(error.runtime_type(), RuntimeType::Error);
+            assert!(error.strict_eq(error));
+            assert!(!error.strict_eq(other_error));
+        });
+    }
 
     #[test]
     // req:runtime-core-013
@@ -302,46 +406,50 @@ mod host_tests {
 #[derive(Default, Collect)]
 #[collect(no_drop)]
 pub struct ObjectProperties<'gc> {
-    entries: Vec<(String, Value<'gc>)>,
-    symbols: Vec<(String, Value<'gc>)>,
+    entries: Vec<(RuntimeString, Value<'gc>)>,
+    symbols: Vec<(RuntimeString, Value<'gc>)>,
 }
 
 impl<'gc> ObjectProperties<'gc> {
-    pub fn symbol_entries(&self) -> &[(String, Value<'gc>)] {
+    pub fn symbol_entries(&self) -> &[(RuntimeString, Value<'gc>)] {
         &self.symbols
     }
-    pub fn get_symbol(&self, name: &str) -> Option<Value<'gc>> {
+    pub fn get_symbol(&self, name: impl Into<RuntimeString>) -> Option<Value<'gc>> {
+        let name = name.into();
         self.symbols
             .iter()
-            .find(|(key, _)| key == name)
+            .find(|(key, _)| *key == name)
             .map(|(_, value)| *value)
     }
-    pub fn set_symbol(&mut self, name: String, value: Value<'gc>) {
+    pub fn set_symbol(&mut self, name: RuntimeString, value: Value<'gc>) {
         if let Some((_, existing)) = self.symbols.iter_mut().find(|(key, _)| *key == name) {
             *existing = value;
         } else {
             self.symbols.push((name, value));
         }
     }
-    pub fn entries(&self) -> &[(String, Value<'gc>)] {
+    pub fn entries(&self) -> &[(RuntimeString, Value<'gc>)] {
         &self.entries
     }
 
-    pub fn get(&self, name: &str) -> Option<Value<'gc>> {
+    pub fn get(&self, name: impl Into<RuntimeString>) -> Option<Value<'gc>> {
+        let name = name.into();
         self.entries
             .iter()
-            .find(|(key, _)| key == name)
+            .find(|(key, _)| *key == name)
             .map(|(_, value)| *value)
     }
 
-    pub fn set(&mut self, name: String, value: Value<'gc>) {
+    pub fn set(&mut self, name: RuntimeString, value: Value<'gc>) {
         if let Some((_, existing)) = self.entries.iter_mut().find(|(key, _)| *key == name) {
             *existing = value;
         } else {
-            let integer_index = |name: &str| {
-                name.parse::<u32>()
+            let integer_index = |name: &RuntimeString| {
+                name.to_utf8()
+                    .ok()?
+                    .parse::<u32>()
                     .ok()
-                    .filter(|n| *n != u32::MAX && n.to_string() == name)
+                    .filter(|n| *n != u32::MAX && *name == n.to_string())
             };
             if let Some(index) = integer_index(&name) {
                 let position = self
@@ -361,6 +469,31 @@ impl<'gc> ObjectProperties<'gc> {
 mod tests {
     use super::*;
     use gc_arena::arena::rootless_mutate;
+
+    #[test]
+    // req:runtime-strings-002
+    fn arbitrary_property_keys_and_symbol_descriptions_preserve_units() {
+        rootless_mutate(|mc| {
+            let key = RuntimeString::from_utf16(vec![0xd800]);
+            let other = RuntimeString::from_utf16(vec![0xfffd]);
+            let value = Value::string(mc, key.clone());
+            assert!(!value.strict_eq(Value::string(mc, other.clone())));
+            let object = Value::object(mc, vec![(key.clone(), value)]);
+            let Value::Object(properties) = object else {
+                panic!()
+            };
+            assert!(properties.borrow().get(&key).unwrap().strict_eq(value));
+            assert!(properties.borrow().get(&other).is_none());
+            properties.borrow_mut(mc).set_symbol(key.clone(), value);
+            assert!(
+                properties
+                    .borrow()
+                    .get_symbol(key)
+                    .unwrap()
+                    .strict_eq(value)
+            );
+        });
+    }
 
     #[test]
     // req:rule-decorators-003 req:runtime-memory-005 req:runtime-core-012
@@ -435,7 +568,7 @@ mod tests {
                 o.borrow()
                     .entries()
                     .iter()
-                    .map(|(k, _)| k.as_str())
+                    .map(|(k, _)| k.as_scalar_str().expect("scalar fixture key"))
                     .collect::<Vec<_>>(),
                 ["2", "10", "x", "01"]
             );

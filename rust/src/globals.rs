@@ -116,14 +116,32 @@ impl NativeGlobal {
     }
 }
 
-pub(crate) fn symbol_text(name: &str) -> String {
-    let description = match name {
-        "asyncIterator" | "hasInstance" | "isConcatSpreadable" | "iterator" | "match"
-        | "matchAll" | "replace" | "search" | "species" | "split" | "toPrimitive"
-        | "toStringTag" | "unscopables" | "dispose" | "asyncDispose" => format!("Symbol.{name}"),
-        _ => name.to_owned(),
-    };
-    format!("Symbol({description})")
+pub(crate) fn symbol_text(name: &RuntimeString) -> RuntimeString {
+    let known = [
+        "asyncIterator",
+        "hasInstance",
+        "isConcatSpreadable",
+        "iterator",
+        "match",
+        "matchAll",
+        "replace",
+        "search",
+        "species",
+        "split",
+        "toPrimitive",
+        "toStringTag",
+        "unscopables",
+        "dispose",
+        "asyncDispose",
+    ];
+    let mut result = RuntimeString::from(if known.iter().any(|key| name == key) {
+        "Symbol(Symbol."
+    } else {
+        "Symbol("
+    });
+    result.push_str(name);
+    result.push_str(&")".into());
+    result
 }
 
 pub type Iterator<'gc> = Gc<'gc, RefLock<IterableState<'gc>>>;
@@ -131,6 +149,10 @@ pub type Iterator<'gc> = Gc<'gc, RefLock<IterableState<'gc>>>;
 #[derive(Collect)]
 #[collect(no_drop)]
 pub enum IterableState<'gc> {
+    External {
+        source: crate::runtime::input::InputSource<'gc>,
+        index: usize,
+    },
     Source {
         value: Value<'gc>,
         index: usize,
@@ -174,6 +196,10 @@ pub fn iterator<'gc>(
 ) -> Result<Iterator<'gc>, EvaluationError> {
     match value.raw() {
         Value::Iterable(iterator) => Ok(iterator),
+        Value::InputSource(source) => Ok(Gc::new(
+            mc,
+            RefLock::new(IterableState::External { source, index: 0 }),
+        )),
         Value::Array(_) | Value::String(_) | Value::Set(_) | Value::Map(_) | Value::Bytes(_) => {
             Ok(Gc::new(
                 mc,
@@ -242,9 +268,9 @@ pub fn source_item<'gc>(mc: &Mutation<'gc>, value: Value<'gc>, index: usize) -> 
                 _ => entry,
             }),
         Value::String(text) => text
-            .chars()
+            .code_points()
             .nth(index)
-            .map(|c| Value::string(mc, c.to_string())),
+            .map(|units| Value::string(mc, RuntimeString::from_utf16(units.to_vec()))),
         Value::Bytes(bytes) => bytes.get(index).map(|byte| Value::Number(*byte as f64)),
         _ => None,
     };
@@ -272,11 +298,11 @@ fn number(value: Value<'_>) -> Result<f64, EvaluationError> {
 }
 
 fn text(value: Value<'_>) -> Result<String, EvaluationError> {
-    string_text(value).map_err(EvaluationError::StringCoercion)
+    crate::coercion::scalar_text(value).map_err(EvaluationError::StringCoercion)
 }
 
-pub fn property_key(value: Value<'_>) -> Result<String, EvaluationError> {
-    text(value)
+pub fn property_key(value: Value<'_>) -> Result<RuntimeString, EvaluationError> {
+    string_text(value).map_err(EvaluationError::StringCoercion)
 }
 
 pub fn same_value_zero<'gc>(left: Value<'gc>, right: Value<'gc>) -> bool {
@@ -289,8 +315,8 @@ fn ordinal(value: Value<'_>) -> Option<usize> {
     let index = match value.raw() {
         Value::Number(n) => n,
         Value::String(s) => {
-            let n = s.parse::<f64>().ok()?;
-            if number_text(n) != *s {
+            let n = s.to_utf8().ok()?.parse::<f64>().ok()?;
+            if *s != number_text(n) {
                 return None;
             }
             n
@@ -303,7 +329,7 @@ fn ordinal(value: Value<'_>) -> Option<usize> {
 
 fn length(value: Value<'_>) -> Result<usize, EvaluationError> {
     match value.raw() {
-        Value::String(text) => Ok(text.encode_utf16().count()),
+        Value::String(text) => Ok(text.len()),
         Value::Array(array) | Value::Set(array) | Value::Map(array) => Ok(array.borrow().len()),
         _ => Err(error("length expects a string, array, Set, or Map")),
     }
@@ -323,19 +349,24 @@ fn at<'gc>(
     };
     match value.raw() {
         Value::String(text) => {
-            // Rust strings cannot represent a lone UTF-16 surrogate.
-            let units: Vec<_> = text.encode_utf16().collect();
+            let units = text.as_utf16();
             let Some(unit) = units.get(index).copied() else {
                 return Ok(Value::Undefined);
             };
-            let c = char::from_u32(unit as u32)
-                .ok_or_else(|| error("lone UTF-16 surrogate values are not supported"))?;
             let codepoint_index = text
-                .encode_utf16()
-                .take(index)
-                .filter(|c| !(0xdc00..=0xdfff).contains(c))
-                .count();
-            Ok(value.carry_item(mc, Value::string(mc, c.to_string()), codepoint_index))
+                .code_points()
+                .scan(0, |offset, point| {
+                    let start = *offset;
+                    *offset += point.len();
+                    Some((start, *offset))
+                })
+                .position(|(start, end)| start <= index && index < end)
+                .expect("existing unit");
+            Ok(value.carry_item(
+                mc,
+                Value::string(mc, RuntimeString::from_utf16(vec![unit])),
+                codepoint_index,
+            ))
         }
         _ => Ok(source_item(mc, value, index).unwrap_or(Value::Undefined)),
     }
@@ -445,20 +476,29 @@ pub(crate) fn string_slice<'gc>(
     let Value::String(source) = value.raw() else {
         return Err(error("expected string"));
     };
-    let units: Vec<_> = source.encode_utf16().collect();
-    let result = String::from_utf16(&units[start..end.max(start)])
-        .map_err(|_| error("lone UTF-16 surrogate values are not supported"))?;
-    let before = String::from_utf16(&units[..start])
-        .map_err(|_| error("lone UTF-16 surrogate values are not supported"))?
-        .chars()
-        .count();
+    let units = source.as_utf16();
+    let result = RuntimeString::from_utf16(units[start..end.max(start)].to_vec());
+    let source_points: Vec<_> = source
+        .code_points()
+        .scan(0, |offset, point| {
+            let start = *offset;
+            *offset += point.len();
+            Some((start, *offset))
+        })
+        .collect();
     let origin = value.origin().unwrap_or(Origin { start: 0, end: 0 });
     let chars = result
-        .chars()
-        .enumerate()
-        .map(|(i, _)| CharRun {
+        .code_points()
+        .scan(start, |offset, point| {
+            let position = *offset;
+            *offset += point.len();
+            Some(position)
+        })
+        .map(|position| CharRun {
             length: 1,
-            origin: value.char_origin(before + i).unwrap_or(origin),
+            origin: value
+                .char_origin(source_points.partition_point(|(_, end)| *end <= position))
+                .unwrap_or(origin),
             linear: false,
         })
         .collect();
@@ -488,7 +528,7 @@ pub(crate) fn join_parts<'gc>(
     let separator = if matches!(separator.raw(), Value::String(_)) {
         separator
     } else {
-        Value::string(mc, text(separator)?)
+        Value::string(mc, property_key(separator)?)
     };
     let mut parts = vec![];
     for (index, item) in items.borrow().iter().enumerate() {
@@ -510,7 +550,7 @@ pub(crate) fn format_parts<'gc>(
     let Value::String(source) = template.raw() else {
         return Err(error("format expects a string"));
     };
-    let units: Vec<_> = source.encode_utf16().collect();
+    let units = source.as_utf16();
     let mut parts = vec![];
     let mut offset = 0;
     let mut literal_start = 0;
@@ -589,7 +629,7 @@ pub fn invoke<'gc>(
                 (Value::String(l), Value::String(r)) => {
                     if l == r {
                         0
-                    } else if l.encode_utf16().cmp(r.encode_utf16()).is_lt() {
+                    } else if l.as_utf16().cmp(r.as_utf16()).is_lt() {
                         -1
                     } else {
                         1
@@ -638,7 +678,7 @@ pub fn invoke<'gc>(
             }
             Value::Number(if count == 0 { f64::NAN } else { sign * n })
         }
-        Symbol => Value::Symbol(Gc::new(mc, text(arg(0))?)),
+        Symbol => Value::Symbol(Gc::new(mc, property_key(arg(0))?)),
         Has => {
             let found = match arg(0).raw() {
                 Value::Array(a) | Value::Set(a) => {
@@ -652,7 +692,7 @@ pub fn invoke<'gc>(
                     _ => false,
                 }),
                 Value::Object(o) => match arg(1).raw() {
-                    Value::Symbol(s) => o.borrow().get_symbol(&s).is_some(),
+                    Value::Symbol(s) => o.borrow().get_symbol(&*s).is_some(),
                     _ => o.borrow().get(&property_key(arg(1))?).is_some(),
                 },
                 _ => false,
@@ -706,7 +746,7 @@ pub fn invoke<'gc>(
                 Value::array(mc, a.borrow()[start..end].to_vec())
             }
             Value::String(s) => {
-                let len = s.encode_utf16().count();
+                let len = s.len();
                 string_slice(
                     mc,
                     arg(0),
@@ -725,7 +765,7 @@ pub fn invoke<'gc>(
             } else if matches!(arg(1).raw(), Value::String(_)) {
                 arg(1)
             } else {
-                Value::string(mc, text(arg(1))?)
+                Value::string(mc, property_key(arg(1))?)
             };
             let mut parts = vec![];
             for (i, v) in a.borrow().iter().enumerate() {
@@ -735,7 +775,7 @@ pub fn invoke<'gc>(
                 match v.raw() {
                     Value::Null | Value::Undefined => {}
                     Value::String(_) => parts.push(*v),
-                    _ => parts.push(Value::string(mc, text(*v)?)),
+                    _ => parts.push(Value::string(mc, property_key(*v)?)),
                 }
             }
             concatenate(mc, &parts, arg(0).origin().unwrap_or(origin))
@@ -748,7 +788,7 @@ pub fn invoke<'gc>(
             let mut parts = vec![];
             let mut offset = 0;
             let mut literal_start = 0;
-            let units: Vec<_> = template.encode_utf16().collect();
+            let units = template.as_utf16();
             while offset < units.len() {
                 if units[offset] == b'{' as u16 {
                     let mut end = offset + 1;
@@ -766,7 +806,7 @@ pub fn invoke<'gc>(
                             parts.push(if matches!(replacement.raw(), Value::String(_)) {
                                 replacement
                             } else {
-                                Value::string(mc, text(replacement)?)
+                                Value::string(mc, property_key(replacement)?)
                             });
                             offset = end + 1;
                             literal_start = offset;
@@ -789,7 +829,7 @@ pub fn invoke<'gc>(
             for v in elements(arg(0))? {
                 let item = match v.raw() {
                     Value::Object(o) => match arg(1).raw() {
-                        Value::Symbol(s) => o.borrow().get_symbol(&s).unwrap_or(Value::Undefined),
+                        Value::Symbol(s) => o.borrow().get_symbol(&*s).unwrap_or(Value::Undefined),
                         _ => o
                             .borrow()
                             .get(&property_key(arg(1))?)
@@ -862,7 +902,13 @@ pub fn invoke<'gc>(
             let Value::String(s) = arg(0).raw() else {
                 return Err(error("sha256 expects a string"));
             };
-            Value::Bytes(Gc::new(mc, sha2::Sha256::digest(s.as_bytes()).to_vec()))
+            let scalar = s.to_utf8().map_err(|_| {
+                EvaluationError::StringCoercion(crate::coercion::StringCoercionError::NonScalarText)
+            })?;
+            Value::Bytes(Gc::new(
+                mc,
+                sha2::Sha256::digest(scalar.as_bytes()).to_vec(),
+            ))
         }
         Base58 => {
             let Value::Bytes(b) = arg(0).raw() else {
@@ -1003,6 +1049,9 @@ pub fn json_text(value: Value<'_>) -> Result<Option<String>, EvaluationError> {
                 }
                 Value::Null => out.push_str("null"),
                 Value::Boolean(b) => out.push_str(if b { "true" } else { "false" }),
+                Value::BigInt(_) => {
+                    return Err(error("cannot serialize BigInt to JSON without a codec"));
+                }
                 Value::Number(n) => out.push_str(&if n.is_finite() {
                     number_text(n)
                 } else {
@@ -1011,7 +1060,9 @@ pub fn json_text(value: Value<'_>) -> Result<Option<String>, EvaluationError> {
                 Value::String(s) => {
                     out.push_str(&serde_json::to_string(&*s).map_err(|e| error(&e.to_string()))?)
                 }
-                Value::Set(_) | Value::Map(_) | Value::Iterable(_) => out.push_str("{}"),
+                Value::Set(_) | Value::Map(_) | Value::Iterable(_) | Value::InputSource(_) => {
+                    out.push_str("{}")
+                }
                 Value::Match(_) => {
                     return Err(error("current match scope serialization is not supported"));
                 }
@@ -1021,6 +1072,14 @@ pub fn json_text(value: Value<'_>) -> Result<Option<String>, EvaluationError> {
                 Value::Url(url) => out.push_str(
                     &serde_json::to_string(url.0.as_str()).map_err(|e| error(&e.to_string()))?,
                 ),
+                Value::Date(date) => {
+                    let date = date.0.to_offset(time::UtcOffset::UTC);
+                    let text = date
+                        .format(&time::format_description::well_known::Rfc3339)
+                        .map_err(|e| error(&e.to_string()))?;
+                    out.push_str(&serde_json::to_string(&text).map_err(|e| error(&e.to_string()))?);
+                }
+                Value::Error(_) => out.push_str("{}"),
                 Value::Bytes(bytes) => {
                     out.push('{');
                     for (i, byte) in bytes.iter().enumerate() {
@@ -1092,3 +1151,4 @@ pub fn json_text(value: Value<'_>) -> Result<Option<String>, EvaluationError> {
 
 #[cfg(test)]
 mod tests;
+use crate::text::RuntimeString;

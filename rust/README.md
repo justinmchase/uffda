@@ -34,6 +34,22 @@ authored `toJSON` hooks through the same scheduler. Pending work belongs to
 execution state, not a Promise language value; Rust deliberately does not
 reproduce JavaScript's empty-object serialization of pending hooks.
 
+Runtime values, symbol descriptions, property keys, authored string segments and
+typed AST literals use `RuntimeString`, preserving every UTF-16 code unit.
+`json::from_str` is the lossless JSON/AST entry point; `json::JsonValue`
+preserves nested string values and keys before typed deserialization. Importing
+an existing `serde_json::Value` only imports the scalar data it already
+contains—it cannot recover lone surrogates rejected by an earlier decoder.
+
+Length, indexing and slicing use UTF-16 offsets; iteration and pattern input
+normalization use paired code-point items. JSON output escapes isolated
+surrogates, including object keys and `toJSON` arguments. Scalar UTF-8 output,
+Uffda source display, formatter output and hashing explicitly reject isolated
+units. Root provenance retains the specified code-point positions; slicing a
+surrogate pair retains its character span, and a pair formed across concatenated
+segments covers both contributing spans. The shared string corpus lives in
+`test/rust/string-fixtures.json`.
+
 `ExpressionExecution::step_status` distinguishes completed work, cooperative
 yielding and suspension. Explicit host callable values suspend ordinary calls
 with rooted arguments. `Evaluation::drive` polls host futures outside collector
@@ -41,8 +57,19 @@ mutation scopes; completion returns a retained value or safely materializes a
 new value in the originating arena. No executor dependency or Promise language
 value is required. Pattern-owned expressions, iterable drains, parameter
 patterns and rule execution forward requests to the same owning continuations.
-`Runtime::drive` uses the shared host driver; asynchronous input delivery
-remains separate work.
+`Runtime::drive` uses the shared host driver. `Runtime::pattern_from_source` and
+`Runtime::from_source` accept an explicitly identified asynchronous producer.
+`drive_external` distinguishes input delivery from host calls and polls both
+outside collector scopes. Each input completion supplies one arbitrary runtime
+value or explicit EOF; delivery is demand-driven, with no read-ahead. Cached
+prefixes preserve backtracking and memo identity. Errors and cancellation are
+explicit. Prefix snapshots structurally share immutable storage: append and
+indexed lookup take logarithmic work without copying prior items. Fixed input
+still uses its original vector storage. `PatternInput::stream` and
+`PatternRequest::stream` now use `InputBuffer`; host-supplied fixed vectors
+convert with `.into()`. Prefix retention/memo eviction remains open: live
+sources retain delivered items, and retained historical snapshots keep their
+shared branches alive.
 
 Source `parse`, `exec`, `match`, `run`, and file/glob `compile` execute the
 existing embedded languages and compiler. Source/AST executable acceptance and
@@ -84,6 +111,22 @@ integer values rather than inventing syntax.
 This preview must not be treated as full runtime parity. Unicode lone-surrogate
 values, remaining async/incremental acceptance and release-platform validation
 remain migration gates.
+
+## Native data codec API
+
+The Rust library exposes the approved authored data grammar through
+`codec::data::DataDecoder`. `push_some` consumes through at most one record
+boundary and returns both the consumed byte count and an owned data document;
+call `finish` to deliver a final record without a trailing newline. A document
+can be materialized inside a `gc_arena::Mutation` as native runtime values or
+encoded compactly/prettily. BigInt, Date and Error are collector-backed runtime
+values; codec export rejects unsupported values, aliases, cycles and
+symbol-keyed objects instead of silently losing information.
+
+This is a Rust library API, not yet a CLI input/output mode. `exec --json` still
+uses JSON semantics: BigInt serialization fails, Date serializes as its UTC
+RFC3339 instant, and an Error with no enumerable user fields serializes as `{}`.
+Use the data codec for lossless native-value round trips.
 
 ## Development
 

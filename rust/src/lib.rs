@@ -26,3 +26,25 @@ pub mod value;
 
 #[cfg(test)]
 mod gc_tests;
+pub mod json;
+
+#[cfg(test)]
+mod string_acceptance {
+    #[test]
+    // req:runtime-strings-002
+    fn public_lossless_decoder_and_value_execution_survive_collection() {
+        let ast = crate::json::from_str(r#"{"kind":"value","value":"\ud800"}"#).unwrap();
+        let mut evaluation = crate::evaluate::Evaluation::new(ast);
+        let value = evaluation.finish().unwrap();
+        evaluation.collect();
+        assert_eq!(
+            evaluation
+                .read(&value, |value| crate::coercion::string_text(value)
+                    .unwrap()
+                    .as_utf16()
+                    .to_vec())
+                .unwrap(),
+            vec![0xd800]
+        );
+    }
+}

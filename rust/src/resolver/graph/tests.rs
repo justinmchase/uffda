@@ -1,6 +1,21 @@
 use super::*;
+use serde_json::Value;
 use serde_json::json;
 use std::sync::atomic::{AtomicU64, Ordering};
+
+#[test]
+// req:runtime-strings-002
+fn linked_declarations_keep_lossless_json_literal_payloads() {
+    let url = Url::parse("file:///lossless-graph.json").unwrap();
+    let mut resolver = Resolver::from_cwd().unwrap();
+    resolver.insert_declaration(url.clone(), super::super::decode_declaration(&url, r#"{"imports":[],"exports":[{"kind":"func","name":"Text"}],"rules":[],"funcs":[{"name":"Text","pattern":{"kind":"end"},"expression":{"kind":"value","value":"\ud800"}}]}"#).unwrap());
+    let graph = resolver.load_graph(&url).unwrap();
+    let declaration = &graph.modules[&url].declaration.funcs[0];
+    let crate::json::JsonValue::String(text) = &declaration["expression"]["value"] else {
+        panic!()
+    };
+    assert_eq!(text.as_utf16(), &[0xd800]);
+}
 
 #[test]
 // req:project-file-002
