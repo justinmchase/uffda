@@ -30,7 +30,10 @@ Expected behavior:
   - level 2 wrapper is one of `{array, object, string}`;
   - level 3 leaf is one of
     `{array, object, number, string-literal, reference, boolean, null, undefined}`.
-- Core combinatorial success cases MUST be exactly $3 \times 3 \times 8 = 72$.
+- Core combinatorial cases MUST be exactly $3 \times 3 \times 8 = 72$.
+  Combinations that interpolate an object or array MUST parse successfully but
+  fail execution with an explicit conversion error; they MUST NOT count as
+  successful string conversions.
 - Requirement coverage MUST also include explicit success cases for array spread
   and object spread syntax forms.
 - Requirement coverage MUST include explicit function invocation cases for each
@@ -41,4 +44,4 @@ Expected behavior:
 Postconditions:
 
 - Integration-level behavior remains deterministic and executable from syntax to
-  runtime value output across the full three-level success matrix.
+  runtime value output or explicit conversion failure across the full matrix.

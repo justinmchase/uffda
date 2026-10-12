@@ -27,6 +27,7 @@ Deno.test(
       name: "SURROUND00",
       fn: moduleDeclarationTest({
         moduleUrl,
+        declarations: { [moduleUrl]: SurroundTest },
         input: Input.Iterable("(x)"),
         kind: MatchKind.Ok,
         value: "x",
@@ -36,6 +37,7 @@ Deno.test(
       name: "SURROUND01",
       fn: moduleDeclarationTest({
         moduleUrl,
+        declarations: { [moduleUrl]: SurroundTest },
         input: Input.Iterable("(x"),
         kind: MatchKind.Ok,
         value: "x",
@@ -45,6 +47,7 @@ Deno.test(
       name: "SURROUND02",
       fn: moduleDeclarationTest({
         moduleUrl,
+        declarations: { [moduleUrl]: SurroundTest },
         input: Input.Iterable("x)"),
         kind: MatchKind.Ok,
         value: "x",
@@ -55,6 +58,7 @@ Deno.test(
       name: "SURROUND03",
       fn: moduleDeclarationTest({
         moduleUrl,
+        declarations: { [moduleUrl]: SurroundTest },
         input: Input.Iterable("x"),
         kind: MatchKind.Ok,
         value: "x",
@@ -65,6 +69,7 @@ Deno.test(
       name: "SURROUND04",
       fn: moduleDeclarationTest({
         moduleUrl,
+        declarations: { [moduleUrl]: SurroundTest },
         input: Input.Iterable("()"),
         kind: MatchKind.Fail,
         failures: [

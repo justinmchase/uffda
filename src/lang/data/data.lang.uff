@@ -1,0 +1,253 @@
+import "../editor/editor.uff" Documentation;
+
+export DataLang;
+export DataRecord;
+
+rule Space =
+  | " "
+  | "\t"
+  | "\r"
+  | "\n"
+;
+
+rule Comment = "#" (except "\n")*;
+
+rule Trivia = (Space | Comment)*;
+
+rule Separator = (Space | Comment)+;
+
+rule Digit = "0".."9";
+
+rule NonzeroDigit = "1".."9";
+
+rule HexDigit =
+  | Digit
+  | "a".."f"
+  | "A".."F"
+;
+
+[Documentation {
+  description: "A JSON unicode escape.",
+  error: "Expected four hexadecimal digits after `\\u`."
+}]
+rule UnicodeDigits = HexDigit HexDigit HexDigit HexDigit -> (join _ "");
+
+[Documentation {
+  description: "A JSON escape code.",
+  error: "Expected a JSON string escape after `\\`."
+}]
+rule EscapeCode =
+  | "\""
+  | "\\"
+  | "/"
+  | "b"
+  | "f"
+  | "n"
+  | "r"
+  | "t"
+  | ("u" d:UnicodeDigits -> (join ["u" d] ""))
+;
+
+rule Escaped = "\\" c:EscapeCode -> (join (flat ["\\" c]) "");
+
+rule StringUnit =
+  | Escaped
+  | not "\"" & not "\\" & " "..
+;
+
+[Documentation {
+  description: "The closing data string quote.",
+  error: "Expected `\"` to close the data string."
+}]
+rule StringEnd = "\"";
+
+rule Quoted = "\"" s:StringUnit* StringEnd -> (join ["\"" (join s "") "\""] "");
+
+rule StringValue = s:Quoted -> { kind: "string", token: s };
+
+rule IdentifierStart =
+  | "a".."z"
+  | "A".."Z"
+  | "_"
+;
+
+rule IdentifierRest =
+  | IdentifierStart
+  | Digit
+;
+
+rule Identifier =
+  a:IdentifierStart b:IdentifierRest*
+  -> (join [a (join b "")] "")
+;
+
+rule Key =
+  | Quoted
+  | Identifier
+;
+
+rule Integer =
+  | "0"
+  | (a:NonzeroDigit b:Digit* -> (join [a (join b "")] ""))
+;
+
+[Documentation {
+  description: "A required decimal digit.",
+  error: "Expected a decimal digit here."
+}]
+rule RequiredDigit = Digit;
+
+rule Fraction = "." a:RequiredDigit b:Digit* -> (join ["." a (join b "")] "");
+
+rule Sign =
+  | "-"
+  | (ok -> "")
+;
+
+rule ExponentSign =
+  | "+"
+  | "-"
+  | (ok -> "")
+;
+
+rule Exponent =
+  e:("e" | "E") s:ExponentSign a:RequiredDigit b:Digit*
+  -> (join [e s a (join b "")] "")
+;
+
+rule OptionalFraction =
+  | Fraction
+  | (ok -> "")
+;
+
+rule OptionalExponent =
+  | Exponent
+  | (ok -> "")
+;
+
+rule NumberToken =
+  s:Sign i:Integer f:OptionalFraction e:OptionalExponent
+  -> (join [s i f e] "")
+;
+
+rule BigIntToken = s:Sign i:Integer "n" -> (join [s i "n"] "");
+
+rule NumberValue = s:NumberToken -> { kind: "number", token: s };
+
+rule BigIntValue = s:BigIntToken -> { kind: "bigint", token: s };
+
+rule NullValue = "n" "u" "l" "l" -> { kind: "null" };
+
+rule UndefinedValue =
+  "u" "n" "d" "e" "f" "i" "n" "e" "d"
+  -> { kind: "undefined" }
+;
+
+rule TrueValue = "t" "r" "u" "e" -> { kind: "boolean", value: true };
+
+rule FalseValue = "f" "a" "l" "s" "e" -> { kind: "boolean", value: false };
+
+rule NaNValue = "N" "a" "N" -> { kind: "number", token: "NaN" };
+
+rule InfinityToken =
+  s:Sign "I" "n" "f" "i" "n" "i" "t" "y"
+  -> (join [s "Infinity"] "")
+;
+
+rule InfinityValue = s:InfinityToken -> { kind: "number", token: s };
+
+[Documentation {
+  description: "The closing data array bracket.",
+  error: "Expected `]` to close the data array."
+}]
+rule ArrayEnd = "]";
+
+rule SubsequentItem = Separator v:Value -> v;
+
+rule ArrayItems = a:Value b:SubsequentItem* -> [a ...b];
+
+rule ArrayValue =
+  "[" Trivia v:(ArrayItems | (ok -> [])) Trivia ArrayEnd
+  -> { kind: "array", items: v }
+;
+
+[Documentation {
+  description: "The object key separator.",
+  error: "Expected `:` after the data object key."
+}]
+rule Colon = ":";
+
+[Documentation {
+  description: "A required data value.",
+  error: "Expected a data value here."
+}]
+rule RequiredValue = Value;
+
+rule Entry = k:Key Trivia Colon Trivia v:RequiredValue -> { key: k, value: v };
+
+rule SubsequentEntry = Separator e:Entry -> e;
+
+rule Entries = a:Entry b:SubsequentEntry* -> [a ...b];
+
+[Documentation {
+  description: "The closing data object brace.",
+  error: "Expected `}` to close the data object."
+}]
+rule ObjectEnd = "}";
+
+rule ObjectValue =
+  "{" Trivia v:(Entries | (ok -> [])) Trivia ObjectEnd
+  -> { kind: "object", entries: v }
+;
+
+rule DateTag = "d" "a" "t" "e" -> "date";
+
+rule BytesTag = "b" "y" "t" "e" "s" -> "bytes";
+
+rule SymbolTag = "s" "y" "m" "b" "o" "l" -> "symbol";
+
+rule StringTag =
+  "@" t:(DateTag | BytesTag | SymbolTag) Trivia v:StringValue
+  -> { kind: "tag", tag: t, value: v }
+;
+
+rule SetTag = "s" "e" "t" -> "set";
+
+rule MapTag = "m" "a" "p" -> "map";
+
+rule ArrayTag =
+  "@" t:(SetTag | MapTag) Trivia v:ArrayValue
+  -> { kind: "tag", tag: t, value: v }
+;
+
+rule ErrorTag =
+  "@" "e" "r" "r" "o" "r" Trivia v:ObjectValue
+  -> { kind: "tag", tag: "error", value: v }
+;
+
+rule Value =
+  | StringValue
+  | ArrayValue
+  | ObjectValue
+  | NullValue
+  | UndefinedValue
+  | TrueValue
+  | FalseValue
+  | NaNValue
+  | InfinityValue
+  | BigIntValue
+  | NumberValue
+  | StringTag
+  | ArrayTag
+  | ErrorTag
+;
+
+[Documentation {
+  description: "The end of a single data record.",
+  error: "Expected the end of the data record after its one value."
+}]
+rule RecordEnd = end;
+
+rule DataRecord = Trivia v:RequiredValue Trivia RecordEnd -> v;
+
+rule DataLang = string & [DataRecord];

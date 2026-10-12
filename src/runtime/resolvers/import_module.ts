@@ -1,22 +1,31 @@
-/**
- * Dynamically import a module by runtime specifier (typically a consumer
- * `file:` / `http:` URL).
- *
- * Specifiers are never package-local paths JSR could rewrite at publish time.
- * An indirect `import` keeps `deno publish` / `jsr publish` from emitting
- * `unanalyzable-dynamic-import` warnings for this intentional loader.
- */
-export function importModule(
+import { extname, fromFileUrl } from "@std/path";
+
+/** Reads a JSON declaration as data, never as executable host code. */
+export async function importModule(
   specifier: string,
   options?: ImportCallOptions,
 ): Promise<{ default?: unknown }> {
-  const load = new Function(
-    "specifier",
-    "options",
-    "return options === undefined ? import(specifier) : import(specifier, options)",
-  ) as (
-    specifier: string,
-    options?: ImportCallOptions,
-  ) => Promise<{ default?: unknown }>;
-  return load(specifier, options);
+  const url = new URL(specifier);
+  if (extname(url.pathname) !== ".json") {
+    throw new Error(
+      `Unable to resolve file of unknown extension ${extname(url.pathname)}`,
+    );
+  }
+  if (options?.with?.type !== "json") {
+    throw new Error("JSON module loading requires type json");
+  }
+  let text: string;
+  if (url.protocol === "file:") {
+    text = await Deno.readTextFile(fromFileUrl(url));
+  } else if (url.protocol === "https:" || url.protocol === "http:") {
+    const response = await fetch(url);
+    if (!response.ok) {
+      await response.body?.cancel();
+      throw new Error(`fetching ${url.href} failed with ${response.status}`);
+    }
+    text = await response.text();
+  } else {
+    throw new Error(`Unsupported JSON module protocol ${url.protocol}`);
+  }
+  return { default: JSON.parse(text) };
 }

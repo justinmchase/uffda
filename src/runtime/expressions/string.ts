@@ -4,7 +4,8 @@ import { exec } from "../exec.ts";
 import type { MatchSuccess } from "../../match.ts";
 import type { Expression, StringExpression } from "./mod.ts";
 import { isExpression } from "./expression.ts";
-import { concat, originOf, rawOf, unwrap, Wrapped } from "../../wrapped.ts";
+import { concat, originOf, rawOf, Wrapped } from "../../wrapped.ts";
+import { stringText } from "../conversion.ts";
 
 export function string(
   expression: StringExpression,
@@ -29,9 +30,9 @@ export function string(
   // Interpolated strings keep their characters' provenance; any other
   // segment is converted to text computed by this match.
   const toText = (segment: unknown): unknown =>
-    typeof rawOf(segment) === "string"
+    type(rawOf(segment))[0] === Type.String
       ? segment
-      : new Wrapped(`${unwrap(segment)}`, originOf(match));
+      : new Wrapped(stringText(segment), originOf(match));
   return andThen(
     segments,
     (parts) => concat(parts.map(toText), originOf(match)),

@@ -20,6 +20,16 @@ import {
 
 const at = (start: number, end = start + 1) => rootOrigin(start, end);
 
+Deno.test("req:runtime-core-012 - wrappers reject callable conversion", () => {
+  const value = new Wrapped(() => 1, at(0));
+  assertThrows(() => String(value), TypeError);
+  assertThrows(() => JSON.stringify(value), TypeError);
+  for (const raw of [{}, [], { toString: () => "hidden" }]) {
+    assertThrows(() => String(new Wrapped(raw, at(0))), TypeError);
+    assertThrows(() => concat([raw], at(0)), TypeError);
+  }
+});
+
 Deno.test("wrapped", async (t) => {
   await t.step("wrap carries an existing wrapper unchanged", () => {
     const inner = new Wrapped("a", at(0));
@@ -241,7 +251,7 @@ Deno.test("wrapped", async (t) => {
     assertEquals(n + 1, 3);
     assertEquals(`${new Wrapped("a", at(0))}!`, "a!");
     assertEquals(new Wrapped("a", at(0)) == ("a" as unknown), true);
-    assertEquals(`${new Wrapped([1, 2], at(0))}`, "1,2");
+    assertThrows(() => `${new Wrapped([1, 2], at(0))}`, TypeError);
     assertEquals(+new Wrapped(new Date(5), at(0)), 5);
     assertEquals(typeof new Wrapped("a", at(0)), "object");
   });

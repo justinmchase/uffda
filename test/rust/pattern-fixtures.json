@@ -1,0 +1,384 @@
+[
+  {
+    "name": "any consumes one",
+    "ast": { "kind": "any" },
+    "input": [42],
+    "kind": "ok",
+    "end": 1,
+    "expected": 42
+  },
+  {
+    "name": "any at end fails",
+    "ast": { "kind": "any" },
+    "input": [],
+    "kind": "fail",
+    "end": 0,
+    "expected": null
+  },
+  {
+    "name": "equal is strict",
+    "ast": {
+      "kind": "equal",
+      "value": { "kind": "value.literal", "value": "42" }
+    },
+    "input": [42],
+    "kind": "fail",
+    "end": 0,
+    "expected": null
+  },
+  {
+    "name": "equal literal matches",
+    "ast": {
+      "kind": "equal",
+      "value": { "kind": "value.literal", "value": 42 }
+    },
+    "input": [42],
+    "kind": "ok",
+    "end": 1,
+    "expected": 42
+  },
+  {
+    "name": "includes",
+    "ast": {
+      "kind": "includes",
+      "values": [
+        { "kind": "value.literal", "value": 1 },
+        { "kind": "value.literal", "value": 42 }
+      ]
+    },
+    "input": [42],
+    "kind": "ok",
+    "end": 1,
+    "expected": 42
+  },
+  {
+    "name": "then ordering",
+    "ast": {
+      "kind": "then",
+      "patterns": [{ "kind": "any" }, { "kind": "any" }]
+    },
+    "input": [1, 2],
+    "kind": "ok",
+    "end": 2,
+    "expected": [1, 2]
+  },
+  {
+    "name": "failed sequence rolls back",
+    "ast": {
+      "kind": "then",
+      "patterns": [{ "kind": "any" }, { "kind": "fail" }]
+    },
+    "input": [1],
+    "kind": "fail",
+    "end": 0,
+    "expected": null
+  },
+  {
+    "name": "choice discards failed binding",
+    "ast": {
+      "kind": "or",
+      "patterns": [
+        {
+          "kind": "then",
+          "patterns": [
+            { "kind": "variable", "name": "x", "pattern": { "kind": "any" } },
+            { "kind": "fail" }
+          ]
+        },
+        { "kind": "variable", "name": "x", "pattern": { "kind": "any" } }
+      ]
+    },
+    "input": [42],
+    "kind": "ok",
+    "end": 1,
+    "expected": 42
+  },
+  {
+    "name": "lookahead is zero width",
+    "ast": { "kind": "lookahead", "pattern": { "kind": "any" } },
+    "input": [42],
+    "kind": "ok",
+    "end": 0,
+    "expected": 42
+  },
+  {
+    "name": "skip is omitted",
+    "ast": {
+      "kind": "then",
+      "patterns": [
+        { "kind": "skip", "pattern": { "kind": "any" } },
+        { "kind": "any" }
+      ]
+    },
+    "input": [1, 42],
+    "kind": "ok",
+    "end": 2,
+    "expected": [42]
+  },
+  {
+    "name": "into consumes whole inner stream",
+    "ast": {
+      "kind": "into",
+      "pattern": {
+        "kind": "then",
+        "patterns": [{ "kind": "any" }, { "kind": "any" }]
+      }
+    },
+    "input": [["😀", "a"]],
+    "kind": "ok",
+    "end": 1,
+    "expected": ["😀", "a"]
+  },
+  {
+    "name": "into refuses partial consumption",
+    "ast": { "kind": "into", "pattern": { "kind": "any" } },
+    "input": [[1, 2]],
+    "kind": "fail",
+    "end": 0,
+    "expected": null
+  },
+  {
+    "name": "except carries unexcluded item",
+    "ast": {
+      "kind": "except",
+      "pattern": {
+        "kind": "equal",
+        "value": { "kind": "value.literal", "value": 1 }
+      }
+    },
+    "input": [42],
+    "kind": "ok",
+    "end": 1,
+    "expected": 42
+  },
+  {
+    "name": "except fails on excluded item",
+    "ast": { "kind": "except", "pattern": { "kind": "any" } },
+    "input": [42],
+    "kind": "fail",
+    "end": 0,
+    "expected": null
+  },
+  {
+    "name": "type observes raw number",
+    "ast": { "kind": "type", "type": "number" },
+    "input": [42],
+    "kind": "ok",
+    "end": 1,
+    "expected": 42
+  },
+  {
+    "name": "type rejects mismatch",
+    "ast": { "kind": "type", "type": "string" },
+    "input": [42],
+    "kind": "fail",
+    "end": 0,
+    "expected": null
+  },
+  {
+    "name": "quantifier collects in order",
+    "ast": { "kind": "quantifier", "pattern": { "kind": "any" } },
+    "input": [1, 2, 3],
+    "kind": "ok",
+    "end": 3,
+    "expected": [1, 2, 3]
+  },
+  {
+    "name": "quantifier maximum",
+    "ast": {
+      "kind": "quantifier",
+      "pattern": { "kind": "any" },
+      "max": { "kind": "value.literal", "value": 2 }
+    },
+    "input": [1, 2, 3],
+    "kind": "ok",
+    "end": 2,
+    "expected": [1, 2]
+  },
+  {
+    "name": "quantifier insufficient minimum rolls back",
+    "ast": {
+      "kind": "quantifier",
+      "pattern": { "kind": "any" },
+      "min": { "kind": "value.literal", "value": 2 }
+    },
+    "input": [1],
+    "kind": "fail",
+    "end": 0,
+    "expected": null
+  },
+  {
+    "name": "quantifier skips count but contribute no value",
+    "ast": {
+      "kind": "quantifier",
+      "pattern": { "kind": "skip", "pattern": { "kind": "any" } },
+      "min": { "kind": "value.literal", "value": 2 }
+    },
+    "input": [1, 2],
+    "kind": "ok",
+    "end": 2,
+    "expected": []
+  },
+  {
+    "name": "quantifier zero width progress guard",
+    "ast": {
+      "kind": "quantifier",
+      "pattern": { "kind": "lookahead", "pattern": { "kind": "any" } },
+      "min": { "kind": "value.literal", "value": 3 }
+    },
+    "input": [42],
+    "kind": "ok",
+    "end": 0,
+    "expected": [42, 42, 42]
+  },
+  {
+    "name": "contextual equality uses capture",
+    "ast": {
+      "kind": "then",
+      "patterns": [
+        { "kind": "variable", "name": "x", "pattern": { "kind": "any" } },
+        { "kind": "equal", "value": { "kind": "value.variable", "name": "x" } }
+      ]
+    },
+    "input": [42, 42],
+    "kind": "ok",
+    "end": 2,
+    "expected": [42, 42]
+  },
+  {
+    "name": "empty sequence succeeds",
+    "ast": { "kind": "then", "patterns": [] },
+    "input": [42],
+    "kind": "ok",
+    "end": 0,
+    "expected": []
+  },
+  {
+    "name": "between inclusive number bounds",
+    "ast": {
+      "kind": "between",
+      "left": { "kind": "value.literal", "value": 40 },
+      "right": { "kind": "value.literal", "value": 42 }
+    },
+    "input": [42],
+    "kind": "ok",
+    "end": 1,
+    "expected": 42
+  },
+  {
+    "name": "between lower half interval",
+    "ast": {
+      "kind": "between",
+      "left": { "kind": "value.literal", "value": 40 }
+    },
+    "input": [42],
+    "kind": "ok",
+    "end": 1,
+    "expected": 42
+  },
+  {
+    "name": "between upper half interval",
+    "ast": {
+      "kind": "between",
+      "right": { "kind": "value.literal", "value": 42 }
+    },
+    "input": [40],
+    "kind": "ok",
+    "end": 1,
+    "expected": 40
+  },
+  {
+    "name": "between out of bounds restores position",
+    "ast": {
+      "kind": "between",
+      "right": { "kind": "value.literal", "value": 42 }
+    },
+    "input": [43],
+    "kind": "fail",
+    "end": 0,
+    "expected": null
+  },
+  {
+    "name": "between requires matching bound type",
+    "ast": {
+      "kind": "between",
+      "left": { "kind": "value.literal", "value": "40" }
+    },
+    "input": [42],
+    "kind": "fail",
+    "end": 0,
+    "expected": null
+  },
+  {
+    "name": "between string inclusive bounds",
+    "ast": {
+      "kind": "between",
+      "left": { "kind": "value.literal", "value": "a" },
+      "right": { "kind": "value.literal", "value": "z" }
+    },
+    "input": ["z"],
+    "kind": "ok",
+    "end": 1,
+    "expected": "z"
+  },
+  {
+    "name": "between string ordering follows UTF16 rather than Unicode scalar order",
+    "ast": {
+      "kind": "between",
+      "right": { "kind": "value.literal", "value": "\ue000" }
+    },
+    "input": ["😀"],
+    "kind": "ok",
+    "end": 1,
+    "expected": "😀"
+  },
+  {
+    "name": "between captures contextual bound",
+    "ast": {
+      "kind": "then",
+      "patterns": [
+        { "kind": "variable", "name": "minimum", "pattern": { "kind": "any" } },
+        {
+          "kind": "between",
+          "left": { "kind": "value.variable", "name": "minimum" }
+        }
+      ]
+    },
+    "input": [40, 42],
+    "kind": "ok",
+    "end": 2,
+    "expected": [40, 42]
+  },
+  {
+    "name": "between unavailable input fails",
+    "ast": {
+      "kind": "between",
+      "left": { "kind": "value.literal", "value": 40 }
+    },
+    "input": [],
+    "kind": "fail",
+    "end": 0,
+    "expected": null
+  },
+  {
+    "name": "quantifier zero maximum does not invoke child",
+    "ast": {
+      "kind": "quantifier",
+      "pattern": { "kind": "fail" },
+      "min": { "kind": "value.literal", "value": 0 },
+      "max": { "kind": "value.literal", "value": 0 }
+    },
+    "input": ["x"],
+    "kind": "ok",
+    "end": 0,
+    "expected": []
+  },
+  {
+    "name": "empty choice fails",
+    "ast": { "kind": "or", "patterns": [] },
+    "input": [42],
+    "kind": "fail",
+    "end": 0,
+    "expected": null
+  }
+]

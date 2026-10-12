@@ -164,6 +164,11 @@ so a single span for the whole string is not precise enough.
 - A string produced by concatenation (`join`, string interpolation, and any
   other operation that builds a string from strings) MUST give each character
   the source span of the character it was copied from.
+- When concatenation forms a surrogate pair from units copied from different
+  segments, the resulting code-point item's source span MUST cover both
+  contributing units' spans. Indexing or slicing one unit of an existing pair
+  MUST retain that pair's source span. Root input positions remain code-point
+  positions as defined above; UTF-16 operation offsets are not root positions.
 - A character written in an expression literal, or produced by a computation
   that does not copy characters, MUST take the source span of the Match that
   created it. For example, normalizing `"\r\n"` to a literal `"\n"` gives that
@@ -243,7 +248,10 @@ original characters it replaced.
   target is resolved without wrapping, since it is called rather than carried.
 - A wrapped value SHOULD convert like its raw value (`Symbol.toPrimitive`) and
   serialize as its raw value (`toJSON`), so host code that coerces or serializes
-  a wrapped value gets the raw result.
+  a wrapped value gets the raw result, subject to the
+  [composite/callable conversion restrictions](../runtime.spec.md#callable-conversion).
+  Wrapping MUST NOT enable implicit composite text conversion or callable
+  serialization.
 - Before adoption, parse time and retained heap for `src/lang/source/mod.uff`
   MUST be benchmarked against the unwrapped model and reported on #219.
 

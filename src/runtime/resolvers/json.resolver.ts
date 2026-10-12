@@ -1,4 +1,4 @@
-import type { ModuleDeclaration } from "../declarations/module.ts";
+import { isModuleDeclaration } from "../declarations/is_module_declaration.ts";
 import { importModule } from "./import_module.ts";
 import {
   type IModuleResolver,
@@ -20,13 +20,13 @@ export class JsonResolver implements IModuleResolver {
       const module = await importModule(moduleUrl.href, {
         with: { type: "json" },
       });
-      if (!module.default) {
+      if (!isModuleDeclaration(module.default)) {
         return moduleDeclarationResolutionResult(moduleResolutionError(
           `Imported module ${moduleUrl} must export a ModuleDeclaration as a default export`,
           context,
         ));
       }
-      return moduleDeclarationResult(module.default as ModuleDeclaration);
+      return moduleDeclarationResult(module.default);
     } catch (err) {
       if (err && typeof err === "object" && "kind" in err) {
         const result = err as { kind?: unknown; error?: unknown };

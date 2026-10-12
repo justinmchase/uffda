@@ -1,6 +1,6 @@
 ---
 id: modules-runtime-001
-title: Module resolution supports configured extensions and rejects unknown extensions
+title: Both runtimes load uff and json modules and reject executable file imports
 spec_ref: ".agents/specifications/modules.spec.md#supported-module-sources; .agents/specifications/modules.spec.md#error-and-determinism-requirements"
 ---
 
@@ -16,7 +16,11 @@ Preconditions:
 
 Expected behavior:
 
-- Resolver MUST support `.ts`, `.js`, and `.json` declaration module sources.
+- Both resolvers MUST support `.json` declarations at their actual paths.
+- Both resolvers MUST reject `.ts`, `.js`, and other unsupported file extensions
+  before reading or executing files, even with custom extension resolvers.
+- Explicitly supplied declarations MAY use such URLs as identities without
+  loading files. Explicit CLI `--ast` input remains supported.
 - Resolver MUST support logical `.uff` module URLs by remapping to compiled
   artifacts in the resolver's artifact layout (see `cli-bootstrap-004`).
 - Resolver MUST return a successful module import result when supported

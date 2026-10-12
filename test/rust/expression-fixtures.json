@@ -1,0 +1,453 @@
+[
+  {
+    "name": "number literal",
+    "ast": { "kind": "number", "value": 42 },
+    "expected": 42
+  },
+  {
+    "name": "boolean literal",
+    "ast": { "kind": "boolean", "value": false },
+    "expected": false
+  },
+  {
+    "name": "serializable nested value",
+    "ast": { "kind": "value", "value": { "items": [null, true, "text", 3.5] } },
+    "expected": { "items": [null, true, "text", 3.5] }
+  },
+  {
+    "name": "empty array",
+    "ast": { "kind": "array", "expressions": [] },
+    "expected": []
+  },
+  {
+    "name": "empty object",
+    "ast": { "kind": "object", "keys": [] },
+    "expected": {}
+  },
+  {
+    "name": "array elements and spread",
+    "ast": {
+      "kind": "array",
+      "expressions": [
+        {
+          "kind": "arrayElement",
+          "expression": { "kind": "number", "value": 1 }
+        },
+        {
+          "kind": "arraySpread",
+          "expression": { "kind": "value", "value": [2, 3] }
+        },
+        {
+          "kind": "arrayElement",
+          "expression": { "kind": "value", "value": [4] }
+        }
+      ]
+    },
+    "expected": [1, 2, 3, [4]]
+  },
+  {
+    "name": "string spread iterates Unicode code points",
+    "ast": {
+      "kind": "array",
+      "expressions": [
+        {
+          "kind": "arraySpread",
+          "expression": { "kind": "value", "value": "a😀" }
+        }
+      ]
+    },
+    "expected": ["a", "😀"]
+  },
+  {
+    "name": "object spreads override earlier properties",
+    "ast": {
+      "kind": "object",
+      "keys": [
+        {
+          "kind": "objectKey",
+          "name": "a",
+          "expression": { "kind": "number", "value": 1 }
+        },
+        {
+          "kind": "objectSpread",
+          "expression": { "kind": "value", "value": { "a": 2, "b": 3 } }
+        },
+        {
+          "kind": "objectKey",
+          "name": "b",
+          "expression": { "kind": "number", "value": 4 }
+        }
+      ]
+    },
+    "expected": { "a": 2, "b": 4 }
+  },
+  {
+    "name": "object spreading ignores primitives",
+    "ast": {
+      "kind": "object",
+      "keys": [
+        {
+          "kind": "objectSpread",
+          "expression": { "kind": "value", "value": null }
+        },
+        {
+          "kind": "objectSpread",
+          "expression": { "kind": "value", "value": "text" }
+        },
+        {
+          "kind": "objectSpread",
+          "expression": { "kind": "number", "value": 42 }
+        }
+      ]
+    },
+    "expected": {}
+  },
+  {
+    "name": "array properties spread into object",
+    "ast": {
+      "kind": "object",
+      "keys": [
+        {
+          "kind": "objectSpread",
+          "expression": { "kind": "value", "value": ["a", "b"] }
+        }
+      ]
+    },
+    "expected": { "0": "a", "1": "b" }
+  },
+  {
+    "name": "computed string property",
+    "ast": {
+      "kind": "object",
+      "keys": [
+        {
+          "kind": "objectComputedKey",
+          "keyExpression": { "kind": "value", "value": "dynamic" },
+          "expression": { "kind": "boolean", "value": true }
+        }
+      ]
+    },
+    "expected": { "dynamic": true }
+  },
+  {
+    "name": "computed numeric property uses JavaScript number formatting",
+    "ast": {
+      "kind": "object",
+      "keys": [
+        {
+          "kind": "objectComputedKey",
+          "keyExpression": { "kind": "number", "value": 1e21 },
+          "expression": { "kind": "number", "value": 42 }
+        },
+        {
+          "kind": "objectComputedKey",
+          "keyExpression": { "kind": "number", "value": -0.0 },
+          "expression": { "kind": "boolean", "value": false }
+        }
+      ]
+    },
+    "expected": { "1e+21": 42, "0": false }
+  },
+  {
+    "name": "object member",
+    "ast": {
+      "kind": "member",
+      "name": "answer",
+      "expression": { "kind": "value", "value": { "answer": 42 } }
+    },
+    "expected": 42
+  },
+  {
+    "name": "array index member",
+    "ast": {
+      "kind": "member",
+      "name": "1",
+      "expression": { "kind": "value", "value": [3, 7] }
+    },
+    "expected": 7
+  },
+  {
+    "name": "array length member",
+    "ast": {
+      "kind": "member",
+      "name": "length",
+      "expression": { "kind": "value", "value": [3, 7] }
+    },
+    "expected": 2
+  },
+  {
+    "name": "empty string expression",
+    "ast": { "kind": "string", "values": [] },
+    "expected": ""
+  },
+  {
+    "name": "ordered string interpolation",
+    "ast": {
+      "kind": "string",
+      "values": [
+        "value=",
+        { "kind": "number", "value": 42 },
+        ";",
+        { "kind": "boolean", "value": true },
+        ";",
+        { "kind": "value", "value": null },
+        ";",
+        { "kind": "value", "value": {} }
+      ]
+    },
+    "error": true
+  },
+  {
+    "name": "nested arrays reject implicit text conversion",
+    "ast": {
+      "kind": "string",
+      "values": [
+        { "kind": "value", "value": [[1, null], [2, 3], null, {}] }
+      ]
+    },
+    "error": true
+  },
+  {
+    "name": "nested string expressions preserve ordering",
+    "ast": {
+      "kind": "string",
+      "values": [
+        "a",
+        { "kind": "string", "values": ["b", { "kind": "number", "value": 3 }] },
+        "c"
+      ]
+    },
+    "expected": "ab3c"
+  },
+  {
+    "name": "string numbers preserve exponent formatting",
+    "ast": {
+      "kind": "string",
+      "values": [
+        { "kind": "number", "value": 1e21 },
+        ";",
+        { "kind": "number", "value": 1e-7 },
+        ";",
+        { "kind": "number", "value": -0.0 }
+      ]
+    },
+    "expected": "1e+21;1e-7;0"
+  },
+  {
+    "name": "not empty string",
+    "ast": { "kind": "not", "expression": { "kind": "value", "value": "" } },
+    "expected": true
+  },
+  {
+    "name": "not empty array",
+    "ast": { "kind": "not", "expression": { "kind": "value", "value": [] } },
+    "expected": false
+  },
+  {
+    "name": "nested negation",
+    "ast": {
+      "kind": "not",
+      "expression": {
+        "kind": "not",
+        "expression": { "kind": "value", "value": {} }
+      }
+    },
+    "expected": true
+  },
+  {
+    "name": "lambda binds a matched argument",
+    "ast": {
+      "kind": "invocation",
+      "expression": {
+        "kind": "lambda",
+        "pattern": {
+          "kind": "variable",
+          "name": "x",
+          "pattern": { "kind": "any" }
+        },
+        "expression": { "kind": "reference", "name": "x" }
+      },
+      "args": [{ "kind": "number", "value": 42 }]
+    },
+    "expected": 42
+  },
+  {
+    "name": "lambda only consumes what its parameter pattern requires",
+    "ast": {
+      "kind": "invocation",
+      "expression": {
+        "kind": "lambda",
+        "pattern": { "kind": "any" },
+        "expression": { "kind": "reference", "name": "_" }
+      },
+      "args": [
+        { "kind": "number", "value": 1 },
+        { "kind": "number", "value": 2 }
+      ]
+    },
+    "expected": 1
+  },
+  {
+    "name": "invocation spread expands unicode code points in order",
+    "ast": {
+      "kind": "invocation",
+      "expression": {
+        "kind": "lambda",
+        "pattern": {
+          "kind": "then",
+          "patterns": [
+            { "kind": "any" },
+            { "kind": "any" },
+            { "kind": "skip", "pattern": { "kind": "end" } }
+          ]
+        },
+        "expression": { "kind": "reference", "name": "_" }
+      },
+      "args": [
+        {
+          "kind": "invocationSpread",
+          "expression": { "kind": "value", "value": "😀a" }
+        }
+      ]
+    },
+    "expected": ["😀", "a"]
+  },
+  {
+    "name": "nested lambda retains its defining lexical binding",
+    "ast": {
+      "kind": "invocation",
+      "expression": {
+        "kind": "invocation",
+        "expression": {
+          "kind": "lambda",
+          "pattern": {
+            "kind": "variable",
+            "name": "captured",
+            "pattern": { "kind": "any" }
+          },
+          "expression": {
+            "kind": "lambda",
+            "pattern": { "kind": "any" },
+            "expression": { "kind": "reference", "name": "captured" }
+          }
+        },
+        "args": [{ "kind": "number", "value": 42 }]
+      },
+      "args": [{ "kind": "number", "value": 7 }]
+    },
+    "expected": 42
+  },
+  {
+    "name": "lambda alternatives discard failed captures",
+    "ast": {
+      "kind": "invocation",
+      "expression": {
+        "kind": "lambda",
+        "pattern": {
+          "kind": "or",
+          "patterns": [
+            {
+              "kind": "then",
+              "patterns": [
+                {
+                  "kind": "variable",
+                  "name": "x",
+                  "pattern": { "kind": "any" }
+                },
+                { "kind": "fail" }
+              ]
+            },
+            { "kind": "variable", "name": "x", "pattern": { "kind": "any" } }
+          ]
+        },
+        "expression": { "kind": "reference", "name": "x" }
+      },
+      "args": [{ "kind": "number", "value": 42 }]
+    },
+    "expected": 42
+  },
+  {
+    "name": "lambda nested argument matching omits skipped values",
+    "ast": {
+      "kind": "invocation",
+      "expression": {
+        "kind": "lambda",
+        "pattern": {
+          "kind": "into",
+          "pattern": {
+            "kind": "then",
+            "patterns": [
+              { "kind": "skip", "pattern": { "kind": "any" } },
+              { "kind": "any" }
+            ]
+          }
+        },
+        "expression": { "kind": "reference", "name": "_" }
+      },
+      "args": [{ "kind": "value", "value": [1, 42] }]
+    },
+    "expected": [42]
+  },
+  {
+    "name": "lookahead does not consume the lambda argument",
+    "ast": {
+      "kind": "invocation",
+      "expression": {
+        "kind": "lambda",
+        "pattern": {
+          "kind": "then",
+          "patterns": [
+            { "kind": "lookahead", "pattern": { "kind": "any" } },
+            { "kind": "any" }
+          ]
+        },
+        "expression": { "kind": "reference", "name": "_" }
+      },
+      "args": [{ "kind": "number", "value": 42 }]
+    },
+    "expected": [42, 42]
+  },
+  {
+    "name": "a captured callable supports repeated isolated invocations",
+    "ast": {
+      "kind": "invocation",
+      "expression": {
+        "kind": "lambda",
+        "pattern": {
+          "kind": "variable",
+          "name": "f",
+          "pattern": { "kind": "any" }
+        },
+        "expression": {
+          "kind": "array",
+          "expressions": [
+            {
+              "kind": "arrayElement",
+              "expression": {
+                "kind": "invocation",
+                "expression": { "kind": "reference", "name": "f" },
+                "args": [{ "kind": "number", "value": 1 }]
+              }
+            },
+            {
+              "kind": "arrayElement",
+              "expression": {
+                "kind": "invocation",
+                "expression": { "kind": "reference", "name": "f" },
+                "args": [{ "kind": "number", "value": 2 }]
+              }
+            }
+          ]
+        }
+      },
+      "args": [
+        {
+          "kind": "lambda",
+          "pattern": { "kind": "any" },
+          "expression": { "kind": "reference", "name": "_" }
+        }
+      ]
+    },
+    "expected": [1, 2]
+  }
+]

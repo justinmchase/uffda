@@ -1,26 +1,26 @@
 ---
 id: modules-runtime-002
-title: JavaScript and JSON declaration modules require default declaration exports
-spec_ref: ".agents/specifications/modules.spec.md#javascript-and-typescript-declaration-modules; .agents/specifications/modules.spec.md#json-declaration-modules"
+title: JSON declaration modules validate their structure and normalize failures
+spec_ref: ".agents/specifications/modules.spec.md#json-declaration-modules"
 ---
 
-# JS and JSON Default Export Validation
+# JSON Declaration Validation
 
 ## Requirement
 
 Preconditions:
 
-- Runtime module resolution imports a `.js` or `.json` declaration module.
+- Either runtime imports a `.json` declaration module.
 
 Expected behavior:
 
-- A valid declaration module MUST provide a default export containing a module
-  declaration.
+- JSON MUST contain a module declaration object with array-valued imports,
+  exports, and rules. Optional funcs and decorators MUST be arrays when present;
+  omitted fields MUST be treated as empty arrays for older artifacts.
 
 Error behavior:
 
-- If a `.js` declaration module omits a default declaration export, resolution
-  MUST fail with a module-resolution error.
+- Invalid declaration structure MUST fail with a module-resolution error.
 - If a `.json` declaration module import/parsing fails, resolution MUST fail
   with a module-resolution error.
 

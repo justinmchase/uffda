@@ -110,6 +110,9 @@ export function quantifier(
       !min || count >= min
         ? ok(invocationScope, end, pattern, values, matches)
         : fail(invocationScope, pattern, matches);
+    if (max === 0) {
+      return finish();
+    }
     return repeatUntil(
       // One repetition, or `undefined` once the input is exhausted.
       (): Awaitable<Match | undefined> =>

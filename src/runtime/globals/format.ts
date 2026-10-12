@@ -4,9 +4,9 @@ import {
   isWrapped,
   rawOf,
   sliceString,
-  unwrap,
   type Wrapped,
 } from "../../wrapped.ts";
+import { stringText } from "../conversion.ts";
 
 const PLACEHOLDER = /{(\d+)}/g;
 
@@ -20,7 +20,9 @@ export function format(template: unknown, ...args: unknown[]) {
     return (template as string).replace(
       PLACEHOLDER,
       (substring: string, index: string) =>
-        rawOf(args[parseInt(index)])?.toString() ?? substring,
+        rawOf(args[parseInt(index)]) == null
+          ? substring
+          : stringText(args[parseInt(index)]),
     );
   }
   const source = template as Wrapped<string>;
@@ -32,7 +34,7 @@ export function format(template: unknown, ...args: unknown[]) {
     const arg = args[parseInt(m[1])];
     const raw = rawOf(arg);
     if (typeof raw === "string") parts.push(arg);
-    else if (raw != null) parts.push(String(unwrap(arg)));
+    else if (raw != null) parts.push(stringText(arg));
     else parts.push(sliceString(source, m.index, last));
   }
   parts.push(sliceString(source, last));

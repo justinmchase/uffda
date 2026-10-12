@@ -24,6 +24,10 @@ output values.
 - The `reference` case uses syntax `ref` bound in test globals to
   `{ from: "reference" }`.
 - Total matrix size for the core matrix is $3 \times 3 \times 8 = 72$ cases.
+- A string wrapper around an object or array MUST raise a conversion error,
+  including when that value is produced by an inner wrapper or a reference.
+  These cases still parse successfully; the matrix includes failure outcomes
+  rather than universal string conversion.
 
 | case | expr1  | expr2  | expr3          | syntax                           | expected                                      |
 | ---- | ------ | ------ | -------------- | -------------------------------- | --------------------------------------------- |
@@ -43,11 +47,11 @@ output values.
 | 14   | array  | object | boolean        | `[{value: true}]`                | `[{ value: true }]`                           |
 | 15   | array  | object | null           | `[{value: null}]`                | `[{ value: null }]`                           |
 | 16   | array  | object | undefined      | `[{value: undefined}]`           | `[{ value: undefined }]`                      |
-| 17   | array  | string | array          | `["{[]}"]`                       | `[""]`                                        |
-| 18   | array  | string | object         | `["{{}}"]`                       | `["[object Object]"]`                         |
+| 17   | array  | string | array          | `["{[]}"]`                       | Conversion error                              |
+| 18   | array  | string | object         | `["{{}}"]`                       | Conversion error                              |
 | 19   | array  | string | number         | `["{0}"]`                        | `["0"]`                                       |
 | 20   | array  | string | string-literal | `["{"text-value"}"]`             | `["text-value"]`                              |
-| 21   | array  | string | reference      | `["{ref}"]`                      | `["[object Object]"]`                         |
+| 21   | array  | string | reference      | `["{ref}"]`                      | Conversion error                              |
 | 22   | array  | string | boolean        | `["{true}"]`                     | `["true"]`                                    |
 | 23   | array  | string | null           | `["{null}"]`                     | `["null"]`                                    |
 | 24   | array  | string | undefined      | `["{undefined}"]`                | `["undefined"]`                               |
@@ -67,35 +71,35 @@ output values.
 | 38   | object | object | boolean        | `{value: {value: true}}`         | `{ value: { value: true } }`                  |
 | 39   | object | object | null           | `{value: {value: null}}`         | `{ value: { value: null } }`                  |
 | 40   | object | object | undefined      | `{value: {value: undefined}}`    | `{ value: { value: undefined } }`             |
-| 41   | object | string | array          | `{value: "{[]}"}`                | `{ value: "" }`                               |
-| 42   | object | string | object         | `{value: "{{}}"}`                | `{ value: "[object Object]" }`                |
+| 41   | object | string | array          | `{value: "{[]}"}`                | Conversion error                              |
+| 42   | object | string | object         | `{value: "{{}}"}`                | Conversion error                              |
 | 43   | object | string | number         | `{value: "{0}"}`                 | `{ value: "0" }`                              |
 | 44   | object | string | string-literal | `{value: "{"text-value"}"}`      | `{ value: "text-value" }`                     |
-| 45   | object | string | reference      | `{value: "{ref}"}`               | `{ value: "[object Object]" }`                |
+| 45   | object | string | reference      | `{value: "{ref}"}`               | Conversion error                              |
 | 46   | object | string | boolean        | `{value: "{true}"}`              | `{ value: "true" }`                           |
 | 47   | object | string | null           | `{value: "{null}"}`              | `{ value: "null" }`                           |
 | 48   | object | string | undefined      | `{value: "{undefined}"}`         | `{ value: "undefined" }`                      |
-| 49   | string | array  | array          | `"{[[]]}"`                       | `""`                                          |
-| 50   | string | array  | object         | `"{[{}]}"`                       | `"[object Object]"`                           |
-| 51   | string | array  | number         | `"{[0]}"`                        | `"0"`                                         |
-| 52   | string | array  | string-literal | `"{["text-value"]}"`             | `"text-value"`                                |
-| 53   | string | array  | reference      | `"{[ref]}"`                      | `"[object Object]"`                           |
-| 54   | string | array  | boolean        | `"{[true]}"`                     | `"true"`                                      |
-| 55   | string | array  | null           | `"{[null]}"`                     | `""`                                          |
-| 56   | string | array  | undefined      | `"{[undefined]}"`                | `""`                                          |
-| 57   | string | object | array          | `"{{value: []}}"`                | `"[object Object]"`                           |
-| 58   | string | object | object         | `"{{value: {}}}"`                | `"[object Object]"`                           |
-| 59   | string | object | number         | `"{{value: 0}}"`                 | `"[object Object]"`                           |
-| 60   | string | object | string-literal | `"{{value: "text-value"}}"`      | `"[object Object]"`                           |
-| 61   | string | object | reference      | `"{{value: ref}}"`               | `"[object Object]"`                           |
-| 62   | string | object | boolean        | `"{{value: true}}"`              | `"[object Object]"`                           |
-| 63   | string | object | null           | `"{{value: null}}"`              | `"[object Object]"`                           |
-| 64   | string | object | undefined      | `"{{value: undefined}}"`         | `"[object Object]"`                           |
-| 65   | string | string | array          | `"{"{[]}"}"`                     | `""`                                          |
-| 66   | string | string | object         | `"{"{{}}"}"`                     | `"[object Object]"`                           |
+| 49   | string | array  | array          | `"{[[]]}"`                       | Conversion error                              |
+| 50   | string | array  | object         | `"{[{}]}"`                       | Conversion error                              |
+| 51   | string | array  | number         | `"{[0]}"`                        | Conversion error                              |
+| 52   | string | array  | string-literal | `"{["text-value"]}"`             | Conversion error                              |
+| 53   | string | array  | reference      | `"{[ref]}"`                      | Conversion error                              |
+| 54   | string | array  | boolean        | `"{[true]}"`                     | Conversion error                              |
+| 55   | string | array  | null           | `"{[null]}"`                     | Conversion error                              |
+| 56   | string | array  | undefined      | `"{[undefined]}"`                | Conversion error                              |
+| 57   | string | object | array          | `"{{value: []}}"`                | Conversion error                              |
+| 58   | string | object | object         | `"{{value: {}}}"`                | Conversion error                              |
+| 59   | string | object | number         | `"{{value: 0}}"`                 | Conversion error                              |
+| 60   | string | object | string-literal | `"{{value: "text-value"}}"`      | Conversion error                              |
+| 61   | string | object | reference      | `"{{value: ref}}"`               | Conversion error                              |
+| 62   | string | object | boolean        | `"{{value: true}}"`              | Conversion error                              |
+| 63   | string | object | null           | `"{{value: null}}"`              | Conversion error                              |
+| 64   | string | object | undefined      | `"{{value: undefined}}"`         | Conversion error                              |
+| 65   | string | string | array          | `"{"{[]}"}"`                     | Conversion error                              |
+| 66   | string | string | object         | `"{"{{}}"}"`                     | Conversion error                              |
 | 67   | string | string | number         | `"{"{0}"}"`                      | `"0"`                                         |
 | 68   | string | string | string-literal | `"{"{"text-value"}"}"`           | `"text-value"`                                |
-| 69   | string | string | reference      | `"{"{ref}"}"`                    | `"[object Object]"`                           |
+| 69   | string | string | reference      | `"{"{ref}"}"`                    | Conversion error                              |
 | 70   | string | string | boolean        | `"{"{true}"}"`                   | `"true"`                                      |
 | 71   | string | string | null           | `"{"{null}"}"`                   | `"null"`                                      |
 | 72   | string | string | undefined      | `"{"{undefined}"}"`              | `"undefined"`                                 |

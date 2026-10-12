@@ -18,7 +18,8 @@ Expected behavior:
 - The runtime MUST evaluate segments in declaration order.
 - Literal string segments MUST be appended as-is.
 - Embedded expression segments MUST be evaluated and converted to string
-  representation.
+  representation only for scalar values. Object, array and callable segments
+  MUST raise a conversion error and MUST NOT expose implementation source.
 - The final string MUST preserve source segment ordering.
 
 Postconditions:

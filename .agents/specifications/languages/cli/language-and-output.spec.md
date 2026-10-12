@@ -41,7 +41,21 @@ Normative key words in this chapter use the conventions defined in the
   patterns, and the `run` command MUST execute Uffda modules.
 - Operational commands MUST accept raw selected-language AST JSON only with
   explicit `--ast` rather than a CLI-specific artifact envelope.
-- String execution results MUST be suitable for direct shell-pipeline output.
+- Default operational output MUST encode exactly one compact
+  [Uffda data codec](../../data-codec/values.spec.md) record followed by LF, not
+  expression notation or implicit JSON conversion. Top-level strings MUST be
+  quoted and escaped, and undefined MUST emit `undefined`, so every supported
+  result can round-trip through a codec-data subject option.
+- Value display MUST be separate from runtime text conversion and MUST NOT
+  invoke text or JSON hooks. Values without a lossless representation in the
+  data codec MUST fail explicitly. It MUST NOT silently omit values or
+  substitute empty containers or null.
+- `--json` MUST retain explicitly selected JSON value output for compatibility.
+  Parse/compile artifacts and structured diagnostics remain JSON.
+- Adopting codec-form compiled declaration artifacts is a separate future
+  change; this output contract MUST NOT alter artifact JSON or bootstrap.
+- Authored patterns and expressions SHOULD be preferred for domain-specific
+  serialization and parsing rather than assuming universal native conversion.
 
 ## JSON stability and compatibility
 

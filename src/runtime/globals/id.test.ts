@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertStrictEquals } from "@std/assert";
 import { id } from "./id.ts";
 import { metadataOf } from "../value_metadata.ts";
 
@@ -12,4 +12,9 @@ Deno.test("globals.id carries metadata", () => {
     metadataOf(id)?.parameters.map((p) => p.name),
     ["value"],
   );
+});
+
+Deno.test("req:runtime-memory-001 - id returns the same aggregate reference", () => {
+  const input = [1];
+  assertStrictEquals(id(input), input);
 });

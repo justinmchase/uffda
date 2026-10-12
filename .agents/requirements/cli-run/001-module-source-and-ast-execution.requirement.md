@@ -21,8 +21,8 @@ Expected behavior:
 - A raw module AST MUST be accepted only when `--ast` is supplied.
 - `--entry` MUST select an exported rule; without it, the command MUST select
   the first exported rule.
-- String results MUST be written as text to standard output; other defined
-  results MUST be written as JSON.
+- Results MUST use one compact data codec record followed by LF by default;
+  `--json` MUST explicitly select legacy JSON value output.
 - Parse, unsupported-AST, compilation, and runtime failures MUST produce
   deterministic diagnostics on standard error and a non-zero exit code.
 

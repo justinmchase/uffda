@@ -1,7 +1,16 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertThrows } from "@std/assert";
 import { metadataOf } from "../value_metadata.ts";
 import { format } from "./format.ts";
 import { charOrigins, rootOrigin, Wrapped } from "../../wrapped.ts";
+
+Deno.test("req:runtime-core-012 - format rejects callable arguments", () => {
+  for (const template of ["{0}", new Wrapped("{0}", rootOrigin(0))]) {
+    assertThrows(() => format(template, () => 1), TypeError);
+    assertThrows(() => format(template, [() => 1]), TypeError);
+    assertThrows(() => format(template, {}), TypeError);
+    assertThrows(() => format(template, []), TypeError);
+  }
+});
 
 Deno.test("globals.format substitutes positional placeholders", () => {
   assertEquals(format("{0}-{1}-{2}", "a", 1), "a-1-{2}");

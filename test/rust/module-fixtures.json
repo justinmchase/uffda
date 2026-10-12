@@ -1,0 +1,67 @@
+[
+  {
+    "name": "older declaration omits optional arrays",
+    "text": "{\"imports\":[],\"exports\":[],\"rules\":[]}",
+    "valid": true
+  },
+  {
+    "name": "all declaration arrays",
+    "text": "{\"imports\":[],\"exports\":[],\"rules\":[],\"funcs\":[],\"decorators\":[]}",
+    "valid": true
+  },
+  {
+    "name": "malformed json",
+    "text": "{ broken",
+    "valid": false
+  },
+  {
+    "name": "null",
+    "text": "null",
+    "valid": false
+  },
+  {
+    "name": "scalar",
+    "text": "42",
+    "valid": false
+  },
+  {
+    "name": "sequence is not a declaration object",
+    "text": "[[],[],[],[],[]]",
+    "valid": false
+  },
+  {
+    "name": "missing imports",
+    "text": "{\"exports\":[],\"rules\":[]}",
+    "valid": false
+  },
+  {
+    "name": "missing exports",
+    "text": "{\"imports\":[],\"rules\":[]}",
+    "valid": false
+  },
+  {
+    "name": "missing rules",
+    "text": "{\"imports\":[],\"exports\":[]}",
+    "valid": false
+  },
+  {
+    "name": "null rules",
+    "text": "{\"imports\":[],\"exports\":[],\"rules\":null}",
+    "valid": false
+  },
+  {
+    "name": "null funcs",
+    "text": "{\"imports\":[],\"exports\":[],\"rules\":[],\"funcs\":null}",
+    "valid": false
+  },
+  {
+    "name": "object decorators",
+    "text": "{\"imports\":[],\"exports\":[],\"rules\":[],\"decorators\":{}}",
+    "valid": false
+  },
+  {
+    "name": "syntax AST cannot be imported without compilation",
+    "text": "{\"kind\":\"module\",\"declarations\":[]}",
+    "valid": false
+  }
+]

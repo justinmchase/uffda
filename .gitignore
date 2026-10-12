@@ -7,3 +7,4 @@ cov_profile
 *.lcov
 /package*.json
 .tmp
+/rust/target/
