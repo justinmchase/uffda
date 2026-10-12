@@ -320,13 +320,42 @@ Keep rerunning this gate after changes to compiler or grammar sources.
 - [x] Preserve custom formatting and `--check`.
 - [x] Test successful and failing invocations end to end, including standalone
       optimized-binary smoke tests with user runtime tools absent from `PATH`.
-- [ ] Exercise every supported flag combination and run an installed binary
-      outside the checkout with no repository artifacts available; compare
-      output, diagnostics, and exit codes with the reference CLI.
+- [x] Run a relocated binary outside the checkout with no repository artifacts
+      available and an empty `PATH`, exercising all six commands, source/AST
+      execution, JSON output, match failure diagnostics, compile artifacts, and
+      formatting/check. Generated compile artifacts are removed before the
+      subsequent formatting command.
+- [x] Compare 29 shared validation cases against the reference CLI, including
+      exact diagnostic code, phase, message, exit code, and empty stdout. Reject
+      `--config` for parse/match and align covered usage diagnostics.
+- [x] Exercise supported option equivalence classes and ordered option
+      interactions against the reference: 2,142 argument cases and 210
+      executions across all six commands. Compare selected options, successful
+      values, structured diagnostics, exit codes, generated artifacts, and
+      formatting writes/checks. Include contextual help, parse-before-validation
+      precedence, repeated flags, source/AST transports, subjects,
+      configuration, and nested failure locations.
 
-Gate: core command paths are implemented and integration-tested. Full observable
-compatibility across every flag combination and operation outside the repository
-checkout remains open.
+Gate: the persistent reference matrix and relocated-command tests pass. This is
+a finite acceptance matrix, not a claim about every possible arbitrary argument
+sequence. Both runtimes independently verify checked-in snapshots in
+`test/rust/cli-compatibility-matrix.json`; the adjacent TypeScript generator
+reproduces them. Native codec-subject options retain their stricter rejection of
+repeated subject options.
+
+Approved compatibility boundaries: native diagnostic prose and human-readable
+output are not byte-for-byte contracts; structured fields and nonempty
+explanations remain checked. Rust keeps the approved codec default output,
+preview help omits MCP/LSP, and build-specific versions differ. Help/version
+precedence matches the reference even when those tokens appear as option values.
+Environment cwd precedence and parse/config/subject failure ordering are
+covered.
+
+Reliability observation still requiring cutover investigation: one debug process
+run panicked in a native `ExactSizeIterator` length assertion during module
+execution. Subsequent matrix/full-suite reruns and 200 isolated repetitions did
+not reproduce it. No cause or fix is claimed; this must not be silently treated
+as production-readiness evidence.
 
 ### 8. Uffda data codec v1 (approved scope extension)
 
@@ -481,9 +510,39 @@ fixtures or host-only prototype code are not sufficient acceptance.
 - [ ] Verify standalone Rust operation and streaming on supported platforms.
 
 Gate: codec values and `match`/`run` data-subject CLI paths are implemented and
-covered by focused tests. Comparative size/throughput/memory measurements,
-standalone streaming/platform acceptance, full repository Deno validation, and
-all-platform builds remain open.
+covered by focused tests. Preliminary raw/gzip codec-versus-JSON/JSONL
+[measurements](../test/perf/README.md#rust-data-codec-acceptance) and
+[persistent results](../test/perf/data-codec-baseline.json) cover four
+representative corpora, 216 encode/decode/idle RSS samples, and 24 batched
+duration/RSS probes. Native comparisons use explicit lossless JSON envelopes;
+codec document decode is measured separately from native arena
+materialization/GC correctness. The measurements expose a substantial codec
+decode-speed gap (about 230–540 records/s on this host), rather than establish
+performance parity or a new performance threshold.
+
+The measurement gate remains open: extended optimized raw JSON reader stress
+intermittently reports invalid input, aborts with
+`munmap_chunk(): invalid
+pointer`, or segfaults. An independent crate with only
+`serde_json` reproduces the failure without Uffda or `gc-arena`; both 1.0.151
+and 1.0.154 were exercised on this host's Rust 1.99.0 toolchain. Debug reader
+and optimized slice-parser probes passed, but do not establish a fix or a root
+cause. The original completed baseline is retained as provisional evidence. The
+improved continuous-stream duration probe is tested, but a complete replacement
+report is blocked by this reliability investigation. Do not bypass it by
+silently changing parser paths, accepting only successful runs, or claiming the
+earlier debug iterator panic is resolved.
+
+Linux x86_64 relocated all-six-command and public-library streaming acceptance
+passes with empty child PATH and no external artifacts, including byte chunks,
+pre-EOF delivery, native materialization across collection, backpressure,
+malformed trailing records and final unterminated records. Checks and preview
+release builds now wire **native** Linux, Windows and macOS x86_64/aarch64
+acceptance; the supported-platform checkbox stays open until those CI jobs
+actually pass. Preview naming remains `uffdar`, with no installer or production
+cutover. Full repository validation is required before pushing; the separately
+recorded sporadic debug iterator panic remains an unresolved cutover
+investigation, not a codec acceptance fix.
 
 #### Deferred artifact adoption
 
@@ -753,10 +812,10 @@ Global/process checks include help/version, explicit mode conflict diagnostics,
 compile fallback only when arguments exist, successful root usage with no
 arguments, cwd/config resolution, JSON error code/message/phase, and exit codes
 0 (success), 2 (usage), 3 (configuration), and 70 (internal), plus
-command-specific failure exits. MCP/LSP remain deferred. Core process tests and
-standalone binary smoke tests exist, but exhaustive per-command flag
-combinations and execution from outside the checkout with no repository
-artifacts available remain unchecked.
+command-specific failure exits. MCP/LSP remain deferred. All six commands now
+have relocated-binary coverage outside the checkout with an empty `PATH`, and 29
+validation diagnostic cases are shared with the reference. Exhaustive
+per-command flag combinations and successful-output comparisons remain open.
 
 ### Coordinator integration checkpoint
 

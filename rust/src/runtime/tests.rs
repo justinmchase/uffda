@@ -3,6 +3,26 @@ use crate::resolver::{Resolver, decode_declaration};
 use serde_json::{Value as Json, json};
 
 #[test]
+// req:cli-command-model-005
+fn rightmost_failure_selects_nested_input_rather_than_its_outer_container() {
+    let pattern: Pattern = serde_json::from_value(json!({
+        "kind":"into", "pattern":{"kind":"equal", "value":{"kind":"value.literal","value":42}}
+    }))
+    .unwrap();
+    let input: crate::json::JsonValue = crate::json::from_str("[7]").unwrap();
+    let mut runtime = Runtime::for_pattern(pattern, input, InputMode::Scalar).unwrap();
+    runtime.run().unwrap();
+    runtime.read(|execution| {
+        let matched = execution.failure_match().unwrap();
+        assert_eq!(matched.pattern_kind, crate::pattern::PatternKind::Equal);
+        assert_eq!(
+            matched.identity.position(matched.start).to_string(),
+            "[0].[0]"
+        );
+    });
+}
+
+#[test]
 // req:cli-match-002 req:cli-run-004 req:data-codec-003 req:runtime-memory-005
 fn codec_subjects_are_native_scalar_values_rooted_in_both_execution_modes() {
     let mut decoder =
