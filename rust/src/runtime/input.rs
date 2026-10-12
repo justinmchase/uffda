@@ -317,11 +317,19 @@ impl<'gc> InputIdentity<'gc> {
             path.push(node.segment.clone());
             current = node.parent;
         }
+
         path.reverse();
         InputPosition {
             domain: Gc::as_ptr(self.domain) as usize,
             path,
             cursor,
+        }
+    }
+
+    pub(crate) fn rebased(self, root: Self) -> Self {
+        Self {
+            domain: root.domain,
+            path: self.path,
         }
     }
 }
@@ -508,6 +516,21 @@ mod tests {
             );
             let replacement = root.nested(mc, 0, PathSegment::Key("\u{fffd}".into()));
             assert_ne!(isolated.position(0), replacement.position(0));
+        });
+    }
+
+    #[test]
+    // req:incremental-parsing-004 req:runtime-core-004
+    fn rebased_nested_identity_preserves_path_but_uses_the_fresh_domain() {
+        gc_arena::arena::rootless_mutate(|mc| {
+            let old = InputIdentity::root(Gc::new(mc, vec![Value::Null]));
+            let fresh = InputIdentity::root(Gc::new(mc, vec![Value::Null]));
+            let nested = old.nested(mc, 3, PathSegment::Key("x".into()));
+            let rebased = nested.rebased(fresh).position(2);
+            assert_eq!(rebased.domain, fresh.position(0).domain);
+            assert_eq!(rebased.path, nested.position(2).path);
+            assert_eq!(rebased.cursor, 2);
+            assert_ne!(rebased.domain, old.position(0).domain);
         });
     }
 

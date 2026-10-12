@@ -11,6 +11,12 @@ Deno.test("globals.last returns the fallback for an empty array", () => {
   assertEquals(last([], "fallback"), "fallback");
 });
 
+Deno.test("req:standard-library-002 - last returns the fallback for unsupported values", () => {
+  for (const value of [null, undefined, 42, {}, new Set([1])]) {
+    assertEquals(last(value, "fallback"), "fallback");
+  }
+});
+
 Deno.test("globals.last works over strings as array-likes", () => {
   assertEquals(last("ab", null), "b");
   assertEquals(last("", "fallback"), "fallback");
@@ -23,7 +29,7 @@ Deno.test("globals.last carries metadata", () => {
   );
 });
 
-Deno.test("globals.last carries the wrapped element", () => {
+Deno.test("req:standard-library-002 - last carries the wrapped element", () => {
   const item = new Wrapped(2, rootOrigin(1));
   assertStrictEquals(
     last(

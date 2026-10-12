@@ -108,3 +108,10 @@ hooks through its evaluator, consuming completed results as required by
 [`runtime.spec.md`](./runtime.spec.md#synchronous-completion-and-the-rule-boundary).
 Keep the `rustExpected` fixture values to make the difference explicit. Do not
 change either platform's behavior solely to eliminate this divergence.
+
+The per-global boundary and edge-case acceptance matrix is defined in
+[default-global-edge-cases](../requirements/standard-library/002-default-global-edge-cases.requirement.md).
+Shared JSON fixtures cover portable value behavior. Requirements for identity,
+undefined, native runtime values, errors, and provenance use direct runtime
+assertions in each implementation; they MUST NOT reduce those observations to
+serialized JSON equality.

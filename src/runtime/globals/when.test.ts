@@ -17,7 +17,7 @@ Deno.test("globals.when carries metadata", () => {
   );
 });
 
-Deno.test("globals.when observes the condition and carries the branch", () => {
+Deno.test("req:standard-library-002 - when observes the condition and carries the branch", () => {
   const yes = new Wrapped("yes", rootOrigin(1));
   assertStrictEquals(
     when(

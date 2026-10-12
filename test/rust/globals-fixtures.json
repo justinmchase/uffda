@@ -65,6 +65,19 @@
     "expected": "fallback"
   },
   {
+    "name": "coalesce",
+    "expressions": [
+      {
+        "kind": "member",
+        "name": "missing",
+        "expression": { "kind": "value", "value": {} }
+      },
+      { "kind": "value", "value": "undefined fallback" }
+    ],
+    "expected": "undefined fallback"
+  },
+  { "name": "coalesce", "args": [null, false, "fallback"], "expected": false },
+  {
     "name": "pack",
     "expressions": [
       {
@@ -192,6 +205,18 @@
       }
     ],
     "expected": true
+  },
+  {
+    "name": "eq",
+    "expressions": [
+      { "kind": "value", "value": null },
+      {
+        "kind": "member",
+        "name": "missing",
+        "expression": { "kind": "value", "value": {} }
+      }
+    ],
+    "expected": false
   },
   {
     "name": "base58",

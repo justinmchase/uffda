@@ -36,6 +36,70 @@ fn literal(value: serde_json::Value) -> Pattern {
 }
 
 #[test]
+// req:incremental-parsing-004 req:runtime-memory-005 req:runtime-core-009
+fn rebasing_a_deep_shared_match_graph_is_iterative_and_preserves_the_prior_graph() {
+    type Root<'gc> = (Gc<'gc, PatternMatch<'gc>>, Gc<'gc, PatternMatch<'gc>>);
+    let mut arena = Arena::<Rootable![Root<'_>]>::new(|mc| {
+        let environment = Environment::new(mc, None, vec![]);
+        let mut execution =
+            PatternExecution::new(mc, Pattern::Any, vec![Value::Number(1.0)], environment);
+        while !execution.step(mc).unwrap() {}
+        let leaf = execution.result().unwrap();
+        let mut old = leaf;
+        for _ in 0..20_000 {
+            old = PatternMatch::boundary(mc, PatternKind::Any, old, environment, old.value);
+        }
+        let mut shared = old.children.clone();
+        shared.push(old.children[0]);
+        let old = Gc::new(
+            mc,
+            PatternMatch {
+                kind: old.kind,
+                value: old.value,
+                start: old.start,
+                end: old.end,
+                environment: old.environment,
+                origin: old.origin,
+                identity: old.identity,
+                seeded: old.seeded,
+                recovered: old.recovered,
+                recovery: old.recovery,
+                rule: old.rule,
+                children: shared,
+                provenance: old.provenance.clone(),
+                pattern_index: old.pattern_index,
+                pattern_kind: old.pattern_kind,
+            },
+        );
+        let fresh = Gc::new(mc, vec![Value::Number(1.0), Value::Number(2.0)]);
+        let rebased = PatternMatch::with_rebased_input(
+            mc,
+            old,
+            InputIdentity::root(fresh),
+            fresh.into(),
+            RecoveryContext::new(mc),
+        );
+        (old, rebased)
+    });
+    arena.finish_cycle();
+    arena.mutate(|_, (old, new)| {
+        let old_domain = old.identity.position(0).domain;
+        let new_domain = new.identity.position(0).domain;
+        assert_ne!(old_domain, new_domain);
+        assert_eq!(Gc::as_ptr(new.children[0]), Gc::as_ptr(new.children[1]));
+        for (root, domain) in [(old, old_domain), (new, new_domain)] {
+            let mut node = *root;
+            for _ in 0..20_000 {
+                assert_eq!(node.identity.position(0).domain, domain);
+                assert!(node.current().unwrap().strict_eq(Value::Number(1.0)));
+                node = node.children[0];
+            }
+            assert_eq!(node.identity.position(0).domain, domain);
+        }
+    });
+}
+
+#[test]
 // req:runtime-core-013
 fn pattern_owned_projections_and_into_forward_and_resume_host_calls() {
     for projection in [true, false] {

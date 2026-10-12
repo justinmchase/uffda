@@ -17,7 +17,7 @@ import { defaultGlobals } from "../../src/runtime/globals/mod.ts";
 import { at } from "../../src/runtime/globals/at.ts";
 import { slice } from "../../src/runtime/globals/slice.ts";
 
-Deno.test("req:expressions-runtime-005 req:expressions-runtime-007 - shared Rust native globals fixtures", async (t) => {
+Deno.test("req:standard-library-002 req:expressions-runtime-005 req:expressions-runtime-007 - shared Rust native globals fixtures", async (t) => {
   for (const fixture of fixtures) {
     await t.step(fixture.name, async () => {
       const scope = Scope.Default();
