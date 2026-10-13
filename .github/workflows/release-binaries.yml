@@ -4,9 +4,9 @@ name: Release Binaries
 # assets on the latest draft GitHub Release. The Rust preview is published
 # separately as uffdar-* and embeds the same bootstrapped language ASTs.
 # Also pins refs/tags/<version> to that same revision so publishing does not
-# freeze a stale tag as the next Release Drafter changelog baseline.
+# freeze a stale tag as the next release notes baseline.
 #
-# Triggered by Release Drafter via repository_dispatch, or manually via
+# Triggered by Draft Release via repository_dispatch, or manually via
 # workflow_dispatch.
 on:
   workflow_dispatch:
@@ -47,7 +47,7 @@ jobs:
               --jq '[.[] | select(.isDraft == true)] | sort_by(.createdAt) | reverse | .[0].tagName // empty'
           )"
           if [[ -z "${tag}" || "${tag}" == "null" ]]; then
-            echo "No draft release found. Merge to main so Release Drafter can create one." >&2
+            echo "No draft release found. Merge to main so Draft Release can create one." >&2
             exit 1
           fi
           tag="${tag#v}"
@@ -344,7 +344,7 @@ jobs:
             exit 1
           fi
 
-          # Release Drafter sets tag_name on the draft but does not keep
+          # Draft Release sets tag_name on the draft but does not keep
           # refs/tags/<version> pointed at the built revision. Publishing an
           # existing stale tag would freeze the wrong SHA as the changelog
           # baseline for the next release. Pin the draft tag to this build now.

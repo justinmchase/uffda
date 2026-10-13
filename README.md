@@ -273,9 +273,14 @@ deno task cli --help   # in-tree CLI
 
 ### Maintainers: publish a CLI release
 
-Release tags are bare SemVer (for example `0.2.0`), matching Release Drafter.
+Release tags are bare SemVer (for example `0.2.0`). The standalone **Draft
+Release** workflow uses GitHub's built-in release notes generator. PR creators
+choose version labels: `major` takes precedence over `minor`; otherwise the next
+release is a patch. Labels are considered across merged PRs since the latest
+stable published release tag, not since the last draft update. The workflow does
+not automatically label PRs.
 
-1. Merge to `main` so Release Drafter updates the draft, bumps version files,
+1. Merge to `main` so **Draft Release** updates the draft, bumps version files,
    and dispatches `release-binaries`.
 2. Confirm `uffda-*`, `SHA256SUMS`, and `install.sh` on the draft (re-run
    **Release Binaries** from Actions if needed).

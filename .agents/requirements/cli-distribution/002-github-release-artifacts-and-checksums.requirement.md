@@ -16,8 +16,23 @@ Expected behavior:
 
 - Merging to `main` MUST maintain a draft GitHub Release for the resolved
   version.
-- Release Drafter MUST dispatch `repository_dispatch` event type
+- Draft notes MUST use GitHub's built-in release notes generator, comparing the
+  checked-out commit against the latest stable published release tag, not a
+  draft tag. Notes generation MUST use the commit SHA as its target so an
+  existing draft tag pointing at an older build cannot omit new changes.
+- Version selection MUST consider all merged PRs targeting `main` associated
+  with commits after that tag, including paginated results. A `major` label
+  selects a major increment; otherwise `minor` selects a minor increment; all
+  other labels and unlabeled changes select the default patch increment. With no
+  stable published release, the baseline MUST be `0.0.0`.
+- The workflow MUST run on pushes to `main`, skip its own `[no ci]` version
+  commits, and MUST NOT automatically label PRs or use the Release Drafter
+  action. Release resolution and draft updates MUST use Bash, `gh`, and the
+  semver CLI without requiring Deno.
+- The standalone draft workflow MUST dispatch `repository_dispatch` event type
   `release-binaries` after the draft/version update on `main`.
+- Draft updates MUST preserve the draft state and MUST fail if the selected
+  release has been published in the meantime. API errors MUST fail the workflow.
 - The `release-binaries` workflow MUST accept `repository_dispatch` and
   `workflow_dispatch`, compile the full target matrix from a pinned `main`
   revision, and attach or replace every binary on the latest draft release.
