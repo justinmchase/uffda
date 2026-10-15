@@ -35,7 +35,7 @@ Deno.test("globals.one carries metadata", () => {
   );
 });
 
-Deno.test("globals.one carries the single wrapped element", () => {
+Deno.test("req:standard-library-002 - one carries the single wrapped element", () => {
   const item = new Wrapped(1, rootOrigin(0));
   assertStrictEquals(one(new Wrapped([item], rootOrigin(0)), undefined), item);
 });

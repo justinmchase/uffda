@@ -45,7 +45,7 @@ Deno.test("globals.slice keeps character provenance and carries elements", () =>
   );
 });
 
-Deno.test("req:runtime-strings-002 - slice preserves root input character offsets", () => {
+Deno.test("req:runtime-strings-002 req:standard-library-002 - slice preserves root input character offsets", () => {
   const source = concat(
     Array.from(
       "abcdef",

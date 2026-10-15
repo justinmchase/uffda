@@ -26,3 +26,9 @@ Deno.test("globals.json serializes the fully raw value", () => {
     "[1]",
   );
 });
+
+Deno.test("req:standard-library-002 - json preserves native date and error behavior", () => {
+  assertEquals(json(new Date(0)), '"1970-01-01T00:00:00.000Z"');
+  assertEquals(json(new Error("failure")), "{}");
+  assertThrows(() => json(1n), TypeError);
+});

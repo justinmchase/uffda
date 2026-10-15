@@ -67,9 +67,22 @@ explicit. Prefix snapshots structurally share immutable storage: append and
 indexed lookup take logarithmic work without copying prior items. Fixed input
 still uses its original vector storage. `PatternInput::stream` and
 `PatternRequest::stream` now use `InputBuffer`; host-supplied fixed vectors
-convert with `.into()`. Prefix retention/memo eviction remains open: live
-sources retain delivered items, and retained historical snapshots keep their
-shared branches alive.
+convert with `.into()`. Memo eviction is proof-driven: completed entries before
+the live low-water mark are compacted without discarding active growth or its
+dependencies. Incomparable nested/computed domains are retained conservatively.
+All transient memos are released when parsing completes, while delivered match
+graphs remain rooted. Live sources retain delivered items, and retained
+historical snapshots keep their shared branches alive; there is no universal
+constant-memory guarantee for retained input or unresolved backtracking.
+
+`Runtime::reparse_edit` accepts a completed fixed-input parse, the complete
+post-edit input, and outer-stream `at`/`removed`/`inserted` item counts. Reuse
+requires unchanged descendant observations, including lookahead and rejected
+attempts, not just an unchanged consumed span. Identical JSON prefix arrays and
+objects permit reuse of enclosing rules with nested inputs. Reused graphs are
+remapped to the fresh input domain without mutating prior matches. Recovery and
+unproven downstream/computed domains are conservatively re-evaluated. Invalid
+edit ranges, lengths, and overflowing counts leave the prior parse usable.
 
 Source `parse`, `exec`, `match`, `run`, and file/glob `compile` execute the
 existing embedded languages and compiler. Source/AST executable acceptance and
@@ -109,7 +122,7 @@ integral literals; the renderer emits safe integers (negative values use
 integer values rather than inventing syntax.
 
 This preview must not be treated as full runtime parity. Unicode lone-surrogate
-values, remaining async/incremental acceptance and release-platform validation
+values, remaining async/performance acceptance and release-platform validation
 remain migration gates.
 
 ## Native data codec API

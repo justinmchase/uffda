@@ -43,7 +43,7 @@ function invocationNames(value: unknown): Set<string> {
   return names;
 }
 
-Deno.test("req:standard-library-001 - default global names and arities match shared fixture", () => {
+Deno.test("req:standard-library-001 req:standard-library-002 - default global names and arities match shared fixture", () => {
   const expectedNames = surfaceFixtures.map((fixture) => fixture.name).sort();
   const actualNames = [...defaultGlobals.keys()].sort();
   assert(

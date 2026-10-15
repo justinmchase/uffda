@@ -701,7 +701,7 @@ impl<'gc> RuleExecution<'gc> {
             ));
         }
         let mut supplied = runtime_input(mc, post_edit, mode)?;
-        if old_len - removed + inserted != supplied.len() {
+        if (old_len - removed).checked_add(inserted) != Some(supplied.len()) {
             return Err(RuntimeError::InvalidArguments(
                 "edit counts do not match the post-edit input length".into(),
             ));
@@ -710,7 +710,7 @@ impl<'gc> RuleExecution<'gc> {
         let prefix_matches = self.entry.input[..at]
             .iter()
             .zip(&supplied[..at])
-            .all(|(old, new)| old.strict_eq(*new));
+            .all(|(old, new)| same_input_item(*old, *new));
         let can_reuse = prefix_matches && !self.entry.recovery.was_reached();
         if prefix_matches {
             let mut input = self.entry.input[..at].to_vec();
@@ -747,8 +747,7 @@ impl<'gc> RuleExecution<'gc> {
         self.memo_keys.clear();
         if can_reuse && at > 0 {
             let prior = self.result.ok_or(RuntimeError::InvalidState)?;
-            let old_domain = prior.identity.position(0).domain;
-            self.rehydrate_memos(mc, prior, old_domain, at, identity, stream);
+            self.rehydrate_memos(mc, prior, at, identity, stream, recovery);
         }
 
         self.entry.input = supplied;
@@ -773,11 +772,12 @@ impl<'gc> RuleExecution<'gc> {
         &mut self,
         mc: &Mutation<'gc>,
         root: Gc<'gc, PatternMatch<'gc>>,
-        old_domain: usize,
         at: usize,
         identity: InputIdentity<'gc>,
         stream: input::InputBuffer<'gc>,
+        recovery: RecoveryContext<'gc>,
     ) {
+        let old_domain = root.identity.position(0).domain;
         let mut nodes = Vec::new();
         let mut parents = HashMap::<usize, Vec<usize>>::new();
         let mut seen = std::collections::HashSet::new();
@@ -797,62 +797,87 @@ impl<'gc> RuleExecution<'gc> {
             }
         }
 
-        let mut seeded = std::collections::HashSet::new();
+        let mut invalid = std::collections::HashSet::new();
         let mut pending: Vec<usize> = nodes
             .iter()
-            .filter(|node| node.seeded)
+            .filter(|node| {
+                let position = node.identity.position(node.start);
+                let before_edit = if position.path.is_empty() {
+                    node.start < at && node.end <= at
+                } else {
+                    matches!(position.path.first(), Some(input::PathSegment::Item(item)) if *item < at)
+                };
+                node.seeded
+                    || node.recovered
+                    || position.domain != old_domain
+                    || !before_edit
+            })
             .map(|node| Gc::as_ptr(*node) as usize)
             .collect();
         while let Some(address) = pending.pop() {
-            if !seeded.insert(address) {
+            if !invalid.insert(address) {
                 continue;
             }
             pending.extend(parents.get(&address).into_iter().flatten().copied());
         }
 
-        for node in nodes {
+        // Consumed spans alone cannot prove reuse: lookahead, rejected branches,
+        // and repetition terminators can inspect input past a parent's end.
+        let mut pending = vec![root];
+        let mut seen = std::collections::HashSet::new();
+        while let Some(node) = pending.pop() {
             let address = Gc::as_ptr(node) as usize;
-            let position = node.identity.position(node.start);
-            if seeded.contains(&address)
-                || !matches!(node.kind, MatchKind::Ok | MatchKind::Fail)
-                || node.start >= at
-                || node.end > at
-                || position.domain != old_domain
-                || !position.path.is_empty()
-            {
+            if !seen.insert(address) {
                 continue;
             }
-            let (Some(rule), Some(arguments)) = (node.rule, node.rule_arguments()) else {
-                continue;
+            let mut capture = || {
+                let position = node.identity.position(node.start);
+                if invalid.contains(&address)
+                    || !matches!(node.kind, MatchKind::Ok | MatchKind::Fail)
+                    || node.start >= at
+                    || node.end > at
+                    || position.domain != old_domain
+                    || !position.path.is_empty()
+                {
+                    return false;
+                }
+                let (Some(rule), Some(arguments)) = (node.rule, node.rule_arguments()) else {
+                    return false;
+                };
+                let key = TargetKey::Declared(
+                    rule.member.module_url.to_string(),
+                    rule.member.declaration_index,
+                    arguments.to_vec(),
+                );
+                let Some(target) = self.target_keys.get(&key).copied() else {
+                    return false;
+                };
+                let memo_key = MemoKey {
+                    target,
+                    position: identity.position(node.start),
+                    recovery: node.recovery.is_enabled(),
+                };
+                if self.memo_keys.contains_key(&memo_key) {
+                    return true;
+                }
+                let outcome =
+                    PatternMatch::with_rebased_input(mc, node, identity, stream, recovery);
+                let memo = self.memos.len();
+                self.memos.push(Memo {
+                    input: identity,
+                    stream,
+                    position: node.start,
+                    state: MemoState::Complete(outcome),
+                    version: 0,
+                    dependencies: vec![],
+                    seed_dependencies: vec![],
+                });
+                self.memo_keys.insert(memo_key, memo);
+                true
             };
-            let key = TargetKey::Declared(
-                rule.member.module_url.to_string(),
-                rule.member.declaration_index,
-                arguments.to_vec(),
-            );
-            let Some(target) = self.target_keys.get(&key).copied() else {
-                continue;
-            };
-            let memo_key = MemoKey {
-                target,
-                position: identity.position(node.start),
-                recovery: node.recovery.is_enabled(),
-            };
-            if self.memo_keys.contains_key(&memo_key) {
-                continue;
+            if !capture() {
+                pending.extend(node.children.iter().rev().copied());
             }
-            let outcome = PatternMatch::with_rebased_input(mc, node, identity, stream);
-            let memo = self.memos.len();
-            self.memos.push(Memo {
-                input: identity,
-                stream,
-                position: node.start,
-                state: MemoState::Complete(outcome),
-                version: 0,
-                dependencies: vec![],
-                seed_dependencies: vec![],
-            });
-            self.memo_keys.insert(memo_key, memo);
         }
     }
 
@@ -1823,6 +1848,9 @@ impl<'gc> RuleExecution<'gc> {
         let Some((domain, low)) = mark else {
             return;
         };
+        if low == 0 {
+            return;
+        }
 
         let mut keep = vec![true; self.memos.len()];
         for (index, memo) in self.memos.iter().enumerate() {
@@ -2792,8 +2820,9 @@ impl Runtime {
     }
 
     /// Re-evaluates a completed fixed-input parse after one flat-stream edit.
-    /// Only rule matches wholly before `at` are eligible for rehydration;
-    /// uncertain prefixes fall back to a full parse of `post_edit`.
+    /// Only rule matches whose observations are wholly before `at` are reused.
+    /// Nested input under identical prefix items is eligible; recovery and
+    /// unproven computed domains conservatively fall back to re-evaluation.
     pub fn reparse_edit(
         &mut self,
         post_edit: impl Into<crate::json::JsonValue>,
@@ -2954,6 +2983,48 @@ impl Runtime {
     pub fn read<R>(&self, f: impl for<'gc> FnOnce(&RuleExecution<'gc>) -> R) -> R {
         self.arena.mutate(|_, execution| f(execution))
     }
+}
+
+fn same_input_item<'gc>(left: Value<'gc>, right: Value<'gc>) -> bool {
+    let mut pending = vec![(left, right)];
+    while let Some((left, right)) = pending.pop() {
+        match (left.raw(), right.raw()) {
+            (Value::Number(left), Value::Number(right)) => {
+                if left.to_bits() != right.to_bits() {
+                    return false;
+                }
+            }
+            (Value::Array(left), Value::Array(right)) => {
+                let left = left.borrow();
+                let right = right.borrow();
+                if left.len() != right.len() {
+                    return false;
+                }
+                pending.extend(left.iter().copied().zip(right.iter().copied()));
+            }
+            (Value::Object(left), Value::Object(right)) => {
+                let left = left.borrow();
+                let right = right.borrow();
+                if !left.symbol_entries().is_empty()
+                    || !right.symbol_entries().is_empty()
+                    || left.entries().len() != right.entries().len()
+                {
+                    return false;
+                }
+                for ((left_key, left), (right_key, right)) in
+                    left.entries().iter().zip(right.entries())
+                {
+                    if left_key != right_key {
+                        return false;
+                    }
+                    pending.push((*left, *right));
+                }
+            }
+            (left, right) if left.strict_eq(right) => {}
+            _ => return false,
+        }
+    }
+    true
 }
 
 fn runtime_input<'gc>(

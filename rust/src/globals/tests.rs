@@ -269,7 +269,7 @@ fn direct_json_serializer_rejects_callable_roots_elements_and_properties() {
 }
 
 #[test]
-// req:data-codec-003 req:expressions-runtime-007
+// req:data-codec-003 req:expressions-runtime-007 req:standard-library-002
 fn json_serializer_handles_dates_errors_and_rejects_bigint_without_data_codec() {
     rootless_mutate(|mc| {
         let date = Value::date(mc, time::OffsetDateTime::UNIX_EPOCH);
@@ -305,7 +305,7 @@ fn indexing_and_slicing_preserve_isolated_surrogates() {
 }
 
 #[test]
-// req:expressions-runtime-005 req:expressions-runtime-007 req:standard-library-001
+// req:expressions-runtime-005 req:expressions-runtime-007 req:standard-library-001 req:standard-library-002
 fn native_callable_own_fields_match_all_typescript_names_and_arities() {
     #[derive(serde::Deserialize)]
     struct Fixture {
@@ -483,7 +483,7 @@ fn evaluate(expression: Expression) -> String {
 }
 
 #[test]
-// req:expressions-runtime-005 req:expressions-runtime-007 req:runtime-memory-005
+// req:standard-library-002 req:expressions-runtime-005 req:expressions-runtime-007 req:runtime-memory-005
 fn shared_native_fixtures_match_typescript_with_collection_between_frames() {
     let fixtures: serde_json::Value =
         serde_json::from_str(include_str!("../../../test/rust/globals-fixtures.json")).unwrap();
@@ -751,7 +751,7 @@ fn native_hashing_sets_symbols_and_provenance_follow_existing_contracts() {
 }
 
 #[test]
-// req:runtime-memory-001 req:runtime-strings-002
+// req:runtime-memory-001 req:runtime-strings-002 req:standard-library-002
 fn shared_global_identity_and_root_provenance_contracts_match_typescript() {
     rootless_mutate(|mc| {
         let origin = Origin { start: 0, end: 0 };
@@ -771,12 +771,125 @@ fn shared_global_identity_and_root_provenance_contracts_match_typescript() {
             call_value(NativeGlobal::Eq, vec![shared, equal_contents]),
             Value::Boolean(false)
         ));
+        let object = Value::object(mc, vec![("value".into(), Value::Number(1.0))]);
+        let equal_object = Value::object(mc, vec![("value".into(), Value::Number(1.0))]);
+        assert!(matches!(
+            call_value(NativeGlobal::Id, vec![object]),
+            copied if copied.strict_eq(object)
+        ));
+        assert!(matches!(
+            call_value(NativeGlobal::Eq, vec![object, equal_object]),
+            Value::Boolean(false)
+        ));
+        let map = Value::map(mc, vec![(Value::string(mc, "value"), Value::Number(1.0))]);
+        let equal_map = Value::map(mc, vec![(Value::string(mc, "value"), Value::Number(1.0))]);
+        assert!(matches!(
+            call_value(NativeGlobal::Eq, vec![map, map]),
+            Value::Boolean(true)
+        ));
+        assert!(matches!(
+            call_value(NativeGlobal::Eq, vec![map, equal_map]),
+            Value::Boolean(false)
+        ));
+        let set = Value::set(mc, vec![Value::Number(1.0)]);
+        let equal_set = Value::set(mc, vec![Value::Number(1.0)]);
+        assert!(matches!(
+            call_value(NativeGlobal::Eq, vec![set, set]),
+            Value::Boolean(true)
+        ));
+        assert!(matches!(
+            call_value(NativeGlobal::Eq, vec![set, equal_set]),
+            Value::Boolean(false)
+        ));
+        assert!(matches!(
+            call_value(NativeGlobal::Eq, vec![Value::Null, Value::Undefined]),
+            Value::Boolean(false)
+        ));
+        assert!(call_value(NativeGlobal::Id, vec![Value::Undefined]).strict_eq(Value::Undefined));
+        for native in [
+            Value::bigint(mc, num_bigint::BigInt::from(123)),
+            Value::date(mc, time::OffsetDateTime::UNIX_EPOCH),
+            Value::error(mc, "TypeError".into(), "failure".into(), None, None),
+            Value::Symbol(gc_arena::Gc::new(mc, "uffda-native-id".into())),
+            Value::Bytes(gc_arena::Gc::new(mc, vec![1, 2, 3])),
+        ] {
+            assert!(call_value(NativeGlobal::Id, vec![native]).strict_eq(native));
+        }
+        let packed = call_value(
+            NativeGlobal::Pack,
+            vec![Value::Undefined, Value::Null, object, map, set],
+        );
+        let Value::Array(packed) = packed else {
+            panic!("pack must return an array");
+        };
+        let packed = packed.borrow();
+        assert!(packed[0].strict_eq(Value::Undefined));
+        assert!(packed[1].strict_eq(Value::Null));
+        assert!(packed[2].strict_eq(object));
+        assert!(packed[3].strict_eq(map));
+        assert!(packed[4].strict_eq(set));
+        drop(packed);
         let chosen = Value::object(mc, vec![]);
         let coalesced = call_value(
             NativeGlobal::Coalesce,
             vec![Value::Undefined, Value::Null, chosen],
         );
         assert!(chosen.strict_eq(coalesced));
+        assert!(
+            call_value(
+                NativeGlobal::When,
+                vec![Value::Boolean(true), chosen, Value::Null]
+            )
+            .strict_eq(chosen)
+        );
+        assert!(
+            call_value(
+                NativeGlobal::One,
+                vec![Value::array(mc, vec![chosen]), Value::Null,]
+            )
+            .strict_eq(chosen)
+        );
+        assert!(
+            call_value(
+                NativeGlobal::Last,
+                vec![Value::array(mc, vec![chosen]), Value::Null]
+            )
+            .strict_eq(chosen)
+        );
+        assert!(
+            call_value(
+                NativeGlobal::At,
+                vec![Value::array(mc, vec![chosen]), Value::Number(0.0)]
+            )
+            .strict_eq(chosen)
+        );
+        assert!(call_value(NativeGlobal::Last, vec![Value::Null, chosen]).strict_eq(chosen));
+        let symbol_name = Value::string(mc, "uffda-identity-test");
+        let symbol_a = call_value(NativeGlobal::Symbol, vec![symbol_name]);
+        let symbol_b = call_value(NativeGlobal::Symbol, vec![symbol_name]);
+        assert!(symbol_a.strict_eq(symbol_b));
+        assert!(matches!(
+            call_value(
+                NativeGlobal::Eq,
+                vec![Value::Number(f64::NAN), Value::Number(f64::NAN)]
+            ),
+            Value::Boolean(false)
+        ));
+        assert!(matches!(
+            call_value(
+                NativeGlobal::Eq,
+                vec![Value::Number(-0.0), Value::Number(0.0)]
+            ),
+            Value::Boolean(true)
+        ));
+        assert_eq!(
+            text(call_value(
+                NativeGlobal::Base58,
+                vec![Value::Bytes(gc_arena::Gc::new(mc, vec![0, 0]))]
+            ))
+            .unwrap(),
+            "11"
+        );
 
         let source = Value::string(mc, "abcdef").wrap_root(mc);
         let sliced = call_value(
@@ -786,6 +899,17 @@ fn shared_global_identity_and_root_provenance_contracts_match_typescript() {
         assert_eq!(text(sliced).unwrap(), "cd");
         assert_eq!(sliced.char_origin(0), Some(Origin { start: 2, end: 3 }));
         assert_eq!(sliced.char_origin(1), Some(Origin { start: 3, end: 4 }));
+
+        let selected = Value::object(mc, vec![]);
+        let array = Value::array(mc, vec![Value::Null, selected, Value::Undefined]);
+        let sliced_array = call_value(
+            NativeGlobal::Slice,
+            vec![array, Value::Number(1.0), Value::Number(2.0)],
+        );
+        let Value::Array(sliced_array) = sliced_array else {
+            panic!("array slice must return an array");
+        };
+        assert!(sliced_array.borrow()[0].strict_eq(selected));
     });
 }
 
