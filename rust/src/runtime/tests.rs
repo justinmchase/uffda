@@ -668,7 +668,7 @@ fn changed_prefix_and_unicode_insert_delete_edits_match_fresh_parses() {
 #[test]
 // req:incremental-parsing-004
 fn prefix_proof_compares_nested_json_content_order_and_signed_zero() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let input = |value| runtime_input(mc, value, InputMode::Scalar).unwrap()[0];
         assert!(same_input_item(
             input(json!({"a":[1,{"b":true}]})),

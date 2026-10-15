@@ -8,9 +8,9 @@ use crate::provenance::Origin;
 use crate::runtime::input::{InputIdentity, InputPosition, PathSegment, RecoveryContext};
 use crate::value::{RuntimeType, Value};
 use crate::{json::JsonValue, text::RuntimeString};
-use gc_arena::{Collect, DynamicRootSet, Gc, Mutation, RefLock};
 use serde::Deserialize;
 use std::rc::Rc;
+use uffda_heap::{Collect, DynamicRootSet, Gc, Mutation, RefLock};
 
 #[derive(Debug, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]

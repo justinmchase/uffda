@@ -1,8 +1,8 @@
 use crate::evaluate::{EvaluationError, HostCompletion};
 use crate::value::Value;
-use gc_arena::{Collect, Gc, Mutation, RefLock};
-use gc_arena::{DynamicRoot, DynamicRootSet, Rootable};
 use std::rc::Rc;
+use uffda_heap::{Collect, Gc, Mutation, RefLock};
+use uffda_heap::{DynamicRoot, DynamicRootSet, Rootable};
 
 mod buffer;
 pub use buffer::InputBuffer;
@@ -387,7 +387,7 @@ impl<'gc> InputIdentity<'gc> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use gc_arena::{Arena, Rootable};
+    use uffda_heap::{Arena, Rootable};
 
     #[test]
     // req:cli-command-model-005
@@ -476,7 +476,7 @@ mod tests {
             Rootable![(
                 Option<InputSource<'_>>,
                 DynamicRootSet<'_>,
-                Option<gc_arena::GcWeak<'_, RefLock<crate::value::ObjectProperties<'_>>>>
+                Option<uffda_heap::GcWeak<'_, RefLock<crate::value::ObjectProperties<'_>>>>
             )],
         >::new(|mc| {
             (
@@ -533,7 +533,7 @@ mod tests {
     #[test]
     // req:error-recovery-001 req:error-recovery-005
     fn recovery_discovery_is_shared_but_settings_are_immutable() {
-        gc_arena::arena::rootless_mutate(|mc| {
+        uffda_heap::rootless_mutate(|mc| {
             let discovery = RecoveryContext::new(mc);
             let recovery = discovery.enable();
             recovery.record_failure(mc);
@@ -582,7 +582,7 @@ mod tests {
     #[test]
     // req:runtime-core-004 req:over-001 req:runtime-strings-002
     fn map_entry_paths_cannot_alias_author_supplied_string_keys() {
-        gc_arena::arena::rootless_mutate(|mc| {
+        uffda_heap::rootless_mutate(|mc| {
             let root = InputIdentity::root(Gc::new(mc, vec![Value::Null]));
             let string_key = root.nested(mc, 0, PathSegment::Key("#0".into()));
             let map_entry = root.nested(mc, 0, PathSegment::Entry(0));
@@ -603,7 +603,7 @@ mod tests {
     #[test]
     // req:incremental-parsing-004 req:runtime-core-004
     fn rebased_nested_identity_preserves_path_but_uses_the_fresh_domain() {
-        gc_arena::arena::rootless_mutate(|mc| {
+        uffda_heap::rootless_mutate(|mc| {
             let old = InputIdentity::root(Gc::new(mc, vec![Value::Null]));
             let fresh = InputIdentity::root(Gc::new(mc, vec![Value::Null]));
             let nested = old.nested(mc, 3, PathSegment::Key("x".into()));

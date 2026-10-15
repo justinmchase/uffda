@@ -161,7 +161,7 @@ The Rust library exposes the approved authored data grammar through
 `codec::data::DataDecoder`. `push_some` consumes through at most one record
 boundary and returns both the consumed byte count and an owned data document;
 call `finish` to deliver a final record without a trailing newline. A document
-can be materialized inside a `gc_arena::Mutation` as native runtime values or
+can be materialized inside a `uffda_heap::Mutation` as native runtime values or
 encoded compactly/prettily. BigInt, Date and Error are collector-backed runtime
 values; codec export rejects unsupported values, aliases, cycles and
 symbol-keyed objects instead of silently losing information.
@@ -204,7 +204,18 @@ its discovery rules.
 
 ## Collector evaluation
 
-The initial candidate is `gc-arena` 0.7.0:
+Runtime code uses the collector only through the `uffda-heap` crate
+(`rust/heap`), which owns the `Gc`, `RefLock`, `Arena`, `Mutation`, dynamic
+root, and `Collect` APIs and its own derive macro. Cargo features select the
+implementation:
+
+- `uffda-heap/gc-arena` (default): the `gc-arena` collector described below.
+- `heap-leak`: a diagnostic backend that never frees. It isolates collector
+  behavior when investigating memory faults and must not ship.
+- `mimalloc` (default): use mimalloc as the `uffda` binary's global allocator.
+  Build with `--no-default-features` to use the system allocator.
+
+The default backend is `gc-arena` 0.7.0:
 
 - Exact tracing and cycle detection, with derived trace implementations.
 - Branded lifetimes prevent pointers escaping or crossing arenas.

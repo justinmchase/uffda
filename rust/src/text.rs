@@ -2,7 +2,7 @@
 
 use std::fmt;
 
-use gc_arena::Collect;
+use uffda_heap::Collect;
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Collect)]
 #[collect(require_static)]
@@ -501,7 +501,7 @@ mod tests {
     #[test]
     // req:runtime-strings-001
     fn collection_preserves_lossless_units() {
-        use gc_arena::{Arena, Gc, Rootable};
+        use uffda_heap::{Arena, Gc, Rootable};
         let mut arena = Arena::<Rootable![Gc<'_, RuntimeString>]>::new(|mc| {
             Gc::new(mc, RuntimeString::from_utf16(vec![0xd800, 0, 0xdc00]))
         });

@@ -638,7 +638,7 @@ fn scalar_data_ast(value: crate::value::Value<'_>) -> Result<serde_json::Value, 
                     value.to_utf8().map_err(|failure| failure.to_string())?,
                 )),
                 RuntimeValue::Array(array) => {
-                    let identity = gc_arena::Gc::as_ptr(array) as usize;
+                    let identity = uffda_heap::Gc::as_ptr(array) as usize;
                     if !active.insert(identity) {
                         return Err("Cyclic data AST".into());
                     }
@@ -647,7 +647,7 @@ fn scalar_data_ast(value: crate::value::Value<'_>) -> Result<serde_json::Value, 
                     pending.extend(array.iter().rev().copied().map(Work::Visit));
                 }
                 RuntimeValue::Object(object) => {
-                    let identity = gc_arena::Gc::as_ptr(object) as usize;
+                    let identity = uffda_heap::Gc::as_ptr(object) as usize;
                     if !active.insert(identity) {
                         return Err("Cyclic data AST".into());
                     }
@@ -705,7 +705,7 @@ mod tests {
         };
         let document = crate::codec::data::DataDocument::from_ast(ast, limits).unwrap();
         assert_eq!(document.encode(false, limits).unwrap(), source);
-        gc_arena::arena::rootless_mutate(|mc| {
+        uffda_heap::rootless_mutate(|mc| {
             let non_scalar = crate::value::Value::string(
                 mc,
                 crate::text::RuntimeString::from_utf16(vec![0xd800]),

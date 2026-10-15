@@ -9,12 +9,12 @@ use crate::program::{Key, Node, Program};
 use crate::provenance::{Origin, concatenate};
 use crate::value::{Closure, HostCallable, Value};
 use crate::{json::JsonValue, text::RuntimeString};
-use gc_arena::{Arena, Collect, DynamicRoot, DynamicRootSet, Gc, Mutation, Rootable};
 use std::fmt;
 use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::task::{Context, Poll};
+use uffda_heap::{Arena, Collect, DynamicRoot, DynamicRootSet, Gc, Mutation, Rootable};
 
 #[derive(Clone)]
 pub struct RootedValue(DynamicRoot<Rootable![Value<'_>]>);

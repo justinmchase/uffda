@@ -6,11 +6,11 @@ use crate::program::Program;
 use crate::provenance::Origin;
 use crate::resolver::graph::{MemberKind, ModuleGraph, ModuleMember};
 use crate::value::{Declaration, RuntimeUrl, Value};
-use gc_arena::{Collect, Gc, Mutation, RefLock};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt;
 use std::rc::Rc;
+use uffda_heap::{Collect, Gc, Mutation, RefLock};
 use url::Url;
 
 #[derive(Debug)]
@@ -552,7 +552,7 @@ mod tests {
         let mut resolver = Resolver::from_cwd().unwrap();
         resolver.insert_declaration(url.clone(), decode_declaration(&url, source).unwrap());
         let graph = CompiledModuleGraph::compile(resolver.load_graph(&url).unwrap()).unwrap();
-        gc_arena::arena::rootless_mutate(|mc| {
+        uffda_heap::rootless_mutate(|mc| {
             let bindings = ModuleBindings::new(mc, &graph).unwrap();
             let member = graph.resolve(&url, "Text").unwrap();
             let mut execution = ExpressionExecution::call(
@@ -625,7 +625,7 @@ mod tests {
         }));
         let entry = graph.entry.clone();
         let graph = CompiledModuleGraph::compile(graph).unwrap();
-        gc_arena::arena::rootless_mutate(|mc| {
+        uffda_heap::rootless_mutate(|mc| {
             let host = Value::host(
                 mc,
                 crate::value::HostCallable {
@@ -697,7 +697,7 @@ mod tests {
         }));
         let entry = graph.entry.clone();
         let compiled = CompiledModuleGraph::compile(graph).unwrap();
-        let mut arena = gc_arena::Arena::<gc_arena::Rootable![ModuleBindings<'_>]>::new(|mc| {
+        let mut arena = uffda_heap::Arena::<uffda_heap::Rootable![ModuleBindings<'_>]>::new(|mc| {
             ModuleBindings::new(mc, &compiled).unwrap()
         });
         arena.finish_cycle();
@@ -822,7 +822,7 @@ mod tests {
         }));
         let entry = graph.entry.clone();
         let compiled = CompiledModuleGraph::compile(graph).unwrap();
-        gc_arena::arena::rootless_mutate(|mc| {
+        uffda_heap::rootless_mutate(|mc| {
             let bindings = ModuleBindings::new(mc, &compiled).unwrap();
             let member = compiled.resolve(&entry, "Caller").unwrap();
             let callable = bindings.callable(&member).unwrap();
@@ -859,7 +859,7 @@ mod tests {
         struct Root<'gc> {
             bindings: Option<ModuleBindings<'gc>>,
             execution: Option<crate::evaluate::ExpressionExecution<'gc>>,
-            weak: gc_arena::GcWeak<'gc, crate::value::Closure<'gc>>,
+            weak: uffda_heap::GcWeak<'gc, crate::value::Closure<'gc>>,
         }
         let graph = graph(json!({
             "imports": [], "exports": [{"kind":"func","name":"Caller"}], "rules": [],
@@ -870,7 +870,7 @@ mod tests {
         }));
         let entry = graph.entry.clone();
         let compiled = CompiledModuleGraph::compile(graph).unwrap();
-        let mut arena = gc_arena::Arena::<gc_arena::Rootable![Root<'_>]>::new(|mc| {
+        let mut arena = uffda_heap::Arena::<uffda_heap::Rootable![Root<'_>]>::new(|mc| {
             let bindings = ModuleBindings::new(mc, &compiled).unwrap();
             let callable = bindings
                 .callable(&compiled.resolve(&entry, "Caller").unwrap())
@@ -889,7 +889,7 @@ mod tests {
             Root {
                 bindings: Some(bindings),
                 execution: Some(execution),
-                weak: gc_arena::Gc::downgrade(closure),
+                weak: uffda_heap::Gc::downgrade(closure),
             }
         });
         loop {
@@ -952,7 +952,7 @@ mod tests {
             );
         }
         let compiled = CompiledModuleGraph::compile(resolver.load_graph(&app).unwrap()).unwrap();
-        gc_arena::arena::rootless_mutate(|mc| {
+        uffda_heap::rootless_mutate(|mc| {
             let bindings = ModuleBindings::new(mc, &compiled).unwrap();
             let imported = compiled.resolve(&app, "add").unwrap();
             assert_eq!(imported.module_url, library);

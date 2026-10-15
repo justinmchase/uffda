@@ -1,5 +1,5 @@
 use crate::value::Value;
-use gc_arena::{Collect, Gc, Mutation, RefLock};
+use uffda_heap::{Collect, Gc, Mutation, RefLock};
 
 #[derive(Clone, Copy, Collect)]
 #[collect(no_drop)]
@@ -90,7 +90,7 @@ impl<'gc> Environment<'gc> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use gc_arena::arena::rootless_mutate;
+    use uffda_heap::rootless_mutate;
 
     #[test]
     // req:runtime-memory-004
@@ -113,15 +113,16 @@ mod tests {
     #[test]
     // req:runtime-memory-004
     fn ancestry_traverses_deep_rooted_scopes_without_recursion() {
-        let mut arena =
-            gc_arena::Arena::<gc_arena::Rootable![(Environment<'_>, Environment<'_>)]>::new(|mc| {
-                let root = Environment::new(mc, None, vec![]);
-                let mut child = root;
-                for _ in 0..10_000 {
-                    child = Environment::new(mc, Some(child), vec![]);
-                }
-                (root, child)
-            });
+        let mut arena = uffda_heap::Arena::<
+            uffda_heap::Rootable![(Environment<'_>, Environment<'_>)],
+        >::new(|mc| {
+            let root = Environment::new(mc, None, vec![]);
+            let mut child = root;
+            for _ in 0..10_000 {
+                child = Environment::new(mc, Some(child), vec![]);
+            }
+            (root, child)
+        });
         arena.finish_cycle();
         arena.mutate(|mc, (root, child)| {
             assert!(child.is_descendant_of(*root));

@@ -91,8 +91,8 @@ pub fn string_text(value: Value<'_>) -> Result<RuntimeString, StringCoercionErro
 #[cfg(test)]
 mod tests {
     use super::*;
-    use gc_arena::Gc;
-    use gc_arena::arena::rootless_mutate;
+    use uffda_heap::Gc;
+    use uffda_heap::rootless_mutate;
 
     #[test]
     // req:runtime-strings-002
@@ -161,7 +161,7 @@ mod tests {
             let origin = crate::provenance::Origin { start: 0, end: 0 };
             let iterator = Value::Iterable(Gc::new(
                 mc,
-                gc_arena::RefLock::new(crate::globals::IterableState::Source {
+                uffda_heap::RefLock::new(crate::globals::IterableState::Source {
                     value: Value::Null,
                     index: 0,
                     offset: 0,
@@ -170,7 +170,7 @@ mod tests {
             for value in [
                 Value::array(mc, vec![]),
                 Value::object(mc, vec![]),
-                Value::Set(Gc::new(mc, gc_arena::RefLock::new(vec![]))),
+                Value::Set(Gc::new(mc, uffda_heap::RefLock::new(vec![]))),
                 Value::map(mc, vec![]),
                 Value::Bytes(Gc::new(mc, vec![])),
                 Value::Url(Gc::new(
@@ -252,7 +252,7 @@ mod tests {
                 string_text(bytes),
                 Err(StringCoercionError::CompositeConversion)
             );
-            let set = Value::Set(Gc::new(mc, gc_arena::RefLock::new(vec![])));
+            let set = Value::Set(Gc::new(mc, uffda_heap::RefLock::new(vec![])));
             assert_eq!(
                 string_text(set),
                 Err(StringCoercionError::CompositeConversion)

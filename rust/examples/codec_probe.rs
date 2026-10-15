@@ -1,9 +1,9 @@
-use gc_arena::{Arena, Rootable};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value as Json, json};
 use std::hint::black_box;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::time::Instant;
+use uffda_heap::{Arena, Rootable};
 use uffda_runtime::codec::data::{DataDecoder, DataDocument, DataLimits, DataNode};
 
 #[derive(Deserialize)]

@@ -15,12 +15,12 @@ use crate::pattern::{
 };
 use crate::resolver::graph::{MemberKind, ModuleMember};
 use crate::value::{HostCallable, Value};
-use gc_arena::{Arena, Collect, DynamicRootSet, Gc, Mutation, RefLock, Rootable};
 use input::{InputIdentity, InputPosition, RecoveryContext};
 use std::collections::HashMap;
 use std::fmt;
 use std::future::Future;
 use std::rc::Rc;
+use uffda_heap::{Arena, Collect, DynamicRootSet, Gc, Mutation, RefLock, Rootable};
 use url::Url;
 
 #[derive(Clone, Debug, PartialEq, Eq)]

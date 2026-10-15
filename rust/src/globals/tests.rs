@@ -3,7 +3,7 @@ use super::*;
 #[test]
 // req:runtime-core-014
 fn external_input_iterator_creation_does_not_pull_or_require_an_executor() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let source = crate::runtime::input::InputSource::new(
             mc,
             crate::runtime::input::Source {
@@ -24,8 +24,8 @@ use crate::environment::Environment;
 use crate::evaluate::Evaluation;
 use crate::expression::{ArrayInitializer, Expression, InvocationArgument};
 use crate::value::RuntimeType;
-use gc_arena::arena::rootless_mutate;
 use serde_json::json;
+use uffda_heap::rootless_mutate;
 
 #[test]
 // req:runtime-strings-002
@@ -810,8 +810,8 @@ fn shared_global_identity_and_root_provenance_contracts_match_typescript() {
             Value::bigint(mc, num_bigint::BigInt::from(123)),
             Value::date(mc, time::OffsetDateTime::UNIX_EPOCH),
             Value::error(mc, "TypeError".into(), "failure".into(), None, None),
-            Value::Symbol(gc_arena::Gc::new(mc, "uffda-native-id".into())),
-            Value::Bytes(gc_arena::Gc::new(mc, vec![1, 2, 3])),
+            Value::Symbol(uffda_heap::Gc::new(mc, "uffda-native-id".into())),
+            Value::Bytes(uffda_heap::Gc::new(mc, vec![1, 2, 3])),
         ] {
             assert!(call_value(NativeGlobal::Id, vec![native]).strict_eq(native));
         }
@@ -885,7 +885,7 @@ fn shared_global_identity_and_root_provenance_contracts_match_typescript() {
         assert_eq!(
             text(call_value(
                 NativeGlobal::Base58,
-                vec![Value::Bytes(gc_arena::Gc::new(mc, vec![0, 0]))]
+                vec![Value::Bytes(uffda_heap::Gc::new(mc, vec![0, 0]))]
             ))
             .unwrap(),
             "11"

@@ -3,9 +3,9 @@ use crate::coercion::{number_text, string_text, truthy};
 use crate::evaluate::EvaluationError;
 use crate::provenance::{CharRun, Located, Origin, concatenate};
 use crate::value::Value;
-use gc_arena::{Collect, Gc, Mutation, RefLock};
 use sha2::Digest;
 use std::collections::HashSet;
+use uffda_heap::{Collect, Gc, Mutation, RefLock};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Collect)]
 #[collect(require_static)]

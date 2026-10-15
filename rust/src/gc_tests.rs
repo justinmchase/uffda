@@ -1,6 +1,6 @@
 use crate::environment::Environment;
 use crate::value::{Object, Value};
-use gc_arena::{Arena, Collect, DynamicRootSet, Gc, GcWeak, RefLock, Rootable};
+use uffda_heap::{Arena, Collect, DynamicRootSet, Gc, GcWeak, RefLock, Rootable};
 
 #[derive(Collect)]
 #[collect(no_drop)]

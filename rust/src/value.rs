@@ -3,11 +3,11 @@ use crate::globals::{IterableState, NativeGlobal};
 use crate::pattern::PatternProgram;
 use crate::program::Program;
 use crate::text::RuntimeString;
-use gc_arena::{Collect, Gc, Mutation, RefLock};
 use num_bigint::BigInt;
 use serde::Deserialize;
 use std::rc::Rc;
 use time::OffsetDateTime;
+use uffda_heap::{Collect, Gc, Mutation, RefLock};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -347,7 +347,7 @@ mod host_tests {
     #[test]
     // req:runtime-core-014
     fn external_source_is_an_object_value_with_source_identity_not_a_promise() {
-        gc_arena::arena::rootless_mutate(|mc| {
+        uffda_heap::rootless_mutate(|mc| {
             let source = crate::runtime::input::Source {
                 id: 1,
                 name: "source".into(),
@@ -363,7 +363,7 @@ mod host_tests {
     #[test]
     // req:runtime-core-012 req:data-codec-003
     fn native_bigint_date_and_error_values_have_runtime_types_and_identity() {
-        gc_arena::arena::rootless_mutate(|mc| {
+        uffda_heap::rootless_mutate(|mc| {
             let bigint = Value::bigint(mc, BigInt::from(42));
             let equal_bigint = Value::bigint(mc, BigInt::from(42));
             assert_eq!(bigint.runtime_type(), RuntimeType::BigInt);
@@ -387,7 +387,7 @@ mod host_tests {
     #[test]
     // req:runtime-core-013
     fn host_callable_metadata_is_explicit_and_identity_is_not_its_routing_id() {
-        gc_arena::arena::rootless_mutate(|mc| {
+        uffda_heap::rootless_mutate(|mc| {
             let metadata = HostCallable {
                 id: 7,
                 name: "fetch".into(),
@@ -468,7 +468,7 @@ impl<'gc> ObjectProperties<'gc> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use gc_arena::arena::rootless_mutate;
+    use uffda_heap::rootless_mutate;
 
     #[test]
     // req:runtime-strings-002

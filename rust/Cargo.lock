@@ -1047,6 +1047,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20"
 
 [[package]]
+name = "uffda-heap"
+version = "0.0.0"
+dependencies = [
+ "gc-arena",
+ "uffda-heap-derive",
+]
+
+[[package]]
+name = "uffda-heap-derive"
+version = "0.0.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+ "synstructure 0.13.2",
+]
+
+[[package]]
 name = "uffda-runtime"
 version = "0.0.0"
 dependencies = [
@@ -1054,7 +1072,6 @@ dependencies = [
  "bs58",
  "deno_semver",
  "flate2",
- "gc-arena",
  "globwalk",
  "jsonc-parser",
  "mimalloc",
@@ -1067,6 +1084,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "time",
+ "uffda-heap",
  "ureq",
  "url",
 ]

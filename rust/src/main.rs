@@ -1,6 +1,7 @@
 use std::io::{self, Read, Write};
 use uffda_runtime::cli;
 
+#[cfg(feature = "mimalloc")]
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 

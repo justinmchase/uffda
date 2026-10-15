@@ -493,7 +493,7 @@ fn cancellation_releases_argument_cycles_after_the_last_external_request_drops()
     let mut arena = Arena::<
         Rootable![(
             ExpressionExecution<'_>,
-            gc_arena::GcWeak<'_, gc_arena::RefLock<crate::value::ObjectProperties<'_>>>
+            uffda_heap::GcWeak<'_, uffda_heap::RefLock<crate::value::ObjectProperties<'_>>>
         )],
     >::new(|mc| {
         let argument = Value::object(mc, vec![]);
@@ -732,7 +732,7 @@ fn evaluator_rejects_callable_json_and_composite_text_at_every_boundary() {
 #[test]
 // req:runtime-core-012 req:runtime-core-013 req:runtime-memory-005
 fn callable_returned_by_json_hook_is_rejected_without_another_hook() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let environment = Environment::new(mc, None, vec![]);
         let origin = Origin { start: 0, end: 0 };
         let authored = CompiledExpression::new(Expression::Boolean { value: true }).bind(
@@ -791,7 +791,7 @@ fn serializer_paths_release_shared_siblings_and_isolate_reentrant_json_hooks() {
         };
         assert_eq!(*text, r#"[[1],[1],"\"2\""]"#);
     });
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let cyclic = Value::array(mc, vec![]);
         let Value::Array(array) = cyclic else {
             unreachable!()
@@ -892,7 +892,7 @@ fn rooted_serializer_active_paths_use_linear_space_and_survive_frame_collection(
 #[test]
 // req:expressions-runtime-007 req:runtime-core-007 req:runtime-memory-005
 fn custom_iterator_next_consumes_completed_wrapped_records() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let environment = Environment::new(mc, None, vec![]);
         let origin = Origin { start: 0, end: 0 };
         for (record, expected_done) in [
@@ -906,7 +906,7 @@ fn custom_iterator_next_consumes_completed_wrapped_records() {
             let cursor = Value::object(mc, vec![("next".into(), next)]);
             let iterator = Gc::new(
                 mc,
-                gc_arena::RefLock::new(IterableState::Custom {
+                uffda_heap::RefLock::new(IterableState::Custom {
                     value: cursor,
                     factory: Value::Undefined,
                     cursor: Some(cursor),
@@ -966,7 +966,7 @@ fn compiled_missing_literal_evaluates_to_undefined_not_explicit_null() {
 #[test]
 // req:error-recovery-001 req:error-recovery-005 req:runtime-memory-005
 fn callable_parameter_matching_shares_discovery_and_enabled_recovery_context() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let environment = Environment::new(mc, None, vec![]);
         let callable = CompiledExpression::new(Expression::Reference { name: "_".into() }).bind(
             mc,
@@ -1036,7 +1036,7 @@ fn rooted_serialization_keeps_original_value_and_resolves_authored_hooks() {
 #[test]
 // req:expressions-runtime-004 req:runtime-core-012 req:runtime-memory-005
 fn cyclic_array_conversion_fails_without_invoking_hooks_or_traversal() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let environment = Environment::new(mc, None, vec![]);
         let mutual = Value::array(mc, vec![]);
         let nested = Value::array(mc, vec![Value::Number(2.0), mutual, Value::Number(3.0)]);
@@ -1241,7 +1241,7 @@ fn lazy_callback_parameter_requests_suspend_and_resume_through_expression_execut
 #[test]
 // req:runtime-core-007 req:expressions-runtime-007
 fn data_then_properties_do_not_suspend_rust_execution() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let mut execution = ExpressionExecution::new(
             mc,
             Expression::Value {
@@ -1328,7 +1328,7 @@ fn lambda_parameter_projection_preserves_original_expression_error() {
 #[test]
 // req:expressions-runtime-010 req:rule-decorators-003 req:runtime-memory-005
 fn explicit_invocation_subject_preserves_identity_without_mutating_closure_capture() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let environment = Environment::new(mc, None, vec![]);
         let captured = Value::object(mc, vec![("name".into(), Value::string(mc, "captured"))]);
         let explicit = Value::object(mc, vec![("name".into(), Value::string(mc, "explicit"))]);
@@ -1499,7 +1499,7 @@ fn shared_arena_executions_transfer_live_closures_and_collect_iterables() {
 #[test]
 // req:expressions-runtime-010 req:expressions-runtime-005 req:expressions-runtime-007
 fn current_match_reference_retains_identity_metadata_and_lambda_context() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let mut pattern = PatternExecution::new(
             mc,
             Pattern::Any,
@@ -1551,7 +1551,7 @@ fn current_match_reference_retains_identity_metadata_and_lambda_context() {
 #[test]
 // req:rule-decorators-003 req:expressions-runtime-010 req:expressions-runtime-007
 fn decorated_closures_receive_explicit_subject_and_restore_callers_match_context() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let environment = Environment::new(mc, None, vec![]);
         let subject = Value::object(mc, vec![("name".into(), Value::string(mc, "Rule"))]);
         let compiled = CompiledExpression::new(expression(

@@ -143,6 +143,12 @@ specification and fixtures.
       callbacks, and explicit async-root handling.
 - [x] Prototype `gc-arena` 0.7 with branded pointers, write barriers, external
       roots, and unreachable-cycle reclamation (inherited 38-test suite rerun).
+- [x] Isolate the collector behind the `uffda-heap` crate so runtime code never
+      names `gc-arena`. A never-freeing `heap-leak` backend and a `mimalloc`
+      allocator feature allow swapping either dependency without code changes.
+- [ ] Compare intermittent optimized-compile crashes across the gc-arena and
+      never-freeing backends, each with mimalloc and the system allocator, under
+      identical conditions.
 - [x] Test primitives, collections, identity, ordering, and coercion through
       value, evaluator, and native-global tests.
 - [x] Verify primitive strict equality, array/object identity, ordered

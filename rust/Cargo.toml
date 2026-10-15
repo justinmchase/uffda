@@ -10,8 +10,20 @@ description = "Side-by-side Rust implementation of the Uffda runtime"
 name = "uffda"
 path = "src/main.rs"
 
+[workspace]
+members = ["heap", "heap/derive"]
+default-members = [".", "heap", "heap/derive"]
+
+[features]
+default = ["mimalloc"]
+# Use mimalloc as the `uffda` binary's global allocator instead of the system
+# allocator.
+mimalloc = ["dep:mimalloc"]
+# Diagnostic: run on the never-freeing heap backend. Not for production use.
+heap-leak = ["uffda-heap/leak"]
+
 [dependencies]
-gc-arena = "=0.7.0"
+uffda-heap = { path = "heap" }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order", "raw_value"] }
 ryu-js = "1"
@@ -28,7 +40,7 @@ pathdiff = "0.2"
 time = { version = "0.3", features = ["parsing", "formatting"] }
 base64 = "0.22"
 num-bigint = "0.4"
-mimalloc = { version = "0.1", default-features = false }
+mimalloc = { version = "0.1", default-features = false, optional = true }
 
 [dev-dependencies]
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }

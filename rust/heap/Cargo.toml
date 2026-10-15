@@ -1,0 +1,20 @@
+[package]
+name = "uffda-heap"
+version = "0.0.0"
+edition = "2024"
+publish = false
+license = "MIT"
+description = "Garbage-collected heap abstraction for the Uffda runtime"
+
+[features]
+default = ["gc-arena"]
+# Tracing collector backed by the `gc-arena` crate.
+gc-arena = ["dep:gc-arena"]
+# Diagnostic backend that never frees: allocations are leaked and collection is
+# a no-op. Takes precedence over `gc-arena` when both are enabled. Not for
+# production use.
+leak = []
+
+[dependencies]
+uffda-heap-derive = { path = "derive" }
+gc-arena = { version = "=0.7.0", optional = true }
