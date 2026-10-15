@@ -218,6 +218,91 @@ jobs:
             echo '```'
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
+  rust-language-bin:
+    name: Rust language artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - uses: ./.github/actions/uffda-setup
+        with:
+          version: latest
+      - name: Bootstrap with published compiler
+        run: deno task compile:lang
+      - uses: actions/upload-artifact@v7
+        with:
+          name: rust-language-bin
+          path: bin/
+          if-no-files-found: error
+
+  rust-codec:
+    name: Rust standalone ${{ matrix.target }}
+    needs: rust-language-bin
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            suffix: ""
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            suffix: ""
+          - os: windows-2025
+            target: x86_64-pc-windows-msvc
+            suffix: ".exe"
+          - os: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            suffix: ".exe"
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+            suffix: ""
+          - os: macos-15
+            target: aarch64-apple-darwin
+            suffix: ""
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v8
+        with:
+          name: rust-language-bin
+          path: bin
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Test codec acceptance example
+        run: cargo test --locked --manifest-path rust/Cargo.toml --target ${{ matrix.target }} --example codec_probe
+      - name: Build standalone CLI and streaming consumer
+        run: cargo build --locked --manifest-path rust/Cargo.toml --target ${{ matrix.target }} --release --bin uffda --example codec_probe
+      - name: Verify relocated CLI and streaming without external grammars
+        run: >-
+          deno run --allow-read --allow-write --allow-run --allow-env=SystemRoot
+          scripts/verify-rust-codec.ts
+          rust/target/${{ matrix.target }}/release/uffda${{ matrix.suffix }}
+          rust/target/${{ matrix.target }}/release/examples/codec_probe${{ matrix.suffix }}
+      - name: Report raw and gzip costs
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        shell: bash
+        run: |
+          set -euo pipefail
+          deno run --allow-read --allow-write --allow-run --allow-env=SystemRoot \
+            test/perf/data-codec.report.ts \
+            rust/target/${{ matrix.target }}/release/examples/codec_probe \
+            rust/target/${{ matrix.target }}/release/uffda \
+            "$RUNNER_TEMP/data-codec-report.json" | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        with:
+          name: data-codec-measurements
+          path: ${{ runner.temp }}/data-codec-report.json
+          if-no-files-found: error
+
   vscode-extension:
     name: VS Code Extension
     runs-on: ubuntu-latest

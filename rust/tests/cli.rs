@@ -61,6 +61,8 @@ fn invoke_binary_in(
 ) -> Output {
     let mut command = Command::new(binary);
     command.args(args);
+    command.env("PATH", "");
+    command.env_remove("INIT_CWD").env_remove("PWD");
     if let Some(cwd) = cwd {
         command.current_dir(cwd);
     }
@@ -110,6 +112,121 @@ impl Drop for TestDirectory {
 }
 
 #[test]
+// req:cli-command-model-005
+fn persistent_reference_execution_matrix_matches_supported_commands() {
+    fn outputs(
+        root: &std::path::Path,
+        directory: &std::path::Path,
+        files: &mut serde_json::Map<String, serde_json::Value>,
+    ) {
+        for entry in std::fs::read_dir(directory).unwrap() {
+            let path = entry.unwrap().path();
+            if path.is_dir() {
+                outputs(root, &path, files);
+                continue;
+            }
+            let content = std::fs::read_to_string(&path)
+                .unwrap()
+                .replace(root.to_str().unwrap(), "<cwd>");
+            let value = if path.extension().is_some_and(|ext| ext == "json") {
+                serde_json::from_str(&content).unwrap()
+            } else {
+                serde_json::json!(content)
+            };
+            files.insert(
+                path.strip_prefix(root)
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .replace('\\', "/"),
+                value,
+            );
+        }
+    }
+    fn native_text(value: &mut serde_json::Value) {
+        match value {
+            serde_json::Value::Object(fields) => {
+                for (key, value) in fields {
+                    if key == "message" {
+                        assert!(!value.as_str().expect("text diagnostic").trim().is_empty());
+                        *value = serde_json::json!("<native diagnostic text>");
+                    } else {
+                        native_text(value);
+                    }
+                }
+            }
+            serde_json::Value::Array(values) => values.iter_mut().for_each(native_text),
+            _ => {}
+        }
+    }
+    let matrix: serde_json::Value = serde_json::from_str(include_str!(
+        "../../test/rust/cli-compatibility-matrix.json"
+    ))
+    .unwrap();
+    let entries = matrix["executions"].as_array().unwrap();
+    assert!(entries.len() > 140);
+    let mut failures = Vec::new();
+    for entry in entries {
+        let directory = TestDirectory::outside_workspace();
+        for (path, content) in entry["files"].as_object().unwrap() {
+            std::fs::write(directory.0.join(path), content.as_str().unwrap()).unwrap();
+        }
+        let args: Vec<&str> = entry["args"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|value| value.as_str().unwrap())
+            .collect();
+        let mut input = entry["stdin"].as_str().unwrap().to_owned();
+        if let Some(ast) = entry.get("astSource") {
+            let source = ast.as_str().unwrap().to_owned();
+            if args.contains(&"source.txt") {
+                std::fs::write(directory.0.join("source.txt"), source).unwrap();
+            } else {
+                input = source;
+            }
+        }
+        let result = invoke_in(&args, &input, Some(&directory.0));
+        let normalize = |bytes: &[u8]| text(bytes).replace(directory.0.to_str().unwrap(), "<cwd>");
+        let stdout = normalize(&result.stdout);
+        let stderr = normalize(&result.stderr);
+        let output = match entry["output"].as_str().unwrap() {
+            "help" => serde_json::json!(stdout.lines().next().unwrap_or("")),
+            "version" => {
+                assert_eq!(stdout, format!("{}\n", env!("CARGO_PKG_VERSION")));
+                serde_json::json!("<version>")
+            }
+            "json" if !stdout.trim().is_empty() => serde_json::from_str(&stdout)
+                .unwrap_or_else(|error| panic!("{}: {error}: {stdout}", entry["name"])),
+            _ => serde_json::json!(stdout),
+        };
+        let error = if stderr.trim().is_empty() {
+            serde_json::Value::Null
+        } else {
+            serde_json::from_str(&stderr)
+                .unwrap_or_else(|error| panic!("{}: {error}: {stderr}", entry["name"]))
+        };
+        let mut files = serde_json::Map::new();
+        outputs(&directory.0, &directory.0, &mut files);
+        let mut outcome = serde_json::json!({"exitCode": result.status.code(), "stdout": output, "stderr": error, "files": files});
+        if entry["nativeDiagnostics"] == true {
+            native_text(&mut outcome);
+        }
+        if outcome != entry["rustExpected"] {
+            failures.push(format!(
+                "{}\nactual: {outcome}\nexpected: {}",
+                entry["name"], entry["rustExpected"]
+            ));
+        }
+    }
+    assert!(
+        failures.is_empty(),
+        "{} matrix failures:\n{}",
+        failures.len(),
+        failures.join("\n")
+    );
+}
+#[test]
 // req:cli-command-model-001 req:cli-command-model-002
 fn process_help_version_and_empty_invocation_have_successful_root_usage() {
     for args in [&[][..], &["--help"][..], &["-h"][..]] {
@@ -127,6 +244,47 @@ fn process_help_version_and_empty_invocation_have_successful_root_usage() {
     }
 }
 
+#[test]
+// req:cli-command-model-005
+fn effective_directory_prefers_init_cwd_then_pwd_and_resolves_relative_values() {
+    let directory = TestDirectory::outside_workspace();
+    for (name, value) in [("actual", "1"), ("init", "42"), ("pwd", "7")] {
+        std::fs::create_dir(directory.0.join(name)).unwrap();
+        std::fs::write(directory.0.join(name).join("value.expr"), value).unwrap();
+    }
+    for (init, pwd, expected) in [
+        (Some("../init"), Some("../pwd"), "42\n"),
+        (Some(""), Some("../pwd"), "7\n"),
+        (None, Some(""), "1\n"),
+        (None, None, "1\n"),
+    ] {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_uffda"));
+        command
+            .args(["exec", "value.expr", "--json"])
+            .current_dir(directory.0.join("actual"))
+            .env("PATH", "")
+            .env_remove("INIT_CWD")
+            .env_remove("PWD");
+        if let Some(init) = init {
+            command.env("INIT_CWD", init);
+        }
+        if let Some(pwd) = pwd {
+            command.env("PWD", pwd);
+        }
+        let result = command.output().unwrap();
+        assert_eq!(result.status.code(), Some(0), "{}", text(&result.stderr));
+        assert_eq!(text(&result.stdout), expected);
+    }
+    let result = Command::new(env!("CARGO_BIN_EXE_uffda"))
+        .args(["exec", "value.expr", "--json"])
+        .current_dir(directory.0.join("actual"))
+        .env("INIT_CWD", directory.0.join("init"))
+        .env("PWD", directory.0.join("pwd"))
+        .output()
+        .unwrap();
+    assert_eq!(result.status.code(), Some(0), "{}", text(&result.stderr));
+    assert_eq!(text(&result.stdout), "42\n");
+}
 #[test]
 // req:cli-language-001
 fn parse_eval_alias_selects_pattern_and_expression_languages() {
@@ -277,6 +435,107 @@ fn relocated_binary_runs_without_project_artifacts_and_reads_run_input_file_as_t
     assert_eq!(result.status.code(), Some(0), "{}", text(&result.stderr));
     assert_eq!(text(&result.stdout), "\"h\"\n");
     assert!(result.stderr.is_empty());
+    assert!(!directory.0.join("bin").exists());
+    assert!(!directory.0.join("uffda.jsonc").exists());
+}
+
+#[test]
+// req:cli-command-model-004 req:cli-language-001 req:cli-exec-001 req:cli-match-001 req:cli-run-002 req:cli-fmt-001
+fn relocated_binary_executes_all_six_commands_without_runtime_tools_or_checkout_artifacts() {
+    let directory = TestDirectory::outside_workspace();
+    let workspace = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .canonicalize()
+        .unwrap();
+    assert!(!directory.0.canonicalize().unwrap().starts_with(workspace));
+    let binary = directory
+        .0
+        .join(format!("uffdar{}", std::env::consts::EXE_SUFFIX));
+    std::fs::copy(env!("CARGO_BIN_EXE_uffda"), &binary).unwrap();
+    let run = |args: &[&str], input| invoke_binary_in(&binary, args, input, Some(&directory.0));
+    let source = "export Main; rule Main = any;";
+
+    let parsed = run(&["parse", "-"], source);
+    assert_eq!(parsed.status.code(), Some(0), "{}", text(&parsed.stderr));
+    let ast: serde_json::Value = serde_json::from_slice(&parsed.stdout).unwrap();
+    assert_eq!(ast["kind"], "module");
+    assert!(parsed.stderr.is_empty());
+    for (args, input, output) in [
+        (vec!["exec", "-e", "42", "--json"], "", "42\n"),
+        (
+            vec!["exec", "--ast", "--json"],
+            r#"{"kind":"number","value":42}"#,
+            "42\n",
+        ),
+        (
+            vec!["match", "-e", "any", "--input", "x", "--json"],
+            "",
+            "\"x\"\n",
+        ),
+        (
+            vec!["match", "--ast", "--input-json", "42", "--json"],
+            r#"{"kind":"any"}"#,
+            "42\n",
+        ),
+        (
+            vec![
+                "run", "-e", source, "--entry", "Main", "--input", "x", "--json",
+            ],
+            "",
+            "\"x\"\n",
+        ),
+        (
+            vec!["run", "--ast", "--entry", "Main", "--input", "x", "--json"],
+            text(&parsed.stdout),
+            "\"x\"\n",
+        ),
+    ] {
+        let result = run(&args, input);
+        assert_eq!(
+            result.status.code(),
+            Some(0),
+            "{args:?}: {}",
+            text(&result.stderr)
+        );
+        assert_eq!(text(&result.stdout), output, "{args:?}");
+        assert!(result.stderr.is_empty(), "{args:?}");
+    }
+    let failed = run(&["match", "-e", "\"a\"", "--input", "b", "--json"], "");
+    assert_eq!(failed.status.code(), Some(2));
+    assert!(failed.stdout.is_empty());
+    let diagnostic: serde_json::Value = serde_json::from_slice(&failed.stderr).unwrap();
+    assert_eq!(diagnostic["error"]["code"], "CLI_MATCH_FAILURE");
+    assert_eq!(diagnostic["error"]["phase"], "match");
+
+    std::fs::write(directory.0.join("main.uff"), source).unwrap();
+    let compiled = run(&["compile", "main.uff"], "");
+    assert_eq!(
+        compiled.status.code(),
+        Some(0),
+        "{}",
+        text(&compiled.stderr)
+    );
+    let payload: serde_json::Value = serde_json::from_slice(&compiled.stdout).unwrap();
+    assert_eq!(payload["ok"], true);
+    let artifact = directory.0.join("bin/ast/main.uffda.ast.json");
+    let declaration: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&artifact).unwrap()).unwrap();
+    assert_eq!(declaration["rules"][0]["name"], "Main");
+    std::fs::remove_file(artifact).unwrap();
+    for path in ["bin/ast", "bin"] {
+        std::fs::remove_dir(directory.0.join(path)).unwrap();
+    }
+    let formatted = run(&["fmt", "-"], "rule Main=any;");
+    assert_eq!(
+        formatted.status.code(),
+        Some(0),
+        "{}",
+        text(&formatted.stderr)
+    );
+    assert_eq!(text(&formatted.stdout), "rule Main = any;\n");
+    let checked = run(&["fmt", "-", "--check"], text(&formatted.stdout));
+    assert_eq!(checked.status.code(), Some(0), "{}", text(&checked.stderr));
     assert!(!directory.0.join("bin").exists());
     assert!(!directory.0.join("uffda.jsonc").exists());
 }
@@ -505,16 +764,16 @@ fn rightmost_failure_reports_kind_and_position_in_both_modes() {
     assert_eq!(result.status.code(), Some(2));
     assert_eq!(
         text(&result.stderr),
-        "Match failure: Pattern 'equal' did not match input at 1\nInput 1: a value that did not match.\n"
+        "Match failure: Pattern 'equal' did not match input at [1]\nInput [1]: a value that did not match.\n"
     );
     assert!(result.stdout.is_empty());
     let result = invoke(&["match", "--ast", "--input", "ab", "--json"], pattern);
     assert_eq!(result.status.code(), Some(2));
     let diagnostic: serde_json::Value = serde_json::from_slice(&result.stderr).unwrap();
-    assert_eq!(diagnostic["error"]["inputPosition"], "1");
+    assert_eq!(diagnostic["error"]["inputPosition"], "[1]");
     assert_eq!(
         diagnostic["error"]["message"],
-        "Pattern 'equal' did not match input at 1"
+        "Pattern 'equal' did not match input at [1]"
     );
 }
 

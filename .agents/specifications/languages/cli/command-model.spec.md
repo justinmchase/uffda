@@ -37,6 +37,10 @@ Normative key words in this chapter use the conventions defined in the
   including an error code and message.
 - Error shape SHOULD identify which processing phase produced the failure
   (parsing, validation, configuration, execution).
+- Native diagnostic prose and human-readable output MAY differ between runtime
+  implementations. Their exact unstructured text is not a compatibility
+  contract; diagnostics MUST retain nonempty explanations and their structured
+  codes, phases, locations, and exit behavior.
 
 ## Mode selection precedence contract
 

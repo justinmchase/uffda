@@ -1,0 +1,176 @@
+[
+  {
+    "name": "command and mode conflict",
+    "args": ["exec", "--match"],
+    "phase": "validation",
+    "message": "Conflicting mode selection: command 'exec' does not match 'match'"
+  },
+  {
+    "name": "unknown long mode",
+    "args": ["--mode=missing"],
+    "phase": "parse",
+    "message": "Unknown --mode value: missing"
+  },
+  {
+    "name": "missing long mode",
+    "args": ["--mode"],
+    "phase": "parse",
+    "message": "Missing value for --mode"
+  },
+  {
+    "name": "unknown language",
+    "args": ["parse", "--lang", "missing"],
+    "phase": "parse",
+    "message": "Unknown --lang value: missing"
+  },
+  {
+    "name": "parse rejects AST",
+    "args": ["parse", "--ast"],
+    "phase": "validation",
+    "message": "parse accepts source input and cannot use --ast"
+  },
+  {
+    "name": "exec rejects language override",
+    "args": ["exec", "--lang", "expression"],
+    "phase": "validation",
+    "message": "exec selects its language and does not accept --lang"
+  },
+  {
+    "name": "match rejects language override",
+    "args": ["match", "--lang", "pattern"],
+    "phase": "validation",
+    "message": "match selects its language and does not accept --lang"
+  },
+  {
+    "name": "run rejects language override",
+    "args": ["run", "--lang", "uffda"],
+    "phase": "validation",
+    "message": "run selects its language and does not accept --lang"
+  },
+  {
+    "name": "parse rejects explicit config",
+    "args": ["parse", "--config", "missing.jsonc"],
+    "phase": "validation",
+    "message": "--config is only valid for compile, exec, fmt, and run"
+  },
+  {
+    "name": "match rejects explicit config",
+    "args": ["match", "--config", "missing.jsonc"],
+    "phase": "validation",
+    "message": "--config is only valid for compile, exec, fmt, and run"
+  },
+  {
+    "name": "parse rejects format check",
+    "args": ["parse", "--check"],
+    "phase": "validation",
+    "message": "--check is only valid for fmt"
+  },
+  {
+    "name": "exec rejects format check",
+    "args": ["exec", "--check"],
+    "phase": "validation",
+    "message": "--check is only valid for fmt"
+  },
+  {
+    "name": "match rejects format check",
+    "args": ["match", "--check"],
+    "phase": "validation",
+    "message": "--check is only valid for fmt"
+  },
+  {
+    "name": "run rejects format check",
+    "args": ["run", "--check"],
+    "phase": "validation",
+    "message": "--check is only valid for fmt"
+  },
+  {
+    "name": "compile rejects format check",
+    "args": ["compile", "--check"],
+    "phase": "validation",
+    "message": "--check is only valid for fmt"
+  },
+  {
+    "name": "exec rejects inline and AST together",
+    "args": ["exec", "--ast", "-e", "42"],
+    "phase": "validation",
+    "message": "exec cannot combine --ast with -e/--eval"
+  },
+  {
+    "name": "match rejects inline and AST together",
+    "args": ["match", "--ast", "-e", "any", "--input", "x"],
+    "phase": "validation",
+    "message": "match cannot combine --ast with -e/--eval"
+  },
+  {
+    "name": "run rejects inline and AST together",
+    "args": ["run", "--ast", "-e", "rule Main = any;"],
+    "phase": "validation",
+    "message": "run cannot combine --ast with -e/--eval"
+  },
+  {
+    "name": "parse rejects two paths",
+    "args": ["parse", "a.uff", "b.uff"],
+    "phase": "validation",
+    "message": "parse accepts at most one source or AST input path"
+  },
+  {
+    "name": "exec rejects two paths",
+    "args": ["exec", "a.expr", "b.expr"],
+    "phase": "validation",
+    "message": "exec accepts at most one source or AST input path"
+  },
+  {
+    "name": "match rejects two paths",
+    "args": ["match", "a.pattern", "b.pattern"],
+    "phase": "validation",
+    "message": "match accepts at most one source or AST input path"
+  },
+  {
+    "name": "run rejects two paths",
+    "args": ["run", "a.uff", "b.uff"],
+    "phase": "validation",
+    "message": "run accepts at most one source or AST input path"
+  },
+  {
+    "name": "exec rejects inline and path together",
+    "args": ["exec", "-e", "42", "a.expr"],
+    "phase": "validation",
+    "message": "exec cannot combine -e/--eval with an input path"
+  },
+  {
+    "name": "parse rejects inline and path together",
+    "args": ["parse", "-e", "rule Main = any;", "a.uff"],
+    "phase": "validation",
+    "message": "parse cannot combine -e/--eval with an input path"
+  },
+  {
+    "name": "unknown global flag",
+    "args": ["exec", "--unknown"],
+    "phase": "parse",
+    "message": "Unknown flag: --unknown"
+  },
+  {
+    "name": "unknown inline flag retains full spelling",
+    "args": ["exec", "--unknown=value"],
+    "phase": "parse",
+    "message": "Unknown flag: --unknown=value"
+  },
+  {
+    "name": "parse rejects entry",
+    "args": ["parse", "--entry", "Main"],
+    "phase": "validation",
+    "message": "--entry is only valid for run"
+  },
+  {
+    "name": "exec rejects entry",
+    "args": ["exec", "--entry", "Main"],
+    "phase": "validation",
+    "message": "--entry is only valid for run"
+  },
+  {
+    "name": "match rejects entry",
+    "args": ["match", "--entry", "Main"],
+    "phase": "validation",
+    "message": "--entry is only valid for run"
+  }
+]

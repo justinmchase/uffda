@@ -1139,9 +1139,17 @@ impl<'gc> RuleExecution<'gc> {
             visited.insert(identity, (absorbed, depth));
             if node.kind == MatchKind::Fail && !node.seeded {
                 let better = best.is_none_or(|(candidate, candidate_absorbed, candidate_depth)| {
+                    let path_order = node.identity.position(node.start).diagnostic_path().cmp(
+                        &candidate
+                            .identity
+                            .position(candidate.start)
+                            .diagnostic_path(),
+                    );
                     node.origin.start > candidate.origin.start
                         || (node.origin.start == candidate.origin.start
-                            && (absorbed, depth) < (candidate_absorbed, candidate_depth))
+                            && (path_order.is_gt()
+                                || (path_order.is_eq()
+                                    && (absorbed, depth) < (candidate_absorbed, candidate_depth))))
                 });
                 if better {
                     best = Some((node, absorbed, depth));

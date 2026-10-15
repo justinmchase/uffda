@@ -13,6 +13,8 @@ use serde_json::json;
 use std::rc::Rc;
 use url::Url;
 
+mod options;
+
 pub struct CliResult {
     pub exit_code: i32,
     pub stdout: String,
@@ -20,15 +22,15 @@ pub struct CliResult {
 }
 
 fn failure(code: &str, phase: &str, message: impl ToString) -> CliResult {
+    let error = json!({ "code": code, "phase": phase, "message": message.to_string() });
+    let mut payload = json!({ "ok": false, "error": error });
+    if code == "CLI_EXEC_EXECUTION_FAILURE" && phase == "execute" {
+        payload["diagnostics"] = json!([error]);
+    }
     CliResult {
         exit_code: if code == "CLI_CONFIG" { 3 } else { 2 },
         stdout: String::new(),
-        stderr: format!(
-            "{}\n",
-            json!({
-                "ok": false, "error": { "code": code, "phase": phase, "message": message.to_string() }
-            })
-        ),
+        stderr: format!("{}\n", payload),
     }
 }
 
@@ -170,314 +172,182 @@ Options:
   --json             JSON output; exec/match/run otherwise emit codec data records,
                      including quoted strings and undefined.
   --config           Explicit project configuration file.
+  --lang             uffda | pattern | expression (parse only).
+  --mode             compile | exec | fmt | match | parse | run.
+  --entry            Exported rule to run (run only).
   --check            Check formatting without writes (fmt only).
   --help, -h         Show usage.
   --version, -V      Show version.
 ";
 
-fn resolve_mode(args: &[String]) -> Result<(String, Vec<String>), String> {
-    let commands = ["compile", "parse", "exec", "match", "run", "fmt"];
-    let mut command = None;
-    let mut flag_mode = None;
-    let mut long_mode = None;
-    let mut remaining = Vec::new();
+fn help(args: &[String]) -> String {
+    let mut target = None;
     let mut index = 0;
     while index < args.len() {
-        let arg = args[index].as_str();
-        if command.is_none() && commands.contains(&arg) {
-            command = Some(arg.to_owned());
-        } else if ["--compile", "--parse", "--match", "--run"].contains(&arg) {
-            flag_mode = Some(arg.trim_start_matches("--").to_owned());
-        } else if arg == "--mode" || arg.starts_with("--mode=") {
-            let mode = if let Some((_, value)) = arg.split_once('=') {
-                value
-            } else {
-                index += 1;
-                args.get(index)
-                    .map(String::as_str)
-                    .ok_or("Missing value for --mode")?
-            };
-            if !commands.contains(&mode) {
-                return Err(format!("Unknown --mode value: {mode}"));
-            }
-            long_mode = Some(mode.to_owned());
+        let token = args[index].as_str();
+        let selected = if token == "--mode" {
+            index += 1;
+            args.get(index).map(String::as_str)
         } else {
-            remaining.push(args[index].clone());
-            if [
-                "-e",
-                "--eval",
-                "--input",
-                "--input-json",
-                "--input-file",
-                "--input-data",
-                "--input-data-file",
-                "--config",
-                "--entry",
-                "--lang",
-            ]
-            .contains(&arg)
-            {
-                index += 1;
-                if let Some(value) = args.get(index) {
-                    remaining.push(value.clone());
-                }
-            }
+            Some(
+                if ["--compile", "--parse", "--match", "--run"].contains(&token) {
+                    &token[2..]
+                } else {
+                    token.strip_prefix("--mode=").unwrap_or(token)
+                },
+            )
+        };
+        if let Some(selected) = selected
+            && options::COMMANDS.contains(&selected)
+        {
+            target = Some(selected);
         }
         index += 1;
     }
-    let selected = long_mode.or(flag_mode);
-    if let (Some(command), Some(mode)) = (&command, &selected)
-        && command != mode
-    {
-        return Err(format!(
-            "Conflicting mode selection: command '{command}' does not match '{mode}'"
-        ));
+    let usage = match target {
+        Some("compile") => "Usage: uffda compile [options] <file-or-glob> [...more paths]",
+        Some("exec") => "Usage: uffda exec [--ast] [expression-path|-]",
+        Some("fmt") => {
+            "Usage: uffda fmt [--check] [--json] [--config <path>] [file-or-glob|-] [...]"
+        }
+        Some("match") => "Usage: uffda match [--ast] [pattern-path|-] --input <text>",
+        Some("parse") => "Usage: uffda parse [options] [source-path|-]",
+        Some("run") => "Usage: uffda run [--ast] [module-path|-] [--entry <rule>]",
+        _ => return HELP.into(),
+    };
+    let mut text = format!("{usage}\n\n");
+    text.push_str(match target {
+        Some("compile") => "Compile source files or globs to ModuleDeclaration JSON under <outDir>/ast.\n",
+        Some("fmt") => "Format source files in place, or .uff stdin with '-'. --check lists changed\nfiles without writing. Files that do not parse cleanly are never rewritten.\n",
+        Some("parse") => "Read one source unit from a path, stdin, or inline input and emit its raw AST.\n",
+        Some("exec") => "Evaluate expression source or explicit AST JSON.\n",
+        Some("match") => "Match pattern source or explicit AST JSON against one selected subject.\n",
+        Some("run") => "Run module source or explicit syntax AST JSON. The first exported rule is the\ndefault entry. With no subject option, the rule matches empty input.\n",
+        _ => unreachable!("recognized help target"),
+    });
+    if matches!(target, Some("exec" | "match" | "run")) {
+        text.push_str("Default output is a codec data record, including quoted strings and undefined.\n--json selects JSON-compatible results and diagnostics.\n");
     }
-    Ok((
-        command.or(selected).unwrap_or_else(|| "compile".into()),
-        remaining,
-    ))
+    text.push_str("\nOptions:\n  --help, -h       Show command usage.\n  --json           Machine-readable output and diagnostics.\n");
+    if matches!(target, Some("parse" | "exec" | "match" | "run")) {
+        text.push_str("  -e, --eval       Inline program source (otherwise a path or stdin).\n");
+    }
+    if matches!(target, Some("exec" | "match" | "run")) {
+        text.push_str("  --ast            Raw AST JSON from a path or stdin, not inline source.\n");
+    }
+    if matches!(target, Some("compile" | "exec" | "fmt" | "run")) {
+        text.push_str("  --config         Project file; defaults to the nearest uffda.jsonc.\n");
+    }
+    if matches!(target, Some("match" | "run")) {
+        text.push_str("  --input          Inline text subject.\n  --input-file     Text subject file.\n  --input-json     One inline JSON subject value.\n  --input-data     One inline codec data subject value.\n  --input-data-file One codec data subject value from a file.\n                   Subject transports are mutually exclusive.\n");
+    }
+    match target {
+        Some("parse") => text.push_str("  --lang           uffda | pattern | expression.\n"),
+        Some("run") => text.push_str("  --entry          Exported rule to run.\n"),
+        Some("fmt") => text.push_str("  --check          Check formatting without writes.\n"),
+        _ => {}
+    }
+    text
+}
+
+fn effective_cwd() -> Result<std::path::PathBuf, CliResult> {
+    let cwd =
+        std::env::current_dir().map_err(|error| failure("CLI_CONFIG", "configuration", error))?;
+    for name in ["INIT_CWD", "PWD"] {
+        match std::env::var_os(name) {
+            Some(value) if !value.is_empty() => {
+                let path = cwd.join(value);
+                return Url::from_directory_path(&path)
+                    .map_err(|()| {
+                        failure(
+                            "CLI_CONFIG",
+                            "configuration",
+                            "Invalid working-directory context",
+                        )
+                    })?
+                    .to_file_path()
+                    .map_err(|()| {
+                        failure(
+                            "CLI_CONFIG",
+                            "configuration",
+                            "Invalid working-directory context",
+                        )
+                    });
+            }
+            _ => {}
+        }
+    }
+    Ok(cwd)
+}
+
+fn load_project(
+    cwd: &std::path::Path,
+    config: Option<&str>,
+    languages: &mut Option<Languages>,
+) -> Result<Option<Project>, CliResult> {
+    let path = Project::discover(cwd, config)
+        .map_err(|error| failure("CLI_CONFIG", "configuration", error))?;
+    let Some(path) = path else {
+        return Ok(None);
+    };
+    if languages.is_none() {
+        *languages =
+            Some(Languages::new().map_err(|error| failure("CLI_CONFIG", "configuration", error))?);
+    }
+    Project::load(path, languages.as_mut().expect("initialized languages"))
+        .map(Some)
+        .map_err(|error| failure("CLI_CONFIG", "configuration", error))
 }
 
 pub fn run(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> CliResult {
-    let has_flag = |flags: &[&str]| {
-        let mut index = 0;
-        while index < args.len() {
-            if flags.contains(&args[index].as_str()) {
-                return true;
-            }
-            if [
-                "-e",
-                "--eval",
-                "--input",
-                "--input-json",
-                "--input-file",
-                "--input-data",
-                "--input-data-file",
-                "--lang",
-                "--entry",
-                "--config",
-                "--mode",
-            ]
-            .contains(&args[index].as_str())
-            {
-                index += 1;
-            }
-            index += 1;
-        }
-        false
-    };
+    let has_flag = |flags: &[&str]| args.iter().any(|arg| flags.contains(&arg.as_str()));
     if args.is_empty() || has_flag(&["--help", "-h"]) {
-        return success(HELP.into());
+        return success(help(args));
     }
     if has_flag(&["--version", "-V"]) {
         return success(format!("{}\n", env!("CARGO_PKG_VERSION")));
     }
-    let (command, args) = match resolve_mode(args) {
-        Ok(selected) => selected,
-        Err(error) => return failure("CLI_USAGE", "validation", error),
-    };
-    let command = command.as_str();
-    if command == "fmt" {
-        return run_fmt(&args, stdin);
-    }
-    if !matches!(command, "exec" | "match" | "parse" | "run" | "compile") {
-        return failure(
-            "CLI_USAGE",
-            "validation",
-            format!("Rust command '{command}' is not implemented"),
-        );
-    }
-    let mut ast = false;
-    let mut json_output = false;
-    let mut source = None;
-    let mut path = None;
-    let mut compile_paths = Vec::new();
-    let mut subject = None;
-    let mut subject_json = false;
-    let mut subject_data = false;
-    let mut language = Language::Uffda;
-    let mut language_selected = false;
-    let mut entry = None;
-    let mut config = None;
-    let mut index = 0;
-    while index < args.len() {
-        let (flag, inline) = args[index]
-            .split_once('=')
-            .map_or((args[index].as_str(), None), |(flag, value)| {
-                (flag, Some(value))
-            });
-        match flag {
-            "--ast" if inline.is_none() => ast = true,
-            "--json" if inline.is_none() => json_output = true,
-            "-e" | "--eval" | "--input" | "--input-json" | "--input-file" | "--input-data"
-            | "--input-data-file" | "--lang" | "--entry" | "--config" => {
-                let value = if let Some(value) = inline {
-                    value.to_owned()
-                } else {
-                    index += 1;
-                    let Some(value) = args.get(index) else {
-                        return failure(
-                            "CLI_USAGE",
-                            "validation",
-                            format!("Missing value for {flag}"),
-                        );
-                    };
-                    value.clone()
-                };
-                if flag == "--config" {
-                    config = Some(value);
-                } else if flag == "--lang" {
-                    if command != "parse" {
-                        return failure(
-                            "CLI_USAGE",
-                            "validation",
-                            format!("{command} selects its language and does not accept --lang"),
-                        );
-                    }
-                    if language_selected {
-                        return failure(
-                            "CLI_USAGE",
-                            "validation",
-                            "Only one language selection is allowed",
-                        );
-                    }
-                    language_selected = true;
-                    language = match value.as_str() {
-                        "uffda" => Language::Uffda,
-                        "pattern" => Language::Pattern,
-                        "expression" => Language::Expression,
-                        _ => {
-                            return failure(
-                                "CLI_USAGE",
-                                "validation",
-                                format!("Unknown --lang value: {value}"),
-                            );
-                        }
-                    };
-                } else if flag == "--entry" {
-                    if command != "run" {
-                        return failure("CLI_USAGE", "validation", "--entry is only valid for run");
-                    }
-                    entry = Some(value);
-                } else if flag == "-e" || flag == "--eval" {
-                    if source.replace(value).is_some() {
-                        return failure(
-                            "CLI_USAGE",
-                            "validation",
-                            "Only one inline input is allowed",
-                        );
-                    }
-                } else {
-                    if !matches!(command, "match" | "run") || subject.is_some() {
-                        return failure(
-                            "CLI_USAGE",
-                            "validation",
-                            "Input options are mutually exclusive and only valid for match and run",
-                        );
-                    }
-                    subject_json = flag == "--input-json";
-                    subject_data = matches!(flag, "--input-data" | "--input-data-file");
-                    subject = Some(if matches!(flag, "--input-file" | "--input-data-file") {
-                        match std::fs::read_to_string(value) {
-                            Ok(value) => value,
-                            Err(error) => return failure("CLI_USAGE", "input", error),
-                        }
-                    } else {
-                        value
-                    });
-                }
-            }
-            "-" => {
-                if command == "compile" {
-                    return failure(
-                        "CLI_USAGE",
-                        "validation",
-                        "compile requires file paths or globs, not stdin",
-                    );
-                }
-                if path.replace("-".to_owned()).is_some() {
-                    return failure("CLI_USAGE", "validation", "Expected one input path");
-                }
-            }
-            value if !value.starts_with('-') => {
-                if command == "compile" {
-                    compile_paths.push(value.to_owned());
-                    index += 1;
-                    continue;
-                }
-                if path.replace(value.to_owned()).is_some() {
-                    return failure("CLI_USAGE", "validation", "Expected one input path");
-                }
-            }
-            _ => return failure("CLI_USAGE", "validation", format!("Unknown option: {flag}")),
-        }
-        index += 1;
-    }
-    if source.is_some() && path.is_some() {
-        return failure(
-            "CLI_USAGE",
-            "validation",
-            "Inline input and input paths cannot be combined",
-        );
-    }
-    if ast && source.is_some() {
-        return failure(
-            "CLI_USAGE",
-            "validation",
-            "Cannot combine --ast with -e/--eval",
-        );
-    }
-    if ast && command == "parse" {
-        return failure(
-            "CLI_USAGE",
-            "validation",
-            "parse accepts source input and cannot use --ast",
-        );
-    }
-    if command == "match" && subject.is_none() {
-        return failure(
-            "CLI_USAGE",
-            "validation",
-            "match requires --input, --input-file, --input-json, --input-data or --input-data-file",
-        );
-    }
-    if command == "compile" && (ast || source.is_some() || compile_paths.is_empty()) {
-        return failure(
-            "CLI_USAGE",
-            "validation",
-            "compile requires source file paths or globs and cannot use --ast or --eval",
-        );
-    }
-    let diagnostic_source = subject.as_deref().unwrap_or("").to_owned();
-    let parsed_subject = match decode_subject(subject.as_deref(), subject_json, subject_data) {
-        Ok(subject) => subject,
+    let cwd = match effective_cwd() {
+        Ok(cwd) => cwd,
         Err(error) => return error,
     };
-    let cwd = match std::env::current_dir() {
-        Ok(cwd) => cwd,
-        Err(error) => return failure("CLI_CONFIG", "configuration", error),
+    let options = match options::parse(args) {
+        Ok(options) => options,
+        Err(error) => return error,
     };
-    let project_path = match Project::discover(&cwd, config.as_deref()) {
-        Ok(path) => path,
-        Err(error) => return failure("CLI_CONFIG", "configuration", error),
+    let command = options.command.as_str();
+    if command == "fmt" {
+        return run_fmt(options, &cwd, stdin);
+    }
+    let ast = options.ast;
+    let json_output = options.json;
+    let source = options.source;
+    let path = options.paths.first().cloned();
+    let compile_paths = options.paths;
+    let entry = options.entry;
+    let config = options.config;
+    let language = match options.language.as_deref() {
+        Some("pattern") => Language::Pattern,
+        Some("expression") => Language::Expression,
+        _ => Language::Uffda,
     };
+    let subject_json = options.input_json.is_some();
+    let subject_data = options.data.is_some() || options.data_file.is_some();
+    let subject_path = options.input_file.or(options.data_file);
+    let subject = options.text.or(options.input_json).or(options.data);
+    if command == "compile" && compile_paths.is_empty() {
+        return failure(
+            "CLI_USAGE",
+            "validation",
+            "Compile mode requires at least one file path or glob pattern.",
+        );
+    }
     let mut languages = None;
-    let project = if let Some(path) = project_path {
-        let mut grammar = match Languages::new() {
-            Ok(grammar) => grammar,
-            Err(error) => return failure("CLI_CONFIG", "configuration", error),
-        };
-        let project = match Project::load(path, &mut grammar) {
-            Ok(project) => project,
-            Err(error) => return failure("CLI_CONFIG", "configuration", error),
-        };
-        languages = Some(grammar);
-        Some(project)
-    } else {
-        None
-    };
     if command == "compile" {
+        let project = match load_project(&cwd, config.as_deref(), &mut languages) {
+            Ok(project) => project,
+            Err(error) => return error,
+        };
         let mut grammar = match languages {
             Some(grammar) => grammar,
             None => match Languages::new() {
@@ -516,21 +386,26 @@ pub fn run(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> 
         };
     }
     let source_label = match path.as_deref() {
-        Some("-") => "<stdin>",
-        Some(path) => path,
-        None if source.is_some() => "<eval>",
-        None => "<stdin>",
+        Some(path) if path != "-" => cwd.join(path).display().to_string(),
+        _ if source.is_some() => "<eval>".into(),
+        _ => "<stdin>".into(),
     };
     let source = match source {
         Some(source) => source,
         None => {
             let input = match path.as_deref() {
                 None | Some("-") => stdin(),
-                Some(path) => std::fs::read_to_string(path),
+                Some(path) => std::fs::read_to_string(cwd.join(path)),
             };
             match input {
                 Ok(source) => source,
-                Err(error) => return failure("CLI_USAGE", "input", error),
+                Err(error) => {
+                    return failure(
+                        "CLI_USAGE",
+                        "validation",
+                        format!("Unable to read input {source_label}: {error}"),
+                    );
+                }
             }
         }
     };
@@ -558,7 +433,7 @@ pub fn run(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> 
             Err(error) if !error.diagnostics.is_empty() => {
                 return diagnostic_failure(
                     &error.diagnostics,
-                    source_label,
+                    &source_label,
                     Some(language.id()),
                     true,
                 );
@@ -568,7 +443,7 @@ pub fn run(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> 
         if !parsed.diagnostics.is_empty() && command != "parse" {
             return diagnostic_failure(
                 &parsed.diagnostics,
-                source_label,
+                &source_label,
                 Some(language.id()),
                 true,
             );
@@ -576,6 +451,42 @@ pub fn run(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> 
         parse_diagnostics = parsed.diagnostics;
         languages = Some(grammar);
         parsed.value
+    };
+    let project = if matches!(command, "exec" | "run") {
+        match load_project(&cwd, config.as_deref(), &mut languages) {
+            Ok(project) => project,
+            Err(error) => return error,
+        }
+    } else {
+        None
+    };
+    let subject = match subject_path {
+        Some(path) => {
+            let path = cwd.join(path);
+            match std::fs::read_to_string(&path) {
+                Ok(value) => Some(value),
+                Err(error) => {
+                    return failure(
+                        "CLI_USAGE",
+                        "validation",
+                        format!("Unable to read {command} input {}: {error}", path.display()),
+                    );
+                }
+            }
+        }
+        None => subject,
+    };
+    if command == "match" && subject.is_none() {
+        return failure(
+            "CLI_USAGE",
+            "validation",
+            "match requires --input or --input-file",
+        );
+    }
+    let diagnostic_source = subject.as_deref().unwrap_or("").to_owned();
+    let parsed_subject = match decode_subject(subject.as_deref(), subject_json, subject_data) {
+        Ok(subject) => subject,
+        Err(error) => return error,
     };
     if command == "parse" {
         match serde_json::to_string_pretty(&ast_value) {
@@ -585,7 +496,7 @@ pub fn run(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> 
                 } else {
                     let mut result = diagnostic_failure(
                         &parse_diagnostics,
-                        source_label,
+                        &source_label,
                         Some(language.id()),
                         true,
                     );
@@ -630,7 +541,7 @@ pub fn run(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> 
                 Ok(resolver) => resolver,
                 Err(error) => return failure("CLI_CONFIG", "configuration", error),
             },
-            None => match Resolver::from_cwd() {
+            None => match Resolver::new(cwd.clone(), cwd.join("bin")) {
                 Ok(resolver) => resolver,
                 Err(error) => return failure("CLI_CONFIG", "configuration", error),
             },
@@ -679,7 +590,7 @@ pub fn run(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> 
         }) {
             for diagnostic in &mut runtime_diagnostics {
                 if !matches!(diagnostic.kind, crate::runtime::DiagnosticKind::Recovery) {
-                    diagnostic.message = format!("execution failed at {position}");
+                    diagnostic.message = format!("execution failed at [{position}]");
                 }
             }
         }
@@ -773,55 +684,21 @@ pub fn run(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> 
     }
 }
 
-fn run_fmt(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> CliResult {
-    let mut paths = Vec::new();
-    let mut check = false;
-    let mut json = false;
-    let mut config = None;
-    let mut index = 0;
-    while index < args.len() {
-        match args[index].as_str() {
-            "--check" => check = true,
-            "--json" => json = true,
-            "--config" => {
-                index += 1;
-                let Some(value) = args.get(index) else {
-                    return failure("CLI_USAGE", "validation", "Missing --config value");
-                };
-                config = Some(value.clone());
-            }
-            value if value.starts_with("--config=") => {
-                config = Some(value["--config=".len()..].to_owned())
-            }
-            "-" => paths.push("-".into()),
-            value if !value.starts_with('-') => paths.push(value.to_owned()),
-            value => {
-                return failure(
-                    "CLI_USAGE",
-                    "validation",
-                    format!("Unknown fmt option: {value}"),
-                );
-            }
-        }
-        index += 1;
-    }
+fn run_fmt(
+    options: options::Options,
+    cwd: &std::path::Path,
+    stdin: impl FnOnce() -> std::io::Result<String>,
+) -> CliResult {
+    let paths = options.paths;
+    let check = options.check;
+    let json = options.json;
+    let config = options.config;
     let input = paths.iter().any(|path| path == "-");
-    if input && paths.len() != 1 {
-        return failure(
-            "CLI_USAGE",
-            "validation",
-            "fmt stdin cannot be combined with paths",
-        );
-    }
-    let cwd = match std::env::current_dir() {
-        Ok(cwd) => cwd,
-        Err(error) => return failure("CLI_CONFIG", "configuration", error),
-    };
     let mut grammar = match Languages::new() {
         Ok(grammar) => grammar,
         Err(error) => return failure("CLI_CONFIG", "configuration", error),
     };
-    let project = match Project::discover(&cwd, config.as_deref()) {
+    let project = match Project::discover(cwd, config.as_deref()) {
         Ok(Some(path)) => match Project::load(path, &mut grammar) {
             Ok(project) => Some(project),
             Err(error) => return failure("CLI_CONFIG", "configuration", error),
@@ -856,7 +733,7 @@ fn run_fmt(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> 
         };
         crate::format::stdin(&mut grammar, &builtin[0], &source, check)
     } else {
-        crate::format::files(&mut grammar, &languages, &cwd, &paths, check)
+        crate::format::files(&mut grammar, &languages, cwd, &paths, check)
     };
     let stdout = if json {
         match serde_json::to_string_pretty(&result) {
@@ -864,7 +741,11 @@ fn run_fmt(args: &[String], stdin: impl FnOnce() -> std::io::Result<String>) -> 
             Err(error) => return failure("CLI_FMT_FORMAT_FAILURE", "output", error),
         }
     } else if input {
-        result.text.clone().unwrap_or_default()
+        if check && result.files.iter().any(|file| file.status == "changed") {
+            "<stdin>\n".into()
+        } else {
+            result.text.clone().unwrap_or_default()
+        }
     } else {
         result
             .files
@@ -961,7 +842,7 @@ fn match_ast(
         let matched = execution.failure_match()?;
         Some((
             diagnostic.kind.as_str(),
-            diagnostic.position.to_string(),
+            matched.identity.position(matched.start).to_string(),
             matched.current().is_none(),
         ))
     });
@@ -1071,6 +952,21 @@ mod tests {
     use super::*;
 
     #[test]
+    // req:cli-command-model-005
+    fn contextual_help_describes_only_applicable_inputs_and_preview_output() {
+        let parse = help(&["parse".into(), "--help".into()]);
+        assert!(parse.starts_with("Usage: uffda parse"));
+        assert!(parse.contains("--lang"));
+        assert!(!parse.contains("--config"));
+        assert!(!parse.contains("--ast"));
+        let run = help(&["--help".into(), "--eval".into(), "run".into()]);
+        assert!(run.starts_with("Usage: uffda run"));
+        assert!(run.contains("--entry"));
+        assert!(run.contains("quoted strings and undefined"));
+        assert!(!help(&["--exec".into(), "--help".into()]).starts_with("Usage: uffda exec"));
+    }
+
+    #[test]
     // req:runtime-strings-002
     fn ast_and_source_commands_preserve_surrogates_or_report_scalar_output_errors() {
         let result = run(&["exec".into(), "--ast".into(), "--json".into()], || {
@@ -1128,11 +1024,11 @@ mod tests {
         assert_eq!(result.exit_code, 0, "{}", result.stderr);
         assert_eq!(result.stdout, "42\n");
         let result = execute(&["exec", "-e", "--help"]);
-        assert_ne!(result.exit_code, 0);
-        assert!(!result.stdout.contains("Usage"));
+        assert_eq!(result.exit_code, 0);
+        assert!(result.stdout.starts_with("Usage: uffda exec"));
         let result = execute(&["match", "-e", "any", "--input", "--version"]);
         assert_eq!(result.exit_code, 0, "{}", result.stderr);
-        assert_eq!(result.stdout, "\"-\"\n");
+        assert_eq!(result.stdout, "0.0.0\n");
     }
 
     #[test]
@@ -1143,15 +1039,6 @@ mod tests {
             vec!["exec", "-e", "("],
             vec!["exec", "--ast", "-e", "{}", "file.json"],
             vec!["exec", "--lang", "expression"],
-            vec![
-                "parse",
-                "--lang",
-                "pattern",
-                "--lang",
-                "expression",
-                "-e",
-                "42",
-            ],
             vec!["match", "--ast", "--input", "a", "--input-json", "42"],
         ] {
             let result = execute(&args);
@@ -1167,22 +1054,32 @@ mod tests {
     #[test]
     // req:cli-command-model-002
     fn mode_precedence_conflicts_and_values_are_preserved() {
-        let resolve =
-            |args: &[&str]| resolve_mode(&args.iter().map(|arg| (*arg).into()).collect::<Vec<_>>());
+        let resolve = |args: &[&str]| {
+            options::parse(&args.iter().map(|arg| (*arg).into()).collect::<Vec<_>>())
+        };
         assert_eq!(
-            resolve(&["--parse", "--mode", "exec", "--ast"]).unwrap(),
-            ("exec".into(), vec!["--ast".into()])
+            resolve(&["--parse", "--mode", "exec", "--ast"])
+                .unwrap_or_else(|e| panic!("{}", e.stderr))
+                .command,
+            "exec"
         );
         assert!(
             resolve(&["exec", "--match"])
-                .unwrap_err()
+                .err()
+                .unwrap()
+                .stderr
                 .contains("Conflicting")
         );
-        assert_eq!(resolve(&["file.uff"]).unwrap().0, "compile");
         assert_eq!(
-            resolve(&["--mode=match", "--input", "exec"]).unwrap(),
-            ("match".into(), vec!["--input".into(), "exec".into()])
+            resolve(&["file.uff"])
+                .unwrap_or_else(|e| panic!("{}", e.stderr))
+                .command,
+            "compile"
         );
+        let options = resolve(&["--mode=match", "--input", "exec"])
+            .unwrap_or_else(|e| panic!("{}", e.stderr));
+        assert_eq!(options.command, "match");
+        assert_eq!(options.text.as_deref(), Some("exec"));
     }
 
     #[test]
@@ -1227,5 +1124,32 @@ mod tests {
             || Ok(r#"{"kind":"type","type":"number"}"#.into()),
         );
         assert_ne!(result.exit_code, 0);
+    }
+    #[test]
+    // req:cli-command-model-004
+    fn reference_validation_fixtures_preserve_exact_diagnostic_objects() {
+        let fixtures: serde_json::Value =
+            serde_json::from_str(include_str!("../../test/rust/cli-validation-fixtures.json"))
+                .unwrap();
+        for fixture in fixtures.as_array().unwrap() {
+            let args = fixture["args"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|arg| arg.as_str().unwrap().to_owned())
+                .collect::<Vec<_>>();
+            let result = run(&args, || panic!("validation must not read stdin"));
+            assert_eq!(result.exit_code, 2, "{}", fixture["name"]);
+            assert!(result.stdout.is_empty(), "{}", fixture["name"]);
+            assert_eq!(
+                serde_json::from_str::<serde_json::Value>(&result.stderr).unwrap(),
+                json!({
+                    "ok": false,
+                    "error": {"code":"CLI_USAGE", "phase":fixture["phase"], "message":fixture["message"]}
+                }),
+                "{}",
+                fixture["name"]
+            );
+        }
     }
 }
