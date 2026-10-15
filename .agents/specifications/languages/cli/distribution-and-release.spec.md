@@ -38,9 +38,17 @@ Normative key words in this chapter use the conventions defined in the
 - Release tags MUST use the repository SemVer convention (bare tags such as
   `0.1.2`). Installers MAY accept an optional `v` prefix and MUST resolve to the
   published tag.
-- Merging to `main` MUST update a draft GitHub Release (Release Drafter).
-- After the draft is updated, Release Drafter MUST emit a `repository_dispatch`
-  event that triggers CLI binary attachment for the latest draft.
+- Merging to `main` MUST update a draft GitHub Release through a standalone Bash
+  workflow using the GitHub CLI, the semver CLI, and GitHub's built-in release
+  notes generator. It MUST NOT require Deno.
+- The next version MUST be resolved from merged PRs on `main` since the latest
+  stable published release's tag: `major` takes precedence over `minor`, and
+  otherwise the version increments by a patch. Draft releases MUST NOT be
+  version baselines. PR creators choose labels; the workflow MUST NOT apply
+  labels automatically.
+- After the draft and version files are updated, the workflow MUST emit a
+  `repository_dispatch` event that triggers CLI binary attachment for the latest
+  draft.
 - Draft release notes MUST document the manual `workflow_dispatch` path used to
   re-attach CLI binaries.
 - The `release-binaries` workflow MUST accept both `repository_dispatch` and
