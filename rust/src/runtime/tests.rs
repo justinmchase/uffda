@@ -3,6 +3,26 @@ use crate::resolver::{Resolver, decode_declaration};
 use serde_json::{Value as Json, json};
 
 #[test]
+// req:cli-command-model-005
+fn rightmost_failure_selects_nested_input_rather_than_its_outer_container() {
+    let pattern: Pattern = serde_json::from_value(json!({
+        "kind":"into", "pattern":{"kind":"equal", "value":{"kind":"value.literal","value":42}}
+    }))
+    .unwrap();
+    let input: crate::json::JsonValue = crate::json::from_str("[7]").unwrap();
+    let mut runtime = Runtime::for_pattern(pattern, input, InputMode::Scalar).unwrap();
+    runtime.run().unwrap();
+    runtime.read(|execution| {
+        let matched = execution.failure_match().unwrap();
+        assert_eq!(matched.pattern_kind, crate::pattern::PatternKind::Equal);
+        assert_eq!(
+            matched.identity.position(matched.start).to_string(),
+            "[0].[0]"
+        );
+    });
+}
+
+#[test]
 // req:cli-match-002 req:cli-run-004 req:data-codec-003 req:runtime-memory-005
 fn codec_subjects_are_native_scalar_values_rooted_in_both_execution_modes() {
     let mut decoder =
@@ -242,6 +262,751 @@ fn edit_reuses_only_unchanged_prefix_and_matches_a_fresh_parse() {
     assert_eq!(edited_result, fresh.serialize_result().unwrap());
     assert_eq!(edited.diagnostics(), fresh.diagnostics());
     edited.read(|execution| assert!(execution.memos.is_empty()));
+}
+
+fn assert_edit_parity(
+    runtime: &mut Runtime,
+    graph: Rc<CompiledModuleGraph>,
+    url: &Url,
+    input: Json,
+    mode: InputMode,
+    edit: (usize, usize, usize),
+) {
+    runtime
+        .reparse_edit(input.clone(), mode, edit.0, edit.1, edit.2)
+        .unwrap();
+    while !runtime.step().unwrap() {
+        runtime.collect_all();
+    }
+    let mut fresh = Runtime::with_mode(graph, url, None, input, mode).unwrap();
+    fresh.run().unwrap();
+    fresh.collect_all();
+    assert_eq!(
+        runtime.serialize_result().unwrap(),
+        fresh.serialize_result().unwrap()
+    );
+    let diagnostics = |runtime: &Runtime| {
+        let root_domain =
+            runtime.read(|execution| execution.result().unwrap().identity.position(0).domain);
+        let mut domains = HashMap::from([(root_domain, 0)]);
+        let mut diagnostics = runtime.diagnostics();
+        for diagnostic in &mut diagnostics {
+            if let Some(position) = &mut diagnostic.position {
+                let next = domains.len();
+                position.domain = *domains.entry(position.domain).or_insert(next);
+            }
+        }
+        diagnostics
+    };
+    assert_eq!(diagnostics(runtime), diagnostics(&fresh));
+    assert_eq!(
+        runtime.read(|execution| {
+            let result = execution.result().unwrap();
+            (
+                result.kind,
+                result.end,
+                execution.is_clean(),
+                execution.recoveries().len(),
+            )
+        }),
+        fresh.read(|execution| {
+            let result = execution.result().unwrap();
+            (
+                result.kind,
+                result.end,
+                execution.is_clean(),
+                execution.recoveries().len(),
+            )
+        })
+    );
+    runtime.read(|execution| assert!(execution.memos.is_empty()));
+}
+
+#[test]
+// req:incremental-parsing-004 req:incremental-parsing-003
+fn edits_invalidate_observations_beyond_consumed_spans() {
+    let cases = [
+        // Check consumes only a, but its lookahead observes the edited b.
+        (
+            json!({"kind":"then","patterns":[equal(json!("a")),{"kind":"lookahead","pattern":equal(json!("b"))}]}),
+            "ab",
+            "ac",
+            (1, 1, 1),
+        ),
+        // Check's first alternative fails past the edit, then accepts just a.
+        (
+            json!({"kind":"or","patterns":[
+                {"kind":"then","patterns":[equal(json!("a")),equal(json!("b")),equal(json!("!"))]},
+                equal(json!("a"))
+            ]}),
+            "abc",
+            "ab!",
+            (2, 1, 1),
+        ),
+        // The failed repetition terminator observes the inserted boundary.
+        (
+            json!({"kind":"quantifier","pattern":equal(json!("a"))}),
+            "ab",
+            "aab",
+            (1, 0, 1),
+        ),
+        // Failed rule rolls back to zero after observing the edited character.
+        (
+            json!({"kind":"then","patterns":[equal(json!("a")),equal(json!("b"))]}),
+            "ac",
+            "ab",
+            (1, 1, 1),
+        ),
+    ];
+    for (check, old, new, edit) in cases {
+        let (graph, url) = graph(
+            json!([rule("Main", reference("Check")), rule("Check", check)]),
+            "Main",
+        );
+        let mut runtime =
+            Runtime::with_mode(graph.clone(), &url, None, json!(old), InputMode::Iterable).unwrap();
+        runtime.run().unwrap();
+        assert_edit_parity(
+            &mut runtime,
+            graph,
+            &url,
+            json!(new),
+            InputMode::Iterable,
+            edit,
+        );
+    }
+}
+
+#[test]
+// req:incremental-parsing-004 req:incremental-parsing-001
+fn unchanged_failed_rule_is_reused_without_changing_branch_order() {
+    let (graph, url) = graph(
+        json!([
+            rule(
+                "Main",
+                json!({"kind":"then","patterns":[
+                    {"kind":"or","patterns":[reference("Missing"), reference("Atom")]},
+                    {"kind":"any"},{"kind":"end"}
+                ]})
+            ),
+            rule("Missing", equal(json!("z"))),
+            rule("Atom", json!({"kind":"any"}))
+        ]),
+        "Main",
+    );
+    let mut runtime =
+        Runtime::with_mode(graph.clone(), &url, None, json!("ab"), InputMode::Iterable).unwrap();
+    runtime.run().unwrap();
+    runtime
+        .reparse_edit(json!("ac"), InputMode::Iterable, 1, 1, 1)
+        .unwrap();
+    runtime.read(|execution| {
+        assert!(execution.memos.iter().any(
+            |memo| matches!(memo.state, MemoState::Complete(node) if node.kind == MatchKind::Fail)
+        ));
+    });
+    runtime.run().unwrap();
+    assert!(runtime.read(|execution| execution.memo_hits) >= 2);
+    assert_edit_parity(
+        &mut runtime,
+        graph,
+        &url,
+        json!("ad"),
+        InputMode::Iterable,
+        (1, 1, 1),
+    );
+    assert!(runtime.read(|execution| execution.memo_hits) >= 2);
+}
+
+#[test]
+// req:incremental-parsing-004 req:runtime-core-004 req:into-001 req:over-001
+fn nested_prefix_rule_reuse_remaps_every_retained_domain_across_repeated_edits() {
+    let (graph, url) = graph(
+        json!([
+            rule(
+                "Main",
+                json!({"kind":"then","patterns":[reference("Record"),{"kind":"any"},{"kind":"end"}]})
+            ),
+            rule(
+                "Record",
+                json!({"kind":"over","keys":{
+            "a":{"kind":"into","pattern":{"kind":"then","patterns":[reference("Atom"),{"kind":"end"}]}},
+            "b":reference("Atom")
+        },"rest":[]})
+            ),
+            rule("Atom", json!({"kind":"any"}))
+        ]),
+        "Main",
+    );
+    let mut runtime = Runtime::with_mode(
+        graph.clone(),
+        &url,
+        None,
+        json!([{"a":["x"],"b":"y"},"old"]),
+        InputMode::Iterable,
+    )
+    .unwrap();
+    runtime.run().unwrap();
+    for input in [
+        json!([{"a":["x"],"b":"y"},"new"]),
+        json!([{"a":["x"],"b":"y"},"next"]),
+    ] {
+        let old_domain =
+            runtime.read(|execution| execution.result().unwrap().identity.position(0).domain);
+        assert_edit_parity(
+            &mut runtime,
+            graph.clone(),
+            &url,
+            input,
+            InputMode::Iterable,
+            (1, 1, 1),
+        );
+        assert!(runtime.read(|execution| execution.memo_hits) >= 1);
+        runtime.read(|execution| {
+            let result = execution.result().unwrap();
+            let domain = result.identity.position(0).domain;
+            assert_ne!(old_domain, domain);
+            let mut pending = vec![result];
+            let mut nested = 0;
+            while let Some(node) = pending.pop() {
+                let position = node.identity.position(node.start);
+                assert_eq!(position.domain, domain);
+                nested += usize::from(!position.path.is_empty());
+                pending.extend(node.children.iter().copied());
+            }
+            assert!(nested >= 2);
+        });
+    }
+}
+
+#[test]
+// req:incremental-parsing-004 req:error-recovery-001 req:error-recovery-008
+fn recovery_edits_recompute_discovery_and_preserve_fresh_diagnostics() {
+    let (graph, url) = graph(
+        json!([rule(
+            "Main",
+            json!({"kind":"then","patterns":[
+                {"kind":"recover","pattern":equal(json!("x")),"skip":{"kind":"any"}},
+                {"kind":"recover","pattern":equal(json!("!")),"skip":{"kind":"any"}},
+                {"kind":"end"}
+            ]})
+        )]),
+        "Main",
+    );
+    let mut runtime =
+        Runtime::with_mode(graph.clone(), &url, None, json!("??"), InputMode::Iterable).unwrap();
+    runtime.run().unwrap();
+    for (text, edit) in [
+        ("x?", (0, 1, 1)),
+        ("x!", (1, 1, 1)),
+        ("?!", (0, 1, 1)),
+        ("?!!", (2, 0, 1)),
+        ("x!", (0, 2, 1)),
+    ] {
+        assert_edit_parity(
+            &mut runtime,
+            graph.clone(),
+            &url,
+            json!(text),
+            InputMode::Iterable,
+            edit,
+        );
+    }
+}
+
+#[test]
+// req:incremental-parsing-004 req:direct-left-recursion-001 req:incremental-parsing-003
+fn left_recursive_edits_preserve_stabilized_projection_and_rejected_attempts() {
+    let (graph, url) = graph(
+        json!([
+            rule(
+                "Main",
+                json!({"kind":"then","patterns":[reference("Sum"),{"kind":"end"}]})
+            ),
+            rule(
+                "Sum",
+                json!({"kind":"or","patterns":[
+                    {"kind":"projection","pattern":{"kind":"then","patterns":[
+                        {"kind":"variable","name":"left","pattern":reference("Sum")},equal(json!("+")),reference("Atom")
+                    ]},"expression":{"kind":"invocation","expression":{"kind":"reference","name":"add"},"args":[
+                        {"kind":"reference","name":"left"},{"kind":"number","value":1}
+                    ]}},
+                    {"kind":"projection","pattern":reference("Atom"),"expression":{"kind":"number","value":1}}
+                ]})
+            ),
+            rule("Atom", equal(json!("x")))
+        ]),
+        "Main",
+    );
+    let mut runtime =
+        Runtime::with_mode(graph.clone(), &url, None, json!("x+x"), InputMode::Iterable).unwrap();
+    runtime.run().unwrap();
+    for (text, edit) in [
+        ("x+x+x", (3, 0, 2)),
+        ("x+y+x", (2, 1, 1)),
+        ("x+x+x", (2, 1, 1)),
+        ("x", (1, 4, 0)),
+    ] {
+        assert_edit_parity(
+            &mut runtime,
+            graph.clone(),
+            &url,
+            json!(text),
+            InputMode::Iterable,
+            edit,
+        );
+    }
+}
+
+#[test]
+// req:incremental-parsing-004 req:incremental-parsing-003 req:runtime-core-004
+fn computed_pipeline_domains_fall_back_instead_of_reusing_by_source_cursor() {
+    let (graph, url) = graph(
+        json!([
+            rule(
+                "Main",
+                json!({"kind":"pipeline","steps":[
+                    {"kind":"quantifier","pattern":{"kind":"any"}},
+                    {"kind":"into","pattern":{"kind":"then","patterns":[
+                        {"kind":"quantifier","pattern":reference("Atom")},{"kind":"end"}
+                    ]}}
+                ]})
+            ),
+            rule("Atom", json!({"kind":"any"}))
+        ]),
+        "Main",
+    );
+    let mut runtime =
+        Runtime::with_mode(graph.clone(), &url, None, json!("ab"), InputMode::Iterable).unwrap();
+    runtime.run().unwrap();
+    assert_edit_parity(
+        &mut runtime,
+        graph,
+        &url,
+        json!("ac"),
+        InputMode::Iterable,
+        (1, 1, 1),
+    );
+    assert_eq!(runtime.read(|execution| execution.memo_hits), 0);
+}
+
+#[test]
+// req:incremental-parsing-004 req:incremental-parsing-003
+fn invalid_edit_ranges_lengths_and_overflow_preserve_the_prior_parse() {
+    let mut runtime = text_runtime(json!([rule("Main", json!({"kind":"any"}))]), "Main", "ab");
+    runtime.run().unwrap();
+    let prior = runtime.serialize_result().unwrap();
+    for (input, edit) in [
+        (json!("ab"), (3, 0, 0)),
+        (json!("ab"), (1, 2, 0)),
+        (json!("ab"), (1, 1, 2)),
+        (json!("ab"), (0, 0, usize::MAX)),
+        (json!(42), (0, 0, 0)),
+    ] {
+        assert!(
+            runtime
+                .reparse_edit(input, InputMode::Iterable, edit.0, edit.1, edit.2)
+                .is_err()
+        );
+        assert_eq!(runtime.serialize_result().unwrap(), prior);
+        runtime.read(|execution| {
+            assert!(execution.frames.is_empty());
+            assert!(execution.memos.is_empty());
+        });
+    }
+}
+
+#[test]
+// req:incremental-parsing-004 req:incremental-parsing-003 req:runtime-strings-002
+fn changed_prefix_and_unicode_insert_delete_edits_match_fresh_parses() {
+    let (graph, url) = graph(
+        json!([
+            rule(
+                "Main",
+                json!({"kind":"quantifier","pattern":reference("Atom")})
+            ),
+            rule("Atom", json!({"kind":"any"}))
+        ]),
+        "Main",
+    );
+    let mut runtime = Runtime::with_mode(
+        graph.clone(),
+        &url,
+        None,
+        json!("a😀b"),
+        InputMode::Iterable,
+    )
+    .unwrap();
+    runtime.run().unwrap();
+    // Same length, but the supplied prefix does not agree with the edit.
+    assert_edit_parity(
+        &mut runtime,
+        graph.clone(),
+        &url,
+        json!("z😀c"),
+        InputMode::Iterable,
+        (2, 1, 1),
+    );
+    assert_eq!(runtime.read(|execution| execution.memo_hits), 0);
+    for (text, edit) in [
+        ("z😀xc", (2, 0, 1)),
+        ("z😀c", (2, 1, 0)),
+        ("", (0, 3, 0)),
+        ("😀", (0, 0, 1)),
+    ] {
+        assert_edit_parity(
+            &mut runtime,
+            graph.clone(),
+            &url,
+            json!(text),
+            InputMode::Iterable,
+            edit,
+        );
+    }
+}
+
+#[test]
+// req:incremental-parsing-004
+fn prefix_proof_compares_nested_json_content_order_and_signed_zero() {
+    gc_arena::arena::rootless_mutate(|mc| {
+        let input = |value| runtime_input(mc, value, InputMode::Scalar).unwrap()[0];
+        assert!(same_input_item(
+            input(json!({"a":[1,{"b":true}]})),
+            input(json!({"a":[1,{"b":true}]}))
+        ));
+        assert!(!same_input_item(
+            input(json!({"a":[1,2]})),
+            input(json!({"a":[1,3]}))
+        ));
+        assert!(!same_input_item(
+            input(json!({"a":1,"b":2})),
+            input(json!({"b":2,"a":1}))
+        ));
+        assert!(!same_input_item(Value::Number(-0.0), Value::Number(0.0)));
+    });
+}
+
+#[test]
+// req:incremental-parsing-004 req:incremental-parsing-003 req:over-001
+fn reused_nested_failures_keep_diagnostics_and_changed_prefixes_are_recomputed() {
+    let (graph, url) = graph(
+        json!([
+            rule(
+                "Main",
+                json!({"kind":"then","patterns":[reference("Record"),{"kind":"any"}]})
+            ),
+            rule(
+                "Record",
+                json!({"kind":"over","keys":{"a":equal(json!("x")),"b":equal(json!("y"))},"rest":[]})
+            )
+        ]),
+        "Main",
+    );
+    let mut runtime = Runtime::with_mode(
+        graph.clone(),
+        &url,
+        None,
+        json!([{"a":"x","b":"?"},1]),
+        InputMode::Iterable,
+    )
+    .unwrap();
+    runtime.run().unwrap();
+    assert_edit_parity(
+        &mut runtime,
+        graph.clone(),
+        &url,
+        json!([{"a":"x","b":"?"},2]),
+        InputMode::Iterable,
+        (1, 1, 1),
+    );
+    assert!(runtime.read(|execution| execution.memo_hits) >= 1);
+    assert_edit_parity(
+        &mut runtime,
+        graph,
+        &url,
+        json!([{"a":"x","b":"y"},3]),
+        InputMode::Iterable,
+        (1, 1, 1),
+    );
+    assert_eq!(runtime.read(|execution| execution.memo_hits), 0);
+}
+
+#[test]
+// req:incremental-parsing-004 req:incremental-parsing-001 req:incremental-parsing-003
+fn localized_edit_matrix_matches_fresh_parse_outcomes_values_and_diagnostics() {
+    let (graph, url) = graph(
+        json!([
+            rule(
+                "Main",
+                json!({"kind":"then","patterns":[
+                    {"kind":"quantifier","pattern":reference("Token")},{"kind":"end"}
+                ]})
+            ),
+            rule(
+                "Token",
+                json!({"kind":"or","patterns":[
+                    {"kind":"then","patterns":[equal(json!("a")),{"kind":"lookahead","pattern":equal(json!("b"))}]},
+                    equal(json!("b"))
+                ]})
+            )
+        ]),
+        "Main",
+    );
+    let mut cases = 0;
+    for old in ["", "a", "b", "aa", "ab", "ba", "aba", "abb", "aab"] {
+        for at in 0..=old.len() {
+            for removed in 0..=old.len() - at {
+                for inserted in ["", "a", "b", "ab"] {
+                    let new = format!("{}{}{}", &old[..at], inserted, &old[at + removed..]);
+                    let mut runtime = Runtime::with_mode(
+                        graph.clone(),
+                        &url,
+                        None,
+                        json!(old),
+                        InputMode::Iterable,
+                    )
+                    .unwrap();
+                    runtime.run().unwrap();
+                    assert_edit_parity(
+                        &mut runtime,
+                        graph.clone(),
+                        &url,
+                        json!(new),
+                        InputMode::Iterable,
+                        (at, removed, inserted.len()),
+                    );
+                    cases += 1;
+                }
+            }
+        }
+    }
+    assert_eq!(cases, 220);
+}
+
+#[test]
+// req:incremental-parsing-004 req:incremental-parsing-003
+fn scalar_and_empty_edits_and_invalid_execution_states_follow_the_edit_contract() {
+    let (graph, url) = graph(json!([rule("Main", json!({"kind":"any"}))]), "Main");
+    let mut scalar = Runtime::with_mode(
+        graph.clone(),
+        &url,
+        None,
+        json!({"x":[1]}),
+        InputMode::Scalar,
+    )
+    .unwrap();
+    assert_eq!(
+        scalar.reparse_edit(json!({"x":[2]}), InputMode::Scalar, 0, 1, 1),
+        Err(RuntimeError::InvalidState)
+    );
+    scalar.run().unwrap();
+    assert_eq!(
+        scalar.reparse_edit(json!([]), InputMode::Iterable, 0, 1, 0),
+        Err(RuntimeError::InvalidState)
+    );
+    assert_edit_parity(
+        &mut scalar,
+        graph.clone(),
+        &url,
+        json!({"x":[2]}),
+        InputMode::Scalar,
+        (0, 1, 1),
+    );
+    let mut empty =
+        Runtime::with_mode(graph.clone(), &url, None, Json::Null, InputMode::Empty).unwrap();
+    empty.run().unwrap();
+    assert_edit_parity(
+        &mut empty,
+        graph,
+        &url,
+        json!([]),
+        InputMode::Empty,
+        (0, 0, 0),
+    );
+}
+
+#[test]
+// req:memo-eviction-001 req:memo-eviction-002 req:memo-eviction-004
+fn compaction_preserves_pending_growth_and_transitive_seed_dependencies() {
+    let mut runtime = Runtime::for_pattern(Pattern::Ok, json!([]), InputMode::Empty).unwrap();
+    runtime.arena.mutate_root(|mc, execution| {
+        let Execution::Pattern(pattern) = &mut execution.frames[0].execution else {
+            panic!("expected pattern");
+        };
+        let (identity, stream) = pattern.root_input().unwrap();
+        while !pattern.step(mc).unwrap() {}
+        let outcome = pattern.result().unwrap();
+        for cursor in [0, 1, 2, 3, 4, 5] {
+            let index = execution.memos.len();
+            execution.memos.push(Memo {
+                input: identity,
+                stream,
+                position: cursor,
+                state: MemoState::Vacant,
+                version: cursor,
+                dependencies: vec![],
+                seed_dependencies: vec![],
+            });
+            execution.memo_keys.insert(
+                MemoKey {
+                    target: cursor,
+                    position: identity.position(cursor),
+                    recovery: false,
+                },
+                index,
+            );
+        }
+        execution.memos[1].state = MemoState::Pending;
+        execution.memos[2].state = MemoState::Growing(outcome);
+        execution.memos[5].dependencies.push(Dependency {
+            memo: 4,
+            version: 4,
+        });
+        execution.memos[4].seed_dependencies.push(Dependency {
+            memo: 3,
+            version: 3,
+        });
+        execution.active_marks.push(ActiveMark {
+            memo: 5,
+            domain: Some(identity.position(0).domain),
+            low: Some(5),
+        });
+        execution.evict_memos();
+        assert_eq!(execution.memos.len(), 5);
+        assert!(matches!(execution.memos[0].state, MemoState::Pending));
+        assert!(matches!(execution.memos[1].state, MemoState::Growing(_)));
+        assert_eq!(execution.active_marks[0].memo, 4);
+        assert_eq!(execution.memos[4].dependencies[0].memo, 3);
+        assert_eq!(execution.memos[4].dependencies[0].version, 4);
+        assert_eq!(execution.memos[3].seed_dependencies[0].memo, 2);
+        assert_eq!(execution.memos[2].version, 3);
+        assert!(
+            !execution
+                .memo_keys
+                .keys()
+                .any(|key| key.position.cursor == 0)
+        );
+    });
+}
+
+#[test]
+// req:memo-eviction-004 req:memo-eviction-002 req:runtime-core-004
+fn incomparable_nested_and_multiple_domains_retain_state_until_their_frames_return() {
+    let mut runtime = Runtime::for_pattern(Pattern::Ok, json!([]), InputMode::Empty).unwrap();
+    runtime.arena.mutate_root(|mc, execution| {
+        let Execution::Pattern(pattern) = &execution.frames[0].execution else {
+            panic!("expected pattern");
+        };
+        let (identity, stream) = pattern.root_input().unwrap();
+        let nested = identity.nested(mc, 0, input::PathSegment::Into);
+        let computed = InputIdentity::root(Gc::new(mc, vec![]));
+        for (index, identity) in [identity, nested, computed].into_iter().enumerate() {
+            execution.memos.push(Memo {
+                input: identity,
+                stream,
+                position: 0,
+                state: MemoState::Vacant,
+                version: 0,
+                dependencies: vec![],
+                seed_dependencies: vec![],
+            });
+            execution.memo_keys.insert(
+                MemoKey {
+                    target: index,
+                    position: identity.position(0),
+                    recovery: false,
+                },
+                index,
+            );
+            execution.enter_active(index, identity.position(0));
+        }
+        execution.evict_memos();
+        assert_eq!(execution.memos.len(), 3);
+        execution.leave_active(2).unwrap();
+        execution.evict_memos();
+        assert_eq!(execution.memos.len(), 3);
+        execution.leave_active(1).unwrap();
+        execution.evict_memos();
+        assert_eq!(execution.memos.len(), 3);
+        execution.leave_active(0).unwrap();
+        execution.evict_memos();
+        assert!(execution.memos.is_empty());
+    });
+}
+
+#[test]
+// req:memo-eviction-004 req:memo-eviction-003 req:runtime-memory-005
+fn first_pass_memo_peaks_follow_the_live_window_and_completion_releases_it() {
+    let (graph, url) = graph(
+        json!([
+            rule(
+                "Main",
+                json!({"kind":"quantifier","pattern":reference("Atom")})
+            ),
+            rule("Atom", json!({"kind":"any"}))
+        ]),
+        "Main",
+    );
+    for length in [64, 256, 1024] {
+        let mut runtime = Runtime::with_mode(
+            graph.clone(),
+            &url,
+            None,
+            json!("x".repeat(length)),
+            InputMode::Iterable,
+        )
+        .unwrap();
+        let mut retained_allocations = None;
+        for round in 0..3 {
+            if round > 0 {
+                runtime
+                    .reparse_edit(json!("x".repeat(length)), InputMode::Iterable, 0, 0, 0)
+                    .unwrap();
+            }
+            let mut peak = 0;
+            let mut steps = 0;
+            loop {
+                let completed = runtime.step().unwrap();
+                peak = peak.max(runtime.read(|execution| execution.memos.len()));
+                steps += 1;
+                if steps % 128 == 0 {
+                    runtime.collect_all();
+                }
+                if completed {
+                    break;
+                }
+            }
+            assert!(peak <= length + 2, "N={length}, round={round}, peak={peak}");
+            assert!(
+                peak >= length,
+                "the pinned root must retain its live window"
+            );
+            runtime.collect_all();
+            let live = runtime.arena.metrics().total_gc_count();
+            if let Some(prior) = retained_allocations {
+                assert_eq!(
+                    live, prior,
+                    "completed parses must not accumulate unreachable GC allocations"
+                );
+            }
+            retained_allocations = Some(live);
+            println!(
+                "memo retention: N={length}, round={round}, peak={peak}, completed=0, live_gc_allocations={live}"
+            );
+            runtime.read(|execution| {
+                assert!(execution.memos.is_empty());
+                assert!(execution.memo_keys.is_empty());
+                assert!(execution.active_marks.is_empty());
+                let result = execution.result().unwrap();
+                assert_eq!(result.kind, MatchKind::Ok);
+                assert_eq!(result.end, length);
+                let Value::Array(items) = result.value.raw() else {
+                    panic!("expected retained array");
+                };
+                assert_eq!(items.borrow().len(), length);
+            });
+        }
+    }
 }
 
 fn host() -> HostCallable {

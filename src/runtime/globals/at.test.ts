@@ -38,7 +38,7 @@ Deno.test("globals.at carries metadata", () => {
   );
 });
 
-Deno.test("globals.at carries wrapped elements and characters", () => {
+Deno.test("req:standard-library-002 - at carries wrapped elements and characters", () => {
   const item = new Wrapped(2, rootOrigin(1));
   const items = new Wrapped(
     [new Wrapped(1, rootOrigin(0)), item],

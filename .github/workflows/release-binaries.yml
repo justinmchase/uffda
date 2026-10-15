@@ -203,9 +203,31 @@ jobs:
           if-no-files-found: error
 
   compile-rust:
-    name: Compile uffdar x86_64 Linux
+    name: Compile uffdar ${{ matrix.target }}
     needs: [prepare, compile-lang]
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            suffix: ""
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            suffix: ""
+          - os: windows-2025
+            target: x86_64-pc-windows-msvc
+            suffix: ".exe"
+          - os: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            suffix: ".exe"
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+            suffix: ""
+          - os: macos-15
+            target: aarch64-apple-darwin
+            suffix: ""
     steps:
       - name: Checkout build commit
         uses: actions/checkout@v5
@@ -220,39 +242,34 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Setup Deno for acceptance tooling
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
 
       - name: Build uffdar with embedded language ASTs
-        shell: bash
-        run: |
-          set -euo pipefail
-          version="${{ needs.prepare.outputs.version }}"
-          target="x86_64-unknown-linux-gnu"
-          asset="uffdar-${version}-${target}"
-          out_dir="dist/cli"
-          mkdir -p "${out_dir}"
-          test -f ./bin/ast/src/lang/expression/expression.lang.uffda.ast.json
-          test -f ./bin/ast/src/lang/pattern/pattern.lang.uffda.ast.json
-          cargo build --manifest-path rust/Cargo.toml --release --bin uffda
-          install "rust/target/release/uffda" "${out_dir}/${asset}"
-          sha256sum "${out_dir}/${asset}" > "${out_dir}/${asset}.sha256"
+        run: cargo build --locked --manifest-path rust/Cargo.toml --target ${{ matrix.target }} --release --bin uffda --example codec_probe
 
-      - name: Smoke test embedded runtime outside checkout
-        shell: bash
-        run: |
-          set -euo pipefail
-          binary="${GITHUB_WORKSPACE}/dist/cli/uffdar-${{ needs.prepare.outputs.version }}-x86_64-unknown-linux-gnu"
-          temp_dir="$(mktemp -d)"
-          trap 'rm -rf "${temp_dir}"' EXIT
-          result="$(cd "${temp_dir}" && "${binary}" exec -e '(add 20 22)')"
-          if [[ "${result}" != "42" ]]; then
-            echo "Unexpected uffdar output: ${result}" >&2
-            exit 1
-          fi
+      - name: Package preview binary and portable checksum
+        run: >-
+          deno run --allow-read --allow-write scripts/package-rust-cli.ts
+          rust/target/${{ matrix.target }}/release/uffda${{ matrix.suffix }}
+          ${{ needs.prepare.outputs.version }} ${{ matrix.target }} dist/cli
+
+      - name: Verify embedded runtime and streaming outside checkout
+        run: >-
+          deno run --allow-read --allow-write --allow-run --allow-env=SystemRoot
+          scripts/verify-rust-codec.ts
+          dist/cli/uffdar-${{ needs.prepare.outputs.version }}-${{ matrix.target }}${{ matrix.suffix }}
+          rust/target/${{ matrix.target }}/release/examples/codec_probe${{ matrix.suffix }}
 
       - name: Upload uffdar artifact
         uses: actions/upload-artifact@v7
         with:
-          name: uffdar-x86_64-unknown-linux-gnu
+          name: uffdar-${{ matrix.target }}
           path: dist/cli/*
           if-no-files-found: error
 
@@ -292,6 +309,7 @@ jobs:
           cd dist/cli
           rm -f *.sha256
           : > SHA256SUMS
+          : > UFFDAR-SHA256SUMS
           for target in \
             x86_64-unknown-linux-gnu \
             aarch64-unknown-linux-gnu \
@@ -310,13 +328,13 @@ jobs:
               exit 1
             fi
             sha256sum "${asset}" >> SHA256SUMS
+            preview_asset="${asset/uffda-/uffdar-}"
+            if [[ ! -f "${preview_asset}" ]]; then
+              echo "Missing required preview asset ${preview_asset}" >&2
+              exit 1
+            fi
+            sha256sum "${preview_asset}" >> UFFDAR-SHA256SUMS
           done
-          uffdar_asset="uffdar-${version}-x86_64-unknown-linux-gnu"
-          if [[ ! -f "${uffdar_asset}" ]]; then
-            echo "Missing required preview asset ${uffdar_asset}" >&2
-            exit 1
-          fi
-          sha256sum "${uffdar_asset}" > UFFDAR-SHA256SUMS
           cp "${GITHUB_WORKSPACE}/scripts/install.sh" ./install.sh
           chmod +x ./install.sh
           sha256sum install.sh >> SHA256SUMS

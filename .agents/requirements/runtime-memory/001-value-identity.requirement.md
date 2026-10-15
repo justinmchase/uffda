@@ -14,11 +14,21 @@ Expected behavior:
 - NaN MUST compare unequal to itself; positive and negative zero MUST compare
   equal.
 - Separately allocated strings with equal contents MUST compare equal.
-- Separately allocated arrays or objects with equal contents MUST compare
-  unequal.
+- Separately allocated arrays, objects, Maps, or Sets with equal contents MUST
+  compare unequal; comparing any of these values with itself MUST succeed.
 - Copying a reference MUST preserve identity and shared contents across
   collection.
+- The `id` global MUST return the exact input reference for aggregate values.
+- The `coalesce` global MUST return the exact selected non-nullish reference.
+- Repeated calls to `symbol` with the same well-known or registered name MUST
+  return the same symbol identity.
+- `slice` on an array MUST retain the references of selected elements.
+- `slice` on a root-origin string MUST preserve each selected character's
+  original input offset.
 
 Postconditions:
 
-- Tests: `rust/src/value.rs` and `rust/src/gc_tests.rs`.
+- Tests: `rust/src/value.rs`, `rust/src/gc_tests.rs`,
+  `rust/src/globals/tests.rs`, `src/runtime/globals/eq.test.ts`,
+  `src/runtime/globals/id.test.ts`, `src/runtime/globals/symbol.test.ts`, and
+  `src/runtime/globals/slice.test.ts`.

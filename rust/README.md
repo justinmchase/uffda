@@ -24,10 +24,25 @@ printf '%s' '{"kind":"value","value":"hello"}' | \
   ./rust/target/release/uffda exec --ast
 ```
 
+Standalone codec streaming and all-six-command acceptance are documented in
+[the codec measurement report](../test/perf/README.md#rust-data-codec-acceptance).
+`examples/codec_probe.rs` is a public-library acceptance consumer, not a new
+product CLI command. It reads arbitrary byte chunks, emits records before EOF,
+round-trips native values through a collected arena, and surfaces malformed
+input or output failures. Benchmark-only gzip support is a dev dependency; it
+does not change runtime, CLI, or compiled-artifact formats.
+
+Checks and preview release builds target native Linux, Windows, and macOS on
+x86_64 and aarch64, using one unchanged published-compiler language artifact
+tree. Preview assets remain named `uffdar`; the installer and production `uffda`
+cutover are unchanged. Local Linux acceptance is measured; the other platform
+executions remain pending CI.
+
 AST input comes from a file or standard input, not `-e` (matching the existing
-CLI's AST-input restriction). Normal value display uses Uffda notation: arrays
-are whitespace-separated and objects use computed quoted keys. Top-level strings
-remain plain text. `--json` explicitly selects JSON compatibility output.
+CLI's AST-input restriction). Default exec/match/run output is the approved data
+codec: arrays are whitespace-separated, object keys are quoted, top-level
+strings are quoted, and undefined/native values retain their codec
+representation. `--json` explicitly selects JSON compatibility output.
 Usage/execution failures use exit code 2; invalid project configuration uses
 exit code 3. JSON output runs the runtime's serializer, including native and
 authored `toJSON` hooks through the same scheduler. Pending work belongs to
@@ -67,9 +82,22 @@ explicit. Prefix snapshots structurally share immutable storage: append and
 indexed lookup take logarithmic work without copying prior items. Fixed input
 still uses its original vector storage. `PatternInput::stream` and
 `PatternRequest::stream` now use `InputBuffer`; host-supplied fixed vectors
-convert with `.into()`. Prefix retention/memo eviction remains open: live
-sources retain delivered items, and retained historical snapshots keep their
-shared branches alive.
+convert with `.into()`. Memo eviction is proof-driven: completed entries before
+the live low-water mark are compacted without discarding active growth or its
+dependencies. Incomparable nested/computed domains are retained conservatively.
+All transient memos are released when parsing completes, while delivered match
+graphs remain rooted. Live sources retain delivered items, and retained
+historical snapshots keep their shared branches alive; there is no universal
+constant-memory guarantee for retained input or unresolved backtracking.
+
+`Runtime::reparse_edit` accepts a completed fixed-input parse, the complete
+post-edit input, and outer-stream `at`/`removed`/`inserted` item counts. Reuse
+requires unchanged descendant observations, including lookahead and rejected
+attempts, not just an unchanged consumed span. Identical JSON prefix arrays and
+objects permit reuse of enclosing rules with nested inputs. Reused graphs are
+remapped to the fresh input domain without mutating prior matches. Recovery and
+unproven downstream/computed domains are conservatively re-evaluated. Invalid
+edit ranges, lengths, and overflowing counts leave the prior parse usable.
 
 Source `parse`, `exec`, `match`, `run`, and file/glob `compile` execute the
 existing embedded languages and compiler. Source/AST executable acceptance and
@@ -101,15 +129,30 @@ to choose a domain representation, or explicitly request `(json v)`. JSON
 serialization of callable values is an error; function implementation source is
 never a representation.
 
-Default CLI display does not invoke conversion hooks. Cycles, callables, special
-runtime objects, symbol keys and values without a lossless representation in the
-existing grammar fail explicitly. The current numeric grammar only supports
-integral literals; the renderer emits safe integers (negative values use
-`(sub 0 magnitude)`) and rejects fractional, nonfinite, negative-zero and unsafe
-integer values rather than inventing syntax.
+Default codec output does not invoke conversion hooks. Cycles, aliases,
+callables, symbol keys and unsupported values fail explicitly rather than
+silently losing information.
+
+CLI compatibility is verified by a persistent reference matrix: 2,142 argument
+cases and 210 process executions across all six supported commands. It covers
+ordered validation conflicts, repeated flags, mode selection, source/AST
+transports, subjects, configurations, contextual help, failures, generated
+artifacts, and formatting writes/checks. Both runtimes verify the same
+snapshots. Native diagnostic prose is intentionally not byte-matched; structured
+error fields and nonempty messages remain checked. Preview help omits deferred
+MCP/LSP, and default codec strings intentionally differ from reference text
+display.
+
+Regenerate the reference snapshots only when deliberately updating acceptance:
+
+```sh
+deno run --allow-read --allow-write \
+  --allow-env=XDG_RUNTIME_DIR,HOME,XDG_CACHE_HOME,LOCALAPPDATA \
+  test/rust/cli-compatibility-matrix.ts
+```
 
 This preview must not be treated as full runtime parity. Unicode lone-surrogate
-values, remaining async/incremental acceptance and release-platform validation
+values, remaining async/performance acceptance and release-platform validation
 remain migration gates.
 
 ## Native data codec API
@@ -123,10 +166,11 @@ encoded compactly/prettily. BigInt, Date and Error are collector-backed runtime
 values; codec export rejects unsupported values, aliases, cycles and
 symbol-keyed objects instead of silently losing information.
 
-This is a Rust library API, not yet a CLI input/output mode. `exec --json` still
-uses JSON semantics: BigInt serialization fails, Date serializes as its UTC
-RFC3339 instant, and an Error with no enumerable user fields serializes as `{}`.
-Use the data codec for lossless native-value round trips.
+The CLI also accepts `--input-data` and `--input-data-file` for match/run and
+uses codec records as its default execution output. `exec --json` still uses
+JSON semantics: BigInt serialization fails, Date serializes as its UTC RFC3339
+instant, and an Error with no enumerable user fields serializes as `{}`. Use the
+data codec for lossless native-value round trips.
 
 ## Development
 

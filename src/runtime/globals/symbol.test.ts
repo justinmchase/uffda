@@ -8,8 +8,17 @@ Deno.test("globals.symbol resolves well-known symbols to the built-in singleton"
   assertStrictEquals(symbol("asyncIterator"), Symbol.asyncIterator);
 });
 
-Deno.test("globals.symbol returns the same well-known symbol on every call", () => {
+Deno.test("req:runtime-memory-001 req:standard-library-002 - symbol returns the same identity for repeated names", () => {
   assertStrictEquals(symbol("iterator"), symbol("iterator"));
+  assertStrictEquals(symbol("asyncIterator"), Symbol.asyncIterator);
+  assertStrictEquals(
+    symbol("uffda-identity-test"),
+    symbol("uffda-identity-test"),
+  );
+  assertStrictEquals(
+    symbol("uffda-identity-test"),
+    Symbol.for("uffda-identity-test"),
+  );
 });
 
 Deno.test("globals.symbol interns custom names via the global symbol registry", () => {

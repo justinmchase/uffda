@@ -274,29 +274,64 @@ impl<'gc> PatternMatch<'gc> {
         child: Gc<'gc, Self>,
         identity: InputIdentity<'gc>,
         input: crate::runtime::input::InputBuffer<'gc>,
+        recovery: RecoveryContext<'gc>,
     ) -> Gc<'gc, Self> {
-        let mut provenance = child.provenance.clone();
-        provenance.input = input;
-        Gc::new(
-            mc,
-            Self {
-                kind: child.kind,
-                value: child.value,
-                start: child.start,
-                end: child.end,
-                environment: child.environment,
-                origin: child.origin,
-                identity,
-                seeded: child.seeded,
-                recovered: child.recovered,
-                recovery: child.recovery,
-                rule: child.rule,
-                children: child.children.clone(),
-                provenance,
-                pattern_index: child.pattern_index,
-                pattern_kind: child.pattern_kind,
-            },
-        )
+        let old_domain = child.identity.position(0).domain;
+        let mut rebased = std::collections::HashMap::new();
+        let mut pending = vec![(child, false)];
+        while let Some((node, visited)) = pending.pop() {
+            let address = Gc::as_ptr(node) as usize;
+            if rebased.contains_key(&address) {
+                continue;
+            }
+            if !visited {
+                pending.push((node, true));
+                pending.extend(node.children.iter().rev().map(|child| (*child, false)));
+                continue;
+            }
+            let position = node.identity.position(0);
+            let mut provenance = node.provenance.clone();
+            let same_domain = position.domain == old_domain;
+            if same_domain && position.path.is_empty() {
+                provenance.input = input;
+            }
+            rebased.insert(
+                address,
+                Gc::new(
+                    mc,
+                    Self {
+                        kind: node.kind,
+                        value: node.value,
+                        start: node.start,
+                        end: node.end,
+                        environment: node.environment,
+                        origin: node.origin,
+                        identity: if same_domain {
+                            node.identity.rebased(identity)
+                        } else {
+                            node.identity
+                        },
+                        seeded: node.seeded,
+                        recovered: node.recovered,
+                        recovery: if node.recovery.is_enabled() {
+                            recovery.enable()
+                        } else {
+                            recovery.disable()
+                        },
+                        rule: node.rule,
+                        children: node
+                            .children
+                            .iter()
+                            .map(|child| rebased[&(Gc::as_ptr(*child) as usize)])
+                            .collect(),
+                        provenance,
+                        pattern_index: node.pattern_index,
+                        pattern_kind: node.pattern_kind,
+                    },
+                ),
+            );
+        }
+        rebased[&(Gc::as_ptr(child) as usize)]
     }
 
     pub fn with_seeded(mc: &Mutation<'gc>, child: Gc<'gc, Self>, seeded: bool) -> Gc<'gc, Self> {

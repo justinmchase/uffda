@@ -29,11 +29,18 @@ Expected behavior:
   - carries a recorded rule origin (was produced by a fresh rule invocation; see
     [runtime rules](../../specifications/runtime/rules.spec.md)), and
   - has a span whose end lies at or before the edit's position (`at`).
+- Consumed span alone MUST NOT be treated as sufficient proof of reusability.
+  Observations made by lookahead, rejected alternatives, repetition terminators,
+  and nested/computed input MUST also satisfy the core specification's
+  observation constraint. Entries without that proof MUST be invalidated per
+  [requirement 003](./003-conservative-fallback.requirement.md).
 - Each such node MUST be reinserted into a freshly constructed memo table, keyed
   by its own origin (rule identity and resolved arguments) and start position,
-  with its `scope`'s stream reference replaced by the corresponding position in
-  the fresh, post-edit `Input`. No other field of the reused node or its nested
-  matches MAY be modified.
+  with its stream reference replaced by the corresponding position in the fresh,
+  post-edit `Input`. Stream domain identities and recovery contexts in the
+  retained graph MAY also be remapped consistently to the new parse, while
+  preserving structural paths, values, rule origins, spans, and diagnostics.
+  This bookkeeping MUST NOT mutate the prior delivered graph.
 - Once such a node is captured, the runtime MUST NOT descend into its nested
   matches to capture further (redundant) entries: a memo hit at the captured
   node's position always short-circuits before any of its descendants would be

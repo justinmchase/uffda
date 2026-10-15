@@ -4,9 +4,10 @@ import { base58 } from "./base58.ts";
 import { metadataOf } from "../value_metadata.ts";
 import { rootOrigin, Wrapped } from "../../wrapped.ts";
 
-Deno.test("globals.base58 encodes bytes", () => {
+Deno.test("req:standard-library-002 - base58 encodes bytes including leading zeroes", () => {
   const bytes = new TextEncoder().encode("Hello World!");
   assertEquals(base58(bytes), "2NEpo7TZRRrLZSi2U");
+  assertEquals(base58(new Uint8Array([0, 0])), "11");
 });
 
 Deno.test("globals.base58 rejects non-bytes", () => {

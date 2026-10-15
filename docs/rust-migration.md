@@ -106,22 +106,30 @@ does not solve cyclic ownership involving closures and environments.
       retain the small existing library without feature expansion.
 - [x] Broaden the shared behavior corpus to at least two cases per global,
       including edge/error paths, and enforce the coverage threshold.
-- [ ] Add the normative per-global edge-case acceptance criteria and broaden
-      checks for identity, undefined, native-value and provenance parity.
+- [x] Specify and verify a cross-runtime identity/provenance slice for global
+      values: strict aggregate identity, null versus undefined, NaN and signed
+      zero, `id`, `coalesce`, registered symbols, and array/string `slice`
+      provenance.
+- [x] Add normative acceptance criteria for edge cases across all 36 globals;
+      exercise byte/date/error/symbol natives, unsupported-input failures,
+      undefined slots, value identity, and provenance directly in both runtimes
+      rather than treating JSON serialization as the comparison.
 - [x] Align module specifications and requirements with the revised `.uff` +
       `.json` boundary in both runtimes and no-re-lowering bootstrap contract.
 - [x] Verify removal of TS/JS file importers, JSON declaration validation,
       injected host integrations, package JSON loading, and Rust data loading.
 - [x] Build shared Rust/TypeScript differential fixture runners for the
       implemented expression, pattern, global, and resolver behavior.
-- [ ] Extend differential coverage across the full contract matrix, including
-      identity, undefined, native values, errors, and provenance, without
-      reducing those observations to JSON.
+- [x] Extend differential coverage across the declared global contract matrix,
+      including identity, undefined, native values, errors, and provenance,
+      without reducing those observations to JSON.
 
-Gate: the inventory, known platform differences and standard-library surface are
-recorded, and the shared corpus now has at least two cases for every global.
-Normative per-global edge-case acceptance and the full differential matrix
-remain open.
+Gate: compatibility inventories and known platform differences are recorded;
+every global has normative edge-case acceptance and at least two shared portable
+behavior cases. Direct tests cover runtime identity, undefined, native values,
+failures, and provenance without serializing away those properties. Remaining
+behavior that is intentionally platform-specific is documented in its governing
+specification and fixtures.
 
 ### 2. Dynamic values and memory management
 
@@ -213,11 +221,12 @@ Gate: foundation tests pass, including deep nesting and scope isolation.
       and requirements; no additional clearly specified expression-only gap was
       found (59 focused Rust tests and 31 shared expression fixtures pass).
 
-Gate: implemented expression/global fixtures and memory stress tests pass.
-Complete semantic parity, the full differential matrix, and final edge-case
-coverage remain open under milestone 1. Automatic Promise scheduling and broader
-prototype/non-JSON behavior remain outside the agreed Rust async and value
-contracts unless milestone 1 identifies a specific required behavior.
+Gate: implemented expression/global fixtures and memory stress tests pass. The
+declared compatibility and global edge-case matrix is now covered under
+milestone 1. Broader semantic parity beyond those declared contracts remains
+tracked by the open runtime, incremental parsing, CLI, and platform gates.
+Automatic Promise scheduling and broader prototype/non-JSON behavior remain
+outside the agreed Rust async and value contracts.
 
 ### 5. Patterns and rules
 
@@ -241,20 +250,44 @@ contracts unless milestone 1 identifies a specific required behavior.
       supported completed, fixed, flat inputs. The current tests cover eviction,
       retained results, reused-prefix invalidation, and value/ diagnostic parity
       with a fresh parse.
-- [ ] Extend incremental-edit and eviction support to uncertain prefixes,
-      recovery, nested/multiple input domains, and establish fresh-input memo
-      identity/remapping. Add acceptance for failed-match reuse, malformed
-      edits, recovery parity, and left-recursive edits. Current low-water
-      eviction may retain entries until parse completion when active frames pin
-      the starting position; it does not establish bounded working memory for
-      large first-pass parses.
+- [x] Validate incremental edits over uncertain prefixes, recovery, and
+      nested/multiple input domains under the existing conservative contract.
+      Proven-identical nested prefix items permit outer rule reuse; unproven
+      computed domains and prior recovery activations are re-evaluated. Reuse
+      checks descendant observations, not consumed spans alone, and remaps
+      retained graph identities into the fresh input domain. Acceptance covers
+      failed-match reuse, malformed/overflowing edits, lookahead, rejected
+      alternatives, repeated edits, recovery parity, left-recursive edits, and
+      220 edit/fresh-parse comparisons.
+- [x] Verify reachability-based memo retention and compaction safety for pending
+      growth, active dependencies, and incomparable input domains. Measure
+      first-pass peaks and post-collection retention across repeated parses. As
+      approved, input, retained match graphs, and live backtracking/growth
+      windows may grow; this is not a universal constant-memory guarantee.
 - [x] Preserve metadata and provenance through rule execution, recovery,
       diagnostics, and retained match results.
 
 Gate: pattern, recursion, recovery, and diagnostics fixtures pass without host
-stack overflow on deeply nested inputs. Incremental-edit/eviction is partially
-implemented for a restricted input class; general correctness and bounded
-retention remain open.
+stack overflow on deeply nested inputs. Incremental-edit and eviction acceptance
+passes under the existing proof-driven, conservative contract. Edits are
+described against a completed fixed outer stream; nested subjects are supported,
+not a new nested-edit-path API. Unproven downstream affected regions are fully
+re-evaluated rather than guessed.
+
+Retention acceptance for `Main = Atom*`, `Atom = any`:
+
+| Input items | Observed peak memos | Memos after completion | Live GC allocations after collection |
+| ----------- | ------------------- | ---------------------- | ------------------------------------ |
+| 64          | 65                  | 0                      | 390                                  |
+| 256         | 257                 | 0                      | 1350                                 |
+| 1024        | 1025                | 0                      | 5190                                 |
+
+Each size is parsed three times with collection during execution and after
+completion. Retained allocation counts remain identical across all three runs.
+The pinned root explains the growing live memo window; retained input and
+delivered graphs explain the remaining GC objects. These are collector-object
+counts, not RSS or whole-process byte measurements. Broader performance/memory
+comparisons remain a separate migration gate.
 
 ### 6. Self-hosted languages and modules
 
@@ -287,13 +320,42 @@ Keep rerunning this gate after changes to compiler or grammar sources.
 - [x] Preserve custom formatting and `--check`.
 - [x] Test successful and failing invocations end to end, including standalone
       optimized-binary smoke tests with user runtime tools absent from `PATH`.
-- [ ] Exercise every supported flag combination and run an installed binary
-      outside the checkout with no repository artifacts available; compare
-      output, diagnostics, and exit codes with the reference CLI.
+- [x] Run a relocated binary outside the checkout with no repository artifacts
+      available and an empty `PATH`, exercising all six commands, source/AST
+      execution, JSON output, match failure diagnostics, compile artifacts, and
+      formatting/check. Generated compile artifacts are removed before the
+      subsequent formatting command.
+- [x] Compare 29 shared validation cases against the reference CLI, including
+      exact diagnostic code, phase, message, exit code, and empty stdout. Reject
+      `--config` for parse/match and align covered usage diagnostics.
+- [x] Exercise supported option equivalence classes and ordered option
+      interactions against the reference: 2,142 argument cases and 210
+      executions across all six commands. Compare selected options, successful
+      values, structured diagnostics, exit codes, generated artifacts, and
+      formatting writes/checks. Include contextual help, parse-before-validation
+      precedence, repeated flags, source/AST transports, subjects,
+      configuration, and nested failure locations.
 
-Gate: core command paths are implemented and integration-tested. Full observable
-compatibility across every flag combination and operation outside the repository
-checkout remains open.
+Gate: the persistent reference matrix and relocated-command tests pass. This is
+a finite acceptance matrix, not a claim about every possible arbitrary argument
+sequence. Both runtimes independently verify checked-in snapshots in
+`test/rust/cli-compatibility-matrix.json`; the adjacent TypeScript generator
+reproduces them. Native codec-subject options retain their stricter rejection of
+repeated subject options.
+
+Approved compatibility boundaries: native diagnostic prose and human-readable
+output are not byte-for-byte contracts; structured fields and nonempty
+explanations remain checked. Rust keeps the approved codec default output,
+preview help omits MCP/LSP, and build-specific versions differ. Help/version
+precedence matches the reference even when those tokens appear as option values.
+Environment cwd precedence and parse/config/subject failure ordering are
+covered.
+
+Reliability observation still requiring cutover investigation: one debug process
+run panicked in a native `ExactSizeIterator` length assertion during module
+execution. Subsequent matrix/full-suite reruns and 200 isolated repetitions did
+not reproduce it. No cause or fix is claimed; this must not be silently treated
+as production-readiness evidence.
 
 ### 8. Uffda data codec v1 (approved scope extension)
 
@@ -448,9 +510,39 @@ fixtures or host-only prototype code are not sufficient acceptance.
 - [ ] Verify standalone Rust operation and streaming on supported platforms.
 
 Gate: codec values and `match`/`run` data-subject CLI paths are implemented and
-covered by focused tests. Comparative size/throughput/memory measurements,
-standalone streaming/platform acceptance, full repository Deno validation, and
-all-platform builds remain open.
+covered by focused tests. Preliminary raw/gzip codec-versus-JSON/JSONL
+[measurements](../test/perf/README.md#rust-data-codec-acceptance) and
+[persistent results](../test/perf/data-codec-baseline.json) cover four
+representative corpora, 216 encode/decode/idle RSS samples, and 24 batched
+duration/RSS probes. Native comparisons use explicit lossless JSON envelopes;
+codec document decode is measured separately from native arena
+materialization/GC correctness. The measurements expose a substantial codec
+decode-speed gap (about 230–540 records/s on this host), rather than establish
+performance parity or a new performance threshold.
+
+The measurement gate remains open: extended optimized raw JSON reader stress
+intermittently reports invalid input, aborts with
+`munmap_chunk(): invalid
+pointer`, or segfaults. An independent crate with only
+`serde_json` reproduces the failure without Uffda or `gc-arena`; both 1.0.151
+and 1.0.154 were exercised on this host's Rust 1.99.0 toolchain. Debug reader
+and optimized slice-parser probes passed, but do not establish a fix or a root
+cause. The original completed baseline is retained as provisional evidence. The
+improved continuous-stream duration probe is tested, but a complete replacement
+report is blocked by this reliability investigation. Do not bypass it by
+silently changing parser paths, accepting only successful runs, or claiming the
+earlier debug iterator panic is resolved.
+
+Linux x86_64 relocated all-six-command and public-library streaming acceptance
+passes with empty child PATH and no external artifacts, including byte chunks,
+pre-EOF delivery, native materialization across collection, backpressure,
+malformed trailing records and final unterminated records. Checks and preview
+release builds now wire **native** Linux, Windows and macOS x86_64/aarch64
+acceptance; the supported-platform checkbox stays open until those CI jobs
+actually pass. Preview naming remains `uffdar`, with no installer or production
+cutover. Full repository validation is required before pushing; the separately
+recorded sporadic debug iterator panic remains an unresolved cutover
+investigation, not a codec acceptance fix.
 
 #### Deferred artifact adoption
 
@@ -567,16 +659,16 @@ checklists and remaining-runtime inventory above are the current status.
 
 ### Parallel milestone review rollup (2026-10-11)
 
-| Milestone        | Latest evidence                                                                                                                                                                                                                                                  | Remaining gate                                                                                                                                                    |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. Compatibility | Standard-library surface/coverage requirement strengthened. Shared Rust/TypeScript global corpus: 79 cases across all 36 globals, at least two per global; focused TS corpus/surface tests and Rust differential fixture test pass. Full Deno suite: 867 passed. | Normative per-global edge criteria and identity/undefined/native-value/error/provenance differential gaps remain.                                                 |
-| 2. Memory        | Comparative fit rationale recorded for `gc-arena` 0.7 versus `gc`/`rust-gc` and `boa_gc`; no benchmark claim.                                                                                                                                                    | No implementation gate currently open.                                                                                                                            |
-| 3. Execution     | 25 focused Rust tests passed across artifacts, scopes, streams, diagnostics, host suspension, and deep scheduling.                                                                                                                                               | No implementation gate currently open.                                                                                                                            |
-| 4. Expressions   | 59 focused evaluator tests and 31 shared expression fixtures passed; no additional clearly specified expression-only gap found.                                                                                                                                  | Differential edge cases remain under milestone 1.                                                                                                                 |
-| 5. Patterns      | 71 focused runtime tests and library Clippy passed for memo eviction and fixed-input incremental edits; the final all-target run also passed 382 library tests.                                                                                                  | General nested/recovery/multiple-domain edits, memo identity remapping, failed/left-recursive reuse, and bounded working memory remain unverified or unsupported. |
-| 6. Modules       | 45 focused Rust tests and 39 Deno bootstrap tests passed; 70 compiled grammars had zero structural differences and no bin artifact changes.                                                                                                                      | No implementation gate currently open.                                                                                                                            |
-| 7. CLI           | Rust CLI integration tests: 28 passed, including parse path/stdin, compile fallback, explicit valid config, relocated-binary operation without checkout artifacts, and output-write failure exit 70.                                                             | Exhaustive flag combinations and internal execution-exception handling remain uncovered.                                                                          |
-| 8. Codec         | Rust all-target validation: 382 library, 1 artifact, 28 CLI, 5 codec CLI, and 3 host tests passed; strict Clippy, Rust formatting, Deno formatting/lint, and full Deno tests passed. README/specs/requirements updated.                                          | Size/throughput/memory measurements and Windows/macOS streaming/build validation remain open.                                                                     |
+| Milestone        | Latest evidence                                                                                                                                                                                                                                                                           | Remaining gate                                                                                                      |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| 1. Compatibility | Normative acceptance matrix covers all 36 globals. Shared Rust/TypeScript corpus: 82 cases, at least two per global. Direct identity/undefined/native/error/provenance checks pass. Full Deno suite: 873 passed; Rust: 383 library, 1 artifact, 28 CLI, 5 codec CLI, 3 host tests passed. | None within the declared compatibility baseline; documented platform divergence remains explicit.                   |
+| 2. Memory        | Comparative fit rationale recorded for `gc-arena` 0.7 versus `gc`/`rust-gc` and `boa_gc`; no benchmark claim.                                                                                                                                                                             | No implementation gate currently open.                                                                              |
+| 3. Execution     | 25 focused Rust tests passed across artifacts, scopes, streams, diagnostics, host suspension, and deep scheduling.                                                                                                                                                                        | No implementation gate currently open.                                                                              |
+| 4. Expressions   | 59 focused evaluator tests and 31 shared expression fixtures passed; no additional clearly specified expression-only gap found.                                                                                                                                                           | None within milestone 1; broader runtime parity remains governed by the remaining runtime gates.                    |
+| 5. Patterns      | Observation-safe incremental reuse, fresh-domain graph remapping, nested/recovery/left-recursion acceptance, and 220 edit comparisons pass. Retention peaks and stable post-collection counts measured at 64/256/1024 items. Rust all-target validation passes.                           | None under the approved conservative reachability contract; general performance/memory comparisons remain separate. |
+| 6. Modules       | 45 focused Rust tests and 39 Deno bootstrap tests passed; 70 compiled grammars had zero structural differences and no bin artifact changes.                                                                                                                                               | No implementation gate currently open.                                                                              |
+| 7. CLI           | Rust CLI integration tests: 28 passed, including parse path/stdin, compile fallback, explicit valid config, relocated-binary operation without checkout artifacts, and output-write failure exit 70.                                                                                      | Exhaustive flag combinations and internal execution-exception handling remain uncovered.                            |
+| 8. Codec         | Rust all-target validation: 383 library, 1 artifact, 28 CLI, 5 codec CLI, and 3 host tests passed; strict Clippy, Rust formatting, Deno formatting/lint, and full Deno tests passed. README/specs/requirements updated.                                                                   | Size/throughput/memory measurements and Windows/macOS streaming/build validation remain open.                       |
 
 The Rust counts above are from one all-target Cargo run against the consolidated
 worktree. The full Deno suite passed with its temp directory outside the
@@ -596,11 +688,10 @@ Known external/design gates:
 - Rust and the native linker are now installed normally. Use the normal
   rustup/PATH setup; no repository-local toolchain or linker fallback is
   permitted.
-- The standard-library specification remains `SPEC_DEFINITION_PENDING`. Current
-  plan: review each existing global's contract, using TypeScript behavior and
-  requirements as evidence; keep the library small and primarily pure, with no
-  scope expansion. Record any proposed behavior change explicitly before
-  altering implementations.
+- The continuation checkpoint's pending standard-library contract was
+  subsequently resolved: see the current standard-library specification and the
+  completed milestone 1 edge-case requirement. The library remains limited to
+  its existing 36 globals.
 - The stale `and`
   [requirement](../.agents/requirements/patterns-runtime/and-001-core.requirement.md)
   was aligned with the higher-authority
@@ -688,16 +779,16 @@ rejected under the recorded compatibility decisions.
 
 Remaining runtime gates:
 
-- The standard-library specification and API-surface requirement are now
-  defined. Normative per-global edge-case criteria and broad differential
-  coverage remain incomplete.
-- Memo eviction and incremental edits now work for a restricted fixed, flat,
-  completed-input subset. Current input snapshots avoid quadratic append
-  copying, but uncertain/recovery/nested domains and bounded whole-runtime
-  memory remain unaccepted.
-- The compatibility baseline still needs a complete differential matrix for
-  identity, undefined, native values, failures, and provenance, rather than only
-  the existing shared fixture subsets.
+- The standard-library specification, API-surface requirement, all-global
+  edge-case matrix, and identity/undefined/native/error/provenance differential
+  coverage are complete under milestone 1.
+- Milestone 5's incremental-edit and eviction acceptance is complete under the
+  approved conservative reachability contract. Recovery and unproven computed
+  domains are re-evaluated; retained input, delivered graphs, and live
+  backtracking windows are not subject to a universal constant-memory limit.
+- The declared compatibility baseline and global differential matrix are
+  complete; see milestone 1. Broader acceptance remains tracked by the
+  subsystem-specific gates above.
 - General performance/memory acceptance and all six release-platform builds
   remain open. The Rust compile comparison is workload-specific and remains
   slower than Deno.
@@ -721,10 +812,10 @@ Global/process checks include help/version, explicit mode conflict diagnostics,
 compile fallback only when arguments exist, successful root usage with no
 arguments, cwd/config resolution, JSON error code/message/phase, and exit codes
 0 (success), 2 (usage), 3 (configuration), and 70 (internal), plus
-command-specific failure exits. MCP/LSP remain deferred. Core process tests and
-standalone binary smoke tests exist, but exhaustive per-command flag
-combinations and execution from outside the checkout with no repository
-artifacts available remain unchecked.
+command-specific failure exits. MCP/LSP remain deferred. All six commands now
+have relocated-binary coverage outside the checkout with an empty `PATH`, and 29
+validation diagnostic cases are shared with the reference. Exhaustive
+per-command flag combinations and successful-output comparisons remain open.
 
 ### Coordinator integration checkpoint
 

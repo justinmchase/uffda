@@ -283,6 +283,56 @@ pub struct InputPosition {
     pub cursor: usize,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum DiagnosticSegment {
+    Index(usize),
+    Key(crate::text::RuntimeString),
+}
+
+impl InputPosition {
+    pub fn diagnostic_path(&self) -> Vec<DiagnosticSegment> {
+        let mut path = Vec::new();
+        for segment in &self.path {
+            match segment {
+                PathSegment::Item(index)
+                | PathSegment::Entry(index)
+                | PathSegment::RestEntryValue(index) => path.push(DiagnosticSegment::Index(*index)),
+                PathSegment::Into => {}
+                PathSegment::Key(key) | PathSegment::RestValue(key) => {
+                    path.push(DiagnosticSegment::Key(key.clone()))
+                }
+                PathSegment::RestKey(key) => {
+                    path.push(DiagnosticSegment::Key(key.clone()));
+                    path.push(DiagnosticSegment::Key("$key".into()));
+                }
+                PathSegment::RestEntryKey(index) => {
+                    path.push(DiagnosticSegment::Index(*index));
+                    path.push(DiagnosticSegment::Key("$key".into()));
+                }
+            }
+        }
+        path.push(DiagnosticSegment::Index(self.cursor));
+        path
+    }
+}
+
+impl std::fmt::Display for InputPosition {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (index, segment) in self.diagnostic_path().iter().enumerate() {
+            if index > 0 {
+                write!(formatter, ".")?;
+            }
+            match segment {
+                DiagnosticSegment::Index(index) => write!(formatter, "[{index}]")?,
+                DiagnosticSegment::Key(key) => {
+                    write!(formatter, "{}", crate::json::JsonValue::String(key.clone()))?
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
 impl<'gc> InputIdentity<'gc> {
     pub fn root(domain: Gc<'gc, Vec<Value<'gc>>>) -> Self {
         Self { domain, path: None }
@@ -317,11 +367,19 @@ impl<'gc> InputIdentity<'gc> {
             path.push(node.segment.clone());
             current = node.parent;
         }
+
         path.reverse();
         InputPosition {
             domain: Gc::as_ptr(self.domain) as usize,
             path,
             cursor,
+        }
+    }
+
+    pub(crate) fn rebased(self, root: Self) -> Self {
+        Self {
+            domain: root.domain,
+            path: self.path,
         }
     }
 }
@@ -330,6 +388,37 @@ impl<'gc> InputIdentity<'gc> {
 mod tests {
     use super::*;
     use gc_arena::{Arena, Rootable};
+
+    #[test]
+    // req:cli-command-model-005
+    fn diagnostic_paths_preserve_nested_indices_keys_and_rightmost_ordering() {
+        let root = InputPosition {
+            domain: 1,
+            path: vec![],
+            cursor: 0,
+        };
+        let nested = InputPosition {
+            domain: 1,
+            path: vec![PathSegment::Item(0), PathSegment::Into],
+            cursor: 0,
+        };
+        let keyed = InputPosition {
+            domain: 1,
+            path: vec![PathSegment::Item(0), PathSegment::Key("a".into())],
+            cursor: 0,
+        };
+        assert_eq!(root.to_string(), "[0]");
+        assert_eq!(nested.to_string(), "[0].[0]");
+        assert_eq!(keyed.to_string(), "[0].\"a\".[0]");
+        assert!(root.diagnostic_path() < nested.diagnostic_path());
+        assert!(nested.diagnostic_path() < keyed.diagnostic_path());
+        let rest = InputPosition {
+            domain: 1,
+            path: vec![PathSegment::Item(0), PathSegment::RestKey("a".into())],
+            cursor: 0,
+        };
+        assert_eq!(rest.to_string(), "[0].\"a\".\"$key\".[0]");
+    }
 
     #[test]
     // req:runtime-core-014 req:runtime-memory-004
@@ -508,6 +597,21 @@ mod tests {
             );
             let replacement = root.nested(mc, 0, PathSegment::Key("\u{fffd}".into()));
             assert_ne!(isolated.position(0), replacement.position(0));
+        });
+    }
+
+    #[test]
+    // req:incremental-parsing-004 req:runtime-core-004
+    fn rebased_nested_identity_preserves_path_but_uses_the_fresh_domain() {
+        gc_arena::arena::rootless_mutate(|mc| {
+            let old = InputIdentity::root(Gc::new(mc, vec![Value::Null]));
+            let fresh = InputIdentity::root(Gc::new(mc, vec![Value::Null]));
+            let nested = old.nested(mc, 3, PathSegment::Key("x".into()));
+            let rebased = nested.rebased(fresh).position(2);
+            assert_eq!(rebased.domain, fresh.position(0).domain);
+            assert_eq!(rebased.path, nested.position(2).path);
+            assert_eq!(rebased.cursor, 2);
+            assert_ne!(rebased.domain, old.position(0).domain);
         });
     }
 
