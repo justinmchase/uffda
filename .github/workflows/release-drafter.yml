@@ -1,41 +1,25 @@
-name: Release Drafter
+name: Draft Release
 
 on:
   push:
     branches:
       - main
 
-  pull_request:
-    types: [opened, reopened, synchronize]
+concurrency:
+  group: draft-release
+  cancel-in-progress: false
 
 jobs:
   draft-release:
     name: Draft Release
     # Skip the version-bump bot commit to avoid a second draft/dispatch cycle.
-    if: >
-      github.event_name == 'pull_request' ||
-      (github.event_name == 'push' &&
-       !contains(github.event.head_commit.message, '[no ci]'))
+    if: ${{ !contains(github.event.head_commit.message, '[no ci]') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
-    outputs:
-      resolved_version: ${{ steps.release.outputs.resolved_version }}
-    steps:
-      - id: release
-        uses: release-drafter/release-drafter@v7
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  update-version:
-    needs: draft-release
-    name: Update Version
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
+      pull-requests: read
+    env:
+      GH_REPO: ${{ github.repository }}
     steps:
       - uses: actions/create-github-app-token@v1
         id: app-token
@@ -45,6 +29,7 @@ jobs:
 
       - uses: actions/checkout@v5
         with:
+          ref: main
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
 
@@ -53,21 +38,97 @@ jobs:
           version: 0.9.7
           token: ${{ steps.app-token.outputs.token }}
 
-      - name: Set Version
-        id: set-version
+      - name: Resolve Version
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          semver set ${{ needs.draft-release.outputs.resolved_version }}
-          if [ -z $(git status --porcelain) ];
-          then
-              echo "no changes to commit."
-              echo "changed=false" >> "$GITHUB_OUTPUT"
-              exit 0
+          set -euo pipefail
+          repository="${GITHUB_REPOSITORY}"
+          release_sha="$(git rev-parse HEAD)"
+          releases="$(gh api --paginate --slurp "repos/${repository}/releases?per_page=100")"
+
+          stable_tags="$(jq -r \
+            '.[][] | select(.draft == false and .prerelease == false) | .tag_name' \
+            <<< "$releases")"
+          previous_tag=""
+          previous_version="0.0.0"
+          if [ -n "${stable_tags}" ]; then
+            previous_version="$(sed 's/^v//' <<< "$stable_tags" | semver sort -- | sed -n '1p')"
+            previous_tag="$(jq -r --arg version "${previous_version}" \
+              '[.[][] | select(.draft == false and .prerelease == false) | select((.tag_name | sub("^v"; "")) == $version) | .tag_name] | first // empty' \
+              <<< "$releases")"
           fi
 
-          cat >> $GITHUB_STEP_SUMMARY<<EOF
+          if [ -n "${previous_tag}" ]; then
+            encoded_tag="$(jq -rn --arg tag "${previous_tag}" '$tag | @uri')"
+            comparison="$(gh api --paginate --slurp \
+              "repos/${repository}/compare/${encoded_tag}...${release_sha}?per_page=100")"
+            if ! jq -e '[.[][] | .status] | all(. == "ahead" or . == "identical")' \
+              <<< "$comparison" >/dev/null; then
+              echo "Latest stable release ${previous_tag} is not an ancestor of ${release_sha}." >&2
+              exit 1
+            fi
+            commit_shas="$(jq -r '[.[][] | .commits[]?.sha] | unique[]' <<< "$comparison")"
+          else
+            commits="$(gh api --paginate --slurp \
+              "repos/${repository}/commits?sha=${release_sha}&per_page=100")"
+            commit_shas="$(jq -r '[.[][] | .sha] | unique[]' <<< "$commits")"
+          fi
+
+          bump="patch"
+          while IFS= read -r commit_sha; do
+            [ -n "${commit_sha}" ] || continue
+            pulls="$(gh api --paginate --slurp \
+              "repos/${repository}/commits/${commit_sha}/pulls?per_page=100")"
+            if jq -e '[.[][] | select(.merged_at != null and .base.ref == "main") | .labels[]?.name] | any(. == "major")' \
+              <<< "$pulls" >/dev/null; then
+              bump="major"
+              break
+            elif [ "${bump}" != "major" ] &&
+              jq -e '[.[][] | select(.merged_at != null and .base.ref == "main") | .labels[]?.name] | any(. == "minor")' \
+                <<< "$pulls" >/dev/null; then
+              bump="minor"
+            fi
+          done <<< "$commit_shas"
+
+          version_dir="$(mktemp -d)"
+          trap 'rm -rf "$version_dir"' EXIT
+          printf '%s\n' "${previous_version}" > "${version_dir}/VERSION"
+          release_version="$(cd "${version_dir}" && semver inc "${bump}")"
+
+          if jq -e --arg version "${release_version}" \
+            '[.[][] | select(.draft == false) | .tag_name | sub("^v"; "")] | any(. == $version)' \
+            <<< "$releases" >/dev/null; then
+            echo "Refusing to overwrite an existing release ${release_version}." >&2
+            exit 1
+          fi
+
+          draft_id="$(jq -r '[.[][] | select(.draft == true)] | sort_by(.created_at) | last | .id // empty' \
+            <<< "$releases")"
+          {
+            echo "version=${release_version}"
+            echo "previous_tag=${previous_tag}"
+            echo "draft_id=${draft_id}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Set Version
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          semver set "$RELEASE_VERSION"
+          if [ -z "$(git status --porcelain)" ];
+          then
+            echo "no changes to commit."
+            exit 0
+          fi
+
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
           # Version
           \`\`\`
-          ${{ needs.draft-release.outputs.resolved_version }}
+          ${RELEASE_VERSION}
           \`\`\`
           EOF
 
@@ -76,26 +137,65 @@ jobs:
           gh auth setup-git
 
           git add .
-          git commit -m '${{ needs.draft-release.outputs.resolved_version }}[no ci]'
+          git commit -m "${RELEASE_VERSION}[no ci]"
           git push origin main
-          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Update Draft with GitHub Release Notes
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          PREVIOUS_TAG: ${{ steps.release.outputs.previous_tag }}
+          DRAFT_ID: ${{ steps.release.outputs.draft_id }}
+        run: |
+          set -euo pipefail
+          repository="${GITHUB_REPOSITORY}"
+          release_sha="$(git rev-parse HEAD)"
+          notes_input="$(jq -n \
+            --arg sha "${release_sha}" \
+            --arg previous "${PREVIOUS_TAG}" \
+            '{tag_name: $sha, target_commitish: $sha} +
+              (if $previous == "" then {} else {previous_tag_name: $previous} end)')"
+          notes="$(gh api --method POST "repos/${repository}/releases/generate-notes" \
+            --input - <<< "$notes_input")"
+          notes_body="$(jq -er '.body | strings' <<< "$notes")"
+          release_body="${notes_body}
+
+          ## CLI binaries
+
+          To re-attach binaries, run [Release Binaries](https://github.com/${repository}/actions/workflows/release-binaries.yml) manually using workflow_dispatch."
+          release_input="$(jq -n \
+            --arg version "${RELEASE_VERSION}" \
+            --arg sha "${release_sha}" \
+            --arg body "${release_body}" \
+            '{tag_name: $version, name: $version, target_commitish: $sha, body: $body, draft: true, prerelease: false}')"
+
+          if [ -n "${DRAFT_ID}" ]; then
+            draft="repos/${repository}/releases/${DRAFT_ID}"
+            existing_release="$(gh api "${draft}")"
+            if ! jq -e '.draft == true' <<< "$existing_release" >/dev/null; then
+              echo "Release ${DRAFT_ID} is no longer a draft." >&2
+              exit 1
+            fi
+            gh api --method PATCH "${draft}" --input - <<< "$release_input" >/dev/null
+          else
+            gh api --method POST "repos/${repository}/releases" \
+              --input - <<< "$release_input" >/dev/null
+          fi
 
       - name: Dispatch attach draft CLI binaries
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
         run: |
           set -euo pipefail
-          version="${{ needs.draft-release.outputs.resolved_version }}"
           gh api --method POST "repos/${GITHUB_REPOSITORY}/dispatches" \
             -f event_type='release-binaries' \
-            -f "client_payload[version]=${version}" \
-            -f "client_payload[reason]=release-drafter"
+            -f "client_payload[version]=${RELEASE_VERSION}" \
+            -f "client_payload[reason]=draft-release"
           {
             echo "## Release binaries"
             echo
-            echo "Dispatched \`repository_dispatch\` event \`release-binaries\` for draft \`${version}\`."
+            echo "Dispatched \`repository_dispatch\` event \`release-binaries\` for draft \`${RELEASE_VERSION}\`."
             echo
             echo "You can also re-run [Release Binaries](https://github.com/${GITHUB_REPOSITORY}/actions/workflows/release-binaries.yml) manually."
           } >> "$GITHUB_STEP_SUMMARY"
