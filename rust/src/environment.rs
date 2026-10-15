@@ -51,14 +51,13 @@ impl<'gc> Environment<'gc> {
     }
 
     pub fn is_descendant_of(self, ancestor: Self) -> bool {
-        let mut current = Some(self);
-        while let Some(environment) = current {
-            if Gc::ptr_eq(environment.0, ancestor.0) {
-                return true;
-            }
-            current = environment.0.borrow().parent;
-        }
-        false
+        self.ancestors()
+            .any(|environment| Gc::ptr_eq(environment.0, ancestor.0))
+    }
+
+    /// This environment followed by each enclosing parent.
+    pub fn ancestors(self) -> impl Iterator<Item = Self> {
+        std::iter::successors(Some(self), |environment| environment.0.borrow().parent)
     }
 
     pub fn new(

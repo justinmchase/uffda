@@ -116,9 +116,15 @@ struct BoundDeclaration<'gc> {
 #[derive(Collect)]
 #[collect(no_drop)]
 pub struct ModuleBindings<'gc> {
-    environments: Vec<(String, Environment<'gc>)>,
+    environments: Vec<Environment<'gc>>,
     callables: Vec<BoundCallable<'gc>>,
     declarations: Vec<BoundDeclaration<'gc>>,
+    #[collect(require_static)]
+    environment_index: HashMap<Url, usize>,
+    #[collect(require_static)]
+    callable_index: HashMap<ModuleMember, usize>,
+    #[collect(require_static)]
+    declaration_index: HashMap<ModuleMember, usize>,
 }
 
 impl<'gc> ModuleBindings<'gc> {
@@ -341,35 +347,52 @@ impl<'gc> ModuleBindings<'gc> {
                 }
             }
         }
+        let mut environment_index = HashMap::new();
+        let mut environments = Vec::new();
+        for (url, builder) in builders {
+            environment_index
+                .entry(url.clone())
+                .or_insert(environments.len());
+            environments.push(builder.finish());
+        }
+        let mut callable_index = HashMap::new();
+        for (index, callable) in callables.iter().enumerate() {
+            callable_index
+                .entry(callable.member.clone())
+                .or_insert(index);
+        }
+        let mut declaration_index = HashMap::new();
+        for (index, subject) in subjects.iter().enumerate() {
+            declaration_index
+                .entry(subject.member.clone())
+                .or_insert(index);
+        }
         Ok(Self {
-            environments: builders
-                .into_iter()
-                .map(|(url, builder)| (url.to_string(), builder.finish()))
-                .collect(),
+            environments,
             callables,
             declarations: subjects,
+            environment_index,
+            callable_index,
+            declaration_index,
         })
     }
 
     pub fn declaration(&self, member: &ModuleMember) -> Option<Value<'gc>> {
-        self.declarations
-            .iter()
-            .find(|subject| &subject.member == member)
-            .map(|subject| subject.value)
+        self.declaration_index
+            .get(member)
+            .map(|index| self.declarations[*index].value)
     }
 
     pub fn environment(&self, module: &Url) -> Option<Environment<'gc>> {
-        self.environments
-            .iter()
-            .find(|(url, _)| url == module.as_str())
-            .map(|(_, env)| *env)
+        self.environment_index
+            .get(module)
+            .map(|index| self.environments[*index])
     }
 
     pub fn callable(&self, member: &ModuleMember) -> Option<Value<'gc>> {
-        self.callables
-            .iter()
-            .find(|value| &value.member == member)
-            .map(|value| value.value)
+        self.callable_index
+            .get(member)
+            .map(|index| self.callables[*index].value)
     }
 }
 
