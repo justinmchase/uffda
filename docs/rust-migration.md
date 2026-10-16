@@ -536,13 +536,14 @@ earlier debug iterator panic is resolved.
 Linux x86_64 relocated all-six-command and public-library streaming acceptance
 passes with empty child PATH and no external artifacts, including byte chunks,
 pre-EOF delivery, native materialization across collection, backpressure,
-malformed trailing records and final unterminated records. Checks and preview
-release builds now wire **native** Linux, Windows and macOS x86_64/aarch64
-acceptance; the supported-platform checkbox stays open until those CI jobs
-actually pass. Preview naming remains `uffdar`, with no installer or production
-cutover. Full repository validation is required before pushing; the separately
-recorded sporadic debug iterator panic remains an unresolved cutover
-investigation, not a codec acceptance fix.
+malformed trailing records and final unterminated records. Per-commit Checks run
+native Linux x86_64/aarch64 acceptance only; preview release builds wire native
+Linux, Windows and macOS x86_64/aarch64 acceptance. The supported-platform
+checkbox stays open until the release jobs actually pass on every platform.
+Preview naming remains `uffdar`, with no installer or production cutover. Full
+repository validation is required before pushing; the separately recorded
+sporadic debug iterator panic remains an unresolved cutover investigation, not a
+codec acceptance fix.
 
 #### Deferred artifact adoption
 

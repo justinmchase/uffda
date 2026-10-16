@@ -43,7 +43,8 @@ Expected behavior:
 - Linux, macOS, and Windows, on x86_64 and aarch64, MUST build the preview and
   run standalone CLI/codec streaming acceptance on native runners. Cross-builds
   alone MUST NOT count as execution evidence. Pending CI MUST remain distinct
-  from verified platform results.
+  from verified platform results. Release Binaries MUST cover all six targets;
+  per-commit Checks MUST cover the Linux targets and MAY omit the others.
 - Product CLI subject options still decode exactly one record. The streaming
   consumer is an acceptance example of the public library API, not a new CLI
   command or multi-subject feature.

@@ -52,7 +52,7 @@ Deno.test("req:data-codec-004 - preview packaging copies bytes and emits portabl
   }
 });
 
-Deno.test("req:data-codec-004 - check and release workflows cover the same six native targets", async () => {
+Deno.test("req:data-codec-004 - release covers all six native targets; checks cover Linux only", async () => {
   const check = await Deno.readTextFile(
     new URL("../.github/workflows/checks.yml", import.meta.url),
   );
@@ -62,8 +62,8 @@ Deno.test("req:data-codec-004 - check and release workflows cover the same six n
   for (const target of RUST_PREVIEW_TARGETS) {
     assertEquals(
       check.includes(`target: ${target}`),
-      true,
-      `Missing check ${target}`,
+      target.endsWith("-linux-gnu"),
+      `Unexpected check coverage for ${target}`,
     );
     assertEquals(
       release.slice(release.indexOf("  compile-rust:")).includes(
