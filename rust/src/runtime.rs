@@ -565,6 +565,19 @@ impl<'gc> RuleExecution<'gc> {
         member: &ModuleMember,
         input: Vec<Value<'gc>>,
     ) -> Result<Self, RuntimeError> {
+        let bindings =
+            ModuleBindings::with_environment(mc, &graph, None).map_err(RuntimeError::Module)?;
+        Self::for_member_with_bindings(mc, graph, bindings, member, input)
+    }
+
+    /// Builds a rule invocation that reuses already-materialized module bindings.
+    pub fn for_member_with_bindings(
+        mc: &Mutation<'gc>,
+        graph: Rc<CompiledModuleGraph>,
+        bindings: ModuleBindings<'gc>,
+        member: &ModuleMember,
+        input: Vec<Value<'gc>>,
+    ) -> Result<Self, RuntimeError> {
         let declaration = graph
             .declaration(member)
             .ok_or(RuntimeError::InvalidState)?;
@@ -572,9 +585,17 @@ impl<'gc> RuleExecution<'gc> {
             return Err(RuntimeError::NotRule(declaration.name.clone()));
         }
         let name = declaration.name.clone();
-        let mut execution = Self::build(mc, graph, &member.module_url, None, input.clone(), true)?;
+        let mut execution = Self::build_with_bindings(
+            mc,
+            graph,
+            bindings,
+            &member.module_url,
+            None,
+            input.clone(),
+            true,
+        )?;
         execution.entry.target_kind = ResolveTargetKind::Reference;
-        execution.entry.export = Some(name.clone());
+        execution.entry.export.replace(name.clone());
         execution.frames[0].execution = Execution::Pattern(PatternExecution::new_with_recovery(
             mc,
             Pattern::Resolve {
@@ -588,6 +609,24 @@ impl<'gc> RuleExecution<'gc> {
             execution.entry.recovery,
         ));
         Ok(execution)
+    }
+
+    /// Returns the warm module bindings after clearing match/memo state so the
+    /// match tree can be collected while bindings stay rooted elsewhere.
+    pub fn take_bindings_after_run(&mut self) -> Option<ModuleBindings<'gc>> {
+        self.frames.clear();
+        self.active_marks.clear();
+        self.memos.clear();
+        self.memo_keys.clear();
+        self.targets.clear();
+        self.target_keys.clear();
+        self.result = None;
+        self.serialized = None;
+        self.error = None;
+        self.error_context = None;
+        self.initialization = None;
+        self.declarations.clear();
+        self.bindings.take()
     }
 
     fn build(
@@ -610,6 +649,20 @@ impl<'gc> RuleExecution<'gc> {
         metadata_only: bool,
         parent: Option<Environment<'gc>>,
     ) -> Result<Self, RuntimeError> {
+        let bindings =
+            ModuleBindings::with_environment(mc, &graph, parent).map_err(RuntimeError::Module)?;
+        Self::build_with_bindings(mc, graph, bindings, module, export, input, metadata_only)
+    }
+
+    fn build_with_bindings(
+        mc: &Mutation<'gc>,
+        graph: Rc<CompiledModuleGraph>,
+        bindings: ModuleBindings<'gc>,
+        module: &Url,
+        export: Option<&str>,
+        input: Vec<Value<'gc>>,
+        metadata_only: bool,
+    ) -> Result<Self, RuntimeError> {
         if !metadata_only {
             let member = graph
                 .export(module, export)
@@ -618,8 +671,6 @@ impl<'gc> RuleExecution<'gc> {
                 return Err(RuntimeError::NotRule(export.unwrap_or("default").into()));
             }
         }
-        let bindings =
-            ModuleBindings::with_environment(mc, &graph, parent).map_err(RuntimeError::Module)?;
         let environment = bindings
             .environment(module)
             .ok_or(RuntimeError::InvalidState)?;
@@ -1393,7 +1444,7 @@ impl<'gc> RuleExecution<'gc> {
         }
     }
 
-    fn run_batch(
+    pub(crate) fn run_batch(
         &mut self,
         mc: &Mutation<'gc>,
         limit: usize,
@@ -3071,7 +3122,7 @@ fn same_input_item<'gc>(left: Value<'gc>, right: Value<'gc>) -> bool {
     true
 }
 
-fn runtime_input<'gc>(
+pub(crate) fn runtime_input<'gc>(
     mc: &Mutation<'gc>,
     input: impl Into<crate::json::JsonValue>,
     mode: InputMode,

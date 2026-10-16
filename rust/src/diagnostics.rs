@@ -61,25 +61,39 @@ pub fn collect(
 ) -> Result<Vec<SourceDiagnostic>, crate::coercion::StringCoercionError> {
     let source = source.into();
     let encoding_error = std::cell::Cell::new(false);
-    let diagnostics = runtime
-        .diagnostics_with(|declaration| {
-            let Value::Object(metadata) = declaration.metadata.raw() else {
-                return None;
-            };
-            let Value::Object(documentation) = metadata.borrow().get("Documentation")?.raw() else {
-                return None;
-            };
-            let Value::String(error) = documentation.borrow().get("error")?.raw() else {
-                return None;
-            };
-            match error.to_utf8() {
-                Ok(error) => Some(error),
-                Err(_) => {
-                    encoding_error.set(true);
-                    None
-                }
+    let diagnostics = runtime.diagnostics_with(|declaration| {
+        let Value::Object(metadata) = declaration.metadata.raw() else {
+            return None;
+        };
+        let Value::Object(documentation) = metadata.borrow().get("Documentation")?.raw() else {
+            return None;
+        };
+        let Value::String(error) = documentation.borrow().get("error")?.raw() else {
+            return None;
+        };
+        match error.to_utf8() {
+            Ok(error) => Some(error),
+            Err(_) => {
+                encoding_error.set(true);
+                None
             }
-        })
+        }
+    });
+    if encoding_error.get() {
+        return Err(crate::coercion::StringCoercionError::NonScalarText);
+    }
+    map_runtime_diagnostics(diagnostics, source, recovery_code, failure_code, phase)
+}
+
+pub fn map_runtime_diagnostics(
+    diagnostics: Vec<crate::runtime::RuntimeDiagnostic>,
+    source: impl Into<crate::text::RuntimeString>,
+    recovery_code: &str,
+    failure_code: &str,
+    phase: &'static str,
+) -> Result<Vec<SourceDiagnostic>, crate::coercion::StringCoercionError> {
+    let source = source.into();
+    Ok(diagnostics
         .into_iter()
         .map(|diagnostic| SourceDiagnostic {
             kind: diagnostic.kind,
@@ -108,12 +122,7 @@ pub fn collect(
                 location
             },
         })
-        .collect();
-    if encoding_error.get() {
-        Err(crate::coercion::StringCoercionError::NonScalarText)
-    } else {
-        Ok(diagnostics)
-    }
+        .collect())
 }
 
 #[cfg(test)]

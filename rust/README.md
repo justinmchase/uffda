@@ -216,15 +216,19 @@ implementation:
   feature exists for experiments only; stress runs under WSL saw intermittent
   segfaults and wrong-result exits with mimalloc enabled and none with the
   system allocator.
-- `PatternMatch` child lists use `MatchChildren` (empty / one / two inline,
-  then `Vec`) so leaf and unary/recover wrappers do not allocate a child
-  vector on every match.
-- `ObjectProperties::set` parses array-index keys from UTF-16 without
-  allocating UTF-8/`to_string` copies; ordinary identifier keys take the
-  append fast path. `RuntimeString` keeps its scalar UTF-8 cache on
-  `From<&str>`/`From<String>` and `to_utf8`/`sha256` reuse it.
+- `PatternMatch` child lists use `MatchChildren` (empty / one / two inline, then
+  `Vec`) so leaf and unary/recover wrappers do not allocate a child vector on
+  every match.
+- `ObjectProperties::set` parses array-index keys from UTF-16 without allocating
+  UTF-8/`to_string` copies; ordinary identifier keys take the append fast path.
+  `RuntimeString` keeps its scalar UTF-8 cache on `From<&str>`/`From<String>`
+  and `to_utf8`/`sha256` reuse it.
 - Environment binding names are `Rc<str>`, so variable captures reuse the
   compiled pattern's name instead of allocating a fresh `String` per match.
+- `Languages` keeps a process-long GC session: module bindings stay warm across
+  parse/compile calls while match trees are cleared after serialization.
+  Multi-file `compile` prefetches source text and runs two warm worker heaps in
+  parallel, merging units in plan order.
 
 The default backend is `gc-arena` 0.7.0:
 

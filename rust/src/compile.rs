@@ -6,8 +6,14 @@ use crate::source_paths::{expand, stable_path};
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::mpsc::{self, RecvError};
+use std::sync::{Arc, Mutex};
+use std::thread;
 use url::Url;
+
+const COMPILE_WORKERS: usize = 2;
+const PREFETCH_CAPACITY: usize = 2;
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -190,164 +196,326 @@ pub fn compile(request: CompileRequest<'_>, languages: &mut Languages) -> Compil
         }
         plans.push((source, source_path, output));
     }
-    for (source, source_path, output) in plans {
-        match output.metadata() {
-            Ok(metadata) if metadata.is_file() && !request.overwrite => {
-                result.fail(failure(
-                    "CLI_COMPILE_OUTPUT_EXISTS",
-                    source_path,
-                    Some(&output),
-                    "Output already exists and overwrite=false".into(),
-                ));
-                continue;
-            }
-            Ok(_) => {}
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-            Err(error) => {
-                result.fail(failure(
-                    "CLI_COMPILE_WRITE_FAILURE",
-                    source_path,
-                    Some(&output),
-                    error.to_string(),
-                ));
-                continue;
-            }
-        }
-        let text = match std::fs::read_to_string(&source) {
-            Ok(text) => text,
-            Err(error) => {
-                result.fail(failure(
-                    "CLI_COMPILE_SOURCE_NOT_READABLE",
-                    source_path,
-                    Some(&output),
-                    error.to_string(),
-                ));
-                continue;
-            }
-        };
-        let mut module = match languages
-            .parse(&text, Language::Uffda)
-            .and_then(|syntax| languages.compile(syntax))
-        {
-            Ok(module) => module,
-            Err(error) => {
-                if !error.diagnostics.is_empty() {
-                    result.fail_diagnostics(
-                        error
-                            .diagnostics
-                            .into_iter()
-                            .map(|diagnostic| CompileFailure {
-                                code: if diagnostic.code == "CLI_STREAM_PARSE_RECOVERED" {
-                                    "CLI_COMPILE_PARSE_RECOVERED"
-                                } else {
-                                    "CLI_COMPILE_PARSE_FAILURE"
-                                },
-                                source_path: source_path.clone(),
-                                output_path: Some(output.to_string_lossy().into_owned()),
-                                message: diagnostic.message,
-                                location: Some(diagnostic.location),
-                            })
-                            .collect(),
-                    );
-                    continue;
-                }
-                result.fail(failure(
-                    "CLI_COMPILE_PARSE_FAILURE",
-                    source_path,
-                    Some(&output),
-                    error.to_string(),
-                ));
-                continue;
-            }
-        };
-        let url = match Url::from_file_path(&source) {
-            Ok(url) => url,
-            Err(()) => {
-                result.fail(failure(
-                    "CLI_COMPILE_INVALID_CONTEXT",
-                    source_path,
-                    Some(&output),
-                    "Invalid source URL".into(),
-                ));
-                continue;
-            }
-        };
-        if let Err(error) = decode_declaration(&url, &module.to_string()) {
-            result.fail(failure(
-                "CLI_COMPILE_PARSE_FAILURE",
-                source_path,
-                Some(&output),
-                error.to_string(),
-            ));
-            continue;
-        }
-        let mut diagnostics = Vec::new();
-        for import in module["imports"]
-            .as_array_mut()
-            .expect("validated declaration imports")
-        {
-            let Some(specifier) = import["moduleUrl"].as_str() else {
-                diagnostics.push(failure(
-                    "CLI_COMPILE_PARSE_FAILURE",
-                    source_path.clone(),
-                    Some(&output),
-                    "Import has no module URL".into(),
-                ));
-                continue;
-            };
-            match unfurl_specifier(request.imports, specifier) {
-                Ok(full) => import["moduleUrl"] = Value::String(full.into()),
-                Err(error) => {
-                    diagnostics.push(failure(
-                        "CLI_COMPILE_UNDECLARED_MODULE_NAME",
-                        source_path.clone(),
-                        Some(&output),
-                        error,
-                    ));
-                }
-            }
-        }
-        if !diagnostics.is_empty() {
-            result.fail_diagnostics(diagnostics);
-            continue;
-        }
-        let write = || -> Result<(), String> {
-            let text = serde_json::to_string_pretty(&module).map_err(|error| error.to_string())?;
-            std::fs::create_dir_all(output.parent().ok_or("Output has no parent")?)
-                .map_err(|error| error.to_string())?;
-            let mut options = std::fs::OpenOptions::new();
-            options.write(true);
-            if request.overwrite {
-                options.create(true).truncate(true);
-            } else {
-                options.create_new(true);
-            }
-            let mut file = options.open(&output).map_err(|error| error.to_string())?;
-            file.write_all(text.as_bytes())
-                .map_err(|error| error.to_string())?;
-            Ok(())
-        };
-        if let Err(error) = write() {
-            result.fail(failure(
-                "CLI_COMPILE_WRITE_FAILURE",
-                source_path,
-                Some(&output),
-                error,
-            ));
-            continue;
-        }
-        let success = CompileSuccess {
-            source_path,
-            output_path: output.to_string_lossy().into_owned(),
-            module,
-        };
-        result.units.push(CompileUnit::Success {
-            ok: true,
-            success: success.clone(),
-        });
-        result.successes.push(success);
+    if plans.is_empty() {
+        return result;
     }
+
+    let imports = request.imports.clone();
+    let overwrite = request.overwrite;
+
+    // Single unit: keep the caller's warm Languages heap; no worker pool needed.
+    if plans.len() == 1 {
+        let (source, source_path, output) = plans.pop().expect("len checked");
+        match prepare_and_read(&source, &source_path, &output, overwrite) {
+            Err(failure) => result.fail(failure),
+            Ok(text) => match compile_text(
+                languages,
+                &source,
+                source_path,
+                &output,
+                &text,
+                &imports,
+                overwrite,
+            ) {
+                Ok(success) => {
+                    result.units.push(CompileUnit::Success {
+                        ok: true,
+                        success: success.clone(),
+                    });
+                    result.successes.push(success);
+                }
+                Err(UnitFailure::Single(failure)) => result.fail(failure),
+                Err(UnitFailure::Many(diagnostics)) => result.fail_diagnostics(diagnostics),
+            },
+        }
+        return result;
+    }
+
+    let (prefetch_tx, prefetch_rx) = mpsc::sync_channel::<Prefetched>(PREFETCH_CAPACITY);
+    let reader = thread::spawn(move || {
+        for (index, (source, source_path, output)) in plans.into_iter().enumerate() {
+            let item = match prepare_and_read(&source, &source_path, &output, overwrite) {
+                Ok(text) => Prefetched {
+                    index,
+                    source,
+                    source_path,
+                    output,
+                    text: Ok(text),
+                },
+                Err(failure) => Prefetched {
+                    index,
+                    source,
+                    source_path,
+                    output,
+                    text: Err(failure),
+                },
+            };
+            if prefetch_tx.send(item).is_err() {
+                break;
+            }
+        }
+    });
+
+    let prefetch_rx = Arc::new(Mutex::new(prefetch_rx));
+    let (result_tx, result_rx) = mpsc::channel::<(usize, UnitOutcome)>();
+    let worker_count = COMPILE_WORKERS;
+
+    thread::scope(|scope| {
+        for _ in 0..worker_count {
+            let prefetch_rx = Arc::clone(&prefetch_rx);
+            let result_tx = result_tx.clone();
+            let imports = imports.clone();
+            scope.spawn(move || {
+                let mut languages = match Languages::new() {
+                    Ok(languages) => languages,
+                    Err(error) => {
+                        let _ = result_tx.send((
+                            0,
+                            UnitOutcome::Failed(UnitFailure::Single(CompileFailure {
+                                code: "CLI_COMPILE_INVALID_CONTEXT",
+                                source_path: String::new(),
+                                output_path: None,
+                                message: error.to_string(),
+                                location: None,
+                            })),
+                        ));
+                        return;
+                    }
+                };
+                loop {
+                    let item = {
+                        let receiver = prefetch_rx.lock().expect("prefetch lock");
+                        receiver.recv()
+                    };
+                    let item = match item {
+                        Ok(item) => item,
+                        Err(RecvError) => break,
+                    };
+                    let outcome = match item.text {
+                        Err(failure) => UnitOutcome::Failed(UnitFailure::Single(failure)),
+                        Ok(text) => match compile_text(
+                            &mut languages,
+                            &item.source,
+                            item.source_path,
+                            &item.output,
+                            &text,
+                            &imports,
+                            overwrite,
+                        ) {
+                            Ok(success) => UnitOutcome::Succeeded(success),
+                            Err(failure) => UnitOutcome::Failed(failure),
+                        },
+                    };
+                    if result_tx.send((item.index, outcome)).is_err() {
+                        break;
+                    }
+                }
+            });
+        }
+        drop(result_tx);
+
+        let mut ordered = BTreeMap::new();
+        for (index, outcome) in result_rx {
+            ordered.insert(index, outcome);
+        }
+        for (_index, outcome) in ordered {
+            match outcome {
+                UnitOutcome::Succeeded(success) => {
+                    result.units.push(CompileUnit::Success {
+                        ok: true,
+                        success: success.clone(),
+                    });
+                    result.successes.push(success);
+                }
+                UnitOutcome::Failed(UnitFailure::Single(failure)) => result.fail(failure),
+                UnitOutcome::Failed(UnitFailure::Many(diagnostics)) => {
+                    result.fail_diagnostics(diagnostics)
+                }
+            }
+        }
+    });
+
+    let _ = reader.join();
     result
+}
+
+struct Prefetched {
+    index: usize,
+    source: PathBuf,
+    source_path: String,
+    output: PathBuf,
+    text: Result<String, CompileFailure>,
+}
+
+enum UnitOutcome {
+    Succeeded(CompileSuccess),
+    Failed(UnitFailure),
+}
+
+enum UnitFailure {
+    Single(CompileFailure),
+    Many(Vec<CompileFailure>),
+}
+
+fn prepare_and_read(
+    source: &Path,
+    source_path: &str,
+    output: &Path,
+    overwrite: bool,
+) -> Result<String, CompileFailure> {
+    match output.metadata() {
+        Ok(metadata) if metadata.is_file() && !overwrite => {
+            return Err(CompileFailure {
+                code: "CLI_COMPILE_OUTPUT_EXISTS",
+                source_path: source_path.into(),
+                output_path: Some(output.to_string_lossy().into_owned()),
+                message: "Output already exists and overwrite=false".into(),
+                location: None,
+            });
+        }
+        Ok(_) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => {
+            return Err(CompileFailure {
+                code: "CLI_COMPILE_WRITE_FAILURE",
+                source_path: source_path.into(),
+                output_path: Some(output.to_string_lossy().into_owned()),
+                message: error.to_string(),
+                location: None,
+            });
+        }
+    }
+    std::fs::read_to_string(source).map_err(|error| CompileFailure {
+        code: "CLI_COMPILE_SOURCE_NOT_READABLE",
+        source_path: source_path.into(),
+        output_path: Some(output.to_string_lossy().into_owned()),
+        message: error.to_string(),
+        location: None,
+    })
+}
+
+fn compile_text(
+    languages: &mut Languages,
+    source: &Path,
+    source_path: String,
+    output: &Path,
+    text: &str,
+    imports: &BTreeMap<String, String>,
+    overwrite: bool,
+) -> Result<CompileSuccess, UnitFailure> {
+    let mut module = match languages
+        .parse(text, Language::Uffda)
+        .and_then(|syntax| languages.compile(syntax))
+    {
+        Ok(module) => module,
+        Err(error) => {
+            if !error.diagnostics.is_empty() {
+                return Err(UnitFailure::Many(
+                    error
+                        .diagnostics
+                        .into_iter()
+                        .map(|diagnostic| CompileFailure {
+                            code: if diagnostic.code == "CLI_STREAM_PARSE_RECOVERED" {
+                                "CLI_COMPILE_PARSE_RECOVERED"
+                            } else {
+                                "CLI_COMPILE_PARSE_FAILURE"
+                            },
+                            source_path: source_path.clone(),
+                            output_path: Some(output.to_string_lossy().into_owned()),
+                            message: diagnostic.message,
+                            location: Some(diagnostic.location),
+                        })
+                        .collect(),
+                ));
+            }
+            return Err(UnitFailure::Single(CompileFailure {
+                code: "CLI_COMPILE_PARSE_FAILURE",
+                source_path,
+                output_path: Some(output.to_string_lossy().into_owned()),
+                message: error.to_string(),
+                location: None,
+            }));
+        }
+    };
+    let url = Url::from_file_path(source).map_err(|()| {
+        UnitFailure::Single(CompileFailure {
+            code: "CLI_COMPILE_INVALID_CONTEXT",
+            source_path: source_path.clone(),
+            output_path: Some(output.to_string_lossy().into_owned()),
+            message: "Invalid source URL".into(),
+            location: None,
+        })
+    })?;
+    if let Err(error) = decode_declaration(&url, &module.to_string()) {
+        return Err(UnitFailure::Single(CompileFailure {
+            code: "CLI_COMPILE_PARSE_FAILURE",
+            source_path,
+            output_path: Some(output.to_string_lossy().into_owned()),
+            message: error.to_string(),
+            location: None,
+        }));
+    }
+    let mut diagnostics = Vec::new();
+    for import in module["imports"]
+        .as_array_mut()
+        .expect("validated declaration imports")
+    {
+        let Some(specifier) = import["moduleUrl"].as_str() else {
+            diagnostics.push(CompileFailure {
+                code: "CLI_COMPILE_PARSE_FAILURE",
+                source_path: source_path.clone(),
+                output_path: Some(output.to_string_lossy().into_owned()),
+                message: "Import has no module URL".into(),
+                location: None,
+            });
+            continue;
+        };
+        match unfurl_specifier(imports, specifier) {
+            Ok(full) => import["moduleUrl"] = Value::String(full.into()),
+            Err(error) => {
+                diagnostics.push(CompileFailure {
+                    code: "CLI_COMPILE_UNDECLARED_MODULE_NAME",
+                    source_path: source_path.clone(),
+                    output_path: Some(output.to_string_lossy().into_owned()),
+                    message: error,
+                    location: None,
+                });
+            }
+        }
+    }
+    if !diagnostics.is_empty() {
+        return Err(UnitFailure::Many(diagnostics));
+    }
+    let write = || -> Result<(), String> {
+        let text = serde_json::to_string_pretty(&module).map_err(|error| error.to_string())?;
+        std::fs::create_dir_all(output.parent().ok_or("Output has no parent")?)
+            .map_err(|error| error.to_string())?;
+        let mut options = std::fs::OpenOptions::new();
+        options.write(true);
+        if overwrite {
+            options.create(true).truncate(true);
+        } else {
+            options.create_new(true);
+        }
+        let mut file = options.open(output).map_err(|error| error.to_string())?;
+        file.write_all(text.as_bytes())
+            .map_err(|error| error.to_string())?;
+        Ok(())
+    };
+    if let Err(error) = write() {
+        return Err(UnitFailure::Single(CompileFailure {
+            code: "CLI_COMPILE_WRITE_FAILURE",
+            source_path,
+            output_path: Some(output.to_string_lossy().into_owned()),
+            message: error,
+            location: None,
+        }));
+    }
+    Ok(CompileSuccess {
+        source_path,
+        output_path: output.to_string_lossy().into_owned(),
+        module,
+    })
 }
 
 #[cfg(test)]
