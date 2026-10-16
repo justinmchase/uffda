@@ -48,6 +48,7 @@ fn arena() -> Arena<Rootable![Roots<'_>]> {
 }
 
 #[test]
+// req:runtime-memory-002
 fn derives_trace_structs_enums_and_static_types() {
     const {
         assert!(<Node<'static> as Collect>::NEEDS_TRACE);
@@ -67,6 +68,7 @@ fn derives_trace_structs_enums_and_static_types() {
 }
 
 #[test]
+// req:runtime-memory-001
 fn gc_identity_and_value_equality_are_distinct() {
     rootless_mutate(|mc| {
         let a = Gc::new(mc, 7u32);
@@ -79,6 +81,7 @@ fn gc_identity_and_value_equality_are_distinct() {
 }
 
 #[test]
+// req:runtime-memory-001
 fn reflock_mutation_is_visible_through_every_pointer() {
     let mut arena = arena();
     arena.mutate_root(|mc, roots| {
@@ -95,6 +98,7 @@ fn reflock_mutation_is_visible_through_every_pointer() {
 }
 
 #[test]
+// req:runtime-memory-002
 fn reachable_values_survive_collection() {
     let mut arena = arena();
     arena.mutate_root(|mc, roots| {
@@ -121,6 +125,7 @@ fn reachable_values_survive_collection() {
 
 #[test]
 #[allow(clippy::drop_non_drop)]
+// req:runtime-memory-003
 fn dynamic_roots_round_trip() {
     // The closure is required: `DynamicRootSet::new` is not higher-ranked over `'gc`.
     #[allow(clippy::redundant_closure)]
@@ -138,6 +143,7 @@ fn dynamic_roots_round_trip() {
 }
 
 #[test]
+// req:runtime-memory-003
 fn fetching_from_another_root_set_fails() {
     rootless_mutate(|mc| {
         let first = DynamicRootSet::new(mc);
@@ -153,6 +159,7 @@ fn fetching_from_another_root_set_fails() {
 }
 
 #[test]
+// req:runtime-memory-002
 fn try_new_propagates_errors() {
     let result = Arena::<Rootable![Roots<'_>]>::try_new(|_| Err::<Roots<'_>, _>("nope"));
     assert_eq!(result.err(), Some("nope"));
@@ -165,6 +172,7 @@ mod collector {
     use super::*;
 
     #[test]
+    // req:runtime-memory-002
     fn unreachable_values_are_freed() {
         let mut arena = arena();
         arena.mutate_root(|mc, roots| {
@@ -189,6 +197,7 @@ mod collector {
     }
 
     #[test]
+    // req:runtime-memory-002
     fn write_barrier_keeps_child_added_after_marking_alive() {
         let mut arena = arena();
         arena.mutate_root(|mc, roots| roots.nodes.push(node(mc, 1)));
@@ -208,6 +217,7 @@ mod collector {
     }
 
     #[test]
+    // req:runtime-memory-003
     fn released_dynamic_root_is_freed() {
         let mut arena =
             Arena::<Rootable![(DynamicRootSet<'_>, Vec<GcWeak<'_, RefLock<Node<'_>>>>)]>::new(
@@ -228,6 +238,7 @@ mod collector {
 
 #[cfg(feature = "leak")]
 #[test]
+// req:runtime-memory-002
 fn leak_backend_never_frees() {
     let mut arena = arena();
     arena.mutate_root(|mc, roots| {
