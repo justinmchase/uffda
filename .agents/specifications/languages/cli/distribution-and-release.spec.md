@@ -41,11 +41,11 @@ Normative key words in this chapter use the conventions defined in the
 - Merging to `main` MUST update a draft GitHub Release through a standalone Bash
   workflow using the GitHub CLI, the semver CLI, and GitHub's built-in release
   notes generator. It MUST NOT require Deno.
-- The next version MUST be resolved from merged PRs on `main` since the latest
-  stable published release's tag: `major` takes precedence over `minor`, and
-  otherwise the version increments by a patch. Draft releases MUST NOT be
-  version baselines. PR creators choose labels; the workflow MUST NOT apply
-  labels automatically.
+- The next version MUST be resolved from merged PRs on `main` whose merge
+  commits fall after the latest stable published release's tag: `major` takes
+  precedence over `minor`, and otherwise the version increments by a patch.
+  Draft releases MUST NOT be version baselines. PR creators choose labels; the
+  workflow MUST NOT apply labels automatically.
 - After the draft and version files are updated, the workflow MUST emit a
   `repository_dispatch` event that triggers CLI binary attachment for the latest
   draft.

@@ -59,42 +59,44 @@ jobs:
               <<< "$releases")"
           fi
 
+          work_dir="$(mktemp -d)"
+          trap 'rm -rf "$work_dir"' EXIT
+
           if [ -n "${previous_tag}" ]; then
-            encoded_tag="$(jq -rn --arg tag "${previous_tag}" '$tag | @uri')"
-            comparison="$(gh api --paginate --slurp \
-              "repos/${repository}/compare/${encoded_tag}...${release_sha}?per_page=100")"
-            if ! jq -e '[.[][] | .status] | all(. == "ahead" or . == "identical")' \
-              <<< "$comparison" >/dev/null; then
+            if ! git merge-base --is-ancestor "${previous_tag}" "${release_sha}"; then
               echo "Latest stable release ${previous_tag} is not an ancestor of ${release_sha}." >&2
               exit 1
             fi
-            commit_shas="$(jq -r '[.[][] | .commits[]?.sha] | unique[]' <<< "$comparison")"
+            git rev-list "${previous_tag}..${release_sha}" > "${work_dir}/range_commits"
           else
-            commits="$(gh api --paginate --slurp \
-              "repos/${repository}/commits?sha=${release_sha}&per_page=100")"
-            commit_shas="$(jq -r '[.[][] | .sha] | unique[]' <<< "$commits")"
+            git rev-list "${release_sha}" > "${work_dir}/range_commits"
           fi
 
-          bump="patch"
-          while IFS= read -r commit_sha; do
-            [ -n "${commit_sha}" ] || continue
-            pulls="$(gh api --paginate --slurp \
-              "repos/${repository}/commits/${commit_sha}/pulls?per_page=100")"
-            if jq -e '[.[][] | select(.merged_at != null and .base.ref == "main") | .labels[]?.name] | any(. == "major")' \
-              <<< "$pulls" >/dev/null; then
-              bump="major"
-              break
-            elif [ "${bump}" != "major" ] &&
-              jq -e '[.[][] | select(.merged_at != null and .base.ref == "main") | .labels[]?.name] | any(. == "minor")' \
-                <<< "$pulls" >/dev/null; then
-              bump="minor"
-            fi
-          done <<< "$commit_shas"
+          # One paginated PR list; bump from labels on PRs whose merge commit is
+          # in the range after the latest stable tag (or all history if none).
+          pulls="$(gh api --paginate --slurp \
+            "repos/${repository}/pulls?state=closed&base=main&per_page=100")"
+          bump="$(jq -r --rawfile commits "${work_dir}/range_commits" '
+            ($commits | split("\n") | map(select(length > 0))
+              | map({key: ., value: true}) | from_entries) as $in_range
+            | [
+                .[][]
+                | select(
+                    .merged_at != null
+                    and .base.ref == "main"
+                    and .merge_commit_sha != null
+                    and ($in_range[.merge_commit_sha] == true)
+                  )
+                | .labels[]?.name
+              ]
+            | if any(. == "major") then "major"
+              elif any(. == "minor") then "minor"
+              else "patch"
+              end
+          ' <<< "$pulls")"
 
-          version_dir="$(mktemp -d)"
-          trap 'rm -rf "$version_dir"' EXIT
-          printf '%s\n' "${previous_version}" > "${version_dir}/VERSION"
-          release_version="$(cd "${version_dir}" && semver inc "${bump}")"
+          printf '%s\n' "${previous_version}" > "${work_dir}/VERSION"
+          release_version="$(cd "${work_dir}" && semver inc "${bump}")"
 
           if jq -e --arg version "${release_version}" \
             '[.[][] | select(.draft == false) | .tag_name | sub("^v"; "")] | any(. == $version)' \
