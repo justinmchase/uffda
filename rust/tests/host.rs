@@ -52,7 +52,7 @@ fn public_host_request_can_return_its_rooted_composite_argument() {
         .expect("external host request");
     let identity = evaluation
         .read(&request.arguments[0], |value| match value {
-            Value::Object(object) => gc_arena::Gc::as_ptr(object) as usize,
+            Value::Object(object) => uffda_heap::Gc::as_ptr(object) as usize,
             _ => panic!("expected the original composite argument"),
         })
         .unwrap();
@@ -66,7 +66,7 @@ fn public_host_request_can_return_its_rooted_composite_argument() {
     let result = evaluation.finish().unwrap();
     let result_identity = evaluation
         .read(&result, |value| match value {
-            Value::Object(object) => gc_arena::Gc::as_ptr(object) as usize,
+            Value::Object(object) => uffda_heap::Gc::as_ptr(object) as usize,
             _ => panic!("expected the completed composite value"),
         })
         .unwrap();

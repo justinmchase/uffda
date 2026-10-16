@@ -22,7 +22,7 @@ pub enum MemberKind {
     Decorator,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ModuleMember {
     pub module_url: Url,
     pub kind: MemberKind,

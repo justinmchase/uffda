@@ -1,0 +1,16 @@
+[package]
+name = "uffda-heap-derive"
+version = "0.0.0"
+edition = "2024"
+publish = false
+license = "MIT"
+description = "Derive macros for the Uffda garbage-collected heap"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1.0.56"
+quote = "1.0.26"
+syn = { version = "2.0.17", features = ["default", "visit-mut"] }
+synstructure = "0.13"

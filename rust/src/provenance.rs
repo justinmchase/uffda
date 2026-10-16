@@ -1,5 +1,5 @@
 use crate::value::Value;
-use gc_arena::{Collect, Gc, Mutation};
+use uffda_heap::{Collect, Gc, Mutation};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Collect)]
 #[collect(require_static)]
@@ -185,7 +185,7 @@ mod tests {
     #[test]
     // req:runtime-strings-002
     fn split_pairs_keep_origins_and_new_pairs_cover_both_segments() {
-        gc_arena::arena::rootless_mutate(|mc| {
+        uffda_heap::rootless_mutate(|mc| {
             let high = Value::string(mc, crate::text::RuntimeString::from_utf16(vec![0xd800]))
                 .wrap(mc, Origin { start: 2, end: 3 });
             let low = Value::string(mc, crate::text::RuntimeString::from_utf16(vec![0xdc00]))
@@ -209,7 +209,7 @@ mod tests {
     #[test]
     // req:into-001 req:runtime-memory-001
     fn wrapper_is_immutable_and_equality_observes_raw_identity() {
-        gc_arena::arena::rootless_mutate(|mc| {
+        uffda_heap::rootless_mutate(|mc| {
             let array = Value::array(mc, vec![]);
             let first = array.wrap(mc, Origin { start: 1, end: 2 });
             let second = array.wrap(mc, Origin { start: 3, end: 4 });
@@ -222,7 +222,7 @@ mod tests {
     #[test]
     // req:into-001 req:expressions-runtime-004
     fn concatenation_preserves_unicode_character_runs_and_literal_origins() {
-        gc_arena::arena::rootless_mutate(|mc| {
+        uffda_heap::rootless_mutate(|mc| {
             let source = Value::string(mc, "😀a").wrap_root(mc);
             let literal = Value::string(mc, "\n").wrap(mc, Origin { start: 7, end: 9 });
             let result = concatenate(mc, &[source, literal], Origin { start: 0, end: 9 }).unwrap();

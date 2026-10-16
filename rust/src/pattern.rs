@@ -8,9 +8,102 @@ use crate::provenance::Origin;
 use crate::runtime::input::{InputIdentity, InputPosition, PathSegment, RecoveryContext};
 use crate::value::{RuntimeType, Value};
 use crate::{json::JsonValue, text::RuntimeString};
-use gc_arena::{Collect, DynamicRootSet, Gc, Mutation, RefLock};
 use serde::Deserialize;
+use std::collections::HashMap;
+use std::ops::Deref;
 use std::rc::Rc;
+use std::sync::{Arc, Mutex, OnceLock};
+use uffda_heap::{Collect, DynamicRootSet, Gc, Mutation, RefLock};
+
+/// Child matches for a [`PatternMatch`].
+///
+/// Leaves and unary wrappers are the common case (0–1 children). Keeping those
+/// inline avoids a heap allocation for the child list on every `set` / boundary
+/// / unary resume. Sequences and choices spill to a `Vec`.
+#[derive(Clone, Collect)]
+#[collect(no_drop)]
+pub enum MatchChildren<'gc> {
+    Empty,
+    One(Gc<'gc, PatternMatch<'gc>>),
+    Two([Gc<'gc, PatternMatch<'gc>>; 2]),
+    Many(Vec<Gc<'gc, PatternMatch<'gc>>>),
+}
+
+impl<'gc> MatchChildren<'gc> {
+    #[inline]
+    pub const fn empty() -> Self {
+        Self::Empty
+    }
+
+    #[inline]
+    pub const fn one(child: Gc<'gc, PatternMatch<'gc>>) -> Self {
+        Self::One(child)
+    }
+
+    #[inline]
+    pub const fn two(
+        first: Gc<'gc, PatternMatch<'gc>>,
+        second: Gc<'gc, PatternMatch<'gc>>,
+    ) -> Self {
+        Self::Two([first, second])
+    }
+
+    #[inline]
+    pub fn as_slice(&self) -> &[Gc<'gc, PatternMatch<'gc>>] {
+        match self {
+            Self::Empty => &[],
+            Self::One(child) => std::slice::from_ref(child),
+            Self::Two(children) => children,
+            Self::Many(children) => children,
+        }
+    }
+}
+
+impl<'gc> Default for MatchChildren<'gc> {
+    fn default() -> Self {
+        Self::Empty
+    }
+}
+
+impl<'gc> Deref for MatchChildren<'gc> {
+    type Target = [Gc<'gc, PatternMatch<'gc>>];
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        self.as_slice()
+    }
+}
+
+impl<'a, 'gc> IntoIterator for &'a MatchChildren<'gc> {
+    type Item = &'a Gc<'gc, PatternMatch<'gc>>;
+    type IntoIter = std::slice::Iter<'a, Gc<'gc, PatternMatch<'gc>>>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.as_slice().iter()
+    }
+}
+
+impl<'gc> From<Vec<Gc<'gc, PatternMatch<'gc>>>> for MatchChildren<'gc> {
+    fn from(mut children: Vec<Gc<'gc, PatternMatch<'gc>>>) -> Self {
+        match children.len() {
+            0 => Self::Empty,
+            1 => Self::One(children.pop().expect("len checked")),
+            2 => {
+                let second = children.pop().expect("len checked");
+                let first = children.pop().expect("len checked");
+                Self::Two([first, second])
+            }
+            _ => Self::Many(children),
+        }
+    }
+}
+
+impl<'gc> FromIterator<Gc<'gc, PatternMatch<'gc>>> for MatchChildren<'gc> {
+    fn from_iter<I: IntoIterator<Item = Gc<'gc, PatternMatch<'gc>>>>(iter: I) -> Self {
+        Self::from(iter.into_iter().collect::<Vec<_>>())
+    }
+}
 
 #[derive(Debug, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
@@ -130,7 +223,7 @@ impl<'gc> PatternMatch<'gc> {
                 recovered: child.recovered,
                 recovery: child.recovery,
                 rule: None,
-                children: vec![child],
+                children: MatchChildren::one(child),
                 provenance: child.provenance.synthetic(),
                 pattern_index: child.pattern_index,
                 pattern_kind,
@@ -161,7 +254,7 @@ impl<'gc> PatternMatch<'gc> {
                 recovered: false,
                 recovery: request.recovery,
                 rule: None,
-                children: vec![],
+                children: MatchChildren::empty(),
                 provenance: PatternProvenance {
                     input: request.stream,
                     position: request.position,
@@ -199,7 +292,7 @@ impl<'gc> PatternMatch<'gc> {
                     recovered: false,
                     recovery: rejected.recovery,
                     rule: None,
-                    children: vec![rejected],
+                    children: MatchChildren::one(rejected),
                     provenance: rejected.provenance.synthetic(),
                     pattern_index: rejected.pattern_index,
                     pattern_kind: rejected.pattern_kind,
@@ -224,9 +317,9 @@ impl<'gc> PatternMatch<'gc> {
                 recovery: seed.recovery,
                 rule: None,
                 children: if failed {
-                    vec![rejected]
+                    MatchChildren::one(rejected)
                 } else {
-                    vec![seed, rejected]
+                    MatchChildren::two(seed, rejected)
                 },
                 pattern_index: seed.pattern_index,
                 provenance: seed.provenance.synthetic(),
@@ -242,7 +335,7 @@ impl<'gc> PatternMatch<'gc> {
         arguments: Vec<usize>,
     ) -> Gc<'gc, Self> {
         let mut provenance = child.provenance.clone();
-        provenance.rule_arguments = Some(arguments);
+        provenance.rule_arguments = Some(Rc::from(arguments));
         Gc::new(
             mc,
             Self {
@@ -552,25 +645,28 @@ enum PatternNode {
     Equal(ValueSource),
     Includes(Vec<ValueSource>),
     Between(Option<ValueSource>, Option<ValueSource>),
-    And(Vec<usize>),
-    Then(Vec<usize>),
-    Or(Vec<usize>),
-    Variable(String, usize),
+    And(Rc<[usize]>),
+    Then(Rc<[usize]>),
+    Or(Rc<[usize]>),
+    Variable(Rc<str>, usize),
     Unary(Unary, usize),
     Type(RuntimeType),
     Quantifier(usize, Option<ValueSource>, Option<ValueSource>),
     Over(Vec<(RuntimeString, usize)>, Vec<OverRestNode>),
     Switch(Vec<(SwitchKey, usize)>, Option<usize>),
-    Character(String),
-    Regexp(RegExpSpec),
+    /// Precompiled character-class matcher. `regex` is `None` for unknown
+    /// class names; matching then reports the same invalid-argument error as
+    /// before.
+    Character(String, Option<Arc<regress::Regex>>),
+    Regexp(RegExpSpec, Option<Arc<regress::Regex>>),
     Resolve {
         target_kind: ResolveTargetKind,
-        name: Option<String>,
-        args: Vec<usize>,
+        name: Option<Rc<str>>,
+        args: Rc<[usize]>,
         value: Option<JsonValue>,
     },
     Projection(usize, CompiledExpression),
-    Pipeline(Vec<usize>),
+    Pipeline(Rc<[usize]>),
     Recover(usize, usize),
 }
 
@@ -636,8 +732,8 @@ impl PatternNode {
             Self::Quantifier(_, _, _) => PatternKind::Quantifier,
             Self::Over(_, _) => PatternKind::Over,
             Self::Switch(_, _) => PatternKind::Switch,
-            Self::Character(_) => PatternKind::Character,
-            Self::Regexp(_) => PatternKind::Regexp,
+            Self::Character(_, _) => PatternKind::Character,
+            Self::Regexp(_, _) => PatternKind::Regexp,
             Self::Resolve { .. } => PatternKind::Resolve,
             Self::Projection(_, _) => PatternKind::Projection,
             Self::Pipeline(_) => PatternKind::Pipeline,
@@ -676,16 +772,30 @@ impl PatternProgram {
                 Pattern::Equal { value } => PatternNode::Equal(value),
                 Pattern::Includes { values } => PatternNode::Includes(values),
                 Pattern::Between { left, right } => PatternNode::Between(left, right),
-                Pattern::And { patterns } => {
-                    PatternNode::And(patterns.into_iter().map(&mut child).collect())
+                Pattern::And { patterns } => PatternNode::And(
+                    patterns
+                        .into_iter()
+                        .map(&mut child)
+                        .collect::<Vec<_>>()
+                        .into(),
+                ),
+                Pattern::Then { patterns } => PatternNode::Then(
+                    patterns
+                        .into_iter()
+                        .map(&mut child)
+                        .collect::<Vec<_>>()
+                        .into(),
+                ),
+                Pattern::Or { patterns } => PatternNode::Or(
+                    patterns
+                        .into_iter()
+                        .map(&mut child)
+                        .collect::<Vec<_>>()
+                        .into(),
+                ),
+                Pattern::Variable { name, pattern } => {
+                    PatternNode::Variable(Rc::from(name), child(*pattern))
                 }
-                Pattern::Then { patterns } => {
-                    PatternNode::Then(patterns.into_iter().map(&mut child).collect())
-                }
-                Pattern::Or { patterns } => {
-                    PatternNode::Or(patterns.into_iter().map(&mut child).collect())
-                }
-                Pattern::Variable { name, pattern } => PatternNode::Variable(name, child(*pattern)),
                 Pattern::Maybe { pattern } => PatternNode::Unary(Unary::Maybe, child(*pattern)),
                 Pattern::Not { pattern } => PatternNode::Unary(Unary::Not, child(*pattern)),
                 Pattern::Lookahead { pattern } => {
@@ -724,8 +834,14 @@ impl PatternProgram {
                         .collect(),
                     default.map(|pattern| child(*pattern)),
                 ),
-                Pattern::Character { character_class } => PatternNode::Character(character_class),
-                Pattern::Regexp { pattern } => PatternNode::Regexp(pattern),
+                Pattern::Character { character_class } => {
+                    let regex = character_class_regex(&character_class).ok();
+                    PatternNode::Character(character_class, regex)
+                }
+                Pattern::Regexp { pattern } => {
+                    let regex = compile_regexp_spec(&pattern).ok();
+                    PatternNode::Regexp(pattern, regex)
+                }
                 Pattern::Resolve {
                     target_kind,
                     name,
@@ -733,17 +849,17 @@ impl PatternProgram {
                     value,
                 } => PatternNode::Resolve {
                     target_kind,
-                    name,
-                    args: args.into_iter().map(&mut child).collect(),
+                    name: name.map(Rc::from),
+                    args: args.into_iter().map(&mut child).collect::<Vec<_>>().into(),
                     value,
                 },
                 Pattern::Projection {
                     pattern,
                     expression,
                 } => PatternNode::Projection(child(*pattern), CompiledExpression::new(*expression)),
-                Pattern::Pipeline { steps } => {
-                    PatternNode::Pipeline(steps.into_iter().map(&mut child).collect())
-                }
+                Pattern::Pipeline { steps } => PatternNode::Pipeline(
+                    steps.into_iter().map(&mut child).collect::<Vec<_>>().into(),
+                ),
                 Pattern::Recover { pattern, skip } => {
                     PatternNode::Recover(child(*pattern), child(*skip))
                 }
@@ -863,7 +979,7 @@ pub struct PatternMatch<'gc> {
     pub recovered: bool,
     pub recovery: RecoveryContext<'gc>,
     pub rule: Option<Gc<'gc, crate::runtime::DeclarationMetadata<'gc>>>,
-    pub children: Vec<Gc<'gc, PatternMatch<'gc>>>,
+    pub children: MatchChildren<'gc>,
     provenance: PatternProvenance<'gc>,
     pattern_index: usize,
     pub pattern_kind: PatternKind,
@@ -880,7 +996,7 @@ struct PatternProvenance<'gc> {
     index: usize,
     authored: bool,
     #[collect(require_static)]
-    rule_arguments: Option<Vec<usize>>,
+    rule_arguments: Option<Rc<[usize]>>,
 }
 
 impl<'gc> PatternProvenance<'gc> {
@@ -939,8 +1055,8 @@ impl<'gc> PatternMatch<'gc> {
                     .map_or_else(|| "unbounded".into(), ValueSource::descriptor)
             ),
             PatternNode::Type(expected) => format!("type {expected}"),
-            PatternNode::Character(class) => format!("character {class}"),
-            PatternNode::Regexp(spec) => format!("regexp {spec:?}"),
+            PatternNode::Character(class, _) => format!("character {class}"),
+            PatternNode::Regexp(spec, _) => format!("regexp {spec:?}"),
             PatternNode::Resolve {
                 name: Some(name), ..
             } => format!("resolve {name}"),
@@ -956,8 +1072,8 @@ impl<'gc> PatternMatch<'gc> {
             | PatternNode::Includes(_)
             | PatternNode::Between(..)
             | PatternNode::Type(_)
-            | PatternNode::Character(_)
-            | PatternNode::Regexp(_) => Some(self.descriptor()),
+            | PatternNode::Character(_, _)
+            | PatternNode::Regexp(_, _) => Some(self.descriptor()),
             _ => None,
         }
     }
@@ -1013,11 +1129,11 @@ enum Frame<'gc> {
         failure: Gc<'gc, PatternMatch<'gc>>,
     },
     Over(OverState<'gc>),
-    Variable(String, Scope<'gc>),
+    Variable(Rc<str>, Scope<'gc>),
     Unary(Unary, Scope<'gc>),
     Sequence {
         #[collect(require_static)]
-        nodes: Vec<usize>,
+        nodes: Rc<[usize]>,
         index: usize,
         start: Scope<'gc>,
         current: Scope<'gc>,
@@ -1026,14 +1142,14 @@ enum Frame<'gc> {
     },
     And {
         #[collect(require_static)]
-        nodes: Vec<usize>,
+        nodes: Rc<[usize]>,
         index: usize,
         start: Scope<'gc>,
         children: Vec<Gc<'gc, PatternMatch<'gc>>>,
     },
     Choice {
         #[collect(require_static)]
-        nodes: Vec<usize>,
+        nodes: Rc<[usize]>,
         index: usize,
         start: Scope<'gc>,
         children: Vec<Gc<'gc, PatternMatch<'gc>>>,
@@ -1054,7 +1170,7 @@ enum Frame<'gc> {
 #[collect(no_drop)]
 struct PipelineState<'gc> {
     #[collect(require_static)]
-    nodes: Vec<usize>,
+    nodes: Rc<[usize]>,
     stage: usize,
     start: Scope<'gc>,
     outer_end: usize,
@@ -1180,7 +1296,7 @@ impl PatternArgument {
                 ..
             } => Some(ResolveInfo {
                 target_kind: *target_kind,
-                name: name.clone(),
+                name: name.as_ref().map(|name| name.to_string()),
                 argument_count: args.len(),
             }),
             _ => None,
@@ -1628,7 +1744,7 @@ impl<'gc> PatternExecution<'gc> {
                         scope.environment
                     },
                     origin: span(scope, end),
-                    children: vec![outcome],
+                    children: MatchChildren::one(outcome),
                     pattern_index: scope.pattern_index,
                     pattern_kind: self.program.nodes[scope.pattern_index].kind(),
                     provenance: self.provenance(scope),
@@ -1823,9 +1939,9 @@ impl<'gc> PatternExecution<'gc> {
                     }
                     PatternNode::Variable(name, child) => {
                         if scope.environment.get(name).is_some() {
-                            return Err(PatternError::DuplicateVariable(name.clone()));
+                            return Err(PatternError::DuplicateVariable(name.to_string()));
                         }
-                        self.frames.push(Frame::Variable(name.clone(), scope));
+                        self.frames.push(Frame::Variable(Rc::clone(name), scope));
                         self.frames.push(Frame::Match(*child, scope));
                     }
                     PatternNode::Between(left, right) => {
@@ -1878,7 +1994,7 @@ impl<'gc> PatternExecution<'gc> {
                             self.set(mc, scope, true, false, Value::Undefined, vec![]);
                         }
                     }
-                    PatternNode::Character(character_class) => {
+                    PatternNode::Character(character_class, expression) => {
                         let Some(value) = scope.input.get(scope.position).copied() else {
                             self.set(mc, scope, false, true, Value::Undefined, vec![]);
                             return Ok(self.frames.is_empty());
@@ -1889,17 +2005,21 @@ impl<'gc> PatternExecution<'gc> {
                                 format!("{:?}", value.runtime_type()).to_lowercase()
                             )));
                         };
-                        let expression = character_class_regex(character_class)?;
+                        let Some(expression) = expression else {
+                            return Err(PatternError::InvalidArgument(format!(
+                                "unknown character class {character_class}"
+                            )));
+                        };
                         self.set(
                             mc,
                             scope,
-                            character_class_matches(&expression, &text),
+                            character_class_matches(expression, &text),
                             true,
                             value,
                             vec![],
                         );
                     }
-                    PatternNode::Regexp(spec) => {
+                    PatternNode::Regexp(spec, expression) => {
                         let Some(value) = scope.input.get(scope.position).copied() else {
                             self.set(mc, scope, false, true, Value::Undefined, vec![]);
                             return Ok(self.frames.is_empty());
@@ -1910,28 +2030,14 @@ impl<'gc> PatternExecution<'gc> {
                                 value.runtime_type()
                             )));
                         };
-                        let (source, flags) = match spec {
-                            RegExpSpec::Source(source) => (source, ""),
-                            RegExpSpec::Detailed { source, flags } => (source, flags.as_str()),
+                        let compiled;
+                        let expression = match expression {
+                            Some(expression) => expression.as_ref(),
+                            None => {
+                                compiled = compile_regexp_spec(spec)?;
+                                compiled.as_ref()
+                            }
                         };
-                        let expression = regress::Regex::from_unicode(
-                            source.code_points().map(|point| {
-                                if point.len() == 2 {
-                                    0x10000
-                                        + ((u32::from(point[0]) - 0xd800) << 10)
-                                        + u32::from(point[1])
-                                        - 0xdc00
-                                } else {
-                                    u32::from(point[0])
-                                }
-                            }),
-                            flags,
-                        )
-                        .map_err(|error| {
-                            PatternError::InvalidArgument(format!(
-                                "invalid regular expression: {error}"
-                            ))
-                        })?;
                         self.set(
                             mc,
                             scope,
@@ -1957,10 +2063,10 @@ impl<'gc> PatternExecution<'gc> {
                             .map_or(scope.base, |origin| origin.start);
                         self.pending_request = Some(PatternRequest {
                             target_kind: *target_kind,
-                            name: name.clone(),
+                            name: name.as_ref().map(|name| name.to_string()),
                             value: value.as_ref().map(ToString::to_string),
                             argument_count: args.len(),
-                            arguments: args.clone(),
+                            arguments: args.to_vec(),
                             pattern_index: scope.pattern_index,
                             stream: scope.input,
                             source: scope.source,
@@ -2208,7 +2314,7 @@ impl<'gc> PatternExecution<'gc> {
                             end: child.end,
                             environment: child.environment,
                             origin: span(start, child.end),
-                            children: vec![child],
+                            children: MatchChildren::one(child),
                             pattern_index: start.pattern_index,
                             pattern_kind: self.program.nodes[start.pattern_index].kind(),
                             provenance: self.provenance(start),
@@ -2243,7 +2349,7 @@ impl<'gc> PatternExecution<'gc> {
                                 recovered: child.recovered,
                                 recovery: start.recovery,
                                 rule: None,
-                                children: vec![child],
+                                children: MatchChildren::one(child),
                                 pattern_index: start.pattern_index,
                                 pattern_kind: self.program.nodes[start.pattern_index].kind(),
                                 provenance: self.provenance(start),
@@ -2274,7 +2380,7 @@ impl<'gc> PatternExecution<'gc> {
                             recovered: child.recovered,
                             recovery: child.recovery,
                             rule: None,
-                            children: vec![child],
+                            children: MatchChildren::one(child),
                             pattern_index: start.pattern_index,
                             pattern_kind: self.program.nodes[start.pattern_index].kind(),
                             provenance: self.provenance(start),
@@ -2299,7 +2405,7 @@ impl<'gc> PatternExecution<'gc> {
                             recovered: true,
                             recovery: start.recovery.enable(),
                             rule: None,
-                            children: vec![failure, skip],
+                            children: MatchChildren::two(failure, skip),
                             pattern_index: start.pattern_index,
                             pattern_kind: self.program.nodes[start.pattern_index].kind(),
                             provenance: self.provenance(start),
@@ -2320,7 +2426,7 @@ impl<'gc> PatternExecution<'gc> {
                             recovered: false,
                             recovery: start.recovery,
                             rule: None,
-                            children: vec![failure, skip],
+                            children: MatchChildren::two(failure, skip),
                             pattern_index: start.pattern_index,
                             pattern_kind: self.program.nodes[start.pattern_index].kind(),
                             provenance: self.provenance(start),
@@ -2363,7 +2469,7 @@ impl<'gc> PatternExecution<'gc> {
                             end: child.end,
                             environment: child.environment,
                             origin: span(start, child.end),
-                            children: vec![child],
+                            children: MatchChildren::one(child),
                             pattern_index: start.pattern_index,
                             pattern_kind: self.program.nodes[start.pattern_index].kind(),
                             provenance: self.provenance(start),
@@ -2474,7 +2580,7 @@ impl<'gc> PatternExecution<'gc> {
                         recovered: child.recovered,
                         recovery: child.recovery,
                         rule: None,
-                        children: vec![child],
+                        children: MatchChildren::one(child),
                         pattern_index: start.pattern_index,
                         pattern_kind: self.program.nodes[start.pattern_index].kind(),
                         provenance: self.provenance(start),
@@ -2486,7 +2592,11 @@ impl<'gc> PatternExecution<'gc> {
                 let environment = if child.kind == MatchKind::Fail {
                     start.environment
                 } else {
-                    Environment::new(mc, Some(child.environment), vec![(name, child.value)])
+                    Environment::new(
+                        mc,
+                        Some(child.environment),
+                        vec![(Rc::clone(&name), child.value)],
+                    )
                 };
                 self.result = Some(Gc::new(
                     mc,
@@ -2497,7 +2607,7 @@ impl<'gc> PatternExecution<'gc> {
                         end: child.end,
                         environment,
                         origin: span(start, child.end),
-                        children: vec![child],
+                        children: MatchChildren::one(child),
                         pattern_index: start.pattern_index,
                         pattern_kind: self.program.nodes[start.pattern_index].kind(),
                         provenance: self.provenance(start),
@@ -2519,7 +2629,7 @@ impl<'gc> PatternExecution<'gc> {
                     end: child.end,
                     environment: child.environment,
                     origin: span(start, start.position),
-                    children: vec![child],
+                    children: MatchChildren::one(child),
                     pattern_index: start.pattern_index,
                     pattern_kind: self.program.nodes[start.pattern_index].kind(),
                     provenance: self.provenance(start),
@@ -2650,7 +2760,7 @@ impl<'gc> PatternExecution<'gc> {
                                 recovered: children.iter().any(|child| child.recovered),
                                 recovery: current.recovery,
                                 rule: None,
-                                children,
+                                children: children.into(),
                             },
                         ));
                     }
@@ -2698,7 +2808,7 @@ impl<'gc> PatternExecution<'gc> {
                                 recovered: children.iter().any(|child| child.recovered),
                                 recovery: child.recovery,
                                 rule: None,
-                                children,
+                                children: children.into(),
                             },
                         ));
                     }
@@ -2730,7 +2840,7 @@ impl<'gc> PatternExecution<'gc> {
                             recovered: children.iter().any(|child| child.recovered),
                             recovery: child.recovery,
                             rule: None,
-                            children,
+                            children: children.into(),
                         },
                     ));
                 } else if let Some(next) = nodes.get(index + 1).copied() {
@@ -2948,7 +3058,7 @@ impl<'gc> PatternExecution<'gc> {
                     recovered: state.children.iter().any(|child| child.recovered),
                     recovery: child.recovery,
                     rule: None,
-                    children: state.children,
+                    children: state.children.into(),
                 },
             ));
             return Ok(());
@@ -3017,7 +3127,7 @@ impl<'gc> PatternExecution<'gc> {
                     state
                         .captures
                         .into_iter()
-                        .map(|(name, values)| (name, Value::array(mc, values)))
+                        .map(|(name, values)| (Rc::<str>::from(name), Value::array(mc, values)))
                         .collect(),
                 )
             };
@@ -3039,7 +3149,7 @@ impl<'gc> PatternExecution<'gc> {
                     recovered: state.children.iter().any(|child| child.recovered),
                     recovery: state.start.recovery,
                     rule: None,
-                    children: state.children,
+                    children: state.children.into(),
                 },
             ));
             return Ok(());
@@ -3111,7 +3221,7 @@ impl<'gc> PatternExecution<'gc> {
         while let Some(index) = pending.pop() {
             match &self.program.nodes[index] {
                 PatternNode::Variable(name, child) => {
-                    names.push(name.clone());
+                    names.push(name.to_string());
                     pending.push(*child);
                 }
                 PatternNode::And(children)
@@ -3179,7 +3289,7 @@ impl<'gc> PatternExecution<'gc> {
                     .last()
                     .map_or(scope.recovery, |child| child.recovery),
                 rule: None,
-                children,
+                children: children.into(),
             },
         ));
     }
@@ -3219,7 +3329,7 @@ impl<'gc> PatternExecution<'gc> {
                     recovered: children.iter().any(|child| child.recovered),
                     recovery: current.recovery,
                     rule: None,
-                    children,
+                    children: children.into(),
                 },
             ));
         }
@@ -3464,27 +3574,53 @@ fn push_capture<'gc>(
     }
 }
 
+fn compile_regexp_spec(spec: &RegExpSpec) -> Result<Arc<regress::Regex>, PatternError> {
+    let (source, flags) = match spec {
+        RegExpSpec::Source(source) => (source, ""),
+        RegExpSpec::Detailed { source, flags } => (source, flags.as_str()),
+    };
+    regress::Regex::from_unicode(
+        source.code_points().map(|point| {
+            if point.len() == 2 {
+                0x10000 + ((u32::from(point[0]) - 0xd800) << 10) + u32::from(point[1]) - 0xdc00
+            } else {
+                u32::from(point[0])
+            }
+        }),
+        flags,
+    )
+    .map(Arc::new)
+    .map_err(|error| PatternError::InvalidArgument(format!("invalid regular expression: {error}")))
+}
+
 fn character_class_matches(expression: &regress::Regex, text: &RuntimeString) -> bool {
     expression
         .find_from_utf16(text.as_utf16(), 0)
         .any(|matched| matched.range() == (0..text.len()))
 }
 
-fn character_class_regex(character_class: &str) -> Result<regress::Regex, PatternError> {
+/// Compile (or reuse) a character-class regex.
+///
+/// Deno compiles these once when building a `CompiledPattern`. Without a cache,
+/// the Rust path recompiled on every match.
+fn character_class_regex(character_class: &str) -> Result<Arc<regress::Regex>, PatternError> {
+    static CACHE: OnceLock<Mutex<HashMap<String, Arc<regress::Regex>>>> = OnceLock::new();
+    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    if let Some(existing) = cache
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .get(character_class)
+    {
+        return Ok(Arc::clone(existing));
+    }
     let expression = match character_class {
-        "A" => r"[\s\S]",
-        "Ac" => r"[\x00-\x7F]",
-        "As" => r"\p{Assigned}",
+        "A" => r"[\s\S]".to_string(),
+        "Ac" => r"[\x00-\x7F]".to_string(),
+        "As" => r"\p{Assigned}".to_string(),
         "L" | "Lu" | "Ll" | "Lt" | "Lm" | "Lo" | "M" | "Mn" | "Mc" | "Me" | "N" | "Nd" | "Nl"
         | "No" | "S" | "Sm" | "Sc" | "Sk" | "So" | "P" | "Pc" | "Pd" | "Ps" | "Pe" | "Pi"
         | "Pf" | "Po" | "Z" | "Zs" | "Zl" | "Zp" | "C" | "Cc" | "Cf" | "Cs" | "Co" | "Cn" => {
-            return regress::Regex::with_flags(&format!(r"\p{{{character_class}}}"), "u").map_err(
-                |error| {
-                    PatternError::InvalidArgument(format!(
-                        "invalid character class {character_class}: {error}"
-                    ))
-                },
-            );
+            format!(r"\p{{{character_class}}}")
         }
         _ => {
             return Err(PatternError::InvalidArgument(format!(
@@ -3492,11 +3628,17 @@ fn character_class_regex(character_class: &str) -> Result<regress::Regex, Patter
             )));
         }
     };
-    regress::Regex::with_flags(expression, "u").map_err(|error| {
+    let compiled = regress::Regex::with_flags(&expression, "u").map_err(|error| {
         PatternError::InvalidArgument(format!(
             "invalid character class {character_class}: {error}"
         ))
-    })
+    })?;
+    let compiled = Arc::new(compiled);
+    cache
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .insert(character_class.to_string(), Arc::clone(&compiled));
+    Ok(compiled)
 }
 
 fn bound(

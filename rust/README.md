@@ -161,7 +161,7 @@ The Rust library exposes the approved authored data grammar through
 `codec::data::DataDecoder`. `push_some` consumes through at most one record
 boundary and returns both the consumed byte count and an owned data document;
 call `finish` to deliver a final record without a trailing newline. A document
-can be materialized inside a `gc_arena::Mutation` as native runtime values or
+can be materialized inside a `uffda_heap::Mutation` as native runtime values or
 encoded compactly/prettily. BigInt, Date and Error are collector-backed runtime
 values; codec export rejects unsupported values, aliases, cycles and
 symbol-keyed objects instead of silently losing information.
@@ -204,7 +204,33 @@ its discovery rules.
 
 ## Collector evaluation
 
-The initial candidate is `gc-arena` 0.7.0:
+Runtime code uses the collector only through the `uffda-heap` crate
+(`rust/heap`), which owns the `Gc`, `RefLock`, `Arena`, `Mutation`, dynamic
+root, and `Collect` APIs and its own derive macro. Cargo features select the
+implementation:
+
+- `uffda-heap/gc-arena` (default): the `gc-arena` collector described below.
+- `heap-leak`: a diagnostic backend that never frees. It isolates collector
+  behavior when investigating memory faults and must not ship.
+- The binary uses the system allocator by default. An optional `mimalloc`
+  feature exists for experiments only; stress runs under WSL saw intermittent
+  segfaults and wrong-result exits with mimalloc enabled and none with the
+  system allocator.
+- `PatternMatch` child lists use `MatchChildren` (empty / one / two inline, then
+  `Vec`) so leaf and unary/recover wrappers do not allocate a child vector on
+  every match.
+- `ObjectProperties::set` parses array-index keys from UTF-16 without allocating
+  UTF-8/`to_string` copies; ordinary identifier keys take the append fast path.
+  `RuntimeString` keeps its scalar UTF-8 cache on `From<&str>`/`From<String>`
+  and `to_utf8`/`sha256` reuse it.
+- Environment binding names are `Rc<str>`, so variable captures reuse the
+  compiled pattern's name instead of allocating a fresh `String` per match.
+- `Languages` keeps a process-long GC session: module bindings stay warm across
+  parse/compile calls while match trees are cleared after serialization.
+  Multi-file `compile` prefetches source text and runs two warm worker heaps in
+  parallel, merging units in plan order.
+
+The default backend is `gc-arena` 0.7.0:
 
 - Exact tracing and cycle detection, with derived trace implementations.
 - Branded lifetimes prevent pointers escaping or crossing arenas.

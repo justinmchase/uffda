@@ -503,7 +503,7 @@ fn value_decoder_handles_empty_stream_trivia_comments_and_unterminated_final_lin
 // req:data-codec-003 req:runtime-memory-001 req:runtime-core-012
 fn native_documents_materialize_and_export_gc_values_without_identity_loss() {
     use crate::value::Value;
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let date = time::OffsetDateTime::parse(
             "2026-10-10T18:00:00.123-05:00",
             &time::format_description::well_known::Rfc3339,
@@ -573,7 +573,7 @@ fn native_documents_materialize_and_export_gc_values_without_identity_loss() {
 // req:data-codec-003
 fn runtime_export_rejects_aliases_cycles_symbols_as_keys_and_execution_values() {
     use crate::value::Value;
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let shared = Value::array(mc, vec![]);
         let alias = Value::array(mc, vec![shared, shared]);
         assert!(

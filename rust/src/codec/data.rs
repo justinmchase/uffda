@@ -2,13 +2,13 @@
 
 use crate::text::RuntimeString;
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
-use gc_arena::Gc;
 use num_bigint::BigInt;
 use serde_json::Value as Json;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::fmt;
 use std::fmt::Write as _;
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
+use uffda_heap::Gc;
 
 #[derive(Debug)]
 pub struct DataRecord {
@@ -257,7 +257,7 @@ impl DataDocument {
     }
 
     /// Materializes the validated tree inside the caller's arena mutation.
-    pub fn materialize<'gc>(&self, mc: &gc_arena::Mutation<'gc>) -> crate::value::Value<'gc> {
+    pub fn materialize<'gc>(&self, mc: &uffda_heap::Mutation<'gc>) -> crate::value::Value<'gc> {
         use crate::value::Value;
         let mut values = Vec::with_capacity(self.nodes.len());
         for node in &self.nodes {

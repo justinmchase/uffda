@@ -1,14 +1,287 @@
 use crate::builtins;
 use crate::diagnostics::{self, SourceDiagnostic};
 use crate::json::JsonValue as Value;
-use crate::module::CompiledModuleGraph;
+use crate::module::{CompiledModuleGraph, ModuleBindings};
 use crate::pattern::MatchKind;
 use crate::resolver::Resolver;
-use crate::runtime::{InputMode, Runtime};
+use crate::resolver::graph::ModuleMember;
+use crate::runtime::{
+    DeclarationMetadata, InputMode, RuleExecution, Runtime, RuntimeDiagnostic, RuntimeError,
+    runtime_input,
+};
+use crate::value::Value as RuntimeValue;
 use std::collections::HashMap;
 use std::fmt;
 use std::rc::Rc;
+use uffda_heap::{Arena, Collect, Rootable};
 use url::Url;
+
+/// Warm module bindings keyed by language module URL. Ephemeral match state lives
+/// only in [`LanguageSession::execution`] so it can be dropped after serialize.
+#[derive(Collect)]
+#[collect(no_drop)]
+struct WarmGraph<'gc> {
+    #[collect(require_static)]
+    graph: Rc<CompiledModuleGraph>,
+    bindings: ModuleBindings<'gc>,
+}
+
+#[derive(Collect)]
+#[collect(no_drop)]
+struct WarmEntry<'gc> {
+    #[collect(require_static)]
+    url: Url,
+    graph: WarmGraph<'gc>,
+}
+
+#[derive(Collect)]
+#[collect(no_drop)]
+struct LanguageSession<'gc> {
+    warm: Vec<WarmEntry<'gc>>,
+    execution: Option<RuleExecution<'gc>>,
+    #[collect(require_static)]
+    active: Option<Url>,
+    #[collect(require_static)]
+    active_graph: Option<Rc<CompiledModuleGraph>>,
+}
+
+impl<'gc> LanguageSession<'gc> {
+    fn new() -> Self {
+        Self {
+            warm: Vec::new(),
+            execution: None,
+            active: None,
+            active_graph: None,
+        }
+    }
+
+    fn take_warm(&mut self, url: &Url) -> Option<WarmGraph<'gc>> {
+        self.warm
+            .iter()
+            .position(|entry| entry.url == *url)
+            .map(|index| self.warm.swap_remove(index).graph)
+    }
+
+    fn reclaim(&mut self) {
+        let Some(mut execution) = self.execution.take() else {
+            self.active = None;
+            self.active_graph = None;
+            return;
+        };
+        let url = self.active.take();
+        let graph = self.active_graph.take();
+        let bindings = execution.take_bindings_after_run();
+        if let (Some(url), Some(graph), Some(bindings)) = (url, graph, bindings) {
+            self.warm.push(WarmEntry {
+                url,
+                graph: WarmGraph { graph, bindings },
+            });
+        }
+    }
+
+    fn invalidate(&mut self, url: &Url) {
+        self.warm.retain(|entry| entry.url != *url);
+        if self.active.as_ref() == Some(url) {
+            self.reclaim();
+        }
+    }
+}
+
+/// Process-long GC heap for language parse/compile runs.
+struct LanguageHeap {
+    arena: Arena<Rootable![LanguageSession<'_>]>,
+}
+
+impl LanguageHeap {
+    fn new() -> Self {
+        Self {
+            arena: Arena::new(|_mc| LanguageSession::new()),
+        }
+    }
+
+    fn invalidate(&mut self, url: &Url) {
+        self.arena.mutate_root(|_, session| session.invalidate(url));
+        self.arena.finish_cycle();
+    }
+
+    fn run_member(
+        &mut self,
+        cache_url: &Url,
+        graph: Rc<CompiledModuleGraph>,
+        member: &ModuleMember,
+        input: Value,
+        mode: InputMode,
+    ) -> Result<MemberRun, RuntimeError> {
+        self.arena.mutate_root(|mc, session| {
+            session.reclaim();
+            let warm = match session.take_warm(cache_url) {
+                Some(warm) if Rc::ptr_eq(&warm.graph, &graph) => warm,
+                _ => WarmGraph {
+                    graph: Rc::clone(&graph),
+                    bindings: ModuleBindings::with_environment(mc, &graph, None)
+                        .map_err(RuntimeError::Module)?,
+                },
+            };
+            let items = runtime_input(mc, input, mode)?;
+            let execution = RuleExecution::for_member_with_bindings(
+                mc,
+                Rc::clone(&warm.graph),
+                warm.bindings,
+                member,
+                items,
+            )?;
+            session.active = Some(cache_url.clone());
+            session.active_graph = Some(warm.graph);
+            session.execution = Some(execution);
+            Ok::<(), RuntimeError>(())
+        })?;
+
+        self.run_until_complete()?;
+
+        let diagnostics = self.diagnostics_with(|declaration| {
+            let RuntimeValue::Object(metadata) = declaration.metadata.raw() else {
+                return None;
+            };
+            let RuntimeValue::Object(documentation) = metadata.borrow().get("Documentation")?.raw()
+            else {
+                return None;
+            };
+            let RuntimeValue::String(error) = documentation.borrow().get("error")?.raw() else {
+                return None;
+            };
+            error.to_utf8().ok()
+        });
+
+        let failed = self.arena.mutate(|_, session| {
+            session
+                .execution
+                .as_ref()
+                .and_then(|execution| execution.result())
+                .is_some_and(|result| result.kind == MatchKind::Fail)
+        });
+        if failed {
+            self.reclaim_and_collect();
+            return Ok(MemberRun {
+                value: None,
+                metadata: None,
+                diagnostics,
+                failed: true,
+            });
+        }
+
+        let value = self.serialize_result()?;
+        let metadata = self.serialize_metadata(member)?;
+        self.reclaim_and_collect();
+        Ok(MemberRun {
+            value,
+            metadata,
+            diagnostics,
+            failed: false,
+        })
+    }
+
+    fn run_until_complete(&mut self) -> Result<(), RuntimeError> {
+        const STEPS_PER_MUTATION: usize = 512;
+        loop {
+            let (status, _) = self.arena.mutate_root(|mc, session| {
+                let execution = session
+                    .execution
+                    .as_mut()
+                    .ok_or(RuntimeError::InvalidState)?;
+                execution.run_batch(mc, STEPS_PER_MUTATION)
+            })?;
+            self.arena.collect_debt();
+            match status {
+                crate::evaluate::StepStatus::Complete => return Ok(()),
+                crate::evaluate::StepStatus::Yielded => {}
+                crate::evaluate::StepStatus::Suspended => {
+                    return Err(crate::evaluate::EvaluationError::HostPending.into());
+                }
+            }
+        }
+    }
+
+    fn serialize_result(&mut self) -> Result<Option<String>, RuntimeError> {
+        self.arena.mutate_root(|mc, session| {
+            session
+                .execution
+                .as_mut()
+                .ok_or(RuntimeError::InvalidState)?
+                .begin_serialize_result(mc)
+        })?;
+        self.run_until_complete()?;
+        self.arena.mutate(|_, session| {
+            session
+                .execution
+                .as_ref()
+                .ok_or(RuntimeError::InvalidState)?
+                .serialized_json()
+        })
+    }
+
+    fn serialize_metadata(
+        &mut self,
+        member: &ModuleMember,
+    ) -> Result<Option<String>, RuntimeError> {
+        self.arena.mutate_root(|mc, session| {
+            session
+                .execution
+                .as_mut()
+                .ok_or(RuntimeError::InvalidState)?
+                .begin_serialize_metadata(mc, member)
+        })?;
+        self.run_until_complete()?;
+        self.arena.mutate(|_, session| {
+            session
+                .execution
+                .as_ref()
+                .ok_or(RuntimeError::InvalidState)?
+                .serialized_json()
+        })
+    }
+
+    fn diagnostics_with(
+        &self,
+        explain: impl for<'gc> Fn(&DeclarationMetadata<'gc>) -> Option<String>,
+    ) -> Vec<RuntimeDiagnostic> {
+        self.arena.mutate(|_, session| {
+            session
+                .execution
+                .as_ref()
+                .map(|execution| execution.diagnostics_with(&explain))
+                .unwrap_or_default()
+        })
+    }
+
+    fn reclaim_and_collect(&mut self) {
+        self.arena.mutate_root(|_, session| session.reclaim());
+        self.arena.finish_cycle();
+    }
+
+    #[cfg(test)]
+    fn warm_binding_ptr(&self, url: &Url) -> Option<usize> {
+        self.arena.mutate(|_, session| {
+            session
+                .warm
+                .iter()
+                .find(|entry| entry.url == *url)
+                .and_then(|entry| {
+                    entry
+                        .graph
+                        .bindings
+                        .environment(url)
+                        .map(|env| env.identity())
+                })
+        })
+    }
+}
+
+struct MemberRun {
+    value: Option<String>,
+    metadata: Option<String>,
+    diagnostics: Vec<RuntimeDiagnostic>,
+    failed: bool,
+}
 
 #[derive(Clone, Debug)]
 pub struct ProjectLanguage {
@@ -79,6 +352,7 @@ pub struct Languages {
     resolver: Resolver,
     root: Url,
     programs: HashMap<Url, Rc<CompiledModuleGraph>>,
+    heap: LanguageHeap,
 }
 
 impl Languages {
@@ -103,6 +377,7 @@ impl Languages {
             resolver,
             root,
             programs: HashMap::new(),
+            heap: LanguageHeap::new(),
         })
     }
 
@@ -171,49 +446,38 @@ impl Languages {
             .export(url, Some(entry))
             .or_else(|| graph.resolve(url, entry))
             .ok_or_else(|| error("resolve", format!("Unknown rule {entry}")))?;
-        let mut runtime = Runtime::for_member(graph, &member, input, mode)
+        let run = self
+            .heap
+            .run_member(url, graph, &member, input, mode)
             .map_err(|failure| error("execute", failure.to_string()))?;
-        runtime
-            .run()
-            .map_err(|failure| error("execute", failure.to_string()))?;
-        let diagnostics = diagnostics::collect(
-            &runtime,
+        let diagnostics = diagnostics::map_runtime_diagnostics(
+            run.diagnostics,
             &source,
             "CLI_STREAM_PARSE_RECOVERED",
             "CLI_STREAM_PARSE_FAILURE",
             "parse",
         )
         .map_err(|failure| error("output", failure.to_string()))?;
-        runtime.read(|execution| {
-            let result = execution
-                .result()
-                .ok_or_else(|| error("execute", "Missing language match result".into()))?;
-            if result.kind == MatchKind::Fail {
-                return Err(LanguageError {
-                    phase: "match",
-                    module_url: url.to_string(),
-                    message: diagnostics
-                        .iter()
-                        .map(|diagnostic| diagnostic.message.as_str())
-                        .collect::<Vec<_>>()
-                        .join("\n"),
-                    diagnostics: diagnostics.clone(),
-                });
-            }
-            Ok(())
+        if run.failed {
+            return Err(LanguageError {
+                phase: "match",
+                module_url: url.to_string(),
+                message: diagnostics
+                    .iter()
+                    .map(|diagnostic| diagnostic.message.as_str())
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+                diagnostics,
+            });
+        }
+        let value = run.value.ok_or_else(|| {
+            error(
+                "output",
+                "Language rule did not produce an AST value".into(),
+            )
         })?;
-        let value = runtime
-            .serialize_result()
-            .map_err(|failure| error("output", failure.to_string()))?
-            .ok_or_else(|| {
-                error(
-                    "output",
-                    "Language rule did not produce an AST value".into(),
-                )
-            })?;
-        let metadata = runtime
-            .serialize_metadata(&member)
-            .map_err(|failure| error("output", failure.to_string()))?
+        let metadata = run
+            .metadata
             .ok_or_else(|| error("output", "Language rule has no metadata object".into()))?;
         let value = crate::json::from_str(&value)
             .map_err(|failure| error("output", failure.to_string()))?;
@@ -247,6 +511,7 @@ impl Languages {
                     )
                     .map_err(|failure| error("compile", failure.to_string()))?,
                 );
+                self.heap.invalidate(url);
                 self.programs.insert(url.clone(), Rc::clone(&graph));
                 graph
             }
@@ -638,7 +903,7 @@ fn scalar_data_ast(value: crate::value::Value<'_>) -> Result<serde_json::Value, 
                     value.to_utf8().map_err(|failure| failure.to_string())?,
                 )),
                 RuntimeValue::Array(array) => {
-                    let identity = gc_arena::Gc::as_ptr(array) as usize;
+                    let identity = uffda_heap::Gc::as_ptr(array) as usize;
                     if !active.insert(identity) {
                         return Err("Cyclic data AST".into());
                     }
@@ -647,7 +912,7 @@ fn scalar_data_ast(value: crate::value::Value<'_>) -> Result<serde_json::Value, 
                     pending.extend(array.iter().rev().copied().map(Work::Visit));
                 }
                 RuntimeValue::Object(object) => {
-                    let identity = gc_arena::Gc::as_ptr(object) as usize;
+                    let identity = uffda_heap::Gc::as_ptr(object) as usize;
                     if !active.insert(identity) {
                         return Err("Cyclic data AST".into());
                     }
@@ -705,7 +970,7 @@ mod tests {
         };
         let document = crate::codec::data::DataDocument::from_ast(ast, limits).unwrap();
         assert_eq!(document.encode(false, limits).unwrap(), source);
-        gc_arena::arena::rootless_mutate(|mc| {
+        uffda_heap::rootless_mutate(|mc| {
             let non_scalar = crate::value::Value::string(
                 mc,
                 crate::text::RuntimeString::from_utf16(vec![0xd800]),
@@ -852,5 +1117,35 @@ rule Custom = MissingBodyRule;"#;
                 .message
                 .contains("same id or extension")
         );
+    }
+
+    #[test]
+    // req:runtime-memory-005
+    fn language_heap_reuses_warm_module_bindings_across_parses() {
+        let mut languages = Languages::new().unwrap();
+        let source = "export Main; rule Main = any;";
+        let first = languages.parse(source, Language::Uffda).unwrap();
+        let url = languages
+            .root
+            .join("src/lang/uffda/uffda.lang.uff")
+            .unwrap();
+        let first_id = languages
+            .heap
+            .warm_binding_ptr(&url)
+            .expect("warm bindings after first parse");
+        let _ = languages.compile(first).unwrap();
+        let after_compile = languages
+            .heap
+            .warm_binding_ptr(&url)
+            .expect("warm bindings after compile");
+        // compile uses a different module URL (runtime.compiler); uffda.lang stays warm.
+        assert_eq!(first_id, after_compile);
+        let second = languages.parse(source, Language::Uffda).unwrap();
+        let second_id = languages
+            .heap
+            .warm_binding_ptr(&url)
+            .expect("warm bindings after second parse");
+        assert_eq!(first_id, second_id);
+        let _ = languages.compile(second).unwrap();
     }
 }

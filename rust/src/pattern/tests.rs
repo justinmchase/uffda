@@ -1,6 +1,6 @@
 use super::*;
-use gc_arena::{Arena, Rootable};
 use serde_json::json;
+use uffda_heap::{Arena, Rootable};
 
 #[test]
 // req:runtime-strings-002
@@ -36,6 +36,30 @@ fn literal(value: serde_json::Value) -> Pattern {
 }
 
 #[test]
+// req:runtime-memory-005
+fn match_children_keeps_zero_one_and_two_inline() {
+    uffda_heap::rootless_mutate(|mc| {
+        let environment = Environment::new(mc, None, vec![]);
+        let mut leaf =
+            PatternExecution::new(mc, Pattern::Any, vec![Value::Number(1.0)], environment);
+        while !leaf.step(mc).unwrap() {}
+        let leaf = leaf.result().unwrap();
+        assert!(matches!(MatchChildren::empty(), MatchChildren::Empty));
+        assert!(matches!(MatchChildren::one(leaf), MatchChildren::One(_)));
+        assert!(matches!(
+            MatchChildren::two(leaf, leaf),
+            MatchChildren::Two(_)
+        ));
+        assert!(matches!(
+            MatchChildren::from(vec![leaf, leaf, leaf]),
+            MatchChildren::Many(_)
+        ));
+        assert_eq!(MatchChildren::two(leaf, leaf).len(), 2);
+        assert_eq!(MatchChildren::from(Vec::new()).len(), 0);
+    });
+}
+
+#[test]
 // req:incremental-parsing-004 req:runtime-memory-005 req:runtime-core-009
 fn rebasing_a_deep_shared_match_graph_is_iterative_and_preserves_the_prior_graph() {
     type Root<'gc> = (Gc<'gc, PatternMatch<'gc>>, Gc<'gc, PatternMatch<'gc>>);
@@ -49,7 +73,7 @@ fn rebasing_a_deep_shared_match_graph_is_iterative_and_preserves_the_prior_graph
         for _ in 0..20_000 {
             old = PatternMatch::boundary(mc, PatternKind::Any, old, environment, old.value);
         }
-        let mut shared = old.children.clone();
+        let mut shared = old.children.to_vec();
         shared.push(old.children[0]);
         let old = Gc::new(
             mc,
@@ -65,7 +89,7 @@ fn rebasing_a_deep_shared_match_graph_is_iterative_and_preserves_the_prior_graph
                 recovered: old.recovered,
                 recovery: old.recovery,
                 rule: old.rule,
-                children: shared,
+                children: shared.into(),
                 provenance: old.provenance.clone(),
                 pattern_index: old.pattern_index,
                 pattern_kind: old.pattern_kind,
@@ -193,7 +217,7 @@ fn pattern_cancellation_releases_suspended_projection_argument_cycle() {
     let mut arena = Arena::<
         Rootable![(
             PatternExecution<'_>,
-            gc_arena::GcWeak<'_, RefLock<crate::value::ObjectProperties<'_>>>
+            uffda_heap::GcWeak<'_, RefLock<crate::value::ObjectProperties<'_>>>
         )],
     >::new(|mc| {
         let argument = Value::object(mc, vec![]);
@@ -341,7 +365,7 @@ fn finish<'gc>(mc: &Mutation<'gc>, execution: &mut PatternExecution<'gc>) {
 #[test]
 // req:resolve-001 req:runtime-memory-005
 fn resolve_suspends_and_resumes_with_host_match_and_argument_patterns() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let environment = Environment::new(mc, None, vec![]);
         let pattern = Pattern::Resolve {
             target_kind: ResolveTargetKind::Reference,
@@ -397,7 +421,7 @@ fn resolve_suspends_and_resumes_with_host_match_and_argument_patterns() {
 #[test]
 // req:projection-001 req:pipeline-001 req:runtime-memory-005
 fn projection_and_pipeline_await_expression_and_child_execution() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let environment = Environment::new(mc, None, vec![]);
         let projection: Pattern = serde_json::from_value(json!({
             "kind": "projection",
@@ -447,7 +471,7 @@ fn projection_and_pipeline_await_expression_and_child_execution() {
 #[test]
 // req:projection-001 req:resolve-001 req:runtime-memory-005
 fn projection_forwards_nested_lambda_resolve_requests() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let environment = Environment::new(mc, None, vec![]);
         let pattern: Pattern = serde_json::from_value(json!({
             "kind": "projection",
@@ -660,7 +684,7 @@ fn into_drains_an_object_with_a_symbol_iterator_protocol() {
 #[test]
 // req:error-recovery-001 req:error-recovery-006
 fn resolve_wrappers_preserve_recovery_and_seeded_failure_state() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let environment = Environment::new(mc, None, vec![]);
         let recovery = RecoveryContext::new(mc).enable();
         let mut recovered = PatternExecution::new_with_recovery(
@@ -718,7 +742,7 @@ fn terminals_consume_one_item_only_on_success_and_end_is_zero_width() {
 #[test]
 // req:equal-001 req:equal-003
 fn missing_literal_payload_is_undefined_and_null_remains_distinct() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let environment = Environment::new(mc, None, vec![]);
         for (source, input, expected) in [
             (
@@ -824,7 +848,7 @@ fn retained_diagnostics_keep_exact_nested_input_and_authored_expectations() {
 #[test]
 // req:error-recovery-001 req:error-recovery-006 req:end-001
 fn diagnostic_recovery_provenance_distinguishes_synthetic_wrappers_and_eof() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let environment = Environment::new(mc, None, vec![]);
         let mut execution = PatternExecution::new_with_recovery(
             mc,
@@ -857,7 +881,7 @@ fn diagnostic_recovery_provenance_distinguishes_synthetic_wrappers_and_eof() {
 #[test]
 // req:indirect-left-recursion-003 req:error-recovery-006
 fn growth_rejects_every_successful_final_attempt_and_seed_flag_can_be_replayed() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let environment = Environment::new(mc, None, vec![]);
         let mut seed_execution =
             PatternExecution::new(mc, Pattern::Any, vec![Value::Number(1.0)], environment);
@@ -884,7 +908,7 @@ fn growth_rejects_every_successful_final_attempt_and_seed_flag_can_be_replayed()
 #[test]
 // req:between-001 req:equal-006 req:runtime-memory-005
 fn between_checks_bounds_before_input_and_preserves_errors_and_provenance() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let environment = Environment::new(mc, None, vec![("minimum".into(), Value::Number(40.0))]);
         let carried = Value::Number(42.0).wrap(mc, Origin { start: 10, end: 11 });
         let mut execution = PatternExecution::new(
@@ -967,7 +991,7 @@ fn between_nan_and_incomparable_values_fail_without_consumption() {
         (MatchKind::Fail, 0)
     );
     assert_eq!(run(pattern(), vec![f64::INFINITY]), (MatchKind::Ok, 1));
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         for value in [
             Value::Boolean(true),
             Value::array(mc, vec![]),
@@ -989,7 +1013,7 @@ fn between_nan_and_incomparable_values_fail_without_consumption() {
 #[test]
 // req:and-001
 fn conjunctions_reuse_position_forward_final_outcome_and_rollback_failures() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let environment = Environment::new(mc, None, vec![]);
         let pattern = Pattern::And {
             patterns: vec![
@@ -1075,7 +1099,7 @@ fn conjunctions_reuse_position_forward_final_outcome_and_rollback_failures() {
 #[test]
 // req:cli-match-001
 fn rightmost_failure_reports_furthest_node_without_changing_rollback() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let pattern = Pattern::Then {
             patterns: vec![Pattern::Any, literal(json!(99))],
         };
@@ -1102,7 +1126,7 @@ fn rightmost_failure_reports_furthest_node_without_changing_rollback() {
 #[test]
 // req:over-001 req:over-002 req:runtime-memory-005
 fn over_matches_object_fields_and_rest_captures_in_entry_order() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let environment = Environment::new(mc, None, vec![]);
         let pattern: Pattern = serde_json::from_value(json!({
             "kind": "over",
@@ -1178,7 +1202,7 @@ fn over_matches_object_fields_and_rest_captures_in_entry_order() {
 #[test]
 // req:switch-001 req:switch-002 req:switch-003
 fn switch_commits_to_first_matching_key_and_uses_default_only_without_a_match() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let environment = Environment::new(mc, None, vec![]);
         let pattern: Pattern = serde_json::from_value(json!({
             "kind": "switch",
@@ -1237,7 +1261,7 @@ fn switch_commits_to_first_matching_key_and_uses_default_only_without_a_match() 
 #[test]
 // req:character-001
 fn character_matches_unicode_category_and_reports_invalid_input() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let environment = Environment::new(mc, None, vec![]);
         let pattern: Pattern = serde_json::from_value(json!({
             "kind": "character",
@@ -1278,7 +1302,7 @@ fn character_matches_unicode_category_and_reports_invalid_input() {
 #[test]
 // req:regexp-001
 fn regexp_uses_ecmascript_pattern_syntax_on_a_string_item() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let environment = Environment::new(mc, None, vec![]);
         let pattern: Pattern = serde_json::from_value(json!({
             "kind": "regexp",
@@ -1420,7 +1444,7 @@ fn into_requires_entire_nested_unicode_stream_and_consumes_one_outer_item() {
 #[test]
 // req:equal-006 req:variable-001 req:into-001
 fn contextual_sources_and_pattern_errors_are_explicit() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let environment = Environment::new(mc, None, vec![("x".into(), Value::Undefined)]);
         let mut execution = PatternExecution::new(
             mc,
@@ -1683,7 +1707,7 @@ fn shared_extra_pattern_fixtures_match_typescript_with_gc_between_every_frame() 
 #[test]
 // req:includes-001 req:equal-002 req:equal-006
 fn includes_uses_same_value_zero_and_resolves_all_operands_before_comparing() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let environment = Environment::new(mc, None, vec![("nan".into(), Value::Number(f64::NAN))]);
         let mut execution = PatternExecution::new(
             mc,
@@ -1774,7 +1798,7 @@ fn open_repetition_records_end_attempt_and_closed_input_does_not() {
 #[test]
 // req:quantifier-001
 fn invalid_bounds_fail_before_any_child_evaluation() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         for value in [json!(-1), json!(1.5), json!("1"), json!(null)] {
             let mut execution = PatternExecution::new(
                 mc,

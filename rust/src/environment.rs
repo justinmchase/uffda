@@ -1,5 +1,6 @@
 use crate::value::Value;
-use gc_arena::{Collect, Gc, Mutation, RefLock};
+use std::rc::Rc;
+use uffda_heap::{Collect, Gc, Mutation, RefLock};
 
 #[derive(Clone, Copy, Collect)]
 #[collect(no_drop)]
@@ -20,9 +21,10 @@ impl<'gc> EnvironmentBuilder<'gc> {
     pub fn define(
         &mut self,
         mc: &Mutation<'gc>,
-        name: String,
+        name: impl Into<Rc<str>>,
         value: Value<'gc>,
     ) -> Result<(), String> {
+        let name = name.into();
         let mut bindings = self.environment.0.borrow_mut(mc);
         if bindings.values.iter().any(|(key, _)| *key == name) {
             return Err(format!("duplicate environment binding: {name}"));
@@ -41,7 +43,7 @@ impl<'gc> EnvironmentBuilder<'gc> {
 #[collect(no_drop)]
 struct Bindings<'gc> {
     parent: Option<Environment<'gc>>,
-    values: Vec<(String, Value<'gc>)>,
+    values: Vec<(Rc<str>, Value<'gc>)>,
 }
 
 impl<'gc> Environment<'gc> {
@@ -51,20 +53,19 @@ impl<'gc> Environment<'gc> {
     }
 
     pub fn is_descendant_of(self, ancestor: Self) -> bool {
-        let mut current = Some(self);
-        while let Some(environment) = current {
-            if Gc::ptr_eq(environment.0, ancestor.0) {
-                return true;
-            }
-            current = environment.0.borrow().parent;
-        }
-        false
+        self.ancestors()
+            .any(|environment| Gc::ptr_eq(environment.0, ancestor.0))
+    }
+
+    /// This environment followed by each enclosing parent.
+    pub fn ancestors(self) -> impl Iterator<Item = Self> {
+        std::iter::successors(Some(self), |environment| environment.0.borrow().parent)
     }
 
     pub fn new(
         mc: &Mutation<'gc>,
         parent: Option<Self>,
-        values: Vec<(String, Value<'gc>)>,
+        values: Vec<(Rc<str>, Value<'gc>)>,
     ) -> Self {
         Self(Gc::new(mc, RefLock::new(Bindings { parent, values })))
     }
@@ -79,7 +80,12 @@ impl<'gc> Environment<'gc> {
         let mut current = Some(self);
         while let Some(environment) = current {
             let bindings = environment.0.borrow();
-            if let Some((_, value)) = bindings.values.iter().rev().find(|(key, _)| key == name) {
+            if let Some((_, value)) = bindings
+                .values
+                .iter()
+                .rev()
+                .find(|(key, _)| key.as_ref() == name)
+            {
                 return Some(*value);
             }
             current = bindings.parent;
@@ -91,7 +97,7 @@ impl<'gc> Environment<'gc> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use gc_arena::arena::rootless_mutate;
+    use uffda_heap::rootless_mutate;
 
     #[test]
     // req:runtime-memory-004
@@ -100,7 +106,7 @@ mod tests {
             let mut builder = Environment::builder(mc, None);
             let captured = builder.environment();
             let identity = captured.identity();
-            builder.define(mc, "value".into(), Value::Null).unwrap();
+            builder.define(mc, "value", Value::Null).unwrap();
             assert_eq!(captured.identity(), identity);
             assert_eq!(builder.finish().identity(), identity);
             assert_ne!(Environment::new(mc, None, vec![]).identity(), identity);
@@ -114,15 +120,16 @@ mod tests {
     #[test]
     // req:runtime-memory-004
     fn ancestry_traverses_deep_rooted_scopes_without_recursion() {
-        let mut arena =
-            gc_arena::Arena::<gc_arena::Rootable![(Environment<'_>, Environment<'_>)]>::new(|mc| {
-                let root = Environment::new(mc, None, vec![]);
-                let mut child = root;
-                for _ in 0..10_000 {
-                    child = Environment::new(mc, Some(child), vec![]);
-                }
-                (root, child)
-            });
+        let mut arena = uffda_heap::Arena::<
+            uffda_heap::Rootable![(Environment<'_>, Environment<'_>)],
+        >::new(|mc| {
+            let root = Environment::new(mc, None, vec![]);
+            let mut child = root;
+            for _ in 0..10_000 {
+                child = Environment::new(mc, Some(child), vec![]);
+            }
+            (root, child)
+        });
         arena.finish_cycle();
         arena.mutate(|mc, (root, child)| {
             assert!(child.is_descendant_of(*root));
@@ -153,9 +160,9 @@ mod tests {
                     value: 42.0,
                 })
                 .bind(mc, captured, origin, crate::pattern::Pattern::End);
-            builder.define(mc, "caller".into(), caller).unwrap();
-            builder.define(mc, "callee".into(), callee).unwrap();
-            assert!(builder.define(mc, "callee".into(), Value::Null).is_err());
+            builder.define(mc, "caller", caller).unwrap();
+            builder.define(mc, "callee", callee).unwrap();
+            assert!(builder.define(mc, "callee", Value::Null).is_err());
             let sealed = builder.finish();
             let mut execution = crate::evaluate::ExpressionExecution::call(
                 mc,

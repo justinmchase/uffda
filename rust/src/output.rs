@@ -1,8 +1,8 @@
 use crate::text::RuntimeString;
 use crate::value::Value;
-use gc_arena::Gc;
 use std::collections::HashSet;
 use std::fmt;
+use uffda_heap::Gc;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum OutputError {
@@ -401,7 +401,7 @@ pub fn operation_output(value: Value<'_>, json: bool) -> Result<String, OutputEr
 #[cfg(test)]
 mod tests {
     use super::*;
-    use gc_arena::arena::rootless_mutate;
+    use uffda_heap::rootless_mutate;
 
     #[test]
     // req:cli-exec-002 req:data-codec-003 req:runtime-strings-002
@@ -654,7 +654,7 @@ mod tests {
     // req:cli-exec-002
     fn non_expression_values_and_symbol_keys_fail_without_conversion() {
         use crate::globals::IterableState;
-        use gc_arena::RefLock;
+        use uffda_heap::RefLock;
         rootless_mutate(|mc| {
             let array = match Value::array(mc, vec![]) {
                 Value::Array(array) => array,
@@ -884,7 +884,7 @@ mod tests {
 #[test]
 // req:runtime-core-014
 fn external_source_output_never_pulls_input_or_serializes_pending_work() {
-    gc_arena::arena::rootless_mutate(|mc| {
+    uffda_heap::rootless_mutate(|mc| {
         let source = crate::runtime::input::InputSource::new(
             mc,
             crate::runtime::input::Source {

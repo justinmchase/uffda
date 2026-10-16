@@ -15,12 +15,12 @@ use crate::pattern::{
 };
 use crate::resolver::graph::{MemberKind, ModuleMember};
 use crate::value::{HostCallable, Value};
-use gc_arena::{Arena, Collect, DynamicRootSet, Gc, Mutation, RefLock, Rootable};
 use input::{InputIdentity, InputPosition, RecoveryContext};
 use std::collections::HashMap;
 use std::fmt;
 use std::future::Future;
 use std::rc::Rc;
+use uffda_heap::{Arena, Collect, DynamicRootSet, Gc, Mutation, RefLock, Rootable};
 use url::Url;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -136,7 +136,7 @@ struct Context {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 enum TargetKey {
-    Declared(String, usize, Vec<usize>),
+    Declared(ModuleMember, Vec<usize>),
     Inline((usize, usize), usize, usize),
 }
 
@@ -161,6 +161,57 @@ impl<'gc> Target<'gc> {
         match self {
             Self::Declared { context, .. } | Self::Inline { context, .. } => *context,
         }
+    }
+}
+
+/// Non-rule declarations indexed by the closure environment and pattern program
+/// that identify requests made from inside them. Values are declaration indexes;
+/// the lowest matching index owns a request.
+#[derive(Default)]
+struct ContextOwners {
+    environments: HashMap<usize, usize>,
+    patterns: HashMap<usize, usize>,
+}
+
+impl ContextOwners {
+    fn new<'gc>(
+        graph: &CompiledModuleGraph,
+        bindings: &ModuleBindings<'gc>,
+        declarations: &[Gc<'gc, DeclarationMetadata<'gc>>],
+    ) -> Result<Self, RuntimeError> {
+        let mut owners = Self::default();
+        for (index, declaration) in declarations.iter().enumerate() {
+            if declaration.member.kind == MemberKind::Rule {
+                continue;
+            }
+            if let Some(Value::Lambda(closure)) = bindings.callable(&declaration.member) {
+                let module_environment = bindings
+                    .environment(&declaration.member.module_url)
+                    .ok_or(RuntimeError::InvalidState)?;
+                if closure.environment.identity() != module_environment.identity() {
+                    owners
+                        .environments
+                        .entry(closure.environment.identity())
+                        .or_insert(index);
+                }
+            }
+            let compiled = graph
+                .declaration(&declaration.member)
+                .ok_or(RuntimeError::InvalidState)?;
+            owners
+                .patterns
+                .entry(Rc::as_ptr(&compiled.pattern) as usize)
+                .or_insert(index);
+        }
+        Ok(owners)
+    }
+
+    fn owner(&self, environment: Environment<'_>, program_identity: usize) -> Option<usize> {
+        environment
+            .ancestors()
+            .filter_map(|ancestor| self.environments.get(&ancestor.identity()).copied())
+            .chain(self.patterns.get(&program_identity).copied())
+            .min()
     }
 }
 
@@ -411,6 +462,8 @@ pub struct RuleExecution<'gc> {
     memo_hits: usize,
     body_attempts: usize,
     declarations: Vec<Gc<'gc, DeclarationMetadata<'gc>>>,
+    #[collect(require_static)]
+    context_owners: ContextOwners,
     initialization: Option<Initialization<'gc>>,
     entry: Entry<'gc>,
     serialized: Option<Value<'gc>>,
@@ -458,6 +511,7 @@ impl<'gc> RuleExecution<'gc> {
             memo_hits: 0,
             body_attempts: 0,
             declarations: vec![],
+            context_owners: ContextOwners::default(),
             initialization: None,
             entry: Entry {
                 context,
@@ -511,6 +565,19 @@ impl<'gc> RuleExecution<'gc> {
         member: &ModuleMember,
         input: Vec<Value<'gc>>,
     ) -> Result<Self, RuntimeError> {
+        let bindings =
+            ModuleBindings::with_environment(mc, &graph, None).map_err(RuntimeError::Module)?;
+        Self::for_member_with_bindings(mc, graph, bindings, member, input)
+    }
+
+    /// Builds a rule invocation that reuses already-materialized module bindings.
+    pub fn for_member_with_bindings(
+        mc: &Mutation<'gc>,
+        graph: Rc<CompiledModuleGraph>,
+        bindings: ModuleBindings<'gc>,
+        member: &ModuleMember,
+        input: Vec<Value<'gc>>,
+    ) -> Result<Self, RuntimeError> {
         let declaration = graph
             .declaration(member)
             .ok_or(RuntimeError::InvalidState)?;
@@ -518,9 +585,17 @@ impl<'gc> RuleExecution<'gc> {
             return Err(RuntimeError::NotRule(declaration.name.clone()));
         }
         let name = declaration.name.clone();
-        let mut execution = Self::build(mc, graph, &member.module_url, None, input.clone(), true)?;
+        let mut execution = Self::build_with_bindings(
+            mc,
+            graph,
+            bindings,
+            &member.module_url,
+            None,
+            input.clone(),
+            true,
+        )?;
         execution.entry.target_kind = ResolveTargetKind::Reference;
-        execution.entry.export = Some(name.clone());
+        execution.entry.export.replace(name.clone());
         execution.frames[0].execution = Execution::Pattern(PatternExecution::new_with_recovery(
             mc,
             Pattern::Resolve {
@@ -534,6 +609,24 @@ impl<'gc> RuleExecution<'gc> {
             execution.entry.recovery,
         ));
         Ok(execution)
+    }
+
+    /// Returns the warm module bindings after clearing match/memo state so the
+    /// match tree can be collected while bindings stay rooted elsewhere.
+    pub fn take_bindings_after_run(&mut self) -> Option<ModuleBindings<'gc>> {
+        self.frames.clear();
+        self.active_marks.clear();
+        self.memos.clear();
+        self.memo_keys.clear();
+        self.targets.clear();
+        self.target_keys.clear();
+        self.result = None;
+        self.serialized = None;
+        self.error = None;
+        self.error_context = None;
+        self.initialization = None;
+        self.declarations.clear();
+        self.bindings.take()
     }
 
     fn build(
@@ -556,6 +649,20 @@ impl<'gc> RuleExecution<'gc> {
         metadata_only: bool,
         parent: Option<Environment<'gc>>,
     ) -> Result<Self, RuntimeError> {
+        let bindings =
+            ModuleBindings::with_environment(mc, &graph, parent).map_err(RuntimeError::Module)?;
+        Self::build_with_bindings(mc, graph, bindings, module, export, input, metadata_only)
+    }
+
+    fn build_with_bindings(
+        mc: &Mutation<'gc>,
+        graph: Rc<CompiledModuleGraph>,
+        bindings: ModuleBindings<'gc>,
+        module: &Url,
+        export: Option<&str>,
+        input: Vec<Value<'gc>>,
+        metadata_only: bool,
+    ) -> Result<Self, RuntimeError> {
         if !metadata_only {
             let member = graph
                 .export(module, export)
@@ -564,8 +671,6 @@ impl<'gc> RuleExecution<'gc> {
                 return Err(RuntimeError::NotRule(export.unwrap_or("default").into()));
             }
         }
-        let bindings =
-            ModuleBindings::with_environment(mc, &graph, parent).map_err(RuntimeError::Module)?;
         let environment = bindings
             .environment(module)
             .ok_or(RuntimeError::InvalidState)?;
@@ -611,6 +716,7 @@ impl<'gc> RuleExecution<'gc> {
                 ))
             })
             .collect::<Result<Vec<_>, RuntimeError>>()?;
+        let context_owners = ContextOwners::new(&graph, &bindings, &declarations)?;
         let recovery = RecoveryContext::new(mc);
         let retained_input = input.clone();
         let execution = if metadata_only {
@@ -649,6 +755,7 @@ impl<'gc> RuleExecution<'gc> {
             error_context: None,
             memo_hits: 0,
             body_attempts: 0,
+            context_owners,
             declarations,
             initialization: Some(Initialization {
                 declaration: 0,
@@ -844,11 +951,7 @@ impl<'gc> RuleExecution<'gc> {
                 let (Some(rule), Some(arguments)) = (node.rule, node.rule_arguments()) else {
                     return false;
                 };
-                let key = TargetKey::Declared(
-                    rule.member.module_url.to_string(),
-                    rule.member.declaration_index,
-                    arguments.to_vec(),
-                );
+                let key = TargetKey::Declared(rule.member.clone(), arguments.to_vec());
                 let Some(target) = self.target_keys.get(&key).copied() else {
                     return false;
                 };
@@ -1341,7 +1444,7 @@ impl<'gc> RuleExecution<'gc> {
         }
     }
 
-    fn run_batch(
+    pub(crate) fn run_batch(
         &mut self,
         mc: &Mutation<'gc>,
         limit: usize,
@@ -1490,45 +1593,17 @@ impl<'gc> RuleExecution<'gc> {
         mc: &Mutation<'gc>,
         request: &PatternRequest<'gc>,
     ) -> Result<Gc<'gc, Context>, RuntimeError> {
-        for declaration in &self.declarations {
-            if declaration.member.kind == MemberKind::Rule {
-                continue;
-            }
-            let lexical_function = match self
-                .bindings
-                .as_ref()
-                .ok_or(RuntimeError::InvalidState)?
-                .callable(&declaration.member)
-            {
-                Some(Value::Lambda(closure)) => {
-                    let module_environment = self
-                        .bindings
-                        .as_ref()
-                        .ok_or(RuntimeError::InvalidState)?
-                        .environment(&declaration.member.module_url)
-                        .ok_or(RuntimeError::InvalidState)?;
-                    closure.environment.identity() != module_environment.identity()
-                        && request.environment.is_descendant_of(closure.environment)
-                }
-                _ => false,
-            };
-            let compiled = self
-                .graph
-                .as_ref()
-                .ok_or(RuntimeError::InvalidState)?
-                .declaration(&declaration.member)
-                .ok_or(RuntimeError::InvalidState)?;
-            if lexical_function
-                || Rc::as_ptr(&compiled.pattern) as usize == request.program_identity()
-            {
-                return Ok(Gc::new(
-                    mc,
-                    Context {
-                        module: declaration.member.module_url.clone(),
-                        arguments: vec![],
-                    },
-                ));
-            }
+        if let Some(owner) = self
+            .context_owners
+            .owner(request.environment, request.program_identity())
+        {
+            return Ok(Gc::new(
+                mc,
+                Context {
+                    module: self.declarations[owner].member.module_url.clone(),
+                    arguments: vec![],
+                },
+            ));
         }
         let frame = self.frames.last().ok_or(RuntimeError::InvalidState)?;
         if request
@@ -1622,11 +1697,7 @@ impl<'gc> RuleExecution<'gc> {
             .ok_or(RuntimeError::InvalidState)?
             .declaration(&member)
             .ok_or(RuntimeError::InvalidState)?;
-        let key = TargetKey::Declared(
-            member.module_url.to_string(),
-            member.declaration_index,
-            arguments.clone(),
-        );
+        let key = TargetKey::Declared(member.clone(), arguments.clone());
         if let Some(target) = self.target_keys.get(&key) {
             return Ok(*target);
         }
@@ -1978,13 +2049,14 @@ impl<'gc> RuleExecution<'gc> {
             MemoState::Complete(outcome) | MemoState::Growing(outcome) => {
                 let mut outcome = *outcome;
                 let growing = matches!(self.memos[memo].state, MemoState::Growing(_));
-                let dependencies = if growing {
-                    self.memos[memo].seed_dependencies.clone()
+                let dependency_count = if growing {
+                    self.memos[memo].seed_dependencies.len()
                 } else {
-                    self.memos[memo].dependencies.clone()
+                    self.memos[memo].dependencies.len()
                 };
                 if !growing {
-                    let seeded = dependencies.iter().any(|dependency| {
+                    let seeded = (0..dependency_count).any(|index| {
+                        let dependency = self.memos[memo].dependencies[index];
                         matches!(
                             self.memos[dependency.memo].state,
                             MemoState::Growing(seed) if seed.kind == MatchKind::Fail
@@ -2000,7 +2072,12 @@ impl<'gc> RuleExecution<'gc> {
                         version: self.memos[memo].version,
                     });
                 }
-                for dependency in dependencies {
+                for index in 0..dependency_count {
+                    let dependency = if growing {
+                        self.memos[memo].seed_dependencies[index]
+                    } else {
+                        self.memos[memo].dependencies[index]
+                    };
                     self.observe(dependency);
                 }
                 self.memo_hits += 1;
@@ -2681,7 +2758,12 @@ impl Runtime {
                     None,
                     callables
                         .into_iter()
-                        .map(|callable| (callable.name.clone(), Value::host(mc, callable)))
+                        .map(|callable| {
+                            (
+                                Rc::<str>::from(callable.name.clone()),
+                                Value::host(mc, callable),
+                            )
+                        })
                         .collect(),
                 );
                 let source = input::InputSource::new(mc, source);
@@ -2753,7 +2835,12 @@ impl Runtime {
                     None,
                     callables
                         .into_iter()
-                        .map(|callable| (callable.name.clone(), Value::host(mc, callable)))
+                        .map(|callable| {
+                            (
+                                Rc::<str>::from(callable.name.clone()),
+                                Value::host(mc, callable),
+                            )
+                        })
                         .collect(),
                 );
                 let input = runtime_input(mc, input, mode)?;
@@ -3035,7 +3122,7 @@ fn same_input_item<'gc>(left: Value<'gc>, right: Value<'gc>) -> bool {
     true
 }
 
-fn runtime_input<'gc>(
+pub(crate) fn runtime_input<'gc>(
     mc: &Mutation<'gc>,
     input: impl Into<crate::json::JsonValue>,
     mode: InputMode,

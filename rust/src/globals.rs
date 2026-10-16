@@ -3,9 +3,9 @@ use crate::coercion::{number_text, string_text, truthy};
 use crate::evaluate::EvaluationError;
 use crate::provenance::{CharRun, Located, Origin, concatenate};
 use crate::value::Value;
-use gc_arena::{Collect, Gc, Mutation, RefLock};
 use sha2::Digest;
 use std::collections::HashSet;
+use uffda_heap::{Collect, Gc, Mutation, RefLock};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Collect)]
 #[collect(require_static)]
@@ -902,13 +902,19 @@ pub fn invoke<'gc>(
             let Value::String(s) = arg(0).raw() else {
                 return Err(error("sha256 expects a string"));
             };
-            let scalar = s.to_utf8().map_err(|_| {
-                EvaluationError::StringCoercion(crate::coercion::StringCoercionError::NonScalarText)
-            })?;
-            Value::Bytes(Gc::new(
-                mc,
-                sha2::Sha256::digest(scalar.as_bytes()).to_vec(),
-            ))
+            // Prefer the cached scalar view so hashing large sources does not
+            // allocate another UTF-8 copy of the entire string.
+            let digest = if let Some(scalar) = s.as_scalar_str() {
+                sha2::Sha256::digest(scalar.as_bytes())
+            } else {
+                let scalar = s.to_utf8().map_err(|_| {
+                    EvaluationError::StringCoercion(
+                        crate::coercion::StringCoercionError::NonScalarText,
+                    )
+                })?;
+                sha2::Sha256::digest(scalar.as_bytes())
+            };
+            Value::Bytes(Gc::new(mc, digest.to_vec()))
         }
         Base58 => {
             let Value::Bytes(b) = arg(0).raw() else {

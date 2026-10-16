@@ -143,6 +143,16 @@ specification and fixtures.
       callbacks, and explicit async-root handling.
 - [x] Prototype `gc-arena` 0.7 with branded pointers, write barriers, external
       roots, and unreachable-cycle reclamation (inherited 38-test suite rerun).
+- [x] Isolate the collector behind the `uffda-heap` crate so runtime code never
+      names `gc-arena`. A never-freeing `heap-leak` backend and an optional
+      `mimalloc` feature allow swapping either dependency without code changes.
+- [x] Compare intermittent optimized-compile crashes across the gc-arena and
+      never-freeing backends, each with mimalloc and the system allocator, under
+      identical conditions. Failures clustered on mimalloc (segfaults, panics,
+      wrong-result exits) with both heap backends and with `autoMemoryReclaim`
+      on or off. System-allocator builds were clean (0 / 230). Default builds
+      use the system allocator; `mimalloc` remains optional and experimental
+      only.
 - [x] Test primitives, collections, identity, ordering, and coercion through
       value, evaluator, and native-global tests.
 - [x] Verify primitive strict equality, array/object identity, ordered
@@ -1363,3 +1373,9 @@ Larger 4096-step batches were slower and retain more allocation debt, so were
 rejected. Algorithm-level pattern/runtime work and memory usage remain
 performance priorities; these measurements do not establish general runtime
 performance or migration acceptance.
+
+Pattern compile now mirrors Deno's compiled-pattern approach for character
+classes and regexp nodes (precompile once, reuse on match), shares And/Then/Or
+/Pipeline child-index lists via `Rc`, and avoids cloning variable/resolve names
+into every frame. Object property maps were tried and reverted: typical objects
+are small enough that `Vec` scans beat `IndexMap`/`HashMap` constant factors.

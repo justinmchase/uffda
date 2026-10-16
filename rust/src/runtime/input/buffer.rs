@@ -1,5 +1,5 @@
 use crate::value::Value;
-use gc_arena::{Collect, Gc, Mutation};
+use uffda_heap::{Collect, Gc, Mutation};
 
 /// Immutable input snapshots; external delivery shares untouched tree branches.
 #[derive(Clone, Copy, Collect)]
@@ -200,8 +200,9 @@ mod tests {
     #[test]
     // req:runtime-core-014 req:runtime-memory-002
     fn append_allocation_is_logarithmic_and_collection_keeps_linear_storage() {
-        let mut arena =
-            gc_arena::Arena::<gc_arena::Rootable![InputBuffer<'_>]>::new(|_| InputBuffer::empty());
+        let mut arena = uffda_heap::Arena::<uffda_heap::Rootable![InputBuffer<'_>]>::new(|_| {
+            InputBuffer::empty()
+        });
         for index in 0usize..4097 {
             let before = arena.metrics().total_gc_count();
             arena.mutate_root(|mc, input| {
@@ -231,7 +232,7 @@ mod tests {
     // req:runtime-core-014 req:runtime-memory-002
     fn old_snapshot_keeps_its_item_but_does_not_retain_a_later_cycle() {
         use crate::value::ObjectProperties;
-        use gc_arena::{Arena, GcWeak, RefLock, Rootable};
+        use uffda_heap::{Arena, GcWeak, RefLock, Rootable};
         let mut arena = Arena::<
             Rootable![(
                 InputBuffer<'_>,
@@ -269,7 +270,7 @@ mod tests {
     #[test]
     // req:runtime-core-014
     fn fixed_input_preserves_storage_identity_and_empty_boundaries() {
-        gc_arena::arena::rootless_mutate(|mc| {
+        uffda_heap::rootless_mutate(|mc| {
             let values = Gc::new(mc, vec![Value::Number(3.0)]);
             let fixed = InputBuffer::from(values);
             assert!(fixed.same_storage(values.into()));
@@ -283,7 +284,7 @@ mod tests {
     #[test]
     // req:runtime-core-014
     fn snapshots_share_branches_and_preserve_all_values_at_tree_boundaries() {
-        gc_arena::arena::rootless_mutate(|mc| {
+        uffda_heap::rootless_mutate(|mc| {
             let mut input = InputBuffer::empty();
             let mut snapshots = Vec::new();
             for index in 0usize..4097 {
