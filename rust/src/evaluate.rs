@@ -1139,7 +1139,12 @@ impl Evaluation {
                 None,
                 callables
                     .into_iter()
-                    .map(|callable| (callable.name.clone(), Value::host(mc, callable)))
+                    .map(|callable| {
+                        (
+                            std::rc::Rc::<str>::from(callable.name.clone()),
+                            Value::host(mc, callable),
+                        )
+                    })
                     .collect(),
             )
         })

@@ -201,7 +201,10 @@ impl<'gc> Value<'gc> {
     }
 
     pub fn object(mc: &Mutation<'gc>, properties: Vec<(RuntimeString, Self)>) -> Self {
-        let mut result = ObjectProperties::default();
+        let mut result = ObjectProperties {
+            entries: Vec::with_capacity(properties.len()),
+            symbols: Vec::new(),
+        };
         for (name, value) in properties {
             result.set(name, value);
         }
@@ -443,26 +446,47 @@ impl<'gc> ObjectProperties<'gc> {
     pub fn set(&mut self, name: RuntimeString, value: Value<'gc>) {
         if let Some((_, existing)) = self.entries.iter_mut().find(|(key, _)| *key == name) {
             *existing = value;
+            return;
+        }
+        // Ordinary identifier / string keys never start with a digit. Reject those
+        // before any index parsing so object-literal construction stays O(entries)
+        // without UTF-8 / decimal string allocations on the hot path.
+        if let Some(index) = canonical_array_index(name.as_utf16()) {
+            let position = self
+                .entries
+                .iter()
+                .position(|(key, _)| {
+                    canonical_array_index(key.as_utf16()).is_none_or(|other| other > index)
+                })
+                .unwrap_or(self.entries.len());
+            self.entries.insert(position, (name, value));
         } else {
-            let integer_index = |name: &RuntimeString| {
-                name.to_utf8()
-                    .ok()?
-                    .parse::<u32>()
-                    .ok()
-                    .filter(|n| *n != u32::MAX && *name == n.to_string())
-            };
-            if let Some(index) = integer_index(&name) {
-                let position = self
-                    .entries
-                    .iter()
-                    .position(|(key, _)| integer_index(key).is_none_or(|other| other > index))
-                    .unwrap_or(self.entries.len());
-                self.entries.insert(position, (name, value));
-            } else {
-                self.entries.push((name, value));
-            }
+            self.entries.push((name, value));
         }
     }
+}
+
+/// ECMAScript canonical numeric index string: decimal digits, no leading zeros
+/// (except `"0"`), and value strictly less than `2^32 - 1`.
+fn canonical_array_index(units: &[u16]) -> Option<u32> {
+    let first = *units.first()?;
+    if !(b'0' as u16..=b'9' as u16).contains(&first) {
+        return None;
+    }
+    if first == b'0' as u16 {
+        return if units.len() == 1 { Some(0) } else { None };
+    }
+    let mut value: u64 = 0;
+    for &unit in units {
+        if !(b'0' as u16..=b'9' as u16).contains(&unit) {
+            return None;
+        }
+        value = value * 10 + u64::from(unit - b'0' as u16);
+        if value >= u64::from(u32::MAX) {
+            return None;
+        }
+    }
+    Some(value as u32)
 }
 
 #[cfg(test)]
@@ -572,6 +596,12 @@ mod tests {
                     .collect::<Vec<_>>(),
                 ["2", "10", "x", "01"]
             );
+            let index = |text: &str| canonical_array_index(RuntimeString::from(text).as_utf16());
+            assert_eq!(index("0"), Some(0));
+            assert_eq!(index("01"), None);
+            assert_eq!(index("4294967294"), Some(u32::MAX - 1));
+            assert_eq!(index("4294967295"), None);
+            assert_eq!(index("kind"), None);
         });
     }
 

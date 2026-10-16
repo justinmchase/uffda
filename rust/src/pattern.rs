@@ -10,9 +10,100 @@ use crate::value::{RuntimeType, Value};
 use crate::{json::JsonValue, text::RuntimeString};
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex, OnceLock};
 use uffda_heap::{Collect, DynamicRootSet, Gc, Mutation, RefLock};
+
+/// Child matches for a [`PatternMatch`].
+///
+/// Leaves and unary wrappers are the common case (0–1 children). Keeping those
+/// inline avoids a heap allocation for the child list on every `set` / boundary
+/// / unary resume. Sequences and choices spill to a `Vec`.
+#[derive(Clone, Collect)]
+#[collect(no_drop)]
+pub enum MatchChildren<'gc> {
+    Empty,
+    One(Gc<'gc, PatternMatch<'gc>>),
+    Two([Gc<'gc, PatternMatch<'gc>>; 2]),
+    Many(Vec<Gc<'gc, PatternMatch<'gc>>>),
+}
+
+impl<'gc> MatchChildren<'gc> {
+    #[inline]
+    pub const fn empty() -> Self {
+        Self::Empty
+    }
+
+    #[inline]
+    pub const fn one(child: Gc<'gc, PatternMatch<'gc>>) -> Self {
+        Self::One(child)
+    }
+
+    #[inline]
+    pub const fn two(
+        first: Gc<'gc, PatternMatch<'gc>>,
+        second: Gc<'gc, PatternMatch<'gc>>,
+    ) -> Self {
+        Self::Two([first, second])
+    }
+
+    #[inline]
+    pub fn as_slice(&self) -> &[Gc<'gc, PatternMatch<'gc>>] {
+        match self {
+            Self::Empty => &[],
+            Self::One(child) => std::slice::from_ref(child),
+            Self::Two(children) => children,
+            Self::Many(children) => children,
+        }
+    }
+}
+
+impl<'gc> Default for MatchChildren<'gc> {
+    fn default() -> Self {
+        Self::Empty
+    }
+}
+
+impl<'gc> Deref for MatchChildren<'gc> {
+    type Target = [Gc<'gc, PatternMatch<'gc>>];
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        self.as_slice()
+    }
+}
+
+impl<'a, 'gc> IntoIterator for &'a MatchChildren<'gc> {
+    type Item = &'a Gc<'gc, PatternMatch<'gc>>;
+    type IntoIter = std::slice::Iter<'a, Gc<'gc, PatternMatch<'gc>>>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.as_slice().iter()
+    }
+}
+
+impl<'gc> From<Vec<Gc<'gc, PatternMatch<'gc>>>> for MatchChildren<'gc> {
+    fn from(mut children: Vec<Gc<'gc, PatternMatch<'gc>>>) -> Self {
+        match children.len() {
+            0 => Self::Empty,
+            1 => Self::One(children.pop().expect("len checked")),
+            2 => {
+                let second = children.pop().expect("len checked");
+                let first = children.pop().expect("len checked");
+                Self::Two([first, second])
+            }
+            _ => Self::Many(children),
+        }
+    }
+}
+
+impl<'gc> FromIterator<Gc<'gc, PatternMatch<'gc>>> for MatchChildren<'gc> {
+    fn from_iter<I: IntoIterator<Item = Gc<'gc, PatternMatch<'gc>>>>(iter: I) -> Self {
+        Self::from(iter.into_iter().collect::<Vec<_>>())
+    }
+}
 
 #[derive(Debug, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
@@ -132,7 +223,7 @@ impl<'gc> PatternMatch<'gc> {
                 recovered: child.recovered,
                 recovery: child.recovery,
                 rule: None,
-                children: vec![child],
+                children: MatchChildren::one(child),
                 provenance: child.provenance.synthetic(),
                 pattern_index: child.pattern_index,
                 pattern_kind,
@@ -163,7 +254,7 @@ impl<'gc> PatternMatch<'gc> {
                 recovered: false,
                 recovery: request.recovery,
                 rule: None,
-                children: vec![],
+                children: MatchChildren::empty(),
                 provenance: PatternProvenance {
                     input: request.stream,
                     position: request.position,
@@ -201,7 +292,7 @@ impl<'gc> PatternMatch<'gc> {
                     recovered: false,
                     recovery: rejected.recovery,
                     rule: None,
-                    children: vec![rejected],
+                    children: MatchChildren::one(rejected),
                     provenance: rejected.provenance.synthetic(),
                     pattern_index: rejected.pattern_index,
                     pattern_kind: rejected.pattern_kind,
@@ -226,9 +317,9 @@ impl<'gc> PatternMatch<'gc> {
                 recovery: seed.recovery,
                 rule: None,
                 children: if failed {
-                    vec![rejected]
+                    MatchChildren::one(rejected)
                 } else {
-                    vec![seed, rejected]
+                    MatchChildren::two(seed, rejected)
                 },
                 pattern_index: seed.pattern_index,
                 provenance: seed.provenance.synthetic(),
@@ -244,7 +335,7 @@ impl<'gc> PatternMatch<'gc> {
         arguments: Vec<usize>,
     ) -> Gc<'gc, Self> {
         let mut provenance = child.provenance.clone();
-        provenance.rule_arguments = Some(arguments);
+        provenance.rule_arguments = Some(Rc::from(arguments));
         Gc::new(
             mc,
             Self {
@@ -888,7 +979,7 @@ pub struct PatternMatch<'gc> {
     pub recovered: bool,
     pub recovery: RecoveryContext<'gc>,
     pub rule: Option<Gc<'gc, crate::runtime::DeclarationMetadata<'gc>>>,
-    pub children: Vec<Gc<'gc, PatternMatch<'gc>>>,
+    pub children: MatchChildren<'gc>,
     provenance: PatternProvenance<'gc>,
     pattern_index: usize,
     pub pattern_kind: PatternKind,
@@ -905,7 +996,7 @@ struct PatternProvenance<'gc> {
     index: usize,
     authored: bool,
     #[collect(require_static)]
-    rule_arguments: Option<Vec<usize>>,
+    rule_arguments: Option<Rc<[usize]>>,
 }
 
 impl<'gc> PatternProvenance<'gc> {
@@ -1653,7 +1744,7 @@ impl<'gc> PatternExecution<'gc> {
                         scope.environment
                     },
                     origin: span(scope, end),
-                    children: vec![outcome],
+                    children: MatchChildren::one(outcome),
                     pattern_index: scope.pattern_index,
                     pattern_kind: self.program.nodes[scope.pattern_index].kind(),
                     provenance: self.provenance(scope),
@@ -2223,7 +2314,7 @@ impl<'gc> PatternExecution<'gc> {
                             end: child.end,
                             environment: child.environment,
                             origin: span(start, child.end),
-                            children: vec![child],
+                            children: MatchChildren::one(child),
                             pattern_index: start.pattern_index,
                             pattern_kind: self.program.nodes[start.pattern_index].kind(),
                             provenance: self.provenance(start),
@@ -2258,7 +2349,7 @@ impl<'gc> PatternExecution<'gc> {
                                 recovered: child.recovered,
                                 recovery: start.recovery,
                                 rule: None,
-                                children: vec![child],
+                                children: MatchChildren::one(child),
                                 pattern_index: start.pattern_index,
                                 pattern_kind: self.program.nodes[start.pattern_index].kind(),
                                 provenance: self.provenance(start),
@@ -2289,7 +2380,7 @@ impl<'gc> PatternExecution<'gc> {
                             recovered: child.recovered,
                             recovery: child.recovery,
                             rule: None,
-                            children: vec![child],
+                            children: MatchChildren::one(child),
                             pattern_index: start.pattern_index,
                             pattern_kind: self.program.nodes[start.pattern_index].kind(),
                             provenance: self.provenance(start),
@@ -2314,7 +2405,7 @@ impl<'gc> PatternExecution<'gc> {
                             recovered: true,
                             recovery: start.recovery.enable(),
                             rule: None,
-                            children: vec![failure, skip],
+                            children: MatchChildren::two(failure, skip),
                             pattern_index: start.pattern_index,
                             pattern_kind: self.program.nodes[start.pattern_index].kind(),
                             provenance: self.provenance(start),
@@ -2335,7 +2426,7 @@ impl<'gc> PatternExecution<'gc> {
                             recovered: false,
                             recovery: start.recovery,
                             rule: None,
-                            children: vec![failure, skip],
+                            children: MatchChildren::two(failure, skip),
                             pattern_index: start.pattern_index,
                             pattern_kind: self.program.nodes[start.pattern_index].kind(),
                             provenance: self.provenance(start),
@@ -2378,7 +2469,7 @@ impl<'gc> PatternExecution<'gc> {
                             end: child.end,
                             environment: child.environment,
                             origin: span(start, child.end),
-                            children: vec![child],
+                            children: MatchChildren::one(child),
                             pattern_index: start.pattern_index,
                             pattern_kind: self.program.nodes[start.pattern_index].kind(),
                             provenance: self.provenance(start),
@@ -2489,7 +2580,7 @@ impl<'gc> PatternExecution<'gc> {
                         recovered: child.recovered,
                         recovery: child.recovery,
                         rule: None,
-                        children: vec![child],
+                        children: MatchChildren::one(child),
                         pattern_index: start.pattern_index,
                         pattern_kind: self.program.nodes[start.pattern_index].kind(),
                         provenance: self.provenance(start),
@@ -2504,7 +2595,7 @@ impl<'gc> PatternExecution<'gc> {
                     Environment::new(
                         mc,
                         Some(child.environment),
-                        vec![(name.to_string(), child.value)],
+                        vec![(Rc::clone(&name), child.value)],
                     )
                 };
                 self.result = Some(Gc::new(
@@ -2516,7 +2607,7 @@ impl<'gc> PatternExecution<'gc> {
                         end: child.end,
                         environment,
                         origin: span(start, child.end),
-                        children: vec![child],
+                        children: MatchChildren::one(child),
                         pattern_index: start.pattern_index,
                         pattern_kind: self.program.nodes[start.pattern_index].kind(),
                         provenance: self.provenance(start),
@@ -2538,7 +2629,7 @@ impl<'gc> PatternExecution<'gc> {
                     end: child.end,
                     environment: child.environment,
                     origin: span(start, start.position),
-                    children: vec![child],
+                    children: MatchChildren::one(child),
                     pattern_index: start.pattern_index,
                     pattern_kind: self.program.nodes[start.pattern_index].kind(),
                     provenance: self.provenance(start),
@@ -2669,7 +2760,7 @@ impl<'gc> PatternExecution<'gc> {
                                 recovered: children.iter().any(|child| child.recovered),
                                 recovery: current.recovery,
                                 rule: None,
-                                children,
+                                children: children.into(),
                             },
                         ));
                     }
@@ -2717,7 +2808,7 @@ impl<'gc> PatternExecution<'gc> {
                                 recovered: children.iter().any(|child| child.recovered),
                                 recovery: child.recovery,
                                 rule: None,
-                                children,
+                                children: children.into(),
                             },
                         ));
                     }
@@ -2749,7 +2840,7 @@ impl<'gc> PatternExecution<'gc> {
                             recovered: children.iter().any(|child| child.recovered),
                             recovery: child.recovery,
                             rule: None,
-                            children,
+                            children: children.into(),
                         },
                     ));
                 } else if let Some(next) = nodes.get(index + 1).copied() {
@@ -2967,7 +3058,7 @@ impl<'gc> PatternExecution<'gc> {
                     recovered: state.children.iter().any(|child| child.recovered),
                     recovery: child.recovery,
                     rule: None,
-                    children: state.children,
+                    children: state.children.into(),
                 },
             ));
             return Ok(());
@@ -3036,7 +3127,7 @@ impl<'gc> PatternExecution<'gc> {
                     state
                         .captures
                         .into_iter()
-                        .map(|(name, values)| (name, Value::array(mc, values)))
+                        .map(|(name, values)| (Rc::<str>::from(name), Value::array(mc, values)))
                         .collect(),
                 )
             };
@@ -3058,7 +3149,7 @@ impl<'gc> PatternExecution<'gc> {
                     recovered: state.children.iter().any(|child| child.recovered),
                     recovery: state.start.recovery,
                     rule: None,
-                    children: state.children,
+                    children: state.children.into(),
                 },
             ));
             return Ok(());
@@ -3198,7 +3289,7 @@ impl<'gc> PatternExecution<'gc> {
                     .last()
                     .map_or(scope.recovery, |child| child.recovery),
                 rule: None,
-                children,
+                children: children.into(),
             },
         ));
     }
@@ -3238,7 +3329,7 @@ impl<'gc> PatternExecution<'gc> {
                     recovered: children.iter().any(|child| child.recovered),
                     recovery: current.recovery,
                     rule: None,
-                    children,
+                    children: children.into(),
                 },
             ));
         }

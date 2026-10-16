@@ -1998,13 +1998,14 @@ impl<'gc> RuleExecution<'gc> {
             MemoState::Complete(outcome) | MemoState::Growing(outcome) => {
                 let mut outcome = *outcome;
                 let growing = matches!(self.memos[memo].state, MemoState::Growing(_));
-                let dependencies = if growing {
-                    self.memos[memo].seed_dependencies.clone()
+                let dependency_count = if growing {
+                    self.memos[memo].seed_dependencies.len()
                 } else {
-                    self.memos[memo].dependencies.clone()
+                    self.memos[memo].dependencies.len()
                 };
                 if !growing {
-                    let seeded = dependencies.iter().any(|dependency| {
+                    let seeded = (0..dependency_count).any(|index| {
+                        let dependency = self.memos[memo].dependencies[index];
                         matches!(
                             self.memos[dependency.memo].state,
                             MemoState::Growing(seed) if seed.kind == MatchKind::Fail
@@ -2020,7 +2021,12 @@ impl<'gc> RuleExecution<'gc> {
                         version: self.memos[memo].version,
                     });
                 }
-                for dependency in dependencies {
+                for index in 0..dependency_count {
+                    let dependency = if growing {
+                        self.memos[memo].seed_dependencies[index]
+                    } else {
+                        self.memos[memo].dependencies[index]
+                    };
                     self.observe(dependency);
                 }
                 self.memo_hits += 1;
@@ -2701,7 +2707,12 @@ impl Runtime {
                     None,
                     callables
                         .into_iter()
-                        .map(|callable| (callable.name.clone(), Value::host(mc, callable)))
+                        .map(|callable| {
+                            (
+                                Rc::<str>::from(callable.name.clone()),
+                                Value::host(mc, callable),
+                            )
+                        })
                         .collect(),
                 );
                 let source = input::InputSource::new(mc, source);
@@ -2773,7 +2784,12 @@ impl Runtime {
                     None,
                     callables
                         .into_iter()
-                        .map(|callable| (callable.name.clone(), Value::host(mc, callable)))
+                        .map(|callable| {
+                            (
+                                Rc::<str>::from(callable.name.clone()),
+                                Value::host(mc, callable),
+                            )
+                        })
                         .collect(),
                 );
                 let input = runtime_input(mc, input, mode)?;

@@ -36,6 +36,30 @@ fn literal(value: serde_json::Value) -> Pattern {
 }
 
 #[test]
+// req:runtime-memory-005
+fn match_children_keeps_zero_one_and_two_inline() {
+    uffda_heap::rootless_mutate(|mc| {
+        let environment = Environment::new(mc, None, vec![]);
+        let mut leaf =
+            PatternExecution::new(mc, Pattern::Any, vec![Value::Number(1.0)], environment);
+        while !leaf.step(mc).unwrap() {}
+        let leaf = leaf.result().unwrap();
+        assert!(matches!(MatchChildren::empty(), MatchChildren::Empty));
+        assert!(matches!(MatchChildren::one(leaf), MatchChildren::One(_)));
+        assert!(matches!(
+            MatchChildren::two(leaf, leaf),
+            MatchChildren::Two(_)
+        ));
+        assert!(matches!(
+            MatchChildren::from(vec![leaf, leaf, leaf]),
+            MatchChildren::Many(_)
+        ));
+        assert_eq!(MatchChildren::two(leaf, leaf).len(), 2);
+        assert_eq!(MatchChildren::from(Vec::new()).len(), 0);
+    });
+}
+
+#[test]
 // req:incremental-parsing-004 req:runtime-memory-005 req:runtime-core-009
 fn rebasing_a_deep_shared_match_graph_is_iterative_and_preserves_the_prior_graph() {
     type Root<'gc> = (Gc<'gc, PatternMatch<'gc>>, Gc<'gc, PatternMatch<'gc>>);
@@ -49,7 +73,7 @@ fn rebasing_a_deep_shared_match_graph_is_iterative_and_preserves_the_prior_graph
         for _ in 0..20_000 {
             old = PatternMatch::boundary(mc, PatternKind::Any, old, environment, old.value);
         }
-        let mut shared = old.children.clone();
+        let mut shared = old.children.to_vec();
         shared.push(old.children[0]);
         let old = Gc::new(
             mc,
@@ -65,7 +89,7 @@ fn rebasing_a_deep_shared_match_graph_is_iterative_and_preserves_the_prior_graph
                 recovered: old.recovered,
                 recovery: old.recovery,
                 rule: old.rule,
-                children: shared,
+                children: shared.into(),
                 provenance: old.provenance.clone(),
                 pattern_index: old.pattern_index,
                 pattern_kind: old.pattern_kind,
