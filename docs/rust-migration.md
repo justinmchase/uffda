@@ -1372,3 +1372,9 @@ Larger 4096-step batches were slower and retain more allocation debt, so were
 rejected. Algorithm-level pattern/runtime work and memory usage remain
 performance priorities; these measurements do not establish general runtime
 performance or migration acceptance.
+
+Pattern compile now mirrors Deno's compiled-pattern approach for character
+classes and regexp nodes (precompile once, reuse on match), shares And/Then/Or
+/Pipeline child-index lists via `Rc`, and avoids cloning variable/resolve names
+into every frame. Object property maps were tried and reverted: typical objects
+are small enough that `Vec` scans beat `IndexMap`/`HashMap` constant factors.
