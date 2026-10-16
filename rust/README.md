@@ -212,8 +212,10 @@ implementation:
 - `uffda-heap/gc-arena` (default): the `gc-arena` collector described below.
 - `heap-leak`: a diagnostic backend that never frees. It isolates collector
   behavior when investigating memory faults and must not ship.
-- `mimalloc` (default): use mimalloc as the `uffda` binary's global allocator.
-  Build with `--no-default-features` to use the system allocator.
+- The binary uses the system allocator by default. An optional `mimalloc`
+  feature exists for experiments only; stress runs under WSL saw intermittent
+  segfaults and wrong-result exits with mimalloc enabled and none with the
+  system allocator.
 
 The default backend is `gc-arena` 0.7.0:
 

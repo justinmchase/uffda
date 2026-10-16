@@ -144,11 +144,15 @@ specification and fixtures.
 - [x] Prototype `gc-arena` 0.7 with branded pointers, write barriers, external
       roots, and unreachable-cycle reclamation (inherited 38-test suite rerun).
 - [x] Isolate the collector behind the `uffda-heap` crate so runtime code never
-      names `gc-arena`. A never-freeing `heap-leak` backend and a `mimalloc`
-      allocator feature allow swapping either dependency without code changes.
-- [ ] Compare intermittent optimized-compile crashes across the gc-arena and
+      names `gc-arena`. A never-freeing `heap-leak` backend and an optional
+      `mimalloc` feature allow swapping either dependency without code changes.
+- [x] Compare intermittent optimized-compile crashes across the gc-arena and
       never-freeing backends, each with mimalloc and the system allocator, under
-      identical conditions.
+      identical conditions. Failures clustered on mimalloc (segfaults, panics,
+      wrong-result exits) with both heap backends and with `autoMemoryReclaim`
+      on or off. System-allocator builds were clean (0 / 230). Default builds
+      use the system allocator; `mimalloc` remains optional and experimental
+      only.
 - [x] Test primitives, collections, identity, ordering, and coercion through
       value, evaluator, and native-global tests.
 - [x] Verify primitive strict equality, array/object identity, ordered

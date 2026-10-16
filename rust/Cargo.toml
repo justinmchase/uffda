@@ -15,9 +15,10 @@ members = ["heap", "heap/derive"]
 default-members = [".", "heap", "heap/derive"]
 
 [features]
-default = ["mimalloc"]
-# Use mimalloc as the `uffda` binary's global allocator instead of the system
-# allocator.
+default = []
+# Experimental only. Intermittent segfaults and wrong-result exits were
+# observed under mimalloc in WSL stress runs; the system allocator was clean.
+# Do not enable for production builds.
 mimalloc = ["dep:mimalloc"]
 # Diagnostic: run on the never-freeing heap backend. Not for production use.
 heap-leak = ["uffda-heap/leak"]
