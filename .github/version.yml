@@ -14,10 +14,10 @@ on:
       pattern: '(?<=export const MIN_UFFDA_VERSION = ").*(?=";)'
     - kind: regexp
       file: rust/Cargo.toml
-      pattern: '(?m)(?<=^version = ").*(?=")'
+      pattern: '(?<=^version = ").*(?=")'
     - kind: regexp
       file: rust/heap/Cargo.toml
-      pattern: '(?m)(?<=^version = ").*(?=")'
+      pattern: '(?<=^version = ").*(?=")'
     - kind: regexp
       file: rust/heap/derive/Cargo.toml
-      pattern: '(?m)(?<=^version = ").*(?=")'
+      pattern: '(?<=^version = ").*(?=")'
