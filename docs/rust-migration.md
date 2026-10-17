@@ -37,9 +37,12 @@ In scope:
   native-value hot path, distinct from text input that is parsed by the selected
   pattern or rule.
 
-MCP and LSP are deferred. Binary codec encoding, compiled-artifact format
-replacement during codec v1, executable constructors, arbitrary class
-reconstruction and function-source serialization are not part of codec v1.
+MCP and LSP were deferred from the **initial** Rust CLI/runtime parity
+milestones; they remain required for **production cutover** (see milestone 10)
+so the installed Rust `uffda` can replace Deno for editor and agent
+integrations. Binary codec encoding, compiled-artifact format replacement during
+codec v1, executable constructors, arbitrary class reconstruction and
+function-source serialization are not part of codec v1.
 
 Both runtimes support logical `.uff` modules and direct `.json` declarations,
 including package exports resolving to either extension. `.uff` retains artifact
@@ -644,14 +647,21 @@ jobs and Linux `uffda-setup` smoke as the installer gate.
 - [x] Extend the `uffdar-*` build, attach and verify path to the other supported
       release targets (six native runners). Linux `install.sh` installs `uffda`
       and `uffdar`; `uffda-setup` still installs Deno `uffda-*` only.
+- [ ] Port `mcp` and `lsp` onto the Rust CLI with parity against the Deno
+      reference (stdio transports, session/tools/diagnostics/completions as
+      already specified under `.agents/` for those surfaces). Initial
+      six-command parity intentionally excluded them; cutover MUST NOT ship Rust
+      as the installed `uffda` without them unless an explicit temporary
+      exception is documented.
 - [ ] Preserve asset names, checksums, installers, and setup-action behavior
       through the eventual approved cutover (Rust becomes the installed
       `uffda`).
 - [ ] Update implementation-specific specifications and contributor docs for the
-      Deno→Rust production switch.
-- [ ] Switch production only after package gates (milestone 9) and an explicit
-      cutover approval. Do not publish a draft until Release Binaries attach +
-      smoke succeed — publishing early leaves an empty immutable release.
+      Deno→Rust production switch (including MCP/LSP command availability).
+- [ ] Switch production only after package gates (milestone 9), MCP/LSP cutover
+      gates, and an explicit cutover approval. Do not publish a draft until
+      Release Binaries attach + smoke succeed — publishing early leaves an empty
+      immutable release.
 
 ## Final acceptance
 
@@ -824,8 +834,9 @@ Global/process checks include help/version, explicit mode conflict diagnostics,
 compile fallback only when arguments exist, successful root usage with no
 arguments, cwd/config resolution, JSON error code/message/phase, and exit codes
 0 (success), 2 (usage), 3 (configuration), and 70 (internal), plus
-command-specific failure exits. MCP/LSP remain deferred. All six commands now
-have relocated-binary coverage outside the checkout with an empty `PATH`, and 29
+command-specific failure exits. MCP/LSP remain out of the initial six-command
+preview and are tracked under milestone 10 cutover. All six commands now have
+relocated-binary coverage outside the checkout with an empty `PATH`, and 29
 validation diagnostic cases are shared with the reference. Exhaustive
 per-command flag combinations and successful-output comparisons remain open.
 
