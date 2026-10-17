@@ -1,8 +1,10 @@
 # Rust Uffda runtime migration
 
-This crate starts the side-by-side migration described in the
-[migration plan](../docs/rust-migration.md). It includes an AST execution CLI
-preview and source-command integration, not yet a complete replacement CLI.
+This crate is the side-by-side Rust runtime and CLI described in the
+[migration plan](../docs/rust-migration.md). The six in-scope commands
+(`compile`, `parse`, `exec`, `match`, `run`, `fmt`) are implemented. Production
+cutover still ships Deno `uffda` via the installer; release previews attach as
+`uffdar-*`.
 
 ## Running the CLI
 
@@ -35,8 +37,7 @@ does not change runtime, CLI, or compiled-artifact formats.
 Checks and preview release builds target native Linux, Windows, and macOS on
 x86_64 and aarch64, using one unchanged published-compiler language artifact
 tree. Preview assets remain named `uffdar`; the installer and production `uffda`
-cutover are unchanged. Local Linux acceptance is measured; the other platform
-executions remain pending CI.
+cutover are unchanged until an explicit switch.
 
 AST input comes from a file or standard input, not `-e` (matching the existing
 CLI's AST-input restriction). Default exec/match/run output is the approved data
