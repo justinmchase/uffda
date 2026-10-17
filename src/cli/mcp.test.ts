@@ -1,9 +1,11 @@
-import { assertEquals } from "@std/assert";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { createUffdaMcpServer, versionToolHandler } from "./mcp.ts";
 import { version } from "../version.ts";
+import { experimentToolInputShape } from "./mcp.experiment.ts";
+import { authoringContextToolInputShape } from "./mcp.authoring_context.ts";
 
 Deno.test("cli.mcp", async (t) => {
   await t.step("versionToolHandler returns the CLI version as text", () => {
@@ -54,6 +56,65 @@ Deno.test("cli.mcp", async (t) => {
         assertEquals(result, {
           content: [{ type: "text", text: version }],
         });
+
+        // req:mcp-server-014 — experiment advertised once with matching schema.
+        const experimentTools = tools.tools.filter(
+          (tool: Tool) => tool.name === "uffda_experiment",
+        );
+        assertEquals(experimentTools.length, 1);
+        const experiment = experimentTools[0];
+        assert(
+          experiment.description?.toLowerCase().includes("in-memory"),
+          experiment.description,
+        );
+        assert(
+          experiment.description?.toLowerCase().includes("assert") ||
+            experiment.description?.toLowerCase().includes("cases"),
+          experiment.description,
+        );
+        const experimentProps = (experiment.inputSchema as {
+          properties?: Record<string, unknown>;
+        }).properties ?? {};
+        for (const key of Object.keys(experimentToolInputShape)) {
+          assertExists(
+            experimentProps[key],
+            `tools/list schema missing ${key}`,
+          );
+        }
+
+        // req:mcp-server-015 — authoring context advertises topics.
+        const authoring = tools.tools.find(
+          (tool: Tool) => tool.name === "uffda_authoring_context",
+        );
+        assertExists(authoring);
+        const authoringProps = (authoring.inputSchema as {
+          properties?: Record<string, unknown>;
+        }).properties ?? {};
+        for (const key of Object.keys(authoringContextToolInputShape)) {
+          assertExists(
+            authoringProps[key],
+            `authoring tools/list schema missing ${key}`,
+          );
+        }
+
+        const experimentCall = await client.callTool({
+          name: "uffda_experiment",
+          arguments: {
+            language: "pattern",
+            source: '"x"',
+            cases: [{ name: "hit", input: "x", expect: "x" }],
+          },
+        });
+        const experimentPayload = JSON.parse(
+          (experimentCall.content as { text: string }[])[0].text,
+        );
+        assertEquals(
+          experimentPayload.ok,
+          true,
+          Deno.inspect(experimentPayload),
+        );
+        assertEquals(experimentPayload.summary.passed, 1);
+        assertEquals(experimentPayload.summary.failed, 0);
       } finally {
         await client.close();
         await server.close();

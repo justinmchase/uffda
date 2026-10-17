@@ -15,9 +15,10 @@ Preconditions:
 Expected behavior:
 
 - The server MUST expose a tool named `uffda_authoring_context`.
-- The tool MUST accept a required `task` string describing what the caller wants
-  to implement, and an optional `language` selecting `uffda`, `pattern`, or
-  `expression` when the caller already knows which grammar applies.
+- The tool MUST accept a `task` string and/or `topics` array describing what the
+  caller wants, and an optional `language` selecting `uffda`, `pattern`, or
+  `expression` when the caller already knows which grammar applies. At least one
+  of `task` or `topics` MUST be non-empty.
 - A successful result MUST be a JSON object with `ok: true` and structured
   fields covering syntax, semantics, expressibility, restrictions, and sources
   relevant to `task`.
@@ -36,9 +37,9 @@ Expected behavior:
   that assessment pass.
 - The tool MUST NOT require or accept a session id and MUST NOT persist state
   between calls.
-- An empty or whitespace-only `task` MUST fail with a machine-consumable error
-  (`ok: false`, `error.code`, `error.phase`, `error.message`) rather than
-  returning guessed context.
+- An empty request (no non-empty `task` and no `topics`) MUST fail with a
+  machine-consumable error (`ok: false`, `error.code`, `error.phase`,
+  `error.message`) rather than returning guessed context.
 
 Postconditions:
 

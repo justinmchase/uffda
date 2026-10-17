@@ -16,7 +16,66 @@ Deno.test(
     if (result.ok) return;
     assertEquals(result.error.code, AuthoringContextFailureCode.InvalidTask);
     assertEquals(result.error.phase, "validate");
-    assert(result.error.message.includes("task"));
+    assert(
+      result.error.message.includes("task") ||
+        result.error.message.includes("topics"),
+    );
+  },
+);
+
+Deno.test(
+  "req:mcp-server-015 - topic mode returns exact syntax without unrelated unsupported",
+  () => {
+    const repetition = authoringContextToolHandler({
+      topics: ["repetition"],
+    });
+    assertEquals(repetition.ok, true);
+    if (!repetition.ok) return;
+    assertExists(repetition.topics);
+    assertEquals(repetition.topics![0].id, "repetition");
+    assert(
+      repetition.topics![0].syntax.includes("*n..m") ||
+        repetition.topics![0].syntax.includes("*10..10"),
+    );
+    assert(repetition.topics![0].example.includes("Digit*10..10"));
+    assert(repetition.topics![0].caveats.some((c) => c.includes("Digit*10")));
+    assertEquals(repetition.expressibility.unsupported.length, 0);
+    assertExists(repetition.layers);
+
+    const classes = authoringContextToolHandler({
+      task: "how do I write a character class for digits?",
+      topics: ["character-class"],
+    });
+    assertEquals(classes.ok, true);
+    if (!classes.ok) return;
+    assertExists(classes.topics);
+    assertEquals(classes.topics![0].id, "character-class");
+    assert(
+      classes.topics![0].syntax.includes("\\cNd") ||
+        classes.topics![0].example.includes("Digit"),
+    );
+    assertEquals(classes.expressibility.status, "uncertain");
+    assertEquals(classes.expressibility.unsupported.length, 0);
+    assert(
+      !JSON.stringify(classes).toLowerCase().includes("statement-like"),
+      "character-class topic must not pull unrelated if/loop restrictions",
+    );
+
+    const freeForm = authoringContextToolHandler({
+      task: "explain character classes versus ASCII digits",
+    });
+    assertEquals(freeForm.ok, true);
+    if (!freeForm.ok) return;
+    // Free-form must not classify as unsupported solely via if/loop keywords.
+    assert(
+      freeForm.expressibility.status !== "unsupported" ||
+        freeForm.expressibility.unsupported.every((c) =>
+          !c.capability.includes("if")
+        ),
+      `unexpected unsupported: ${
+        freeForm.expressibility.unsupported.map((c) => c.capability).join("|")
+      }`,
+    );
   },
 );
 

@@ -63,7 +63,8 @@
         "uffda.lsp.serverPath": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Overrides the `uffda` executable used to launch the language server and MCP server, bypassing `PATH` resolution and automatic download entirely. Intended for debugging a local source checkout (for example `deno`). Used verbatim together with `#uffda.lsp.serverArgs#`."
+          "scope": "resource",
+          "markdownDescription": "Overrides the executable used to launch the language server and MCP server, bypassing `PATH` resolution and automatic download. Bare names (`uffdar`) use PATH; relative paths (`rust/target/release/uffda`) resolve against the uffda workspace folder; absolute paths are used as-is. Do not use `deno`. Resource-scoped so multi-root folder `.vscode/settings.json` applies."
         },
         "uffda.lsp.serverArgs": {
           "type": "array",
@@ -71,7 +72,8 @@
             "type": "string"
           },
           "default": [],
-          "markdownDescription": "Arguments passed to `#uffda.lsp.serverPath#` when launching the language server, in place of the default `lsp` argument. Only used when `#uffda.lsp.serverPath#` is set. For example, to run from source: `[\"run\", \"-A\", \"./src/cli/main.ts\", \"lsp\"]`."
+          "scope": "resource",
+          "markdownDescription": "Arguments passed to `#uffda.lsp.serverPath#` when launching the language server, in place of the default `lsp` argument. Only used when `#uffda.lsp.serverPath#` is set. Typical value: `[\"lsp\"]`."
         },
         "uffda.mcp.serverArgs": {
           "type": "array",
@@ -79,7 +81,8 @@
             "type": "string"
           },
           "default": [],
-          "markdownDescription": "Arguments passed to `#uffda.lsp.serverPath#` when launching the MCP server, in place of the default `mcp` argument. Only used when `#uffda.lsp.serverPath#` is set. For example, to run from source: `[\"run\", \"-A\", \"./src/cli/main.ts\", \"mcp\"]`."
+          "scope": "resource",
+          "markdownDescription": "Arguments passed to `#uffda.lsp.serverPath#` when launching the MCP server, in place of the default `mcp` argument. Only used when `#uffda.lsp.serverPath#` is set. Typical value: `[\"mcp\"]`."
         }
       }
     }

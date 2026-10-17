@@ -204,13 +204,18 @@ fn tool_descriptors() -> Vec<Value> {
         tool(
             "uffda_authoring_context",
             "uffda authoring context",
-            "Returns verified, task-oriented Uffda authoring context — relevant pattern/expression syntax, semantics, default globals, expressibility, restrictions, and repository source citations. Stateless: does not require or affect any session.",
+            "Returns verified Uffda authoring context. Prefer `topics` for concise cards (repetition, pipeline, projection, skip-quantifier, character-class, capture-scope, exports) with exact syntax, one minimal example, caveats, and citations. Or pass `task` for evidence-backed syntax/semantics/expressibility. Stateless: does not require or affect any session.",
             json!({
                 "type": "object",
                 "properties": {
                     "task": {
                         "type": "string",
-                        "description": "What the caller wants to implement in Uffda (natural language)."
+                        "description": "What the caller wants to implement in Uffda (natural language). Required when topics is omitted."
+                    },
+                    "topics": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Topic ids or aliases for concise verified cards."
                     },
                     "language": {
                         "type": "string",
@@ -218,14 +223,13 @@ fn tool_descriptors() -> Vec<Value> {
                         "description": "Optional grammar focus when already known."
                     }
                 },
-                "required": ["task"],
                 "additionalProperties": false
             }),
         ),
         tool(
             "uffda_experiment",
             "uffda experiment",
-            "Parses an Uffda / pattern / expression snippet in memory and optionally matches or evaluates it against sample input(s) without sessions or writing files/artifacts. Supports multiple independent inputs in one call. Full modules with imports are parse-only (unsupported for run).",
+            "In-memory Uffda / pattern / expression execution with supplied inputs and batch assertions. Parse/compile once, run named `cases` (expect JSON value or expectNonMatch) independently, return compact summary + failure details (no ASTs or match trees by default). No sessions, source files, or artifact writes. Modules with imports are unsupported for run.",
             json!({
                 "type": "object",
                 "properties": {
@@ -234,6 +238,20 @@ fn tool_descriptors() -> Vec<Value> {
                         "enum": ["uffda", "pattern", "expression"]
                     },
                     "source": { "type": "string" },
+                    "cases": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": { "type": "string" },
+                                "input": { "type": "string" },
+                                "inputIsJson": { "type": "boolean" },
+                                "expect": {},
+                                "expectNonMatch": { "type": "boolean" }
+                            },
+                            "required": ["name", "input"]
+                        }
+                    },
                     "input": { "type": "string" },
                     "inputs": {
                         "type": "array",
@@ -241,7 +259,8 @@ fn tool_descriptors() -> Vec<Value> {
                     },
                     "inputIsJson": { "type": "boolean" },
                     "rule": { "type": "string" },
-                    "variables": { "type": "object" }
+                    "variables": { "type": "object" },
+                    "verbose": { "type": "boolean" }
                 },
                 "required": ["language", "source"],
                 "additionalProperties": false
@@ -303,11 +322,19 @@ fn call_tool(
 }
 
 fn tool_authoring_context(arguments: &Value) -> Value {
-    let Some(task) = arguments.get("task").and_then(|v| v.as_str()) else {
-        return error_result("uffda_authoring_context requires `task`");
-    };
+    let task = arguments.get("task").and_then(|v| v.as_str()).unwrap_or("");
+    let topics = arguments
+        .get("topics")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| item.as_str().map(str::to_string))
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
     let language = arguments.get("language").and_then(|v| v.as_str());
-    text_result(authoring::authoring_context(task, language).to_string())
+    text_result(authoring::authoring_context_with_topics(task, &topics, language).to_string())
 }
 
 fn tool_experiment(arguments: &Value) -> Value {
