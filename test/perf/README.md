@@ -24,12 +24,8 @@ it's suspected.
   outside the report's generous expected-time bound, in which case the full
   size/time breakdown prints automatically. Pass `--verbose` to always see the
   full breakdown.
-- **In CI** (`GITHUB_STEP_SUMMARY` set): the full size/time table is always
-  attached to the job summary, in addition to the terse console line. This runs
-  as its own parallel `Perf` job (see `.github/workflows/checks.yml`), alongside
-  the `Integration` job, so it never blocks fast feedback from the main `Checks`
-  job. It does not fail the build today — it exists to make a regression
-  visible, not to gate merges.
+- **In CI** (`GITHUB_STEP_SUMMARY` set): the full size/time table is attached to
+  the job summary when the report is run. Checks no longer runs this report.
 
 ## Rust data codec acceptance
 
