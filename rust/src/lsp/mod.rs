@@ -886,6 +886,9 @@ fn rpc_error(id: Option<Value>, code: i64, message: String) -> Value {
 }
 
 #[cfg(test)]
+mod ported_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 

@@ -363,10 +363,37 @@ fn native_callable_own_fields_match_all_typescript_names_and_arities() {
         }
     }
     assert_eq!(behavior_names, expected_names);
+    let mut behavior_case_counts = std::collections::HashMap::<String, usize>::new();
+    for fixture in behavior_fixtures.as_array().unwrap() {
+        let mut names = std::collections::HashSet::new();
+        names.insert(fixture["name"].as_str().unwrap().to_string());
+        if let Some(expressions) = fixture.get("expressions") {
+            collect_invocations(expressions, &mut names);
+        }
+        for name in names {
+            *behavior_case_counts.entry(name).or_insert(0) += 1;
+        }
+    }
+    for fixture in &fixtures {
+        assert!(
+            behavior_case_counts
+                .get(&fixture.name)
+                .copied()
+                .unwrap_or(0)
+                >= 2,
+            "{} needs at least two shared behavior cases",
+            fixture.name
+        );
+    }
     for fixture in fixtures {
         let global = lookup(&fixture.name).expect("fixture global exists");
         assert_eq!(global.name(), fixture.name.as_str());
         assert_eq!(global.arity(), fixture.arity);
+        assert!(
+            !global.metadata().description.is_empty(),
+            "{} has no description",
+            fixture.name
+        );
         assert_eq!(
             evaluate(Expression::Member {
                 name: "name".into(),

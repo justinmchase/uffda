@@ -32,9 +32,4 @@ Error behavior:
 
 Postconditions:
 
-- Tests: `rust/src/pattern/structure_ports.rs`. Argument-count and
-  unknown-reference messages, and special-target dispatch, remain covered by
-  `src/runtime/patterns/reference.test.ts`,
-  `src/runtime/patterns/resolve.test.ts`,
-  `src/runtime/patterns/resolve.pattern.test.ts`, and
-  `src/runtime/patterns/special.test.ts`.
+- Tests: `rust/src/pattern/structure_ports.rs`.

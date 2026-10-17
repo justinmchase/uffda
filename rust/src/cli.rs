@@ -950,6 +950,11 @@ fn match_ast(
 }
 
 #[cfg(test)]
+mod command_ports;
+#[cfg(test)]
+mod surface_ports;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 

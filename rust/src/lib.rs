@@ -30,6 +30,8 @@ pub mod value;
 #[cfg(test)]
 mod gc_tests;
 pub mod json;
+#[cfg(test)]
+mod lang_tests;
 
 #[cfg(test)]
 mod string_acceptance {

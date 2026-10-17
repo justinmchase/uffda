@@ -824,4 +824,6 @@ pub fn sha256(bytes: &[u8]) -> String {
 }
 
 #[cfg(test)]
+mod ported;
+#[cfg(test)]
 mod tests;

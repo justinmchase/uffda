@@ -35,8 +35,8 @@ Postconditions:
 
 ## Test plan
 
-`src/lang/uffda/uffda.lang.test.ts` ("recovery points"),
-`src/lang/pattern/then.test.ts`, `src/lang/pattern/pattern.lang.test.ts`,
-`src/lang/expression/{sequence,array,object,expression.lang}.test.ts`,
-`src/lang/grammar.test.ts` (GRAMMAR_03).
+`rust/src/lang_tests/uffda.rs` ("recovery points"),
+`rust/src/lang_tests/pattern.rs` (`then_recovers_a_stray_token`,
+`pattern_lang_recovers_trailing_input`), `rust/src/lang_tests/expression.rs`,
+`rust/src/lang_tests/common.rs` (`recovery_phase_skips_one_unexpected_item_and_keeps_the_rest`).
 `src/requirements/error-recovery/009-built-in-grammar-recovery-points.requirement.test.ts`.

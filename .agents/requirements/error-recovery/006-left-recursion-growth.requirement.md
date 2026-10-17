@@ -32,7 +32,6 @@ Postconditions:
 
 ## Test plan
 
-`src/memo.test.ts` (MEMO_FAILED_SEED): seed-read recording and watch scoping.
 `src/requirements/error-recovery/006-left-recursion-growth.requirement.test.ts`:
 with `Main = (ope Primary sneak by any+) end` and a left-recursive
 `Primary`/`Member`, `x.b` recovers at `Main` over the whole input rather than

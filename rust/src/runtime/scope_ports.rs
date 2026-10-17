@@ -578,3 +578,347 @@ fn scope_port_collect_drains_sync_collections_and_keeps_item_provenance() {
         assert_eq!(chars[1].origin(), Some(Origin { start: 9, end: 10 }));
     });
 }
+
+#[test]
+// req:runtime-memory-004
+fn scope_port_variable_scope_layers_keep_undefined_and_share_ancestors() {
+    rootless_mutate(|mc| {
+        let empty = Environment::new(mc, None, vec![]);
+        assert!(empty.get("a").is_none());
+        assert_ne!(
+            Environment::new(mc, Some(empty), vec![]).identity(),
+            empty.identity()
+        );
+
+        let base = Environment::new(mc, None, vec![("a".into(), Value::Number(1.0))]);
+        let layered = Environment::new(mc, Some(base), vec![("b".into(), Value::Number(2.0))]);
+        assert!(layered.get("a").unwrap().strict_eq(Value::Number(1.0)));
+        assert!(layered.get("b").unwrap().strict_eq(Value::Number(2.0)));
+        assert!(layered.get("c").is_none());
+        assert!(base.get("b").is_none());
+        assert!(layered.is_descendant_of(base));
+        assert!(!base.is_descendant_of(layered));
+
+        let shadowed = Environment::new(mc, Some(base), vec![("a".into(), Value::Number(2.0))]);
+        assert!(shadowed.get("a").unwrap().strict_eq(Value::Number(2.0)));
+        assert!(base.get("a").unwrap().strict_eq(Value::Number(1.0)));
+
+        let present = Environment::new(mc, None, vec![("x".into(), Value::Undefined)]);
+        assert!(present.get("x").unwrap().strict_eq(Value::Undefined));
+        assert!(present.get("missing").is_none());
+
+        let derived = Environment::new(
+            mc,
+            Some(base),
+            vec![
+                ("b".into(), Value::Number(2.0)),
+                ("a".into(), Value::Number(3.0)),
+            ],
+        );
+        assert!(derived.is_descendant_of(base));
+        assert!(derived.get("a").unwrap().strict_eq(Value::Number(3.0)));
+        assert!(derived.get("b").unwrap().strict_eq(Value::Number(2.0)));
+        assert!(base.get("a").unwrap().strict_eq(Value::Number(1.0)));
+
+        let unrelated = Environment::new(
+            mc,
+            None,
+            vec![
+                ("a".into(), Value::Number(2.0)),
+                ("b".into(), Value::Number(3.0)),
+            ],
+        );
+        assert!(!unrelated.is_descendant_of(base));
+        assert!(base.get("b").is_none());
+        let folded = Environment::new(
+            mc,
+            Some(base),
+            vec![
+                ("a".into(), Value::Number(2.0)),
+                ("b".into(), Value::Number(3.0)),
+            ],
+        );
+        assert!(folded.get("a").unwrap().strict_eq(Value::Number(2.0)));
+        assert!(folded.get("b").unwrap().strict_eq(Value::Number(3.0)));
+        assert!(base.get("b").is_none());
+        assert!(folded.is_descendant_of(base));
+
+        let mut deep = Environment::new(mc, None, vec![]);
+        for index in 0..50 {
+            deep = Environment::new(
+                mc,
+                Some(deep),
+                vec![(format!("v{index}").into(), Value::Number(index as f64))],
+            );
+        }
+        for index in 0..50 {
+            assert!(
+                deep.get(&format!("v{index}"))
+                    .unwrap()
+                    .strict_eq(Value::Number(index as f64))
+            );
+        }
+        assert_eq!(deep.ancestors().count(), 51);
+    });
+}
+
+fn compile_scope_module(
+    module: serde_json::Value,
+) -> (std::rc::Rc<crate::module::CompiledModuleGraph>, url::Url) {
+    let url = url::Url::parse("file:///scope-port.json").unwrap();
+    let mut resolver = crate::resolver::Resolver::from_cwd().unwrap();
+    resolver.insert_declaration(
+        url.clone(),
+        crate::resolver::decode_declaration(&url, &module.to_string()).unwrap(),
+    );
+    (
+        std::rc::Rc::new(
+            crate::module::CompiledModuleGraph::compile(resolver.load_graph(&url).unwrap())
+                .unwrap(),
+        ),
+        url,
+    )
+}
+
+fn reference_pattern(name: &str, args: serde_json::Value) -> serde_json::Value {
+    json!({"kind":"resolve","targetKind":"reference","name":name,"args":args})
+}
+
+fn until_host(runtime: &mut Runtime) {
+    for _ in 0..10_000 {
+        match runtime.step_status().unwrap() {
+            crate::evaluate::StepStatus::Suspended => return,
+            crate::evaluate::StepStatus::Complete => panic!("expected a host suspension"),
+            crate::evaluate::StepStatus::Yielded => {}
+        }
+    }
+    panic!("host suspension did not arrive");
+}
+
+#[test]
+// req:runtime-core-009 req:runtime-core-004
+fn scope_port_call_stack_shares_lower_frames() {
+    let runtime = Runtime::for_pattern(Pattern::Ok, json!(""), InputMode::Scalar).unwrap();
+    runtime.read(|execution| {
+        assert_eq!(execution.frames.len(), 1);
+        assert!(execution.frames[0].invocation.is_none());
+    });
+
+    let module = json!({
+        "imports": [],
+        "exports": [{"kind":"rule","name":"Main","default":true}],
+        "rules": [
+            {
+                "name": "Inner",
+                "parameters": [],
+                "pattern": {"kind":"any"},
+                "expression": {
+                    "kind":"invocation",
+                    "expression":{"kind":"reference","name":"host"},
+                    "args":[]
+                }
+            },
+            {
+                "name": "Main",
+                "parameters": [],
+                "pattern": {"kind":"then","patterns":[
+                    reference_pattern("Inner", json!([])),
+                    reference_pattern("Inner", json!([]))
+                ]}
+            }
+        ]
+    });
+    let (graph, url) = compile_scope_module(module);
+    let mut runtime = Runtime::with_hosts(
+        graph,
+        &url,
+        None,
+        json!("ab"),
+        InputMode::Iterable,
+        vec![crate::value::HostCallable {
+            id: 1,
+            name: "host".into(),
+            arity: 0,
+        }],
+    )
+    .unwrap();
+
+    let mut outer_contexts = Vec::new();
+    let mut outer_environments = Vec::new();
+    for expected_position in [0, 1] {
+        until_host(&mut runtime);
+        runtime.read(|execution| {
+            assert!(execution.frames.len() >= 2);
+            assert!(execution.frames[0].invocation.is_none());
+            let inner = execution
+                .frames
+                .iter()
+                .rev()
+                .find(|frame| frame.invocation.is_some())
+                .unwrap();
+            let invocation = inner.invocation.as_ref().unwrap();
+            assert_eq!(invocation.request.name.as_deref(), Some("Inner"));
+            assert_eq!(invocation.request.position, expected_position);
+            assert_eq!(invocation.request.stream.len(), 2);
+            assert!(!invocation.request.recovery.is_enabled());
+            assert!(!execution.entry.recovery.is_enabled());
+            assert_eq!(
+                inner.lexical_environment.identity(),
+                execution
+                    .bindings
+                    .as_ref()
+                    .unwrap()
+                    .environment(&url)
+                    .unwrap()
+                    .identity()
+            );
+            outer_contexts.push(uffda_heap::Gc::as_ptr(execution.frames[0].context) as usize);
+            outer_environments.push(execution.frames[0].lexical_environment.identity());
+            let names: Vec<_> = execution
+                .frames
+                .iter()
+                .filter_map(|frame| {
+                    frame
+                        .invocation
+                        .as_ref()
+                        .and_then(|invocation| invocation.request.name.clone())
+                })
+                .collect();
+            assert_eq!(names, ["Inner"]);
+        });
+        let request = runtime.take_host_request().unwrap();
+        runtime
+            .complete_host(
+                &request,
+                Ok(crate::evaluate::HostCompletion::materialize(
+                    vec![],
+                    |mc, _| Ok(Value::string(mc, "ok")),
+                )),
+            )
+            .unwrap();
+    }
+    assert_eq!(outer_contexts[0], outer_contexts[1]);
+    assert_eq!(outer_environments[0], outer_environments[1]);
+    loop {
+        if runtime.step_status().unwrap() == crate::evaluate::StepStatus::Complete {
+            break;
+        }
+    }
+    assert_eq!(
+        runtime.serialize_result().unwrap().unwrap(),
+        r#"["ok","ok"]"#
+    );
+}
+
+#[test]
+// req:runtime-core-009 req:runtime-core-010 req:pipeline-001
+fn scope_port_pipeline_keeps_bound_rule_arguments() {
+    let module = json!({
+        "imports": [],
+        "exports": [{"kind":"rule","name":"Main","default":true}],
+        "rules": [
+            {
+                "name": "Use",
+                "parameters": [{"name":"P"}],
+                "pattern": {"kind":"pipeline","steps":[reference_pattern("P", json!([]))]}
+            },
+            {
+                "name": "Main",
+                "parameters": [],
+                "pattern": reference_pattern("Use", json!([
+                    {"kind":"equal","value":{"kind":"value.literal","value":"a"}}
+                ]))
+            }
+        ]
+    });
+    let (graph, url) = compile_scope_module(module);
+    let mut runtime =
+        Runtime::with_mode(graph, &url, None, json!("a"), InputMode::Iterable).unwrap();
+    runtime.run().unwrap();
+    assert_eq!(runtime.serialize_result().unwrap().unwrap(), r#""a""#);
+}
+
+#[test]
+// req:runtime-core-010
+fn scope_port_bound_arguments_shadow_declared_rules() {
+    let module = json!({
+        "imports": [],
+        "exports": [{"kind":"rule","name":"Main","default":true}],
+        "rules": [
+            {
+                "name": "Local",
+                "parameters": [],
+                "pattern": {"kind":"equal","value":{"kind":"value.literal","value":"zz"}}
+            },
+            {
+                "name": "Use",
+                "parameters": [{"name":"Local"}],
+                "pattern": reference_pattern("Local", json!([])),
+                "expression": {
+                    "kind":"invocation",
+                    "expression":{"kind":"reference","name":"host"},
+                    "args":[]
+                }
+            },
+            {
+                "name": "Main",
+                "parameters": [],
+                "pattern": reference_pattern("Use", json!([
+                    {"kind":"equal","value":{"kind":"value.literal","value":"a"}}
+                ]))
+            }
+        ]
+    });
+    let (graph, url) = compile_scope_module(module);
+    assert!(graph.resolve(&url, "Local").is_some());
+    let mut runtime = Runtime::with_hosts(
+        graph,
+        &url,
+        None,
+        json!("a"),
+        InputMode::Iterable,
+        vec![crate::value::HostCallable {
+            id: 1,
+            name: "host".into(),
+            arity: 0,
+        }],
+    )
+    .unwrap();
+    until_host(&mut runtime);
+    runtime.read(|execution| {
+        let frame = execution
+            .frames
+            .iter()
+            .rev()
+            .find(|frame| {
+                frame
+                    .invocation
+                    .as_ref()
+                    .is_some_and(|invocation| invocation.request.name.as_deref() == Some("Use"))
+            })
+            .unwrap();
+        let invocation = frame.invocation.as_ref().unwrap();
+        assert_eq!(invocation.request.stream.len(), 1);
+        assert_eq!(invocation.request.position, 0);
+        let arguments = &execution.targets[invocation.target].context().arguments;
+        assert_eq!(arguments.len(), 1);
+        assert_eq!(arguments[0].0, "Local");
+        assert!(matches!(
+            execution.targets[arguments[0].1],
+            Target::Inline { .. }
+        ));
+        assert!(frame.lexical_environment.get("not-from-caller").is_none());
+    });
+    let request = runtime.take_host_request().unwrap();
+    runtime
+        .complete_host(
+            &request,
+            Ok(crate::evaluate::HostCompletion::materialize(
+                vec![],
+                |mc, _| Ok(Value::string(mc, "arg")),
+            )),
+        )
+        .unwrap();
+    runtime.run().unwrap();
+    assert_eq!(runtime.serialize_result().unwrap().unwrap(), r#""arg""#);
+}

@@ -51,4 +51,4 @@ Postconditions:
   server and `uffda fmt` both use it.
 - Tests: `src/project/project.test.ts`, `src/project/load.test.ts`,
   `src/cli/project_languages.test.ts`, `src/cli/module_graph.test.ts`,
-  `src/lang/uffda/specifier.test.ts`.
+  `rust/src/lang_tests/uffda.rs`.

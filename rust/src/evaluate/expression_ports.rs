@@ -1290,3 +1290,19 @@ fn port_func_duplicate_parameter_is_raised() {
         EvaluationError::Pattern(PatternError::DuplicateVariable("a".into())),
     );
 }
+
+#[test]
+// req:expressions-runtime-002 req:expressions-runtime-007
+fn port_native_and_unknown_expression_kinds_fail_to_decode() {
+    for kind in ["native", "unknown"] {
+        let error = serde_json::from_value::<crate::expression::Expression>(
+            json!({"kind": kind, "fn": null}),
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(
+            error.contains(kind) || error.contains("unknown variant"),
+            "{kind}: {error}"
+        );
+    }
+}

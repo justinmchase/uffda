@@ -322,6 +322,24 @@ fn engine_port_source_spans_follow_item_origins_including_unread_and_eof() {
             spanned.result().unwrap().origin,
             Origin { start: 0, end: 3 }
         );
+
+        let mut quoted = PatternExecution::new(
+            mc,
+            Pattern::Then {
+                patterns: vec![
+                    Pattern::Any,
+                    Pattern::Then {
+                        patterns: vec![Pattern::Any, Pattern::Any],
+                    },
+                ],
+            },
+            tokens,
+            environment,
+        );
+        while !quoted.step(mc).unwrap() {}
+        let quoted = quoted.result().unwrap();
+        assert_eq!(quoted.origin, Origin { start: 0, end: 9 });
+        assert_eq!(quoted.children[1].origin, Origin { start: 7, end: 9 });
     });
 }
 
@@ -1050,9 +1068,10 @@ fn engine_port_incremental_edit_reuses_letters_before_the_edit() {
         .reparse_edit(json!("abcXdef"), InputMode::Iterable, 3, 0, 1)
         .unwrap();
     edited.run().unwrap();
-    assert!(
-        edited.read(|execution| execution.memo_hits()) >= 3,
-        "group invocations before the edit are reused"
+    assert_eq!(
+        edited.read(|execution| execution.memo_hits()),
+        3,
+        "only the three group invocations before the edit are reused; letter is skip-memo"
     );
     assert_eq!(
         parsed_result(&mut edited),
@@ -1094,6 +1113,19 @@ fn engine_port_incremental_seeded_edit_matches_a_fresh_parse() {
     edited
         .reparse_edit(json!("n+n+n+n"), InputMode::Iterable, 4, 1, 3)
         .unwrap();
+    let rehydrated = edited.read(|execution| {
+        execution
+            .memos
+            .iter()
+            .filter(
+                |memo| matches!(memo.state, super::MemoState::Complete(outcome) if outcome.seeded),
+            )
+            .count()
+    });
+    assert_eq!(
+        rehydrated, 0,
+        "seed-dependent outcomes are not rehydrated on their own"
+    );
     edited.run().unwrap();
     let mut fresh =
         Runtime::with_mode(compiled, &url, None, json!("n+n+n+n"), InputMode::Iterable).unwrap();
@@ -1127,4 +1159,311 @@ fn engine_port_memo_keys_isolate_the_recovery_setting() {
     keys.insert(recovering.clone(), 1);
     assert_eq!(keys.len(), 2);
     assert_eq!(keys.get(&recovering), Some(&1));
+}
+
+fn focus(pattern: Json, input: &str) -> (PatternKind, usize, String) {
+    let mut runtime =
+        Runtime::for_pattern(pattern_of(pattern), json!(input), InputMode::Iterable).unwrap();
+    runtime.run().unwrap();
+    let (kind, start) = runtime.read(|execution| {
+        let failure = execution.failure_match().expect("focused failure");
+        (failure.pattern_kind, failure.origin.start)
+    });
+    let message = runtime
+        .diagnostics()
+        .into_iter()
+        .map(|diagnostic| diagnostic.message)
+        .collect::<Vec<_>>()
+        .join("\n");
+    (kind, start, message)
+}
+
+#[test]
+// req:compiled-patterns-001
+fn engine_port_compiled_programs_are_cached_per_graph_not_by_shape() {
+    let module = json!({
+        "imports": [],
+        "exports": [
+            {"kind":"rule","name":"A","default":true},
+            {"kind":"rule","name":"B","default":false}
+        ],
+        "rules": [
+            rule("A", json!({"kind":"any"})),
+            rule("B", json!({"kind":"any"}))
+        ],
+        "funcs": [],
+        "decorators": []
+    });
+    let (first, url) = module_graph(module.clone());
+    let (second, _) = module_graph(module);
+    let program = |graph: &CompiledModuleGraph, name: &str| {
+        let member = graph
+            .graph
+            .modules
+            .get(&url)
+            .unwrap()
+            .locals
+            .get(name)
+            .unwrap()
+            .clone();
+        graph.declaration(&member).unwrap().pattern.clone()
+    };
+    let left = program(&first, "A");
+    let right = program(&first, "B");
+    assert!(!Rc::ptr_eq(&left, &right));
+    assert!(Rc::ptr_eq(&left, &program(&first, "A")));
+    assert!(!Rc::ptr_eq(&left, &program(&second, "A")));
+}
+
+#[test]
+// req:error-recovery-008 req:tokenizer-runtime-007 req:pipeline-001
+fn engine_port_recovery_spans_follow_into_pipeline_stage_origins() {
+    let recovered = run_text(
+        json!([rule(
+            "Main",
+            json!({
+                "kind":"pipeline",
+                "steps":[
+                    {"kind":"quantifier","pattern":{"kind":"any"}},
+                    {"kind":"into","pattern":{"kind":"quantifier","pattern":{
+                        "kind":"recover",
+                        "pattern": equal(json!("a")),
+                        "skip": {"kind":"any"}
+                    }}}
+                ]
+            })
+        )]),
+        "Main",
+        "aaxa",
+    );
+    let diagnostics = recovered.diagnostics();
+    assert_eq!(diagnostics.len(), 1, "{diagnostics:#?}");
+    assert_eq!(diagnostics[0].kind, DiagnosticKind::Recovery);
+    assert_eq!(diagnostics[0].span, Origin { start: 2, end: 3 });
+}
+
+#[test]
+// req:compiled-patterns-003 req:error-recovery-008
+fn engine_port_failure_focus_skips_absorbed_predicates_and_successful_stages() {
+    let (kind, start, message) = focus(
+        json!({
+            "kind":"then",
+            "patterns":[
+                {"kind":"pipeline","steps":[{
+                    "kind":"or",
+                    "patterns":[
+                        {"kind":"then","patterns":[{"kind":"any"},{"kind":"any"},equal(json!("y"))]},
+                        equal(json!("a"))
+                    ]
+                }]},
+                equal(json!("x"))
+            ]
+        }),
+        "abc",
+    );
+    assert_eq!(kind, PatternKind::Equal);
+    assert_eq!(start, 1);
+    assert!(message.contains("\"x\""), "{message}");
+    assert!(!message.contains("\"y\""), "{message}");
+
+    let (kind, start, message) = focus(
+        json!({
+            "kind":"then",
+            "patterns":[
+                {"kind":"any"},
+                {"kind":"not","pattern":{"kind":"then","patterns":[{"kind":"any"},equal(json!("Z"))]}},
+                equal(json!("x"))
+            ]
+        }),
+        "abc",
+    );
+    assert_eq!(kind, PatternKind::Equal, "{start} {message}");
+    assert_eq!(start, 1, "{message}");
+    assert!(message.contains("Unexpected \"b\""), "{message}");
+    assert!(!message.contains("\"Z\""), "{message}");
+
+    let (kind, start, _) = focus(
+        json!({
+            "kind":"then",
+            "patterns":[
+                equal(json!("a")),
+                {"kind":"not","pattern":{"kind":"or","patterns":[
+                    {"kind":"then","patterns":[equal(json!("b")), equal(json!("Z"))]},
+                    equal(json!("b"))
+                ]}}
+            ]
+        }),
+        "ab",
+    );
+    assert_eq!(kind, PatternKind::Not);
+    assert_eq!(start, 1);
+
+    let (kind, start, message) = focus(
+        json!({
+            "kind":"then",
+            "patterns":[
+                {"kind":"any"},
+                {"kind":"lookahead","pattern":{"kind":"or","patterns":[
+                    {"kind":"then","patterns":[{"kind":"any"},equal(json!("Z"))]},
+                    equal(json!("b"))
+                ]}},
+                equal(json!("x"))
+            ]
+        }),
+        "abc",
+    );
+    assert_eq!(kind, PatternKind::Equal, "{start} {message}");
+    assert_eq!(start, 1, "{message}");
+    assert!(message.contains("\"x\""), "{message}");
+    assert!(!message.contains("\"Z\""), "{message}");
+
+    let (kind, start, message) = focus(
+        json!({
+            "kind":"then",
+            "patterns":[
+                {"kind":"any"},
+                {"kind":"quantifier","pattern":equal(json!("q"))},
+                equal(json!("x"))
+            ]
+        }),
+        "ab",
+    );
+    assert_eq!(kind, PatternKind::Equal);
+    assert_eq!(start, 1);
+    assert!(message.contains("\"x\""), "{message}");
+    assert!(!message.contains("\"q\""), "{message}");
+}
+
+#[test]
+// req:compiled-patterns-003 req:error-recovery-008
+fn engine_port_failure_focus_prefers_the_least_absorbed_shared_path() {
+    let (compiled, url) = graph(
+        json!([
+            rule("Shared", equal(json!("x"))),
+            rule(
+                "Main",
+                json!({"kind":"then","patterns":[
+                    {"kind":"any"},
+                    {"kind":"or","patterns":[reference("Shared"), {"kind":"ok"}]},
+                    reference("Shared")
+                ]})
+            )
+        ]),
+        "Main",
+    );
+    let mut shared =
+        Runtime::with_mode(compiled, &url, None, json!("ab"), InputMode::Iterable).unwrap();
+    shared.run().unwrap();
+    let focus = shared.read(|execution| {
+        let failure = execution.failure_match().unwrap();
+        (failure.pattern_kind, failure.origin.start)
+    });
+    let message = shared.diagnostics()[0].message.clone();
+    assert_eq!(focus, (PatternKind::Resolve, 1), "{message}");
+    assert!(message.contains("\"x\""), "{message}");
+}
+
+#[test]
+// req:runtime-strings-002 req:into-001
+fn engine_port_wrapped_runs_and_string_items_keep_character_origins() {
+    uffda_heap::rootless_mutate(|mc| {
+        let word = concatenate(
+            mc,
+            &[
+                Value::string(mc, "a").wrap(mc, Origin { start: 0, end: 1 }),
+                Value::string(mc, "b").wrap(mc, Origin { start: 1, end: 2 }),
+            ],
+            Origin { start: 0, end: 2 },
+        )
+        .unwrap();
+        let joined = concatenate(
+            mc,
+            &[
+                word,
+                Value::string(mc, "!").wrap(mc, Origin { start: 5, end: 6 }),
+            ],
+            Origin { start: 0, end: 6 },
+        )
+        .unwrap();
+        assert_eq!(string_text(joined).unwrap(), "ab!");
+        assert_eq!(joined.char_origin(1), Some(Origin { start: 1, end: 2 }));
+        assert_eq!(joined.char_origin(2), Some(Origin { start: 5, end: 6 }));
+
+        let mixed = concatenate(
+            mc,
+            &[Value::string(mc, "x"), Value::Number(1.0)],
+            Origin { start: 7, end: 9 },
+        )
+        .unwrap();
+        assert_eq!(string_text(mixed).unwrap(), "x1");
+        assert_eq!(mixed.char_origin(0), Some(Origin { start: 7, end: 9 }));
+        assert_eq!(mixed.char_origin(1), Some(Origin { start: 7, end: 9 }));
+
+        let parts: Vec<_> = (0..50)
+            .map(|index| {
+                let start = index * 2;
+                Value::string(mc, "x").wrap(
+                    mc,
+                    Origin {
+                        start,
+                        end: start + 1,
+                    },
+                )
+            })
+            .collect();
+        let many = concatenate(mc, &parts, Origin { start: 0, end: 100 }).unwrap();
+        assert_eq!(many.char_origin(0), Some(Origin { start: 0, end: 1 }));
+        assert_eq!(many.char_origin(37), Some(Origin { start: 74, end: 75 }));
+        assert_eq!(many.char_origin(49), Some(Origin { start: 98, end: 99 }));
+        assert_eq!(many.char_origin(50), None);
+
+        let environment = Environment::new(mc, None, vec![]);
+        let into_chars = || Pattern::Into {
+            pattern: Box::new(Pattern::Quantifier {
+                pattern: Box::new(Pattern::Any),
+                min: None,
+                max: None,
+            }),
+        };
+        let mut linear = PatternExecution::new(mc, into_chars(), vec![joined], environment);
+        while !linear.step(mc).unwrap() {}
+        let linear = linear.result().unwrap();
+        assert_eq!(linear.kind, MatchKind::Ok);
+        assert_eq!(
+            linear.children[0].children[1].origin,
+            Origin { start: 1, end: 2 }
+        );
+        assert_eq!(
+            linear.children[0].children[2].origin,
+            Origin { start: 5, end: 6 }
+        );
+
+        let shared = Value::string(mc, "ab").wrap(mc, Origin { start: 10, end: 12 });
+        let mut unmapped = PatternExecution::new(mc, into_chars(), vec![shared], environment);
+        while !unmapped.step(mc).unwrap() {}
+        let unmapped = unmapped.result().unwrap();
+        assert_eq!(
+            unmapped.children[0].children[1].origin,
+            Origin { start: 10, end: 12 }
+        );
+
+        let value = Value::array(
+            mc,
+            vec![
+                Value::Number(1.0).wrap(mc, Origin { start: 0, end: 1 }),
+                Value::object(
+                    mc,
+                    vec![(
+                        "k".into(),
+                        Value::string(mc, "v").wrap(mc, Origin { start: 1, end: 2 }),
+                    )],
+                ),
+            ],
+        )
+        .wrap(mc, Origin { start: 0, end: 2 });
+        assert_eq!(
+            crate::globals::json_text(value).unwrap().as_deref(),
+            Some("[1,{\"k\":\"v\"}]")
+        );
+    });
 }

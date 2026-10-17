@@ -1843,6 +1843,28 @@ fn modport_rule_origin_records_the_recovery_setting() {
 }
 
 #[test]
+// req:rule-decorators-004
+fn modport_attr_absent_declarations_leave_metadata_empty() {
+    let (graph, url) = compile_one(json!({
+        "imports": [],
+        "exports": [{"kind":"rule","name":"Target","default":true}],
+        "rules": [rule("Target", json!({"kind":"any"}))]
+    }));
+    let member = graph.resolve(&url, "Target").unwrap();
+    let mut runtime = Runtime::metadata(graph).unwrap();
+    runtime.run().unwrap();
+    runtime.read(|execution| {
+        let record = execution
+            .declarations
+            .iter()
+            .find(|record| record.member == member)
+            .unwrap();
+        assert!(record.attributes.borrow().is_empty());
+    });
+    assert_eq!(runtime.serialize_metadata(&member).unwrap().unwrap(), "{}");
+}
+
+#[test]
 // req:runtime-core-007
 fn modport_rule_fresh_invocation_completes_with_the_match() {
     let mut module = exported("Any");

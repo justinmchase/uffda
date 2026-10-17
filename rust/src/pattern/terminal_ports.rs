@@ -664,6 +664,108 @@ fn port_between_carries_the_wrapped_input_item() {
     });
 }
 
+fn compare_to_method<'gc>(mc: &Mutation<'gc>) -> Value<'gc> {
+    let body: Expression = serde_json::from_value(json!({
+        "kind": "invocation",
+        "expression": {"kind": "reference", "name": "compare"},
+        "args": [
+            {
+                "kind": "member",
+                "name": "value",
+                "expression": {"kind": "reference", "name": "obj"}
+            },
+            {
+                "kind": "member",
+                "name": "value",
+                "expression": {"kind": "reference", "name": "this"}
+            }
+        ]
+    }))
+    .unwrap();
+    CompiledExpression::new(body).bind(
+        mc,
+        Environment::new(mc, None, vec![]),
+        Origin { start: 0, end: 0 },
+        Pattern::Variable {
+            name: "obj".into(),
+            pattern: Box::new(Pattern::Any),
+        },
+    )
+}
+
+fn comparable<'gc>(mc: &Mutation<'gc>, method: Value<'gc>, value: f64) -> Value<'gc> {
+    Value::object(
+        mc,
+        vec![
+            ("value".into(), Value::Number(value)),
+            ("compareTo".into(), method),
+        ],
+    )
+}
+
+fn assert_compare_to(left: f64, right: f64, value: f64, ok: bool) {
+    uffda_heap::rootless_mutate(|mc| {
+        let method = compare_to_method(mc);
+        let sample = comparable(mc, method, value);
+        let mut execution = PatternExecution::new(
+            mc,
+            Pattern::Between {
+                left: Some(variable_source("lo")),
+                right: Some(variable_source("hi")),
+            },
+            vec![sample],
+            Environment::new(
+                mc,
+                None,
+                vec![
+                    ("lo".into(), comparable(mc, method, left)),
+                    ("hi".into(), comparable(mc, method, right)),
+                ],
+            ),
+        );
+        let result = complete(mc, &mut execution);
+        assert_eq!(
+            result.kind,
+            if ok { MatchKind::Ok } else { MatchKind::Fail }
+        );
+        assert_eq!(result.end, usize::from(ok));
+        if ok {
+            assert!(result.value.raw().strict_eq(sample));
+        }
+    });
+}
+
+#[test]
+// req:between-001
+fn port_between_orders_objects_that_expose_compare_to() {
+    // BETWEEN08-11: compareTo(other) orders by the objects' value properties.
+    assert_compare_to(1.0, 1.0, 1.0, true);
+    assert_compare_to(1.0, 2.0, 1.0, true);
+    assert_compare_to(0.0, 1.0, 1.0, true);
+    assert_compare_to(0.0, 0.0, 1.0, false);
+    uffda_heap::rootless_mutate(|mc| {
+        let method = compare_to_method(mc);
+        let sample = comparable(mc, method, 1.0);
+        for (left, right) in [
+            (Value::object(mc, vec![]), comparable(mc, method, 0.0)),
+            (comparable(mc, method, 0.0), Value::object(mc, vec![])),
+        ] {
+            let mut execution = PatternExecution::new(
+                mc,
+                Pattern::Between {
+                    left: Some(variable_source("lo")),
+                    right: Some(variable_source("hi")),
+                },
+                vec![sample],
+                Environment::new(mc, None, vec![("lo".into(), left), ("hi".into(), right)]),
+            );
+            let result = complete(mc, &mut execution);
+            assert_eq!(result.kind, MatchKind::Fail);
+            assert_eq!(result.end, 0);
+        }
+    });
+}
+
 #[test]
 // req:character-001
 fn port_character_matches_declared_unicode_classes() {

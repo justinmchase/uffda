@@ -11,7 +11,8 @@ use crate::expression::Expression;
 use crate::module::{CompiledModuleGraph, ModuleBindings};
 use crate::pattern::{
     FailureDiagnostic, MatchKind, Pattern, PatternArgument, PatternError, PatternExecution,
-    PatternKind, PatternMatch, PatternProgram, PatternRequest, ResolveTargetKind,
+    PatternKind, PatternMatch, PatternProgram, PatternRequest, ResolveTargetKind, ResolveValue,
+    SpecialBody,
 };
 use crate::resolver::graph::{MemberKind, ModuleMember};
 use crate::value::{HostCallable, Value};
@@ -154,12 +155,20 @@ enum Target<'gc> {
         environment: Environment<'gc>,
         context: Gc<'gc, Context>,
     },
+    Special {
+        #[collect(require_static)]
+        pattern: Rc<PatternProgram>,
+        environment: Environment<'gc>,
+        context: Gc<'gc, Context>,
+    },
 }
 
 impl<'gc> Target<'gc> {
     fn context(&self) -> Gc<'gc, Context> {
         match self {
-            Self::Declared { context, .. } | Self::Inline { context, .. } => *context,
+            Self::Declared { context, .. }
+            | Self::Inline { context, .. }
+            | Self::Special { context, .. } => *context,
         }
     }
 }
@@ -1752,7 +1761,7 @@ impl<'gc> RuleExecution<'gc> {
                 if let Some((_, target)) = context.arguments.iter().find(|(key, _)| key == name) {
                     match &self.targets[*target] {
                         Target::Declared { member, .. } => Some(member.clone()),
-                        Target::Inline { .. } => {
+                        Target::Inline { .. } | Target::Special { .. } => {
                             if request.argument_count != 0 {
                                 return Err(RuntimeError::InvalidArguments(format!(
                                     "bound argument {name} accepts no further arguments"
@@ -1771,11 +1780,7 @@ impl<'gc> RuleExecution<'gc> {
                 .graph
                 .as_ref()
                 .and_then(|graph| graph.export(&context.module, request.name.as_deref())),
-            ResolveTargetKind::Special => {
-                return Err(RuntimeError::InvalidArguments(
-                    "special resolution requires a canonical module or rule value".into(),
-                ));
-            }
+            ResolveTargetKind::Special => return self.special_target(request, context),
         }
         .ok_or_else(|| {
             RuntimeError::UnknownRule(request.name.clone().unwrap_or_else(|| "default".into()))
@@ -1881,7 +1886,45 @@ impl<'gc> RuleExecution<'gc> {
                 pattern.execution_on_input(mc, request.input(), *environment),
                 *environment,
             )),
+            Target::Special {
+                pattern,
+                environment,
+                ..
+            } => Ok((
+                request.rule_execution(mc, pattern.clone(), *environment),
+                *environment,
+            )),
         }
+    }
+
+    fn special_target(
+        &mut self,
+        request: &PatternRequest<'gc>,
+        context: Gc<'gc, Context>,
+    ) -> Result<usize, RuntimeError> {
+        let pattern = match request.special.as_ref().map(ResolveValue::special_body) {
+            Some(SpecialBody::Program(pattern)) => pattern,
+            Some(SpecialBody::MissingDefault) => {
+                return Err(RuntimeError::InvalidArguments(
+                    "Module does not have a default export, please specify which Rule you want to import"
+                        .into(),
+                ));
+            }
+            None => return Err(RuntimeError::Pattern(PatternError::NullValue)),
+            Some(SpecialBody::Unrecognized) => {
+                return Err(RuntimeError::InvalidArguments(
+                    "special resolution requires a canonical module or rule value".into(),
+                ));
+            }
+        };
+        let environment = request.environment;
+        let target = self.targets.len();
+        self.targets.push(Target::Special {
+            pattern,
+            environment,
+            context,
+        });
+        Ok(target)
     }
 
     fn observe(&mut self, dependency: Dependency) {
@@ -2249,7 +2292,7 @@ impl<'gc> RuleExecution<'gc> {
                     .invocation
                     .as_ref()
                     .ok_or(RuntimeError::InvalidState)?;
-                PatternMatch::boundary(
+                let matched = PatternMatch::boundary(
                     mc,
                     invocation
                         .pattern_match
@@ -2258,7 +2301,14 @@ impl<'gc> RuleExecution<'gc> {
                     invocation.pattern_match.ok_or(RuntimeError::InvalidState)?,
                     invocation.request.environment,
                     value,
-                )
+                );
+                // A rule expression builds its own value, so a skipped body
+                // becomes an ordinary success.
+                if matched.kind == MatchKind::Skip {
+                    PatternMatch::with_kind(mc, matched, MatchKind::Ok)
+                } else {
+                    matched
+                }
             }
             Execution::Metadata => return Err(RuntimeError::InvalidState),
         };
@@ -2438,7 +2488,7 @@ impl<'gc> RuleExecution<'gc> {
                     .iter()
                     .map(|(_, target)| *target)
                     .collect(),
-                Target::Inline { .. } => unreachable!(),
+                Target::Inline { .. } | Target::Special { .. } => unreachable!(),
             };
             PatternMatch::with_rule(mc, outcome, self.declarations[index], arguments)
         } else {

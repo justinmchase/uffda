@@ -1195,3 +1195,309 @@ fn resolve_scope_port_inline_argument_sees_the_caller_variable() {
     assert_eq!(kind, MatchKind::Ok);
     assert_eq!(value, "v");
 }
+
+fn run_pattern(
+    pattern: Pattern,
+    input: serde_json::Value,
+) -> Result<(MatchKind, usize, String), String> {
+    let mut runtime = Runtime::for_pattern(pattern, input, InputMode::Iterable)
+        .map_err(|error| error.to_string())?;
+    runtime.run().map_err(|error| error.to_string())?;
+    runtime.read(|execution| {
+        let result = execution.result().unwrap();
+        Ok((result.kind, result.end, nested_text(result.value)))
+    })
+}
+
+fn special_rule(pattern: Pattern) -> Pattern {
+    Pattern::Resolve {
+        target_kind: ResolveTargetKind::Special,
+        name: None,
+        args: vec![],
+        value: Some(ResolveValue::rule(pattern)),
+    }
+}
+
+fn special_module(default: Option<Pattern>) -> Pattern {
+    Pattern::Resolve {
+        target_kind: ResolveTargetKind::Special,
+        name: None,
+        args: vec![],
+        value: Some(ResolveValue::module(default)),
+    }
+}
+
+#[test]
+// req:resolve-001
+fn reference_port_rejects_too_few_arguments() {
+    let module = module_json(
+        json!([]),
+        "Main",
+        vec![
+            rule_json("A", &["T"], reference_json("T", json!([]))),
+            rule_json("Main", &[], reference_json("A", json!([]))),
+        ],
+    );
+    let error = run_modules(
+        &[("file:///reference-port.json", module)],
+        "file:///reference-port.json",
+        json!("a"),
+    )
+    .unwrap_err();
+    assert_eq!(error, "invalid argument count for A: expected 1, got 0");
+}
+
+#[test]
+// req:resolve-001
+fn reference_port_rejects_too_many_arguments() {
+    let module = module_json(
+        json!([]),
+        "Main",
+        vec![
+            rule_json("A", &[], equal_json(json!("a"))),
+            rule_json(
+                "Main",
+                &[],
+                reference_json("A", json!([reference_json("B", json!([]))])),
+            ),
+        ],
+    );
+    let error = run_modules(
+        &[("file:///reference-port.json", module)],
+        "file:///reference-port.json",
+        json!("a"),
+    )
+    .unwrap_err();
+    assert_eq!(error, "invalid argument count for A: expected 0, got 1");
+}
+
+#[test]
+// req:resolve-001
+fn reference_port_rejects_an_unknown_argument_reference() {
+    let module = module_json(
+        json!([]),
+        "Main",
+        vec![
+            rule_json("A", &["T"], reference_json("T", json!([]))),
+            rule_json(
+                "Main",
+                &[],
+                reference_json("A", json!([reference_json("B", json!([]))])),
+            ),
+        ],
+    );
+    let error = run_modules(
+        &[("file:///reference-port.json", module)],
+        "file:///reference-port.json",
+        json!("a"),
+    )
+    .unwrap_err();
+    assert_eq!(error, "unknown rule reference: B");
+}
+
+#[test]
+// req:resolve-001
+fn reference_port_unknown_name_in_another_module_errors() {
+    let main = module_json(
+        json!([{
+            "kind": "module",
+            "moduleUrl": "file:///a.ts",
+            "names": ["A"]
+        }]),
+        "Main",
+        vec![
+            rule_json("B", &[], reference_json("C", json!([]))),
+            rule_json("C", &[], equal_json(json!("a"))),
+            rule_json(
+                "Main",
+                &[],
+                reference_json("A", json!([reference_json("B", json!([]))])),
+            ),
+        ],
+    );
+    let other = json!({
+        "imports": [],
+        "exports": [{"kind":"rule","name":"A","default":true}],
+        "rules": [rule_json("A", &["T"], reference_json("C", json!([])))]
+    });
+    let error = run_modules(
+        &[
+            ("file:///reference-port.json", main),
+            ("file:///a.ts", other),
+        ],
+        "file:///reference-port.json",
+        json!("a"),
+    )
+    .unwrap_err();
+    assert_eq!(error, "unknown rule reference: C");
+}
+
+#[test]
+// req:resolve-001
+fn resolve_pattern_port_unknown_reference_errors() {
+    let module = module_json(
+        json!([]),
+        "Main",
+        vec![rule_json("Main", &[], reference_json("Missing", json!([])))],
+    );
+    let error = run_modules(
+        &[("file:///resolve-pattern-port.json", module)],
+        "file:///resolve-pattern-port.json",
+        json!("a"),
+    )
+    .unwrap_err();
+    assert_eq!(error, "unknown rule reference: Missing");
+}
+
+#[test]
+// req:resolve-001
+fn resolve_pattern_port_missing_run_target_errors() {
+    let module = module_json(
+        json!([]),
+        "Main",
+        vec![rule_json(
+            "Main",
+            &[],
+            json!({"kind":"resolve","targetKind":"run","name":"Missing"}),
+        )],
+    );
+    let error = run_modules(
+        &[("file:///resolve-pattern-port.json", module)],
+        "file:///resolve-pattern-port.json",
+        json!("a"),
+    )
+    .unwrap_err();
+    assert_eq!(error, "unknown rule reference: Missing");
+}
+
+#[test]
+// req:resolve-001 req:skip-002
+fn resolve_port_rule_whose_body_skips_is_skipped() {
+    let module = module_json(
+        json!([]),
+        "Main",
+        vec![
+            rule_json("Ws", &[], json!({"kind":"skip","pattern":{"kind":"any"}})),
+            rule_json("Main", &[], reference_json("Ws", json!([]))),
+        ],
+    );
+    let (kind, _, value) = run_modules(
+        &[("file:///resolve-pattern-port.json", module)],
+        "file:///resolve-pattern-port.json",
+        json!("a"),
+    )
+    .unwrap();
+    assert_eq!(kind, MatchKind::Skip);
+    assert_eq!(value, "undefined");
+}
+
+#[test]
+// req:resolve-001 req:skip-002
+fn resolve_port_rule_expression_over_a_skip_is_an_ordinary_success() {
+    let mut ws = rule_json("Ws", &[], json!({"kind":"skip","pattern":{"kind":"any"}}));
+    ws["expression"] = json!({"kind":"value","value":"ws"});
+    let module = module_json(
+        json!([]),
+        "Main",
+        vec![ws, rule_json("Main", &[], reference_json("Ws", json!([])))],
+    );
+    let (kind, _, value) = run_modules(
+        &[("file:///resolve-pattern-port.json", module)],
+        "file:///resolve-pattern-port.json",
+        json!("a"),
+    )
+    .unwrap();
+    assert_eq!(kind, MatchKind::Ok);
+    assert_eq!(value, "ws");
+}
+
+#[test]
+// req:resolve-001
+fn special_port_module_default_runs() {
+    let (kind, end, value) = run_pattern(special_module(Some(Pattern::Any)), json!("a")).unwrap();
+    assert_eq!(kind, MatchKind::Ok);
+    assert_eq!(end, 1);
+    assert_eq!(value, "a");
+}
+
+#[test]
+// req:resolve-001
+fn special_port_rule_runs() {
+    let (kind, end, value) = run_pattern(special_rule(Pattern::Any), json!([7])).unwrap();
+    assert_eq!(kind, MatchKind::Ok);
+    assert_eq!(end, 1);
+    assert_eq!(value, "7");
+}
+
+#[test]
+// req:resolve-001 req:skip-002
+fn special_port_rule_whose_body_skips_is_skipped() {
+    let (kind, end, value) = run_pattern(
+        special_rule(Pattern::Skip {
+            pattern: Box::new(Pattern::Any),
+        }),
+        json!("a"),
+    )
+    .unwrap();
+    assert_eq!(kind, MatchKind::Skip);
+    assert_eq!(end, 1);
+    assert_eq!(value, "undefined");
+}
+
+#[test]
+// req:resolve-001
+fn special_port_module_without_a_default_errors() {
+    let error = run_pattern(special_module(None), json!([])).unwrap_err();
+    assert_eq!(
+        error,
+        "Module does not have a default export, please specify which Rule you want to import"
+    );
+}
+
+#[test]
+// req:resolve-001 req:over-002
+fn pattern_port_decodes_a_resolve_reference_and_an_over_rest_and_rejects_an_unknown_kind() {
+    let resolve: Pattern = serde_json::from_value(json!({
+        "kind": "resolve",
+        "targetKind": "reference",
+        "name": "Value",
+        "args": []
+    }))
+    .unwrap();
+    assert!(matches!(
+        resolve,
+        Pattern::Resolve {
+            target_kind: ResolveTargetKind::Reference,
+            name: Some(name),
+            args,
+            value: None,
+        } if name == "Value" && args.is_empty()
+    ));
+
+    let over: Pattern = serde_json::from_value(json!({
+        "kind": "over",
+        "keys": {},
+        "rest": [{
+            "kind": "pattern",
+            "entry": "entry",
+            "key": {"kind": "any"},
+            "value": {"kind": "any"}
+        }]
+    }))
+    .unwrap();
+    match over {
+        Pattern::Over { keys, rest } => {
+            assert_eq!(keys.as_ref().map(Vec::len), Some(0));
+            let rest = rest.expect("rest");
+            assert_eq!(rest.len(), 1);
+            assert!(matches!(
+                &rest[0],
+                OverRestClause::Pattern { entry: Some(entry), .. } if entry == "entry"
+            ));
+        }
+        other => panic!("expected over, got {other:?}"),
+    }
+
+    let error = serde_json::from_value::<Pattern>(json!({"kind": "unknown"})).unwrap_err();
+    assert!(error.to_string().contains("unknown"), "{error}");
+}

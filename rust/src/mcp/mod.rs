@@ -777,6 +777,9 @@ fn wrap_cli_ok_payload(args: &[String], field: &str) -> Value {
 }
 
 #[cfg(test)]
+mod ported_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 

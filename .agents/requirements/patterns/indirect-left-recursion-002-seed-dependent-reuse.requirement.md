@@ -40,10 +40,13 @@ Postconditions:
 - `src/requirements/patterns/indirect-left-recursion-002-seed-dependent-reuse.requirement.test.ts`
   covers the transitive, superseded, final-iteration, and within-iteration cases
   (the last by counting evaluations of a projection in the involved rule).
-- `src/memo.test.ts` (`MEMO_SEED_*`) covers dependency recording, staleness, and
-  nested dependency chains at the `Memos` level.
-- `src/runtime/rule.test.ts` (`RULE14`) asserts involved outcomes carry
-  `origin.seeded` while the head's does not.
-- `src/runtime/incremental.test.ts` (`INCREMENTAL01`) asserts an edit that lets
-  an indirect cycle grow further re-parses to the same value as a fresh parse,
-  with no seeded outcome rehydrated.
+- `rust/src/runtime/tests.rs`
+  (`compaction_preserves_pending_growth_and_transitive_seed_dependencies`)
+  covers seed-dependency retention across eviction.
+- `rust/src/runtime/module_ports.rs`
+  (`modport_rule_indirect_growth_marks_involved_outcomes_seeded`) asserts
+  involved outcomes carry `origin.seeded` while the head's does not.
+- `rust/src/runtime/engine_ports.rs`
+  (`engine_port_incremental_seeded_edit_matches_a_fresh_parse`) asserts an edit
+  that lets an indirect cycle grow further re-parses to the same value as a
+  fresh parse, with no seeded outcome rehydrated.

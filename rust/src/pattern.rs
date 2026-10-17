@@ -180,8 +180,8 @@ pub enum Pattern {
         name: Option<String>,
         #[serde(default)]
         args: Vec<Self>,
-        #[serde(default)]
-        value: Option<JsonValue>,
+        #[serde(default, deserialize_with = "deserialize_resolve_value")]
+        value: Option<ResolveValue>,
     },
     Projection {
         pattern: Box<Self>,
@@ -422,6 +422,29 @@ impl<'gc> PatternMatch<'gc> {
         rebased[&(Gc::as_ptr(child) as usize)]
     }
 
+    pub fn with_kind(mc: &Mutation<'gc>, matched: Gc<'gc, Self>, kind: MatchKind) -> Gc<'gc, Self> {
+        Gc::new(
+            mc,
+            Self {
+                kind,
+                value: matched.value,
+                start: matched.start,
+                end: matched.end,
+                environment: matched.environment,
+                origin: matched.origin,
+                identity: matched.identity,
+                seeded: matched.seeded,
+                recovered: matched.recovered,
+                recovery: matched.recovery,
+                rule: matched.rule,
+                children: matched.children.clone(),
+                provenance: matched.provenance.clone(),
+                pattern_index: matched.pattern_index,
+                pattern_kind: matched.pattern_kind,
+            },
+        )
+    }
+
     pub fn with_seeded(mc: &Mutation<'gc>, child: Gc<'gc, Self>, seeded: bool) -> Gc<'gc, Self> {
         Gc::new(
             mc,
@@ -452,6 +475,133 @@ pub enum ResolveTargetKind {
     Reference,
     Run,
     Special,
+}
+
+/// A resolve special is a module default or a rule, carried as a compiled
+/// pattern. JSON that is not one of those stays opaque.
+#[derive(Clone)]
+pub struct ResolveValue {
+    kind: ResolveKind,
+}
+
+#[derive(Clone)]
+enum ResolveKind {
+    Json(JsonValue),
+    Module { default: Option<Rc<PatternProgram>> },
+    Rule { pattern: Rc<PatternProgram> },
+}
+
+pub(crate) enum SpecialBody {
+    Program(Rc<PatternProgram>),
+    MissingDefault,
+    Unrecognized,
+}
+
+impl ResolveValue {
+    fn json(value: JsonValue) -> Self {
+        Self {
+            kind: ResolveKind::Json(value),
+        }
+    }
+
+    pub(crate) fn rule(pattern: Pattern) -> Self {
+        Self {
+            kind: ResolveKind::Rule {
+                pattern: PatternProgram::compile(pattern),
+            },
+        }
+    }
+
+    pub(crate) fn module(default: Option<Pattern>) -> Self {
+        Self {
+            kind: ResolveKind::Module {
+                default: default.map(PatternProgram::compile),
+            },
+        }
+    }
+
+    pub(crate) fn special_body(&self) -> SpecialBody {
+        match &self.kind {
+            ResolveKind::Module {
+                default: Some(pattern),
+            }
+            | ResolveKind::Rule { pattern } => SpecialBody::Program(Rc::clone(pattern)),
+            ResolveKind::Module { default: None } => SpecialBody::MissingDefault,
+            ResolveKind::Json(_) => SpecialBody::Unrecognized,
+        }
+    }
+
+    fn json_text(&self) -> Option<String> {
+        match &self.kind {
+            ResolveKind::Json(value) => Some(value.to_string()),
+            _ => None,
+        }
+    }
+
+    fn take_json(&mut self) -> Option<JsonValue> {
+        match &mut self.kind {
+            ResolveKind::Json(value) => Some(std::mem::replace(value, JsonValue::Null)),
+            _ => None,
+        }
+    }
+}
+
+impl std::fmt::Debug for ResolveValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.kind {
+            ResolveKind::Json(value) => f.debug_tuple("Json").field(value).finish(),
+            ResolveKind::Module { default } => f
+                .debug_struct("Module")
+                .field("default", &default.is_some())
+                .finish(),
+            ResolveKind::Rule { .. } => f.debug_struct("Rule").finish(),
+        }
+    }
+}
+
+fn special_from_json(value: &JsonValue) -> Option<Result<ResolveValue, String>> {
+    let JsonValue::Object(object) = value else {
+        return None;
+    };
+    let JsonValue::String(kind) = object.get("kind")? else {
+        return None;
+    };
+    let pattern_of = |value: &JsonValue| {
+        crate::json::from_value(value.clone()).map_err(|error| error.to_string())
+    };
+    if kind == "rule" {
+        let Some(pattern) = object.get("pattern") else {
+            return Some(Err("rule special requires a pattern".into()));
+        };
+        return Some(pattern_of(pattern).map(ResolveValue::rule));
+    }
+    if kind == "module" {
+        let default = match object.get("default") {
+            None | Some(JsonValue::Null) => None,
+            Some(pattern) => match pattern_of(pattern) {
+                Ok(pattern) => Some(pattern),
+                Err(error) => return Some(Err(error)),
+            },
+        };
+        return Some(Ok(ResolveValue::module(default)));
+    }
+    None
+}
+
+fn deserialize_resolve_value<'de, D>(deserializer: D) -> Result<Option<ResolveValue>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let Some(value) = Option::<JsonValue>::deserialize(deserializer)? else {
+        return Ok(None);
+    };
+    if matches!(value, JsonValue::Null) {
+        return Ok(None);
+    }
+    if let Some(special) = special_from_json(&value) {
+        return special.map(Some).map_err(serde::de::Error::custom);
+    }
+    Ok(Some(ResolveValue::json(value)))
 }
 
 #[derive(Debug, Deserialize)]
@@ -658,7 +808,7 @@ enum PatternNode {
         target_kind: ResolveTargetKind,
         name: Option<Rc<str>>,
         args: Rc<[usize]>,
-        value: Option<JsonValue>,
+        value: Option<ResolveValue>,
     },
     Projection(usize, CompiledExpression),
     Pipeline(Rc<[usize]>),
@@ -876,6 +1026,7 @@ impl Drop for PatternProgram {
                 pending.push(std::mem::replace(value, JsonValue::Null));
             }
         };
+        let mut resolve_json = Vec::new();
         for node in &mut self.nodes {
             match node {
                 PatternNode::Equal(source) => take(source),
@@ -895,9 +1046,15 @@ impl Drop for PatternProgram {
                         }
                     }
                 }
+                PatternNode::Resolve { value, .. } => {
+                    if let Some(value) = value.as_mut().and_then(ResolveValue::take_json) {
+                        resolve_json.push(value);
+                    }
+                }
                 _ => {}
             }
         }
+        pending.extend(resolve_json);
         while let Some(value) = pending.pop() {
             match value {
                 JsonValue::Array(values) => pending.extend(values),
@@ -1202,6 +1359,8 @@ pub struct PatternRequest<'gc> {
     pub target_kind: ResolveTargetKind,
     pub name: Option<String>,
     pub value: Option<String>,
+    #[collect(require_static)]
+    pub special: Option<ResolveValue>,
     pub argument_count: usize,
     arguments: Vec<usize>,
     pattern_index: usize,
@@ -1979,16 +2138,7 @@ impl<'gc> PatternExecution<'gc> {
                             .transpose()?;
                         let value = scope.input.get(scope.position).copied();
                         let matched = match value {
-                            Some(value) => {
-                                if matches!(value.raw(), Value::Null | Value::Undefined) {
-                                    return Err(PatternError::NullValue);
-                                }
-                                left.as_ref()
-                                    .is_none_or(|left| within_bound(left, value, true))
-                                    && right
-                                        .as_ref()
-                                        .is_none_or(|right| within_bound(right, value, false))
-                            }
+                            Some(value) => in_interval(mc, left.as_ref(), right.as_ref(), value)?,
                             None => false,
                         };
                         self.set(
@@ -2083,7 +2233,8 @@ impl<'gc> PatternExecution<'gc> {
                         self.pending_request = Some(PatternRequest {
                             target_kind: *target_kind,
                             name: name.as_ref().map(|name| name.to_string()),
-                            value: value.as_ref().map(ToString::to_string),
+                            value: value.as_ref().and_then(ResolveValue::json_text),
+                            special: value.clone(),
                             argument_count: args.len(),
                             arguments: args.to_vec(),
                             pattern_index: scope.pattern_index,
@@ -3555,13 +3706,18 @@ fn equal(
     }
 }
 
-enum OrderedValue {
+enum OrderedValue<'gc> {
     Number(f64),
     String(RuntimeString),
+    /// An object that may expose a callable `compareTo` property.
+    Object(Value<'gc>),
     Unordered,
 }
 
-fn ordered_source(source: &ValueSource, scope: Scope<'_>) -> Result<OrderedValue, PatternError> {
+fn ordered_source<'gc>(
+    source: &ValueSource,
+    scope: Scope<'gc>,
+) -> Result<OrderedValue<'gc>, PatternError> {
     match source {
         ValueSource::Variable { name } => {
             let value = scope
@@ -3571,6 +3727,7 @@ fn ordered_source(source: &ValueSource, scope: Scope<'_>) -> Result<OrderedValue
             Ok(match value.raw() {
                 Value::Number(value) => OrderedValue::Number(value),
                 Value::String(value) => OrderedValue::String((*value).clone()),
+                Value::Object(_) => OrderedValue::Object(value.raw()),
                 _ => OrderedValue::Unordered,
             })
         }
@@ -3585,24 +3742,107 @@ fn ordered_source(source: &ValueSource, scope: Scope<'_>) -> Result<OrderedValue
     }
 }
 
-fn within_bound(bound: &OrderedValue, value: Value<'_>, lower: bool) -> bool {
-    match (bound, value.raw()) {
-        (OrderedValue::Number(bound), Value::Number(value)) => {
-            if lower {
-                *bound <= value
-            } else {
-                value <= *bound
-            }
+fn in_interval<'gc>(
+    mc: &Mutation<'gc>,
+    left: Option<&OrderedValue<'gc>>,
+    right: Option<&OrderedValue<'gc>>,
+    value: Value<'gc>,
+) -> Result<bool, PatternError> {
+    if matches!(value.raw(), Value::Null | Value::Undefined) {
+        return Err(PatternError::NullValue);
+    }
+    let comparable = |bound: &OrderedValue<'gc>| match (bound, value.raw()) {
+        (OrderedValue::Number(_), Value::Number(_))
+        | (OrderedValue::String(_), Value::String(_)) => true,
+        (OrderedValue::Object(bound), Value::Object(_)) => compare_to_method(*bound).is_some(),
+        _ => false,
+    };
+    if left.is_some_and(|bound| !comparable(bound)) || right.is_some_and(|bound| !comparable(bound))
+    {
+        return Ok(false);
+    }
+    let above = match left {
+        None => true,
+        Some(bound) => within_bound(mc, bound, value, true)?,
+    };
+    let below = match right {
+        None => true,
+        Some(bound) => within_bound(mc, bound, value, false)?,
+    };
+    Ok(above && below)
+}
+
+fn compare_to_method<'gc>(bound: Value<'gc>) -> Option<Value<'gc>> {
+    let Value::Object(properties) = bound.raw() else {
+        return None;
+    };
+    properties.borrow().get("compareTo").filter(|method| {
+        matches!(
+            method.raw(),
+            Value::Lambda(_) | Value::Native(_) | Value::Host(_)
+        )
+    })
+}
+
+fn call_compare_to<'gc>(
+    mc: &Mutation<'gc>,
+    bound: Value<'gc>,
+    value: Value<'gc>,
+) -> Result<f64, PatternError> {
+    let method = compare_to_method(bound).ok_or(PatternError::InvalidState)?;
+    let mut execution = ExpressionExecution::call_with_subject(
+        mc,
+        method,
+        vec![value.raw()],
+        Environment::new(mc, None, vec![]),
+        Origin { start: 0, end: 0 },
+        bound,
+    );
+    for _ in 0..10_000 {
+        if execution.host_pending()
+            || execution.input_pending()
+            || execution.take_request().is_some()
+        {
+            return Err(PatternError::InvalidState);
         }
+        if execution
+            .step(mc)
+            .map_err(|error| PatternError::Expression(Box::new(error)))?
+        {
+            return match execution.result().map(|value| value.raw()) {
+                Some(Value::Number(order)) => Ok(order),
+                _ => Err(PatternError::InvalidState),
+            };
+        }
+    }
+    Err(PatternError::InvalidState)
+}
+
+fn within_bound<'gc>(
+    mc: &Mutation<'gc>,
+    bound: &OrderedValue<'gc>,
+    value: Value<'gc>,
+    lower: bool,
+) -> Result<bool, PatternError> {
+    match (bound, value.raw()) {
+        (OrderedValue::Number(bound), Value::Number(value)) => Ok(if lower {
+            *bound <= value
+        } else {
+            value <= *bound
+        }),
         (OrderedValue::String(bound), Value::String(value)) => {
             let ordering = bound.as_utf16().cmp(value.as_utf16());
-            if lower {
+            Ok(if lower {
                 ordering != std::cmp::Ordering::Greater
             } else {
                 ordering != std::cmp::Ordering::Less
-            }
+            })
         }
-        _ => false,
+        (OrderedValue::Object(bound), Value::Object(_)) => {
+            let order = call_compare_to(mc, *bound, value)?;
+            Ok(if lower { order >= 0.0 } else { order <= 0.0 })
+        }
+        _ => Ok(false),
     }
 }
 

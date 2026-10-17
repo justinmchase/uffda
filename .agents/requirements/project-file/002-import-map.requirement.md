@@ -44,7 +44,8 @@ Postconditions:
 
 - An import means the same module in `compile`, `run`, `exec`, the language
   server, and MCP sessions of one project.
-- Tests: `rust/src/resolver/ported_tests.rs`, `src/runtime/resolve.test.ts`
-  (RESOLVE11), `src/cli/command_project.test.ts`, `src/cli/contract.test.ts`,
+- Tests: `rust/src/resolver/ported_tests.rs`, `rust/src/runtime/module_ports.rs`
+  (`modport_resolve_import_map_artifacts_and_package_boundaries`),
+  `src/cli/command_project.test.ts`, `src/cli/contract.test.ts`,
   `src/cli/main.test.ts`, `src/cli/mcp.session.test.ts`,
   `src/cli/mcp.session_tools.test.ts`, `src/cli/lsp.test.ts`.
