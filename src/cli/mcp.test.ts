@@ -31,6 +31,7 @@ Deno.test("cli.mcp", async (t) => {
           [
             "uffda_authoring_context",
             "uffda_compile",
+            "uffda_experiment",
             "uffda_highlight",
             "uffda_match",
             "uffda_parse",

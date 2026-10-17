@@ -152,6 +152,8 @@ export type CliExecOptions = {
   input?: unknown;
   /** How `input` is presented: text as its characters, JSON as one value. */
   inputKind?: InputNormalizationMode;
+  /** Optional local bindings visible to the entry rule / expression. */
+  variables?: Map<string, unknown> | Record<string, unknown>;
 };
 
 /**
@@ -231,6 +233,7 @@ export async function executeCliAst(
     artifacts: options?.artifacts,
     imports: options?.imports,
     packages: options?.packages,
+    variables: options?.variables,
     scopeOptions: {
       globals: new Map([...globals, ["echo", (output: unknown) => output]]),
     },
@@ -293,6 +296,7 @@ export async function executeCliModule(
     packages: options?.packages,
     input: options?.input,
     inputKind: options?.inputKind,
+    variables: options?.variables,
     scopeOptions: {
       globals: new Map([...globals, ["echo", (output: unknown) => output]]),
     },

@@ -5,6 +5,7 @@
 
 mod authoring;
 mod display;
+mod experiment;
 pub(crate) mod ops;
 pub(crate) mod sessions;
 
@@ -221,6 +222,31 @@ fn tool_descriptors() -> Vec<Value> {
                 "additionalProperties": false
             }),
         ),
+        tool(
+            "uffda_experiment",
+            "uffda experiment",
+            "Parses an Uffda / pattern / expression snippet in memory and optionally matches or evaluates it against sample input(s) without sessions or writing files/artifacts. Supports multiple independent inputs in one call. Full modules with imports are parse-only (unsupported for run).",
+            json!({
+                "type": "object",
+                "properties": {
+                    "language": {
+                        "type": "string",
+                        "enum": ["uffda", "pattern", "expression"]
+                    },
+                    "source": { "type": "string" },
+                    "input": { "type": "string" },
+                    "inputs": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                    },
+                    "inputIsJson": { "type": "boolean" },
+                    "rule": { "type": "string" },
+                    "variables": { "type": "object" }
+                },
+                "required": ["language", "source"],
+                "additionalProperties": false
+            }),
+        ),
     ];
     tools.extend(sessions::session_tool_descriptors());
     tools.extend(display::display_tool_descriptors());
@@ -271,6 +297,7 @@ fn call_tool(
         "uffda_session_display_render" => tool_display_render(arguments, sessions, displays),
         "uffda_highlight" => tool_highlight(arguments),
         "uffda_authoring_context" => tool_authoring_context(arguments),
+        "uffda_experiment" => tool_experiment(arguments),
         other => error_result(format!("Unknown tool: {other}")),
     }
 }
@@ -281,6 +308,10 @@ fn tool_authoring_context(arguments: &Value) -> Value {
     };
     let language = arguments.get("language").and_then(|v| v.as_str());
     text_result(authoring::authoring_context(task, language).to_string())
+}
+
+fn tool_experiment(arguments: &Value) -> Value {
+    text_result(experiment::experiment(arguments).to_string())
 }
 
 fn tool_display_open(
@@ -776,6 +807,7 @@ mod tests {
         assert!(names.contains(&"uffda_version"));
         assert!(names.contains(&"uffda_parse"));
         assert!(names.contains(&"uffda_authoring_context"));
+        assert!(names.contains(&"uffda_experiment"));
         assert!(names.contains(&"uffda_session_open"));
 
         let call = call(

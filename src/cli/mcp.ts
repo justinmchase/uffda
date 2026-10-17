@@ -27,6 +27,12 @@ import {
   authoringContextToolInputShape,
   authoringContextToolResult,
 } from "./mcp.authoring_context.ts";
+import {
+  experimentToolHandler,
+  type ExperimentToolInput,
+  experimentToolInputShape,
+  experimentToolResult,
+} from "./mcp.experiment.ts";
 import { registerSessionTools } from "./mcp.session_tools.ts";
 import { registerDisplayTools } from "./mcp.display_tools.ts";
 import { SessionManager } from "./mcp.sessions.ts";
@@ -142,6 +148,22 @@ export function createUffdaMcpServer(): McpServer {
     },
     (input: AuthoringContextToolInput) =>
       authoringContextToolResult(authoringContextToolHandler(input)),
+  );
+
+  server.registerTool(
+    "uffda_experiment",
+    {
+      title: "uffda experiment",
+      description:
+        "Parses an Uffda / pattern / expression snippet in memory and " +
+        "optionally matches or evaluates it against sample input(s) without " +
+        "sessions or writing files/artifacts. Supports multiple independent " +
+        "inputs in one call. Full modules with imports are parse-only " +
+        "(unsupported for run).",
+      inputSchema: experimentToolInputShape,
+    },
+    async (input: ExperimentToolInput) =>
+      experimentToolResult(await experimentToolHandler(input)),
   );
 
   const sessions = new SessionManager();
