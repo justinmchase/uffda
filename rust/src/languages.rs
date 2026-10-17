@@ -330,6 +330,16 @@ pub struct ParsedSource {
     pub diagnostics: Vec<SourceDiagnostic>,
 }
 
+/// One parse of a source text: highlight spans plus the projected match tree.
+pub struct Analysis {
+    pub spans: Vec<crate::highlight::HighlightSpan>,
+    pub tree: Option<crate::mcp::ops::RetainedMatch>,
+    pub diagnostics: Vec<SourceDiagnostic>,
+    /// Serialized AST from the same parse, when the grammar produced a value.
+    /// Callers can compile/load this without running UffdaLang again.
+    pub syntax: Option<crate::json::JsonValue>,
+}
+
 struct LanguageOutcome {
     value: Value,
     metadata: Value,
@@ -357,7 +367,13 @@ pub struct Languages {
 
 impl Languages {
     pub fn new() -> Result<Self, LanguageError> {
-        let resolver = Resolver::from_cwd().map_err(|error| LanguageError {
+        // Embedded grammars do not depend on process cwd. Use a private
+        // absolute artifact root so callers (LSP/MCP) can set the real
+        // project root via `Project` / `Resolver::new` separately.
+        let root = std::env::temp_dir().join("uffda-languages");
+        let out_dir = root.join("bin");
+        let _ = std::fs::create_dir_all(&out_dir);
+        let resolver = Resolver::new(root, out_dir).map_err(|error| LanguageError {
             phase: "resolve",
             module_url: error.module_url,
             message: error.message,
@@ -802,6 +818,121 @@ impl Languages {
             diagnostics: outcome.diagnostics,
         })
     }
+
+    /// Parse `source` and classify gap-free highlight spans from rule metadata
+    /// (`Highlight` / `Keyword`), matching the MCP/LSP highlighting contract.
+    pub fn highlight(
+        &mut self,
+        source: &str,
+        language: Language,
+    ) -> Result<serde_json::Value, LanguageError> {
+        let (runtime, diagnostics) = self.parse_runtime(source, language, false)?;
+        Ok(crate::highlight::from_runtime(
+            &runtime,
+            source,
+            &diagnostics,
+        ))
+    }
+
+    /// Parse `source` once and return both the gap-free highlight spans and the
+    /// projected match tree (character-offset spans, rule metadata) for
+    /// editor walks. A failed or recovered parse still yields whatever tree
+    /// the runtime produced.
+    pub fn analyze(&mut self, source: &str, language: Language) -> Result<Analysis, LanguageError> {
+        self.analyze_with_open(source, language, false)
+    }
+
+    /// [`Languages::analyze`] for `source` as an open input: a prefix of a longer
+    /// text still being written, so repetitions record the element they expect
+    /// at its end (completion contexts read those expectations).
+    pub fn analyze_open(
+        &mut self,
+        source: &str,
+        language: Language,
+    ) -> Result<Analysis, LanguageError> {
+        self.analyze_with_open(source, language, true)
+    }
+
+    fn analyze_with_open(
+        &mut self,
+        source: &str,
+        language: Language,
+        open: bool,
+    ) -> Result<Analysis, LanguageError> {
+        let (mut runtime, diagnostics) = self.parse_runtime(source, language, open)?;
+        let spans = crate::highlight::spans_from_runtime(&runtime, source);
+        let tree = crate::mcp::ops::project_match_tree(&runtime);
+        // Serialize after projecting the match tree: serialization mutates the
+        // runtime, but the tree/spans only need a finished parse.
+        let syntax = if diagnostics.is_empty() {
+            runtime
+                .serialize_result()
+                .ok()
+                .flatten()
+                .and_then(|text| crate::json::from_str(&text).ok())
+        } else {
+            None
+        };
+        Ok(Analysis {
+            spans,
+            tree,
+            diagnostics,
+            syntax,
+        })
+    }
+
+    fn parse_runtime(
+        &mut self,
+        source: &str,
+        language: Language,
+        open: bool,
+    ) -> Result<(Runtime, Vec<SourceDiagnostic>), LanguageError> {
+        let (path, entry) = language.entry();
+        let url = self.root.join(path).expect("static language path");
+        let graph = self.graph(&url)?;
+        let member = graph
+            .export(&url, Some(entry))
+            .or_else(|| graph.resolve(&url, entry))
+            .ok_or_else(|| LanguageError {
+                phase: "parse",
+                module_url: url.to_string(),
+                message: format!("Unknown rule {entry}"),
+                diagnostics: vec![],
+            })?;
+        let input = Value::String(source.into());
+        let mut runtime = if open {
+            Runtime::for_member_open(graph, &member, input, InputMode::Scalar)
+        } else {
+            Runtime::for_member(graph, &member, input, InputMode::Scalar)
+        }
+        .map_err(|failure| LanguageError {
+            phase: "parse",
+            module_url: url.to_string(),
+            message: failure.to_string(),
+            diagnostics: vec![],
+        })?;
+        runtime.run().map_err(|failure| LanguageError {
+            phase: "parse",
+            module_url: url.to_string(),
+            message: failure.to_string(),
+            diagnostics: vec![],
+        })?;
+        let diagnostics = diagnostics::collect(
+            &runtime,
+            source,
+            "CLI_STREAM_PARSE_RECOVERED",
+            "CLI_STREAM_PARSE_FAILURE",
+            "parse",
+        )
+        .map_err(|failure| LanguageError {
+            phase: "parse",
+            module_url: url.to_string(),
+            message: failure.to_string(),
+            diagnostics: vec![],
+        })?;
+        Ok((runtime, diagnostics))
+    }
+
     pub fn compile(&mut self, syntax: Value) -> Result<Value, LanguageError> {
         self.execute(
             "src/lang/uffda/runtime.compiler.uff",

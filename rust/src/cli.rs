@@ -159,6 +159,8 @@ Rust migration preview:
   match         Match pattern source or --ast JSON against input.
   run           Execute an exported rule from module source or --ast syntax JSON.
   fmt           Format files/globs, or '-' for .uff stdin, with language metadata.
+  mcp           Start a Model Context Protocol stdio server.
+  lsp           Start a Language Server Protocol stdio server.
 
 Options:
   -e, --eval         Inline program source input.

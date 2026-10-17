@@ -48,6 +48,13 @@ matching files the `uffda` language id with
 ids at runtime, so every grammar's files share `uffda` (the status bar shows
 "Uffda") and the language server picks the grammar from the file's extension.
 
+The language client sends workspace folders on `initialize` (and folder change
+notifications afterward). It also passes `initializationOptions.cacheDir`
+pointing at the extension's persistent storage so JSR package downloads do not
+depend on process cwd or the user's home cache. Relative `.uff` imports stay
+file-relative; `uffda.jsonc` is still discovered from the document path within
+its workspace folder.
+
 See the "Language configuration" and "VS Code extension" sections of
 [`language-server.spec.md`](../../.agents/specifications/languages/cli/language-server.spec.md)
 and requirements

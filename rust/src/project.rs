@@ -4,6 +4,7 @@ use crate::resolver::packages::{JsrPackages, Lockfile};
 use std::collections::BTreeMap;
 use std::fmt;
 use std::path::{Path, PathBuf};
+use url::Url;
 
 pub struct Project {
     pub path: PathBuf,
@@ -223,6 +224,13 @@ impl Project {
     }
 
     pub fn resolver(&self) -> Result<Resolver, ProjectError> {
+        self.resolver_with_cache(None)
+    }
+
+    /// Like [`Self::resolver`], but uses `cache_dir` for JSR package downloads
+    /// when provided (e.g. the editor's extension storage) instead of the
+    /// process default cache home.
+    pub fn resolver_with_cache(&self, cache_dir: Option<&Path>) -> Result<Resolver, ProjectError> {
         let error = |message: String| ProjectError {
             path: self.path.clone(),
             problems: vec![message],
@@ -233,7 +241,17 @@ impl Project {
             .set_import_map(self.imports.clone())
             .map_err(|failure| error(failure.to_string()))?;
         let lockfile = Lockfile::load(self.root.join("uffda.lock")).map_err(error)?;
-        resolver.set_packages(JsrPackages::standard(lockfile).map_err(error)?);
+        let packages = match cache_dir {
+            Some(cache_dir) => JsrPackages::new(
+                Url::parse("https://jsr.io/").map_err(|failure| error(failure.to_string()))?,
+                cache_dir.to_path_buf(),
+                std::rc::Rc::new(crate::resolver::packages::HttpTransport),
+                lockfile,
+            ),
+            None => JsrPackages::standard(lockfile),
+        }
+        .map_err(error)?;
+        resolver.set_packages(packages);
         Ok(resolver)
     }
 }

@@ -145,6 +145,12 @@ not introduce a parallel parsing or compilation pathway.
   (captured variables and parameters) and runtime globals MUST be describable
   too: locals from the document's parse tree, globals from the metadata they
   carry (see [runtime value metadata](../../runtime/value-metadata.spec.md)).
+  Hover over a `[ModulePath]` (see
+  [editor metadata](./editor-metadata.spec.md#completion-contexts)) MUST
+  describe the module that path resolves to relative to the importing document:
+  the resolved module URL (and filesystem path when it is a `file:` URL) and the
+  names it exports, when those are known from resolved session state or a
+  read-only inspection of the target module.
 - The server MUST support go-to-definition (`textDocument/definition`) for
   references to rules, funcs, and decorators, resolving to the declaration's
   source location within the workspace's resolved module graph, and for local
@@ -300,6 +306,19 @@ not introduce a parallel parsing or compilation pathway.
   compile-on-demand into it — the same contract as
   [MCP session load](./mcp-server.spec.md#session-lifecycle-tools) — and MUST
   NOT introduce an LSP-config setting for it.
+- When the client advertises multiple workspace folders, the project (and
+  artifact layout) for a document MUST be derived from the document's path
+  within the workspace folder that contains it (longest matching folder URI) —
+  typically the nearest `uffda.jsonc` under that folder — not a single
+  workspace-wide root such as `workspaceFolders[0]` or process cwd. A document
+  outside every advertised folder MAY fall back to nearest-`uffda.jsonc`
+  discovery from the file alone.
+- Relative import specifiers MUST resolve against the importing document's
+  module URL only; workspace folders and cwd MUST NOT redefine their target.
+- The client MAY pass host context through LSP `initializationOptions` (for
+  example an absolute `cacheDir` for package downloads). When `cacheDir` is
+  present and absolute, the server MUST use it for JSR package resolution
+  instead of the process default cache home.
 
 ## Status
 
