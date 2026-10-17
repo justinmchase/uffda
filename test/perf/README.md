@@ -40,6 +40,10 @@ JSON uses explicit `$type`/`value` envelopes: it is a lossless comparison
 convention, not ordinary JSON's native reconstruction. Every fixture is checked
 against the codec document and round-tripped through a collected native arena.
 
+This report is **on-demand / local**, not a per-commit Checks step. Checks still
+run `codec_probe` tests and relocated standalone acceptance; measured evidence
+is retained in `data-codec-baseline.json` rather than regenerated on every PR.
+
 After the normal published-compiler bootstrap, run:
 
 ```sh

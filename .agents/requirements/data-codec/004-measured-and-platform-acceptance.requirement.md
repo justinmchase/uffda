@@ -25,7 +25,8 @@ Expected behavior:
   Codec records MUST round-trip through native materialization and encoding.
 - Raw and gzip byte sizes, gzip compression/decompression time, Rust encode and
   decode throughput for raw and gzip pipelines, sample count, record count, and
-  input chunk size MUST be reported. Compression-only cost and parser/pipeline
+  input chunk size MUST be reportable via the in-tree measurement tooling
+  (`test/perf/data-codec.report.ts`). Compression-only cost and parser/pipeline
   cost MUST be identified separately. Data-document decode MUST NOT be
   advertised as fully materialized native-runtime throughput.
 - Linux raw and gzip measurements MUST record independent child-process peak
@@ -35,6 +36,10 @@ Expected behavior:
   before reading the next.
 - Measurements MUST report the host/toolchain and MUST NOT impose speculative
   speed or size thresholds or claim superiority from shared-host timings.
+- Per-commit Checks MUST NOT re-run the full raw/gzip cost report. Persistent
+  measured evidence MUST remain in-repo (for example
+  `test/perf/data-codec-baseline.json`); regenerating the report is a manual /
+  on-demand action, not a merge gate.
 - A standalone streaming consumer MUST read arbitrary byte chunks, deliver
   complete records before EOF, retain native value types, honor backpressure,
   accept final unterminated records, and fail explicitly on malformed/truncated
@@ -51,8 +56,8 @@ Expected behavior:
 
 Postconditions:
 
-- Corpus, report tooling, tests, CI coverage, and measured evidence are
-  persistent.
+- Corpus, report tooling, tests, standalone-acceptance CI coverage, and
+  persistent measured evidence remain available.
 - Artifact format, compiler bootstrap, installer, and cutover policy are
   unchanged.
 - Tests cite this requirement in the report helpers and Rust acceptance example.
