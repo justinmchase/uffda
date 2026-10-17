@@ -1048,7 +1048,7 @@ checksum = "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20"
 
 [[package]]
 name = "uffda-heap"
-version = "0.0.0"
+version = "0.9.6"
 dependencies = [
  "gc-arena",
  "uffda-heap-derive",
@@ -1056,7 +1056,7 @@ dependencies = [
 
 [[package]]
 name = "uffda-heap-derive"
-version = "0.0.0"
+version = "0.9.6"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1066,7 +1066,7 @@ dependencies = [
 
 [[package]]
 name = "uffda-runtime"
-version = "0.0.0"
+version = "0.9.6"
 dependencies = [
  "base64 0.22.1",
  "bs58",
