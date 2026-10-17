@@ -193,12 +193,8 @@ fn must_fail_graph(
 }
 
 fn drive_now<F: std::future::Future>(future: F) -> F::Output {
-    struct Noop;
-    impl std::task::Wake for Noop {
-        fn wake(self: std::sync::Arc<Self>) {}
-    }
-    let waker = std::task::Waker::from(std::sync::Arc::new(Noop));
-    let mut cx = std::task::Context::from_waker(&waker);
+    let waker = std::task::Waker::noop();
+    let mut cx = std::task::Context::from_waker(waker);
     let mut future = Box::pin(future);
     for _ in 0..10_000 {
         if let std::task::Poll::Ready(result) = future.as_mut().poll(&mut cx) {
@@ -1853,5 +1849,5 @@ fn modport_rule_fresh_invocation_completes_with_the_match() {
     module["rules"] = json!([rule("Any", json!({"kind":"any"}))]);
     let runtime = execute_module(module, "a");
     assert_eq!(outcome(&runtime), (crate::pattern::MatchKind::Ok, 1, false));
-    assert_eq!(runtime.read(|execution| execution.error().is_none()), true);
+    assert!(runtime.read(|execution| execution.error().is_none()));
 }
