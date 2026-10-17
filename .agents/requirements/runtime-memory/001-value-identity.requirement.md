@@ -29,6 +29,6 @@ Expected behavior:
 Postconditions:
 
 - Tests: `rust/src/value.rs`, `rust/src/gc_tests.rs`,
-  `rust/src/globals/tests.rs`, `src/runtime/globals/eq.test.ts`,
-  `src/runtime/globals/id.test.ts`, `src/runtime/globals/symbol.test.ts`, and
-  `src/runtime/globals/slice.test.ts`.
+  `rust/src/globals/tests.rs`, `src/runtime/globals/symbol.test.ts`, and
+  `src/runtime/globals/slice.test.ts`. `eq` and `id` identity assertions are in
+  `rust/src/globals/tests.rs`.

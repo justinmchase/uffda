@@ -1067,3 +1067,975 @@ fn json_and_flat_are_stack_safe_and_detect_cycles() {
         );
     });
 }
+
+#[test]
+// req:standard-library-002
+fn gt_is_true_only_when_left_sorts_strictly_after_right() {
+    assert_eq!(
+        evaluate(call("gt", vec![literal(json!(2)), literal(json!(1))])),
+        "true"
+    );
+    assert_eq!(
+        evaluate(call("gt", vec![literal(json!(1)), literal(json!(2))])),
+        "false"
+    );
+    assert_eq!(
+        evaluate(call("gt", vec![literal(json!(2)), literal(json!(2))])),
+        "false"
+    );
+    let metadata = metadata_of("gt").expect("gt metadata");
+    assert_eq!(
+        metadata
+            .parameters
+            .iter()
+            .map(|parameter| parameter.name)
+            .collect::<Vec<_>>(),
+        ["left", "right"]
+    );
+}
+
+#[test]
+// req:standard-library-002
+fn lt_is_true_only_when_left_sorts_strictly_before_right() {
+    assert_eq!(
+        evaluate(call("lt", vec![literal(json!(1)), literal(json!(2))])),
+        "true"
+    );
+    assert_eq!(
+        evaluate(call("lt", vec![literal(json!(2)), literal(json!(1))])),
+        "false"
+    );
+    assert_eq!(
+        evaluate(call("lt", vec![literal(json!(2)), literal(json!(2))])),
+        "false"
+    );
+    let metadata = metadata_of("lt").expect("lt metadata");
+    assert_eq!(
+        metadata
+            .parameters
+            .iter()
+            .map(|parameter| parameter.name)
+            .collect::<Vec<_>>(),
+        ["left", "right"]
+    );
+}
+
+#[test]
+// req:standard-library-002
+fn gte_is_true_when_left_sorts_after_or_equal_to_right() {
+    assert_eq!(
+        evaluate(call("gte", vec![literal(json!(2)), literal(json!(1))])),
+        "true"
+    );
+    assert_eq!(
+        evaluate(call("gte", vec![literal(json!(2)), literal(json!(2))])),
+        "true"
+    );
+    assert_eq!(
+        evaluate(call("gte", vec![literal(json!(1)), literal(json!(2))])),
+        "false"
+    );
+    let metadata = metadata_of("gte").expect("gte metadata");
+    assert_eq!(
+        metadata
+            .parameters
+            .iter()
+            .map(|parameter| parameter.name)
+            .collect::<Vec<_>>(),
+        ["left", "right"]
+    );
+}
+
+#[test]
+// req:standard-library-002
+fn lte_is_true_when_left_sorts_before_or_equal_to_right() {
+    assert_eq!(
+        evaluate(call("lte", vec![literal(json!(1)), literal(json!(2))])),
+        "true"
+    );
+    assert_eq!(
+        evaluate(call("lte", vec![literal(json!(2)), literal(json!(2))])),
+        "true"
+    );
+    assert_eq!(
+        evaluate(call("lte", vec![literal(json!(2)), literal(json!(1))])),
+        "false"
+    );
+    let metadata = metadata_of("lte").expect("lte metadata");
+    assert_eq!(
+        metadata
+            .parameters
+            .iter()
+            .map(|parameter| parameter.name)
+            .collect::<Vec<_>>(),
+        ["left", "right"]
+    );
+}
+
+#[test]
+// req:standard-library-002
+fn not_negates_truthiness_of_raw_values() {
+    assert_eq!(evaluate(call("not", vec![literal(json!(true))])), "false");
+    assert_eq!(evaluate(call("not", vec![literal(json!(false))])), "true");
+    assert_eq!(evaluate(call("not", vec![literal(json!(0))])), "true");
+    assert_eq!(evaluate(call("not", vec![literal(json!("x"))])), "false");
+    let metadata = metadata_of("not").expect("not metadata");
+    assert_eq!(
+        metadata
+            .parameters
+            .iter()
+            .map(|parameter| parameter.name)
+            .collect::<Vec<_>>(),
+        ["value"]
+    );
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        let invoke_bool = |value| match invoke(mc, NativeGlobal::Not, vec![value], origin).unwrap()
+        {
+            NativeResult::Value(Value::Boolean(value)) => value,
+            _ => panic!("expected boolean"),
+        };
+        assert!(invoke_bool(Value::Boolean(false).wrap(mc, origin)));
+        assert!(invoke_bool(Value::Number(0.0).wrap(mc, origin)));
+    });
+}
+
+fn parameter_names(global: &str) -> Vec<&'static str> {
+    metadata_of(global)
+        .unwrap_or_else(|| panic!("{global} metadata"))
+        .parameters
+        .iter()
+        .map(|parameter| parameter.name)
+        .collect()
+}
+
+#[test]
+// req:standard-library-002
+fn add_adds_numbers_rejects_non_numbers_and_reads_raw_operands() {
+    assert_eq!(
+        evaluate(call("add", vec![literal(json!(2)), literal(json!(3))])),
+        "5"
+    );
+    assert_eq!(parameter_names("add"), ["left", "right"]);
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        assert!(
+            invoke(
+                mc,
+                NativeGlobal::Add,
+                vec![Value::string(mc, "2"), Value::Number(3.0)],
+                origin,
+            )
+            .is_err()
+        );
+        let sum = match invoke(
+            mc,
+            NativeGlobal::Add,
+            vec![
+                Value::Number(7.0).wrap(mc, origin),
+                Value::Number(11.0).wrap(mc, Origin { start: 1, end: 2 }),
+            ],
+            origin,
+        )
+        .unwrap()
+        {
+            NativeResult::Value(Value::Number(sum)) => sum,
+            _ => panic!("expected number"),
+        };
+        assert_eq!(sum, 18.0);
+    });
+}
+
+#[test]
+// req:standard-library-002
+fn sub_subtracts_numbers_rejects_non_numbers_and_reads_raw_operands() {
+    assert_eq!(
+        evaluate(call("sub", vec![literal(json!(5)), literal(json!(2))])),
+        "3"
+    );
+    assert_eq!(
+        evaluate(call("sub", vec![literal(json!(2)), literal(json!(5))])),
+        "-3"
+    );
+    assert_eq!(parameter_names("sub"), ["left", "right"]);
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        assert!(
+            invoke(
+                mc,
+                NativeGlobal::Sub,
+                vec![Value::string(mc, "5"), Value::Number(2.0)],
+                origin,
+            )
+            .is_err()
+        );
+        assert!(
+            invoke(
+                mc,
+                NativeGlobal::Sub,
+                vec![Value::Number(5.0), Value::string(mc, "2")],
+                origin,
+            )
+            .is_err()
+        );
+        let difference = match invoke(
+            mc,
+            NativeGlobal::Sub,
+            vec![
+                Value::Number(11.0).wrap(mc, origin),
+                Value::Number(7.0).wrap(mc, Origin { start: 1, end: 2 }),
+            ],
+            origin,
+        )
+        .unwrap()
+        {
+            NativeResult::Value(Value::Number(difference)) => difference,
+            _ => panic!("expected number"),
+        };
+        assert_eq!(difference, 4.0);
+    });
+}
+
+#[test]
+// req:standard-library-002
+fn compare_orders_numbers_and_strings_and_rejects_mixed_types() {
+    assert_eq!(
+        evaluate(call("compare", vec![literal(json!(1)), literal(json!(2))])),
+        "-1"
+    );
+    assert_eq!(
+        evaluate(call("compare", vec![literal(json!(2)), literal(json!(1))])),
+        "1"
+    );
+    assert_eq!(
+        evaluate(call("compare", vec![literal(json!(2)), literal(json!(2))])),
+        "0"
+    );
+    assert_eq!(
+        evaluate(call(
+            "compare",
+            vec![literal(json!("a")), literal(json!("b"))]
+        )),
+        "-1"
+    );
+    assert_eq!(
+        evaluate(call(
+            "compare",
+            vec![literal(json!("b")), literal(json!("a"))]
+        )),
+        "1"
+    );
+    assert_eq!(
+        evaluate(call(
+            "compare",
+            vec![literal(json!("a")), literal(json!("a"))]
+        )),
+        "0"
+    );
+    assert_eq!(parameter_names("compare"), ["left", "right"]);
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        assert!(
+            invoke(
+                mc,
+                NativeGlobal::Compare,
+                vec![Value::Number(1.0), Value::string(mc, "1")],
+                origin,
+            )
+            .is_err()
+        );
+        assert!(
+            invoke(
+                mc,
+                NativeGlobal::Compare,
+                vec![Value::Null, Value::Number(1.0)],
+                origin,
+            )
+            .is_err()
+        );
+        assert!(
+            invoke(
+                mc,
+                NativeGlobal::Compare,
+                vec![Value::object(mc, vec![]), Value::object(mc, vec![])],
+                origin,
+            )
+            .is_err()
+        );
+        let order = match invoke(
+            mc,
+            NativeGlobal::Compare,
+            vec![
+                Value::string(mc, "a").wrap(mc, origin),
+                Value::string(mc, "b").wrap(mc, Origin { start: 1, end: 2 }),
+            ],
+            origin,
+        )
+        .unwrap()
+        {
+            NativeResult::Value(Value::Number(order)) => order,
+            _ => panic!("expected number"),
+        };
+        assert_eq!(order, -1.0);
+    });
+}
+
+#[test]
+// req:standard-library-002
+fn pack_collects_arguments_and_preserves_undefined_and_aggregates() {
+    assert_eq!(
+        evaluate(call(
+            "pack",
+            vec![literal(json!(1)), literal(json!("a")), literal(json!(true))]
+        )),
+        r#"[1,"a",true]"#
+    );
+    assert_eq!(parameter_names("pack"), ["values"]);
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        let aggregate = Value::object(mc, vec![("value".into(), Value::Number(42.0))]);
+        let NativeResult::Value(Value::Array(values)) = invoke(
+            mc,
+            NativeGlobal::Pack,
+            vec![Value::Undefined, aggregate],
+            origin,
+        )
+        .unwrap() else {
+            panic!("pack must return an array");
+        };
+        let values = values.borrow();
+        assert!(values[0].strict_eq(Value::Undefined));
+        assert!(values[1].strict_eq(aggregate));
+    });
+}
+
+#[test]
+// req:standard-library-002
+fn one_returns_the_sole_element_or_the_full_value() {
+    assert_eq!(parameter_names("one"), ["items", "full"]);
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        let call_one =
+            |items, full| match invoke(mc, NativeGlobal::One, vec![items, full], origin).unwrap() {
+                NativeResult::Value(value) => value,
+                _ => panic!("expected value"),
+            };
+        let sole = Value::object(mc, vec![("kind".into(), Value::string(mc, "any"))]);
+        assert!(call_one(Value::array(mc, vec![sole]), Value::Null).strict_eq(sole));
+        let full = Value::array(mc, vec![Value::Number(1.0), Value::Number(2.0)]);
+        assert!(call_one(full, full).strict_eq(full));
+        let empty_full = Value::object(mc, vec![]);
+        assert!(call_one(Value::array(mc, vec![]), empty_full).strict_eq(empty_full));
+        let item = Value::Number(1.0).wrap(mc, origin);
+        let wrapped_items = Value::array(mc, vec![item]).wrap(mc, origin);
+        assert!(call_one(wrapped_items, Value::Undefined).strict_eq(item));
+    });
+}
+
+#[test]
+// req:standard-library-002
+fn last_returns_the_final_element_or_the_fallback() {
+    assert_eq!(
+        evaluate(call(
+            "last",
+            vec![literal(json!(["a", "b", "c"])), literal(json!(null))]
+        )),
+        "\"c\""
+    );
+    assert_eq!(
+        evaluate(call(
+            "last",
+            vec![literal(json!([])), literal(json!("fallback"))]
+        )),
+        "\"fallback\""
+    );
+    assert_eq!(
+        evaluate(call(
+            "last",
+            vec![literal(json!("ab")), literal(json!(null))]
+        )),
+        "\"b\""
+    );
+    assert_eq!(
+        evaluate(call(
+            "last",
+            vec![literal(json!("")), literal(json!("fallback"))]
+        )),
+        "\"fallback\""
+    );
+    assert_eq!(parameter_names("last"), ["self", "fallback"]);
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        let fallback = Value::string(mc, "fallback");
+        let call_last =
+            |value| match invoke(mc, NativeGlobal::Last, vec![value, fallback], origin).unwrap() {
+                NativeResult::Value(value) => value,
+                _ => panic!("expected value"),
+            };
+        for value in [
+            Value::Null,
+            Value::Undefined,
+            Value::Number(42.0),
+            Value::object(mc, vec![]),
+            Value::set(mc, vec![Value::Number(1.0)]),
+        ] {
+            assert!(call_last(value).strict_eq(fallback));
+        }
+        let item = Value::Number(2.0).wrap(mc, Origin { start: 1, end: 2 });
+        let items = Value::array(mc, vec![Value::Number(1.0).wrap(mc, origin), item])
+            .wrap(mc, Origin { start: 0, end: 2 });
+        match invoke(
+            mc,
+            NativeGlobal::Last,
+            vec![items, Value::Undefined],
+            origin,
+        )
+        .unwrap()
+        {
+            NativeResult::Value(value) => assert!(value.strict_eq(item)),
+            _ => panic!("expected value"),
+        }
+    });
+}
+
+#[test]
+// req:standard-library-002
+fn coalesce_returns_the_first_non_nullish_raw_value() {
+    assert_eq!(
+        evaluate(call(
+            "coalesce",
+            vec![
+                literal(json!(null)),
+                literal(json!(null)),
+                literal(json!(0)),
+                literal(json!(1))
+            ]
+        )),
+        "0"
+    );
+    assert_eq!(parameter_names("coalesce"), ["values"]);
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        match invoke(
+            mc,
+            NativeGlobal::Coalesce,
+            vec![
+                Value::Undefined,
+                Value::Null,
+                Value::Number(0.0),
+                Value::Number(1.0),
+            ],
+            origin,
+        )
+        .unwrap()
+        {
+            NativeResult::Value(Value::Number(value)) => assert_eq!(value, 0.0),
+            _ => panic!("expected zero"),
+        }
+        match invoke(
+            mc,
+            NativeGlobal::Coalesce,
+            vec![Value::Undefined, Value::Null],
+            origin,
+        )
+        .unwrap()
+        {
+            NativeResult::Value(Value::Undefined) => {}
+            _ => panic!("expected undefined"),
+        }
+        let chosen = Value::Number(0.0).wrap(mc, Origin { start: 1, end: 2 });
+        match invoke(
+            mc,
+            NativeGlobal::Coalesce,
+            vec![Value::Undefined.wrap(mc, origin), chosen],
+            origin,
+        )
+        .unwrap()
+        {
+            NativeResult::Value(value) => assert!(value.strict_eq(chosen)),
+            _ => panic!("expected value"),
+        }
+    });
+}
+
+#[test]
+// req:runtime-core-012 req:standard-library-002
+fn int_parses_digit_strings_and_rejects_composites() {
+    assert_eq!(evaluate(call("int", vec![literal(json!("42"))])), "42");
+    assert_eq!(evaluate(call("int", vec![literal(json!("123"))])), "123");
+    assert_eq!(parameter_names("int"), ["value"]);
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        for value in [
+            Value::object(mc, vec![]),
+            Value::array(mc, vec![Value::string(mc, "42")]),
+            Value::Native(NativeGlobal::Id),
+        ] {
+            assert!(invoke(mc, NativeGlobal::Int, vec![value], origin).is_err());
+        }
+        match invoke(
+            mc,
+            NativeGlobal::Int,
+            vec![Value::string(mc, "42").wrap(mc, Origin { start: 0, end: 2 })],
+            origin,
+        )
+        .unwrap()
+        {
+            NativeResult::Value(Value::Number(value)) => assert_eq!(value, 42.0),
+            _ => panic!("expected number"),
+        }
+    });
+}
+
+#[test]
+// req:standard-library-002
+fn base58_encodes_bytes_and_rejects_non_bytes() {
+    assert_eq!(parameter_names("base58"), ["bytes"]);
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        let encode = |bytes| match invoke(mc, NativeGlobal::Base58, vec![bytes], origin).unwrap() {
+            NativeResult::Value(value) => text(value).unwrap(),
+            _ => panic!("expected text"),
+        };
+        let hello = Value::Bytes(uffda_heap::Gc::new(mc, b"Hello World!".to_vec()));
+        assert_eq!(encode(hello), "2NEpo7TZRRrLZSi2U");
+        assert_eq!(
+            encode(Value::Bytes(uffda_heap::Gc::new(mc, vec![0, 0]))),
+            "11"
+        );
+        assert_eq!(encode(hello.wrap(mc, origin)), encode(hello));
+        assert!(
+            invoke(
+                mc,
+                NativeGlobal::Base58,
+                vec![Value::string(mc, "abc")],
+                origin
+            )
+            .is_err()
+        );
+        assert!(
+            invoke(
+                mc,
+                NativeGlobal::Base58,
+                vec![Value::array(mc, vec![Value::Number(1.0)])],
+                origin,
+            )
+            .is_err()
+        );
+    });
+}
+
+#[test]
+// req:standard-library-002
+fn has_checks_membership_with_same_value_zero() {
+    assert_eq!(parameter_names("has"), ["collection", "value"]);
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        let found = |collection, value| match invoke(
+            mc,
+            NativeGlobal::Has,
+            vec![collection, value],
+            origin,
+        )
+        .unwrap()
+        {
+            NativeResult::Value(Value::Boolean(found)) => found,
+            _ => panic!("expected boolean"),
+        };
+        let set = Value::set(mc, vec![Value::string(mc, "a"), Value::string(mc, "b")]);
+        assert!(found(set, Value::string(mc, "a")));
+        assert!(!found(
+            Value::set(mc, vec![Value::string(mc, "a")]),
+            Value::string(mc, "z")
+        ));
+        assert!(found(
+            Value::array(mc, vec![Value::string(mc, "x"), Value::string(mc, "y")]),
+            Value::string(mc, "y")
+        ));
+        let object = Value::object(mc, vec![("name".into(), Value::Number(1.0))]);
+        assert!(found(object, Value::string(mc, "name")));
+        assert!(!found(object, Value::string(mc, "other")));
+        assert!(!found(Value::Null, Value::string(mc, "x")));
+        let items = Value::array(
+            mc,
+            vec![
+                Value::Number(1.0).wrap(mc, origin),
+                Value::Number(f64::NAN).wrap(mc, Origin { start: 1, end: 2 }),
+            ],
+        )
+        .wrap(mc, Origin { start: 0, end: 2 });
+        assert!(found(
+            items,
+            Value::Number(1.0).wrap(mc, Origin { start: 5, end: 6 })
+        ));
+        assert!(found(items, Value::Number(f64::NAN)));
+        assert!(!found(items, Value::Number(2.0)));
+    });
+}
+
+#[test]
+// req:standard-library-002
+fn when_selects_by_truthiness_and_returns_the_branch() {
+    assert_eq!(
+        evaluate(call(
+            "when",
+            vec![
+                literal(json!(true)),
+                literal(json!("a")),
+                literal(json!("b"))
+            ]
+        )),
+        "\"a\""
+    );
+    assert_eq!(
+        evaluate(call(
+            "when",
+            vec![
+                literal(json!(false)),
+                literal(json!("a")),
+                literal(json!("b"))
+            ]
+        )),
+        "\"b\""
+    );
+    assert_eq!(
+        evaluate(call(
+            "when",
+            vec![literal(json!(0)), literal(json!("a")), literal(json!("b"))]
+        )),
+        "\"b\""
+    );
+    assert_eq!(
+        evaluate(call(
+            "when",
+            vec![literal(json!("x")), literal(json!(1)), literal(json!(2))]
+        )),
+        "1"
+    );
+    assert_eq!(
+        parameter_names("when"),
+        ["condition", "thenValue", "elseValue"]
+    );
+    rootless_mutate(|mc| {
+        let yes = Value::string(mc, "yes").wrap(mc, Origin { start: 1, end: 2 });
+        match invoke(
+            mc,
+            NativeGlobal::When,
+            vec![
+                Value::Boolean(false).wrap(mc, Origin { start: 0, end: 0 }),
+                Value::string(mc, "no").wrap(mc, Origin { start: 2, end: 3 }),
+                yes,
+            ],
+            Origin { start: 0, end: 0 },
+        )
+        .unwrap()
+        {
+            NativeResult::Value(value) => assert!(value.strict_eq(yes)),
+            _ => panic!("expected value"),
+        }
+    });
+}
+
+#[test]
+// req:standard-library-002
+fn flat_flattens_by_depth_and_carries_wrapped_elements() {
+    assert_eq!(
+        evaluate(call("flat", vec![literal(json!(["a", ["b", "c"]]))])),
+        r#"["a","b","c"]"#
+    );
+    assert_eq!(
+        evaluate(call(
+            "flat",
+            vec![literal(json!(["a", ["b", ["c"]]])), literal(json!(2))]
+        )),
+        r#"["a","b","c"]"#
+    );
+    assert_eq!(parameter_names("flat"), ["self", "depth"]);
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        let a = Value::Number(1.0).wrap(mc, origin);
+        let b = Value::Number(2.0).wrap(mc, Origin { start: 1, end: 2 });
+        let nested = Value::array(
+            mc,
+            vec![
+                a,
+                Value::array(mc, vec![b]).wrap(mc, Origin { start: 1, end: 2 }),
+            ],
+        )
+        .wrap(mc, Origin { start: 0, end: 2 });
+        let NativeResult::Value(Value::Array(flattened)) =
+            invoke(mc, NativeGlobal::Flat, vec![nested], origin).unwrap()
+        else {
+            panic!("flat must return an array");
+        };
+        let flattened = flattened.borrow();
+        assert!(flattened[0].strict_eq(a));
+        assert!(flattened[1].strict_eq(b));
+    });
+}
+
+#[test]
+// req:runtime-memory-001 req:standard-library-002
+fn id_returns_the_same_reference() {
+    assert_eq!(parameter_names("id"), ["value"]);
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        let inputs = [
+            Value::array(mc, vec![Value::Number(1.0)]),
+            Value::object(mc, vec![("value".into(), Value::Number(1.0))]),
+            Value::map(mc, vec![(Value::string(mc, "value"), Value::Number(1.0))]),
+            Value::set(mc, vec![Value::Number(1.0)]),
+            Value::Bytes(uffda_heap::Gc::new(mc, vec![1])),
+            Value::date(mc, time::OffsetDateTime::UNIX_EPOCH),
+            Value::error(mc, "Error".into(), "failure".into(), None, None),
+            Value::bigint(mc, num_bigint::BigInt::from(1)),
+            Value::Symbol(uffda_heap::Gc::new(mc, "uffda-id-reference".into())),
+            Value::Undefined,
+            Value::object(mc, vec![("value".into(), Value::Number(1.0))]).wrap(mc, origin),
+        ];
+        for input in inputs {
+            match invoke(mc, NativeGlobal::Id, vec![input], origin).unwrap() {
+                NativeResult::Value(value) => assert!(value.strict_eq(input)),
+                _ => panic!("expected value"),
+            }
+        }
+    });
+}
+
+#[test]
+// req:runtime-core-012 req:standard-library-002
+fn json_serializes_raw_values() {
+    assert_eq!(
+        evaluate(call("json", vec![literal(json!({"a":[1]}))])),
+        r#""{\"a\":[1]}""#
+    );
+    assert_eq!(parameter_names("json"), ["self"]);
+    rootless_mutate(|mc| {
+        let wrapped = Value::array(
+            mc,
+            vec![Value::Number(1.0).wrap(mc, Origin { start: 0, end: 0 })],
+        )
+        .wrap(mc, Origin { start: 0, end: 0 });
+        assert_eq!(json_text(wrapped).unwrap().as_deref(), Some("[1]"));
+    });
+}
+
+#[test]
+// req:runtime-memory-001 req:standard-library-002
+fn eq_uses_strict_equality_on_raw_values() {
+    assert_eq!(
+        evaluate(call("eq", vec![literal(json!(1)), literal(json!(1))])),
+        "true"
+    );
+    assert_eq!(
+        evaluate(call("eq", vec![literal(json!(1)), literal(json!("1"))])),
+        "false"
+    );
+    assert_eq!(parameter_names("eq"), ["left", "right"]);
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        let equal =
+            |left, right| match invoke(mc, NativeGlobal::Eq, vec![left, right], origin).unwrap() {
+                NativeResult::Value(Value::Boolean(value)) => value,
+                _ => panic!("expected boolean"),
+            };
+        assert!(!equal(Value::Null, Value::Undefined));
+        assert!(equal(
+            Value::Number(1.0).wrap(mc, origin),
+            Value::Number(1.0).wrap(mc, Origin { start: 5, end: 6 })
+        ));
+        assert!(!equal(
+            Value::Number(1.0).wrap(mc, origin),
+            Value::Number(2.0)
+        ));
+        let array = Value::array(mc, vec![Value::Number(1.0)]);
+        let object = Value::object(mc, vec![("value".into(), Value::Number(1.0))]);
+        let map = Value::map(mc, vec![(Value::string(mc, "value"), Value::Number(1.0))]);
+        let set = Value::set(mc, vec![Value::Number(1.0)]);
+        for value in [array, object, map, set] {
+            assert!(equal(value, value));
+        }
+        assert!(!equal(
+            Value::array(mc, vec![Value::Number(1.0)]),
+            Value::array(mc, vec![Value::Number(1.0)])
+        ));
+        assert!(!equal(
+            Value::object(mc, vec![("value".into(), Value::Number(1.0))]),
+            Value::object(mc, vec![("value".into(), Value::Number(1.0))])
+        ));
+        assert!(!equal(
+            Value::map(mc, vec![(Value::string(mc, "value"), Value::Number(1.0))]),
+            Value::map(mc, vec![(Value::string(mc, "value"), Value::Number(1.0))])
+        ));
+        assert!(!equal(
+            Value::set(mc, vec![Value::Number(1.0)]),
+            Value::set(mc, vec![Value::Number(1.0)])
+        ));
+    });
+}
+
+#[test]
+// req:standard-library-002
+fn length_counts_strings_arrays_sets_and_maps() {
+    assert_eq!(evaluate(call("length", vec![literal(json!("abc"))])), "3");
+    assert_eq!(evaluate(call("length", vec![literal(json!(""))])), "0");
+    assert_eq!(
+        evaluate(call("length", vec![literal(json!([1, 2, 3]))])),
+        "3"
+    );
+    assert_eq!(evaluate(call("length", vec![literal(json!([]))])), "0");
+    assert_eq!(parameter_names("length"), ["value"]);
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        let count = |value| match invoke(mc, NativeGlobal::Length, vec![value], origin).unwrap() {
+            NativeResult::Value(Value::Number(value)) => value,
+            _ => panic!("expected number"),
+        };
+        assert_eq!(
+            count(Value::set(
+                mc,
+                vec![Value::Number(1.0), Value::Number(2.0), Value::Number(3.0)]
+            )),
+            3.0
+        );
+        assert_eq!(
+            count(Value::map(
+                mc,
+                vec![
+                    (Value::string(mc, "a"), Value::Number(1.0)),
+                    (Value::string(mc, "b"), Value::Number(2.0)),
+                ]
+            )),
+            2.0
+        );
+        for value in [Value::Number(42.0), Value::Null, Value::object(mc, vec![])] {
+            assert!(invoke(mc, NativeGlobal::Length, vec![value], origin).is_err());
+        }
+        assert_eq!(
+            count(Value::string(mc, "abc").wrap(mc, Origin { start: 0, end: 3 })),
+            3.0
+        );
+        assert_eq!(
+            count(Value::array(mc, vec![Value::Number(1.0).wrap(mc, origin)]).wrap(mc, origin)),
+            1.0
+        );
+    });
+}
+
+#[test]
+// req:standard-library-002
+fn sha256_hashes_raw_text_and_rejects_non_strings() {
+    assert_eq!(parameter_names("sha256"), ["text"]);
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        let digest = |value| match invoke(mc, NativeGlobal::Sha256, vec![value], origin).unwrap() {
+            NativeResult::Value(Value::Bytes(bytes)) => bytes.clone(),
+            _ => panic!("expected bytes"),
+        };
+        let hello = digest(Value::string(mc, "hello"));
+        assert_eq!(hello, digest(Value::string(mc, "hello")));
+        assert_eq!(
+            hello.as_slice(),
+            &[
+                0x2c, 0xf2, 0x4d, 0xba, 0x5f, 0xb0, 0xa3, 0x0e, 0x26, 0xe8, 0x3b, 0x2a, 0xc5, 0xb9,
+                0xe2, 0x9e, 0x1b, 0x16, 0x1e, 0x5c, 0x1f, 0xa7, 0x42, 0x5e, 0x73, 0x04, 0x33, 0x62,
+                0x93, 0x8b, 0x98, 0x24,
+            ]
+        );
+        assert!(invoke(mc, NativeGlobal::Sha256, vec![Value::Number(1.0)], origin).is_err());
+        assert_eq!(
+            digest(Value::string(mc, "abc").wrap(mc, origin)).as_slice(),
+            digest(Value::string(mc, "abc")).as_slice()
+        );
+    });
+}
+
+#[test]
+// req:runtime-core-012 req:standard-library-002
+fn join_formats_scalars_and_keeps_character_provenance() {
+    assert_eq!(
+        evaluate(call(
+            "join",
+            vec![literal(json!(["a", "b"])), literal(json!("-"))]
+        )),
+        "\"a-b\""
+    );
+    assert_eq!(
+        evaluate(call("join", vec![literal(json!(["a", "b"]))])),
+        "\"a,b\""
+    );
+    assert_eq!(
+        evaluate(call(
+            "join",
+            vec![literal(json!([1, null, true])), literal(json!("-"))]
+        )),
+        "\"1--true\""
+    );
+    assert_eq!(parameter_names("join"), ["self", "separator"]);
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        for value in [
+            Value::object(mc, vec![]),
+            Value::array(mc, vec![]),
+            Value::Native(NativeGlobal::Id),
+        ] {
+            assert!(
+                invoke(
+                    mc,
+                    NativeGlobal::Join,
+                    vec![Value::array(mc, vec![value])],
+                    origin,
+                )
+                .is_err()
+            );
+            assert!(
+                invoke(
+                    mc,
+                    NativeGlobal::Join,
+                    vec![Value::array(mc, vec![value]).wrap(mc, origin),],
+                    origin,
+                )
+                .is_err()
+            );
+            assert!(
+                invoke(
+                    mc,
+                    NativeGlobal::Join,
+                    vec![
+                        Value::array(mc, vec![Value::string(mc, "a"), Value::string(mc, "b")]),
+                        value,
+                    ],
+                    origin,
+                )
+                .is_err()
+            );
+        }
+        let items = Value::array(
+            mc,
+            vec![
+                Value::string(mc, "a").wrap(mc, Origin { start: 2, end: 3 }),
+                Value::string(mc, "b").wrap(mc, Origin { start: 8, end: 9 }),
+            ],
+        )
+        .wrap(mc, Origin { start: 0, end: 9 });
+        let joined = match invoke(
+            mc,
+            NativeGlobal::Join,
+            vec![items, Value::string(mc, "-")],
+            origin,
+        )
+        .unwrap()
+        {
+            NativeResult::Value(value) => value,
+            _ => panic!("expected value"),
+        };
+        assert_eq!(text(joined).unwrap(), "a-b");
+        assert_eq!(joined.char_origin(0), Some(Origin { start: 2, end: 3 }));
+        assert_eq!(joined.char_origin(2), Some(Origin { start: 8, end: 9 }));
+        let defaults = match invoke(mc, NativeGlobal::Join, vec![items], origin).unwrap() {
+            NativeResult::Value(value) => value,
+            _ => panic!("expected value"),
+        };
+        assert_eq!(text(defaults).unwrap(), "a,b");
+    });
+}
