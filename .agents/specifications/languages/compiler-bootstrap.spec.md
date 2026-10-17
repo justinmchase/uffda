@@ -23,9 +23,11 @@ self-hosting while maintaining deterministic and diagnosable behavior.
   stack already baked into that binary. It MUST NOT require host TypeScript
   twins or `*.bootstrap.ts` stubs of in-tree `.uff` sources.
 - Converted `.uff` language modules that the published CLI needs at parse time
-  MUST be embedded as compiled `./bin` AST JSON via `deno compile --include`,
-  and remapped from the binary extract root when `Deno.build.standalone` is
-  true.
+  MUST be embedded as compiled `./bin` AST JSON. The release `compile` job
+  embeds them by building the Rust `uffda` binary with the `compile-lang` tree
+  present. The local Deno `scripts/compile-cli.ts` path still passes
+  `deno compile --include ./bin` and remaps from the binary extract root when
+  `Deno.build.standalone` is true.
 - The published JSR package MUST likewise ship the compiled `./bin` language
   ModuleDeclaration JSON alongside the `.ts` and `.uff` sources. The release
   Publish workflow seeds `./bin` with the published CLI so the Rust build can

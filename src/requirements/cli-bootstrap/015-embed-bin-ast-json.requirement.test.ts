@@ -50,7 +50,20 @@ Deno.test(
     const releaseBinaries = await Deno.readTextFile(
       join(repoRoot, ".github", "workflows", "release-binaries.yml"),
     );
-    assertEquals(releaseBinaries.includes("--include ./bin"), true);
+    assertEquals(releaseBinaries.includes("--include ./bin"), false);
+    const compile = releaseBinaries.slice(
+      releaseBinaries.indexOf("\n  compile:"),
+      releaseBinaries.indexOf("\n  compile-rust:"),
+    );
+    assertEquals(compile.includes("denoland/setup-deno"), false);
+    assertEquals(compile.includes("deno "), false);
+    assertEquals(
+      compile.includes(
+        "cargo build --locked --manifest-path rust/Cargo.toml --target",
+      ),
+      true,
+    );
+    assertEquals(compile.includes("--bin uffda"), true);
     assertEquals(releaseBinaries.includes("deno task compile:lang"), false);
     const compileLang = releaseBinaries.slice(
       releaseBinaries.indexOf("  compile-lang:"),
