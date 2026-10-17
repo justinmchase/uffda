@@ -28,3 +28,4 @@ Postconditions:
 
 - Runtime expression evaluation remains deterministic for both immediate and
   async-capable projection behavior.
+- Tests: `rust/src/evaluate/expression_ports.rs`.

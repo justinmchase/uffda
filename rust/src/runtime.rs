@@ -3215,4 +3215,10 @@ pub enum InputMode {
 }
 
 #[cfg(test)]
+mod engine_ports;
+#[cfg(test)]
+mod module_ports;
+#[cfg(test)]
+mod scope_ports;
+#[cfg(test)]
 mod tests;

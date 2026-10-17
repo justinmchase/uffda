@@ -21,3 +21,4 @@ Expected behavior:
 Postconditions:
 
 - On success, output MUST be ordered child outputs.
+- Tests: `rust/src/pattern/tests.rs`.

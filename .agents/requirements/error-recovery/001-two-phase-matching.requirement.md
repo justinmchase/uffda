@@ -38,11 +38,13 @@ Postconditions:
 
 ## Test plan
 
-`src/runtime/recovery.test.ts`: clean input returns the discovery result
-(RECOVERY00), failed discovery recovers (RECOVERY01), an error does not start
-the recovery phase (RECOVERY04), no recovery point reached skips the recovery
-phase (RECOVERY07). `src/runtime/scope.test.ts`: default and propagation of the
-setting (SCOPE_RECOVERY). `src/memo.test.ts`: MEMO_RECOVERY.
+`rust/src/runtime/engine_ports.rs`: clean input returns the discovery result,
+failed discovery recovers, an error does not start the recovery phase, and no
+recovery point reached skips the recovery phase
+(`engine_port_statement_recovery_collects_only_the_accepted_phase`).
+`src/runtime/scope.test.ts`: default and propagation of the setting
+(SCOPE_RECOVERY). `src/memo.test.ts`: MEMO_RECOVERY.
 `src/requirements/error-recovery/001-two-phase-matching.requirement.test.ts`:
-end-to-end through `executeUffdaSource`. `src/match.test.ts`: RECOVERED03
-(`isClean`).
+end-to-end through `executeUffdaSource`. `rust/src/runtime/engine_ports.rs`:
+only an unrecovered success is clean
+(`engine_port_recovered_skip_and_rightmost_follow_the_accepted_match`).

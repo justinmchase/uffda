@@ -29,3 +29,12 @@ Error behavior:
 
 - Unknown rules, invalid argument bindings, unsupported special values, or
   missing run targets MUST report runtime error or governed failure outcome.
+
+Postconditions:
+
+- Tests: `rust/src/pattern/structure_ports.rs`. Argument-count and
+  unknown-reference messages, and special-target dispatch, remain covered by
+  `src/runtime/patterns/reference.test.ts`,
+  `src/runtime/patterns/resolve.test.ts`,
+  `src/runtime/patterns/resolve.pattern.test.ts`, and
+  `src/runtime/patterns/special.test.ts`.

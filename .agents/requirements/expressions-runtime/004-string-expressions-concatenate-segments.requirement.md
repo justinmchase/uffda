@@ -25,3 +25,4 @@ Expected behavior:
 Postconditions:
 
 - String expression evaluation yields a deterministic concatenated string.
+- Tests: `rust/src/evaluate/expression_ports.rs`.

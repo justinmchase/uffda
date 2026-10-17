@@ -43,5 +43,5 @@ Postconditions:
   `test/integration/cli-distribution-006-jsr-package-grammars.requirement.test.ts`
   (serves the repository's own `uffda.jsonc` and `bin/` as a package from a fake
   registry and resolves each exported grammar), and
-  `src/runtime/resolvers/uff.artifact.resolver.test.ts` (loads a built-in
-  artifact from an `https:` package root over a stubbed network fetch).
+  `rust/src/resolver/ported_tests.rs` (loads a built-in artifact from an
+  `https:` package root over a stubbed network fetch).

@@ -22,3 +22,7 @@ Expected behavior:
 Error behavior:
 
 - Non-iterable current item MUST produce iterable-expected runtime error.
+
+## Test plan
+
+`rust/src/pattern/composite_ports.rs`.

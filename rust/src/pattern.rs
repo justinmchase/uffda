@@ -1148,6 +1148,9 @@ enum Frame<'gc> {
         index: usize,
         start: Scope<'gc>,
         children: Vec<Gc<'gc, PatternMatch<'gc>>>,
+        /// Index in `children` of the first recovered success, if one is waiting
+        /// for a later clean alternative.
+        recovered: Option<usize>,
     },
     Repeat {
         node: usize,
@@ -2178,9 +2181,11 @@ impl<'gc> PatternExecution<'gc> {
                                     SwitchKey::CharacterClass { character_class } => {
                                         let expression = character_class_regex(character_class)?;
                                         let Value::String(text) = value.raw() else {
-                                            return Err(PatternError::TypeError(
-                                            "expected value to be a string for character-class switch key".into(),
-                                        ));
+                                            return Err(PatternError::TypeError(format!(
+                                                "expected value to be a string for character class but got {}",
+                                                format!("{:?}", value.runtime_type())
+                                                    .to_lowercase()
+                                            )));
                                         };
                                         character_class_matches(&expression, &text)
                                     }
@@ -2275,6 +2280,7 @@ impl<'gc> PatternExecution<'gc> {
                                 index: 0,
                                 start: scope,
                                 children: vec![],
+                                recovered: None,
                             });
                             self.frames.push(Frame::Match(*first, scope));
                         } else {
@@ -2847,40 +2853,46 @@ impl<'gc> PatternExecution<'gc> {
                 index,
                 start,
                 mut children,
+                mut recovered,
             } => {
                 let child = self.result.take().ok_or(PatternError::InvalidState)?;
+                let clean = child.kind != MatchKind::Fail && !child.recovered;
                 children.push(child);
-                if child.kind != MatchKind::Fail {
-                    self.result = Some(Gc::new(
-                        mc,
-                        PatternMatch {
-                            kind: child.kind,
-                            value: child.value,
-                            start: start.position,
-                            end: child.end,
-                            environment: child.environment,
-                            origin: span(start, child.end),
-                            pattern_index: start.pattern_index,
-                            pattern_kind: self.program.nodes[start.pattern_index].kind(),
-                            provenance: self.provenance(start),
-                            identity: start.identity,
-                            seeded: false,
-                            recovered: children.iter().any(|child| child.recovered),
-                            recovery: child.recovery,
-                            rule: None,
-                            children: children.into(),
-                        },
-                    ));
-                } else if let Some(next) = nodes.get(index + 1).copied() {
-                    self.frames.push(Frame::Choice {
-                        nodes,
-                        index: index + 1,
-                        start,
-                        children,
-                    });
-                    self.frames.push(Frame::Match(next, start));
+                if clean {
+                    if let Some(kept) = recovered {
+                        let success = children[kept];
+                        children[kept] = self.rejected_alternative(mc, start, nodes[kept], success);
+                    }
+                    self.finish_choice(mc, start, child, children);
                 } else {
-                    self.set(mc, start, false, false, Value::Undefined, children);
+                    if child.kind != MatchKind::Fail && child.recovered {
+                        if recovered.is_some() {
+                            let success = children.pop().ok_or(PatternError::InvalidState)?;
+                            children.push(self.rejected_alternative(
+                                mc,
+                                start,
+                                nodes[index],
+                                success,
+                            ));
+                        } else {
+                            recovered = Some(index);
+                        }
+                    }
+                    if let Some(next) = nodes.get(index + 1).copied() {
+                        self.frames.push(Frame::Choice {
+                            nodes,
+                            index: index + 1,
+                            start,
+                            children,
+                            recovered,
+                        });
+                        self.frames.push(Frame::Match(next, start));
+                    } else if let Some(kept) = recovered {
+                        let chosen = children[kept];
+                        self.finish_choice(mc, start, chosen, children);
+                    } else {
+                        self.set(mc, start, false, false, Value::Undefined, children);
+                    }
                 }
             }
             Frame::Repeat {
@@ -3281,6 +3293,71 @@ impl<'gc> PatternExecution<'gc> {
         names.sort();
         names.dedup();
         names
+    }
+
+    fn finish_choice(
+        &mut self,
+        mc: &Mutation<'gc>,
+        start: Scope<'gc>,
+        chosen: Gc<'gc, PatternMatch<'gc>>,
+        children: Vec<Gc<'gc, PatternMatch<'gc>>>,
+    ) {
+        self.result = Some(Gc::new(
+            mc,
+            PatternMatch {
+                kind: chosen.kind,
+                value: chosen.value,
+                start: start.position,
+                end: chosen.end,
+                environment: chosen.environment,
+                origin: span(start, chosen.end),
+                pattern_index: start.pattern_index,
+                pattern_kind: self.program.nodes[start.pattern_index].kind(),
+                provenance: self.provenance(start),
+                identity: start.identity,
+                seeded: false,
+                recovered: children
+                    .iter()
+                    .any(|child| child.kind != MatchKind::Fail && child.recovered),
+                recovery: chosen.recovery,
+                rule: None,
+                children: children.into(),
+            },
+        ));
+    }
+
+    /// A recovered alternative passed over for a clean one, or a later recovered
+    /// alternative, is kept as a failure of that alternative whose only child is
+    /// its success.
+    fn rejected_alternative(
+        &self,
+        mc: &Mutation<'gc>,
+        start: Scope<'gc>,
+        node: usize,
+        success: Gc<'gc, PatternMatch<'gc>>,
+    ) -> Gc<'gc, PatternMatch<'gc>> {
+        let mut scope = start;
+        scope.pattern_index = node;
+        Gc::new(
+            mc,
+            PatternMatch {
+                kind: MatchKind::Fail,
+                value: Value::Undefined,
+                start: start.position,
+                end: start.position,
+                environment: start.environment,
+                origin: span(start, start.position),
+                pattern_index: node,
+                pattern_kind: self.program.nodes[node].kind(),
+                provenance: self.provenance(scope),
+                identity: start.identity,
+                seeded: false,
+                recovered: false,
+                recovery: start.recovery,
+                rule: None,
+                children: MatchChildren::one(success),
+            },
+        )
     }
 
     fn set(
@@ -3714,5 +3791,11 @@ fn bound(
     Ok(value)
 }
 
+#[cfg(test)]
+mod composite_ports;
+#[cfg(test)]
+mod structure_ports;
+#[cfg(test)]
+mod terminal_ports;
 #[cfg(test)]
 mod tests;

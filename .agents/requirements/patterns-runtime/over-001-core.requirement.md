@@ -23,3 +23,4 @@ Expected behavior:
 Postconditions:
 
 - Success output MUST be the consumed outer keyed value.
+- Tests: `rust/src/pattern/composite_ports.rs`.
