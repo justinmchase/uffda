@@ -39,8 +39,9 @@ does not change runtime, CLI, or compiled-artifact formats.
 
 Checks and preview release builds target native Linux, Windows, and macOS on
 x86_64 and aarch64, using one unchanged published-compiler language artifact
-tree. Preview assets remain named `uffdar`; the installer and production `uffda`
-cutover are unchanged until an explicit switch.
+tree. Preview assets remain named `uffdar`. The Linux `install.sh` installs both
+`uffda` and `uffdar`; production cutover (Rust becoming the installed `uffda`)
+is unchanged until an explicit switch.
 
 AST input comes from a file or standard input, not `-e` (matching the existing
 CLI's AST-input restriction). Default exec/match/run output is the approved data

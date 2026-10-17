@@ -14,14 +14,17 @@ Preconditions:
 
 Expected behavior:
 
-- The install script MUST download the correct Linux binary for the host
-  architecture (`x86_64` or `aarch64`) from the selected release.
-- The install script MUST install an executable named `uffda` onto a writable
-  destination on `PATH` (or a documented default such as `~/.local/bin`).
-- The install script MUST verify the downloaded binary against published
-  checksums when checksums are available.
+- The install script MUST download the correct Linux binaries for the host
+  architecture (`x86_64` or `aarch64`) from the selected release: Deno `uffda`
+  and Rust preview `uffdar`.
+- The install script MUST install executables named `uffda` and `uffdar` onto a
+  writable destination on `PATH` (or a documented default such as
+  `~/.local/bin`).
+- The install script MUST verify each downloaded binary against its published
+  checksum file (`SHA256SUMS` for `uffda-*`, `UFFDAR-SHA256SUMS` for `uffdar-*`)
+  when checksums are available.
 
 Postconditions:
 
-- Linux operators can install the CLI with a single shell script without Deno
+- Linux operators can install both CLIs with a single shell script without Deno
   installed on the host.

@@ -15,7 +15,7 @@ on:
 
 concurrency:
   group: release-binaries
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 permissions:
   contents: write

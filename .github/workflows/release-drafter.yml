@@ -169,15 +169,10 @@ jobs:
           notes="$(gh api --method POST "repos/${repository}/releases/generate-notes" \
             --input - <<< "$notes_input")"
           notes_body="$(jq -er '.body | strings' <<< "$notes")"
-          release_body="${notes_body}
-
-          ## CLI binaries
-
-          To re-attach binaries, run [Release Binaries](https://github.com/${repository}/actions/workflows/release-binaries.yml) manually using workflow_dispatch."
           release_input="$(jq -n \
             --arg version "${RELEASE_VERSION}" \
             --arg sha "${release_sha}" \
-            --arg body "${release_body}" \
+            --arg body "${notes_body}" \
             '{tag_name: $version, name: $version, target_commitish: $sha, body: $body, draft: true, prerelease: false}')"
 
           if [ -n "${DRAFT_ID}" ]; then
