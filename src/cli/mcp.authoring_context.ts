@@ -10,6 +10,13 @@ import {
   type CapabilityStatus,
   KEYWORD_EXPANSIONS,
 } from "./mcp.authoring_evidence.ts";
+import {
+  AUTHORING_TOPICS,
+  type AuthoringTopicCard,
+  type AuthoringTopicId,
+  detectTopicsFromTask,
+  resolveTopicIds,
+} from "./mcp.authoring_topics.ts";
 
 /**
  * Stateless `uffda_authoring_context` tool: task-oriented, evidence-backed
@@ -22,9 +29,15 @@ const languageSchema = z.nativeEnum(CliLanguage).describe(
 );
 
 export const authoringContextToolInputShape = {
-  task: z.string().describe(
+  task: z.string().optional().describe(
     "What the caller wants to implement in Uffda (natural language). " +
-      "The tool retrieves only evidence relevant to this task.",
+      "Required when `topics` is omitted. The tool retrieves only evidence " +
+      "relevant to this task.",
+  ),
+  topics: z.array(z.string()).optional().describe(
+    "Topic ids or aliases for concise cards: repetition, pipeline, " +
+      "projection, skip-quantifier, character-class, capture-scope, exports. " +
+      "When set, returns topic mode instead of a broad evidence dump.",
   ),
   language: languageSchema.optional().describe(
     "When known, narrows syntax/examples to that grammar. Defaults to all " +
@@ -81,10 +94,21 @@ export type ExpressibilityAssessment = {
   uncertain: CapabilityClaim[];
 };
 
+export type AuthoringTopicResult = {
+  id: AuthoringTopicId;
+  title: string;
+  syntax: string;
+  example: string;
+  caveats: string[];
+  sources: SourceReference[];
+};
+
 export type AuthoringContextSuccess = {
   ok: true;
-  task: string;
+  task?: string;
   language?: CliLanguage;
+  /** Topic-oriented cards when `topics` were requested or clearly detected. */
+  topics?: AuthoringTopicResult[];
   syntax: AuthoringSnippet[];
   semantics: AuthoringSnippet[];
   restrictions: AuthoringSnippet[];
@@ -97,6 +121,15 @@ export type AuthoringContextSuccess = {
     description?: string;
     parameters?: Array<{ name: string; optional?: boolean; rest?: boolean }>;
   }>;
+  /**
+   * Separated layers for agents: curated language facts vs implementation
+   * evidence vs unverified conclusions. Present in topic mode.
+   */
+  layers?: {
+    languageFacts: string[];
+    implementationEvidence: string[];
+    unverified: string[];
+  };
 };
 
 export type AuthoringContextResult =
@@ -331,22 +364,108 @@ function relevantGlobals(tokens: readonly string[]) {
 
 const MAX_SNIPPETS_PER_SECTION = 6;
 
+function topicCard(
+  card: AuthoringTopicCard,
+  seenSource: Set<string>,
+  allSources: SourceReference[],
+): AuthoringTopicResult {
+  const sources = card.sources.map((source) =>
+    resolveSourceSync(source.path, source.anchor, source.excerpt)
+  );
+  for (const source of sources) {
+    const key = `${source.path}:${source.startLine ?? "?"}:${source.excerpt}`;
+    if (seenSource.has(key)) continue;
+    seenSource.add(key);
+    allSources.push(source);
+  }
+  return {
+    id: card.id,
+    title: card.title,
+    syntax: card.syntax,
+    example: card.example,
+    caveats: [...card.caveats],
+    sources,
+  };
+}
+
+function emptyExpressibility(summary: string): ExpressibilityAssessment {
+  return {
+    status: "uncertain",
+    summary,
+    supported: [],
+    unsupported: [],
+    uncertain: [],
+  };
+}
+
 /**
- * Builds authoring context for `task`. Pure over the curated evidence catalog
- * plus live `defaultGlobals` metadata; resolves source line numbers when the
- * repository files are readable beside the package.
+ * Builds authoring context for `task` and/or `topics`. Topic mode returns
+ * concise verified cards; free-form mode scores the curated evidence catalog.
  */
 export function authoringContextToolHandler(
   input: AuthoringContextToolInput,
 ): AuthoringContextResult {
-  const task = input.task.trim();
-  if (task.length === 0) {
+  const task = (input.task ?? "").trim();
+  const explicitTopics = resolveTopicIds(input.topics ?? []);
+  const detectedTopics = task.length > 0 ? detectTopicsFromTask(task) : [];
+  const topicIds = explicitTopics.length > 0
+    ? explicitTopics
+    : (input.topics !== undefined ? [] : detectedTopics);
+
+  // Prefer topic mode when the caller named topics, or when the task clearly
+  // names curated topics and did not ask for a broad expressibility dump.
+  const useTopicMode = explicitTopics.length > 0 ||
+    (input.topics === undefined && detectedTopics.length > 0 &&
+      /\b(how|syntax|example|what is|explain)\b/i.test(task));
+
+  if (task.length === 0 && explicitTopics.length === 0) {
     return {
       ok: false,
       error: {
         code: AuthoringContextFailureCode.InvalidTask,
         phase: "validate",
-        message: "task must be a non-empty string describing what to implement",
+        message:
+          "provide a non-empty task and/or topics describing what to look up",
+      },
+    };
+  }
+
+  if (useTopicMode && topicIds.length > 0) {
+    const allSources: SourceReference[] = [];
+    const seenSource = new Set<string>();
+    const topics: AuthoringTopicResult[] = [];
+    const languageFacts: string[] = [];
+    const implementationEvidence: string[] = [];
+    for (const id of topicIds) {
+      const card = AUTHORING_TOPICS.find((t) => t.id === id);
+      if (!card) continue;
+      topics.push(topicCard(card, seenSource, allSources));
+      languageFacts.push(`${card.id}: ${card.syntax}`);
+      implementationEvidence.push(
+        `${card.id}: verified example — ${card.example.split("\n")[0]}`,
+      );
+    }
+    return {
+      ok: true,
+      ...(task.length > 0 ? { task } : {}),
+      ...(input.language !== undefined ? { language: input.language } : {}),
+      topics,
+      syntax: [],
+      semantics: [],
+      restrictions: [],
+      expressibility: emptyExpressibility(
+        "Topic mode returns curated language facts and verified examples. " +
+          "It does not infer impossibility from unrelated restrictions.",
+      ),
+      sources: allSources,
+      relevantGlobals: [],
+      layers: {
+        languageFacts,
+        implementationEvidence,
+        unverified: [
+          "Absence of a reference implementation for a domain feature is not " +
+          "proof the underlying pattern/expression surface cannot express it.",
+        ],
       },
     };
   }
@@ -375,6 +494,16 @@ export function authoringContextToolHandler(
   };
 
   for (const { entry } of scored) {
+    // Restrictions must hit a specific keyword, not only broad terms like
+    // "pattern"/"syntax", so character-class questions are not classified
+    // unsupported via unrelated if/loop restrictions.
+    if (entry.kind === "restriction") {
+      const specific = entry.keywords.filter((k) =>
+        k !== "pattern" && k !== "syntax" && k !== "expression"
+      );
+      if (!specific.some((k) => tokens.includes(k))) continue;
+    }
+
     const sources = resolveEntrySources(entry);
     pushSources(sources);
     const claim = claimFrom(entry, sources);

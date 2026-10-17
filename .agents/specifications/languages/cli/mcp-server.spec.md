@@ -160,53 +160,61 @@ chapter(s).
 
 ### In-memory experiment tool
 
-- The server MUST expose a stateless tool for fast, side-effect-free authoring
-  experiments: given a snippet (`language` + `source`) and optional sample
-  input(s), it MUST parse in memory and, when requested and supported, match or
-  evaluate against those inputs without creating, modifying, or deleting files
-  or compiled artifacts (including `./bin`).
-- The tool MUST support standalone `pattern` and `expression` snippets. It MUST
-  support full-module (`uffda`) snippets for parse always, and for
-  match/evaluation only when the module can be compiled and run entirely from
-  the supplied source without writing artifacts (self-contained modules with no
-  file imports). When a requested run cannot be performed safely in memory, the
-  tool MUST report that as an unsupported operation rather than compiling to
-  disk or inventing success.
-- Callers MUST be able to supply one input or several independent sample inputs
-  in a single call, with an explicit distinction between text subjects and JSON
-  values (`inputIsJson` or equivalent). Each sample MUST produce its own result;
-  samples MUST NOT share mutable state.
-- Results MUST distinguish parse failures, compile/evaluation failures, match
-  failures, and unsupported operations. A successful parse MUST NOT be reported
-  as a successful match or evaluation. The tool MUST NOT invent a successful run
-  result when execution failed.
-- The tool MUST NOT require or accept a session id and MUST NOT persist state
-  between calls. Separate calls MUST NOT leak state to each other.
+- The server MUST expose a stateless tool (`uffda_experiment`) for fast,
+  side-effect-free authoring experiments: in-memory parse of an Uffda, pattern,
+  or expression snippet, then optional batch execution against named cases with
+  supplied inputs and optional assertions — without creating, modifying, or
+  deleting files or compiled artifacts (including `./bin`), without CLI
+  subprocesses for the experiment path, and without persistent user-visible
+  sessions. Read-only access to packaged runtime assets is allowed.
+- The tool MUST be advertised in `tools/list` with an input schema that matches
+  its implementation and a description that states in-memory execution, supplied
+  inputs, and batch assertions.
+- Callers MUST be able to supply named cases, each with an input, an optional
+  `inputIsJson` flag (text vs JSON subject), and optionally either an expected
+  JSON value or an expected non-match. For full modules, callers MUST be able to
+  name the exported rule to invoke.
+- The tool MUST parse/compile the snippet once per request when the runtime
+  permits, then run cases independently without state leakage.
+- Default responses MUST be compact: summary counts plus failure details. They
+  MUST NOT include ASTs, successful match trees, or repeated source text by
+  default. Detailed traces MAY be opt-in and MUST stay bounded.
+- Results MUST separate parse/compile diagnostics from per-case execution
+  results, and MUST distinguish assertion failure, match failure, runtime error,
+  and unsupported execution. A successful parse MUST NOT be reported as a
+  successful match or evaluation. Absent values versus `null` MUST follow the
+  repository's existing serialization conventions.
+- When match/runtime information permits, failure details SHOULD include phase
+  and code, a relevant source span, failing rule or pipeline stage, input
+  position with a concise actual value/type, and expected value/type or pattern
+  (including expected versus actual for failed assertions). Hints (for example
+  about explicit `into` / `[Pattern]`) MUST be offered only when evidence
+  supports them and MUST NOT change language semantics.
+- Full-module run support remains limited to self-contained modules (no import
+  declarations). Modules with imports MUST yield unsupported for the run phase
+  without writing artifacts.
+- The tool MUST NOT require or accept a session id. Separate calls MUST NOT leak
+  state.
 
 ### Authoring context tool
 
 - The server MUST expose a stateless tool that, given a natural-language
-  authoring `task` and an optional Uffda `language` (full module, pattern, or
-  expression), returns concise structured context an agent needs to write Uffda
-  patterns and expressions for that task without guessing language capabilities.
-- The response MUST include, when evidence for the task is available:
-  - relevant pattern and/or expression syntax with small exact examples drawn
-    from this repository;
-  - relevant semantics and runtime operations (values, default globals, and
-    control-flow mechanisms that exist);
-  - an expressibility assessment stating whether the requested behavior appears
-    supported, partially supported, unsupported, or uncertain in Uffda as
-    implemented, with missing or uncertain capabilities called out explicitly;
-  - restrictions and caveats relevant to the task (for example recursion,
-    mutation, array handling, or evaluation order);
-  - source references for every substantive claim (repository-relative paths and
-    line numbers when resolvable, with short excerpts).
-- The tool MUST retrieve only context relevant to the supplied task. It MUST NOT
-  invent syntax, silently propose host-language workarounds, or treat a grammar
-  production name alone as proof of runtime capability. When evidence is
-  incomplete or contradictory, the response MUST say so and cite the conflicting
-  sources.
-- This tool MUST NOT require or accept a session id and MUST NOT persist state
+  authoring `task` and/or explicit `topics`, and an optional Uffda `language`,
+  returns concise structured context an agent needs to write Uffda patterns and
+  expressions without guessing language capabilities.
+- When `topics` are supplied (or clearly requested by the task), the tool MUST
+  return a topic-oriented mode: for each topic, the exact syntax, one minimal
+  verified example, important caveats, and concise source citations — without
+  repeating the same evidence across multiple output sections.
+- Topic mode MUST NOT infer task impossibility from unrelated restrictions or
+  from the absence of a reference implementation. Language facts, implementation
+  evidence, and unverified conclusions MUST be separated.
+- When only a free-form `task` is supplied, the response MUST still retrieve only
+  relevant evidence and MUST NOT classify a query as unsupported solely because
+  an unrelated restriction keyword overlapped the task text.
+- Source references for every substantive claim MUST use repository-relative
+  paths and line numbers when resolvable, with short excerpts.
+- The tool MUST NOT require or accept a session id and MUST NOT persist state
   between calls.
 
 ### Session display surface tool

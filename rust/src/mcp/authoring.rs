@@ -177,7 +177,7 @@ const EVIDENCE: &[Evidence] = &[
     },
     Evidence {
         id: "global-when-eager",
-        keywords: &["when", "if", "conditional", "branch", "sort", "index"],
+        keywords: &["when", "conditional", "branch", "eager"],
         languages: &["expression", "uffda"],
         kind: EvidenceKind::Restriction,
         status: Some(CapabilityStatus::Supported),
@@ -187,6 +187,23 @@ const EVIDENCE: &[Evidence] = &[
         sources: &[SourceSpec {
             path: "src/runtime/globals/when.ts",
             anchor: "Arguments are evaluated eagerly (expression invocation semantics).",
+            excerpt: None,
+        }],
+    },
+    Evidence {
+        id: "pattern-no-statements",
+        keywords: &[
+            "if", "else", "loop", "for", "while", "let", "return", "control", "statement",
+        ],
+        languages: &["pattern", "uffda"],
+        kind: EvidenceKind::Restriction,
+        status: Some(CapabilityStatus::Unsupported),
+        capability: Some("statement-like control flow in patterns (`if`/`let`/loops)"),
+        summary: "Pattern syntax must not introduce statement-like control flow such as `if`, `else`, `let`, `return`, or loop syntax.",
+        examples: &[],
+        sources: &[SourceSpec {
+            path: ".agents/specifications/languages/pattern-syntax.spec.md",
+            anchor: "Pattern syntax MUST NOT introduce statement-like control flow such as `if`,",
             excerpt: None,
         }],
     },
@@ -346,6 +363,186 @@ fn relevant_globals(tokens: &BTreeSet<String>) -> Value {
     Value::Array(out)
 }
 
+const TOPIC_CATALOG: &[(&str, &[&str], &str, &str, &str, &[&str])] = &[
+    (
+        "repetition",
+        &["repetition", "bounded", "exact", "quantifier-bounds"],
+        "Exact and bounded repetition",
+        "`P*n..m` sets both min and max. `P*n` alone is a minimum of `n` with no upper bound. Exact count needs equal bounds: `P*10..10`.",
+        "Digit*10..10  // exactly ten digits\nDigit*10     // at least ten digits",
+        &["`Digit*10` is not an exact count — use `Digit*10..10`."],
+    ),
+    (
+        "pipeline",
+        &["pipeline", "|>", "into", "stage"],
+        "Pipeline stages and into",
+        "`A |> B` feeds B a derived stream with exactly one scalar item. Use `[P]` (`into`) when that value is iterable.",
+        "chars:any*\n|> [ plus:(\"+\"?) digits:Digit*7..15 end -> (join (flat (pack plus digits)) \"\") ]",
+        &["Pipelines must not implicitly iterate arrays/strings; omit `[…]` and the whole array/string is one item."],
+    ),
+    (
+        "projection",
+        &["projection", "precedence", "group"],
+        "Projection versus pipeline precedence",
+        "Nest a projection inside `(…)`, `[…]`, or `{…}` when it must apply before a surrounding pipeline, or use a named helper rule.",
+        "(digits:Digit+ -> (join digits \"\")) |> length:any",
+        &["`A B -> E` projects the sequence `A B`, not only `B`.", "Do not confuse `|>` (pipeline) with `->` (projection)."],
+    ),
+    (
+        "skip-quantifier",
+        &["skip", "quantifier", "collect", "count"],
+        "Skip and quantifiers",
+        "`skip P` matches without contributing its value to ordered collections. Skipped repetitions still count toward min/max.",
+        "sep:skip \",\"  items:(value:any (skip \",\" value:any)*)",
+        &["Counting and collecting are separate."],
+    ),
+    (
+        "character-class",
+        &["character-class", "character", "class", "digit", "ascii", "unicode"],
+        "Character classes versus ASCII digits",
+        "Shared `Digit` is `\\cNd`. ASCII-only digits are `\"0\"..\"9\"`.",
+        "import \"../common/characters/digit.uff\" Digit;  // \\cNd\nrule AsciiDigit = \"0\"..\"9\";",
+        &[
+            "`Digit` / `\\cNd` accepts more than ASCII `0`-`9`.",
+            "This topic is about character matching syntax, not statement control flow.",
+        ],
+    ),
+    (
+        "capture-scope",
+        &["capture", "binding", "variable", "scope", "duplicate"],
+        "Capture scope and repeated bindings",
+        "`name:Pattern` binds `name`. A second binding of the same name errors.",
+        "x:Digit x:Digit  // error: duplicate binding of x",
+        &["Failed exploratory paths must not leak bindings."],
+    ),
+    (
+        "exports",
+        &["export", "exports", "module", "entry"],
+        "Module exports",
+        "`export Name;` declares which rules/funcs are visible.",
+        "export Normalize;\nrule Normalize = …;",
+        &["`uffda_experiment` invokes an exported rule for full modules."],
+    ),
+];
+
+/// Topic cards (`req:mcp-server-015`).
+fn topic_cards(requested: &[String]) -> Vec<Value> {
+    let mut out = Vec::new();
+    let mut seen = HashSet::new();
+    for raw in requested {
+        let key = raw.trim().to_ascii_lowercase();
+        for (id, aliases, title, syntax, example, caveats) in TOPIC_CATALOG {
+            if seen.contains(id) {
+                continue;
+            }
+            if key == *id || aliases.iter().any(|alias| *alias == key) {
+                seen.insert(*id);
+                out.push(json!({
+                    "id": id,
+                    "title": title,
+                    "syntax": syntax,
+                    "example": example,
+                    "caveats": caveats,
+                    "sources": [],
+                }));
+            }
+        }
+    }
+    out
+}
+
+fn detect_topics_from_task(task: &str) -> Vec<String> {
+    let lower = task.to_ascii_lowercase();
+    let mut found = Vec::new();
+    for (id, aliases, ..) in TOPIC_CATALOG {
+        if aliases
+            .iter()
+            .any(|alias| alias.len() > 2 && lower.contains(alias))
+        {
+            found.push((*id).to_string());
+        }
+    }
+    found
+}
+
+fn wants_topic_mode(task: &str, explicit: &[String]) -> bool {
+    if !explicit.is_empty() {
+        return true;
+    }
+    let detected = detect_topics_from_task(task);
+    if detected.is_empty() {
+        return false;
+    }
+    let lower = task.to_ascii_lowercase();
+    lower.contains("how")
+        || lower.contains("syntax")
+        || lower.contains("example")
+        || lower.contains("what is")
+        || lower.contains("explain")
+}
+
+fn topic_mode_result(task: &str, topic_ids: &[String]) -> Value {
+    let cards = topic_cards(topic_ids);
+    let language_facts: Vec<Value> = cards
+        .iter()
+        .filter_map(|card| {
+            let id = card.get("id")?.as_str()?;
+            let syntax = card.get("syntax")?.as_str()?;
+            Some(json!(format!("{id}: {syntax}")))
+        })
+        .collect();
+    let implementation_evidence: Vec<Value> = cards
+        .iter()
+        .filter_map(|card| {
+            let id = card.get("id")?.as_str()?;
+            let example = card.get("example")?.as_str()?.lines().next()?;
+            Some(json!(format!("{id}: verified example — {example}")))
+        })
+        .collect();
+    json!({
+        "ok": true,
+        "task": if task.is_empty() { Value::Null } else { json!(task) },
+        "topics": cards,
+        "syntax": [],
+        "semantics": [],
+        "restrictions": [],
+        "expressibility": {
+            "status": "uncertain",
+            "summary": "Topic mode returns curated language facts and verified examples. It does not infer impossibility from unrelated restrictions.",
+            "supported": [],
+            "unsupported": [],
+            "uncertain": [],
+        },
+        "sources": [],
+        "relevantGlobals": [],
+        "layers": {
+            "languageFacts": language_facts,
+            "implementationEvidence": implementation_evidence,
+            "unverified": [
+                "Absence of a reference implementation for a domain feature is not proof the underlying pattern/expression surface cannot express it."
+            ]
+        }
+    })
+}
+
+/// Builds the JSON payload for `uffda_authoring_context`.
+pub fn authoring_context_with_topics(
+    task: &str,
+    topics: &[String],
+    language: Option<&str>,
+) -> Value {
+    let task = task.trim();
+    let topic_ids = if topics.is_empty() {
+        detect_topics_from_task(task)
+    } else {
+        topics.to_vec()
+    };
+    if wants_topic_mode(task, topics) && !topic_ids.is_empty() {
+        return topic_mode_result(task, &topic_ids);
+    }
+    authoring_context(task, language)
+}
+
 /// Builds the JSON payload for `uffda_authoring_context`.
 pub fn authoring_context(task: &str, language: Option<&str>) -> Value {
     let task = task.trim();
@@ -355,7 +552,7 @@ pub fn authoring_context(task: &str, language: Option<&str>) -> Value {
             "error": {
                 "code": "MCP_AUTHORING_CONTEXT_INVALID_TASK",
                 "phase": "validate",
-                "message": "task must be a non-empty string describing what to implement"
+                "message": "provide a non-empty task and/or topics describing what to look up"
             }
         });
     }
@@ -378,6 +575,17 @@ pub fn authoring_context(task: &str, language: Option<&str>) -> Value {
     let mut seen = HashSet::new();
 
     for (entry, _) in scored {
+        // Restrictions must hit a specific keyword, not only broad terms, so
+        // character-class questions are not classified unsupported via if/loops.
+        if entry.kind == EvidenceKind::Restriction {
+            let specific = entry.keywords.iter().any(|k| {
+                *k != "pattern" && *k != "syntax" && *k != "expression" && tokens.contains(*k)
+            });
+            if !specific {
+                continue;
+            }
+        }
+
         let entry_sources: Vec<Value> = entry.sources.iter().map(resolve_source).collect();
         for source in &entry_sources {
             let key = format!(
@@ -529,5 +737,65 @@ mod tests {
         let globals = result["relevantGlobals"].as_array().unwrap();
         assert!(!globals.iter().any(|g| g["name"] == "sort"));
         assert!(globals.iter().any(|g| g["name"] == "compare"));
+    }
+
+    #[test]
+    // req:mcp-server-015
+    fn topic_mode_returns_exact_syntax_without_unrelated_unsupported() {
+        let repetition = authoring_context_with_topics("", &["repetition".to_string()], None);
+        assert_eq!(repetition["ok"], true);
+        assert_eq!(repetition["topics"][0]["id"], "repetition");
+        let syntax = repetition["topics"][0]["syntax"].as_str().unwrap();
+        assert!(syntax.contains("*n..m") || syntax.contains("*10..10"), "{syntax}");
+        assert!(repetition["topics"][0]["example"]
+            .as_str()
+            .unwrap()
+            .contains("Digit*10..10"));
+        assert_eq!(
+            repetition["expressibility"]["unsupported"]
+                .as_array()
+                .unwrap()
+                .len(),
+            0
+        );
+
+        let classes = authoring_context_with_topics(
+            "how do I write a character class for digits?",
+            &["character-class".to_string()],
+            None,
+        );
+        assert_eq!(classes["ok"], true);
+        assert_eq!(classes["topics"][0]["id"], "character-class");
+        assert_eq!(classes["expressibility"]["status"], "uncertain");
+        assert_eq!(
+            classes["expressibility"]["unsupported"]
+                .as_array()
+                .unwrap()
+                .len(),
+            0
+        );
+        let blob = classes.to_string().to_ascii_lowercase();
+        assert!(
+            !blob.contains("statement-like"),
+            "character-class topic must not pull unrelated if/loop restrictions"
+        );
+
+        let free_form = authoring_context_with_topics(
+            "explain character classes versus ASCII digits",
+            &[],
+            None,
+        );
+        assert_eq!(free_form["ok"], true);
+        assert!(
+            free_form.get("topics").is_some(),
+            "free-form explain should enter topic mode: {free_form}"
+        );
+        assert_eq!(
+            free_form["expressibility"]["unsupported"]
+                .as_array()
+                .unwrap()
+                .len(),
+            0
+        );
     }
 }

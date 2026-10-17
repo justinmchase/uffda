@@ -149,15 +149,15 @@ export const AUTHORING_EVIDENCE: readonly AuthoringEvidence[] = [
   {
     id: "pattern-no-statements",
     keywords: [
-      "pattern",
       "if",
       "else",
       "loop",
       "for",
       "while",
       "let",
+      "return",
       "control",
-      "syntax",
+      "statement",
     ],
     languages: ["pattern", "uffda"],
     kind: "restriction",

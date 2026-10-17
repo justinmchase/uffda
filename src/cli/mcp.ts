@@ -138,12 +138,12 @@ export function createUffdaMcpServer(): McpServer {
     {
       title: "uffda authoring context",
       description:
-        "Returns verified, task-oriented Uffda authoring context — relevant " +
-        "pattern/expression syntax, semantics, default globals, " +
-        "expressibility (supported / partial / unsupported / uncertain), " +
-        "restrictions, and repository source citations — so an agent can " +
-        "write patterns and expressions without guessing capabilities. " +
-        "Stateless: does not require or affect any session.",
+        "Returns verified Uffda authoring context. Prefer `topics` for " +
+        "concise cards (repetition, pipeline, projection, skip-quantifier, " +
+        "character-class, capture-scope, exports) with exact syntax, one " +
+        "minimal example, caveats, and citations. Or pass `task` for " +
+        "evidence-backed syntax/semantics/expressibility. Stateless: does " +
+        "not require or affect any session.",
       inputSchema: authoringContextToolInputShape,
     },
     (input: AuthoringContextToolInput) =>
@@ -155,11 +155,12 @@ export function createUffdaMcpServer(): McpServer {
     {
       title: "uffda experiment",
       description:
-        "Parses an Uffda / pattern / expression snippet in memory and " +
-        "optionally matches or evaluates it against sample input(s) without " +
-        "sessions or writing files/artifacts. Supports multiple independent " +
-        "inputs in one call. Full modules with imports are parse-only " +
-        "(unsupported for run).",
+        "In-memory Uffda / pattern / expression execution with supplied " +
+        "inputs and batch assertions. Parse/compile once, run named `cases` " +
+        "(expect JSON value or expectNonMatch) independently, return compact " +
+        "summary + failure details (no ASTs or match trees by default). No " +
+        "sessions, source files, or artifact writes. Modules with imports are " +
+        "unsupported for run.",
       inputSchema: experimentToolInputShape,
     },
     async (input: ExperimentToolInput) =>

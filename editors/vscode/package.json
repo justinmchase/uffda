@@ -63,7 +63,7 @@
         "uffda.lsp.serverPath": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Overrides the `uffda` executable used to launch the language server and MCP server, bypassing `PATH` resolution and automatic download entirely. Intended for debugging a local source checkout (for example `deno`). Used verbatim together with `#uffda.lsp.serverArgs#`."
+          "markdownDescription": "Overrides the executable used to launch the language server and MCP server, bypassing `PATH` resolution and automatic download entirely. Point at **`uffdar`** (Rust preview) or a freshly built `rust/target/release/uffda`. Do not use `deno`. Used verbatim together with `#uffda.lsp.serverArgs#`."
         },
         "uffda.lsp.serverArgs": {
           "type": "array",
@@ -71,7 +71,7 @@
             "type": "string"
           },
           "default": [],
-          "markdownDescription": "Arguments passed to `#uffda.lsp.serverPath#` when launching the language server, in place of the default `lsp` argument. Only used when `#uffda.lsp.serverPath#` is set. For example, to run from source: `[\"run\", \"-A\", \"./src/cli/main.ts\", \"lsp\"]`."
+          "markdownDescription": "Arguments passed to `#uffda.lsp.serverPath#` when launching the language server, in place of the default `lsp` argument. Only used when `#uffda.lsp.serverPath#` is set. Typical value: `[\"lsp\"]`."
         },
         "uffda.mcp.serverArgs": {
           "type": "array",
@@ -79,7 +79,7 @@
             "type": "string"
           },
           "default": [],
-          "markdownDescription": "Arguments passed to `#uffda.lsp.serverPath#` when launching the MCP server, in place of the default `mcp` argument. Only used when `#uffda.lsp.serverPath#` is set. For example, to run from source: `[\"run\", \"-A\", \"./src/cli/main.ts\", \"mcp\"]`."
+          "markdownDescription": "Arguments passed to `#uffda.lsp.serverPath#` when launching the MCP server, in place of the default `mcp` argument. Only used when `#uffda.lsp.serverPath#` is set. Typical value: `[\"mcp\"]`."
         }
       }
     }
