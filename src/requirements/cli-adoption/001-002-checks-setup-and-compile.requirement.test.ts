@@ -25,7 +25,8 @@ Deno.test(
     const yaml = await Deno.readTextFile(
       join(repoRoot, ".github", "workflows", "checks.yml"),
     );
-    assertEquals(yaml.includes("deno task compile:lang"), true);
+    assertEquals(yaml.includes("uffda compile 'src/lang/**/*.uff'"), true);
+    assertEquals(yaml.includes("deno task compile:lang"), false);
     assertEquals(yaml.includes("finalize-bin-modules"), false);
     assertEquals(yaml.includes("deno test"), false);
     assertEquals(yaml.includes("deno lint"), false);

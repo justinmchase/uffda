@@ -14,7 +14,8 @@ Deno.test(
     assertEquals(denoJson.includes("compile_lang.ts"), false);
     assertEquals(denoJson.includes("finalize-bin-modules"), false);
     assertEquals(/uffda compile ['"]src\/lang/.test(denoJson), true);
-    assertEquals(checks.includes("deno task compile:lang"), true);
+    assertEquals(checks.includes("uffda compile 'src/lang/**/*.uff'"), true);
+    assertEquals(checks.includes("deno task compile:lang"), false);
     assertEquals(checks.includes("finalize-bin-modules"), false);
 
     const charactersDir = join(

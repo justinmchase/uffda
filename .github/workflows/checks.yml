@@ -47,14 +47,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
       - uses: ./.github/actions/uffda-setup
         with:
           version: latest
       - name: Bootstrap with published compiler
-        run: deno task compile:lang
+        run: rm -rf ./bin && uffda compile 'src/lang/**/*.uff'
       - uses: actions/upload-artifact@v7
         with:
           name: rust-language-bin
