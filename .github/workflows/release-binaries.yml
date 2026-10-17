@@ -3,8 +3,9 @@ name: Release Binaries
 # Compile the CLI from a pinned main revision and attach (replace) release
 # assets on the latest draft GitHub Release. The Rust preview is published
 # separately as uffdar-* and embeds the same bootstrapped language ASTs.
-# Also pins refs/tags/<version> to that same revision so publishing does not
-# freeze a stale tag as the next release notes baseline.
+# Sets the draft release target_commitish to the build revision; publishing
+# the release creates the version tag — this workflow does not create or move
+# git tags.
 #
 # Triggered by Draft Release via repository_dispatch, or manually via
 # workflow_dispatch.
@@ -347,7 +348,7 @@ jobs:
           } >> "${GITHUB_STEP_SUMMARY}"
           ls -la
 
-      - name: Pin draft tag to build commit
+      - name: Point draft release at build commit
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -358,24 +359,15 @@ jobs:
 
           is_draft="$(gh release view "${tag}" --json isDraft --jq .isDraft)"
           if [[ "${is_draft}" != "true" ]]; then
-            echo "Release ${tag} is not a draft; refusing to move tag (releases are immutable)." >&2
+            echo "Release ${tag} is not a draft; refusing to update provenance." >&2
             exit 1
           fi
 
-          # Draft Release sets tag_name on the draft but does not keep
-          # refs/tags/<version> pointed at the built revision. Publishing an
-          # existing stale tag would freeze the wrong SHA as the changelog
-          # baseline for the next release. Pin the draft tag to this build now.
+          # Publishing the draft creates refs/tags/<version> at target_commitish.
+          # Do not create or move git tags here (protected/burnt tags break that).
           if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${tag}" >/dev/null 2>&1; then
-            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/${tag}" \
-              -f sha="${sha}" \
-              -F force=true
-            echo "Updated refs/tags/${tag} -> ${sha}"
-          else
-            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
-              -f ref="refs/tags/${tag}" \
-              -f sha="${sha}"
-            echo "Created refs/tags/${tag} -> ${sha}"
+            echo "Git tag ${tag} already exists; refuse this version and draft the next SemVer instead." >&2
+            exit 1
           fi
 
           release_id="$(gh release view "${tag}" --json databaseId --jq .databaseId)"
@@ -383,10 +375,10 @@ jobs:
             -f target_commitish="${sha}" \
             -f tag_name="${tag}"
           {
-            echo "### Draft tag provenance"
+            echo "### Draft release provenance"
             echo
-            echo "- \`refs/tags/${tag}\` -> \`${sha}\`"
-            echo "- Release \`target_commitish\` set to the same commit"
+            echo "- Release \`target_commitish\` -> \`${sha}\`"
+            echo "- Git tag \`${tag}\` will be created when the draft is published"
           } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Replace assets on draft release

@@ -98,12 +98,22 @@ jobs:
           printf '%s\n' "${previous_version}" > "${work_dir}/VERSION"
           release_version="$(cd "${work_dir}" && semver inc "${bump}")"
 
-          if jq -e --arg version "${release_version}" \
-            '[.[][] | select(.draft == false) | .tag_name | sub("^v"; "")] | any(. == $version)' \
-            <<< "$releases" >/dev/null; then
-            echo "Refusing to overwrite an existing release ${release_version}." >&2
-            exit 1
-          fi
+          # Skip versions that already have a published release or a git tag
+          # (burnt / protected tags must not be reused; publishing creates the tag).
+          while true; do
+            if jq -e --arg version "${release_version}" \
+              '[.[][] | select(.draft == false) | .tag_name | sub("^v"; "")] | any(. == $version)' \
+              <<< "$releases" >/dev/null; then
+              echo "Skipping ${release_version}: published release already exists." >&2
+            elif gh api "repos/${repository}/git/ref/tags/${release_version}" \
+              >/dev/null 2>&1; then
+              echo "Skipping ${release_version}: git tag already exists." >&2
+            else
+              break
+            fi
+            printf '%s\n' "${release_version}" > "${work_dir}/VERSION"
+            release_version="$(cd "${work_dir}" && semver inc patch)"
+          done
 
           draft_id="$(jq -r '[.[][] | select(.draft == true)] | sort_by(.created_at) | last | .id // empty' \
             <<< "$releases")"
