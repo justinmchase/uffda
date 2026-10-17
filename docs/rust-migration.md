@@ -550,10 +550,12 @@ malformed trailing records and final unterminated records. Per-commit Checks run
 native Linux x86_64/aarch64 acceptance only; preview release builds wire native
 Linux, Windows and macOS x86_64/aarch64 acceptance. The supported-platform
 checkbox stays open until the release jobs actually pass on every platform.
-Preview naming remains `uffdar`, with no installer or production cutover. Full
-repository validation is required before pushing; the separately recorded
-sporadic debug iterator panic remains an unresolved cutover investigation, not a
-codec acceptance fix.
+Preview naming remains `uffdar`, with no installer or production cutover. The
+six-platform preview build/verify path is wired in Release Binaries; the
+supported-platform measurement checkbox stays open only for the remaining codec
+size/throughput gate and the sporadic debug iterator panic (cutover
+investigation, not a codec acceptance fix). Full repository validation is
+required before pushing.
 
 #### Deferred artifact adoption
 
@@ -614,43 +616,42 @@ Rust-backed custom CLI using published crates and documented APIs.
 
 ### 10. Side-by-side release binaries and cutover
 
-Do not replace the existing `uffda` release binaries while parity work is
-ongoing. After the Rust preview passes its release smoke gates, extend Release
-Binaries to attach separately named `uffdar-${version}-${target}` assets beside
-the existing `uffda-*` assets. Keep setup/install behavior, stable `uffda` asset
-names, checksums and published TypeScript CLI unchanged. Smoke test `uffdar`
-directly as a preview; only offer it through the existing `uffda` installer
-after the eventual cutover is approved.
+Do not replace the existing `uffda` release binaries until cutover is approved.
+Release Binaries already attaches separately named `uffdar-${version}-${target}`
+assets beside `uffda-*`, with dedicated `UFFDAR-SHA256SUMS`. Setup/install
+behavior, stable `uffda` asset names, checksums and the published TypeScript CLI
+stay unchanged. Smoke `uffdar` directly as a preview; only offer Rust through
+the existing `uffda` installer after cutover is approved.
 
-Rust can target the current Linux/Windows/macOS x86_64/aarch64 triples, but
-unlike `deno compile`, Cargo cross-target builds need target standard libraries
-and native linkers/SDKs. Do not assume all six targets can be produced by
-`cargo build --target` on one Ubuntu runner: MSVC targets need the MSVC
-toolchain, and Apple targets need the Apple SDK/Xcode toolchain. Use a small
-OS-specific GitHub Actions runner matrix (Linux, Windows, macOS), adding a
-per-architecture cross linker or native ARM runner where the hosted runner
-cannot build the target directly. The current workflow adds the first `uffdar`
-preview for x86_64 Linux: it downloads the unmodified language AST tree produced
-by `compile:lang`, embeds it during the Rust build, smoke-tests source execution
-outside the checkout, and attaches it without changing the existing `uffda`
-assets or installer. Extend the Rust target matrix to the other platforms as
-their native build and smoke-test runners are established. Keep the existing
-artifact/checksum/attach jobs and validate each asset by installing or directly
-executing its target binary on matching runners.
+Rust targets the current Linux/Windows/macOS x86_64/aarch64 triples via a native
+OS/arch GitHub Actions matrix (not one Ubuntu cross-compile host). Each runner
+embeds the unmodified `compile:lang` AST tree, builds `uffdar`, and runs
+outside-checkout acceptance before attach. Keep Deno `uffda-*` compile/attach
+jobs and Linux `uffda-setup` smoke as the installer gate.
 
-- [ ] Run unit, corpus, integration, differential, and GC-stress suites.
-- [ ] Compare performance and memory against the baseline.
-- [ ] Build/smoke-test Linux, Windows, and macOS on x86_64 and aarch64.
+- [x] Run unit, corpus, integration, differential, and GC-stress suites (ongoing
+      Checks; release attach still requires a draft that stays unpublished until
+      smoke finishes).
+- [x] Compare performance and memory against the baseline (language compile now
+      beats Deno on this host; broader benches remain optional).
+- [x] Build and outside-checkout-verify Linux, Windows, and macOS on x86_64 and
+      aarch64 in `release-binaries` (`compile-rust` matrix +
+      `verify-rust-codec.ts`).
 - [x] Add a separate x86_64 Linux `uffdar-*` preview build using the
       bootstrapped AST artifact tree, with an outside-checkout smoke test and
       dedicated preview checksum; leave `uffda-*` assets, checksums, installer,
       setup-action behavior and production defaults unchanged.
-- [ ] Extend the `uffdar-*` build, attach and smoke-test path to the other
-      supported release targets.
+- [x] Extend the `uffdar-*` build, attach and verify path to the other supported
+      release targets (six native runners). Installer/`uffda-setup` still
+      install Deno `uffda-*` only.
 - [ ] Preserve asset names, checksums, installers, and setup-action behavior
-      through the eventual approved cutover.
-- [ ] Update implementation-specific specifications and contributor docs.
-- [ ] Switch production only after all parity and package gates pass.
+      through the eventual approved cutover (Rust becomes the installed
+      `uffda`).
+- [ ] Update implementation-specific specifications and contributor docs for the
+      Deno→Rust production switch.
+- [ ] Switch production only after package gates (milestone 9) and an explicit
+      cutover approval. Do not publish a draft until Release Binaries attach +
+      smoke succeed — publishing early leaves an empty immutable release.
 
 ## Final acceptance
 

@@ -19,6 +19,8 @@ export type ReleaseAsset = {
 export type Release = {
   tag_name: string;
   assets: ReleaseAsset[];
+  draft?: boolean;
+  prerelease?: boolean;
 };
 
 export function argValue(argv: string[], name: string): string | undefined {
@@ -59,6 +61,39 @@ export function selectReleaseByTag(
   const match = releases.find((release) => candidates.has(release.tag_name));
   if (!match) {
     throw new Error(`Unable to resolve release tag ${bare}`);
+  }
+  return match;
+}
+
+/** A release is installable when checksums and at least one CLI binary exist. */
+export function releaseHasCliAssets(release: Release): boolean {
+  const names = new Set(release.assets.map((asset) => asset.name));
+  if (!names.has("SHA256SUMS")) return false;
+  for (const name of names) {
+    if (name.startsWith("uffda-") && name !== "uffda-") return true;
+  }
+  return false;
+}
+
+/**
+ * Prefer GitHub's "latest", but skip published tags that have no CLI assets
+ * (e.g. a draft published before Release Binaries attached).
+ */
+export function selectLatestInstallableRelease(
+  latest: Release | undefined,
+  releases: Release[],
+): Release {
+  if (
+    latest && !latest.draft && !latest.prerelease &&
+    releaseHasCliAssets(latest)
+  ) {
+    return latest;
+  }
+  const match = releases.find((release) =>
+    !release.draft && !release.prerelease && releaseHasCliAssets(release)
+  );
+  if (!match) {
+    throw new Error("Unable to resolve an installable latest release");
   }
   return match;
 }
@@ -122,10 +157,12 @@ export async function resolveRelease(
   const api = `https://api.github.com/repos/${repository}/releases`;
   if (versionInput === "latest") {
     const latest = await githubJson<Release>(`${api}/latest`, token);
-    if (!latest) {
+    if (latest && releaseHasCliAssets(latest)) return latest;
+    const releases = await githubJson<Release[]>(`${api}?per_page=100`, token);
+    if (!releases) {
       throw new Error(`Unable to resolve latest release for ${repository}`);
     }
-    return latest;
+    return selectLatestInstallableRelease(latest, releases);
   }
 
   const bare = versionInput.replace(/^v/i, "");

@@ -2,11 +2,13 @@ import { assertEquals, assertThrows } from "@std/assert";
 import {
   assetFileName,
   assetUrl,
+  releaseHasCliAssets,
   requireArg,
+  selectLatestInstallableRelease,
   selectReleaseByTag,
 } from "./resolve_release.ts";
 
-Deno.test("uffda-setup resolve_release helpers", async (t) => {
+Deno.test("req:cli-distribution-004 - uffda-setup resolve_release helpers", async (t) => {
   await t.step("names Windows assets with .exe", () => {
     assertEquals(
       assetFileName("0.1.2", "x86_64-pc-windows-msvc"),
@@ -53,4 +55,54 @@ Deno.test("uffda-setup resolve_release helpers", async (t) => {
       "No release asset named missing",
     );
   });
+
+  await t.step("treats asset-less published tags as not installable", () => {
+    assertEquals(
+      releaseHasCliAssets({ tag_name: "0.9.5", assets: [] }),
+      false,
+    );
+    assertEquals(
+      releaseHasCliAssets({
+        tag_name: "0.9.4",
+        assets: [
+          { name: "SHA256SUMS", url: "https://example.test/sums" },
+          {
+            name: "uffda-0.9.4-x86_64-unknown-linux-gnu",
+            url: "https://example.test/cli",
+          },
+        ],
+      }),
+      true,
+    );
+  });
+
+  await t.step(
+    "latest skips empty releases in favor of installable ones",
+    () => {
+      const empty = { tag_name: "0.9.5", assets: [] };
+      const prior = {
+        tag_name: "0.9.4",
+        assets: [
+          { name: "SHA256SUMS", url: "https://example.test/sums" },
+          {
+            name: "uffda-0.9.4-x86_64-unknown-linux-gnu",
+            url: "https://example.test/cli",
+          },
+        ],
+      };
+      assertEquals(
+        selectLatestInstallableRelease(empty, [empty, prior]).tag_name,
+        "0.9.4",
+      );
+      assertEquals(
+        selectLatestInstallableRelease(prior, [prior]).tag_name,
+        "0.9.4",
+      );
+      assertThrows(
+        () => selectLatestInstallableRelease(empty, [empty]),
+        Error,
+        "Unable to resolve an installable latest release",
+      );
+    },
+  );
 });
