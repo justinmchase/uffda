@@ -31,10 +31,15 @@ Deno.test(
 );
 
 Deno.test(
-  "req:cli-distribution-003 - linux install script is checked in",
+  "req:cli-distribution-003 - linux install script installs uffda and uffdar",
   async () => {
     assertEquals(installScriptFileName(), "install.sh");
-    await Deno.stat(join(repoRoot, "scripts", installScriptFileName()));
+    const script = await Deno.readTextFile(
+      join(repoRoot, "scripts", installScriptFileName()),
+    );
+    assertEquals(script.includes('install_asset "uffda"'), true);
+    assertEquals(script.includes('install_asset "uffdar"'), true);
+    assertEquals(script.includes("UFFDAR-SHA256SUMS"), true);
   },
 );
 

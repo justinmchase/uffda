@@ -618,10 +618,10 @@ Rust-backed custom CLI using published crates and documented APIs.
 
 Do not replace the existing `uffda` release binaries until cutover is approved.
 Release Binaries already attaches separately named `uffdar-${version}-${target}`
-assets beside `uffda-*`, with dedicated `UFFDAR-SHA256SUMS`. Setup/install
-behavior, stable `uffda` asset names, checksums and the published TypeScript CLI
-stay unchanged. Smoke `uffdar` directly as a preview; only offer Rust through
-the existing `uffda` installer after cutover is approved.
+assets beside `uffda-*`, with dedicated `UFFDAR-SHA256SUMS`. The Linux
+`install.sh` installs both `uffda` and `uffdar`; `uffda-setup` still installs
+Deno `uffda-*` only. Stable `uffda` asset names, checksums and the published
+TypeScript CLI stay unchanged until cutover is approved.
 
 Rust targets the current Linux/Windows/macOS x86_64/aarch64 triples via a native
 OS/arch GitHub Actions matrix (not one Ubuntu cross-compile host). Each runner
@@ -642,8 +642,8 @@ jobs and Linux `uffda-setup` smoke as the installer gate.
       dedicated preview checksum; leave `uffda-*` assets, checksums, installer,
       setup-action behavior and production defaults unchanged.
 - [x] Extend the `uffdar-*` build, attach and verify path to the other supported
-      release targets (six native runners). Installer/`uffda-setup` still
-      install Deno `uffda-*` only.
+      release targets (six native runners). Linux `install.sh` installs `uffda`
+      and `uffdar`; `uffda-setup` still installs Deno `uffda-*` only.
 - [ ] Preserve asset names, checksums, installers, and setup-action behavior
       through the eventual approved cutover (Rust becomes the installed
       `uffda`).

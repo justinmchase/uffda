@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Install the Uffda CLI from a GitHub Release onto Linux.
+# Install the Uffda CLIs from a GitHub Release onto Linux.
+# Installs Deno `uffda` and the Rust preview `uffdar` for the host architecture.
 # Usage:
 #   curl -fsSL https://github.com/justinmchase/uffda/releases/latest/download/install.sh | bash
 #   UFFDA_VERSION=0.1.2 bash install.sh
@@ -64,7 +65,6 @@ if [[ -z "${tag_name}" ]]; then
 fi
 
 version="${tag_name#v}"
-asset="uffda-${version}-${target}"
 base="https://github.com/${REPO}/releases/download/${tag_name}"
 
 download_with_retry() {
@@ -80,35 +80,48 @@ download_with_retry() {
   return 1
 }
 
-if ! download_with_retry "${base}/${asset}" "${tmpdir}/${asset}"; then
-  echo "Failed to download ${asset}" >&2
-  exit 1
-fi
-if ! download_with_retry "${base}/SHA256SUMS" "${tmpdir}/SHA256SUMS"; then
-  echo "Failed to download SHA256SUMS" >&2
-  exit 1
-fi
+install_asset() {
+  local command_name="$1"
+  local asset="$2"
+  local sums_name="$3"
+  local sums_path="${tmpdir}/${sums_name}"
 
-expected="$(
-  awk -v name="${asset}" '$2 == name { print $1; exit }' "${tmpdir}/SHA256SUMS"
-)"
-if [[ -z "${expected}" ]]; then
-  echo "No checksum entry for ${asset} in SHA256SUMS" >&2
-  exit 1
-fi
+  if ! download_with_retry "${base}/${asset}" "${tmpdir}/${asset}"; then
+    echo "Failed to download ${asset}" >&2
+    exit 1
+  fi
+  if [[ ! -f "${sums_path}" ]]; then
+    if ! download_with_retry "${base}/${sums_name}" "${sums_path}"; then
+      echo "Failed to download ${sums_name}" >&2
+      exit 1
+    fi
+  fi
 
-actual="$(sha256sum "${tmpdir}/${asset}" | awk '{ print $1 }')"
-if [[ "${actual}" != "${expected}" ]]; then
-  echo "Checksum mismatch for ${asset}" >&2
-  echo "expected: ${expected}" >&2
-  echo "actual:   ${actual}" >&2
-  exit 1
-fi
+  local expected actual
+  expected="$(
+    awk -v name="${asset}" '$2 == name { print $1; exit }' "${sums_path}"
+  )"
+  if [[ -z "${expected}" ]]; then
+    echo "No checksum entry for ${asset} in ${sums_name}" >&2
+    exit 1
+  fi
+
+  actual="$(sha256sum "${tmpdir}/${asset}" | awk '{ print $1 }')"
+  if [[ "${actual}" != "${expected}" ]]; then
+    echo "Checksum mismatch for ${asset}" >&2
+    echo "expected: ${expected}" >&2
+    echo "actual:   ${actual}" >&2
+    exit 1
+  fi
+
+  install -m 0755 "${tmpdir}/${asset}" "${PREFIX}/${command_name}"
+  echo "Installed ${command_name} ${version} (${target}) to ${PREFIX}/${command_name}"
+}
 
 mkdir -p "${PREFIX}"
-install -m 0755 "${tmpdir}/${asset}" "${PREFIX}/uffda"
+install_asset "uffda" "uffda-${version}-${target}" "SHA256SUMS"
+install_asset "uffdar" "uffdar-${version}-${target}" "UFFDAR-SHA256SUMS"
 
-echo "Installed uffda ${version} (${target}) to ${PREFIX}/uffda"
-if ! command -v uffda >/dev/null 2>&1; then
-  echo "Add ${PREFIX} to your PATH to use uffda." >&2
+if ! command -v uffda >/dev/null 2>&1 || ! command -v uffdar >/dev/null 2>&1; then
+  echo "Add ${PREFIX} to your PATH to use uffda and uffdar." >&2
 fi

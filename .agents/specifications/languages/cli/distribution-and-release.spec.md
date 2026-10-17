@@ -63,8 +63,8 @@ Normative key words in this chapter use the conventions defined in the
 - Release entries MUST include version tag, artifact list, and checksums for
   every published binary.
 - Each release MUST also publish a Linux shell install script (for example
-  `install.sh`) that downloads and installs the correct Linux binary for the
-  host architecture from that release.
+  `install.sh`) that downloads and installs the correct Linux `uffda` and
+  `uffdar` binaries for the host architecture from that release.
 - Release notes SHOULD include compatibility notes and migration impact for
   command/flag/output changes.
 - Binary release assets MUST NOT depend on JSR install for operator or CI usage.
