@@ -158,6 +158,31 @@ chapter(s).
   maintained mapping from rule name to role that could drift from the grammar it
   classifies.
 
+### In-memory experiment tool
+
+- The server MUST expose a stateless tool for fast, side-effect-free authoring
+  experiments: given a snippet (`language` + `source`) and optional sample
+  input(s), it MUST parse in memory and, when requested and supported, match or
+  evaluate against those inputs without creating, modifying, or deleting files
+  or compiled artifacts (including `./bin`).
+- The tool MUST support standalone `pattern` and `expression` snippets. It MUST
+  support full-module (`uffda`) snippets for parse always, and for
+  match/evaluation only when the module can be compiled and run entirely from
+  the supplied source without writing artifacts (self-contained modules with no
+  file imports). When a requested run cannot be performed safely in memory, the
+  tool MUST report that as an unsupported operation rather than compiling to
+  disk or inventing success.
+- Callers MUST be able to supply one input or several independent sample inputs
+  in a single call, with an explicit distinction between text subjects and JSON
+  values (`inputIsJson` or equivalent). Each sample MUST produce its own result;
+  samples MUST NOT share mutable state.
+- Results MUST distinguish parse failures, compile/evaluation failures, match
+  failures, and unsupported operations. A successful parse MUST NOT be reported
+  as a successful match or evaluation. The tool MUST NOT invent a successful run
+  result when execution failed.
+- The tool MUST NOT require or accept a session id and MUST NOT persist state
+  between calls. Separate calls MUST NOT leak state to each other.
+
 ### Authoring context tool
 
 - The server MUST expose a stateless tool that, given a natural-language
@@ -247,6 +272,7 @@ chapter(s).
 
 Stateless operation tools, session lifecycle tools, incremental re-parse tools,
 evaluation tools, introspection and query tools, match-tree walking tools, the
-source highlighting tool, the authoring context tool, and the session display
-surface tool are implemented. See [command model](./command-model.spec.md) for
-the existing shipped CLI modes this chapter's tools sit alongside.
+source highlighting tool, the in-memory experiment tool, the authoring context
+tool, and the session display surface tool are implemented. See
+[command model](./command-model.spec.md) for the existing shipped CLI modes this
+chapter's tools sit alongside.
