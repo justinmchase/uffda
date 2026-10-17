@@ -45,11 +45,12 @@ Expected behavior:
   accept final unterminated records, and fail explicitly on malformed/truncated
   streams. Acceptance MUST run outside the checkout with an empty child PATH and
   no external grammar artifacts.
-- Linux, macOS, and Windows, on x86_64 and aarch64, MUST build the preview and
-  run standalone CLI/codec streaming acceptance on native runners. Cross-builds
-  alone MUST NOT count as execution evidence. Pending CI MUST remain distinct
-  from verified platform results. Release Binaries MUST cover all six targets;
-  per-commit Checks MUST cover the Linux targets and MAY omit the others.
+- Linux, macOS, and Windows, on x86_64 and aarch64, MUST build the `uffda`
+  release CLI and run standalone CLI/codec streaming acceptance on native
+  runners. Cross-builds alone MUST NOT count as execution evidence. Pending CI
+  MUST remain distinct from verified platform results. Release Binaries MUST
+  cover all six targets; per-commit Checks MUST cover the Linux targets and MAY
+  omit the others.
 - Product CLI subject options still decode exactly one record. The streaming
   consumer is an acceptance example of the public library API, not a new CLI
   command or multi-subject feature.
@@ -58,6 +59,6 @@ Postconditions:
 
 - Corpus, report tooling, tests, standalone-acceptance CI coverage, and
   persistent measured evidence remain available.
-- Artifact format, compiler bootstrap, installer, and cutover policy are
-  unchanged.
+- Codec artifact format stays unchanged. Release asset names follow the
+  distribution requirements.
 - Tests cite this requirement in the report helpers and Rust acceptance example.

@@ -51,23 +51,27 @@ Deno.test(
       join(repoRoot, ".github", "workflows", "release-binaries.yml"),
     );
     assertEquals(releaseBinaries.includes("--include ./bin"), false);
-    const compile = releaseBinaries.slice(
-      releaseBinaries.indexOf("\n  compile:"),
+    assertEquals(releaseBinaries.includes("uffdar"), false);
+    const compileRust = releaseBinaries.slice(
       releaseBinaries.indexOf("\n  compile-rust:"),
+      releaseBinaries.indexOf("\n  attach:"),
     );
-    assertEquals(compile.includes("denoland/setup-deno"), false);
-    assertEquals(compile.includes("deno "), false);
+    assertEquals(compileRust.includes("deno compile"), false);
     assertEquals(
-      compile.includes(
+      compileRust.includes(
         "cargo build --locked --manifest-path rust/Cargo.toml --target",
       ),
       true,
     );
-    assertEquals(compile.includes("--bin uffda"), true);
+    assertEquals(compileRust.includes("--bin uffda"), true);
+    assertEquals(
+      compileRust.includes("name: uffda-${{ matrix.target }}"),
+      true,
+    );
     assertEquals(releaseBinaries.includes("deno task compile:lang"), false);
     const compileLang = releaseBinaries.slice(
       releaseBinaries.indexOf("  compile-lang:"),
-      releaseBinaries.indexOf("\n  compile:"),
+      releaseBinaries.indexOf("\n  compile-rust:"),
     );
     assertEquals(compileLang.includes("denoland/setup-deno"), false);
     assertEquals(compileLang.includes("uffda-setup"), false);

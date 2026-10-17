@@ -19,9 +19,10 @@ Expected behavior:
 - `scripts/compile-cli.ts` MUST pass `deno compile --include ./bin` so the
   compiled AST JSON files are embedded in each published CLI binary.
 - `.github/workflows/release-binaries.yml` MUST compile language modules into
-  `./bin` in `compile-lang`, then the `compile` job MUST build the Rust `uffda`
-  binary with that tree present so the artifacts are embedded. The `compile` job
-  MUST NOT run Deno or `deno compile`.
+  `./bin` in `compile-lang`, then the `compile-rust` job MUST build the Rust
+  `uffda` binary with that tree present so the artifacts are embedded. Release
+  assets MUST be named `uffda-<version>-<target>`. The job MUST NOT run
+  `deno compile` or publish `uffdar-*` assets.
 - When attaching release assets, the workflow MUST download only CLI target
   artifacts (`uffda-*`) and MUST NOT upload the language `./bin` tree to the
   GitHub Release.

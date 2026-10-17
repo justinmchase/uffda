@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Install the Uffda CLIs from a GitHub Release onto Linux.
-# Installs Deno `uffda` and the Rust preview `uffdar` for the host architecture.
+# Installs the Rust `uffda` CLI for the host architecture.
 # Usage:
 #   curl -fsSL https://github.com/justinmchase/uffda/releases/latest/download/install.sh | bash
 #   UFFDA_VERSION=0.1.2 bash install.sh
@@ -120,8 +120,7 @@ install_asset() {
 
 mkdir -p "${PREFIX}"
 install_asset "uffda" "uffda-${version}-${target}" "SHA256SUMS"
-install_asset "uffdar" "uffdar-${version}-${target}" "UFFDAR-SHA256SUMS"
 
-if ! command -v uffda >/dev/null 2>&1 || ! command -v uffdar >/dev/null 2>&1; then
-  echo "Add ${PREFIX} to your PATH to use uffda and uffdar." >&2
+if ! command -v uffda >/dev/null 2>&1; then
+  echo "Add ${PREFIX} to your PATH to use uffda." >&2
 fi

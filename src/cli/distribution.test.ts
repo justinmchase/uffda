@@ -88,10 +88,13 @@ Deno.test("cli.distribution release compile job builds the Rust CLI", async () =
     new URL("../../.github/workflows/release-binaries.yml", import.meta.url),
   );
   const compile = workflow.slice(
-    workflow.indexOf("\n  compile:"),
     workflow.indexOf("\n  compile-rust:"),
+    workflow.indexOf("\n  attach:"),
   );
-  assertEquals(compile.includes("deno "), false);
+  assertEquals(compile.includes("uffdar"), false);
   assertEquals(compile.includes("--bin uffda"), true);
-  assertEquals(compile.includes('asset="uffda-${version}-${target}"'), true);
+  assertEquals(
+    compile.includes("name: uffda-${{ matrix.target }}"),
+    true,
+  );
 });
