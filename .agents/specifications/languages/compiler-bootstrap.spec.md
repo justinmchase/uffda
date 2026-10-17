@@ -61,7 +61,9 @@ self-hosting while maintaining deterministic and diagnosable behavior.
   MUST use the previous published `uffda compile` for the full parse + lower
   pipeline in one step (quoted glob such as `'src/lang/**/*.uff'`), producing
   ModuleDeclaration JSON directly. Checks invokes that published binary
-  directly. `deno task compile:lang` is the same command for local use and other
+  directly. The release `compile-lang` job downloads that published asset with
+  `gh` and does not run Deno; it then rewrites `./bin` with the Rust CLI.
+  `deno task compile:lang` is the same command for local use and other
   workflows. No separate in-tree lower stage or frozen compiler snapshot is
   needed once the published CLI includes that pipeline (0.1.17+).
 

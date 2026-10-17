@@ -50,12 +50,21 @@ Deno.test(
     const releaseBinaries = await Deno.readTextFile(
       join(repoRoot, ".github", "workflows", "release-binaries.yml"),
     );
+    assertEquals(releaseBinaries.includes("--include ./bin"), true);
+    assertEquals(releaseBinaries.includes("deno task compile:lang"), false);
+    const compileLang = releaseBinaries.slice(
+      releaseBinaries.indexOf("  compile-lang:"),
+      releaseBinaries.indexOf("\n  compile:"),
+    );
+    assertEquals(compileLang.includes("denoland/setup-deno"), false);
+    assertEquals(compileLang.includes("uffda-setup"), false);
+    assertEquals(compileLang.includes("deno "), false);
     assertEquals(
-      /version:\s*(latest|"?\d+\.\d+\.\d+"?)/.test(releaseBinaries),
+      compileLang.includes(
+        "cargo build --locked --release --manifest-path rust/Cargo.toml --bin uffda",
+      ),
       true,
     );
-    assertEquals(releaseBinaries.includes("--include ./bin"), true);
-    assertEquals(releaseBinaries.includes("deno task compile:lang"), true);
     assertEquals(releaseBinaries.includes("name: language-bin"), true);
     assertEquals(releaseBinaries.includes("pattern: uffda-*"), true);
   },

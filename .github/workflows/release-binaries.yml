@@ -82,22 +82,42 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.sha }}
 
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Setup Uffda CLI
-        # Need a working published CLI to produce ./bin for embedding.
-        uses: ./.github/actions/uffda-setup
-        with:
-          version: latest
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Compile language modules into ./bin
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          uffda --version
-          deno task compile:lang
+          # Seed ./bin from the latest published CLI asset so Cargo can embed it,
+          # then rewrite ./bin with the Rust compiler. This job does not use Deno.
+          repo="${{ github.repository }}"
+          tmp="$(mktemp -d)"
+          tag="$(
+            gh release list --repo "$repo" --exclude-drafts --exclude-pre-releases --limit 30 --json tagName,assets \
+              --jq '[.[] | select(any(.assets[]; .name == "SHA256SUMS") and any(.assets[]; .name | startswith("uffda-")))][0].tagName'
+          )"
+          if [[ -z "${tag}" || "${tag}" == "null" ]]; then
+            echo "No installable published release" >&2
+            exit 1
+          fi
+          gh release download "$tag" --repo "$repo" --dir "$tmp" \
+            --pattern 'uffda-*-x86_64-unknown-linux-gnu' --pattern 'SHA256SUMS'
+          asset="$(basename "$(find "$tmp" -maxdepth 1 -type f -name 'uffda-*-x86_64-unknown-linux-gnu')")"
+          expected="$(awk -v name="$asset" '$2 == name { print $1; exit }' "$tmp/SHA256SUMS")"
+          actual="$(sha256sum "$tmp/$asset" | awk '{ print $1 }')"
+          if [[ -z "${expected}" || "${actual}" != "${expected}" ]]; then
+            echo "Checksum mismatch for ${asset}" >&2
+            exit 1
+          fi
+          chmod +x "$tmp/$asset"
+          "$tmp/$asset" --version
+          rm -rf ./bin
+          "$tmp/$asset" compile 'src/lang/**/*.uff'
+          cargo build --locked --release --manifest-path rust/Cargo.toml --bin uffda
+          rm -rf ./bin
+          ./rust/target/release/uffda compile 'src/lang/**/*.uff'
           test -f ./bin/ast/src/lang/common/characters/digit.uffda.ast.json
           test -f ./bin/ast/src/lang/common/identifier.uffda.ast.json
           test -f ./bin/ast/src/lang/common/surround.uffda.ast.json

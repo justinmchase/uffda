@@ -34,9 +34,11 @@ Expected behavior:
   the built-in artifacts by URL relative to the package root, so the same path
   also loads them from a non-`file:` published package
   ([#271](https://github.com/justinmchase/uffda/issues/271)).
-- Checks and release bootstrap compile MUST install a published CLI via
-  `uffda-setup` (normally `latest`; pin a SemVer only when recovering from a bad
-  release).
+- Checks bootstrap compile MUST install a published CLI via `uffda-setup`
+  (normally `latest`; pin a SemVer only when recovering from a bad release).
+- The release `compile-lang` job MUST NOT install or run Deno. It MUST download
+  the latest published CLI asset with `gh`, seed `./bin` with that binary, then
+  rewrite `./bin` with the Rust `uffda compile`.
 - The Rust preview MUST embed the unmodified published-compiler declaration
   bytes and MAY decode them lazily through the ordinary resolver. Registering
   embedded modules MUST NOT require decoding unused declarations; first access
