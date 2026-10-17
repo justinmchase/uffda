@@ -693,6 +693,7 @@ mod encode_tests {
     use crate::languages::{Language, Languages};
 
     #[test]
+    // req:cli-language-server-005
     fn keyword_rule_is_one_span() {
         let mut languages = Languages::new().unwrap();
         let result = languages
