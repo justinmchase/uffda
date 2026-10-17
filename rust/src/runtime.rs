@@ -418,6 +418,9 @@ struct Entry<'gc> {
     #[collect(require_static)]
     pattern: Option<Rc<PatternProgram>>,
     recovery: RecoveryContext<'gc>,
+    /// The root input is an open prefix, also when it is restarted with recovery.
+    #[collect(require_static)]
+    open: bool,
 }
 
 #[derive(Collect)]
@@ -523,6 +526,7 @@ impl<'gc> RuleExecution<'gc> {
                 target_kind: ResolveTargetKind::Run,
                 pattern: Some(pattern),
                 recovery,
+                open: false,
             },
             serialized: None,
             external: DynamicRootSet::new(mc),
@@ -609,6 +613,19 @@ impl<'gc> RuleExecution<'gc> {
             execution.entry.recovery,
         ));
         Ok(execution)
+    }
+
+    /// Treats the root input as open (see `PatternExecution::set_open`). Only
+    /// meaningful before the first step.
+    pub fn set_open_input(&mut self) {
+        self.entry.open = true;
+        if let Some(Frame {
+            execution: Execution::Pattern(pattern),
+            ..
+        }) = self.frames.first_mut()
+        {
+            pattern.set_open();
+        }
     }
 
     /// Returns the warm module bindings after clearing match/memo state so the
@@ -773,6 +790,7 @@ impl<'gc> RuleExecution<'gc> {
                 target_kind: ResolveTargetKind::Run,
                 pattern: None,
                 recovery,
+                open: false,
             },
             serialized: None,
             external: DynamicRootSet::new(mc),
@@ -2254,28 +2272,35 @@ impl<'gc> RuleExecution<'gc> {
                 self.memo_keys.clear();
                 self.targets.clear();
                 self.target_keys.clear();
+                let open = self.entry.open;
                 self.frames.push(Frame {
-                    execution: Execution::Pattern(match &self.entry.pattern {
-                        Some(program) => PatternExecution::compiled_with_recovery(
-                            mc,
-                            program.clone(),
-                            self.entry.input.clone(),
-                            self.entry.environment,
-                            0,
-                            self.entry.recovery,
-                        ),
-                        None => PatternExecution::new_with_recovery(
-                            mc,
-                            Pattern::Resolve {
-                                target_kind: self.entry.target_kind,
-                                name: self.entry.export.clone(),
-                                args: vec![],
-                                value: None,
-                            },
-                            self.entry.input.clone(),
-                            self.entry.environment,
-                            self.entry.recovery,
-                        ),
+                    execution: Execution::Pattern({
+                        let mut restarted = match &self.entry.pattern {
+                            Some(program) => PatternExecution::compiled_with_recovery(
+                                mc,
+                                program.clone(),
+                                self.entry.input.clone(),
+                                self.entry.environment,
+                                0,
+                                self.entry.recovery,
+                            ),
+                            None => PatternExecution::new_with_recovery(
+                                mc,
+                                Pattern::Resolve {
+                                    target_kind: self.entry.target_kind,
+                                    name: self.entry.export.clone(),
+                                    args: vec![],
+                                    value: None,
+                                },
+                                self.entry.input.clone(),
+                                self.entry.environment,
+                                self.entry.recovery,
+                            ),
+                        };
+                        if open {
+                            restarted.set_open();
+                        }
+                        restarted
                     }),
                     context: self.entry.context,
                     lexical_environment: self.entry.environment,
@@ -3016,6 +3041,23 @@ impl Runtime {
         let arena = Arena::try_new(|mc| {
             let items = runtime_input(mc, input, mode)?;
             RuleExecution::for_member(mc, graph, member, items)
+        })?;
+        Ok(Self { arena })
+    }
+
+    /// Like [`Runtime::for_member`], but the input is an open prefix (see
+    /// [`RuleExecution::set_open_input`]).
+    pub fn for_member_open(
+        graph: Rc<CompiledModuleGraph>,
+        member: &ModuleMember,
+        input: impl Into<crate::json::JsonValue>,
+        mode: InputMode,
+    ) -> Result<Self, RuntimeError> {
+        let arena = Arena::try_new(|mc| {
+            let items = runtime_input(mc, input, mode)?;
+            let mut execution = RuleExecution::for_member(mc, graph, member, items)?;
+            execution.set_open_input();
+            Ok::<_, RuntimeError>(execution)
         })?;
         Ok(Self { arena })
     }

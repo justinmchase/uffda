@@ -615,6 +615,65 @@ Deno.test("cli.lsp wireUffdaLspHandlers", async (t) => {
       });
     },
   );
+
+  await t.step(
+    // req:cli-language-server-011
+    "uses the workspace folder that contains the document, not folders[0]",
+    async () => {
+      const parent = await Deno.makeTempDir({
+        prefix: "uffda-lsp-multi-root-",
+      });
+      const first = join(parent, "first");
+      const second = join(parent, "second");
+      try {
+        await Deno.mkdir(first);
+        await Deno.mkdir(join(second, "src"), { recursive: true });
+        await Deno.writeTextFile(join(first, "uffda.jsonc"), "{}");
+        await Deno.writeTextFile(join(second, "uffda.jsonc"), "{}");
+        await Deno.writeTextFile(
+          join(second, "src", "dep.uff"),
+          "export Foo;\nrule Foo = any;",
+        );
+
+        const { connection, handlers, sentDiagnostics } =
+          createFakeConnection();
+        // No workspaceRoot override: initialize params drive multi-root.
+        wireUffdaLspHandlers(connection, { log: () => {} });
+        await handlers.initialize({
+          workspaceFolders: [
+            { uri: toFileUrl(first).href, name: "first" },
+            { uri: toFileUrl(second).href, name: "second" },
+          ],
+        } as InitializeParams);
+
+        const uri = toFileUrl(join(second, "src", "main.uff")).href;
+        await handlers.open({
+          textDocument: {
+            uri,
+            languageId: "uffda",
+            version: 1,
+            text: 'import "./dep.uff" Foo;\nexport Main;\nrule Main = Foo;',
+          },
+        } as DidOpenTextDocumentParams);
+
+        assertEquals(sentDiagnostics, [{ uri, diagnostics: [] }]);
+        assert(
+          await Deno.stat(
+            join(second, "bin", "ast", "src", "dep.uffda.ast.json"),
+          ).then(() => true, () => false),
+          "import artifact must land under the document's folder bin/",
+        );
+        assert(
+          !await Deno.stat(
+            join(first, "bin", "ast", "src", "dep.uffda.ast.json"),
+          ).then(() => true, () => false),
+          "must not compile into workspaceFolders[0]",
+        );
+      } finally {
+        await Deno.remove(parent, { recursive: true });
+      }
+    },
+  );
 });
 
 Deno.test("cli.lsp stdioWatchDog", async (t) => {

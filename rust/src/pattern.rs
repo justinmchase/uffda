@@ -1178,6 +1178,11 @@ struct PipelineState<'gc> {
     last: Option<Gc<'gc, PatternMatch<'gc>>>,
     input: Option<Value<'gc>>,
     drain: Option<Gc<'gc, RefLock<ExpressionExecution<'gc>>>>,
+    /// Whether the input of the stage being matched is open (a stage that read
+    /// an open input to its end feeds an open input to the next stage).
+    stage_open: bool,
+    /// Length of the input of the stage being matched.
+    stage_len: usize,
 }
 
 #[derive(Collect)]
@@ -1209,6 +1214,8 @@ pub struct PatternRequest<'gc> {
     pub environment: Environment<'gc>,
     pub base: usize,
     pub recovery: RecoveryContext<'gc>,
+    /// The input may continue past its last item (see `PatternExecution::new_open`).
+    pub open: bool,
     #[collect(require_static)]
     program: Rc<PatternProgram>,
 }
@@ -1222,6 +1229,8 @@ pub struct PatternInput<'gc> {
     pub position: usize,
     pub base: usize,
     pub recovery: RecoveryContext<'gc>,
+    /// The input may continue past its last item (see `PatternExecution::new_open`).
+    pub open: bool,
 }
 
 impl<'gc> PatternRequest<'gc> {
@@ -1233,6 +1242,7 @@ impl<'gc> PatternRequest<'gc> {
             position: self.position,
             base: self.base,
             recovery: self.recovery,
+            open: self.open,
         }
     }
 
@@ -1335,6 +1345,7 @@ impl PatternArgument {
                 position: 0,
                 base,
                 recovery: RecoveryContext::new(mc),
+                open: false,
             },
             environment,
         )
@@ -1412,10 +1423,18 @@ impl<'gc> PatternExecution<'gc> {
         environment: Environment<'gc>,
     ) -> Self {
         let mut execution = Self::new(mc, pattern, input, environment);
-        if let Some(Frame::Match(_, scope)) = execution.frames.last_mut() {
+        execution.set_open();
+        execution
+    }
+
+    /// Marks the root input as open: a prefix of a longer input still being
+    /// written (for example the text before an editor's cursor). Exhausting an
+    /// open input is not the end of the input, so patterns that stop at the end
+    /// (repetition) still attempt their next element there.
+    pub fn set_open(&mut self) {
+        if let Some(Frame::Match(_, scope)) = self.frames.last_mut() {
             scope.open = true;
         }
-        execution
     }
 
     pub fn from_input(
@@ -1491,6 +1510,7 @@ impl<'gc> PatternExecution<'gc> {
                 position: 0,
                 base,
                 recovery,
+                open: false,
             },
             environment,
             root,
@@ -1512,7 +1532,7 @@ impl<'gc> PatternExecution<'gc> {
             position: input.position,
             environment,
             base: input.base,
-            open: false,
+            open: input.open,
             pattern_index: 0,
         };
         Self {
@@ -1559,6 +1579,7 @@ impl<'gc> PatternExecution<'gc> {
                 position: 0,
                 base: 0,
                 recovery: RecoveryContext::new(mc),
+                open: false,
             },
             environment,
             0,
@@ -2075,6 +2096,7 @@ impl<'gc> PatternExecution<'gc> {
                             environment: scope.environment,
                             base,
                             recovery: scope.recovery,
+                            open: scope.open,
                             program: self.program.clone(),
                         });
                         self.frames.push(Frame::Resolve(scope));
@@ -2097,6 +2119,8 @@ impl<'gc> PatternExecution<'gc> {
                                 last: None,
                                 input: None,
                                 drain: None,
+                                stage_open: scope.open,
+                                stage_len: scope.input.len(),
                             }));
                             self.frames.push(Frame::Match(*first, scope));
                         } else {
@@ -3012,8 +3036,9 @@ impl<'gc> PatternExecution<'gc> {
             scope.environment = last.environment;
             scope.recovery = last.recovery;
             scope.base = last.origin.start;
-            scope.open = false;
+            scope.open = state.stage_open;
             scope.source = None;
+            state.stage_len = 1;
             let node = *state
                 .nodes
                 .get(state.stage)
@@ -3065,6 +3090,7 @@ impl<'gc> PatternExecution<'gc> {
         }
 
         state.stage += 1;
+        state.stage_open = state.stage_open && child.end == state.stage_len;
         if matches!(child.value.raw(), Value::Iterable(_)) {
             let mut execution = ExpressionExecution::collect_iterable(
                 mc,

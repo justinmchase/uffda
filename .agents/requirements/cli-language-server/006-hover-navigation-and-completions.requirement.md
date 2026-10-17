@@ -48,6 +48,13 @@ Expected behavior:
   - A runtime global hover MUST show the global's signature and description from
     the metadata it carries (see
     [runtime value metadata](../../specifications/runtime/value-metadata.spec.md)).
+  - Hover over a `[ModulePath]` MUST resolve the path against the importing
+    document's module URL and report `(module)` plus the resolved URL (and the
+    filesystem path when it is a `file:` URL). When the target's exports are
+    known (the session has loaded that module, or a read-only inspection of its
+    source/artifact yields them) the hover MUST list each exported name with its
+    kind; when the path does not resolve to a readable `.uff` module the hover
+    MAY still show the resolved URL and MUST NOT invent export names.
 - `textDocument/definition` MUST resolve a reference to a rule, func, or
   decorator to its declaring location within the workspace's resolved module
   graph, including across `.uff` import boundaries. A reference to a local

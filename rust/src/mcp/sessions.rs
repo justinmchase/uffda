@@ -11,6 +11,7 @@ use crate::resolver::graph::{MemberKind, ResolvedModule};
 use crate::resolver::{ModuleDeclaration, Resolver, decode_declaration};
 use crate::runtime::{InputMode, Runtime};
 use serde_json::{Value, json};
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -26,8 +27,11 @@ pub struct SessionManager {
 pub struct Session {
     pub id: String,
     pub cwd: PathBuf,
+    /// Optional JSR package cache (e.g. editor extension storage). When
+    /// absent, package resolution uses the process default cache home.
+    cache_dir: Option<PathBuf>,
     project: Option<Project>,
-    languages: Languages,
+    pub languages: Languages,
     /// href → ModuleDeclaration JSON (committed successful loads).
     declarations: HashMap<Url, String>,
     module_order: Vec<Url>,
@@ -37,6 +41,11 @@ pub struct Session {
     next_anonymous: u64,
     next_match_result_id: u64,
     closed: bool,
+    /// Compiled graphs by entry module, dropped whenever a load commits.
+    graph_cache: RefCell<HashMap<Url, Rc<CompiledModuleGraph>>>,
+    /// Decorator-computed metadata by in-scope name, per module; dropped
+    /// whenever a load commits.
+    metadata_cache: RefCell<HashMap<Url, Rc<HashMap<String, Value>>>>,
 }
 
 impl SessionManager {
@@ -52,15 +61,26 @@ impl SessionManager {
         cwd: PathBuf,
         config: Option<&str>,
     ) -> Result<&Session, SessionOpenError> {
+        self.open_with_cache(cwd, config, None)
+    }
+
+    pub fn open_with_cache(
+        &mut self,
+        cwd: PathBuf,
+        config: Option<&str>,
+        cache_dir: Option<PathBuf>,
+    ) -> Result<&Session, SessionOpenError> {
         let mut languages = Languages::new().map_err(|error| SessionOpenError {
             message: error.to_string(),
         })?;
         let project = match Project::discover(&cwd, config) {
-            Ok(Some(path)) => Some(
-                Project::load(path, &mut languages).map_err(|error| SessionOpenError {
-                    message: error.to_string(),
-                })?,
-            ),
+            Ok(Some(path)) => {
+                Some(
+                    Project::load(path, &mut languages).map_err(|error| SessionOpenError {
+                        message: error.to_string(),
+                    })?,
+                )
+            }
             Ok(None) => None,
             Err(error) => {
                 return Err(SessionOpenError {
@@ -75,6 +95,7 @@ impl SessionManager {
             Session {
                 id: id.clone(),
                 cwd,
+                cache_dir,
                 project,
                 languages,
                 declarations: HashMap::new(),
@@ -85,6 +106,8 @@ impl SessionManager {
                 next_anonymous: 0,
                 next_match_result_id: 0,
                 closed: false,
+                graph_cache: RefCell::new(HashMap::new()),
+                metadata_cache: RefCell::new(HashMap::new()),
             },
         );
         Ok(self.sessions.get(&id).expect("just inserted"))
@@ -115,6 +138,29 @@ impl SessionManager {
 impl Session {
     pub fn load(&mut self, source: &str, path: Option<&str>) -> Value {
         self.load_at(source, path, None)
+    }
+
+    /// Like [`Session::load`], but reuses an AST already produced by
+    /// `Languages::analyze` so the buffer is not parsed twice.
+    pub fn load_syntax(
+        &mut self,
+        source: &str,
+        syntax: crate::json::JsonValue,
+        path: Option<&str>,
+    ) -> Value {
+        let module_url = match self.module_url_for(path) {
+            Ok(url) => url,
+            Err(message) => {
+                return load_failure(
+                    "MCP_SESSION_LOAD_RESOLUTION_FAILURE",
+                    "resolve",
+                    message,
+                    self.list_loaded_modules(),
+                    vec![],
+                );
+            }
+        };
+        self.commit_loaded(source, module_url, syntax)
     }
 
     pub fn load_at(
@@ -158,7 +204,16 @@ impl Session {
             return parse_failure(&parsed.diagnostics, self.list_loaded_modules());
         }
 
-        let compiled = match self.languages.compile(parsed.value) {
+        self.commit_loaded(source, module_url, parsed.value)
+    }
+
+    fn commit_loaded(
+        &mut self,
+        source: &str,
+        module_url: Url,
+        syntax: crate::json::JsonValue,
+    ) -> Value {
+        let compiled = match self.languages.compile(syntax) {
             Ok(value) => value,
             Err(error) => {
                 return load_failure(
@@ -234,6 +289,8 @@ impl Session {
         };
 
         // Commit every module the resolver reached (root + transitive imports).
+        self.graph_cache.borrow_mut().clear();
+        self.metadata_cache.borrow_mut().clear();
         for (url, module) in &graph.modules {
             let json = serialize_declaration(&module.declaration);
             self.declarations.insert(url.clone(), json);
@@ -326,11 +383,7 @@ impl Session {
                 return eval_parse_failure(&error.diagnostics);
             }
             Err(error) => {
-                return eval_failure(
-                    "MCP_SESSION_EVAL_PARSE_FAILURE",
-                    "parse",
-                    error.to_string(),
-                );
+                return eval_failure("MCP_SESSION_EVAL_PARSE_FAILURE", "parse", error.to_string());
             }
         };
         let expression: Expression = match crate::json::from_value(parsed.value) {
@@ -367,9 +420,9 @@ impl Session {
             }
         };
         match evaluation.serialize_rooted(&rooted) {
-            Ok(serialized) => match evaluation.read(&serialized, |value| {
-                crate::output::serialized_output(value)
-            }) {
+            Ok(serialized) => match evaluation
+                .read(&serialized, |value| crate::output::serialized_output(value))
+            {
                 Ok(Ok(text)) => json!({ "ok": true, "value": json_value_from_output(&text) }),
                 Ok(Err(error)) => eval_failure(
                     "MCP_SESSION_EVAL_EXPRESSION_EXCEPTION",
@@ -417,17 +470,17 @@ impl Session {
         } else {
             InputMode::Iterable
         };
-        let mut runtime = match Runtime::with_mode(Rc::clone(graph), module, Some(rule), subject, mode)
-        {
-            Ok(runtime) => runtime,
-            Err(error) => {
-                return eval_failure(
-                    "MCP_SESSION_EVAL_MATCH_FAILURE",
-                    "eval",
-                    error.to_string(),
-                );
-            }
-        };
+        let mut runtime =
+            match Runtime::with_mode(Rc::clone(graph), module, Some(rule), subject, mode) {
+                Ok(runtime) => runtime,
+                Err(error) => {
+                    return eval_failure(
+                        "MCP_SESSION_EVAL_MATCH_FAILURE",
+                        "eval",
+                        error.to_string(),
+                    );
+                }
+            };
         if let Err(error) = runtime.run() {
             return eval_failure(
                 "MCP_SESSION_EVAL_EXPRESSION_EXCEPTION",
@@ -460,8 +513,7 @@ impl Session {
         self.next_match_result_id += 1;
         let match_result_id = self.next_match_result_id.to_string();
         if let Some(tree) = ops::project_match_tree(&runtime) {
-            self.match_results
-                .insert(match_result_id.clone(), tree);
+            self.match_results.insert(match_result_id.clone(), tree);
         }
         json!({
             "ok": true,
@@ -494,7 +546,7 @@ impl Session {
                 }
             });
         };
-        let Ok((graph, _)) = self.compiled_graph() else {
+        let Ok(graph) = self.compiled_graph_for(&target) else {
             return json!({
                 "ok": false,
                 "error": {
@@ -584,15 +636,12 @@ impl Session {
         new_units.extend(replacement.encode_utf16());
         new_units.extend_from_slice(&units[end..]);
         let new_source = String::from_utf16_lossy(&new_units);
-        let path = target
-            .to_file_path()
-            .ok()
-            .and_then(|path| path.strip_prefix(&self.cwd).ok().map(|path| path.display().to_string()));
-        self.load_at(
-            &new_source,
-            path.as_deref(),
-            Some(target),
-        )
+        let path = target.to_file_path().ok().and_then(|path| {
+            path.strip_prefix(&self.cwd)
+                .ok()
+                .map(|path| path.display().to_string())
+        });
+        self.load_at(&new_source, path.as_deref(), Some(target))
     }
 
     pub fn walk(
@@ -653,25 +702,41 @@ impl Session {
             .last_loaded
             .clone()
             .ok_or_else(|| "This session has no loaded modules".to_string())?;
+        let graph = self.compiled_graph_for(&entry)?;
+        Ok((graph, entry))
+    }
+
+    /// The compiled graph rooted at the loaded module `entry`, cached until the
+    /// next load commits.
+    pub fn compiled_graph_for(&self, entry: &Url) -> Result<Rc<CompiledModuleGraph>, String> {
+        if let Some(graph) = self.graph_cache.borrow().get(entry) {
+            return Ok(Rc::clone(graph));
+        }
+        if !self.declarations.contains_key(entry) {
+            return Err(format!("No module loaded with url: {entry}"));
+        }
         let mut resolver = self.make_resolver()?;
         for (url, json) in &self.declarations {
             let declaration = decode_declaration(url, json).map_err(|error| error.to_string())?;
             resolver.insert_declaration(url.clone(), declaration);
         }
         let graph = resolver
-            .load_graph(&entry)
+            .load_graph(entry)
             .map_err(|error| error.to_string())?;
-        let compiled = CompiledModuleGraph::compile(graph).map_err(|error| error.to_string())?;
-        Ok((Rc::new(compiled), entry))
+        let compiled =
+            Rc::new(CompiledModuleGraph::compile(graph).map_err(|error| error.to_string())?);
+        self.graph_cache
+            .borrow_mut()
+            .insert(entry.clone(), Rc::clone(&compiled));
+        Ok(compiled)
     }
 
     fn module_url_for(&mut self, path: Option<&str>) -> Result<Url, String> {
         match path {
             Some(path) => {
                 let absolute = self.cwd.join(path);
-                Url::from_file_path(&absolute).map_err(|()| {
-                    format!("Invalid module path: {}", absolute.display())
-                })
+                Url::from_file_path(&absolute)
+                    .map_err(|()| format!("Invalid module path: {}", absolute.display()))
             }
             None => {
                 self.next_anonymous += 1;
@@ -686,10 +751,182 @@ impl Session {
 
     fn make_resolver(&self) -> Result<Resolver, String> {
         match &self.project {
-            Some(project) => project.resolver().map_err(|error| error.to_string()),
-            None => Resolver::new(self.cwd.clone(), self.cwd.join("bin"))
+            Some(project) => project
+                .resolver_with_cache(self.cache_dir.as_deref())
                 .map_err(|error| error.to_string()),
+            None => {
+                let mut resolver = Resolver::new(self.cwd.clone(), self.cwd.join("bin"))
+                    .map_err(|error| error.to_string())?;
+                if let Some(cache_dir) = &self.cache_dir {
+                    let lockfile = crate::resolver::packages::Lockfile::memory();
+                    let packages = crate::resolver::packages::JsrPackages::new(
+                        Url::parse("https://jsr.io/").map_err(|error| error.to_string())?,
+                        cache_dir.clone(),
+                        Rc::new(crate::resolver::packages::HttpTransport),
+                        lockfile,
+                    )
+                    .map_err(|error| error)?;
+                    resolver.set_packages(packages);
+                }
+                Ok(resolver)
+            }
         }
+    }
+}
+
+/// A rule/func/decorator name in scope of a loaded module.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DeclarationSummary {
+    pub name: String,
+    pub kind: &'static str,
+    pub exported: bool,
+}
+
+/// The module that defines a name in scope of a loaded module.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ResolvedDeclaration {
+    pub defining_module_url: Url,
+    pub kind: &'static str,
+    pub name: String,
+}
+
+/// Read-only editor queries over a session's resolved state. None of these
+/// loads, mutates, or writes anything.
+impl Session {
+    /// Whether `url` has been successfully loaded into this session.
+    pub fn has_module(&self, url: &Url) -> bool {
+        self.declarations.contains_key(url)
+    }
+
+    /// Whether the session's retained source for `url` is exactly `source`.
+    pub fn source_matches(&self, url: &Url, source: &str) -> bool {
+        self.sources.get(url).is_some_and(|text| text == source)
+    }
+
+    /// Module URLs this loaded module imports (`imports[].moduleUrl`), resolved
+    /// against `module_url`. Empty when the module is not loaded or has no
+    /// imports.
+    pub fn import_module_urls(&self, module_url: &Url) -> Vec<Url> {
+        let Some(json) = self.declarations.get(module_url) else {
+            return Vec::new();
+        };
+        let Ok(declaration) = decode_declaration(module_url, json) else {
+            return Vec::new();
+        };
+        let mut urls = Vec::new();
+        for import in &declaration.imports {
+            let Some(path) = import.get("moduleUrl").and_then(|value| match value {
+                crate::json::JsonValue::String(text) => text.to_utf8().ok(),
+                _ => None,
+            }) else {
+                continue;
+            };
+            if let Ok(url) = module_url.join(&path) {
+                urls.push(url);
+            }
+        }
+        urls
+    }
+
+    /// Resolves `name` in scope of the loaded module `module_url` (its own
+    /// declarations first, then names its imports bind) to the module that
+    /// defines it, following imports.
+    pub fn resolve_declaration(&self, name: &str, module_url: &Url) -> Option<ResolvedDeclaration> {
+        let graph = self.compiled_graph_for(module_url).ok()?;
+        let member = graph
+            .resolve(module_url, name)
+            .or_else(|| graph.resolve_decorator(module_url, name))?;
+        Some(ResolvedDeclaration {
+            defining_module_url: member.module_url,
+            kind: member_kind_name(member.kind),
+            name: name.to_string(),
+        })
+    }
+
+    /// The decorator-computed metadata (as `describe` reports it) of every rule
+    /// and func in scope of the loaded module `module_url`, by name. One metadata
+    /// run serves the whole table, so completion can document every item.
+    pub fn metadata_table(&self, module_url: &Url) -> Option<Rc<HashMap<String, Value>>> {
+        if let Some(table) = self.metadata_cache.borrow().get(module_url) {
+            return Some(Rc::clone(table));
+        }
+        let graph = self.compiled_graph_for(module_url).ok()?;
+        let module = graph.graph.modules.get(module_url)?;
+        let mut runtime = Runtime::metadata(Rc::clone(&graph)).ok()?;
+        runtime.run().ok()?;
+        let mut table = HashMap::new();
+        for (name, member) in module.locals.iter().chain(module.imports.iter()) {
+            if member.kind == MemberKind::Decorator || table.contains_key(name) {
+                continue;
+            }
+            let Some(text) = runtime.serialize_metadata(member).ok().flatten() else {
+                continue;
+            };
+            if let Ok(metadata) = serde_json::from_str::<Value>(text.trim()) {
+                table.insert(name.clone(), metadata);
+            }
+        }
+        let table = Rc::new(table);
+        self.metadata_cache
+            .borrow_mut()
+            .insert(module_url.clone(), Rc::clone(&table));
+        Some(table)
+    }
+
+    /// Every declaration in scope of the loaded module `module_url`: its own,
+    /// then those its imports bind.
+    pub fn list_declarations(&self, module_url: &Url) -> Option<Vec<DeclarationSummary>> {
+        let graph = self.compiled_graph_for(module_url).ok()?;
+        let module = graph.graph.modules.get(module_url)?;
+        let mut declarations = Vec::new();
+        for (name, member) in module.locals.iter().chain(module.imports.iter()) {
+            declarations.push(DeclarationSummary {
+                name: name.clone(),
+                kind: member_kind_name(member.kind),
+                exported: module.exports.contains_key(name),
+            });
+        }
+        Some(declarations)
+    }
+
+    /// The names a loaded module exports.
+    pub fn list_exports(&self, module_url: &Url) -> Option<Vec<DeclarationSummary>> {
+        Some(
+            self.list_declarations(module_url)?
+                .into_iter()
+                .filter(|declaration| declaration.exported)
+                .collect(),
+        )
+    }
+
+    /// The exports of module `source` read without loading it into the
+    /// session and without writing artifacts: `(name, kind)` pairs, `None` when
+    /// the source does not parse and lower cleanly.
+    pub fn exports_from_source(&mut self, source: &str) -> Option<Vec<(String, String)>> {
+        let parsed = self.languages.parse_source(source, Language::Uffda).ok()?;
+        if !parsed.diagnostics.is_empty() {
+            return None;
+        }
+        let compiled = self.languages.compile(parsed.value).ok()?;
+        let crate::json::JsonValue::Array(exports) = compiled.get("exports")? else {
+            return None;
+        };
+        Some(
+            exports
+                .iter()
+                .filter_map(|export| {
+                    let name = match export.get("name")? {
+                        crate::json::JsonValue::String(text) => text.to_utf8().ok()?,
+                        _ => return None,
+                    };
+                    let kind = match export.get("kind") {
+                        Some(crate::json::JsonValue::String(text)) => text.to_utf8().ok()?,
+                        _ => "rule".to_string(),
+                    };
+                    Some((name, kind))
+                })
+                .collect(),
+        )
     }
 }
 
@@ -703,9 +940,7 @@ fn serialize_declaration(declaration: &ModuleDeclaration) -> String {
         "decorators": declaration.decorators.iter().map(json_from_runtime).collect::<Vec<_>>(),
     }))
     .unwrap_or_else(|_| {
-        format!(
-            r#"{{"imports":[],"exports":[],"rules":[],"funcs":[],"decorators":[]}}"#
-        )
+        format!(r#"{{"imports":[],"exports":[],"rules":[],"funcs":[],"decorators":[]}}"#)
     })
 }
 
@@ -793,10 +1028,7 @@ fn parse_failure(diagnostics: &[SourceDiagnostic], partially_loaded: Vec<Value>)
     let mapped: Vec<Value> = diagnostics
         .iter()
         .map(|diagnostic| {
-            let code = if matches!(
-                diagnostic.kind,
-                crate::runtime::DiagnosticKind::Recovery
-            ) {
+            let code = if matches!(diagnostic.kind, crate::runtime::DiagnosticKind::Recovery) {
                 "MCP_SESSION_LOAD_PARSE_RECOVERED"
             } else {
                 "MCP_SESSION_LOAD_PARSE_FAILURE"
@@ -871,10 +1103,7 @@ fn eval_parse_failure(diagnostics: &[SourceDiagnostic]) -> Value {
     let mapped: Vec<Value> = diagnostics
         .iter()
         .map(|diagnostic| {
-            let code = if matches!(
-                diagnostic.kind,
-                crate::runtime::DiagnosticKind::Recovery
-            ) {
+            let code = if matches!(diagnostic.kind, crate::runtime::DiagnosticKind::Recovery) {
                 "MCP_SESSION_EVAL_RECOVERED"
             } else {
                 "MCP_SESSION_EVAL_PARSE_FAILURE"

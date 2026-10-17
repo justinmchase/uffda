@@ -23,7 +23,9 @@ pub struct RetainedMatch {
     pub pattern: Value,
     pub value: Option<Value>,
     pub metadata: Value,
-    pub children: Vec<RetainedMatch>,
+    /// Children shared by pointer: a parse match is a DAG (memoized
+    /// sub-matches are reused), so identical sub-matches are projected once.
+    pub children: Vec<Rc<RetainedMatch>>,
 }
 
 impl RetainedMatch {
@@ -35,28 +37,36 @@ impl RetainedMatch {
 pub fn project_match_tree(runtime: &Runtime) -> Option<RetainedMatch> {
     runtime.read(|execution| {
         let matched = execution.result()?;
-        Some(project_node(matched))
+        let mut memo = HashMap::new();
+        Some(project_node(matched, &mut memo))
     })
 }
 
-fn project_node(node: uffda_heap::Gc<'_, PatternMatch<'_>>) -> RetainedMatch {
+fn project_node(
+    node: uffda_heap::Gc<'_, PatternMatch<'_>>,
+    memo: &mut HashMap<usize, Rc<RetainedMatch>>,
+) -> RetainedMatch {
     let kind = match node.kind {
         MatchKind::Ok => "ok",
         MatchKind::Fail => "fail",
         MatchKind::Skip => "skip",
     }
     .to_string();
-    let rule = node.rule.as_ref().and_then(|declaration| {
-        match declaration.subject.raw() {
-            RuntimeValue::Object(object) => object.borrow().get("name").and_then(|value| {
-                match value.raw() {
-                    RuntimeValue::String(text) => text.to_utf8().ok(),
-                    _ => None,
-                }
-            }),
+    let rule = node
+        .rule
+        .as_ref()
+        .and_then(|declaration| match declaration.subject.raw() {
+            RuntimeValue::Object(object) => {
+                object
+                    .borrow()
+                    .get("name")
+                    .and_then(|value| match value.raw() {
+                        RuntimeValue::String(text) => text.to_utf8().ok(),
+                        _ => None,
+                    })
+            }
             _ => None,
-        }
-    });
+        });
     let metadata = node
         .rule
         .as_ref()
@@ -69,12 +79,21 @@ fn project_node(node: uffda_heap::Gc<'_, PatternMatch<'_>>) -> RetainedMatch {
     let children = node
         .children
         .iter()
-        .map(|child| project_node(*child))
+        .map(|child| {
+            let key = uffda_heap::Gc::as_ptr(*child) as usize;
+            if let Some(shared) = memo.get(&key) {
+                return Rc::clone(shared);
+            }
+            let shared = Rc::new(project_node(*child, memo));
+            memo.insert(key, Rc::clone(&shared));
+            shared
+        })
         .collect();
     RetainedMatch {
         kind,
-        start: node.start,
-        end: node.end,
+        // Character offsets (Deno originalSpan), not token-stream indices.
+        start: node.origin.start,
+        end: node.origin.end,
         rule,
         recovered: node.recovered,
         pattern: json!({ "kind": node.pattern_kind.as_str() }),
@@ -92,13 +111,15 @@ fn runtime_value_to_json(value: RuntimeValue<'_>) -> Value {
         RuntimeValue::Number(value) => serde_json::Number::from_f64(value)
             .map(Value::Number)
             .unwrap_or(Value::Null),
-        RuntimeValue::String(value) => value
-            .to_utf8()
-            .map(Value::String)
-            .unwrap_or(Value::Null),
-        RuntimeValue::Array(array) => {
-            Value::Array(array.borrow().iter().copied().map(runtime_value_to_json).collect())
-        }
+        RuntimeValue::String(value) => value.to_utf8().map(Value::String).unwrap_or(Value::Null),
+        RuntimeValue::Array(array) => Value::Array(
+            array
+                .borrow()
+                .iter()
+                .copied()
+                .map(runtime_value_to_json)
+                .collect(),
+        ),
         RuntimeValue::Object(object) => {
             let mut map = serde_json::Map::new();
             for (key, value) in object.borrow().entries() {
@@ -134,7 +155,7 @@ pub fn walk_retained(
                 }
             });
         }
-        start = &start.children[index];
+        start = &*start.children[index];
         ancestry.push(start);
     }
 
@@ -183,9 +204,9 @@ fn visit_walk(
         let mut child_path = path.clone();
         child_path.push(index);
         let mut child_ancestry = ancestry.to_vec();
-        child_ancestry.push(child);
+        child_ancestry.push(&**child);
         visit_walk(
-            child,
+            &**child,
             child_path,
             &child_ancestry,
             depth + 1,
@@ -355,10 +376,7 @@ pub fn query_by_metadata(
         let Ok(declaration) = decode_declaration(module_url, declaration_json) else {
             continue;
         };
-        for (kind, items) in [
-            ("rule", &declaration.rules),
-            ("func", &declaration.funcs),
-        ] {
+        for (kind, items) in [("rule", &declaration.rules), ("func", &declaration.funcs)] {
             for item in items {
                 let Some(JsonValue::String(name)) = item.get("name") else {
                     continue;
@@ -388,11 +406,7 @@ pub fn query_by_metadata(
     json!({ "ok": true, "matches": matches })
 }
 
-fn metadata_for_member(
-    graph: &Rc<CompiledModuleGraph>,
-    module: &Url,
-    name: &str,
-) -> Option<Value> {
+fn metadata_for_member(graph: &Rc<CompiledModuleGraph>, module: &Url, name: &str) -> Option<Value> {
     let member = graph.resolve(module, name).or_else(|| {
         graph
             .export(module, Some(name))

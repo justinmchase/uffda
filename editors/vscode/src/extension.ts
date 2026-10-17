@@ -1,3 +1,4 @@
+import * as path from "node:path";
 import * as vscode from "vscode";
 import {
   LanguageClient,
@@ -52,10 +53,6 @@ function currentOverrides() {
   return { serverPathOverride, lspArgsOverride, mcpArgsOverride };
 }
 
-function workspaceCwd(): string | undefined {
-  return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-}
-
 /** The file's extension with its dot, lowercased, as the server reports them. */
 function extensionOf(fsPath: string): string {
   const lastDot = fsPath.lastIndexOf(".");
@@ -79,26 +76,48 @@ async function startLanguageClient(context: vscode.ExtensionContext): Promise<vo
     reportResolveError("language server", err);
     return;
   }
-  outputChannel?.appendLine(
+  outputChannel?.info(
     `Starting language server: ${resolved.command} ${resolved.args.join(" ")} (${resolved.source})`,
   );
 
-  const cwd = workspaceCwd();
+  // Do not set process cwd: relative imports are file-relative, and the
+  // project root is discovered from the document path / uffda.jsonc — not
+  // from the language client's working directory. Workspace folders and the
+  // package cache dir are sent through LSP initialize instead.
   const serverOptions: ServerOptions = {
     command: resolved.command,
     args: resolved.args,
-    options: cwd ? { cwd } : undefined,
     // Omit `transport`: vscode-languageclient defaults to stdio for
     // Executable servers. Setting `TransportKind.stdio` would also append a
     // literal `--stdio` argv token, which uffda does not use.
   };
+  const cacheDir = path.join(context.globalStorageUri.fsPath, "cache");
+  const workspaceFolders = vscode.workspace.workspaceFolders?.map((folder) => ({
+    name: folder.name,
+    uri: folder.uri.toString(true),
+  })) ?? [];
   const clientOptions: LanguageClientOptions = {
     // Scheme-only selector: the server filters by the extensions languages
     // claim, and their files get the `uffda` language id via
     // `setTextDocumentLanguage` once those extensions are known.
-    documentSelector: [{ scheme: "file" }],
+    documentSelector: [
+      { language: "uffda", scheme: "file" },
+      { pattern: "**/*.uff", scheme: "file" },
+    ],
     outputChannel,
+    // LanguageClient already forwards workspaceFolders on initialize.
+    // initializationOptions carries host-only context the server cannot
+    // discover from the document alone (package download cache, etc.).
+    initializationOptions: {
+      cacheDir,
+    },
   };
+  outputChannel?.info(`LSP cacheDir: ${cacheDir}`);
+  outputChannel?.info(
+    `LSP workspace folders (${workspaceFolders.length}): ${
+      workspaceFolders.map((folder) => folder.uri).join(", ") || "(none)"
+    }`,
+  );
 
   client = new LanguageClient(
     "uffda",
@@ -110,6 +129,7 @@ async function startLanguageClient(context: vscode.ExtensionContext): Promise<vo
   try {
     await client.start();
     context.subscriptions.push({ dispose: () => void client?.stop() });
+    outputChannel?.info("Language client started");
     await applyLanguageMetadataFromServer(context, client);
   } catch (err) {
     reportStartError("language server", resolved, err);
@@ -128,19 +148,31 @@ async function applyLanguageMetadataFromServer(
   languageClient: LanguageClient,
 ): Promise<void> {
   try {
+    outputChannel?.info(`Requesting ${LANGUAGE_METADATA_METHOD}`);
     const result = await languageClient.sendRequest<LanguageMetadataResult>(
       LANGUAGE_METADATA_METHOD,
       {},
     );
+    outputChannel?.info(
+      `Language metadata raw: ${JSON.stringify(result)}`,
+    );
+    const languages = Array.isArray(result?.languages) ? result.languages : [];
     const extensions = new Set(
-      result.languages.flatMap((language) => language.extensions),
+      languages.flatMap((language) =>
+        Array.isArray(language?.extensions) ? language.extensions : []
+      ),
+    );
+    outputChannel?.info(
+      `Language metadata: ${languages.length} language(s), extensions=${[
+        ...extensions,
+      ].join(",") || "(none)"}`,
     );
     if (extensions.size > 0) {
       registerDynamicLanguageIds(context, extensions);
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    outputChannel?.appendLine(
+    outputChannel?.warn(
       `Language metadata unavailable (${message}); workspace languages keep their default language ids.`,
     );
   }
@@ -162,12 +194,12 @@ function registerDynamicLanguageIds(
     if (document.languageId === languageId) return;
     try {
       await vscode.languages.setTextDocumentLanguage(document, languageId);
-      outputChannel?.appendLine(
+      outputChannel?.info(
         `Set language id '${languageId}' for ${document.uri.fsPath}`,
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      outputChannel?.appendLine(
+      outputChannel?.warn(
         `Failed to set language id '${languageId}' for ${document.uri.fsPath}: ${message}`,
       );
     }
@@ -269,7 +301,7 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): void {
     ) => vscode.Disposable;
   };
   if (!lm.registerMcpServerDefinitionProvider) {
-    outputChannel?.appendLine(
+    outputChannel?.warn(
       "This VS Code version does not support MCP server definition providers; skipping MCP registration.",
     );
     return;
@@ -295,7 +327,7 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): void {
           defaultArgs: ["mcp"],
           storageDir: context.globalStorageUri.fsPath,
         });
-        outputChannel?.appendLine(
+        outputChannel?.info(
           `Registering MCP server: ${resolved.command} ${resolved.args.join(" ")} (${resolved.source})`,
         );
         // McpStdioServerDefinition takes command/args only; relative
@@ -315,7 +347,7 @@ function reportResolveError(what: string, err: unknown): void {
   const message = err instanceof ResolveServerError || err instanceof Error
     ? err.message
     : String(err);
-  outputChannel?.appendLine(`Failed to resolve uffda for the ${what}: ${message}`);
+  outputChannel?.error(`Failed to resolve uffda for the ${what}: ${message}`);
   void vscode.window.showErrorMessage(
     `Uffda: could not resolve a uffda binary for the ${what}. ${message}`,
   );
@@ -323,7 +355,7 @@ function reportResolveError(what: string, err: unknown): void {
 
 function reportStartError(what: string, resolved: ResolvedServer, err: unknown): void {
   const message = err instanceof Error ? err.message : String(err);
-  outputChannel?.appendLine(
+  outputChannel?.error(
     `Failed to start ${what} (${resolved.command} ${resolved.args.join(" ")}): ${message}`,
   );
   void vscode.window.showErrorMessage(

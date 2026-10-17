@@ -71,18 +71,66 @@ export type UffdaLspConnection = Pick<
   | "listen"
 >;
 
-function rootFromInitializeParams(
-  params: InitializeParams,
-): string | undefined {
-  const folderUri = params.workspaceFolders?.[0]?.uri;
-  const uri = folderUri ?? params.rootUri ?? undefined;
-  if (!uri) return params.rootPath ?? undefined;
+function pathFromFileUri(uri: string): string | undefined {
   try {
     return fromFileUrl(uri);
   } catch {
     return undefined;
   }
 }
+
+function rootFromInitializeParams(
+  params: InitializeParams,
+): string | undefined {
+  const folderUri = params.workspaceFolders?.[0]?.uri;
+  const uri = folderUri ?? params.rootUri ?? undefined;
+  if (!uri) return params.rootPath ?? undefined;
+  return pathFromFileUri(uri);
+}
+
+/**
+ * Every workspace folder the client advertised, or a single root from
+ * `rootUri` / `rootPath` / cwd when folders are absent.
+ */
+export function workspaceRootsFromInitialize(
+  params: InitializeParams,
+  override?: string,
+): string[] {
+  if (override) return [override];
+  const roots: string[] = [];
+  for (const folder of params.workspaceFolders ?? []) {
+    const path = pathFromFileUri(folder.uri);
+    if (path) roots.push(path);
+  }
+  if (roots.length > 0) return roots;
+  return [rootFromInitializeParams(params) ?? Deno.cwd()];
+}
+
+/**
+ * The workspace folder that owns `documentUri`: longest path prefix among
+ * `roots`. Falls back to the first root when none contain the document.
+ */
+export function workspaceRootForDocument(
+  documentUri: string,
+  roots: readonly string[],
+): string {
+  if (roots.length === 0) return Deno.cwd();
+  const path = pathFromFileUri(documentUri);
+  if (!path) return roots[0]!;
+  let best: string | undefined;
+  for (const root of roots) {
+    if (path === root || path.startsWith(`${root}/`)) {
+      if (!best || root.length > best.length) best = root;
+    }
+  }
+  return best ?? roots[0]!;
+}
+
+type WorkspaceFolderState = {
+  root: string;
+  languages: ProjectLanguage[];
+  manager: LspDocumentManager;
+};
 
 /**
  * Attaches the uffda language server's `initialize`/document-sync handlers
@@ -103,26 +151,47 @@ export function wireUffdaLspHandlers(
   },
 ): void {
   const log = options?.log ?? ((message: string) => console.error(message));
-  let manager: LspDocumentManager | undefined;
-  let languages: ProjectLanguage[] = [];
-  let workspaceRoot = options?.workspaceRoot ?? Deno.cwd();
+  const folders = new Map<string, WorkspaceFolderState>();
+  let folderOrder: string[] = [];
+  let mergedLanguages: ProjectLanguage[] = [];
+
+  const folderFor = (uri: string): WorkspaceFolderState | undefined => {
+    if (folderOrder.length === 0) return undefined;
+    const root = workspaceRootForDocument(uri, folderOrder);
+    return folders.get(root);
+  };
 
   connection.onInitialize(
     async (params: InitializeParams): Promise<InitializeResult> => {
-      workspaceRoot = options?.workspaceRoot ??
-        rootFromInitializeParams(params) ?? Deno.cwd();
-      const loaded = await loadProjectLanguages(workspaceRoot);
-      languages = loaded.languages;
-      for (const problem of loaded.problems) log(problem);
-      const project = loaded.project;
-      const packages = await projectPackages(project);
-      if (!packages.ok) log(packages.message);
-      manager = new LspDocumentManager(
-        workspaceRoot,
-        project?.imports,
-        project && { root: project.root, outDir: project.outDir },
-        packages.ok ? packages.packages : undefined,
+      folders.clear();
+      folderOrder = workspaceRootsFromInitialize(
+        params,
+        options?.workspaceRoot,
       );
+      mergedLanguages = [];
+      const seenLanguageIds = new Set<string>();
+      for (const root of folderOrder) {
+        const loaded = await loadProjectLanguages(root);
+        for (const problem of loaded.problems) log(problem);
+        const project = loaded.project;
+        const packages = await projectPackages(project);
+        if (!packages.ok) log(packages.message);
+        folders.set(root, {
+          root,
+          languages: loaded.languages,
+          manager: new LspDocumentManager(
+            root,
+            project?.imports,
+            project && { root: project.root, outDir: project.outDir },
+            packages.ok ? packages.packages : undefined,
+          ),
+        });
+        for (const language of loaded.languages) {
+          if (seenLanguageIds.has(language.id)) continue;
+          seenLanguageIds.add(language.id);
+          mergedLanguages.push(language);
+        }
+      }
       return {
         capabilities: {
           textDocumentSync: TextDocumentSyncKind.Incremental,
@@ -155,11 +224,12 @@ export function wireUffdaLspHandlers(
   connection.onDidOpenTextDocument(
     async (params: DidOpenTextDocumentParams) => {
       const { uri, text } = params.textDocument;
-      const language = languageForDocument(languages, uri);
-      if (!manager || !language || !isBuiltinLanguage(language)) {
+      const folder = folderFor(uri);
+      const language = languageForDocument(folder?.languages ?? [], uri);
+      if (!folder || !language || !isBuiltinLanguage(language)) {
         return;
       }
-      const diagnostics = await manager.open(uri, text);
+      const diagnostics = await folder.manager.open(uri, text);
       connection.sendDiagnostics({ uri, diagnostics });
     },
   );
@@ -167,11 +237,15 @@ export function wireUffdaLspHandlers(
   connection.onDidChangeTextDocument(
     async (params: DidChangeTextDocumentParams) => {
       const { uri } = params.textDocument;
-      const language = languageForDocument(languages, uri);
-      if (!manager || !language || !isBuiltinLanguage(language)) {
+      const folder = folderFor(uri);
+      const language = languageForDocument(folder?.languages ?? [], uri);
+      if (!folder || !language || !isBuiltinLanguage(language)) {
         return;
       }
-      const diagnostics = await manager.change(uri, params.contentChanges);
+      const diagnostics = await folder.manager.change(
+        uri,
+        params.contentChanges,
+      );
       connection.sendDiagnostics({ uri, diagnostics });
     },
   );
@@ -179,45 +253,49 @@ export function wireUffdaLspHandlers(
   connection.onDidCloseTextDocument(
     async (params: DidCloseTextDocumentParams) => {
       const { uri } = params.textDocument;
-      await manager?.close(uri);
+      await folderFor(uri)?.manager.close(uri);
       connection.sendDiagnostics({ uri, diagnostics: [] });
     },
   );
 
   connection.onHover(async (params: HoverParams) => {
     const { uri } = params.textDocument;
-    const language = languageForDocument(languages, uri);
-    if (!manager || !language || !isBuiltinLanguage(language)) {
+    const folder = folderFor(uri);
+    const language = languageForDocument(folder?.languages ?? [], uri);
+    if (!folder || !language || !isBuiltinLanguage(language)) {
       return null;
     }
-    return await manager.hover(uri, params.position);
+    return await folder.manager.hover(uri, params.position);
   });
 
   connection.onDefinition(async (params: DefinitionParams) => {
     const { uri } = params.textDocument;
-    const language = languageForDocument(languages, uri);
-    if (!manager || !language || !isBuiltinLanguage(language)) {
+    const folder = folderFor(uri);
+    const language = languageForDocument(folder?.languages ?? [], uri);
+    if (!folder || !language || !isBuiltinLanguage(language)) {
       return [];
     }
-    return await manager.definition(uri, params.position);
+    return await folder.manager.definition(uri, params.position);
   });
 
   connection.onCompletion(async (params: CompletionParams) => {
     const { uri } = params.textDocument;
-    const language = languageForDocument(languages, uri);
-    if (!manager || !language || !isBuiltinLanguage(language)) {
+    const folder = folderFor(uri);
+    const language = languageForDocument(folder?.languages ?? [], uri);
+    if (!folder || !language || !isBuiltinLanguage(language)) {
       return [];
     }
-    return await manager.completion(uri, params.position);
+    return await folder.manager.completion(uri, params.position);
   });
 
   connection.onReferences(async (params: ReferenceParams) => {
     const { uri } = params.textDocument;
-    const language = languageForDocument(languages, uri);
-    if (!manager || !language || !isBuiltinLanguage(language)) {
+    const folder = folderFor(uri);
+    const language = languageForDocument(folder?.languages ?? [], uri);
+    if (!folder || !language || !isBuiltinLanguage(language)) {
       return [];
     }
-    return await manager.references(
+    return await folder.manager.references(
       uri,
       params.position,
       params.context.includeDeclaration,
@@ -226,11 +304,12 @@ export function wireUffdaLspHandlers(
 
   connection.onPrepareRename(async (params: PrepareRenameParams) => {
     const { uri } = params.textDocument;
-    const language = languageForDocument(languages, uri);
-    if (!manager || !language || !isBuiltinLanguage(language)) {
+    const folder = folderFor(uri);
+    const language = languageForDocument(folder?.languages ?? [], uri);
+    if (!folder || !language || !isBuiltinLanguage(language)) {
       return null;
     }
-    const prepared = await manager.prepareRename(uri, params.position);
+    const prepared = await folder.manager.prepareRename(uri, params.position);
     if (prepared && "refusal" in prepared) {
       throw new ResponseError(LSPErrorCodes.RequestFailed, prepared.refusal);
     }
@@ -239,11 +318,16 @@ export function wireUffdaLspHandlers(
 
   connection.onRenameRequest(async (params: RenameParams) => {
     const { uri } = params.textDocument;
-    const language = languageForDocument(languages, uri);
-    if (!manager || !language || !isBuiltinLanguage(language)) {
+    const folder = folderFor(uri);
+    const language = languageForDocument(folder?.languages ?? [], uri);
+    if (!folder || !language || !isBuiltinLanguage(language)) {
       return null;
     }
-    const plan = await manager.rename(uri, params.position, params.newName);
+    const plan = await folder.manager.rename(
+      uri,
+      params.position,
+      params.newName,
+    );
     if (!plan.ok) {
       throw new ResponseError(LSPErrorCodes.RequestFailed, plan.message);
     }
@@ -252,22 +336,24 @@ export function wireUffdaLspHandlers(
 
   connection.onDocumentFormatting(async (params: DocumentFormattingParams) => {
     const { uri } = params.textDocument;
-    const language = languageForDocument(languages, uri);
-    if (!manager || !language || !isBuiltinLanguage(language)) {
+    const folder = folderFor(uri);
+    const language = languageForDocument(folder?.languages ?? [], uri);
+    if (!folder || !language || !isBuiltinLanguage(language)) {
       return [];
     }
-    return (await manager.format(uri)) ?? [];
+    return (await folder.manager.format(uri)) ?? [];
   });
 
   connection.onRequest(
     SemanticTokensRequest.type,
     async (params: SemanticTokensParams) => {
       const { uri } = params.textDocument;
-      const language = languageForDocument(languages, uri);
-      if (!manager || !language || !isBuiltinLanguage(language)) {
+      const folder = folderFor(uri);
+      const language = languageForDocument(folder?.languages ?? [], uri);
+      if (!folder || !language || !isBuiltinLanguage(language)) {
         return { data: [] };
       }
-      return (await manager.semanticTokens(uri)) ?? { data: [] };
+      return (await folder.manager.semanticTokens(uri)) ?? { data: [] };
     },
   );
 
@@ -275,18 +361,19 @@ export function wireUffdaLspHandlers(
     TOGGLE_COMMENT_METHOD,
     async (params: ToggleCommentParams) => {
       const { uri } = params.textDocument;
-      const language = languageForDocument(languages, uri);
-      if (!manager || !language || !isBuiltinLanguage(language)) {
+      const folder = folderFor(uri);
+      const language = languageForDocument(folder?.languages ?? [], uri);
+      if (!folder || !language || !isBuiltinLanguage(language)) {
         return [];
       }
-      return (await manager.toggleComment(uri, params.range)) ?? [];
+      return (await folder.manager.toggleComment(uri, params.range)) ?? [];
     },
   );
 
   connection.onRequest(
     LANGUAGE_METADATA_METHOD,
     (params: LanguageMetadataParams = {}) =>
-      languageMetadataFor(languages, params),
+      languageMetadataFor(mergedLanguages, params),
   );
 }
 

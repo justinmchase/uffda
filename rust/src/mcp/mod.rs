@@ -3,13 +3,14 @@
 //! Wire format matches the MCP stdio transport: one JSON-RPC 2.0 message per
 //! newline (see `@modelcontextprotocol/sdk` `shared/stdio.js`).
 
+mod authoring;
 mod display;
-mod ops;
-mod sessions;
+pub(crate) mod ops;
+pub(crate) mod sessions;
 
 use display::DisplayManager;
-use sessions::SessionManager;
 use serde_json::{Value, json};
+use sessions::SessionManager;
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
 
@@ -88,11 +89,9 @@ fn handle_message(
                 call_tool(name, &arguments, sessions, displays),
             ))
         }
-        Some(other) if id.is_some() => Some(rpc_error(
-            id,
-            -32601,
-            format!("Method not found: {other}"),
-        )),
+        Some(other) if id.is_some() => {
+            Some(rpc_error(id, -32601, format!("Method not found: {other}")))
+        }
         Some(_) => None,
         None => Some(rpc_error(id, -32600, "Invalid Request".into())),
     }
@@ -201,6 +200,27 @@ fn tool_descriptors() -> Vec<Value> {
                 "additionalProperties": false
             }),
         ),
+        tool(
+            "uffda_authoring_context",
+            "uffda authoring context",
+            "Returns verified, task-oriented Uffda authoring context — relevant pattern/expression syntax, semantics, default globals, expressibility, restrictions, and repository source citations. Stateless: does not require or affect any session.",
+            json!({
+                "type": "object",
+                "properties": {
+                    "task": {
+                        "type": "string",
+                        "description": "What the caller wants to implement in Uffda (natural language)."
+                    },
+                    "language": {
+                        "type": "string",
+                        "enum": ["uffda", "pattern", "expression"],
+                        "description": "Optional grammar focus when already known."
+                    }
+                },
+                "required": ["task"],
+                "additionalProperties": false
+            }),
+        ),
     ];
     tools.extend(sessions::session_tool_descriptors());
     tools.extend(display::display_tool_descriptors());
@@ -250,8 +270,17 @@ fn call_tool(
         "uffda_session_display_open" => tool_display_open(arguments, sessions, displays),
         "uffda_session_display_render" => tool_display_render(arguments, sessions, displays),
         "uffda_highlight" => tool_highlight(arguments),
+        "uffda_authoring_context" => tool_authoring_context(arguments),
         other => error_result(format!("Unknown tool: {other}")),
     }
+}
+
+fn tool_authoring_context(arguments: &Value) -> Value {
+    let Some(task) = arguments.get("task").and_then(|v| v.as_str()) else {
+        return error_result("uffda_authoring_context requires `task`");
+    };
+    let language = arguments.get("language").and_then(|v| v.as_str());
+    text_result(authoring::authoring_context(task, language).to_string())
 }
 
 fn tool_display_open(
@@ -295,7 +324,10 @@ fn tool_display_render(
         );
     }
     let markup = if let Some(source) = source {
-        let language = match arguments.get("language").and_then(Value::as_str).unwrap_or("uffda")
+        let language = match arguments
+            .get("language")
+            .and_then(Value::as_str)
+            .unwrap_or("uffda")
         {
             "pattern" => crate::languages::Language::Pattern,
             "expression" => crate::languages::Language::Expression,
@@ -385,12 +417,15 @@ fn tool_session_walk(arguments: &Value, sessions: &mut SessionManager) -> Value 
     let Some(match_result_id) = arguments.get("matchResultId").and_then(Value::as_str) else {
         return error_result("uffda_session_walk requires `matchResultId`");
     };
-    let path = arguments.get("path").and_then(Value::as_array).map(|items| {
-        items
-            .iter()
-            .filter_map(|item| item.as_u64().map(|value| value as usize))
-            .collect::<Vec<_>>()
-    });
+    let path = arguments
+        .get("path")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| item.as_u64().map(|value| value as usize))
+                .collect::<Vec<_>>()
+        });
     let max_nodes = arguments
         .get("maxNodes")
         .and_then(Value::as_u64)
@@ -402,12 +437,7 @@ fn tool_session_walk(arguments: &Value, sessions: &mut SessionManager) -> Value 
     match sessions.get_mut(session_id) {
         Ok(session) => text_result(
             session
-                .walk(
-                    match_result_id,
-                    path.as_deref(),
-                    max_nodes,
-                    max_depth,
-                )
+                .walk(match_result_id, path.as_deref(), max_nodes, max_depth)
                 .to_string(),
         ),
         Err(error) => session_unknown(error.message),
@@ -418,7 +448,11 @@ fn tool_highlight(arguments: &Value) -> Value {
     let Some(source) = arguments.get("source").and_then(Value::as_str) else {
         return error_result("uffda_highlight requires `source`");
     };
-    let language = match arguments.get("language").and_then(Value::as_str).unwrap_or("uffda") {
+    let language = match arguments
+        .get("language")
+        .and_then(Value::as_str)
+        .unwrap_or("uffda")
+    {
         "pattern" => crate::languages::Language::Pattern,
         "expression" => crate::languages::Language::Expression,
         _ => crate::languages::Language::Uffda,
@@ -592,12 +626,7 @@ fn tool_match(arguments: &Value) -> Value {
         .get("inputIsJson")
         .and_then(Value::as_bool)
         .unwrap_or(false);
-    let mut args = vec![
-        "match".into(),
-        "-e".into(),
-        pattern.into(),
-        "--json".into(),
-    ];
+    let mut args = vec!["match".into(), "-e".into(), pattern.into(), "--json".into()];
     if input_is_json {
         args.push("--input-json".into());
     } else {
@@ -746,6 +775,7 @@ mod tests {
             .collect();
         assert!(names.contains(&"uffda_version"));
         assert!(names.contains(&"uffda_parse"));
+        assert!(names.contains(&"uffda_authoring_context"));
         assert!(names.contains(&"uffda_session_open"));
 
         let call = call(
@@ -908,13 +938,12 @@ mod tests {
             &mut sessions,
         )
         .unwrap();
-        let session_id = serde_json::from_str::<Value>(
-            open["result"]["content"][0]["text"].as_str().unwrap(),
-        )
-        .unwrap()["sessionId"]
-            .as_str()
-            .unwrap()
-            .to_string();
+        let session_id =
+            serde_json::from_str::<Value>(open["result"]["content"][0]["text"].as_str().unwrap())
+                .unwrap()["sessionId"]
+                .as_str()
+                .unwrap()
+                .to_string();
 
         let load = call(
             &json!({
@@ -932,10 +961,8 @@ mod tests {
             &mut sessions,
         )
         .unwrap();
-        let loaded: Value = serde_json::from_str(
-            load["result"]["content"][0]["text"].as_str().unwrap(),
-        )
-        .unwrap();
+        let loaded: Value =
+            serde_json::from_str(load["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
         assert_eq!(loaded["ok"], true, "{loaded}");
 
         let expr = call(
@@ -954,10 +981,8 @@ mod tests {
             &mut sessions,
         )
         .unwrap();
-        let payload: Value = serde_json::from_str(
-            expr["result"]["content"][0]["text"].as_str().unwrap(),
-        )
-        .unwrap();
+        let payload: Value =
+            serde_json::from_str(expr["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
         assert_eq!(payload, json!({ "ok": true, "value": 3 }), "{payload}");
 
         let rule = call(
@@ -977,10 +1002,8 @@ mod tests {
             &mut sessions,
         )
         .unwrap();
-        let payload: Value = serde_json::from_str(
-            rule["result"]["content"][0]["text"].as_str().unwrap(),
-        )
-        .unwrap();
+        let payload: Value =
+            serde_json::from_str(rule["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
         assert_eq!(payload["ok"], true, "{payload}");
         assert_eq!(payload["value"], "A");
         assert!(payload["matchResultId"].as_str().is_some());
@@ -1002,10 +1025,8 @@ mod tests {
             &mut sessions,
         )
         .unwrap();
-        let payload: Value = serde_json::from_str(
-            fail["result"]["content"][0]["text"].as_str().unwrap(),
-        )
-        .unwrap();
+        let payload: Value =
+            serde_json::from_str(fail["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
         assert_eq!(payload["ok"], false);
         assert_eq!(payload["error"]["code"], "MCP_SESSION_EVAL_MATCH_FAILURE");
     }
@@ -1027,15 +1048,15 @@ mod tests {
             &mut sessions,
         )
         .unwrap();
-        let session_id = serde_json::from_str::<Value>(
-            open["result"]["content"][0]["text"].as_str().unwrap(),
-        )
-        .unwrap()["sessionId"]
-            .as_str()
-            .unwrap()
-            .to_string();
+        let session_id =
+            serde_json::from_str::<Value>(open["result"]["content"][0]["text"].as_str().unwrap())
+                .unwrap()["sessionId"]
+                .as_str()
+                .unwrap()
+                .to_string();
 
-        let source = "export Main Loud;\ndecorator Loud = { shout: true };\n[Loud]\nrule Main = any;";
+        let source =
+            "export Main Loud;\ndecorator Loud = { shout: true };\n[Loud]\nrule Main = any;";
         let load = call(
             &json!({
                 "jsonrpc": "2.0",
@@ -1066,10 +1087,9 @@ mod tests {
             &mut sessions,
         )
         .unwrap();
-        let payload: Value = serde_json::from_str(
-            described["result"]["content"][0]["text"].as_str().unwrap(),
-        )
-        .unwrap();
+        let payload: Value =
+            serde_json::from_str(described["result"]["content"][0]["text"].as_str().unwrap())
+                .unwrap();
         assert_eq!(payload["ok"], true, "{payload}");
         assert_eq!(payload["declaration"]["kind"], "rule");
         assert_eq!(
@@ -1137,8 +1157,7 @@ mod tests {
         )
         .unwrap();
         let payload: Value =
-            serde_json::from_str(walked["result"]["content"][0]["text"].as_str().unwrap())
-                .unwrap();
+            serde_json::from_str(walked["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
         assert_eq!(payload["ok"], true, "{payload}");
         assert_eq!(payload["nodes"].as_array().unwrap().len(), 1);
         assert_eq!(payload["truncated"], true);
@@ -1179,10 +1198,9 @@ mod tests {
             &mut sessions,
         )
         .unwrap();
-        let payload: Value = serde_json::from_str(
-            highlight["result"]["content"][0]["text"].as_str().unwrap(),
-        )
-        .unwrap();
+        let payload: Value =
+            serde_json::from_str(highlight["result"]["content"][0]["text"].as_str().unwrap())
+                .unwrap();
         assert_eq!(payload["ok"], true, "{payload}");
         let spans = payload["spans"].as_array().unwrap();
         assert!(!spans.is_empty());
@@ -1212,13 +1230,12 @@ mod tests {
             &mut displays,
         )
         .unwrap();
-        let session_id = serde_json::from_str::<Value>(
-            open["result"]["content"][0]["text"].as_str().unwrap(),
-        )
-        .unwrap()["sessionId"]
-            .as_str()
-            .unwrap()
-            .to_string();
+        let session_id =
+            serde_json::from_str::<Value>(open["result"]["content"][0]["text"].as_str().unwrap())
+                .unwrap()["sessionId"]
+                .as_str()
+                .unwrap()
+                .to_string();
 
         let surface = handle_message(
             &json!({
@@ -1234,13 +1251,15 @@ mod tests {
             &mut displays,
         )
         .unwrap();
-        let payload: Value = serde_json::from_str(
-            surface["result"]["content"][0]["text"].as_str().unwrap(),
-        )
-        .unwrap();
+        let payload: Value =
+            serde_json::from_str(surface["result"]["content"][0]["text"].as_str().unwrap())
+                .unwrap();
         assert_eq!(payload["ok"], true, "{payload}");
         assert!(
-            payload["url"].as_str().unwrap().starts_with("http://127.0.0.1:"),
+            payload["url"]
+                .as_str()
+                .unwrap()
+                .starts_with("http://127.0.0.1:"),
             "{payload}"
         );
 
@@ -1262,10 +1281,9 @@ mod tests {
             &mut displays,
         )
         .unwrap();
-        let payload: Value = serde_json::from_str(
-            rendered["result"]["content"][0]["text"].as_str().unwrap(),
-        )
-        .unwrap();
+        let payload: Value =
+            serde_json::from_str(rendered["result"]["content"][0]["text"].as_str().unwrap())
+                .unwrap();
         assert_eq!(payload["ok"], true, "{payload}");
 
         let _ = handle_message(

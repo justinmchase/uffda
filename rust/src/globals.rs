@@ -94,6 +94,22 @@ pub fn lookup(name: &str) -> Option<NativeGlobal> {
         .map(|(_, value)| *value)
 }
 
+/// A documented parameter of a runtime global (tooling / hover).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct GlobalParameter {
+    pub name: &'static str,
+    pub optional: bool,
+    pub rest: bool,
+}
+
+/// Descriptive metadata a global carries for hover/completion (mirrors Deno
+/// `defineMetadata` on `src/runtime/globals/`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct GlobalMetadata {
+    pub description: &'static str,
+    pub parameters: &'static [GlobalParameter],
+}
+
 impl NativeGlobal {
     pub fn name(self) -> &'static str {
         GLOBALS
@@ -114,6 +130,241 @@ impl NativeGlobal {
             | Map | One | Pluck | Sub => 2,
         }
     }
+
+    /// Hover/completion documentation for this global.
+    pub fn metadata(self) -> GlobalMetadata {
+        use NativeGlobal::*;
+        const fn p(name: &'static str) -> GlobalParameter {
+            GlobalParameter {
+                name,
+                optional: false,
+                rest: false,
+            }
+        }
+        const fn opt(name: &'static str) -> GlobalParameter {
+            GlobalParameter {
+                name,
+                optional: true,
+                rest: false,
+            }
+        }
+        const fn rest(name: &'static str) -> GlobalParameter {
+            GlobalParameter {
+                name,
+                optional: false,
+                rest: true,
+            }
+        }
+        const ADD: &[GlobalParameter] = &[p("left"), p("right")];
+        const AT: &[GlobalParameter] = &[p("value"), p("index")];
+        const BASE58: &[GlobalParameter] = &[p("bytes")];
+        const COALESCE: &[GlobalParameter] = &[rest("values")];
+        const COMPARE: &[GlobalParameter] = &[p("left"), p("right")];
+        const ENUMERATE: &[GlobalParameter] = &[p("self")];
+        const EQ: &[GlobalParameter] = &[p("left"), p("right")];
+        const FILTER: &[GlobalParameter] = &[p("self"), p("predicate")];
+        const FLAT: &[GlobalParameter] = &[p("self"), opt("depth")];
+        const FORMAT: &[GlobalParameter] = &[p("value"), rest("args")];
+        const FROM_ENTRIES: &[GlobalParameter] = &[p("entries")];
+        const GT: &[GlobalParameter] = &[p("left"), p("right")];
+        const GTE: &[GlobalParameter] = &[p("left"), p("right")];
+        const HAS: &[GlobalParameter] = &[p("collection"), p("value")];
+        const ID: &[GlobalParameter] = &[p("value")];
+        const INT: &[GlobalParameter] = &[p("value")];
+        const ITERABLE: &[GlobalParameter] = &[p("value")];
+        const JOIN: &[GlobalParameter] = &[p("self"), opt("separator")];
+        const JSON: &[GlobalParameter] = &[p("self")];
+        const LAST: &[GlobalParameter] = &[p("self"), p("fallback")];
+        const LENGTH: &[GlobalParameter] = &[p("value")];
+        const LT: &[GlobalParameter] = &[p("left"), p("right")];
+        const LTE: &[GlobalParameter] = &[p("left"), p("right")];
+        const MAP: &[GlobalParameter] = &[p("self"), p("callback")];
+        const NOT: &[GlobalParameter] = &[p("value")];
+        const ONE: &[GlobalParameter] = &[p("items"), p("full")];
+        const PACK: &[GlobalParameter] = &[rest("values")];
+        const PLUCK: &[GlobalParameter] = &[p("collection"), p("key")];
+        const REDUCE: &[GlobalParameter] = &[p("self"), p("initial"), p("fn")];
+        const SCAN: &[GlobalParameter] = &[p("self"), p("initial"), p("fn")];
+        const SHA256: &[GlobalParameter] = &[p("text")];
+        const SLICE: &[GlobalParameter] = &[p("value"), opt("start"), opt("end")];
+        const SUB: &[GlobalParameter] = &[p("left"), p("right")];
+        const SYMBOL: &[GlobalParameter] = &[p("name")];
+        const TO_SET: &[GlobalParameter] = &[p("items")];
+        const WHEN: &[GlobalParameter] = &[p("condition"), p("thenValue"), p("elseValue")];
+        match self {
+            Add => GlobalMetadata {
+                description: "Adds two numbers.",
+                parameters: ADD,
+            },
+            At => GlobalMetadata {
+                description: "The element at an ordinal index of a string, array, Set, or Map.",
+                parameters: AT,
+            },
+            Base58 => GlobalMetadata {
+                description: "Base58 (Bitcoin alphabet) encoding of bytes.",
+                parameters: BASE58,
+            },
+            Coalesce => GlobalMetadata {
+                description: "The first argument that is neither null nor undefined.",
+                parameters: COALESCE,
+            },
+            Compare => GlobalMetadata {
+                description: "Three-way comparison of two numbers or strings: -1, 0, or 1.",
+                parameters: COMPARE,
+            },
+            Enumerate => GlobalMetadata {
+                description: "Lazily pairs each element with its index as { index, value }.",
+                parameters: ENUMERATE,
+            },
+            Eq => GlobalMetadata {
+                description: "Strict equality.",
+                parameters: EQ,
+            },
+            Filter => GlobalMetadata {
+                description: "Lazily keeps the elements for which the predicate is truthy.",
+                parameters: FILTER,
+            },
+            Flat => GlobalMetadata {
+                description: "Flattens an array by depth levels (default 1).",
+                parameters: FLAT,
+            },
+            Format => GlobalMetadata {
+                description: "Replaces {0}, {1}, … in a string with the corresponding arguments.",
+                parameters: FORMAT,
+            },
+            FromEntries => GlobalMetadata {
+                description: "Builds an object from [key, value] pairs or { name, value } entries.",
+                parameters: FROM_ENTRIES,
+            },
+            Gt => GlobalMetadata {
+                description: "True if left sorts strictly after right.",
+                parameters: GT,
+            },
+            Gte => GlobalMetadata {
+                description: "True if left sorts after or equal to right.",
+                parameters: GTE,
+            },
+            Has => GlobalMetadata {
+                description: "Whether a Set, Map, array, or object contains a value or key.",
+                parameters: HAS,
+            },
+            Id => GlobalMetadata {
+                description: "Returns its argument unchanged.",
+                parameters: ID,
+            },
+            Int => GlobalMetadata {
+                description: "Parses a value as a base-10 integer.",
+                parameters: INT,
+            },
+            Iterable => GlobalMetadata {
+                description: "Normalizes any sync or async iterable into an async iterable.",
+                parameters: ITERABLE,
+            },
+            Join => GlobalMetadata {
+                description: "Joins an array's elements into a string with a separator.",
+                parameters: JOIN,
+            },
+            Json => GlobalMetadata {
+                description: "Serializes a value as JSON text.",
+                parameters: JSON,
+            },
+            Last => GlobalMetadata {
+                description: "The last element of a string or array, or fallback when empty.",
+                parameters: LAST,
+            },
+            Length => GlobalMetadata {
+                description: "The length of a string, array, Set, or Map.",
+                parameters: LENGTH,
+            },
+            Lt => GlobalMetadata {
+                description: "True if left sorts strictly before right.",
+                parameters: LT,
+            },
+            Lte => GlobalMetadata {
+                description: "True if left sorts before or equal to right.",
+                parameters: LTE,
+            },
+            Map => GlobalMetadata {
+                description: "Lazily projects each element through a callback.",
+                parameters: MAP,
+            },
+            Not => GlobalMetadata {
+                description: "Boolean negation.",
+                parameters: NOT,
+            },
+            One => GlobalMetadata {
+                description: "The only element of a one-element list, otherwise full.",
+                parameters: ONE,
+            },
+            Pack => GlobalMetadata {
+                description: "Collects its arguments into an array.",
+                parameters: PACK,
+            },
+            Pluck => GlobalMetadata {
+                description: "Collects item[key] for each element of a collection.",
+                parameters: PLUCK,
+            },
+            Reduce => GlobalMetadata {
+                description: "Reduces a collection to one value by calling fn(acc, item) for each item.",
+                parameters: REDUCE,
+            },
+            Scan => GlobalMetadata {
+                description: "Lazily yields the running accumulator after each fn(acc, item) step.",
+                parameters: SCAN,
+            },
+            Sha256 => GlobalMetadata {
+                description: "SHA-256 digest of a string, as bytes.",
+                parameters: SHA256,
+            },
+            Slice => GlobalMetadata {
+                description: "Slices a string or array from start up to (not including) end.",
+                parameters: SLICE,
+            },
+            Sub => GlobalMetadata {
+                description: "Subtracts right from left.",
+                parameters: SUB,
+            },
+            Symbol => GlobalMetadata {
+                description: "The well-known or registered symbol with this name.",
+                parameters: SYMBOL,
+            },
+            ToSet => GlobalMetadata {
+                description: "Converts a collection into a Set.",
+                parameters: TO_SET,
+            },
+            When => GlobalMetadata {
+                description: "thenValue when condition is truthy, otherwise elseValue.",
+                parameters: WHEN,
+            },
+        }
+    }
+
+    /// `(name a b? ...rest)` — how an invocation of this global is written.
+    pub fn format_signature(self) -> String {
+        let name = self.name();
+        let metadata = self.metadata();
+        let parameters = metadata.parameters.iter().map(|parameter| {
+            if parameter.rest {
+                format!("...{}", parameter.name)
+            } else if parameter.optional {
+                format!("{}?", parameter.name)
+            } else {
+                parameter.name.to_string()
+            }
+        });
+        format!(
+            "({})",
+            std::iter::once(name.to_string())
+                .chain(parameters)
+                .collect::<Vec<_>>()
+                .join(" ")
+        )
+    }
+}
+
+/// Documentation for the global named `name`, when it is one.
+pub fn metadata_of(name: &str) -> Option<GlobalMetadata> {
+    lookup(name).map(NativeGlobal::metadata)
 }
 
 pub(crate) fn symbol_text(name: &RuntimeString) -> RuntimeString {

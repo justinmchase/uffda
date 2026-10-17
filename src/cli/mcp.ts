@@ -21,6 +21,12 @@ import {
   parseToolInputShape,
   parseToolResult,
 } from "./mcp.static_tools.ts";
+import {
+  authoringContextToolHandler,
+  type AuthoringContextToolInput,
+  authoringContextToolInputShape,
+  authoringContextToolResult,
+} from "./mcp.authoring_context.ts";
 import { registerSessionTools } from "./mcp.session_tools.ts";
 import { registerDisplayTools } from "./mcp.display_tools.ts";
 import { SessionManager } from "./mcp.sessions.ts";
@@ -119,6 +125,23 @@ export function createUffdaMcpServer(): McpServer {
     },
     async (input: HighlightToolInput) =>
       highlightToolResult(await highlightToolHandler(input)),
+  );
+
+  server.registerTool(
+    "uffda_authoring_context",
+    {
+      title: "uffda authoring context",
+      description:
+        "Returns verified, task-oriented Uffda authoring context — relevant " +
+        "pattern/expression syntax, semantics, default globals, " +
+        "expressibility (supported / partial / unsupported / uncertain), " +
+        "restrictions, and repository source citations — so an agent can " +
+        "write patterns and expressions without guessing capabilities. " +
+        "Stateless: does not require or affect any session.",
+      inputSchema: authoringContextToolInputShape,
+    },
+    (input: AuthoringContextToolInput) =>
+      authoringContextToolResult(authoringContextToolHandler(input)),
   );
 
   const sessions = new SessionManager();

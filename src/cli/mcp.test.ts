@@ -29,6 +29,7 @@ Deno.test("cli.mcp", async (t) => {
         assertEquals(
           tools.tools.map((tool: Tool) => tool.name).sort(),
           [
+            "uffda_authoring_context",
             "uffda_compile",
             "uffda_highlight",
             "uffda_match",

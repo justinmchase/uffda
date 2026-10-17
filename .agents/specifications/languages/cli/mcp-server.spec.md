@@ -158,6 +158,32 @@ chapter(s).
   maintained mapping from rule name to role that could drift from the grammar it
   classifies.
 
+### Authoring context tool
+
+- The server MUST expose a stateless tool that, given a natural-language
+  authoring `task` and an optional Uffda `language` (full module, pattern, or
+  expression), returns concise structured context an agent needs to write Uffda
+  patterns and expressions for that task without guessing language capabilities.
+- The response MUST include, when evidence for the task is available:
+  - relevant pattern and/or expression syntax with small exact examples drawn
+    from this repository;
+  - relevant semantics and runtime operations (values, default globals, and
+    control-flow mechanisms that exist);
+  - an expressibility assessment stating whether the requested behavior appears
+    supported, partially supported, unsupported, or uncertain in Uffda as
+    implemented, with missing or uncertain capabilities called out explicitly;
+  - restrictions and caveats relevant to the task (for example recursion,
+    mutation, array handling, or evaluation order);
+  - source references for every substantive claim (repository-relative paths and
+    line numbers when resolvable, with short excerpts).
+- The tool MUST retrieve only context relevant to the supplied task. It MUST NOT
+  invent syntax, silently propose host-language workarounds, or treat a grammar
+  production name alone as proof of runtime capability. When evidence is
+  incomplete or contradictory, the response MUST say so and cite the conflicting
+  sources.
+- This tool MUST NOT require or accept a session id and MUST NOT persist state
+  between calls.
+
 ### Session display surface tool
 
 - The server MUST expose an explicit, opt-in tool to open a live display surface
@@ -221,6 +247,6 @@ chapter(s).
 
 Stateless operation tools, session lifecycle tools, incremental re-parse tools,
 evaluation tools, introspection and query tools, match-tree walking tools, the
-source highlighting tool, and the session display surface tool are implemented.
-See [command model](./command-model.spec.md) for the existing shipped CLI modes
-this chapter's tools sit alongside.
+source highlighting tool, the authoring context tool, and the session display
+surface tool are implemented. See [command model](./command-model.spec.md) for
+the existing shipped CLI modes this chapter's tools sit alongside.
