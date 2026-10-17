@@ -274,22 +274,6 @@ jobs:
           scripts/verify-rust-codec.ts
           rust/target/${{ matrix.target }}/release/uffda${{ matrix.suffix }}
           rust/target/${{ matrix.target }}/release/examples/codec_probe${{ matrix.suffix }}
-      - name: Report raw and gzip costs
-        if: matrix.target == 'x86_64-unknown-linux-gnu'
-        shell: bash
-        run: |
-          set -euo pipefail
-          deno run --allow-read --allow-write --allow-run --allow-env=SystemRoot \
-            test/perf/data-codec.report.ts \
-            rust/target/${{ matrix.target }}/release/examples/codec_probe \
-            rust/target/${{ matrix.target }}/release/uffda \
-            "$RUNNER_TEMP/data-codec-report.json" | tee -a "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v7
-        if: matrix.target == 'x86_64-unknown-linux-gnu'
-        with:
-          name: data-codec-measurements
-          path: ${{ runner.temp }}/data-codec-report.json
-          if-no-files-found: error
 
   vscode-extension:
     name: VS Code Extension

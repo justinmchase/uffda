@@ -11,7 +11,9 @@ spec_ref: ".agents/specifications/languages/cli/command-model.spec.md#mode-selec
 Preconditions:
 
 - The Rust preview exposes compile, exec, fmt, match, parse, and run.
-- MCP, LSP, installation cutover, and production renaming are excluded.
+- MCP, LSP, installation cutover, and production renaming are excluded from this
+  preview matrix; production cutover still requires MCP/LSP on the Rust CLI (see
+  `docs/rust-migration.md` milestone 10).
 
 Expected behavior:
 

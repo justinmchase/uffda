@@ -37,9 +37,12 @@ In scope:
   native-value hot path, distinct from text input that is parsed by the selected
   pattern or rule.
 
-MCP and LSP are deferred. Binary codec encoding, compiled-artifact format
-replacement during codec v1, executable constructors, arbitrary class
-reconstruction and function-source serialization are not part of codec v1.
+MCP and LSP are in the cutover plan (milestone 10): the installed Rust `uffda`
+MUST provide them before replacing Deno for editor and agent integrations. They
+were not part of the initial six-command runtime/CLI parity milestones. Binary
+codec encoding, compiled-artifact format replacement during codec v1, executable
+constructors, arbitrary class reconstruction and function-source serialization
+are not part of codec v1.
 
 Both runtimes support logical `.uff` modules and direct `.json` declarations,
 including package exports resolving to either extension. `.uff` retains artifact
@@ -618,10 +621,10 @@ Rust-backed custom CLI using published crates and documented APIs.
 
 Do not replace the existing `uffda` release binaries until cutover is approved.
 Release Binaries already attaches separately named `uffdar-${version}-${target}`
-assets beside `uffda-*`, with dedicated `UFFDAR-SHA256SUMS`. Setup/install
-behavior, stable `uffda` asset names, checksums and the published TypeScript CLI
-stay unchanged. Smoke `uffdar` directly as a preview; only offer Rust through
-the existing `uffda` installer after cutover is approved.
+assets beside `uffda-*`, with dedicated `UFFDAR-SHA256SUMS`. The Linux
+`install.sh` installs both `uffda` and `uffdar`; `uffda-setup` still installs
+Deno `uffda-*` only. Stable `uffda` asset names, checksums and the published
+TypeScript CLI stay unchanged until cutover is approved.
 
 Rust targets the current Linux/Windows/macOS x86_64/aarch64 triples via a native
 OS/arch GitHub Actions matrix (not one Ubuntu cross-compile host). Each runner
@@ -642,16 +645,21 @@ jobs and Linux `uffda-setup` smoke as the installer gate.
       dedicated preview checksum; leave `uffda-*` assets, checksums, installer,
       setup-action behavior and production defaults unchanged.
 - [x] Extend the `uffdar-*` build, attach and verify path to the other supported
-      release targets (six native runners). Installer/`uffda-setup` still
-      install Deno `uffda-*` only.
+      release targets (six native runners). Linux `install.sh` installs `uffda`
+      and `uffdar`; `uffda-setup` still installs Deno `uffda-*` only.
+- [ ] Implement `mcp` and `lsp` on the Rust CLI with parity against the Deno
+      reference (stdio transports, session/tools/diagnostics/completions as
+      already specified under `.agents/` for those surfaces). Cutover MUST NOT
+      ship Rust as the installed `uffda` without them.
 - [ ] Preserve asset names, checksums, installers, and setup-action behavior
       through the eventual approved cutover (Rust becomes the installed
       `uffda`).
 - [ ] Update implementation-specific specifications and contributor docs for the
-      Deno→Rust production switch.
-- [ ] Switch production only after package gates (milestone 9) and an explicit
-      cutover approval. Do not publish a draft until Release Binaries attach +
-      smoke succeed — publishing early leaves an empty immutable release.
+      Deno→Rust production switch (including MCP/LSP command availability).
+- [ ] Switch production only after package gates (milestone 9), MCP/LSP cutover
+      gates, and an explicit cutover approval. Do not publish a draft until
+      Release Binaries attach + smoke succeed — publishing early leaves an empty
+      immutable release.
 
 ## Final acceptance
 
@@ -824,10 +832,11 @@ Global/process checks include help/version, explicit mode conflict diagnostics,
 compile fallback only when arguments exist, successful root usage with no
 arguments, cwd/config resolution, JSON error code/message/phase, and exit codes
 0 (success), 2 (usage), 3 (configuration), and 70 (internal), plus
-command-specific failure exits. MCP/LSP remain deferred. All six commands now
-have relocated-binary coverage outside the checkout with an empty `PATH`, and 29
-validation diagnostic cases are shared with the reference. Exhaustive
-per-command flag combinations and successful-output comparisons remain open.
+command-specific failure exits. MCP/LSP are in the cutover plan (milestone 10),
+not the initial six-command preview. All six commands now have relocated-binary
+coverage outside the checkout with an empty `PATH`, and 29 validation diagnostic
+cases are shared with the reference. Exhaustive per-command flag combinations
+and successful-output comparisons remain open.
 
 ### Coordinator integration checkpoint
 

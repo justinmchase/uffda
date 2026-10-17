@@ -49,8 +49,6 @@ Normative key words in this chapter use the conventions defined in the
 - After the draft and version files are updated, the workflow MUST emit a
   `repository_dispatch` event that triggers CLI binary attachment for the latest
   draft.
-- Draft release notes MUST document the manual `workflow_dispatch` path used to
-  re-attach CLI binaries.
 - The `release-binaries` workflow MUST accept both `repository_dispatch` and
   `workflow_dispatch`, compile the target matrix from a pinned `main` revision,
   attach or replace binaries plus checksums and the Linux install script on the
@@ -65,8 +63,8 @@ Normative key words in this chapter use the conventions defined in the
 - Release entries MUST include version tag, artifact list, and checksums for
   every published binary.
 - Each release MUST also publish a Linux shell install script (for example
-  `install.sh`) that downloads and installs the correct Linux binary for the
-  host architecture from that release.
+  `install.sh`) that downloads and installs the correct Linux `uffda` and
+  `uffdar` binaries for the host architecture from that release.
 - Release notes SHOULD include compatibility notes and migration impact for
   command/flag/output changes.
 - Binary release assets MUST NOT depend on JSR install for operator or CI usage.
