@@ -82,19 +82,19 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
       - name: Test codec acceptance example
         run: cargo test --locked --manifest-path rust/Cargo.toml --target ${{ matrix.target }} --example codec_probe
       - name: Build standalone CLI and streaming consumer
         run: cargo build --locked --manifest-path rust/Cargo.toml --target ${{ matrix.target }} --release --bin uffda --example codec_probe
       - name: Verify relocated CLI and streaming without external grammars
-        run: >-
-          deno run --allow-read --allow-write --allow-run --allow-env=SystemRoot
-          scripts/verify-rust-codec.ts
-          rust/target/${{ matrix.target }}/release/uffda${{ matrix.suffix }}
-          rust/target/${{ matrix.target }}/release/examples/codec_probe${{ matrix.suffix }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          target="${{ matrix.target }}"
+          suffix="${{ matrix.suffix }}"
+          export UFFDA_ACCEPT_CLI="$PWD/rust/target/${target}/release/uffda${suffix}"
+          export UFFDA_ACCEPT_PROBE="$PWD/rust/target/${target}/release/examples/codec_probe${suffix}"
+          cargo test --locked --manifest-path rust/Cargo.toml --target "${target}" --test standalone_acceptance -- --ignored
 
   vscode-extension:
     name: VS Code Extension

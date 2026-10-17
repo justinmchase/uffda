@@ -54,16 +54,16 @@ path (default `.tmp/data-codec-report.json`). Linux GNU `/usr/bin/time` and
 is portable:
 
 ```sh
-deno test --allow-read --allow-write --allow-run --allow-env=SystemRoot \
-  scripts/verify-rust-codec.test.ts
+UFFDA_ACCEPT_CLI=rust/target/release/uffda \
+UFFDA_ACCEPT_PROBE=rust/target/release/examples/codec_probe \
+  cargo test --locked --manifest-path rust/Cargo.toml --test standalone_acceptance -- --ignored
 ```
 
-The normal Deno suite skips that subprocess test without `--allow-run`; the six
-native CI runners always execute its shared verifier against their own optimized
-binaries. No Deno runtime, tools on PATH, source checkout, or external grammar
-tree is available to the relocated Rust child processes. The CLI still accepts
-**one** codec subject; multi-record stdin belongs to the public-library
-acceptance example, not a new CLI command.
+Checks and Release Binaries run that Rust test against their optimized binaries.
+No Deno runtime, tools on PATH, source checkout, or external grammar tree is
+available to the relocated Rust child processes. The CLI still accepts **one**
+codec subject; multi-record stdin belongs to the public-library acceptance
+example, not a new CLI command.
 
 ### Measurement boundaries
 

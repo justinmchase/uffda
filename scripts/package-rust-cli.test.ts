@@ -74,6 +74,7 @@ Deno.test("req:data-codec-004 - release covers all six native targets; checks co
     );
   }
   for (const workflow of [check, release]) {
-    assertEquals(workflow.includes("scripts/verify-rust-codec.ts"), true);
+    assertEquals(workflow.includes("--test standalone_acceptance"), true);
+    assertEquals(workflow.includes("scripts/verify-rust-codec.ts"), false);
   }
 });

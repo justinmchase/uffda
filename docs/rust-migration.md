@@ -634,7 +634,7 @@ acceptance before attach.
       beats Deno on this host; broader benches remain optional).
 - [x] Build and outside-checkout-verify Linux, Windows, and macOS on x86_64 and
       aarch64 in `release-binaries` (`compile-rust` matrix +
-      `verify-rust-codec.ts`).
+      `standalone_acceptance`).
 - [x] Add a native Linux `uffda-*` release build using the bootstrapped AST
       artifact tree, with an outside-checkout smoke test and `SHA256SUMS`.
 - [x] Extend the `uffda-*` build, attach, and verify path to the other supported
