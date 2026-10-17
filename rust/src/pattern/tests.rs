@@ -1879,6 +1879,97 @@ fn retained_values_preserve_source_characters_without_retaining_match_trees() {
 }
 
 #[test]
+// req:any-001
+fn any_consumes_one_character_or_array_item_and_fails_when_empty() {
+    assert_item(Pattern::Any, json!("a"), MatchKind::Ok, 1, "a");
+    assert_item(Pattern::Any, json!(["a"]), MatchKind::Ok, 1, "a");
+    assert_item(Pattern::Any, json!(""), MatchKind::Fail, 0, "");
+    assert_item(Pattern::Any, json!("ab"), MatchKind::Ok, 1, "a");
+}
+
+#[test]
+// req:end-001
+fn end_succeeds_only_at_the_end_and_does_not_consume() {
+    assert_item(Pattern::End, json!([]), MatchKind::Ok, 0, "undefined");
+    assert_item(Pattern::End, json!("a"), MatchKind::Fail, 0, "");
+    assert_item(
+        Pattern::Not {
+            pattern: Box::new(Pattern::End),
+        },
+        json!("a"),
+        MatchKind::Ok,
+        0,
+        "undefined",
+    );
+    assert_item(
+        Pattern::Then {
+            patterns: vec![Pattern::Any, Pattern::Any, Pattern::End],
+        },
+        json!("abc"),
+        MatchKind::Fail,
+        0,
+        "",
+    );
+    assert_item(
+        Pattern::Then {
+            patterns: vec![Pattern::Any, Pattern::Any, Pattern::Any, Pattern::End],
+        },
+        json!("abc"),
+        MatchKind::Ok,
+        3,
+        "a|b|c|undefined",
+    );
+}
+
+#[test]
+// req:fail-001
+fn fail_rejects_available_input_without_consuming_it() {
+    assert_item(Pattern::Fail, json!("a"), MatchKind::Fail, 0, "");
+}
+
+#[test]
+// req:ok-001
+fn ok_succeeds_without_consuming_empty_or_remaining_input() {
+    assert_item(Pattern::Ok, json!([]), MatchKind::Ok, 0, "undefined");
+    assert_item(Pattern::Ok, json!("a"), MatchKind::Ok, 0, "undefined");
+}
+
+fn assert_item(
+    pattern: Pattern,
+    input: serde_json::Value,
+    kind: MatchKind,
+    end: usize,
+    value: &str,
+) {
+    let mut runtime =
+        crate::runtime::Runtime::for_pattern(pattern, input, crate::runtime::InputMode::Iterable)
+            .unwrap();
+    runtime.run().unwrap();
+    runtime.read(|execution| {
+        let result = execution.result().unwrap();
+        assert_eq!(result.kind, kind);
+        assert_eq!(result.end, end);
+        if kind == MatchKind::Ok {
+            assert_eq!(item_text(result.value), value);
+        }
+    });
+}
+
+fn item_text(value: Value<'_>) -> String {
+    match value.raw() {
+        Value::Undefined => "undefined".into(),
+        Value::String(text) => text.to_utf8().unwrap(),
+        Value::Array(items) => items
+            .borrow()
+            .iter()
+            .map(|item| item_text(*item))
+            .collect::<Vec<_>>()
+            .join("|"),
+        other => panic!("unexpected match value {:?}", other.runtime_type()),
+    }
+}
+
+#[test]
 // req:runtime-memory-005 req:equal-002
 fn deeply_nested_literal_sources_are_dropped_without_host_recursion() {
     let mut value = json!(42);

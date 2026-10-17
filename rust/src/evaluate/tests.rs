@@ -2303,6 +2303,106 @@ fn current_value_reference_is_reserved_and_ignores_an_underscore_binding() {
 }
 
 #[test]
+// req:expressions-runtime-003
+fn boolean_number_and_value_literals_return_declared_values_at_the_match_origin() {
+    use crate::provenance::Origin;
+    let origin = Origin { start: 0, end: 0 };
+    assert_literal(
+        json!({"kind":"boolean","value":true}),
+        |value| matches!(value.raw(), Value::Boolean(true)),
+        origin,
+    );
+    assert_literal(
+        json!({"kind":"boolean","value":false}),
+        |value| matches!(value.raw(), Value::Boolean(false)),
+        origin,
+    );
+    for source in [
+        json!({"kind":"number","value":7}),
+        json!({"kind":"value","value":7}),
+    ] {
+        assert_literal(
+            source,
+            |value| matches!(value.raw(), Value::Number(number) if number == 7.0),
+            origin,
+        );
+    }
+    assert_literal(
+        json!({"kind":"value","value":null}),
+        |value| matches!(value.raw(), Value::Null),
+        origin,
+    );
+}
+
+fn assert_literal(
+    source: serde_json::Value,
+    accept: impl Fn(Value<'_>) -> bool,
+    origin: crate::provenance::Origin,
+) {
+    let mut evaluation = Evaluation::new(expression(source));
+    let result = evaluation.finish().unwrap();
+    assert!(evaluation.read(&result, accept).unwrap());
+    assert_eq!(
+        evaluation
+            .read_with_provenance(&result, |value| value.origin())
+            .unwrap(),
+        Some(origin)
+    );
+}
+
+#[test]
+// req:expressions-runtime-007
+fn not_negates_the_raw_operand_and_keeps_the_match_origin() {
+    use crate::provenance::Origin;
+    let (actual, origin) = evaluated(json!({
+        "kind":"not",
+        "expression":{"kind":"number","value":1}
+    }));
+    assert_eq!(actual, json!(false));
+    assert_eq!(origin, Some(Origin { start: 0, end: 0 }));
+    let (actual, origin) = evaluated(json!({
+        "kind":"not",
+        "expression":{"kind":"boolean","value":false}
+    }));
+    assert_eq!(actual, json!(true));
+    assert_eq!(origin, Some(Origin { start: 0, end: 0 }));
+
+    let mut evaluation = Evaluation::with_environment(
+        expression(json!({
+            "kind":"not",
+            "expression":{"kind":"reference","name":"x"}
+        })),
+        |mc| {
+            Environment::new(
+                mc,
+                None,
+                vec![(
+                    "x".into(),
+                    Value::Number(0.0).wrap(mc, Origin { start: 3, end: 4 }),
+                )],
+            )
+        },
+    );
+    let result = evaluation.finish().unwrap();
+    assert_eq!(evaluation.read(&result, snapshot).unwrap(), json!(true));
+    assert_eq!(
+        evaluation
+            .read_with_provenance(&result, |value| value.origin())
+            .unwrap(),
+        Some(Origin { start: 0, end: 0 })
+    );
+}
+
+fn evaluated(source: serde_json::Value) -> (serde_json::Value, Option<crate::provenance::Origin>) {
+    let mut evaluation = Evaluation::new(expression(source));
+    let result = evaluation.finish().unwrap();
+    let origin = evaluation
+        .read_with_provenance(&result, |value| value.origin())
+        .unwrap();
+    (evaluation.read(&result, snapshot).unwrap(), origin)
+}
+
+#[test]
 // req:into-001 req:expressions-runtime-007
 fn zero_argument_lambda_uses_the_captured_input_origin_as_its_base() {
     use crate::pattern::Pattern;

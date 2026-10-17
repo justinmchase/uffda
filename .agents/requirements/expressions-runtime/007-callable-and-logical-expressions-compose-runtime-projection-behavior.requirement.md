@@ -37,3 +37,7 @@ Error behavior:
 - Non-callable invocation targets MUST report the governed invocation error.
 - A standalone host driver that cannot service a requested rule reference MUST
   report an unknown-reference error instead of repeatedly yielding forever.
+
+Postconditions:
+
+- Tests: `rust/src/evaluate/tests.rs`.

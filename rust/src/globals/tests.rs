@@ -2039,3 +2039,1749 @@ fn join_formats_scalars_and_keeps_character_provenance() {
         assert_eq!(text(defaults).unwrap(), "a,b");
     });
 }
+
+#[test]
+// req:standard-library-002
+fn to_set_deduplicates_collection_values_with_same_value_zero() {
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        let value = |args| match invoke(mc, NativeGlobal::ToSet, args, origin).unwrap() {
+            NativeResult::Value(value) => value,
+            NativeResult::Reduce { .. } => panic!("expected value"),
+        };
+        let texts = |set: Value| {
+            let Value::Set(items) = set else {
+                panic!("expected set")
+            };
+            items
+                .borrow()
+                .iter()
+                .map(|item| text(*item).unwrap())
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            texts(value(vec![Value::array(
+                mc,
+                vec![
+                    Value::string(mc, "a"),
+                    Value::string(mc, "b"),
+                    Value::string(mc, "a"),
+                ],
+            )])),
+            ["a", "b"]
+        );
+        assert_eq!(
+            texts(value(vec![Value::object(
+                mc,
+                vec![
+                    ("x".into(), Value::string(mc, "a")),
+                    ("y".into(), Value::string(mc, "b")),
+                ],
+            )])),
+            ["a", "b"]
+        );
+        assert_eq!(
+            texts(value(vec![Value::map(
+                mc,
+                vec![
+                    (Value::string(mc, "k"), Value::string(mc, "a")),
+                    (Value::string(mc, "m"), Value::string(mc, "b")),
+                ],
+            )])),
+            ["a", "b"]
+        );
+        assert_eq!(
+            texts(value(vec![Value::set(
+                mc,
+                vec![
+                    Value::string(mc, "a"),
+                    Value::string(mc, "a"),
+                    Value::string(mc, "b"),
+                ],
+            )])),
+            ["a", "b"]
+        );
+        assert!(
+            invoke(
+                mc,
+                NativeGlobal::ToSet,
+                vec![Value::string(mc, "a")],
+                origin,
+            )
+            .is_err()
+        );
+        assert_eq!(parameter_names("to_set"), ["items"]);
+        let members = value(vec![
+            Value::array(
+                mc,
+                vec![
+                    Value::Number(1.0).wrap(mc, Origin { start: 0, end: 1 }),
+                    Value::Number(1.0).wrap(mc, Origin { start: 1, end: 2 }),
+                ],
+            )
+            .wrap(mc, Origin { start: 0, end: 2 }),
+        ]);
+        assert_eq!(length(members).unwrap(), 1);
+        assert!(truthy(
+            match invoke(
+                mc,
+                NativeGlobal::Has,
+                vec![members, Value::Number(1.0)],
+                origin,
+            )
+            .unwrap()
+            {
+                NativeResult::Value(value) => value,
+                NativeResult::Reduce { .. } => panic!("expected value"),
+            }
+        ));
+    });
+}
+
+#[test]
+// req:runtime-memory-001 req:standard-library-002
+fn symbol_returns_stable_identity_for_repeated_names() {
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        let symbol = |name| match invoke(mc, NativeGlobal::Symbol, vec![name], origin).unwrap() {
+            NativeResult::Value(value) => value,
+            NativeResult::Reduce { .. } => panic!("expected value"),
+        };
+        let iterator = symbol(Value::string(mc, "iterator"));
+        let again = symbol(Value::string(mc, "iterator"));
+        assert_eq!(iterator.runtime_type(), RuntimeType::Symbol);
+        assert!(iterator.strict_eq(again));
+        assert!(iterator.strict_eq(symbol(Value::string(mc, "iterator"))));
+        assert!(!iterator.strict_eq(Value::string(mc, "iterator")));
+        let registered = symbol(Value::string(mc, "uffda-identity-test"));
+        assert!(registered.strict_eq(symbol(Value::string(mc, "uffda-identity-test"))));
+        let custom = symbol(Value::string(mc, "iterator-but-not-really"));
+        assert_eq!(custom.runtime_type(), RuntimeType::Symbol);
+        assert!(!custom.strict_eq(iterator));
+        assert!(
+            symbol(Value::string(mc, "asyncIterator").wrap(mc, Origin { start: 0, end: 13 }))
+                .strict_eq(symbol(Value::string(mc, "asyncIterator")))
+        );
+        assert_eq!(parameter_names("symbol"), ["name"]);
+    });
+}
+
+#[test]
+// req:runtime-core-012 req:standard-library-002
+fn format_substitutes_placeholders_and_keeps_character_provenance() {
+    assert_eq!(
+        evaluate(call(
+            "format",
+            vec![
+                literal(json!("{0}-{1}-{2}")),
+                literal(json!("a")),
+                literal(json!(1)),
+            ],
+        )),
+        r#""a-1-{2}""#
+    );
+    assert_eq!(parameter_names("format"), ["value", "args"]);
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        let native = Value::Native(NativeGlobal::Id);
+        for template in [
+            Value::string(mc, "{0}"),
+            Value::string(mc, "{0}").wrap(mc, origin),
+        ] {
+            for argument in [
+                native,
+                Value::array(mc, vec![native]),
+                Value::object(mc, vec![]),
+                Value::array(mc, vec![]),
+            ] {
+                assert!(
+                    invoke(mc, NativeGlobal::Format, vec![template, argument], origin,).is_err()
+                );
+            }
+        }
+        let template_origin = Origin { start: 10, end: 17 };
+        let template = Value::Located(uffda_heap::Gc::new(
+            mc,
+            crate::provenance::Located {
+                raw: Value::string(mc, "<{0}>{1}"),
+                origin: template_origin,
+                chars: vec![crate::provenance::CharRun {
+                    length: 8,
+                    origin: template_origin,
+                    linear: false,
+                }],
+            },
+        ));
+        let name = Value::Located(uffda_heap::Gc::new(
+            mc,
+            crate::provenance::Located {
+                raw: Value::string(mc, "ab"),
+                origin: Origin { start: 3, end: 5 },
+                chars: vec![crate::provenance::CharRun {
+                    length: 2,
+                    origin: Origin { start: 3, end: 5 },
+                    linear: true,
+                }],
+            },
+        ));
+        let result = match invoke(
+            mc,
+            NativeGlobal::Format,
+            vec![template, name, Value::Number(7.0)],
+            origin,
+        )
+        .unwrap()
+        {
+            NativeResult::Value(value) => value,
+            NativeResult::Reduce { .. } => panic!("expected value"),
+        };
+        assert_eq!(text(result).unwrap(), "<ab>7");
+        assert_eq!(result.origin(), Some(template_origin));
+        assert_eq!(result.char_origin(0), Some(template_origin));
+        assert_eq!(result.char_origin(1), Some(Origin { start: 3, end: 4 }));
+        assert_eq!(result.char_origin(2), Some(Origin { start: 4, end: 5 }));
+        assert_eq!(result.char_origin(3), Some(template_origin));
+        assert_eq!(result.char_origin(4), Some(template_origin));
+        let wrapped = match invoke(
+            mc,
+            NativeGlobal::Format,
+            vec![
+                Value::string(mc, "{0}-{1}-{2}").wrap(mc, origin),
+                Value::Number(1.0).wrap(mc, Origin { start: 1, end: 2 }),
+                Value::string(mc, "b"),
+            ],
+            origin,
+        )
+        .unwrap()
+        {
+            NativeResult::Value(value) => value,
+            NativeResult::Reduce { .. } => panic!("expected value"),
+        };
+        assert_eq!(text(wrapped).unwrap(), "1-b-{2}");
+    });
+}
+
+#[test]
+// req:standard-library-002
+fn at_indexes_collections_and_carries_wrapped_elements() {
+    assert_eq!(
+        evaluate(call(
+            "at",
+            vec![literal(json!([1, 2, 3])), literal(json!(1))],
+        )),
+        "2"
+    );
+    assert_eq!(
+        evaluate(call("at", vec![literal(json!("abc")), literal(json!(0))],)),
+        r#""a""#
+    );
+    assert_eq!(
+        evaluate(call("at", vec![literal(json!("abc")), literal(json!(2))],)),
+        r#""c""#
+    );
+    assert_eq!(parameter_names("at"), ["value", "index"]);
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        let at = |value, index| match invoke(mc, NativeGlobal::At, vec![value, index], origin)
+            .unwrap()
+        {
+            NativeResult::Value(value) => value,
+            NativeResult::Reduce { .. } => panic!("expected value"),
+        };
+        assert!(matches!(
+            at(
+                Value::array(
+                    mc,
+                    vec![Value::Number(1.0), Value::Number(2.0), Value::Number(3.0)]
+                ),
+                Value::Number(5.0)
+            ),
+            Value::Undefined
+        ));
+        let set = Value::set(
+            mc,
+            vec![
+                Value::string(mc, "a"),
+                Value::string(mc, "b"),
+                Value::string(mc, "c"),
+            ],
+        );
+        assert_eq!(text(at(set, Value::Number(0.0))).unwrap(), "a");
+        assert_eq!(text(at(set, Value::Number(2.0))).unwrap(), "c");
+        assert!(matches!(at(set, Value::Number(5.0)), Value::Undefined));
+        let map = Value::map(
+            mc,
+            vec![
+                (Value::string(mc, "a"), Value::Number(1.0)),
+                (Value::string(mc, "b"), Value::Number(2.0)),
+            ],
+        );
+        assert_eq!(
+            json_text(at(map, Value::Number(0.0))).unwrap().unwrap(),
+            r#"["a",1]"#
+        );
+        assert_eq!(
+            json_text(at(map, Value::Number(1.0))).unwrap().unwrap(),
+            r#"["b",2]"#
+        );
+        assert!(matches!(at(map, Value::Number(5.0)), Value::Undefined));
+        assert!(
+            invoke(
+                mc,
+                NativeGlobal::At,
+                vec![Value::object(mc, vec![]), Value::Number(0.0)],
+                origin
+            )
+            .is_err()
+        );
+        let item = Value::Number(2.0).wrap(mc, Origin { start: 1, end: 2 });
+        let items = Value::array(mc, vec![Value::Number(1.0).wrap(mc, origin), item])
+            .wrap(mc, Origin { start: 0, end: 2 });
+        assert!(
+            at(
+                items,
+                Value::Number(1.0).wrap(mc, Origin { start: 9, end: 10 })
+            )
+            .same_wrapper(item)
+        );
+        let joined = crate::provenance::concatenate(
+            mc,
+            &[
+                Value::string(mc, "a").wrap(mc, Origin { start: 3, end: 4 }),
+                Value::string(mc, "b").wrap(mc, Origin { start: 7, end: 8 }),
+            ],
+            origin,
+        )
+        .unwrap();
+        let char = at(joined, Value::Number(1.0));
+        assert_eq!(text(char).unwrap(), "b");
+        assert_eq!(char.char_origin(0), Some(Origin { start: 7, end: 8 }));
+    });
+}
+
+#[test]
+// req:standard-library-002
+fn from_entries_builds_objects_and_carries_wrapped_values() {
+    assert_eq!(
+        evaluate(call(
+            "from_entries",
+            vec![literal(json!([["a", 1], ["b", 2]]))],
+        )),
+        r#"{"a":1,"b":2}"#
+    );
+    assert_eq!(
+        evaluate(call(
+            "from_entries",
+            vec![literal(json!([
+                {"name": "name", "pattern": {"kind": "any"}},
+                {"name": "enabled", "pattern": {"kind": "end"}}
+            ]))],
+        )),
+        r#"{"name":{"kind":"any"},"enabled":{"kind":"end"}}"#
+    );
+    assert_eq!(
+        evaluate(call(
+            "from_entries",
+            vec![literal(json!([{"name": "x", "value": 7}]))],
+        )),
+        r#"{"x":7}"#
+    );
+    assert_eq!(
+        evaluate(call("from_entries", vec![literal(json!([]))])),
+        "{}"
+    );
+    assert_eq!(parameter_names("from_entries"), ["entries"]);
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        assert!(
+            invoke(
+                mc,
+                NativeGlobal::FromEntries,
+                vec![Value::object(mc, vec![])],
+                origin,
+            )
+            .is_err()
+        );
+        assert!(
+            invoke(
+                mc,
+                NativeGlobal::FromEntries,
+                vec![Value::array(mc, vec![Value::Number(1.0)])],
+                origin,
+            )
+            .is_err()
+        );
+        assert!(
+            invoke(
+                mc,
+                NativeGlobal::FromEntries,
+                vec![Value::array(
+                    mc,
+                    vec![Value::array(mc, vec![Value::string(mc, "only-key")])],
+                )],
+                origin,
+            )
+            .is_err()
+        );
+        let value = Value::Number(1.0).wrap(mc, Origin { start: 2, end: 3 });
+        let entry = Value::array(
+            mc,
+            vec![
+                Value::string(mc, "a").wrap(mc, Origin { start: 0, end: 1 }),
+                value,
+            ],
+        )
+        .wrap(mc, Origin { start: 0, end: 3 });
+        let record = match invoke(
+            mc,
+            NativeGlobal::FromEntries,
+            vec![Value::array(mc, vec![entry]).wrap(mc, Origin { start: 0, end: 3 })],
+            origin,
+        )
+        .unwrap()
+        {
+            NativeResult::Value(value) => value,
+            NativeResult::Reduce { .. } => panic!("expected value"),
+        };
+        let Value::Object(object) = record else {
+            panic!("expected object")
+        };
+        assert!(object.borrow().get("a").unwrap().same_wrapper(value));
+    });
+}
+
+#[test]
+// req:standard-library-002
+fn pluck_maps_a_property_and_carries_wrapped_values() {
+    assert_eq!(
+        evaluate(call(
+            "pluck",
+            vec![
+                literal(json!([{"name": "A"}, {"name": "B"}])),
+                literal(json!("name")),
+            ],
+        )),
+        r#"["A","B"]"#
+    );
+    assert_eq!(
+        evaluate(call(
+            "pluck",
+            vec![literal(json!([{"names": ["x"]}])), literal(json!("names")),],
+        )),
+        r#"[["x"]]"#
+    );
+    assert_eq!(
+        evaluate(call(
+            "pluck",
+            vec![
+                literal(json!({"first": {"name": "A"}, "second": {"name": "B"}})),
+                literal(json!("name")),
+            ],
+        )),
+        r#"["A","B"]"#
+    );
+    assert_eq!(parameter_names("pluck"), ["collection", "key"]);
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        let map = Value::map(
+            mc,
+            vec![
+                (
+                    Value::string(mc, "a"),
+                    Value::object(mc, vec![("name".into(), Value::string(mc, "A"))]),
+                ),
+                (
+                    Value::string(mc, "b"),
+                    Value::object(mc, vec![("name".into(), Value::string(mc, "B"))]),
+                ),
+            ],
+        );
+        let names = match invoke(
+            mc,
+            NativeGlobal::Pluck,
+            vec![map, Value::string(mc, "name")],
+            origin,
+        )
+        .unwrap()
+        {
+            NativeResult::Value(value) => value,
+            NativeResult::Reduce { .. } => panic!("expected value"),
+        };
+        assert_eq!(json_text(names).unwrap().unwrap(), r#"["A","B"]"#);
+        let set = Value::set(
+            mc,
+            vec![
+                Value::object(mc, vec![("name".into(), Value::string(mc, "A"))]),
+                Value::object(mc, vec![("name".into(), Value::string(mc, "B"))]),
+            ],
+        );
+        let names = match invoke(
+            mc,
+            NativeGlobal::Pluck,
+            vec![set, Value::string(mc, "name")],
+            origin,
+        )
+        .unwrap()
+        {
+            NativeResult::Value(value) => value,
+            NativeResult::Reduce { .. } => panic!("expected value"),
+        };
+        assert_eq!(json_text(names).unwrap().unwrap(), r#"["A","B"]"#);
+        assert!(
+            invoke(
+                mc,
+                NativeGlobal::Pluck,
+                vec![Value::string(mc, "name"), Value::string(mc, "length")],
+                origin,
+            )
+            .is_err()
+        );
+        assert!(
+            invoke(
+                mc,
+                NativeGlobal::Pluck,
+                vec![Value::Null, Value::string(mc, "name")],
+                origin,
+            )
+            .is_err()
+        );
+        let name = Value::string(mc, "a").wrap(mc, Origin { start: 1, end: 2 });
+        let element =
+            Value::object(mc, vec![("name".into(), name)]).wrap(mc, Origin { start: 0, end: 3 });
+        let plucked = match invoke(
+            mc,
+            NativeGlobal::Pluck,
+            vec![
+                Value::array(mc, vec![element]).wrap(mc, Origin { start: 0, end: 3 }),
+                Value::string(mc, "name"),
+            ],
+            origin,
+        )
+        .unwrap()
+        {
+            NativeResult::Value(value) => value,
+            NativeResult::Reduce { .. } => panic!("expected value"),
+        };
+        let Value::Array(items) = plucked else {
+            panic!("expected array")
+        };
+        assert!(items.borrow()[0].same_wrapper(name));
+    });
+}
+
+#[test]
+// req:standard-library-002
+fn filter_keeps_truthy_elements_lazily_and_carries_them() {
+    let newline = serde_json::from_value(json!({
+        "kind": "lambda",
+        "pattern": {"kind": "variable", "name": "v", "pattern": {"kind": "any"}},
+        "expression": {
+            "kind": "invocation",
+            "expression": {"kind": "reference", "name": "eq"},
+            "args": [
+                {"kind": "reference", "name": "v"},
+                {"kind": "value", "value": "\n"}
+            ]
+        }
+    }))
+    .unwrap();
+    assert_eq!(
+        evaluate(spread(call(
+            "filter",
+            vec![literal(json!("a\nb\n")), newline],
+        ))),
+        r#"["\n","\n"]"#
+    );
+    let reject = serde_json::from_value(json!({
+        "kind": "lambda",
+        "pattern": {"kind": "variable", "name": "v", "pattern": {"kind": "any"}},
+        "expression": {"kind": "value", "value": false}
+    }))
+    .unwrap();
+    assert_eq!(
+        evaluate(spread(
+            call("filter", vec![literal(json!([1, 2])), reject],)
+        )),
+        "[]"
+    );
+    assert_eq!(parameter_names("filter"), ["self", "predicate"]);
+
+    let ast = spread(call(
+        "filter",
+        vec![literal(json!([1, 2, 3, 4])), reference("pred")],
+    ));
+    let mut evaluation = Evaluation::with_hosts(
+        ast,
+        vec![crate::value::HostCallable {
+            id: 1,
+            name: "pred".into(),
+            arity: 1,
+        }],
+    );
+    assert!(evaluation.take_host_request().is_none());
+    let mut calls = 0;
+    let result = loop {
+        match evaluation.step_status().unwrap() {
+            crate::evaluate::StepStatus::Complete => break evaluation.finish().unwrap(),
+            crate::evaluate::StepStatus::Yielded => {}
+            crate::evaluate::StepStatus::Suspended => {
+                calls += 1;
+                let request = evaluation.take_host_request().unwrap();
+                evaluation
+                    .complete_host(
+                        &request,
+                        Ok(crate::evaluate::HostCompletion::materialize(
+                            vec![request.arguments[0].clone()],
+                            |_mc, args| {
+                                let Value::Number(n) = args[0].raw() else {
+                                    return Ok(Value::Boolean(false));
+                                };
+                                Ok(Value::Boolean(n % 2.0 == 0.0))
+                            },
+                        )),
+                    )
+                    .unwrap();
+            }
+        }
+        assert!(calls <= 4, "filter pulled before its source was drained");
+    };
+    assert_eq!(calls, 4);
+    assert_eq!(
+        evaluation
+            .read(&result, |value| json_text(value).unwrap().unwrap())
+            .unwrap(),
+        "[2,4]"
+    );
+
+    let ast = spread(call("filter", vec![reference("items"), reference("pred")]));
+    let mut keep_ptr = 0usize;
+    let mut evaluation = Evaluation::with_environment(ast, |mc| {
+        let keep = Value::Number(1.0).wrap(mc, Origin { start: 0, end: 1 });
+        let Value::Located(located) = keep else {
+            panic!("expected wrapper")
+        };
+        keep_ptr = uffda_heap::Gc::as_ptr(located) as usize;
+        let items = Value::array(
+            mc,
+            vec![
+                keep,
+                Value::Number(2.0).wrap(mc, Origin { start: 1, end: 2 }),
+            ],
+        )
+        .wrap(mc, Origin { start: 0, end: 2 });
+        Environment::new(
+            mc,
+            None,
+            vec![
+                ("items".into(), items),
+                (
+                    "pred".into(),
+                    Value::host(
+                        mc,
+                        crate::value::HostCallable {
+                            id: 2,
+                            name: "pred".into(),
+                            arity: 1,
+                        },
+                    )
+                    .wrap(mc, Origin { start: 0, end: 0 }),
+                ),
+            ],
+        )
+    });
+    let result = loop {
+        match evaluation.step_status().unwrap() {
+            crate::evaluate::StepStatus::Complete => break evaluation.finish().unwrap(),
+            crate::evaluate::StepStatus::Yielded => {}
+            crate::evaluate::StepStatus::Suspended => {
+                let request = evaluation.take_host_request().unwrap();
+                evaluation
+                    .complete_host(
+                        &request,
+                        Ok(crate::evaluate::HostCompletion::materialize(
+                            vec![request.arguments[0].clone()],
+                            |mc, args| {
+                                let keep = matches!(args[0].raw(), Value::Number(n) if n == 1.0);
+                                Ok(Value::Boolean(keep).wrap(mc, Origin { start: 0, end: 0 }))
+                            },
+                        )),
+                    )
+                    .unwrap();
+            }
+        }
+    };
+    assert_eq!(
+        evaluation
+            .read(&result, |value| {
+                let Value::Array(items) = value else {
+                    panic!("expected array")
+                };
+                assert_eq!(items.borrow().len(), 1);
+                let Value::Located(located) = items.borrow()[0] else {
+                    panic!("expected wrapped element")
+                };
+                uffda_heap::Gc::as_ptr(located) as usize
+            })
+            .unwrap(),
+        keep_ptr
+    );
+}
+
+#[test]
+// req:standard-library-002 req:runtime-strings-002
+fn slice_applies_bounds_and_keeps_character_and_element_identity() {
+    assert_eq!(
+        evaluate(call(
+            "slice",
+            vec![
+                literal(json!("hello world")),
+                literal(json!(0)),
+                literal(json!(5)),
+            ],
+        )),
+        r#""hello""#
+    );
+    assert_eq!(
+        evaluate(call(
+            "slice",
+            vec![literal(json!("hello world")), literal(json!(6))],
+        )),
+        r#""world""#
+    );
+    assert_eq!(
+        evaluate(call(
+            "slice",
+            vec![literal(json!("hello world")), literal(json!(-5))],
+        )),
+        r#""world""#
+    );
+    assert_eq!(
+        evaluate(call(
+            "slice",
+            vec![
+                literal(json!([1, 2, 3, 4])),
+                literal(json!(1)),
+                literal(json!(3)),
+            ],
+        )),
+        "[2,3]"
+    );
+    assert_eq!(
+        evaluate(call(
+            "slice",
+            vec![literal(json!([1, 2, 3, 4])), literal(json!(-2))],
+        )),
+        "[3,4]"
+    );
+    assert_eq!(parameter_names("slice"), ["value", "start", "end"]);
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        assert!(
+            invoke(
+                mc,
+                NativeGlobal::Slice,
+                vec![Value::Number(42.0), Value::Number(0.0), Value::Number(1.0)],
+                origin,
+            )
+            .is_err()
+        );
+        assert!(
+            invoke(
+                mc,
+                NativeGlobal::Slice,
+                vec![Value::Null, Value::Number(0.0), Value::Number(1.0)],
+                origin,
+            )
+            .is_err()
+        );
+        let joined = crate::provenance::concatenate(
+            mc,
+            &[
+                Value::string(mc, "a").wrap(mc, Origin { start: 3, end: 4 }),
+                Value::string(mc, "b").wrap(mc, Origin { start: 7, end: 8 }),
+            ],
+            origin,
+        )
+        .unwrap();
+        let sliced = match invoke(
+            mc,
+            NativeGlobal::Slice,
+            vec![joined, Value::Number(1.0).wrap(mc, origin)],
+            origin,
+        )
+        .unwrap()
+        {
+            NativeResult::Value(value) => value,
+            NativeResult::Reduce { .. } => panic!("expected value"),
+        };
+        assert_eq!(text(sliced).unwrap(), "b");
+        assert_eq!(sliced.char_origin(0), Some(Origin { start: 7, end: 8 }));
+        let item = Value::Number(2.0).wrap(mc, Origin { start: 1, end: 2 });
+        let items =
+            Value::array(mc, vec![Value::Number(1.0).wrap(mc, origin), item]).wrap(mc, origin);
+        let sliced = match invoke(
+            mc,
+            NativeGlobal::Slice,
+            vec![items, Value::Number(1.0)],
+            origin,
+        )
+        .unwrap()
+        {
+            NativeResult::Value(value) => value,
+            NativeResult::Reduce { .. } => panic!("expected value"),
+        };
+        let Value::Array(elements) = sliced else {
+            panic!("expected array")
+        };
+        assert!(elements.borrow()[0].same_wrapper(item));
+        let source = Value::string(mc, "abcdef").wrap_root(mc);
+        let sliced = match invoke(
+            mc,
+            NativeGlobal::Slice,
+            vec![source, Value::Number(2.0), Value::Number(4.0)],
+            origin,
+        )
+        .unwrap()
+        {
+            NativeResult::Value(value) => value,
+            NativeResult::Reduce { .. } => panic!("expected value"),
+        };
+        assert_eq!(text(sliced).unwrap(), "cd");
+        assert_eq!(sliced.char_origin(0), Some(Origin { start: 2, end: 3 }));
+        assert_eq!(sliced.char_origin(1), Some(Origin { start: 3, end: 4 }));
+    });
+}
+
+#[test]
+// req:standard-library-002
+fn iterable_normalizes_sources_and_yields_wrapped_characters() {
+    assert_eq!(
+        evaluate(spread(call("iterable", vec![literal(json!("abc"))]))),
+        r#"["a","b","c"]"#
+    );
+    assert_eq!(
+        evaluate(spread(call("iterable", vec![literal(json!([1, 2, 3]))],))),
+        "[1,2,3]"
+    );
+    assert_eq!(parameter_names("iterable"), ["value"]);
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        let inner = iterator(
+            mc,
+            Value::array(mc, vec![Value::string(mc, "x"), Value::string(mc, "y")]),
+        )
+        .unwrap();
+        let source = Value::Iterable(inner);
+        let normalized = match invoke(mc, NativeGlobal::Iterable, vec![source], origin).unwrap() {
+            NativeResult::Value(value) => value,
+            NativeResult::Reduce { .. } => panic!("expected value"),
+        };
+        let Value::Iterable(out) = normalized else {
+            panic!("expected iterable")
+        };
+        assert_eq!(
+            uffda_heap::Gc::as_ptr(out) as usize,
+            uffda_heap::Gc::as_ptr(inner) as usize
+        );
+        let mut execution = crate::evaluate::ExpressionExecution::collect_iterable(
+            mc,
+            normalized,
+            Environment::new(mc, None, vec![]),
+            origin,
+        )
+        .unwrap();
+        while !execution.step(mc).unwrap() {}
+        assert_eq!(
+            json_text(execution.result().unwrap()).unwrap().unwrap(),
+            r#"["x","y"]"#
+        );
+        for value in [Value::Number(7.0), Value::Null, Value::object(mc, vec![])] {
+            assert!(invoke(mc, NativeGlobal::Iterable, vec![value], origin).is_err());
+        }
+        let joined = crate::provenance::concatenate(
+            mc,
+            &[
+                Value::string(mc, "a").wrap(mc, Origin { start: 3, end: 4 }),
+                Value::string(mc, "b").wrap(mc, Origin { start: 7, end: 8 }),
+            ],
+            origin,
+        )
+        .unwrap();
+        let source = match invoke(mc, NativeGlobal::Iterable, vec![joined], origin).unwrap() {
+            NativeResult::Value(value) => value,
+            NativeResult::Reduce { .. } => panic!("expected value"),
+        };
+        let Value::Object(object) = source else {
+            panic!("expected async iterator factory")
+        };
+        assert!(object.borrow().get_symbol("asyncIterator").is_some());
+        let drain = |value| {
+            let mut execution = crate::evaluate::ExpressionExecution::collect_iterable(
+                mc,
+                value,
+                Environment::new(mc, None, vec![]),
+                origin,
+            )
+            .unwrap();
+            while !execution.step(mc).unwrap() {}
+            execution.result().unwrap()
+        };
+        let first = drain(source);
+        let Value::Array(items) = first.raw() else {
+            panic!("expected array")
+        };
+        assert_eq!(items.borrow().len(), 2);
+        assert_eq!(
+            items.borrow()[0].origin(),
+            Some(Origin { start: 3, end: 4 })
+        );
+        assert_eq!(
+            items.borrow()[1].origin(),
+            Some(Origin { start: 7, end: 8 })
+        );
+        let second = drain(source);
+        let Value::Array(items) = second.raw() else {
+            panic!("expected array")
+        };
+        assert_eq!(items.borrow().len(), 2);
+    });
+}
+
+#[test]
+// req:standard-library-002
+fn map_projects_elements_lazily_and_keeps_wrapped_identity() {
+    let bang = serde_json::from_value(json!({
+        "kind": "lambda",
+        "pattern": {"kind": "variable", "name": "v", "pattern": {"kind": "any"}},
+        "expression": {
+            "kind": "invocation",
+            "expression": {"kind": "reference", "name": "format"},
+            "args": [
+                {"kind": "value", "value": "{0}!"},
+                {"kind": "reference", "name": "v"}
+            ]
+        }
+    }))
+    .unwrap();
+    assert_eq!(
+        evaluate(spread(call("map", vec![literal(json!("ab")), bang]))),
+        r#"["a!","b!"]"#
+    );
+    assert_eq!(
+        evaluate(spread(call(
+            "map",
+            vec![literal(json!([])), reference("id")],
+        ))),
+        "[]"
+    );
+    assert_eq!(parameter_names("map"), ["self", "callback"]);
+
+    let mut evaluation = Evaluation::with_hosts(
+        spread(call(
+            "map",
+            vec![literal(json!([1, 2, 3])), reference("project")],
+        )),
+        vec![crate::value::HostCallable {
+            id: 3,
+            name: "project".into(),
+            arity: 1,
+        }],
+    );
+    assert!(evaluation.take_host_request().is_none());
+    let mut calls = 0;
+    let result = loop {
+        match evaluation.step_status().unwrap() {
+            crate::evaluate::StepStatus::Complete => break evaluation.finish().unwrap(),
+            crate::evaluate::StepStatus::Yielded => {}
+            crate::evaluate::StepStatus::Suspended => {
+                calls += 1;
+                let request = evaluation.take_host_request().unwrap();
+                evaluation
+                    .complete_host(
+                        &request,
+                        Ok(crate::evaluate::HostCompletion::materialize(
+                            vec![request.arguments[0].clone()],
+                            |_mc, args| {
+                                let Value::Number(n) = args[0].raw() else {
+                                    return Err("expected number".into());
+                                };
+                                Ok(Value::Number(n * 2.0))
+                            },
+                        )),
+                    )
+                    .unwrap();
+            }
+        }
+        assert!(calls <= 3);
+    };
+    assert_eq!(calls, 3);
+    assert_eq!(
+        evaluation
+            .read(&result, |value| json_text(value).unwrap().unwrap())
+            .unwrap(),
+        "[2,4,6]"
+    );
+
+    let project = serde_json::from_value(json!({
+        "kind": "lambda",
+        "pattern": {"kind": "variable", "name": "entry", "pattern": {"kind": "any"}},
+        "expression": {
+            "kind": "member",
+            "name": "value",
+            "expression": {"kind": "reference", "name": "entry"}
+        }
+    }))
+    .unwrap();
+    let mut evaluation = Evaluation::with_hosts(
+        spread(call(
+            "map",
+            vec![
+                call(
+                    "filter",
+                    vec![
+                        call("enumerate", vec![literal(json!(["a", "b", "c"]))]),
+                        reference("even"),
+                    ],
+                ),
+                project,
+            ],
+        )),
+        vec![crate::value::HostCallable {
+            id: 4,
+            name: "even".into(),
+            arity: 1,
+        }],
+    );
+    let result = loop {
+        match evaluation.step_status().unwrap() {
+            crate::evaluate::StepStatus::Complete => break evaluation.finish().unwrap(),
+            crate::evaluate::StepStatus::Yielded => {}
+            crate::evaluate::StepStatus::Suspended => {
+                let request = evaluation.take_host_request().unwrap();
+                evaluation
+                    .complete_host(
+                        &request,
+                        Ok(crate::evaluate::HostCompletion::materialize(
+                            vec![request.arguments[0].clone()],
+                            |_mc, args| {
+                                let Value::Object(object) = args[0].raw() else {
+                                    return Ok(Value::Boolean(false));
+                                };
+                                let even = matches!(
+                                    object.borrow().get("index").unwrap_or(Value::Undefined).raw(),
+                                    Value::Number(index) if index % 2.0 == 0.0
+                                );
+                                Ok(Value::Boolean(even))
+                            },
+                        )),
+                    )
+                    .unwrap();
+            }
+        }
+    };
+    assert_eq!(
+        evaluation
+            .read(&result, |value| json_text(value).unwrap().unwrap())
+            .unwrap(),
+        r#"["a","c"]"#
+    );
+
+    let mut item_ptr = 0usize;
+    let mut evaluation = Evaluation::with_environment(
+        spread(call("map", vec![reference("items"), reference("callback")])),
+        |mc| {
+            let item = Value::Number(1.0).wrap(mc, Origin { start: 0, end: 1 });
+            let Value::Located(located) = item else {
+                panic!("expected wrapper")
+            };
+            item_ptr = uffda_heap::Gc::as_ptr(located) as usize;
+            Environment::new(
+                mc,
+                None,
+                vec![
+                    (
+                        "items".into(),
+                        Value::array(mc, vec![item]).wrap(mc, Origin { start: 0, end: 1 }),
+                    ),
+                    (
+                        "callback".into(),
+                        Value::host(
+                            mc,
+                            crate::value::HostCallable {
+                                id: 5,
+                                name: "callback".into(),
+                                arity: 1,
+                            },
+                        )
+                        .wrap(mc, Origin { start: 0, end: 0 }),
+                    ),
+                ],
+            )
+        },
+    );
+    let result = loop {
+        match evaluation.step_status().unwrap() {
+            crate::evaluate::StepStatus::Complete => break evaluation.finish().unwrap(),
+            crate::evaluate::StepStatus::Yielded => {}
+            crate::evaluate::StepStatus::Suspended => {
+                let request = evaluation.take_host_request().unwrap();
+                assert_eq!(
+                    evaluation
+                        .read_with_provenance(&request.arguments[0], |value| {
+                            let Value::Located(located) = value else {
+                                panic!("callback must observe the wrapped element")
+                            };
+                            uffda_heap::Gc::as_ptr(located) as usize
+                        })
+                        .unwrap(),
+                    item_ptr
+                );
+                evaluation
+                    .complete_host(
+                        &request,
+                        Ok(crate::evaluate::HostCompletion::Rooted(
+                            request.arguments[0].clone(),
+                        )),
+                    )
+                    .unwrap();
+            }
+        }
+    };
+    assert_eq!(
+        evaluation
+            .read(&result, |value| {
+                let Value::Array(items) = value.raw() else {
+                    panic!("expected array")
+                };
+                let Value::Located(located) = items.borrow()[0] else {
+                    panic!("expected wrapped element")
+                };
+                uffda_heap::Gc::as_ptr(located) as usize
+            })
+            .unwrap(),
+        item_ptr
+    );
+}
+
+#[test]
+// req:standard-library-002
+fn enumerate_pairs_elements_with_indexes_and_carries_wrapped_values() {
+    assert_eq!(
+        evaluate(spread(call(
+            "enumerate",
+            vec![literal(json!(["a", "b", "c"]))],
+        ))),
+        r#"[{"index":0,"value":"a"},{"index":1,"value":"b"},{"index":2,"value":"c"}]"#
+    );
+    assert_eq!(
+        evaluate(spread(call("enumerate", vec![literal(json!("ab"))]))),
+        r#"[{"index":0,"value":"a"},{"index":1,"value":"b"}]"#
+    );
+    assert_eq!(
+        evaluate(spread(call("enumerate", vec![literal(json!([]))]))),
+        "[]"
+    );
+    assert_eq!(
+        evaluate(spread(call("enumerate", vec![literal(json!(""))]))),
+        "[]"
+    );
+    assert_eq!(
+        evaluate(spread(call("enumerate", vec![literal(json!("a😀b"))],))),
+        "[{\"index\":0,\"value\":\"a\"},{\"index\":1,\"value\":\"😀\"},{\"index\":2,\"value\":\"b\"}]"
+    );
+    assert_eq!(
+        evaluate(spread(call(
+            "enumerate",
+            vec![literal(json!({"a": 1, "b": 2}))],
+        ))),
+        r#"[{"index":"a","value":1},{"index":"b","value":2}]"#
+    );
+    assert_eq!(
+        evaluate(spread(call("enumerate", vec![literal(json!(42))]))),
+        r#"[{"index":0,"value":42}]"#
+    );
+    assert_eq!(
+        evaluate(spread(call("enumerate", vec![literal(json!(null))]))),
+        r#"[{"index":0,"value":null}]"#
+    );
+    assert_eq!(parameter_names("enumerate"), ["self"]);
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        let values = Value::array(mc, vec![Value::string(mc, "a")]);
+        let source = Value::object(mc, vec![]);
+        let Value::Object(properties) = source else {
+            panic!("expected object")
+        };
+        properties.borrow_mut(mc).set_symbol(
+            "iterator".into(),
+            Value::IteratorFactory(uffda_heap::Gc::new(mc, values)),
+        );
+        let enumerated = match invoke(mc, NativeGlobal::Enumerate, vec![source], origin).unwrap() {
+            NativeResult::Value(value) => value,
+            NativeResult::Reduce { .. } => panic!("expected value"),
+        };
+        let Value::Iterable(iterator) = enumerated else {
+            panic!("expected iterable")
+        };
+        {
+            let state = iterator.borrow();
+            let IterableState::Enumerate { source, index: 0 } = &*state else {
+                panic!("enumerate must not pull before it is drained")
+            };
+            let source = *source;
+            drop(state);
+            let IterableState::Custom { cursor: None, .. } = &*source.borrow() else {
+                panic!("custom iterator factory must stay uncalled")
+            };
+        }
+        let mut execution = crate::evaluate::ExpressionExecution::collect_iterable(
+            mc,
+            enumerated,
+            Environment::new(mc, None, vec![]),
+            origin,
+        )
+        .unwrap();
+        while !execution.step(mc).unwrap() {}
+        assert_eq!(
+            json_text(execution.result().unwrap()).unwrap().unwrap(),
+            r#"[{"index":0,"value":"a"}]"#
+        );
+
+        let item = Value::string(mc, "a").wrap(mc, Origin { start: 4, end: 5 });
+        let enumerated = match invoke(
+            mc,
+            NativeGlobal::Enumerate,
+            vec![Value::array(mc, vec![item]).wrap(mc, Origin { start: 4, end: 5 })],
+            origin,
+        )
+        .unwrap()
+        {
+            NativeResult::Value(value) => value,
+            NativeResult::Reduce { .. } => panic!("expected value"),
+        };
+        let mut execution = crate::evaluate::ExpressionExecution::collect_iterable(
+            mc,
+            enumerated,
+            Environment::new(mc, None, vec![]),
+            origin,
+        )
+        .unwrap();
+        while !execution.step(mc).unwrap() {}
+        let Value::Array(entries) = execution.result().unwrap().raw() else {
+            panic!("expected array")
+        };
+        let Value::Object(entry) = entries.borrow()[0] else {
+            panic!("expected entry")
+        };
+        assert!(entry.borrow().get("value").unwrap().same_wrapper(item));
+
+        let value = Value::Number(1.0).wrap(mc, Origin { start: 2, end: 3 });
+        let enumerated = match invoke(
+            mc,
+            NativeGlobal::Enumerate,
+            vec![
+                Value::object(mc, vec![("x".into(), value)]).wrap(mc, Origin { start: 0, end: 3 }),
+            ],
+            origin,
+        )
+        .unwrap()
+        {
+            NativeResult::Value(value) => value,
+            NativeResult::Reduce { .. } => panic!("expected value"),
+        };
+        let mut execution = crate::evaluate::ExpressionExecution::collect_iterable(
+            mc,
+            enumerated,
+            Environment::new(mc, None, vec![]),
+            origin,
+        )
+        .unwrap();
+        while !execution.step(mc).unwrap() {}
+        let Value::Array(entries) = execution.result().unwrap().raw() else {
+            panic!("expected array")
+        };
+        let Value::Object(entry) = entries.borrow()[0] else {
+            panic!("expected entry")
+        };
+        assert_eq!(text(entry.borrow().get("index").unwrap()).unwrap(), "x");
+        assert!(entry.borrow().get("value").unwrap().same_wrapper(value));
+    });
+}
+
+fn double_appended(
+    request_acc: crate::evaluate::RootedValue,
+    request_item: crate::evaluate::RootedValue,
+) -> crate::evaluate::HostCompletion {
+    crate::evaluate::HostCompletion::materialize(vec![request_acc, request_item], |mc, args| {
+        let Value::Array(existing) = args[0].raw() else {
+            return Err("accumulator must be an array".into());
+        };
+        let mut items = existing.borrow().clone();
+        let Value::Number(n) = args[1].raw() else {
+            return Err("item must be a number".into());
+        };
+        items.push(Value::Number(n * 2.0));
+        Ok(Value::array(mc, items))
+    })
+}
+
+#[test]
+// req:standard-library-002
+fn reduce_folds_lazy_sources_and_passes_wrapped_elements() {
+    assert_eq!(
+        evaluate(call(
+            "reduce",
+            vec![
+                literal(json!([1, 2, 3, 4])),
+                literal(json!(0)),
+                reference("add"),
+            ],
+        )),
+        "10"
+    );
+    let doubled = serde_json::from_value(json!({
+        "kind": "lambda",
+        "pattern": {"kind": "then", "patterns": [
+            {"kind": "variable", "name": "acc", "pattern": {"kind": "any"}},
+            {"kind": "variable", "name": "item", "pattern": {"kind": "any"}}
+        ]},
+        "expression": {
+            "kind": "invocation",
+            "expression": {"kind": "reference", "name": "format"},
+            "args": [
+                {"kind": "value", "value": "{0}{1}{1}"},
+                {"kind": "reference", "name": "acc"},
+                {"kind": "reference", "name": "item"}
+            ]
+        }
+    }))
+    .unwrap();
+    assert_eq!(
+        evaluate(call(
+            "reduce",
+            vec![literal(json!("abc")), literal(json!("")), doubled],
+        )),
+        r#""aabbcc""#
+    );
+    let collected = serde_json::from_value(json!({
+        "kind": "lambda",
+        "pattern": {"kind": "then", "patterns": [
+            {"kind": "variable", "name": "acc", "pattern": {"kind": "any"}},
+            {"kind": "variable", "name": "item", "pattern": {"kind": "any"}}
+        ]},
+        "expression": {
+            "kind": "array",
+            "expressions": [
+                {"kind": "arraySpread", "expression": {"kind": "reference", "name": "acc"}},
+                {"kind": "arrayElement", "expression": {"kind": "reference", "name": "item"}}
+            ]
+        }
+    }))
+    .unwrap();
+    assert_eq!(
+        evaluate(call(
+            "reduce",
+            vec![literal(json!("a😀b")), literal(json!([])), collected,],
+        )),
+        "[\"a\",\"😀\",\"b\"]"
+    );
+    assert_eq!(
+        evaluate(call(
+            "reduce",
+            vec![literal(json!([])), literal(json!(42)), reference("id")],
+        )),
+        "42"
+    );
+    assert_eq!(parameter_names("reduce"), ["self", "initial", "fn"]);
+    for value in [json!(42), json!(null)] {
+        let mut evaluation = Evaluation::new(call(
+            "reduce",
+            vec![literal(value), literal(json!(0)), reference("id")],
+        ));
+        assert!(evaluation.finish().is_err());
+    }
+
+    let mut evaluation = Evaluation::with_hosts(
+        call(
+            "reduce",
+            vec![
+                literal(json!([1, 2, 3])),
+                literal(json!([])),
+                reference("step"),
+            ],
+        ),
+        vec![crate::value::HostCallable {
+            id: 6,
+            name: "step".into(),
+            arity: 2,
+        }],
+    );
+    let result = loop {
+        match evaluation.step_status().unwrap() {
+            crate::evaluate::StepStatus::Complete => break evaluation.finish().unwrap(),
+            crate::evaluate::StepStatus::Yielded => {}
+            crate::evaluate::StepStatus::Suspended => {
+                let request = evaluation.take_host_request().unwrap();
+                evaluation
+                    .complete_host(
+                        &request,
+                        Ok(double_appended(
+                            request.arguments[0].clone(),
+                            request.arguments[1].clone(),
+                        )),
+                    )
+                    .unwrap();
+            }
+        }
+    };
+    assert_eq!(
+        evaluation
+            .read(&result, |value| json_text(value).unwrap().unwrap())
+            .unwrap(),
+        "[2,4,6]"
+    );
+
+    let project = serde_json::from_value(json!({
+        "kind": "lambda",
+        "pattern": {"kind": "variable", "name": "entry", "pattern": {"kind": "any"}},
+        "expression": {
+            "kind": "member",
+            "name": "value",
+            "expression": {"kind": "reference", "name": "entry"}
+        }
+    }))
+    .unwrap();
+    let mut evaluation = Evaluation::with_hosts(
+        call(
+            "reduce",
+            vec![
+                call(
+                    "map",
+                    vec![
+                        call(
+                            "filter",
+                            vec![
+                                call("enumerate", vec![literal(json!([1, 2, 3, 4]))]),
+                                reference("even"),
+                            ],
+                        ),
+                        project,
+                    ],
+                ),
+                literal(json!(0)),
+                reference("add"),
+            ],
+        ),
+        vec![crate::value::HostCallable {
+            id: 7,
+            name: "even".into(),
+            arity: 1,
+        }],
+    );
+    let result = loop {
+        match evaluation.step_status().unwrap() {
+            crate::evaluate::StepStatus::Complete => break evaluation.finish().unwrap(),
+            crate::evaluate::StepStatus::Yielded => {}
+            crate::evaluate::StepStatus::Suspended => {
+                let request = evaluation.take_host_request().unwrap();
+                evaluation
+                    .complete_host(
+                        &request,
+                        Ok(crate::evaluate::HostCompletion::materialize(
+                            vec![request.arguments[0].clone()],
+                            |_mc, args| {
+                                let Value::Object(object) = args[0].raw() else {
+                                    return Ok(Value::Boolean(false));
+                                };
+                                let even = matches!(
+                                    object.borrow().get("index").unwrap_or(Value::Undefined).raw(),
+                                    Value::Number(index) if index % 2.0 == 0.0
+                                );
+                                Ok(Value::Boolean(even))
+                            },
+                        )),
+                    )
+                    .unwrap();
+            }
+        }
+    };
+    assert_eq!(
+        evaluation
+            .read(&result, |value| json_text(value).unwrap().unwrap())
+            .unwrap(),
+        "4"
+    );
+
+    let mut evaluation = Evaluation::with_environment(
+        call(
+            "reduce",
+            vec![reference("items"), literal(json!(0)), reference("step")],
+        ),
+        |mc| {
+            Environment::new(
+                mc,
+                None,
+                vec![
+                    (
+                        "items".into(),
+                        Value::array(
+                            mc,
+                            vec![
+                                Value::Number(1.0).wrap(mc, Origin { start: 0, end: 1 }),
+                                Value::Number(2.0).wrap(mc, Origin { start: 1, end: 2 }),
+                            ],
+                        )
+                        .wrap(mc, Origin { start: 0, end: 2 }),
+                    ),
+                    (
+                        "step".into(),
+                        Value::host(
+                            mc,
+                            crate::value::HostCallable {
+                                id: 8,
+                                name: "step".into(),
+                                arity: 2,
+                            },
+                        )
+                        .wrap(mc, Origin { start: 0, end: 0 }),
+                    ),
+                ],
+            )
+        },
+    );
+    let mut saw_wrapper = false;
+    let result = loop {
+        match evaluation.step_status().unwrap() {
+            crate::evaluate::StepStatus::Complete => break evaluation.finish().unwrap(),
+            crate::evaluate::StepStatus::Yielded => {}
+            crate::evaluate::StepStatus::Suspended => {
+                let request = evaluation.take_host_request().unwrap();
+                saw_wrapper |= evaluation
+                    .read_with_provenance(&request.arguments[1], |value| {
+                        matches!(value, Value::Located(_))
+                    })
+                    .unwrap();
+                evaluation
+                    .complete_host(
+                        &request,
+                        Ok(crate::evaluate::HostCompletion::materialize(
+                            vec![request.arguments[0].clone(), request.arguments[1].clone()],
+                            |_mc, args| {
+                                let Value::Number(acc) = args[0].raw() else {
+                                    return Err("accumulator must be a number".into());
+                                };
+                                let Value::Number(item) = args[1].raw() else {
+                                    return Err("item must be a number".into());
+                                };
+                                Ok(Value::Number(acc + item))
+                            },
+                        )),
+                    )
+                    .unwrap();
+            }
+        }
+    };
+    assert!(saw_wrapper);
+    assert_eq!(
+        evaluation
+            .read(&result, |value| json_text(value).unwrap().unwrap())
+            .unwrap(),
+        "3"
+    );
+}
+
+#[test]
+// req:standard-library-002
+fn scan_yields_running_accumulators_without_starting_early() {
+    assert_eq!(
+        evaluate(spread(call(
+            "scan",
+            vec![
+                literal(json!([1, 2, 3, 4])),
+                literal(json!(0)),
+                reference("add"),
+            ],
+        ))),
+        "[1,3,6,10]"
+    );
+    let appended = serde_json::from_value(json!({
+        "kind": "lambda",
+        "pattern": {"kind": "then", "patterns": [
+            {"kind": "variable", "name": "acc", "pattern": {"kind": "any"}},
+            {"kind": "variable", "name": "item", "pattern": {"kind": "any"}}
+        ]},
+        "expression": {
+            "kind": "invocation",
+            "expression": {"kind": "reference", "name": "format"},
+            "args": [
+                {"kind": "value", "value": "{0}{1}"},
+                {"kind": "reference", "name": "acc"},
+                {"kind": "reference", "name": "item"}
+            ]
+        }
+    }))
+    .unwrap();
+    assert_eq!(
+        evaluate(spread(call(
+            "scan",
+            vec![literal(json!("abc")), literal(json!("")), appended],
+        ))),
+        r#"["a","ab","abc"]"#
+    );
+    let collected = serde_json::from_value(json!({
+        "kind": "lambda",
+        "pattern": {"kind": "then", "patterns": [
+            {"kind": "variable", "name": "acc", "pattern": {"kind": "any"}},
+            {"kind": "variable", "name": "item", "pattern": {"kind": "any"}}
+        ]},
+        "expression": {
+            "kind": "array",
+            "expressions": [
+                {"kind": "arraySpread", "expression": {"kind": "reference", "name": "acc"}},
+                {"kind": "arrayElement", "expression": {"kind": "reference", "name": "item"}}
+            ]
+        }
+    }))
+    .unwrap();
+    assert_eq!(
+        evaluate(spread(call(
+            "scan",
+            vec![literal(json!("a😀b")), literal(json!([])), collected],
+        ))),
+        "[[\"a\"],[\"a\",\"😀\"],[\"a\",\"😀\",\"b\"]]"
+    );
+    assert_eq!(
+        evaluate(spread(call(
+            "scan",
+            vec![literal(json!([])), literal(json!(42)), reference("id")],
+        ))),
+        "[]"
+    );
+    assert_eq!(parameter_names("scan"), ["self", "initial", "fn"]);
+    for value in [json!(42), json!(null)] {
+        let mut evaluation = Evaluation::new(spread(call(
+            "scan",
+            vec![literal(value), literal(json!(0)), reference("id")],
+        )));
+        assert!(evaluation.finish().is_err());
+    }
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        let scanned = match invoke(
+            mc,
+            NativeGlobal::Scan,
+            vec![
+                Value::array(mc, vec![Value::Number(1.0), Value::Number(2.0)]),
+                Value::Number(0.0),
+                Value::Native(NativeGlobal::Add),
+            ],
+            origin,
+        )
+        .unwrap()
+        {
+            NativeResult::Value(value) => value,
+            NativeResult::Reduce { .. } => panic!("expected value"),
+        };
+        let Value::Iterable(iterator) = scanned else {
+            panic!("expected iterable")
+        };
+        {
+            let state = iterator.borrow();
+            let IterableState::Scan { source, .. } = &*state else {
+                panic!("expected scan")
+            };
+            let source = *source;
+            drop(state);
+            assert!(matches!(&*source.borrow(), IterableState::Deferred { .. }));
+        }
+    });
+
+    let mut evaluation = Evaluation::with_hosts(
+        spread(call(
+            "scan",
+            vec![
+                literal(json!([1, 2, 3])),
+                literal(json!(0)),
+                reference("step"),
+            ],
+        )),
+        vec![crate::value::HostCallable {
+            id: 9,
+            name: "step".into(),
+            arity: 2,
+        }],
+    );
+    assert!(evaluation.take_host_request().is_none());
+    let mut calls = 0;
+    let result = loop {
+        match evaluation.step_status().unwrap() {
+            crate::evaluate::StepStatus::Complete => break evaluation.finish().unwrap(),
+            crate::evaluate::StepStatus::Yielded => {}
+            crate::evaluate::StepStatus::Suspended => {
+                calls += 1;
+                let request = evaluation.take_host_request().unwrap();
+                evaluation
+                    .complete_host(
+                        &request,
+                        Ok(crate::evaluate::HostCompletion::materialize(
+                            vec![request.arguments[0].clone(), request.arguments[1].clone()],
+                            |_mc, args| {
+                                let Value::Number(acc) = args[0].raw() else {
+                                    return Err("accumulator must be a number".into());
+                                };
+                                let Value::Number(item) = args[1].raw() else {
+                                    return Err("item must be a number".into());
+                                };
+                                Ok(Value::Number(acc + item))
+                            },
+                        )),
+                    )
+                    .unwrap();
+            }
+        }
+        assert!(calls <= 3);
+    };
+    assert_eq!(calls, 3);
+    assert_eq!(
+        evaluation
+            .read(&result, |value| json_text(value).unwrap().unwrap())
+            .unwrap(),
+        "[1,3,6]"
+    );
+
+    let started = std::time::Instant::now();
+    let mut evaluation = Evaluation::with_environment(
+        spread(call(
+            "scan",
+            vec![reference("items"), literal(json!(0)), reference("add")],
+        )),
+        |mc| {
+            Environment::new(
+                mc,
+                None,
+                vec![(
+                    "items".into(),
+                    Value::array(mc, (0..4_000).map(|n| Value::Number(n as f64)).collect()),
+                )],
+            )
+        },
+    );
+    let result = evaluation.finish().unwrap();
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed.as_secs() < 5,
+        "scan over 4000 numbers took {elapsed:?}"
+    );
+    assert_eq!(
+        evaluation
+            .read(&result, |value| {
+                let Value::Array(items) = value.raw() else {
+                    panic!("expected array")
+                };
+                let last = *items.borrow().last().unwrap();
+                json_text(last).unwrap().unwrap()
+            })
+            .unwrap(),
+        "7998000"
+    );
+}
