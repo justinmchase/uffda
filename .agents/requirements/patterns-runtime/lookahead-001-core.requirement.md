@@ -20,3 +20,4 @@ Expected behavior:
 Postconditions:
 
 - Caller-visible input position MUST remain P for success and failure.
+- Tests: `rust/src/pattern/tests.rs`.

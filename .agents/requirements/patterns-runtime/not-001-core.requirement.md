@@ -21,3 +21,4 @@ Expected behavior:
 Postconditions:
 
 - Caller-visible position MUST remain P in all non-error outcomes.
+- Tests: `rust/src/pattern/tests.rs`.

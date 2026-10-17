@@ -2246,8 +2246,12 @@ impl<'gc> PatternExecution<'gc> {
                             self.set(mc, scope, false, false, Value::Undefined, vec![]);
                             return Ok(self.frames.is_empty());
                         }
+                        let mut child_scope = scope;
+                        if matches!(unary, Unary::Not | Unary::Lookahead | Unary::Except) {
+                            child_scope.recovery = scope.recovery.disable();
+                        }
                         self.frames.push(Frame::Unary(*unary, scope));
-                        self.frames.push(Frame::Match(*child, scope));
+                        self.frames.push(Frame::Match(*child, child_scope));
                     }
                     PatternNode::Then(nodes) => {
                         if let Some(first) = nodes.first() {
@@ -2482,7 +2486,9 @@ impl<'gc> PatternExecution<'gc> {
                     self.result = Some(Gc::new(
                         mc,
                         PatternMatch {
-                            kind: child.kind,
+                            // A projection builds its own value, so a skipped child
+                            // is still an ordinary success.
+                            kind: MatchKind::Ok,
                             value,
                             start: start.position,
                             end: child.end,
@@ -2674,6 +2680,7 @@ impl<'gc> PatternExecution<'gc> {
                         result.value = Value::Undefined;
                         result.end = start.position;
                         result.environment = start.environment;
+                        result.recovery = start.recovery;
                     }
                     Unary::Lookahead => {
                         result.kind = if matched {
@@ -2683,6 +2690,7 @@ impl<'gc> PatternExecution<'gc> {
                         };
                         result.end = start.position;
                         result.environment = start.environment;
+                        result.recovery = start.recovery;
                     }
                     Unary::Skip if matched => {
                         result.kind = MatchKind::Skip;
@@ -2718,6 +2726,7 @@ impl<'gc> PatternExecution<'gc> {
                         };
                         result.end = start.position + usize::from(!matched);
                         result.environment = start.environment;
+                        result.recovery = start.recovery;
                         result.value = if matched {
                             Value::Undefined
                         } else {

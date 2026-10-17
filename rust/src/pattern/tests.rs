@@ -1934,6 +1934,276 @@ fn ok_succeeds_without_consuming_empty_or_remaining_input() {
     assert_item(Pattern::Ok, json!("a"), MatchKind::Ok, 0, "undefined");
 }
 
+#[test]
+// req:skip-001 req:skip-002
+fn skip_consumes_a_match_keeps_bindings_and_propagates_child_errors() {
+    assert_item(
+        Pattern::Skip {
+            pattern: Box::new(literal(json!("a"))),
+        },
+        json!("a"),
+        MatchKind::Skip,
+        1,
+        "undefined",
+    );
+    assert_item(
+        Pattern::Skip {
+            pattern: Box::new(literal(json!("a"))),
+        },
+        json!("b"),
+        MatchKind::Fail,
+        0,
+        "",
+    );
+    assert_item(
+        Pattern::Skip {
+            pattern: Box::new(Pattern::Skip {
+                pattern: Box::new(literal(json!("a"))),
+            }),
+        },
+        json!("a"),
+        MatchKind::Skip,
+        1,
+        "undefined",
+    );
+    assert_item(
+        Pattern::Projection {
+            pattern: Box::new(Pattern::Skip {
+                pattern: Box::new(Pattern::Variable {
+                    name: "x".into(),
+                    pattern: Box::new(literal(json!("a"))),
+                }),
+            }),
+            expression: Box::new(crate::expression::Expression::Reference { name: "x".into() }),
+        },
+        json!("a"),
+        MatchKind::Ok,
+        1,
+        "a",
+    );
+    uffda_heap::rootless_mutate(|mc| {
+        let mut execution = PatternExecution::new(
+            mc,
+            Pattern::Skip {
+                pattern: Box::new(Pattern::Quantifier {
+                    pattern: Box::new(literal(json!("a"))),
+                    min: Some(ValueSource::Literal {
+                        value: LiteralValue::Present(json!(-1).into()),
+                    }),
+                    max: None,
+                }),
+            },
+            vec![Value::string(mc, "a")],
+            Environment::new(mc, None, vec![]),
+        );
+        let error = loop {
+            match execution.step(mc) {
+                Err(error) => break error,
+                Ok(true) => panic!("skip completed without the child bound error"),
+                Ok(false) => {}
+            }
+        };
+        assert!(
+            error
+                .to_string()
+                .contains("min must be 0 or greater but is -1"),
+            "{error}"
+        );
+    });
+}
+
+#[test]
+// req:maybe-001 req:skip-002
+fn maybe_returns_the_child_or_an_absent_value_without_failing() {
+    assert_item(
+        Pattern::Maybe {
+            pattern: Box::new(literal(json!("a"))),
+        },
+        json!("a"),
+        MatchKind::Ok,
+        1,
+        "a",
+    );
+    assert_item(
+        Pattern::Maybe {
+            pattern: Box::new(literal(json!("a"))),
+        },
+        json!("b"),
+        MatchKind::Ok,
+        0,
+        "undefined",
+    );
+    assert_item(
+        Pattern::Then {
+            patterns: vec![
+                Pattern::Maybe {
+                    pattern: Box::new(literal(json!("a"))),
+                },
+                literal(json!("b")),
+            ],
+        },
+        json!("b"),
+        MatchKind::Ok,
+        1,
+        "undefined|b",
+    );
+    assert_item(
+        Pattern::Maybe {
+            pattern: Box::new(Pattern::Skip {
+                pattern: Box::new(literal(json!("a"))),
+            }),
+        },
+        json!("a"),
+        MatchKind::Skip,
+        1,
+        "undefined",
+    );
+    assert_item(
+        Pattern::Maybe {
+            pattern: Box::new(Pattern::Skip {
+                pattern: Box::new(literal(json!("a"))),
+            }),
+        },
+        json!("b"),
+        MatchKind::Ok,
+        0,
+        "undefined",
+    );
+}
+
+#[test]
+// req:not-001 req:skip-002 req:error-recovery-004
+fn not_is_zero_width_and_disables_recovery_for_its_child() {
+    assert_item(
+        Pattern::Not {
+            pattern: Box::new(Pattern::Ok),
+        },
+        json!([]),
+        MatchKind::Fail,
+        0,
+        "",
+    );
+    assert_item(
+        Pattern::Not {
+            pattern: Box::new(Pattern::Fail),
+        },
+        json!([]),
+        MatchKind::Ok,
+        0,
+        "undefined",
+    );
+    assert_item(
+        Pattern::Not {
+            pattern: Box::new(Pattern::Not {
+                pattern: Box::new(Pattern::Ok),
+            }),
+        },
+        json!([]),
+        MatchKind::Ok,
+        0,
+        "undefined",
+    );
+    assert_item(
+        Pattern::Not {
+            pattern: Box::new(Pattern::Fail),
+        },
+        json!("a"),
+        MatchKind::Ok,
+        0,
+        "undefined",
+    );
+    assert_item(
+        Pattern::Not {
+            pattern: Box::new(Pattern::Skip {
+                pattern: Box::new(literal(json!("a"))),
+            }),
+        },
+        json!("a"),
+        MatchKind::Fail,
+        0,
+        "",
+    );
+    uffda_heap::rootless_mutate(|mc| {
+        let mut execution = PatternExecution::new_with_recovery(
+            mc,
+            Pattern::Not {
+                pattern: Box::new(Pattern::Recover {
+                    pattern: Box::new(literal(json!("z"))),
+                    skip: Box::new(Pattern::Any),
+                }),
+            },
+            vec![Value::string(mc, "x")],
+            Environment::new(mc, None, vec![]),
+            RecoveryContext::new(mc).enable(),
+        );
+        finish(mc, &mut execution);
+        let result = execution.result().unwrap();
+        assert_eq!(result.kind, MatchKind::Ok);
+        assert!(result.recovery.is_enabled());
+    });
+}
+
+#[test]
+// req:lookahead-001 req:skip-002 req:error-recovery-004
+fn lookahead_checks_without_consuming_and_disables_recovery() {
+    assert_item(
+        Pattern::Lookahead {
+            pattern: Box::new(literal(json!("a"))),
+        },
+        json!("a"),
+        MatchKind::Ok,
+        0,
+        "a",
+    );
+    assert_item(
+        Pattern::Lookahead {
+            pattern: Box::new(literal(json!("a"))),
+        },
+        json!("b"),
+        MatchKind::Fail,
+        0,
+        "",
+    );
+    assert_item(
+        Pattern::Lookahead {
+            pattern: Box::new(Pattern::Any),
+        },
+        json!(""),
+        MatchKind::Fail,
+        0,
+        "",
+    );
+    assert_item(
+        Pattern::Lookahead {
+            pattern: Box::new(Pattern::Skip {
+                pattern: Box::new(literal(json!("a"))),
+            }),
+        },
+        json!("a"),
+        MatchKind::Ok,
+        0,
+        "undefined",
+    );
+    uffda_heap::rootless_mutate(|mc| {
+        let mut execution = PatternExecution::new_with_recovery(
+            mc,
+            Pattern::Lookahead {
+                pattern: Box::new(Pattern::Recover {
+                    pattern: Box::new(literal(json!("z"))),
+                    skip: Box::new(Pattern::Any),
+                }),
+            },
+            vec![Value::string(mc, "x")],
+            Environment::new(mc, None, vec![]),
+            RecoveryContext::new(mc).enable(),
+        );
+        finish(mc, &mut execution);
+        let result = execution.result().unwrap();
+        assert_eq!(result.kind, MatchKind::Fail);
+        assert_eq!(result.end, 0);
+    });
+}
+
 fn assert_item(
     pattern: Pattern,
     input: serde_json::Value,
@@ -1949,7 +2219,7 @@ fn assert_item(
         let result = execution.result().unwrap();
         assert_eq!(result.kind, kind);
         assert_eq!(result.end, end);
-        if kind == MatchKind::Ok {
+        if kind != MatchKind::Fail {
             assert_eq!(item_text(result.value), value);
         }
     });
