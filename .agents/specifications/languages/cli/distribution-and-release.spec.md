@@ -49,8 +49,6 @@ Normative key words in this chapter use the conventions defined in the
 - After the draft and version files are updated, the workflow MUST emit a
   `repository_dispatch` event that triggers CLI binary attachment for the latest
   draft.
-- Draft release notes MUST document the manual `workflow_dispatch` path used to
-  re-attach CLI binaries.
 - The `release-binaries` workflow MUST accept both `repository_dispatch` and
   `workflow_dispatch`, compile the target matrix from a pinned `main` revision,
   attach or replace binaries plus checksums and the Linux install script on the
