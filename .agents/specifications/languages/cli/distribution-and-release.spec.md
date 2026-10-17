@@ -55,11 +55,11 @@ Normative key words in this chapter use the conventions defined in the
   `workflow_dispatch`, compile the target matrix from a pinned `main` revision,
   attach or replace binaries plus checksums and the Linux install script on the
   latest draft release, and fail when no draft release exists.
-- While the release remains a draft, `release-binaries` MUST create or move
-  `refs/tags/<version>` (and the release `target_commitish`) to that pinned
-  build revision so publishing freezes the commit that was actually compiled.
-  Published releases are immutable; the workflow MUST refuse to move tags on
-  non-draft releases.
+- Draft Release sets the draft `tag_name` and `target_commitish`; publishing
+  creates `refs/tags/<version>` at that commit. `release-binaries` attaches
+  assets only and MUST NOT create or move git tags. Draft version resolution
+  MUST skip SemVer values that already have a published release or an existing
+  git tag.
 - Publishing a draft release makes those assets the latest stable install
   target; JSR package publishing MAY continue on `release: published`.
 - Release entries MUST include version tag, artifact list, and checksums for

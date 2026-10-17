@@ -35,10 +35,12 @@ Expected behavior:
   release has been published in the meantime. API errors MUST fail the workflow.
 - The `release-binaries` workflow MUST accept `repository_dispatch` and
   `workflow_dispatch`, compile the full target matrix from a pinned `main`
-  revision, and attach or replace every binary on the latest draft release.
-- While the release is still a draft, `release-binaries` MUST create or move
-  `refs/tags/<version>` to that pinned build revision (and MUST refuse to move
-  tags on published/immutable releases).
+  revision, and attach or replace every binary on the latest draft release. It
+  MUST NOT create or move git tags; publishing the draft creates
+  `refs/tags/<version>` at the draft's `target_commitish` (set by Draft
+  Release).
+- Draft version resolution MUST skip SemVer values that already have a published
+  release or an existing git tag (burnt tags are not reused).
 - The draft release MUST include checksum data covering every published binary
   plus the Linux install script after the attach workflow succeeds.
 - Failed binary builds or missing checksums MUST fail the attach workflow.

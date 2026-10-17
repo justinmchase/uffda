@@ -18,14 +18,15 @@ Deno.test(
 );
 
 Deno.test(
-  "req:cli-distribution-002 - release-binaries pins draft tag to build commit",
+  "req:cli-distribution-002 - release-binaries attaches assets without managing git tags",
   async () => {
     const yaml = await Deno.readTextFile(
       join(repoRoot, ".github", "workflows", "release-binaries.yml"),
     );
-    assertEquals(yaml.includes("Pin draft tag to build commit"), true);
-    assertEquals(yaml.includes("git/refs/tags/"), true);
-    assertEquals(yaml.includes("target_commitish"), true);
+    assertEquals(yaml.includes("Replace assets on draft release"), true);
+    assertEquals(yaml.includes("gh release upload"), true);
+    assertEquals(yaml.includes("force=true"), false);
+    assertEquals(yaml.includes("git/refs/tags/"), false);
   },
 );
 
