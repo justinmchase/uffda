@@ -209,9 +209,9 @@ chapter(s).
 - Topic mode MUST NOT infer task impossibility from unrelated restrictions or
   from the absence of a reference implementation. Language facts, implementation
   evidence, and unverified conclusions MUST be separated.
-- When only a free-form `task` is supplied, the response MUST still retrieve only
-  relevant evidence and MUST NOT classify a query as unsupported solely because
-  an unrelated restriction keyword overlapped the task text.
+- When only a free-form `task` is supplied, the response MUST still retrieve
+  only relevant evidence and MUST NOT classify a query as unsupported solely
+  because an unrelated restriction keyword overlapped the task text.
 - Source references for every substantive claim MUST use repository-relative
   paths and line numbers when resolvable, with short excerpts.
 - The tool MUST NOT require or accept a session id and MUST NOT persist state
