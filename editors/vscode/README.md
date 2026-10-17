@@ -44,22 +44,30 @@ automatically: prefer **`uffdar`** on `PATH`, then `uffda`, otherwise download
 and cache a release binary. If neither succeeds, the extension surfaces a clear
 error instead of silently disabling itself.
 
-Recommended local override for this checkout:
+`uffda.lsp.serverPath` overrides PATH resolution entirely:
+
+| Value | Effect |
+| --- | --- |
+| unset / `""` | Prefer `uffdar` on PATH, then `uffda`, else download |
+| `uffdar` / `uffda` | Bare name — run from PATH |
+| `rust/target/release/uffda` | Relative to the uffda workspace folder (local build) |
+| absolute path | Used verbatim |
+
+Recommended for this checkout (local Rust build):
 
 ```json
 {
-  "uffda.lsp.serverPath": "uffdar",
+  "uffda.lsp.serverPath": "rust/target/release/uffda",
   "uffda.lsp.serverArgs": ["lsp"],
   "uffda.mcp.serverArgs": ["mcp"]
 }
 ```
 
-Or an absolute path to a release build:
+Installed preview binary instead:
 
 ```json
 {
-  "uffda.lsp.serverPath": "/path/to/uffda/rust/target/release/uffda",
-  "uffda.mcp.serverArgs": ["mcp"]
+  "uffda.lsp.serverPath": "uffdar"
 }
 ```
 

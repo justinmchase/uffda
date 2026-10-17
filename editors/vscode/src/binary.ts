@@ -1,4 +1,5 @@
 import * as cp from "node:child_process";
+import * as path from "node:path";
 import { MIN_UFFDA_VERSION, satisfiesMinVersion } from "./version";
 import { downloadUffdaBinary } from "./download";
 
@@ -21,20 +22,31 @@ export interface ResolveOptions {
   defaultArgs: string[];
   /** Directory to cache a downloaded binary in (persistent extension storage). */
   storageDir: string;
+  /**
+   * Workspace folder used to resolve relative overrides such as
+   * `rust/target/release/uffda`. Bare names (`uffdar`) stay on PATH.
+   */
+  workspaceFolder?: string;
   minVersion?: string;
 }
 
 /**
- * Resolves the command used to launch `uffda`, per requirement
- * cli-language-server-007: an explicit override always wins (used verbatim,
- * no PATH/version/download checks); otherwise prefer a PATH binary whose
+ * Resolves the command used to launch `uffda`/`uffdar`, per requirement
+ * cli-language-server-007: an explicit override always wins (no
+ * PATH/version/download checks); otherwise prefer a PATH binary whose
  * version satisfies the minimum; otherwise download and cache the
  * platform-matching release binary.
+ *
+ * Overrides:
+ * - bare name (`uffdar`, `uffda`) → used as a PATH command
+ * - absolute path → used verbatim
+ * - relative path (`rust/target/release/uffda`) → resolved against
+ *   `workspaceFolder` when provided
  */
 export async function resolveUffdaServer(opts: ResolveOptions): Promise<ResolvedServer> {
   if (opts.serverPathOverride) {
     return {
-      command: opts.serverPathOverride,
+      command: resolveOverrideCommand(opts.serverPathOverride, opts.workspaceFolder),
       args: opts.serverArgsOverride && opts.serverArgsOverride.length > 0
         ? opts.serverArgsOverride
         : opts.defaultArgs,
@@ -62,7 +74,7 @@ export async function resolveUffdaServer(opts: ResolveOptions): Promise<Resolved
           downloadedVersion ?? "unknown"
         }, which does not satisfy the minimum required version ${minVersion}. ` +
           `The latest published release may lag behind this extension's requirement; ` +
-          `install a compatible uffdar/uffda on PATH or use the uffda.lsp.serverPath override.`,
+          `install a compatible uffdar/uffda on PATH or set uffda.lsp.serverPath to a built binary.`,
       );
     }
     return { command: binaryPath, args: opts.defaultArgs, source: "download" };
@@ -73,6 +85,24 @@ export async function resolveUffdaServer(opts: ResolveOptions): Promise<Resolved
       `No compatible uffdar/uffda binary was found on PATH. Automatic download also failed: ${reason}`,
     );
   }
+}
+
+/**
+ * Turn a `uffda.lsp.serverPath` override into a process command.
+ * Bare command names stay on PATH; relative paths resolve against the
+ * uffda workspace folder so a local build can be selected without install.
+ */
+export function resolveOverrideCommand(
+  override: string,
+  workspaceFolder?: string,
+): string {
+  const trimmed = override.trim();
+  if (!trimmed) return trimmed;
+  if (path.isAbsolute(trimmed)) return trimmed;
+  // Bare executable name (uffdar / uffda / deno) — leave for PATH lookup.
+  if (!trimmed.includes("/") && !trimmed.includes("\\")) return trimmed;
+  if (workspaceFolder) return path.resolve(workspaceFolder, trimmed);
+  return path.resolve(trimmed);
 }
 
 /** Prefer `uffdar` (Rust) over `uffda` (Deno) when both satisfy the minimum. */

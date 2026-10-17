@@ -51,15 +51,18 @@ export async function deactivate(): Promise<void> {
  * folder named / ending in `uffda`, else the first folder, else the active
  * editor.
  */
-function uffdaSettingsResource(): vscode.Uri | undefined {
+function uffdaWorkspaceFolder(): vscode.WorkspaceFolder | undefined {
   const folders = vscode.workspace.workspaceFolders ?? [];
   const named = folders.find((folder) => {
     const base = path.basename(folder.uri.fsPath);
     return folder.name === "uffda" || base === "uffda";
   });
-  if (named) return named.uri;
-  if (folders[0]) return folders[0].uri;
-  return vscode.window.activeTextEditor?.document.uri;
+  return named ?? folders[0];
+}
+
+function uffdaSettingsResource(): vscode.Uri | undefined {
+  return uffdaWorkspaceFolder()?.uri ??
+    vscode.window.activeTextEditor?.document.uri;
 }
 
 function currentOverrides() {
@@ -67,7 +70,8 @@ function currentOverrides() {
   const serverPathOverride = config.get<string>("lsp.serverPath")?.trim() || undefined;
   const lspArgsOverride = config.get<string[]>("lsp.serverArgs") ?? [];
   const mcpArgsOverride = config.get<string[]>("mcp.serverArgs") ?? [];
-  return { serverPathOverride, lspArgsOverride, mcpArgsOverride };
+  const workspaceFolder = uffdaWorkspaceFolder()?.uri.fsPath;
+  return { serverPathOverride, lspArgsOverride, mcpArgsOverride, workspaceFolder };
 }
 
 /** The file's extension with its dot, lowercased, as the server reports them. */
@@ -79,7 +83,7 @@ function extensionOf(fsPath: string): string {
 }
 
 async function startLanguageClient(context: vscode.ExtensionContext): Promise<void> {
-  const { serverPathOverride, lspArgsOverride } = currentOverrides();
+  const { serverPathOverride, lspArgsOverride, workspaceFolder } = currentOverrides();
 
   let resolved: ResolvedServer;
   try {
@@ -88,6 +92,7 @@ async function startLanguageClient(context: vscode.ExtensionContext): Promise<vo
       serverArgsOverride: lspArgsOverride,
       defaultArgs: ["lsp"],
       storageDir: context.globalStorageUri.fsPath,
+      workspaceFolder,
     });
   } catch (err) {
     reportResolveError("language server", err);
@@ -336,20 +341,21 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): void {
 
   const disposable = lm.registerMcpServerDefinitionProvider("uffda", {
     provideMcpServerDefinitions: async () => {
-      const { serverPathOverride, mcpArgsOverride } = currentOverrides();
+      const { serverPathOverride, mcpArgsOverride, workspaceFolder } =
+        currentOverrides();
       try {
         const resolved = await resolveUffdaServer({
           serverPathOverride,
           serverArgsOverride: mcpArgsOverride,
           defaultArgs: ["mcp"],
           storageDir: context.globalStorageUri.fsPath,
+          workspaceFolder,
         });
         outputChannel?.info(
           `Registering MCP server: ${resolved.command} ${resolved.args.join(" ")} (${resolved.source})`,
         );
-        // McpStdioServerDefinition takes command/args only; relative
-        // `./src/cli/main.ts` overrides rely on the host resolving against the
-        // workspace folder the same way the language client cwd does.
+        // Relative overrides (e.g. rust/target/release/uffda) are resolved
+        // against the uffda workspace folder in resolveUffdaServer.
         return [new McpStdioServerDefinition("Uffda", resolved.command, resolved.args)];
       } catch (err) {
         reportResolveError("MCP server", err);

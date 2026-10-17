@@ -1,7 +1,7 @@
 {
   "deno.enable": true,
   "deno.unstable": true,
-  "uffda.lsp.serverPath": "uffdar",
+  "uffda.lsp.serverPath": "rust/target/release/uffda",
   "uffda.lsp.serverArgs": [
     "lsp"
   ],
