@@ -15,7 +15,7 @@ jobs:
         uses: justinmchase/specs@v1
 
   rust:
-    name: Rust
+    name: Checks
     needs: rust-language-bin
     runs-on: ubuntu-latest
     steps:
