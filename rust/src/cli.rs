@@ -1019,7 +1019,10 @@ mod tests {
     fn help_version_and_inline_expression() {
         assert_eq!(execute(&[]).exit_code, 0);
         assert!(execute(&["--help"]).stdout.contains("exec"));
-        assert_eq!(execute(&["--version"]).stdout, "0.0.0\n");
+        assert_eq!(
+            execute(&["--version"]).stdout,
+            format!("{}\n", env!("CARGO_PKG_VERSION"))
+        );
         let result = run(&["exec".into(), "--ast".into()], || {
             Ok(r#"{"kind":"number","value":42}"#.into())
         });
@@ -1030,7 +1033,7 @@ mod tests {
         assert!(result.stdout.starts_with("Usage: uffda exec"));
         let result = execute(&["match", "-e", "any", "--input", "--version"]);
         assert_eq!(result.exit_code, 0, "{}", result.stderr);
-        assert_eq!(result.stdout, "0.0.0\n");
+        assert_eq!(result.stdout, format!("{}\n", env!("CARGO_PKG_VERSION")));
     }
 
     #[test]

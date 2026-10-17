@@ -74,7 +74,14 @@ impl<'gc> Mutation<'gc> {
     }
 
     #[inline]
-    pub(crate) fn write_barrier<T: ?Sized + 'gc>(&self, gc: Gc<'gc, T>) {
+    pub(crate) fn write_barrier<T: Collect<'gc> + ?Sized>(&self, gc: Gc<'gc, T>) {
+        // gc-arena turns a non-tracing black object gray again on every write
+        // barrier and decrements its traced-object metric. That metric was
+        // never incremented, so the barrier panics. Objects that cannot adopt
+        // pointers do not need the barrier.
+        if !T::NEEDS_TRACE {
+            return;
+        }
         self.0.backward_barrier(gc_arena::Gc::erase(gc.inner), None);
     }
 }

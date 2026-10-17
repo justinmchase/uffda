@@ -20,9 +20,10 @@ use uffda_heap::{Collect, DynamicRootSet, Gc, Mutation, RefLock};
 /// Leaves and unary wrappers are the common case (0–1 children). Keeping those
 /// inline avoids a heap allocation for the child list on every `set` / boundary
 /// / unary resume. Sequences and choices spill to a `Vec`.
-#[derive(Clone, Collect)]
+#[derive(Clone, Collect, Default)]
 #[collect(no_drop)]
 pub enum MatchChildren<'gc> {
+    #[default]
     Empty,
     One(Gc<'gc, PatternMatch<'gc>>),
     Two([Gc<'gc, PatternMatch<'gc>>; 2]),
@@ -56,12 +57,6 @@ impl<'gc> MatchChildren<'gc> {
             Self::Two(children) => children,
             Self::Many(children) => children,
         }
-    }
-}
-
-impl<'gc> Default for MatchChildren<'gc> {
-    fn default() -> Self {
-        Self::Empty
     }
 }
 

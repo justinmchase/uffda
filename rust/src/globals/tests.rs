@@ -1929,7 +1929,7 @@ fn sha256_hashes_raw_text_and_rejects_non_strings() {
     rootless_mutate(|mc| {
         let origin = Origin { start: 0, end: 0 };
         let digest = |value| match invoke(mc, NativeGlobal::Sha256, vec![value], origin).unwrap() {
-            NativeResult::Value(Value::Bytes(bytes)) => bytes.clone(),
+            NativeResult::Value(Value::Bytes(bytes)) => bytes,
             _ => panic!("expected bytes"),
         };
         let hello = digest(Value::string(mc, "hello"));

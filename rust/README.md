@@ -182,9 +182,9 @@ data codec for lossless native-value round trips.
 Install a stable Rust toolchain and the platform's native linker, then run:
 
 ```sh
-cargo fmt --manifest-path rust/Cargo.toml --check
-cargo clippy --manifest-path rust/Cargo.toml --all-targets -- -D warnings
-cargo test --manifest-path rust/Cargo.toml
+cargo fmt --manifest-path rust/Cargo.toml --all --check
+cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets --locked -- -D warnings
+cargo test --manifest-path rust/Cargo.toml --workspace --locked
 ```
 
 The build embeds the unmodified compiled language artifacts already present in

@@ -284,7 +284,7 @@ fn name_reference_items(
         .map(|binding| {
             let description = binding
                 .declaration_name()
-                .and_then(|declaration| documentation_of_name(declaration))
+                .and_then(documentation_of_name)
                 .and_then(|documentation| {
                     documentation.parameter(binding.name()).map(str::to_string)
                 });

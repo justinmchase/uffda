@@ -7,7 +7,7 @@
 //! against the process cwd (no files created for the snippet itself).
 
 use crate::languages::{Language, Languages};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 #[derive(Clone, Debug)]
 struct Case {
@@ -117,14 +117,15 @@ fn has_import(ast: &crate::json::JsonValue) -> bool {
     let Some(crate::json::JsonValue::Array(declarations)) = ast.get("declarations") else {
         return false;
     };
-    declarations.iter().any(|declaration| {
-        match declaration.get("kind") {
+    declarations
+        .iter()
+        .any(|declaration| match declaration.get("kind") {
             Some(crate::json::JsonValue::String(kind)) => kind == "import",
             _ => false,
-        }
-    })
+        })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn compact(
     ok: bool,
     language: &str,
@@ -233,12 +234,12 @@ fn enrich_match_error(mut error: Value, case_name: &str) -> Value {
             obj.entry("hint".to_string()).or_insert_with(|| json!(hint));
         }
         // Surface a concise actualType when the message encodes a type mismatch.
-        if obj.get("actualType").is_none() {
-            if let Some(got) = message.split("got ").nth(1) {
-                let ty = got.trim().trim_end_matches('.').to_string();
-                if !ty.is_empty() && ty.len() < 40 {
-                    obj.insert("actualType".to_string(), json!(ty));
-                }
+        if obj.get("actualType").is_none()
+            && let Some(got) = message.split("got ").nth(1)
+        {
+            let ty = got.trim().trim_end_matches('.').to_string();
+            if !ty.is_empty() && ty.len() < 40 {
+                obj.insert("actualType".to_string(), json!(ty));
             }
         }
     }
@@ -329,10 +330,7 @@ fn run_pattern_case(source: &str, case: &Case) -> Result<(), Value> {
     if case.expect_non_match {
         return Ok(());
     }
-    let error = enrich_match_error(
-        body.get("error").cloned().unwrap_or(body),
-        &case.name,
-    );
+    let error = enrich_match_error(body.get("error").cloned().unwrap_or(body), &case.name);
     Err(json!({
         "name": case.name,
         "ok": false,
@@ -633,9 +631,17 @@ pub fn experiment(arguments: &Value) -> Value {
                 let value = serde_json::from_str::<Value>(&payload.stdout).unwrap_or(Value::Null);
                 match assert_case(&case, true, Some(&value)) {
                     Ok(()) => compact(true, language_name, 1, 1, 0, true, vec![], None, None),
-                    Err(failure) => {
-                        compact(false, language_name, 1, 0, 1, true, vec![failure], None, None)
-                    }
+                    Err(failure) => compact(
+                        false,
+                        language_name,
+                        1,
+                        0,
+                        1,
+                        true,
+                        vec![failure],
+                        None,
+                        None,
+                    ),
                 }
             } else {
                 let body = wrap_cli_failure(
@@ -879,10 +885,7 @@ rule Normalize =
                 { "name": "mid-plus", "input": "55+51234567", "expectNonMatch": true }
             ]
         }));
-        assert_eq!(
-            result["summary"]["parseOk"], true,
-            "{result}"
-        );
+        assert_eq!(result["summary"]["parseOk"], true, "{result}");
         assert!(result.get("unsupported").is_none(), "{result}");
         assert_eq!(result["ok"], true, "{result}");
         assert_eq!(result["summary"]["passed"], 7);

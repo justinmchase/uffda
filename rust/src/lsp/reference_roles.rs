@@ -102,10 +102,7 @@ mod tests {
     #[test]
     // req:cli-language-server-005 req:cli-language-server-006
     fn attribute_names_color_as_type_when_the_decorator_is_in_scope() {
-        let dir = std::env::temp_dir().join(format!(
-            "uffda-lsp-ref-roles-{}",
-            std::process::id()
-        ));
+        let dir = std::env::temp_dir().join(format!("uffda-lsp-ref-roles-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let source = "\
@@ -124,8 +121,8 @@ rule Main = any;
             session.load(source, Some(&path.to_string_lossy()))["ok"],
             true
         );
-        let doc = DocumentAnalysis::parse(&mut session.languages, module_url.as_str(), source)
-            .unwrap();
+        let doc =
+            DocumentAnalysis::parse(&mut session.languages, module_url.as_str(), source).unwrap();
         // The attribute use, not the decorator's declared name.
         let before = doc
             .spans
