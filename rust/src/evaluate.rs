@@ -2422,4 +2422,6 @@ fn array_index(name: &RuntimeString) -> Option<usize> {
 }
 
 #[cfg(test)]
+mod expression_ports;
+#[cfg(test)]
 mod tests;

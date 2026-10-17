@@ -1,6 +1,7 @@
 name: Publish
-# JSR package publish on release publish. CLI binaries are attached to the draft
-# release earlier via Release Binaries (repository_dispatch / workflow_dispatch).
+# Language artifacts for a release are compiled with the Rust CLI. JSR publish is
+# paused. CLI binaries are attached to the draft release earlier via Release
+# Binaries (repository_dispatch / workflow_dispatch).
 on:
   workflow_dispatch:
   release:
@@ -17,14 +18,12 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Setup Uffda CLI
-        # The release being published already carries its CLI binaries, so its
-        # own compiler produces the language artifacts shipped with it.
+        # Cargo embeds ./bin while building. The published CLI only seeds that
+        # tree; the Rust compiler rewrites it below.
         uses: ./.github/actions/uffda-setup
         with:
           version: ${{ github.event.release.tag_name || 'latest' }}
@@ -33,7 +32,11 @@ jobs:
         run: |
           set -euo pipefail
           uffda --version
-          deno task compile:lang
+          rm -rf ./bin
+          uffda compile 'src/lang/**/*.uff'
+          cargo build --locked --release --manifest-path rust/Cargo.toml --bin uffda
+          rm -rf ./bin
+          ./rust/target/release/uffda compile 'src/lang/**/*.uff'
           test -f ./bin/ast/src/lang/uffda/uffda.lang.uffda.ast.json
           test -f ./bin/ast/src/lang/uffda/runtime.compiler.uffda.ast.json
 
@@ -43,4 +46,5 @@ jobs:
           npx jsr publish --dry-run 2>&1 | tee "$RUNNER_TEMP/jsr-dry-run.log"
           grep -q "bin/ast/src/lang/uffda/uffda.lang.uffda.ast.json" "$RUNNER_TEMP/jsr-dry-run.log"
 
-      - run: npx jsr publish
+      # TODO: publish the package again once publishing is driven by the Rust CLI.
+      # - run: npx jsr publish

@@ -1,8 +1,8 @@
 # Distribution and release contracts
 
-This chapter defines how the Uffda CLI is packaged with `deno compile` and
-distributed through GitHub Releases, including install tooling for operators and
-CI runners.
+This chapter defines how the Uffda CLI is packaged as the Rust `uffda` binary
+and distributed through GitHub Releases, including install tooling for operators
+and CI runners.
 
 ## Conventions
 
@@ -11,15 +11,16 @@ Normative key words in this chapter use the conventions defined in the
 
 ## Build product contract
 
-- CLI distribution artifacts MUST be generated via `deno compile`.
+- Release CLI artifacts MUST be produced by `cargo build --locked --release` of
+  the Rust `uffda` binary on the runner for that target. The build MUST embed
+  the `./bin` language artifacts produced by `compile-lang`.
 - Build inputs (source revision, build flags, and target triple) MUST be
   explicit and reproducible.
 - Build outputs MUST include deterministic artifact names for each target.
 
 ## Target platform contract
 
-- Every tagged CLI release MUST build binaries for the full Deno `compile`
-  target matrix:
+- Every tagged CLI release MUST build binaries for the full target matrix:
   - `x86_64-unknown-linux-gnu`
   - `aarch64-unknown-linux-gnu`
   - `x86_64-pc-windows-msvc`
@@ -63,8 +64,8 @@ Normative key words in this chapter use the conventions defined in the
 - Release entries MUST include version tag, artifact list, and checksums for
   every published binary.
 - Each release MUST also publish a Linux shell install script (for example
-  `install.sh`) that downloads and installs the correct Linux `uffda` and
-  `uffdar` binaries for the host architecture from that release.
+  `install.sh`) that downloads and installs the correct Linux `uffda` binary for
+  the host architecture from that release.
 - Release notes SHOULD include compatibility notes and migration impact for
   command/flag/output changes.
 - Binary release assets MUST NOT depend on JSR install for operator or CI usage.

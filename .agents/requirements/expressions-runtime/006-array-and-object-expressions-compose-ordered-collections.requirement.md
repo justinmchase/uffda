@@ -32,3 +32,7 @@ Error behavior:
   host runtime behavior.
 - Object computed-key initializers whose resolved key is not a `string`,
   `number`, or `symbol` MUST throw an evaluation exception.
+
+Postconditions:
+
+- Tests: `rust/src/evaluate/expression_ports.rs`.

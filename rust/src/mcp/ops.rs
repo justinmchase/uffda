@@ -174,6 +174,7 @@ pub fn walk_retained(
     json!({ "ok": true, "nodes": nodes, "truncated": truncated })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn visit_walk(
     node: &RetainedMatch,
     path: Vec<usize>,
@@ -204,9 +205,9 @@ fn visit_walk(
         let mut child_path = path.clone();
         child_path.push(index);
         let mut child_ancestry = ancestry.to_vec();
-        child_ancestry.push(&**child);
+        child_ancestry.push(child);
         visit_walk(
-            &**child,
+            child,
             child_path,
             &child_ancestry,
             depth + 1,
@@ -303,7 +304,7 @@ pub fn describe_declaration(
                     };
                     let args = attribute
                         .get("args")
-                        .map(|value| json_from_runtime(value))
+                        .map(json_from_runtime)
                         .unwrap_or_else(|| json!([]));
                     Some(json!({ "decorator": decorator, "args": args }))
                 })

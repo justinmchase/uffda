@@ -550,15 +550,14 @@ Linux x86_64 relocated all-six-command and public-library streaming acceptance
 passes with empty child PATH and no external artifacts, including byte chunks,
 pre-EOF delivery, native materialization across collection, backpressure,
 malformed trailing records and final unterminated records. Per-commit Checks run
-native Linux x86_64/aarch64 acceptance only; preview release builds wire native
-Linux, Windows and macOS x86_64/aarch64 acceptance. The supported-platform
-checkbox stays open until the release jobs actually pass on every platform.
-Preview naming remains `uffdar`, with no installer or production cutover. The
-six-platform preview build/verify path is wired in Release Binaries; the
-supported-platform measurement checkbox stays open only for the remaining codec
-size/throughput gate and the sporadic debug iterator panic (cutover
-investigation, not a codec acceptance fix). Full repository validation is
-required before pushing.
+native Linux x86_64/aarch64 acceptance only; release builds wire native Linux,
+Windows and macOS x86_64/aarch64 acceptance. The supported-platform checkbox
+stays open until the release jobs actually pass on every platform. Release
+assets are named `uffda`. The six-platform build/verify path is wired in Release
+Binaries; the supported-platform measurement checkbox stays open only for the
+remaining codec size/throughput gate and the sporadic debug iterator panic
+(cutover investigation, not a codec acceptance fix). Full repository validation
+is required before pushing.
 
 #### Deferred artifact adoption
 
@@ -619,18 +618,14 @@ Rust-backed custom CLI using published crates and documented APIs.
 
 ### 10. Side-by-side release binaries and cutover
 
-Do not replace the existing `uffda` release binaries until cutover is approved.
-Release Binaries already attaches separately named `uffdar-${version}-${target}`
-assets beside `uffda-*`, with dedicated `UFFDAR-SHA256SUMS`. The Linux
-`install.sh` installs both `uffda` and `uffdar`; `uffda-setup` still installs
-Deno `uffda-*` only. Stable `uffda` asset names, checksums and the published
-TypeScript CLI stay unchanged until cutover is approved.
+`compile-rust` publishes the Rust CLI as `uffda-${version}-${target}` with
+`SHA256SUMS`. The Linux `install.sh` installs that `uffda` binary. There is no
+separate `uffdar-*` release asset.
 
 Rust targets the current Linux/Windows/macOS x86_64/aarch64 triples via a native
 OS/arch GitHub Actions matrix (not one Ubuntu cross-compile host). Each runner
-embeds the unmodified `compile:lang` AST tree, builds `uffdar`, and runs
-outside-checkout acceptance before attach. Keep Deno `uffda-*` compile/attach
-jobs and Linux `uffda-setup` smoke as the installer gate.
+embeds the `compile-lang` AST tree, builds `uffda`, and runs outside-checkout
+acceptance before attach.
 
 - [x] Run unit, corpus, integration, differential, and GC-stress suites (ongoing
       Checks; release attach still requires a draft that stays unpublished until
@@ -639,18 +634,15 @@ jobs and Linux `uffda-setup` smoke as the installer gate.
       beats Deno on this host; broader benches remain optional).
 - [x] Build and outside-checkout-verify Linux, Windows, and macOS on x86_64 and
       aarch64 in `release-binaries` (`compile-rust` matrix +
-      `verify-rust-codec.ts`).
-- [x] Add a separate x86_64 Linux `uffdar-*` preview build using the
-      bootstrapped AST artifact tree, with an outside-checkout smoke test and
-      dedicated preview checksum; leave `uffda-*` assets, checksums, installer,
-      setup-action behavior and production defaults unchanged.
-- [x] Extend the `uffdar-*` build, attach and verify path to the other supported
-      release targets (six native runners). Linux `install.sh` installs `uffda`
-      and `uffdar`; `uffda-setup` still installs Deno `uffda-*` only.
+      `standalone_acceptance`).
+- [x] Add a native Linux `uffda-*` release build using the bootstrapped AST
+      artifact tree, with an outside-checkout smoke test and `SHA256SUMS`.
+- [x] Extend the `uffda-*` build, attach, and verify path to the other supported
+      release targets (six native runners). Linux `install.sh` installs `uffda`.
 - [ ] Implement `mcp` and `lsp` on the Rust CLI with parity against the Deno
       reference (stdio transports, session/tools/diagnostics/completions as
-      already specified under `.agents/` for those surfaces). Cutover MUST NOT
-      ship Rust as the installed `uffda` without them.
+      already specified under `.agents/` for those surfaces). The release
+      `uffda` binary is already this Rust CLI.
 - [ ] Preserve asset names, checksums, installers, and setup-action behavior
       through the eventual approved cutover (Rust becomes the installed
       `uffda`).

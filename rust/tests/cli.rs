@@ -239,7 +239,10 @@ fn process_help_version_and_empty_invocation_have_successful_root_usage() {
     for args in [&["--version"][..], &["-V"][..]] {
         let result = invoke(args, "");
         assert_eq!(result.status.code(), Some(0));
-        assert_eq!(text(&result.stdout), "0.0.0\n");
+        assert_eq!(
+            text(&result.stdout),
+            format!("{}\n", env!("CARGO_PKG_VERSION"))
+        );
         assert!(result.stderr.is_empty());
     }
 }

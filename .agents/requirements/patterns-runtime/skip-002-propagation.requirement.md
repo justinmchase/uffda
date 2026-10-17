@@ -30,3 +30,4 @@ Postconditions:
 - `(string | skip)*` over `["a", 1, "b", 2]` MUST succeed with `["a", "b"]`.
 - `[skip sep:string rest:string*] -> (join rest sep)` over
   `[[".", "a", "b", "c"]]` MUST succeed with `"a.b.c"`.
+- Tests: `rust/src/pattern/tests.rs`.

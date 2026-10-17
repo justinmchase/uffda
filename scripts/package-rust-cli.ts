@@ -9,14 +9,14 @@ export const RUST_PREVIEW_TARGETS = [
   "aarch64-apple-darwin",
 ] as const;
 
-export function rustPreviewAsset(version: string, target: string): string {
+export function rustReleaseAsset(version: string, target: string): string {
   if (
     !/^\d+\.\d+\.\d+(?:-pre\.\d+)?$/.test(version) ||
     !RUST_PREVIEW_TARGETS.some((supported) => supported === target)
   ) {
-    throw new Error("Invalid preview version or unsupported target");
+    throw new Error("Invalid release version or unsupported target");
   }
-  return `uffdar-${version}-${target}${
+  return `uffda-${version}-${target}${
     target.includes("windows") ? ".exe" : ""
   }`;
 }
@@ -27,7 +27,7 @@ export async function packageRustCli(
   target: string,
   outDir: string,
 ): Promise<string> {
-  const asset = rustPreviewAsset(version, target);
+  const asset = rustReleaseAsset(version, target);
   await Deno.mkdir(outDir, { recursive: true });
   const output = join(outDir, asset);
   await Deno.copyFile(source, output);

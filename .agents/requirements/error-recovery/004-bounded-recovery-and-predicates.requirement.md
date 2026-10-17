@@ -30,7 +30,6 @@ Postconditions:
 
 ## Test plan
 
-`src/runtime/patterns/recover.test.ts`: RECOVER04, RECOVER05.
-`src/runtime/patterns/not.test.ts` (NOT_RECOVERY),
-`src/runtime/patterns/lookahead.test.ts` (LOOKAHEAD_RECOVERY),
-`src/runtime/patterns/except.test.ts` (EXCEPT_RECOVERY).
+`rust/src/pattern/composite_ports.rs`: RECOVER04, RECOVER05.
+`rust/src/pattern/tests.rs` (not, lookahead, and except match their children
+with recovery disabled).

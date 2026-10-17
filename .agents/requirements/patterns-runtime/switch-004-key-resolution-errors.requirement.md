@@ -28,3 +28,4 @@ Expected behavior:
 Postconditions:
 
 - On key-resolution error, Switch MUST NOT evaluate any case body pattern.
+- Tests: `rust/src/pattern/composite_ports.rs`.

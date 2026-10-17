@@ -21,3 +21,4 @@ Expected behavior:
 Postconditions:
 
 - Maybe MUST never return failure unless child returns runtime error.
+- Tests: `rust/src/pattern/tests.rs`.

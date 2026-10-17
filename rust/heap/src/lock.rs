@@ -87,13 +87,19 @@ impl<'gc, T: ?Sized + 'gc> Gc<'gc, RefLock<T>> {
     }
 
     #[inline]
-    pub fn borrow_mut(self, mc: &Mutation<'gc>) -> RefMut<'gc, T> {
+    pub fn borrow_mut(self, mc: &Mutation<'gc>) -> RefMut<'gc, T>
+    where
+        T: Collect<'gc>,
+    {
         mc.write_barrier(self);
         Gc::as_ref(self).cell.borrow_mut()
     }
 
     #[inline]
-    pub fn try_borrow_mut(self, mc: &Mutation<'gc>) -> Result<RefMut<'gc, T>, BorrowMutError> {
+    pub fn try_borrow_mut(self, mc: &Mutation<'gc>) -> Result<RefMut<'gc, T>, BorrowMutError>
+    where
+        T: Collect<'gc>,
+    {
         mc.write_barrier(self);
         Gc::as_ref(self).cell.try_borrow_mut()
     }

@@ -11,22 +11,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          deno-version: v2.x
+          components: rustfmt, clippy
 
-      - name: Cache Deno dependencies
+      - name: Cache Cargo
         uses: actions/cache@v4
         with:
           path: |
-            ~/.deno
-            ~/.cache/deno
-          key: ${{ runner.os }}-deno-${{ hashFiles('**/deno.lock') }}
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('rust/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-deno-
+            ${{ runner.os }}-cargo-
 
-      - name: Verify Deno installation
+      - name: Install latest Uffda
+        uses: ./.github/actions/uffda-setup
+        with:
+          version: latest
+
+      - name: Verify toolchain
         run: |
-          deno --version
-          echo "Deno is ready for development"
+          rustc --version
+          cargo --version
+          rustfmt --version
+          cargo clippy --version
+          uffda --version

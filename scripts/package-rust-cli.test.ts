@@ -3,22 +3,22 @@ import { join } from "@std/path";
 import {
   packageRustCli,
   RUST_PREVIEW_TARGETS,
-  rustPreviewAsset,
+  rustReleaseAsset,
 } from "./package-rust-cli.ts";
 
-Deno.test("req:data-codec-004 - preview assets retain separate names for all native platforms", () => {
+Deno.test("req:data-codec-004 - release assets use uffda names for all native platforms", () => {
   for (const target of RUST_PREVIEW_TARGETS) {
     assertEquals(
-      rustPreviewAsset("1.2.3", target),
-      `uffdar-1.2.3-${target}${target.includes("windows") ? ".exe" : ""}`,
+      rustReleaseAsset("1.2.3", target),
+      `uffda-1.2.3-${target}${target.includes("windows") ? ".exe" : ""}`,
     );
     assertEquals(
-      rustPreviewAsset("1.2.3-pre.1", target).startsWith("uffdar-1.2.3-pre.1-"),
+      rustReleaseAsset("1.2.3-pre.1", target).startsWith("uffda-1.2.3-pre.1-"),
       true,
     );
   }
-  assertThrows(() => rustPreviewAsset("../bad", RUST_PREVIEW_TARGETS[0]));
-  assertThrows(() => rustPreviewAsset("1.2.3", "unsupported"));
+  assertThrows(() => rustReleaseAsset("../bad", RUST_PREVIEW_TARGETS[0]));
+  assertThrows(() => rustReleaseAsset("1.2.3", "unsupported"));
 });
 
 Deno.test("req:data-codec-004 - preview packaging copies bytes and emits portable SHA256 files", async () => {
@@ -35,7 +35,7 @@ Deno.test("req:data-codec-004 - preview packaging copies bytes and emits portabl
     assertEquals(await Deno.readTextFile(asset), "abc");
     assertEquals(
       await Deno.readTextFile(asset + ".sha256"),
-      "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad  uffdar-1.2.3-x86_64-unknown-linux-gnu\n",
+      "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad  uffda-1.2.3-x86_64-unknown-linux-gnu\n",
     );
     await assertRejects(
       () =>
@@ -74,6 +74,7 @@ Deno.test("req:data-codec-004 - release covers all six native targets; checks co
     );
   }
   for (const workflow of [check, release]) {
-    assertEquals(workflow.includes("scripts/verify-rust-codec.ts"), true);
+    assertEquals(workflow.includes("--test standalone_acceptance"), true);
+    assertEquals(workflow.includes("scripts/verify-rust-codec.ts"), false);
   }
 });

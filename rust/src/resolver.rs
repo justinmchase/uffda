@@ -609,3 +609,6 @@ mod tests {
         assert!(Resolver::new(dir.0.clone(), "relative".into()).is_err());
     }
 }
+
+#[cfg(test)]
+mod ported_tests;

@@ -19,8 +19,10 @@ Expected behavior:
 - `scripts/compile-cli.ts` MUST pass `deno compile --include ./bin` so the
   compiled AST JSON files are embedded in each published CLI binary.
 - `.github/workflows/release-binaries.yml` MUST compile language modules into
-  `./bin` and pass the same `--include ./bin` when building release assets
-  (release CI must not bypass `compile-cli.ts` without the include).
+  `./bin` in `compile-lang`, then the `compile-rust` job MUST build the Rust
+  `uffda` binary with that tree present so the artifacts are embedded. Release
+  assets MUST be named `uffda-<version>-<target>`. The job MUST NOT run
+  `deno compile` or publish `uffdar-*` assets.
 - When attaching release assets, the workflow MUST download only CLI target
   artifacts (`uffda-*`) and MUST NOT upload the language `./bin` tree to the
   GitHub Release.
@@ -34,9 +36,11 @@ Expected behavior:
   the built-in artifacts by URL relative to the package root, so the same path
   also loads them from a non-`file:` published package
   ([#271](https://github.com/justinmchase/uffda/issues/271)).
-- Checks and release bootstrap compile MUST install a published CLI via
-  `uffda-setup` (normally `latest`; pin a SemVer only when recovering from a bad
-  release).
+- Checks bootstrap compile MUST install a published CLI via `uffda-setup`
+  (normally `latest`; pin a SemVer only when recovering from a bad release).
+- The release `compile-lang` job MUST NOT install or run Deno. It MUST download
+  the latest published CLI asset with `gh`, seed `./bin` with that binary, then
+  rewrite `./bin` with the Rust `uffda compile`.
 - The Rust preview MUST embed the unmodified published-compiler declaration
   bytes and MAY decode them lazily through the ordinary resolver. Registering
   embedded modules MUST NOT require decoding unused declarations; first access

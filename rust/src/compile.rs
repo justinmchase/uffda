@@ -207,7 +207,7 @@ pub fn compile(request: CompileRequest<'_>, languages: &mut Languages) -> Compil
     if plans.len() == 1 {
         let (source, source_path, output) = plans.pop().expect("len checked");
         match prepare_and_read(&source, &source_path, &output, overwrite) {
-            Err(failure) => result.fail(failure),
+            Err(failure) => result.fail(*failure),
             Ok(text) => match compile_text(
                 languages,
                 &source,
@@ -224,7 +224,7 @@ pub fn compile(request: CompileRequest<'_>, languages: &mut Languages) -> Compil
                     });
                     result.successes.push(success);
                 }
-                Err(UnitFailure::Single(failure)) => result.fail(failure),
+                Err(UnitFailure::Single(failure)) => result.fail(*failure),
                 Err(UnitFailure::Many(diagnostics)) => result.fail_diagnostics(diagnostics),
             },
         }
@@ -271,13 +271,13 @@ pub fn compile(request: CompileRequest<'_>, languages: &mut Languages) -> Compil
                     Err(error) => {
                         let _ = result_tx.send((
                             0,
-                            UnitOutcome::Failed(UnitFailure::Single(CompileFailure {
+                            UnitOutcome::Failed(UnitFailure::Single(Box::new(CompileFailure {
                                 code: "CLI_COMPILE_INVALID_CONTEXT",
                                 source_path: String::new(),
                                 output_path: None,
                                 message: error.to_string(),
                                 location: None,
-                            })),
+                            }))),
                         ));
                         return;
                     }
@@ -327,7 +327,7 @@ pub fn compile(request: CompileRequest<'_>, languages: &mut Languages) -> Compil
                     });
                     result.successes.push(success);
                 }
-                UnitOutcome::Failed(UnitFailure::Single(failure)) => result.fail(failure),
+                UnitOutcome::Failed(UnitFailure::Single(failure)) => result.fail(*failure),
                 UnitOutcome::Failed(UnitFailure::Many(diagnostics)) => {
                     result.fail_diagnostics(diagnostics)
                 }
@@ -344,7 +344,7 @@ struct Prefetched {
     source: PathBuf,
     source_path: String,
     output: PathBuf,
-    text: Result<String, CompileFailure>,
+    text: Result<String, Box<CompileFailure>>,
 }
 
 enum UnitOutcome {
@@ -353,7 +353,7 @@ enum UnitOutcome {
 }
 
 enum UnitFailure {
-    Single(CompileFailure),
+    Single(Box<CompileFailure>),
     Many(Vec<CompileFailure>),
 }
 
@@ -362,35 +362,37 @@ fn prepare_and_read(
     source_path: &str,
     output: &Path,
     overwrite: bool,
-) -> Result<String, CompileFailure> {
+) -> Result<String, Box<CompileFailure>> {
     match output.metadata() {
         Ok(metadata) if metadata.is_file() && !overwrite => {
-            return Err(CompileFailure {
+            return Err(Box::new(CompileFailure {
                 code: "CLI_COMPILE_OUTPUT_EXISTS",
                 source_path: source_path.into(),
                 output_path: Some(output.to_string_lossy().into_owned()),
                 message: "Output already exists and overwrite=false".into(),
                 location: None,
-            });
+            }));
         }
         Ok(_) => {}
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
         Err(error) => {
-            return Err(CompileFailure {
+            return Err(Box::new(CompileFailure {
                 code: "CLI_COMPILE_WRITE_FAILURE",
                 source_path: source_path.into(),
                 output_path: Some(output.to_string_lossy().into_owned()),
                 message: error.to_string(),
                 location: None,
-            });
+            }));
         }
     }
-    std::fs::read_to_string(source).map_err(|error| CompileFailure {
-        code: "CLI_COMPILE_SOURCE_NOT_READABLE",
-        source_path: source_path.into(),
-        output_path: Some(output.to_string_lossy().into_owned()),
-        message: error.to_string(),
-        location: None,
+    std::fs::read_to_string(source).map_err(|error| {
+        Box::new(CompileFailure {
+            code: "CLI_COMPILE_SOURCE_NOT_READABLE",
+            source_path: source_path.into(),
+            output_path: Some(output.to_string_lossy().into_owned()),
+            message: error.to_string(),
+            location: None,
+        })
     })
 }
 
@@ -428,32 +430,32 @@ fn compile_text(
                         .collect(),
                 ));
             }
-            return Err(UnitFailure::Single(CompileFailure {
+            return Err(UnitFailure::Single(Box::new(CompileFailure {
                 code: "CLI_COMPILE_PARSE_FAILURE",
                 source_path,
                 output_path: Some(output.to_string_lossy().into_owned()),
                 message: error.to_string(),
                 location: None,
-            }));
+            })));
         }
     };
     let url = Url::from_file_path(source).map_err(|()| {
-        UnitFailure::Single(CompileFailure {
+        UnitFailure::Single(Box::new(CompileFailure {
             code: "CLI_COMPILE_INVALID_CONTEXT",
             source_path: source_path.clone(),
             output_path: Some(output.to_string_lossy().into_owned()),
             message: "Invalid source URL".into(),
             location: None,
-        })
+        }))
     })?;
     if let Err(error) = decode_declaration(&url, &module.to_string()) {
-        return Err(UnitFailure::Single(CompileFailure {
+        return Err(UnitFailure::Single(Box::new(CompileFailure {
             code: "CLI_COMPILE_PARSE_FAILURE",
             source_path,
             output_path: Some(output.to_string_lossy().into_owned()),
             message: error.to_string(),
             location: None,
-        }));
+        })));
     }
     let mut diagnostics = Vec::new();
     for import in module["imports"]
@@ -503,13 +505,13 @@ fn compile_text(
         Ok(())
     };
     if let Err(error) = write() {
-        return Err(UnitFailure::Single(CompileFailure {
+        return Err(UnitFailure::Single(Box::new(CompileFailure {
             code: "CLI_COMPILE_WRITE_FAILURE",
             source_path,
             output_path: Some(output.to_string_lossy().into_owned()),
             message: error,
             location: None,
-        }));
+        })));
     }
     Ok(CompileSuccess {
         source_path,

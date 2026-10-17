@@ -24,12 +24,8 @@ it's suspected.
   outside the report's generous expected-time bound, in which case the full
   size/time breakdown prints automatically. Pass `--verbose` to always see the
   full breakdown.
-- **In CI** (`GITHUB_STEP_SUMMARY` set): the full size/time table is always
-  attached to the job summary, in addition to the terse console line. This runs
-  as its own parallel `Perf` job (see `.github/workflows/checks.yml`), alongside
-  the `Integration` job, so it never blocks fast feedback from the main `Checks`
-  job. It does not fail the build today — it exists to make a regression
-  visible, not to gate merges.
+- **In CI** (`GITHUB_STEP_SUMMARY` set): the full size/time table is attached to
+  the job summary when the report is run. Checks no longer runs this report.
 
 ## Rust data codec acceptance
 
@@ -58,16 +54,16 @@ path (default `.tmp/data-codec-report.json`). Linux GNU `/usr/bin/time` and
 is portable:
 
 ```sh
-deno test --allow-read --allow-write --allow-run --allow-env=SystemRoot \
-  scripts/verify-rust-codec.test.ts
+UFFDA_ACCEPT_CLI=rust/target/release/uffda \
+UFFDA_ACCEPT_PROBE=rust/target/release/examples/codec_probe \
+  cargo test --locked --manifest-path rust/Cargo.toml --test standalone_acceptance -- --ignored
 ```
 
-The normal Deno suite skips that subprocess test without `--allow-run`; the six
-native CI runners always execute its shared verifier against their own optimized
-binaries. No Deno runtime, tools on PATH, source checkout, or external grammar
-tree is available to the relocated Rust child processes. The CLI still accepts
-**one** codec subject; multi-record stdin belongs to the public-library
-acceptance example, not a new CLI command.
+Checks and Release Binaries run that Rust test against their optimized binaries.
+No Deno runtime, tools on PATH, source checkout, or external grammar tree is
+available to the relocated Rust child processes. The CLI still accepts **one**
+codec subject; multi-record stdin belongs to the public-library acceptance
+example, not a new CLI command.
 
 ### Measurement boundaries
 

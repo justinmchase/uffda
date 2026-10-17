@@ -244,15 +244,11 @@ fn highlight_role_of(node: Gc<'_, PatternMatch<'_>>) -> Option<String> {
         return None;
     };
     let metadata = metadata.borrow();
-    let Some(value) = metadata.get("Highlight") else {
-        return None;
-    };
+    let value = metadata.get("Highlight")?;
     let RuntimeValue::Object(object) = value.raw() else {
         return None;
     };
-    let Some(role_value) = object.borrow().get("role") else {
-        return None;
-    };
+    let role_value = object.borrow().get("role")?;
     let RuntimeValue::String(role) = role_value.raw() else {
         return None;
     };
@@ -685,7 +681,6 @@ fn gap_fill_spans(source: &str) -> Vec<HighlightSpan> {
 }
 
 /// Test/helper: count Keyword-bearing non-empty spans in a finished runtime.
-
 #[cfg(test)]
 mod encode_tests {
 

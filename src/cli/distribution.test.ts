@@ -2,7 +2,6 @@ import { assertEquals } from "@std/assert";
 import {
   artifactFileName,
   checksumFileName,
-  CLI_COMPILE_PERMISSION_FLAGS,
   DENO_COMPILE_TARGETS,
   installScriptFileName,
   linuxTargetFromUnameArch,
@@ -84,12 +83,18 @@ Deno.test("cli.distribution target matrix and artifact naming", async (t) => {
   );
 });
 
-Deno.test("cli.distribution release workflow compiles with the CLI permissions", async () => {
+Deno.test("cli.distribution release compile job builds the Rust CLI", async () => {
   const workflow = await Deno.readTextFile(
     new URL("../../.github/workflows/release-binaries.yml", import.meta.url),
   );
-  const compile = workflow.slice(workflow.indexOf("deno compile"));
-  const flags = compile.slice(0, compile.indexOf("./src/cli/main.ts"))
-    .match(/--allow-[^\s\\]+/g);
-  assertEquals(flags, [...CLI_COMPILE_PERMISSION_FLAGS]);
+  const compile = workflow.slice(
+    workflow.indexOf("\n  compile-rust:"),
+    workflow.indexOf("\n  attach:"),
+  );
+  assertEquals(compile.includes("uffdar"), false);
+  assertEquals(compile.includes("--bin uffda"), true);
+  assertEquals(
+    compile.includes("name: uffda-${{ matrix.target }}"),
+    true,
+  );
 });

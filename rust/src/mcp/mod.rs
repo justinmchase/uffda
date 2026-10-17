@@ -24,8 +24,8 @@ pub fn run_stdio() -> io::Result<()> {
     let mut stdout = io::stdout().lock();
     let mut sessions = SessionManager::new();
     let mut displays = DisplayManager::new();
-    let mut lines = stdin.lock().lines();
-    while let Some(line) = lines.next() {
+    let lines = stdin.lock().lines();
+    for line in lines {
         let line = line?;
         if line.trim().is_empty() {
             continue;
