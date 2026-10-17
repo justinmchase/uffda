@@ -10,8 +10,9 @@ spec_ref: ".agents/specifications/languages/cli/distribution-and-release.spec.md
 
 Preconditions:
 
-- The Publish workflow compiles `./bin` (`deno task compile:lang`) and publishes
-  the repository to JSR as `@justinmchase/uffda`.
+- The Publish workflow compiles `./bin` with the Rust `uffda compile` after
+  seeding the tree for the Rust build. JSR publish of `@justinmchase/uffda` is
+  paused.
 
 Expected behavior:
 

@@ -28,9 +28,10 @@ self-hosting while maintaining deterministic and diagnosable behavior.
   true.
 - The published JSR package MUST likewise ship the compiled `./bin` language
   ModuleDeclaration JSON alongside the `.ts` and `.uff` sources. The release
-  Publish workflow produces it with that release's own published CLI
-  (`deno task compile:lang`, unmodified per "Bin artifact integrity" below)
-  before `jsr publish`; CI verifies the package includes it.
+  Publish workflow seeds `./bin` with the published CLI so the Rust build can
+  embed it, then rewrites `./bin` with that Rust `uffda compile`. JSR publish is
+  paused until package publishing is driven by the Rust CLI. The workflow still
+  verifies the package file list with `jsr publish --dry-run`.
 - Runtime resolution of the built-in languages' `.uff` artifacts MUST address
   them by URL relative to the package root (`<packageRoot>/<outDir>/ast/...`),
   so they load wherever the package lives: a `file:` checkout or compiled-binary
