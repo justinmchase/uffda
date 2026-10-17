@@ -37,9 +37,11 @@ In scope:
   native-value hot path, distinct from text input that is parsed by the selected
   pattern or rule.
 
-MCP and LSP are deferred. Binary codec encoding, compiled-artifact format
-replacement during codec v1, executable constructors, arbitrary class
-reconstruction and function-source serialization are not part of codec v1.
+MCP and LSP are required before production cutover (Rust must serve `uffda mcp`
+and `uffda lsp` before becoming the installed `uffda`). Binary codec encoding,
+compiled-artifact format replacement during codec v1, executable constructors,
+arbitrary class reconstruction and function-source serialization are not part of
+codec v1.
 
 Both runtimes support logical `.uff` modules and direct `.json` declarations,
 including package exports resolving to either extension. `.uff` retains artifact
@@ -356,10 +358,10 @@ repeated subject options.
 Approved compatibility boundaries: native diagnostic prose and human-readable
 output are not byte-for-byte contracts; structured fields and nonempty
 explanations remain checked. Rust keeps the approved codec default output,
-preview help omits MCP/LSP, and build-specific versions differ. Help/version
-precedence matches the reference even when those tokens appear as option values.
-Environment cwd precedence and parse/config/subject failure ordering are
-covered.
+preview help now lists MCP/LSP (still expanding toward Deno parity), and
+build-specific versions differ. Help/version precedence matches the reference
+even when those tokens appear as option values. Environment cwd precedence and
+parse/config/subject failure ordering are covered.
 
 Reliability observation still requiring cutover investigation: one debug process
 run panicked in a native `ExactSizeIterator` length assertion during module
@@ -824,10 +826,11 @@ Global/process checks include help/version, explicit mode conflict diagnostics,
 compile fallback only when arguments exist, successful root usage with no
 arguments, cwd/config resolution, JSON error code/message/phase, and exit codes
 0 (success), 2 (usage), 3 (configuration), and 70 (internal), plus
-command-specific failure exits. MCP/LSP remain deferred. All six commands now
-have relocated-binary coverage outside the checkout with an empty `PATH`, and 29
-validation diagnostic cases are shared with the reference. Exhaustive
-per-command flag combinations and successful-output comparisons remain open.
+command-specific failure exits. MCP session/tool surface is landed for cutover;
+LSP is still expanding. All six commands now have relocated-binary coverage
+outside the checkout with an empty `PATH`, and 29 validation diagnostic cases
+are shared with the reference. Exhaustive per-command flag combinations and
+successful-output comparisons remain open.
 
 ### Coordinator integration checkpoint
 

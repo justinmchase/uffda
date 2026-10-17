@@ -1,10 +1,13 @@
 # Rust Uffda runtime migration
 
 This crate is the side-by-side Rust runtime and CLI described in the
-[migration plan](../docs/rust-migration.md). The six in-scope commands
-(`compile`, `parse`, `exec`, `match`, `run`, `fmt`) are implemented. Production
-cutover still ships Deno `uffda` via the installer; release previews attach as
-`uffdar-*`.
+[migration plan](../docs/rust-migration.md). The six batch commands (`compile`,
+`parse`, `exec`, `match`, `run`, `fmt`) are implemented, plus stdio `mcp` /
+`lsp` servers (MCP: version, parse/match/compile, highlight, session
+open/load/list_modules/eval/describe/query/patch/walk/close, and loopback
+display open/render; LSP: initialize, document sync, `.uff` parse diagnostics).
+Richer LSP features are still landing. Production cutover still ships Deno
+`uffda` via the installer; release previews attach as `uffdar-*`.
 
 ## Running the CLI
 

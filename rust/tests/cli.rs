@@ -1160,3 +1160,56 @@ fn standalone_match_recovery_replays_and_keeps_values_spans_and_all_diagnostics(
         serde_json::json!({"start":0,"end":1})
     );
 }
+
+#[test]
+// req:mcp-server-001 req:mcp-server-003
+fn mcp_stdio_initialize_and_version_tool() {
+    let input = concat!(
+        r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"0"}}}"#,
+        "\n",
+        r#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#,
+        "\n",
+        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"uffda_version","arguments":{}}}"#,
+        "\n",
+    );
+    let result = invoke(&["mcp"], input);
+    assert!(result.status.success(), "{}", text(&result.stderr));
+    let stdout = text(&result.stdout);
+    let mut responses = stdout.lines().filter(|line| !line.is_empty());
+    let init: serde_json::Value = serde_json::from_str(responses.next().unwrap()).unwrap();
+    assert_eq!(init["result"]["serverInfo"]["name"], "uffda");
+    let call: serde_json::Value = serde_json::from_str(responses.next().unwrap()).unwrap();
+    assert_eq!(call["id"], 2);
+    assert_eq!(
+        call["result"]["content"][0]["text"].as_str().unwrap(),
+        env!("CARGO_PKG_VERSION")
+    );
+}
+
+#[test]
+// req:cli-language-server-001
+fn lsp_stdio_initialize_handshake() {
+    let init = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": {
+            "processId": null,
+            "rootUri": null,
+            "capabilities": {}
+        }
+    });
+    let body = init.to_string();
+    let input = format!("Content-Length: {}\r\n\r\n{body}", body.len());
+    let result = invoke(&["lsp"], &input);
+    assert!(result.status.success(), "{}", text(&result.stderr));
+    let stdout = text(&result.stdout);
+    assert!(stdout.contains("Content-Length: "));
+    let (_, payload) = stdout.split_once("\r\n\r\n").expect("LSP framing");
+    let response: serde_json::Value = serde_json::from_str(payload.trim_end()).unwrap();
+    assert_eq!(response["result"]["serverInfo"]["name"], "uffda");
+    assert_eq!(
+        response["result"]["capabilities"]["textDocumentSync"]["change"],
+        1
+    );
+}

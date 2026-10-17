@@ -802,6 +802,59 @@ impl Languages {
             diagnostics: outcome.diagnostics,
         })
     }
+
+    /// Parse `source` and classify gap-free highlight spans from rule metadata
+    /// (`Highlight` / `Keyword`), matching the MCP/LSP highlighting contract.
+    pub fn highlight(
+        &mut self,
+        source: &str,
+        language: Language,
+    ) -> Result<serde_json::Value, LanguageError> {
+        let (path, entry) = language.entry();
+        let url = self.root.join(path).expect("static language path");
+        let graph = self.graph(&url)?;
+        let member = graph
+            .export(&url, Some(entry))
+            .or_else(|| graph.resolve(&url, entry))
+            .ok_or_else(|| LanguageError {
+                phase: "parse",
+                module_url: url.to_string(),
+                message: format!("Unknown rule {entry}"),
+                diagnostics: vec![],
+            })?;
+        let mut runtime = Runtime::for_member(
+            graph,
+            &member,
+            Value::String(source.into()),
+            InputMode::Scalar,
+        )
+        .map_err(|failure| LanguageError {
+            phase: "parse",
+            module_url: url.to_string(),
+            message: failure.to_string(),
+            diagnostics: vec![],
+        })?;
+        runtime.run().map_err(|failure| LanguageError {
+            phase: "parse",
+            module_url: url.to_string(),
+            message: failure.to_string(),
+            diagnostics: vec![],
+        })?;
+        let diagnostics = diagnostics::collect(
+            &runtime,
+            source,
+            "CLI_STREAM_PARSE_RECOVERED",
+            "CLI_STREAM_PARSE_FAILURE",
+            "parse",
+        )
+        .map_err(|failure| LanguageError {
+            phase: "parse",
+            module_url: url.to_string(),
+            message: failure.to_string(),
+            diagnostics: vec![],
+        })?;
+        Ok(crate::highlight::from_runtime(&runtime, source, &diagnostics))
+    }
     pub fn compile(&mut self, syntax: Value) -> Result<Value, LanguageError> {
         self.execute(
             "src/lang/uffda/runtime.compiler.uff",
