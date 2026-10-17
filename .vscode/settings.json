@@ -1,4 +1,11 @@
 {
   "deno.enable": true,
-  "deno.unstable": true
+  "deno.unstable": true,
+  "uffda.lsp.serverPath": "uffdar",
+  "uffda.lsp.serverArgs": [
+    "lsp"
+  ],
+  "uffda.mcp.serverArgs": [
+    "mcp"
+  ]
 }

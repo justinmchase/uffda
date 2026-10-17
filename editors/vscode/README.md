@@ -35,14 +35,14 @@ Rust, reinstall/copy the new binary as `uffdar` and restart the MCP connection.
 
 | Setting | Description |
 | --- | --- |
-| `uffda.lsp.serverPath` | Overrides the executable used for both the language server and the MCP server, bypassing `PATH` resolution and download entirely. Point this at **`uffdar`** (or a freshly built `rust/target/release/uffda`). |
+| `uffda.lsp.serverPath` | Overrides the executable used for both the language server and the MCP server, bypassing `PATH` resolution and download entirely. Point this at **`uffdar`** (or a freshly built `rust/target/release/uffda`). Resource-scoped: works in folder `.vscode/settings.json` and multi-root workspaces. |
 | `uffda.lsp.serverArgs` | Arguments passed to `uffda.lsp.serverPath` when launching the language server (default: `["lsp"]`). |
 | `uffda.mcp.serverArgs` | Arguments passed to `uffda.lsp.serverPath` when launching the MCP server (default: `["mcp"]`). |
 
 When `uffda.lsp.serverPath` is unset, the extension resolves a binary
-automatically: prefer a compatible version on `PATH`, otherwise download and
-cache one. If neither succeeds, the extension surfaces a clear error instead of
-silently disabling itself.
+automatically: prefer **`uffdar`** on `PATH`, then `uffda`, otherwise download
+and cache a release binary. If neither succeeds, the extension surfaces a clear
+error instead of silently disabling itself.
 
 Recommended local override for this checkout:
 

@@ -45,8 +45,25 @@ export async function deactivate(): Promise<void> {
   }
 }
 
+/**
+ * Resource URI used when reading `uffda.*` settings (resource-scoped so
+ * multi-root folder `.vscode/settings.json` applies). Prefer a workspace
+ * folder named / ending in `uffda`, else the first folder, else the active
+ * editor.
+ */
+function uffdaSettingsResource(): vscode.Uri | undefined {
+  const folders = vscode.workspace.workspaceFolders ?? [];
+  const named = folders.find((folder) => {
+    const base = path.basename(folder.uri.fsPath);
+    return folder.name === "uffda" || base === "uffda";
+  });
+  if (named) return named.uri;
+  if (folders[0]) return folders[0].uri;
+  return vscode.window.activeTextEditor?.document.uri;
+}
+
 function currentOverrides() {
-  const config = vscode.workspace.getConfiguration("uffda");
+  const config = vscode.workspace.getConfiguration("uffda", uffdaSettingsResource());
   const serverPathOverride = config.get<string>("lsp.serverPath")?.trim() || undefined;
   const lspArgsOverride = config.get<string[]>("lsp.serverArgs") ?? [];
   const mcpArgsOverride = config.get<string[]>("mcp.serverArgs") ?? [];

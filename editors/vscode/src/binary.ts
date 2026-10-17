@@ -43,9 +43,14 @@ export async function resolveUffdaServer(opts: ResolveOptions): Promise<Resolved
   }
 
   const minVersion = opts.minVersion ?? MIN_UFFDA_VERSION;
-  const pathVersion = await tryGetPathVersion();
-  if (pathVersion && satisfiesMinVersion(pathVersion, minVersion)) {
-    return { command: "uffda", args: opts.defaultArgs, source: "path" };
+  // Prefer the Rust preview (`uffdar`) when present, then Deno `uffda`.
+  const pathBinary = await tryGetPathBinary(minVersion);
+  if (pathBinary) {
+    return {
+      command: pathBinary.command,
+      args: opts.defaultArgs,
+      source: "path",
+    };
   }
 
   try {
@@ -57,24 +62,30 @@ export async function resolveUffdaServer(opts: ResolveOptions): Promise<Resolved
           downloadedVersion ?? "unknown"
         }, which does not satisfy the minimum required version ${minVersion}. ` +
           `The latest published release may lag behind this extension's requirement; ` +
-          `install a compatible uffda on PATH or use the uffda.lsp.serverPath override.`,
+          `install a compatible uffdar/uffda on PATH or use the uffda.lsp.serverPath override.`,
       );
     }
     return { command: binaryPath, args: opts.defaultArgs, source: "download" };
   } catch (err) {
     if (err instanceof ResolveServerError) throw err;
     const reason = err instanceof Error ? err.message : String(err);
-    const pathNote = pathVersion
-      ? `A uffda binary was found on PATH (version ${pathVersion}) but does not satisfy the minimum required version ${minVersion}.`
-      : `No uffda binary was found on PATH.`;
     throw new ResolveServerError(
-      `${pathNote} Automatic download also failed: ${reason}`,
+      `No compatible uffdar/uffda binary was found on PATH. Automatic download also failed: ${reason}`,
     );
   }
 }
 
-function tryGetPathVersion(): Promise<string | undefined> {
-  return tryGetVersion("uffda");
+/** Prefer `uffdar` (Rust) over `uffda` (Deno) when both satisfy the minimum. */
+async function tryGetPathBinary(
+  minVersion: string,
+): Promise<{ command: string; version: string } | undefined> {
+  for (const command of ["uffdar", "uffda"]) {
+    const version = await tryGetVersion(command);
+    if (version && satisfiesMinVersion(version, minVersion)) {
+      return { command, version };
+    }
+  }
+  return undefined;
 }
 
 function tryGetVersion(command: string): Promise<string | undefined> {
