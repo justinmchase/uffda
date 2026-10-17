@@ -16,6 +16,7 @@ jobs:
 
   rust:
     name: Rust
+    needs: rust-language-bin
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -28,6 +29,12 @@ jobs:
 
       - name: Format
         run: cargo fmt --manifest-path rust/Cargo.toml --all --check
+
+      - name: Compiled languages
+        uses: actions/download-artifact@v8
+        with:
+          name: rust-language-bin
+          path: bin
 
       - name: Lint
         run: cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets --locked -- -D warnings

@@ -72,6 +72,5 @@ Postconditions:
   and Rust global tests.
 - Tests: `src/runtime/globals/*.test.ts`, `test/rust/globals-fixtures.test.ts`,
   and `rust/src/globals/tests.rs`. Identity, provenance, and native JSON
-  acceptance for the ported globals are in `rust/src/globals/tests.rs`. `symbol`
-  and `slice` remain in `src/runtime/globals/symbol.test.ts` and
-  `src/runtime/globals/slice.test.ts`.
+  acceptance for the ported globals, including `slice`, are in
+  `rust/src/globals/tests.rs`.
