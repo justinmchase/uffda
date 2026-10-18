@@ -1,5 +1,8 @@
 # Publishing libraries to crates.io
 
+Developed with substantial assistance from [Cursor](https://cursor.com); see the
+[repository acknowledgments](https://github.com/justinmchase/uffda#acknowledgments).
+
 Product CLI binaries ship on **GitHub Releases**. These crates ship on
 **crates.io**:
 

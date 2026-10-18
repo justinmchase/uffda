@@ -8,6 +8,7 @@ description = "Garbage-collected heap abstraction for the Uffda runtime"
 repository = "https://github.com/justinmchase/uffda"
 homepage = "https://github.com/justinmchase/uffda"
 documentation = "https://docs.rs/uffda-heap"
+readme = "README.md"
 keywords = ["uffda", "gc", "heap"]
 categories = ["memory-management"]
 

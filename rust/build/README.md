@@ -3,6 +3,9 @@
 Build-script helpers for embedding **unmodified** Uffda ModuleDeclaration JSON
 artifacts into a Rust binary or library.
 
+Developed with substantial assistance from [Cursor](https://cursor.com); see the
+[repository acknowledgments](https://github.com/justinmchase/uffda#acknowledgments).
+
 This crate never parses `.uff`, never re-lowers declarations, and never rewrites
 artifact bytes. Compile grammars with a published `uffda compile`, then point a
 `build.rs` at the resulting `*.uffda.ast.json` tree.

@@ -9,6 +9,9 @@ display open/render; LSP: initialize, document sync, `.uff` parse diagnostics).
 Richer LSP features are still landing. Release `uffda-*` assets and the Linux
 installer are this Rust CLI.
 
+Developed with substantial assistance from [Cursor](https://cursor.com); see the
+[repository acknowledgments](https://github.com/justinmchase/uffda#acknowledgments).
+
 ## Running the CLI
 
 From the repository root with a normal Rust toolchain on `PATH`:

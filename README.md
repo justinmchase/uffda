@@ -287,6 +287,13 @@ not automatically label PRs.
 3. Publish the draft. That becomes the latest install target and triggers JSR
    publish.
 
+## Acknowledgments
+
+Large parts of the Rust runtime, CLI, and test migration were developed with
+[Cursor](https://cursor.com) (AI-assisted editing and agents), under human
+review and direction. Commit and PR history remain the source of truth for
+individual changes.
+
 ## References
 
 Based on ideas from OMeta
