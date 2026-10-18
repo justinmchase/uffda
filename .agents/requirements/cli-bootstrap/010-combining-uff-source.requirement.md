@@ -26,3 +26,7 @@ Postconditions:
 - Dependents import `./combining.uff`; the TypeScript twin is gone.
 - Runtime loads Combining from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).
+
+## Test plan
+
+- `rust/src/lang_tests/common.rs`

@@ -43,3 +43,7 @@ Postconditions:
 - Runtime loads them from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).
 - Conversion-plan blocker B4 is closed for these four modules.
+
+## Test plan
+
+- `rust/src/lang_tests/pattern.rs`

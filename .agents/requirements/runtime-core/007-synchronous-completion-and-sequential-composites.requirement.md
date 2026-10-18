@@ -38,3 +38,7 @@ Postconditions:
 
 - Synchronous completion is an optimization only: callers that await results
   observe identical outcomes either way.
+
+## Test plan
+
+- `rust/src/evaluate/tests.rs`, `rust/src/globals/tests.rs`, `rust/src/runtime/module_ports.rs`, `rust/src/runtime/scope_ports.rs`, `rust/src/runtime/tests.rs`

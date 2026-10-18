@@ -23,6 +23,7 @@ pub mod project;
 pub mod provenance;
 pub mod resolver;
 pub mod runtime;
+mod selective_memo;
 pub mod source_paths;
 pub mod text;
 pub mod value;
@@ -32,6 +33,8 @@ mod gc_tests;
 pub mod json;
 #[cfg(test)]
 mod lang_tests;
+#[cfg(test)]
+mod traceability_tests;
 
 #[cfg(test)]
 mod string_acceptance {

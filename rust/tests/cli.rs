@@ -1202,10 +1202,19 @@ fn lsp_stdio_initialize_handshake() {
             "capabilities": {}
         }
     });
-    let body = init.to_string();
-    let input = format!("Content-Length: {}\r\n\r\n{body}", body.len());
+    let shutdown = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "shutdown",
+        "params": null
+    });
+    let mut input = String::new();
+    for message in [&init, &shutdown] {
+        let body = message.to_string();
+        input.push_str(&format!("Content-Length: {}\r\n\r\n{body}", body.len()));
+    }
     let result = invoke(&["lsp"], &input);
-    assert!(result.status.success(), "{}", text(&result.stderr));
+    assert_eq!(result.status.code(), Some(0), "{}", text(&result.stderr));
     let stdout = text(&result.stdout);
     assert!(stdout.contains("Content-Length: "));
     let (_, payload) = stdout.split_once("\r\n\r\n").expect("LSP framing");
@@ -1215,4 +1224,149 @@ fn lsp_stdio_initialize_handshake() {
         response["result"]["capabilities"]["textDocumentSync"]["change"],
         1
     );
+}
+
+fn lsp_frame(message: &serde_json::Value) -> Vec<u8> {
+    let body = message.to_string();
+    let mut framed = format!("Content-Length: {}\r\n\r\n", body.len()).into_bytes();
+    framed.extend_from_slice(body.as_bytes());
+    framed
+}
+
+fn lsp_read_response(
+    reader: &mut impl std::io::Read,
+    buffer: &mut Vec<u8>,
+    id: u64,
+) -> serde_json::Value {
+    loop {
+        if let Some((consumed, message)) = lsp_try_parse(buffer) {
+            buffer.drain(..consumed);
+            if message.get("id").and_then(serde_json::Value::as_u64) == Some(id) {
+                return message;
+            }
+            continue;
+        }
+        let mut chunk = [0u8; 4096];
+        let count = std::io::Read::read(reader, &mut chunk).expect("read lsp stdout");
+        assert!(count > 0, "the server closed standard output");
+        buffer.extend_from_slice(&chunk[..count]);
+    }
+}
+
+fn lsp_try_parse(buffer: &[u8]) -> Option<(usize, serde_json::Value)> {
+    let text = std::str::from_utf8(buffer).ok()?;
+    let header_end = text.find("\r\n\r\n")?;
+    let length: usize = text[..header_end]
+        .lines()
+        .find_map(|line| line.strip_prefix("Content-Length: "))
+        .and_then(|value| value.trim().parse().ok())?;
+    let start = header_end + 4;
+    if buffer.len() < start + length {
+        return None;
+    }
+    let message = serde_json::from_slice(&buffer[start..start + length]).ok()?;
+    Some((start + length, message))
+}
+
+#[test]
+// req:cli-language-server-010
+fn remport_lsp_server_outlives_parent_check_and_exits_zero_after_shutdown() {
+    use std::io::Write;
+    use std::time::{Duration, Instant};
+
+    let directory = TestDirectory::outside_workspace();
+    let mut child = Command::new(env!("CARGO_BIN_EXE_uffda"))
+        .arg("lsp")
+        .current_dir(&directory.0)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("spawn lsp");
+    let mut stdin = child.stdin.take().expect("stdin");
+    let mut stdout = child.stdout.take().expect("stdout");
+    let mut buffer = Vec::new();
+
+    stdin
+        .write_all(&lsp_frame(&serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {
+                "processId": std::process::id(),
+                "rootUri": format!("file://{}", directory.0.display()),
+                "capabilities": {}
+            }
+        })))
+        .unwrap();
+    stdin.flush().unwrap();
+    let _ = lsp_read_response(&mut stdout, &mut buffer, 1);
+    stdin
+        .write_all(&lsp_frame(&serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "initialized",
+            "params": {}
+        })))
+        .unwrap();
+    stdin.flush().unwrap();
+
+    let deadline = Instant::now() + Duration::from_secs(4);
+    while Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(50));
+        match child.try_wait().expect("poll lsp") {
+            Some(status) => panic!("server exited before parent-check interval: {status}"),
+            None => {}
+        }
+    }
+
+    stdin
+        .write_all(&lsp_frame(&serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "shutdown",
+            "params": null
+        })))
+        .unwrap();
+    stdin.flush().unwrap();
+    let shutdown = lsp_read_response(&mut stdout, &mut buffer, 2);
+    assert_eq!(shutdown["result"], serde_json::Value::Null);
+    drop(stdin);
+    let status = child.wait().expect("wait lsp");
+    assert_eq!(status.code(), Some(0));
+}
+
+#[test]
+// req:cli-language-server-010
+fn remport_lsp_closing_stdin_without_shutdown_exits_one() {
+    use std::io::Write;
+
+    let directory = TestDirectory::outside_workspace();
+    let mut child = Command::new(env!("CARGO_BIN_EXE_uffda"))
+        .arg("lsp")
+        .current_dir(&directory.0)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("spawn lsp");
+    let mut stdin = child.stdin.take().expect("stdin");
+    let mut stdout = child.stdout.take().expect("stdout");
+    let mut buffer = Vec::new();
+    stdin
+        .write_all(&lsp_frame(&serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {
+                "processId": std::process::id(),
+                "rootUri": null,
+                "capabilities": {}
+            }
+        })))
+        .unwrap();
+    stdin.flush().unwrap();
+    let _ = lsp_read_response(&mut stdout, &mut buffer, 1);
+    drop(stdin);
+    let status = child.wait().expect("wait lsp");
+    assert_eq!(status.code(), Some(1));
 }

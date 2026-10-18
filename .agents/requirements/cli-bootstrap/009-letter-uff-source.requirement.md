@@ -26,3 +26,7 @@ Postconditions:
 - Dependents import `./letter.uff` (or equivalent); the TypeScript twin is gone.
 - Runtime loads Letter from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).
+
+## Test plan
+
+- `rust/src/lang_tests/common.rs`

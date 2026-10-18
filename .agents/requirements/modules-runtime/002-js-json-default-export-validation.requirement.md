@@ -28,3 +28,7 @@ Postconditions:
 
 - Invalid declaration modules do not produce partially successful resolution
   results.
+
+## Test plan
+
+- `rust/src/resolver.rs`, `rust/src/resolver/graph/tests.rs`, `rust/src/resolver/packages/tests.rs`, `rust/src/resolver/ported_tests.rs`, `rust/src/runtime/module_ports.rs`

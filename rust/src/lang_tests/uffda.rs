@@ -1480,3 +1480,301 @@ fn uffda_lang_entry_is_uffda_lang() {
     assert!(compiled.export(&url, Some("UffdaLang")).is_some());
     assert_eq!(parse_value(""), json!({"kind":"module","declarations":[]}));
 }
+
+#[test]
+// req:projection-002
+fn projection_dlr_whole_body_rule_projection_applies_each_growth_step() {
+    let source = r#"export Member Primary Direct;
+rule Member = e:Primary "." n:any -> { kind: "member", expression: e, name: n };
+rule Primary = Member | "a";
+rule Direct = e:(Direct | "a") "." n:any -> { kind: "member", expression: e, name: n };"#;
+    let nested = json!({
+        "kind": "member",
+        "expression": {"kind": "member", "expression": "a", "name": "b"},
+        "name": "c"
+    });
+    for entry in ["Member", "Primary", "Direct"] {
+        let mut runtime = execute_source(source, entry, json!("a.b.c"), InputMode::Iterable);
+        assert_eq!(kind_and_clean(&runtime).0, MatchKind::Ok, "{entry}");
+        assert_eq!(json_value(&mut runtime), nested, "{entry}");
+    }
+}
+
+#[test]
+// req:uffda-language-syntax-010
+fn uffda_rule_level_projection_coexists_with_nested_projection() {
+    let group_less = parse_value("rule P = any -> 1;");
+    let decl = &declarations(&group_less)[0];
+    assert_eq!(decl["kind"], "rule");
+    assert_eq!(decl["pattern"], json!({"kind": "any"}));
+    assert_eq!(decl["projection"], json!({"kind": "number", "value": 1}));
+
+    let nested = parse_value("rule M = (any -> 1) | fail;");
+    let decl = &declarations(&nested)[0];
+    assert_eq!(decl["kind"], "rule");
+    assert!(decl.get("projection").is_none());
+    assert_eq!(
+        decl["pattern"],
+        json!({
+            "kind": "or",
+            "patterns": [
+                {
+                    "kind": "projection",
+                    "pattern": {"kind": "any"},
+                    "expression": {"kind": "number", "value": 1}
+                },
+                {"kind": "fail"}
+            ]
+        })
+    );
+}
+
+#[test]
+// req:uffda-runtime-compilation-001
+fn runtime_compiler_is_an_executable_language_export() {
+    let source = include_str!("../../../src/lang/uffda/runtime.compiler.uff");
+    assert!(source.contains("export UffdaRuntimeCompiler"));
+    assert!(source.contains("rule UffdaRuntimeCompiler"));
+    assert_eq!(
+        compiled_json(json!({"kind": "module", "declarations": []})),
+        json!({
+            "imports": [],
+            "exports": [],
+            "rules": [],
+            "funcs": [],
+            "decorators": []
+        })
+    );
+}
+
+#[test]
+// req:uffda-runtime-compilation-002
+fn runtime_compiler_consumes_structured_syntax_trees_not_source_text() {
+    let source = include_str!("../../../src/lang/uffda/runtime.compiler.uff");
+    assert!(source.contains("kind: \"module\"") || source.contains("kind:\"module\""));
+    assert!(source.contains("[CompileDeclarations]") || source.contains("CompileDeclarations"));
+    let ok = compile_syntax(json!({"kind": "module", "declarations": []})).unwrap();
+    assert_eq!(kind_and_clean(&ok).0, MatchKind::Ok);
+    let rejected = try_run(
+        RUNTIME_COMPILER,
+        "UffdaRuntimeCompiler",
+        json!("{\"kind\":\"module\",\"declarations\":[]}"),
+        InputMode::Scalar,
+    );
+    match rejected {
+        Ok(runtime) => assert_ne!(kind_and_clean(&runtime).0, MatchKind::Ok),
+        Err(error) => assert!(
+            error.to_string().contains("object") || error.to_string().contains("String"),
+            "{error}"
+        ),
+    }
+}
+
+#[test]
+// req:uffda-runtime-compilation-003 req:uffda-runtime-compilation-004
+fn runtime_compiler_transforms_then_host_executes_independently() {
+    let compiled = compiled_json(json!({
+        "kind": "module",
+        "declarations": [
+            {"kind":"export","name":"Main"},
+            {
+                "kind": "rule",
+                "name": "Main",
+                "parameters": [],
+                "pattern": {"kind":"any"},
+                "attributes": []
+            }
+        ]
+    }));
+    assert_eq!(compiled["exports"], json!([{"kind":"rule","name":"Main"}]));
+    assert_eq!(compiled["rules"][0]["pattern"], json!({"kind":"any"}));
+    let mut runtime = execute_module(
+        &serde_json::to_string(&compiled).unwrap(),
+        "Main",
+        json!("value"),
+        InputMode::Scalar,
+    );
+    assert_eq!(kind_and_clean(&runtime).0, MatchKind::Ok);
+    assert_eq!(json_value(&mut runtime), json!("value"));
+}
+
+#[test]
+// req:uffda-runtime-compilation-005
+fn runtime_compiler_diagnostics_are_deterministic_for_unsupported_declarations() {
+    let syntax = json!({
+        "kind": "module",
+        "declarations": [{"kind":"unsupported"}]
+    });
+    let first = compile_syntax(syntax.clone()).unwrap();
+    let second = compile_syntax(syntax).unwrap();
+    assert_eq!(kind_and_clean(&first).0, MatchKind::Fail);
+    assert_eq!(kind_and_clean(&second).0, MatchKind::Fail);
+    let path = compile_declaration_path(&first);
+    assert_eq!(path.as_deref(), Some("[0].\"declarations\".[0].[0]"));
+    assert_eq!(path, compile_declaration_path(&second));
+}
+
+#[test]
+// req:uffda-runtime-compilation-007
+fn runtime_compiler_normalizes_reexport_import_kind() {
+    let source = include_str!("../../../src/lang/uffda/runtime.compiler.uff");
+    assert!(source.contains("NormalizeModule") || source.contains("FinalizeExports"));
+    assert_eq!(
+        compiled_json(json!({
+            "kind": "module",
+            "declarations": [
+                {"kind":"import","moduleUrl":"./digit.uff","names":["Digit"]},
+                {"kind":"export","name":"Digit"}
+            ]
+        })),
+        json!({
+            "imports": [{"kind":"module","moduleUrl":"./digit.uff","names":["Digit"]}],
+            "exports": [{"kind":"import","name":"Digit"}],
+            "rules": [],
+            "funcs": [],
+            "decorators": []
+        })
+    );
+}
+
+#[test]
+// req:uffda-runtime-compilation-006
+fn remport_source_authored_morse_decodes_the_full_repertoire() {
+    const MORSE: &str = include_str!("../../../examples/morse/morse.uff");
+    let repertoire = [
+        (".-", "A"),
+        ("-...", "B"),
+        ("-.-.", "C"),
+        ("-..", "D"),
+        (".", "E"),
+        ("..-.", "F"),
+        ("--.", "G"),
+        ("....", "H"),
+        ("..", "I"),
+        (".---", "J"),
+        ("-.-", "K"),
+        (".-..", "L"),
+        ("--", "M"),
+        ("-.", "N"),
+        ("---", "O"),
+        (".--.", "P"),
+        ("--.-", "Q"),
+        (".-.", "R"),
+        ("...", "S"),
+        ("-", "T"),
+        ("..-", "U"),
+        ("...-", "V"),
+        (".--", "W"),
+        ("-..-", "X"),
+        ("-.--", "Y"),
+        ("--..", "Z"),
+        ("-----", "0"),
+        (".----", "1"),
+        ("..---", "2"),
+        ("...--", "3"),
+        ("....-", "4"),
+        (".....", "5"),
+        ("-....", "6"),
+        ("--...", "7"),
+        ("---..", "8"),
+        ("----.", "9"),
+        (".-.-.-", "."),
+        ("--..--", ","),
+        ("..--..", "?"),
+        (".----.", "'"),
+        ("-.-.--", "!"),
+        ("-..-.", "/"),
+        ("-.--.", "("),
+        ("-.--.-", ")"),
+        (".-...", "&"),
+        ("---...", ":"),
+        ("-.-.-.", ";"),
+        ("-...-", "="),
+        (".-.-.", "+"),
+        ("-....-", "-"),
+        ("..--.-", "_"),
+        (".-..-.", "\""),
+        ("...-..-", "$"),
+        (".--.-.", "@"),
+    ];
+    let encoded = repertoire
+        .iter()
+        .map(|(code, _)| format!("{code}/"))
+        .collect::<String>();
+    let expected = repertoire
+        .iter()
+        .map(|(_, symbol)| *symbol)
+        .collect::<String>();
+    let mut runtime = execute_source(MORSE, "Morse", json!(encoded), InputMode::Iterable);
+    let (kind, clean) = kind_and_clean(&runtime);
+    assert_eq!(kind, MatchKind::Ok);
+    assert!(clean);
+    assert_eq!(json_value(&mut runtime), json!(expected));
+}
+
+#[test]
+// req:uffda-runtime-compilation-006
+fn remport_morse_compiles_and_roundtrips_moby_dick_excerpt() {
+    use crate::compile::{CompileRequest, compile};
+    use std::collections::BTreeMap;
+
+    const MORSE: &str = include_str!("../../../examples/morse/morse.uff");
+    const MOBY_DICK: &str = "I quickly followed suit, and descending into the\n\
+bar-room accosted the grinning landlord very pleasantly. I cherished no malice\n\
+towards him, though he had been skylarking with me not a little in the matter of\n\
+my bedfellow.\n\
+\n\
+However, a good laugh is a mighty good thing, and rather too scarce a good\n\
+thing; the more's the pity. So, if any one man, in his own proper person, afford\n\
+stuff for a good joke to anybody, let him not be backward, but let him\n\
+cheerfully allow himself to spend and be spent in that way. And the man that has\n\
+anything bountifully laughable about him, be sure there is more in that man than\n\
+you perhaps think for.";
+
+    let root = std::env::temp_dir().join(format!(
+        "uffda-morse-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    std::fs::create_dir_all(root.join("examples/morse")).unwrap();
+    std::fs::write(root.join("examples/morse/morse.uff"), MORSE).unwrap();
+    let out_dir = root.join("bin");
+    let paths = vec!["examples/morse/morse.uff".to_string()];
+    let imports = BTreeMap::new();
+    let mut languages = Languages::new().unwrap();
+    let result = compile(
+        CompileRequest {
+            cwd: &root,
+            root: &root,
+            out_dir: &out_dir,
+            paths: &paths,
+            imports: &imports,
+            overwrite: false,
+        },
+        &mut languages,
+    );
+    assert!(result.ok, "{}", serde_json::to_string(&result).unwrap());
+    assert!(result.failures.is_empty());
+    assert_eq!(result.successes.len(), 1);
+    let artifact = std::fs::read_to_string(&result.successes[0].output_path).unwrap();
+    let declaration: Json = serde_json::from_str(&artifact).unwrap();
+    assert!(declaration["rules"].as_array().is_some());
+
+    let source_text = MOBY_DICK
+        .split("\n\n")
+        .map(|paragraph| paragraph.replace('\n', " "))
+        .collect::<Vec<_>>()
+        .join("\n\n")
+        .to_uppercase();
+    let mut encoded = execute_module(&artifact, "Text", json!(source_text), InputMode::Iterable);
+    assert_eq!(kind_and_clean(&encoded).0, MatchKind::Ok);
+    let encoded_text = json_value(&mut encoded);
+    assert!(encoded_text.as_str().is_some());
+    let mut decoded = execute_module(&artifact, "Morse", encoded_text, InputMode::Iterable);
+    assert_eq!(kind_and_clean(&decoded).0, MatchKind::Ok);
+    assert_eq!(json_value(&mut decoded), json!(source_text));
+    let _ = std::fs::remove_dir_all(root);
+}

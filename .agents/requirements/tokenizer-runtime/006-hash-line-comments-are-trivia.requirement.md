@@ -30,3 +30,7 @@ Postconditions:
   (`TokenizerNoWhitespace`) observe the same semantic token sequence as if each
   comment were absent. Parsers that use the comment-preserving view receive
   comments only as comment token values (see tokenizer-runtime-010).
+
+## Test plan
+
+- `rust/src/lang_tests/common.rs`

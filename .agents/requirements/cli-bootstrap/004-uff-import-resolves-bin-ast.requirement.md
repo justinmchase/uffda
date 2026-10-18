@@ -42,3 +42,7 @@ Postconditions:
   compile-then-import is the supported workflow for `.uff` modules.
 - Checks SHOULD run a compile-then-import gate against workflow-produced `./bin`
   (see `cli-bootstrap-005`) before language modules switch imports.
+
+## Test plan
+
+- `rust/src/builtins.rs`, `rust/src/resolver.rs`, `rust/src/resolver/packages/tests.rs`, `rust/src/resolver/ported_tests.rs`, `rust/src/runtime/module_ports.rs`

@@ -40,3 +40,4 @@ Postconditions:
 - Successful DLR growth MUST NOT leak rule-local variable bindings into the
   caller scope, and MUST preserve caller bindings the same way non-LR rule
   success does.
+- Tests: `rust/src/runtime/module_ports.rs` (`modport_projection_dlr_*`), `rust/src/lang_tests/uffda.rs` (`projection_dlr_whole_body_rule_projection_applies_each_growth_step`).

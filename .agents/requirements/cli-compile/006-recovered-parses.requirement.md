@@ -33,5 +33,7 @@ Postconditions:
 ## Test plan
 
 `src/cli/stream.test.ts` ("cli.stream reports parse diagnostics"),
-`src/cli/compile.test.ts` (per-unit `diagnostics`), `src/cli/main.test.ts` ("a
-parse failure writes its diagnostics"), `src/cli/highlight.test.ts`.
+`rust/src/compile.rs` (`recovered_source_produces_ordered_diagnostics_without_an_artifact`),
+`rust/src/cli/command_ports.rs` (`compile_globs_are_recursive_ordered_and_keep_partial_failures`),
+`src/cli/main.test.ts` ("a parse failure writes its diagnostics"),
+`src/cli/highlight.test.ts`.

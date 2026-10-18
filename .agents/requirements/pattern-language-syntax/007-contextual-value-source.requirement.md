@@ -34,3 +34,7 @@ Expected behavior:
 Postconditions:
 
 - Value-source syntax projects only tagged ValueSource nodes.
+
+## Test plan
+
+- `rust/src/lang_tests/pattern.rs`

@@ -2054,3 +2054,300 @@ fn tokenizer_language_normalizes_newlines_before_semantic_tokens() {
     assert_eq!(value["source"]["text"], "a\nb");
     assert_eq!(value["tokens"], json!(["a", "\n", "b"]));
 }
+
+fn tokenizer_lang_tokens(source: &str) -> Json {
+    let declaration = json!({
+        "imports": [{"kind":"module","moduleUrl":"./tokenizer.lang.uff","names":["TokenizerLang"]}],
+        "exports": [{"kind":"rule","name":"Main"}],
+        "rules": [{
+            "name": "Main",
+            "parameters": [],
+            "pattern": {
+                "kind": "variable",
+                "name": "v",
+                "pattern": reference("TokenizerLang", json!([]))
+            },
+            "expression": {
+                "kind": "object",
+                "keys": [
+                    {
+                        "kind": "objectKey",
+                        "name": "source",
+                        "expression": {
+                            "kind": "member",
+                            "name": "source",
+                            "expression": {"kind": "reference", "name": "v"}
+                        }
+                    },
+                    {
+                        "kind": "objectKey",
+                        "name": "tokens",
+                        "expression": {
+                            "kind": "array",
+                            "expressions": [{
+                                "kind": "arraySpread",
+                                "expression": {
+                                    "kind": "member",
+                                    "name": "tokens",
+                                    "expression": {"kind": "reference", "name": "v"}
+                                }
+                            }]
+                        }
+                    }
+                ]
+            }
+        }],
+        "funcs": [],
+        "decorators": []
+    });
+    let (graph, url) = harness(
+        "src/lang/tokenizer/tokenizer.lang.harness.uff",
+        &declaration,
+    );
+    let mut runtime = run_graph(graph, &url, "Main", json!(source), InputMode::Scalar);
+    runtime.read(|execution| assert!(execution.is_clean()));
+    json_of(&mut runtime)
+}
+
+#[test]
+// req:tokenizer-runtime-001
+fn tokenizer_consumes_canonical_lf_source_documents() {
+    let value = tokenizer_lang_tokens("abc\r\nxyz\r123");
+    assert_eq!(value["source"]["text"], "abc\nxyz\n123");
+    assert_eq!(value["tokens"], json!(["abc", "\n", "xyz", "\n", "123"]));
+}
+
+#[test]
+// req:tokenizer-runtime-003 req:language-modules-negative-002
+fn tokenizer_rejects_non_tokenizable_number_items() {
+    let (graph, url) = builtin("src/lang/tokenizer/mod.uff");
+    let mut runtime = Runtime::with_mode(
+        graph,
+        &url,
+        Some("Tokenizer"),
+        json!([1]),
+        InputMode::Iterable,
+    )
+    .expect("runtime");
+    match runtime.run() {
+        Ok(()) => {
+            runtime.read(|execution| {
+                let result = execution.result().expect("result");
+                assert_ne!(
+                    result.kind,
+                    MatchKind::Ok,
+                    "non-string item must not tokenize"
+                );
+                if let Some(error) = execution.error() {
+                    let message = error.to_string();
+                    assert!(
+                        message.contains("string") || message.contains("number"),
+                        "{message}"
+                    );
+                }
+            });
+        }
+        Err(error) => {
+            let message = error.to_string();
+            assert!(
+                message.contains("string")
+                    || message.contains("number")
+                    || message.contains("type"),
+                "{message}"
+            );
+        }
+    }
+}
+
+#[test]
+// req:tokenizer-runtime-004
+fn tokenizer_keeps_string_interpolation_boundaries_tokenizable() {
+    let value = tokenizer_lang_tokens("\"hello ${user.name}\"");
+    assert_eq!(
+        value["tokens"],
+        json!(["\"", "hello", " ", "$", "{", "user", ".", "name", "}", "\""])
+    );
+}
+
+#[test]
+// req:tokenizer-runtime-005
+fn tokenizer_keeps_object_interpolation_delimiters_tokenizable() {
+    let value = tokenizer_lang_tokens("\"${{name:user.name}}\"");
+    assert_eq!(
+        value["tokens"],
+        json!([
+            "\"", "$", "{", "{", "name", ":", "user", ".", "name", "}", "}", "\""
+        ])
+    );
+}
+
+#[test]
+// req:tokenizer-runtime-010
+fn tokenizer_semantic_token_texts_omit_comments() {
+    let source = "a #x\n+";
+    let value = tokenizer_lang_tokens(source);
+    assert_eq!(value["tokens"], json!(["a", " ", "\n", "+"]));
+
+    let declaration = json!({
+        "imports": [{"kind":"module","moduleUrl":"./mod.uff","names":[
+            "TokenizerNoWhitespace",
+            "TokenizerNoWhitespaceWithComments"
+        ]}],
+        "exports": [
+            {"kind":"rule","name":"NoWs","default":true},
+            {"kind":"rule","name":"WithComments"}
+        ],
+        "rules": [{
+            "name": "NoWs",
+            "parameters": [],
+            "pattern": {
+                "kind": "variable",
+                "name": "t",
+                "pattern": reference("TokenizerNoWhitespace", json!([]))
+            },
+            "expression": spread_array("t")
+        }, {
+            "name": "WithComments",
+            "parameters": [],
+            "pattern": {
+                "kind": "variable",
+                "name": "t",
+                "pattern": reference("TokenizerNoWhitespaceWithComments", json!([]))
+            },
+            "expression": spread_array("t")
+        }],
+        "funcs": [],
+        "decorators": []
+    });
+    let (graph, url) = harness("src/lang/tokenizer/no-whitespace.harness.uff", &declaration);
+    let mut no_ws = run_graph(
+        Rc::clone(&graph),
+        &url,
+        "NoWs",
+        json!(source),
+        InputMode::Iterable,
+    );
+    assert_eq!(json_of(&mut no_ws), json!(["a", "+"]));
+    let mut with_comments = run_graph(
+        Rc::clone(&graph),
+        &url,
+        "WithComments",
+        json!(source),
+        InputMode::Iterable,
+    );
+    assert_eq!(
+        json_of(&mut with_comments),
+        json!(["a", {"kind":"lineEnd"}, {"kind":"comment","text":"#x"}, "+"])
+    );
+    let mut unmarked = run_graph(
+        graph,
+        &url,
+        "WithComments",
+        json!("a\n  #x\n+"),
+        InputMode::Iterable,
+    );
+    assert_eq!(
+        json_of(&mut unmarked),
+        json!(["a", {"kind":"comment","text":"#x"}, "+"])
+    );
+}
+
+#[test]
+// req:source-normalization-runtime-003
+fn expression_language_pipeline_normalizes_before_tokenization() {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../bin/ast/src/lang/expression/expression.lang.uffda.ast.json");
+    let ast: Json =
+        serde_json::from_str(&std::fs::read_to_string(&path).expect("expression.lang artifact"))
+            .unwrap();
+    let rule = ast["rules"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|rule| rule["name"] == "ExpressionLang")
+        .expect("ExpressionLang");
+    assert_eq!(rule["pattern"]["kind"], "pipeline");
+    let steps: Vec<String> = rule["pattern"]["steps"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|step| {
+            let resolved = if step["kind"] == "into" {
+                &step["pattern"]
+            } else {
+                step
+            };
+            if resolved["kind"] == "resolve" && resolved["targetKind"] == "reference" {
+                resolved["name"].as_str().unwrap_or("").to_string()
+            } else {
+                String::new()
+            }
+        })
+        .collect();
+    assert_eq!(
+        steps,
+        vec![
+            "Source".to_string(),
+            "TokenizerNoWhitespace".to_string(),
+            "ExpressionComplete".to_string()
+        ]
+    );
+}
+
+#[test]
+// req:source-normalization-runtime-004
+fn source_document_helpers_assemble_indexes() {
+    let mut runtime = run(
+        "src/lang/source/mod.uff",
+        "Source",
+        json!("a\nb"),
+        InputMode::Scalar,
+    );
+    let document = json_of(&mut runtime);
+    assert_eq!(document["text"], "a\nb");
+    assert_eq!(document["lineStarts"], json!([0, 2]));
+    assert_eq!(document["units"].as_array().map(Vec::len), Some(3));
+    let document_id = document["documentId"].as_str().expect("document id");
+    assert!(document_id.starts_with("source:3:"));
+    let values: Vec<_> = document["units"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|unit| unit["value"].as_str().unwrap().to_string())
+        .collect();
+    assert_eq!(values, ["a", "\n", "b"]);
+}
+
+#[test]
+// req:language-modules-negative-001
+fn source_normalization_rejects_non_string_entry() {
+    assert_fail(
+        "src/lang/source/mod.uff",
+        "Source",
+        json!(123),
+        InputMode::Scalar,
+    );
+}
+
+#[test]
+// req:language-modules-negative-003
+fn expression_language_fails_on_malformed_source() {
+    let incomplete = run(
+        "src/lang/expression/expression.lang.uff",
+        "ExpressionLang",
+        json!("(add 1"),
+        InputMode::Scalar,
+    );
+    incomplete.read(|execution| {
+        assert!(!execution.is_clean());
+    });
+    let trailing = run(
+        "src/lang/expression/expression.lang.uff",
+        "ExpressionLang",
+        json!("(add 1 2) trailing"),
+        InputMode::Scalar,
+    );
+    trailing.read(|execution| {
+        assert!(!execution.is_clean());
+    });
+}

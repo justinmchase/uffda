@@ -29,3 +29,7 @@ Expected behavior:
 Postconditions:
 
 - Author funcs are ordinary callables (not match-aware).
+
+## Test plan
+
+- `rust/src/languages.rs`, `rust/src/module.rs`, `rust/src/resolver/graph/tests.rs`

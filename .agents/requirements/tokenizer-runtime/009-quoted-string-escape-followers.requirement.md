@@ -23,3 +23,7 @@ Expected behavior:
 Postconditions:
 
 - Pattern string escape rules can match `\` plus a single character token.
+
+## Test plan
+
+- `rust/src/lang_tests/common.rs`

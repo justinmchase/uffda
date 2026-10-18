@@ -717,4 +717,53 @@ mod tests {
         assert!(summary.contains("**pattern:** `any`"), "{summary}");
         assert!(summary.contains("**attributes:**"), "{summary}");
     }
+
+    #[test]
+    // req:cli-language-server-006 req:runtime-core-006
+    fn describe_pattern_names_equals_resolves_and_variable_wrappers() {
+        assert_eq!(
+            describe_pattern(&json!({
+                "kind": "equal",
+                "value": {"kind": "literal", "value": ":"}
+            })),
+            "equal \":\""
+        );
+        assert_eq!(
+            describe_pattern(&json!({
+                "kind": "resolve",
+                "targetKind": "reference",
+                "name": "RuleParameterList",
+                "args": []
+            })),
+            "resolve RuleParameterList"
+        );
+        assert_eq!(
+            describe_pattern(&json!({
+                "kind": "variable",
+                "name": "t",
+                "pattern": {
+                    "kind": "resolve",
+                    "targetKind": "reference",
+                    "name": "ImportModuleSpecifier",
+                    "args": []
+                }
+            })),
+            "t: resolve ImportModuleSpecifier"
+        );
+        // Resolve names belong in describe_pattern / the rule stack, not as a
+        // bare expected value: short_pattern still names the target.
+        assert_eq!(
+            short_pattern(&json!({
+                "kind": "resolve",
+                "targetKind": "reference",
+                "name": "ImportModuleSpecifier",
+                "args": []
+            })),
+            "resolve ImportModuleSpecifier"
+        );
+        assert_eq!(
+            value_source_text(&json!({"kind": "literal", "value": ";"})),
+            "\";\""
+        );
+    }
 }

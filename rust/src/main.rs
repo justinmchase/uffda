@@ -19,11 +19,13 @@ fn main() {
             std::process::exit(0);
         }
         if has_command(&args, "lsp") {
-            if let Err(error) = lsp::run_stdio() {
-                eprintln!("uffda lsp: {error}");
-                std::process::exit(70);
+            match lsp::run_stdio() {
+                Ok(code) => std::process::exit(code),
+                Err(error) => {
+                    eprintln!("uffda lsp: {error}");
+                    std::process::exit(70);
+                }
             }
-            std::process::exit(0);
         }
     }
     let result = cli::run(&args, || {

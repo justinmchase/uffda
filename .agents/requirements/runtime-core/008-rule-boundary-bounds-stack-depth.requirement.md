@@ -24,3 +24,7 @@ Postconditions:
 
 - Host call stack depth is bounded by the patterns of a single rule body rather
   than by the nesting depth of the input.
+
+## Test plan
+
+- `rust/src/runtime/input.rs`, `rust/src/runtime/tests.rs`

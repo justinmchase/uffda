@@ -21,5 +21,4 @@ Expected behavior:
 
 Postconditions:
 
-- Tests:
-  `src/requirements/pattern-language-syntax/001-primitive-and-literal-patterns-project-ast-nodes.requirement.test.ts`.
+- Tests: `rust/src/lang_tests/pattern.rs`.

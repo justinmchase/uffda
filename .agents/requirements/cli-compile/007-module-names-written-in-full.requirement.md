@@ -30,5 +30,7 @@ Expected behavior:
 Postconditions:
 
 - Every import in an artifact names a relative path or a full `jsr:` specifier.
-- Tests: `src/cli/compile.test.ts`, `src/cli/main.test.ts`,
-  `src/cli/mcp.static_tools.test.ts`, `src/cli/ensure_import_artifacts.test.ts`.
+- Tests: `rust/src/cli/command_ports.rs`
+  (`compile_expands_import_map_names_and_rejects_undeclared_ones`),
+  `src/cli/main.test.ts`, `src/cli/mcp.static_tools.test.ts`,
+  `src/cli/ensure_import_artifacts.test.ts`.

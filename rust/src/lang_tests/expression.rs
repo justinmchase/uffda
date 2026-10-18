@@ -968,3 +968,278 @@ fn unary_expression() {
         string_value(json!(["abc"])),
     );
 }
+
+#[test]
+// req:expression-language-syntax-010
+fn expression_excludes_statement_style_branching_and_binding() {
+    assert_eq!(evaluated("(add 1 2)", &[]), json!(3));
+
+    for text in ["if(x){x}else{y}", "let x = 1", "x and y or z"] {
+        let mut runtime = source(LANG, "ExpressionLang", text);
+        let kind = runtime.read(|execution| execution.result().unwrap().kind);
+        if kind == MatchKind::Ok {
+            let expression: Expression = serde_json::from_value(projected(&mut runtime)).unwrap();
+            let mut evaluation = Evaluation::new(expression);
+            assert!(
+                evaluation.finish().is_err(),
+                "{text} must not evaluate as an ordinary expression"
+            );
+        } else {
+            assert_ne!(kind, MatchKind::Ok, "{text}");
+        }
+    }
+}
+
+#[test]
+// req:expression-language-syntax-011
+fn expression_native_callable_bridge_is_deterministic() {
+    assert_eq!(evaluated("(eq 1 1)", &[]), json!(true));
+    let left = evaluated("(eq 1 2)", &[]);
+    let right = evaluated("(eq 1 2)", &[]);
+    assert_eq!(left, right);
+    assert_eq!(left, json!(false));
+
+    let mut runtime = source(LANG, "ExpressionLang", "(n)");
+    assert_clean(&runtime, "(n)");
+    let expression: Expression = serde_json::from_value(projected(&mut runtime)).unwrap();
+    let mut evaluation = Evaluation::with_environment(expression, |mc| {
+        Environment::new(mc, None, vec![("n".into(), Value::Number(7.0))])
+    });
+    assert!(evaluation.finish().is_err());
+}
+
+fn wrap_syntax(kind: &str, inner: &str) -> String {
+    match kind {
+        "array" => format!("[{inner}]"),
+        "object" => format!("{{value: {inner}}}"),
+        "string" => format!("\"{{{inner}}}\""),
+        _ => unreachable!(),
+    }
+}
+
+fn wrap_ast(kind: &str, inner: Json) -> Json {
+    match kind {
+        "array" => array(json!([array_element(inner)])),
+        "object" => object(json!([object_key("value", inner)])),
+        "string" => string_value(json!([inner])),
+        _ => unreachable!(),
+    }
+}
+
+fn wrap_value(kind: &str, inner: Json) -> Json {
+    match kind {
+        "array" => json!([inner]),
+        "object" => json!({"value": inner}),
+        "string" => Json::String(match &inner {
+            Json::Null => "null".into(),
+            Json::Bool(value) => value.to_string(),
+            Json::Number(value) => value.to_string(),
+            Json::String(value) => value.clone(),
+            Json::Array(_) | Json::Object(_) => String::new(),
+        }),
+        _ => unreachable!(),
+    }
+}
+
+fn assert_wrapped_undefined(expr1: &str, expr2: &str, value: Value<'_>) {
+    let inner = match expr1 {
+        "array" => {
+            let Value::Array(items) = value.raw() else {
+                panic!("expected array wrapper");
+            };
+            items.borrow()[0]
+        }
+        "object" => {
+            let Value::Object(object) = value.raw() else {
+                panic!("expected object wrapper");
+            };
+            object.borrow().get("value").unwrap()
+        }
+        "string" => {
+            assert_eq!(crate::coercion::string_text(value).unwrap(), "undefined");
+            return;
+        }
+        _ => unreachable!(),
+    };
+    match expr2 {
+        "array" => {
+            let Value::Array(items) = inner.raw() else {
+                panic!("expected inner array");
+            };
+            assert!(matches!(items.borrow()[0].raw(), Value::Undefined));
+        }
+        "object" => {
+            let Value::Object(object) = inner.raw() else {
+                panic!("expected inner object");
+            };
+            assert!(matches!(
+                object.borrow().get("value").unwrap().raw(),
+                Value::Undefined
+            ));
+        }
+        "string" => {
+            assert_eq!(crate::coercion::string_text(inner).unwrap(), "undefined");
+        }
+        _ => unreachable!(),
+    }
+}
+
+fn leaf_cases() -> Vec<(&'static str, &'static str, Json, Json)> {
+    vec![
+        ("array", "[]", array(json!([])), json!([])),
+        ("object", "{}", object(json!([])), json!({})),
+        ("number", "0", number(0), json!(0)),
+        (
+            "string-literal",
+            "\"text-value\"",
+            string_value(json!(["text-value"])),
+            json!("text-value"),
+        ),
+        (
+            "reference",
+            "ref",
+            reference("ref"),
+            json!({"from": "reference"}),
+        ),
+        ("boolean", "true", boolean(true), json!(true)),
+        (
+            "null",
+            "null",
+            json!({"kind": "value", "value": null}),
+            json!(null),
+        ),
+        (
+            "undefined",
+            "undefined",
+            json!({"kind": "value"}),
+            Json::Null, // serialized undefined becomes null-ish; checked specially
+        ),
+    ]
+}
+
+#[test]
+// req:expressions-runtime-009
+fn expression_three_level_combinatorics_evaluate() {
+    let wrappers = ["array", "object", "string"];
+    let leaves = leaf_cases();
+    let bindings = [("ref", json!({"from": "reference"}))];
+    let mut cases = 0usize;
+    for expr1 in wrappers {
+        for expr2 in wrappers {
+            for (leaf_name, leaf_syntax, leaf_ast, leaf_value) in &leaves {
+                cases += 1;
+                let syntax = wrap_syntax(expr1, &wrap_syntax(expr2, leaf_syntax));
+                let expected_ast = wrap_ast(expr1, wrap_ast(expr2, leaf_ast.clone()));
+                let conversion_error = (expr1 == "string" && expr2 != "string")
+                    || (expr2 == "string"
+                        && matches!(*leaf_name, "array" | "object" | "reference"));
+                let mut runtime = source(LANG, "ExpressionLang", &syntax);
+                assert_clean(&runtime, &syntax);
+                assert_eq!(projected(&mut runtime), expected_ast, "{syntax}");
+                if conversion_error {
+                    let expression: Expression =
+                        serde_json::from_value(expected_ast.clone()).unwrap();
+                    let owned = bindings.to_vec();
+                    let mut evaluation = Evaluation::with_environment(expression, move |mc| {
+                        let values = owned
+                            .iter()
+                            .map(|(name, value)| {
+                                (Rc::<str>::from(*name), literal_value(mc, value.clone()))
+                            })
+                            .collect();
+                        Environment::new(mc, None, values)
+                    });
+                    let err = evaluation.finish().expect_err(&syntax);
+                    let message = err.to_string();
+                    assert!(
+                        message.to_lowercase().contains("composite")
+                            || message.to_lowercase().contains("string"),
+                        "{syntax}: {message}"
+                    );
+                } else if *leaf_name == "undefined" {
+                    let (evaluation, rooted) = evaluate(&syntax, &bindings);
+                    evaluation
+                        .read(&rooted, |value| {
+                            assert_wrapped_undefined(expr1, expr2, value);
+                        })
+                        .unwrap();
+                } else {
+                    let expected = wrap_value(expr1, wrap_value(expr2, leaf_value.clone()));
+                    assert_eq!(evaluated(&syntax, &bindings), expected, "{syntax}");
+                }
+            }
+        }
+    }
+    assert_eq!(cases, 72);
+
+    for (leaf_name, leaf_syntax, leaf_ast, leaf_value) in &leaves {
+        let syntax = format!("(id {leaf_syntax})");
+        let expected_ast = invocation(reference("id"), json!([leaf_ast]));
+        let mut runtime = source(LANG, "ExpressionLang", &syntax);
+        assert_clean(&runtime, &syntax);
+        assert_eq!(projected(&mut runtime), expected_ast, "{syntax}");
+        if *leaf_name == "undefined" {
+            let (evaluation, rooted) = evaluate(&syntax, &bindings);
+            evaluation
+                .read(&rooted, |value| {
+                    assert!(matches!(value.raw(), Value::Undefined), "{syntax}");
+                })
+                .unwrap();
+        } else {
+            assert_eq!(evaluated(&syntax, &bindings), *leaf_value, "{syntax}");
+        }
+    }
+
+    assert_eq!(
+        evaluated("[0 ...xs]", &[("xs", json!([1, 2]))]),
+        json!([0, 1, 2])
+    );
+    assert_eq!(
+        evaluated(
+            "[...xs ...ys]",
+            &[("xs", json!([1])), ("ys", json!([2, 3]))]
+        ),
+        json!([1, 2, 3])
+    );
+    assert_eq!(
+        evaluated(
+            "{...base, name: 1}",
+            &[("base", json!({"enabled": true, "a": 1}))]
+        ),
+        json!({"enabled": true, "a": 1, "name": 1})
+    );
+    assert_eq!(
+        evaluated(
+            "{name: 1, ...override}",
+            &[("override", json!({"name": 2}))]
+        ),
+        json!({"name": 2})
+    );
+    assert_eq!(
+        evaluated(
+            "{...base, ...patch}",
+            &[
+                ("base", json!({"enabled": true, "a": 1})),
+                ("patch", json!({"b": 2, "a": 3}))
+            ]
+        ),
+        json!({"enabled": true, "a": 3, "b": 2})
+    );
+    assert_eq!(
+        evaluated(
+            "{...base, ...patch, keep: true}",
+            &[
+                ("base", json!({"enabled": true, "a": 1})),
+                ("patch", json!({"b": 2, "a": 3}))
+            ]
+        ),
+        json!({"enabled": true, "a": 3, "b": 2, "keep": true})
+    );
+    assert_eq!(
+        evaluated(
+            "(coalesce x ...y)",
+            &[("x", json!(null)), ("y", json!([7]))]
+        ),
+        json!(7)
+    );
+}

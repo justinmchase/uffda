@@ -27,3 +27,7 @@ Postconditions:
 
 - Tooling can inspect authored comments, whitespace, and exact source locations
   from Match results without changing parser-facing token semantics.
+
+## Test plan
+
+- `rust/src/lang_tests/common.rs`, `rust/src/runtime/engine_ports.rs`

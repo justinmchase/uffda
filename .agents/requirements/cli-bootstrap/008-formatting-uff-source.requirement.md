@@ -27,3 +27,7 @@ Postconditions:
   gone.
 - Runtime loads Formatting from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).
+
+## Test plan
+
+- `rust/src/lang_tests/common.rs`

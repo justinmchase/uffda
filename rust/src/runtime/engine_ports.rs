@@ -1467,3 +1467,34 @@ fn engine_port_wrapped_runs_and_string_items_keep_character_origins() {
         );
     });
 }
+
+#[test]
+// req:runtime-core-001
+fn engine_port_runtime_defaults_to_scalar_normalization() {
+    assert_eq!(InputMode::default(), InputMode::Scalar);
+
+    uffda_heap::rootless_mutate(|mc| {
+        let scalar = runtime_input(mc, json!("abc"), InputMode::Scalar).unwrap();
+        assert_eq!(scalar.len(), 1);
+        assert_eq!(string_text(scalar[0]).unwrap(), "abc");
+
+        let array = runtime_input(mc, json!([1, 2, 3]), InputMode::Scalar).unwrap();
+        assert_eq!(array.len(), 1);
+        assert!(matches!(array[0].raw(), Value::Array(_)));
+    });
+
+    let (compiled, url) = graph(json!([rule("Main", json!({"kind":"any"}))]), "Main");
+    let mut runtime = Runtime::new(Rc::clone(&compiled), &url, None, json!([1, 2, 3])).unwrap();
+    runtime.run().unwrap();
+    runtime.read(|execution| {
+        let result = execution.result().unwrap();
+        assert_eq!(result.kind, MatchKind::Ok);
+        assert_eq!(result.end, 1);
+        assert!(matches!(result.value.raw(), Value::Array(_)));
+    });
+
+    // Typed InputMode has no stringly "bogus" variant; callers cannot select an
+    // unknown mode through the public Rust API.
+    let _ = InputMode::Scalar;
+    let _ = InputMode::Iterable;
+}

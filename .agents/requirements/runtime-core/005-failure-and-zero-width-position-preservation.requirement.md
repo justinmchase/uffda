@@ -30,3 +30,7 @@ Postconditions:
 
 - Composed matching remains predictable at call boundaries, including failure
   paths and zero-width assertions.
+
+## Test plan
+
+- `rust/src/runtime/scope_ports.rs`

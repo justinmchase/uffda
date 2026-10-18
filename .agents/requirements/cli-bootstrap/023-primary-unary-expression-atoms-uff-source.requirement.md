@@ -32,3 +32,7 @@ Postconditions:
 - `expression.lang` imports `./expression.uff`; `atomic` imports `./atoms.uff`.
 - Runtime loads them from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).
+
+## Test plan
+
+- `rust/src/lang_tests/expression.rs`, `rust/src/lang_tests/pattern.rs`

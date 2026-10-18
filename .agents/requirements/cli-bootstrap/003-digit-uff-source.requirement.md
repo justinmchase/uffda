@@ -25,3 +25,7 @@ Postconditions:
 - Dependents import `./digit.uff` (or equivalent); the TypeScript twin is gone.
 - Runtime loads Digit from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).
+
+## Test plan
+
+- `rust/src/lang_tests/common.rs`

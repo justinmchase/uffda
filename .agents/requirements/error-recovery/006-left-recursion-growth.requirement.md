@@ -32,8 +32,9 @@ Postconditions:
 
 ## Test plan
 
-`src/requirements/error-recovery/006-left-recursion-growth.requirement.test.ts`:
 with `Main = (ope Primary sneak by any+) end` and a left-recursive
 `Primary`/`Member`, `x.b` recovers at `Main` over the whole input rather than
 recovering the seed inside `Primary`'s growth; `[a?b].c` recovers `?b` inside a
 bracketed group within `Primary`'s growth and still grows the member access.
+
+- `rust/src/pattern/tests.rs`, `rust/src/runtime/tests.rs`

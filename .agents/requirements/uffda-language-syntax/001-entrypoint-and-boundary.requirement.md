@@ -21,5 +21,4 @@ Expected behavior:
 
 Postconditions:
 
-- Tests:
-  `src/requirements/uffda-language-syntax/001-entrypoint-and-boundary.requirement.test.ts`.
+- Tests: `rust/src/lang_tests/uffda.rs`.

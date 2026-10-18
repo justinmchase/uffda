@@ -21,3 +21,7 @@ Expected behavior:
 Postconditions:
 
 - Success output MUST be the consumed typed item.
+
+## Test plan
+
+- `rust/src/pattern/terminal_ports.rs`, `rust/src/pattern/tests.rs`, `rust/src/runtime/engine_ports.rs`

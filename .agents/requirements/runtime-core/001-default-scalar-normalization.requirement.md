@@ -32,3 +32,4 @@ Postconditions:
 
 - The resulting input stream shape MUST be deterministic from the selected (or
   defaulted) normalization mode.
+- Tests: `rust/src/runtime/engine_ports.rs` (`engine_port_runtime_defaults_to_scalar_normalization`).

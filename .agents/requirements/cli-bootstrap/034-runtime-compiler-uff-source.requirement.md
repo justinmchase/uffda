@@ -34,3 +34,7 @@ Postconditions:
 
 - `src/lang/uffda/` contains `.uff` + thin `.ts` host only.
 - The TypeScript ModuleDeclaration twin is gone.
+
+## Test plan
+
+- `rust/src/compile.rs`, `rust/src/lang_tests/uffda.rs`, `rust/src/languages.rs`, `rust/src/runtime/tests.rs`, `rust/tests/cli.rs`

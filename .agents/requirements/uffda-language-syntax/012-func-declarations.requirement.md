@@ -30,3 +30,7 @@ Postconditions:
 
 - Language modules under `src/lang/` still MUST NOT author `func` until a
   published CLI includes this surface.
+
+## Test plan
+
+- `rust/src/lang_tests/uffda.rs`

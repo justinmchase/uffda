@@ -25,5 +25,4 @@ Expected behavior:
 
 Postconditions:
 
-- Tests:
-  `src/requirements/pattern-language-syntax/002-composition-and-grouping-patterns-project-ast-nodes.requirement.test.ts`.
+- Tests: `rust/src/lang_tests/pattern.rs`.

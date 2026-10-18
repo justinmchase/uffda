@@ -33,3 +33,7 @@ Invalid syntax examples:
 Postconditions:
 
 - Member access syntax remains deterministic, postfix, and codegen-friendly.
+
+## Test plan
+
+- `rust/src/lang_tests/expression.rs`

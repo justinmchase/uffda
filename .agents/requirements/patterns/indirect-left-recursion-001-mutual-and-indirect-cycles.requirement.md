@@ -45,6 +45,7 @@ Postconditions:
 
 ## Test plan
 
-- `src/requirements/patterns/indirect-left-recursion-001-mutual-and-indirect-cycles.requirement.test.ts`
   runs each case above over both `Input.Iterable(string)` and an async-generator
   input and asserts identical kind, value, and end position.
+
+- `rust/src/runtime/module_ports.rs`, `rust/src/runtime/scope_ports.rs`, `rust/src/runtime/tests.rs`

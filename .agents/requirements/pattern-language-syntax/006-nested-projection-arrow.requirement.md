@@ -29,3 +29,7 @@ Postconditions:
 
 - Authors can express Member-style `(recursiveArm -> ast) | base` in PatternLang
   once the published CLI includes this syntax.
+
+## Test plan
+
+- `rust/src/lang_tests/pattern.rs`

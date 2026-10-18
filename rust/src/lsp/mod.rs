@@ -39,7 +39,10 @@ use url::Url;
 const REQUEST_FAILED: i64 = -32803;
 
 /// Run the LSP server until `exit` or stdin EOF.
-pub fn run_stdio() -> io::Result<()> {
+///
+/// Returns `0` when the client sent `shutdown` before the connection closed,
+/// otherwise `1` (see req:cli-language-server-010).
+pub fn run_stdio() -> io::Result<i32> {
     let stdin = io::stdin();
     let mut input = stdin.lock();
     let mut stdout = io::stdout().lock();
@@ -55,7 +58,7 @@ pub fn run_stdio() -> io::Result<()> {
             break;
         }
     }
-    Ok(())
+    Ok(if state.shutdown_requested { 0 } else { 1 })
 }
 
 struct ServerState {

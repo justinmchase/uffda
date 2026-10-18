@@ -1650,11 +1650,19 @@ fn modport_rule_projection_replaces_the_match_and_reports_expression_errors() {
 // req:rules-001
 fn modport_rule_memo_reuses_the_projected_value() {
     let mut module = exported("Main");
+    // Keep `R` on the memoized path via a dead dynamic arm (argument-passing
+    // resolve); the successful path is still the leading `equal("a")` arm.
     module["rules"] = json!([
         {
             "name":"R",
             "parameters":[],
-            "pattern": equal("a"),
+            "pattern":{"kind":"or","patterns":[
+                equal("a"),
+                {"kind":"then","patterns":[
+                    {"kind":"fail"},
+                    {"kind":"resolve","targetKind":"reference","name":"__force_memo","args":[{"kind":"any"}]}
+                ]}
+            ]},
             "expression": value_expr(json!("projected"))
         },
         rule(
@@ -1872,4 +1880,138 @@ fn modport_rule_fresh_invocation_completes_with_the_match() {
     let runtime = execute_module(module, "a");
     assert_eq!(outcome(&runtime), (crate::pattern::MatchKind::Ok, 1, false));
     assert!(runtime.read(|execution| execution.error().is_none()));
+}
+
+fn member_object_expression() -> Json {
+    json!({
+        "kind": "object",
+        "keys": [
+            {"kind":"objectKey","name":"kind","expression":{"kind":"value","value":"member"}},
+            {"kind":"objectKey","name":"expression","expression":{"kind":"reference","name":"e"}},
+            {"kind":"objectKey","name":"name","expression":{"kind":"reference","name":"n"}}
+        ]
+    })
+}
+
+fn member_dlr_pattern() -> Json {
+    json!({
+        "kind": "or",
+        "patterns": [
+            {
+                "kind": "projection",
+                "pattern": {
+                    "kind": "then",
+                    "patterns": [
+                        {
+                            "kind": "variable",
+                            "name": "e",
+                            "pattern": reference("Member")
+                        },
+                        equal("."),
+                        {
+                            "kind": "variable",
+                            "name": "n",
+                            "pattern": {"kind": "any"}
+                        }
+                    ]
+                },
+                "expression": member_object_expression()
+            },
+            {"kind": "any"}
+        ]
+    })
+}
+
+#[test]
+// req:projection-002
+fn modport_projection_dlr_growth_builds_nested_member_ast() {
+    let mut module = exported("Member");
+    module["rules"] = json!([rule("Member", member_dlr_pattern())]);
+    let runtime = execute_module(module, "a.b.c");
+    assert_eq!(outcome(&runtime).0, crate::pattern::MatchKind::Ok);
+    assert_eq!(
+        matched(&runtime),
+        json!({
+            "kind": "member",
+            "expression": {
+                "kind": "member",
+                "expression": "a",
+                "name": "b"
+            },
+            "name": "c"
+        })
+    );
+}
+
+#[test]
+// req:projection-002
+fn modport_projection_dlr_growth_does_not_leak_inner_binders() {
+    let mut module = exported("Outer");
+    module["exports"] = json!([
+        {"kind":"rule","name":"Member"},
+        {"kind":"rule","name":"Outer","default":true}
+    ]);
+    module["rules"] = json!([
+        rule("Member", member_dlr_pattern()),
+        rule(
+            "Outer",
+            json!({"kind":"then","patterns":[
+                reference("Member"),
+                {"kind":"variable","name":"e","pattern":equal("t")},
+                {"kind":"variable","name":"n","pattern":equal("e")}
+            ]})
+        )
+    ]);
+    // Input: a . b t e  — Member consumes a.b, then Outer binds e/n to t/e
+    let runtime = execute_module(module, "a.bte");
+    assert_eq!(outcome(&runtime).0, crate::pattern::MatchKind::Ok);
+    assert_eq!(
+        matched(&runtime),
+        json!([
+            {"kind":"member","expression":"a","name":"b"},
+            "t",
+            "e"
+        ])
+    );
+}
+
+#[test]
+// req:projection-002
+fn modport_projection_dlr_growth_preserves_caller_bindings() {
+    let mut module = exported("Outer");
+    module["exports"] = json!([
+        {"kind":"rule","name":"Member"},
+        {"kind":"rule","name":"Outer","default":true}
+    ]);
+    module["rules"] = json!([{
+        "name": "Member",
+        "parameters": [],
+        "pattern": member_dlr_pattern()
+    }, {
+        "name": "Outer",
+        "parameters": [],
+        "pattern": {
+            "kind": "then",
+            "patterns": [
+                {"kind":"variable","name":"x","pattern":equal("p")},
+                {"kind":"variable","name":"m","pattern":reference("Member")}
+            ]
+        },
+        "expression": {
+            "kind": "object",
+            "keys": [
+                {"kind":"objectKey","name":"x","expression":{"kind":"reference","name":"x"}},
+                {"kind":"objectKey","name":"m","expression":{"kind":"reference","name":"m"}}
+            ]
+        }
+    }]);
+    let runtime = execute_module(module, "pa.b");
+    assert_eq!(outcome(&runtime).0, crate::pattern::MatchKind::Ok);
+    assert_eq!(
+        matched(&runtime),
+        json!({
+            "x": "p",
+            "m": {"kind":"member","expression":"a","name":"b"}
+        })
+    );
 }

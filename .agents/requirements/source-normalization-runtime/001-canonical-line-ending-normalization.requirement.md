@@ -23,3 +23,7 @@ Postconditions:
 - Every character of the normalized text MUST carry the source span of the
   original characters it came from; a canonical newline that replaces `\r\n`
   spans both original characters.
+
+## Test plan
+
+- `rust/src/lang_tests/common.rs`

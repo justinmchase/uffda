@@ -25,3 +25,7 @@ Postconditions:
 
 - `(string | skip)*` parses to a quantifier over an `or` whose second branch is
   the bare-skip form.
+
+## Test plan
+
+- `rust/src/lang_tests/pattern.rs`

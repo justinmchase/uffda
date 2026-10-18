@@ -27,3 +27,7 @@ Postconditions:
 - Dependents import `./newLine.uff`; the TypeScript twin is gone.
 - Runtime loads NewLine from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).
+
+## Test plan
+
+- `rust/src/lang_tests/common.rs`

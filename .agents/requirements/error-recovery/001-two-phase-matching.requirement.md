@@ -46,7 +46,5 @@ recovery point reached skips the recovery phase
 (`scope_port_recovery_defaults_off_and_propagates_through_derived_execution`).
 `rust/src/runtime/engine_ports.rs`
 (`engine_port_memo_keys_isolate_the_recovery_setting`).
-`src/requirements/error-recovery/001-two-phase-matching.requirement.test.ts`:
-end-to-end through `executeUffdaSource`. `rust/src/runtime/engine_ports.rs`:
-only an unrecovered success is clean
+`rust/src/runtime/engine_ports.rs`: only an unrecovered success is clean
 (`engine_port_recovered_skip_and_rightmost_follow_the_accepted_match`).

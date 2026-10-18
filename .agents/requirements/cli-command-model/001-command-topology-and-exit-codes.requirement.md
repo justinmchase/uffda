@@ -23,3 +23,7 @@ Postconditions:
 
 - Operators and automation can classify invocation outcomes from exit code and
   deterministic mode resolution.
+
+## Test plan
+
+- `rust/src/cli.rs`, `rust/src/diagnostics.rs`, `rust/src/source_paths.rs`, `rust/tests/cli.rs`

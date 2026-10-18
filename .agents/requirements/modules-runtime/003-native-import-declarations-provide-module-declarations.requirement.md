@@ -31,3 +31,7 @@ Postconditions:
 
 - Native declaration imports participate in the same visibility and import
   binding semantics as module-based imports.
+
+## Test plan
+
+- `rust/src/resolver.rs`, `rust/src/resolver/graph/tests.rs`, `rust/src/runtime/module_ports.rs`

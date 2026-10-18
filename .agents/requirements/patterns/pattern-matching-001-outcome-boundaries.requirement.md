@@ -25,3 +25,7 @@ Postconditions:
 
 - Callers can distinguish non-match from runtime error through the reported
   outcome kind.
+
+## Test plan
+
+- `rust/src/runtime/engine_ports.rs`

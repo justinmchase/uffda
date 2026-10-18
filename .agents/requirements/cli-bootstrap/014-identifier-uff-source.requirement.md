@@ -29,3 +29,7 @@ Postconditions:
 - Dependents import `../common/identifier.uff`; the TypeScript twin is gone.
 - Runtime loads Identifier from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).
+
+## Test plan
+
+- `rust/src/lang_tests/common.rs`

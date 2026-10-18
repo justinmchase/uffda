@@ -33,3 +33,7 @@ Postconditions:
 
 - Stream-position behavior remains consistent across item surfaces while
   enabling explicit nested traversal semantics.
+
+## Test plan
+
+- `rust/src/runtime/engine_ports.rs`, `rust/src/runtime/tests.rs`

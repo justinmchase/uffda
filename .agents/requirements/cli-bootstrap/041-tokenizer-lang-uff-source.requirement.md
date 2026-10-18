@@ -25,3 +25,7 @@ Postconditions:
 - TokenizerLang is authored as `.uff`.
 - Dependents import `tokenizer.lang.uff`; the ModuleDeclaration twin is gone.
 - Host `tokenizer.lang.ts` MAY remain for the `TokenizerLangValue` type only.
+
+## Test plan
+
+- `rust/src/lang_tests/common.rs`

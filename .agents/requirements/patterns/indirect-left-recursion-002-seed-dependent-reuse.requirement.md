@@ -37,9 +37,6 @@ Postconditions:
 
 ## Test plan
 
-- `src/requirements/patterns/indirect-left-recursion-002-seed-dependent-reuse.requirement.test.ts`
-  covers the transitive, superseded, final-iteration, and within-iteration cases
-  (the last by counting evaluations of a projection in the involved rule).
 - `rust/src/runtime/tests.rs`
   (`compaction_preserves_pending_growth_and_transitive_seed_dependencies`)
   covers seed-dependency retention across eviction.

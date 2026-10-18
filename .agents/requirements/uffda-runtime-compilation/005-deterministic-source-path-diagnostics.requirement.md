@@ -25,3 +25,4 @@ Postconditions:
 
 - Callers can locate deterministic compiler failures without traversing or
   redispatching the syntax tree in host code.
+- Tests: `rust/src/lang_tests/uffda.rs` (`runtime_compiler_diagnostics_are_deterministic_for_unsupported_declarations`).

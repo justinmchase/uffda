@@ -31,3 +31,7 @@ Postconditions:
 - Dependents (`and.uff`) import `./projection.uff`; the TypeScript twin is gone.
 - Runtime loads Projection from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).
+
+## Test plan
+
+- `rust/src/lang_tests/pattern.rs`

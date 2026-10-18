@@ -50,3 +50,7 @@ Postconditions:
 
 - Published CLI binaries compile authored `.uff` using embedded `./bin` JSON.
 - Converted modules stay off `builtInLanguageDeclarations` (no host twins).
+
+## Test plan
+
+- `rust/src/builtins.rs`, `rust/src/resolver.rs`, `rust/tests/build.rs`

@@ -437,7 +437,10 @@ struct Entry<'gc> {
 struct Invocation<'gc> {
     request: PatternRequest<'gc>,
     target: usize,
-    memo: usize,
+    /// `None` when this rule's invocation skips packrat memo bookkeeping
+    /// (selective memoization). Active-position tracking still uses
+    /// [`ActiveMark`] with `memo: None` for eviction low-water marks.
+    memo: Option<usize>,
     pattern_match: Option<Gc<'gc, PatternMatch<'gc>>>,
     growing: bool,
 }
@@ -445,7 +448,8 @@ struct Invocation<'gc> {
 #[derive(Clone, Copy, Collect)]
 #[collect(no_drop)]
 struct ActiveMark {
-    memo: usize,
+    /// Index into `memos`, or `None` for a skip-memo (unmemoized) frame.
+    memo: Option<usize>,
     domain: Option<usize>,
     low: Option<usize>,
 }
@@ -978,6 +982,15 @@ impl<'gc> RuleExecution<'gc> {
                 let (Some(rule), Some(arguments)) = (node.rule, node.rule_arguments()) else {
                     return false;
                 };
+                if self
+                    .graph
+                    .as_ref()
+                    .is_some_and(|graph| graph.can_skip_memo(&rule.member))
+                {
+                    // Skip-memo rules never consult the memo table; an entry
+                    // would never be looked up. Keep walking for descendants.
+                    return false;
+                }
                 let key = TargetKey::Declared(rule.member.clone(), arguments.to_vec());
                 let Some(target) = self.target_keys.get(&key).copied() else {
                     return false;
@@ -1930,9 +1943,10 @@ impl<'gc> RuleExecution<'gc> {
     fn observe(&mut self, dependency: Dependency) {
         for frame in &self.frames {
             if let Some(invocation) = &frame.invocation
-                && invocation.memo != dependency.memo
+                && let Some(inv_memo) = invocation.memo
+                && inv_memo != dependency.memo
             {
-                let dependencies = &mut self.memos[invocation.memo].dependencies;
+                let dependencies = &mut self.memos[inv_memo].dependencies;
                 if let Some(existing) = dependencies
                     .iter_mut()
                     .find(|existing| existing.memo == dependency.memo)
@@ -1945,7 +1959,7 @@ impl<'gc> RuleExecution<'gc> {
         }
     }
 
-    fn enter_active(&mut self, memo: usize, position: InputPosition) {
+    fn enter_active(&mut self, memo: Option<usize>, position: InputPosition) {
         let parent = self.active_marks.last().copied();
         let (domain, low) = if position.path.is_empty() {
             match parent {
@@ -1966,12 +1980,27 @@ impl<'gc> RuleExecution<'gc> {
         self.active_marks.push(ActiveMark { memo, domain, low });
     }
 
-    fn leave_active(&mut self, memo: usize) -> Result<(), RuntimeError> {
+    fn leave_active(&mut self, memo: Option<usize>) -> Result<(), RuntimeError> {
         let active = self.active_marks.pop().ok_or(RuntimeError::InvalidState)?;
         if active.memo != memo {
             return Err(RuntimeError::InvalidState);
         }
         Ok(())
+    }
+
+    /// Declared, parameter-free rules proven never re-enterable at the same
+    /// position skip packrat memo bookkeeping entirely.
+    fn target_skips_memo(&self, target: usize) -> bool {
+        match &self.targets[target] {
+            Target::Declared { member, context } => {
+                context.arguments.is_empty()
+                    && self
+                        .graph
+                        .as_ref()
+                        .is_some_and(|graph| graph.can_skip_memo(member))
+            }
+            Target::Inline { .. } | Target::Special { .. } => false,
+        }
     }
 
     fn evict_memos(&mut self) {
@@ -2005,7 +2034,11 @@ impl<'gc> RuleExecution<'gc> {
         }
 
         let mut protected = vec![false; self.memos.len()];
-        let mut pending: Vec<usize> = self.active_marks.iter().map(|active| active.memo).collect();
+        let mut pending: Vec<usize> = self
+            .active_marks
+            .iter()
+            .filter_map(|active| active.memo)
+            .collect();
         while let Some(index) = pending.pop() {
             if index >= protected.len() || protected[index] {
                 continue;
@@ -2054,11 +2087,15 @@ impl<'gc> RuleExecution<'gc> {
                 });
         }
         for active in &mut self.active_marks {
-            active.memo = remap[active.memo].expect("active memo is retained");
+            if let Some(memo) = active.memo {
+                active.memo = Some(remap[memo].expect("active memo is retained"));
+            }
         }
         for frame in &mut self.frames {
-            if let Some(invocation) = &mut frame.invocation {
-                invocation.memo = remap[invocation.memo].expect("active memo is retained");
+            if let Some(invocation) = &mut frame.invocation
+                && let Some(memo) = invocation.memo
+            {
+                invocation.memo = Some(remap[memo].expect("active memo is retained"));
             }
         }
         self.memo_keys.retain(|_, index| {
@@ -2078,6 +2115,25 @@ impl<'gc> RuleExecution<'gc> {
         request: PatternRequest<'gc>,
         target: usize,
     ) -> Result<(), RuntimeError> {
+        if self.target_skips_memo(target) {
+            let (body, environment) = self.body(mc, &request, target)?;
+            self.enter_active(None, request.identity.position(request.position));
+            self.frames.push(Frame {
+                execution: Execution::Pattern(body),
+                context: self.targets[target].context(),
+                lexical_environment: environment,
+                invocation: Some(Invocation {
+                    request,
+                    target,
+                    memo: None,
+                    pattern_match: None,
+                    growing: false,
+                }),
+                completion: Completion::Rule,
+            });
+            self.body_attempts += 1;
+            return Ok(());
+        }
         let key = MemoKey {
             target,
             position: request.identity.position(request.position),
@@ -2168,13 +2224,15 @@ impl<'gc> RuleExecution<'gc> {
                         frame
                             .invocation
                             .as_ref()
-                            .is_some_and(|invocation| invocation.memo == memo)
+                            .is_some_and(|invocation| invocation.memo == Some(memo))
                     })
                     .ok_or(RuntimeError::InvalidState)?;
                 while self.frames.len() > head + 1 {
                     let discarded = self.frames.pop().ok_or(RuntimeError::InvalidState)?;
                     if let Some(invocation) = discarded.invocation {
-                        self.memos[invocation.memo].state = MemoState::Vacant;
+                        if let Some(discarded_memo) = invocation.memo {
+                            self.memos[discarded_memo].state = MemoState::Vacant;
+                        }
                         self.leave_active(invocation.memo)?;
                     }
                 }
@@ -2206,7 +2264,7 @@ impl<'gc> RuleExecution<'gc> {
         self.memos[memo].dependencies.clear();
         self.memos[memo].seed_dependencies.clear();
         let (body, environment) = self.body(mc, &request, target)?;
-        self.enter_active(memo, request.identity.position(request.position));
+        self.enter_active(Some(memo), request.identity.position(request.position));
         self.frames.push(Frame {
             execution: Execution::Pattern(body),
             context: self.targets[target].context(),
@@ -2214,7 +2272,7 @@ impl<'gc> RuleExecution<'gc> {
             invocation: Some(Invocation {
                 request,
                 target,
-                memo,
+                memo: Some(memo),
                 pattern_match: None,
                 growing: false,
             }),
@@ -2372,7 +2430,10 @@ impl<'gc> RuleExecution<'gc> {
             return Ok(());
         };
         let progresses = if invocation.growing {
-            match self.memos[invocation.memo].state {
+            let Some(memo) = invocation.memo else {
+                return Err(RuntimeError::InvalidState);
+            };
+            match self.memos[memo].state {
                 MemoState::Growing(seed) => {
                     outcome.end > seed.end && outcome.end > invocation.request.position
                 }
@@ -2416,54 +2477,71 @@ impl<'gc> RuleExecution<'gc> {
             outcome.value,
         );
         let memo = invocation.memo;
-        if invocation.growing {
-            let seed = match self.memos[memo].state {
-                MemoState::Growing(seed) => seed,
-                _ => return Err(RuntimeError::InvalidState),
-            };
-            if outcome.kind != MatchKind::Fail
-                && (seed.kind == MatchKind::Fail || outcome.end > seed.end)
-                && outcome.end > invocation.request.position
-            {
-                self.memos[memo].state = MemoState::Growing(outcome);
-                self.memos[memo].version += 1;
-                self.memos[memo].seed_dependencies = self.memos[memo].dependencies.clone();
-                self.memos[memo].dependencies.clear();
-                let (body, environment) = self.body(mc, &invocation.request, invocation.target)?;
-                invocation.pattern_match = None;
-                frame.execution = Execution::Pattern(body);
-                frame.lexical_environment = environment;
-                self.frames.push(frame);
-                self.body_attempts += 1;
-                return Ok(());
-            }
-            let stabilized =
-                PatternMatch::growth_result(mc, seed, outcome, invocation.request.environment);
-            let seed_dependencies = self.memos[memo].seed_dependencies.clone();
-            for dependency in seed_dependencies {
-                if !self.memos[memo]
-                    .dependencies
-                    .iter()
-                    .any(|existing| existing.memo == dependency.memo)
-                {
-                    self.memos[memo].dependencies.push(dependency);
+        match memo {
+            None => {
+                // Skip-memo path: proven non-recursive, so growth is an invariant
+                // violation (Deno surfaces MatchKind.LR the same way).
+                if invocation.growing {
+                    return Err(RuntimeError::InvalidState);
                 }
+                let outcome = self.mark_origin(mc, outcome, invocation.target);
+                self.frames
+                    .last_mut()
+                    .ok_or(RuntimeError::InvalidState)?
+                    .execution
+                    .resume(mc, outcome)?;
             }
-            let stabilized = self.mark_origin(mc, stabilized, invocation.target);
-            self.memos[memo].state = MemoState::Complete(stabilized);
-            self.frames
-                .last_mut()
-                .ok_or(RuntimeError::InvalidState)?
-                .execution
-                .resume(mc, stabilized)?;
-        } else {
-            let outcome = self.mark_origin(mc, outcome, invocation.target);
-            self.memos[memo].state = MemoState::Complete(outcome);
-            self.frames
-                .last_mut()
-                .ok_or(RuntimeError::InvalidState)?
-                .execution
-                .resume(mc, outcome)?;
+            Some(memo) if invocation.growing => {
+                let seed = match self.memos[memo].state {
+                    MemoState::Growing(seed) => seed,
+                    _ => return Err(RuntimeError::InvalidState),
+                };
+                if outcome.kind != MatchKind::Fail
+                    && (seed.kind == MatchKind::Fail || outcome.end > seed.end)
+                    && outcome.end > invocation.request.position
+                {
+                    self.memos[memo].state = MemoState::Growing(outcome);
+                    self.memos[memo].version += 1;
+                    self.memos[memo].seed_dependencies = self.memos[memo].dependencies.clone();
+                    self.memos[memo].dependencies.clear();
+                    let (body, environment) =
+                        self.body(mc, &invocation.request, invocation.target)?;
+                    invocation.pattern_match = None;
+                    frame.execution = Execution::Pattern(body);
+                    frame.lexical_environment = environment;
+                    self.frames.push(frame);
+                    self.body_attempts += 1;
+                    return Ok(());
+                }
+                let stabilized =
+                    PatternMatch::growth_result(mc, seed, outcome, invocation.request.environment);
+                let seed_dependencies = self.memos[memo].seed_dependencies.clone();
+                for dependency in seed_dependencies {
+                    if !self.memos[memo]
+                        .dependencies
+                        .iter()
+                        .any(|existing| existing.memo == dependency.memo)
+                    {
+                        self.memos[memo].dependencies.push(dependency);
+                    }
+                }
+                let stabilized = self.mark_origin(mc, stabilized, invocation.target);
+                self.memos[memo].state = MemoState::Complete(stabilized);
+                self.frames
+                    .last_mut()
+                    .ok_or(RuntimeError::InvalidState)?
+                    .execution
+                    .resume(mc, stabilized)?;
+            }
+            Some(memo) => {
+                let outcome = self.mark_origin(mc, outcome, invocation.target);
+                self.memos[memo].state = MemoState::Complete(outcome);
+                self.frames
+                    .last_mut()
+                    .ok_or(RuntimeError::InvalidState)?
+                    .execution
+                    .resume(mc, outcome)?;
+            }
         }
         self.leave_active(memo)?;
         self.evict_memos();
@@ -3270,5 +3348,7 @@ mod engine_ports;
 mod module_ports;
 #[cfg(test)]
 mod scope_ports;
+#[cfg(test)]
+mod selective_memo_ports;
 #[cfg(test)]
 mod tests;

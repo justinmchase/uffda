@@ -30,3 +30,7 @@ Postconditions:
 - Multi-rule authored `.uff` modules can include `"\\"` patterns and projections
   (required for converting `expression/string`).
 - Single-rule `"\\"` behavior remains unchanged.
+
+## Test plan
+
+- `rust/src/lang_tests/uffda.rs`

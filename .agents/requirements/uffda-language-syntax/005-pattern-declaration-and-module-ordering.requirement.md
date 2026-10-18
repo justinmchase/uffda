@@ -22,5 +22,4 @@ Expected behavior:
 
 Postconditions:
 
-- Tests:
-  `src/requirements/uffda-language-syntax/005-pattern-declaration-and-module-ordering.requirement.test.ts`.
+- Tests: `rust/src/lang_tests/uffda.rs`.

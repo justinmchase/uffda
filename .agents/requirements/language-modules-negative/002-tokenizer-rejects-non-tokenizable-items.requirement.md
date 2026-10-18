@@ -22,3 +22,4 @@ Expected behavior:
 Postconditions:
 
 - Invalid tokenizer input remains diagnosable by deterministic error outcome.
+- Tests: `rust/src/lang_tests/common.rs` (`tokenizer_rejects_non_tokenizable_number_items`).

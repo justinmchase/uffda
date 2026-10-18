@@ -24,3 +24,7 @@ Postconditions:
 
 - Equal-pattern match behavior MUST be deterministic for a given pair `(I, L)`
   under strict equality semantics.
+
+## Test plan
+
+- `rust/src/pattern/terminal_ports.rs`, `rust/src/pattern/tests.rs`

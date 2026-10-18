@@ -33,3 +33,7 @@ Postconditions:
 
 - Runtime loads UffdaLang from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).
+
+## Test plan
+
+- `rust/src/lang_tests/uffda.rs`

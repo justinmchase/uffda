@@ -28,3 +28,7 @@ Postconditions:
 
 - Patterns evaluating against the resulting stream MUST observe item boundaries
   based on iterable elements, not scalar wrapping.
+
+## Test plan
+
+- `rust/src/runtime/module_ports.rs`

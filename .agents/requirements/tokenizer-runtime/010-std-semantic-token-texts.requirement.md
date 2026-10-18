@@ -36,3 +36,7 @@ Error behavior:
 
 - Non-array inputs MUST fail the func's argument pattern match.
 - Entries without a string `text` field MUST fail argument pattern matching.
+
+Postconditions:
+
+- Tests: `rust/src/lang_tests/common.rs` (`tokenizer_semantic_token_texts_omit_comments`).

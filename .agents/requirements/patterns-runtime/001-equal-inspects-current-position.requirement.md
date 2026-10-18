@@ -21,3 +21,7 @@ Postconditions:
 
 - End-of-input evaluation MUST return failure without changing caller-visible
   input position.
+
+## Test plan
+
+- `rust/src/pattern/terminal_ports.rs`, `rust/src/pattern/tests.rs`

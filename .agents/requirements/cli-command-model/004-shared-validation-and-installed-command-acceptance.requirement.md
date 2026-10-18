@@ -32,5 +32,5 @@ Postconditions:
 
 - These fixtures establish the covered validation combinations and installed
   command paths, not exhaustive parity for every flag combination.
-- Tests: `test/rust/cli-validation-fixtures.test.ts`, `rust/src/cli.rs`, and
+- Tests: `rust/src/cli.rs` (`reference_validation_fixtures_preserve_exact_diagnostic_objects`), and
   `rust/tests/cli.rs`.

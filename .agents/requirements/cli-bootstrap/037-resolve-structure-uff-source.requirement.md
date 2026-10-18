@@ -35,3 +35,7 @@ Postconditions:
 - TypeScript twins `resolve.ts` / `structure.ts` are gone.
 - Conversion-plan blocker B9 is closed; modules 29–30 are done.
 - `builtInLanguageDeclarations` MUST NOT register resolve/structure.
+
+## Test plan
+
+- `rust/src/lang_tests/pattern.rs`

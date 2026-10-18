@@ -43,4 +43,3 @@ source offsets through a pipeline stage that explicitly uses `into`). A later
 pipeline step receives exactly one item, so a diagnostic that depends on
 implicitly iterating a string is not the contract.
 `src/cli/diagnostics.test.ts`.
-`src/requirements/error-recovery/008-recovery-diagnostics.requirement.test.ts`.

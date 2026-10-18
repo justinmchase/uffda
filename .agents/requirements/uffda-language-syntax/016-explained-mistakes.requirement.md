@@ -35,3 +35,7 @@ Postconditions:
 
 - The corpus of mistakes is kept as a test. A grammar change that loses one of
   these explanations or moves its focus fails that test.
+
+## Test plan
+
+- `rust/src/lang_tests/common.rs`, `rust/src/lang_tests/pattern.rs`, `rust/src/lang_tests/uffda.rs`

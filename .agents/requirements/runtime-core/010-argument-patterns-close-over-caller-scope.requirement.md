@@ -27,3 +27,7 @@ Expected behavior:
 Postconditions:
 
 - A declared rule's body behaves the same wherever it is invoked.
+
+## Test plan
+
+- `rust/src/pattern/structure_ports.rs`, `rust/src/runtime/module_ports.rs`, `rust/src/runtime/scope_ports.rs`, `rust/src/runtime/tests.rs`

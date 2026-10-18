@@ -25,3 +25,7 @@ Postconditions:
   `./pattern.uff`; the TypeScript twin is gone.
 - Runtime loads Pattern from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).
+
+## Test plan
+
+- `rust/src/lang_tests/pattern.rs`, `rust/src/languages.rs`, `rust/src/runtime/tests.rs`

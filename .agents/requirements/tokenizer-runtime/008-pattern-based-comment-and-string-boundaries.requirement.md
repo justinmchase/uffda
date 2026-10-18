@@ -29,3 +29,7 @@ Postconditions:
 
 - Comment and string boundary behavior is expressed in the tokenizer grammar and
   remains reconstructable from Match results.
+
+## Test plan
+
+- `rust/src/lang_tests/common.rs`

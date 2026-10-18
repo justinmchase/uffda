@@ -30,3 +30,4 @@ Postconditions:
 
 - Barrel modules such as Characters can re-export `.uff` leaves via `./bin`
   remapping.
+- Tests: `rust/src/lang_tests/uffda.rs` (`runtime_compiler_normalizes_reexport_import_kind`).

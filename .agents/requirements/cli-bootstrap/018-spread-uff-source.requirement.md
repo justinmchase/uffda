@@ -25,3 +25,7 @@ Postconditions:
 - Dependents import `../common/spread.uff`; the TypeScript twin is gone.
 - Runtime loads Spread from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).
+
+## Test plan
+
+- `rust/src/lang_tests/common.rs`

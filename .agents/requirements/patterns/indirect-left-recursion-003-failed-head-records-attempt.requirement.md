@@ -32,7 +32,6 @@ Postconditions:
 
 ## Test plan
 
-- `src/requirements/patterns/indirect-left-recursion-003-failed-head-records-attempt.requirement.test.ts`
 - `rust/src/runtime/module_ports.rs`
   (`modport_rule_failed_head_keeps_partial_progress`) covers the head failure's
   children at the runtime level.

@@ -520,6 +520,12 @@ impl ResolveValue {
         }
     }
 
+    /// True when this special is a concrete embedded rule pattern (not a module
+    /// default or opaque JSON value).
+    pub(crate) fn is_rule(&self) -> bool {
+        matches!(self.kind, ResolveKind::Rule { .. })
+    }
+
     pub(crate) fn special_body(&self) -> SpecialBody {
         match &self.kind {
             ResolveKind::Module {
@@ -898,7 +904,92 @@ enum Unary {
     Except,
 }
 
+/// One statically visible resolve site inside a compiled pattern, used by
+/// selective-memoization call-graph analysis.
+pub(crate) struct ResolveSite<'a> {
+    pub target_kind: ResolveTargetKind,
+    pub name: Option<&'a str>,
+    pub argument_count: usize,
+    pub value: Option<&'a ResolveValue>,
+}
+
 impl PatternProgram {
+    /// Walk every resolve node in this program (structural children only; special
+    /// rule bodies are not inlined — they are call edges to a concrete rule).
+    pub(crate) fn resolve_sites(&self) -> Vec<ResolveSite<'_>> {
+        let mut sites = Vec::new();
+        let mut pending = vec![0usize];
+        let mut seen = vec![false; self.nodes.len()];
+        while let Some(index) = pending.pop() {
+            if index >= self.nodes.len() || seen[index] {
+                continue;
+            }
+            seen[index] = true;
+            match &self.nodes[index] {
+                PatternNode::And(children)
+                | PatternNode::Then(children)
+                | PatternNode::Or(children)
+                | PatternNode::Pipeline(children) => {
+                    pending.extend(children.iter().copied());
+                }
+                PatternNode::Variable(_, child)
+                | PatternNode::Unary(_, child)
+                | PatternNode::Quantifier(child, _, _)
+                | PatternNode::Projection(child, _) => pending.push(*child),
+                PatternNode::Recover(pattern, skip) => {
+                    pending.push(*pattern);
+                    pending.push(*skip);
+                }
+                PatternNode::Over(keys, rest) => {
+                    pending.extend(keys.iter().map(|(_, child)| *child));
+                    for clause in rest {
+                        if let OverRestNode::Pattern { key, value, .. } = clause {
+                            pending.push(*key);
+                            pending.push(*value);
+                        }
+                    }
+                }
+                PatternNode::Switch(cases, default) => {
+                    pending.extend(cases.iter().map(|(_, child)| *child));
+                    if let Some(default) = default {
+                        pending.push(*default);
+                    }
+                }
+                PatternNode::Resolve {
+                    target_kind,
+                    name,
+                    args,
+                    value,
+                } => {
+                    sites.push(ResolveSite {
+                        target_kind: *target_kind,
+                        name: name.as_deref(),
+                        argument_count: args.len(),
+                        value: value.as_ref(),
+                    });
+                    // Mirror Deno `childPatterns`: only reference resolves expose
+                    // args as structural children (and only when empty — a
+                    // non-empty arg list is treated as dynamic by the analysis
+                    // before those children would be visited).
+                    if *target_kind == ResolveTargetKind::Reference && args.is_empty() {
+                        pending.extend(args.iter().copied());
+                    }
+                }
+                PatternNode::Any
+                | PatternNode::Ok
+                | PatternNode::Fail
+                | PatternNode::End
+                | PatternNode::Equal(_)
+                | PatternNode::Includes(_)
+                | PatternNode::Between(_, _)
+                | PatternNode::Type(_)
+                | PatternNode::Character(_, _)
+                | PatternNode::Regexp(_, _) => {}
+            }
+        }
+        sites
+    }
+
     pub(crate) fn compile(pattern: Pattern) -> Rc<Self> {
         let mut nodes = vec![PatternNode::Fail];
         let mut pending = vec![(0, pattern)];
