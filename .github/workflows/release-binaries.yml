@@ -37,6 +37,7 @@ jobs:
       tag: ${{ steps.target.outputs.tag }}
       version: ${{ steps.target.outputs.version }}
       sha: ${{ steps.target.outputs.sha }}
+      release_id: ${{ steps.target.outputs.release_id }}
     steps:
       - name: Checkout main
         uses: actions/checkout@v5
@@ -48,25 +49,24 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           INPUT_TAG: ${{ github.event.inputs.tag || '' }}
+          DISPATCH_VERSION: ${{ github.event.client_payload.version || '' }}
         shell: bash
         run: |
           set -euo pipefail
 
+          # Draft releases are untagged until publish. Looking them up by tag
+          # name via the releases-by-tag REST route 404s; resolve via
+          # `gh release view` (GraphQL fallback) or GET /releases/:id instead.
+          cli_asset_count() {
+            local meta="$1"
+            jq '[.assets[] | select(.name == "SHA256SUMS" or (.name | startswith("uffda-")))] | length' \
+              <<< "${meta}"
+          }
+
           if [[ -n "${INPUT_TAG}" ]]; then
             tag="${INPUT_TAG#v}"
-            if ! gh release view "${tag}" --json tagName >/dev/null 2>&1; then
-              echo "No GitHub release for tag ${tag}." >&2
-              exit 1
-            fi
-            is_draft="$(gh release view "${tag}" --json isDraft --jq .isDraft)"
-            asset_count="$(
-              gh api "repos/${{ github.repository }}/releases/tags/${tag}" \
-                --jq '[.assets[] | select(.name == "SHA256SUMS" or (.name | startswith("uffda-")))] | length'
-            )"
-            if [[ "${is_draft}" != "true" && "${asset_count}" != "0" ]]; then
-              echo "Published release ${tag} already has CLI assets; refusing to retarget." >&2
-              exit 1
-            fi
+          elif [[ -n "${DISPATCH_VERSION}" ]]; then
+            tag="${DISPATCH_VERSION#v}"
           else
             tag="$(
               gh release list --limit 50 --json tagName,isDraft,createdAt \
@@ -79,6 +79,19 @@ jobs:
             fi
             tag="${tag#v}"
           fi
+
+          if ! meta="$(gh release view "${tag}" --json tagName,isDraft,databaseId,assets)"; then
+            echo "No GitHub release for tag ${tag}." >&2
+            exit 1
+          fi
+          is_draft="$(jq -r .isDraft <<< "${meta}")"
+          release_id="$(jq -r .databaseId <<< "${meta}")"
+          asset_count="$(cli_asset_count "${meta}")"
+          if [[ "${is_draft}" != "true" && "${asset_count}" != "0" ]]; then
+            echo "Published release ${tag} already has CLI assets; refusing to retarget." >&2
+            exit 1
+          fi
+
           version="${tag}"
           file_version="$(tr -d '[:space:]' < VERSION)"
           sha="$(git rev-parse HEAD)"
@@ -91,10 +104,13 @@ jobs:
           echo "tag=${tag}" >> "$GITHUB_OUTPUT"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "sha=${sha}" >> "$GITHUB_OUTPUT"
+          echo "release_id=${release_id}" >> "$GITHUB_OUTPUT"
           {
             echo "### Release target"
             echo
             echo "- Tag: \`${tag}\`"
+            echo "- Release id: \`${release_id}\`"
+            echo "- Draft: \`${is_draft}\`"
             echo "- Build commit: \`${sha}\`"
             echo "- Source branch: \`main\`"
             echo "- VERSION file: \`${file_version}\`"
@@ -348,14 +364,18 @@ jobs:
         run: |
           set -euo pipefail
           tag="${{ needs.prepare.outputs.tag }}"
+          release_id="${{ needs.prepare.outputs.release_id }}"
           repo="${{ github.repository }}"
 
           # Draft: always attach. Published: only if CLI assets are still missing
           # (recovery when the draft was published while the matrix was building).
-          is_draft="$(gh release view "${tag}" --json isDraft --jq .isDraft)"
+          # Never look up by tag-name REST route here — untagged drafts 404
+          # until publish creates the git tag.
+          meta="$(gh api "repos/${repo}/releases/${release_id}")"
+          is_draft="$(jq -r .draft <<< "${meta}")"
           asset_count="$(
-            gh api "repos/${repo}/releases/tags/${tag}" \
-              --jq '[.assets[] | select(.name == "SHA256SUMS" or (.name | startswith("uffda-")))] | length'
+            jq '[.assets[] | select(.name == "SHA256SUMS" or (.name | startswith("uffda-")))] | length' \
+              <<< "${meta}"
           )"
           if [[ "${is_draft}" != "true" && "${asset_count}" != "0" ]]; then
             echo "Release ${tag} is published and already has CLI assets; refusing to replace." >&2
@@ -367,6 +387,7 @@ jobs:
 
           # Retry uploads; concurrent runs or transient upload API errors can 404.
           # Upload files only — never directories (e.g. stray language AST trees).
+          # `gh release upload <tag>` resolves untagged drafts via GraphQL.
           assets=()
           for path in dist/cli/*; do
             [[ -f "${path}" ]] || continue
@@ -384,13 +405,13 @@ jobs:
           fi
           for attempt in 1 2 3; do
             if gh release upload "${tag}" "${assets[@]}" --clobber; then
-              echo "Attached/replaced CLI assets on release ${tag}"
+              echo "Attached/replaced CLI assets on release ${tag} (id ${release_id})"
               exit 0
             fi
             echo "Upload attempt ${attempt} failed; retrying..." >&2
             sleep $((attempt * 2))
           done
-          echo "Failed to upload CLI assets to release ${tag}" >&2
+          echo "Failed to upload CLI assets to release ${tag} (id ${release_id})" >&2
           exit 1
 
   smoke:

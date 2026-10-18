@@ -36,11 +36,14 @@ Expected behavior:
 - The `release-binaries` workflow MUST accept `repository_dispatch` and
   `workflow_dispatch`, compile the full target matrix from a pinned `main`
   revision, and attach or replace every binary on the resolved release tag. The
-  default target is the latest draft (fail if none). An explicit
+  default target is the latest draft (fail if none); `repository_dispatch` MAY
+  pass `client_payload.version` to select that draft by `tag_name`. An explicit
   `workflow_dispatch` `tag` MAY target a published release that still has no CLI
   assets. Attach MUST succeed when the tag is a draft, or when it is published
   with no `uffda-*` / `SHA256SUMS` assets yet; it MUST fail when a published
-  release already has those assets. It MUST NOT create or move git tags;
+  release already has those assets. Attach MUST resolve the release by id (or
+  `gh release view` metadata) and MUST NOT require `GET .../releases/tags/<tag>`,
+  which 404s for untagged drafts. It MUST NOT create or move git tags;
   publishing the draft creates `refs/tags/<version>` at the draft's
   `target_commitish` (set by Draft Release).
 - Draft version resolution MUST skip SemVer values that already have a published

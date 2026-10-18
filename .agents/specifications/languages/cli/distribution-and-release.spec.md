@@ -61,6 +61,10 @@ Normative key words in this chapter use the conventions defined in the
   draft, or when it is published but has no CLI assets yet (premature publish
   during a long matrix build). It MUST refuse to replace assets on a published
   release that already has CLI assets.
+- Attach and release-target resolution MUST look up drafts by release id (or
+  equivalent release metadata), not by `GET /repos/.../releases/tags/<tag>`.
+  Drafts are untagged until publish, so the tags endpoint 404s and MUST NOT be
+  required for attach success.
 - Draft Release sets the draft `tag_name` and `target_commitish`; publishing
   creates `refs/tags/<version>` at that commit. `release-binaries` attaches
   assets only and MUST NOT create or move git tags. Draft version resolution
