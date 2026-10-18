@@ -244,15 +244,11 @@ fn highlight_role_of(node: Gc<'_, PatternMatch<'_>>) -> Option<String> {
         return None;
     };
     let metadata = metadata.borrow();
-    let Some(value) = metadata.get("Highlight") else {
-        return None;
-    };
+    let value = metadata.get("Highlight")?;
     let RuntimeValue::Object(object) = value.raw() else {
         return None;
     };
-    let Some(role_value) = object.borrow().get("role") else {
-        return None;
-    };
+    let role_value = object.borrow().get("role")?;
     let RuntimeValue::String(role) = role_value.raw() else {
         return None;
     };
@@ -685,7 +681,6 @@ fn gap_fill_spans(source: &str) -> Vec<HighlightSpan> {
 }
 
 /// Test/helper: count Keyword-bearing non-empty spans in a finished runtime.
-
 #[cfg(test)]
 mod encode_tests {
 
@@ -758,5 +753,70 @@ mod encode_tests {
             roles.iter().any(|(t, r)| t == "Main" && is_name_role(r)),
             "expected Main as a name, got {roles:?}"
         );
+    }
+
+    #[test]
+    // req:cli-language-server-005
+    fn encode_semantic_tokens_delta_encodes_keywords_and_skips_trivia() {
+        let keyword = SEMANTIC_TOKEN_TYPES
+            .iter()
+            .position(|name| *name == "keyword")
+            .expect("keyword legend entry") as u32;
+        let identifier = SEMANTIC_TOKEN_TYPES
+            .iter()
+            .position(|name| *name == "variable")
+            .or_else(|| {
+                SEMANTIC_TOKEN_TYPES
+                    .iter()
+                    .position(|name| *name == "identifier")
+            })
+            .map(|index| index as u32);
+
+        let source = "rule";
+        let spans = [HighlightSpan {
+            role: "keyword".into(),
+            offset: 0,
+            length: 4,
+            text: "rule".into(),
+        }];
+        assert_eq!(
+            encode_semantic_tokens_typed(source, &spans),
+            vec![0, 0, 4, keyword, 0]
+        );
+
+        let source = "a b\n";
+        let spans = [
+            HighlightSpan {
+                role: "identifier".into(),
+                offset: 0,
+                length: 1,
+                text: "a".into(),
+            },
+            HighlightSpan {
+                role: "whitespace".into(),
+                offset: 1,
+                length: 1,
+                text: " ".into(),
+            },
+            HighlightSpan {
+                role: "identifier".into(),
+                offset: 2,
+                length: 1,
+                text: "b".into(),
+            },
+            HighlightSpan {
+                role: "newline".into(),
+                offset: 3,
+                length: 1,
+                text: "\n".into(),
+            },
+        ];
+        let data = encode_semantic_tokens_typed(source, &spans);
+        assert_eq!(data.len() % 5, 0);
+        assert_eq!(data.len() / 5, 2, "trivia must not emit tokens: {data:?}");
+        if let Some(identifier) = identifier {
+            assert_eq!(data[3], identifier);
+            assert_eq!(data[8], identifier);
+        }
     }
 }

@@ -33,6 +33,9 @@ Expected behavior:
 
 Postconditions:
 
-- `src/requirements/uffda-language-syntax/017-import-module-specifiers.requirement.test.ts`
   covers the accepted and rejected forms, and
-  `src/lang/uffda/specifier.rules.test.ts` covers each form's explanation.
+  `rust/src/lang_tests/uffda.rs` covers each form's explanation.
+
+## Test plan
+
+- `rust/src/lang_tests/uffda.rs`

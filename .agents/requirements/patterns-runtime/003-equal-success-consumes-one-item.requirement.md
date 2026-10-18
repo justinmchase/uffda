@@ -24,3 +24,7 @@ Postconditions:
 
 - On success, caller-visible scope/input state MUST reflect one-item consumption
   and output value I.
+
+## Test plan
+
+- `rust/src/pattern/terminal_ports.rs`, `rust/src/pattern/tests.rs`, `rust/src/runtime/scope_ports.rs`

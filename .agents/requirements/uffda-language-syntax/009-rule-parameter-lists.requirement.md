@@ -29,3 +29,7 @@ Postconditions:
 
 - Modules such as `common/surround` can be authored in `.uff` once this syntax
   ships in a published CLI.
+
+## Test plan
+
+- `rust/src/lang_tests/uffda.rs`

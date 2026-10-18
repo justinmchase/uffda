@@ -30,3 +30,7 @@ Postconditions:
 
 - Provenance loss at `pipeline` or `into` boundaries is treated as a contract
   regression for layered language stacks.
+
+## Test plan
+
+- `rust/src/runtime/engine_ports.rs`

@@ -75,7 +75,7 @@ fn last_significant_end(spans: &[HighlightSpan]) -> usize {
         .iter()
         .filter(|span| !is_trivia_role(&span.role))
         .map(|span| span.offset + span.length)
-        .last()
+        .next_back()
         .unwrap_or(0)
 }
 

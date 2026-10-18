@@ -29,6 +29,8 @@ Postconditions:
 
 ## Test plan
 
-`src/memo.test.ts` (MEMO_RECOVERY), `src/runtime/recovery.test.ts` (RECOVERY05,
-fails if keys are shared), `src/runtime/rule.test.ts` (RULE_RECOVERY01),
-`src/runtime/incremental.test.ts` (INCREMENTAL_RECOVERY).
+`rust/src/runtime/engine_ports.rs`
+(`engine_port_statement_recovery_collects_only_the_accepted_phase` and
+`engine_port_memo_keys_isolate_the_recovery_setting`; the probe fails if keys
+are shared), `rust/src/runtime/module_ports.rs`
+(`modport_rule_origin_records_the_recovery_setting`).

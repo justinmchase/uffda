@@ -2,7 +2,7 @@
 //! authoring help (parity with Deno `src/cli/mcp.authoring_context.ts`;
 //! `req:mcp-server-013`).
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::{BTreeSet, HashSet};
 use std::path::PathBuf;
 
@@ -48,7 +48,10 @@ const EVIDENCE: &[Evidence] = &[
         status: None,
         capability: None,
         summary: "ExpressionLang has no infix operators; calls are `(callee arg …)`. Arrays are `[elem …]`.",
-        examples: &["(add 1 2)", "(reduce [1 2 3 4] 0 <acc:any x:any> -> (add acc x))"],
+        examples: &[
+            "(add 1 2)",
+            "(reduce [1 2 3 4] 0 <acc:any x:any> -> (add acc x))",
+        ],
         sources: &[SourceSpec {
             path: "src/lang/expression/expression.md",
             anchor: "Sequence =",
@@ -57,7 +60,14 @@ const EVIDENCE: &[Evidence] = &[
     },
     Evidence {
         id: "expr-lambda-syntax",
-        keywords: &["lambda", "callback", "reduce", "map", "filter", "expression"],
+        keywords: &[
+            "lambda",
+            "callback",
+            "reduce",
+            "map",
+            "filter",
+            "expression",
+        ],
         languages: &["expression", "uffda"],
         kind: EvidenceKind::Syntax,
         status: Some(CapabilityStatus::Supported),
@@ -132,7 +142,9 @@ const EVIDENCE: &[Evidence] = &[
     },
     Evidence {
         id: "no-inplace-mutation",
-        keywords: &["mutation", "mutate", "swap", "inplace", "in-place", "array", "sort"],
+        keywords: &[
+            "mutation", "mutate", "swap", "inplace", "in-place", "array", "sort",
+        ],
         languages: &["expression", "uffda"],
         kind: EvidenceKind::Capability,
         status: Some(CapabilityStatus::Unsupported),
@@ -193,7 +205,15 @@ const EVIDENCE: &[Evidence] = &[
     Evidence {
         id: "pattern-no-statements",
         keywords: &[
-            "if", "else", "loop", "for", "while", "let", "return", "control", "statement",
+            "if",
+            "else",
+            "loop",
+            "for",
+            "while",
+            "let",
+            "return",
+            "control",
+            "statement",
         ],
         languages: &["pattern", "uffda"],
         kind: EvidenceKind::Restriction,
@@ -209,7 +229,15 @@ const EVIDENCE: &[Evidence] = &[
     },
     Evidence {
         id: "std-globals-inventory",
-        keywords: &["global", "builtin", "stdlib", "expression", "map", "reduce", "filter"],
+        keywords: &[
+            "global",
+            "builtin",
+            "stdlib",
+            "expression",
+            "map",
+            "reduce",
+            "filter",
+        ],
         languages: &["expression", "uffda"],
         kind: EvidenceKind::Semantics,
         status: Some(CapabilityStatus::Supported),
@@ -225,8 +253,32 @@ const EVIDENCE: &[Evidence] = &[
 ];
 
 const STOP: &[&str] = &[
-    "a", "an", "the", "to", "of", "in", "on", "for", "and", "or", "with", "from", "using", "that",
-    "this", "want", "needs", "need", "implement", "write", "create", "make", "how", "can", "i", "my",
+    "a",
+    "an",
+    "the",
+    "to",
+    "of",
+    "in",
+    "on",
+    "for",
+    "and",
+    "or",
+    "with",
+    "from",
+    "using",
+    "that",
+    "this",
+    "want",
+    "needs",
+    "need",
+    "implement",
+    "write",
+    "create",
+    "make",
+    "how",
+    "can",
+    "i",
+    "my",
 ];
 
 fn expand(token: &str) -> &'static [&'static str] {
@@ -246,7 +298,9 @@ fn expand(token: &str) -> &'static [&'static str] {
 
 fn task_tokens(task: &str) -> BTreeSet<String> {
     let mut tokens = BTreeSet::new();
-    for raw in task.to_lowercase().split(|c: char| !c.is_ascii_alphanumeric() && c != '_' && c != '+' && c != '-')
+    for raw in task
+        .to_lowercase()
+        .split(|c: char| !c.is_ascii_alphanumeric() && c != '_' && c != '+' && c != '-')
     {
         if raw.len() <= 1 || STOP.contains(&raw) {
             continue;
@@ -363,7 +417,16 @@ fn relevant_globals(tokens: &BTreeSet<String>) -> Value {
     Value::Array(out)
 }
 
-const TOPIC_CATALOG: &[(&str, &[&str], &str, &str, &str, &[&str])] = &[
+type TopicCard = (
+    &'static str,
+    &'static [&'static str],
+    &'static str,
+    &'static str,
+    &'static str,
+    &'static [&'static str],
+);
+
+const TOPIC_CATALOG: &[TopicCard] = &[
     (
         "repetition",
         &["repetition", "bounded", "exact", "quantifier-bounds"],
@@ -378,7 +441,9 @@ const TOPIC_CATALOG: &[(&str, &[&str], &str, &str, &str, &[&str])] = &[
         "Pipeline stages and into",
         "`A |> B` feeds B a derived stream with exactly one scalar item. Use `[P]` (`into`) when that value is iterable.",
         "chars:any*\n|> [ plus:(\"+\"?) digits:Digit*7..15 end -> (join (flat (pack plus digits)) \"\") ]",
-        &["Pipelines must not implicitly iterate arrays/strings; omit `[…]` and the whole array/string is one item."],
+        &[
+            "Pipelines must not implicitly iterate arrays/strings; omit `[…]` and the whole array/string is one item.",
+        ],
     ),
     (
         "projection",
@@ -386,7 +451,10 @@ const TOPIC_CATALOG: &[(&str, &[&str], &str, &str, &str, &[&str])] = &[
         "Projection versus pipeline precedence",
         "Nest a projection inside `(…)`, `[…]`, or `{…}` when it must apply before a surrounding pipeline, or use a named helper rule.",
         "(digits:Digit+ -> (join digits \"\")) |> length:any",
-        &["`A B -> E` projects the sequence `A B`, not only `B`.", "Do not confuse `|>` (pipeline) with `->` (projection)."],
+        &[
+            "`A B -> E` projects the sequence `A B`, not only `B`.",
+            "Do not confuse `|>` (pipeline) with `->` (projection).",
+        ],
     ),
     (
         "skip-quantifier",
@@ -398,7 +466,14 @@ const TOPIC_CATALOG: &[(&str, &[&str], &str, &str, &str, &[&str])] = &[
     ),
     (
         "character-class",
-        &["character-class", "character", "class", "digit", "ascii", "unicode"],
+        &[
+            "character-class",
+            "character",
+            "class",
+            "digit",
+            "ascii",
+            "unicode",
+        ],
         "Character classes versus ASCII digits",
         "Shared `Digit` is `\\cNd`. ASCII-only digits are `\"0\"..\"9\"`.",
         "import \"../common/characters/digit.uff\" Digit;  // \\cNd\nrule AsciiDigit = \"0\"..\"9\";",
@@ -634,7 +709,9 @@ pub fn authoring_context(task: &str, language: Option<&str>) -> Value {
         }
     }
 
-    let (status, summary) = if supported.is_empty() && unsupported.is_empty() && uncertain.is_empty()
+    let (status, summary) = if supported.is_empty()
+        && unsupported.is_empty()
+        && uncertain.is_empty()
     {
         (
             "uncertain",
@@ -746,11 +823,16 @@ mod tests {
         assert_eq!(repetition["ok"], true);
         assert_eq!(repetition["topics"][0]["id"], "repetition");
         let syntax = repetition["topics"][0]["syntax"].as_str().unwrap();
-        assert!(syntax.contains("*n..m") || syntax.contains("*10..10"), "{syntax}");
-        assert!(repetition["topics"][0]["example"]
-            .as_str()
-            .unwrap()
-            .contains("Digit*10..10"));
+        assert!(
+            syntax.contains("*n..m") || syntax.contains("*10..10"),
+            "{syntax}"
+        );
+        assert!(
+            repetition["topics"][0]["example"]
+                .as_str()
+                .unwrap()
+                .contains("Digit*10..10")
+        );
         assert_eq!(
             repetition["expressibility"]["unsupported"]
                 .as_array()

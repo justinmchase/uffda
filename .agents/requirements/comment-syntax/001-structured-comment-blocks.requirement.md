@@ -45,3 +45,7 @@ Postconditions:
 
 - The output is `{ kind: "comment", blocks }` with blocks in source order, as
   defined in the comment syntax chapter.
+
+## Test plan
+
+- `rust/src/lang_tests/common.rs`

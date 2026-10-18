@@ -25,3 +25,7 @@ Postconditions:
 
 - Rule evaluation reports deterministic runtime errors for asynchronous
   expression failures without leaking rejected promises past pattern evaluation.
+
+## Test plan
+
+- `rust/src/evaluate/expression_ports.rs`, `rust/src/runtime/scope_ports.rs`

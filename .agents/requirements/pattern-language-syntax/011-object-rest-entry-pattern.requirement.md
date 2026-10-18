@@ -28,4 +28,11 @@ Postconditions:
 
 - The normalized `over` pattern MUST preserve named keys, ordered rest clauses,
   optional entry capture names, and an optional final catch-all separately.
-- Tests: `src/lang/pattern/structure.test.ts`.
+- Tests: `rust/src/lang_tests/pattern.rs`
+  (`structure_parses_rest_only_object_patterns`,
+  `structure_parses_named_keys_followed_by_rest`,
+  `structure_parses_grouped_key_captures`,
+  `structure_rejects_named_entries_after_rest`,
+  `structure_rejects_clauses_after_catch_all`,
+  `structure_parses_ordered_rest_clauses`,
+  `structure_parses_entry_key_and_value_captures`).

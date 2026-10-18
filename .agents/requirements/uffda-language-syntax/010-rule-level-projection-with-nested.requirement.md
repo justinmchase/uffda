@@ -29,3 +29,4 @@ Postconditions:
 
 - Group-less rule authoring is preserved while Member-style per-arm projections
   use nested `P -> E | Q` or `(P -> E) | Q`.
+- Tests: `rust/src/lang_tests/uffda.rs` (`uffda_rule_level_projection_coexists_with_nested_projection`).

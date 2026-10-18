@@ -27,3 +27,4 @@ Postconditions:
 - The Characters barrel is authored as `.uff`; dependents import `./mod.uff`.
 - Runtime loads Characters from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).
+- Tests: `rust/src/cli/requirement_ports.rs`.

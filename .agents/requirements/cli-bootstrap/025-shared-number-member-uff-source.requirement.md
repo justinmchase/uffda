@@ -28,3 +28,7 @@ Postconditions:
 - Dependents import the `.uff` URLs; TypeScript twins are gone.
 - Runtime loads them from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).
+
+## Test plan
+
+- `rust/src/lang_tests/expression.rs`, `rust/src/lang_tests/uffda.rs`

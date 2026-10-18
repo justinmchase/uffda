@@ -30,5 +30,5 @@ Postconditions:
 
 ## Test plan
 
-`src/requirements/pattern-language-syntax/010-ope-syntax.requirement.test.ts`
-and `src/lang/pattern/prefix.test.ts`.
+`rust/src/lang_tests/pattern.rs` (`prefix_ope`, `prefix_ope_until`,
+`prefix_ope_requires_sneak_by`).

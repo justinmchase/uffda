@@ -25,3 +25,7 @@ Postconditions:
 
 - Caller-visible scope state MUST be derived from the produced resulting scope,
   not from in-place mutation of the incoming scope.
+
+## Test plan
+
+- `rust/src/runtime/engine_ports.rs`, `rust/src/runtime/input.rs`, `rust/src/runtime/scope_ports.rs`, `rust/src/runtime/tests.rs`

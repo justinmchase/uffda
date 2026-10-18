@@ -24,3 +24,7 @@ Postconditions:
 
 - Runtime compilation receives the existing export and rule output models and
   requires no inline-export-specific declaration variant.
+
+## Test plan
+
+- `rust/src/lang_tests/uffda.rs`

@@ -38,3 +38,7 @@ Error behavior:
 
 - Non-string / non-array / non-`Uint8Array` inputs MUST throw TypeError
   according to each helper’s contract.
+
+Postconditions:
+
+- Tests: `rust/src/lang_tests/common.rs` (`source_document_helpers_assemble_indexes`).

@@ -24,3 +24,7 @@ Postconditions:
 - Direct left recursion remains usable for left-associative rule authoring.
   Indirect and mutual left recursion are covered by
   `indirect-left-recursion-001`.
+
+## Test plan
+
+- `rust/src/runtime/module_ports.rs`, `rust/src/runtime/tests.rs`

@@ -39,3 +39,7 @@ Postconditions:
 - Conversion-plan blocker B8 is closed for prefix.
 - Descending digit bounds such as `*2..1` MUST fail to parse. Variable or mixed
   bounds MAY still parse; Quantifier runtime remains authoritative for those.
+
+## Test plan
+
+- `rust/src/lang_tests/pattern.rs`

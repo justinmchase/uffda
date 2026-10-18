@@ -694,4 +694,307 @@ mod tests {
             3
         );
     }
+
+    fn tagged_json(type_name: &str, value: Json) -> Json {
+        json!({ "$type": type_name, "value": value })
+    }
+
+    fn codec_corpus(count: usize) -> Vec<Workload> {
+        assert!(count > 0, "Record count must be a positive safe integer");
+        let mut ordinary = Vec::new();
+        let mut text = Vec::new();
+        let mut nested = Vec::new();
+        let mut native = Vec::new();
+        for i in 0..count {
+            let value = json!({
+                "id": i,
+                "sensor": format!("sensor-{}", i % 7),
+                "ok": i % 3 != 0,
+                "readings": [i as f64, i as f64 + 0.25, -(i as f64) - 1.0],
+                "note": null
+            });
+            ordinary.push(Record {
+                codec: format!(
+                    "{{id:{i} sensor:\"sensor-{}\" ok:{} readings:[{i} {} {}] note:null}}",
+                    i % 7,
+                    i % 3 != 0,
+                    i as f64 + 0.25,
+                    -(i as f64) - 1.0
+                ),
+                json: value,
+            });
+            let message = format!(
+                "record {i}: café 日本語 😀 \"quoted\" \\ slash\nline\t{}",
+                "#".repeat(12)
+            );
+            text.push(Record {
+                codec: serde_json::to_string(&message).unwrap(),
+                json: json!(message),
+            });
+            let tree = json!({
+                "id": i,
+                "items": [
+                    {"name": "first", "values": [1, 2, 3]},
+                    {"name": "second", "values": [4, 5, 6]}
+                ],
+                "meta": {"region": "west", "tags": ["a", "b"], "optional": null}
+            });
+            nested.push(Record {
+                codec: format!(
+                    "{{id:{i} items:[{{name:\"first\" values:[1 2 3]}} {{name:\"second\" values:[4 5 6]}}] meta:{{region:\"west\" tags:[\"a\" \"b\"] optional:null}}}}"
+                ),
+                json: tree,
+            });
+            let bigint = format!("12345678901234567890{i}");
+            native.push(Record {
+                codec: format!(
+                    "{{id:{i} missing:undefined big:{bigint}n date:@date\"2026-10-12T00:00:00Z\" bytes:@bytes\"AAECA_8\" symbol:@symbol\"sample\" set:@set[1 \"x\"] map:@map[[\"key\" 42]] error:@error{{name:\"TypeError\" message:\"sample\" cause:{i}}} special:[NaN Infinity -Infinity -0]}}"
+                ),
+                json: json!({
+                    "id": i,
+                    "missing": { "$type": "undefined" },
+                    "big": tagged_json("bigint", json!(bigint)),
+                    "date": tagged_json("date", json!("2026-10-12T00:00:00Z")),
+                    "bytes": tagged_json("bytes", json!("AAECA_8")),
+                    "symbol": tagged_json("symbol", json!("sample")),
+                    "set": tagged_json("set", json!([1, "x"])),
+                    "map": tagged_json("map", json!([["key", 42]])),
+                    "error": tagged_json("error", json!({
+                        "name": "TypeError",
+                        "message": "sample",
+                        "cause": i
+                    })),
+                    "special": [
+                        tagged_json("number", json!("NaN")),
+                        tagged_json("number", json!("Infinity")),
+                        tagged_json("number", json!("-Infinity")),
+                        tagged_json("number", json!("-0")),
+                    ]
+                }),
+            });
+        }
+        vec![
+            Workload {
+                name: "ordinary".into(),
+                records: ordinary,
+            },
+            Workload {
+                name: "unicode-text".into(),
+                records: text,
+            },
+            Workload {
+                name: "nested".into(),
+                records: nested,
+            },
+            Workload {
+                name: "native-tagged".into(),
+                records: native,
+            },
+        ]
+    }
+
+    fn transport(workload: &Workload, format: &str) -> String {
+        match format {
+            "codec" => workload
+                .records
+                .iter()
+                .map(|record| format!("{}\n", record.codec))
+                .collect(),
+            "jsonl" => workload
+                .records
+                .iter()
+                .map(|record| format!("{}\n", serde_json::to_string(&record.json).unwrap()))
+                .collect(),
+            "json" => serde_json::to_string(
+                &workload
+                    .records
+                    .iter()
+                    .map(|record| &record.json)
+                    .collect::<Vec<_>>(),
+            )
+            .unwrap(),
+            _ => panic!("Unknown transport: {format}"),
+        }
+    }
+
+    fn median(values: &[f64]) -> f64 {
+        assert!(
+            !values.is_empty()
+                && values
+                    .iter()
+                    .all(|value| value.is_finite() && *value >= 0.0),
+            "Median requires nonnegative finite samples"
+        );
+        let mut sorted = values.to_vec();
+        sorted.sort_by(|left, right| left.partial_cmp(right).unwrap());
+        let middle = sorted.len() / 2;
+        if sorted.len() % 2 == 0 {
+            (sorted[middle - 1] + sorted[middle]) / 2.0
+        } else {
+            sorted[middle]
+        }
+    }
+
+    #[test]
+    // req:data-codec-004
+    fn remport_representative_corpus_is_deterministic_and_json_comparisons_retain_native_tags() {
+        let corpus = codec_corpus(2);
+        assert_eq!(
+            serde_json::to_value(&corpus.iter().map(|w| &w.name).collect::<Vec<_>>()).unwrap(),
+            json!(["ordinary", "unicode-text", "nested", "native-tagged"])
+        );
+        let again = codec_corpus(2);
+        for (left, right) in corpus.iter().zip(again.iter()) {
+            assert_eq!(left.name, right.name);
+            assert_eq!(left.records.len(), right.records.len());
+            for (left, right) in left.records.iter().zip(right.records.iter()) {
+                assert_eq!(left.codec, right.codec);
+                assert_eq!(left.json, right.json);
+            }
+        }
+        for workload in &corpus {
+            assert_eq!(
+                serde_json::from_str::<Json>(&transport(workload, "json")).unwrap(),
+                Json::Array(
+                    workload
+                        .records
+                        .iter()
+                        .map(|record| record.json.clone())
+                        .collect()
+                )
+            );
+            let lines: Vec<Json> = transport(workload, "jsonl")
+                .trim()
+                .split('\n')
+                .map(|line| serde_json::from_str(line).unwrap())
+                .collect();
+            assert_eq!(
+                lines,
+                workload
+                    .records
+                    .iter()
+                    .map(|record| record.json.clone())
+                    .collect::<Vec<_>>()
+            );
+            assert_eq!(transport(workload, "codec").split('\n').count(), 3);
+        }
+        assert_eq!(
+            corpus[3].records[0].json,
+            codec_corpus(1)[3].records[0].json
+        );
+        let zero = std::panic::catch_unwind(|| codec_corpus(0));
+        assert!(zero.is_err());
+        let unknown = std::panic::catch_unwind(|| transport(&corpus[0], "unknown"));
+        assert!(unknown.is_err());
+    }
+
+    #[test]
+    // req:data-codec-004
+    fn remport_measurements_summarize_independent_samples_without_accepting_invalid_timing() {
+        assert_eq!(median(&[9.0, 2.0, 4.0]), 4.0);
+        assert_eq!(median(&[9.0, 2.0, 4.0, 3.0]), 3.5);
+        assert_eq!(median(&[0.0]), 0.0);
+        for values in [&[][..], &[f64::NAN][..], &[-1.0][..], &[f64::INFINITY][..]] {
+            assert!(std::panic::catch_unwind(|| median(values)).is_err());
+        }
+    }
+
+    #[test]
+    // req:data-codec-004
+    fn remport_persistent_baseline_contains_every_transport_pipeline_and_long_samples() {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct SizeRow {
+            workload: String,
+            format: String,
+            raw_bytes: u64,
+            gzip_bytes: u64,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct SampleRow {
+            workload: String,
+            format: String,
+            compression: String,
+            operation: String,
+            peak_rss_ki_b: u64,
+            chunk_bytes: u64,
+            records: u64,
+            elapsed_ms: f64,
+            bytes: u64,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct ScalingRow {
+            workload: String,
+            format: String,
+            compression: String,
+            records: u64,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Baseline {
+            sizes: Vec<SizeRow>,
+            samples: Vec<SampleRow>,
+            memory_scaling: Vec<ScalingRow>,
+        }
+        let baseline: Baseline =
+            serde_json::from_str(include_str!("../../test/perf/data-codec-baseline.json")).unwrap();
+        assert_eq!(baseline.sizes.len(), 12);
+        assert_eq!(baseline.samples.len(), 216);
+        assert_eq!(baseline.memory_scaling.len(), 24);
+        for workload in ["ordinary", "unicode-text", "nested", "native-tagged"] {
+            for format in ["codec", "json", "jsonl"] {
+                let sizes: Vec<_> = baseline
+                    .sizes
+                    .iter()
+                    .filter(|row| row.workload == workload && row.format == format)
+                    .collect();
+                assert_eq!(sizes.len(), 1);
+                assert!(sizes[0].raw_bytes > 0 && sizes[0].gzip_bytes > 0);
+                for compression in ["raw", "gzip"] {
+                    for operation in ["encode", "decode", "baseline"] {
+                        let samples: Vec<_> = baseline
+                            .samples
+                            .iter()
+                            .filter(|row| {
+                                row.workload == workload
+                                    && row.format == format
+                                    && row.compression == compression
+                                    && row.operation == operation
+                            })
+                            .collect();
+                        assert_eq!(samples.len(), 3);
+                        for sample in samples {
+                            assert!(sample.peak_rss_ki_b > 0);
+                            assert_eq!(sample.chunk_bytes, 4096);
+                            if operation == "baseline" {
+                                assert_eq!(sample.records, 0);
+                            } else {
+                                assert!(
+                                    sample.elapsed_ms >= 100.0
+                                        && sample.bytes > 0
+                                        && sample.records >= 256
+                                );
+                                assert_eq!(sample.records % 32, 0);
+                            }
+                        }
+                    }
+                    if matches!(workload, "ordinary" | "native-tagged") {
+                        let scaling: Vec<_> = baseline
+                            .memory_scaling
+                            .iter()
+                            .filter(|row| {
+                                row.workload == workload
+                                    && row.format == format
+                                    && row.compression == compression
+                            })
+                            .map(|row| row.records)
+                            .collect();
+                        assert_eq!(scaling, [32, 4096]);
+                    }
+                }
+            }
+        }
+    }
 }

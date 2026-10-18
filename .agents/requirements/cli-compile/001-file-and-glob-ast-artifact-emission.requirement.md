@@ -31,3 +31,4 @@ Postconditions:
 
 - Compiled source units are represented as deterministic per-file
   ModuleDeclaration artifact outputs.
+- Tests: `rust/src/cli/command_ports.rs`, `rust/src/compile.rs`.

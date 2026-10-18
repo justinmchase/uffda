@@ -622,10 +622,8 @@ mod tests {
     #[test]
     // req:cli-language-server-006
     fn hover_on_module_path_lists_resolved_url_and_exports() {
-        let dir = std::env::temp_dir().join(format!(
-            "uffda-lsp-hover-import-{}",
-            std::process::id()
-        ));
+        let dir =
+            std::env::temp_dir().join(format!("uffda-lsp-hover-import-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let dep = dir.join("dep.uff");
@@ -718,5 +716,54 @@ mod tests {
         let summary = format_described_declaration_markdown(&declaration, None);
         assert!(summary.contains("**pattern:** `any`"), "{summary}");
         assert!(summary.contains("**attributes:**"), "{summary}");
+    }
+
+    #[test]
+    // req:cli-language-server-006 req:runtime-core-006
+    fn describe_pattern_names_equals_resolves_and_variable_wrappers() {
+        assert_eq!(
+            describe_pattern(&json!({
+                "kind": "equal",
+                "value": {"kind": "literal", "value": ":"}
+            })),
+            "equal \":\""
+        );
+        assert_eq!(
+            describe_pattern(&json!({
+                "kind": "resolve",
+                "targetKind": "reference",
+                "name": "RuleParameterList",
+                "args": []
+            })),
+            "resolve RuleParameterList"
+        );
+        assert_eq!(
+            describe_pattern(&json!({
+                "kind": "variable",
+                "name": "t",
+                "pattern": {
+                    "kind": "resolve",
+                    "targetKind": "reference",
+                    "name": "ImportModuleSpecifier",
+                    "args": []
+                }
+            })),
+            "t: resolve ImportModuleSpecifier"
+        );
+        // Resolve names belong in describe_pattern / the rule stack, not as a
+        // bare expected value: short_pattern still names the target.
+        assert_eq!(
+            short_pattern(&json!({
+                "kind": "resolve",
+                "targetKind": "reference",
+                "name": "ImportModuleSpecifier",
+                "args": []
+            })),
+            "resolve ImportModuleSpecifier"
+        );
+        assert_eq!(
+            value_source_text(&json!({"kind": "literal", "value": ";"})),
+            "\";\""
+        );
     }
 }

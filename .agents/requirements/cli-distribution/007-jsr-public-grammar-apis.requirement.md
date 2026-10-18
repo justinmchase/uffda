@@ -63,6 +63,5 @@ Postconditions:
 
 - A downstream grammar can parse and lower to its own AST through the public API
   without adding application-specific semantics to Uffda.
-- Tests: `src/lang/grammar.test.ts`,
-  `src/lang/tokenizer/tokenizer.lang.test.ts`,
-  `test/integration/cli-distribution-007-jsr-public-grammar-apis.requirement.test.ts`.
+- Tests: `rust/src/lang_tests/common.rs`,
+  `rust/src/resolver/packages/tests.rs`.

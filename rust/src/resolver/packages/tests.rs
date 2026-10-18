@@ -1,7 +1,11 @@
 use super::*;
 use serde_json::json;
 use std::cell::RefCell;
+use std::collections::BTreeMap;
+use std::path::PathBuf;
+use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use url::Url;
 
 struct Directory(PathBuf);
 
@@ -515,4 +519,261 @@ fn blocking_http_transport_reads_data_and_reports_http_failures() {
     assert!(decode_declaration(&url, std::str::from_utf8(&bytes).unwrap()).is_ok());
     assert!(HttpTransport.read(&url).unwrap_err().contains("404"));
     worker.join().unwrap();
+}
+
+fn repo_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .canonicalize()
+        .unwrap()
+}
+
+fn publish_package_files(fake: &FakeTransport, package: &str, version: &str) {
+    let root = repo_root();
+    let mut files = BTreeMap::from([(
+        "uffda.jsonc".to_string(),
+        std::fs::read_to_string(root.join("uffda.jsonc")).unwrap(),
+    )]);
+    let mut pending = vec![root.join("bin")];
+    while let Some(directory) = pending.pop() {
+        for entry in std::fs::read_dir(directory).unwrap() {
+            let entry = entry.unwrap();
+            let path = entry.path();
+            if path.is_dir() {
+                pending.push(path);
+            } else if path.extension().and_then(|ext| ext.to_str()) == Some("json") {
+                let relative = path
+                    .strip_prefix(&root)
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .replace('\\', "/");
+                files.insert(relative, std::fs::read_to_string(path).unwrap());
+            }
+        }
+    }
+    fake.files.borrow_mut().insert(
+        format!("/{package}/meta.json"),
+        json!({"versions":{version:{}}}).to_string().into_bytes(),
+    );
+    let mut manifest = BTreeMap::new();
+    for (path, text) in &files {
+        manifest.insert(
+            format!("/{path}"),
+            json!({"checksum":format!("sha256-{}", sha256(text.as_bytes()))}),
+        );
+        fake.files.borrow_mut().insert(
+            format!("/{package}/{version}/{path}"),
+            text.as_bytes().to_vec(),
+        );
+    }
+    fake.files.borrow_mut().insert(
+        format!("/{package}/{version}_meta.json"),
+        json!({"manifest":manifest}).to_string().into_bytes(),
+    );
+}
+
+#[test]
+// req:cli-distribution-006
+fn remport_jsr_package_exports_resolve_and_tokenizer_runs() {
+    let _guard = crate::test_sync::languages_lock();
+    use crate::languages::{Language, Languages};
+    use crate::module::CompiledModuleGraph;
+    use crate::pattern::MatchKind;
+    use crate::runtime::{InputMode, Runtime};
+
+    let dir = Directory::new();
+    let fake = Rc::new(FakeTransport::default());
+    publish_package_files(&fake, "@justinmchase/uffda", "1.0.0");
+    let mut packages = setup(&dir, fake.clone(), Lockfile::memory());
+    for name in [
+        "tokenizer",
+        "tokenizer-lang",
+        "pattern",
+        "expression",
+        "imports",
+        "exports",
+        "language",
+    ] {
+        packages
+            .resolve(&format!("jsr:@justinmchase/uffda@^1/{name}"))
+            .unwrap_or_else(|error| panic!("{name}: {}", error.message));
+    }
+
+    let mut languages = Languages::new().unwrap();
+    let source = "import \"jsr:@justinmchase/uffda@^1/tokenizer\" Tokenizer;\n\
+export rule Main = t:Tokenizer -> t;\n";
+    let declaration = {
+        let syntax = languages.parse(source, Language::Uffda).expect("parse");
+        let lowered = languages.compile(syntax).expect("compile");
+        serde_json::to_string(&lowered).unwrap()
+    };
+    let mut resolver = super::super::Resolver::new(dir.0.clone(), dir.0.join("bin")).unwrap();
+    resolver.set_packages(packages);
+    let url = Url::parse("file:///uffda-cli-distribution-006/main.uff").unwrap();
+    resolver.insert_declaration(url.clone(), decode_declaration(&url, &declaration).unwrap());
+    let graph = Rc::new(
+        CompiledModuleGraph::compile(resolver.load_graph(&url).expect("load graph"))
+            .expect("compile graph"),
+    );
+    let mut runtime = Runtime::with_mode(
+        graph,
+        &url,
+        Some("Main"),
+        json!("hello world"),
+        InputMode::Iterable,
+    )
+    .unwrap();
+    runtime.run().unwrap();
+    runtime.read(|execution| {
+        let result = execution.result().expect("result");
+        assert_eq!(result.kind, MatchKind::Ok);
+        assert!(execution.is_clean());
+    });
+    let text = runtime.serialize_result().unwrap().unwrap();
+    let tokens: serde_json::Value = serde_json::from_str(&text).unwrap();
+    let kinds: Vec<_> = tokens
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|token| token["kind"].as_str().unwrap())
+        .collect();
+    assert_eq!(kinds, ["word", "whitespace", "word"]);
+}
+
+#[test]
+// req:cli-distribution-007
+fn remport_jsr_public_grammar_exports_and_raw_rules_compose() {
+    let _guard = crate::test_sync::languages_lock();
+    use crate::languages::{Language, Languages};
+    use crate::module::CompiledModuleGraph;
+    use crate::pattern::MatchKind;
+    use crate::runtime::{InputMode, Runtime};
+
+    let root = repo_root();
+    let deno: serde_json::Value = jsonc_parser::parse_to_serde_value(
+        &std::fs::read_to_string(root.join("deno.jsonc")).unwrap(),
+        &Default::default(),
+    )
+    .unwrap()
+    .unwrap();
+    let grammar: serde_json::Value = jsonc_parser::parse_to_serde_value(
+        &std::fs::read_to_string(root.join("uffda.jsonc")).unwrap(),
+        &Default::default(),
+    )
+    .unwrap()
+    .unwrap();
+    let exports = deno["exports"].as_object().unwrap();
+    assert_eq!(exports["./grammar"], "./src/lang/grammar.ts");
+    assert_eq!(exports["./runtime"], "./src/runtime/public.ts");
+    assert_eq!(
+        exports["./tokenizer"],
+        "./src/lang/tokenizer/tokenizer.lang.ts"
+    );
+    assert_eq!(exports["./pattern"], "./src/lang/pattern/pattern.lang.ts");
+    assert_eq!(
+        exports["./expression"],
+        "./src/lang/expression/expression.lang.ts"
+    );
+    assert_eq!(exports["./uffda"], "./src/lang/uffda/uffda.lang.ts");
+    assert_eq!(
+        exports["./language-metadata"],
+        "./src/cli/language_metadata.ts"
+    );
+    assert_eq!(grammar["exports"]["./source"], "./src/lang/source/mod.uff");
+
+    let mut languages = Languages::new().unwrap();
+    assert!(languages.parse("any", Language::Pattern).is_ok());
+    assert!(languages.parse("42", Language::Expression).is_ok());
+    {
+        let mut resolver = super::super::Resolver::from_cwd().unwrap();
+        let builtin_root = crate::builtins::register(&mut resolver).unwrap();
+        let url = builtin_root
+            .join("src/lang/tokenizer/tokenizer.lang.uff")
+            .unwrap();
+        let graph =
+            Rc::new(CompiledModuleGraph::compile(resolver.load_graph(&url).unwrap()).unwrap());
+        let mut runtime = Runtime::with_mode(
+            graph,
+            &url,
+            Some("TokenizerLang"),
+            json!("one two"),
+            InputMode::Scalar,
+        )
+        .unwrap();
+        runtime.run().unwrap();
+        runtime.read(|execution| assert!(execution.is_clean()));
+    }
+
+    let dir = Directory::new();
+    let fake = Rc::new(FakeTransport::default());
+    publish_package_files(&fake, "@justinmchase/uffda", "1.0.0");
+
+    let cases = [
+        ("pattern", "Pattern", json!(["any"]), json!({"kind":"any"})),
+        (
+            "pattern-syntax",
+            "Pattern",
+            json!(["any"]),
+            json!({"kind":"any"}),
+        ),
+        (
+            "expression",
+            "Expression",
+            json!(["42"]),
+            json!({"kind":"number","value":42}),
+        ),
+        (
+            "expression-syntax",
+            "Expression",
+            json!(["42"]),
+            json!({"kind":"number","value":42}),
+        ),
+    ];
+    for (specifier, name, input, expected) in cases {
+        let source = format!(
+            "import \"jsr:@justinmchase/uffda@^1/{specifier}\" {name};\nexport rule Main = {name};"
+        );
+        let declaration = {
+            let syntax = languages.parse(&source, Language::Uffda).expect("parse");
+            let lowered = languages.compile(syntax).expect("compile");
+            serde_json::to_string(&lowered).unwrap()
+        };
+        let mut resolver = super::super::Resolver::new(dir.0.clone(), dir.0.join("bin")).unwrap();
+        resolver.set_packages(setup(&dir, fake.clone(), Lockfile::memory()));
+        let url = Url::parse("file:///uffda-cli-distribution-007/raw.uff").unwrap();
+        resolver.insert_declaration(url.clone(), decode_declaration(&url, &declaration).unwrap());
+        let graph = Rc::new(
+            CompiledModuleGraph::compile(resolver.load_graph(&url).expect("load graph"))
+                .expect("compile graph"),
+        );
+        let mut runtime =
+            Runtime::with_mode(graph, &url, Some("Main"), input, InputMode::Iterable).unwrap();
+        runtime.run().unwrap();
+        runtime.read(|execution| {
+            assert_eq!(execution.result().unwrap().kind, MatchKind::Ok);
+            assert!(execution.is_clean());
+        });
+        let text = runtime.serialize_result().unwrap().unwrap();
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(&text).unwrap(),
+            expected
+        );
+    }
+
+    let mut packages = setup(&dir, fake, Lockfile::memory());
+    for name in [
+        "tokenizer",
+        "tokenizer-lang",
+        "pattern",
+        "expression",
+        "imports",
+        "exports",
+        "language",
+        "source",
+    ] {
+        packages
+            .resolve(&format!("jsr:@justinmchase/uffda@^1/{name}"))
+            .unwrap_or_else(|error| panic!("{name}: {}", error.message));
+    }
 }

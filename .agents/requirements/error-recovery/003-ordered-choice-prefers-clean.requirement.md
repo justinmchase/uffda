@@ -30,7 +30,6 @@ Postconditions:
 
 ## Test plan
 
-`src/runtime/patterns/or.test.ts`: clean later alternative wins (OR_RECOVER00),
-first recovered wins without a clean alternative and later recovered
-alternatives are rejected (OR_RECOVER01), existing OR00–OR05 for unchanged
-behavior.
+`rust/src/pattern/tests.rs`: a later clean alternative wins, the first recovered
+alternative wins when none is clean, and a passed-over recovered alternative is
+a `Fail` whose only child is that alternative's success.

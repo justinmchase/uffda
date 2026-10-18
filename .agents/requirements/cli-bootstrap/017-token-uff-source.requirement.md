@@ -27,3 +27,7 @@ Postconditions:
 - Dependents import `../tokenizer/token.uff`; the TypeScript twin is gone.
 - Runtime loads Token from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).
+
+## Test plan
+
+- `rust/src/lang_tests/common.rs`

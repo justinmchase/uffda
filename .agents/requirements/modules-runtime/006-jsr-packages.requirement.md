@@ -61,7 +61,8 @@ Postconditions:
   the lockfile reproduces the same versions and bytes on every checkout.
 - Tests: `src/packages/jsr_packages.test.ts`,
   `src/packages/jsr_specifier.test.ts`, `src/packages/lockfile.test.ts`,
-  `src/packages/cache_dir.test.ts`, `src/runtime/resolve.test.ts` (RESOLVE11,
-  RESOLVE13), `src/cli/command_project.test.ts`, `src/cli/exec.test.ts`,
+  `src/packages/cache_dir.test.ts`, `rust/src/runtime/module_ports.rs`
+  (`modport_resolve_import_map_artifacts_and_package_boundaries`),
+  `src/cli/command_project.test.ts`, `src/cli/exec.test.ts`,
   `src/cli/mcp.session.test.ts`, `src/cli/lsp.documents.test.ts`,
   `src/cli/distribution.test.ts`.

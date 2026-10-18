@@ -45,3 +45,7 @@ Postconditions:
   member.
 - Formatting writes each inner comment on its own lines and breaks the
   constructs that hold it, and formatting the result again changes nothing.
+
+## Test plan
+
+- `rust/src/lang_tests/uffda.rs`

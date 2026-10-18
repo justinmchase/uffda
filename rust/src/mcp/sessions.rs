@@ -420,21 +420,21 @@ impl Session {
             }
         };
         match evaluation.serialize_rooted(&rooted) {
-            Ok(serialized) => match evaluation
-                .read(&serialized, |value| crate::output::serialized_output(value))
-            {
-                Ok(Ok(text)) => json!({ "ok": true, "value": json_value_from_output(&text) }),
-                Ok(Err(error)) => eval_failure(
-                    "MCP_SESSION_EVAL_EXPRESSION_EXCEPTION",
-                    "eval",
-                    error.to_string(),
-                ),
-                Err(error) => eval_failure(
-                    "MCP_SESSION_EVAL_EXPRESSION_EXCEPTION",
-                    "eval",
-                    error.to_string(),
-                ),
-            },
+            Ok(serialized) => {
+                match evaluation.read(&serialized, crate::output::serialized_output) {
+                    Ok(Ok(text)) => json!({ "ok": true, "value": json_value_from_output(&text) }),
+                    Ok(Err(error)) => eval_failure(
+                        "MCP_SESSION_EVAL_EXPRESSION_EXCEPTION",
+                        "eval",
+                        error.to_string(),
+                    ),
+                    Err(error) => eval_failure(
+                        "MCP_SESSION_EVAL_EXPRESSION_EXCEPTION",
+                        "eval",
+                        error.to_string(),
+                    ),
+                }
+            }
             Err(error) => eval_failure(
                 "MCP_SESSION_EVAL_EXPRESSION_EXCEPTION",
                 "eval",
@@ -644,6 +644,11 @@ impl Session {
         self.load_at(&new_source, path.as_deref(), Some(target))
     }
 
+    /// Retained match tree for `match_result_id`, when the session still holds it.
+    pub fn retained_match(&self, match_result_id: &str) -> Option<&ops::RetainedMatch> {
+        self.match_results.get(match_result_id)
+    }
+
     pub fn walk(
         &self,
         match_result_id: &str,
@@ -764,8 +769,7 @@ impl Session {
                         cache_dir.clone(),
                         Rc::new(crate::resolver::packages::HttpTransport),
                         lockfile,
-                    )
-                    .map_err(|error| error)?;
+                    )?;
                     resolver.set_packages(packages);
                 }
                 Ok(resolver)
@@ -940,7 +944,7 @@ fn serialize_declaration(declaration: &ModuleDeclaration) -> String {
         "decorators": declaration.decorators.iter().map(json_from_runtime).collect::<Vec<_>>(),
     }))
     .unwrap_or_else(|_| {
-        format!(r#"{{"imports":[],"exports":[],"rules":[],"funcs":[],"decorators":[]}}"#)
+        r#"{"imports":[],"exports":[],"rules":[],"funcs":[],"decorators":[]}"#.to_string()
     })
 }
 
@@ -1125,10 +1129,12 @@ fn eval_parse_failure(diagnostics: &[SourceDiagnostic]) -> Value {
     json!({ "ok": false, "error": error, "diagnostics": mapped })
 }
 
+#[derive(Debug)]
 pub struct SessionOpenError {
     pub message: String,
 }
 
+#[derive(Debug)]
 pub struct SessionLookupError {
     pub message: String,
 }

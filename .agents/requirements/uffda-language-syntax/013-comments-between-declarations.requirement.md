@@ -36,3 +36,7 @@ Postconditions:
 
 - Compiling a module drops its comment nodes: the ModuleDeclaration is the same
   as for the module with its comments removed.
+
+## Test plan
+
+- `rust/src/lang_tests/uffda.rs`

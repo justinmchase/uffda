@@ -22,3 +22,7 @@ Postconditions:
 
 - Equal-pattern evaluation outcomes are limited to success/failure match
   semantics and resulting scope/input state transitions.
+
+## Test plan
+
+- `rust/src/pattern/terminal_ports.rs`

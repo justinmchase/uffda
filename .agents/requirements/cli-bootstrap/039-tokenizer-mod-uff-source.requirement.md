@@ -32,3 +32,7 @@ Postconditions:
   `builtInLanguageDeclarations`).
 - Host `tokenizer.lang.ts` MAY hold TypeScript token types and guards; span
   helpers MUST NOT exist (spans come from value origins).
+
+## Test plan
+
+- `rust/src/lang_tests/common.rs`

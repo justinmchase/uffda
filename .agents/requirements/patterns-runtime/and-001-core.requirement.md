@@ -28,3 +28,4 @@ Postconditions:
 - A failed conjunction MUST restore caller-visible input position P.
 - A successful nonempty conjunction MUST expose its final child's position;
   child consumption is not suppressed by the conjunction.
+- Tests: `rust/src/pattern/tests.rs`.

@@ -26,3 +26,7 @@ Postconditions:
 
 - Modules such as NewLine can author serializable projections without Native
   functions.
+
+## Test plan
+
+- `rust/src/lang_tests/expression.rs`

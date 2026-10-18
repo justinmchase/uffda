@@ -23,3 +23,4 @@ Postconditions:
 
 - Newline token behavior remains aligned with source-normalization ownership of
   newline canonicalization.
+- Tests: `rust/src/lang_tests/common.rs` (`tokenizer_consumes_canonical_lf_source_documents`).

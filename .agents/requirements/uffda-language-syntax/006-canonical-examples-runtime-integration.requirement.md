@@ -21,5 +21,4 @@ Expected behavior:
 
 Postconditions:
 
-- Tests:
-  `src/requirements/uffda-language-syntax/006-canonical-examples-runtime-integration.requirement.test.ts`.
+- Tests: `rust/src/lang_tests/uffda.rs`.

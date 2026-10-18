@@ -30,3 +30,4 @@ Expected behavior:
 Postconditions:
 
 - Quantifier output MUST contain accumulated successful child outputs.
+- Tests: `rust/src/pattern/composite_ports.rs`.

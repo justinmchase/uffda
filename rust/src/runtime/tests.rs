@@ -121,6 +121,22 @@ fn rule(name: &str, pattern: Json) -> Json {
     json!({"name":name,"parameters":[],"pattern":pattern})
 }
 
+/// Keep a rule on the memoized path under selective memoization by adding a
+/// dead dynamic arm (argument-passing resolve). Successful matches still take
+/// `pattern` first; the dead arm is never evaluated at runtime.
+fn memoized_rule(name: &str, pattern: Json) -> Json {
+    rule(
+        name,
+        json!({"kind":"or","patterns":[
+            pattern,
+            {"kind":"then","patterns":[
+                {"kind":"fail"},
+                {"kind":"resolve","targetKind":"reference","name":"__force_memo","args":[{"kind":"any"}]}
+            ]}
+        ]}),
+    )
+}
+
 fn reference(name: &str) -> Json {
     json!({"kind":"resolve","targetKind":"reference","name":name,"args":[]})
 }
@@ -194,7 +210,7 @@ fn memo_eviction_compacts_entries_before_the_live_low_water_mark() {
             execution.memo_keys.insert(key.clone(), index);
         }
         execution.active_marks.push(ActiveMark {
-            memo: 1,
+            memo: Some(1),
             domain: Some(positions[0].position.domain),
             low: Some(5),
         });
@@ -205,7 +221,7 @@ fn memo_eviction_compacts_entries_before_the_live_low_water_mark() {
         assert!(!execution.memo_keys.contains_key(&positions[0]));
         assert_eq!(execution.memo_keys.get(&positions[1]), Some(&0));
         assert_eq!(execution.memo_keys.get(&positions[2]), Some(&1));
-        assert_eq!(execution.active_marks[0].memo, 0);
+        assert_eq!(execution.active_marks[0].memo, Some(0));
 
         execution.active_marks.clear();
         execution.evict_memos();
@@ -389,8 +405,8 @@ fn unchanged_failed_rule_is_reused_without_changing_branch_order() {
                     {"kind":"any"},{"kind":"end"}
                 ]})
             ),
-            rule("Missing", equal(json!("z"))),
-            rule("Atom", json!({"kind":"any"}))
+            memoized_rule("Missing", equal(json!("z"))),
+            memoized_rule("Atom", json!({"kind":"any"}))
         ]),
         "Main",
     );
@@ -427,14 +443,14 @@ fn nested_prefix_rule_reuse_remaps_every_retained_domain_across_repeated_edits()
                 "Main",
                 json!({"kind":"then","patterns":[reference("Record"),{"kind":"any"},{"kind":"end"}]})
             ),
-            rule(
+            memoized_rule(
                 "Record",
                 json!({"kind":"over","keys":{
             "a":{"kind":"into","pattern":{"kind":"then","patterns":[reference("Atom"),{"kind":"end"}]}},
             "b":reference("Atom")
         },"rest":[]})
             ),
-            rule("Atom", json!({"kind":"any"}))
+            memoized_rule("Atom", json!({"kind":"any"}))
         ]),
         "Main",
     );
@@ -695,7 +711,7 @@ fn reused_nested_failures_keep_diagnostics_and_changed_prefixes_are_recomputed()
                 "Main",
                 json!({"kind":"then","patterns":[reference("Record"),{"kind":"any"}]})
             ),
-            rule(
+            memoized_rule(
                 "Record",
                 json!({"kind":"over","keys":{"a":equal(json!("x")),"b":equal(json!("y"))},"rest":[]})
             )
@@ -867,7 +883,7 @@ fn compaction_preserves_pending_growth_and_transitive_seed_dependencies() {
             version: 3,
         });
         execution.active_marks.push(ActiveMark {
-            memo: 5,
+            memo: Some(5),
             domain: Some(identity.position(0).domain),
             low: Some(5),
         });
@@ -875,7 +891,7 @@ fn compaction_preserves_pending_growth_and_transitive_seed_dependencies() {
         assert_eq!(execution.memos.len(), 5);
         assert!(matches!(execution.memos[0].state, MemoState::Pending));
         assert!(matches!(execution.memos[1].state, MemoState::Growing(_)));
-        assert_eq!(execution.active_marks[0].memo, 4);
+        assert_eq!(execution.active_marks[0].memo, Some(4));
         assert_eq!(execution.memos[4].dependencies[0].memo, 3);
         assert_eq!(execution.memos[4].dependencies[0].version, 4);
         assert_eq!(execution.memos[3].seed_dependencies[0].memo, 2);
@@ -918,17 +934,17 @@ fn incomparable_nested_and_multiple_domains_retain_state_until_their_frames_retu
                 },
                 index,
             );
-            execution.enter_active(index, identity.position(0));
+            execution.enter_active(Some(index), identity.position(0));
         }
         execution.evict_memos();
         assert_eq!(execution.memos.len(), 3);
-        execution.leave_active(2).unwrap();
+        execution.leave_active(Some(2)).unwrap();
         execution.evict_memos();
         assert_eq!(execution.memos.len(), 3);
-        execution.leave_active(1).unwrap();
+        execution.leave_active(Some(1)).unwrap();
         execution.evict_memos();
         assert_eq!(execution.memos.len(), 3);
-        execution.leave_active(0).unwrap();
+        execution.leave_active(Some(0)).unwrap();
         execution.evict_memos();
         assert!(execution.memos.is_empty());
     });
@@ -943,7 +959,7 @@ fn first_pass_memo_peaks_follow_the_live_window_and_completion_releases_it() {
                 "Main",
                 json!({"kind":"quantifier","pattern":reference("Atom")})
             ),
-            rule("Atom", json!({"kind":"any"}))
+            memoized_rule("Atom", json!({"kind":"any"}))
         ]),
         "Main",
     );
@@ -1334,7 +1350,7 @@ fn async_source_backtracking_and_rule_memos_reuse_cached_prefix_with_stable_iden
                     {"kind":"then","patterns":[reference("A"),equal(json!(2)),{"kind":"end"}]}
                 ]})
             ),
-            rule("A", equal(json!(1))),
+            memoized_rule("A", equal(json!(1))),
         ]),
         "Main",
     );
@@ -1674,7 +1690,7 @@ fn rule_projection_suspends_authored_function_and_reuses_completed_memo() {
     let (graph, url) = module_graph(json!({
         "imports": [], "exports":[{"kind":"rule","name":"Main","default":true}], "decorators":[],
         "rules":[rule("Main", json!({"kind":"and","patterns":[reference("Child"),reference("Child")]})),
-            rule("Child", json!({"kind":"projection","pattern":{"kind":"any"},
+            memoized_rule("Child", json!({"kind":"projection","pattern":{"kind":"any"},
                 "expression":{"kind":"invocation","expression":{"kind":"reference","name":"Call"},"args":[]}}))],
         "funcs":[{"name":"Call","pattern":{"kind":"end"},
             "expression":host_call(json!({"kind":"value","value":{"retained":[1,2,3]}}))}]
@@ -2315,7 +2331,7 @@ fn named_parameterized_rule_arguments_specialize_when_invoked_not_when_captured(
 #[test]
 // req:rules-001 req:runtime-core-004
 fn backtracking_reuses_projected_rule_value_and_restores_callers_bindings() {
-    let mut projected = rule("R", equal(json!("x")));
+    let mut projected = memoized_rule("R", equal(json!("x")));
     projected["expression"] = json!({"kind":"number","value":42});
     let mut runtime = text_runtime(
         json!([
@@ -2921,31 +2937,63 @@ fn a_stabilized_failed_cycle_does_not_mask_a_later_recovery() {
 #[test]
 // req:error-recovery-006 req:error-recovery-002
 fn a_successful_growth_seed_does_not_mask_real_syntax_recovery() {
+    // Requirement test plan: `[a?b].c` recovers `?b` inside a bracketed group
+    // within Primary's growth, then still grows the member access. Recover wraps
+    // the group content — not the head's own left-recursive reference (which
+    // must never recover per error-recovery.spec left-recursion). Skip is
+    // evaluated at the recover position (recover-001), until before `]`.
+    let until_rbracket = json!({"kind":"quantifier","min":{"kind":"value.literal","value":1},"pattern":{"kind":"then","patterns":[
+        {"kind":"not","pattern":equal(json!("]"))},
+        {"kind":"any"}
+    ]}});
     let mut runtime = text_runtime(
         json!([
             rule(
                 "Main",
-                json!({"kind":"then","patterns":[reference("R"),{"kind":"end"}]})
+                json!({"kind":"then","patterns":[reference("P"),{"kind":"end"}]})
             ),
-            rule(
-                "R",
+            memoized_rule(
+                "P",
                 json!({"kind":"or","patterns":[
-                    {"kind":"recover","pattern":{"kind":"then","patterns":[
-                        reference("R"),equal(json!("!"))
-                    ]},"skip":{"kind":"then","patterns":[{"kind":"any"},{"kind":"any"}]}},
-                    equal(json!("x"))
+                    {"kind":"then","patterns":[
+                        reference("P"),
+                        equal(json!(".")),
+                        equal(json!("c"))
+                    ]},
+                    {"kind":"then","patterns":[
+                        equal(json!("[")),
+                        {"kind":"recover","pattern":{"kind":"then","patterns":[
+                            equal(json!("a")),
+                            equal(json!("b"))
+                        ]},"skip":until_rbracket},
+                        equal(json!("]"))
+                    ]}
                 ]})
             )
         ]),
         "Main",
-        "x?",
+        "[a?b].c",
     );
     runtime.run().unwrap();
     runtime.read(|execution| {
-        assert_eq!(execution.result().unwrap().kind, MatchKind::Ok);
+        let result = execution.result().unwrap();
+        let diags: Vec<_> = execution
+            .diagnostics()
+            .iter()
+            .map(|d| format!("{:?}:{}", d.kind, d.message))
+            .collect();
+        assert_eq!(
+            result.kind,
+            MatchKind::Ok,
+            "clean={} recoveries={} end={} diags={diags:?}",
+            execution.is_clean(),
+            execution.recoveries().len(),
+            result.end,
+        );
         assert!(!execution.is_clean());
         assert_eq!(execution.recoveries().len(), 1);
         assert_eq!(execution.diagnostics().len(), 1);
+        assert_eq!(result.end, 7);
     });
 }
 

@@ -33,3 +33,7 @@ Postconditions:
 
 - Dependents import `.uff` URLs for ExpressionTokens/Atomic.
 - Runtime loads ExpressionLang/Atomic from `./bin` via `.uff` remapping.
+
+## Test plan
+
+- `rust/src/lang_tests/expression.rs`, `rust/src/lang_tests/pattern.rs`, `rust/src/languages.rs`, `rust/src/runtime/tests.rs`

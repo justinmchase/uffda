@@ -28,3 +28,6 @@ Postconditions:
 - Real JSR publishes succeed without shipping in-repo agent docs or requirement
   tests.
 - Library consumers still receive the `mod.ts` export graph.
+- Tests: `rust/src/cli/requirement_ports.rs` (asserts `publish.exclude`
+  entries). JSR `--dry-run` file-list verification remains a Deno/CLI publish
+  step outside Rust unit tests.

@@ -24,7 +24,7 @@ source and inspecting outcomes without embedding Uffda programmatically.
 - The CLI MUST preserve source and module provenance in diagnostics so failures
   can map back to authored input.
 - The CLI MUST be buildable as a distributable binary artifact via
-  `deno compile`.
+  `cargo build --locked --release` of the Rust `uffda` binary.
 - Release binaries MUST be publishable through GitHub Releases with
   deterministic version labeling.
 

@@ -32,3 +32,7 @@ Postconditions:
 - `uffda/rule.rules` imports `../pattern/pattern.lang.uff` for `PatternTokens`.
 - Runtime loads PatternLang from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).
+
+## Test plan
+
+- `rust/src/lang_tests/pattern.rs`

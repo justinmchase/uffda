@@ -769,8 +769,14 @@ fn validate_project_fields(fields: &serde_json::Map<String, Value>) -> Result<()
 }
 
 pub fn default_cache_dir() -> Result<PathBuf, String> {
+    default_cache_dir_from(|key| std::env::var_os(key))
+}
+
+pub fn default_cache_dir_from(
+    mut env: impl FnMut(&str) -> Option<std::ffi::OsString>,
+) -> Result<PathBuf, String> {
     for key in ["XDG_CACHE_HOME", "LOCALAPPDATA", "HOME"] {
-        match std::env::var_os(key) {
+        match env(key) {
             Some(value) if !value.is_empty() => {
                 let path = PathBuf::from(value);
                 if !path.is_absolute() {
@@ -823,5 +829,7 @@ pub fn sha256(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
 }
 
+#[cfg(test)]
+mod ported;
 #[cfg(test)]
 mod tests;

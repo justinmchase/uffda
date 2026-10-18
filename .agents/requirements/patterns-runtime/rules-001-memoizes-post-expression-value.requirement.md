@@ -32,3 +32,7 @@ Postconditions:
   Maybe/`when` solely to avoid memo reuse.
 - Existing DLR growth behavior that relies on nested Projection during growth
   remains unchanged.
+
+## Test plan
+
+- `rust/src/runtime/input.rs`, `rust/src/runtime/module_ports.rs`, `rust/src/runtime/tests.rs`

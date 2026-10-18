@@ -22,5 +22,4 @@ Expected behavior:
 
 Postconditions:
 
-- Tests:
-  `src/requirements/uffda-language-syntax/003-carves-out-import-export-and-rule-syntax.requirement.test.ts`.
+- Tests: `rust/src/lang_tests/uffda.rs`.

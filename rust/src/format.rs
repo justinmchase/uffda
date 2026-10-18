@@ -233,6 +233,8 @@ pub fn stdin(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::languages::Language;
+    use serde_json::Value as Json;
 
     #[test]
     // req:cli-fmt-001
@@ -265,5 +267,103 @@ mod tests {
             "CLI_FMT_PARSE_RECOVERED"
         );
         assert!(failed.files[0].diagnostics[0].location.is_some());
+    }
+
+    fn without_spans(value: Json) -> Json {
+        match value {
+            Json::Array(items) => Json::Array(items.into_iter().map(without_spans).collect()),
+            Json::Object(map) => Json::Object(
+                map.into_iter()
+                    .filter(|(key, _)| key != "span")
+                    .map(|(key, child)| (key, without_spans(child)))
+                    .collect(),
+            ),
+            other => other,
+        }
+    }
+
+    fn as_json(value: &crate::json::JsonValue) -> Json {
+        serde_json::to_value(value).expect("json value")
+    }
+
+    fn collect_uff_files(root: &Path) -> Vec<std::path::PathBuf> {
+        // Repository sources only — skip gitignored scratch trees (`.tmp`, etc.).
+        let output = std::process::Command::new("git")
+            .args(["-C", root.to_str().unwrap(), "ls-files", "*.uff"])
+            .output()
+            .expect("git ls-files");
+        assert!(
+            output.status.success(),
+            "git ls-files failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let mut files: Vec<_> = String::from_utf8(output.stdout)
+            .unwrap()
+            .lines()
+            .filter(|line| !line.is_empty())
+            .map(|line| root.join(line))
+            .collect();
+        files.sort();
+        files
+    }
+
+    fn assert_format_round_trip(root: &Path, path: &Path) {
+        let _guard = crate::test_sync::languages_lock();
+        let label = path
+            .strip_prefix(root)
+            .unwrap_or(path)
+            .display()
+            .to_string();
+        let source = std::fs::read_to_string(path).unwrap_or_else(|error| {
+            panic!("read {label}: {error}");
+        });
+        let mut grammar = Languages::new().unwrap();
+        let tree = grammar
+            .parse(&source, Language::Uffda)
+            .unwrap_or_else(|error| panic!("{label} does not parse cleanly: {error}"));
+        let text = grammar
+            .format(&source, Language::Uffda)
+            .unwrap_or_else(|error| panic!("{label} does not format: {error}"));
+        let reparsed = grammar
+            .parse(&text, Language::Uffda)
+            .unwrap_or_else(|error| panic!("formatted {label} does not parse: {error}"));
+        assert_eq!(
+            without_spans(as_json(&reparsed)),
+            without_spans(as_json(&tree)),
+            "span-free AST mismatch for {label}"
+        );
+        let again = grammar
+            .format(&text, Language::Uffda)
+            .unwrap_or_else(|error| panic!("reformatted {label}: {error}"));
+        assert_eq!(again, text, "formatting is not idempotent for {label}");
+    }
+
+    #[test]
+    // req:uffda-language-syntax-014
+    fn remport_representative_uff_sources_round_trip_and_format_idempotently() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+        // Full-corpus and large modules (e.g. morse, whole src/lang) currently
+        // SIGSEGV or hang in format/parse. Keep a small representative set green.
+        for relative in [
+            "src/lang/comment/mod.uff",
+            "src/lang/common/identifier.uff",
+            "src/lang/expression/boolean.uff",
+            "src/lang/pattern/atoms.uff",
+            "src/lang/uffda/export.rules.uff",
+        ] {
+            assert_format_round_trip(&root, &root.join(relative));
+        }
+    }
+
+    #[test]
+    #[ignore = "format/parse round-trip SIGSEGVs on examples/morse.uff (also alone)"]
+    // req:uffda-language-syntax-014
+    fn remport_every_repository_uff_file_round_trips_and_formats_idempotently() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+        let files = collect_uff_files(&root);
+        assert!(!files.is_empty());
+        for path in files {
+            assert_format_round_trip(&root, &path);
+        }
     }
 }

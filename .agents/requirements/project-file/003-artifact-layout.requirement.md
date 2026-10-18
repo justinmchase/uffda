@@ -36,9 +36,6 @@ Postconditions:
 
 - A module's artifacts are found from its project file alone, so a package's
   consumers can locate them.
-- Tests: `src/project/project.test.ts`,
-  `src/runtime/resolvers/artifact_path.test.ts`,
-  `src/runtime/resolvers/uff.artifact.resolver.test.ts`,
-  `src/cli/command_project.test.ts`, `src/cli/main.test.ts`,
-  `src/cli/mcp.static_tools.test.ts`, `src/cli/mcp.session_tools.test.ts`,
-  `src/cli/ensure_import_artifacts.test.ts`, `src/cli/lsp.test.ts`.
+- Tests: `rust/src/resolver/ported_tests.rs`,
+  `rust/src/cli/command_ports.rs`, `rust/src/cli/surface_ports.rs`,
+  `rust/src/mcp/ported_tests.rs`, `rust/src/lsp/ported_tests.rs`.

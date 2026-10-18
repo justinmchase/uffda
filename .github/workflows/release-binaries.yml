@@ -1,8 +1,8 @@
 name: Release Binaries
 
 # Compile the CLI from a pinned main revision and attach (replace) release
-# assets on the latest draft GitHub Release. The Rust preview is published
-# separately as uffdar-* and embeds the same bootstrapped language ASTs.
+# assets on the latest draft GitHub Release. uffda-* assets are the Rust CLI
+# and embed the bootstrapped language ASTs.
 # Draft Release already sets tag_name/target_commitish; this workflow only
 # builds and uploads. Publishing the draft creates the version tag.
 #
@@ -82,22 +82,42 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.sha }}
 
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Setup Uffda CLI
-        # Need a working published CLI to produce ./bin for embedding.
-        uses: ./.github/actions/uffda-setup
-        with:
-          version: latest
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Compile language modules into ./bin
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          uffda --version
-          deno task compile:lang
+          # Seed ./bin from the latest published CLI asset so Cargo can embed it,
+          # then rewrite ./bin with the Rust compiler. This job does not use Deno.
+          repo="${{ github.repository }}"
+          tmp="$(mktemp -d)"
+          tag="$(
+            gh release list --repo "$repo" --exclude-drafts --exclude-pre-releases --limit 30 --json tagName,assets \
+              --jq '[.[] | select(any(.assets[]; .name == "SHA256SUMS") and any(.assets[]; .name | startswith("uffda-")))][0].tagName'
+          )"
+          if [[ -z "${tag}" || "${tag}" == "null" ]]; then
+            echo "No installable published release" >&2
+            exit 1
+          fi
+          gh release download "$tag" --repo "$repo" --dir "$tmp" \
+            --pattern 'uffda-*-x86_64-unknown-linux-gnu' --pattern 'SHA256SUMS'
+          asset="$(basename "$(find "$tmp" -maxdepth 1 -type f -name 'uffda-*-x86_64-unknown-linux-gnu')")"
+          expected="$(awk -v name="$asset" '$2 == name { print $1; exit }' "$tmp/SHA256SUMS")"
+          actual="$(sha256sum "$tmp/$asset" | awk '{ print $1 }')"
+          if [[ -z "${expected}" || "${actual}" != "${expected}" ]]; then
+            echo "Checksum mismatch for ${asset}" >&2
+            exit 1
+          fi
+          chmod +x "$tmp/$asset"
+          "$tmp/$asset" --version
+          rm -rf ./bin
+          "$tmp/$asset" compile 'src/lang/**/*.uff'
+          cargo build --locked --release --manifest-path rust/Cargo.toml --bin uffda
+          rm -rf ./bin
+          ./rust/target/release/uffda compile 'src/lang/**/*.uff'
           test -f ./bin/ast/src/lang/common/characters/digit.uffda.ast.json
           test -f ./bin/ast/src/lang/common/identifier.uffda.ast.json
           test -f ./bin/ast/src/lang/common/surround.uffda.ast.json
@@ -138,72 +158,8 @@ jobs:
           path: bin/
           if-no-files-found: error
 
-  compile:
-    name: Compile ${{ matrix.target }}
-    needs: [prepare, compile-lang]
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
-      matrix:
-        target:
-          - x86_64-unknown-linux-gnu
-          - aarch64-unknown-linux-gnu
-          - x86_64-pc-windows-msvc
-          - aarch64-pc-windows-msvc
-          - x86_64-apple-darwin
-          - aarch64-apple-darwin
-    steps:
-      - name: Checkout build commit
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ needs.prepare.outputs.sha }}
-
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Download language bin artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: language-bin
-          path: bin
-
-      - name: Compile CLI
-        shell: bash
-        run: |
-          set -euo pipefail
-          version="${{ needs.prepare.outputs.version }}"
-          target="${{ matrix.target }}"
-          out_dir="dist/cli"
-          mkdir -p "${out_dir}"
-          if [[ "${target}" == *windows* ]]; then
-            asset="uffda-${version}-${target}.exe"
-          else
-            asset="uffda-${version}-${target}"
-          fi
-          echo "Building ${asset}"
-          test -f ./bin/ast/src/lang/common/characters/digit.uffda.ast.json
-          deno compile \
-            --target "${target}" \
-            --output "${out_dir}/${asset}" \
-            --include ./bin \
-            --allow-read \
-            --allow-write \
-            --allow-net=jsr.io \
-            --allow-env=INIT_CWD,PWD,XDG_RUNTIME_DIR,HOME,XDG_CACHE_HOME,LOCALAPPDATA \
-            ./src/cli/main.ts
-          sha256sum "${out_dir}/${asset}" | tee "${out_dir}/${asset}.sha256"
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: uffda-${{ matrix.target }}
-          path: dist/cli/*
-          if-no-files-found: error
-
   compile-rust:
-    name: Compile uffdar ${{ matrix.target }}
+    name: Compile uffda ${{ matrix.target }}
     needs: [prepare, compile-lang]
     runs-on: ${{ matrix.os }}
     strategy:
@@ -245,37 +201,59 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Setup Deno for acceptance tooling
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Build uffdar with embedded language ASTs
+      - name: Build uffda with embedded language ASTs
         run: cargo build --locked --manifest-path rust/Cargo.toml --target ${{ matrix.target }} --release --bin uffda --example codec_probe
 
-      - name: Package preview binary and portable checksum
-        run: >-
-          deno run --allow-read --allow-write scripts/package-rust-cli.ts
-          rust/target/${{ matrix.target }}/release/uffda${{ matrix.suffix }}
-          ${{ needs.prepare.outputs.version }} ${{ matrix.target }} dist/cli
+      - name: Package CLI binary and portable checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ needs.prepare.outputs.version }}"
+          target="${{ matrix.target }}"
+          suffix="${{ matrix.suffix }}"
+          out_dir="dist/cli"
+          mkdir -p "${out_dir}"
+          if [[ "${target}" == *windows* ]]; then
+            asset="uffda-${version}-${target}.exe"
+          else
+            asset="uffda-${version}-${target}"
+          fi
+          cp "rust/target/${target}/release/uffda${suffix}" "${out_dir}/${asset}"
+          if [[ "${target}" != *windows* ]]; then
+            chmod +x "${out_dir}/${asset}"
+          fi
+          if command -v sha256sum >/dev/null 2>&1; then
+            sha256sum "${out_dir}/${asset}" | tee "${out_dir}/${asset}.sha256"
+          else
+            shasum -a 256 "${out_dir}/${asset}" | tee "${out_dir}/${asset}.sha256"
+          fi
 
       - name: Verify embedded runtime and streaming outside checkout
-        run: >-
-          deno run --allow-read --allow-write --allow-run --allow-env=SystemRoot
-          scripts/verify-rust-codec.ts
-          dist/cli/uffdar-${{ needs.prepare.outputs.version }}-${{ matrix.target }}${{ matrix.suffix }}
-          rust/target/${{ matrix.target }}/release/examples/codec_probe${{ matrix.suffix }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ needs.prepare.outputs.version }}"
+          target="${{ matrix.target }}"
+          suffix="${{ matrix.suffix }}"
+          if [[ "${target}" == *windows* ]]; then
+            asset="uffda-${version}-${target}.exe"
+          else
+            asset="uffda-${version}-${target}"
+          fi
+          export UFFDA_ACCEPT_CLI="$PWD/dist/cli/${asset}"
+          export UFFDA_ACCEPT_PROBE="$PWD/rust/target/${target}/release/examples/codec_probe${suffix}"
+          cargo test --locked --manifest-path rust/Cargo.toml --target "${target}" --test standalone_acceptance -- --ignored
 
-      - name: Upload uffdar artifact
+      - name: Upload uffda artifact
         uses: actions/upload-artifact@v7
         with:
-          name: uffdar-${{ matrix.target }}
+          name: uffda-${{ matrix.target }}
           path: dist/cli/*
           if-no-files-found: error
 
   attach:
     name: Attach assets to draft release
-    needs: [prepare, compile, compile-rust]
+    needs: [prepare, compile-rust]
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ needs.prepare.outputs.tag }}
@@ -294,13 +272,6 @@ jobs:
           path: dist/cli
           merge-multiple: true
 
-      - name: Download uffdar preview binaries
-        uses: actions/download-artifact@v8
-        with:
-          pattern: uffdar-*
-          path: dist/cli
-          merge-multiple: true
-
       - name: Assemble checksums and install script
         shell: bash
         run: |
@@ -309,7 +280,6 @@ jobs:
           cd dist/cli
           rm -f *.sha256
           : > SHA256SUMS
-          : > UFFDAR-SHA256SUMS
           for target in \
             x86_64-unknown-linux-gnu \
             aarch64-unknown-linux-gnu \
@@ -328,12 +298,6 @@ jobs:
               exit 1
             fi
             sha256sum "${asset}" >> SHA256SUMS
-            preview_asset="${asset/uffda-/uffdar-}"
-            if [[ ! -f "${preview_asset}" ]]; then
-              echo "Missing required preview asset ${preview_asset}" >&2
-              exit 1
-            fi
-            sha256sum "${preview_asset}" >> UFFDAR-SHA256SUMS
           done
           cp "${GITHUB_WORKSPACE}/scripts/install.sh" ./install.sh
           chmod +x ./install.sh
@@ -369,7 +333,7 @@ jobs:
             [[ -f "${path}" ]] || continue
             base="$(basename "${path}")"
             case "${base}" in
-              uffda-*|uffdar-*|SHA256SUMS|UFFDAR-SHA256SUMS|install.sh)
+              uffda-*|SHA256SUMS|install.sh)
                 assets+=("${path}")
                 ;;
             esac

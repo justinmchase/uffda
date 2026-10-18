@@ -28,3 +28,7 @@ Expected behavior:
 Postconditions:
 
 - A func behaves the same wherever it is invoked.
+
+## Test plan
+
+- `rust/src/evaluate/tests.rs`, `rust/src/runtime/scope_ports.rs`, `rust/src/runtime/tests.rs`

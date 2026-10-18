@@ -22,3 +22,7 @@ Postconditions:
 
 - The syntax tree contains the same structured rule declaration shape used by
   runtime compilation; `=` does not appear in the output model.
+
+## Test plan
+
+- `rust/src/lang_tests/uffda.rs`

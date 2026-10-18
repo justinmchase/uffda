@@ -29,8 +29,9 @@ Postconditions:
 
 ## Test plan
 
-`src/match.test.ts`: propagation from `Ok` children and not from rejected
-attempts (RECOVERED00, RECOVERED01), no marking with recovery disabled
-(RECOVERED02). `src/runtime/patterns/recover.test.ts`: RECOVER02, RECOVER06.
-`src/runtime/patterns/or.test.ts`: rejected recovered alternatives are `Fail`
-wrappers (OR_RECOVER00).
+`rust/src/runtime/engine_ports.rs`: propagation from successful children and not
+from a clean alternative, and no recovered mark on a clean discovery result
+(`engine_port_recovered_skip_and_rightmost_follow_the_accepted_match`).
+`rust/src/pattern/composite_ports.rs`: RECOVER02, RECOVER06.
+`rust/src/pattern/tests.rs`: a rejected recovered alternative is a `Fail` whose
+only child is that alternative's success.

@@ -24,3 +24,7 @@ Postconditions:
 
 - Indexed source metadata remains deterministic and stable for fixed source
   input.
+
+## Test plan
+
+- `rust/src/lang_tests/common.rs`

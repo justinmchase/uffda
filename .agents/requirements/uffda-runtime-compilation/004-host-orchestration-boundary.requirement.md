@@ -25,3 +25,4 @@ Postconditions:
 
 - Parsing, compilation, and execution remain independently invocable and
   testable operations.
+- Tests: `rust/src/lang_tests/uffda.rs` (`runtime_compiler_transforms_then_host_executes_independently`).

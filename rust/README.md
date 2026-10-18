@@ -6,8 +6,8 @@ This crate is the side-by-side Rust runtime and CLI described in the
 `lsp` servers (MCP: version, parse/match/compile, highlight, session
 open/load/list_modules/eval/describe/query/patch/walk/close, and loopback
 display open/render; LSP: initialize, document sync, `.uff` parse diagnostics).
-Richer LSP features are still landing. Production cutover still ships Deno
-`uffda` via the installer; release previews attach as `uffdar-*`.
+Richer LSP features are still landing. Release `uffda-*` assets and the Linux
+installer are this Rust CLI.
 
 ## Running the CLI
 
@@ -37,11 +37,9 @@ round-trips native values through a collected arena, and surfaces malformed
 input or output failures. Benchmark-only gzip support is a dev dependency; it
 does not change runtime, CLI, or compiled-artifact formats.
 
-Checks and preview release builds target native Linux, Windows, and macOS on
-x86_64 and aarch64, using one unchanged published-compiler language artifact
-tree. Preview assets remain named `uffdar`. The Linux `install.sh` installs both
-`uffda` and `uffdar`; production cutover (Rust becoming the installed `uffda`)
-is unchanged until an explicit switch.
+Checks and release builds target native Linux, Windows, and macOS on x86_64 and
+aarch64, using one unchanged published-compiler language artifact tree. Release
+assets are named `uffda-*`. The Linux `install.sh` installs that `uffda` binary.
 
 AST input comes from a file or standard input, not `-e` (matching the existing
 CLI's AST-input restriction). Default exec/match/run output is the approved data
@@ -179,12 +177,28 @@ data codec for lossless native-value round trips.
 
 ## Development
 
-Install a stable Rust toolchain and the platform's native linker, then run:
+Install a stable Rust toolchain and the platform's native linker. Before pushing
+Rust changes, run the same gate as the Checks workflow:
 
 ```sh
-cargo fmt --manifest-path rust/Cargo.toml --check
-cargo clippy --manifest-path rust/Cargo.toml --all-targets -- -D warnings
-cargo test --manifest-path rust/Cargo.toml
+deno task check:rust          # fmt --check, clippy -D warnings, test
+deno task pre:rust            # cargo fmt, then check:rust
+```
+
+Or the Cargo aliases from the repository root (`.cargo/config.toml`):
+
+```sh
+cargo fmt-rust-check
+cargo clippy-rust
+cargo test-rust
+```
+
+Equivalent expanded commands:
+
+```sh
+cargo fmt --manifest-path rust/Cargo.toml --all --check
+cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets --locked -- -D warnings
+cargo test --manifest-path rust/Cargo.toml --workspace --locked
 ```
 
 The build embeds the unmodified compiled language artifacts already present in

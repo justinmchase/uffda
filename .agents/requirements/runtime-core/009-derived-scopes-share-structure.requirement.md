@@ -25,3 +25,7 @@ Postconditions:
 
 - Memory retained by a parse result does not grow with the product of match
   count and rule nesting depth.
+
+## Test plan
+
+- `rust/src/pattern/tests.rs`, `rust/src/runtime/input.rs`, `rust/src/runtime/scope_ports.rs`, `rust/src/runtime/tests.rs`

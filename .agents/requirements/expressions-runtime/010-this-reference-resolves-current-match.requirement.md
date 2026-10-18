@@ -25,3 +25,7 @@ Expected behavior:
 Error behavior:
 
 - Target and argument child-expression exceptions MUST propagate unchanged.
+
+Postconditions:
+
+- Tests: `rust/src/evaluate/expression_ports.rs`.

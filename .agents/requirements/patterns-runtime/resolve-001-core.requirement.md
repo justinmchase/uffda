@@ -29,3 +29,7 @@ Error behavior:
 
 - Unknown rules, invalid argument bindings, unsupported special values, or
   missing run targets MUST report runtime error or governed failure outcome.
+
+Postconditions:
+
+- Tests: `rust/src/pattern/structure_ports.rs`.

@@ -43,3 +43,5 @@ Postconditions:
   tree that is not itself skip-memo eligible: this requirement narrows where
   reuse is captured, it does not reduce the correctness or overall applicability
   of incremental re-parsing.
+- Tests: `rust/src/runtime/engine_ports.rs`
+  (`engine_port_incremental_edit_reuses_letters_before_the_edit`).

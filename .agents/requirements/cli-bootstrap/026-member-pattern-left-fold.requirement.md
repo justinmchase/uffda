@@ -36,3 +36,7 @@ Postconditions:
 - Member access applies to every primary form, for example `(f x).y`,
   `[1].length`, `{ a: 1 }.a`, and `"abc".length`.
 - Similar left-associative AST folds SHOULD follow the same pattern-fold idiom.
+
+## Test plan
+
+- `rust/src/lang_tests/expression.rs`

@@ -24,3 +24,7 @@ Postconditions:
 
 - Character-leaf modules such as Whitespace and NewLine can author Equal
   literals for control characters without Native projections.
+
+## Test plan
+
+- `rust/src/lang_tests/pattern.rs`

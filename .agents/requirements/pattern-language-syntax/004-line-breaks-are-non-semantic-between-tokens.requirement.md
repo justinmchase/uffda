@@ -20,5 +20,4 @@ Expected behavior:
 
 Postconditions:
 
-- Tests:
-  `src/requirements/pattern-language-syntax/004-line-breaks-are-non-semantic-between-tokens.requirement.test.ts`.
+- Tests: `rust/src/lang_tests/pattern.rs`.

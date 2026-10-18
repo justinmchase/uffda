@@ -35,3 +35,7 @@ Postconditions:
 
 - Defaulting behavior is explicit and deterministic without introducing infix
   precedence ambiguity.
+
+## Test plan
+
+- `rust/src/lang_tests/expression.rs`

@@ -106,7 +106,7 @@ layers into author-facing language/module declarations.
 - Emit JSON-serializable AST artifacts and runtime-oriented envelopes.
 - Deliver an MCP server with session-oriented load/eval/query tools and a
   display surface for structured inspection.
-- Distribute the CLI as a `deno compile` product across the full target matrix,
+- Distribute the CLI as the Rust `uffda` binary across the full target matrix,
   publish GitHub Release binaries with checksums and a Linux install script, and
   provide an `uffda-setup` GitHub Action for CI installation.
 - Adopt the published CLI in repository workflows, then self-host by compiling

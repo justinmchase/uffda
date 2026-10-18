@@ -159,6 +159,78 @@ pub fn node_text(node: &RetainedMatch, units: &[u16]) -> String {
     slice_text(units, node.start, node.end)
 }
 
+/// Source range of the import declaration `frame` names inside a module parse
+/// tree, using editor metadata (`[Import]` / `[ModulePath]` / `[ImportedName]`).
+/// Port of Deno `cli/import_location.ts` (req:cli-language-server-006).
+/// Covered by unit tests; LSP diagnostics do not call it yet.
+#[allow(dead_code)]
+pub fn import_frame_location(
+    root: &Node,
+    source: &str,
+    import_index: usize,
+    module_url: &str,
+    name: Option<&str>,
+) -> Option<crate::diagnostics::SourceLocation> {
+    let units = super::positions::utf16(source);
+    let imports = collect_import_nodes(root);
+    let indexed = imports.get(import_index);
+    let chosen = indexed
+        .filter(|entry| entry.module_url.as_deref() == Some(module_url))
+        .or_else(|| {
+            imports
+                .iter()
+                .find(|entry| entry.module_url.as_deref() == Some(module_url))
+        })?;
+    let target = name
+        .and_then(|wanted| {
+            find_annotated(&chosen.node, EditorDecorator::ImportedName, |node| {
+                node_text(node, &units) == wanted
+            })
+        })
+        .or_else(|| find_annotated(&chosen.node, EditorDecorator::ModulePath, |_| true))
+        .unwrap_or_else(|| Rc::clone(&chosen.node));
+    if target.end <= target.start {
+        return None;
+    }
+    Some(crate::diagnostics::location(
+        source,
+        target.start,
+        target.end,
+    ))
+}
+
+#[allow(dead_code)]
+struct ImportNode {
+    node: Node,
+    module_url: Option<String>,
+}
+
+#[allow(dead_code)]
+fn collect_import_nodes(root: &Node) -> Vec<ImportNode> {
+    let mut found = Vec::new();
+    let mut seen_starts = HashSet::new();
+    walk_annotatable(root, |node, _| {
+        if !is_success(node) || !has_editor_metadata(node, EditorDecorator::Import) {
+            return;
+        }
+        let start = node.start;
+        if !seen_starts.insert(start) {
+            return;
+        }
+        let module_url = node
+            .value
+            .as_ref()
+            .and_then(|value| value.get("moduleUrl"))
+            .and_then(Value::as_str)
+            .map(str::to_string);
+        found.push(ImportNode {
+            node: Rc::clone(node),
+            module_url,
+        });
+    });
+    found
+}
+
 pub fn slice_text(units: &[u16], start: usize, end: usize) -> String {
     let end = end.min(units.len());
     let start = start.min(end);
@@ -311,6 +383,48 @@ mod tests {
             }
         });
         assert_eq!(names, ["A", "B"]);
+    }
+
+    #[test]
+    // req:cli-language-server-006
+    fn import_frame_location_indexes_paths_names_and_fallbacks() {
+        let source = [
+            "import \"./a.uff\" A;",
+            "import   \"./b.uff\" B;",
+            "",
+            "export X;",
+            "rule X = A B;",
+        ]
+        .join("\n");
+        let (tree, _) = parse(&source);
+
+        let b_path = import_frame_location(&tree, &source, 1, "./b.uff", None).expect("b path");
+        assert_eq!(b_path.line, 1);
+        assert_eq!(
+            &source[b_path.offset..b_path.end_offset.unwrap()],
+            "./b.uff"
+        );
+
+        let a_fallback =
+            import_frame_location(&tree, &source, 7, "./a.uff", None).expect("a fallback");
+        assert_eq!(a_fallback.line, 0);
+        assert_eq!(
+            &source[a_fallback.offset..a_fallback.end_offset.unwrap()],
+            "./a.uff"
+        );
+
+        let named = import_frame_location(&tree, &source, 1, "./b.uff", Some("B")).expect("name");
+        assert_eq!(named.line, 1);
+        assert_eq!(&source[named.offset..named.end_offset.unwrap()], "B");
+
+        let missing_name =
+            import_frame_location(&tree, &source, 0, "./a.uff", Some("Missing")).expect("path");
+        assert_eq!(
+            &source[missing_name.offset..missing_name.end_offset.unwrap()],
+            "./a.uff"
+        );
+
+        assert!(import_frame_location(&tree, &source, 0, "./c.uff", None).is_none());
     }
 
     #[test]

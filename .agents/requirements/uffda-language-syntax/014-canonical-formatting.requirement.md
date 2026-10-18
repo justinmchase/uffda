@@ -41,3 +41,8 @@ Expected behavior:
 Postconditions:
 
 - The formatted text depends only on the syntax tree.
+- Tests: `rust/src/lang_tests/uffda.rs` (canonical format cases),
+  `rust/src/format.rs`
+  (`remport_representative_uff_sources_round_trip_and_format_idempotently`;
+  full-repository corpus ignored while format/parse SIGSEGVs on large modules
+  such as `examples/morse/morse.uff`).

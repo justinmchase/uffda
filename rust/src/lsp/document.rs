@@ -117,11 +117,11 @@ impl DocumentStore {
         if let Some(open) = self.open.get(url.as_str()) {
             return Some(Rc::clone(open));
         }
-        self.from_disk(languages, url)
+        self.load_disk(languages, url)
     }
 
     /// A read-only parse of the `.uff` file `url` names.
-    pub fn from_disk(
+    pub fn load_disk(
         &mut self,
         languages: &mut Languages,
         url: &Url,
@@ -170,7 +170,6 @@ mod tests {
 
     #[test]
     // req:cli-language-server-006
-
 
     fn store_prefers_open_buffers_over_disk() {
         let mut languages = Languages::new().unwrap();

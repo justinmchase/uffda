@@ -24,3 +24,4 @@ Postconditions:
 
 - The successful match value MUST equal the expected runtime `ModuleDeclaration`
   for the complete input fixture.
+- Tests: `rust/src/lang_tests/uffda.rs` (`runtime_compiler_transforms_then_host_executes_independently`).

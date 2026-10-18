@@ -4,233 +4,54 @@ on:
     types: [opened, reopened, synchronize]
 
 jobs:
-  check:
-    name: Checks
+  specs:
+    name: Specs
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-
-      - name: Setup Lcov
-        run: sudo apt install lcov -y
-
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Setup Uffda CLI
-        uses: ./.github/actions/uffda-setup
-        with:
-          version: latest
-
-      - name: Lint
-        run: deno lint
-
-      - name: Format
-        run: deno fmt --check
-
-      - name: Type Check
-        run: deno check mod.ts
 
       - name: Specs audit
         uses: justinmchase/specs@v1
 
-      - name: Compile language modules
-        run: |
-          set -euo pipefail
-          # Bootstrap ./bin using the previous published `uffda compile` CLI,
-          # which parses and lowers .uff to ModuleDeclaration JSON in one step
-          # (see compiler-bootstrap.spec.md).
-          deno task compile:lang
-          test -f ./bin/ast/src/lang/common/characters/digit.uffda.ast.json
-          test -f ./bin/ast/src/lang/common/characters/connecting.uffda.ast.json
-          test -f ./bin/ast/src/lang/common/characters/formatting.uffda.ast.json
-          test -f ./bin/ast/src/lang/common/characters/letter.uffda.ast.json
-          test -f ./bin/ast/src/lang/common/characters/combining.uffda.ast.json
-          test -f ./bin/ast/src/lang/common/characters/whitespace.uffda.ast.json
-          test -f ./bin/ast/src/lang/common/characters/newLine.uffda.ast.json
-          test -f ./bin/ast/src/lang/common/characters/mod.uffda.ast.json
-          test -f ./bin/ast/src/lang/common/identifier.uffda.ast.json
-          test -f ./bin/ast/src/lang/common/surround.uffda.ast.json
-          test -f ./bin/ast/src/lang/tokenizer/token.uffda.ast.json
-          test -f ./bin/ast/src/lang/common/spread.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/boolean.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/nullish.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/reference.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/terminal.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/not.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/array.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/object.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/sequence.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/member.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/string.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/primary.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/unary.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/expression.uffda.ast.json
-          test -f ./bin/ast/src/lang/pattern/atoms.uffda.ast.json
-          test -f ./bin/ast/src/lang/pattern/then.uffda.ast.json
-          test -f ./bin/ast/src/lang/pattern/pipe.uffda.ast.json
-          test -f ./bin/ast/src/lang/pattern/and.uffda.ast.json
-          test -f ./bin/ast/src/lang/pattern/or.uffda.ast.json
-          test -f ./bin/ast/src/lang/pattern/pattern.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/expression.lang.uffda.ast.json
-          test -f ./bin/ast/src/lang/pattern/pattern.lang.uffda.ast.json
-          test -f ./bin/ast/src/lang/pattern/atomic.uffda.ast.json
-          test -f ./bin/ast/src/lang/uffda/shared.rules.uffda.ast.json
-          test -f ./bin/ast/src/lang/uffda/import.rules.uffda.ast.json
-          test -f ./bin/ast/src/lang/uffda/export.rules.uffda.ast.json
-          test -f ./bin/ast/src/lang/uffda/rule.rules.uffda.ast.json
-          test -f ./bin/ast/src/lang/uffda/uffda.lang.uffda.ast.json
-          test -f ./bin/ast/src/lang/uffda/runtime.compiler.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/number.uffda.ast.json
+  rust:
+    name: Checks
+    needs: rust-language-bin
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
 
-      - name: Format .uff
-        # The in-tree `uffda fmt` loads its grammars and formatter from the
-        # ./bin compiled above, so it checks against this commit's format.
-        run: deno task cli fmt --check
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
 
-      - name: Jsr
-        # After compile: the published package includes ./bin.
-        run: |
-          set -euo pipefail
-          npx jsr publish --dry-run 2>&1 | tee "$RUNNER_TEMP/jsr-dry-run.log"
-          grep -q "bin/ast/src/lang/uffda/uffda.lang.uffda.ast.json" "$RUNNER_TEMP/jsr-dry-run.log"
+      - name: Format
+        run: cargo fmt --manifest-path rust/Cargo.toml --all --check
+
+      - name: Compiled languages
+        uses: actions/download-artifact@v8
+        with:
+          name: rust-language-bin
+          path: bin
+
+      - name: Lint
+        run: cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets --locked -- -D warnings
 
       - name: Test
-        # Allow read is required to run resolve tests. Language `.uff` modules
-        # load from ./bin produced by the prior compile step. Slow full-compile
-        # integration tests live under test/integration/ and run in the
-        # separate, parallel "Integration" job below instead.
-        run: deno test --allow-read --allow-write --allow-net=127.0.0.1 --allow-env=XDG_RUNTIME_DIR,HOME,XDG_CACHE_HOME,LOCALAPPDATA --parallel --coverage=cov_profile --ignore=test/integration/
-
-      - name: Bootstrap import from ./bin
-        run: |
-          set -euo pipefail
-          # Proves workflow-produced ./bin is what .uff import remapping loads.
-          deno test --allow-read --allow-write \
-            ./src/requirements/cli-bootstrap/005-ci-compile-then-import.requirement.test.ts
-
-      - name: Coverage
-        run: |
-          set -e -o pipefail
-          deno coverage cov_profile --lcov --output=cov_profile.lcov
-
-          cat << EOF >> $GITHUB_STEP_SUMMARY
-          ### Code Coverage
-          \`\`\`
-          $(lcov --summary cov_profile.lcov)
-          \`\`\`
-          EOF
-
-  integration:
-    name: Integration
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Setup Uffda CLI
-        uses: ./.github/actions/uffda-setup
-        with:
-          version: latest
-
-      - name: Compile language modules
-        run: deno task compile:lang
-
-      - name: Integration tests
-        # Slow, full-compile end-to-end tests (see test/README.md). Runs as
-        # its own job so it never blocks fast feedback (lint/format/unit
-        # tests) from the main Checks job.
-        run: deno test --allow-read --allow-write --allow-run=deno --parallel test/integration/
-
-  perf:
-    name: Perf
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Setup Uffda CLI
-        uses: ./.github/actions/uffda-setup
-        with:
-          version: latest
-
-      - name: Compile language modules
-        run: deno task compile:lang
-
-      - name: Perf report
-        # Reports .uff compile-time scaling (see test/perf/README.md and
-        # test/perf/morse-compile.report.ts). Not a pass/fail gate today —
-        # it exists to surface superlinear regressions visibly in CI output
-        # alongside bench/integration, without blocking the main Checks job.
-        # Attaches the full size/time table to the job summary.
-        run: >-
-          deno run --allow-read --allow-write --allow-env=GITHUB_STEP_SUMMARY
-          test/perf/morse-compile.report.ts
-
-  bench:
-    name: Bench
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Setup Uffda CLI
-        uses: ./.github/actions/uffda-setup
-        with:
-          version: latest
-
-      - name: Compile language modules
-        run: deno task compile:lang
-
-      - name: Bench
-        # Throughput micro-benchmarks (see test/README.md). Informational
-        # only, not a pass/fail gate: shared CI runners are too noisy for
-        # reliable regression gating on raw throughput numbers. Runs as its
-        # own parallel job alongside Integration/Perf so it never blocks
-        # fast feedback from the main Checks job. Output is attached to the
-        # job summary for visibility; NO_COLOR avoids raw ANSI escapes there.
-        run: |
-          set -euo pipefail
-          {
-            echo "### Bench"
-            echo
-            echo '```'
-            NO_COLOR=1 deno task bench
-            echo
-            NO_COLOR=1 deno task bench:memo
-            echo '```'
-          } | tee -a "$GITHUB_STEP_SUMMARY"
+        run: cargo test --manifest-path rust/Cargo.toml --workspace --locked
 
   rust-language-bin:
     name: Rust language artifacts
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
       - uses: ./.github/actions/uffda-setup
         with:
           version: latest
       - name: Bootstrap with published compiler
-        run: deno task compile:lang
+        run: rm -rf ./bin && uffda compile 'src/lang/**/*.uff'
       - uses: actions/upload-artifact@v7
         with:
           name: rust-language-bin
@@ -261,19 +82,19 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
       - name: Test codec acceptance example
         run: cargo test --locked --manifest-path rust/Cargo.toml --target ${{ matrix.target }} --example codec_probe
       - name: Build standalone CLI and streaming consumer
         run: cargo build --locked --manifest-path rust/Cargo.toml --target ${{ matrix.target }} --release --bin uffda --example codec_probe
       - name: Verify relocated CLI and streaming without external grammars
-        run: >-
-          deno run --allow-read --allow-write --allow-run --allow-env=SystemRoot
-          scripts/verify-rust-codec.ts
-          rust/target/${{ matrix.target }}/release/uffda${{ matrix.suffix }}
-          rust/target/${{ matrix.target }}/release/examples/codec_probe${{ matrix.suffix }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          target="${{ matrix.target }}"
+          suffix="${{ matrix.suffix }}"
+          export UFFDA_ACCEPT_CLI="$PWD/rust/target/${target}/release/uffda${suffix}"
+          export UFFDA_ACCEPT_PROBE="$PWD/rust/target/${target}/release/examples/codec_probe${suffix}"
+          cargo test --locked --manifest-path rust/Cargo.toml --target "${target}" --test standalone_acceptance -- --ignored
 
   vscode-extension:
     name: VS Code Extension

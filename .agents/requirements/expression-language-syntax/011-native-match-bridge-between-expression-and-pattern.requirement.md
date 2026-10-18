@@ -26,3 +26,4 @@ Postconditions:
 
 - Expression and pattern layers interoperate without collapsing their distinct
   semantics or introducing statement-like control-flow syntax into expressions.
+- Tests: `rust/src/lang_tests/expression.rs` (`expression_native_callable_bridge_is_deterministic`).

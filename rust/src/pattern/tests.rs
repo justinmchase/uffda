@@ -1879,6 +1879,783 @@ fn retained_values_preserve_source_characters_without_retaining_match_trees() {
 }
 
 #[test]
+// req:any-001
+fn any_consumes_one_character_or_array_item_and_fails_when_empty() {
+    assert_item(Pattern::Any, json!("a"), MatchKind::Ok, 1, "a");
+    assert_item(Pattern::Any, json!(["a"]), MatchKind::Ok, 1, "a");
+    assert_item(Pattern::Any, json!(""), MatchKind::Fail, 0, "");
+    assert_item(Pattern::Any, json!("ab"), MatchKind::Ok, 1, "a");
+}
+
+#[test]
+// req:end-001
+fn end_succeeds_only_at_the_end_and_does_not_consume() {
+    assert_item(Pattern::End, json!([]), MatchKind::Ok, 0, "undefined");
+    assert_item(Pattern::End, json!("a"), MatchKind::Fail, 0, "");
+    assert_item(
+        Pattern::Not {
+            pattern: Box::new(Pattern::End),
+        },
+        json!("a"),
+        MatchKind::Ok,
+        0,
+        "undefined",
+    );
+    assert_item(
+        Pattern::Then {
+            patterns: vec![Pattern::Any, Pattern::Any, Pattern::End],
+        },
+        json!("abc"),
+        MatchKind::Fail,
+        0,
+        "",
+    );
+    assert_item(
+        Pattern::Then {
+            patterns: vec![Pattern::Any, Pattern::Any, Pattern::Any, Pattern::End],
+        },
+        json!("abc"),
+        MatchKind::Ok,
+        3,
+        "a|b|c|undefined",
+    );
+}
+
+#[test]
+// req:fail-001
+fn fail_rejects_available_input_without_consuming_it() {
+    assert_item(Pattern::Fail, json!("a"), MatchKind::Fail, 0, "");
+}
+
+#[test]
+// req:ok-001
+fn ok_succeeds_without_consuming_empty_or_remaining_input() {
+    assert_item(Pattern::Ok, json!([]), MatchKind::Ok, 0, "undefined");
+    assert_item(Pattern::Ok, json!("a"), MatchKind::Ok, 0, "undefined");
+}
+
+#[test]
+// req:skip-001 req:skip-002
+fn skip_consumes_a_match_keeps_bindings_and_propagates_child_errors() {
+    assert_item(
+        Pattern::Skip {
+            pattern: Box::new(literal(json!("a"))),
+        },
+        json!("a"),
+        MatchKind::Skip,
+        1,
+        "undefined",
+    );
+    assert_item(
+        Pattern::Skip {
+            pattern: Box::new(literal(json!("a"))),
+        },
+        json!("b"),
+        MatchKind::Fail,
+        0,
+        "",
+    );
+    assert_item(
+        Pattern::Skip {
+            pattern: Box::new(Pattern::Skip {
+                pattern: Box::new(literal(json!("a"))),
+            }),
+        },
+        json!("a"),
+        MatchKind::Skip,
+        1,
+        "undefined",
+    );
+    assert_item(
+        Pattern::Projection {
+            pattern: Box::new(Pattern::Skip {
+                pattern: Box::new(Pattern::Variable {
+                    name: "x".into(),
+                    pattern: Box::new(literal(json!("a"))),
+                }),
+            }),
+            expression: Box::new(crate::expression::Expression::Reference { name: "x".into() }),
+        },
+        json!("a"),
+        MatchKind::Ok,
+        1,
+        "a",
+    );
+    uffda_heap::rootless_mutate(|mc| {
+        let mut execution = PatternExecution::new(
+            mc,
+            Pattern::Skip {
+                pattern: Box::new(Pattern::Quantifier {
+                    pattern: Box::new(literal(json!("a"))),
+                    min: Some(ValueSource::Literal {
+                        value: LiteralValue::Present(json!(-1).into()),
+                    }),
+                    max: None,
+                }),
+            },
+            vec![Value::string(mc, "a")],
+            Environment::new(mc, None, vec![]),
+        );
+        let error = loop {
+            match execution.step(mc) {
+                Err(error) => break error,
+                Ok(true) => panic!("skip completed without the child bound error"),
+                Ok(false) => {}
+            }
+        };
+        assert!(
+            error
+                .to_string()
+                .contains("min must be 0 or greater but is -1"),
+            "{error}"
+        );
+    });
+}
+
+#[test]
+// req:maybe-001 req:skip-002
+fn maybe_returns_the_child_or_an_absent_value_without_failing() {
+    assert_item(
+        Pattern::Maybe {
+            pattern: Box::new(literal(json!("a"))),
+        },
+        json!("a"),
+        MatchKind::Ok,
+        1,
+        "a",
+    );
+    assert_item(
+        Pattern::Maybe {
+            pattern: Box::new(literal(json!("a"))),
+        },
+        json!("b"),
+        MatchKind::Ok,
+        0,
+        "undefined",
+    );
+    assert_item(
+        Pattern::Then {
+            patterns: vec![
+                Pattern::Maybe {
+                    pattern: Box::new(literal(json!("a"))),
+                },
+                literal(json!("b")),
+            ],
+        },
+        json!("b"),
+        MatchKind::Ok,
+        1,
+        "undefined|b",
+    );
+    assert_item(
+        Pattern::Maybe {
+            pattern: Box::new(Pattern::Skip {
+                pattern: Box::new(literal(json!("a"))),
+            }),
+        },
+        json!("a"),
+        MatchKind::Skip,
+        1,
+        "undefined",
+    );
+    assert_item(
+        Pattern::Maybe {
+            pattern: Box::new(Pattern::Skip {
+                pattern: Box::new(literal(json!("a"))),
+            }),
+        },
+        json!("b"),
+        MatchKind::Ok,
+        0,
+        "undefined",
+    );
+}
+
+#[test]
+// req:not-001 req:skip-002 req:error-recovery-004
+fn not_is_zero_width_and_disables_recovery_for_its_child() {
+    assert_item(
+        Pattern::Not {
+            pattern: Box::new(Pattern::Ok),
+        },
+        json!([]),
+        MatchKind::Fail,
+        0,
+        "",
+    );
+    assert_item(
+        Pattern::Not {
+            pattern: Box::new(Pattern::Fail),
+        },
+        json!([]),
+        MatchKind::Ok,
+        0,
+        "undefined",
+    );
+    assert_item(
+        Pattern::Not {
+            pattern: Box::new(Pattern::Not {
+                pattern: Box::new(Pattern::Ok),
+            }),
+        },
+        json!([]),
+        MatchKind::Ok,
+        0,
+        "undefined",
+    );
+    assert_item(
+        Pattern::Not {
+            pattern: Box::new(Pattern::Fail),
+        },
+        json!("a"),
+        MatchKind::Ok,
+        0,
+        "undefined",
+    );
+    assert_item(
+        Pattern::Not {
+            pattern: Box::new(Pattern::Skip {
+                pattern: Box::new(literal(json!("a"))),
+            }),
+        },
+        json!("a"),
+        MatchKind::Fail,
+        0,
+        "",
+    );
+    uffda_heap::rootless_mutate(|mc| {
+        let mut execution = PatternExecution::new_with_recovery(
+            mc,
+            Pattern::Not {
+                pattern: Box::new(Pattern::Recover {
+                    pattern: Box::new(literal(json!("z"))),
+                    skip: Box::new(Pattern::Any),
+                }),
+            },
+            vec![Value::string(mc, "x")],
+            Environment::new(mc, None, vec![]),
+            RecoveryContext::new(mc).enable(),
+        );
+        finish(mc, &mut execution);
+        let result = execution.result().unwrap();
+        assert_eq!(result.kind, MatchKind::Ok);
+        assert!(result.recovery.is_enabled());
+    });
+}
+
+#[test]
+// req:lookahead-001 req:skip-002 req:error-recovery-004
+fn lookahead_checks_without_consuming_and_disables_recovery() {
+    assert_item(
+        Pattern::Lookahead {
+            pattern: Box::new(literal(json!("a"))),
+        },
+        json!("a"),
+        MatchKind::Ok,
+        0,
+        "a",
+    );
+    assert_item(
+        Pattern::Lookahead {
+            pattern: Box::new(literal(json!("a"))),
+        },
+        json!("b"),
+        MatchKind::Fail,
+        0,
+        "",
+    );
+    assert_item(
+        Pattern::Lookahead {
+            pattern: Box::new(Pattern::Any),
+        },
+        json!(""),
+        MatchKind::Fail,
+        0,
+        "",
+    );
+    assert_item(
+        Pattern::Lookahead {
+            pattern: Box::new(Pattern::Skip {
+                pattern: Box::new(literal(json!("a"))),
+            }),
+        },
+        json!("a"),
+        MatchKind::Ok,
+        0,
+        "undefined",
+    );
+    uffda_heap::rootless_mutate(|mc| {
+        let mut execution = PatternExecution::new_with_recovery(
+            mc,
+            Pattern::Lookahead {
+                pattern: Box::new(Pattern::Recover {
+                    pattern: Box::new(literal(json!("z"))),
+                    skip: Box::new(Pattern::Any),
+                }),
+            },
+            vec![Value::string(mc, "x")],
+            Environment::new(mc, None, vec![]),
+            RecoveryContext::new(mc).enable(),
+        );
+        finish(mc, &mut execution);
+        let result = execution.result().unwrap();
+        assert_eq!(result.kind, MatchKind::Fail);
+        assert_eq!(result.end, 0);
+    });
+}
+
+#[test]
+// req:except-001 req:skip-002 req:error-recovery-004
+fn except_consumes_one_item_only_when_its_child_fails() {
+    assert_item(
+        Pattern::Except {
+            pattern: Box::new(literal(json!("a"))),
+        },
+        json!("a"),
+        MatchKind::Fail,
+        0,
+        "",
+    );
+    assert_item(
+        Pattern::Except {
+            pattern: Box::new(literal(json!("a"))),
+        },
+        json!("b"),
+        MatchKind::Ok,
+        1,
+        "b",
+    );
+    assert_item(
+        Pattern::Except {
+            pattern: Box::new(Pattern::Any),
+        },
+        json!(""),
+        MatchKind::Fail,
+        0,
+        "",
+    );
+    assert_item(
+        Pattern::Except {
+            pattern: Box::new(Pattern::Skip {
+                pattern: Box::new(literal(json!("a"))),
+            }),
+        },
+        json!("a"),
+        MatchKind::Fail,
+        0,
+        "",
+    );
+    uffda_heap::rootless_mutate(|mc| {
+        let mut execution = PatternExecution::new(
+            mc,
+            Pattern::Except {
+                pattern: Box::new(Pattern::Into {
+                    pattern: Box::new(Pattern::Any),
+                }),
+            },
+            vec![Value::Number(7.0)],
+            Environment::new(mc, None, vec![]),
+        );
+        let error = loop {
+            match execution.step(mc) {
+                Err(error) => break error,
+                Ok(true) => panic!("except completed without the child error"),
+                Ok(false) => {}
+            }
+        };
+        assert_eq!(error, PatternError::IterableExpected);
+        let mut execution = PatternExecution::new_with_recovery(
+            mc,
+            Pattern::Except {
+                pattern: Box::new(Pattern::Recover {
+                    pattern: Box::new(literal(json!("z"))),
+                    skip: Box::new(Pattern::Any),
+                }),
+            },
+            vec![Value::string(mc, "x")],
+            Environment::new(mc, None, vec![]),
+            RecoveryContext::new(mc).enable(),
+        );
+        finish(mc, &mut execution);
+        let result = execution.result().unwrap();
+        assert_eq!(result.kind, MatchKind::Ok);
+        assert_eq!(result.end, 1);
+        assert_eq!(item_text(result.value), "x");
+        assert!(result.recovery.is_enabled());
+    });
+}
+
+#[test]
+// req:then-001 req:skip-002
+fn then_sequences_children_and_omits_skipped_values() {
+    assert_item(
+        Pattern::Then { patterns: vec![] },
+        json!([]),
+        MatchKind::Ok,
+        0,
+        "",
+    );
+    assert_item(
+        Pattern::Then {
+            patterns: vec![Pattern::Any],
+        },
+        json!("a"),
+        MatchKind::Ok,
+        1,
+        "a",
+    );
+    assert_item(
+        Pattern::Then {
+            patterns: vec![Pattern::Any, Pattern::Any],
+        },
+        json!("ab"),
+        MatchKind::Ok,
+        2,
+        "a|b",
+    );
+    assert_item(
+        Pattern::Then {
+            patterns: vec![Pattern::Any, Pattern::Any],
+        },
+        json!("abc"),
+        MatchKind::Ok,
+        2,
+        "a|b",
+    );
+    assert_item(
+        Pattern::Then {
+            patterns: vec![Pattern::Ok],
+        },
+        json!([]),
+        MatchKind::Ok,
+        0,
+        "undefined",
+    );
+    assert_item(
+        Pattern::Then {
+            patterns: vec![Pattern::Any, Pattern::Any],
+        },
+        json!("a"),
+        MatchKind::Fail,
+        0,
+        "",
+    );
+    assert_item(
+        Pattern::Then {
+            patterns: vec![
+                Pattern::Skip {
+                    pattern: Box::new(literal(json!("a"))),
+                },
+                Pattern::Any,
+                Pattern::Skip {
+                    pattern: Box::new(literal(json!("a"))),
+                },
+            ],
+        },
+        json!("aba"),
+        MatchKind::Ok,
+        3,
+        "b",
+    );
+    assert_item(
+        Pattern::Then {
+            patterns: vec![
+                Pattern::Skip {
+                    pattern: Box::new(literal(json!("a"))),
+                },
+                Pattern::Skip {
+                    pattern: Box::new(literal(json!("a"))),
+                },
+            ],
+        },
+        json!("aa"),
+        MatchKind::Ok,
+        2,
+        "",
+    );
+}
+
+#[test]
+// req:or-001 req:skip-002 req:error-recovery-003
+fn or_takes_the_first_clean_alternative_and_restores_position_on_failure() {
+    assert_item(
+        Pattern::Or { patterns: vec![] },
+        json!([]),
+        MatchKind::Fail,
+        0,
+        "",
+    );
+    assert_item(
+        Pattern::Or {
+            patterns: vec![Pattern::Any],
+        },
+        json!("a"),
+        MatchKind::Ok,
+        1,
+        "a",
+    );
+    assert_item(
+        Pattern::Or {
+            patterns: vec![literal(json!(1)), literal(json!(2))],
+        },
+        json!([2]),
+        MatchKind::Ok,
+        1,
+        "2",
+    );
+    assert_item(
+        Pattern::Or {
+            patterns: vec![literal(json!(1)), literal(json!(2))],
+        },
+        json!([3]),
+        MatchKind::Fail,
+        0,
+        "",
+    );
+    assert_item(
+        Pattern::Or {
+            patterns: vec![literal(json!(1))],
+        },
+        json!([1, 2]),
+        MatchKind::Ok,
+        1,
+        "1",
+    );
+    assert_item(
+        Pattern::Or {
+            patterns: vec![
+                Pattern::Then {
+                    patterns: vec![literal(json!(0))],
+                },
+                Pattern::Then {
+                    patterns: vec![literal(json!(1)), literal(json!(0))],
+                },
+                Pattern::Then {
+                    patterns: vec![literal(json!(1)), literal(json!(2)), literal(json!(0))],
+                },
+            ],
+        },
+        json!([1, 2, 3]),
+        MatchKind::Fail,
+        0,
+        "",
+    );
+    assert_item(
+        Pattern::Or {
+            patterns: vec![
+                Pattern::Fail,
+                Pattern::Skip {
+                    pattern: Box::new(literal(json!("a"))),
+                },
+            ],
+        },
+        json!("a"),
+        MatchKind::Skip,
+        1,
+        "undefined",
+    );
+
+    let recover_ab = || Pattern::Recover {
+        pattern: Box::new(Pattern::Then {
+            patterns: vec![literal(json!("a")), literal(json!("b"))],
+        }),
+        skip: Box::new(Pattern::Any),
+    };
+    uffda_heap::rootless_mutate(|mc| {
+        let mut execution = PatternExecution::new_with_recovery(
+            mc,
+            Pattern::Or {
+                patterns: vec![recover_ab(), literal(json!("x"))],
+            },
+            vec![Value::string(mc, "x")],
+            Environment::new(mc, None, vec![]),
+            RecoveryContext::new(mc).enable(),
+        );
+        finish(mc, &mut execution);
+        let result = execution.result().unwrap();
+        assert_eq!(result.kind, MatchKind::Ok);
+        assert_eq!(item_text(result.value), "x");
+        assert!(!result.recovered);
+        assert_eq!(result.children.len(), 2);
+        assert_eq!(result.children[0].kind, MatchKind::Fail);
+        assert_eq!(result.children[0].pattern_kind, PatternKind::Recover);
+        assert_eq!(result.children[0].end, 0);
+        assert_eq!(result.children[0].children.len(), 1);
+        assert_eq!(result.children[0].children[0].kind, MatchKind::Ok);
+        assert!(result.children[0].children[0].recovered);
+        assert_eq!(result.children[1].kind, MatchKind::Ok);
+        assert_eq!(result.children[1].pattern_kind, PatternKind::Equal);
+
+        let mut execution = PatternExecution::new_with_recovery(
+            mc,
+            Pattern::Or {
+                patterns: vec![recover_ab(), literal(json!("y")), recover_ab()],
+            },
+            vec![Value::string(mc, "x")],
+            Environment::new(mc, None, vec![]),
+            RecoveryContext::new(mc).enable(),
+        );
+        finish(mc, &mut execution);
+        let result = execution.result().unwrap();
+        assert_eq!(result.kind, MatchKind::Ok);
+        assert!(result.recovered);
+        assert_eq!(item_text(result.value), "x");
+        assert_eq!(
+            result
+                .children
+                .iter()
+                .map(|child| child.kind)
+                .collect::<Vec<_>>(),
+            vec![MatchKind::Ok, MatchKind::Fail, MatchKind::Fail]
+        );
+        assert_eq!(result.children[2].pattern_kind, PatternKind::Recover);
+        assert_eq!(result.children[2].children[0].kind, MatchKind::Ok);
+    });
+}
+
+#[test]
+// req:and-001 req:skip-002
+fn and_checks_every_child_at_one_position_and_forwards_the_last() {
+    assert_item(
+        Pattern::And {
+            patterns: vec![Pattern::Any],
+        },
+        json!("a"),
+        MatchKind::Ok,
+        1,
+        "a",
+    );
+    assert_item(
+        Pattern::And {
+            patterns: vec![Pattern::Any, Pattern::Any],
+        },
+        json!("a"),
+        MatchKind::Ok,
+        1,
+        "a",
+    );
+    assert_item(
+        Pattern::Then {
+            patterns: vec![
+                Pattern::And {
+                    patterns: vec![Pattern::Any, Pattern::Any],
+                },
+                Pattern::Any,
+            ],
+        },
+        json!("ab"),
+        MatchKind::Ok,
+        2,
+        "a|b",
+    );
+    let letter = |source: &str| -> Pattern {
+        serde_json::from_value(json!({
+            "kind": "regexp",
+            "pattern": { "source": source, "flags": "" }
+        }))
+        .unwrap()
+    };
+    assert_item(
+        Pattern::And {
+            patterns: vec![letter("b"), letter("a")],
+        },
+        json!("a"),
+        MatchKind::Fail,
+        0,
+        "",
+    );
+    assert_item(
+        Pattern::And {
+            patterns: vec![letter("a"), letter("b")],
+        },
+        json!("b"),
+        MatchKind::Fail,
+        0,
+        "",
+    );
+    assert_item(
+        Pattern::And {
+            patterns: vec![letter("a"), letter("b")],
+        },
+        json!("a"),
+        MatchKind::Fail,
+        0,
+        "",
+    );
+    assert_item(
+        Pattern::And { patterns: vec![] },
+        json!("a"),
+        MatchKind::Ok,
+        0,
+        "undefined",
+    );
+    assert_item(
+        Pattern::And {
+            patterns: vec![
+                Pattern::Any,
+                Pattern::Skip {
+                    pattern: Box::new(Pattern::Any),
+                },
+            ],
+        },
+        json!("a"),
+        MatchKind::Skip,
+        1,
+        "undefined",
+    );
+    assert_item(
+        Pattern::And {
+            patterns: vec![
+                Pattern::Skip {
+                    pattern: Box::new(Pattern::Any),
+                },
+                Pattern::Any,
+            ],
+        },
+        json!("a"),
+        MatchKind::Ok,
+        1,
+        "a",
+    );
+}
+
+fn assert_item(
+    pattern: Pattern,
+    input: serde_json::Value,
+    kind: MatchKind,
+    end: usize,
+    value: &str,
+) {
+    let mut runtime =
+        crate::runtime::Runtime::for_pattern(pattern, input, crate::runtime::InputMode::Iterable)
+            .unwrap();
+    runtime.run().unwrap();
+    runtime.read(|execution| {
+        let result = execution.result().unwrap();
+        assert_eq!(result.kind, kind);
+        assert_eq!(result.end, end);
+        if kind != MatchKind::Fail {
+            assert_eq!(item_text(result.value), value);
+        }
+    });
+}
+
+fn item_text(value: Value<'_>) -> String {
+    match value.raw() {
+        Value::Undefined => "undefined".into(),
+        Value::Number(number) => number.to_string(),
+        Value::String(text) => text.to_utf8().unwrap(),
+        Value::Array(items) => items
+            .borrow()
+            .iter()
+            .map(|item| item_text(*item))
+            .collect::<Vec<_>>()
+            .join("|"),
+        other => panic!("unexpected match value {:?}", other.runtime_type()),
+    }
+}
+
+#[test]
 // req:runtime-memory-005 req:equal-002
 fn deeply_nested_literal_sources_are_dropped_without_host_recursion() {
     let mut value = json!(42);

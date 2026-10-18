@@ -35,6 +35,11 @@ Postconditions:
 
 ## Test plan
 
-`src/match.recovery_diagnostics.test.ts` (RECOVERY_DIAGNOSTICS00–03, and the
-explanation). `src/cli/diagnostics.test.ts`.
-`src/requirements/error-recovery/008-recovery-diagnostics.requirement.test.ts`.
+`rust/src/runtime/engine_ports.rs`
+(`engine_port_recovery_diagnostics_are_source_spans_in_document_order` for a
+clean parse, document order, a failed match, an explanation, and a preceding
+match; `engine_port_recovery_spans_follow_into_pipeline_stage_origins` for
+source offsets through a pipeline stage that explicitly uses `into`). A later
+pipeline step receives exactly one item, so a diagnostic that depends on
+implicitly iterating a string is not the contract.
+`src/cli/diagnostics.test.ts`.

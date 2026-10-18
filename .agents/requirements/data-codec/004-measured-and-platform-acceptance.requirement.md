@@ -26,9 +26,10 @@ Expected behavior:
 - Raw and gzip byte sizes, gzip compression/decompression time, Rust encode and
   decode throughput for raw and gzip pipelines, sample count, record count, and
   input chunk size MUST be reportable via the in-tree measurement tooling
-  (`test/perf/data-codec.report.ts`). Compression-only cost and parser/pipeline
-  cost MUST be identified separately. Data-document decode MUST NOT be
-  advertised as fully materialized native-runtime throughput.
+  (`test/perf/data-codec.report.ts`, driven by `rust/examples/codec_probe.rs`).
+  Compression-only cost and parser/pipeline cost MUST be identified separately.
+  Data-document decode MUST NOT be advertised as fully materialized
+  native-runtime throughput.
 - Linux raw and gzip measurements MUST record independent child-process peak
   RSS, including startup and embedded grammars, and an initialized idle
   baseline. RSS is not live GC bytes, allocator counts, or an isolated memory
@@ -45,8 +46,10 @@ Expected behavior:
   accept final unterminated records, and fail explicitly on malformed/truncated
   streams. Acceptance MUST run outside the checkout with an empty child PATH and
   no external grammar artifacts.
-- Linux, macOS, and Windows, on x86_64 and aarch64, MUST build the preview and
-  run standalone CLI/codec streaming acceptance on native runners. Cross-builds
+- Linux, macOS, and Windows, on x86_64 and aarch64, MUST build the `uffda`
+  release CLI and run standalone CLI/codec streaming acceptance on native
+  runners. That acceptance MUST be the Rust `standalone_acceptance` test run
+  against those release binaries. It MUST NOT be a Deno script. Cross-builds
   alone MUST NOT count as execution evidence. Pending CI MUST remain distinct
   from verified platform results. Release Binaries MUST cover all six targets;
   per-commit Checks MUST cover the Linux targets and MAY omit the others.
@@ -58,6 +61,8 @@ Postconditions:
 
 - Corpus, report tooling, tests, standalone-acceptance CI coverage, and
   persistent measured evidence remain available.
-- Artifact format, compiler bootstrap, installer, and cutover policy are
-  unchanged.
-- Tests cite this requirement in the report helpers and Rust acceptance example.
+- Codec artifact format stays unchanged. Release asset names follow the
+  distribution requirements.
+- Tests: `rust/src/codec/data/tests.rs` (corpus determinism, median summarization,
+  persistent baseline shape), `rust/examples/codec_probe.rs`,
+  `rust/tests/standalone_acceptance.rs`, and `rust/tests/build.rs`.

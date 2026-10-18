@@ -29,7 +29,8 @@ Postconditions:
 
 ## Test plan
 
-`src/runtime/recovery.test.ts`: none for a clean parse (RECOVERY00), one with
-its failure (RECOVERY01), several in document order (RECOVERY02), beneath a
-failed recovery phase (RECOVERY03), none inside a rejected `or` alternative
-(RECOVERY06). A match produced with recovery disabled yields none (RECOVERY08).
+`rust/src/runtime/engine_ports.rs`
+(`engine_port_statement_recovery_collects_only_the_accepted_phase`): none for a
+clean parse, one with its failure, several in document order, beneath a failed
+recovery phase, and none inside a rejected `or` alternative. A match produced
+with recovery disabled yields none.

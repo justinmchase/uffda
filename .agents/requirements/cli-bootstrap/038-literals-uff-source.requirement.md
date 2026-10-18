@@ -34,3 +34,7 @@ Postconditions:
 - TypeScript twin `literals.ts` is gone.
 - Conversion-plan module 28 is done; `builtInLanguageDeclarations` MUST NOT
   register literals.
+
+## Test plan
+
+- `rust/src/lang_tests/pattern.rs`

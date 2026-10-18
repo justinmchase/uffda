@@ -16,13 +16,15 @@
     "cli": "deno run --allow-read --allow-write --allow-net --allow-run --allow-env=INIT_CWD,PWD,HOME,XDG_CACHE_HOME,XDG_RUNTIME_DIR,LOCALAPPDATA ./src/cli/main.ts",
     "compile:lang": "rm -rf ./bin && uffda compile 'src/lang/**/*.uff'",
     "compile:cli": "deno task compile:lang && deno run --allow-read --allow-write --allow-run --allow-env ./scripts/compile-cli.ts",
-    "test": "deno task compile:lang && deno test --allow-read --allow-write --allow-net=127.0.0.1 --allow-env=XDG_RUNTIME_DIR,HOME,XDG_CACHE_HOME,LOCALAPPDATA --parallel --ignore=test/integration/",
-    "test:watch": "deno task compile:lang && deno test --allow-read --allow-write --allow-net=127.0.0.1 --allow-env=XDG_RUNTIME_DIR,HOME,XDG_CACHE_HOME,LOCALAPPDATA --watch --parallel --ignore=test/integration/",
-    "test:integration": "deno task compile:lang && deno test --allow-read --allow-write --allow-run=deno --allow-net=127.0.0.1 --allow-env=XDG_RUNTIME_DIR,HOME,XDG_CACHE_HOME,LOCALAPPDATA --parallel test/integration/",
+    "test": "deno task compile:lang && deno test --allow-read --allow-write --allow-net=127.0.0.1 --allow-env=XDG_RUNTIME_DIR,HOME,XDG_CACHE_HOME,LOCALAPPDATA --parallel",
+    "test:watch": "deno task compile:lang && deno test --allow-read --allow-write --allow-net=127.0.0.1 --allow-env=XDG_RUNTIME_DIR,HOME,XDG_CACHE_HOME,LOCALAPPDATA --watch --parallel",
     "bench": "deno bench --allow-read --allow-write test/bench/",
     "bench:memo": "deno run --allow-read --allow-write test/bench/memo-eviction.report.ts",
     "perf": "deno task compile:lang && deno run --allow-read --allow-write --allow-env=GITHUB_STEP_SUMMARY test/perf/morse-compile.report.ts",
     "fmt:uff": "deno task compile:lang && deno task cli fmt",
+    "fmt:rust": "deno run -A ./scripts/check-rust.ts fmt",
+    "check:rust": "deno run -A ./scripts/check-rust.ts check",
+    "pre:rust": "deno run -A ./scripts/check-rust.ts fix",
     "pre": "deno fmt && deno task fmt:uff && deno lint --fix && deno task test && npx jsr publish --dry-run --allow-dirty"
   },
   "imports": {

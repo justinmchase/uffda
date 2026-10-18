@@ -29,4 +29,4 @@ Postconditions:
 
 - Raw number/string token AST values retain source digits/escapes for fixed
   native reconstruction. Parsing alone does not claim native-type construction.
-- Tests: `src/lang/data/data.lang.test.ts`.
+- Tests: `rust/src/lang_tests/common.rs`.

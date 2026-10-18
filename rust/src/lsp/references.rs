@@ -189,7 +189,7 @@ pub fn symbol_occurrences(
         if !may_mention(symbol, name, url.as_str(), &source) {
             continue;
         }
-        let Some(document) = store.from_disk(languages, &url) else {
+        let Some(document) = store.load_disk(languages, &url) else {
             continue;
         };
         let occurrences = in_document(&document);

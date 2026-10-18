@@ -24,3 +24,7 @@ Expected behavior:
 Postconditions:
 
 - Legacy bare literal operands continue to work unchanged.
+
+## Test plan
+
+- `rust/src/pattern/terminal_ports.rs`, `rust/src/pattern/tests.rs`

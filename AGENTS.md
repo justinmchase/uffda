@@ -52,10 +52,12 @@ performant grammar.
   `deno task test`.
 - **Before pushing** any commit that changes code (`.ts`, `.uff`, etc.) or
   Markdown (`.md`, `.mdc`), run `deno fmt` and include the formatting updates in
-  the commit. CI runs `deno fmt --check` and will fail on unformatted files.
+  the commit. Checks runs Rust `cargo fmt`, Clippy, and `cargo test`.
 - A commit that changes `.uff` files MUST also run `deno task fmt:uff` (the
-  in-tree `uffda fmt`) and include its changes. CI runs `uffda fmt --check`.
-- Prefer `deno task pre` before committing.
+  in-tree `uffda fmt`) and include its changes.
+- Prefer `deno task pre` before committing. For Rust changes, also run
+  `deno task check:rust` (or `deno task pre:rust` to fmt then check) before
+  pushing — same Format / Clippy / Test steps as the Checks workflow.
 - Keep modules small and composable when adding or refactoring parser logic.
 
 ## Type modeling conventions
@@ -111,5 +113,5 @@ deno lint
 deno task test
 ```
 
-Do not cancel these commands; they normally finish quickly. Confirm
-`deno fmt --check` is clean before `git push`.
+Do not cancel these commands; they normally finish quickly. Checks gates Rust
+`cargo fmt`, Clippy, and `cargo test`.

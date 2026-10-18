@@ -34,3 +34,7 @@ Postconditions:
 - `uffda.lang` imports `./import.rules.uff`; the TypeScript twin is gone.
 - Runtime loads ImportRules from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).
+
+## Test plan
+
+- `rust/src/lang_tests/uffda.rs`

@@ -31,3 +31,7 @@ Postconditions:
 - Source is authored as `.uff`.
 - Dependents import `../source/mod.uff`; the ModuleDeclaration twin is gone.
 - Host `mod.ts` MAY remain for `normalizeSource` and type re-exports only.
+
+## Test plan
+
+- `rust/src/lang_tests/common.rs`

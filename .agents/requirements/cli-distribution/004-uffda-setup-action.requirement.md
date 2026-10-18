@@ -26,3 +26,5 @@ Expected behavior:
 Postconditions:
 
 - Workflows can install and invoke `uffda` without custom download logic.
+- Tests: `rust/src/cli/requirement_ports.rs`, `rust/tests/build.rs`,
+  `rust/src/cli/surface_ports.rs`.

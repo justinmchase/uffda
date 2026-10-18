@@ -118,7 +118,7 @@ export const AUTHORING_EVIDENCE: readonly AuthoringEvidence[] = [
         excerpt: "Sequence = ( callee args… ) → invocation",
       },
       {
-        path: "src/lang/expression/expression.lang.test.ts",
+        path: "rust/src/lang_tests/expression.rs",
         anchor: '"(reduce [1 2 3 4] 0 <acc:any x:any> -> (add acc x))"',
       },
     ],
@@ -141,8 +141,8 @@ export const AUTHORING_EVIDENCE: readonly AuthoringEvidence[] = [
           "rule Lambda =\n  p:ParameterList Token<LambdaArrow> e:Token<Primary>",
       },
       {
-        path: "src/lang/expression/expression.lang.test.ts",
-        anchor: "EXPR_LANG_12 reduce composes with an inline lambda",
+        path: "rust/src/lang_tests/expression.rs",
+        anchor: "(reduce [1 2 3 4] 0 <acc:any x:any> -> (add acc x))",
       },
     ],
   },
@@ -342,7 +342,7 @@ export const AUTHORING_EVIDENCE: readonly AuthoringEvidence[] = [
         anchor: "| `reduce(value, initial, fn)`",
       },
       {
-        path: "src/lang/expression/expression.lang.test.ts",
+        path: "rust/src/lang_tests/expression.rs",
         anchor: '"(reduce [1 2 3 4] 0 <acc:any x:any> -> (add acc x))"',
       },
     ],
@@ -475,8 +475,8 @@ export const AUTHORING_EVIDENCE: readonly AuthoringEvidence[] = [
         excerpt: "compare exists; sort does not appear in the inventory.",
       },
       {
-        path: "src/lang/expression/expression.lang.test.ts",
-        anchor: "EXPR_LANG_12 reduce composes with an inline lambda",
+        path: "rust/src/lang_tests/expression.rs",
+        anchor: "(reduce [1 2 3 4] 0 <acc:any x:any> -> (add acc x))",
         excerpt: "reduce+lambda is tested; sorting is not.",
       },
     ],

@@ -10,8 +10,9 @@ spec_ref: ".agents/specifications/languages/cli/distribution-and-release.spec.md
 
 Preconditions:
 
-- The Publish workflow compiles `./bin` (`deno task compile:lang`) and publishes
-  the repository to JSR as `@justinmchase/uffda`.
+- The Publish workflow compiles `./bin` with the Rust `uffda compile` after
+  seeding the tree for the Rust build. JSR publish of `@justinmchase/uffda` is
+  paused.
 
 Expected behavior:
 
@@ -38,9 +39,9 @@ Postconditions:
   through the built-in module-specifier grammar) does not require a repository
   checkout; the built-in `.uff` artifacts load from the package wherever it is
   served.
-- Tests:
-  `test/integration/cli-distribution-006-jsr-package-grammars.requirement.test.ts`
+- Tests: `rust/src/resolver/packages/tests.rs`,
+  `rust/src/resolver/ported_tests.rs`
   (serves the repository's own `uffda.jsonc` and `bin/` as a package from a fake
   registry and resolves each exported grammar), and
-  `src/runtime/resolvers/uff.artifact.resolver.test.ts` (loads a built-in
-  artifact from an `https:` package root over a stubbed network fetch).
+  `rust/src/resolver/ported_tests.rs` (loads a built-in artifact from an
+  `https:` package root over a stubbed network fetch).

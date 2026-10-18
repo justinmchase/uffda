@@ -27,3 +27,7 @@ Postconditions:
 
 - Awaited expression projections do not alter left-recursion growth or
   termination semantics.
+
+## Test plan
+
+- `rust/src/runtime/tests.rs`

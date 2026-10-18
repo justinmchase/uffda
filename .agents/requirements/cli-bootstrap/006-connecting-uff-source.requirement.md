@@ -26,3 +26,7 @@ Postconditions:
   gone.
 - Runtime loads Connecting from `./bin` via `.uff` remapping (not
   `builtInLanguageDeclarations`).
+
+## Test plan
+
+- `rust/src/lang_tests/common.rs`

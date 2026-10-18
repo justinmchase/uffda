@@ -24,3 +24,7 @@ Postconditions:
 
 - Token streams remain provenance-reconstructable against normalized source
   units for fixed input.
+
+## Test plan
+
+- `rust/src/lang_tests/common.rs`

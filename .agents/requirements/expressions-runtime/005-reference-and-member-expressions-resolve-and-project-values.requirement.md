@@ -26,3 +26,7 @@ Error behavior:
 
 - Unresolved references MUST report the governed reference error outcome.
 - Child-expression errors MUST propagate unchanged.
+
+Postconditions:
+
+- Tests: `rust/src/evaluate/expression_ports.rs`.

@@ -94,6 +94,10 @@ struct CompiledModule {
 pub struct CompiledModuleGraph {
     pub graph: Rc<ModuleGraph>,
     modules: HashMap<Url, Rc<CompiledModule>>,
+    /// Static selective-memoization analysis: rules whose invocations may skip
+    /// packrat memo bookkeeping. See
+    /// `.agents/specifications/runtime/selective-memoization.spec.md`.
+    skip_memo: HashMap<ModuleMember, bool>,
 }
 
 #[derive(Collect)]
@@ -496,7 +500,18 @@ impl CompiledModuleGraph {
             }
             modules.insert(url.clone(), Rc::new(compiled));
         }
-        Ok(Self { graph, modules })
+        let mut compiled = Self {
+            graph,
+            modules,
+            skip_memo: HashMap::new(),
+        };
+        compiled.skip_memo = crate::selective_memo::compute_skip_memo(&compiled);
+        Ok(compiled)
+    }
+
+    /// Whether invocations of this declared rule may skip packrat memo bookkeeping.
+    pub fn can_skip_memo(&self, member: &ModuleMember) -> bool {
+        self.skip_memo.get(member).copied().unwrap_or(false)
     }
 
     pub fn declaration(&self, member: &ModuleMember) -> Option<Rc<CompiledDeclaration>> {

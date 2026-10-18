@@ -20,9 +20,10 @@ use uffda_heap::{Collect, DynamicRootSet, Gc, Mutation, RefLock};
 /// Leaves and unary wrappers are the common case (0–1 children). Keeping those
 /// inline avoids a heap allocation for the child list on every `set` / boundary
 /// / unary resume. Sequences and choices spill to a `Vec`.
-#[derive(Clone, Collect)]
+#[derive(Clone, Collect, Default)]
 #[collect(no_drop)]
 pub enum MatchChildren<'gc> {
+    #[default]
     Empty,
     One(Gc<'gc, PatternMatch<'gc>>),
     Two([Gc<'gc, PatternMatch<'gc>>; 2]),
@@ -56,12 +57,6 @@ impl<'gc> MatchChildren<'gc> {
             Self::Two(children) => children,
             Self::Many(children) => children,
         }
-    }
-}
-
-impl<'gc> Default for MatchChildren<'gc> {
-    fn default() -> Self {
-        Self::Empty
     }
 }
 
@@ -185,8 +180,8 @@ pub enum Pattern {
         name: Option<String>,
         #[serde(default)]
         args: Vec<Self>,
-        #[serde(default)]
-        value: Option<JsonValue>,
+        #[serde(default, deserialize_with = "deserialize_resolve_value")]
+        value: Option<ResolveValue>,
     },
     Projection {
         pattern: Box<Self>,
@@ -427,6 +422,29 @@ impl<'gc> PatternMatch<'gc> {
         rebased[&(Gc::as_ptr(child) as usize)]
     }
 
+    pub fn with_kind(mc: &Mutation<'gc>, matched: Gc<'gc, Self>, kind: MatchKind) -> Gc<'gc, Self> {
+        Gc::new(
+            mc,
+            Self {
+                kind,
+                value: matched.value,
+                start: matched.start,
+                end: matched.end,
+                environment: matched.environment,
+                origin: matched.origin,
+                identity: matched.identity,
+                seeded: matched.seeded,
+                recovered: matched.recovered,
+                recovery: matched.recovery,
+                rule: matched.rule,
+                children: matched.children.clone(),
+                provenance: matched.provenance.clone(),
+                pattern_index: matched.pattern_index,
+                pattern_kind: matched.pattern_kind,
+            },
+        )
+    }
+
     pub fn with_seeded(mc: &Mutation<'gc>, child: Gc<'gc, Self>, seeded: bool) -> Gc<'gc, Self> {
         Gc::new(
             mc,
@@ -457,6 +475,139 @@ pub enum ResolveTargetKind {
     Reference,
     Run,
     Special,
+}
+
+/// A resolve special is a module default or a rule, carried as a compiled
+/// pattern. JSON that is not one of those stays opaque.
+#[derive(Clone)]
+pub struct ResolveValue {
+    kind: ResolveKind,
+}
+
+#[derive(Clone)]
+enum ResolveKind {
+    Json(JsonValue),
+    Module { default: Option<Rc<PatternProgram>> },
+    Rule { pattern: Rc<PatternProgram> },
+}
+
+pub(crate) enum SpecialBody {
+    Program(Rc<PatternProgram>),
+    MissingDefault,
+    Unrecognized,
+}
+
+impl ResolveValue {
+    fn json(value: JsonValue) -> Self {
+        Self {
+            kind: ResolveKind::Json(value),
+        }
+    }
+
+    pub(crate) fn rule(pattern: Pattern) -> Self {
+        Self {
+            kind: ResolveKind::Rule {
+                pattern: PatternProgram::compile(pattern),
+            },
+        }
+    }
+
+    pub(crate) fn module(default: Option<Pattern>) -> Self {
+        Self {
+            kind: ResolveKind::Module {
+                default: default.map(PatternProgram::compile),
+            },
+        }
+    }
+
+    /// True when this special is a concrete embedded rule pattern (not a module
+    /// default or opaque JSON value).
+    pub(crate) fn is_rule(&self) -> bool {
+        matches!(self.kind, ResolveKind::Rule { .. })
+    }
+
+    pub(crate) fn special_body(&self) -> SpecialBody {
+        match &self.kind {
+            ResolveKind::Module {
+                default: Some(pattern),
+            }
+            | ResolveKind::Rule { pattern } => SpecialBody::Program(Rc::clone(pattern)),
+            ResolveKind::Module { default: None } => SpecialBody::MissingDefault,
+            ResolveKind::Json(_) => SpecialBody::Unrecognized,
+        }
+    }
+
+    fn json_text(&self) -> Option<String> {
+        match &self.kind {
+            ResolveKind::Json(value) => Some(value.to_string()),
+            _ => None,
+        }
+    }
+
+    fn take_json(&mut self) -> Option<JsonValue> {
+        match &mut self.kind {
+            ResolveKind::Json(value) => Some(std::mem::replace(value, JsonValue::Null)),
+            _ => None,
+        }
+    }
+}
+
+impl std::fmt::Debug for ResolveValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.kind {
+            ResolveKind::Json(value) => f.debug_tuple("Json").field(value).finish(),
+            ResolveKind::Module { default } => f
+                .debug_struct("Module")
+                .field("default", &default.is_some())
+                .finish(),
+            ResolveKind::Rule { .. } => f.debug_struct("Rule").finish(),
+        }
+    }
+}
+
+fn special_from_json(value: &JsonValue) -> Option<Result<ResolveValue, String>> {
+    let JsonValue::Object(object) = value else {
+        return None;
+    };
+    let JsonValue::String(kind) = object.get("kind")? else {
+        return None;
+    };
+    let pattern_of = |value: &JsonValue| {
+        crate::json::from_value(value.clone()).map_err(|error| error.to_string())
+    };
+    if kind == "rule" {
+        let Some(pattern) = object.get("pattern") else {
+            return Some(Err("rule special requires a pattern".into()));
+        };
+        return Some(pattern_of(pattern).map(ResolveValue::rule));
+    }
+    if kind == "module" {
+        let default = match object.get("default") {
+            None | Some(JsonValue::Null) => None,
+            Some(pattern) => match pattern_of(pattern) {
+                Ok(pattern) => Some(pattern),
+                Err(error) => return Some(Err(error)),
+            },
+        };
+        return Some(Ok(ResolveValue::module(default)));
+    }
+    None
+}
+
+fn deserialize_resolve_value<'de, D>(deserializer: D) -> Result<Option<ResolveValue>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let Some(value) = Option::<JsonValue>::deserialize(deserializer)? else {
+        return Ok(None);
+    };
+    if matches!(value, JsonValue::Null) {
+        return Ok(None);
+    }
+    if let Some(special) = special_from_json(&value) {
+        return special.map(Some).map_err(serde::de::Error::custom);
+    }
+    Ok(Some(ResolveValue::json(value)))
 }
 
 #[derive(Debug, Deserialize)]
@@ -663,7 +814,7 @@ enum PatternNode {
         target_kind: ResolveTargetKind,
         name: Option<Rc<str>>,
         args: Rc<[usize]>,
-        value: Option<JsonValue>,
+        value: Option<ResolveValue>,
     },
     Projection(usize, CompiledExpression),
     Pipeline(Rc<[usize]>),
@@ -753,7 +904,92 @@ enum Unary {
     Except,
 }
 
+/// One statically visible resolve site inside a compiled pattern, used by
+/// selective-memoization call-graph analysis.
+pub(crate) struct ResolveSite<'a> {
+    pub target_kind: ResolveTargetKind,
+    pub name: Option<&'a str>,
+    pub argument_count: usize,
+    pub value: Option<&'a ResolveValue>,
+}
+
 impl PatternProgram {
+    /// Walk every resolve node in this program (structural children only; special
+    /// rule bodies are not inlined — they are call edges to a concrete rule).
+    pub(crate) fn resolve_sites(&self) -> Vec<ResolveSite<'_>> {
+        let mut sites = Vec::new();
+        let mut pending = vec![0usize];
+        let mut seen = vec![false; self.nodes.len()];
+        while let Some(index) = pending.pop() {
+            if index >= self.nodes.len() || seen[index] {
+                continue;
+            }
+            seen[index] = true;
+            match &self.nodes[index] {
+                PatternNode::And(children)
+                | PatternNode::Then(children)
+                | PatternNode::Or(children)
+                | PatternNode::Pipeline(children) => {
+                    pending.extend(children.iter().copied());
+                }
+                PatternNode::Variable(_, child)
+                | PatternNode::Unary(_, child)
+                | PatternNode::Quantifier(child, _, _)
+                | PatternNode::Projection(child, _) => pending.push(*child),
+                PatternNode::Recover(pattern, skip) => {
+                    pending.push(*pattern);
+                    pending.push(*skip);
+                }
+                PatternNode::Over(keys, rest) => {
+                    pending.extend(keys.iter().map(|(_, child)| *child));
+                    for clause in rest {
+                        if let OverRestNode::Pattern { key, value, .. } = clause {
+                            pending.push(*key);
+                            pending.push(*value);
+                        }
+                    }
+                }
+                PatternNode::Switch(cases, default) => {
+                    pending.extend(cases.iter().map(|(_, child)| *child));
+                    if let Some(default) = default {
+                        pending.push(*default);
+                    }
+                }
+                PatternNode::Resolve {
+                    target_kind,
+                    name,
+                    args,
+                    value,
+                } => {
+                    sites.push(ResolveSite {
+                        target_kind: *target_kind,
+                        name: name.as_deref(),
+                        argument_count: args.len(),
+                        value: value.as_ref(),
+                    });
+                    // Mirror Deno `childPatterns`: only reference resolves expose
+                    // args as structural children (and only when empty — a
+                    // non-empty arg list is treated as dynamic by the analysis
+                    // before those children would be visited).
+                    if *target_kind == ResolveTargetKind::Reference && args.is_empty() {
+                        pending.extend(args.iter().copied());
+                    }
+                }
+                PatternNode::Any
+                | PatternNode::Ok
+                | PatternNode::Fail
+                | PatternNode::End
+                | PatternNode::Equal(_)
+                | PatternNode::Includes(_)
+                | PatternNode::Between(_, _)
+                | PatternNode::Type(_)
+                | PatternNode::Character(_, _)
+                | PatternNode::Regexp(_, _) => {}
+            }
+        }
+        sites
+    }
+
     pub(crate) fn compile(pattern: Pattern) -> Rc<Self> {
         let mut nodes = vec![PatternNode::Fail];
         let mut pending = vec![(0, pattern)];
@@ -881,6 +1117,7 @@ impl Drop for PatternProgram {
                 pending.push(std::mem::replace(value, JsonValue::Null));
             }
         };
+        let mut resolve_json = Vec::new();
         for node in &mut self.nodes {
             match node {
                 PatternNode::Equal(source) => take(source),
@@ -900,9 +1137,15 @@ impl Drop for PatternProgram {
                         }
                     }
                 }
+                PatternNode::Resolve { value, .. } => {
+                    if let Some(value) = value.as_mut().and_then(ResolveValue::take_json) {
+                        resolve_json.push(value);
+                    }
+                }
                 _ => {}
             }
         }
+        pending.extend(resolve_json);
         while let Some(value) = pending.pop() {
             match value {
                 JsonValue::Array(values) => pending.extend(values),
@@ -1153,6 +1396,9 @@ enum Frame<'gc> {
         index: usize,
         start: Scope<'gc>,
         children: Vec<Gc<'gc, PatternMatch<'gc>>>,
+        /// Index in `children` of the first recovered success, if one is waiting
+        /// for a later clean alternative.
+        recovered: Option<usize>,
     },
     Repeat {
         node: usize,
@@ -1204,6 +1450,8 @@ pub struct PatternRequest<'gc> {
     pub target_kind: ResolveTargetKind,
     pub name: Option<String>,
     pub value: Option<String>,
+    #[collect(require_static)]
+    pub special: Option<ResolveValue>,
     pub argument_count: usize,
     arguments: Vec<usize>,
     pattern_index: usize,
@@ -1981,16 +2229,7 @@ impl<'gc> PatternExecution<'gc> {
                             .transpose()?;
                         let value = scope.input.get(scope.position).copied();
                         let matched = match value {
-                            Some(value) => {
-                                if matches!(value.raw(), Value::Null | Value::Undefined) {
-                                    return Err(PatternError::NullValue);
-                                }
-                                left.as_ref()
-                                    .is_none_or(|left| within_bound(left, value, true))
-                                    && right
-                                        .as_ref()
-                                        .is_none_or(|right| within_bound(right, value, false))
-                            }
+                            Some(value) => in_interval(mc, left.as_ref(), right.as_ref(), value)?,
                             None => false,
                         };
                         self.set(
@@ -2085,7 +2324,8 @@ impl<'gc> PatternExecution<'gc> {
                         self.pending_request = Some(PatternRequest {
                             target_kind: *target_kind,
                             name: name.as_ref().map(|name| name.to_string()),
-                            value: value.as_ref().map(ToString::to_string),
+                            value: value.as_ref().and_then(ResolveValue::json_text),
+                            special: value.clone(),
                             argument_count: args.len(),
                             arguments: args.to_vec(),
                             pattern_index: scope.pattern_index,
@@ -2183,9 +2423,11 @@ impl<'gc> PatternExecution<'gc> {
                                     SwitchKey::CharacterClass { character_class } => {
                                         let expression = character_class_regex(character_class)?;
                                         let Value::String(text) = value.raw() else {
-                                            return Err(PatternError::TypeError(
-                                            "expected value to be a string for character-class switch key".into(),
-                                        ));
+                                            return Err(PatternError::TypeError(format!(
+                                                "expected value to be a string for character class but got {}",
+                                                format!("{:?}", value.runtime_type())
+                                                    .to_lowercase()
+                                            )));
                                         };
                                         character_class_matches(&expression, &text)
                                     }
@@ -2251,8 +2493,12 @@ impl<'gc> PatternExecution<'gc> {
                             self.set(mc, scope, false, false, Value::Undefined, vec![]);
                             return Ok(self.frames.is_empty());
                         }
+                        let mut child_scope = scope;
+                        if matches!(unary, Unary::Not | Unary::Lookahead | Unary::Except) {
+                            child_scope.recovery = scope.recovery.disable();
+                        }
                         self.frames.push(Frame::Unary(*unary, scope));
-                        self.frames.push(Frame::Match(*child, scope));
+                        self.frames.push(Frame::Match(*child, child_scope));
                     }
                     PatternNode::Then(nodes) => {
                         if let Some(first) = nodes.first() {
@@ -2276,6 +2522,7 @@ impl<'gc> PatternExecution<'gc> {
                                 index: 0,
                                 start: scope,
                                 children: vec![],
+                                recovered: None,
                             });
                             self.frames.push(Frame::Match(*first, scope));
                         } else {
@@ -2487,7 +2734,9 @@ impl<'gc> PatternExecution<'gc> {
                     self.result = Some(Gc::new(
                         mc,
                         PatternMatch {
-                            kind: child.kind,
+                            // A projection builds its own value, so a skipped child
+                            // is still an ordinary success.
+                            kind: MatchKind::Ok,
                             value,
                             start: start.position,
                             end: child.end,
@@ -2679,6 +2928,7 @@ impl<'gc> PatternExecution<'gc> {
                         result.value = Value::Undefined;
                         result.end = start.position;
                         result.environment = start.environment;
+                        result.recovery = start.recovery;
                     }
                     Unary::Lookahead => {
                         result.kind = if matched {
@@ -2688,6 +2938,7 @@ impl<'gc> PatternExecution<'gc> {
                         };
                         result.end = start.position;
                         result.environment = start.environment;
+                        result.recovery = start.recovery;
                     }
                     Unary::Skip if matched => {
                         result.kind = MatchKind::Skip;
@@ -2723,6 +2974,7 @@ impl<'gc> PatternExecution<'gc> {
                         };
                         result.end = start.position + usize::from(!matched);
                         result.environment = start.environment;
+                        result.recovery = start.recovery;
                         result.value = if matched {
                             Value::Undefined
                         } else {
@@ -2843,40 +3095,46 @@ impl<'gc> PatternExecution<'gc> {
                 index,
                 start,
                 mut children,
+                mut recovered,
             } => {
                 let child = self.result.take().ok_or(PatternError::InvalidState)?;
+                let clean = child.kind != MatchKind::Fail && !child.recovered;
                 children.push(child);
-                if child.kind != MatchKind::Fail {
-                    self.result = Some(Gc::new(
-                        mc,
-                        PatternMatch {
-                            kind: child.kind,
-                            value: child.value,
-                            start: start.position,
-                            end: child.end,
-                            environment: child.environment,
-                            origin: span(start, child.end),
-                            pattern_index: start.pattern_index,
-                            pattern_kind: self.program.nodes[start.pattern_index].kind(),
-                            provenance: self.provenance(start),
-                            identity: start.identity,
-                            seeded: false,
-                            recovered: children.iter().any(|child| child.recovered),
-                            recovery: child.recovery,
-                            rule: None,
-                            children: children.into(),
-                        },
-                    ));
-                } else if let Some(next) = nodes.get(index + 1).copied() {
-                    self.frames.push(Frame::Choice {
-                        nodes,
-                        index: index + 1,
-                        start,
-                        children,
-                    });
-                    self.frames.push(Frame::Match(next, start));
+                if clean {
+                    if let Some(kept) = recovered {
+                        let success = children[kept];
+                        children[kept] = self.rejected_alternative(mc, start, nodes[kept], success);
+                    }
+                    self.finish_choice(mc, start, child, children);
                 } else {
-                    self.set(mc, start, false, false, Value::Undefined, children);
+                    if child.kind != MatchKind::Fail && child.recovered {
+                        if recovered.is_some() {
+                            let success = children.pop().ok_or(PatternError::InvalidState)?;
+                            children.push(self.rejected_alternative(
+                                mc,
+                                start,
+                                nodes[index],
+                                success,
+                            ));
+                        } else {
+                            recovered = Some(index);
+                        }
+                    }
+                    if let Some(next) = nodes.get(index + 1).copied() {
+                        self.frames.push(Frame::Choice {
+                            nodes,
+                            index: index + 1,
+                            start,
+                            children,
+                            recovered,
+                        });
+                        self.frames.push(Frame::Match(next, start));
+                    } else if let Some(kept) = recovered {
+                        let chosen = children[kept];
+                        self.finish_choice(mc, start, chosen, children);
+                    } else {
+                        self.set(mc, start, false, false, Value::Undefined, children);
+                    }
                 }
             }
             Frame::Repeat {
@@ -3279,6 +3537,71 @@ impl<'gc> PatternExecution<'gc> {
         names
     }
 
+    fn finish_choice(
+        &mut self,
+        mc: &Mutation<'gc>,
+        start: Scope<'gc>,
+        chosen: Gc<'gc, PatternMatch<'gc>>,
+        children: Vec<Gc<'gc, PatternMatch<'gc>>>,
+    ) {
+        self.result = Some(Gc::new(
+            mc,
+            PatternMatch {
+                kind: chosen.kind,
+                value: chosen.value,
+                start: start.position,
+                end: chosen.end,
+                environment: chosen.environment,
+                origin: span(start, chosen.end),
+                pattern_index: start.pattern_index,
+                pattern_kind: self.program.nodes[start.pattern_index].kind(),
+                provenance: self.provenance(start),
+                identity: start.identity,
+                seeded: false,
+                recovered: children
+                    .iter()
+                    .any(|child| child.kind != MatchKind::Fail && child.recovered),
+                recovery: chosen.recovery,
+                rule: None,
+                children: children.into(),
+            },
+        ));
+    }
+
+    /// A recovered alternative passed over for a clean one, or a later recovered
+    /// alternative, is kept as a failure of that alternative whose only child is
+    /// its success.
+    fn rejected_alternative(
+        &self,
+        mc: &Mutation<'gc>,
+        start: Scope<'gc>,
+        node: usize,
+        success: Gc<'gc, PatternMatch<'gc>>,
+    ) -> Gc<'gc, PatternMatch<'gc>> {
+        let mut scope = start;
+        scope.pattern_index = node;
+        Gc::new(
+            mc,
+            PatternMatch {
+                kind: MatchKind::Fail,
+                value: Value::Undefined,
+                start: start.position,
+                end: start.position,
+                environment: start.environment,
+                origin: span(start, start.position),
+                pattern_index: node,
+                pattern_kind: self.program.nodes[node].kind(),
+                provenance: self.provenance(scope),
+                identity: start.identity,
+                seeded: false,
+                recovered: false,
+                recovery: start.recovery,
+                rule: None,
+                children: MatchChildren::one(success),
+            },
+        )
+    }
+
     fn set(
         &mut self,
         mc: &Mutation<'gc>,
@@ -3309,7 +3632,16 @@ impl<'gc> PatternExecution<'gc> {
                 pattern_kind: self.program.nodes[scope.pattern_index].kind(),
                 provenance: self.provenance(scope),
                 identity: scope.identity,
-                seeded: children.iter().any(|child| child.seeded),
+                // req:error-recovery-006 — only a *failing* seed dependence
+                // masks recovery. A successful left-recursive seed that is a
+                // child of a later sibling failure must not poison recover.
+                seeded: if matched {
+                    children.iter().any(|child| child.seeded)
+                } else {
+                    children
+                        .iter()
+                        .any(|child| child.kind == MatchKind::Fail && child.seeded)
+                },
                 recovered: children.iter().any(|child| child.recovered),
                 recovery: children
                     .last()
@@ -3474,13 +3806,18 @@ fn equal(
     }
 }
 
-enum OrderedValue {
+enum OrderedValue<'gc> {
     Number(f64),
     String(RuntimeString),
+    /// An object that may expose a callable `compareTo` property.
+    Object(Value<'gc>),
     Unordered,
 }
 
-fn ordered_source(source: &ValueSource, scope: Scope<'_>) -> Result<OrderedValue, PatternError> {
+fn ordered_source<'gc>(
+    source: &ValueSource,
+    scope: Scope<'gc>,
+) -> Result<OrderedValue<'gc>, PatternError> {
     match source {
         ValueSource::Variable { name } => {
             let value = scope
@@ -3490,6 +3827,7 @@ fn ordered_source(source: &ValueSource, scope: Scope<'_>) -> Result<OrderedValue
             Ok(match value.raw() {
                 Value::Number(value) => OrderedValue::Number(value),
                 Value::String(value) => OrderedValue::String((*value).clone()),
+                Value::Object(_) => OrderedValue::Object(value.raw()),
                 _ => OrderedValue::Unordered,
             })
         }
@@ -3504,24 +3842,107 @@ fn ordered_source(source: &ValueSource, scope: Scope<'_>) -> Result<OrderedValue
     }
 }
 
-fn within_bound(bound: &OrderedValue, value: Value<'_>, lower: bool) -> bool {
-    match (bound, value.raw()) {
-        (OrderedValue::Number(bound), Value::Number(value)) => {
-            if lower {
-                *bound <= value
-            } else {
-                value <= *bound
-            }
+fn in_interval<'gc>(
+    mc: &Mutation<'gc>,
+    left: Option<&OrderedValue<'gc>>,
+    right: Option<&OrderedValue<'gc>>,
+    value: Value<'gc>,
+) -> Result<bool, PatternError> {
+    if matches!(value.raw(), Value::Null | Value::Undefined) {
+        return Err(PatternError::NullValue);
+    }
+    let comparable = |bound: &OrderedValue<'gc>| match (bound, value.raw()) {
+        (OrderedValue::Number(_), Value::Number(_))
+        | (OrderedValue::String(_), Value::String(_)) => true,
+        (OrderedValue::Object(bound), Value::Object(_)) => compare_to_method(*bound).is_some(),
+        _ => false,
+    };
+    if left.is_some_and(|bound| !comparable(bound)) || right.is_some_and(|bound| !comparable(bound))
+    {
+        return Ok(false);
+    }
+    let above = match left {
+        None => true,
+        Some(bound) => within_bound(mc, bound, value, true)?,
+    };
+    let below = match right {
+        None => true,
+        Some(bound) => within_bound(mc, bound, value, false)?,
+    };
+    Ok(above && below)
+}
+
+fn compare_to_method<'gc>(bound: Value<'gc>) -> Option<Value<'gc>> {
+    let Value::Object(properties) = bound.raw() else {
+        return None;
+    };
+    properties.borrow().get("compareTo").filter(|method| {
+        matches!(
+            method.raw(),
+            Value::Lambda(_) | Value::Native(_) | Value::Host(_)
+        )
+    })
+}
+
+fn call_compare_to<'gc>(
+    mc: &Mutation<'gc>,
+    bound: Value<'gc>,
+    value: Value<'gc>,
+) -> Result<f64, PatternError> {
+    let method = compare_to_method(bound).ok_or(PatternError::InvalidState)?;
+    let mut execution = ExpressionExecution::call_with_subject(
+        mc,
+        method,
+        vec![value.raw()],
+        Environment::new(mc, None, vec![]),
+        Origin { start: 0, end: 0 },
+        bound,
+    );
+    for _ in 0..10_000 {
+        if execution.host_pending()
+            || execution.input_pending()
+            || execution.take_request().is_some()
+        {
+            return Err(PatternError::InvalidState);
         }
+        if execution
+            .step(mc)
+            .map_err(|error| PatternError::Expression(Box::new(error)))?
+        {
+            return match execution.result().map(|value| value.raw()) {
+                Some(Value::Number(order)) => Ok(order),
+                _ => Err(PatternError::InvalidState),
+            };
+        }
+    }
+    Err(PatternError::InvalidState)
+}
+
+fn within_bound<'gc>(
+    mc: &Mutation<'gc>,
+    bound: &OrderedValue<'gc>,
+    value: Value<'gc>,
+    lower: bool,
+) -> Result<bool, PatternError> {
+    match (bound, value.raw()) {
+        (OrderedValue::Number(bound), Value::Number(value)) => Ok(if lower {
+            *bound <= value
+        } else {
+            value <= *bound
+        }),
         (OrderedValue::String(bound), Value::String(value)) => {
             let ordering = bound.as_utf16().cmp(value.as_utf16());
-            if lower {
+            Ok(if lower {
                 ordering != std::cmp::Ordering::Greater
             } else {
                 ordering != std::cmp::Ordering::Less
-            }
+            })
         }
-        _ => false,
+        (OrderedValue::Object(bound), Value::Object(_)) => {
+            let order = call_compare_to(mc, *bound, value)?;
+            Ok(if lower { order >= 0.0 } else { order <= 0.0 })
+        }
+        _ => Ok(false),
     }
 }
 
@@ -3710,5 +4131,11 @@ fn bound(
     Ok(value)
 }
 
+#[cfg(test)]
+mod composite_ports;
+#[cfg(test)]
+mod structure_ports;
+#[cfg(test)]
+mod terminal_ports;
 #[cfg(test)]
 mod tests;

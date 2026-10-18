@@ -31,3 +31,7 @@ Expected behavior:
 Postconditions:
 
 - Compact forms produce only existing canonical runtime pattern variants.
+
+## Test plan
+
+- `rust/src/lang_tests/pattern.rs`

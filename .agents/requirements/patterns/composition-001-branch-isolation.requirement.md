@@ -25,3 +25,7 @@ Expected behavior:
 Postconditions:
 
 - Branch-local exploration remains isolated across composed matching paths.
+
+## Test plan
+
+- `rust/src/pattern/tests.rs`
