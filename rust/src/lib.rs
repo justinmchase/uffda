@@ -34,6 +34,8 @@ pub mod json;
 #[cfg(test)]
 mod lang_tests;
 #[cfg(test)]
+mod test_sync;
+#[cfg(test)]
 mod traceability_tests;
 
 #[cfg(test)]

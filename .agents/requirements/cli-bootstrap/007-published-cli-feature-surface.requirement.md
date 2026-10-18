@@ -39,3 +39,4 @@ Postconditions:
 - The runtime-compiler chicken/egg is broken by a single previous-published-CLI
   step (parse + lower in one process), not by recursive `./bin` import or `src/`
   seeds.
+- Tests: `rust/src/cli/requirement_ports.rs`.

@@ -2937,31 +2937,63 @@ fn a_stabilized_failed_cycle_does_not_mask_a_later_recovery() {
 #[test]
 // req:error-recovery-006 req:error-recovery-002
 fn a_successful_growth_seed_does_not_mask_real_syntax_recovery() {
+    // Requirement test plan: `[a?b].c` recovers `?b` inside a bracketed group
+    // within Primary's growth, then still grows the member access. Recover wraps
+    // the group content — not the head's own left-recursive reference (which
+    // must never recover per error-recovery.spec left-recursion). Skip is
+    // evaluated at the recover position (recover-001), until before `]`.
+    let until_rbracket = json!({"kind":"quantifier","min":{"kind":"value.literal","value":1},"pattern":{"kind":"then","patterns":[
+        {"kind":"not","pattern":equal(json!("]"))},
+        {"kind":"any"}
+    ]}});
     let mut runtime = text_runtime(
         json!([
             rule(
                 "Main",
-                json!({"kind":"then","patterns":[reference("R"),{"kind":"end"}]})
+                json!({"kind":"then","patterns":[reference("P"),{"kind":"end"}]})
             ),
-            rule(
-                "R",
+            memoized_rule(
+                "P",
                 json!({"kind":"or","patterns":[
-                    {"kind":"recover","pattern":{"kind":"then","patterns":[
-                        reference("R"),equal(json!("!"))
-                    ]},"skip":{"kind":"then","patterns":[{"kind":"any"},{"kind":"any"}]}},
-                    equal(json!("x"))
+                    {"kind":"then","patterns":[
+                        reference("P"),
+                        equal(json!(".")),
+                        equal(json!("c"))
+                    ]},
+                    {"kind":"then","patterns":[
+                        equal(json!("[")),
+                        {"kind":"recover","pattern":{"kind":"then","patterns":[
+                            equal(json!("a")),
+                            equal(json!("b"))
+                        ]},"skip":until_rbracket},
+                        equal(json!("]"))
+                    ]}
                 ]})
             )
         ]),
         "Main",
-        "x?",
+        "[a?b].c",
     );
     runtime.run().unwrap();
     runtime.read(|execution| {
-        assert_eq!(execution.result().unwrap().kind, MatchKind::Ok);
+        let result = execution.result().unwrap();
+        let diags: Vec<_> = execution
+            .diagnostics()
+            .iter()
+            .map(|d| format!("{:?}:{}", d.kind, d.message))
+            .collect();
+        assert_eq!(
+            result.kind,
+            MatchKind::Ok,
+            "clean={} recoveries={} end={} diags={diags:?}",
+            execution.is_clean(),
+            execution.recoveries().len(),
+            result.end,
+        );
         assert!(!execution.is_clean());
         assert_eq!(execution.recoveries().len(), 1);
         assert_eq!(execution.diagnostics().len(), 1);
+        assert_eq!(result.end, 7);
     });
 }
 

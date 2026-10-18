@@ -51,3 +51,4 @@ Postconditions:
 
 - Downstream installers can download and verify release binaries without
   rebuilding from source.
+- Tests: `rust/src/cli/requirement_ports.rs`.

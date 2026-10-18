@@ -49,6 +49,5 @@ Postconditions:
 - `loadProjectLanguages(start)` in `src/cli/project_languages.ts` returns the
   project (when valid), the languages to serve, and every problem; the language
   server and `uffda fmt` both use it.
-- Tests: `src/project/project.test.ts`, `src/project/load.test.ts`,
-  `src/cli/project_languages.test.ts`, `src/cli/module_graph.test.ts`,
-  `rust/src/lang_tests/uffda.rs`.
+- Tests: `rust/src/project/ported.rs`, `rust/src/cli/surface_ports.rs`,
+  `rust/src/cli/command_ports.rs`, `rust/src/lang_tests/uffda.rs`.

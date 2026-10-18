@@ -1,25 +1,17 @@
 # `test/`
 
-Slow, out-of-band test/benchmark suites that don't belong in the fast default
-`deno task test` loop, kept out of `src/` so they can't be mistaken for library
-code.
+Slow, out-of-band suites that don't belong in the fast default `deno task test`
+loop, kept out of `src/` so they can't be mistaken for library code.
 
-- `test/integration/` — full end-to-end compile/parse integration tests
-  (whole-language compiles, large real-text roundtrips). These are slow
-  (multiple minutes) relative to the rest of the suite and are excluded from
-  `deno task test`/`deno task pre`. Run them explicitly with
-  `deno task test:integration`. Checks no longer runs this suite.
 - `test/bench/` — `deno bench` suites and footprint reports. Run with
   `deno task bench` / `deno task bench:memo`. Checks no longer runs this suite.
-- `test/perf/` — ad hoc perf-investigation reports (compile-time scaling, not
-  throughput). Run with `deno task perf`; see `test/perf/README.md`. Checks no
-  longer runs this report.
+- `test/perf/` — ad hoc perf-investigation reports (compile-time scaling and
+  on-demand data-codec measurement tooling). Run with `deno task perf`; see
+  `test/perf/README.md`. Checks no longer runs these reports.
+
+End-to-end correctness that used to live under `test/integration/` is covered by
+Rust lib tests (for example Morse in `rust/src/lang_tests/uffda.rs` and format
+round-trips in `rust/src/format.rs`).
 
 Files here are excluded from the published JSR package (`publish.exclude` in
 `deno.jsonc`) — they are not part of the library's export graph.
-
-Requirement-linked tests that live here (rather than mirroring their
-`.agents/requirements/<topic>/` folder under `src/requirements/<topic>/`, which
-is the default convention) still cite their requirement id and doc path in a
-header comment for traceability — see
-`test/integration/006-canonical-morse-language.requirement.test.ts`.

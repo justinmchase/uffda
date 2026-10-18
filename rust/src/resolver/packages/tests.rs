@@ -576,6 +576,7 @@ fn publish_package_files(fake: &FakeTransport, package: &str, version: &str) {
 #[test]
 // req:cli-distribution-006
 fn remport_jsr_package_exports_resolve_and_tokenizer_runs() {
+    let _guard = crate::test_sync::languages_lock();
     use crate::languages::{Language, Languages};
     use crate::module::CompiledModuleGraph;
     use crate::pattern::MatchKind;
@@ -643,6 +644,7 @@ export rule Main = t:Tokenizer -> t;\n";
 #[test]
 // req:cli-distribution-007
 fn remport_jsr_public_grammar_exports_and_raw_rules_compose() {
+    let _guard = crate::test_sync::languages_lock();
     use crate::languages::{Language, Languages};
     use crate::module::CompiledModuleGraph;
     use crate::pattern::MatchKind;

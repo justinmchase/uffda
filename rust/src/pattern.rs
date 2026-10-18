@@ -3632,7 +3632,16 @@ impl<'gc> PatternExecution<'gc> {
                 pattern_kind: self.program.nodes[scope.pattern_index].kind(),
                 provenance: self.provenance(scope),
                 identity: scope.identity,
-                seeded: children.iter().any(|child| child.seeded),
+                // req:error-recovery-006 — only a *failing* seed dependence
+                // masks recovery. A successful left-recursive seed that is a
+                // child of a later sibling failure must not poison recover.
+                seeded: if matched {
+                    children.iter().any(|child| child.seeded)
+                } else {
+                    children
+                        .iter()
+                        .any(|child| child.kind == MatchKind::Fail && child.seeded)
+                },
                 recovered: children.iter().any(|child| child.recovered),
                 recovery: children
                     .last()

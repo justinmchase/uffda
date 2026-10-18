@@ -26,9 +26,10 @@ Expected behavior:
 - Raw and gzip byte sizes, gzip compression/decompression time, Rust encode and
   decode throughput for raw and gzip pipelines, sample count, record count, and
   input chunk size MUST be reportable via the in-tree measurement tooling
-  (`test/perf/data-codec.report.ts`). Compression-only cost and parser/pipeline
-  cost MUST be identified separately. Data-document decode MUST NOT be
-  advertised as fully materialized native-runtime throughput.
+  (`test/perf/data-codec.report.ts`, driven by `rust/examples/codec_probe.rs`).
+  Compression-only cost and parser/pipeline cost MUST be identified separately.
+  Data-document decode MUST NOT be advertised as fully materialized
+  native-runtime throughput.
 - Linux raw and gzip measurements MUST record independent child-process peak
   RSS, including startup and embedded grammars, and an initialized idle
   baseline. RSS is not live GC bytes, allocator counts, or an isolated memory
@@ -62,4 +63,6 @@ Postconditions:
   persistent measured evidence remain available.
 - Codec artifact format stays unchanged. Release asset names follow the
   distribution requirements.
-- Tests cite this requirement in the report helpers and Rust acceptance example.
+- Tests: `rust/src/codec/data/tests.rs` (corpus determinism, median summarization,
+  persistent baseline shape), `rust/examples/codec_probe.rs`,
+  `rust/tests/standalone_acceptance.rs`, and `rust/tests/build.rs`.

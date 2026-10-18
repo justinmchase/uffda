@@ -63,7 +63,8 @@ with.
 1. Edit `.uff` sources, then run `deno task fmt:uff`.
 2. Run `deno task compile:lang` (the previous published CLI rebuilds `./bin`;
    see the compiler bootstrap rules). Never edit `./bin`.
-3. Run the tests (`deno task test`, `deno task test:integration`).
+3. Run the tests (`deno task test`, and Rust lib coverage via
+   `cargo test --manifest-path rust/Cargo.toml --lib`).
 
 Syntax the published CLI cannot parse (for example a new operator) can only be
 used in `src/lang/**/*.uff` after a release that supports it is published and

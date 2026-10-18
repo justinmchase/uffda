@@ -481,7 +481,7 @@ fn uff_artifact_ported_resolves_nested_imports_from_artifacts() {
 }
 
 #[test]
-// req:cli-bootstrap-004 req:project-file-003
+// req:cli-bootstrap-004 req:cli-bootstrap-005 req:project-file-003
 fn uff_artifact_ported_loads_file_package_root() {
     let repo = repo_root();
     let mut resolver = Resolver::new(repo.clone(), repo.join("bin")).unwrap();

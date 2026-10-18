@@ -5,11 +5,16 @@
 
 mod authoring;
 mod display;
+pub(crate) mod display_transform;
 mod experiment;
 pub(crate) mod ops;
 pub(crate) mod sessions;
 
 use display::DisplayManager;
+use display_transform::{
+    display_document, highlight_result_to_display_nodes, match_result_to_display_nodes,
+    render_display_html,
+};
 use serde_json::{Value, json};
 use sessions::SessionManager;
 use std::io::{self, BufRead, Write};
@@ -392,28 +397,35 @@ fn tool_display_render(
             _ => crate::languages::Language::Uffda,
         };
         let highlighted = ops::highlight_source(source, language);
-        format!(
-            "<!doctype html><title>uffda</title><body><pre>{}</pre></body>",
-            html_escape(&highlighted.to_string())
-        )
+        let nodes = highlight_result_to_display_nodes(&highlighted);
+        display_document(&render_display_html(&nodes))
     } else {
         let match_result_id = match_result_id.unwrap();
-        let walked = match sessions.get_mut(session_id) {
-            Ok(session) => session.walk(match_result_id, None, Some(50), None),
+        let session = match sessions.get_mut(session_id) {
+            Ok(session) => session,
             Err(error) => return session_unknown(error.message),
         };
-        format!(
-            "<!doctype html><title>uffda</title><body><pre>{}</pre></body>",
-            html_escape(&walked.to_string())
-        )
+        let Some(retained) = session.retained_match(match_result_id) else {
+            // Surface a display-scoped code when the retained match is missing
+            // (req:mcp-server-011 / req:mcp-server-010).
+            return text_result(
+                json!({
+                    "ok": false,
+                    "error": {
+                        "code": "MCP_DISPLAY_UNKNOWN_MATCH_RESULT",
+                        "phase": "input",
+                        "message": format!(
+                            "No retained match result with id '{match_result_id}'"
+                        )
+                    }
+                })
+                .to_string(),
+            );
+        };
+        let nodes = match_result_to_display_nodes(retained);
+        display_document(&render_display_html(&nodes))
     };
     text_result(displays.render(session_id, &markup).to_string())
-}
-
-fn html_escape(text: &str) -> String {
-    text.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
 }
 
 fn tool_session_describe(arguments: &Value, sessions: &mut SessionManager) -> Value {
@@ -696,6 +708,11 @@ fn tool_match(arguments: &Value) -> Value {
 }
 
 fn tool_compile(arguments: &Value) -> Value {
+    use crate::compile::{CompileRequest, compile};
+    use crate::languages::Languages;
+    use crate::project::Project;
+    use std::path::PathBuf;
+
     let Some(paths) = arguments.get("paths").and_then(Value::as_array) else {
         return error_result("uffda_compile requires `paths`");
     };
@@ -712,47 +729,54 @@ fn tool_compile(arguments: &Value) -> Value {
             "uffda_compile overwrite=true is not supported yet in the Rust MCP server",
         );
     }
-    let previous = match std::env::current_dir() {
-        Ok(dir) => dir,
-        Err(error) => return error_result(format!("unable to read current directory: {error}")),
-    };
-    if let Err(error) = std::env::set_current_dir(cwd) {
-        return error_result(format!("unable to use cwd {cwd}: {error}"));
+    let cwd = PathBuf::from(cwd);
+    if !cwd.is_absolute() {
+        return error_result("uffda_compile cwd must be an absolute path");
     }
-    let mut args = vec!["compile".into(), "--json".into()];
-    if let Some(config) = arguments.get("config").and_then(Value::as_str) {
-        args.push("--config".into());
-        args.push(config.into());
-    }
+    let mut compile_paths = Vec::with_capacity(paths.len());
     for path in paths {
         let Some(path) = path.as_str() else {
-            let _ = std::env::set_current_dir(&previous);
             return error_result("uffda_compile paths must be strings");
         };
-        args.push(path.into());
+        compile_paths.push(path.to_owned());
     }
-    let result = cli_tool_result(&args);
-    let _ = std::env::set_current_dir(&previous);
-    result
-}
-
-fn cli_tool_result(args: &[String]) -> Value {
-    let result = crate::cli::run(args, || Ok(String::new()));
-    let payload = if result.stderr.is_empty() {
-        result.stdout
-    } else if result.stdout.is_empty() {
-        result.stderr
-    } else {
-        format!("{}{}", result.stdout, result.stderr)
+    let config = arguments.get("config").and_then(Value::as_str);
+    let mut languages = match Languages::new() {
+        Ok(languages) => languages,
+        Err(error) => return error_result(error.to_string()),
     };
-    if result.exit_code == 0 {
-        // Prefer compact JSON when the CLI already emitted JSON.
-        match serde_json::from_str::<Value>(payload.trim()) {
-            Ok(value) => text_result(value.to_string()),
-            Err(_) => text_result(payload),
-        }
-    } else {
-        error_result(payload)
+    let project = match Project::discover(&cwd, config) {
+        Ok(Some(path)) => match Project::load(path, &mut languages) {
+            Ok(project) => Some(project),
+            Err(error) => return error_result(error.to_string()),
+        },
+        Ok(None) => None,
+        Err(error) => return error_result(error.to_string()),
+    };
+    let default_out_dir = cwd.join("bin");
+    let empty_imports = std::collections::BTreeMap::new();
+    let result = compile(
+        CompileRequest {
+            cwd: &cwd,
+            root: project
+                .as_ref()
+                .map_or(cwd.as_path(), |project| project.root.as_path()),
+            out_dir: project
+                .as_ref()
+                .map_or(default_out_dir.as_path(), |project| {
+                    project.out_dir.as_path()
+                }),
+            paths: &compile_paths,
+            imports: project
+                .as_ref()
+                .map_or(&empty_imports, |project| &project.imports),
+            overwrite: false,
+        },
+        &mut languages,
+    );
+    match serde_json::to_string(&result) {
+        Ok(payload) => text_result(payload),
+        Err(error) => error_result(error.to_string()),
     }
 }
 

@@ -25,3 +25,4 @@ Postconditions:
 
 - Repository CI prefers the published CLI install path over ad-hoc download
   scripts.
+- Tests: `rust/src/cli/requirement_ports.rs`.

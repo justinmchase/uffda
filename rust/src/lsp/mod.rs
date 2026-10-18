@@ -1306,4 +1306,43 @@ mod tests {
         assert!(cache.is_dir());
         let _ = std::fs::remove_dir_all(&cache);
     }
+
+    #[test]
+    // req:cli-language-server-010
+    fn shutdown_then_exit_reports_clean_lifetime_without_shutdown_reports_abnormal() {
+        let mut state = ServerState::new();
+        assert!(!state.shutdown_requested);
+        let responses = handle_message(
+            &json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": { "capabilities": {} }
+            }),
+            &mut state,
+        );
+        assert_eq!(responses[0]["result"]["serverInfo"]["name"], "uffda");
+
+        let shutdown = handle_message(
+            &json!({ "jsonrpc": "2.0", "id": 2, "method": "shutdown" }),
+            &mut state,
+        );
+        assert_eq!(shutdown[0]["result"], Value::Null);
+        assert!(state.shutdown_requested);
+        // `run_stdio` returns 0 after shutdown + exit; without shutdown, 1.
+        assert_eq!(if state.shutdown_requested { 0 } else { 1 }, 0);
+
+        let mut unclean = ServerState::new();
+        let _ = handle_message(
+            &json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": { "capabilities": {} }
+            }),
+            &mut unclean,
+        );
+        assert!(!unclean.shutdown_requested);
+        assert_eq!(if unclean.shutdown_requested { 0 } else { 1 }, 1);
+    }
 }

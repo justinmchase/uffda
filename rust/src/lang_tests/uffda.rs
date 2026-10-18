@@ -1640,6 +1640,7 @@ fn runtime_compiler_normalizes_reexport_import_kind() {
 #[test]
 // req:uffda-runtime-compilation-006
 fn remport_source_authored_morse_decodes_the_full_repertoire() {
+    let _guard = crate::test_sync::languages_lock();
     const MORSE: &str = include_str!("../../../examples/morse/morse.uff");
     let repertoire = [
         (".-", "A"),
@@ -1715,6 +1716,7 @@ fn remport_source_authored_morse_decodes_the_full_repertoire() {
 #[test]
 // req:uffda-runtime-compilation-006
 fn remport_morse_compiles_and_roundtrips_moby_dick_excerpt() {
+    let _guard = crate::test_sync::languages_lock();
     use crate::compile::{CompileRequest, compile};
     use std::collections::BTreeMap;
 

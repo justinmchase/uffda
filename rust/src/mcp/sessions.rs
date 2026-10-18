@@ -644,6 +644,11 @@ impl Session {
         self.load_at(&new_source, path.as_deref(), Some(target))
     }
 
+    /// Retained match tree for `match_result_id`, when the session still holds it.
+    pub fn retained_match(&self, match_result_id: &str) -> Option<&ops::RetainedMatch> {
+        self.match_results.get(match_result_id)
+    }
+
     pub fn walk(
         &self,
         match_result_id: &str,
@@ -1124,10 +1129,12 @@ fn eval_parse_failure(diagnostics: &[SourceDiagnostic]) -> Value {
     json!({ "ok": false, "error": error, "diagnostics": mapped })
 }
 
+#[derive(Debug)]
 pub struct SessionOpenError {
     pub message: String,
 }
 
+#[derive(Debug)]
 pub struct SessionLookupError {
     pub message: String,
 }
