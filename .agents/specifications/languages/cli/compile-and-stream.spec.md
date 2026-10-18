@@ -24,15 +24,19 @@ Normative key words in this chapter use the conventions defined in the
 
 - Compile outputs MUST represent runtime ModuleDeclarations in JSON-serializable
   structures (`imports`, `exports`, `rules`).
-- Artifact emission MUST support one artifact per source unit and MUST define
-  naming/path conventions deterministically: each source's artifact is its path
-  in the project's artifact layout (see
+- The data-codec on-disk form for those artifacts MUST use the **`.uff.ast`**
+  extension (one codec record). The JSON sibling MUST use **`.uff.ast.json`**.
+- Artifact emission MUST support one source unit mapping to both a data-codec
+  artifact (`.uff.ast`) and a JSON artifact (`.uff.ast.json`) and MUST define
+  naming/path conventions deterministically: each source's artifacts are its
+  paths in the project's artifact layout (see
   [output directory](../project-file.spec.md#output-directory)), never next to
   the source. A source outside the project root MUST fail its unit without
   writing.
-- Each emitted JSON file MUST contain the ModuleDeclaration produced by the
-  compile pipeline (parse → previous published `UffdaRuntimeCompiler` → write),
-  without CLI-specific module identity, version, or source-path metadata.
+- Each emitted `.uff.ast` and `.uff.ast.json` file MUST contain the same
+  ModuleDeclaration produced by the compile pipeline (parse → previous published
+  `UffdaRuntimeCompiler` → write), without CLI-specific module identity,
+  version, or source-path metadata.
 - Compile results and diagnostics MUST retain source-path provenance separately
   from the emitted ModuleDeclaration.
 - Compile MUST NOT emit raw syntax ASTs (`kind: "module"` + `declarations`) as

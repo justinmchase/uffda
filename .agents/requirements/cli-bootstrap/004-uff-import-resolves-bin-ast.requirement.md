@@ -10,17 +10,19 @@ spec_ref: ".agents/specifications/modules.spec.md#uffda-source-imports-uff; .age
 
 Preconditions:
 
-- An authored `.uff` source has been compiled into its artifact in the
+- An authored `.uff` source has been compiled into its artifacts in the
   resolver's artifact layout (default root: the working directory; default
   outDir: `./bin`), using the CLI path layout
-  `<outDir>/ast/<path-from-root>.uffda.ast.json`.
+  `<outDir>/ast/<path-from-root>.uff.ast` and
+  `<outDir>/ast/<path-from-root>.uff.ast.json`.
 - A module import names that source with a `.uff` URL (relative or absolute).
 
 Expected behavior:
 
 - Runtime resolution MUST remap the logical `.uff` URL to the mirrored artifact
-  path and MUST NOT read the `.uff` source text.
-- The runtime MUST load the artifact JSON as a ModuleDeclaration without
+  paths (prefer `.uff.ast`, else `.uff.ast.json`) and MUST NOT read the
+  `.uff` source text.
+- The runtime MUST load the chosen artifact as a ModuleDeclaration without
   re-lowering it or invoking the runtime compiler.
 - Module identity and resolver cache keys MUST remain the logical `.uff` URL.
 - In both runtimes, direct `.json` imports MUST resolve to their actual paths.
@@ -30,11 +32,12 @@ Expected behavior:
 Error behavior:
 
 - A missing artifact MUST fail with `MatchErrorCode.ModuleResolution` and MUST
-  mention the expected artifact path.
+  mention the preferred `.uff.ast` path (and SHOULD mention the JSON
+  fallback that was tried).
 - A `.uff` module outside the layout's root MUST fail with
   `MatchErrorCode.ModuleResolution` naming the module and the root.
-- Invalid artifact JSON or invalid declarations MUST fail as module-resolution
-  errors.
+- Invalid artifact codec or JSON text, or invalid declarations, MUST fail as
+  module-resolution errors.
 
 Postconditions:
 

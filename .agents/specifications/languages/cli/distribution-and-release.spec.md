@@ -52,15 +52,23 @@ Normative key words in this chapter use the conventions defined in the
   draft.
 - The `release-binaries` workflow MUST accept both `repository_dispatch` and
   `workflow_dispatch`, compile the target matrix from a pinned `main` revision,
-  attach or replace binaries plus checksums and the Linux install script on the
-  latest draft release, and fail when no draft release exists.
+  and attach or replace binaries plus checksums and the Linux install script on
+  the resolved release tag. `repository_dispatch` and an unscoped
+  `workflow_dispatch` MUST target the latest draft and MUST fail when no draft
+  exists. `workflow_dispatch` MAY supply an explicit `tag` to recover a
+  published release that still has no CLI assets (`uffda-*` / `SHA256SUMS`).
+- At attach time, the workflow MUST upload when the resolved tag is still a
+  draft, or when it is published but has no CLI assets yet (premature publish
+  during a long matrix build). It MUST refuse to replace assets on a published
+  release that already has CLI assets.
 - Draft Release sets the draft `tag_name` and `target_commitish`; publishing
   creates `refs/tags/<version>` at that commit. `release-binaries` attaches
   assets only and MUST NOT create or move git tags. Draft version resolution
   MUST skip SemVer values that already have a published release or an existing
   git tag.
 - Publishing a draft release makes those assets the latest stable install
-  target; JSR package publishing MAY continue on `release: published`.
+  target; operators MUST wait for Release Binaries attach (and smoke) before
+  publishing. JSR package publishing MAY continue on `release: published`.
 - Release entries MUST include version tag, artifact list, and checksums for
   every published binary.
 - Each release MUST also publish a Linux shell install script (for example

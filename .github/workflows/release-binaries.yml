@@ -1,15 +1,24 @@
 name: Release Binaries
 
 # Compile the CLI from a pinned main revision and attach (replace) release
-# assets on the latest draft GitHub Release. uffda-* assets are the Rust CLI
-# and embed the bootstrapped language ASTs.
+# assets on a GitHub Release. uffda-* assets are the Rust CLI and embed the
+# bootstrapped language ASTs.
 # Draft Release already sets tag_name/target_commitish; this workflow only
 # builds and uploads. Publishing the draft creates the version tag.
 #
 # Triggered by Draft Release via repository_dispatch, or manually via
-# workflow_dispatch.
+# workflow_dispatch (optional tag= to recover a published-but-empty release).
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: >
+          Release tag to attach to (bare SemVer). Leave empty for the latest
+          draft. Use a published tag only to recover a release with no CLI
+          assets yet.
+        required: false
+        type: string
+        default: ""
   repository_dispatch:
     types: [release-binaries]
 
@@ -22,49 +31,68 @@ permissions:
 
 jobs:
   prepare:
-    name: Resolve latest draft release
+    name: Resolve release target
     runs-on: ubuntu-latest
     outputs:
-      tag: ${{ steps.draft.outputs.tag }}
-      version: ${{ steps.draft.outputs.version }}
-      sha: ${{ steps.draft.outputs.sha }}
+      tag: ${{ steps.target.outputs.tag }}
+      version: ${{ steps.target.outputs.version }}
+      sha: ${{ steps.target.outputs.sha }}
     steps:
       - name: Checkout main
         uses: actions/checkout@v5
         with:
           ref: main
 
-      - name: Resolve latest draft release
-        id: draft
+      - name: Resolve release target
+        id: target
         env:
           GH_TOKEN: ${{ github.token }}
+          INPUT_TAG: ${{ github.event.inputs.tag || '' }}
         shell: bash
         run: |
           set -euo pipefail
 
-          tag="$(
-            gh release list --limit 50 --json tagName,isDraft,createdAt \
-              --jq '[.[] | select(.isDraft == true)] | sort_by(.createdAt) | reverse | .[0].tagName // empty'
-          )"
-          if [[ -z "${tag}" || "${tag}" == "null" ]]; then
-            echo "No draft release found. Merge to main so Draft Release can create one." >&2
-            exit 1
+          if [[ -n "${INPUT_TAG}" ]]; then
+            tag="${INPUT_TAG#v}"
+            if ! gh release view "${tag}" --json tagName >/dev/null 2>&1; then
+              echo "No GitHub release for tag ${tag}." >&2
+              exit 1
+            fi
+            is_draft="$(gh release view "${tag}" --json isDraft --jq .isDraft)"
+            asset_count="$(
+              gh api "repos/${{ github.repository }}/releases/tags/${tag}" \
+                --jq '[.assets[] | select(.name == "SHA256SUMS" or (.name | startswith("uffda-")))] | length'
+            )"
+            if [[ "${is_draft}" != "true" && "${asset_count}" != "0" ]]; then
+              echo "Published release ${tag} already has CLI assets; refusing to retarget." >&2
+              exit 1
+            fi
+          else
+            tag="$(
+              gh release list --limit 50 --json tagName,isDraft,createdAt \
+                --jq '[.[] | select(.isDraft == true)] | sort_by(.createdAt) | reverse | .[0].tagName // empty'
+            )"
+            if [[ -z "${tag}" || "${tag}" == "null" ]]; then
+              echo "No draft release found. Merge to main so Draft Release can create one," >&2
+              echo "or re-run with workflow_dispatch input tag=<published-empty-tag>." >&2
+              exit 1
+            fi
+            tag="${tag#v}"
           fi
-          tag="${tag#v}"
           version="${tag}"
           file_version="$(tr -d '[:space:]' < VERSION)"
           sha="$(git rev-parse HEAD)"
 
           if [[ "${file_version}" != "${version}" ]]; then
-            echo "WARNING: VERSION=${file_version} does not match draft tag ${version}." >&2
-            echo "Using the draft tag for artifact names; prefer waiting for the version bump commit on main." >&2
+            echo "WARNING: VERSION=${file_version} does not match release tag ${version}." >&2
+            echo "Using the release tag for artifact names; prefer waiting for the version bump commit on main." >&2
           fi
 
           echo "tag=${tag}" >> "$GITHUB_OUTPUT"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "sha=${sha}" >> "$GITHUB_OUTPUT"
           {
-            echo "### Draft release"
+            echo "### Release target"
             echo
             echo "- Tag: \`${tag}\`"
             echo "- Build commit: \`${sha}\`"
@@ -120,38 +148,38 @@ jobs:
           cargo build --locked --release --manifest-path rust/Cargo.toml --features embed-languages --bin uffda
           rm -rf ./bin
           ./rust/target/release/uffda compile 'src/lang/**/*.uff'
-          test -f ./bin/ast/src/lang/common/characters/digit.uffda.ast.json
-          test -f ./bin/ast/src/lang/common/identifier.uffda.ast.json
-          test -f ./bin/ast/src/lang/common/surround.uffda.ast.json
-          test -f ./bin/ast/src/lang/tokenizer/token.uffda.ast.json
-          test -f ./bin/ast/src/lang/common/spread.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/boolean.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/nullish.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/reference.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/terminal.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/not.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/array.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/object.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/sequence.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/primary.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/unary.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/expression.uffda.ast.json
-          test -f ./bin/ast/src/lang/pattern/atoms.uffda.ast.json
-          test -f ./bin/ast/src/lang/pattern/then.uffda.ast.json
-          test -f ./bin/ast/src/lang/pattern/pipe.uffda.ast.json
-          test -f ./bin/ast/src/lang/pattern/and.uffda.ast.json
-          test -f ./bin/ast/src/lang/pattern/or.uffda.ast.json
-          test -f ./bin/ast/src/lang/pattern/pattern.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/expression.lang.uffda.ast.json
-          test -f ./bin/ast/src/lang/pattern/pattern.lang.uffda.ast.json
-          test -f ./bin/ast/src/lang/pattern/atomic.uffda.ast.json
-          test -f ./bin/ast/src/lang/uffda/shared.rules.uffda.ast.json
-          test -f ./bin/ast/src/lang/uffda/import.rules.uffda.ast.json
-          test -f ./bin/ast/src/lang/uffda/export.rules.uffda.ast.json
-          test -f ./bin/ast/src/lang/uffda/rule.rules.uffda.ast.json
-          test -f ./bin/ast/src/lang/uffda/uffda.lang.uffda.ast.json
-          test -f ./bin/ast/src/lang/uffda/runtime.compiler.uffda.ast.json
-          test -f ./bin/ast/src/lang/expression/number.uffda.ast.json
+          test -f ./bin/ast/src/lang/common/characters/digit.uff.ast.json
+          test -f ./bin/ast/src/lang/common/identifier.uff.ast.json
+          test -f ./bin/ast/src/lang/common/surround.uff.ast.json
+          test -f ./bin/ast/src/lang/tokenizer/token.uff.ast.json
+          test -f ./bin/ast/src/lang/common/spread.uff.ast.json
+          test -f ./bin/ast/src/lang/expression/boolean.uff.ast.json
+          test -f ./bin/ast/src/lang/expression/nullish.uff.ast.json
+          test -f ./bin/ast/src/lang/expression/reference.uff.ast.json
+          test -f ./bin/ast/src/lang/expression/terminal.uff.ast.json
+          test -f ./bin/ast/src/lang/expression/not.uff.ast.json
+          test -f ./bin/ast/src/lang/expression/array.uff.ast.json
+          test -f ./bin/ast/src/lang/expression/object.uff.ast.json
+          test -f ./bin/ast/src/lang/expression/sequence.uff.ast.json
+          test -f ./bin/ast/src/lang/expression/primary.uff.ast.json
+          test -f ./bin/ast/src/lang/expression/unary.uff.ast.json
+          test -f ./bin/ast/src/lang/expression/expression.uff.ast.json
+          test -f ./bin/ast/src/lang/pattern/atoms.uff.ast.json
+          test -f ./bin/ast/src/lang/pattern/then.uff.ast.json
+          test -f ./bin/ast/src/lang/pattern/pipe.uff.ast.json
+          test -f ./bin/ast/src/lang/pattern/and.uff.ast.json
+          test -f ./bin/ast/src/lang/pattern/or.uff.ast.json
+          test -f ./bin/ast/src/lang/pattern/pattern.uff.ast.json
+          test -f ./bin/ast/src/lang/expression/expression.lang.uff.ast.json
+          test -f ./bin/ast/src/lang/pattern/pattern.lang.uff.ast.json
+          test -f ./bin/ast/src/lang/pattern/atomic.uff.ast.json
+          test -f ./bin/ast/src/lang/uffda/shared.rules.uff.ast.json
+          test -f ./bin/ast/src/lang/uffda/import.rules.uff.ast.json
+          test -f ./bin/ast/src/lang/uffda/export.rules.uff.ast.json
+          test -f ./bin/ast/src/lang/uffda/rule.rules.uff.ast.json
+          test -f ./bin/ast/src/lang/uffda/uffda.lang.uff.ast.json
+          test -f ./bin/ast/src/lang/uffda/runtime.compiler.uff.ast.json
+          test -f ./bin/ast/src/lang/expression/number.uff.ast.json
 
       - name: Upload language bin artifacts
         uses: actions/upload-artifact@v7
@@ -254,7 +282,7 @@ jobs:
           if-no-files-found: error
 
   attach:
-    name: Attach assets to draft release
+    name: Attach assets to release
     needs: [prepare, compile-rust]
     runs-on: ubuntu-latest
     outputs:
@@ -305,7 +333,7 @@ jobs:
           chmod +x ./install.sh
           sha256sum install.sh >> SHA256SUMS
           {
-            echo "### CLI draft assets"
+            echo "### CLI assets"
             echo
             echo "\`\`\`"
             ls -1
@@ -313,19 +341,28 @@ jobs:
           } >> "${GITHUB_STEP_SUMMARY}"
           ls -la
 
-      - name: Replace assets on draft release
+      - name: Replace assets on release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
           tag="${{ needs.prepare.outputs.tag }}"
+          repo="${{ github.repository }}"
 
-          # Confirm the target is still a draft before replacing assets.
+          # Draft: always attach. Published: only if CLI assets are still missing
+          # (recovery when the draft was published while the matrix was building).
           is_draft="$(gh release view "${tag}" --json isDraft --jq .isDraft)"
-          if [[ "${is_draft}" != "true" ]]; then
-            echo "Release ${tag} is not a draft; refusing to replace assets." >&2
+          asset_count="$(
+            gh api "repos/${repo}/releases/tags/${tag}" \
+              --jq '[.assets[] | select(.name == "SHA256SUMS" or (.name | startswith("uffda-")))] | length'
+          )"
+          if [[ "${is_draft}" != "true" && "${asset_count}" != "0" ]]; then
+            echo "Release ${tag} is published and already has CLI assets; refusing to replace." >&2
             exit 1
+          fi
+          if [[ "${is_draft}" != "true" ]]; then
+            echo "Release ${tag} was published with no CLI assets; attaching recovery upload." >&2
           fi
 
           # Retry uploads; concurrent runs or transient upload API errors can 404.
@@ -347,13 +384,13 @@ jobs:
           fi
           for attempt in 1 2 3; do
             if gh release upload "${tag}" "${assets[@]}" --clobber; then
-              echo "Attached/replaced CLI assets on draft release ${tag}"
+              echo "Attached/replaced CLI assets on release ${tag}"
               exit 0
             fi
             echo "Upload attempt ${attempt} failed; retrying..." >&2
             sleep $((attempt * 2))
           done
-          echo "Failed to upload CLI assets to draft release ${tag}" >&2
+          echo "Failed to upload CLI assets to release ${tag}" >&2
           exit 1
 
   smoke:

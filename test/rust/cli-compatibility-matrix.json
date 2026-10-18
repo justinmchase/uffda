@@ -47903,11 +47903,11 @@
             {
               "ok": false,
               "sourcePath": "broken.uff",
-              "outputPath": "<cwd>/bin/ast/broken.uffda.ast.json",
+              "outputPath": "<cwd>/bin/ast/broken.uff.ast.json",
               "failure": {
                 "code": "CLI_COMPILE_PARSE_RECOVERED",
                 "sourcePath": "broken.uff",
-                "outputPath": "<cwd>/bin/ast/broken.uffda.ast.json",
+                "outputPath": "<cwd>/bin/ast/broken.uff.ast.json",
                 "message": "<native diagnostic text>",
                 "location": {
                   "offset": 0,
@@ -47920,7 +47920,7 @@
                 {
                   "code": "CLI_COMPILE_PARSE_RECOVERED",
                   "sourcePath": "broken.uff",
-                  "outputPath": "<cwd>/bin/ast/broken.uffda.ast.json",
+                  "outputPath": "<cwd>/bin/ast/broken.uff.ast.json",
                   "message": "<native diagnostic text>",
                   "location": {
                     "offset": 0,
@@ -47937,7 +47937,7 @@
             {
               "code": "CLI_COMPILE_PARSE_RECOVERED",
               "sourcePath": "broken.uff",
-              "outputPath": "<cwd>/bin/ast/broken.uffda.ast.json",
+              "outputPath": "<cwd>/bin/ast/broken.uff.ast.json",
               "message": "<native diagnostic text>",
               "location": {
                 "offset": 0,
@@ -47962,11 +47962,11 @@
             {
               "ok": false,
               "sourcePath": "broken.uff",
-              "outputPath": "<cwd>/bin/ast/broken.uffda.ast.json",
+              "outputPath": "<cwd>/bin/ast/broken.uff.ast.json",
               "failure": {
                 "code": "CLI_COMPILE_PARSE_RECOVERED",
                 "sourcePath": "broken.uff",
-                "outputPath": "<cwd>/bin/ast/broken.uffda.ast.json",
+                "outputPath": "<cwd>/bin/ast/broken.uff.ast.json",
                 "message": "<native diagnostic text>",
                 "location": {
                   "offset": 0,
@@ -47979,7 +47979,7 @@
                 {
                   "code": "CLI_COMPILE_PARSE_RECOVERED",
                   "sourcePath": "broken.uff",
-                  "outputPath": "<cwd>/bin/ast/broken.uffda.ast.json",
+                  "outputPath": "<cwd>/bin/ast/broken.uff.ast.json",
                   "message": "<native diagnostic text>",
                   "location": {
                     "offset": 0,
@@ -47996,7 +47996,7 @@
             {
               "code": "CLI_COMPILE_PARSE_RECOVERED",
               "sourcePath": "broken.uff",
-              "outputPath": "<cwd>/bin/ast/broken.uffda.ast.json",
+              "outputPath": "<cwd>/bin/ast/broken.uff.ast.json",
               "message": "<native diagnostic text>",
               "location": {
                 "offset": 0,
@@ -48374,7 +48374,7 @@
             {
               "ok": true,
               "sourcePath": "file.uff",
-              "outputPath": "<cwd>/build/ast/file.uffda.ast.json",
+              "outputPath": "<cwd>/build/ast/file.uff.ast.json",
               "module": {
                 "imports": [],
                 "rules": [
@@ -48401,7 +48401,7 @@
           "successes": [
             {
               "sourcePath": "file.uff",
-              "outputPath": "<cwd>/build/ast/file.uffda.ast.json",
+              "outputPath": "<cwd>/build/ast/file.uff.ast.json",
               "module": {
                 "imports": [],
                 "rules": [
@@ -48429,7 +48429,7 @@
         },
         "stderr": null,
         "files": {
-          "build/ast/file.uffda.ast.json": {
+          "build/ast/file.uff.ast.json": {
             "imports": [],
             "rules": [
               {
@@ -48462,7 +48462,7 @@
             {
               "ok": true,
               "sourcePath": "file.uff",
-              "outputPath": "<cwd>/build/ast/file.uffda.ast.json",
+              "outputPath": "<cwd>/build/ast/file.uff.ast.json",
               "module": {
                 "imports": [],
                 "rules": [
@@ -48489,7 +48489,7 @@
           "successes": [
             {
               "sourcePath": "file.uff",
-              "outputPath": "<cwd>/build/ast/file.uffda.ast.json",
+              "outputPath": "<cwd>/build/ast/file.uff.ast.json",
               "module": {
                 "imports": [],
                 "rules": [
@@ -48517,7 +48517,7 @@
         },
         "stderr": null,
         "files": {
-          "build/ast/file.uffda.ast.json": {
+          "build/ast/file.uff.ast.json": {
             "imports": [],
             "rules": [
               {
@@ -48538,6 +48538,7 @@
               }
             ]
           },
+          "build/ast/file.uff.ast": "{\"imports\":[] \"rules\":[{\"name\":\"Main\" \"parameters\":[] \"pattern\":{\"kind\":\"any\"} \"attributes\":[]}] \"funcs\":[] \"decorators\":[] \"exports\":[{\"kind\":\"rule\" \"name\":\"Main\"}]}\n",
           "file.uff": "export Main; rule Main = any;",
           "uffda.jsonc": "{\"outDir\":\"./build\"}"
         }
@@ -48565,7 +48566,7 @@
             {
               "ok": true,
               "sourcePath": "file.uff",
-              "outputPath": "<cwd>/build/ast/file.uffda.ast.json",
+              "outputPath": "<cwd>/build/ast/file.uff.ast.json",
               "module": {
                 "imports": [],
                 "rules": [
@@ -48592,7 +48593,7 @@
           "successes": [
             {
               "sourcePath": "file.uff",
-              "outputPath": "<cwd>/build/ast/file.uffda.ast.json",
+              "outputPath": "<cwd>/build/ast/file.uff.ast.json",
               "module": {
                 "imports": [],
                 "rules": [
@@ -48620,7 +48621,7 @@
         },
         "stderr": null,
         "files": {
-          "build/ast/file.uffda.ast.json": {
+          "build/ast/file.uff.ast.json": {
             "imports": [],
             "rules": [
               {
@@ -48653,7 +48654,7 @@
             {
               "ok": true,
               "sourcePath": "file.uff",
-              "outputPath": "<cwd>/build/ast/file.uffda.ast.json",
+              "outputPath": "<cwd>/build/ast/file.uff.ast.json",
               "module": {
                 "imports": [],
                 "rules": [
@@ -48680,7 +48681,7 @@
           "successes": [
             {
               "sourcePath": "file.uff",
-              "outputPath": "<cwd>/build/ast/file.uffda.ast.json",
+              "outputPath": "<cwd>/build/ast/file.uff.ast.json",
               "module": {
                 "imports": [],
                 "rules": [
@@ -48708,7 +48709,7 @@
         },
         "stderr": null,
         "files": {
-          "build/ast/file.uffda.ast.json": {
+          "build/ast/file.uff.ast.json": {
             "imports": [],
             "rules": [
               {
@@ -48729,6 +48730,7 @@
               }
             ]
           },
+          "build/ast/file.uff.ast": "{\"imports\":[] \"rules\":[{\"name\":\"Main\" \"parameters\":[] \"pattern\":{\"kind\":\"any\"} \"attributes\":[]}] \"funcs\":[] \"decorators\":[] \"exports\":[{\"kind\":\"rule\" \"name\":\"Main\"}]}\n",
           "file.uff": "export Main; rule Main = any;",
           "uffda.jsonc": "{\"outDir\":\"./build\"}"
         }

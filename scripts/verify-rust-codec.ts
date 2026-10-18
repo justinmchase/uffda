@@ -86,7 +86,7 @@ export async function verifyRustCodec(
       throw new Error("Standalone compile failed");
     }
     const artifact = JSON.parse(
-      await Deno.readTextFile(join(temp, "bin", "ast", "main.uffda.ast.json")),
+      await Deno.readTextFile(join(temp, "bin", "ast", "main.uff.ast.json")),
     );
     if (artifact.rules[0].name !== "Main") {
       throw new Error("Standalone compiled declaration failed");

@@ -19,7 +19,7 @@ fn build_script_embeds_the_published_artifact_tree() {
                 && entry
                     .file_name()
                     .to_string_lossy()
-                    .ends_with(".uffda.ast.json")
+                    .ends_with(".uff.ast.json")
             {
                 files.push(entry.path());
             }
@@ -35,7 +35,7 @@ fn build_script_embeds_the_published_artifact_tree() {
             .replace('\\', "/");
         let logical = format!(
             "src/lang/{}.uff",
-            relative.strip_suffix(".uffda.ast.json").unwrap()
+            relative.strip_suffix(".uff.ast.json").unwrap()
         );
         let embedded = DECLARATIONS
             .iter()

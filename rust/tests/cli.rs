@@ -521,11 +521,14 @@ fn relocated_binary_executes_all_six_commands_without_runtime_tools_or_checkout_
     );
     let payload: serde_json::Value = serde_json::from_slice(&compiled.stdout).unwrap();
     assert_eq!(payload["ok"], true);
-    let artifact = directory.0.join("bin/ast/main.uffda.ast.json");
+    let artifact = directory.0.join("bin/ast/main.uff.ast.json");
+    let codec = directory.0.join("bin/ast/main.uff.ast");
     let declaration: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&artifact).unwrap()).unwrap();
     assert_eq!(declaration["rules"][0]["name"], "Main");
+    assert!(codec.is_file());
     std::fs::remove_file(artifact).unwrap();
+    std::fs::remove_file(codec).unwrap();
     for path in ["bin/ast", "bin"] {
         std::fs::remove_dir(directory.0.join(path)).unwrap();
     }
@@ -871,7 +874,8 @@ fn compile_process_uses_project_layout_and_reports_existing_output() {
     let payload: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
     assert_eq!(payload["failures"][0]["code"], "CLI_COMPILE_OUTPUT_EXISTS");
     for file in [
-        "build/ast/src/main.uffda.ast.json",
+        "build/ast/src/main.uff.ast.json",
+        "build/ast/src/main.uff.ast",
         "src/main.uff",
         "uffda.jsonc",
     ] {
@@ -1034,8 +1038,10 @@ rule Render = any -> "canonical";
     assert!(text(&result.stderr).contains("same id or extension"));
     assert!(result.stdout.is_empty());
     for file in [
-        "bin/ast/grammar.uffda.ast.json",
-        "bin/ast/duplicate.uffda.ast.json",
+        "bin/ast/grammar.uff.ast.json",
+        "bin/ast/grammar.uff.ast",
+        "bin/ast/duplicate.uff.ast.json",
+        "bin/ast/duplicate.uff.ast",
         "uffda.jsonc",
         "grammar.uff",
         "duplicate.uff",

@@ -13,9 +13,9 @@ streaming records. This deliberately extends the original no-new-features scope;
 its syntax and supported value contracts are specified below. Codec v1 also
 changes default runtime value output from `exec`, `match`, and `run` to codec
 syntax; `--json` retains the existing JSON compatibility output. Compiled
-declaration JSON artifacts and their bootstrap remain unchanged for codec v1.
-The user approved evaluating codec-form compiled artifacts as a separate
-follow-on migration.
+ModuleDeclarations adopt the data codec on disk with the **`.uff.ast`**
+extension (plus a `.uff.ast.json` sibling during migration; resolvers prefer
+`.uff.ast`). Phasing out JSON siblings and switching embeds is a follow-on.
 
 Build alongside the TypeScript implementation. Keep it available as a
 differential-test reference until Rust passes the compatibility gates. Do not
@@ -40,9 +40,9 @@ In scope:
 MCP and LSP are required before production cutover (milestone 10): the installed
 Rust `uffda` MUST serve `uffda mcp` and `uffda lsp` before replacing Deno for
 editor and agent integrations. They were not part of the initial six-command
-runtime/CLI parity milestones. Binary codec encoding, compiled-artifact format
-replacement during codec v1, executable constructors, arbitrary class
-reconstruction and function-source serialization are not part of codec v1.
+runtime/CLI parity milestones. Binary (non-text) codec encoding, dropping the
+`.uff.ast.json` sibling after migration, executable constructors, arbitrary
+class reconstruction and function-source serialization are not part of codec v1.
 
 Both runtimes support logical `.uff` modules and direct `.json` declarations,
 including package exports resolving to either extension. `.uff` retains artifact
@@ -589,7 +589,8 @@ keeping their own grammar, command name, CLI policy and host integration.
 Agreed distribution (2026-10-18): **crates.io** for Rust libraries
 (`uffda-runtime`, `uffda-heap`, `uffda-heap-derive`, `uffda-build`); **GitHub
 Releases** for the product `uffda` CLI binary (embedded ASTs); **JSR** for
-`.uff`, declaration JSON ASTs, data-codec files, and `jsr:` package resolution.
+`.uff`, `.uff.ast` (data-codec ModuleDeclarations), `.uff.ast.json`
+siblings during migration, and `jsr:` package resolution.
 No separate `uffda-cli` / LSP / MCP crates for now (they stay in the product
 binary). Broad library API is acceptable; publish the Cargo.toml version as-is
 without a separate stability theater. Polished `examples/` CLIs are deferred
@@ -617,7 +618,7 @@ past this milestone; the downstream-consumer smoke crate is the package gate.
       from `.github/workflows/publish.yml` (see `rust/CRATES.md`). CLI is not a
       crates.io package.
 - [x] Downstream-consumer smoke crate `rust/consumer` embeds its own
-      `artifacts/*.uffda.ast.json` with `uffda-build`, depends on `uffda-runtime`
+      `artifacts/*.uff.ast.json` with `uffda-build`, depends on `uffda-runtime`
       with `default-features = false`, and runs without this repo's `src/lang`
       or `bin` trees.
 
@@ -637,8 +638,8 @@ embeds the `compile-lang` AST tree, builds `uffda`, and runs outside-checkout
 acceptance before attach.
 
 - [x] Run unit, corpus, integration, differential, and GC-stress suites (ongoing
-      Checks; release attach still requires a draft that stays unpublished until
-      smoke finishes).
+      Checks; do not publish a draft until Release Binaries attach + smoke
+      finish — premature publish leaves an empty release).
 - [x] Compare performance and memory against the baseline (language compile now
       beats Deno on this host; broader benches remain optional).
 - [x] Build and outside-checkout-verify Linux, Windows, and macOS on x86_64 and

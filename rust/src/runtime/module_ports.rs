@@ -903,7 +903,7 @@ fn modport_run_imports_resolve_through_maps_artifacts_and_packages() {
     let out = dir.0.join("out");
     std::fs::create_dir_all(out.join("ast")).unwrap();
     std::fs::write(
-        out.join("ast/dep.uffda.ast.json"),
+        out.join("ast/dep.uff.ast.json"),
         json!({
             "imports":[],
             "exports":[{"kind":"rule","name":"T"}],
@@ -1241,7 +1241,7 @@ fn modport_resolve_import_map_artifacts_and_package_boundaries() {
     let out = dir.0.join("out");
     std::fs::create_dir_all(out.join("ast/lib")).unwrap();
     std::fs::write(
-        out.join("ast/lib/dep.uffda.ast.json"),
+        out.join("ast/lib/dep.uff.ast.json"),
         json!({
             "imports":[],
             "exports":[{"kind":"rule","name":"T"}],
@@ -1368,22 +1368,22 @@ fn package_resolver(dir: &TempDir) -> (Resolver, Url) {
         r#"{"exports":{".":"./kv.uff","./tokens":"./tokens.uff"}}"#,
         &[
             (
-                "bin/ast/kv.uffda.ast.json",
+                "bin/ast/kv.uff.ast.json",
                 declaration(
                     "KV",
                     json!([{"kind":"module","moduleUrl":"./tokens.uff","names":["T"]}]),
                 ),
             ),
-            ("bin/ast/tokens.uffda.ast.json", declaration("T", json!([]))),
+            ("bin/ast/tokens.uff.ast.json", declaration("T", json!([]))),
             (
-                "bin/ast/named.uffda.ast.json",
+                "bin/ast/named.uff.ast.json",
                 declaration(
                     "N",
                     json!([{"kind":"module","moduleUrl":"@acme/kv/tokens","names":["T"]}]),
                 ),
             ),
             (
-                "bin/ast/escape.uffda.ast.json",
+                "bin/ast/escape.uff.ast.json",
                 declaration(
                     "E",
                     json!([{"kind":"module","moduleUrl":"../../@acme/other/1.0.0/x.uff","names":["X"]}]),

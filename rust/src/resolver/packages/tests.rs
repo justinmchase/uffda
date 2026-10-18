@@ -129,7 +129,7 @@ fn resolves_exports_and_loads_uff_artifacts_and_direct_json_without_source_acces
           "outDir":"./out",
         }"#,
             &[
-                ("out/ast/src/module.uffda.ast.json", declaration("UFF")),
+                ("out/ast/src/module.uff.ast.json", declaration("UFF")),
                 ("data.json", declaration("JSON")),
                 ("invalid.json", "{}".into()),
             ],
@@ -335,7 +335,7 @@ fn resolver_network_data_package_artifacts_and_registry_graph_preserve_identity(
         .borrow_mut()
         .insert("/plain.json".into(), declaration("PLAIN").into_bytes());
     fake.files.borrow_mut().insert(
-        "/pkg/bin/ast/src/module.uffda.ast.json".into(),
+        "/pkg/bin/ast/src/module.uff.ast.json".into(),
         declaration("PKG").into_bytes(),
     );
     fake.files.borrow_mut().insert(

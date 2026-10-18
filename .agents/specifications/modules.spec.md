@@ -91,10 +91,12 @@ the way Deno loads a `jsr:` import.
   against that URL, within the package version.
 - **Declaration:** the module's declaration is its compiled artifact in the
   package's [artifact layout](./languages/project-file.spec.md#output-directory)
-  (`<outDir>/ast/<path>.uffda.ast.json` within the package version). A package
-  supplies `.uff` and `.json` modules only. A `.json` module loads its actual
-  file as declaration data without artifact remapping. Any other extension MUST
-  be a module-resolution error.
+  within the package version: prefer
+  `<outDir>/ast/<path>.uff.ast` (data codec), else
+  `<outDir>/ast/<path>.uff.ast.json` (JSON). A package supplies `.uff` and
+  `.json` modules only. A `.json` module loads its actual file as declaration
+  data without artifact remapping. Any other extension MUST be a
+  module-resolution error.
 - **Integrity:** every file read from a package version MUST match the sha256
   checksum its `<version>_meta.json` manifest lists for it; a file the manifest
   does not list MUST be an error. When the lockfile records an integrity for the
@@ -139,20 +141,21 @@ the way Deno loads a `jsr:` import.
 - A `.uff` import MUST remap to its compiled artifact in the resolver's artifact
   layout (see
   [output directory](./languages/project-file.spec.md#output-directory)): the
-  module `<root>/<path>.uff` loads `<outDir>/ast/<path>.uffda.ast.json`, the
-  path CLI compile writes. A resolver MUST be given its layout before resolution
-  starts, as it is given its import map; without one it uses the working
-  directory and `./bin`.
+  module `<root>/<path>.uff` loads `<outDir>/ast/<path>.uff.ast` when that
+  file exists, else `<outDir>/ast/<path>.uff.ast.json`—the paths CLI compile
+  writes. A resolver MUST be given its layout before resolution starts, as it is
+  given its import map; without one it uses the working directory and `./bin`.
 - A `.uff` module outside the layout's root MUST fail as a module-resolution
   error naming the module and the root.
-- The runtime MUST load that JSON artifact as a ModuleDeclaration. Resolution
-  MUST NOT re-run the runtime compiler or re-lower the artifact; the
+- The runtime MUST load that artifact as a ModuleDeclaration (data-codec decode
+  for `.uff.ast`, JSON decode for `.uff.ast.json`). Resolution MUST NOT
+  re-run the runtime compiler or re-lower the artifact; the
   [bootstrap recursion break](./languages/compiler-bootstrap.spec.md#compile-pipeline-and-recursion-break)
   applies uniformly to built-in and user modules.
 - Module cache identity MUST remain the logical `.uff` URL; the artifact path is
   a load target only.
-- Missing or unreadable artifacts, invalid JSON, and invalid declarations MUST
-  surface as module-resolution errors.
+- Missing or unreadable artifacts, invalid codec or JSON text, and invalid
+  declarations MUST surface as module-resolution errors.
 - Direct `.json` imports MUST resolve to their actual paths without artifact
   remapping in both runtimes.
 

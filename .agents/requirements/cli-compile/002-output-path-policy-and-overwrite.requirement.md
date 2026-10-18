@@ -17,14 +17,16 @@ Preconditions:
 Expected behavior:
 
 - Output path derivation MUST be deterministic from the source path and the
-  layout: `<root>/<path>.uff` writes `<outDir>/ast/<path>.uffda.ast.json`.
+  layout: `<root>/<path>.uff` writes both
+  `<outDir>/ast/<path>.uff.ast` and `<outDir>/ast/<path>.uff.ast.json`.
 - A source outside the layout's root MUST fail its unit with
   `CLI_COMPILE_SOURCE_OUTSIDE_ROOT` and MUST NOT be written.
 - No argument changes the output directory: `--out-dir` MUST be rejected as an
   unknown flag, writing nothing.
 - Potential output collisions MUST fail deterministically.
-- Existing output files MUST fail when overwrite is disabled and MUST be
-  replaced when overwrite is enabled.
+- When overwrite is disabled, an existing `.uff.ast` or `.uff.ast.json` for
+  the unit MUST fail with `CLI_COMPILE_OUTPUT_EXISTS`. When overwrite is
+  enabled, both files MUST be replaced.
 
 Postconditions:
 

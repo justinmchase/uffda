@@ -119,8 +119,21 @@ Tracking only lexical and delimiter state allows the framer to identify
 boundaries, preserve source provenance, and bound internal memory without
 pretending to implement or validate the still-separate value grammar.
 
+## Compiled ModuleDeclaration artifacts
+
+Compiled ModuleDeclarations on disk use the data codec. The file extension for
+that form is **`.uff.ast`**: one newline-framed codec record under
+`<outDir>/ast/<path>.uff.ast` for each `<root>/<path>.uff` source. See
+[output directory](./languages/project-file.spec.md#output-directory) and
+[AST artifact contracts](./languages/cli/compile-and-stream.spec.md#ast-artifact-contracts).
+
+During migration, compile also writes a JSON sibling
+(`<path>.uff.ast.json`). Resolvers prefer `.uff.ast` and fall back to
+`.uff.ast.json`. Phasing out the JSON sibling is a follow-up; it does not
+change the chosen codec extension.
+
 ## Open questions
 
-Artifact adoption and binary encoding remain deferred. Complete codec acceptance
-requires authored value parsing, native reconstruction, encoding and their
-integration tests; structural framing alone is not a complete codec.
+Binary (non-text) codec encoding remains deferred. Text codec value parsing,
+native reconstruction, encoding, and ModuleDeclaration `.uff.ast` adoption are
+in scope for the current runtime.

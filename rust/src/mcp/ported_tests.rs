@@ -391,7 +391,7 @@ fn compile_tool_writes_default_and_project_out_dir() {
     assert_eq!(payload["successes"].as_array().unwrap().len(), 1);
     let output = payload["successes"][0]["outputPath"].as_str().unwrap();
     assert!(
-        output.contains("bin") && output.contains("main.uffda.ast.json"),
+        output.contains("bin") && output.contains("main.uff.ast.json"),
         "{output}"
     );
 
@@ -422,7 +422,7 @@ fn compile_tool_writes_default_and_project_out_dir() {
     assert_eq!(payload["ok"], true, "{payload}");
     let output = payload["successes"][0]["outputPath"].as_str().unwrap();
     assert!(
-        output.contains("out") && output.contains("main.uffda.ast.json"),
+        output.contains("out") && output.contains("main.uff.ast.json"),
         "{output}"
     );
 

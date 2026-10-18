@@ -13,7 +13,7 @@ Preconditions:
 - Checks has installed an Uffda CLI (published preferred) and compiled
   `src/lang/common/characters/digit.uff` into `./bin/`.
 - The expected artifact
-  `./bin/ast/src/lang/common/characters/digit.uffda.ast.json` exists.
+  `./bin/ast/src/lang/common/characters/digit.uff.ast.json` exists.
 
 Expected behavior:
 

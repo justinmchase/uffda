@@ -35,14 +35,18 @@ Expected behavior:
   release has been published in the meantime. API errors MUST fail the workflow.
 - The `release-binaries` workflow MUST accept `repository_dispatch` and
   `workflow_dispatch`, compile the full target matrix from a pinned `main`
-  revision, and attach or replace every binary on the latest draft release. It
-  MUST NOT create or move git tags; publishing the draft creates
-  `refs/tags/<version>` at the draft's `target_commitish` (set by Draft
-  Release).
+  revision, and attach or replace every binary on the resolved release tag. The
+  default target is the latest draft (fail if none). An explicit
+  `workflow_dispatch` `tag` MAY target a published release that still has no CLI
+  assets. Attach MUST succeed when the tag is a draft, or when it is published
+  with no `uffda-*` / `SHA256SUMS` assets yet; it MUST fail when a published
+  release already has those assets. It MUST NOT create or move git tags;
+  publishing the draft creates `refs/tags/<version>` at the draft's
+  `target_commitish` (set by Draft Release).
 - Draft version resolution MUST skip SemVer values that already have a published
   release or an existing git tag (burnt tags are not reused).
-- The draft release MUST include checksum data covering every published binary
-  plus the Linux install script after the attach workflow succeeds.
+- After attach succeeds, the release MUST include checksum data covering every
+  published binary plus the Linux install script.
 - Failed binary builds or missing checksums MUST fail the attach workflow.
 - Release tags follow bare SemVer (`0.1.2`); installers accept an optional `v`
   prefix.

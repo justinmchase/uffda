@@ -63,7 +63,7 @@ impl packages::Transport for RecordingTransport {
 
 fn write_artifact(root: &Path, relative_uff: &str, body: &str) {
     let mut artifact = root.join("ast").join(relative_uff);
-    artifact.set_extension("uffda.ast.json");
+    artifact.set_extension("uff.ast.json");
     std::fs::create_dir_all(artifact.parent().unwrap()).unwrap();
     std::fs::write(artifact, body).unwrap();
 }
@@ -85,7 +85,7 @@ fn artifact_path_ported_maps_source_paths_like_compile_emission() {
         resolver
             .load_path(&Url::from_file_path(&source).unwrap())
             .unwrap(),
-        root.join("bin/ast/src/lang/common/characters/digit.uffda.ast.json")
+        root.join("bin/ast/src/lang/common/characters/digit.uff.ast")
     );
 }
 
@@ -99,7 +99,7 @@ fn artifact_path_ported_places_artifacts_under_custom_out_dir() {
         resolver
             .load_path(&Url::from_file_path(&source).unwrap())
             .unwrap(),
-        root.join("build/ast/nested/mod.uffda.ast.json")
+        root.join("build/ast/nested/mod.uff.ast")
     );
 }
 
@@ -121,7 +121,7 @@ fn artifact_path_ported_gives_no_artifact_outside_the_root() {
         resolver
             .load_path(&Url::from_file_path(root.join("..x/mod.uff")).unwrap())
             .unwrap(),
-        root.join("bin/ast/..x/mod.uffda.ast.json")
+        root.join("bin/ast/..x/mod.uff.ast")
     );
 }
 
@@ -138,11 +138,16 @@ fn artifact_path_ported_maps_package_module_urls() {
     let https_module = https_root
         .join("src/lang/uffda/specifier.rules.uff")
         .unwrap();
-    let expected = "https://jsr.io/@justinmchase/uffda/0.9.1/bin/ast/src/lang/uffda/specifier.rules.uffda.ast.json";
+    let candidates = [
+        "https://jsr.io/@justinmchase/uffda/0.9.1/bin/ast/src/lang/uffda/specifier.rules.uff.ast",
+        "https://jsr.io/@justinmchase/uffda/0.9.1/bin/ast/src/lang/uffda/specifier.rules.uff.ast.json",
+        "https://jsr.io/@justinmchase/uffda/0.9.1/bin/ast/src/lang/uffda/specifier.rules.uffda.ast",
+        "https://jsr.io/@justinmchase/uffda/0.9.1/bin/ast/src/lang/uffda/specifier.rules.uffda.ast.json",
+    ];
     assert!(resolver.load_declaration(&https_module).is_err());
     assert_eq!(
         transport.requests.borrow().as_slice(),
-        [expected.to_owned()].as_slice()
+        candidates.map(str::to_owned).as_slice()
     );
 
     let dir = Directory::new();
@@ -164,18 +169,19 @@ fn artifact_path_ported_honors_package_out_dir() {
     let transport = Rc::new(RecordingTransport::default());
     let root = Url::parse("https://example.test/pkg/1.0.0/").unwrap();
     let module = root.join("src/app.uff").unwrap();
-    let expected = "https://example.test/pkg/1.0.0/build/ast/src/app.uffda.ast.json";
+    let codec = "https://example.test/pkg/1.0.0/build/ast/src/app.uff.ast";
+    let json = "https://example.test/pkg/1.0.0/build/ast/src/app.uff.ast.json";
     transport
         .files
         .borrow_mut()
-        .insert(expected.to_owned(), DECLARATION.into());
+        .insert(json.to_owned(), DECLARATION.into());
     let mut resolver = Resolver::new(PathBuf::from("/tmp"), PathBuf::from("/tmp/bin")).unwrap();
     resolver.set_transport(transport.clone());
     resolver.add_artifact_package(root, "./build").unwrap();
     assert!(resolver.load_declaration(&module).unwrap().rules.is_empty());
     assert_eq!(
         transport.requests.borrow().as_slice(),
-        [expected.to_owned()].as_slice()
+        [codec.to_owned(), json.to_owned()].as_slice()
     );
 }
 
@@ -419,7 +425,7 @@ fn uff_artifact_ported_missing_artifact_names_the_path() {
     let module = Url::from_file_path(repo.join(relative)).unwrap();
     let failure = resolver.load_declaration(&module).unwrap_err();
     let mut expected = out.0.join("ast").join(relative);
-    expected.set_extension("uffda.ast.json");
+    expected.set_extension("uff.ast");
     assert!(
         failure.message.contains(&expected.display().to_string()),
         "{}",
@@ -498,17 +504,20 @@ fn uff_artifact_ported_loads_https_package_root() {
     let module = package_root
         .join("src/lang/common/characters/digit.uff")
         .unwrap();
-    let expected = package_root
-        .join("bin/ast/src/lang/common/characters/digit.uffda.ast.json")
+    let codec = package_root
+        .join("bin/ast/src/lang/common/characters/digit.uff.ast")
+        .unwrap();
+    let json = package_root
+        .join("bin/ast/src/lang/common/characters/digit.uff.ast.json")
         .unwrap();
     assert_eq!(
-        expected.as_str(),
-        "https://jsr.io/@justinmchase/uffda/0.9.1/bin/ast/src/lang/common/characters/digit.uffda.ast.json"
+        json.as_str(),
+        "https://jsr.io/@justinmchase/uffda/0.9.1/bin/ast/src/lang/common/characters/digit.uff.ast.json"
     );
     let transport = Rc::new(RecordingTransport::default());
     transport.files.borrow_mut().insert(
-        expected.as_str().to_owned(),
-        std::fs::read(repo_root().join("bin/ast/src/lang/common/characters/digit.uffda.ast.json"))
+        json.as_str().to_owned(),
+        std::fs::read(repo_root().join("bin/ast/src/lang/common/characters/digit.uff.ast.json"))
             .unwrap(),
     );
     let mut resolver = Resolver::new(PathBuf::from("/tmp"), PathBuf::from("/tmp/bin")).unwrap();
@@ -520,7 +529,7 @@ fn uff_artifact_ported_loads_https_package_root() {
     assert!(export_named(&declaration, "Digit"));
     assert_eq!(
         transport.requests.borrow().as_slice(),
-        [expected.as_str().to_owned()].as_slice()
+        [codec.as_str().to_owned(), json.as_str().to_owned()].as_slice()
     );
 }
 
@@ -551,14 +560,15 @@ fn uff_artifact_ported_rejects_module_outside_package_root() {
 fn uff_artifact_ported_honors_package_out_dir() {
     let package_root = Url::parse("https://example.test/@acme/dsl/1.0.0/").unwrap();
     let module = package_root.join("src/grammar.uff").unwrap();
-    let expected = package_root
-        .join("build/ast/src/grammar.uffda.ast.json")
+    let codec = package_root.join("build/ast/src/grammar.uff.ast").unwrap();
+    let json = package_root
+        .join("build/ast/src/grammar.uff.ast.json")
         .unwrap();
     let transport = Rc::new(RecordingTransport::default());
     transport
         .files
         .borrow_mut()
-        .insert(expected.as_str().to_owned(), DECLARATION.into());
+        .insert(json.as_str().to_owned(), DECLARATION.into());
     let mut resolver = Resolver::new(PathBuf::from("/tmp"), PathBuf::from("/tmp/bin")).unwrap();
     resolver.set_transport(transport.clone());
     resolver
@@ -567,6 +577,6 @@ fn uff_artifact_ported_honors_package_out_dir() {
     assert!(resolver.load_declaration(&module).is_ok());
     assert_eq!(
         transport.requests.borrow().as_slice(),
-        [expected.as_str().to_owned()].as_slice()
+        [codec.as_str().to_owned(), json.as_str().to_owned()].as_slice()
     );
 }

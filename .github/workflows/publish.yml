@@ -88,14 +88,14 @@ jobs:
           cargo build --locked --release --manifest-path rust/Cargo.toml --features embed-languages --bin uffda
           rm -rf ./bin
           ./rust/target/release/uffda compile 'src/lang/**/*.uff'
-          test -f ./bin/ast/src/lang/uffda/uffda.lang.uffda.ast.json
-          test -f ./bin/ast/src/lang/uffda/runtime.compiler.uffda.ast.json
+          test -f ./bin/ast/src/lang/uffda/uffda.lang.uff.ast.json
+          test -f ./bin/ast/src/lang/uffda/runtime.compiler.uff.ast.json
 
       - name: Verify ./bin is in the JSR package
         run: |
           set -euo pipefail
           npx jsr publish --dry-run 2>&1 | tee "$RUNNER_TEMP/jsr-dry-run.log"
-          grep -q "bin/ast/src/lang/uffda/uffda.lang.uffda.ast.json" "$RUNNER_TEMP/jsr-dry-run.log"
+          grep -q "bin/ast/src/lang/uffda/uffda.lang.uff.ast.json" "$RUNNER_TEMP/jsr-dry-run.log"
 
       - name: Publish to JSR
         run: npx jsr publish

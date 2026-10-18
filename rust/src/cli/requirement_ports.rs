@@ -127,7 +127,8 @@ fn requirement_ports_release_packaging_checksum_and_attach_contract() {
             .is_file()
     );
     let yaml = read_repo(".github/workflows/release-binaries.yml");
-    assert!(yaml.contains("Replace assets on draft release"));
+    assert!(yaml.contains("Replace assets on release"));
+    assert!(yaml.contains("already has CLI assets; refusing to replace"));
     assert!(yaml.contains("gh release upload"));
     assert!(!yaml.contains("force=true"));
     assert!(!yaml.contains("git/refs/tags/"));

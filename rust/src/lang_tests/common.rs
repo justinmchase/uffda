@@ -1600,7 +1600,7 @@ fn an_external_grammar_artifact_parses_with_its_entry_rule() {
         &mut languages,
         "export rule Main = \"a\" -> { kind: \"foreign\" };",
     );
-    std::fs::write(root.join("bin/ast/src/foreign.uffda.ast.json"), declaration)
+    std::fs::write(root.join("bin/ast/src/foreign.uff.ast.json"), declaration)
         .expect("write artifact");
     let mut resolver = Resolver::new(root.clone(), root.join("bin")).expect("resolver");
     let url = Url::from_file_path(root.join("src/foreign.uff")).expect("file url");
@@ -2256,7 +2256,7 @@ fn tokenizer_semantic_token_texts_omit_comments() {
 // req:source-normalization-runtime-003
 fn expression_language_pipeline_normalizes_before_tokenization() {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../bin/ast/src/lang/expression/expression.lang.uffda.ast.json");
+        .join("../bin/ast/src/lang/expression/expression.lang.uff.ast.json");
     let ast: Json =
         serde_json::from_str(&std::fs::read_to_string(&path).expect("expression.lang artifact"))
             .unwrap();

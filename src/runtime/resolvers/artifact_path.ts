@@ -15,7 +15,7 @@ export const DEFAULT_OUT_DIR = "./bin";
  * Where compiled artifacts live (see
  * `.agents/specifications/languages/project-file.spec.md#output-directory`): a source
  * at `<root>/<path>.uff` compiles to
- * `<outDir>/ast/<path>.uffda.ast.json`.
+ * `<outDir>/ast/<path>.uff.ast.json`.
  */
 export type ArtifactLayout = {
   /**
@@ -43,13 +43,13 @@ export function toStableSourcePath(cwd: string, absolutePath: string): string {
 
 /**
  * Maps a stable source path to its syntax-AST artifact basename under `ast/`.
- * Example: `src/foo.uff` → `src/foo.uffda.ast.json`
+ * Example: `src/foo.uff` → `src/foo.uff.ast.json`
  */
 export function outputNameForSource(sourcePath: string): string {
   const ext = extname(sourcePath);
   return ext === ""
-    ? `${sourcePath}.uffda.ast.json`
-    : `${sourcePath.slice(0, -ext.length)}.uffda.ast.json`;
+    ? `${sourcePath}.uff.ast.json`
+    : `${sourcePath.slice(0, -ext.length)}.uff.ast.json`;
 }
 
 /**

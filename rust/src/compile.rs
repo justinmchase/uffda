@@ -184,7 +184,7 @@ pub fn compile(request: CompileRequest<'_>, languages: &mut Languages) -> Compil
         let output = out_dir
             .join("ast")
             .join(relative)
-            .with_extension("uffda.ast.json");
+            .with_extension("uff.ast.json");
         if !outputs.insert(output.clone()) {
             result.fail(failure(
                 "CLI_COMPILE_OUTPUT_COLLISION",
@@ -363,26 +363,29 @@ fn prepare_and_read(
     output: &Path,
     overwrite: bool,
 ) -> Result<String, Box<CompileFailure>> {
-    match output.metadata() {
-        Ok(metadata) if metadata.is_file() && !overwrite => {
-            return Err(Box::new(CompileFailure {
-                code: "CLI_COMPILE_OUTPUT_EXISTS",
-                source_path: source_path.into(),
-                output_path: Some(output.to_string_lossy().into_owned()),
-                message: "Output already exists and overwrite=false".into(),
-                location: None,
-            }));
-        }
-        Ok(_) => {}
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-        Err(error) => {
-            return Err(Box::new(CompileFailure {
-                code: "CLI_COMPILE_WRITE_FAILURE",
-                source_path: source_path.into(),
-                output_path: Some(output.to_string_lossy().into_owned()),
-                message: error.to_string(),
-                location: None,
-            }));
+    let codec_output = codec_output_path(output);
+    for candidate in [output, &codec_output] {
+        match candidate.metadata() {
+            Ok(metadata) if metadata.is_file() && !overwrite => {
+                return Err(Box::new(CompileFailure {
+                    code: "CLI_COMPILE_OUTPUT_EXISTS",
+                    source_path: source_path.into(),
+                    output_path: Some(candidate.to_string_lossy().into_owned()),
+                    message: "Output already exists and overwrite=false".into(),
+                    location: None,
+                }));
+            }
+            Ok(_) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => {
+                return Err(Box::new(CompileFailure {
+                    code: "CLI_COMPILE_WRITE_FAILURE",
+                    source_path: source_path.into(),
+                    output_path: Some(candidate.to_string_lossy().into_owned()),
+                    message: error.to_string(),
+                    location: None,
+                }));
+            }
         }
     }
     std::fs::read_to_string(source).map_err(|error| {
@@ -394,6 +397,15 @@ fn prepare_and_read(
             location: None,
         })
     })
+}
+
+fn codec_output_path(json_output: &Path) -> PathBuf {
+    let text = json_output.to_string_lossy();
+    if let Some(stem) = text.strip_suffix(".uff.ast.json") {
+        PathBuf::from(format!("{stem}.uff.ast"))
+    } else {
+        json_output.with_extension("uff.ast")
+    }
 }
 
 fn compile_text(
@@ -488,20 +500,14 @@ fn compile_text(
     if !diagnostics.is_empty() {
         return Err(UnitFailure::Many(diagnostics));
     }
+    let codec_output = codec_output_path(output);
     let write = || -> Result<(), String> {
-        let text = serde_json::to_string_pretty(&module).map_err(|error| error.to_string())?;
+        let json_text = serde_json::to_string_pretty(&module).map_err(|error| error.to_string())?;
+        let codec_text = crate::codec::declaration::encode_declaration_codec(&module)?;
         std::fs::create_dir_all(output.parent().ok_or("Output has no parent")?)
             .map_err(|error| error.to_string())?;
-        let mut options = std::fs::OpenOptions::new();
-        options.write(true);
-        if overwrite {
-            options.create(true).truncate(true);
-        } else {
-            options.create_new(true);
-        }
-        let mut file = options.open(output).map_err(|error| error.to_string())?;
-        file.write_all(text.as_bytes())
-            .map_err(|error| error.to_string())?;
+        write_artifact(output, json_text.as_bytes(), overwrite)?;
+        write_artifact(&codec_output, codec_text.as_bytes(), overwrite)?;
         Ok(())
     };
     if let Err(error) = write() {
@@ -518,6 +524,19 @@ fn compile_text(
         output_path: output.to_string_lossy().into_owned(),
         module,
     })
+}
+
+fn write_artifact(path: &Path, bytes: &[u8], overwrite: bool) -> Result<(), String> {
+    let mut options = std::fs::OpenOptions::new();
+    options.write(true);
+    if overwrite {
+        options.create(true).truncate(true);
+    } else {
+        options.create_new(true);
+    }
+    let mut file = options.open(path).map_err(|error| error.to_string())?;
+    file.write_all(bytes).map_err(|error| error.to_string())?;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -581,7 +600,7 @@ mod tests {
     }
 
     #[test]
-    // req:project-file-003 req:cli-bootstrap-034
+    // req:project-file-003 req:cli-bootstrap-034 req:cli-compile-002
     fn compilation_writes_module_declarations_in_mirrored_layout_and_refuses_overwrite() {
         let root = std::env::temp_dir().join(format!("uffda-compile-{}", std::process::id()));
         std::fs::create_dir_all(root.join("src")).unwrap();
@@ -600,15 +619,22 @@ mod tests {
         let mut languages = Languages::new().unwrap();
         let result = compile(request(), &mut languages);
         assert!(result.ok, "{}", serde_json::to_string(&result).unwrap());
-        let output = out.join("ast/src/main.uffda.ast.json");
+        let output = out.join("ast/src/main.uff.ast.json");
+        let codec = out.join("ast/src/main.uff.ast");
         let module: Value =
             serde_json::from_str(&std::fs::read_to_string(&output).unwrap()).unwrap();
         assert!(module.get("kind").is_none());
         assert_eq!(module["rules"].as_array().unwrap()[0]["name"], "Main");
+        let codec_module = crate::codec::declaration::decode_declaration_codec(
+            &std::fs::read_to_string(&codec).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(codec_module["rules"].as_array().unwrap()[0]["name"], "Main");
         let result = compile(request(), &mut languages);
         assert!(!result.ok);
         assert_eq!(result.failures[0].code, "CLI_COMPILE_OUTPUT_EXISTS");
         std::fs::remove_file(output).unwrap();
+        std::fs::remove_file(codec).unwrap();
         std::fs::remove_file(root.join("src/main.uff")).unwrap();
         for directory in ["build/ast/src", "build/ast", "build", "src"] {
             std::fs::remove_dir(root.join(directory)).unwrap();

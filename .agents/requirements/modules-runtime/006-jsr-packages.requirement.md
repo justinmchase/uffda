@@ -32,10 +32,11 @@ Expected behavior:
   `https://jsr.io/@scope/name/<version>/<path>`. The `Resolver` MUST key the
   module, and its import chain frame's `resolvedUrl`, by that URL, so two
   specifiers choosing the same file are one module.
-- Loading that URL MUST read `<outDir>/ast/<path>.uffda.ast.json` within the
-  package version for `.uff`, with `outDir` from its `uffda.jsonc`. A `.json`
-  module MUST read and validate its actual declaration file without remapping.
-  Any other module extension in a package MUST fail before reading its file.
+- Loading that URL MUST read `<outDir>/ast/<path>.uff.ast` within the package
+  version for `.uff` when present, else `<outDir>/ast/<path>.uff.ast.json`,
+  with `outDir` from its `uffda.jsonc`. A `.json` module MUST read and validate
+  its actual declaration file without remapping. Any other module extension in a
+  package MUST fail before reading its file.
 - In a package's module, an import of a module name MUST fail, and a relative
   import that resolves outside its package version MUST fail.
 - Files MUST be cached under `<cache>/uffda/jsr/<registry path>`

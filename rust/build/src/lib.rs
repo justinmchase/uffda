@@ -9,13 +9,13 @@ use std::path::{Path, PathBuf};
 
 /// Inputs for generating an embedded `DECLARATIONS` module.
 pub struct Embed {
-    /// Directory tree of `*.uffda.ast.json` files (unmodified compiler output).
+    /// Directory tree of `*.uff.ast.json` files (unmodified compiler output).
     pub artifact_root: PathBuf,
     /// When set, every `.uff` under this tree must have a matching artifact and
     /// every artifact must correspond to an authored `.uff` (product bootstrap).
     pub authored_root: Option<PathBuf>,
     /// Logical path prefix without trailing slash, e.g. `src/lang` so
-    /// `foo/bar.uffda.ast.json` becomes `src/lang/foo/bar.uff`.
+    /// `foo/bar.uff.ast.json` becomes `src/lang/foo/bar.uff`.
     pub logical_root: String,
     /// Destination file path (typically `OUT_DIR/languages.rs`).
     pub out_file: PathBuf,
@@ -66,12 +66,21 @@ pub fn files_with_suffix(directory: &Path, suffix: &str) -> io::Result<Vec<PathB
 /// Validate the artifact tree and write `pub const DECLARATIONS: &[(&str, &str)]`.
 pub fn embed(request: Embed) -> Result<(), EmbedError> {
     println!("cargo:rerun-if-changed={}", request.artifact_root.display());
-    let files = files_with_suffix(&request.artifact_root, ".uffda.ast.json").map_err(|error| {
+    let mut files = files_with_suffix(&request.artifact_root, ".uff.ast.json").map_err(|error| {
         EmbedError::Message(format!(
             "Cannot embed compiled declarations from {}: {error}. Run a published uffda CLI to compile .uff sources first; never seed or rewrite artifacts.",
             request.artifact_root.display()
         ))
     })?;
+    // Legacy suffix from earlier compilers (`.uffda.ast.json`).
+    if files.is_empty() {
+        files = files_with_suffix(&request.artifact_root, ".uffda.ast.json").map_err(|error| {
+            EmbedError::Message(format!(
+                "Cannot embed compiled declarations from {}: {error}. Run a published uffda CLI to compile .uff sources first; never seed or rewrite artifacts.",
+                request.artifact_root.display()
+            ))
+        })?;
+    }
     if files.is_empty() {
         return Err(EmbedError::Message(format!(
             "No compiled declaration artifacts found under {}",
@@ -91,8 +100,10 @@ pub fn embed(request: Embed) -> Result<(), EmbedError> {
                 ))
             })?;
             let mut expected = request.artifact_root.join(relative);
-            expected.set_extension("uffda.ast.json");
-            if !files.contains(&expected) {
+            expected.set_extension("uff.ast.json");
+            let mut legacy = request.artifact_root.join(relative);
+            legacy.set_extension("uffda.ast.json");
+            if !files.contains(&expected) && !files.contains(&legacy) {
                 return Err(EmbedError::Message(format!(
                     "Incomplete language artifacts: {} is missing. Finish a full published-compiler bootstrap before building.",
                     expected.display()
@@ -122,7 +133,8 @@ pub fn embed(request: Embed) -> Result<(), EmbedError> {
             .ok_or_else(|| EmbedError::Message("Non-UTF-8 grammar artifact path".into()))?
             .replace('\\', "/");
         let stem = relative
-            .strip_suffix(".uffda.ast.json")
+            .strip_suffix(".uff.ast.json")
+            .or_else(|| relative.strip_suffix(".uffda.ast.json"))
             .ok_or_else(|| EmbedError::Message("Invalid grammar artifact extension".into()))?;
         let logical = if logical_root.is_empty() {
             format!("{stem}.uff")

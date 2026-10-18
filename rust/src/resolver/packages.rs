@@ -506,17 +506,47 @@ impl JsrPackages {
         let info = self
             .package_version(&package, &version)
             .map_err(|message| error(url, message, None))?;
-        let target = if path.ends_with(".uff") {
-            format!(
-                "{}/ast/{}.uffda.ast.json",
-                info.out_dir,
-                &path[..path.len() - 4]
-            )
-        } else {
-            path
-        };
+        if path.ends_with(".uff") {
+            let stem = &path[..path.len() - 4];
+            let candidates = [
+                format!("{}/ast/{stem}.uff.ast", info.out_dir),
+                format!("{}/ast/{stem}.uff.ast.json", info.out_dir),
+                format!("{}/ast/{stem}.uffda.ast", info.out_dir),
+                format!("{}/ast/{stem}.uffda.ast.json", info.out_dir),
+            ];
+            let mut first_error = None;
+            let mut loaded = None;
+            for target in candidates {
+                match self.package_file(&info, &target) {
+                    Ok(bytes) => {
+                        loaded = Some((target, bytes));
+                        break;
+                    }
+                    Err(error) => {
+                        if first_error.is_none() {
+                            first_error = Some(error);
+                        }
+                    }
+                }
+            }
+            let (target, bytes) = loaded.ok_or_else(|| {
+                error(
+                    url,
+                    first_error.unwrap_or_else(|| "no package artifact".into()),
+                    None,
+                )
+            })?;
+            let text = String::from_utf8(bytes).map_err(|cause| {
+                error(
+                    url,
+                    "declaration is not UTF-8".into(),
+                    Some(cause.to_string()),
+                )
+            })?;
+            return crate::resolver::decode_artifact(url, &target, &text);
+        }
         let bytes = self
-            .package_file(&info, &target)
+            .package_file(&info, &path)
             .map_err(|message| error(url, message, None))?;
         let text = String::from_utf8(bytes).map_err(|cause| {
             error(

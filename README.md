@@ -7,8 +7,10 @@ data). That means the whole compiler pipeline—tokenization, parsing, projectio
 and lowering—can be expressed as pattern matching.
 
 Language modules under `src/lang/` are authored as `.uff` and compiled to
-`./bin` ModuleDeclaration JSON. The published CLI embeds those artifacts, so
-bootstrap uses the previous release to compile the next one.
+`./bin` ModuleDeclaration artifacts. The on-disk data-codec form uses the
+`.uff.ast` extension; a `.uff.ast.json` sibling is still written during
+migration. The published CLI embeds those artifacts, so bootstrap uses the
+previous release to compile the next one.
 
 ## Install
 
@@ -46,7 +48,7 @@ Running `uffda` with no arguments prints help. Commands:
 
 | Command   | Purpose                                               |
 | --------- | ----------------------------------------------------- |
-| `compile` | Compile `.uff` modules to ModuleDeclaration JSON      |
+| `compile` | Compile `.uff` modules to ModuleDeclaration artifacts |
 | `parse`   | Parse source to a raw AST (`--lang` selects language) |
 | `exec`    | Evaluate an expression (source or `--ast`)            |
 | `match`   | Match a pattern against text, JSON, or codec data     |
@@ -117,10 +119,12 @@ uffda exec -e '"hello"' |
   uffda match -e any --input-data-file /dev/stdin
 ```
 
-Parse output, compiled declaration artifacts, bootstrap files, and structured
-diagnostics remain JSON. Codec-form compiled artifacts are a separate, deferred
-milestone. The Deno CLI is the existing reference implementation; these new
-codec command contracts apply to the Rust migration CLI.
+Parse output, project/lockfile files, and structured diagnostics remain JSON.
+Compiled ModuleDeclarations use the Uffda data codec on disk: the file extension
+is `.uff.ast` (one codec record per module). Compile also writes a
+`.uff.ast.json` sibling while resolvers and embeds migrate off JSON. The Deno
+CLI is the existing reference implementation; these codec command contracts
+apply to the Rust migration CLI.
 
 ### Compile layout
 
@@ -128,12 +132,14 @@ codec command contracts apply to the Rust migration CLI.
 uffda compile 'src/**/*.uff'
 ```
 
-Writes ModuleDeclaration JSON under `<outDir>/ast`, mirroring each source's path
-in the project: `src/foo.uff` becomes `bin/ast/src/foo.uffda.ast.json`. `outDir`
-is `./bin` unless the project file says otherwise, and `run`, `exec`, the
-language server and MCP sessions read compiled imports from the same place.
-Build output is never written next to sources. In this repo,
-`deno task compile:lang` builds workspace `./bin` with the **previous
+Writes ModuleDeclaration artifacts under `<outDir>/ast`, mirroring each source's
+path in the project: `src/foo.uff` becomes both
+`bin/ast/src/foo.uff.ast` (data codec) and `bin/ast/src/foo.uff.ast.json`
+(JSON). Resolvers prefer `.uff.ast` when present and fall back to
+`.uff.ast.json`. `outDir` is `./bin` unless the project file says otherwise,
+and `run`, `exec`, the language server and MCP sessions read compiled imports
+from the same place. Build output is never written next to sources. In this
+repo, `deno task compile:lang` builds workspace `./bin` with the **previous
 published** CLI (bootstrap recursion break).
 
 ### Project file
@@ -283,9 +289,12 @@ not automatically label PRs.
 1. Merge to `main` so **Draft Release** updates the draft, bumps version files,
    and dispatches `release-binaries`.
 2. Confirm `uffda-*`, `SHA256SUMS`, and `install.sh` on the draft (re-run
-   **Release Binaries** from Actions if needed).
+   **Release Binaries** from Actions if needed). Do **not** publish until those
+   assets are attached — an empty published release breaks install and JSR
+   bootstrap. If a draft was published too early with no CLI assets, re-run
+   **Release Binaries** with workflow input `tag` set to that version.
 3. Publish the draft. That becomes the latest install target and triggers JSR
-   publish.
+   and crates.io publish.
 
 ## Acknowledgments
 

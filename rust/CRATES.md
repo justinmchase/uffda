@@ -10,7 +10,7 @@ Product CLI binaries ship on **GitHub Releases**. These crates ship on
 |-------|------|
 | `uffda-heap-derive` | GC derive macros |
 | `uffda-heap` | Collector heap |
-| `uffda-build` | `build.rs` embed helper for declaration JSON |
+| `uffda-build` | `build.rs` embed helper for declaration artifacts (JSON siblings today; `.uff.ast` is the data-codec form) |
 | `uffda-runtime` | Runtime library (no product grammars by default) |
 
 CI publishes them from `.github/workflows/publish.yml` using **OIDC trusted

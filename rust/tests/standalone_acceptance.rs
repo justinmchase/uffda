@@ -65,7 +65,7 @@ fn standalone_cli_and_codec_accept_outside_checkout() {
     .expect("standalone compile output");
     assert_eq!(compiled["ok"], true, "standalone compile failed");
     let artifact: serde_json::Value = serde_json::from_slice(
-        &std::fs::read(directory.0.join("bin/ast/main.uffda.ast.json")).unwrap(),
+        &std::fs::read(directory.0.join("bin/ast/main.uff.ast.json")).unwrap(),
     )
     .unwrap();
     assert_eq!(
