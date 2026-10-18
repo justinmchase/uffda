@@ -133,35 +133,39 @@ fn encoder_rejects_shared_or_cyclic_composites_and_limits() {
         nodes: vec![DataNode::Array(vec![]), DataNode::Array(vec![0, 0])],
         root: 1,
     };
-    assert!(alias
-        .encode(false, DataLimits::default())
-        .unwrap_err()
-        .0
-        .contains("shared"));
+    assert!(
+        alias
+            .encode(false, DataLimits::default())
+            .unwrap_err()
+            .0
+            .contains("shared")
+    );
     let cycle = DataDocument {
         nodes: vec![DataNode::Array(vec![0])],
         root: 0,
     };
     assert!(cycle.encode(false, DataLimits::default()).is_err());
     let doc = document(array(vec![string("\"too long\"")]));
-    assert!(doc
-        .encode(
+    assert!(
+        doc.encode(
             false,
             DataLimits {
                 max_bytes: 2,
                 max_depth: 1
             }
         )
-        .is_err());
-    assert!(doc
-        .encode(
+        .is_err()
+    );
+    assert!(
+        doc.encode(
             false,
             DataLimits {
                 max_bytes: 0,
                 max_depth: 1
             }
         )
-        .is_err());
+        .is_err()
+    );
 }
 
 #[test]
@@ -434,11 +438,13 @@ fn authored_decoding_accepts_the_exact_configured_nesting_boundary() {
     assert_eq!(doc.encode(false, limits).unwrap(), source);
     decoder.reset();
     let too_deep = "[".repeat(limits.max_depth + 1);
-    assert!(decoder
-        .push_some(too_deep.as_bytes())
-        .unwrap_err()
-        .0
-        .contains("nesting"));
+    assert!(
+        decoder
+            .push_some(too_deep.as_bytes())
+            .unwrap_err()
+            .0
+            .contains("nesting")
+    );
 }
 
 #[test]
@@ -455,16 +461,20 @@ fn value_decoder_enforces_source_size_before_ast_construction() {
     assert_eq!(decoder.push_some(b"true\n").unwrap_err(), error);
     decoder.reset();
     assert!(decoder.push_some(b"true\n").unwrap().1.is_some());
-    assert!(DataDecoder::new(DataLimits {
-        max_bytes: 0,
-        max_depth: 1
-    })
-    .is_err());
-    assert!(DataDecoder::new(DataLimits {
-        max_bytes: 1,
-        max_depth: 0
-    })
-    .is_err());
+    assert!(
+        DataDecoder::new(DataLimits {
+            max_bytes: 0,
+            max_depth: 1
+        })
+        .is_err()
+    );
+    assert!(
+        DataDecoder::new(DataLimits {
+            max_bytes: 1,
+            max_depth: 0
+        })
+        .is_err()
+    );
 }
 
 #[test]
@@ -551,9 +561,11 @@ fn native_documents_materialize_and_export_gc_values_without_identity_loss() {
         assert_eq!(actual_error.name, RuntimeString::from("TypeError"));
         assert_eq!(actual_error.message, RuntimeString::from("invalid"));
         assert_eq!(actual_error.stack, Some(RuntimeString::from("frame")));
-        assert!(actual_error
-            .cause
-            .is_some_and(|value| value.strict_eq(Value::Null)));
+        assert!(
+            actual_error
+                .cause
+                .is_some_and(|value| value.strict_eq(Value::Null))
+        );
     });
 }
 
@@ -564,10 +576,12 @@ fn runtime_export_rejects_aliases_cycles_symbols_as_keys_and_execution_values() 
     uffda_heap::rootless_mutate(|mc| {
         let shared = Value::array(mc, vec![]);
         let alias = Value::array(mc, vec![shared, shared]);
-        assert!(DataDocument::from_value(alias, DataLimits::default())
-            .unwrap_err()
-            .0
-            .contains("shared"));
+        assert!(
+            DataDocument::from_value(alias, DataLimits::default())
+                .unwrap_err()
+                .0
+                .contains("shared")
+        );
         let cycle = Value::array(mc, vec![]);
         let Value::Array(items) = cycle else {
             panic!("expected array")
@@ -587,20 +601,24 @@ fn runtime_export_rejects_aliases_cycles_symbols_as_keys_and_execution_values() 
                 .0
                 .contains("symbol object keys")
         );
-        assert!(DataDocument::from_value(
-            Value::Native(crate::globals::NativeGlobal::Id),
-            DataLimits::default()
-        )
-        .is_err());
+        assert!(
+            DataDocument::from_value(
+                Value::Native(crate::globals::NativeGlobal::Id),
+                DataLimits::default()
+            )
+            .is_err()
+        );
         let overflowing = Value::bigint(mc, num_bigint::BigInt::from(12_345));
-        assert!(DataDocument::from_value(
-            overflowing,
-            DataLimits {
-                max_bytes: 4,
-                max_depth: 1
-            }
-        )
-        .is_err());
+        assert!(
+            DataDocument::from_value(
+                overflowing,
+                DataLimits {
+                    max_bytes: 4,
+                    max_depth: 1
+                }
+            )
+            .is_err()
+        );
         let mut deep = Value::Null;
         for _ in 0..10_000 {
             deep = Value::array(mc, vec![deep]);
