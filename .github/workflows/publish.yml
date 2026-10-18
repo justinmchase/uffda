@@ -1,6 +1,7 @@
 name: Publish
 # crates.io libraries via OIDC trusted publishing. CLI binaries attach earlier
-# via Release Binaries. JSR publish remains paused (dry-run verification only).
+# via Release Binaries. JSR publishes .uff sources, compiled declaration JSON,
+# and package exports (including data-codec surfaces) for jsr: resolution.
 on:
   workflow_dispatch:
   release:
@@ -59,7 +60,7 @@ jobs:
           cargo publish -p uffda-runtime --manifest-path rust/Cargo.toml --locked
 
   jsr:
-    name: JSR dry-run
+    name: JSR
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -96,5 +97,5 @@ jobs:
           npx jsr publish --dry-run 2>&1 | tee "$RUNNER_TEMP/jsr-dry-run.log"
           grep -q "bin/ast/src/lang/uffda/uffda.lang.uffda.ast.json" "$RUNNER_TEMP/jsr-dry-run.log"
 
-      # TODO: publish the JSR package again once publishing is driven by the Rust CLI.
-      # - run: npx jsr publish
+      - name: Publish to JSR
+        run: npx jsr publish
