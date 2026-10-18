@@ -1,0 +1,16 @@
+---
+description: Always land work via branches and PRs; reuse open PR branches
+alwaysApply: true
+---
+
+# PR workflow
+
+- Never push commits directly to `main`. Always create a feature branch and open
+  a pull request for review.
+- If a relevant PR is already open, push further related work onto that PR's
+  branch instead of opening a parallel PR — unless the change is clearly
+  unrelated (different concern/scope).
+- Do not merge PRs, create/move git tags, or publish releases unless the user
+  explicitly asks. The user reviews, merges, and publishes releases.
+- When creating a PR, follow the existing `creating-pull-requests` user rule
+  (`gh pr create`, push with `-u`, return the PR URL).
