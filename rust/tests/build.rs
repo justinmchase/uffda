@@ -391,10 +391,10 @@ fn remport_uffda_setup_resolve_release_helpers() {
         "0.9.4"
     );
     assert_eq!(
-        select_latest_installable_release(Some(&prior), &[prior.clone()])
+        select_latest_installable_release(Some(&prior), std::slice::from_ref(&prior))
             .unwrap()
             .tag_name,
         "0.9.4"
     );
-    assert!(select_latest_installable_release(Some(&empty), &[empty.clone()]).is_err());
+    assert!(select_latest_installable_release(Some(&empty), std::slice::from_ref(&empty)).is_err());
 }

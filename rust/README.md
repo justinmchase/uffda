@@ -177,7 +177,23 @@ data codec for lossless native-value round trips.
 
 ## Development
 
-Install a stable Rust toolchain and the platform's native linker, then run:
+Install a stable Rust toolchain and the platform's native linker. Before pushing
+Rust changes, run the same gate as the Checks workflow:
+
+```sh
+deno task check:rust          # fmt --check, clippy -D warnings, test
+deno task pre:rust            # cargo fmt, then check:rust
+```
+
+Or the Cargo aliases from the repository root (`.cargo/config.toml`):
+
+```sh
+cargo fmt-rust-check
+cargo clippy-rust
+cargo test-rust
+```
+
+Equivalent expanded commands:
 
 ```sh
 cargo fmt --manifest-path rust/Cargo.toml --all --check

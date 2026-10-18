@@ -636,8 +636,8 @@ fn authoring_success_shape_and_task_relevant_retrieval() {
         "write an expression that reduces a list of numbers"
     );
     assert_eq!(result["language"], "expression");
-    assert!(result["syntax"].as_array().unwrap().len() > 0);
-    assert!(result["semantics"].as_array().unwrap().len() > 0);
+    assert!(!result["syntax"].as_array().unwrap().is_empty());
+    assert!(!result["semantics"].as_array().unwrap().is_empty());
     assert!(result["restrictions"].is_array());
     let status = result["expressibility"]["status"].as_str().unwrap();
     assert!(

@@ -1313,9 +1313,8 @@ fn remport_lsp_server_outlives_parent_check_and_exits_zero_after_shutdown() {
     let deadline = Instant::now() + Duration::from_secs(4);
     while Instant::now() < deadline {
         std::thread::sleep(Duration::from_millis(50));
-        match child.try_wait().expect("poll lsp") {
-            Some(status) => panic!("server exited before parent-check interval: {status}"),
-            None => {}
+        if let Some(status) = child.try_wait().expect("poll lsp") {
+            panic!("server exited before parent-check interval: {status}");
         }
     }
 

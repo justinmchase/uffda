@@ -162,6 +162,8 @@ pub fn node_text(node: &RetainedMatch, units: &[u16]) -> String {
 /// Source range of the import declaration `frame` names inside a module parse
 /// tree, using editor metadata (`[Import]` / `[ModulePath]` / `[ImportedName]`).
 /// Port of Deno `cli/import_location.ts` (req:cli-language-server-006).
+/// Covered by unit tests; LSP diagnostics do not call it yet.
+#[allow(dead_code)]
 pub fn import_frame_location(
     root: &Node,
     source: &str,
@@ -197,11 +199,13 @@ pub fn import_frame_location(
     ))
 }
 
+#[allow(dead_code)]
 struct ImportNode {
     node: Node,
     module_url: Option<String>,
 }
 
+#[allow(dead_code)]
 fn collect_import_nodes(root: &Node) -> Vec<ImportNode> {
     let mut found = Vec::new();
     let mut seen_starts = HashSet::new();
