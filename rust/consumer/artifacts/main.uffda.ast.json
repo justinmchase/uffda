@@ -1,0 +1,16 @@
+{
+  "imports": [],
+  "exports": [{ "kind": "rule", "name": "Main", "default": true }],
+  "rules": [
+    {
+      "name": "Main",
+      "parameters": [],
+      "pattern": {
+        "kind": "equal",
+        "value": { "kind": "value.literal", "value": "ok" }
+      }
+    }
+  ],
+  "funcs": [],
+  "decorators": []
+}

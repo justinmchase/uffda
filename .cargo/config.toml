@@ -1,7 +1,9 @@
 # Cargo aliases for the Rust workspace under rust/.
-# Chain Format + Clippy + Test (Checks job) with: deno task check:rust
+# Multi-step Checks gate: cargo xtask check  (or cargo xtask fix)
 [alias]
+xtask = "run --manifest-path rust/Cargo.toml -p xtask --"
 fmt-rust = "fmt --manifest-path rust/Cargo.toml --all"
 fmt-rust-check = "fmt --manifest-path rust/Cargo.toml --all --check"
-clippy-rust = "clippy --manifest-path rust/Cargo.toml --workspace --all-targets --locked -- -D warnings"
-test-rust = "test --manifest-path rust/Cargo.toml --workspace --locked"
+clippy-rust = "clippy --manifest-path rust/Cargo.toml --workspace --all-targets --locked --features embed-languages -- -D warnings"
+test-rust = "test --manifest-path rust/Cargo.toml --workspace --locked --features embed-languages"
+build-uffda = "build --manifest-path rust/Cargo.toml --bin uffda --features embed-languages"

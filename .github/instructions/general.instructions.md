@@ -42,9 +42,9 @@ shape → publish → install → recompile.
   the commit. Checks runs Rust `cargo fmt`, Clippy, and `cargo test`.
 - A commit that changes `.uff` files MUST also run `deno task fmt:uff` (the
   in-tree `uffda fmt`) and include its changes.
-- Prefer `deno task pre` before committing. For Rust changes, also run
-  `deno task check:rust` (or `deno task pre:rust` to fmt then check) before
-  pushing — same Format / Clippy / Test steps as the Checks workflow.
+- Prefer `deno task pre` before committing while Deno sources remain. For Rust
+  changes, run `cargo xtask check` (or `cargo xtask fix`) before pushing — same
+  Format / Clippy / Test steps as the Checks workflow.
 - Keep modules small and composable when adding or refactoring parser logic.
 
 ## Design philosophy: correctness over expedience

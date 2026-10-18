@@ -1,16 +1,66 @@
 name: Publish
-# Language artifacts for a release are compiled with the Rust CLI. JSR publish is
-# paused. CLI binaries are attached to the draft release earlier via Release
-# Binaries (repository_dispatch / workflow_dispatch).
+# crates.io libraries via OIDC trusted publishing. CLI binaries attach earlier
+# via Release Binaries. JSR publish remains paused (dry-run verification only).
 on:
   workflow_dispatch:
   release:
     types: [published]
 
 jobs:
-  publish:
+  crates-io:
+    name: crates.io
     runs-on: ubuntu-latest
+    # Must match the Trusted Publishing "environment" on each crate at crates.io
+    # (optional there; if set on crates.io, this name must match). Create the
+    # GitHub Environment under Settings → Environments if you want protection rules.
+    environment: crates-io
+    permissions:
+      contents: read
+      id-token: write
 
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Align crate versions with the release tag
+        if: github.event_name == 'release'
+        run: |
+          set -euo pipefail
+          tag="${{ github.event.release.tag_name }}"
+          tag="${tag#v}"
+          ver="$(sed -n 's/^version = "\([^"]*\)"/\1/p' rust/Cargo.toml | head -1)"
+          if [[ "$ver" != "$tag" ]]; then
+            echo "rust/Cargo.toml version ${ver} != release tag ${tag}" >&2
+            exit 1
+          fi
+          for manifest in rust/heap/Cargo.toml rust/heap/derive/Cargo.toml rust/build/Cargo.toml; do
+            mver="$(sed -n 's/^version = "\([^"]*\)"/\1/p' "$manifest" | head -1)"
+            if [[ "$mver" != "$tag" ]]; then
+              echo "${manifest} version ${mver} != release tag ${tag}" >&2
+              exit 1
+            fi
+          done
+
+      - name: Authenticate to crates.io (OIDC)
+        uses: rust-lang/crates-io-auth-action@v1
+        id: auth
+
+      - name: Publish libraries
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+        run: |
+          set -euo pipefail
+          # Dependency order. Product grammars are not embedded (default features).
+          cargo publish -p uffda-heap-derive --manifest-path rust/Cargo.toml --locked
+          cargo publish -p uffda-heap --manifest-path rust/Cargo.toml --locked
+          cargo publish -p uffda-build --manifest-path rust/Cargo.toml --locked
+          cargo publish -p uffda-runtime --manifest-path rust/Cargo.toml --locked
+
+  jsr:
+    name: JSR dry-run
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
@@ -34,17 +84,17 @@ jobs:
           uffda --version
           rm -rf ./bin
           uffda compile 'src/lang/**/*.uff'
-          cargo build --locked --release --manifest-path rust/Cargo.toml --bin uffda
+          cargo build --locked --release --manifest-path rust/Cargo.toml --features embed-languages --bin uffda
           rm -rf ./bin
           ./rust/target/release/uffda compile 'src/lang/**/*.uff'
           test -f ./bin/ast/src/lang/uffda/uffda.lang.uffda.ast.json
           test -f ./bin/ast/src/lang/uffda/runtime.compiler.uffda.ast.json
 
-      - name: Verify ./bin is in the package
+      - name: Verify ./bin is in the JSR package
         run: |
           set -euo pipefail
           npx jsr publish --dry-run 2>&1 | tee "$RUNNER_TEMP/jsr-dry-run.log"
           grep -q "bin/ast/src/lang/uffda/uffda.lang.uffda.ast.json" "$RUNNER_TEMP/jsr-dry-run.log"
 
-      # TODO: publish the package again once publishing is driven by the Rust CLI.
+      # TODO: publish the JSR package again once publishing is driven by the Rust CLI.
       # - run: npx jsr publish

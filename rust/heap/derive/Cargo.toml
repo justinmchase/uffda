@@ -1,10 +1,13 @@
 [package]
 name = "uffda-heap-derive"
-version = "0.9.6"
+version = "0.10.0"
 edition = "2024"
-publish = false
+publish = true
 license = "MIT"
 description = "Derive macros for the Uffda garbage-collected heap"
+repository = "https://github.com/justinmchase/uffda"
+homepage = "https://github.com/justinmchase/uffda"
+documentation = "https://docs.rs/uffda-heap-derive"
 
 [lib]
 proc-macro = true

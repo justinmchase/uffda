@@ -1,0 +1,11 @@
+[package]
+name = "xtask"
+version = "0.0.0"
+edition = "2024"
+publish = false
+license = "MIT"
+description = "Repository task runner for the Rust Uffda workspace"
+
+[[bin]]
+name = "xtask"
+path = "src/main.rs"

@@ -586,35 +586,44 @@ Once the Rust API and command behavior stabilize, split the current
 CLI. The package should let a consumer replace their Uffda/Deno runtime while
 keeping their own grammar, command name, CLI policy and host integration.
 
-- [ ] Define the stable `uffda-runtime` library boundary: dynamic values and GC,
+Agreed distribution (2026-10-18): **crates.io** for Rust libraries
+(`uffda-runtime`, `uffda-heap`, `uffda-heap-derive`, `uffda-build`); **GitHub
+Releases** for the product `uffda` CLI binary (embedded ASTs); **JSR** for
+`.uff`, declaration JSON ASTs, data-codec files, and `jsr:` package resolution.
+No separate `uffda-cli` / LSP / MCP crates for now (they stay in the product
+binary). Broad library API is acceptable; publish the Cargo.toml version as-is
+without a separate stability theater. Polished `examples/` CLIs are deferred
+past this milestone; the downstream-consumer smoke crate is the package gate.
+
+- [x] Define the `uffda-runtime` library boundary: dynamic values and GC,
       expression/pattern/rule execution, native globals, async host suspension,
       lossless strings/provenance, resolver/project/package loading,
-      diagnostics, formatter and codec APIs.
-- [ ] Keep Uffda's authored grammar bundle, default language registry and
-      product-specific CLI choices outside the generic runtime crate. Allow a
-      host application to register its own compiled module declarations and host
-      functions without forking runtime internals.
-- [ ] Provide a reusable embedding/build component that validates a compiled
-      artifact tree and generates a static Rust declaration registry from
-      unmodified JSON artifacts. Consumers should be able to keep using their
-      existing published compiler; no Rust build step may parse `.uff`, re-lower
-      artifacts or require checked-in compiler seeds.
-- [ ] Decide whether command parsing/dispatch belongs in a separate optional
-      `uffda-cli` support crate or remains a documented reference frontend. Keep
-      it configurable for a consumer's own command name, entry rules, language
-      metadata and output policy.
-- [ ] Add an example custom-language CLI that embeds consumer-owned compiled
-      declarations, resolves project modules, runs a rule, formats source and
-      demonstrates host API injection without depending on Deno at runtime.
-- [ ] Define crate names, workspace/version policy, license and API stability;
-      check registry-name availability and publish the stable library/build
-      components to crates.io only after parity and package tests pass.
-- [ ] Add downstream-consumer tests that build from the published crates and run
-      without access to this repository's `src/lang`, `bin`, or build scripts.
+      diagnostics, formatter and codec APIs (current `pub` modules; product
+      grammars gated behind `embed-languages`).
+- [x] Keep Uffda's authored grammar bundle behind `embed-languages` (product CLI
+      + in-tree tests). Hosts register their own compiled declarations via
+      `Resolver::insert_declaration_source` / `uffda-build` without forking
+      runtime internals.
+- [x] Provide `uffda-build`: validates a compiled JSON artifact tree and
+      generates a static `DECLARATIONS` registry from unmodified artifacts. No
+      `.uff` parse, re-lower, or compiler seeds in the Rust build.
+- [x] Command parsing/dispatch remains in the product `uffda` binary (not a
+      separate `uffda-cli` crate). LSP/MCP stay there too.
+- [ ] Deferred: polished example custom-language CLI under `examples/` (not
+      required to close this milestone).
+- [x] Crate names `uffda-runtime` / `uffda-heap` / `uffda-heap-derive` /
+      `uffda-build`; workspace versions track Cargo.toml (aligned with the
+      GitHub Release tag); MIT; `publish = true` with OIDC trusted publishing
+      from `.github/workflows/publish.yml` (see `rust/CRATES.md`). CLI is not a
+      crates.io package.
+- [x] Downstream-consumer smoke crate `rust/consumer` embeds its own
+      `artifacts/*.uffda.ast.json` with `uffda-build`, depends on `uffda-runtime`
+      with `default-features = false`, and runs without this repo's `src/lang`
+      or `bin` trees.
 
-Package gate: an independent project can compile its own grammar with its
-existing compiler, embed the resulting declarations, and build a working
-Rust-backed custom CLI using published crates and documented APIs.
+Package gate: a downstream crate can embed its own compiled declarations with
+`uffda-build` and execute them through `uffda-runtime` without product language
+embeds (`rust/consumer`).
 
 ### 10. Side-by-side release binaries and cutover
 

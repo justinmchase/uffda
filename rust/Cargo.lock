@@ -1047,8 +1047,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20"
 
 [[package]]
+name = "uffda-build"
+version = "0.10.0"
+
+[[package]]
+name = "uffda-consumer-smoke"
+version = "0.0.0"
+dependencies = [
+ "serde_json",
+ "uffda-build",
+ "uffda-runtime",
+ "url",
+]
+
+[[package]]
 name = "uffda-heap"
-version = "0.9.6"
+version = "0.10.0"
 dependencies = [
  "gc-arena",
  "uffda-heap-derive",
@@ -1056,7 +1070,7 @@ dependencies = [
 
 [[package]]
 name = "uffda-heap-derive"
-version = "0.9.6"
+version = "0.10.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1066,7 +1080,7 @@ dependencies = [
 
 [[package]]
 name = "uffda-runtime"
-version = "0.9.6"
+version = "0.10.0"
 dependencies = [
  "base64 0.22.1",
  "bs58",
@@ -1084,6 +1098,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "time",
+ "uffda-build",
  "uffda-heap",
  "ureq",
  "url",
@@ -1275,6 +1290,10 @@ name = "writeable"
 version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ad82d2a33cdc9674dc7465672f271e096168fcdbe0f799d9e6db8c5892679dc"
+
+[[package]]
+name = "xtask"
+version = "0.0.0"
 
 [[package]]
 name = "yoke"

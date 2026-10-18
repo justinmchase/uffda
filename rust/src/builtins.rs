@@ -4,6 +4,10 @@ use url::Url;
 include!(concat!(env!("OUT_DIR"), "/languages.rs"));
 
 /// Registers unmodified published-compiler artifacts as explicit declaration data.
+///
+/// Product builds enable `embed-languages` so [`DECLARATIONS`] is this repo's
+/// `./bin` tree. Library consumers leave that feature off and register their
+/// own compiled JSON via [`Resolver::insert_declaration_source`] instead.
 pub fn register(resolver: &mut Resolver) -> Result<Url, ModuleResolutionError> {
     let root = Url::parse(if cfg!(windows) {
         "file:///C:/uffda/builtin/"
@@ -23,7 +27,7 @@ pub fn register(resolver: &mut Resolver) -> Result<Url, ModuleResolutionError> {
     Ok(root)
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "embed-languages"))]
 mod tests {
     use super::*;
     use crate::resolver::decode_declaration;
