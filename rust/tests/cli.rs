@@ -1215,10 +1215,12 @@ fn lsp_stdio_initialize_handshake() {
     }
     let result = invoke(&["lsp"], &input);
     assert_eq!(result.status.code(), Some(0), "{}", text(&result.stderr));
-    let stdout = text(&result.stdout);
-    assert!(stdout.contains("Content-Length: "));
-    let (_, payload) = stdout.split_once("\r\n\r\n").expect("LSP framing");
-    let response: serde_json::Value = serde_json::from_str(payload.trim_end()).unwrap();
+    assert!(
+        text(&result.stdout).contains("Content-Length: "),
+        "{}",
+        text(&result.stdout)
+    );
+    let (_, response) = lsp_try_parse(&result.stdout).expect("initialize LSP frame");
     assert_eq!(response["result"]["serverInfo"]["name"], "uffda");
     assert_eq!(
         response["result"]["capabilities"]["textDocumentSync"]["change"],
