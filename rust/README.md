@@ -9,6 +9,9 @@ display open/render; LSP: initialize, document sync, `.uff` parse diagnostics).
 Richer LSP features are still landing. Release `uffda-*` assets and the Linux
 installer are this Rust CLI.
 
+Developed with substantial assistance from [Cursor](https://cursor.com); see the
+[repository acknowledgments](https://github.com/justinmchase/uffda#acknowledgments).
+
 ## Running the CLI
 
 From the repository root with a normal Rust toolchain on `PATH`:
@@ -181,39 +184,43 @@ Install a stable Rust toolchain and the platform's native linker. Before pushing
 Rust changes, run the same gate as the Checks workflow:
 
 ```sh
-deno task check:rust          # fmt --check, clippy -D warnings, test
-deno task pre:rust            # cargo fmt, then check:rust
+cargo xtask check             # fmt --check, clippy -D warnings, test
+cargo xtask fix               # cargo fmt, then check
 ```
 
-Or the Cargo aliases from the repository root (`.cargo/config.toml`):
+Single-step aliases (`.cargo/config.toml`):
 
 ```sh
-cargo fmt-rust-check
+cargo fmt-rust / cargo fmt-rust-check
 cargo clippy-rust
 cargo test-rust
 ```
 
-Equivalent expanded commands:
+### Packaging
 
-```sh
-cargo fmt --manifest-path rust/Cargo.toml --all --check
-cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets --locked -- -D warnings
-cargo test --manifest-path rust/Cargo.toml --workspace --locked
-```
+| Channel | Ships |
+|--------|--------|
+| crates.io (libraries) | `uffda-runtime`, `uffda-heap`, `uffda-heap-derive`, `uffda-build` |
+| GitHub Releases | Product `uffda` CLI (ASTs embedded at build time) |
+| JSR | `.uff`, declaration JSON ASTs, data-codec files; `jsr:` resolution |
 
-The build embeds the unmodified compiled language artifacts already present in
-`bin/ast/src/lang/`. If that tree is missing, bootstrap it from the repository
-root with the previous published `uffda` binary:
+See [CRATES.md](./CRATES.md) for crates.io OIDC trusted publishing and the
+one-time first-publish steps.
+
+Library builds default to **no** product grammars. Enable
+`--features embed-languages` (CI, `cargo xtask`, `cargo build-uffda`) so the
+product binary embeds `bin/ast/src/lang/`. Downstream crates use `uffda-build`
+in their own `build.rs` — see `rust/consumer` and `rust/build/README.md`.
+
+If `./bin` is missing for a product build, bootstrap from the repository root
+with the previous published `uffda` binary:
 
 ```sh
 uffda compile 'src/lang/**/*.uff'
 ```
 
-This is the published compiler, not the Rust preview. The Cargo build only reads
-the artifacts and generates an include table in Cargo's build output; it never
-parses source, re-lowers declarations, or rewrites artifacts. Embedded graph
-linking and real expression/pattern/Uffda parsing, compiler lowering, and
-metadata-selected formatting have separate tests.
+The Cargo build only reads those artifacts and generates an include table; it
+never parses `.uff`, re-lowers declarations, or rewrites artifacts.
 
 Rust unit tests are co-located with their implementations. Collector integration
 tests are in `src/gc_tests.rs` and cite requirements using `req:` comments. The

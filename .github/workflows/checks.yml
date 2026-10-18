@@ -37,10 +37,10 @@ jobs:
           path: bin
 
       - name: Lint
-        run: cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets --locked -- -D warnings
+        run: cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets --locked --features embed-languages -- -D warnings
 
       - name: Test
-        run: cargo test --manifest-path rust/Cargo.toml --workspace --locked
+        run: cargo test --manifest-path rust/Cargo.toml --workspace --locked --features embed-languages
 
   rust-language-bin:
     name: Rust language artifacts
@@ -83,9 +83,9 @@ jobs:
         with:
           targets: ${{ matrix.target }}
       - name: Test codec acceptance example
-        run: cargo test --locked --manifest-path rust/Cargo.toml --target ${{ matrix.target }} --example codec_probe
+        run: cargo test --locked --manifest-path rust/Cargo.toml --target ${{ matrix.target }} --features embed-languages --example codec_probe
       - name: Build standalone CLI and streaming consumer
-        run: cargo build --locked --manifest-path rust/Cargo.toml --target ${{ matrix.target }} --release --bin uffda --example codec_probe
+        run: cargo build --locked --manifest-path rust/Cargo.toml --target ${{ matrix.target }} --release --features embed-languages --bin uffda --example codec_probe
       - name: Verify relocated CLI and streaming without external grammars
         shell: bash
         run: |
@@ -94,7 +94,7 @@ jobs:
           suffix="${{ matrix.suffix }}"
           export UFFDA_ACCEPT_CLI="$PWD/rust/target/${target}/release/uffda${suffix}"
           export UFFDA_ACCEPT_PROBE="$PWD/rust/target/${target}/release/examples/codec_probe${suffix}"
-          cargo test --locked --manifest-path rust/Cargo.toml --target "${target}" --test standalone_acceptance -- --ignored
+          cargo test --locked --manifest-path rust/Cargo.toml --target "${target}" --features embed-languages --test standalone_acceptance -- --ignored
 
   vscode-extension:
     name: VS Code Extension

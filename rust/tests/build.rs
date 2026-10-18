@@ -3,6 +3,7 @@ use uffda_runtime::builtins::DECLARATIONS;
 use uffda_runtime::resolver::packages::sha256;
 
 #[test]
+#[cfg(feature = "embed-languages")]
 // req:cli-bootstrap-015
 fn build_script_embeds_the_published_artifact_tree() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../bin/ast/src/lang");

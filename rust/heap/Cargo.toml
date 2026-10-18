@@ -1,10 +1,16 @@
 [package]
 name = "uffda-heap"
-version = "0.9.6"
+version = "0.10.0"
 edition = "2024"
-publish = false
+publish = true
 license = "MIT"
 description = "Garbage-collected heap abstraction for the Uffda runtime"
+repository = "https://github.com/justinmchase/uffda"
+homepage = "https://github.com/justinmchase/uffda"
+documentation = "https://docs.rs/uffda-heap"
+readme = "README.md"
+keywords = ["uffda", "gc", "heap"]
+categories = ["memory-management"]
 
 [features]
 default = ["gc-arena"]
@@ -16,5 +22,5 @@ gc-arena = ["dep:gc-arena"]
 leak = []
 
 [dependencies]
-uffda-heap-derive = { path = "derive" }
+uffda-heap-derive = { path = "derive", version = "0.10.0" }
 gc-arena = { version = "=0.7.0", optional = true }

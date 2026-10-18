@@ -1,0 +1,16 @@
+[package]
+name = "uffda-build"
+version = "0.10.0"
+edition = "2024"
+publish = true
+license = "MIT"
+description = "Build helpers that embed unmodified Uffda compiled declaration JSON"
+repository = "https://github.com/justinmchase/uffda"
+homepage = "https://github.com/justinmchase/uffda"
+documentation = "https://docs.rs/uffda-build"
+readme = "README.md"
+keywords = ["uffda", "parser", "build"]
+categories = ["development-tools::build-utils"]
+
+[lib]
+path = "src/lib.rs"
