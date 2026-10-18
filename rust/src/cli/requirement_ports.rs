@@ -130,6 +130,10 @@ fn requirement_ports_release_packaging_checksum_and_attach_contract() {
     assert!(yaml.contains("Replace assets on release"));
     assert!(yaml.contains("already has CLI assets; refusing to replace"));
     assert!(yaml.contains("gh release upload"));
+    assert!(yaml.contains("release_id"));
+    assert!(yaml.contains("client_payload.version"));
+    // Untagged drafts 404 on this endpoint; attach must use release id instead.
+    assert!(!yaml.contains("/releases/tags/"));
     assert!(!yaml.contains("force=true"));
     assert!(!yaml.contains("git/refs/tags/"));
 }
