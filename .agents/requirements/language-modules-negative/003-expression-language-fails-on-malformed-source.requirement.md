@@ -23,4 +23,5 @@ Postconditions:
 
 - Malformed expression input remains diagnosable through deterministic failure
   outcomes.
-- Tests: `rust/src/lang_tests/common.rs` (`expression_language_fails_on_malformed_source`).
+- Tests: `rust/src/lang_tests/common.rs`
+  (`expression_language_fails_on_malformed_source`).

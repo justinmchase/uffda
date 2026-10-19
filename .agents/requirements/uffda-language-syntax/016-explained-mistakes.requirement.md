@@ -38,4 +38,5 @@ Postconditions:
 
 ## Test plan
 
-- `rust/src/lang_tests/common.rs`, `rust/src/lang_tests/pattern.rs`, `rust/src/lang_tests/uffda.rs`
+- `rust/src/lang_tests/common.rs`, `rust/src/lang_tests/pattern.rs`,
+  `rust/src/lang_tests/uffda.rs`

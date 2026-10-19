@@ -3,14 +3,7 @@
   "version": "0.10.4",
   "license": "MIT",
   "exports": {
-    ".": "./mod.ts",
-    "./grammar": "./src/lang/grammar.ts",
-    "./runtime": "./src/runtime/public.ts",
-    "./tokenizer": "./src/lang/tokenizer/tokenizer.lang.ts",
-    "./pattern": "./src/lang/pattern/pattern.lang.ts",
-    "./expression": "./src/lang/expression/expression.lang.ts",
-    "./uffda": "./src/lang/uffda/uffda.lang.ts",
-    "./language-metadata": "./src/cli/language_metadata.ts"
+    ".": "./mod.ts"
   },
   "tasks": {
     "cli": "deno run --allow-read --allow-write --allow-net --allow-run --allow-env=INIT_CWD,PWD,HOME,XDG_CACHE_HOME,XDG_RUNTIME_DIR,LOCALAPPDATA ./src/cli/main.ts",
@@ -61,25 +54,19 @@
     ]
   },
   "publish": {
-    // Agent docs, CI metadata, tests, and tooling are not part of the library
-    // export graph. Long paths under those trees also break JSR's ustar tarball
-    // verify step (paths truncated near 100 chars → "not found in the tarball").
-    // `bin/` is gitignored but published: the Publish workflow compiles the
-    // language ModuleDeclaration JSON into it (`deno task compile:lang`) first.
+    // Grammar + cutover-stub package only (Rust owns the CLI/runtime).
+    // `bin/` is gitignored — include it and un-ignore with `!bin/` so Publish
+    // can ship compiled ModuleDeclarations after `uffda compile`. Keep the set
+    // small so JSR upload/provenance finishes reliably.
+    "include": [
+      "mod.ts",
+      "uffda.jsonc",
+      "README.md",
+      "src/lang/**/*.uff",
+      "bin"
+    ],
     "exclude": [
-      "!bin/",
-      ".agents/",
-      ".cursor/",
-      ".github/",
-      ".vscode/",
-      "test/",
-      "scripts/",
-      "src/requirements/",
-      "editors/",
-      "**/*.test.ts",
-      "src/test.ts",
-      "src/testing.ts",
-      "src/runtime/resolvers/test*.module.*"
+      "!bin/"
     ]
   }
 }

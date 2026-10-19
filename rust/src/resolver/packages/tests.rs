@@ -664,22 +664,12 @@ fn remport_jsr_public_grammar_exports_and_raw_rules_compose() {
     .unwrap()
     .unwrap();
     let exports = deno["exports"].as_object().unwrap();
-    assert_eq!(exports["./grammar"], "./src/lang/grammar.ts");
-    assert_eq!(exports["./runtime"], "./src/runtime/public.ts");
     assert_eq!(
-        exports["./tokenizer"],
-        "./src/lang/tokenizer/tokenizer.lang.ts"
+        exports.len(),
+        1,
+        "JSR TypeScript exports are the cutover stub only"
     );
-    assert_eq!(exports["./pattern"], "./src/lang/pattern/pattern.lang.ts");
-    assert_eq!(
-        exports["./expression"],
-        "./src/lang/expression/expression.lang.ts"
-    );
-    assert_eq!(exports["./uffda"], "./src/lang/uffda/uffda.lang.ts");
-    assert_eq!(
-        exports["./language-metadata"],
-        "./src/cli/language_metadata.ts"
-    );
+    assert_eq!(exports["."], "./mod.ts");
     assert_eq!(grammar["exports"]["./source"], "./src/lang/source/mod.uff");
 
     let mut languages = Languages::new().unwrap();

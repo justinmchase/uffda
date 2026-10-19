@@ -1,67 +1,39 @@
 ---
 id: cli-distribution-007
-title: The JSR package exposes generic grammar parsing and AST-lowering APIs
-spec_ref: ".agents/specifications/languages.spec.md#public-grammar-apis; .agents/specifications/languages/cli/distribution-and-release.spec.md#jsr-package-contract"
+title: JSR root is a Rust cutover stub; .uff grammar remports remain via uffda.jsonc
+spec_ref: ".agents/specifications/languages/cli/distribution-and-release.spec.md#jsr-package-contract; .agents/specifications/languages.spec.md#public-grammar-apis"
 ---
 
-# JSR Public Grammar APIs
+# JSR Cutover Stub and Grammar Remports
 
 ## Requirement
 
 Preconditions:
 
-- The package is imported from JSR using its declared TypeScript exports.
-- A caller supplies a grammar module URL and entry rule to `parseGrammar`.
+- The package is imported from JSR using its declared TypeScript exports and/or
+  Uffda `jsr:@justinmchase/uffda/<export>` grammar imports.
 
 Expected behavior:
 
-- `deno.jsonc` MUST export the generic grammar API, tokenizer grammar API,
-  pattern grammar API, expression grammar API, Uffda grammar/compiler API, and
-  language metadata API as supported subpaths.
-- `parseGrammar<TAst>` MUST return the match for the named entry rule as
-  `Match<TAst>`, allowing a caller's grammar to project its own AST.
-- `GrammarOptions` MUST allow a caller to set the resolver's artifact layout,
-  import map, and package resolver. Unspecified resolver options MUST retain
-  existing defaults, including built-in language declarations and globals.
-- `patternGrammar` and `expressionGrammar` MUST continue to return lowered
-  runtime `Pattern` and `Expression` values in their match results.
-- `tokenizerGrammar` MUST return the tokenizer language result, including its
-  normalized source and parser-compatible token text iterable.
-- The `/pattern` and `/expression` `.uff` modules MUST export their raw
-  token-level `Pattern` and `Expression` rules in addition to the complete
-  language entry points.
-- The package MUST provide dedicated `/pattern-syntax` and `/expression-syntax`
-  `.uff` aliases for those raw grammar component modules.
-- The package MUST provide a `/source` `.uff` alias for the source-normalizing
-  grammar module.
-- The TypeScript `/pattern` and `/expression` entry points MUST export
-  `PatternKind` and `ExpressionKind`, respectively.
-- The `/runtime` TypeScript entry point MUST export `match`, `Scope`, `Pattern`,
-  `Expression`, and the pattern/expression kind enums.
-- The `/runtime` TypeScript entry point MUST export
-  `evaluateExpression(expression, options)`, resolving references from
-  `options.variables`, `_` from `options.input`, and returning the raw evaluated
-  value while preserving awaitable evaluation.
-- The `/runtime` TypeScript entry point MUST export `exec`, `Resolver`,
-  `ResolverOptions`, `ArtifactLayout`, `ImportMap`, and `IPackageResolver`.
-- The `/runtime` TypeScript entry point MUST export the module-resolver
-  extension points `IModuleResolver`, `IModuleResolvers`, `UffArtifactResolver`,
-  and `PackageUffArtifactResolver`, along with the `packageArtifactUrl` helper,
-  so a DSL built on uffda can load its own published `.uff` grammar artifacts
-  from its package root over any protocol — a local `file:` checkout or a
-  non-`file:` published package (for example its `https:` JSR root) — the same
-  way uffda loads its built-in languages
-  ([#271](https://github.com/justinmchase/uffda/issues/271)).
-- The package root MUST export `Scope` alongside its existing `exec` and `match`
-  runtime functions.
-- The `/pattern` and `/expression` TypeScript entry points MUST re-export their
-  respective runtime AST types.
-- `readLanguageMetadata` MUST remain available for validating the raw metadata
-  value declared by a language's `Language` decorator.
+- `deno.jsonc` MUST export only `"."` → `./mod.ts`.
+- `mod.ts` MUST export string constants that state the runtime/CLI moved to the
+  Rust `uffda` binary, TypeScript library subpaths are withdrawn from JSR, and
+  compiled grammar artifacts remain under `./bin` for remport.
+- `deno.jsonc` MUST NOT declare TypeScript subpath exports for `./grammar`,
+  `./runtime`, `./tokenizer`, `./pattern`, `./expression`, `./uffda`, or
+  `./language-metadata`.
+- The package MUST still provide dedicated `/pattern-syntax`,
+  `/expression-syntax`, and `/source` `.uff` aliases (and the other
+  `uffda.jsonc` grammar exports) so remported grammars compose as before (see
+  cli-distribution-006).
+- In-tree Deno modules under `src/` MAY retain `parseGrammar` and related
+  reference APIs for differential testing; those paths are not JSR exports.
 
 Postconditions:
 
-- A downstream grammar can parse and lower to its own AST through the public API
-  without adding application-specific semantics to Uffda.
-- Tests: `rust/src/lang_tests/common.rs`,
-  `rust/src/resolver/packages/tests.rs`.
+- `import "jsr:@justinmchase/uffda@^x/pattern-syntax" Pattern` (and sibling
+  grammar exports) still resolve through the published package.
+- `import { parseGrammar } from "jsr:@justinmchase/uffda/grammar"` is not a
+  supported published import after cutover.
+- Tests: `rust/src/resolver/packages/tests.rs`,
+  `rust/src/cli/requirement_ports.rs`.

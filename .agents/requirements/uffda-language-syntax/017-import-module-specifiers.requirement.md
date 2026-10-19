@@ -33,8 +33,8 @@ Expected behavior:
 
 Postconditions:
 
-  covers the accepted and rejected forms, and
-  `rust/src/lang_tests/uffda.rs` covers each form's explanation.
+covers the accepted and rejected forms, and `rust/src/lang_tests/uffda.rs`
+covers each form's explanation.
 
 ## Test plan
 

@@ -668,10 +668,12 @@ acceptance before attach.
       Deno→Rust production switch (including MCP/LSP command availability).
       Extension/README/settings document `uffda lsp` / `uffda mcp`; override
       examples prefer a local `rust/target/release/uffda` build.
-- [ ] Switch production only after package gates (milestone 9), MCP/LSP cutover
-      gates, and an explicit cutover approval. Do not publish a draft until
-      Release Binaries attach + smoke succeed — publishing early leaves an empty
-      immutable release. Gates above are ready; cutover awaits that approval.
+- [x] Switch production: release `uffda` is the Rust CLI; VS Code resolves
+      `uffda` only; JSR publishes a cutover stub + `uffda.jsonc` / `.uff` /
+      `bin/` grammar package (no Deno TypeScript library subpaths). Deno sources
+      remain in-tree as a differential-test reference. Do not publish a draft
+      until Release Binaries attach + smoke succeed — publishing early leaves an
+      empty immutable release.
 
 ## Final acceptance
 

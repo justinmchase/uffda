@@ -1,6 +1,8 @@
 # Uffda
 
-Uffda is a Deno-based parser generator for domain-specific languages.
+Uffda is a parser generator for domain-specific languages. The production CLI
+and runtime are the Rust `uffda` binary; this repository still keeps Deno
+sources as a differential-test reference.
 
 Patterns can match strings **and** structured values (objects, arrays, and other
 data). That means the whole compiler pipeline—tokenization, parsing, projection,
@@ -200,39 +202,22 @@ export rule ExpressionAtom = Expression;
 ```
 
 The `language` export provides `UffdaLang` and its `Language` decorator.
-TypeScript consumers can validate decorator values with `readLanguageMetadata`
-from `language-metadata`.
 
-The TypeScript APIs are available at matching JSR subpaths:
+### JSR package (grammars + cutover notice)
 
-```ts
-import { parseGrammar } from "jsr:@justinmchase/uffda/grammar";
-import { expressionGrammar } from "jsr:@justinmchase/uffda/expression";
-import { patternGrammar } from "jsr:@justinmchase/uffda/pattern";
-import { tokenizerGrammar } from "jsr:@justinmchase/uffda/tokenizer";
-import { readLanguageMetadata } from "jsr:@justinmchase/uffda/language-metadata";
-import {
-  evaluateExpression,
-  match,
-  Resolver,
-  Scope,
-} from "jsr:@justinmchase/uffda/runtime";
+`jsr:@justinmchase/uffda` publishes a small package: a root `mod.ts` cutover
+notice, `uffda.jsonc`, `.uff` sources, and compiled `./bin` artifacts. It does
+**not** publish Deno TypeScript library subpaths (`./grammar`, `./runtime`, …).
+Use the Rust CLI for execution; remport grammars as:
+
+```uffda
+import "jsr:@justinmchase/uffda/tokenizer" Tokenizer;
+import "jsr:@justinmchase/uffda/pattern-syntax" Pattern;
 ```
 
-`patternGrammar` and `expressionGrammar` parse and lower source to the runtime
-`Pattern` and `Expression` ASTs. `parseGrammar<TAst>` is the generic entry point
-for a foreign grammar: it runs the named entry rule and returns its projected
-AST as a `Match<TAst>`. Its `grammarOptions.resolverOptions` accepts the
-resolver's artifact layout, import map, and package resolver for external
-grammars. These APIs provide parser and AST infrastructure only; a consuming
-language defines its own syntax and semantics.
-
-The `runtime` entry point exposes pattern matching, expression execution,
-`Scope`, `Resolver` and its configuration types, and
-`evaluateExpression(expression, { input, variables, scope })` for evaluating a
-lowered expression with caller-supplied values. The package root also exports
-`JsrPackages` and `Lockfile` for callers that need the concrete JSR package
-resolver; `/runtime` exposes its `IPackageResolver` contract.
+```ts
+import { CLI_INSTALL, GRAMMARS_NOTE, NOTICE } from "jsr:@justinmchase/uffda";
+```
 
 ### MCP server
 

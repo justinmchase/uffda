@@ -45,7 +45,8 @@ Postconditions:
 
 ## Test plan
 
-  runs each case above over both `Input.Iterable(string)` and an async-generator
-  input and asserts identical kind, value, and end position.
+runs each case above over both `Input.Iterable(string)` and an async-generator
+input and asserts identical kind, value, and end position.
 
-- `rust/src/runtime/module_ports.rs`, `rust/src/runtime/scope_ports.rs`, `rust/src/runtime/tests.rs`
+- `rust/src/runtime/module_ports.rs`, `rust/src/runtime/scope_ports.rs`,
+  `rust/src/runtime/tests.rs`

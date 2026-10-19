@@ -45,9 +45,9 @@ Postconditions:
 - A grammar's overall parse result is unaffected by whether any individual
   rule's invocation was memoized or not: this requirement changes bookkeeping
   cost only, never observable behavior.
-- Tests: `rust/src/runtime/selective_memo_ports.rs`
-  (`reentrancy00_*`, `reentrancy01_*`, `reentrancy04_*`, `reentrancy09_*`,
-  `reentrancy11_*`, `skip_memo_invocation_does_not_populate_the_memo_table`,
+- Tests: `rust/src/runtime/selective_memo_ports.rs` (`reentrancy00_*`,
+  `reentrancy01_*`, `reentrancy04_*`, `reentrancy09_*`, `reentrancy11_*`,
+  `skip_memo_invocation_does_not_populate_the_memo_table`,
   `skip_memo_parent_of_left_recursive_child_still_matches`,
   `left_recursive_rules_still_grow_via_memoization`);
   `rust/src/runtime/engine_ports.rs`

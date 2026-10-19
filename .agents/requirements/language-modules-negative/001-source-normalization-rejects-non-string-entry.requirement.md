@@ -21,4 +21,5 @@ Postconditions:
 
 - Source-normalization failure behavior remains deterministic for invalid entry
   values.
-- Tests: `rust/src/lang_tests/common.rs` (`source_normalization_rejects_non_string_entry`).
+- Tests: `rust/src/lang_tests/common.rs`
+  (`source_normalization_rejects_non_string_entry`).

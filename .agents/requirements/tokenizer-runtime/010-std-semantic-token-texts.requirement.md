@@ -39,4 +39,5 @@ Error behavior:
 
 Postconditions:
 
-- Tests: `rust/src/lang_tests/common.rs` (`tokenizer_semantic_token_texts_omit_comments`).
+- Tests: `rust/src/lang_tests/common.rs`
+  (`tokenizer_semantic_token_texts_omit_comments`).

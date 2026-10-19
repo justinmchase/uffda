@@ -31,8 +31,8 @@ Expected behavior:
   semver CLI without requiring Deno. The version-bump commit MUST run
   `semver set` so `.github/version.yml` post hooks update those Cargo package
   versions and path-dep pins (`rust/Cargo.toml`, `rust/heap/Cargo.toml`,
-  `rust/heap/derive/Cargo.toml`, `rust/build/Cargo.toml`, and consumer path
-  pins — leaving the unpublished consumer package at `0.0.0`), then refresh
+  `rust/heap/derive/Cargo.toml`, `rust/build/Cargo.toml`, and consumer path pins
+  — leaving the unpublished consumer package at `0.0.0`), then refresh
   `rust/Cargo.lock` with `cargo update` for the published crates.
 - The standalone draft workflow MUST dispatch `repository_dispatch` event type
   `release-binaries` after the draft/version update on `main`.
@@ -47,10 +47,10 @@ Expected behavior:
   assets. Attach MUST succeed when the tag is a draft, or when it is published
   with no `uffda-*` / `SHA256SUMS` assets yet; it MUST fail when a published
   release already has those assets. Attach MUST resolve the release by id (or
-  `gh release view` metadata) and MUST NOT require `GET .../releases/tags/<tag>`,
-  which 404s for untagged drafts. It MUST NOT create or move git tags;
-  publishing the draft creates `refs/tags/<version>` at the draft's
-  `target_commitish` (set by Draft Release).
+  `gh release view` metadata) and MUST NOT require
+  `GET .../releases/tags/<tag>`, which 404s for untagged drafts. It MUST NOT
+  create or move git tags; publishing the draft creates `refs/tags/<version>` at
+  the draft's `target_commitish` (set by Draft Release).
 - Draft version resolution MUST skip SemVer values that already have a published
   release or an existing git tag (burnt tags are not reused).
 - After attach succeeds, the release MUST include checksum data covering every

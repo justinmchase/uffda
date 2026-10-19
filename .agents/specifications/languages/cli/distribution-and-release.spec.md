@@ -89,21 +89,32 @@ Normative key words in this chapter use the conventions defined in the
 
 ## JSR package contract
 
-- The JSR package published from this repository MUST include the library export
-  graph rooted at `mod.ts`.
-- Agent documentation (`.agents/`), editor/CI metadata (`.cursor/`, `.github/`),
-  and requirement test trees (`src/requirements/`) MUST be excluded from the JSR
-  package via `publish.exclude` in `deno.jsonc`.
-- Excluded paths MUST keep every published file path under the length limits
-  enforced by the JSR tarball verify step (ustar-compatible packing).
-- The package MUST include the repository's `uffda.jsonc` and its compiled
-  `bin/`, so its grammars load as `jsr:@justinmchase/uffda/<export>` imports
-  (see [packages](../../modules.spec.md#packages)). `uffda.jsonc` MUST export
+- After the Rust production cutover, the JSR package is a **grammar and notice
+  package**, not the Deno TypeScript runtime library. The supported CLI and
+  runtime ship as the Rust `uffda` binary (GitHub Releases) and crates.io
+  crates.
+- `deno.jsonc` MUST declare a single TypeScript export `"."` → `./mod.ts`. That
+  module MUST export string constants that document the Rust cutover (where to
+  install the CLI, that TypeScript library subpaths are withdrawn, and that
+  compiled grammar artifacts remain in the package).
+- The package MUST include the repository's `uffda.jsonc`, the `.uff` sources
+  those exports name under `src/lang/`, and the compiled `bin/` tree, so
+  grammars load as `jsr:@justinmchase/uffda/<export>` imports (see
+  [packages](../../modules.spec.md#packages)). `uffda.jsonc` MUST export
   reusable tokenizer, pattern, expression, import-declaration,
   export-declaration, and Uffda-language `.uff` modules.
-- `deno.jsonc` MUST publish supported TypeScript subpath exports for the generic
-  grammar API, tokenizer, pattern and expression grammar/lowering APIs, Uffda
-  grammar/compiler APIs, and language metadata.
+- `deno.jsonc` MUST NOT publish TypeScript subpath exports for the former Deno
+  grammar/runtime APIs (`./grammar`, `./runtime`, `./tokenizer`, `./pattern`,
+  `./expression`, `./uffda`, `./language-metadata`, and similar). Those APIs
+  remain available only as in-tree Deno reference sources for differential
+  testing (see
+  [public grammar APIs](../../languages.spec.md#public-grammar-apis)).
+- Publish configuration MUST keep the package small: include only the stub
+  `mod.ts`, `uffda.jsonc`, `README.md`, `src/lang/**/*.uff`, and `bin/`, and
+  exclude agent docs, editor/CI metadata, requirement trees, Rust sources, and
+  Deno implementation TypeScript. Excluded paths MUST keep every published file
+  path under the length limits enforced by the JSR tarball verify step
+  (ustar-compatible packing).
 - Grammar package exports MUST remain generic parser infrastructure and MUST NOT
   add downstream application-language behavior.
 

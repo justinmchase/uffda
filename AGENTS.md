@@ -1,6 +1,7 @@
 # Uffda agent instructions
 
-Uffda is a Deno-based parser generator for domain specific languages.
+Uffda is a parser generator for domain specific languages. Production CLI and
+runtime are Rust; Deno sources remain as a differential-test reference.
 
 These instructions apply to all agent tooling (Cursor, Copilot, and others).
 Path-scoped authoring guidance also lives in:

@@ -30,6 +30,7 @@ Postconditions:
 
 - The diagnostic can be printed to a console or file without another rendering
   dependency.
-- Tests: `rust/src/lang_tests/expression.rs` (`expression_lang` for `(add 1 #)`),
-  `rust/src/runtime/engine_ports.rs` (failure focus), `rust/src/lsp/hover.rs`
+- Tests: `rust/src/lang_tests/expression.rs` (`expression_lang` for
+  `(add 1 #)`), `rust/src/runtime/engine_ports.rs` (failure focus),
+  `rust/src/lsp/hover.rs`
   (`describe_pattern_names_equals_resolves_and_variable_wrappers`).

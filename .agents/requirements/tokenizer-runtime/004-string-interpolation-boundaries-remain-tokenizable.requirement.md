@@ -24,4 +24,5 @@ Postconditions:
 
 - Downstream expression and pattern layers can deterministically parse string
   interpolation structure from tokenizer output.
-- Tests: `rust/src/lang_tests/common.rs` (`tokenizer_keeps_string_interpolation_boundaries_tokenizable`).
+- Tests: `rust/src/lang_tests/common.rs`
+  (`tokenizer_keeps_string_interpolation_boundaries_tokenizable`).
