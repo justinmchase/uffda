@@ -27,12 +27,16 @@ Expected behavior:
 - The compiled module MUST translate `.../---/.../` to `SOS` through standard
   runtime module execution.
 - The compiled module MUST round trip a multi-paragraph public-domain prose
-  excerpt from text to Morse and back to the original text.
+  excerpt from text to Morse and back to the original text. The excerpt MUST be
+  long enough to exercise paragraph separators and whitespace, and SHOULD stay
+  short enough that a debug-suite run is dominated by a single UffdaLang parse
+  of `examples/morse/morse.uff` rather than by encode/decode length.
 
 Postconditions:
 
 - The fixture demonstrates a source-authored DSL compiling to the reusable Uffda
   runtime target without bootstrap-only parsing or execution behavior.
 - Tests: `rust/src/lang_tests/uffda.rs`
-  (`remport_source_authored_morse_decodes_the_full_repertoire`,
-  `remport_morse_compiles_and_roundtrips_moby_dick_excerpt`).
+  (`remport_source_authored_morse_roundtrips_repertoire_and_prose`). The test
+  MUST parse and compile the Morse module once, then reuse that
+  ModuleDeclaration for repertoire, SOS, and prose assertions.

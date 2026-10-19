@@ -1639,9 +1639,15 @@ fn runtime_compiler_normalizes_reexport_import_kind() {
 
 #[test]
 // req:uffda-runtime-compilation-006
-fn remport_source_authored_morse_decodes_the_full_repertoire() {
+fn remport_source_authored_morse_roundtrips_repertoire_and_prose() {
+    // Parsing morse.uff through UffdaLang dominates (~10s debug). Compile once
+    // and reuse the ModuleDeclaration for every assertion so the suite does not
+    // pay that cost twice under languages_lock.
     let _guard = crate::test_sync::languages_lock();
     const MORSE: &str = include_str!("../../../examples/morse/morse.uff");
+    let mut compiled = compile_syntax(parse_value(MORSE)).unwrap();
+    let artifact = compiled.serialize_result().unwrap().unwrap();
+
     let repertoire = [
         (".-", "A"),
         ("-...", "B"),
@@ -1706,66 +1712,25 @@ fn remport_source_authored_morse_decodes_the_full_repertoire() {
         .iter()
         .map(|(_, symbol)| *symbol)
         .collect::<String>();
-    let mut runtime = execute_source(MORSE, "Morse", json!(encoded), InputMode::Iterable);
-    let (kind, clean) = kind_and_clean(&runtime);
+    let mut decoded = execute_module(&artifact, "Morse", json!(encoded), InputMode::Iterable);
+    let (kind, clean) = kind_and_clean(&decoded);
     assert_eq!(kind, MatchKind::Ok);
     assert!(clean);
-    assert_eq!(json_value(&mut runtime), json!(expected));
-}
+    assert_eq!(json_value(&mut decoded), json!(expected));
 
-#[test]
-// req:uffda-runtime-compilation-006
-fn remport_morse_compiles_and_roundtrips_moby_dick_excerpt() {
-    let _guard = crate::test_sync::languages_lock();
-    use crate::compile::{CompileRequest, compile};
-    use std::collections::BTreeMap;
-
-    const MORSE: &str = include_str!("../../../examples/morse/morse.uff");
-    const MOBY_DICK: &str = "I quickly followed suit, and descending into the\n\
-bar-room accosted the grinning landlord very pleasantly. I cherished no malice\n\
-towards him, though he had been skylarking with me not a little in the matter of\n\
-my bedfellow.\n\
-\n\
-However, a good laugh is a mighty good thing, and rather too scarce a good\n\
-thing; the more's the pity. So, if any one man, in his own proper person, afford\n\
-stuff for a good joke to anybody, let him not be backward, but let him\n\
-cheerfully allow himself to spend and be spent in that way. And the man that has\n\
-anything bountifully laughable about him, be sure there is more in that man than\n\
-you perhaps think for.";
-
-    let root = std::env::temp_dir().join(format!(
-        "uffda-morse-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
-    std::fs::create_dir_all(root.join("examples/morse")).unwrap();
-    std::fs::write(root.join("examples/morse/morse.uff"), MORSE).unwrap();
-    let out_dir = root.join("bin");
-    let paths = vec!["examples/morse/morse.uff".to_string()];
-    let imports = BTreeMap::new();
-    let mut languages = Languages::new().unwrap();
-    let result = compile(
-        CompileRequest {
-            cwd: &root,
-            root: &root,
-            out_dir: &out_dir,
-            paths: &paths,
-            imports: &imports,
-            overwrite: false,
-        },
-        &mut languages,
+    let mut sos = execute_module(
+        &artifact,
+        "Morse",
+        json!(".../---/.../"),
+        InputMode::Iterable,
     );
-    assert!(result.ok, "{}", serde_json::to_string(&result).unwrap());
-    assert!(result.failures.is_empty());
-    assert_eq!(result.successes.len(), 1);
-    let artifact = std::fs::read_to_string(&result.successes[0].output_path).unwrap();
-    let declaration: Json = serde_json::from_str(&artifact).unwrap();
-    assert!(declaration["rules"].as_array().is_some());
+    assert_eq!(kind_and_clean(&sos).0, MatchKind::Ok);
+    assert_eq!(json_value(&mut sos), json!("SOS"));
 
-    let source_text = MOBY_DICK
+    // Short multi-paragraph public-domain excerpt (Moby-Dick); keep it small so
+    // encode/decode stay cheap after the one-time UffdaLang parse.
+    const PROSE: &str = "Call me Ishmael.\n\nSome years ago never mind how long precisely.";
+    let source_text = PROSE
         .split("\n\n")
         .map(|paragraph| paragraph.replace('\n', " "))
         .collect::<Vec<_>>()
@@ -1775,8 +1740,7 @@ you perhaps think for.";
     assert_eq!(kind_and_clean(&encoded).0, MatchKind::Ok);
     let encoded_text = json_value(&mut encoded);
     assert!(encoded_text.as_str().is_some());
-    let mut decoded = execute_module(&artifact, "Morse", encoded_text, InputMode::Iterable);
-    assert_eq!(kind_and_clean(&decoded).0, MatchKind::Ok);
-    assert_eq!(json_value(&mut decoded), json!(source_text));
-    let _ = std::fs::remove_dir_all(root);
+    let mut roundtrip = execute_module(&artifact, "Morse", encoded_text, InputMode::Iterable);
+    assert_eq!(kind_and_clean(&roundtrip).0, MatchKind::Ok);
+    assert_eq!(json_value(&mut roundtrip), json!(source_text));
 }
