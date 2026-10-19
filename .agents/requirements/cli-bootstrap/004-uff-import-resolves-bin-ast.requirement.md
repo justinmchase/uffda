@@ -20,8 +20,8 @@ Preconditions:
 Expected behavior:
 
 - Runtime resolution MUST remap the logical `.uff` URL to the mirrored artifact
-  paths (prefer `.uff.ast`, else `.uff.ast.json`) and MUST NOT read the
-  `.uff` source text.
+  paths (prefer `.uff.ast.json`, else `.uff.ast`) and MUST NOT read the `.uff`
+  source text.
 - The runtime MUST load the chosen artifact as a ModuleDeclaration without
   re-lowering it or invoking the runtime compiler.
 - Module identity and resolver cache keys MUST remain the logical `.uff` URL.
@@ -32,7 +32,7 @@ Expected behavior:
 Error behavior:
 
 - A missing artifact MUST fail with `MatchErrorCode.ModuleResolution` and MUST
-  mention the preferred `.uff.ast` path (and SHOULD mention the JSON
+  mention the preferred `.uff.ast.json` path (and SHOULD mention the codec
   fallback that was tried).
 - A `.uff` module outside the layout's root MUST fail with
   `MatchErrorCode.ModuleResolution` naming the module and the root.
@@ -48,4 +48,6 @@ Postconditions:
 
 ## Test plan
 
-- `rust/src/builtins.rs`, `rust/src/resolver.rs`, `rust/src/resolver/packages/tests.rs`, `rust/src/resolver/ported_tests.rs`, `rust/src/runtime/module_ports.rs`
+- `rust/src/builtins.rs`, `rust/src/resolver.rs`,
+  `rust/src/resolver/packages/tests.rs`, `rust/src/resolver/ported_tests.rs`,
+  `rust/src/runtime/module_ports.rs`

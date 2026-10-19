@@ -21,12 +21,10 @@ Expected behavior:
 - The artifact layout MUST be the project's root and `outDir`, or, without a
   project, the working directory (the language server: its workspace root) and
   `./bin` (`ArtifactLayout` in `src/runtime/resolvers/artifact_path.ts`).
-- `<root>/<path>.uff` MUST compile to both
-  `<outDir>/ast/<path>.uff.ast` (data codec) and
-  `<outDir>/ast/<path>.uff.ast.json` (JSON). A resolver given that layout
-  (`ResolverOptions.artifacts`) MUST prefer the `.uff.ast` file when it
-  exists and otherwise read `.uff.ast.json`. Nothing is written next to a
-  source.
+- `<root>/<path>.uff` MUST compile to both `<outDir>/ast/<path>.uff.ast` (data
+  codec) and `<outDir>/ast/<path>.uff.ast.json` (JSON). A resolver given that
+  layout (`ResolverOptions.artifacts`) MUST prefer the `.uff.ast.json` file when
+  it exists and otherwise read `.uff.ast`. Nothing is written next to a source.
 - `uffda compile`, MCP `uffda_compile`, `run`, `exec`, MCP sessions (their
   compile-on-demand included), and the language server MUST all use the layout.
   MCP tools take no output or artifact directory argument.
@@ -39,6 +37,6 @@ Postconditions:
 
 - A module's artifacts are found from its project file alone, so a package's
   consumers can locate them.
-- Tests: `rust/src/resolver/ported_tests.rs`,
-  `rust/src/cli/command_ports.rs`, `rust/src/cli/surface_ports.rs`,
-  `rust/src/mcp/ported_tests.rs`, `rust/src/lsp/ported_tests.rs`.
+- Tests: `rust/src/resolver/ported_tests.rs`, `rust/src/cli/command_ports.rs`,
+  `rust/src/cli/surface_ports.rs`, `rust/src/mcp/ported_tests.rs`,
+  `rust/src/lsp/ported_tests.rs`.

@@ -85,7 +85,7 @@ fn artifact_path_ported_maps_source_paths_like_compile_emission() {
         resolver
             .load_path(&Url::from_file_path(&source).unwrap())
             .unwrap(),
-        root.join("bin/ast/src/lang/common/characters/digit.uff.ast")
+        root.join("bin/ast/src/lang/common/characters/digit.uff.ast.json")
     );
 }
 
@@ -99,7 +99,7 @@ fn artifact_path_ported_places_artifacts_under_custom_out_dir() {
         resolver
             .load_path(&Url::from_file_path(&source).unwrap())
             .unwrap(),
-        root.join("build/ast/nested/mod.uff.ast")
+        root.join("build/ast/nested/mod.uff.ast.json")
     );
 }
 
@@ -121,7 +121,7 @@ fn artifact_path_ported_gives_no_artifact_outside_the_root() {
         resolver
             .load_path(&Url::from_file_path(root.join("..x/mod.uff")).unwrap())
             .unwrap(),
-        root.join("bin/ast/..x/mod.uff.ast")
+        root.join("bin/ast/..x/mod.uff.ast.json")
     );
 }
 
@@ -139,10 +139,10 @@ fn artifact_path_ported_maps_package_module_urls() {
         .join("src/lang/uffda/specifier.rules.uff")
         .unwrap();
     let candidates = [
-        "https://jsr.io/@justinmchase/uffda/0.9.1/bin/ast/src/lang/uffda/specifier.rules.uff.ast",
         "https://jsr.io/@justinmchase/uffda/0.9.1/bin/ast/src/lang/uffda/specifier.rules.uff.ast.json",
-        "https://jsr.io/@justinmchase/uffda/0.9.1/bin/ast/src/lang/uffda/specifier.rules.uffda.ast",
+        "https://jsr.io/@justinmchase/uffda/0.9.1/bin/ast/src/lang/uffda/specifier.rules.uff.ast",
         "https://jsr.io/@justinmchase/uffda/0.9.1/bin/ast/src/lang/uffda/specifier.rules.uffda.ast.json",
+        "https://jsr.io/@justinmchase/uffda/0.9.1/bin/ast/src/lang/uffda/specifier.rules.uffda.ast",
     ];
     assert!(resolver.load_declaration(&https_module).is_err());
     assert_eq!(
@@ -169,7 +169,6 @@ fn artifact_path_ported_honors_package_out_dir() {
     let transport = Rc::new(RecordingTransport::default());
     let root = Url::parse("https://example.test/pkg/1.0.0/").unwrap();
     let module = root.join("src/app.uff").unwrap();
-    let codec = "https://example.test/pkg/1.0.0/build/ast/src/app.uff.ast";
     let json = "https://example.test/pkg/1.0.0/build/ast/src/app.uff.ast.json";
     transport
         .files
@@ -181,7 +180,7 @@ fn artifact_path_ported_honors_package_out_dir() {
     assert!(resolver.load_declaration(&module).unwrap().rules.is_empty());
     assert_eq!(
         transport.requests.borrow().as_slice(),
-        [codec.to_owned(), json.to_owned()].as_slice()
+        [json.to_owned()].as_slice()
     );
 }
 
@@ -425,7 +424,7 @@ fn uff_artifact_ported_missing_artifact_names_the_path() {
     let module = Url::from_file_path(repo.join(relative)).unwrap();
     let failure = resolver.load_declaration(&module).unwrap_err();
     let mut expected = out.0.join("ast").join(relative);
-    expected.set_extension("uff.ast");
+    expected.set_extension("uff.ast.json");
     assert!(
         failure.message.contains(&expected.display().to_string()),
         "{}",
@@ -504,9 +503,6 @@ fn uff_artifact_ported_loads_https_package_root() {
     let module = package_root
         .join("src/lang/common/characters/digit.uff")
         .unwrap();
-    let codec = package_root
-        .join("bin/ast/src/lang/common/characters/digit.uff.ast")
-        .unwrap();
     let json = package_root
         .join("bin/ast/src/lang/common/characters/digit.uff.ast.json")
         .unwrap();
@@ -529,7 +525,7 @@ fn uff_artifact_ported_loads_https_package_root() {
     assert!(export_named(&declaration, "Digit"));
     assert_eq!(
         transport.requests.borrow().as_slice(),
-        [codec.as_str().to_owned(), json.as_str().to_owned()].as_slice()
+        [json.as_str().to_owned()].as_slice()
     );
 }
 
@@ -560,7 +556,6 @@ fn uff_artifact_ported_rejects_module_outside_package_root() {
 fn uff_artifact_ported_honors_package_out_dir() {
     let package_root = Url::parse("https://example.test/@acme/dsl/1.0.0/").unwrap();
     let module = package_root.join("src/grammar.uff").unwrap();
-    let codec = package_root.join("build/ast/src/grammar.uff.ast").unwrap();
     let json = package_root
         .join("build/ast/src/grammar.uff.ast.json")
         .unwrap();
@@ -577,6 +572,6 @@ fn uff_artifact_ported_honors_package_out_dir() {
     assert!(resolver.load_declaration(&module).is_ok());
     assert_eq!(
         transport.requests.borrow().as_slice(),
-        [codec.as_str().to_owned(), json.as_str().to_owned()].as_slice()
+        [json.as_str().to_owned()].as_slice()
     );
 }

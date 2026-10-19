@@ -15,7 +15,8 @@ changes default runtime value output from `exec`, `match`, and `run` to codec
 syntax; `--json` retains the existing JSON compatibility output. Compiled
 ModuleDeclarations adopt the data codec on disk with the **`.uff.ast`**
 extension (plus a `.uff.ast.json` sibling during migration; resolvers prefer
-`.uff.ast`). Phasing out JSON siblings and switching embeds is a follow-on.
+`.uff.ast.json`, else `.uff.ast`). Phasing out JSON siblings and switching
+embeds is a follow-on.
 
 Build alongside the TypeScript implementation. Keep it available as a
 differential-test reference until Rust passes the compatibility gates. Do not
@@ -589,12 +590,12 @@ keeping their own grammar, command name, CLI policy and host integration.
 Agreed distribution (2026-10-18): **crates.io** for Rust libraries
 (`uffda-runtime`, `uffda-heap`, `uffda-heap-derive`, `uffda-build`); **GitHub
 Releases** for the product `uffda` CLI binary (embedded ASTs); **JSR** for
-`.uff`, `.uff.ast` (data-codec ModuleDeclarations), `.uff.ast.json`
-siblings during migration, and `jsr:` package resolution.
-No separate `uffda-cli` / LSP / MCP crates for now (they stay in the product
-binary). Broad library API is acceptable; publish the Cargo.toml version as-is
-without a separate stability theater. Polished `examples/` CLIs are deferred
-past this milestone; the downstream-consumer smoke crate is the package gate.
+`.uff`, `.uff.ast` (data-codec ModuleDeclarations), `.uff.ast.json` siblings
+during migration, and `jsr:` package resolution. No separate `uffda-cli` / LSP /
+MCP crates for now (they stay in the product binary). Broad library API is
+acceptable; publish the Cargo.toml version as-is without a separate stability
+theater. Polished `examples/` CLIs are deferred past this milestone; the
+downstream-consumer smoke crate is the package gate.
 
 - [x] Define the `uffda-runtime` library boundary: dynamic values and GC,
       expression/pattern/rule execution, native globals, async host suspension,
