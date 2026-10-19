@@ -8,8 +8,8 @@ Developed with substantial assistance from [Cursor](https://cursor.com); see the
 
 This crate never parses `.uff`, never re-lowers declarations, and never rewrites
 artifact bytes. Compile grammars with a published `uffda compile`, then point a
-`build.rs` at the resulting artifact tree. Data-codec ModuleDeclarations use
-the **`.uff.ast`** extension; during migration compile also writes
+`build.rs` at the resulting artifact tree. Data-codec ModuleDeclarations use the
+**`.uff.ast`** extension; during migration compile also writes
 **`.uff.ast.json`** siblings. `uffda-build` currently embeds the JSON form
 (`*.uff.ast.json`).
 

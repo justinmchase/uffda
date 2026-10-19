@@ -63,6 +63,6 @@ Postconditions:
   persistent measured evidence remain available.
 - Codec artifact format stays unchanged. Release asset names follow the
   distribution requirements.
-- Tests: `rust/src/codec/data/tests.rs` (corpus determinism, median summarization,
-  persistent baseline shape), `rust/examples/codec_probe.rs`,
+- Tests: `rust/src/codec/data/tests.rs` (corpus determinism, median
+  summarization, persistent baseline shape), `rust/examples/codec_probe.rs`,
   `rust/tests/standalone_acceptance.rs`, and `rust/tests/build.rs`.

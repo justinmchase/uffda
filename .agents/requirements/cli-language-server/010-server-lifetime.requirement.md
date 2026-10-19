@@ -30,4 +30,5 @@ Postconditions:
 
 - An editor that reports its process ID, as VS Code does, keeps one server
   running instead of restarting it every few seconds.
-- Tests: `rust/src/lsp/mod.rs` (`shutdown_then_exit_reports_clean_lifetime_without_shutdown_reports_abnormal`).
+- Tests: `rust/src/lsp/mod.rs`
+  (`shutdown_then_exit_reports_clean_lifetime_without_shutdown_reports_abnormal`).

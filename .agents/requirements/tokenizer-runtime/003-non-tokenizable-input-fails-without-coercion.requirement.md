@@ -21,4 +21,5 @@ Expected behavior:
 Postconditions:
 
 - Error semantics remain deterministic for invalid tokenizer input.
-- Tests: `rust/src/lang_tests/common.rs` (`tokenizer_rejects_non_tokenizable_number_items`).
+- Tests: `rust/src/lang_tests/common.rs`
+  (`tokenizer_rejects_non_tokenizable_number_items`).

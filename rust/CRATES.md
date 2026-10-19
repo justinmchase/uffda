@@ -6,12 +6,12 @@ Developed with substantial assistance from [Cursor](https://cursor.com); see the
 Product CLI binaries ship on **GitHub Releases**. These crates ship on
 **crates.io**:
 
-| Crate | Role |
-|-------|------|
-| `uffda-heap-derive` | GC derive macros |
-| `uffda-heap` | Collector heap |
-| `uffda-build` | `build.rs` embed helper for declaration artifacts (JSON siblings today; `.uff.ast` is the data-codec form) |
-| `uffda-runtime` | Runtime library (no product grammars by default) |
+| Crate               | Role                                                                                                       |
+| ------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `uffda-heap-derive` | GC derive macros                                                                                           |
+| `uffda-heap`        | Collector heap                                                                                             |
+| `uffda-build`       | `build.rs` embed helper for declaration artifacts (JSON siblings today; `.uff.ast` is the data-codec form) |
+| `uffda-runtime`     | Runtime library (no product grammars by default)                                                           |
 
 CI publishes them from `.github/workflows/publish.yml` using **OIDC trusted
 publishing** (`rust-lang/crates-io-auth-action`). No long-lived
@@ -38,7 +38,8 @@ For **each** of the four crates → Settings → Trusted Publishing:
 
 - **Repository**: `justinmchase/uffda`
 - **Workflow filename**: `publish.yml`
-- **Environment**: `crates-io` (must match the job `environment:` in the workflow)
+- **Environment**: `crates-io` (must match the job `environment:` in the
+  workflow)
 
 ### 3. GitHub Environment
 

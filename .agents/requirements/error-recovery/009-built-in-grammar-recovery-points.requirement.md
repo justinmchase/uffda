@@ -38,4 +38,5 @@ Postconditions:
 `rust/src/lang_tests/uffda.rs` ("recovery points"),
 `rust/src/lang_tests/pattern.rs` (`then_recovers_a_stray_token`,
 `pattern_lang_recovers_trailing_input`), `rust/src/lang_tests/expression.rs`,
-`rust/src/lang_tests/common.rs` (`recovery_phase_skips_one_unexpected_item_and_keeps_the_rest`).
+`rust/src/lang_tests/common.rs`
+(`recovery_phase_skips_one_unexpected_item_and_keeps_the_rest`).

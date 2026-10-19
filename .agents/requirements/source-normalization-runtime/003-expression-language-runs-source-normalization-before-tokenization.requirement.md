@@ -23,4 +23,5 @@ Postconditions:
 
 - Default expression-language composition preserves deterministic pre-tokenizer
   source normalization behavior.
-- Tests: `rust/src/lang_tests/common.rs` (`expression_language_pipeline_normalizes_before_tokenization`).
+- Tests: `rust/src/lang_tests/common.rs`
+  (`expression_language_pipeline_normalizes_before_tokenization`).

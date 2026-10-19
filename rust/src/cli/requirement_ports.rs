@@ -202,14 +202,22 @@ fn requirement_ports_uffda_setup_action_is_checked_in() {
 }
 
 #[test]
-// req:cli-distribution-005
-fn requirement_ports_deno_jsonc_excludes_agent_and_requirement_trees() {
+// req:cli-distribution-005 req:cli-distribution-007
+fn requirement_ports_deno_jsonc_jsr_stub_and_grammar_include() {
     let deno_json = read_repo("deno.jsonc");
     assert!(deno_json.contains("\"publish\""));
-    assert!(deno_json.contains(".agents/"));
-    assert!(deno_json.contains(".cursor/"));
-    assert!(deno_json.contains(".github/"));
-    assert!(deno_json.contains("src/requirements/"));
+    assert!(deno_json.contains("\"include\""));
+    assert!(deno_json.contains("mod.ts"));
+    assert!(deno_json.contains("uffda.jsonc"));
+    assert!(deno_json.contains("src/lang/**/*.uff"));
+    assert!(deno_json.contains("\"bin\"") || deno_json.contains("bin/"));
+    assert!(deno_json.contains("!bin/"));
+    assert!(!deno_json.contains("\"./grammar\""));
+    assert!(!deno_json.contains("\"./runtime\""));
+    let mod_ts = read_repo("mod.ts");
+    assert!(mod_ts.contains("NOTICE"));
+    assert!(mod_ts.contains("RUNTIME"));
+    assert!(mod_ts.contains("rust"));
 }
 
 fn artifact_file_name(version: &str, target: &str) -> String {

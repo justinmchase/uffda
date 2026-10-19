@@ -1,10 +1,10 @@
 # `test/perf/`
 
 Ad hoc reports for investigating and guarding against compile/parse-time
-regressions — distinct from `test/bench/`'s throughput micro-benchmarks and
-Rust lib integration coverage. Reports here measure how long something takes to
-_run_ across a range of input sizes, to make superlinear scaling visible rather
-than requiring a from-scratch profiling session each time it's suspected.
+regressions — distinct from `test/bench/`'s throughput micro-benchmarks and Rust
+lib integration coverage. Reports here measure how long something takes to _run_
+across a range of input sizes, to make superlinear scaling visible rather than
+requiring a from-scratch profiling session each time it's suspected.
 
 - `morse-compile.report.ts` — measures how long `uffdaGrammar` takes to parse
   `.uff` source text as a function of source size, using

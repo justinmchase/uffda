@@ -41,4 +41,5 @@ Error behavior:
 
 Postconditions:
 
-- Tests: `rust/src/lang_tests/common.rs` (`source_document_helpers_assemble_indexes`).
+- Tests: `rust/src/lang_tests/common.rs`
+  (`source_document_helpers_assemble_indexes`).

@@ -41,4 +41,6 @@ Postconditions:
 
 ## Test plan
 
-- `rust/src/evaluate/tests.rs`, `rust/src/globals/tests.rs`, `rust/src/runtime/module_ports.rs`, `rust/src/runtime/scope_ports.rs`, `rust/src/runtime/tests.rs`
+- `rust/src/evaluate/tests.rs`, `rust/src/globals/tests.rs`,
+  `rust/src/runtime/module_ports.rs`, `rust/src/runtime/scope_ports.rs`,
+  `rust/src/runtime/tests.rs`

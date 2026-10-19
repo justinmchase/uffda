@@ -59,8 +59,8 @@ The ordinary JSON serializer MUST reject BigInt, serialize Date as its UTC
 RFC3339 instant, and serialize an Error with no enumerable user properties as an
 empty object. The data codec is the lossless representation for those values.
 Project files, lockfiles, and diagnostic JSON remain JSON. Compiled
-ModuleDeclarations use the data codec on disk with the **`.uff.ast`**
-extension (see
+ModuleDeclarations use the data codec on disk with the **`.uff.ast`** extension
+(see
 [compiled ModuleDeclaration artifacts](../data-codec.spec.md#compiled-moduledeclaration-artifacts));
 a `.uff.ast.json` sibling may exist during migration.
 

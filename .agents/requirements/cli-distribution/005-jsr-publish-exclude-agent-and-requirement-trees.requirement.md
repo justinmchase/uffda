@@ -1,33 +1,35 @@
 ---
 id: cli-distribution-005
-title: JSR publish excludes agent docs and requirement trees
+title: JSR publish ships only the stub, uffda.jsonc, .uff sources, and bin/
 spec_ref: ".agents/specifications/languages/cli/distribution-and-release.spec.md#jsr-package-contract"
 ---
 
-# JSR Publish Path Exclusions
+# JSR Publish Package Contents
 
 ## Requirement
 
 Preconditions:
 
-- The package is published to JSR from `deno.jsonc` via `npx jsr publish` /
-  `deno publish`.
+- The package is published to JSR from `deno.jsonc` via `deno publish`.
 
 Expected behavior:
 
-- `deno.jsonc` MUST declare `publish.exclude` entries for `.agents/`,
-  `.cursor/`, `.github/`, and `src/requirements/`.
-- Those trees MUST NOT appear in the JSR package file list produced by
-  `deno publish --dry-run` (or equivalent `npx jsr publish --dry-run`).
+- `deno.jsonc` MUST restrict the published file set so the package contains the
+  cutover stub (`mod.ts`), `uffda.jsonc`, `README.md`, `src/lang/**/*.uff`, and
+  `bin/` (compiled ModuleDeclarations), and MUST NOT ship `.agents/`,
+  `.cursor/`, `.github/`, `rust/`, Deno implementation TypeScript under `src/`
+  (other than `.uff` sources), `src/requirements/`, `editors/`, or test trees.
+- Those excluded trees MUST NOT appear in the JSR package file list produced by
+  `deno publish --dry-run`.
 - The exclusion exists so agent/requirement paths with long filenames cannot
-  break the JSR tarball verify step (`File … not found in the tarball` after
-  ustar path truncation).
+  break the JSR tarball verify step, and so publish uploads stay small enough
+  for reliable JSR provenance.
 
 Postconditions:
 
-- Real JSR publishes succeed without shipping in-repo agent docs or requirement
-  tests.
-- Library consumers still receive the `mod.ts` export graph.
-- Tests: `rust/src/cli/requirement_ports.rs` (asserts `publish.exclude`
-  entries). JSR `--dry-run` file-list verification remains a Deno/CLI publish
-  step outside Rust unit tests.
+- Real JSR publishes succeed without shipping in-repo agent docs, Rust sources,
+  or the Deno TypeScript library graph.
+- Grammar consumers still receive `uffda.jsonc` + `.uff` + `bin/`.
+- Tests: `rust/src/cli/requirement_ports.rs` (asserts publish include/exclude
+  entries). JSR `--dry-run` file-list verification remains a Publish workflow
+  step.

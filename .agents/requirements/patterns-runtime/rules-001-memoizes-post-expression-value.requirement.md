@@ -35,4 +35,5 @@ Postconditions:
 
 ## Test plan
 
-- `rust/src/runtime/input.rs`, `rust/src/runtime/module_ports.rs`, `rust/src/runtime/tests.rs`
+- `rust/src/runtime/input.rs`, `rust/src/runtime/module_ports.rs`,
+  `rust/src/runtime/tests.rs`

@@ -87,12 +87,19 @@ jobs:
           test -f ./bin/ast/src/lang/uffda/uffda.lang.uff.ast.json
           test -f ./bin/ast/src/lang/uffda/runtime.compiler.uff.ast.json
 
-      - name: Verify ./bin is in the JSR package
+      - name: Verify stub + ./bin are in the JSR package
         run: |
           set -euo pipefail
           # uffda-setup already installs Deno; avoid the npx jsr download wrapper.
           deno publish --dry-run 2>&1 | tee "$RUNNER_TEMP/jsr-dry-run.log"
           grep -q "bin/ast/src/lang/uffda/uffda.lang.uff.ast.json" "$RUNNER_TEMP/jsr-dry-run.log"
+          grep -qE '(^|/)mod\.ts' "$RUNNER_TEMP/jsr-dry-run.log"
+          grep -q "uffda.jsonc" "$RUNNER_TEMP/jsr-dry-run.log"
+          # Deno implementation TypeScript must not ship on JSR after cutover.
+          if grep -E 'src/(runtime|cli)/.*\.ts' "$RUNNER_TEMP/jsr-dry-run.log"; then
+            echo "unexpected Deno TypeScript paths in JSR package" >&2
+            exit 1
+          fi
 
       - name: Publish to JSR
         # Upload + provenance often takes ~20–25m with little log output.
