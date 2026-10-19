@@ -198,15 +198,16 @@ cargo test-rust
 
 ### Packaging
 
-| Channel | Ships |
-|--------|--------|
-| crates.io (libraries) | `uffda-runtime`, `uffda-heap`, `uffda-heap-derive`, `uffda-build` |
-| GitHub Releases | Product `uffda` CLI (ASTs embedded at build time) |
-| JSR | `.uff`, `.uff.ast` (data-codec ModuleDeclarations), `.uff.ast.json` siblings during migration; `jsr:` resolution |
+| Channel               | Ships                                                                                                            |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| crates.io (libraries) | `uffda-runtime`, `uffda-heap`, `uffda-heap-derive`, `uffda-build`                                                |
+| GitHub Releases       | Product `uffda` CLI (ASTs embedded at build time)                                                                |
+| JSR                   | `.uff`, `.uff.ast` (data-codec ModuleDeclarations), `.uff.ast.json` siblings during migration; `jsr:` resolution |
 
 Compiled ModuleDeclarations on disk use the **`.uff.ast`** extension for the
-data-codec record. A **`.uff.ast.json`** sibling is still emitted so older
-resolvers and `uffda-build` embeds can load JSON until that path is phased out.
+data-codec record. A **`.uff.ast.json`** sibling is still emitted; resolvers and
+`uffda-build` embeds prefer JSON while ModuleDeclaration codec decode still goes
+through the data language.
 
 See [CRATES.md](./CRATES.md) for crates.io OIDC trusted publishing and the
 one-time first-publish steps.

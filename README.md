@@ -133,14 +133,14 @@ uffda compile 'src/**/*.uff'
 ```
 
 Writes ModuleDeclaration artifacts under `<outDir>/ast`, mirroring each source's
-path in the project: `src/foo.uff` becomes both
-`bin/ast/src/foo.uff.ast` (data codec) and `bin/ast/src/foo.uff.ast.json`
-(JSON). Resolvers prefer `.uff.ast` when present and fall back to
-`.uff.ast.json`. `outDir` is `./bin` unless the project file says otherwise,
-and `run`, `exec`, the language server and MCP sessions read compiled imports
-from the same place. Build output is never written next to sources. In this
-repo, `deno task compile:lang` builds workspace `./bin` with the **previous
-published** CLI (bootstrap recursion break).
+path in the project: `src/foo.uff` becomes both `bin/ast/src/foo.uff.ast` (data
+codec) and `bin/ast/src/foo.uff.ast.json` (JSON). Resolvers prefer
+`.uff.ast.json` when present and fall back to `.uff.ast`. `outDir` is `./bin`
+unless the project file says otherwise, and `run`, `exec`, the language server
+and MCP sessions read compiled imports from the same place. Build output is
+never written next to sources. In this repo, `deno task compile:lang` builds
+workspace `./bin` with the **previous published** CLI (bootstrap recursion
+break).
 
 ### Project file
 

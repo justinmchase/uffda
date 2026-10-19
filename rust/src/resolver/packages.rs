@@ -509,41 +509,47 @@ impl JsrPackages {
         if path.ends_with(".uff") {
             let stem = &path[..path.len() - 4];
             let candidates = [
-                format!("{}/ast/{stem}.uff.ast", info.out_dir),
                 format!("{}/ast/{stem}.uff.ast.json", info.out_dir),
-                format!("{}/ast/{stem}.uffda.ast", info.out_dir),
+                format!("{}/ast/{stem}.uff.ast", info.out_dir),
                 format!("{}/ast/{stem}.uffda.ast.json", info.out_dir),
+                format!("{}/ast/{stem}.uffda.ast", info.out_dir),
             ];
             let mut first_error = None;
-            let mut loaded = None;
             for target in candidates {
-                match self.package_file(&info, &target) {
-                    Ok(bytes) => {
-                        loaded = Some((target, bytes));
-                        break;
-                    }
-                    Err(error) => {
+                let bytes = match self.package_file(&info, &target) {
+                    Ok(bytes) => bytes,
+                    Err(message) => {
                         if first_error.is_none() {
-                            first_error = Some(error);
+                            first_error = Some(error(url, message, None));
+                        }
+                        continue;
+                    }
+                };
+                let text = match String::from_utf8(bytes) {
+                    Ok(text) => text,
+                    Err(cause) => {
+                        if first_error.is_none() {
+                            first_error = Some(error(
+                                url,
+                                "declaration is not UTF-8".into(),
+                                Some(cause.to_string()),
+                            ));
+                        }
+                        continue;
+                    }
+                };
+                match crate::resolver::decode_artifact(url, &target, &text) {
+                    Ok(declaration) => return Ok(declaration),
+                    Err(failure) => {
+                        if first_error.is_none() {
+                            first_error = Some(failure);
                         }
                     }
                 }
             }
-            let (target, bytes) = loaded.ok_or_else(|| {
-                error(
-                    url,
-                    first_error.unwrap_or_else(|| "no package artifact".into()),
-                    None,
-                )
-            })?;
-            let text = String::from_utf8(bytes).map_err(|cause| {
-                error(
-                    url,
-                    "declaration is not UTF-8".into(),
-                    Some(cause.to_string()),
-                )
-            })?;
-            return crate::resolver::decode_artifact(url, &target, &text);
+            return Err(
+                first_error.unwrap_or_else(|| error(url, "no package artifact".into(), None))
+            );
         }
         let bytes = self
             .package_file(&info, &path)

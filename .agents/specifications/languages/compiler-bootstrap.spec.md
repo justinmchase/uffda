@@ -123,7 +123,7 @@ workspace `./bin`, so an empty `./bin` cannot be filled by in-tree parse alone.
   source tree and compiler version.
 - Runtime module imports that name a `.uff` source MUST resolve through that
   artifact remapping (logical `.uff` URL → mirrored
-  `./bin/ast/.../*.uff.ast`, else `./bin/ast/.../*.uff.ast.json`), not by
+  `./bin/ast/.../*.uff.ast.json`, else `./bin/ast/.../*.uff.ast`), not by
   reading `.uff` source text. See the
   [modules specification](../modules.spec.md#uffda-source-imports-uff).
 

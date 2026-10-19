@@ -127,10 +127,11 @@ that form is **`.uff.ast`**: one newline-framed codec record under
 [output directory](./languages/project-file.spec.md#output-directory) and
 [AST artifact contracts](./languages/cli/compile-and-stream.spec.md#ast-artifact-contracts).
 
-During migration, compile also writes a JSON sibling
-(`<path>.uff.ast.json`). Resolvers prefer `.uff.ast` and fall back to
-`.uff.ast.json`. Phasing out the JSON sibling is a follow-up; it does not
-change the chosen codec extension.
+During migration, compile also writes a JSON sibling (`<path>.uff.ast.json`).
+Resolvers prefer `.uff.ast.json` and fall back to `.uff.ast` while
+ModuleDeclaration codec decode still requires the data language. Phasing out the
+JSON sibling waits on a cheap native codec decode; it does not change the chosen
+codec extension.
 
 ## Open questions
 

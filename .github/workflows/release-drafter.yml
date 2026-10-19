@@ -129,7 +129,12 @@ jobs:
           RELEASE_VERSION: ${{ steps.release.outputs.version }}
         run: |
           set -euo pipefail
+          # Updates VERSION plus post hooks in .github/version.yml (including
+          # crates.io Cargo.toml package versions and path-dep pins).
           semver set "$RELEASE_VERSION"
+          # Lockfile package entries are not covered by version.yml hooks.
+          cargo update -p uffda-runtime -p uffda-heap -p uffda-heap-derive -p uffda-build \
+            --manifest-path rust/Cargo.toml
           if [ -z "$(git status --porcelain)" ];
           then
             echo "no changes to commit."

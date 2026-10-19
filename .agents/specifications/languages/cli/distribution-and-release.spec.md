@@ -41,7 +41,12 @@ Normative key words in this chapter use the conventions defined in the
   published tag.
 - Merging to `main` MUST update a draft GitHub Release through a standalone Bash
   workflow using the GitHub CLI, the semver CLI, and GitHub's built-in release
-  notes generator. It MUST NOT require Deno.
+  notes generator. It MUST NOT require Deno. The version-bump commit MUST run
+  `semver set` so `.github/version.yml` post hooks rewrite `VERSION`, package
+  metadata, and the published crates.io package versions in `rust/**/Cargo.toml`
+  (including path-dependency version pins for those crates) to the draft's
+  SemVer, then refresh `rust/Cargo.lock`, so Publish can succeed when the draft
+  is published.
 - The next version MUST be resolved from merged PRs on `main` whose merge
   commits fall after the latest stable published release's tag: `major` takes
   precedence over `minor`, and otherwise the version increments by a patch.
