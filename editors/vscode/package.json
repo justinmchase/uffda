@@ -64,7 +64,7 @@
           "type": "string",
           "default": "",
           "scope": "resource",
-          "markdownDescription": "Overrides the executable used to launch the language server and MCP server, bypassing `PATH` resolution and automatic download. Bare names (`uffdar`) use PATH; relative paths (`rust/target/release/uffda`) resolve against the uffda workspace folder; absolute paths are used as-is. Do not use `deno`. Resource-scoped so multi-root folder `.vscode/settings.json` applies."
+          "markdownDescription": "Overrides the executable used to launch the language server and MCP server, bypassing `PATH` resolution and automatic download. Bare names (`uffda`) use PATH; relative paths (`rust/target/release/uffda`) resolve against the uffda workspace folder; absolute paths are used as-is. Do not use `deno`. Resource-scoped so multi-root folder `.vscode/settings.json` applies."
         },
         "uffda.lsp.serverArgs": {
           "type": "array",

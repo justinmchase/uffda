@@ -4,11 +4,11 @@ Language support for [Uffda](../../README.md) `.uff` grammars.
 
 ## Features
 
-- **Diagnostics and language server integration.** Launches `uffdar lsp`
+- **Diagnostics and language server integration.** Launches `uffda lsp`
   (see `.agents/specifications/languages/cli/language-server.spec.md`) as a
   child process over stdio and surfaces live parse diagnostics for open
   `.uff` files and for the languages the workspace's `uffda.jsonc` lists.
-- **MCP server registration.** Registers `uffdar mcp` as an MCP server via VS
+- **MCP server registration.** Registers `uffda mcp` as an MCP server via VS
   Code's built-in MCP integration, with no separate configuration step
   required — the editor's agent/chat features immediately get Uffda's MCP
   tools once the extension is installed.
@@ -21,12 +21,12 @@ not a duplicate server-side registration:
 
 1. The VS Code/Cursor extension registers an MCP provider id `uffda` whose
    displayed definition label is `Uffda`.
-2. A manual `mcp.json` / Cursor MCP entry that also launches Deno `uffda mcp`
-   (or another binary) creates a second server with a different version.
+2. A manual `mcp.json` / Cursor MCP entry that also launches another `uffda mcp`
+   (for example a second path or an old Deno CLI) creates a second server.
 
-**Fix on the client:** keep only one registration, and point it at **`uffdar`**
-(the Rust preview binary). Do not also run Deno `uffda` MCP. After rebuilding
-Rust, reinstall/copy the new binary as `uffdar` and restart the MCP connection.
+**Fix on the client:** keep only one registration, and point it at **`uffda`**
+(the release Rust CLI). Do not also run a second MCP entry. After rebuilding
+Rust, reinstall/copy the new binary as `uffda` and restart the MCP connection.
 - **Automatic binary acquisition.** If a compatible binary is not already on
   `PATH`, the extension downloads the platform-matching compiled binary from
   the project's GitHub Releases, verifies its checksum, and caches it for reuse.
@@ -35,21 +35,21 @@ Rust, reinstall/copy the new binary as `uffdar` and restart the MCP connection.
 
 | Setting | Description |
 | --- | --- |
-| `uffda.lsp.serverPath` | Overrides the executable used for both the language server and the MCP server, bypassing `PATH` resolution and download entirely. Point this at **`uffdar`** (or a freshly built `rust/target/release/uffda`). Resource-scoped: works in folder `.vscode/settings.json` and multi-root workspaces. |
+| `uffda.lsp.serverPath` | Overrides the executable used for both the language server and the MCP server, bypassing `PATH` resolution and download entirely. Point this at **`uffda`** (or a freshly built `rust/target/release/uffda`). Resource-scoped: works in folder `.vscode/settings.json` and multi-root workspaces. |
 | `uffda.lsp.serverArgs` | Arguments passed to `uffda.lsp.serverPath` when launching the language server (default: `["lsp"]`). |
 | `uffda.mcp.serverArgs` | Arguments passed to `uffda.lsp.serverPath` when launching the MCP server (default: `["mcp"]`). |
 
 When `uffda.lsp.serverPath` is unset, the extension resolves a binary
-automatically: prefer **`uffdar`** on `PATH`, then `uffda`, otherwise download
-and cache a release binary. If neither succeeds, the extension surfaces a clear
-error instead of silently disabling itself.
+automatically: use **`uffda`** on `PATH` when its version satisfies the
+minimum, otherwise download and cache a release binary. If neither succeeds,
+the extension surfaces a clear error instead of silently disabling itself.
 
 `uffda.lsp.serverPath` overrides PATH resolution entirely:
 
 | Value | Effect |
 | --- | --- |
-| unset / `""` | Prefer `uffdar` on PATH, then `uffda`, else download |
-| `uffdar` / `uffda` | Bare name — run from PATH |
+| unset / `""` | Prefer `uffda` on PATH, else download |
+| `uffda` | Bare name — run from PATH |
 | `rust/target/release/uffda` | Relative to the uffda workspace folder (local build) |
 | absolute path | Used verbatim |
 
@@ -63,11 +63,11 @@ Recommended for this checkout (local Rust build):
 }
 ```
 
-Installed preview binary instead:
+Installed release binary instead:
 
 ```json
 {
-  "uffda.lsp.serverPath": "uffdar"
+  "uffda.lsp.serverPath": "uffda"
 }
 ```
 
