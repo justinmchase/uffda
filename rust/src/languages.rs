@@ -292,6 +292,8 @@ pub struct ProjectLanguage {
     pub module: Url,
     pub entry: String,
     pub formatter: Option<(Url, String)>,
+    /// Rule named by `[ToggleComment]` on the language entry, if any.
+    pub toggle_comment: Option<(Url, String)>,
     /// Project-file `languages` specifier this came from, or `None` for the
     /// built-in `.uff` language (see Deno `ProjectLanguage.specifier`).
     pub specifier: Option<String>,
@@ -728,24 +730,26 @@ impl Languages {
                         .ok_or_else(|| error(format!("[Language] {id} has an invalid extension")))
                 })
                 .collect::<Result<_, _>>()?;
-            let formatter = metadata
-                .get("Formatter")
-                .map(|formatter| {
-                    if formatter["kind"] != "rule" {
-                        return Err(error("Formatter must name a rule".into()));
-                    }
-                    let module = formatter["moduleUrl"]
-                        .as_str()
-                        .ok_or_else(|| error("Formatter has no module URL".into()))?;
-                    let name = formatter["name"]
-                        .as_str()
-                        .ok_or_else(|| error("Formatter has no rule name".into()))?;
-                    Ok((
-                        Url::parse(module).map_err(|failure| error(failure.to_string()))?,
-                        name.into(),
-                    ))
-                })
-                .transpose()?;
+            let rule_meta = |decorator: &str| -> Result<Option<(Url, String)>, LanguageError> {
+                let Some(rule) = metadata.get(decorator) else {
+                    return Ok(None);
+                };
+                if rule["kind"] != "rule" {
+                    return Err(error(format!("{decorator} must name a rule")));
+                }
+                let module = rule["moduleUrl"]
+                    .as_str()
+                    .ok_or_else(|| error(format!("{decorator} has no module URL")))?;
+                let name = rule["name"]
+                    .as_str()
+                    .ok_or_else(|| error(format!("{decorator} has no rule name")))?;
+                Ok(Some((
+                    Url::parse(module).map_err(|failure| error(failure.to_string()))?,
+                    name.into(),
+                )))
+            };
+            let formatter = rule_meta("Formatter")?;
+            let toggle_comment = rule_meta("ToggleComment")?;
             let declaration = graph
                 .declaration(&member)
                 .ok_or_else(|| error("Missing language declaration".into()))?;
@@ -757,6 +761,7 @@ impl Languages {
                 module: member.module_url.clone(),
                 entry: declaration.name.clone(),
                 formatter,
+                toggle_comment,
                 specifier: None,
             });
         }
@@ -945,6 +950,38 @@ impl Languages {
         match value {
             Value::String(text) => text.to_utf8().map_err(|failure| error(failure.to_string())),
             _ => Err(error("Formatter rule did not produce text".into())),
+        }
+    }
+
+    /// Toggle comments on whole-line `text` with the language's `[ToggleComment]`
+    /// rule (req:cli-language-server-009). Does not parse the document — the
+    /// toggle rule receives the line text directly.
+    pub fn toggle_comment_language(
+        &mut self,
+        text: &str,
+        language: &ProjectLanguage,
+    ) -> Result<String, LanguageError> {
+        let error = |message| LanguageError {
+            phase: "toggleComment",
+            module_url: language.module.to_string(),
+            message,
+            diagnostics: vec![],
+        };
+        let (module, entry) = language
+            .toggle_comment
+            .as_ref()
+            .ok_or_else(|| error("Language has no ToggleComment".into()))?;
+        let (value, _) = self
+            .execute_url(module, entry, Value::String(text.into()), InputMode::Scalar)
+            .map_err(|mut failure| {
+                failure.phase = "toggleComment";
+                failure
+            })?;
+        match value {
+            Value::String(toggled) => toggled
+                .to_utf8()
+                .map_err(|failure| error(failure.to_string())),
+            _ => Err(error("ToggleComment rule did not produce text".into())),
         }
     }
 
@@ -1474,6 +1511,7 @@ mod tests {
             module: Url::parse("file:///tmp/custom.uff").unwrap(),
             entry: "Custom".into(),
             formatter: None,
+            toggle_comment: None,
             specifier: Some("./custom.uff".into()),
         }];
         assert_eq!(

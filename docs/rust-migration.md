@@ -650,22 +650,28 @@ acceptance before attach.
       artifact tree, with an outside-checkout smoke test and `SHA256SUMS`.
 - [x] Extend the `uffda-*` build, attach, and verify path to the other supported
       release targets (six native runners). Linux `install.sh` installs `uffda`.
-- [ ] Implement `mcp` and `lsp` on the Rust CLI with parity against the Deno
+- [x] Implement `mcp` and `lsp` on the Rust CLI with parity against the Deno
       reference (stdio transports, session/tools/diagnostics/completions as
       already specified under `.agents/` for those surfaces). The release
       `uffda` binary is already this Rust CLI. MCP session/tools are landed; LSP
-      now loads project `languages` for `uffda/languageMetadata` and
-      parse/highlight/diagnostics on custom extensions (Uffda-module resolve
-      features remain builtin-only, matching Deno's `isBuiltinLanguage` gate).
-- [ ] Preserve asset names, checksums, installers, and setup-action behavior
+      loads project `languages` for `uffda/languageMetadata` and
+      parse/highlight/diagnostics on custom extensions, and advertises
+      `uffda/toggleComment` (Uffda-module resolve features remain builtin-only,
+      matching Deno's `isBuiltinLanguage` gate). The VS Code extension resolves
+      `uffda` (Rust release CLI) only — no `uffdar` preview path.
+- [x] Preserve asset names, checksums, installers, and setup-action behavior
       through the eventual approved cutover (Rust becomes the installed
-      `uffda`).
-- [ ] Update implementation-specific specifications and contributor docs for the
+      `uffda`). Release assets remain `uffda-${version}-${target}` +
+      `SHA256SUMS` + `install.sh`; `uffda-setup` and the VS Code download path
+      consume those names unchanged.
+- [x] Update implementation-specific specifications and contributor docs for the
       Deno→Rust production switch (including MCP/LSP command availability).
+      Extension/README/settings document `uffda lsp` / `uffda mcp`; override
+      examples prefer a local `rust/target/release/uffda` build.
 - [ ] Switch production only after package gates (milestone 9), MCP/LSP cutover
       gates, and an explicit cutover approval. Do not publish a draft until
       Release Binaries attach + smoke succeed — publishing early leaves an empty
-      immutable release.
+      immutable release. Gates above are ready; cutover awaits that approval.
 
 ## Final acceptance
 
@@ -838,8 +844,9 @@ Global/process checks include help/version, explicit mode conflict diagnostics,
 compile fallback only when arguments exist, successful root usage with no
 arguments, cwd/config resolution, JSON error code/message/phase, and exit codes
 0 (success), 2 (usage), 3 (configuration), and 70 (internal), plus
-command-specific failure exits. MCP session/tool surface is landed for cutover;
-LSP is still expanding (milestone 10). All six commands now have
+command-specific failure exits. MCP session/tool surface and LSP (including
+project languages and `uffda/toggleComment`) are landed for cutover; production
+switch still needs explicit approval (milestone 10). All six commands now have
 relocated-binary coverage outside the checkout with an empty `PATH`, and 29
 validation diagnostic cases are shared with the reference. Exhaustive
 per-command flag combinations and successful-output comparisons remain open.

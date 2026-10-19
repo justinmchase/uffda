@@ -254,9 +254,9 @@ not introduce a parallel parsing or compilation pathway.
 - The extension MUST expose user-configurable settings to override both the
   server executable path and the full launch command/arguments used to start
   `uffda lsp`, bypassing automatic resolution/download entirely when set. This
-  is intended for developing and debugging `uffda` itself (for example running
-  the LSP mode from a local source checkout via `deno run` instead of a released
-  binary), not for ordinary end-user use.
+  is intended for developing and debugging `uffda` itself (for example pointing
+  at a local `rust/target/release/uffda` build instead of a released binary),
+  not for ordinary end-user use.
 - The `uffda` language configuration MUST declare no comments and no brackets:
   explicit empty `brackets`, `colorizedBracketPairs`, `autoClosingPairs`, and
   `surroundingPairs`, so VS Code does not fall back to defaults. VS Code's own

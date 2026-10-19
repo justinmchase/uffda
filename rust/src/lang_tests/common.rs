@@ -1234,6 +1234,7 @@ rule Space = " ";
         module: lang_url.clone(),
         entry: "Words".into(),
         formatter: Some((print_url.clone(), "Print".into())),
+        toggle_comment: None,
         specifier: Some("./words.uff".into()),
     };
     assert_eq!(
@@ -1268,6 +1269,7 @@ rule Space = " ";
         module: Url::parse("file:///uffda/format/missing.uff").expect("missing"),
         entry: "Words".into(),
         formatter: Some((print_url.clone(), "Print".into())),
+        toggle_comment: None,
         specifier: Some("./missing.uff".into()),
     };
     assert!(languages.format_language("a", &unresolved).is_err());

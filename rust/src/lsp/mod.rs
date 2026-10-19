@@ -215,7 +215,8 @@ fn handle_message(message: &Value, state: &mut ServerState) -> Vec<Value> {
                             "triggerCharacters": ["\"", "/"]
                         },
                         "experimental": {
-                            "uffdaLanguageMetadata": true
+                            "uffdaLanguageMetadata": true,
+                            "uffdaToggleComment": true
                         }
                     },
                     "serverInfo": {
@@ -345,6 +346,11 @@ fn handle_message(message: &Value, state: &mut ServerState) -> Vec<Value> {
         Some("textDocument/formatting") => {
             let params = message.get("params").cloned().unwrap_or(json!({}));
             let result = guarded(json!([]), || formatting_request(state, &params));
+            vec![rpc_result(id, result)]
+        }
+        Some("uffda/toggleComment") => {
+            let params = message.get("params").cloned().unwrap_or(json!({}));
+            let result = guarded(json!([]), || toggle_comment_request(state, &params));
             vec![rpc_result(id, result)]
         }
         Some("textDocument/didOpen") => {
@@ -976,6 +982,70 @@ fn formatting_request(state: &mut ServerState, params: &Value) -> Value {
     }])
 }
 
+/// `uffda/toggleComment` (req:cli-language-server-009): toggle whole lines the
+/// range touches via the language's `[ToggleComment]` rule.
+fn toggle_comment_request(state: &mut ServerState, params: &Value) -> Value {
+    let uri = request_uri(params);
+    let Some(text) = state.documents.get(uri).cloned() else {
+        return json!([]);
+    };
+    let language = match language_for_uri(state, uri) {
+        Some(language) => language,
+        None => return json!([]),
+    };
+    let Some(start) = params.pointer("/range/start").and_then(Position::from_json) else {
+        return json!([]);
+    };
+    let Some(end) = params.pointer("/range/end").and_then(Position::from_json) else {
+        return json!([]);
+    };
+    let first = start.line;
+    let last = if end.character == 0 && end.line > first {
+        end.line - 1
+    } else {
+        end.line
+    };
+    let units = text.encode_utf16().collect::<Vec<_>>();
+    let start_offset = position_to_offset_units(
+        &units,
+        Position {
+            line: first,
+            character: 0,
+        },
+    );
+    let mut end_offset = position_to_offset_units(
+        &units,
+        Position {
+            line: last,
+            character: usize::MAX / 4,
+        },
+    );
+    // Drop a trailing CR when the line ends with CRLF but the LF was excluded.
+    if end_offset > start_offset && units.get(end_offset - 1) == Some(&0x0d) {
+        end_offset -= 1;
+    }
+    let line_text: String = String::from_utf16_lossy(&units[start_offset..end_offset]);
+    let Ok((session_id, _)) = ensure_session(state, uri) else {
+        return json!([]);
+    };
+    let Ok(session) = state.sessions.get_mut(&session_id) else {
+        return json!([]);
+    };
+    let Ok(toggled) = session
+        .languages
+        .toggle_comment_language(&line_text, &language)
+    else {
+        return json!([]);
+    };
+    if toggled == line_text {
+        return json!([]);
+    }
+    json!([{
+        "range": range_json(&units, start_offset, end_offset),
+        "newText": toggled,
+    }])
+}
+
 fn diagnostics_from_load(result: &Value) -> Vec<Value> {
     if result.get("ok").and_then(Value::as_bool) == Some(true) {
         return Vec::new();
@@ -1230,6 +1300,41 @@ mod tests {
         assert_eq!(
             capabilities["completionProvider"]["triggerCharacters"],
             json!(["\"", "/"])
+        );
+        assert_eq!(capabilities["experimental"]["uffdaToggleComment"], true);
+        assert_eq!(capabilities["experimental"]["uffdaLanguageMetadata"], true);
+    }
+
+    #[test]
+    // req:cli-language-server-009
+    fn toggle_comment_comments_and_uncomments_uff_lines() {
+        let mut state = ServerState::new();
+        let uri = "file:///tmp/lsp-toggle.uff";
+        open_document(&mut state, uri, "rule A = a;\nrule B = b;\n");
+        let params = |start_line: u32, start_char: u32, end_line: u32, end_char: u32| {
+            json!({
+                "textDocument": { "uri": uri },
+                "range": {
+                    "start": { "line": start_line, "character": start_char },
+                    "end": { "line": end_line, "character": end_char }
+                }
+            })
+        };
+        let commented = request(&mut state, "uffda/toggleComment", params(0, 0, 0, 11));
+        assert_eq!(
+            commented["result"][0]["newText"].as_str(),
+            Some("# rule A = a;"),
+            "comment: {commented}"
+        );
+        // Apply the edit into the open document and toggle again to uncomment.
+        state
+            .documents
+            .insert(uri.into(), "# rule A = a;\nrule B = b;\n".into());
+        let uncommented = request(&mut state, "uffda/toggleComment", params(0, 0, 0, 13));
+        assert_eq!(
+            uncommented["result"][0]["newText"].as_str(),
+            Some("rule A = a;"),
+            "uncomment: {uncommented}"
         );
     }
 

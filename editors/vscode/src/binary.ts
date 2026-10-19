@@ -24,21 +24,21 @@ export interface ResolveOptions {
   storageDir: string;
   /**
    * Workspace folder used to resolve relative overrides such as
-   * `rust/target/release/uffda`. Bare names (`uffdar`) stay on PATH.
+   * `rust/target/release/uffda`. Bare names (`uffda`) stay on PATH.
    */
   workspaceFolder?: string;
   minVersion?: string;
 }
 
 /**
- * Resolves the command used to launch `uffda`/`uffdar`, per requirement
+ * Resolves the command used to launch `uffda`, per requirement
  * cli-language-server-007: an explicit override always wins (no
  * PATH/version/download checks); otherwise prefer a PATH binary whose
  * version satisfies the minimum; otherwise download and cache the
  * platform-matching release binary.
  *
  * Overrides:
- * - bare name (`uffdar`, `uffda`) → used as a PATH command
+ * - bare name (`uffda`) → used as a PATH command
  * - absolute path → used verbatim
  * - relative path (`rust/target/release/uffda`) → resolved against
  *   `workspaceFolder` when provided
@@ -55,7 +55,6 @@ export async function resolveUffdaServer(opts: ResolveOptions): Promise<Resolved
   }
 
   const minVersion = opts.minVersion ?? MIN_UFFDA_VERSION;
-  // Prefer the Rust preview (`uffdar`) when present, then Deno `uffda`.
   const pathBinary = await tryGetPathBinary(minVersion);
   if (pathBinary) {
     return {
@@ -74,7 +73,7 @@ export async function resolveUffdaServer(opts: ResolveOptions): Promise<Resolved
           downloadedVersion ?? "unknown"
         }, which does not satisfy the minimum required version ${minVersion}. ` +
           `The latest published release may lag behind this extension's requirement; ` +
-          `install a compatible uffdar/uffda on PATH or set uffda.lsp.serverPath to a built binary.`,
+          `install a compatible uffda on PATH or set uffda.lsp.serverPath to a built binary.`,
       );
     }
     return { command: binaryPath, args: opts.defaultArgs, source: "download" };
@@ -82,7 +81,7 @@ export async function resolveUffdaServer(opts: ResolveOptions): Promise<Resolved
     if (err instanceof ResolveServerError) throw err;
     const reason = err instanceof Error ? err.message : String(err);
     throw new ResolveServerError(
-      `No compatible uffdar/uffda binary was found on PATH. Automatic download also failed: ${reason}`,
+      `No compatible uffda binary was found on PATH. Automatic download also failed: ${reason}`,
     );
   }
 }
@@ -99,21 +98,19 @@ export function resolveOverrideCommand(
   const trimmed = override.trim();
   if (!trimmed) return trimmed;
   if (path.isAbsolute(trimmed)) return trimmed;
-  // Bare executable name (uffdar / uffda / deno) — leave for PATH lookup.
+  // Bare executable name (uffda) — leave for PATH lookup.
   if (!trimmed.includes("/") && !trimmed.includes("\\")) return trimmed;
   if (workspaceFolder) return path.resolve(workspaceFolder, trimmed);
   return path.resolve(trimmed);
 }
 
-/** Prefer `uffdar` (Rust) over `uffda` (Deno) when both satisfy the minimum. */
+/** Prefer a PATH `uffda` whose `--version` satisfies the minimum. */
 async function tryGetPathBinary(
   minVersion: string,
 ): Promise<{ command: string; version: string } | undefined> {
-  for (const command of ["uffdar", "uffda"]) {
-    const version = await tryGetVersion(command);
-    if (version && satisfiesMinVersion(version, minVersion)) {
-      return { command, version };
-    }
+  const version = await tryGetVersion("uffda");
+  if (version && satisfiesMinVersion(version, minVersion)) {
+    return { command: "uffda", version };
   }
   return undefined;
 }
