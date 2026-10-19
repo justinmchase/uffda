@@ -32,8 +32,13 @@ Normative key words in this chapter use the conventions defined in the
 ## Compilation contract
 
 - `MorseLang` MUST be authored as Uffda source using canonical `=` rule
-  declarations and inline exported-rule syntax.
+  declarations and inline exported-rule syntax (`examples/morse/morse.uff`).
 - It MUST parse through `UffdaLang`, compile through `UffdaRuntimeCompiler`, and
-  execute through the standard runtime module path.
+  execute through the standard runtime module path. Default unit tests MAY load
+  the checked-in ModuleDeclaration sibling `examples/morse/morse.uff.ast.json`
+  for repertoire and round-trip coverage so they do not re-parse the full source
+  on every run; regenerating that sibling after `.uff` edits re-exercises the
+  full parse/compile path. Full-source parse timing is tracked by
+  `test/perf/morse-compile.report.ts`.
 - Its authored source MUST express encoding and decoding through Uffda rules and
   expressions, without host-language symbol-table or translation helpers.

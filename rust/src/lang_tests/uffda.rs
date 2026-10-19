@@ -1639,14 +1639,29 @@ fn runtime_compiler_normalizes_reexport_import_kind() {
 
 #[test]
 // req:uffda-runtime-compilation-006
-fn remport_source_authored_morse_roundtrips_repertoire_and_prose() {
-    // Parsing morse.uff through UffdaLang dominates (~10s debug). Compile once
-    // and reuse the ModuleDeclaration for every assertion so the suite does not
-    // pay that cost twice under languages_lock.
+fn remport_tiny_source_authored_morse_parses_compiles_and_runs() {
+    // Proves UffdaLang → UffdaRuntimeCompiler → runtime without parsing the
+    // full examples/morse/morse.uff fixture (~10s in debug).
     let _guard = crate::test_sync::languages_lock();
-    const MORSE: &str = include_str!("../../../examples/morse/morse.uff");
-    let mut compiled = compile_syntax(parse_value(MORSE)).unwrap();
-    let artifact = compiled.serialize_result().unwrap().unwrap();
+    const TINY: &str = concat!(
+        "export rule Morse = \".-/\" -> \"A\";\n",
+        "export rule Text = \"A\" -> \".-/\";\n",
+    );
+    let mut decoded = execute_source(TINY, "Morse", json!(".-/"), InputMode::Scalar);
+    assert_eq!(kind_and_clean(&decoded).0, MatchKind::Ok);
+    assert_eq!(json_value(&mut decoded), json!("A"));
+    let mut encoded = execute_source(TINY, "Text", json!("A"), InputMode::Scalar);
+    assert_eq!(kind_and_clean(&encoded).0, MatchKind::Ok);
+    assert_eq!(json_value(&mut encoded), json!(".-/"));
+}
+
+#[test]
+// req:uffda-runtime-compilation-006
+fn remport_morse_artifact_roundtrips_repertoire_and_prose() {
+    // Full Morse repertoire runs against the checked-in ModuleDeclaration so
+    // default unit tests stay in the milliseconds, not a UffdaLang re-parse.
+    let _guard = crate::test_sync::languages_lock();
+    const ARTIFACT: &str = include_str!("../../../examples/morse/morse.uff.ast.json");
 
     let repertoire = [
         (".-", "A"),
@@ -1712,14 +1727,14 @@ fn remport_source_authored_morse_roundtrips_repertoire_and_prose() {
         .iter()
         .map(|(_, symbol)| *symbol)
         .collect::<String>();
-    let mut decoded = execute_module(&artifact, "Morse", json!(encoded), InputMode::Iterable);
+    let mut decoded = execute_module(ARTIFACT, "Morse", json!(encoded), InputMode::Iterable);
     let (kind, clean) = kind_and_clean(&decoded);
     assert_eq!(kind, MatchKind::Ok);
     assert!(clean);
     assert_eq!(json_value(&mut decoded), json!(expected));
 
     let mut sos = execute_module(
-        &artifact,
+        ARTIFACT,
         "Morse",
         json!(".../---/.../"),
         InputMode::Iterable,
@@ -1727,8 +1742,6 @@ fn remport_source_authored_morse_roundtrips_repertoire_and_prose() {
     assert_eq!(kind_and_clean(&sos).0, MatchKind::Ok);
     assert_eq!(json_value(&mut sos), json!("SOS"));
 
-    // Short multi-paragraph public-domain excerpt (Moby-Dick); keep it small so
-    // encode/decode stay cheap after the one-time UffdaLang parse.
     const PROSE: &str = "Call me Ishmael.\n\nSome years ago never mind how long precisely.";
     let source_text = PROSE
         .split("\n\n")
@@ -1736,11 +1749,11 @@ fn remport_source_authored_morse_roundtrips_repertoire_and_prose() {
         .collect::<Vec<_>>()
         .join("\n\n")
         .to_uppercase();
-    let mut encoded = execute_module(&artifact, "Text", json!(source_text), InputMode::Iterable);
+    let mut encoded = execute_module(ARTIFACT, "Text", json!(source_text), InputMode::Iterable);
     assert_eq!(kind_and_clean(&encoded).0, MatchKind::Ok);
     let encoded_text = json_value(&mut encoded);
     assert!(encoded_text.as_str().is_some());
-    let mut roundtrip = execute_module(&artifact, "Morse", encoded_text, InputMode::Iterable);
+    let mut roundtrip = execute_module(ARTIFACT, "Morse", encoded_text, InputMode::Iterable);
     assert_eq!(kind_and_clean(&roundtrip).0, MatchKind::Ok);
     assert_eq!(json_value(&mut roundtrip), json!(source_text));
 }
