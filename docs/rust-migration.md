@@ -653,7 +653,10 @@ acceptance before attach.
 - [ ] Implement `mcp` and `lsp` on the Rust CLI with parity against the Deno
       reference (stdio transports, session/tools/diagnostics/completions as
       already specified under `.agents/` for those surfaces). The release
-      `uffda` binary is already this Rust CLI.
+      `uffda` binary is already this Rust CLI. MCP session/tools are landed; LSP
+      now loads project `languages` for `uffda/languageMetadata` and
+      parse/highlight/diagnostics on custom extensions (Uffda-module resolve
+      features remain builtin-only, matching Deno's `isBuiltinLanguage` gate).
 - [ ] Preserve asset names, checksums, installers, and setup-action behavior
       through the eventual approved cutover (Rust becomes the installed
       `uffda`).

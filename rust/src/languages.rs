@@ -286,10 +286,131 @@ struct MemberRun {
 #[derive(Clone, Debug)]
 pub struct ProjectLanguage {
     pub id: String,
+    pub name: Option<String>,
+    pub description: Option<String>,
     pub extensions: Vec<String>,
     pub module: Url,
     pub entry: String,
     pub formatter: Option<(Url, String)>,
+    /// Project-file `languages` specifier this came from, or `None` for the
+    /// built-in `.uff` language (see Deno `ProjectLanguage.specifier`).
+    pub specifier: Option<String>,
+}
+
+/// Languages the LSP/CLI may serve for a workspace, plus non-fatal problems.
+#[derive(Clone, Debug, Default)]
+pub struct ServedLanguages {
+    pub languages: Vec<ProjectLanguage>,
+    pub problems: Vec<String>,
+}
+
+impl ProjectLanguage {
+    /// Built-in `.uff` language (no project-file specifier).
+    pub fn is_builtin(&self) -> bool {
+        self.specifier.is_none()
+    }
+}
+
+/// File extension of `uri_or_path` (lowercased, with leading dot), if any.
+pub fn extension_of(uri_or_path: &str) -> Option<String> {
+    let without_query = uri_or_path.split(['?', '#']).next().unwrap_or(uri_or_path);
+    let last_slash = without_query.rfind(['/', '\\']).map(|i| i + 1).unwrap_or(0);
+    let name = &without_query[last_slash..];
+    let dot = name.rfind('.')?;
+    if dot == 0 {
+        return None;
+    }
+    Some(name[dot..].to_ascii_lowercase())
+}
+
+/// Language owning `uri_or_path` by extension, if any.
+pub fn language_for_document<'a>(
+    languages: &'a [ProjectLanguage],
+    uri_or_path: &str,
+) -> Option<&'a ProjectLanguage> {
+    let extension = extension_of(uri_or_path)?;
+    languages
+        .iter()
+        .find(|language| language.extensions.iter().any(|ext| ext == &extension))
+}
+
+/// Keep one language per id and per extension. A project language takes over
+/// an id or extension of the built-in language. An id or extension two or more
+/// project languages claim is a problem: none of them keeps it.
+fn settle_ownership(
+    builtin: Vec<ProjectLanguage>,
+    declared: Vec<ProjectLanguage>,
+) -> ServedLanguages {
+    let mut problems = Vec::new();
+    let mut id_claims: HashMap<String, Vec<String>> = HashMap::new();
+    for language in &declared {
+        id_claims
+            .entry(language.id.clone())
+            .or_default()
+            .push(language.id.clone());
+    }
+    let mut shared_ids = std::collections::HashSet::new();
+    for (id, claiming) in &id_claims {
+        if claiming.len() > 1 {
+            shared_ids.insert(id.clone());
+            problems.push(format!(
+                "The language id '{id}' is declared by more than one language in uffda.jsonc; none of them is served"
+            ));
+        }
+    }
+    let unique: Vec<_> = declared
+        .into_iter()
+        .filter(|language| !shared_ids.contains(&language.id))
+        .collect();
+
+    let mut extension_claims: HashMap<String, Vec<String>> = HashMap::new();
+    for language in &unique {
+        let mut seen = std::collections::HashSet::new();
+        for extension in &language.extensions {
+            if !seen.insert(extension.clone()) {
+                continue;
+            }
+            extension_claims
+                .entry(extension.clone())
+                .or_default()
+                .push(language.id.clone());
+        }
+    }
+    let mut shared_extensions = std::collections::HashSet::new();
+    for (extension, claiming) in &extension_claims {
+        if claiming.len() > 1 {
+            shared_extensions.insert(extension.clone());
+            let describe = claiming
+                .iter()
+                .map(|id| format!("'{id}'"))
+                .collect::<Vec<_>>()
+                .join(", ");
+            problems.push(format!(
+                "The '{extension}' extension is claimed by more than one language ({describe}) in uffda.jsonc; none of them serves it"
+            ));
+        }
+    }
+
+    let mut languages = Vec::new();
+    for mut language in builtin {
+        if id_claims.contains_key(&language.id) {
+            continue;
+        }
+        language
+            .extensions
+            .retain(|extension| !extension_claims.contains_key(extension));
+        languages.push(language);
+    }
+    for mut language in unique {
+        language
+            .extensions
+            .retain(|extension| !shared_extensions.contains(extension));
+        languages.push(language);
+    }
+    ServedLanguages {
+        languages,
+        problems,
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -574,6 +695,14 @@ impl Languages {
                 .and_then(Value::as_str)
                 .filter(|id| !id.is_empty())
                 .ok_or_else(|| error("[Language] needs a non-empty string id".into()))?;
+            let name = language
+                .get("name")
+                .and_then(Value::as_str)
+                .map(str::to_owned);
+            let description = language
+                .get("description")
+                .and_then(Value::as_str)
+                .map(str::to_owned);
             let extensions = language
                 .get("extensions")
                 .and_then(Value::as_array)
@@ -622,10 +751,13 @@ impl Languages {
                 .ok_or_else(|| error("Missing language declaration".into()))?;
             languages.push(ProjectLanguage {
                 id: id.into(),
+                name,
+                description,
                 extensions,
                 module: member.module_url.clone(),
                 entry: declaration.name.clone(),
                 formatter,
+                specifier: None,
             });
         }
         if languages.is_empty() {
@@ -671,7 +803,11 @@ impl Languages {
                 .resolver
                 .canonical_url(&url)
                 .map_err(|failure| error(failure.to_string()))?;
-            declared.extend(self.languages_of(&url)?);
+            let mut languages = self.languages_of(&url)?;
+            for language in &mut languages {
+                language.specifier = Some(specifier.clone());
+            }
+            declared.extend(languages);
         }
         for (index, language) in declared.iter().enumerate() {
             for other in &declared[..index] {
@@ -703,6 +839,80 @@ impl Languages {
         }
         builtin.extend(declared);
         Ok(builtin)
+    }
+
+    /// Soft project-language load for the language server: problems never stop
+    /// other languages from being served (req:cli-language-server-002).
+    pub fn served_languages(
+        &mut self,
+        project: Option<&crate::project::Project>,
+    ) -> ServedLanguages {
+        let builtin_url = self
+            .root
+            .join(Language::Uffda.entry().0)
+            .expect("static builtin path");
+        let builtin = match self.languages_of(&builtin_url) {
+            Ok(languages) => languages,
+            Err(error) => {
+                return ServedLanguages {
+                    languages: Vec::new(),
+                    problems: vec![format!("The built-in .uff language: {error}")],
+                };
+            }
+        };
+        let Some(project) = project else {
+            return ServedLanguages {
+                languages: builtin,
+                problems: Vec::new(),
+            };
+        };
+        let base = match Url::from_directory_path(&project.root) {
+            Ok(url) => url,
+            Err(()) => {
+                return ServedLanguages {
+                    languages: builtin,
+                    problems: vec![format!("{}: Invalid project root", project.path.display())],
+                };
+            }
+        };
+        let mut declared = Vec::new();
+        let mut problems = Vec::new();
+        for specifier in &project.languages {
+            let resolved = (|| {
+                let unfurled =
+                    crate::resolver::graph::unfurl_specifier(&project.imports, specifier)?;
+                let url = base
+                    .join(&unfurled)
+                    .map_err(|failure| failure.to_string())?;
+                self.resolver
+                    .canonical_url(&url)
+                    .map_err(|failure| failure.to_string())
+            })();
+            let url = match resolved {
+                Ok(url) => url,
+                Err(message) => {
+                    problems.push(format!("uffda.jsonc language \"{specifier}\": {message}"));
+                    continue;
+                }
+            };
+            match self.languages_of(&url) {
+                Ok(mut languages) => {
+                    for language in &mut languages {
+                        language.specifier = Some(specifier.clone());
+                    }
+                    declared.extend(languages);
+                }
+                Err(error) => {
+                    problems.push(format!("uffda.jsonc language \"{specifier}\": {error}"));
+                }
+            }
+        }
+        let settled = settle_ownership(builtin, declared);
+        problems.extend(settled.problems);
+        ServedLanguages {
+            languages: settled.languages,
+            problems,
+        }
     }
 
     pub fn format_language(
@@ -826,7 +1036,24 @@ impl Languages {
         source: &str,
         language: Language,
     ) -> Result<serde_json::Value, LanguageError> {
-        let (runtime, diagnostics) = self.parse_runtime(source, language, false)?;
+        let (path, entry) = language.entry();
+        let url = self.root.join(path).expect("static language path");
+        let (runtime, diagnostics) = self.parse_runtime_member(source, &url, entry, false)?;
+        Ok(crate::highlight::from_runtime(
+            &runtime,
+            source,
+            &diagnostics,
+        ))
+    }
+
+    /// Highlight using a project-served language entry rule.
+    pub fn highlight_language(
+        &mut self,
+        source: &str,
+        language: &ProjectLanguage,
+    ) -> Result<serde_json::Value, LanguageError> {
+        let (runtime, diagnostics) =
+            self.parse_runtime_member(source, &language.module, &language.entry, false)?;
         Ok(crate::highlight::from_runtime(
             &runtime,
             source,
@@ -839,7 +1066,18 @@ impl Languages {
     /// editor walks. A failed or recovered parse still yields whatever tree
     /// the runtime produced.
     pub fn analyze(&mut self, source: &str, language: Language) -> Result<Analysis, LanguageError> {
-        self.analyze_with_open(source, language, false)
+        let (path, entry) = language.entry();
+        let url = self.root.join(path).expect("static language path");
+        self.analyze_member(source, &url, entry, false)
+    }
+
+    /// [`Languages::analyze`] for a project-served language entry rule.
+    pub fn analyze_language(
+        &mut self,
+        source: &str,
+        language: &ProjectLanguage,
+    ) -> Result<Analysis, LanguageError> {
+        self.analyze_member(source, &language.module, &language.entry, false)
     }
 
     /// [`Languages::analyze`] for `source` as an open input: a prefix of a longer
@@ -850,16 +1088,28 @@ impl Languages {
         source: &str,
         language: Language,
     ) -> Result<Analysis, LanguageError> {
-        self.analyze_with_open(source, language, true)
+        let (path, entry) = language.entry();
+        let url = self.root.join(path).expect("static language path");
+        self.analyze_member(source, &url, entry, true)
     }
 
-    fn analyze_with_open(
+    /// Open-input analyze for a project-served language entry rule.
+    pub fn analyze_open_language(
         &mut self,
         source: &str,
-        language: Language,
+        language: &ProjectLanguage,
+    ) -> Result<Analysis, LanguageError> {
+        self.analyze_member(source, &language.module, &language.entry, true)
+    }
+
+    fn analyze_member(
+        &mut self,
+        source: &str,
+        url: &Url,
+        entry: &str,
         open: bool,
     ) -> Result<Analysis, LanguageError> {
-        let (mut runtime, diagnostics) = self.parse_runtime(source, language, open)?;
+        let (mut runtime, diagnostics) = self.parse_runtime_member(source, url, entry, open)?;
         let spans = crate::highlight::spans_from_runtime(&runtime, source);
         let tree = crate::mcp::ops::project_match_tree(&runtime);
         // Serialize after projecting the match tree: serialization mutates the
@@ -881,18 +1131,17 @@ impl Languages {
         })
     }
 
-    fn parse_runtime(
+    fn parse_runtime_member(
         &mut self,
         source: &str,
-        language: Language,
+        url: &Url,
+        entry: &str,
         open: bool,
     ) -> Result<(Runtime, Vec<SourceDiagnostic>), LanguageError> {
-        let (path, entry) = language.entry();
-        let url = self.root.join(path).expect("static language path");
-        let graph = self.graph(&url)?;
+        let graph = self.graph(url)?;
         let member = graph
-            .export(&url, Some(entry))
-            .or_else(|| graph.resolve(&url, entry))
+            .export(url, Some(entry))
+            .or_else(|| graph.resolve(url, entry))
             .ok_or_else(|| LanguageError {
                 phase: "parse",
                 module_url: url.to_string(),
@@ -1207,6 +1456,32 @@ mod tests {
             .unwrap();
         assert!(output.contains("rule Main = any;"), "{output}");
         assert_eq!(languages.format(&output, Language::Uffda).unwrap(), output);
+    }
+
+    #[test]
+    // req:cli-language-server-002
+    fn extension_of_and_language_for_document_match_by_lowercase_extension() {
+        assert_eq!(
+            extension_of("file:///tmp/a.CUSTOM?x=1").as_deref(),
+            Some(".custom")
+        );
+        assert_eq!(extension_of("notes"), None);
+        let languages = vec![ProjectLanguage {
+            id: "custom".into(),
+            name: Some("Custom".into()),
+            description: None,
+            extensions: vec![".custom".into()],
+            module: Url::parse("file:///tmp/custom.uff").unwrap(),
+            entry: "Custom".into(),
+            formatter: None,
+            specifier: Some("./custom.uff".into()),
+        }];
+        assert_eq!(
+            language_for_document(&languages, "file:///tmp/a.custom")
+                .map(|language| language.id.as_str()),
+            Some("custom")
+        );
+        assert!(language_for_document(&languages, "file:///tmp/a.uff").is_none());
     }
 
     #[test]

@@ -20,11 +20,11 @@ mod symbols;
 use crate::highlight::{
     encode_semantic_tokens, encode_semantic_tokens_typed, semantic_tokens_legend,
 };
-use crate::languages::Language;
+use crate::languages::{Language, ProjectLanguage, ServedLanguages, language_for_document};
 use crate::mcp::sessions::{Session, SessionManager};
 use crate::project::Project;
 use document::{DocumentAnalysis, DocumentStore};
-use positions::{Position, position_to_offset_units, range_json};
+use positions::{Position, offset_to_position_units, position_to_offset_units, range_json};
 use references::RenamePlan;
 use serde_json::{Map, Value, json};
 use std::collections::{HashMap, HashSet};
@@ -75,6 +75,9 @@ struct ServerState {
     /// Project root → session id (one session per discovered project).
     project_sessions: HashMap<PathBuf, String>,
     sessions: SessionManager,
+    /// Project root → soft-settled languages for `uffda/languageMetadata` and
+    /// document ownership (req:cli-language-server-002).
+    served: HashMap<PathBuf, ServedLanguages>,
 }
 
 impl ServerState {
@@ -87,6 +90,7 @@ impl ServerState {
             cache_dir: None,
             project_sessions: HashMap::new(),
             sessions: SessionManager::new(),
+            served: HashMap::new(),
         }
     }
 
@@ -256,24 +260,13 @@ fn handle_message(message: &Value, state: &mut ServerState) -> Vec<Value> {
                 .unwrap_or(0);
             vec![rpc_result(id, Value::Array(vec![Value::Null; items]))]
         }
-        Some("uffda/languageMetadata") => vec![rpc_result(
-            id,
-            // Include both the current shape (`extensions`) and the older
-            // installed-extension shape (`metadata.ext`) so either client works.
-            json!({
-                "languages": [{
-                    "id": "uffda",
-                    "name": "Uffda",
-                    "extensions": [".uff"],
-                    "metadata": {
-                        "id": "uffda",
-                        "name": "Uffda",
-                        "ext": ".uff",
-                        "extensions": [".uff"]
-                    }
-                }]
-            }),
-        )],
+        Some("uffda/languageMetadata") => {
+            let params = message.get("params").cloned().unwrap_or(json!({}));
+            let result = guarded(json!({ "languages": [] }), || {
+                language_metadata_response(state, &params)
+            });
+            vec![rpc_result(id, result)]
+        }
         Some("textDocument/semanticTokens/full") => {
             let uri = message
                 .pointer("/params/textDocument/uri")
@@ -287,34 +280,64 @@ fn handle_message(message: &Value, state: &mut ServerState) -> Vec<Value> {
         }
         Some("textDocument/hover") => {
             let params = message.get("params").cloned().unwrap_or(json!({}));
-            let result = guarded(Value::Null, || hover_request(state, &params));
+            let result = guarded(Value::Null, || {
+                if !uri_is_builtin(state, request_uri(&params)) {
+                    return Value::Null;
+                }
+                hover_request(state, &params)
+            });
             vec![rpc_result(id, result)]
         }
         Some("textDocument/definition") => {
             let params = message.get("params").cloned().unwrap_or(json!({}));
-            let result = guarded(json!([]), || definition_request(state, &params));
+            let result = guarded(json!([]), || {
+                if !uri_is_builtin(state, request_uri(&params)) {
+                    return json!([]);
+                }
+                definition_request(state, &params)
+            });
             vec![rpc_result(id, result)]
         }
         Some("textDocument/completion") => {
             let params = message.get("params").cloned().unwrap_or(json!({}));
-            let result = guarded(json!([]), || completion_request(state, &params));
+            let result = guarded(json!([]), || {
+                if !uri_is_builtin(state, request_uri(&params)) {
+                    return json!([]);
+                }
+                completion_request(state, &params)
+            });
             vec![rpc_result(id, result)]
         }
         Some("textDocument/references") => {
             let params = message.get("params").cloned().unwrap_or(json!({}));
-            let result = guarded(json!([]), || references_request(state, &params));
+            let result = guarded(json!([]), || {
+                if !uri_is_builtin(state, request_uri(&params)) {
+                    return json!([]);
+                }
+                references_request(state, &params)
+            });
             vec![rpc_result(id, result)]
         }
         Some("textDocument/prepareRename") => {
             let params = message.get("params").cloned().unwrap_or(json!({}));
-            match guarded(Ok(Value::Null), || prepare_rename_request(state, &params)) {
+            match guarded(Ok(Value::Null), || {
+                if !uri_is_builtin(state, request_uri(&params)) {
+                    return Ok(Value::Null);
+                }
+                prepare_rename_request(state, &params)
+            }) {
                 Ok(result) => vec![rpc_result(id, result)],
                 Err(message) => vec![rpc_error(id, REQUEST_FAILED, message)],
             }
         }
         Some("textDocument/rename") => {
             let params = message.get("params").cloned().unwrap_or(json!({}));
-            match guarded(Ok(Value::Null), || rename_request(state, &params)) {
+            match guarded(Ok(Value::Null), || {
+                if !uri_is_builtin(state, request_uri(&params)) {
+                    return Ok(Value::Null);
+                }
+                rename_request(state, &params)
+            }) {
                 Ok(result) => vec![rpc_result(id, result)],
                 Err(message) => vec![rpc_error(id, REQUEST_FAILED, message)],
             }
@@ -334,7 +357,7 @@ fn handle_message(message: &Value, state: &mut ServerState) -> Vec<Value> {
                 .as_str()
                 .unwrap_or("")
                 .to_string();
-            if !is_uff_document(&uri) {
+            if language_for_uri(state, &uri).is_none() {
                 return Vec::new();
             }
             state.documents.insert(uri.clone(), text.clone());
@@ -347,7 +370,7 @@ fn handle_message(message: &Value, state: &mut ServerState) -> Vec<Value> {
                 .as_str()
                 .unwrap_or("")
                 .to_string();
-            if !is_uff_document(&uri) {
+            if language_for_uri(state, &uri).is_none() {
                 return Vec::new();
             }
             let text = full_document_text(params.get("contentChanges"), state.documents.get(&uri));
@@ -378,8 +401,95 @@ fn handle_message(message: &Value, state: &mut ServerState) -> Vec<Value> {
     }
 }
 
-fn is_uff_document(uri: &str) -> bool {
-    uri.ends_with(".uff") || uri.contains(".uff?")
+fn project_root_for_uri(state: &ServerState, uri: &str) -> PathBuf {
+    match path_from_file_uri(uri) {
+        Some(path) => project_root_for_file(&path, &state.workspace_folders),
+        None => std::env::temp_dir().join("uffda-lsp-untitled"),
+    }
+}
+
+/// Soft-settled languages for the document's project root.
+fn ensure_served<'a>(state: &'a mut ServerState, uri: &str) -> &'a ServedLanguages {
+    let root = project_root_for_uri(state, uri);
+    if !state.served.contains_key(&root) {
+        let served = match ensure_session(state, uri) {
+            Ok((session_id, _)) => match state.sessions.get_mut(&session_id) {
+                Ok(session) => {
+                    let project = session.project().cloned();
+                    let served = session.languages.served_languages(project.as_ref());
+                    for problem in &served.problems {
+                        eprintln!("uffda lsp: {problem}");
+                    }
+                    served
+                }
+                Err(_) => ServedLanguages::default(),
+            },
+            Err(_) => ServedLanguages::default(),
+        };
+        state.served.insert(root.clone(), served);
+    }
+    state.served.get(&root).expect("served languages inserted")
+}
+
+fn language_for_uri(state: &mut ServerState, uri: &str) -> Option<ProjectLanguage> {
+    let served = ensure_served(state, uri);
+    language_for_document(&served.languages, uri).cloned()
+}
+
+fn uri_is_builtin(state: &mut ServerState, uri: &str) -> bool {
+    language_for_uri(state, uri).is_some_and(|language| language.is_builtin())
+}
+
+fn language_metadata_response(state: &mut ServerState, params: &Value) -> Value {
+    let language_id = params.get("languageId").and_then(Value::as_str);
+    let mut languages = Vec::new();
+    let roots: Vec<PathBuf> = if state.workspace_folders.is_empty() {
+        vec![std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))]
+    } else {
+        state.workspace_folders.clone()
+    };
+    let mut seen = HashSet::new();
+    for root in roots {
+        let probe = root.join("__uffda_language_metadata__.uff");
+        let uri = Url::from_file_path(&probe)
+            .map(|url| url.to_string())
+            .unwrap_or_else(|_| format!("file:///{}", probe.display()));
+        let served = ensure_served(state, &uri);
+        for language in &served.languages {
+            if !seen.insert(language.id.clone()) {
+                continue;
+            }
+            if language_id.is_some_and(|id| id != language.id) {
+                continue;
+            }
+            languages.push(language_metadata_json(language));
+        }
+    }
+    json!({ "languages": languages })
+}
+
+fn language_metadata_json(language: &ProjectLanguage) -> Value {
+    let mut object = Map::new();
+    object.insert("id".into(), json!(language.id));
+    if let Some(name) = &language.name {
+        object.insert("name".into(), json!(name));
+    }
+    if let Some(description) = &language.description {
+        object.insert("description".into(), json!(description));
+    }
+    object.insert("extensions".into(), json!(language.extensions));
+    // Older installed extension shape (`metadata.ext`).
+    let mut metadata = Map::new();
+    metadata.insert("id".into(), json!(language.id));
+    if let Some(name) = &language.name {
+        metadata.insert("name".into(), json!(name));
+    }
+    if let Some(ext) = language.extensions.first() {
+        metadata.insert("ext".into(), json!(ext));
+    }
+    metadata.insert("extensions".into(), json!(language.extensions));
+    object.insert("metadata".into(), Value::Object(metadata));
+    Value::Object(object)
 }
 
 fn full_document_text(changes: Option<&Value>, previous: Option<&String>) -> String {
@@ -447,7 +557,7 @@ fn ensure_session(state: &mut ServerState, uri: &str) -> Result<(String, Option<
     if !state.project_sessions.contains_key(&root) {
         let session = state
             .sessions
-            .open_with_cache(root.clone(), None, state.cache_dir.clone())
+            .open_lenient(root.clone(), state.cache_dir.clone())
             .map_err(|error| error.message)?;
         let id = session.id.clone();
         state.project_sessions.insert(root.clone(), id);
@@ -467,6 +577,10 @@ fn guarded<T>(fallback: T, work: impl FnOnce() -> T) -> T {
 }
 
 fn diagnose_document(state: &mut ServerState, uri: &str, text: &str) -> Vec<Value> {
+    let language = match language_for_uri(state, uri) {
+        Some(language) => language,
+        None => return Vec::new(),
+    };
     let (session_id, path_arg) = match ensure_session(state, uri) {
         Ok(parts) => parts,
         Err(message) => return vec![diagnostic_message(0, 0, 0, 1, message)],
@@ -482,12 +596,21 @@ fn diagnose_document(state: &mut ServerState, uri: &str, text: &str) -> Vec<Valu
     // follow-up request (or a no-op didChange) does not re-parse.
     let analysis = match store.open(uri).filter(|doc| doc.source == text) {
         Some(existing) => Some(existing),
-        None => DocumentAnalysis::parse(&mut session.languages, uri, text).map(Rc::new),
+        None if language.is_builtin() => {
+            DocumentAnalysis::parse(&mut session.languages, uri, text).map(Rc::new)
+        }
+        None => DocumentAnalysis::parse_language(&mut session.languages, uri, text, &language)
+            .map(Rc::new),
     };
     // Publish spans/tree before resolve so semantic-tokens can reuse them
     // as soon as this handler returns.
     if let Some(analysis) = &analysis {
         store.set_open(Rc::clone(analysis));
+    }
+    // Custom languages are parse/highlight only until module resolve is
+    // generalized past Uffda module syntax (issue #231 / Deno isBuiltin gate).
+    if !language.is_builtin() {
+        return diagnostics_from_analysis(analysis.as_deref());
     }
     // Prefer the resolver's artifact graph (`bin/ast/...`). Only fall back to
     // compiling imported `.uff` sources when that fails — never re-parse every
@@ -531,10 +654,36 @@ fn diagnose_document(state: &mut ServerState, uri: &str, text: &str) -> Vec<Valu
             spans,
             tree: analysis.tree.clone(),
             quality: analysis.quality,
+            diagnostics: analysis.diagnostics.clone(),
             syntax: analysis.syntax.clone(),
         }));
     }
     diagnostics_from_load(&result)
+}
+
+fn diagnostics_from_analysis(analysis: Option<&DocumentAnalysis>) -> Vec<Value> {
+    let Some(analysis) = analysis else {
+        return Vec::new();
+    };
+    analysis
+        .diagnostics
+        .iter()
+        .map(|diagnostic| {
+            let start = offset_to_position_units(&analysis.units, diagnostic.location.offset);
+            let end_offset = diagnostic
+                .location
+                .end_offset
+                .unwrap_or_else(|| diagnostic.location.offset.saturating_add(1));
+            let end = offset_to_position_units(&analysis.units, end_offset);
+            diagnostic_message(
+                start.line,
+                start.character,
+                end.line,
+                end.character.max(start.character.saturating_add(1)),
+                diagnostic.message.clone(),
+            )
+        })
+        .collect()
 }
 
 /// When artifacts are missing, compile imported `.uff` sources into the
@@ -593,6 +742,10 @@ fn semantic_tokens_for_document(state: &mut ServerState, uri: &str, text: &str) 
     {
         return encode_semantic_tokens_typed(text, &analysis.spans);
     }
+    let language = match language_for_uri(state, uri) {
+        Some(language) => language,
+        None => return Vec::new(),
+    };
     let (session_id, _) = match ensure_session(state, uri) {
         Ok(parts) => parts,
         Err(_) => return Vec::new(),
@@ -600,7 +753,12 @@ fn semantic_tokens_for_document(state: &mut ServerState, uri: &str, text: &str) 
     let Ok(session) = state.sessions.get_mut(&session_id) else {
         return Vec::new();
     };
-    let Ok(highlighted) = session.languages.highlight(text, Language::Uffda) else {
+    let highlighted = if language.is_builtin() {
+        session.languages.highlight(text, Language::Uffda)
+    } else {
+        session.languages.highlight_language(text, &language)
+    };
+    let Ok(highlighted) = highlighted else {
         return Vec::new();
     };
     let Some(spans) = highlighted.get("spans").and_then(Value::as_array) else {
@@ -790,13 +948,22 @@ fn formatting_request(state: &mut ServerState, params: &Value) -> Value {
     let Some(text) = state.documents.get(uri).cloned() else {
         return json!([]);
     };
+    let language = match language_for_uri(state, uri) {
+        Some(language) => language,
+        None => return json!([]),
+    };
     let Ok((session_id, _)) = ensure_session(state, uri) else {
         return json!([]);
     };
     let Ok(session) = state.sessions.get_mut(&session_id) else {
         return json!([]);
     };
-    let Ok(formatted) = session.languages.format(&text, Language::Uffda) else {
+    let formatted = if language.is_builtin() {
+        session.languages.format(&text, Language::Uffda)
+    } else {
+        session.languages.format_language(&text, &language)
+    };
+    let Ok(formatted) = formatted else {
         return json!([]);
     };
     if formatted == text {
@@ -1256,6 +1423,116 @@ mod tests {
             responses[0]["result"]["languages"][0]["extensions"][0],
             ".uff"
         );
+    }
+
+    #[test]
+    // req:cli-language-server-002
+    fn language_metadata_includes_project_languages_and_ignores_unowned_extensions() {
+        let root = std::env::temp_dir().join(format!(
+            "uffda-lsp-langs-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+        let lang_path = root.join("custom.uff");
+        std::fs::write(
+            &lang_path,
+            r#"export Custom;
+decorator Language<c:any> = c;
+[Language { id: "custom", name: "Custom", extensions: [".custom"] }]
+rule Custom = "ok";
+"#,
+        )
+        .unwrap();
+        std::fs::write(
+            root.join("uffda.jsonc"),
+            r#"{ "languages": ["./custom.uff"] }"#,
+        )
+        .unwrap();
+
+        // Compile the custom language into the project's bin so resolve can load it.
+        let mut bootstrap = crate::languages::Languages::new().unwrap();
+        let source = std::fs::read_to_string(&lang_path).unwrap();
+        let syntax = bootstrap.parse(&source, Language::Uffda).unwrap();
+        let declaration = bootstrap.compile(syntax).unwrap();
+        let artifact = root.join("bin/ast/custom.uff.ast.json");
+        std::fs::create_dir_all(artifact.parent().unwrap()).unwrap();
+        std::fs::write(&artifact, declaration.to_string()).unwrap();
+
+        let mut state = ServerState::new();
+        state.workspace_folders = vec![root.clone()];
+        let meta = handle_message(
+            &json!({
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "uffda/languageMetadata",
+                "params": {}
+            }),
+            &mut state,
+        );
+        let languages = meta[0]["result"]["languages"].as_array().unwrap();
+        assert!(
+            languages.iter().any(|language| language["id"] == "custom"),
+            "expected custom language in {languages:?}"
+        );
+        assert!(
+            languages.iter().any(|language| {
+                language["id"] == "custom"
+                    && language["extensions"]
+                        .as_array()
+                        .is_some_and(|ext| ext.iter().any(|value| value == ".custom"))
+            }),
+            "custom must own .custom"
+        );
+
+        let ignored = handle_message(
+            &json!({
+                "jsonrpc": "2.0",
+                "method": "textDocument/didOpen",
+                "params": {
+                    "textDocument": {
+                        "uri": Url::from_file_path(root.join("notes.txt")).unwrap().to_string(),
+                        "languageId": "plaintext",
+                        "version": 1,
+                        "text": "hello"
+                    }
+                }
+            }),
+            &mut state,
+        );
+        assert!(ignored.is_empty(), "unowned extension must be ignored");
+
+        let custom_uri = Url::from_file_path(root.join("sample.custom"))
+            .unwrap()
+            .to_string();
+        let opened = handle_message(
+            &json!({
+                "jsonrpc": "2.0",
+                "method": "textDocument/didOpen",
+                "params": {
+                    "textDocument": {
+                        "uri": custom_uri,
+                        "languageId": "custom",
+                        "version": 1,
+                        "text": "nope"
+                    }
+                }
+            }),
+            &mut state,
+        );
+        assert_eq!(opened.len(), 1);
+        assert_eq!(opened[0]["method"], "textDocument/publishDiagnostics");
+        let diagnostics = opened[0]["params"]["diagnostics"].as_array().unwrap();
+        assert!(
+            !diagnostics.is_empty(),
+            "custom grammar should publish parse diagnostics for non-matching input"
+        );
+
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     #[test]

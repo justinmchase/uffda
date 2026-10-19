@@ -4,9 +4,10 @@
 
 use super::editor::Node;
 use super::positions::utf16;
+use crate::diagnostics::SourceDiagnostic;
 use crate::highlight::{HighlightSpan, identifier_at_offset};
 use crate::json::JsonValue;
-use crate::languages::{Language, Languages};
+use crate::languages::{Language, Languages, ProjectLanguage};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -34,6 +35,8 @@ pub struct DocumentAnalysis {
     pub tree: Option<Node>,
     /// Orders parses: failed (0), recovered (1), clean (2).
     pub quality: u8,
+    /// Parse diagnostics from the language entry rule (recovery + failure).
+    pub diagnostics: Vec<SourceDiagnostic>,
     /// AST from the same UffdaLang parse, when clean — reused for `session.load`
     /// so resolve does not re-parse the buffer.
     pub syntax: Option<JsonValue>,
@@ -44,6 +47,25 @@ impl DocumentAnalysis {
     /// runtime could not run the grammar at all.
     pub fn parse(languages: &mut Languages, uri: &str, source: &str) -> Option<Self> {
         let analysis = languages.analyze(source, Language::Uffda).ok()?;
+        Self::from_analysis(uri, source, analysis)
+    }
+
+    /// Parse `source` with a project-served language entry rule.
+    pub fn parse_language(
+        languages: &mut Languages,
+        uri: &str,
+        source: &str,
+        language: &ProjectLanguage,
+    ) -> Option<Self> {
+        let analysis = languages.analyze_language(source, language).ok()?;
+        Self::from_analysis(uri, source, analysis)
+    }
+
+    fn from_analysis(
+        uri: &str,
+        source: &str,
+        analysis: crate::languages::Analysis,
+    ) -> Option<Self> {
         let tree = analysis.tree.map(Rc::new);
         let quality = match &tree {
             None => 0,
@@ -59,6 +81,7 @@ impl DocumentAnalysis {
             spans: analysis.spans,
             tree,
             quality,
+            diagnostics: analysis.diagnostics,
             syntax: analysis.syntax,
         })
     }
