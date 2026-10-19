@@ -6,6 +6,7 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 use url::Url;
 
+#[derive(Clone)]
 pub struct Project {
     pub path: PathBuf,
     pub root: PathBuf,

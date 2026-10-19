@@ -88,6 +88,51 @@ impl SessionManager {
                 });
             }
         };
+        if let Some(project) = &project {
+            languages = project
+                .resolver_with_cache(cache_dir.as_deref())
+                .map_err(|error| SessionOpenError {
+                    message: error.to_string(),
+                })
+                .and_then(|resolver| {
+                    Languages::with_resolver(resolver).map_err(|error| SessionOpenError {
+                        message: error.to_string(),
+                    })
+                })?;
+        }
+        Ok(self.insert_session(cwd, cache_dir, project, languages))
+    }
+
+    /// Open a session that ignores an invalid project file and serves the
+    /// built-in `.uff` language (LSP req:cli-language-server-002).
+    pub fn open_lenient(
+        &mut self,
+        cwd: PathBuf,
+        cache_dir: Option<PathBuf>,
+    ) -> Result<&Session, SessionOpenError> {
+        let id = match self.open_with_cache(cwd.clone(), None, cache_dir.clone()) {
+            Ok(session) => session.id.clone(),
+            Err(error) => {
+                eprintln!(
+                    "uffda lsp: project not loaded ({}); serving .uff only",
+                    error.message
+                );
+                let languages = Languages::new().map_err(|error| SessionOpenError {
+                    message: error.to_string(),
+                })?;
+                return Ok(self.insert_session(cwd, cache_dir, None, languages));
+            }
+        };
+        Ok(self.sessions.get(&id).expect("just opened"))
+    }
+
+    fn insert_session(
+        &mut self,
+        cwd: PathBuf,
+        cache_dir: Option<PathBuf>,
+        project: Option<Project>,
+        languages: Languages,
+    ) -> &Session {
         self.next_id += 1;
         let id = format!("session-{}", self.next_id);
         self.sessions.insert(
@@ -110,7 +155,7 @@ impl SessionManager {
                 metadata_cache: RefCell::new(HashMap::new()),
             },
         );
-        Ok(self.sessions.get(&id).expect("just inserted"))
+        self.sessions.get(&id).expect("just inserted")
     }
 
     pub fn get_mut(&mut self, id: &str) -> Result<&mut Session, SessionLookupError> {
@@ -136,6 +181,10 @@ impl SessionManager {
 }
 
 impl Session {
+    pub fn project(&self) -> Option<&Project> {
+        self.project.as_ref()
+    }
+
     pub fn load(&mut self, source: &str, path: Option<&str>) -> Value {
         self.load_at(source, path, None)
     }

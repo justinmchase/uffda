@@ -51,3 +51,8 @@ Postconditions:
 - Every document the editor opens is served by exactly one language (chosen by
   extension) or is not served at all; there is no ambiguity or fallback grammar
   guessing.
+- Tests: `rust/src/lsp/mod.rs`
+  (`language_metadata_includes_project_languages_and_ignores_unowned_extensions`,
+  `language_metadata_lists_uff_extension`); `rust/src/languages.rs`
+  (`project_languages_read_exported_metadata_without_executing_rule_bodies`,
+  `extension_of_and_language_for_document_match_by_lowercase_extension`).

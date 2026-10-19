@@ -1228,10 +1228,13 @@ rule Space = " ";
     let mut languages = Languages::with_resolver(resolver).expect("languages");
     let mut language = ProjectLanguage {
         id: "words".into(),
+        name: None,
+        description: None,
         extensions: vec![".words".into()],
         module: lang_url.clone(),
         entry: "Words".into(),
         formatter: Some((print_url.clone(), "Print".into())),
+        specifier: Some("./words.uff".into()),
     };
     assert_eq!(
         languages
@@ -1259,10 +1262,13 @@ rule Space = " ";
 
     let unresolved = ProjectLanguage {
         id: "words".into(),
+        name: None,
+        description: None,
         extensions: vec![".words".into()],
         module: Url::parse("file:///uffda/format/missing.uff").expect("missing"),
         entry: "Words".into(),
         formatter: Some((print_url.clone(), "Print".into())),
+        specifier: Some("./missing.uff".into()),
     };
     assert!(languages.format_language("a", &unresolved).is_err());
 
