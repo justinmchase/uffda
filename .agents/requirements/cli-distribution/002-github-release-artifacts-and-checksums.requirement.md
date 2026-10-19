@@ -28,7 +28,12 @@ Expected behavior:
 - The workflow MUST run on pushes to `main`, skip its own `[no ci]` version
   commits, and MUST NOT automatically label PRs or use the Release Drafter
   action. Release resolution and draft updates MUST use Bash, `gh`, and the
-  semver CLI without requiring Deno.
+  semver CLI without requiring Deno. The version-bump commit MUST also set the
+  package `version` fields (and path-dep pins) in `rust/Cargo.toml`,
+  `rust/heap/Cargo.toml`, `rust/heap/derive/Cargo.toml`, and
+  `rust/build/Cargo.toml` to that SemVer, update path-dep pins in
+  `rust/consumer/Cargo.toml` (leaving its unpublished `0.0.0` package version),
+  and refresh `rust/Cargo.lock` accordingly.
 - The standalone draft workflow MUST dispatch `repository_dispatch` event type
   `release-binaries` after the draft/version update on `main`.
 - Draft updates MUST preserve the draft state and MUST fail if the selected

@@ -139,6 +139,34 @@ fn requirement_ports_release_packaging_checksum_and_attach_contract() {
 }
 
 #[test]
+// req:cli-distribution-002
+fn requirement_ports_draft_release_bumps_cargo_crate_versions() {
+    let version = read_repo("VERSION").trim().to_string();
+    assert!(!version.is_empty());
+    for manifest in [
+        "rust/Cargo.toml",
+        "rust/heap/Cargo.toml",
+        "rust/heap/derive/Cargo.toml",
+        "rust/build/Cargo.toml",
+    ] {
+        let text = read_repo(manifest);
+        let package_version = text
+            .lines()
+            .find_map(|line| line.strip_prefix("version = \""))
+            .and_then(|rest| rest.strip_suffix('"'))
+            .unwrap_or("");
+        assert_eq!(
+            package_version, version,
+            "{manifest} package version must match VERSION"
+        );
+    }
+    let drafter = read_repo(".github/workflows/release-drafter.yml");
+    assert!(drafter.contains("semver set"));
+    assert!(drafter.contains("cargo update -p uffda-runtime"));
+    assert!(drafter.contains("rust/heap/derive/Cargo.toml"));
+}
+
+#[test]
 // req:cli-distribution-003
 fn requirement_ports_linux_install_script_installs_uffda() {
     assert_eq!(install_script_file_name(), "install.sh");

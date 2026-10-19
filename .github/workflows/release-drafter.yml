@@ -130,6 +130,29 @@ jobs:
         run: |
           set -euo pipefail
           semver set "$RELEASE_VERSION"
+          # Keep crates.io package versions (and path-dep pins) aligned with the
+          # release tag. Publish fails when rust/**/Cargo.toml disagrees.
+          version_re='[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*'
+          for manifest in \
+            rust/Cargo.toml \
+            rust/heap/Cargo.toml \
+            rust/heap/derive/Cargo.toml \
+            rust/build/Cargo.toml
+          do
+            # Package version line only — do not touch third-party dep versions.
+            sed -E -i "s/^version = \"${version_re}\"/version = \"${RELEASE_VERSION}\"/" \
+              "${manifest}"
+            # Path-dependency pins: `{ path = "...", version = "x.y.z" }`.
+            sed -E -i \
+              "s/(path = \"[^\"]+\", version = \")${version_re}\"/\1${RELEASE_VERSION}\"/" \
+              "${manifest}"
+          done
+          # Smoke crate stays at 0.0.0; only its path-dep pins track the tag.
+          sed -E -i \
+            "s/(path = \"[^\"]+\", version = \")${version_re}\"/\1${RELEASE_VERSION}\"/" \
+            rust/consumer/Cargo.toml
+          cargo update -p uffda-runtime -p uffda-heap -p uffda-heap-derive -p uffda-build \
+            --manifest-path rust/Cargo.toml
           if [ -z "$(git status --porcelain)" ];
           then
             echo "no changes to commit."

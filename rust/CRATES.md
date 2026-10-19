@@ -51,5 +51,6 @@ the crates.io job with a short-lived OIDC token.
 ## Versioning
 
 Crate versions in `rust/**/Cargo.toml` must match the GitHub Release tag (bare
-SemVer, optional `v` prefix stripped). The Publish workflow fails the crates.io
-job on mismatch.
+SemVer, optional `v` prefix stripped). Draft Release's version-bump commit
+updates those manifests (and `rust/Cargo.lock`) alongside `VERSION`. The
+Publish workflow fails the crates.io job on mismatch.

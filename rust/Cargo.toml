@@ -1,6 +1,6 @@
 [package]
 name = "uffda-runtime"
-version = "0.10.0"
+version = "0.10.2"
 edition = "2024"
 # Product CLI binary ships via GitHub Releases only; this package is the library.
 publish = true
@@ -36,7 +36,7 @@ mimalloc = ["dep:mimalloc"]
 heap-leak = ["uffda-heap/leak"]
 
 [dependencies]
-uffda-heap = { path = "heap", version = "0.10.0" }
+uffda-heap = { path = "heap", version = "0.10.2" }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order", "raw_value"] }
 ryu-js = "1"
@@ -56,7 +56,7 @@ num-bigint = "0.4"
 mimalloc = { version = "0.1", default-features = false, optional = true }
 
 [build-dependencies]
-uffda-build = { path = "build", version = "0.10.0" }
+uffda-build = { path = "build", version = "0.10.2" }
 
 [dev-dependencies]
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
