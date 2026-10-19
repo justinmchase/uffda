@@ -81,15 +81,40 @@ jobs:
           set -euo pipefail
           uffda --version
           rm -rf ./bin
-          uffda compile 'src/lang/**/*.uff'
+          # Full ModuleDeclaration JSON on stdout floods the log (~MBs) and
+          # looks like a hang; keep a copy for debugging failures.
+          uffda compile 'src/lang/**/*.uff' >"$RUNNER_TEMP/uffda-compile.json"
           test -f ./bin/ast/src/lang/uffda/uffda.lang.uff.ast.json
           test -f ./bin/ast/src/lang/uffda/runtime.compiler.uff.ast.json
 
       - name: Verify ./bin is in the JSR package
         run: |
           set -euo pipefail
-          npx jsr publish --dry-run 2>&1 | tee "$RUNNER_TEMP/jsr-dry-run.log"
+          # uffda-setup already installs Deno; avoid the npx jsr download wrapper.
+          deno publish --dry-run 2>&1 | tee "$RUNNER_TEMP/jsr-dry-run.log"
           grep -q "bin/ast/src/lang/uffda/uffda.lang.uff.ast.json" "$RUNNER_TEMP/jsr-dry-run.log"
 
       - name: Publish to JSR
-        run: npx jsr publish
+        # Upload + provenance often takes ~20–25m with little log output.
+        # jsr.io status polling sometimes resets the connection mid-publish;
+        # retry rather than failing the whole release on a single blip.
+        timeout-minutes: 60
+        run: |
+          set -euo pipefail
+          echo "JSR publish can take ~20–25 minutes (upload + provenance); retrying on connection errors."
+          attempts=5
+          delay=30
+          for i in $(seq 1 "$attempts"); do
+            echo "JSR publish attempt ${i}/${attempts}"
+            if deno publish; then
+              exit 0
+            fi
+            status=$?
+            if [[ "$i" -eq "$attempts" ]]; then
+              echo "JSR publish failed after ${attempts} attempts (last exit ${status})" >&2
+              exit "$status"
+            fi
+            echo "Attempt ${i} failed (exit ${status}); sleeping ${delay}s before retry..."
+            sleep "$delay"
+            delay=$((delay * 2))
+          done
