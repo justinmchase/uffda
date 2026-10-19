@@ -18,7 +18,7 @@ Expected behavior:
 - `deno.jsonc` MUST declare `publish.exclude` entries for `.agents/`,
   `.cursor/`, `.github/`, and `src/requirements/`.
 - Those trees MUST NOT appear in the JSR package file list produced by
-  `npx jsr publish --dry-run`.
+  `deno publish --dry-run` (or equivalent `npx jsr publish --dry-run`).
 - The exclusion exists so agent/requirement paths with long filenames cannot
   break the JSR tarball verify step (`File … not found in the tarball` after
   ustar path truncation).
