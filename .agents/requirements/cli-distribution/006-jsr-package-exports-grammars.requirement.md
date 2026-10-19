@@ -10,9 +10,9 @@ spec_ref: ".agents/specifications/languages/cli/distribution-and-release.spec.md
 
 Preconditions:
 
-- The Publish workflow compiles `./bin` with the Rust `uffda compile` after
-  seeding the tree for the Rust build. JSR publish of `@justinmchase/uffda` is
-  paused.
+- The Publish workflow's JSR job installs the release tag's CLI via
+  `uffda-setup` (Release Binaries must already have attached that tag's assets)
+  and compiles `./bin` with that CLI only — no in-job `cargo build`.
 
 Expected behavior:
 
@@ -40,8 +40,7 @@ Postconditions:
   checkout; the built-in `.uff` artifacts load from the package wherever it is
   served.
 - Tests: `rust/src/resolver/packages/tests.rs`,
-  `rust/src/resolver/ported_tests.rs`
-  (serves the repository's own `uffda.jsonc` and `bin/` as a package from a fake
-  registry and resolves each exported grammar), and
-  `rust/src/resolver/ported_tests.rs` (loads a built-in artifact from an
-  `https:` package root over a stubbed network fetch).
+  `rust/src/resolver/ported_tests.rs` (serves the repository's own `uffda.jsonc`
+  and `bin/` as a package from a fake registry and resolves each exported
+  grammar), and `rust/src/resolver/ported_tests.rs` (loads a built-in artifact
+  from an `https:` package root over a stubbed network fetch).
