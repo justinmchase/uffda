@@ -163,7 +163,22 @@ fn requirement_ports_draft_release_bumps_cargo_crate_versions() {
     let drafter = read_repo(".github/workflows/release-drafter.yml");
     assert!(drafter.contains("semver set"));
     assert!(drafter.contains("cargo update -p uffda-runtime"));
-    assert!(drafter.contains("rust/heap/derive/Cargo.toml"));
+    let version_yml = read_repo(".github/version.yml");
+    for manifest in [
+        "rust/Cargo.toml",
+        "rust/heap/Cargo.toml",
+        "rust/heap/derive/Cargo.toml",
+        "rust/build/Cargo.toml",
+    ] {
+        assert!(
+            version_yml.contains(manifest),
+            "version.yml must bump {manifest}"
+        );
+    }
+    assert!(
+        version_yml.contains("flags: m"),
+        "Cargo package version hooks need multiline ^ matching"
+    );
 }
 
 #[test]
