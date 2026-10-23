@@ -50,8 +50,17 @@ jobs:
       - uses: ./.github/actions/uffda-setup
         with:
           version: latest
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
       - name: Bootstrap with published compiler
         run: rm -rf ./bin && uffda compile 'src/lang/**/*.uff'
+      # req:cli-bootstrap-002
+      - name: Build CLI from bootstrapped language artifacts
+        run: cargo build --locked --manifest-path rust/Cargo.toml --features embed-languages --bin uffda
+      - name: Full-circle compile with artifact-built CLI
+        run: |
+          rm -rf ./bin
+          ./rust/target/debug/uffda compile 'src/lang/**/*.uff'
       - uses: actions/upload-artifact@v7
         with:
           name: rust-language-bin

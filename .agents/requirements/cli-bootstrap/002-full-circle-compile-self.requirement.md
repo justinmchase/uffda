@@ -29,5 +29,9 @@ Postconditions:
 
 ## Status
 
-Stub for Milestone 11. Implementation follows after CLI distribution and CI
-adoption.
+Implemented in Checks and Release Binaries: the published CLI compiles the
+language sources, then a Rust CLI built from those artifacts recompiles the same
+sources. Checks uploads the second compile's artifacts for the Rust test jobs.
+
+Tests: `.github/workflows/checks.yml` (`rust-language-bin` job);
+`.github/workflows/release-binaries.yml` (`compile-lang` job).
