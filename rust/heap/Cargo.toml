@@ -1,6 +1,6 @@
 [package]
 name = "uffda-heap"
-version = "0.10.4"
+version = "0.10.5"
 edition = "2024"
 publish = true
 license = "MIT"
@@ -22,5 +22,5 @@ gc-arena = ["dep:gc-arena"]
 leak = []
 
 [dependencies]
-uffda-heap-derive = { path = "derive", version = "0.10.4" }
+uffda-heap-derive = { path = "derive", version = "0.10.5" }
 gc-arena = { version = "=0.7.0", optional = true }

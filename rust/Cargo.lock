@@ -1048,7 +1048,7 @@ checksum = "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20"
 
 [[package]]
 name = "uffda-build"
-version = "0.10.4"
+version = "0.10.5"
 
 [[package]]
 name = "uffda-consumer-smoke"
@@ -1062,7 +1062,7 @@ dependencies = [
 
 [[package]]
 name = "uffda-heap"
-version = "0.10.4"
+version = "0.10.5"
 dependencies = [
  "gc-arena",
  "uffda-heap-derive",
@@ -1070,7 +1070,7 @@ dependencies = [
 
 [[package]]
 name = "uffda-heap-derive"
-version = "0.10.4"
+version = "0.10.5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1080,7 +1080,7 @@ dependencies = [
 
 [[package]]
 name = "uffda-runtime"
-version = "0.10.4"
+version = "0.10.5"
 dependencies = [
  "base64 0.22.1",
  "bs58",
