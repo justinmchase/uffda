@@ -1,6 +1,6 @@
 ---
 id: standard-library-001
-title: TypeScript and Rust expose the same declared default globals
+title: Rust preserves the declared default-global compatibility surface
 spec_ref: ".agents/specifications/standard-library.spec.md#default-global-surface"
 ---
 
@@ -14,9 +14,9 @@ Preconditions:
 
 Expected behavior:
 
-- TypeScript and Rust MUST expose exactly the names and declared arities in
+- Rust MUST expose exactly the names and declared arities captured in
   `test/rust/globals-surface-fixtures.json`.
-- Every TypeScript default global MUST carry non-empty descriptive metadata.
+- The retired TypeScript implementation is not required to execute these tests.
 - The fixture name set MUST contain no duplicate names.
 - The shared behavior corpus MUST include at least two cases for every name in
   the surface fixture. Cases MUST retain explicit expected values or expected

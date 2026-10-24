@@ -118,7 +118,7 @@ the way Deno loads a `jsr:` import.
 
 ### Retired executable declaration-file imports
 
-- Both runtimes MUST reject arbitrary `.ts` and `.js` declaration-file imports
+- The runtime MUST reject arbitrary `.ts` and `.js` declaration-file imports
   before reading or executing them. Custom extension resolvers MUST NOT
   re-enable these imports.
 - This restriction does not prohibit explicitly supplied declaration objects or
@@ -126,7 +126,7 @@ the way Deno loads a `jsr:` import.
 
 ### JSON declaration modules
 
-- Both runtimes MUST support loading declaration modules from `.json` sources.
+- The runtime MUST support loading declaration modules from `.json` sources.
 - JSON declaration modules MUST be treated as declaration-bearing module sources
   and validated using the module declaration contract. JSON is read as data,
   never through executable host-module loading.
@@ -156,7 +156,7 @@ the way Deno loads a `jsr:` import.
 - Missing or unreadable artifacts, invalid codec or JSON text, and invalid
   declarations MUST surface as module-resolution errors.
 - Direct `.json` imports MUST resolve to their actual paths without artifact
-  remapping in both runtimes.
+  remapping.
 
 ### Rust runtime compatibility boundary
 
@@ -168,7 +168,8 @@ the way Deno loads a `jsr:` import.
 - Rust-native globals MUST provide the in-scope runtime capabilities; the Rust
   runtime MUST NOT use an embedded JavaScript engine to restore retired host
   imports.
-- The TypeScript reference MUST use the same supported file extensions.
+- The retired TypeScript reference used the same supported file extensions;
+  executing it is not required for Rust module acceptance.
 
 ### Native declaration imports
 

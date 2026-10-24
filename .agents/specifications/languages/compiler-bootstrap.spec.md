@@ -25,26 +25,24 @@ self-hosting while maintaining deterministic and diagnosable behavior.
 - Converted `.uff` language modules that the published CLI needs at parse time
   MUST be embedded as compiled `./bin` AST JSON. The release `compile` job
   embeds them by building the Rust `uffda` binary with the `compile-lang` tree
-  present. The local Deno `scripts/compile-cli.ts` path still passes
-  `deno compile --include ./bin` and remaps from the binary extract root when
-  `Deno.build.standalone` is true.
+  present. Local product builds likewise enable `embed-languages`; no Deno
+  compile or TypeScript language hosts are involved.
 - The published JSR package MUST likewise ship the compiled `./bin` language
-  ModuleDeclaration JSON alongside the `.ts` and `.uff` sources. The release
-  Publish workflow installs the release's CLI (from Release Binaries assets) and
-  runs that `uffda compile` once to fill `./bin`. It MUST NOT rebuild the Rust
-  CLI in the JSR job. The workflow verifies the package file list with
-  `jsr publish --dry-run`.
+  ModuleDeclaration JSON alongside the notice entry point and `.uff` sources.
+  The release Publish workflow installs the release's CLI (from Release Binaries
+  assets) and runs that `uffda compile` once to fill `./bin`. It MUST NOT
+  rebuild the Rust CLI in the JSR job. The workflow verifies the package file
+  list with `jsr publish --dry-run`.
 - Runtime resolution of the built-in languages' `.uff` artifacts MUST address
   them by URL relative to the package root (`<packageRoot>/<outDir>/ast/...`),
   so they load wherever the package lives: a `file:` checkout or compiled-binary
-  extract root (read directly), or a non-`file:` published package root such as
+  artifact tree (read directly), or a non-`file:` published package root such as
   `https://jsr.io/@justinmchase/uffda/<version>/` (fetched over the network)
-  that a consumer imports `jsr:@justinmchase/uffda` from. Resolution MUST NOT
-  require the package to be a local `file:` copy
-  ([#271](https://github.com/justinmchase/uffda/issues/271)). The same
-  package-root URL resolver MUST be a reusable, published extension point so any
-  DSL built on uffda can load its own published `.uff` grammar artifacts the
-  same way.
+  that a consumer remports a grammar from. Resolution MUST NOT require the
+  package to be a local `file:` copy
+  ([#271](https://github.com/justinmchase/uffda/issues/271)). The same Rust
+  package resolver MUST also load downstream DSL packages' compiled `.uff`
+  grammar artifacts using that package's root and artifact layout.
 - After self-hosting, language definitions consumed by a released CLI binary
   MUST come from compiled artifacts rather than TypeScript module sources that
   define those languages.
@@ -88,13 +86,11 @@ workspace `./bin`, so an empty `./bin` cannot be filled by in-tree parse alone.
   compiler in that binary), either as `uffda compile 'src/lang/**/*.uff'` or as
   `deno task compile:lang`, which is that command. It MUST NOT leave syntax ASTs
   as the final artifacts and MUST NOT commit seeds under `src/`.
-- Once workspace `./bin` is populated, in-tree `uffda compile`
-  (`src/cli/compile.ts`) MAY lower using `Resolver.import` of
-  `runtime.compiler.uff` (`compileUffdaSyntaxModule` in
-  `src/lang/uffda/execute.ts`), reading the ModuleDeclaration that the previous
-  published CLI already produced under `./bin`. This is not the recursive case:
-  the artifact being read was produced by an earlier, separate invocation of the
-  previous published CLI, not by the in-tree compile call that is reading it.
+- Once workspace `./bin` is populated, an in-tree Rust CLI MAY be built with
+  those artifacts embedded. Its compile pipeline runs the authored
+  `runtime.compiler.uff` from those declarations. This is not the recursive
+  case: the artifact being used was produced by an earlier, separate invocation
+  of the previous published CLI, not by the compile call that is using it.
 - Runtime resolution of logical `.uff` URLs MUST load the mirrored
   ModuleDeclaration JSON only. It MUST NOT re-run the runtime compiler or parse
   `.uff` source text on import.
@@ -106,11 +102,11 @@ workspace `./bin`, so an empty `./bin` cannot be filled by in-tree parse alone.
 
 - Authored language and CLI sources for self-hosting MUST be expressible as
   `.uff` modules.
-- Language source trees under `src/` MUST contain authored `.uff` sources and
-  thin TypeScript hosts only. Compiler output JSON (ModuleDeclarations and
-  similar artifacts) MUST NOT be committed under `src/`; those artifacts MUST
-  live under `./bin/` (or another designated artifact root), produced by the
-  compile pipeline above.
+- Language source trees under `src/` MUST contain authored `.uff` sources and no
+  TypeScript runtime or grammar-wrapper implementation. Compiler output JSON
+  (ModuleDeclarations and similar artifacts) MUST NOT be committed under `src/`;
+  those artifacts MUST live under `./bin/` (or another designated artifact
+  root), produced by the compile pipeline above.
 - When the published CLI lacks a feature needed to compile the next sources,
   authors MUST publish a new CLI that adds that feature and then compile with it
   — not by checking compiler output into `src/` and not by splitting lowering
@@ -191,9 +187,8 @@ artifacts with host-side rewriters.
 - Distribution of CLI binaries used for bootstrapping is defined in the
   [distribution and release](./cli/distribution-and-release.spec.md) chapter.
 - Default language modules under `src/lang/` MUST be authored as `.uff` and
-  loaded from compiled `./bin` ModuleDeclaration JSON. Thin TypeScript hosts MAY
-  remain only for non-declaration helpers (for example types or host-side walks
-  that are not ModuleDeclarations).
+  loaded from compiled `./bin` ModuleDeclaration JSON. Host orchestration lives
+  in the Rust runtime and CLI; it MUST NOT require TypeScript language wrappers.
 
 ## Projection bootstrapping (future direction)
 

@@ -1,8 +1,8 @@
 # Uffda
 
 Uffda is a parser generator for domain-specific languages. The production CLI
-and runtime are the Rust `uffda` binary; this repository still keeps Deno
-sources as a differential-test reference.
+and runtime are the Rust `uffda` binary. The former Deno runtime and CLI are
+retired; compatibility fixtures remain as Rust regression tests.
 
 Patterns can match strings **and** structured values (objects, arrays, and other
 data). That means the whole compiler pipeline—tokenization, parsing, projection,
@@ -38,10 +38,11 @@ GitHub Actions:
     version: latest
 ```
 
-From a source checkout (Deno required):
+From a source checkout (Rust toolchain and a published `uffda` required):
 
 ```sh
-deno task cli --help
+uffda compile 'src/lang/**/*.uff'
+cargo run --locked --manifest-path rust/Cargo.toml --features embed-languages --bin uffda -- --help
 ```
 
 ## CLI
@@ -124,9 +125,7 @@ uffda exec -e '"hello"' |
 Parse output, project/lockfile files, and structured diagnostics remain JSON.
 Compiled ModuleDeclarations use the Uffda data codec on disk: the file extension
 is `.uff.ast` (one codec record per module). Compile also writes a
-`.uff.ast.json` sibling while resolvers and embeds migrate off JSON. The Deno
-CLI is the existing reference implementation; these codec command contracts
-apply to the Rust migration CLI.
+`.uff.ast.json` sibling while resolvers and embeds migrate off JSON.
 
 ### Compile layout
 
@@ -247,20 +246,27 @@ development instructions.
 
 ## Library
 
-JSR package `@justinmchase/uffda` — entry `mod.ts`. Prefer Deno / Web Platform
-APIs. Specs live under `.agents/specifications/`; requirements under
-`.agents/requirements/`.
+The Rust library is `uffda-runtime`; see [`rust/CRATES.md`](./rust/CRATES.md)
+for the runtime, heap, and artifact-embedding crates. JSR `@justinmchase/uffda`
+ships grammars and a notice entry point, not a TypeScript runtime. Specs live
+under `.agents/specifications/`; requirements under `.agents/requirements/`.
 
 Example grammar: [`examples/morse/morse.uff`](./examples/morse/morse.uff).
 
 ## Development
 
 ```sh
-deno task pre          # fmt, lint, test, jsr dry-run
-deno task test         # compile:lang then deno test
+deno task pre          # formatting, helper lint/tests, Rust checks, JSR dry-run
+deno task test         # compile:lang, Rust workspace tests, Deno helper tests
 deno task compile:lang # previous published uffda → ./bin
-deno task cli --help   # in-tree CLI
+deno task cli --help   # in-tree Rust CLI (requires bootstrapped ./bin)
+deno task compile:cli  # bootstrap then build optimized Rust CLI
 ```
+
+Without Deno, bootstrap with `uffda compile 'src/lang/**/*.uff'`, then run
+`cargo xtask check`. Deno remains for JSR publishing, repository formatting,
+release/setup helpers, and optional Rust codec measurements. TypeScript also
+remains in the independently built VS Code extension.
 
 ### Maintainers: publish a CLI release
 

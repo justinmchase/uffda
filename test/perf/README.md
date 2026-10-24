@@ -1,30 +1,9 @@
 # `test/perf/`
 
-Ad hoc reports for investigating and guarding against compile/parse-time
-regressions — distinct from `test/bench/`'s throughput micro-benchmarks and Rust
-lib integration coverage. Reports here measure how long something takes to _run_
-across a range of input sizes, to make superlinear scaling visible rather than
-requiring a from-scratch profiling session each time it's suspected.
-
-- `morse-compile.report.ts` — measures how long `uffdaGrammar` takes to parse
-  `.uff` source text as a function of source size, using
-  `examples/morse/morse.uff`. Written after a real regression where compiling
-  that ~6KB grammar took ~90 seconds (root-caused and fixed — see the header
-  comment in the report itself for the full story). Run with `deno task perf`.
-  **Scope**: this only parses the `.uff` grammar source text itself
-  (`uffdaGrammar(source)`) — it never compiles+runs the grammar against any
-  example input (no Moby Dick or other roundtrip). A multi-second number here
-  reflects self-hosted-parser overhead on a tiny file, not input throughput; the
-  report's own output states this scope explicitly to avoid that confusion.
-
-## Output behavior
-
-- **Locally**: terse by default — a single line, unless the full compile falls
-  outside the report's generous expected-time bound, in which case the full
-  size/time breakdown prints automatically. Pass `--verbose` to always see the
-  full breakdown.
-- **In CI** (`GITHUB_STEP_SUMMARY` set): the full size/time table is attached to
-  the job summary when the report is run. Checks no longer runs this report.
+On-demand Rust data-codec measurements and retained baseline evidence. Deno
+orchestrates native Rust binaries; it does not provide a runtime implementation.
+The former Deno Morse-parser report and reference-runtime micro-benchmarks are
+retired. These reports are separate from Rust correctness tests.
 
 ## Rust data codec acceptance
 
@@ -42,7 +21,7 @@ is retained in `data-codec-baseline.json` rather than regenerated on every PR.
 After the normal published-compiler bootstrap, run:
 
 ```sh
-cargo build --locked --manifest-path rust/Cargo.toml --release --bin uffda --example codec_probe
+cargo build --locked --manifest-path rust/Cargo.toml --features embed-languages --release --bin uffda --example codec_probe
 deno run --allow-read --allow-write --allow-run --allow-env=SystemRoot \
   test/perf/data-codec.report.ts
 ```
@@ -55,7 +34,7 @@ is portable:
 ```sh
 UFFDA_ACCEPT_CLI=rust/target/release/uffda \
 UFFDA_ACCEPT_PROBE=rust/target/release/examples/codec_probe \
-  cargo test --locked --manifest-path rust/Cargo.toml --test standalone_acceptance -- --ignored
+  cargo test --locked --manifest-path rust/Cargo.toml --features embed-languages --test standalone_acceptance -- --ignored
 ```
 
 Checks and Release Binaries run that Rust test against their optimized binaries.

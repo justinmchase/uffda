@@ -26,8 +26,8 @@ Expected behavior:
   `/expression-syntax`, and `/source` `.uff` aliases (and the other
   `uffda.jsonc` grammar exports) so remported grammars compose as before (see
   cli-distribution-006).
-- In-tree Deno modules under `src/` MAY retain `parseGrammar` and related
-  reference APIs for differential testing; those paths are not JSR exports.
+- The retired Deno runtime and TypeScript grammar wrappers under `src/` MUST NOT
+  be required for grammar resolution or execution.
 
 Postconditions:
 

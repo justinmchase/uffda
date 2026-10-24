@@ -56,9 +56,9 @@ Each runtime subtopic should define:
   patterns, expressions, or rules as synchronous or asynchronous ahead of time
   (by inspecting their structure, marking them, or compiling separate
   synchronous and asynchronous variants).
-- In the TypeScript host adapter, a thenable MUST be adopted according to that
-  host's await behavior. Rust MUST NOT infer suspension by inspecting a data
-  object's `then` property; host operations use explicit execution requests.
+- The retired TypeScript host adapter adopted thenables according to that host's
+  await behavior. Rust MUST NOT infer suspension by inspecting a data object's
+  `then` property; host operations use explicit execution requests.
 - Composites that evaluate children in sequence (`Then`, `And`, `Or`, `Over`,
   `Quantifier`, and sequential expression lists) MUST evaluate each child only
   after the previous child has completed, in declared order, whether earlier

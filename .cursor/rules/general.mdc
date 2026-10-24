@@ -5,7 +5,8 @@ alwaysApply: true
 
 # Repository instructions
 
-Uffda is a Deno-based parser generator for domain specific languages.
+Uffda is a Rust parser generator for domain specific languages. The Deno
+runtime/CLI reference is retired; TypeScript remains for editor and helper tools.
 
 **Compiler bootstrap:** see `.cursor/rules/compiler-bootstrap.mdc` (always
 applied). `compile:lang` = previous published `uffda compile` only →
@@ -14,8 +15,9 @@ ModuleDeclaration under `./bin`; resolve loads JSON only. Never post-process
 
 ## Runtime and dependency conventions
 
-- Prefer Deno-native and Web Platform APIs over Node.js APIs.
-- Default to ESM TypeScript.
+- Write runtime and CLI implementations in Rust under `rust/`.
+- Remaining helper scripts use ESM TypeScript with Deno-native and Web Platform
+  APIs rather than Node.js APIs.
 - **Scripting language hard rule:** the only acceptable scripting languages in
   this repository are TypeScript and Deno. Python (and other non-Deno scripting
   languages) are completely hard-blocked, including in GitHub Actions, composite
@@ -29,21 +31,22 @@ ModuleDeclaration under `./bin`; resolve loads JSON only. Never post-process
 
 ## Project conventions
 
-- Entry point: `mod.ts`
-- Place implementation code under `src/`.
-- Keep tests next to the modules they cover using the `.test.ts` suffix.
+- Rust entry points are `rust/src/lib.rs` and `rust/src/main.rs`; `mod.ts` is a
+  JSR notice only. Authored grammars stay under `src/lang/`.
+- Keep Rust unit tests with their modules and integration tests under
+  `rust/tests/`. Deno helper tests use the `.test.ts` suffix.
 - Put scratch scripts and other throwaway files under `.tmp/` (gitignored),
   never in the repository root or `src/`.
-- For every source file you create or modify under `src/`, create or update the
-  corresponding `*.test.ts` file in the same directory.
-- Follow the existing Deno validation path: `deno fmt`, `deno lint`, and
-  `deno task test`.
+- Every implementation change needs a corresponding test. Preserve the JSON
+  compatibility fixtures under `test/rust/`.
+- Validate with `deno fmt`, `deno lint`, `deno task test:tools`, and
+  `cargo xtask check` after a published-CLI bootstrap.
 - **Before pushing** any commit that changes code (`.ts`, `.uff`, etc.) or
   Markdown (`.md`, `.mdc`), run `deno fmt` and include the formatting updates in
   the commit. Checks runs Rust `cargo fmt`, Clippy, and `cargo test`.
 - A commit that changes `.uff` files MUST also run `deno task fmt:uff` (the
   in-tree `uffda fmt`) and include its changes.
-- Prefer `deno task pre` before committing while Deno sources remain. For Rust
+- Prefer `deno task pre` before committing. For Rust
   changes, run `cargo xtask check` (or `cargo xtask fix`) before pushing — same
   Format / Clippy / Test steps as the Checks workflow.
 - Keep modules small and composable when adding or refactoring parser logic.
@@ -73,7 +76,7 @@ Correctness and thoroughness outrank speed.
 
 ## Global function purity
 
-- `src/runtime/globals/` (see `defaultGlobals` in `src/runtime/globals/mod.ts`)
+- `rust/src/globals/` (see `rust/src/globals.rs`)
   are the always-available runtime kernel — the essential primitives every
   instance of the runtime gets by default. They MUST stay pure, general
   purpose, and free of hidden side channels or behavior tied to a single
@@ -109,24 +112,8 @@ Correctness and thoroughness outrank speed.
 - Do not put variants in a discriminator enum unless they belong to that union.
 - Keep discriminator enums narrow enough that callers do not need to mentally
   filter out irrelevant members.
-- Whenever JavaScript/TypeScript runtime type checking is needed (for example
-  distinguishing arrays/objects/maps/sets, or asserting a value is a number),
-  use `@justinmchase/type`'s helpers (`type()`, `assertNumber`, etc.) instead
-  of hand-rolled `typeof`/`Array.isArray`/`instanceof` checks. It is already a
-  project dependency and is used throughout `src/runtime/`.
-- When a function needs to branch on a value's runtime type across more than
-  one or two cases, prefer `const [t, v] = type(value)` followed by a
-  `switch (t)` over `Type`'s enum members instead of an `if`/`else` chain of
-  `isX()` guards: one `case` per type you support, then a single `default:`
-  that throws (or otherwise handles the unsupported-type path). Always keep
-  the `default:` — compile-time exhaustiveness checking is not a substitute
-  for it (it doesn't catch every gap, e.g. a stale type-check, `@ts-ignore`,
-  or a dependency upgrade that adds a new `Type` member), so unhandled types
-  must still fail loudly at runtime rather than falling off the switch and
-  returning `undefined`. Given that `default:` has to be there anyway, don't
-  also list every remaining `Type` member as a case that maps to the same
-  `default` behavior — that's redundant. See `src/runtime/globals/at.ts` and
-  `src/runtime/globals/compare.ts` for examples.
+- Model runtime values with Rust enums and exhaustive matches. Unsupported
+  dynamic values must fail explicitly rather than silently returning a default.
 
 ## Specifications
 

@@ -3,6 +3,101 @@ use uffda_runtime::builtins::DECLARATIONS;
 use uffda_runtime::resolver::packages::sha256;
 
 #[test]
+// req:cli-distribution-008
+fn reference_retirement_preserves_grammars_and_compatibility_fixtures() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+    let mut pending = vec![root.join("src")];
+    let mut grammars = 0;
+    while let Some(directory) = pending.pop() {
+        for entry in std::fs::read_dir(directory).unwrap() {
+            let entry = entry.unwrap();
+            let path = entry.path();
+            if entry.file_type().unwrap().is_dir() {
+                pending.push(path);
+                continue;
+            }
+            let extension = path.extension().and_then(|value| value.to_str());
+            assert!(
+                !matches!(extension, Some("ts" | "js")),
+                "retired reference source: {}",
+                path.display()
+            );
+            if extension == Some("uff") {
+                grammars += 1;
+            }
+        }
+    }
+    assert!(
+        grammars >= 70,
+        "authored language grammars must be retained"
+    );
+    for fixture in [
+        "cli-compatibility-matrix",
+        "cli-validation-fixtures",
+        "expression-fixtures",
+        "globals-fixtures",
+        "globals-surface-fixtures",
+        "module-fixtures",
+        "module-graph-fixtures",
+        "pattern-extra-fixtures",
+        "pattern-fixtures",
+        "semver-fixtures",
+        "string-fixtures",
+    ] {
+        let path = root.join(format!("test/rust/{fixture}.json"));
+        let value: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        assert!(
+            value.as_array().is_some_and(|items| !items.is_empty())
+                || value.as_object().is_some_and(|items| !items.is_empty()),
+            "{} must contain acceptance fixtures",
+            path.display()
+        );
+    }
+}
+
+#[test]
+// req:cli-distribution-008 req:cli-bootstrap-007
+fn reference_retirement_routes_development_tasks_to_rust() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+    let config = std::fs::read_to_string(root.join("deno.jsonc")).unwrap();
+    let config = jsonc_parser::parse_to_serde_value(&config, &Default::default())
+        .unwrap()
+        .unwrap();
+    let tasks = &config["tasks"];
+    for (task, command) in [
+        ("cli", "cargo run"),
+        ("compile:cli", "cargo build"),
+        ("test", "cargo xtask test"),
+        ("pre", "cargo xtask check"),
+    ] {
+        let text = tasks[task].as_str().unwrap();
+        assert!(text.contains(command), "{task} must use {command}");
+        assert!(!text.contains("src/cli/"));
+        assert!(!text.contains("compile-cli.ts"));
+    }
+    assert_eq!(
+        tasks["compile:lang"],
+        "rm -rf ./bin && uffda compile 'src/lang/**/*.uff'"
+    );
+    assert_eq!(
+        tasks["test:tools"],
+        "deno test --allow-read --allow-write scripts/ .github/actions/uffda-setup/"
+    );
+    assert_eq!(
+        tasks["fmt:uff"],
+        "deno task compile:lang && deno task cli fmt 'src/lang/**/*.uff' 'examples/**/*.uff'"
+    );
+    let hooks = std::fs::read_to_string(root.join(".github/version.yml")).unwrap();
+    assert!(
+        !hooks
+            .lines()
+            .any(|line| line.trim() == "file: src/version.ts")
+    );
+    assert!(hooks.contains("file: editors/vscode/src/version.ts"));
+}
+
+#[test]
 #[cfg(feature = "embed-languages")]
 // req:cli-bootstrap-015
 fn build_script_embeds_the_published_artifact_tree() {

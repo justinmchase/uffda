@@ -26,13 +26,13 @@ Expected behavior:
   via the compile pipeline (parse → previous published compiler → write).
   Resolver.import loads that JSON only — it MUST NOT call the runtime compiler
   again. There MUST be no post-compile finalize/seed rewrite of `./bin`.
-- `runUffdaRuntimeCompiler` MUST load `./runtime.compiler.uff` through the
+- Rust compiler orchestration MUST load `runtime.compiler.uff` through the
   module resolver, then run the `UffdaRuntimeCompiler` entry rule.
 - No committed compiler JSON under `src/`.
 
 Postconditions:
 
-- `src/lang/uffda/` contains `.uff` + thin `.ts` host only.
+- `src/lang/uffda/` contains authored `.uff` sources, not TypeScript hosts.
 - The TypeScript ModuleDeclaration twin is gone.
 
 ## Test plan

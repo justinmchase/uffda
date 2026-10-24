@@ -16,8 +16,9 @@ Preconditions:
 
 Expected behavior:
 
-- Each global MUST satisfy its acceptance cases below in both TypeScript and
-  Rust. The shared portable fixtures MUST be evaluated by both runtimes.
+- Each Rust global MUST satisfy its acceptance cases below. Rust MUST evaluate
+  the preserved portable fixtures independently of the retired TypeScript
+  runtime.
 - Errors MUST remain observable failures; the runtime MUST NOT return a
   success-shaped placeholder for an unsupported input or failed callback.
 - Identity, undefined, native values, and provenance MUST be checked through

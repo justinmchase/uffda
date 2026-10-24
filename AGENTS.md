@@ -1,7 +1,7 @@
 # Uffda agent instructions
 
 Uffda is a parser generator for domain specific languages. Production CLI and
-runtime are Rust; Deno sources remain as a differential-test reference.
+runtime are Rust; the Deno reference runtime and CLI are retired.
 
 These instructions apply to all agent tooling (Cursor, Copilot, and others).
 Path-scoped authoring guidance also lives in:
@@ -26,8 +26,10 @@ performant grammar.
 
 ## Runtime and dependency conventions
 
-- Prefer Deno-native and Web Platform APIs over Node.js APIs.
-- Default to ESM TypeScript.
+- Runtime and CLI code belongs in the Rust workspace. Keep `.uff` language
+  definitions under `src/lang/`.
+- Remaining helper scripts use ESM TypeScript with Deno-native and Web Platform
+  APIs rather than Node.js APIs.
 - **Scripting language hard rule:** the only acceptable scripting languages in
   this repository are TypeScript and Deno. Python (and other non-Deno scripting
   languages) are completely hard-blocked, including in GitHub Actions, composite
@@ -42,23 +44,25 @@ performant grammar.
 
 ## Project conventions
 
-- Entry point: `mod.ts`
-- Place implementation code under `src/`.
-- Keep tests next to the modules they cover using the `.test.ts` suffix.
+- Rust entry points: `rust/src/lib.rs` and `rust/src/main.rs`. `mod.ts` is only
+  the published JSR notice; it has no runtime APIs.
+- Keep Rust unit tests with their modules and integration tests under
+  `rust/tests/`. Deno helper tests use the `.test.ts` suffix.
 - Put scratch scripts and other throwaway files under `.tmp/` (gitignored),
   never in the repository root or `src/`.
-- For every source file you create or modify under `src/`, create or update the
-  corresponding `*.test.ts` file in the same directory.
-- Follow the existing Deno validation path: `deno fmt`, `deno lint`, and
-  `deno task test`.
+- Every implementation change needs a corresponding test. Preserve the JSON
+  compatibility fixtures under `test/rust/`; do not regenerate them from the
+  current implementation to make tests pass.
+- Validate with `deno fmt`, `deno lint`, `deno task test:tools`, and
+  `cargo xtask check` after a published-CLI bootstrap.
 - **Before pushing** any commit that changes code (`.ts`, `.uff`, etc.) or
   Markdown (`.md`, `.mdc`), run `deno fmt` and include the formatting updates in
   the commit. Checks runs Rust `cargo fmt`, Clippy, and `cargo test`.
 - A commit that changes `.uff` files MUST also run `deno task fmt:uff` (the
   in-tree `uffda fmt`) and include its changes.
-- Prefer `deno task pre` before committing while Deno sources remain. For Rust
-  changes, run `cargo xtask check` (or `cargo xtask fix`) before pushing — same
-  Format / Clippy / Test steps as the Checks workflow.
+- Prefer `deno task pre` before committing. For Rust changes, run
+  `cargo xtask check` (or `cargo xtask fix`) before pushing — same Format /
+  Clippy / Test steps as the Checks workflow.
 - Keep modules small and composable when adding or refactoring parser logic.
 
 ## Type modeling conventions

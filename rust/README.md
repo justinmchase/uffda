@@ -1,6 +1,6 @@
 # Rust Uffda runtime migration
 
-This crate is the side-by-side Rust runtime and CLI described in the
+This crate is the production Rust runtime and CLI described in the
 [migration plan](../docs/rust-migration.md). The six batch commands (`compile`,
 `parse`, `exec`, `match`, `run`, `fmt`) are implemented, plus stdio `mcp` /
 `lsp` servers (MCP: version, parse/match/compile, highlight, session
@@ -17,17 +17,17 @@ Developed with substantial assistance from [Cursor](https://cursor.com); see the
 From the repository root with a normal Rust toolchain on `PATH`:
 
 ```sh
-cargo run --manifest-path rust/Cargo.toml --bin uffda -- --help
+cargo run --manifest-path rust/Cargo.toml --features embed-languages --bin uffda -- --help
 printf '%s' '{"kind":"number","value":42}' | \
-  cargo run --manifest-path rust/Cargo.toml --bin uffda -- exec --ast
+  cargo run --manifest-path rust/Cargo.toml --features embed-languages --bin uffda -- exec --ast
 printf '%s' '{"kind":"any"}' | \
-  cargo run --manifest-path rust/Cargo.toml --bin uffda -- match --ast --input 'hello'
+  cargo run --manifest-path rust/Cargo.toml --features embed-languages --bin uffda -- match --ast --input 'hello'
 ```
 
 Build a standalone executable with:
 
 ```sh
-cargo build --manifest-path rust/Cargo.toml --release --bin uffda
+cargo build --manifest-path rust/Cargo.toml --features embed-languages --release --bin uffda
 printf '%s' '{"kind":"value","value":"hello"}' | \
   ./rust/target/release/uffda exec --ast
 ```
@@ -120,13 +120,13 @@ compile/format do not write recovered input. Module and standalone pattern
 recoveries emit values plus diagnostics/nonzero.
 
 ```sh
-cargo run --manifest-path rust/Cargo.toml -- exec -e '(add 20 22)'
+cargo run --manifest-path rust/Cargo.toml --features embed-languages -- exec -e '(add 20 22)'
 ./rust/target/release/uffda exec -e '[1 2]'
 # [1 2]
 ./rust/target/release/uffda exec -e '{ a: [1 2] }'
 # {["a"]: [1 2]}
 printf 'export Main;rule Main=any;' |
-  cargo run --manifest-path rust/Cargo.toml -- fmt -
+  cargo run --manifest-path rust/Cargo.toml --features embed-languages -- fmt -
 ```
 
 Implicit interpolation/formatting accepts scalars only: arrays, objects and
@@ -149,17 +149,11 @@ error fields and nonempty messages remain checked. Preview help omits deferred
 MCP/LSP, and default codec strings intentionally differ from reference text
 display.
 
-Regenerate the reference snapshots only when deliberately updating acceptance:
-
-```sh
-deno run --allow-read --allow-write \
-  --allow-env=XDG_RUNTIME_DIR,HOME,XDG_CACHE_HOME,LOCALAPPDATA \
-  test/rust/cli-compatibility-matrix.ts
-```
-
-This preview must not be treated as full runtime parity. Unicode lone-surrogate
-values, remaining async/performance acceptance and release-platform validation
-remain migration gates.
+The checked-in JSON snapshots under `test/rust/` preserve the former reference
+implementation's accepted outcomes. Rust tests consume them independently; the
+Deno reference runtime and its snapshot generator are retired. Deliberate
+contract changes update specifications, requirements, fixtures, and tests
+together rather than regenerating expectations from the current implementation.
 
 ## Native data codec API
 

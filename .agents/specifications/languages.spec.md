@@ -67,21 +67,15 @@ RFC 8174.
   subpaths; see
   [JSR package contract](./languages/cli/distribution-and-release.spec.md#jsr-package-contract).
 
-### In-tree Deno reference APIs
+### Runtime implementation
 
-- The repository's Deno sources MUST keep a reference TypeScript surface for
-  differential testing: the generic grammar parser and the tokenizer, pattern,
-  expression, and Uffda grammar entry points, plus a runtime entry point for
-  `match` / `Scope` / expression evaluation and resolver configuration.
-- `parseGrammar` MUST allow callers to parse through a grammar module into a
-  caller-selected AST type without requiring that grammar to be the Uffda
-  language.
-- Generic grammar parsing MUST allow callers to configure the resolver's
-  artifact layout, import map, and package resolver while retaining the built-in
-  language declarations and default globals.
-- The TypeScript `/pattern` and `/expression` modules MUST export their
-  respective AST-kind enums alongside the AST types.
-- Those reference APIs MUST remain generic parser and AST-lowering
-  infrastructure; they MUST NOT encode downstream application-language
-  semantics. They are not part of the published JSR export graph after the Rust
-  cutover.
+- After the production cutover and successful full-circle bootstrap acceptance,
+  the Rust runtime and CLI are the maintained implementation. The retired Deno
+  runtime, CLI, and TypeScript grammar wrappers MUST NOT be required to build,
+  test, or execute language modules.
+- Authored `.uff` grammars and the checked-in compatibility fixtures MUST remain
+  available. Rust tests MUST verify the fixtures independently, without invoking
+  the retired reference implementation or regenerating expected outcomes.
+- TypeScript MAY remain for the VS Code extension, JSR notice entry point,
+  release/setup helpers, and Rust measurement tooling. It MUST NOT introduce a
+  second runtime implementation.

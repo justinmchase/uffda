@@ -21,11 +21,9 @@ Compiling `runtime.compiler.uff` (and other language `.uff`) into `./bin` must
    it parses **and** lowers `.uff` to **ModuleDeclarations** (`imports` /
    `exports` / `rules`) under `./bin` in one step — no in-tree TypeScript lower
    stage or frozen compiler snapshot is involved.
-2. In-tree `uffda compile` (`src/cli/compile.ts`) runs once workspace `./bin`
-   already has languages available: parse in-tree, then lower via
-   `Resolver.import` of `runtime.compiler.uff` (itself read from `./bin`,
-   produced by step 1) — see `compileUffdaSyntaxModule` in
-   `src/lang/uffda/execute.ts`.
+2. Build the in-tree Rust CLI with `embed-languages` once workspace `./bin` has
+   been populated. It embeds those declarations and runs the authored
+   `runtime.compiler.uff` through the ordinary Rust resolver and runtime.
 3. **Runtime resolve** only reads that JSON. It must not re-lower or call the
    runtime compiler again. No recursion.
 

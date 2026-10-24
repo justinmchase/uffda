@@ -22,16 +22,14 @@ Expected behavior:
 
 Postconditions:
 
-- Released CLI binaries embed compiled `./bin` AST JSON via
-  `deno compile --include` and remap logical `.uff` imports from that embedded
+- Released Rust CLI binaries embed compiled `./bin` AST JSON via `uffda-build`
+  with `embed-languages` and resolve logical `.uff` imports from that embedded
   tree when running as a standalone product.
 - Authors import compiled modules with `import "./foo.uff"` once artifacts exist
   under the configured root (see `cli-bootstrap-004`).
 
 ## Status
 
-Milestone 11 in progress. Replaced modules so far: `digit`, `connecting`,
-`formatting`, `letter`, `combining`, `whitespace`, and `newLine` under
-`src/lang/common/characters/` (TypeScript twins removed; runtime loads via
-`.uff` → `./bin` remapping after published-CLI compile). Remaining language
-modules still load from TypeScript until conversion completes.
+All 70 language modules are authored as `.uff` and loaded from compiled
+artifacts. The full-circle bootstrap gate passes in Checks; the Deno reference
+implementation and TypeScript language wrappers are retired.

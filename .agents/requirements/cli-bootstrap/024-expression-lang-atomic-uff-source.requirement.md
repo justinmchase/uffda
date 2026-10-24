@@ -21,9 +21,8 @@ Expected behavior:
   pipeline `Source |> [TokenizerNoWhitespace] |> [ExpressionComplete]`, and
   `ExpressionTokens` as `[ExpressionComplete]`. `ExpressionComplete` MUST bind
   with a single-letter variable (`e:Expression end -> e`) until B12.
-- `src/lang/expression/expression.lang.ts` MUST remain only as a host helper
-  (`expressionGrammar`) that loads `./expression.lang.uff` from `./bin` — not as
-  a ModuleDeclaration twin registered in `builtInLanguageDeclarations`.
+- Rust language execution MUST load the compiled `expression.lang.uff`
+  declaration without a TypeScript grammar wrapper or ModuleDeclaration twin.
 - `src/lang/pattern/atomic.uff` MUST export `Atomic` as
   `Atoms | Literals | Resolve | Structure`.
 - Compiling those `.uff` files with the bootstrap compile path MUST succeed and
