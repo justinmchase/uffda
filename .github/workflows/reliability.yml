@@ -6,6 +6,7 @@ on:
     paths:
       - test/perf/std-churn.rs
       - test/perf/data-codec*.ts
+      - test/perf/data-codec-native-baseline.json
       - .github/workflows/reliability.yml
 
 jobs:
