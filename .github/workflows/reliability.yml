@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - test/perf/std-churn.rs
+      - test/perf/data-codec*.ts
       - .github/workflows/reliability.yml
 
 jobs:
@@ -60,6 +61,7 @@ jobs:
           cargo build --locked --manifest-path rust/Cargo.toml --features embed-languages --release --bin uffda --example codec_probe
       - name: Measure all workloads without successful-only retries
         run: |
+          deno test test/perf/data-codec.report.test.ts
           deno run --allow-read --allow-write --allow-run --allow-env=SystemRoot \
             test/perf/data-codec.report.ts \
             rust/target/release/examples/codec_probe rust/target/release/uffda \
