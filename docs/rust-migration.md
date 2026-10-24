@@ -18,9 +18,10 @@ optional Rust codec measurements. Deno development tasks now invoke Rust.
 
 Earlier migration checkpoints below are historical evidence, not instructions to
 retain or run the retired reference implementation. Codec loading and embedding
-now use `.uff.ast` directly (see the codec artifact cutover below). Performance
-measurements remain a separate gate; this cutover does not claim that the
-optional measurement or six-platform release gates passed.
+now use `.uff.ast` directly (see the codec artifact cutover below). Independent
+Linux native-codec measurements and post-cutover six-platform standalone release
+acceptance have passed. Local WSL2 corruption reproduces without Uffda or JSON;
+its underlying cause remains unresolved.
 
 ## Goal and agreed scope
 
@@ -539,12 +540,19 @@ fixtures or host-only prototype code are not sufficient acceptance.
       fallback.
 - [x] Update directly affected specs, requirements, README command
       documentation, and end-to-end tests with the CLI integration.
-- [ ] Measure size, throughput and memory against JSON/JSONL, compressed and
+- [x] Measure size, throughput and memory against JSON/JSONL, compressed and
       uncompressed, with representative ordinary and native-type records.
-- [ ] Verify standalone Rust operation and streaming on supported platforms.
+- [x] Verify standalone Rust operation and streaming on supported platforms.
 
 Gate: codec values and `match`/`run` data-subject CLI paths are implemented and
-covered by focused tests. Preliminary raw/gzip codec-versus-JSON/JSONL
+covered by focused tests. The current
+[native-codec baseline](../test/perf/data-codec-native-baseline.json) passed on
+an independent Linux host, with all 216 parser/RSS samples, 12 size comparisons
+and 24 duration/RSS probes. Raw native decode medians range from about 70k to
+464k records/s; JSONL is faster in each workload. These are informational
+measurements, not a performance-parity threshold. Historical evidence follows.
+
+Preliminary raw/gzip codec-versus-JSON/JSONL
 [measurements](../test/perf/README.md#rust-data-codec-acceptance) and
 [persistent results](../test/perf/data-codec-baseline.json) cover four
 representative corpora, 216 encode/decode/idle RSS samples, and 24 batched
@@ -554,8 +562,8 @@ materialization/GC correctness. The measurements expose a substantial codec
 decode-speed gap (about 230–540 records/s on this host), rather than establish
 performance parity or a new performance threshold.
 
-The measurement gate remains open: extended optimized raw JSON reader stress
-intermittently reports invalid input, aborts with
+The original local measurement run was blocked: extended optimized raw JSON
+reader stress intermittently reports invalid input, aborts with
 `munmap_chunk(): invalid
 pointer`, or segfaults. An independent crate with only
 `serde_json` reproduces the failure without Uffda or `gc-arena`; both 1.0.151
@@ -563,22 +571,37 @@ and 1.0.154 were exercised on this host's Rust 1.99.0 toolchain. Debug reader
 and optimized slice-parser probes passed, but do not establish a fix or a root
 cause. The original completed baseline is retained as provisional evidence. The
 improved continuous-stream duration probe is tested, but a complete replacement
-report is blocked by this reliability investigation. Do not bypass it by
+local report is blocked by this reliability investigation. Do not bypass it by
 silently changing parser paths, accepting only successful runs, or claiming the
 earlier debug iterator panic is resolved.
+
+Further isolation (2026-10-24) reproduced corruption on Rust 1.94.0, 1.96.0 and
+1.99.0, including optimized slice decoding. A dependency-free standard-library
+string-copy control also produced a mismatch, allocator aborts and segmentation
+faults on the local WSL2 host. This is no longer a reader-only or Uffda-specific
+reproduction; hardware/host/toolchain root cause remains unresolved. See the
+[reproducible control and independent-host workflow](../test/perf/README.md#reliability-investigation-2026-10-24).
+Do not use local successful-only samples as replacement benchmark evidence.
+
+Independent-host controls subsequently passed on Linux Rust 1.94.0, 1.96.0 and
+stable, Windows stable and macOS stable. Two complete Linux benchmark runs
+passed without retries; the corrected-metadata artifact is retained as the new
+baseline. This closes the measurement-evidence gate without claiming a local
+hardware diagnosis or changing parser/dependency behavior.
 
 Linux x86_64 relocated all-six-command and public-library streaming acceptance
 passes with empty child PATH and no external artifacts, including byte chunks,
 pre-EOF delivery, native materialization across collection, backpressure,
 malformed trailing records and final unterminated records. Per-commit Checks run
 native Linux x86_64/aarch64 acceptance only; release builds wire native Linux,
-Windows and macOS x86_64/aarch64 acceptance. The supported-platform checkbox
-stays open until the release jobs actually pass on every platform. Release
-assets are named `uffda`. The six-platform build/verify path is wired in Release
-Binaries; the supported-platform measurement checkbox stays open only for the
-remaining codec size/throughput gate and the sporadic debug iterator panic
-(cutover investigation, not a codec acceptance fix). Full repository validation
-is required before pushing.
+Windows and macOS x86_64/aarch64 acceptance. The supported-platform checkbox was
+closed by the post-cutover
+[Release Binaries run](https://github.com/justinmchase/uffda/actions/runs/40116098126)
+for merged commit `b09c97bc1ece709b19ff750180fba6b35178ca40`: native Linux,
+Windows and macOS x86_64/aarch64 standalone acceptance passed on all six
+platforms. Release assets are named `uffda`. This is functional acceptance, not
+a claim of six-platform performance measurements or a local corruption fix. Full
+repository validation is required before pushing.
 
 #### Codec artifact cutover
 
@@ -609,8 +632,10 @@ still use new packages, and new consumers can still load JSON-only old packages.
 Project files, lockfiles and structured diagnostics remain JSON. Rollback is
 rebuilding with the prior product against those unchanged JSON siblings.
 Removing JSON emission and binary codec encoding remain deferred. This cutover
-does not close the separate JSON-reader measurement reliability or six-platform
-release acceptance gates.
+alone did not close the measurement or six-platform acceptance gates; the
+subsequent independent-host investigation and post-merge release run above
+provide that evidence. Local corruption remains unresolved and is not a reason
+to silently switch parser paths.
 
 ### 9. Reusable Rust packages
 
