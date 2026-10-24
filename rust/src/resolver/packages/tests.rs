@@ -181,6 +181,110 @@ fn resolves_exports_and_loads_uff_artifacts_and_direct_json_without_source_acces
 }
 
 #[test]
+// req:data-codec-005 req:modules-runtime-006
+fn registry_and_package_root_prefer_codec_without_reading_json_siblings() {
+    let dir = Directory::new();
+    let fake = Rc::new(FakeTransport::default());
+    fake.files.borrow_mut().insert(
+        "/@acme/kv/meta.json".into(),
+        json!({"versions":{"1.0.0":{}}}).to_string().into_bytes(),
+    );
+    let codec = crate::codec::declaration::encode_declaration_codec(
+        &crate::json::from_str(&declaration("CODEC")).unwrap(),
+    )
+    .unwrap();
+    version(
+        &fake,
+        "1.0.0",
+        r#"{"exports":{".":"./main.uff"}}"#,
+        &[
+            ("bin/ast/main.uff.ast", codec.clone()),
+            ("bin/ast/main.uff.ast.json", declaration("JSON")),
+        ],
+    );
+    let mut packages = setup(&dir, fake.clone(), Lockfile::memory());
+    let module = packages.resolve("jsr:@acme/kv@1.0.0").unwrap();
+    assert_eq!(packages.load(&module).unwrap().rules[0]["name"], "CODEC");
+    fake.files
+        .borrow_mut()
+        .insert("/pkg/bin/ast/main.uff.ast".into(), codec.into_bytes());
+    fake.files.borrow_mut().insert(
+        "/pkg/bin/ast/main.uff.ast.json".into(),
+        declaration("JSON").into_bytes(),
+    );
+    let mut resolver = super::super::Resolver::new(dir.0.clone(), dir.0.join("bin")).unwrap();
+    resolver.set_transport(fake.clone());
+    let root = Url::parse("https://data.test/pkg/").unwrap();
+    resolver
+        .add_artifact_package(root.clone(), "./bin")
+        .unwrap();
+    assert_eq!(
+        resolver
+            .load_declaration(&root.join("main.uff").unwrap())
+            .unwrap()
+            .rules[0]["name"],
+        "CODEC"
+    );
+    assert!(
+        !fake
+            .requests
+            .borrow()
+            .iter()
+            .any(|path| path.ends_with(".uff.ast.json"))
+    );
+}
+
+#[test]
+// req:data-codec-005
+fn corrupt_package_codec_does_not_fall_back_to_json() {
+    let dir = Directory::new();
+    let fake = Rc::new(FakeTransport::default());
+    fake.files.borrow_mut().insert(
+        "/@acme/kv/meta.json".into(),
+        json!({"versions":{"1.0.0":{}}}).to_string().into_bytes(),
+    );
+    version(
+        &fake,
+        "1.0.0",
+        r#"{"exports":{".":"./main.uff"}}"#,
+        &[
+            ("bin/ast/main.uff.ast", "invalid\n".into()),
+            ("bin/ast/main.uff.ast.json", declaration("JSON")),
+        ],
+    );
+    let mut packages = setup(&dir, fake.clone(), Lockfile::memory());
+    let module = packages.resolve("jsr:@acme/kv@1.0.0").unwrap();
+    assert!(packages.load(&module).is_err());
+    for bytes in [b"invalid\n".as_slice(), &[0xff]] {
+        fake.files
+            .borrow_mut()
+            .insert("/pkg/bin/ast/main.uff.ast".into(), bytes.into());
+        fake.files.borrow_mut().insert(
+            "/pkg/bin/ast/main.uff.ast.json".into(),
+            declaration("JSON").into_bytes(),
+        );
+        let mut resolver = super::super::Resolver::new(dir.0.clone(), dir.0.join("bin")).unwrap();
+        resolver.set_transport(fake.clone());
+        let root = Url::parse("https://data.test/pkg/").unwrap();
+        resolver
+            .add_artifact_package(root.clone(), "./bin")
+            .unwrap();
+        assert!(
+            resolver
+                .load_declaration(&root.join("main.uff").unwrap())
+                .is_err()
+        );
+    }
+    assert!(
+        !fake
+            .requests
+            .borrow()
+            .iter()
+            .any(|path| path.ends_with(".uff.ast.json"))
+    );
+}
+
+#[test]
 // req:modules-runtime-006
 fn cache_rechecks_checksums_and_lockfile_pins_metadata_even_offline() {
     let dir = Directory::new();

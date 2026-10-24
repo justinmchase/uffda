@@ -7,7 +7,7 @@ include!(concat!(env!("OUT_DIR"), "/languages.rs"));
 ///
 /// Product builds enable `embed-languages` so [`DECLARATIONS`] is this repo's
 /// `./bin` tree. Library consumers leave that feature off and register their
-/// own compiled JSON via [`Resolver::insert_declaration_source`] instead.
+/// own compiled codec via [`Resolver::insert_declaration_codec_source`] instead.
 pub fn register(resolver: &mut Resolver) -> Result<Url, ModuleResolutionError> {
     let root = Url::parse(if cfg!(windows) {
         "file:///C:/uffda/builtin/"
@@ -22,7 +22,7 @@ pub fn register(resolver: &mut Resolver) -> Result<Url, ModuleResolutionError> {
             cause: Some(error.to_string()),
             import_chain: Vec::new(),
         })?;
-        resolver.insert_declaration_source(url, source);
+        resolver.insert_declaration_codec_source(url, source);
     }
     Ok(root)
 }
@@ -30,10 +30,10 @@ pub fn register(resolver: &mut Resolver) -> Result<Url, ModuleResolutionError> {
 #[cfg(all(test, feature = "embed-languages"))]
 mod tests {
     use super::*;
-    use crate::resolver::decode_declaration;
+    use crate::resolver::decode_artifact;
 
     #[test]
-    // req:cli-bootstrap-015
+    // req:cli-bootstrap-015 req:data-codec-005
     fn every_embedded_artifact_is_unmodified_declaration_data() {
         let mut resolver = Resolver::from_cwd().unwrap();
         let root = register(&mut resolver).unwrap();
@@ -42,7 +42,7 @@ mod tests {
         for (path, source) in DECLARATIONS {
             let url = root.join(path).unwrap();
             let actual = resolver.load_declaration(&url).unwrap();
-            let expected = decode_declaration(&url, source).unwrap();
+            let expected = decode_artifact(&url, ".uff.ast", source).unwrap();
             assert_eq!(actual.rules, expected.rules);
             assert_eq!(actual.imports, expected.imports);
             assert_eq!(actual.exports, expected.exports);

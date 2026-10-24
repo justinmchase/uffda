@@ -10,8 +10,9 @@ This crate never parses `.uff`, never re-lowers declarations, and never rewrites
 artifact bytes. Compile grammars with a published `uffda compile`, then point a
 `build.rs` at the resulting artifact tree. Data-codec ModuleDeclarations use the
 **`.uff.ast`** extension; during migration compile also writes
-**`.uff.ast.json`** siblings. `uffda-build` currently embeds the JSON form
-(`*.uff.ast.json`).
+**`.uff.ast.json`** siblings for compatibility. `uffda-build` embeds only the
+codec form (`*.uff.ast`); a JSON-only bootstrap fails with guidance to install a
+published compiler that emits codec records.
 
 ```rust,ignore
 // build.rs
@@ -28,4 +29,5 @@ fn main() {
 
 Then `include!(concat!(env!("OUT_DIR"), "/languages.rs"));` for
 `DECLARATIONS: &[(&str, &str)]`, and register them with
-`Resolver::insert_declaration_source`.
+`Resolver::insert_declaration_codec_source`. Decoding needs no embedded language
+or workspace files.

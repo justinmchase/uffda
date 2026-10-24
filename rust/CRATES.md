@@ -6,12 +6,12 @@ Developed with substantial assistance from [Cursor](https://cursor.com); see the
 Product CLI binaries ship on **GitHub Releases**. These crates ship on
 **crates.io**:
 
-| Crate               | Role                                                                                                       |
-| ------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `uffda-heap-derive` | GC derive macros                                                                                           |
-| `uffda-heap`        | Collector heap                                                                                             |
-| `uffda-build`       | `build.rs` embed helper for declaration artifacts (JSON siblings today; `.uff.ast` is the data-codec form) |
-| `uffda-runtime`     | Runtime library (no product grammars by default)                                                           |
+| Crate               | Role                                                                        |
+| ------------------- | --------------------------------------------------------------------------- |
+| `uffda-heap-derive` | GC derive macros                                                            |
+| `uffda-heap`        | Collector heap                                                              |
+| `uffda-build`       | `build.rs` embed helper for unmodified `.uff.ast` declaration codec records |
+| `uffda-runtime`     | Runtime library (no product grammars by default)                            |
 
 CI publishes them from `.github/workflows/publish.yml` using **OIDC trusted
 publishing** (`rust-lang/crates-io-auth-action`). No long-lived

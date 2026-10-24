@@ -128,10 +128,15 @@ that form is **`.uff.ast`**: one newline-framed codec record under
 [AST artifact contracts](./languages/cli/compile-and-stream.spec.md#ast-artifact-contracts).
 
 During migration, compile also writes a JSON sibling (`<path>.uff.ast.json`).
-Resolvers prefer `.uff.ast.json` and fall back to `.uff.ast` while
-ModuleDeclaration codec decode still requires the data language. Phasing out the
-JSON sibling waits on a cheap native codec decode; it does not change the chosen
-codec extension.
+Resolvers prefer `.uff.ast` and fall back to `.uff.ast.json` for compatibility
+with JSON-only dependencies. Product builds MUST embed unmodified `.uff.ast`
+records directly, decoded without loading languages or resolving other
+artifacts. A declaration artifact MUST contain exactly one record; trailing
+records or malformed input MUST fail. Removing JSON emission is a separate
+compatibility change, not part of codec-first loading and embedding. Fallback
+MUST NOT hide invalid codec bytes or declarations behind a JSON sibling.
+Registry artifacts present in a package manifest MUST surface integrity and
+download failures.
 
 ## Open questions
 

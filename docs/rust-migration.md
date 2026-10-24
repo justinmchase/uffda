@@ -17,9 +17,10 @@ the VS Code extension, JSR notice entry point, release/setup helpers, and
 optional Rust codec measurements. Deno development tasks now invoke Rust.
 
 Earlier migration checkpoints below are historical evidence, not instructions to
-retain or run the retired reference implementation. Codec performance
-measurements and deferred artifact-format adoption remain separate follow-ups;
-retirement does not claim that those optional measurements or migrations passed.
+retain or run the retired reference implementation. Codec loading and embedding
+now use `.uff.ast` directly (see the codec artifact cutover below). Performance
+measurements remain a separate gate; this cutover does not claim that the
+optional measurement or six-platform release gates passed.
 
 ## Goal and agreed scope
 
@@ -33,9 +34,9 @@ its syntax and supported value contracts are specified below. Codec v1 also
 changes default runtime value output from `exec`, `match`, and `run` to codec
 syntax; `--json` retains the existing JSON compatibility output. Compiled
 ModuleDeclarations adopt the data codec on disk with the **`.uff.ast`**
-extension (plus a `.uff.ast.json` sibling during migration; resolvers prefer
-`.uff.ast.json`, else `.uff.ast`). Phasing out JSON siblings and switching
-embeds is a follow-on.
+extension (plus a `.uff.ast.json` compatibility sibling; resolvers prefer
+`.uff.ast`, else `.uff.ast.json`). Product embedding uses codec records only.
+Phasing out JSON emission remains a follow-on.
 
 The original migration built alongside TypeScript until the compatibility and
 production cutover gates passed. The reference is now retired; its checked-in
@@ -579,25 +580,29 @@ remaining codec size/throughput gate and the sporadic debug iterator panic
 (cutover investigation, not a codec acceptance fix). Full repository validation
 is required before pushing.
 
-#### Deferred artifact adoption
+#### Codec artifact cutover
 
-Compiled declarations, bootstrap, package resolution, project/lock files and
-structured diagnostics retain their current formats during codec v1. The user
-approved a follow-on migration to encode compiled `ModuleDeclaration` artifacts
-using Uffda data syntax and embed/load those artifacts directly from that
-representation. This is intentionally not part of codec v1's current acceptance
-gate; keep the existing JSON artifact/bootstrap path unchanged until the
-follow-on has an explicit compatibility and rollout design.
+Product builds embed unmodified `.uff.ast` records and resolvers prefer them
+over JSON siblings, including filesystem, package-root and JSR imports. A
+general iterative native value parser breaks the bootstrap cycle: codec decoding
+requires neither embedded languages nor a resolver. The authored data grammar
+remains the syntax/source-diagnostic oracle, with differential tests for native
+syntax acceptance and fixed construction.
 
-Before adopting the new representation, verify that the codec preserves the
-complete declaration data model and establish a bootstrap transition in which
-the previous published compiler can produce the new artifact format before
-`compile:lang` starts requiring it. Build and resolver consumers must load the
-new representation directly. Do not post-process compiler output, re-lower on
-import, or remove JSON compatibility before the published compiler and consumers
-can transition safely. Evaluate JSR asset/entrypoint conventions, artifact
-versioning, mixed-version compatibility, and rollback behavior. Binary encoding
-of the same data model remains deferred.
+Rollout uses the existing published compiler's codec emission (0.10.5 verified):
+`compile:lang` remains one published `uffda compile`, with no artifact
+rewriting. The new product is built from its codec output and recompiles the
+language tree. `uffda-build` intentionally rejects a JSON-only artifact tree
+with bootstrap guidance. Downstream hosts use `insert_declaration_codec_source`;
+explicit JSON registration remains available.
+
+Compile and JSR packaging retain both siblings so older JSON-first consumers can
+still use new packages, and new consumers can still load JSON-only old packages.
+Project files, lockfiles and structured diagnostics remain JSON. Rollback is
+rebuilding with the prior product against those unchanged JSON siblings.
+Removing JSON emission and binary codec encoding remain deferred. This cutover
+does not close the separate JSON-reader measurement reliability or six-platform
+release acceptance gates.
 
 ### 9. Reusable Rust packages
 
@@ -623,9 +628,9 @@ downstream-consumer smoke crate is the package gate.
       grammars gated behind `embed-languages`).
 - [x] Keep Uffda's authored grammar bundle behind `embed-languages` (product CLI
       + in-tree tests). Hosts register their own compiled declarations via
-      `Resolver::insert_declaration_source` / `uffda-build` without forking
-      runtime internals.
-- [x] Provide `uffda-build`: validates a compiled JSON artifact tree and
+      `Resolver::insert_declaration_codec_source` / `uffda-build` without
+      forking runtime internals.
+- [x] Provide `uffda-build`: validates a compiled codec artifact tree and
       generates a static `DECLARATIONS` registry from unmodified artifacts. No
       `.uff` parse, re-lower, or compiler seeds in the Rust build.
 - [x] Command parsing/dispatch remains in the product `uffda` binary (not a
@@ -638,9 +643,9 @@ downstream-consumer smoke crate is the package gate.
       from `.github/workflows/publish.yml` (see `rust/CRATES.md`). CLI is not a
       crates.io package.
 - [x] Downstream-consumer smoke crate `rust/consumer` embeds its own
-      `artifacts/*.uff.ast.json` with `uffda-build`, depends on `uffda-runtime`
-      with `default-features = false`, and runs without this repo's `src/lang`
-      or `bin` trees.
+      `artifacts/*.uff.ast` with `uffda-build`, depends on `uffda-runtime` with
+      `default-features = false`, and runs without this repo's `src/lang` or
+      `bin` trees.
 
 Package gate: a downstream crate can embed its own compiled declarations with
 `uffda-build` and execute them through `uffda-runtime` without product language

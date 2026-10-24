@@ -22,9 +22,9 @@ Expected behavior:
 
 Postconditions:
 
-- Released Rust CLI binaries embed compiled `./bin` AST JSON via `uffda-build`
-  with `embed-languages` and resolve logical `.uff` imports from that embedded
-  tree when running as a standalone product.
+- Released Rust CLI binaries embed compiled `./bin` codec records via
+  `uffda-build` with `embed-languages` and resolve logical `.uff` imports from
+  that embedded tree when running as a standalone product.
 - Authors import compiled modules with `import "./foo.uff"` once artifacts exist
   under the configured root (see `cli-bootstrap-004`).
 

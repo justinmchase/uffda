@@ -41,12 +41,17 @@ pub struct Resolver {
     root: PathBuf,
     out_dir: PathBuf,
     declarations: HashMap<Url, Rc<ModuleDeclaration>>,
-    declaration_sources: HashMap<Url, &'static str>,
+    declaration_sources: HashMap<Url, DeclarationSource>,
     packages: Option<packages::JsrPackages>,
     import_map: BTreeMap<String, String>,
     graphs: HashMap<Url, Rc<graph::ModuleGraph>>,
     transport: Rc<dyn packages::Transport>,
     artifact_packages: Vec<(Url, String)>,
+}
+
+enum DeclarationSource {
+    Json(&'static str),
+    Codec(&'static str),
 }
 
 impl Resolver {
@@ -135,7 +140,16 @@ impl Resolver {
     pub fn insert_declaration_source(&mut self, url: Url, source: &'static str) {
         self.declarations.remove(&url);
         self.graphs.clear();
-        self.declaration_sources.insert(url, source);
+        self.declaration_sources
+            .insert(url, DeclarationSource::Json(source));
+    }
+
+    /// Register an immutable codec artifact without loading a grammar to decode it.
+    pub fn insert_declaration_codec_source(&mut self, url: Url, source: &'static str) {
+        self.declarations.remove(&url);
+        self.graphs.clear();
+        self.declaration_sources
+            .insert(url, DeclarationSource::Codec(source));
     }
 
     pub fn load_declaration(
@@ -148,7 +162,10 @@ impl Resolver {
             return Ok(Rc::clone(declaration));
         }
         if let Some(source) = self.declaration_sources.get(url) {
-            let declaration = Rc::new(decode_declaration(url, source)?);
+            let declaration = Rc::new(match source {
+                DeclarationSource::Json(source) => decode_declaration(url, source)?,
+                DeclarationSource::Codec(source) => decode_artifact(url, ".uff.ast", source)?,
+            });
             self.declarations
                 .insert(url.clone(), Rc::clone(&declaration));
             return Ok(declaration);
@@ -171,7 +188,7 @@ impl Resolver {
             let source = &url.path()[root.path().len()..];
             let stem = &source[..source.len() - 4];
             let mut candidates = Vec::new();
-            for suffix in [".uff.ast.json", ".uff.ast", ".uffda.ast.json", ".uffda.ast"] {
+            for suffix in [".uff.ast", ".uff.ast.json", ".uffda.ast", ".uffda.ast.json"] {
                 candidates.push(
                     root.join(&format!("{out_dir}/ast/{stem}{suffix}"))
                         .map_err(|cause| {
@@ -242,9 +259,8 @@ impl Resolver {
 
     /// Preferred on-disk artifact path for a logical module URL.
     ///
-    /// For `.uff` modules this is the existing `.uff.ast.json` file, else the
-    /// existing `.uff.ast` file, else the preferred `.uff.ast.json` path when
-    /// neither exists (so missing-artifact errors name the JSON path).
+    /// For `.uff` modules this selects codec before JSON compatibility artifacts,
+    /// or the preferred `.uff.ast` path when no candidate exists.
     pub fn load_path(&self, url: &Url) -> Result<PathBuf, ModuleResolutionError> {
         let extension = require_extension(url)?;
         let path = url.to_file_path().map_err(|()| {
@@ -279,35 +295,19 @@ impl Resolver {
             )
         })?;
         let candidates = self.uff_artifact_paths(url, &path)?;
-        let mut first_error = None;
         for candidate in &candidates {
-            if !candidate.is_file() {
-                continue;
-            }
             let text = match std::fs::read_to_string(candidate) {
                 Ok(text) => text,
+                Err(cause) if cause.kind() == std::io::ErrorKind::NotFound => continue,
                 Err(cause) => {
-                    if first_error.is_none() {
-                        first_error = Some(error(
-                            url,
-                            format!("could not read artifact {}", candidate.display()),
-                            Some(cause.to_string()),
-                        ));
-                    }
-                    continue;
+                    return Err(error(
+                        url,
+                        format!("could not read artifact {}", candidate.display()),
+                        Some(cause.to_string()),
+                    ));
                 }
             };
-            match decode_artifact(url, &candidate.to_string_lossy(), &text) {
-                Ok(declaration) => return Ok(declaration),
-                Err(error) => {
-                    if first_error.is_none() {
-                        first_error = Some(error);
-                    }
-                }
-            }
-        }
-        if let Some(error) = first_error {
-            return Err(error);
+            return decode_artifact(url, &candidate.to_string_lossy(), &text);
         }
         // None of the candidates existed: surface the preferred path's IO error
         // so missing-artifact diagnostics name a concrete file.
@@ -352,20 +352,15 @@ impl Resolver {
 
 /// Artifact path candidates for a `.uff` source, preferred first.
 ///
-/// Order: `.uff.ast.json` (JSON), `.uff.ast` (data codec), then legacy
-/// `.uffda.ast.json` / `.uffda.ast` names from earlier compilers.
-///
-/// JSON is preferred while ModuleDeclaration codec decode still goes through
-/// the data language (`Languages::parse_data`): preferring codec made
-/// large import graphs take minutes. Codec remains the fallback when no
-/// JSON sibling exists.
+/// Order: `.uff.ast` (data codec), `.uff.ast.json` (JSON compatibility), then
+/// the corresponding legacy `.uffda.ast` / `.uffda.ast.json` names.
 pub fn uff_artifact_paths(out_dir: &Path, relative_uff: &Path) -> Vec<PathBuf> {
     let base = out_dir.join("ast").join(relative_uff);
     vec![
-        base.with_extension("uff.ast.json"),
         base.with_extension("uff.ast"),
-        base.with_extension("uffda.ast.json"),
+        base.with_extension("uff.ast.json"),
         base.with_extension("uffda.ast"),
+        base.with_extension("uffda.ast.json"),
     ]
 }
 
@@ -388,8 +383,8 @@ fn load_artifact_candidates(
 ) -> Result<ModuleDeclaration, ModuleResolutionError> {
     let mut first_error = None;
     for candidate in candidates {
-        let text = match read_artifact_url(url, candidate, transport) {
-            Ok(text) => text,
+        let bytes = match read_artifact_url(url, candidate, transport) {
+            Ok(bytes) => bytes,
             Err(error) => {
                 if first_error.is_none() {
                     first_error = Some(error);
@@ -397,14 +392,9 @@ fn load_artifact_candidates(
                 continue;
             }
         };
-        match decode_artifact(url, candidate.as_str(), &text) {
-            Ok(declaration) => return Ok(declaration),
-            Err(error) => {
-                if first_error.is_none() {
-                    first_error = Some(error);
-                }
-            }
-        }
+        let text = String::from_utf8(bytes)
+            .map_err(|cause| error(url, "artifact is not UTF-8".into(), Some(cause.to_string())))?;
+        return decode_artifact(url, candidate.as_str(), &text);
     }
     Err(first_error.expect("candidates is non-empty"))
 }
@@ -413,8 +403,8 @@ fn read_artifact_url(
     module: &Url,
     artifact: &Url,
     transport: &Rc<dyn packages::Transport>,
-) -> Result<String, ModuleResolutionError> {
-    let bytes = if artifact.scheme() == "file" {
+) -> Result<Vec<u8>, ModuleResolutionError> {
+    if artifact.scheme() == "file" {
         let path = artifact
             .to_file_path()
             .map_err(|()| error(module, "invalid artifact file URL".into(), None))?;
@@ -424,7 +414,7 @@ fn read_artifact_url(
                 format!("could not read artifact {}", path.display()),
                 Some(cause.to_string()),
             )
-        })?
+        })
     } else {
         transport.read(artifact).map_err(|cause| {
             error(
@@ -432,15 +422,8 @@ fn read_artifact_url(
                 format!("could not read artifact {artifact}"),
                 Some(cause),
             )
-        })?
-    };
-    String::from_utf8(bytes).map_err(|cause| {
-        error(
-            module,
-            "artifact is not UTF-8".into(),
-            Some(cause.to_string()),
-        )
-    })
+        })
+    }
 }
 
 fn is_codec_artifact_path(path: &str) -> bool {
@@ -663,7 +646,7 @@ mod tests {
         let url = Url::from_file_path(root.join("src/test.uff")).unwrap();
         assert_eq!(
             resolver.load_path(&url).unwrap(),
-            root.join("bin/ast/src/test.uff.ast.json")
+            root.join("bin/ast/src/test.uff.ast")
         );
     }
 
@@ -718,8 +701,8 @@ mod tests {
     }
 
     #[test]
-    // req:project-file-003 req:cli-bootstrap-004
-    fn uff_prefers_json_artifact_over_codec_when_both_exist() {
+    // req:project-file-003 req:cli-bootstrap-004 req:data-codec-005
+    fn uff_prefers_codec_artifact_over_json_when_both_exist() {
         let dir = Directory::new();
         std::fs::create_dir_all(dir.0.join("bin/ast/src")).unwrap();
         std::fs::write(
@@ -739,12 +722,10 @@ mod tests {
         let loaded = resolver
             .load_declaration(&dir.url("src/module.uff"))
             .unwrap();
-        // JSON is preferred: codec decode still boots Languages::parse_data and
-        // is too slow for import graphs (see uff_artifact_paths).
-        assert_eq!(loaded.rules[0]["name"], "Json");
+        assert_eq!(loaded.rules[0]["name"], "Codec");
         assert_eq!(
             resolver.load_path(&dir.url("src/module.uff")).unwrap(),
-            dir.0.join("bin/ast/src/module.uff.ast.json")
+            dir.0.join("bin/ast/src/module.uff.ast")
         );
     }
 
@@ -774,6 +755,44 @@ mod tests {
                 .rules
                 .is_empty()
         );
+    }
+
+    #[test]
+    // req:data-codec-005 req:cli-bootstrap-015
+    fn embedded_codec_registration_is_lazy_cached_and_replaceable() {
+        let dir = Directory::new();
+        let mut resolver = dir.resolver();
+        let url = dir.url("absent.uff");
+        resolver.insert_declaration_codec_source(url.clone(), "{imports:[] exports:[] rules:[]}\n");
+        assert_eq!(resolver.declaration_count(), 0);
+        let first = resolver.load_declaration(&url).unwrap();
+        assert!(Rc::ptr_eq(
+            &first,
+            &resolver.load_declaration(&url).unwrap()
+        ));
+        resolver.insert_declaration_codec_source(url.clone(), "{}\n{}\n");
+        assert_eq!(resolver.declaration_count(), 0);
+        assert!(resolver.load_declaration(&url).is_err());
+        resolver.insert_declaration_source(url.clone(), DECLARATION);
+        assert!(resolver.load_declaration(&url).unwrap().rules.is_empty());
+        resolver.insert_declaration_codec_source(url.clone(), "{imports:[] exports:[] rules:[]}\n");
+        assert!(resolver.load_declaration(&url).unwrap().rules.is_empty());
+    }
+
+    #[test]
+    // req:data-codec-005
+    fn malformed_codec_is_not_hidden_by_a_valid_json_sibling() {
+        for bytes in [b"not-codec\n".as_slice(), b"{}\n{}\n", &[0xff]] {
+            let dir = Directory::new();
+            std::fs::create_dir_all(dir.0.join("bin/ast")).unwrap();
+            std::fs::write(dir.0.join("bin/ast/main.uff.ast"), bytes).unwrap();
+            std::fs::write(dir.0.join("bin/ast/main.uff.ast.json"), DECLARATION).unwrap();
+            assert!(
+                dir.resolver()
+                    .load_declaration(&dir.url("main.uff"))
+                    .is_err()
+            );
+        }
     }
 
     #[test]

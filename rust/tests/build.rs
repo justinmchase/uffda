@@ -99,7 +99,7 @@ fn reference_retirement_routes_development_tasks_to_rust() {
 
 #[test]
 #[cfg(feature = "embed-languages")]
-// req:cli-bootstrap-015
+// req:cli-bootstrap-015 req:data-codec-005
 fn build_script_embeds_the_published_artifact_tree() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../bin/ast/src/lang");
     let mut pending = vec![root.clone()];
@@ -110,12 +110,7 @@ fn build_script_embeds_the_published_artifact_tree() {
             let kind = entry.file_type().unwrap();
             if kind.is_dir() {
                 pending.push(entry.path());
-            } else if kind.is_file()
-                && entry
-                    .file_name()
-                    .to_string_lossy()
-                    .ends_with(".uff.ast.json")
-            {
+            } else if kind.is_file() && entry.file_name().to_string_lossy().ends_with(".uff.ast") {
                 files.push(entry.path());
             }
         }
@@ -130,7 +125,7 @@ fn build_script_embeds_the_published_artifact_tree() {
             .replace('\\', "/");
         let logical = format!(
             "src/lang/{}.uff",
-            relative.strip_suffix(".uff.ast.json").unwrap()
+            relative.strip_suffix(".uff.ast").unwrap()
         );
         let embedded = DECLARATIONS
             .iter()
@@ -138,6 +133,17 @@ fn build_script_embeds_the_published_artifact_tree() {
             .unwrap()
             .1;
         assert_eq!(embedded.as_bytes(), std::fs::read(file).unwrap());
+        let codec = uffda_runtime::codec::declaration::decode_declaration_codec(embedded).unwrap();
+        let json: uffda_runtime::json::JsonValue = uffda_runtime::json::from_str(
+            &std::fs::read_to_string(root.join(format!("{relative}.json"))).unwrap(),
+        )
+        .unwrap();
+        // Codec numbers have runtime f64 semantics, not serde's integer/float storage variants.
+        assert_eq!(
+            uffda_runtime::codec::declaration::encode_declaration_codec(&codec).unwrap(),
+            uffda_runtime::codec::declaration::encode_declaration_codec(&json).unwrap(),
+            "codec must preserve the entire declaration: {logical}"
+        );
     }
 }
 

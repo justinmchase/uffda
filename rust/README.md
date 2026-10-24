@@ -200,8 +200,10 @@ cargo test-rust
 
 Compiled ModuleDeclarations on disk use the **`.uff.ast`** extension for the
 data-codec record. A **`.uff.ast.json`** sibling is still emitted; resolvers and
-`uffda-build` embeds prefer JSON while ModuleDeclaration codec decode still goes
-through the data language.
+`uffda-build` embeds use codec records directly. Value decoding is independent
+of language loading, breaking the codec/bootstrap cycle. JSON-only dependencies
+and explicit JSON declarations remain supported; removing JSON emission is a
+separate compatibility change.
 
 See [CRATES.md](./CRATES.md) for crates.io OIDC trusted publishing and the
 one-time first-publish steps.

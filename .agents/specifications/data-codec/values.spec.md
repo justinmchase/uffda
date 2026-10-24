@@ -79,3 +79,11 @@ Required closing delimiters, colons, operands and escapes MUST have focused
 source diagnostics. Duplicate-key and invalid native payload diagnostics MAY
 come from the fixed construction boundary. Decoding/encoding MUST enforce
 explicit depth and record-size limits without unbounded host recursion.
+
+Streaming value decoding MUST be independent of language loading, artifact
+resolution and expression execution so that compiled languages can themselves be
+decoded from codec records. A native parser MUST accept the same syntax and
+construct the same values as the authored grammar plus fixed construction,
+including lossless UTF-16 strings and native payload validation. The authored
+grammar remains the syntax and source-diagnostic oracle; native parse failures
+MUST include a byte position.

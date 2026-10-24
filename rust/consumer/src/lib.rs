@@ -24,14 +24,14 @@ mod tests {
                 cause: Some(error.to_string()),
                 import_chain: Vec::new(),
             })?;
-            resolver.insert_declaration_source(url, source);
+            resolver.insert_declaration_codec_source(url, source);
         }
         Ok(root)
     }
 
     #[test]
-    // Milestone 9 downstream-consumer gate (docs/rust-migration.md).
-    fn consumer_embeds_own_json_and_runs_without_product_bin() {
+    // req:data-codec-005
+    fn consumer_embeds_own_codec_and_runs_without_product_bin() {
         let mut resolver = Resolver::from_cwd().unwrap();
         let root = register(&mut resolver).unwrap();
         let entry = root.join("grammar/main.uff").unwrap();

@@ -18,7 +18,6 @@ pub struct DataRecord {
 
 pub struct DataDecoder {
     framer: super::RecordDecoder,
-    languages: crate::languages::Languages,
     limits: DataLimits,
     failed: Option<DataError>,
 }
@@ -32,7 +31,6 @@ impl DataDecoder {
                 max_nesting: limits.max_depth,
             })
             .map_err(|e| error(e.to_string()))?,
-            languages: crate::languages::Languages::new().map_err(|e| error(e.to_string()))?,
             limits,
             failed: None,
         })
@@ -92,11 +90,7 @@ impl DataDecoder {
         let Some(frame) = frame else {
             return Ok(None);
         };
-        let ast = self
-            .languages
-            .parse_data(&frame.source)
-            .map_err(|e| error(format!("record at byte {}: {e}", frame.span.start)))?;
-        let document = DataDocument::from_ast(ast, self.limits)
+        let document = parser::parse(&frame.source, self.limits)
             .map_err(|e| error(format!("record at byte {}: {e}", frame.span.start)))?;
         Ok(Some(DataRecord {
             document,
@@ -1119,3 +1113,5 @@ fn unique(items: &[usize], nodes: &[DataNode]) -> Result<(), DataError> {
 
 #[cfg(test)]
 mod tests;
+
+mod parser;

@@ -20,11 +20,11 @@ Expected behavior:
   `"../bin"`, `"/bin"`, a non-string) is a problem. It defaults to `./bin`.
 - The artifact layout MUST be the project's root and `outDir`, or, without a
   project, the working directory (the language server: its workspace root) and
-  `./bin` (`ArtifactLayout` in `src/runtime/resolvers/artifact_path.ts`).
+  `./bin`.
 - `<root>/<path>.uff` MUST compile to both `<outDir>/ast/<path>.uff.ast` (data
   codec) and `<outDir>/ast/<path>.uff.ast.json` (JSON). A resolver given that
-  layout (`ResolverOptions.artifacts`) MUST prefer the `.uff.ast.json` file when
-  it exists and otherwise read `.uff.ast`. Nothing is written next to a source.
+  layout MUST prefer the `.uff.ast` file when it exists and otherwise read
+  `.uff.ast.json`. Nothing is written next to a source.
 - `uffda compile`, MCP `uffda_compile`, `run`, `exec`, MCP sessions (their
   compile-on-demand included), and the language server MUST all use the layout.
   MCP tools take no output or artifact directory argument.

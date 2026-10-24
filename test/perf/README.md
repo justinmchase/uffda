@@ -7,7 +7,7 @@ retired. These reports are separate from Rust correctness tests.
 
 ## Rust data codec acceptance
 
-`data-codec.report.ts` compares the actual authored codec with Rust `serde_json`
+`data-codec.report.ts` compares the native codec decoder with Rust `serde_json`
 JSON arrays and JSONL, both raw and gzip. Its deterministic corpus covers sensor
 records, Unicode/escaped strings, nested containers, and native data. Native
 JSON uses explicit `$type`/`value` envelopes: it is a lossless comparison
@@ -49,7 +49,7 @@ example, not a new CLI command.
   workload/transport/pipeline/operation. Each has an untimed warm pass, at least
   256 measured records, and at least 100 ms of timed work. Actual repetition
   counts and byte totals are retained.
-- Decode measures authored grammar to `DataDocument` versus `serde_json::Value`;
+- Decode measures native parsing to `DataDocument` versus `serde_json::Value`;
   encode uses prepared documents/values. Arena materialization and GC
   correctness are verified separately, not included in parser throughput.
 - Raw/gzip parser pipelines use `flate2`'s Rust backend and default compression,
@@ -75,7 +75,9 @@ example, not a new CLI command.
 methodology, 216 parser/RSS samples, 12 raw/gzip size comparisons, and 24
 batched duration/RSS probes. This earlier completed report predates the
 continuous-stream probe; it is retained as provisional evidence, not a claim
-that extended acceptance has passed. Medians from this run:
+that extended acceptance has passed. It used the former authored-grammar
+decoding path, not the new grammar-independent native decoder; its throughput
+numbers do not measure the codec artifact cutover. Medians from this run:
 
 | Workload      | Codec / JSONL raw bytes | Codec / JSONL gzip bytes | Codec / JSONL raw decode records/s |
 | ------------- | ----------------------: | -----------------------: | ---------------------------------: |
