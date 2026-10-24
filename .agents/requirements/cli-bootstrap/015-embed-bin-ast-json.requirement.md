@@ -1,6 +1,6 @@
 ---
 id: cli-bootstrap-015
-title: Published Rust CLI embeds ./bin AST JSON via uffda-build
+title: Published Rust CLI embeds ./bin codec artifacts via uffda-build
 spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#bootstrap-definition"
 ---
 
@@ -11,13 +11,13 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#bootstrap
 Preconditions:
 
 - Converted language modules exist as authored `.uff` under `src/lang/`.
-- `compile:lang` produces mirrored AST JSON under `./bin/`.
+- `compile:lang` produces mirrored `.uff.ast` codec records under `./bin/`.
 
 Expected behavior:
 
 - `deno task compile:cli` MUST run `compile:lang` before building the Rust
-  product CLI with `embed-languages`, so the compiled AST JSON files are
-  embedded by `uffda-build`.
+  product CLI with `embed-languages`, so the compiled codec files are embedded
+  by `uffda-build`.
 - `.github/workflows/release-binaries.yml` MUST compile language modules into
   `./bin` in `compile-lang`, then the `compile-rust` job MUST build the Rust
   `uffda` binary with that tree present so the artifacts are embedded. Release
@@ -42,7 +42,8 @@ Expected behavior:
 
 Postconditions:
 
-- Published CLI binaries compile authored `.uff` using embedded `./bin` JSON.
+- Published CLI binaries compile authored `.uff` using embedded `./bin` codec
+  records.
 - Converted modules stay off `builtInLanguageDeclarations` (no host twins).
 
 ## Test plan

@@ -112,8 +112,7 @@ RFC 8174.
   `<root>/<path>.uff` compiles to both `<outDir>/ast/<path>.uff.ast` (one
   data-codec ModuleDeclaration record) and `<outDir>/ast/<path>.uff.ast.json`
   (the same declaration as JSON). The **`.uff.ast`** extension is the data-codec
-  artifact form; **`.uff.ast.json`** is the JSON sibling used for resolve while
-  ModuleDeclaration codec decode still goes through the data language. A
+  artifact form; **`.uff.ast.json`** is the JSON compatibility sibling. A
   directory with no project uses the working directory (the language server: its
   workspace folder) as its root, with `./bin`.
 - Build output MUST NOT be written next to sources: every compiled artifact goes
@@ -121,10 +120,9 @@ RFC 8174.
 - Every tool MUST write and read artifacts through that layout: `uffda compile`
   and the MCP `uffda_compile` tool write both artifact forms there, and every
   resolver the project's tools build (`run`, `exec`, MCP sessions, the language
-  server) reads `.uff` imports from there—preferring `.uff.ast.json` when
-  present and falling back to `.uff.ast`—and compiles missing ones into it. No
-  command argument changes the layout, because a module's importers could not
-  see it.
+  server) reads `.uff` imports from there—preferring `.uff.ast` when present and
+  falling back to `.uff.ast.json`—and compiles missing ones into it. No command
+  argument changes the layout, because a module's importers could not see it.
 - A source outside the project root has no place in the layout. Compiling it, or
   resolving an import of it, MUST fail naming the module and the root.
 - `outDir` is how a published package's consumers find its compiled artifacts.

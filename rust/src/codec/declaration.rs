@@ -18,29 +18,9 @@ pub fn encode_declaration_codec(value: &JsonValue) -> Result<String, String> {
 
 /// Decode one data-codec record into a JSON ModuleDeclaration object.
 pub fn decode_declaration_codec(text: &str) -> Result<JsonValue, String> {
-    let mut decoder =
-        crate::codec::data::DataDecoder::new(crate::codec::data::DataLimits::default())
-            .map_err(|error| error.to_string())?;
-    let (_, first) = decoder
-        .push_some(text.as_bytes())
-        .map_err(|error| error.to_string())?;
-    let record = match first {
-        Some(record) => {
-            if decoder
-                .finish()
-                .map_err(|error| error.to_string())?
-                .is_some()
-            {
-                return Err("declaration codec has more than one record".into());
-            }
-            record
-        }
-        None => decoder
-            .finish()
-            .map_err(|error| error.to_string())?
-            .ok_or_else(|| "declaration codec record is empty".to_string())?,
-    };
-    uffda_heap::rootless_mutate(|mc| heap_to_json(record.document.materialize(mc)))
+    let document =
+        crate::codec::data::DataDocument::from_codec(text).map_err(|error| error.to_string())?;
+    uffda_heap::rootless_mutate(|mc| heap_to_json(document.materialize(mc)))
 }
 
 fn json_to_heap<'gc>(mc: &Mutation<'gc>, value: &JsonValue) -> Result<Value<'gc>, String> {
@@ -212,5 +192,15 @@ mod tests {
         assert!(encode_declaration_codec(&JsonValue::Null).is_err());
         assert!(decode_declaration_codec("null\n").is_err());
         assert!(decode_declaration_codec("[1 2]\n").is_err());
+    }
+
+    #[test]
+    // req:data-codec-005
+    fn declaration_codec_rejects_trailing_records_and_invalid_input() {
+        for text in ["{}\n{}\n", "{}\n{}\n{}\n", "{}\ninvalid", "{}\n["] {
+            assert!(decode_declaration_codec(text).is_err(), "{text:?}");
+        }
+        assert!(decode_declaration_codec("\n# empty\n").is_err());
+        assert!(decode_declaration_codec("{}\n# trailing trivia\n\n").is_ok());
     }
 }

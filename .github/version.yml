@@ -26,10 +26,14 @@ on:
       file: rust/build/Cargo.toml
       pattern: '(?<=^version = ").*(?=")'
       flags: m
+    - kind: regexp
+      file: rust/codec/Cargo.toml
+      pattern: '(?<=^version = ").*(?=")'
+      flags: m
     # Path-dependency version pins for published crates (not third-party deps).
     - kind: regexp
       file: rust/Cargo.toml
-      pattern: '(?<=path = "(?:heap|build)", version = ").*(?=")'
+      pattern: '(?<=path = "(?:heap|build|codec)", version = ").*(?=")'
       flags: g
     - kind: regexp
       file: rust/heap/Cargo.toml

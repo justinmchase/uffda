@@ -23,16 +23,16 @@ self-hosting while maintaining deterministic and diagnosable behavior.
   stack already baked into that binary. It MUST NOT require host TypeScript
   twins or `*.bootstrap.ts` stubs of in-tree `.uff` sources.
 - Converted `.uff` language modules that the published CLI needs at parse time
-  MUST be embedded as compiled `./bin` AST JSON. The release `compile` job
-  embeds them by building the Rust `uffda` binary with the `compile-lang` tree
-  present. Local product builds likewise enable `embed-languages`; no Deno
-  compile or TypeScript language hosts are involved.
+  MUST be embedded as compiled `./bin` `.uff.ast` codec records. The release
+  `compile` job embeds them by building the Rust `uffda` binary with the
+  `compile-lang` tree present. Local product builds likewise enable
+  `embed-languages`; no Deno compile or TypeScript language hosts are involved.
 - The published JSR package MUST likewise ship the compiled `./bin` language
-  ModuleDeclaration JSON alongside the notice entry point and `.uff` sources.
-  The release Publish workflow installs the release's CLI (from Release Binaries
-  assets) and runs that `uffda compile` once to fill `./bin`. It MUST NOT
-  rebuild the Rust CLI in the JSR job. The workflow verifies the package file
-  list with `jsr publish --dry-run`.
+  ModuleDeclaration codec records and compatibility JSON siblings alongside the
+  notice entry point and `.uff` sources. The release Publish workflow installs
+  the release's CLI (from Release Binaries assets) and runs that `uffda compile`
+  once to fill `./bin`. It MUST NOT rebuild the Rust CLI in the JSR job. The
+  workflow verifies the package file list with `jsr publish --dry-run`.
 - Runtime resolution of the built-in languages' `.uff` artifacts MUST address
   them by URL relative to the package root (`<packageRoot>/<outDir>/ast/...`),
   so they load wherever the package lives: a `file:` checkout or compiled-binary
@@ -60,12 +60,12 @@ self-hosting while maintaining deterministic and diagnosable behavior.
 - Local bootstrap of `./bin` (`deno task compile:lang`) and Checks bootstrap
   MUST use the previous published `uffda compile` for the full parse + lower
   pipeline in one step (quoted glob such as `'src/lang/**/*.uff'`), producing
-  ModuleDeclaration JSON directly. Checks invokes that published binary
-  directly. The release `compile-lang` job downloads that published asset with
-  `gh` and does not run Deno; it then rewrites `./bin` with the Rust CLI.
-  `deno task compile:lang` is the same command for local use and other
-  workflows. No separate in-tree lower stage or frozen compiler snapshot is
-  needed once the published CLI includes that pipeline (0.1.17+).
+  ModuleDeclaration codec records and JSON siblings directly. Checks invokes
+  that published binary directly. The release `compile-lang` job downloads that
+  published asset with `gh` and does not run Deno; it then rewrites `./bin` with
+  the Rust CLI. `deno task compile:lang` is the same command for local use and
+  other workflows. No separate in-tree lower stage or frozen compiler snapshot
+  is needed once the published CLI includes that pipeline (0.1.17+).
 
 ## Compile pipeline and recursion break
 
@@ -77,10 +77,11 @@ workspace `./bin`, so an empty `./bin` cannot be filled by in-tree parse alone.
 
 - `uffda compile` MUST be a single product pipeline: parse authored `.uff` to a
   syntax module, then run `UffdaRuntimeCompiler` as the next stage, then write
-  the resulting **ModuleDeclaration** JSON (`imports` / `exports` / `rules`).
-  The published CLI binary embeds this whole pipeline (0.1.17+), so invoking it
-  externally (`uffda compile 'src/lang/**/*.uff'`, which writes the default
-  `./bin` output directory) already performs both stages.
+  the resulting **ModuleDeclaration** (`imports` / `exports` / `rules`) as codec
+  records and compatibility JSON siblings. The published CLI binary embeds this
+  whole pipeline (0.1.17+), so invoking it externally
+  (`uffda compile 'src/lang/**/*.uff'`, which writes the default `./bin` output
+  directory) already performs both stages.
 - Bootstrap of workspace `./bin` MUST shell out to the **previous published
   `uffda` CLI** for the full parse + lower pipeline (embedded languages and
   compiler in that binary), either as `uffda compile 'src/lang/**/*.uff'` or as
@@ -92,8 +93,8 @@ workspace `./bin`, so an empty `./bin` cannot be filled by in-tree parse alone.
   case: the artifact being used was produced by an earlier, separate invocation
   of the previous published CLI, not by the compile call that is using it.
 - Runtime resolution of logical `.uff` URLs MUST load the mirrored
-  ModuleDeclaration JSON only. It MUST NOT re-run the runtime compiler or parse
-  `.uff` source text on import.
+  ModuleDeclaration artifacts only, preferring codec records. It MUST NOT re-run
+  the runtime compiler or parse `.uff` source text on import.
 - Authors MUST NOT introduce host workarounds that park compiler JSON under
   `src/` or special-case the runtime compiler artifact path outside normal
   resolve.
@@ -111,21 +112,20 @@ workspace `./bin`, so an empty `./bin` cannot be filled by in-tree parse alone.
   authors MUST publish a new CLI that adds that feature and then compile with it
   — not by checking compiler output into `src/` and not by splitting lowering
   out of the compile pipeline.
-- Compiling those sources MUST emit ModuleDeclaration JSON artifacts under
-  `./bin/`.
-- The next CLI binary MUST load language definitions from those `./bin/` JSON
+- Compiling those sources MUST emit ModuleDeclaration codec records and JSON
+  siblings under `./bin/`.
+- The next CLI binary MUST load language definitions from those `./bin/` codec
   artifacts for the compiled product.
 - Artifact paths and names under `./bin/` MUST be deterministic for a fixed
   source tree and compiler version.
 - Runtime module imports that name a `.uff` source MUST resolve through that
-  artifact remapping (logical `.uff` URL → mirrored
-  `./bin/ast/.../*.uff.ast.json`, else `./bin/ast/.../*.uff.ast`), not by
-  reading `.uff` source text. See the
-  [modules specification](../modules.spec.md#uffda-source-imports-uff).
+  artifact remapping (logical `.uff` URL → mirrored `./bin/ast/.../*.uff.ast`,
+  else `./bin/ast/.../*.uff.ast.json`), not by reading `.uff` source text. See
+  the [modules specification](../modules.spec.md#uffda-source-imports-uff).
 
 ## Bin artifact integrity (no post-compile hacks)
 
-`./bin` ModuleDeclaration JSON MUST be exactly what the published
+`./bin` ModuleDeclaration artifacts MUST be exactly what the published
 `uffda
 compile` wrote. Authors and agents MUST NOT “fix” stale or incomplete
 artifacts with host-side rewriters.
@@ -133,7 +133,7 @@ artifacts with host-side rewriters.
 - `deno task compile:lang` MUST be only previous published
   `uffda compile 'src/lang/**/*.uff'` (plus clearing `./bin` beforehand as the
   task already does). It MUST NOT chain Deno scripts, jq transforms, AST
-  walkers, or other steps that mutate compiled JSON after compile.
+  walkers, or other steps that mutate compiled artifacts after compile.
 - Authors MUST NOT add repository scripts or `compile.ts` hooks whose purpose is
   to patch, migrate, wrap, or rewrite fields inside built `./bin` output.
 - When a language/runtime change requires a different shape of compiled AST (for
@@ -187,8 +187,9 @@ artifacts with host-side rewriters.
 - Distribution of CLI binaries used for bootstrapping is defined in the
   [distribution and release](./cli/distribution-and-release.spec.md) chapter.
 - Default language modules under `src/lang/` MUST be authored as `.uff` and
-  loaded from compiled `./bin` ModuleDeclaration JSON. Host orchestration lives
-  in the Rust runtime and CLI; it MUST NOT require TypeScript language wrappers.
+  loaded from compiled `./bin` ModuleDeclaration codec records. Host
+  orchestration lives in the Rust runtime and CLI; it MUST NOT require
+  TypeScript language wrappers.
 
 ## Projection bootstrapping (future direction)
 

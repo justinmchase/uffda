@@ -194,14 +194,22 @@ cargo test-rust
 
 | Channel               | Ships                                                                                                            |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| crates.io (libraries) | `uffda-runtime`, `uffda-heap`, `uffda-heap-derive`, `uffda-build`                                                |
+| crates.io (libraries) | `uffda-runtime`, `uffda-codec`, `uffda-heap`, `uffda-heap-derive`, `uffda-build`                                 |
 | GitHub Releases       | Product `uffda` CLI (ASTs embedded at build time)                                                                |
 | JSR                   | `.uff`, `.uff.ast` (data-codec ModuleDeclarations), `.uff.ast.json` siblings during migration; `jsr:` resolution |
 
 Compiled ModuleDeclarations on disk use the **`.uff.ast`** extension for the
 data-codec record. A **`.uff.ast.json`** sibling is still emitted; resolvers and
-`uffda-build` embeds prefer JSON while ModuleDeclaration codec decode still goes
-through the data language.
+`uffda-build` embeds use codec records directly. Value decoding is independent
+of language loading, breaking the codec/bootstrap cycle. JSON-only dependencies
+and explicit JSON declarations remain supported; removing JSON emission is a
+separate compatibility change.
+
+Use [`uffda-codec`](./codec/README.md) directly for strict reading/writing
+without the runtime, grammar loader, resolver or collector. Runtime expressions
+expose `to_codec(value)` / `from_codec(text)` with no converter or options
+argument. These single-value functions omit the stream-record newline on
+serialization and require exactly one value on deserialization.
 
 See [CRATES.md](./CRATES.md) for crates.io OIDC trusted publishing and the
 one-time first-publish steps.

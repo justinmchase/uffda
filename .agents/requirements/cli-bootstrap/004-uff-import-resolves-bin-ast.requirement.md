@@ -20,7 +20,7 @@ Preconditions:
 Expected behavior:
 
 - Runtime resolution MUST remap the logical `.uff` URL to the mirrored artifact
-  paths (prefer `.uff.ast.json`, else `.uff.ast`) and MUST NOT read the `.uff`
+  paths (prefer `.uff.ast`, else `.uff.ast.json`) and MUST NOT read the `.uff`
   source text.
 - The runtime MUST load the chosen artifact as a ModuleDeclaration without
   re-lowering it or invoking the runtime compiler.
@@ -32,8 +32,8 @@ Expected behavior:
 Error behavior:
 
 - A missing artifact MUST fail with `MatchErrorCode.ModuleResolution` and MUST
-  mention the preferred `.uff.ast.json` path (and SHOULD mention the codec
-  fallback that was tried).
+  mention the preferred `.uff.ast` path (and SHOULD mention the JSON fallback
+  that was tried).
 - A `.uff` module outside the layout's root MUST fail with
   `MatchErrorCode.ModuleResolution` naming the module and the root.
 - Invalid artifact codec or JSON text, or invalid declarations, MUST fail as

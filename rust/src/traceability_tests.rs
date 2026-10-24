@@ -24,9 +24,8 @@ fn rust_inline_tests_cite_existing_requirement_documents() {
     }
 
     let mut tests = 0usize;
-    // Library unit tests under rust/src (same surface Checks runs with --lib).
-    let rust_root = root.join("rust/src");
-    for entry in walkdir(&rust_root) {
+    let sources = ["rust/src", "rust/codec/src", "rust/codec/tests"];
+    for entry in sources.iter().flat_map(|path| walkdir(&root.join(path))) {
         if entry.extension().and_then(|e| e.to_str()) != Some("rs") {
             continue;
         }

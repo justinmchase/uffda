@@ -21,10 +21,27 @@ fn invoke(args: &[&str], input: &str) -> Output {
 fn output(result: &Output) -> &str {
     assert!(
         result.status.success(),
-        "{}",
+        "process failed with {}: {}",
+        result.status,
         String::from_utf8_lossy(&result.stderr)
     );
     std::str::from_utf8(&result.stdout).unwrap()
+}
+
+#[test]
+// req:standard-library-003
+fn codec_globals_execute_through_the_binary() {
+    let encoded = invoke(&["exec", "-e", "(to_codec {values:[undefined 42]})"], "");
+    assert_eq!(output(&encoded), "\"{\\\"values\\\":[undefined 42]}\"\n");
+    let decoded = invoke(
+        &[
+            "exec",
+            "-e",
+            "(from_codec (to_codec {values:[undefined 42]}))",
+        ],
+        "",
+    );
+    assert_eq!(output(&decoded), "{\"values\":[undefined 42]}\n");
 }
 
 #[test]

@@ -91,11 +91,11 @@ the way Deno loads a `jsr:` import.
   against that URL, within the package version.
 - **Declaration:** the module's declaration is its compiled artifact in the
   package's [artifact layout](./languages/project-file.spec.md#output-directory)
-  within the package version: prefer `<outDir>/ast/<path>.uff.ast.json` (JSON),
-  else `<outDir>/ast/<path>.uff.ast` (data codec). A package supplies `.uff` and
-  `.json` modules only. A `.json` module loads its actual file as declaration
-  data without artifact remapping. Any other extension MUST be a
-  module-resolution error.
+  within the package version: prefer `<outDir>/ast/<path>.uff.ast` (data codec),
+  else `<outDir>/ast/<path>.uff.ast.json` (JSON compatibility). A package
+  supplies `.uff` and `.json` modules only. A `.json` module loads its actual
+  file as declaration data without artifact remapping. Any other extension MUST
+  be a module-resolution error.
 - **Integrity:** every file read from a package version MUST match the sha256
   checksum its `<version>_meta.json` manifest lists for it; a file the manifest
   does not list MUST be an error. When the lockfile records an integrity for the
@@ -140,8 +140,8 @@ the way Deno loads a `jsr:` import.
 - A `.uff` import MUST remap to its compiled artifact in the resolver's artifact
   layout (see
   [output directory](./languages/project-file.spec.md#output-directory)): the
-  module `<root>/<path>.uff` loads `<outDir>/ast/<path>.uff.ast.json` when that
-  file exists, else `<outDir>/ast/<path>.uff.ast`—the paths CLI compile writes.
+  module `<root>/<path>.uff` loads `<outDir>/ast/<path>.uff.ast` when that file
+  exists, else `<outDir>/ast/<path>.uff.ast.json`—the paths CLI compile writes.
   A resolver MUST be given its layout before resolution starts, as it is given
   its import map; without one it uses the working directory and `./bin`.
 - A `.uff` module outside the layout's root MUST fail as a module-resolution

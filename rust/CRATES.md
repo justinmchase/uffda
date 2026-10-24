@@ -6,12 +6,13 @@ Developed with substantial assistance from [Cursor](https://cursor.com); see the
 Product CLI binaries ship on **GitHub Releases**. These crates ship on
 **crates.io**:
 
-| Crate               | Role                                                                                                       |
-| ------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `uffda-heap-derive` | GC derive macros                                                                                           |
-| `uffda-heap`        | Collector heap                                                                                             |
-| `uffda-build`       | `build.rs` embed helper for declaration artifacts (JSON siblings today; `.uff.ast` is the data-codec form) |
-| `uffda-runtime`     | Runtime library (no product grammars by default)                                                           |
+| Crate               | Role                                                                        |
+| ------------------- | --------------------------------------------------------------------------- |
+| `uffda-heap-derive` | GC derive macros                                                            |
+| `uffda-heap`        | Collector heap                                                              |
+| `uffda-build`       | `build.rs` embed helper for unmodified `.uff.ast` declaration codec records |
+| `uffda-codec`       | Standalone strict reader/writer, streaming framing and owned native values  |
+| `uffda-runtime`     | Runtime library (no product grammars by default)                            |
 
 CI publishes them from `.github/workflows/publish.yml` using **OIDC trusted
 publishing** (`rust-lang/crates-io-auth-action`). No long-lived
@@ -29,12 +30,13 @@ cargo login   # crates.io API token, once on this machine
 cargo publish -p uffda-heap-derive --manifest-path rust/Cargo.toml --locked
 cargo publish -p uffda-heap --manifest-path rust/Cargo.toml --locked
 cargo publish -p uffda-build --manifest-path rust/Cargo.toml --locked
+cargo publish -p uffda-codec --manifest-path rust/Cargo.toml --locked
 cargo publish -p uffda-runtime --manifest-path rust/Cargo.toml --locked
 ```
 
 ### 2. Trusted publishing on crates.io
 
-For **each** of the four crates → Settings → Trusted Publishing:
+For **each** of the five crates → Settings → Trusted Publishing:
 
 - **Repository**: `justinmchase/uffda`
 - **Workflow filename**: `publish.yml`
@@ -48,6 +50,10 @@ such as required reviewers).
 
 After that, publishing a GitHub Release (or `workflow_dispatch` on Publish) runs
 the crates.io job with a short-lived OIDC token.
+
+`uffda-codec` is a new crate: its owner must perform its first publish and
+configure trusted publishing before the release workflow can publish it.
+Repository changes cannot provision that crates.io ownership setting.
 
 ## Versioning
 

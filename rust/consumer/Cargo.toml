@@ -4,7 +4,7 @@ version = "0.0.0"
 edition = "2024"
 publish = false
 license = "MIT"
-description = "Downstream-consumer smoke test: embeds its own JSON ASTs without this repo's src/lang or bin"
+description = "Downstream-consumer smoke test: embeds its own codec ASTs without this repo's src/lang or bin"
 
 [dependencies]
 uffda-runtime = { path = "..", version = "0.10.6", default-features = false }

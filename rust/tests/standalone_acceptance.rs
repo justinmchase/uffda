@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 use std::time::{Duration, Instant};
 
-// req:data-codec-004
+// req:data-codec-004 req:data-codec-005
 #[test]
 #[ignore = "runs the release uffda and codec_probe binaries named by UFFDA_ACCEPT_CLI and UFFDA_ACCEPT_PROBE"]
 fn standalone_cli_and_codec_accept_outside_checkout() {
@@ -72,6 +72,14 @@ fn standalone_cli_and_codec_accept_outside_checkout() {
         artifact["rules"][0]["name"], "Main",
         "standalone compiled declaration failed"
     );
+    std::fs::remove_file(directory.0.join("bin/ast/main.uff.ast.json")).unwrap();
+    std::fs::remove_file(directory.0.join("main.uff")).unwrap();
+    let mut resolver =
+        uffda_runtime::resolver::Resolver::new(directory.0.clone(), directory.0.join("bin"))
+            .unwrap();
+    let logical = url::Url::from_file_path(directory.0.join("main.uff")).unwrap();
+    let graph = resolver.load_graph(&logical).unwrap();
+    assert_eq!(graph.modules[&logical].declaration.rules[0]["name"], "Main");
     std::fs::remove_dir_all(directory.0.join("bin")).unwrap();
     assert_eq!(
         cli_output(&cli, &directory.0, &["fmt", "-"], "rule Main=any;"),

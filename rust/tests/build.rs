@@ -98,8 +98,35 @@ fn reference_retirement_routes_development_tasks_to_rust() {
 }
 
 #[test]
+// req:data-codec-006
+fn standalone_codec_is_wired_into_release_and_version_tooling() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+    let publish = std::fs::read_to_string(root.join(".github/workflows/publish.yml")).unwrap();
+    let codec = publish.find("cargo publish -p uffda-codec ").unwrap();
+    let runtime = publish.find("cargo publish -p uffda-runtime ").unwrap();
+    assert!(codec < runtime);
+    assert!(publish.contains("rust/codec/Cargo.toml"));
+    let version = std::fs::read_to_string(root.join(".github/version.yml")).unwrap();
+    assert!(version.contains("file: rust/codec/Cargo.toml"));
+    assert!(version.contains("(?:heap|build|codec)"));
+    let manifest = std::fs::read_to_string(root.join("rust/codec/Cargo.toml")).unwrap();
+    for forbidden in [
+        "uffda-runtime",
+        "uffda-heap",
+        "uffda-build",
+        "ureq",
+        "url =",
+    ] {
+        assert!(
+            !manifest.contains(forbidden),
+            "{forbidden} is not a codec dependency"
+        );
+    }
+}
+
+#[test]
 #[cfg(feature = "embed-languages")]
-// req:cli-bootstrap-015
+// req:cli-bootstrap-015 req:data-codec-005
 fn build_script_embeds_the_published_artifact_tree() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../bin/ast/src/lang");
     let mut pending = vec![root.clone()];
@@ -110,12 +137,7 @@ fn build_script_embeds_the_published_artifact_tree() {
             let kind = entry.file_type().unwrap();
             if kind.is_dir() {
                 pending.push(entry.path());
-            } else if kind.is_file()
-                && entry
-                    .file_name()
-                    .to_string_lossy()
-                    .ends_with(".uff.ast.json")
-            {
+            } else if kind.is_file() && entry.file_name().to_string_lossy().ends_with(".uff.ast") {
                 files.push(entry.path());
             }
         }
@@ -130,7 +152,7 @@ fn build_script_embeds_the_published_artifact_tree() {
             .replace('\\', "/");
         let logical = format!(
             "src/lang/{}.uff",
-            relative.strip_suffix(".uff.ast.json").unwrap()
+            relative.strip_suffix(".uff.ast").unwrap()
         );
         let embedded = DECLARATIONS
             .iter()
@@ -138,6 +160,17 @@ fn build_script_embeds_the_published_artifact_tree() {
             .unwrap()
             .1;
         assert_eq!(embedded.as_bytes(), std::fs::read(file).unwrap());
+        let codec = uffda_runtime::codec::declaration::decode_declaration_codec(embedded).unwrap();
+        let json: uffda_runtime::json::JsonValue = uffda_runtime::json::from_str(
+            &std::fs::read_to_string(root.join(format!("{relative}.json"))).unwrap(),
+        )
+        .unwrap();
+        // Codec numbers have runtime f64 semantics, not serde's integer/float storage variants.
+        assert_eq!(
+            uffda_runtime::codec::declaration::encode_declaration_codec(&codec).unwrap(),
+            uffda_runtime::codec::declaration::encode_declaration_codec(&json).unwrap(),
+            "codec must preserve the entire declaration: {logical}"
+        );
     }
 }
 

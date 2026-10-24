@@ -2,7 +2,7 @@
 //!
 //! Library consumers should depend on `uffda-runtime` *without* the
 //! `embed-languages` feature and call `uffda_build::embed` from their own
-//! `build.rs` against their compiled JSON artifacts.
+//! `build.rs` against their compiled codec artifacts.
 
 fn main() {
     let out = std::path::PathBuf::from(std::env::var_os("OUT_DIR").unwrap()).join("languages.rs");

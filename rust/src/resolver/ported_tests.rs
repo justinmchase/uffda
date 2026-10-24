@@ -85,7 +85,7 @@ fn artifact_path_ported_maps_source_paths_like_compile_emission() {
         resolver
             .load_path(&Url::from_file_path(&source).unwrap())
             .unwrap(),
-        root.join("bin/ast/src/lang/common/characters/digit.uff.ast.json")
+        root.join("bin/ast/src/lang/common/characters/digit.uff.ast")
     );
 }
 
@@ -99,7 +99,7 @@ fn artifact_path_ported_places_artifacts_under_custom_out_dir() {
         resolver
             .load_path(&Url::from_file_path(&source).unwrap())
             .unwrap(),
-        root.join("build/ast/nested/mod.uff.ast.json")
+        root.join("build/ast/nested/mod.uff.ast")
     );
 }
 
@@ -121,7 +121,7 @@ fn artifact_path_ported_gives_no_artifact_outside_the_root() {
         resolver
             .load_path(&Url::from_file_path(root.join("..x/mod.uff")).unwrap())
             .unwrap(),
-        root.join("bin/ast/..x/mod.uff.ast.json")
+        root.join("bin/ast/..x/mod.uff.ast")
     );
 }
 
@@ -139,10 +139,10 @@ fn artifact_path_ported_maps_package_module_urls() {
         .join("src/lang/uffda/specifier.rules.uff")
         .unwrap();
     let candidates = [
-        "https://jsr.io/@justinmchase/uffda/0.9.1/bin/ast/src/lang/uffda/specifier.rules.uff.ast.json",
         "https://jsr.io/@justinmchase/uffda/0.9.1/bin/ast/src/lang/uffda/specifier.rules.uff.ast",
-        "https://jsr.io/@justinmchase/uffda/0.9.1/bin/ast/src/lang/uffda/specifier.rules.uffda.ast.json",
+        "https://jsr.io/@justinmchase/uffda/0.9.1/bin/ast/src/lang/uffda/specifier.rules.uff.ast.json",
         "https://jsr.io/@justinmchase/uffda/0.9.1/bin/ast/src/lang/uffda/specifier.rules.uffda.ast",
+        "https://jsr.io/@justinmchase/uffda/0.9.1/bin/ast/src/lang/uffda/specifier.rules.uffda.ast.json",
     ];
     assert!(resolver.load_declaration(&https_module).is_err());
     assert_eq!(
@@ -180,7 +180,11 @@ fn artifact_path_ported_honors_package_out_dir() {
     assert!(resolver.load_declaration(&module).unwrap().rules.is_empty());
     assert_eq!(
         transport.requests.borrow().as_slice(),
-        [json.to_owned()].as_slice()
+        [
+            json.strip_suffix(".json").unwrap().to_owned(),
+            json.to_owned()
+        ]
+        .as_slice()
     );
 }
 
@@ -525,7 +529,11 @@ fn uff_artifact_ported_loads_https_package_root() {
     assert!(export_named(&declaration, "Digit"));
     assert_eq!(
         transport.requests.borrow().as_slice(),
-        [json.as_str().to_owned()].as_slice()
+        [
+            json.as_str().strip_suffix(".json").unwrap().to_owned(),
+            json.as_str().to_owned(),
+        ]
+        .as_slice()
     );
 }
 
@@ -572,6 +580,10 @@ fn uff_artifact_ported_honors_package_out_dir() {
     assert!(resolver.load_declaration(&module).is_ok());
     assert_eq!(
         transport.requests.borrow().as_slice(),
-        [json.as_str().to_owned()].as_slice()
+        [
+            json.as_str().strip_suffix(".json").unwrap().to_owned(),
+            json.as_str().to_owned(),
+        ]
+        .as_slice()
     );
 }

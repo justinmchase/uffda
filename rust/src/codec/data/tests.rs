@@ -21,6 +21,87 @@ fn document(ast: Json) -> DataDocument {
 }
 
 #[test]
+#[cfg(feature = "embed-languages")]
+// req:data-codec-005 req:data-codec-002 req:data-codec-003
+fn native_parser_matches_authored_grammar_and_fixed_construction() {
+    let mut languages = crate::languages::Languages::new().unwrap();
+    let limits = DataLimits::default();
+    let valid = [
+        "null",
+        "undefined",
+        "true",
+        "false",
+        "-0",
+        "NaN",
+        "Infinity",
+        "-Infinity",
+        "1.25e-3",
+        "-123456789012345678901234567890n",
+        r#""😀\ud800\u0000\n\"\\""#,
+        "[1 2# separator\n3]",
+        r#"{"\udfff":"\ud800" __proto__:null}"#,
+        r#"[@date "2026-10-10T00:00:00.123Z" @bytes "SGVsbG8" @symbol "\udfff"]"#,
+        r#"[@set[1 2] @map[["key" true] [@symbol"x" undefined]] @error{name:"Error" message:"failed" stack:"trace" cause:[null]}]"#,
+        r#"[[] {} "" @set[] @map[]]"#,
+    ];
+    let invalid = [
+        "",
+        "null true",
+        "[1,2]",
+        r#"["a""b"]"#,
+        "{a:1,b:2}",
+        "{a:1 a:2}",
+        r#"{"a":1 "\u0061":2}"#,
+        "01",
+        "1.",
+        "1e",
+        "+1",
+        "1e999",
+        "01n",
+        r#""\q""#,
+        r#""\u123""#,
+        "\"control\u{1}\"",
+        "[",
+        "{a}",
+        "{a:}",
+        "[1",
+        "@unknown\"x\"",
+        "@meta{}",
+        "@date[1]",
+        "@set @set[]",
+        "@bytes\"AB\"",
+        "@date\"2026-10-10T00:00:00.0001Z\"",
+        "@set[0 -0]",
+        "@map[[1 2] [1 3]]",
+        "@map[[1]]",
+        "@error{name:\"Error\"}",
+        "@error{name:1 message:\"x\"}",
+        "@error{name:\"Error\" message:\"x\" extra:0}",
+        "(add 1 2)",
+        "import \"x\"",
+    ];
+    for (sources, accepted) in [(&valid[..], true), (&invalid[..], false)] {
+        for source in sources {
+            let native = uffda_codec::from_str(source).and_then(|doc| doc.encode(false, limits));
+            let authored = languages
+                .parse_data(source)
+                .map_err(|cause| error(cause.to_string()))
+                .and_then(|ast| DataDocument::from_ast(ast, limits))
+                .and_then(|doc| doc.encode(false, limits));
+            assert_eq!(native.is_ok(), accepted, "native: {source:?}: {native:?}");
+            assert_eq!(
+                authored.is_ok(),
+                accepted,
+                "authored: {source:?}: {authored:?}"
+            );
+            if accepted {
+                assert_eq!(native.unwrap(), authored.unwrap(), "{source:?}");
+            }
+        }
+    }
+}
+
+#[test]
 // req:data-codec-003 req:runtime-strings-001
 fn owned_native_scalars_encode_losslessly_without_hooks() {
     for (ast, expected) in [
@@ -128,69 +209,6 @@ fn invalid_native_payloads_and_duplicate_keys_fail_explicitly() {
 
 #[test]
 // req:data-codec-003
-fn encoder_rejects_shared_or_cyclic_composites_and_limits() {
-    let alias = DataDocument {
-        nodes: vec![DataNode::Array(vec![]), DataNode::Array(vec![0, 0])],
-        root: 1,
-    };
-    assert!(
-        alias
-            .encode(false, DataLimits::default())
-            .unwrap_err()
-            .0
-            .contains("shared")
-    );
-    let cycle = DataDocument {
-        nodes: vec![DataNode::Array(vec![0])],
-        root: 0,
-    };
-    assert!(cycle.encode(false, DataLimits::default()).is_err());
-    let doc = document(array(vec![string("\"too long\"")]));
-    assert!(
-        doc.encode(
-            false,
-            DataLimits {
-                max_bytes: 2,
-                max_depth: 1
-            }
-        )
-        .is_err()
-    );
-    assert!(
-        doc.encode(
-            false,
-            DataLimits {
-                max_bytes: 0,
-                max_depth: 1
-            }
-        )
-        .is_err()
-    );
-}
-
-#[test]
-// req:data-codec-003
-fn flat_document_handles_deep_traversal_and_destruction_without_recursion() {
-    let mut nodes = vec![DataNode::Null];
-    for index in 0..10_000 {
-        nodes.push(DataNode::Array(vec![index]));
-    }
-    let doc = DataDocument {
-        root: nodes.len() - 1,
-        nodes,
-    };
-    let limits = DataLimits {
-        max_bytes: 30_000,
-        max_depth: 10_001,
-    };
-    let output = doc.encode(false, limits).unwrap();
-    assert_eq!(output.len(), 20_004);
-    assert!(doc.encode(false, DataLimits::default()).is_err());
-    drop(doc);
-}
-
-#[test]
-// req:data-codec-003
 fn incoming_ast_cleanup_is_stack_safe_on_success_and_every_failure_path() {
     for (leaf, limits, success) in [
         (
@@ -228,69 +246,6 @@ fn incoming_ast_cleanup_is_stack_safe_on_success_and_every_failure_path() {
         }
         assert_eq!(DataDocument::from_ast(ast, limits).is_ok(), success);
     }
-}
-
-#[test]
-// req:data-codec-003
-fn output_and_construction_enforce_exact_byte_boundaries() {
-    let ast = array(vec![json!({"kind":"null"}); 100]);
-    let doc = document(ast.clone());
-    let length = doc.encode(false, DataLimits::default()).unwrap().len();
-    for limit in [1, length - 1, length] {
-        let limits = DataLimits {
-            max_bytes: limit,
-            max_depth: 10,
-        };
-        assert_eq!(doc.encode(false, limits).is_ok(), limit == length);
-        assert_eq!(
-            DataDocument::from_ast(ast.clone(), limits).is_ok(),
-            limit == length
-        );
-    }
-    let mut bounded = BoundedOutput {
-        text: String::new(),
-        limit: 3,
-        exceeded: false,
-    };
-    bounded.push_str("ab");
-    bounded.push_str("cd");
-    bounded.push_str("x");
-    assert!(bounded.exceeded);
-    assert_eq!(bounded.text, "ab");
-}
-
-#[test]
-// req:data-codec-003
-fn nesting_limits_count_physical_containers_not_tag_names() {
-    let limits = DataLimits {
-        max_bytes: 1000,
-        max_depth: 1,
-    };
-    for ast in [
-        tag("date", string("\"2026-10-10T00:00:00Z\"")),
-        tag("set", array(vec![number("1")])),
-        tag("map", array(vec![])),
-        tag(
-            "error",
-            object(vec![
-                ("name", string("\"Error\"")),
-                ("message", string("\"x\"")),
-            ]),
-        ),
-    ] {
-        assert!(DataDocument::from_ast(ast, limits).is_ok());
-    }
-    for ast in [
-        array(vec![array(vec![])]),
-        tag("map", array(vec![array(vec![number("1"), number("2")])])),
-    ] {
-        assert!(DataDocument::from_ast(ast, limits).is_err());
-    }
-    let alias = DataDocument {
-        nodes: vec![DataNode::Bytes(vec![]), DataNode::Array(vec![0, 0])],
-        root: 1,
-    };
-    assert!(alias.encode(false, DataLimits::default()).is_err());
 }
 
 #[test]

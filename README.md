@@ -125,7 +125,8 @@ uffda exec -e '"hello"' |
 Parse output, project/lockfile files, and structured diagnostics remain JSON.
 Compiled ModuleDeclarations use the Uffda data codec on disk: the file extension
 is `.uff.ast` (one codec record per module). Compile also writes a
-`.uff.ast.json` sibling while resolvers and embeds migrate off JSON.
+`.uff.ast.json` compatibility sibling. Resolvers prefer codec records and the
+product embeds them directly.
 
 ### Compile layout
 
@@ -135,13 +136,12 @@ uffda compile 'src/**/*.uff'
 
 Writes ModuleDeclaration artifacts under `<outDir>/ast`, mirroring each source's
 path in the project: `src/foo.uff` becomes both `bin/ast/src/foo.uff.ast` (data
-codec) and `bin/ast/src/foo.uff.ast.json` (JSON). Resolvers prefer
-`.uff.ast.json` when present and fall back to `.uff.ast`. `outDir` is `./bin`
-unless the project file says otherwise, and `run`, `exec`, the language server
-and MCP sessions read compiled imports from the same place. Build output is
-never written next to sources. In this repo, `deno task compile:lang` builds
-workspace `./bin` with the **previous published** CLI (bootstrap recursion
-break).
+codec) and `bin/ast/src/foo.uff.ast.json` (JSON). Resolvers prefer `.uff.ast`
+when present and fall back to `.uff.ast.json`. `outDir` is `./bin` unless the
+project file says otherwise, and `run`, `exec`, the language server and MCP
+sessions read compiled imports from the same place. Build output is never
+written next to sources. In this repo, `deno task compile:lang` builds workspace
+`./bin` with the **previous published** CLI (bootstrap recursion break).
 
 ### Project file
 
@@ -246,10 +246,21 @@ development instructions.
 
 ## Library
 
-The Rust library is `uffda-runtime`; see [`rust/CRATES.md`](./rust/CRATES.md)
-for the runtime, heap, and artifact-embedding crates. JSR `@justinmchase/uffda`
-ships grammars and a notice entry point, not a TypeScript runtime. Specs live
-under `.agents/specifications/`; requirements under `.agents/requirements/`.
+The Rust runtime library is `uffda-runtime`. The standalone
+[`uffda-codec`](./rust/codec/README.md) crate provides strict value reading,
+writing and streaming without a runtime, grammar loader or collector. See
+[`rust/CRATES.md`](./rust/CRATES.md) for the runtime, codec, heap, and
+artifact-embedding crates. JSR `@justinmchase/uffda` ships grammars and a notice
+entry point, not a TypeScript runtime. Specs live under
+`.agents/specifications/`; requirements under `.agents/requirements/`.
+
+Runtime expressions have `to_codec(value)` and `from_codec(text)` globals. Each
+takes exactly one argument, without converter callbacks or options.
+Serialization returns canonical compact text without a trailing newline;
+deserialization accepts one value with surrounding whitespace/comments and
+rejects empty input or extra records. The authored
+[data grammar](./src/lang/data/data.lang.uff) remains available for composition,
+editor diagnostics and native-decoder differential tests.
 
 Example grammar: [`examples/morse/morse.uff`](./examples/morse/morse.uff).
 
