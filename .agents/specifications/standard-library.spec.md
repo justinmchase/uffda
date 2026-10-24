@@ -54,10 +54,9 @@ Their names are case-sensitive and are the public expression references:
 | `to_set(value)`                         | Converts a collection into a Set.                                                                                                                      |
 | `when(condition, thenValue, elseValue)` | Returns `thenValue` when condition is truthy, otherwise `elseValue`.                                                                                   |
 
-The TypeScript implementation also attaches descriptive function metadata. The
-Rust implementation exposes the corresponding callable name and declared arity.
-Both implementations MUST provide the same name set and declared arities. Names
-or behaviors outside this inventory MUST NOT be added merely to support one
+The Rust implementation exposes each callable name and declared arity. It MUST
+preserve the compatibility fixture's name set and declared arities. Names or
+behaviors outside this inventory MUST NOT be added merely to support one
 language module or application; a genuinely general-purpose addition requires
 updating this contract and its requirements.
 
@@ -90,7 +89,7 @@ redefine that mechanism.
 ## Shared implementation evidence
 
 `test/rust/globals-surface-fixtures.json` is the shared name-and-arity fixture
-for the TypeScript and Rust implementations. The shared behavior corpus is
+captured before TypeScript reference retirement. The shared behavior corpus is
 `test/rust/globals-fixtures.json`; it includes at least two cases per global,
 including expected failures where applicable. Where that corpus includes an
 implementation-specific expected value, it records an observed cross-runtime
@@ -101,17 +100,17 @@ behavior.
 
 The behavior fixture currently has `rustExpected` values for `json` inputs with
 callable `toJSON` properties. This is an intentional platform divergence, not an
-unresolved parity defect: TypeScript preserves Promise-shaped output from lambda
-hooks and MUST NOT await those hooks merely to resemble synchronous JavaScript
-JSON serialization. Rust has no Promise language value and invokes authored
-hooks through its evaluator, consuming completed results as required by
+unresolved parity defect: the retired TypeScript runtime preserved
+Promise-shaped output from lambda hooks without awaiting them. Rust has no
+Promise language value and invokes authored hooks through its evaluator,
+consuming completed results as required by
 [`runtime.spec.md`](./runtime.spec.md#synchronous-completion-and-the-rule-boundary).
 Keep the `rustExpected` fixture values to make the difference explicit. Do not
-change either platform's behavior solely to eliminate this divergence.
+change Rust behavior solely to eliminate this historical divergence.
 
 The per-global boundary and edge-case acceptance matrix is defined in
 [default-global-edge-cases](../requirements/standard-library/002-default-global-edge-cases.requirement.md).
 Shared JSON fixtures cover portable value behavior. Requirements for identity,
 undefined, native runtime values, errors, and provenance use direct runtime
-assertions in each implementation; they MUST NOT reduce those observations to
-serialized JSON equality.
+assertions in Rust; they MUST NOT reduce those observations to serialized JSON
+equality.

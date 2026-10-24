@@ -105,9 +105,8 @@ Normative key words in this chapter use the conventions defined in the
   export-declaration, and Uffda-language `.uff` modules.
 - `deno.jsonc` MUST NOT publish TypeScript subpath exports for the former Deno
   grammar/runtime APIs (`./grammar`, `./runtime`, `./tokenizer`, `./pattern`,
-  `./expression`, `./uffda`, `./language-metadata`, and similar). Those APIs
-  remain available only as in-tree Deno reference sources for differential
-  testing (see
+  `./expression`, `./uffda`, `./language-metadata`, and similar). Those APIs are
+  retired along with the in-tree Deno reference implementation (see
   [public grammar APIs](../../languages.spec.md#public-grammar-apis)).
 - Publish configuration MUST keep the package small: include only the stub
   `mod.ts`, `uffda.jsonc`, `README.md`, `src/lang/**/*.uff`, and `bin/`, and

@@ -2,6 +2,25 @@
 
 Tracking issue: [#277](https://github.com/justinmchase/uffda/issues/277).
 
+## Current status
+
+The Rust CLI is production. All 70 language modules are authored as `.uff`;
+there are no remaining TypeScript grammar conversions. Full-circle bootstrap
+passed in Checks for #309: the published CLI compiles the sources, a Rust CLI is
+built from those artifacts, and that CLI recompiles the same tree before
+downstream tests run.
+
+The Deno runtime, CLI, language wrappers, and reference-only benchmarks and
+snapshot generators are retired. JSON fixtures under `test/rust/` remain
+independent regression inputs to Rust acceptance tests. TypeScript remains for
+the VS Code extension, JSR notice entry point, release/setup helpers, and
+optional Rust codec measurements. Deno development tasks now invoke Rust.
+
+Earlier migration checkpoints below are historical evidence, not instructions to
+retain or run the retired reference implementation. Codec performance
+measurements and deferred artifact-format adoption remain separate follow-ups;
+retirement does not claim that those optional measurements or migrations passed.
+
 ## Goal and agreed scope
 
 Implement a Rust Uffda runtime and standalone CLI, not a new Deno runtime.
@@ -18,9 +37,9 @@ extension (plus a `.uff.ast.json` sibling during migration; resolvers prefer
 `.uff.ast.json`, else `.uff.ast`). Phasing out JSON siblings and switching
 embeds is a follow-on.
 
-Build alongside the TypeScript implementation. Keep it available as a
-differential-test reference until Rust passes the compatibility gates. Do not
-switch release production early.
+The original migration built alongside TypeScript until the compatibility and
+production cutover gates passed. The reference is now retired; its checked-in
+compatibility fixtures remain covered in Rust.
 
 In scope:
 
@@ -671,9 +690,9 @@ acceptance before attach.
 - [x] Switch production: release `uffda` is the Rust CLI; VS Code resolves
       `uffda` only; JSR publishes a cutover stub + `uffda.jsonc` / `.uff` /
       `bin/` grammar package (no Deno TypeScript library subpaths). Deno sources
-      remain in-tree as a differential-test reference. Do not publish a draft
-      until Release Binaries attach + smoke succeed — publishing early leaves an
-      empty immutable release.
+      are now retired; compatibility fixtures remain in-tree. Do not publish a
+      draft until Release Binaries attach + smoke succeed — publishing early
+      leaves an empty immutable release.
 
 ## Final acceptance
 

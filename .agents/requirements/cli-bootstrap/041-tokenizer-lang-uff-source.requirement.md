@@ -24,7 +24,8 @@ Postconditions:
 
 - TokenizerLang is authored as `.uff`.
 - Dependents import `tokenizer.lang.uff`; the ModuleDeclaration twin is gone.
-- Host `tokenizer.lang.ts` MAY remain for the `TokenizerLangValue` type only.
+- Rust consumes the authored tokenizer grammar without the retired TypeScript
+  host type wrapper.
 
 ## Test plan
 

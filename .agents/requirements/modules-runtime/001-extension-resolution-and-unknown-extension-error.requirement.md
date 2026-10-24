@@ -1,6 +1,6 @@
 ---
 id: modules-runtime-001
-title: Both runtimes load uff and json modules and reject executable file imports
+title: Runtime loads uff and json modules and rejects executable file imports
 spec_ref: ".agents/specifications/modules.spec.md#supported-module-sources; .agents/specifications/modules.spec.md#error-and-determinism-requirements"
 ---
 

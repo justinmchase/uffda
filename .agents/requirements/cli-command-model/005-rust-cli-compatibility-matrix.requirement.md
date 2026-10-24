@@ -29,8 +29,9 @@ Expected behavior:
 - The runtime matrix MUST exercise applicable source transports (implicit stdin,
   explicit stdin, file, inline aliases, AST stdin and file), parse languages,
   text/JSON/file subjects, run entries, configuration, formatting/check
-  behavior, success output, and failures. Both implementations MUST
-  independently verify the checked-in expected outcomes.
+  behavior, success output, and failures. Rust MUST independently verify the
+  checked-in expected outcomes captured from the reference before retirement;
+  testing MUST NOT require executing that retired implementation.
 - Help MUST precede version, which MUST precede normal execution, including
   help/version tokens supplied as option values. Contextual help MUST select the
   last recognized command or mode in the raw argument sequence.

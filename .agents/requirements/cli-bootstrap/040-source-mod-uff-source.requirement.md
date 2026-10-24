@@ -30,7 +30,8 @@ Postconditions:
 
 - Source is authored as `.uff`.
 - Dependents import `../source/mod.uff`; the ModuleDeclaration twin is gone.
-- Host `mod.ts` MAY remain for `normalizeSource` and type re-exports only.
+- Source normalization is executed by Rust using the authored grammar; the
+  former TypeScript host wrapper is retired.
 
 ## Test plan
 

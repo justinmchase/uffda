@@ -439,7 +439,7 @@ jobs:
           expected="${{ needs.prepare.outputs.version }}"
           actual="$(uffda --version | tr -d '[:space:]')"
           # Artifact names use the draft tag; the embedded binary version comes from
-          # src/version.ts on main and should match after the version bump lands.
+          # VERSION on main and should match after the version bump lands.
           if [[ "${actual}" != "${expected}" ]]; then
             echo "WARNING: uffda --version is ${actual}, draft tag is ${expected}" >&2
           fi

@@ -1,104 +1,41 @@
 # GitHub Copilot Instructions for Uffda
 
-This project is a Deno-based parser generator for domain specific languages.
+Uffda's runtime and CLI are Rust. The Deno reference implementation is retired.
+Follow [AGENTS.md](../AGENTS.md) for repository conventions, specification
+authority, bootstrap restrictions, and release rules.
 
-**ALWAYS follow these instructions first and only fallback to search or
-additional context gathering if the information here is incomplete or found to
-be in error.**
+## Layout and tests
 
-## Working Effectively
-
-### Building and Testing
-
-**CRITICAL**: For every source file (_.ts) you create or modify in the src/
-directory, you MUST create or update a corresponding unit test file (_.test.ts)
-in the same directory. This ensures comprehensive test coverage and validates
-that your changes work correctly.
-
-1. **NEVER CANCEL builds or tests** - they complete quickly (under 2 minutes)
-2. **Install dependences**: `deno install` - Takes ~10 seconds, NEVER CANCEL
-3. **Format check**: `deno fmt` - Takes ~5 seconds, NEVER CANCEL
-4. **Lint check**: `deno lint` - Takes ~10 seconds, NEVER CANCEL
-   - **KNOWN ISSUE**: 8 linting errors about import prefixes - these are
-     expected and do not break functionality
-   - Lint failures do not prevent the tool from working correctly
-5. **Run all tests**:
-   ```bash
-   deno task test
-   ```
-   - Takes ~1 second for 32 tests, NEVER CANCEL
-   - Set timeout to 60+ seconds minimum for safety
-
-## Project Structure
-
-- Entry point: `mod.ts`
-- Source code: `src/` directory
-- Configuration: `deno.jsonc`
-- Tests are co-located with source files using `*.test.ts` pattern
-
-## Best Practices
-
-- Always run `deno fmt`, `deno lint --fix`, and `deno test` before committing
-- Use the `pre` task for pre-commit checks: `deno task pre`
-- Maintain test coverage for new features
-- Follow existing code patterns and conventions
-- Use TypeScript types for better code safety
-- **Scripting language hard rule:** only TypeScript and Deno are acceptable.
-  Python and other non-Deno scripting languages are hard-blocked, including in
-  GitHub Actions. Shell may orchestrate Deno/`gh`/`curl`, but non-trivial logic
-  must be TypeScript run with Deno.
-
-## Testing Requirements
-
-- **Every code file change must include a corresponding test**
-- Tests are co-located with source files using the `*.test.ts` naming pattern
-- When modifying a file (e.g., `src/example.ts`), ensure a test file exists
-  (e.g., `src/example.test.ts`)
-- **Every change to code must have a test that validates the change**
-- Add new test cases when adding new functionality
-- Update existing test cases when modifying functionality
-- Ensure all tests pass before committing changes
-
-## Releases
-
-- Never create, push, or move git tags manually. Tags are created by the release
-  process (Release Drafter + Release Binaries) and GitHub release tags are
-  immutable, so a stray tag permanently burns that version.
-- Never mark a release as a pre-release unless its version carries a `-pre.N`
-  suffix (for example `0.3.0-pre.1`). Demoting a normal version such as `0.2.7`
-  to a pre-release is not allowed.
-- To change the next version, use Release Drafter's `major` / `minor` / `patch`
-  PR labels rather than editing tags or version files by hand.
+- Runtime and CLI: `rust/src/`; Rust unit tests live with their modules and
+  process/standalone tests under `rust/tests/`.
+- Languages: authored `.uff` under `src/lang/`, compiled to `bin/` by the
+  previous published CLI. Never restore TypeScript language twins or mutate
+  artifacts after compilation.
+- Preserve `test/rust/*.json` compatibility fixtures as independent regression
+  inputs; tests must not regenerate expected outcomes.
+- TypeScript remains for `editors/vscode/`, the JSR notice `mod.ts`, and Deno
+  release/setup/measurement helpers. Helper tests use `.test.ts`.
+- Every implementation change needs corresponding tests citing `req:{id}`.
 
 ## Validation
 
-### Required Validation Steps
+Bootstrap using the previous published `uffda`, then run:
 
-**ALWAYS run these validation steps after making any changes:**
+```sh
+deno task compile:lang
+deno fmt
+deno lint
+deno task test:tools
+cargo xtask check
+```
 
-1. **Format and basic checks**:
-   ```bash
-   deno fmt          # ~5 seconds
-   deno lint         # ~10 seconds (expect 8 import prefix errors - this is normal)
-   ```
+Run `deno task fmt:uff` for `.uff` edits. `deno task pre` combines formatting,
+grammar formatting, Rust checks, helper tests, and JSR packaging validation. Do
+not cancel builds or tests.
 
-2. **Full test suite** (NEVER CANCEL - completes in ~1 second):
-   ```bash
-   deno task test
-   ```
+## Scripting
 
-## Dependencies
-
-### Updating Dependencies
-
-1. Check for outdated dependencies:
-   ```bash
-   deno outdated
-   ```
-2. Update dependencies:
-   ```bash
-   deno update --latest
-   ```
-3. Re-run validation steps to ensure everything works with updated dependencies.
-4. Commit changes with a clear message indicating dependency updates.
-5. Be sure to include changes from both deno.jsonc and deno.lock files.
+Use ESM TypeScript with Deno-native/Web APIs for helper scripts; no Python or
+other scripting languages. Add helper imports to `deno.jsonc` before use and
+include `deno.lock` updates. Runtime implementation dependencies belong in the
+Rust workspace manifests.

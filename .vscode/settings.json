@@ -1,6 +1,10 @@
 {
-  "deno.enable": true,
-  "deno.unstable": true,
+  "deno.enablePaths": [
+    "scripts",
+    "test/perf",
+    ".github/actions/uffda-setup",
+    "mod.ts"
+  ],
   "uffda.lsp.serverPath": "rust/target/release/uffda",
   "uffda.lsp.serverArgs": [
     "lsp"

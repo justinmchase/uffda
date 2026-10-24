@@ -22,8 +22,8 @@ Expected behavior:
 - `PatternTokens` MUST be `[PatternComplete]`.
 - `PatternLang` MUST pipeline
   `Source |> [TokenizerNoWhitespace] |> [PatternComplete]`.
-- `src/lang/pattern/pattern.lang.ts` MUST remain only as the `patternGrammar`
-  helper pointed at `./pattern.lang.uff` (no ModuleDeclaration twin).
+- Rust language execution MUST load the compiled `pattern.lang.uff` declaration
+  without a TypeScript grammar wrapper or ModuleDeclaration twin.
 - Compiling `pattern.lang.uff` with the bootstrap compile path MUST succeed and
   emit AST JSON under `./bin/`.
 

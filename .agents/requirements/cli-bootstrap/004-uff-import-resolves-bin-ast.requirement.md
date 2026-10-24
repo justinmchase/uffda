@@ -25,9 +25,9 @@ Expected behavior:
 - The runtime MUST load the chosen artifact as a ModuleDeclaration without
   re-lowering it or invoking the runtime compiler.
 - Module identity and resolver cache keys MUST remain the logical `.uff` URL.
-- In both runtimes, direct `.json` imports MUST resolve to their actual paths.
-  Direct `.ts` and `.js` file imports MUST be rejected; explicit CLI `--ast`
-  input remains supported.
+- Direct `.json` imports MUST resolve to their actual paths. Direct `.ts` and
+  `.js` file imports MUST be rejected; explicit CLI `--ast` input remains
+  supported.
 
 Error behavior:
 

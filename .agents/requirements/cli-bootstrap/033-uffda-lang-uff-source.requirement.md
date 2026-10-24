@@ -23,9 +23,8 @@ Expected behavior:
   already be lists).
 - `UffdaLang` MUST pipeline `Source |> [TokenizerNoWhitespace] |> [ModuleBody]`
   and require `end`.
-- `src/lang/uffda/uffda.lang.ts` MUST remain only as the `uffdaGrammar` helper
-  (and execute/compiler re-exports) pointed at `./uffda.lang.uff` — no
-  ModuleDeclaration twin.
+- Rust language execution MUST load the compiled `uffda.lang.uff` declaration
+  without a TypeScript grammar wrapper or ModuleDeclaration twin.
 - Compiling that file with the bootstrap compile path MUST succeed and emit AST
   JSON under `./bin/`.
 
