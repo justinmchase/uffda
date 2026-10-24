@@ -14,6 +14,9 @@ type Sample = {
   peakRssKiB: number;
 };
 
+export const decodeMethodology =
+  "Decode: grammar-independent native codec parser to DataDocument; JSON/JSONL serde_json to Value. Encode: prepared DataDocument or JSON Value. Native materialization/GC roundtrip is verified separately, not included in timed decode.";
+
 async function command(executable: string, args: string[]): Promise<string> {
   const result = await new Deno.Command(executable, {
     args,
@@ -225,7 +228,7 @@ async function main(): Promise<void> {
       },
       methodology: [
         "32 deterministic records per workload; three independent parser subprocess samples, one untimed warm pass then at least eight timed corpus passes (256 records). Fast pipelines increase repetitions until at least 100ms is measured; actual byte/record totals are retained per sample.",
-        "Decode: authored codec grammar to DataDocument; JSON/JSONL serde_json to Value. Encode: prepared DataDocument or JSON Value. Native materialization/GC roundtrip is verified separately, not included in timed decode.",
+        decodeMethodology,
         "Native JSON is an explicit $type/value surrogate, not native reconstruction. Ordinary values compare semantically; all native fixtures compare tags and roundtrip through a collected arena.",
         "Codec decode feeds 4096-byte chunks and drops each document on delivery; JSONL drops each parsed line, JSON retains a whole array per pass. Sources and fixture comparison values are caller-owned resident data.",
         "Peak RSS is GNU time %M for each complete child, including startup, fixture loading, verification/preparation, warmup and embedded grammars. Initialized baseline parses fixtures but performs no codec/JSON decode; do not subtract peaks as live heap deltas.",

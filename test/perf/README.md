@@ -14,9 +14,11 @@ JSON uses explicit `$type`/`value` envelopes: it is a lossless comparison
 convention, not ordinary JSON's native reconstruction. Every fixture is checked
 against the codec document and round-tripped through a collected native arena.
 
-This report is **on-demand / local**, not a per-commit Checks step. Checks still
-run `codec_probe` tests and relocated standalone acceptance; measured evidence
-is retained in `data-codec-baseline.json` rather than regenerated on every PR.
+This report is **on-demand or performance-tooling PR validation**, not a
+per-commit Checks step. Checks still run `codec_probe` tests and relocated
+standalone acceptance. Historical evidence is retained in
+`data-codec-baseline.json`; the current native-parser evidence is retained in
+`data-codec-native-baseline.json`.
 
 After the normal published-compiler bootstrap, run:
 
@@ -32,8 +34,8 @@ path (default `.tmp/data-codec-report.json`). Linux GNU `/usr/bin/time` and
 is portable:
 
 ```sh
-UFFDA_ACCEPT_CLI=rust/target/release/uffda \
-UFFDA_ACCEPT_PROBE=rust/target/release/examples/codec_probe \
+UFFDA_ACCEPT_CLI="$PWD/rust/target/release/uffda" \
+UFFDA_ACCEPT_PROBE="$PWD/rust/target/release/examples/codec_probe" \
   cargo test --locked --manifest-path rust/Cargo.toml --features embed-languages --test standalone_acceptance -- --ignored
 ```
 
@@ -93,15 +95,86 @@ peak RSS. Earlier duration probes reset between corpus batches, so they do not
 establish continuous-stream memory retention. The improved probe is covered by
 Rust tests; a complete replacement measurement run remains blocked below.
 
-**Reliability blocker:** extended optimized raw JSON reader probes
-intermittently fail parsing or abort with `munmap_chunk(): invalid pointer`. An
-independent crate depending only on `serde_json` reproduces the issue without
-Uffda or `gc-arena`; the existing 1.0.151 and latest 1.0.154 both failed on this
-host's Rust 1.99.0 toolchain. Debug reader and optimized slice-parser probes
-passed. This narrows the investigation, but does not identify the root cause,
+**Historical local reliability blocker:** extended optimized raw JSON reader
+probes intermittently fail parsing or abort with
+`munmap_chunk(): invalid pointer`. An independent crate depending only on
+`serde_json` reproduces the issue without Uffda or `gc-arena`; the existing
+1.0.151 and latest 1.0.154 both failed on this host's Rust 1.99.0 toolchain.
+Initial debug reader and optimized slice-parser probes passed, but later
+optimized slice probes also failed. This does not identify the root cause,
 justify changing dependencies, or prove a fix. The report fails explicitly on a
 failed subprocess; no successful-only retry/fallback is implemented.
 
-Linux x86_64 standalone acceptance passed locally. Native Linux aarch64, Windows
-x86_64/aarch64, and macOS x86_64/aarch64 are wired in Checks and release builds
-but remain **pending CI execution**, not verified by the Linux report.
+### Reliability investigation (2026-10-24)
+
+The current native-codec report still fails locally: optimized Unicode JSON
+array decoding reported `expected ',' or ']'`. A small independent `serde_json`
+1.0.151 probe also failed on installed Rust 1.94.0 and 1.96.0, not just 1.99.0.
+Both reader and slice decoding failed, including a decoded-value mismatch,
+aborts and segmentation faults. Earlier passing slice samples did not establish
+that path as safe.
+
+More importantly, [std-churn.rs](./std-churn.rs) reproduces corruption using
+**only the Rust standard library**, compiled directly with `rustc`: no Cargo,
+JSON, Uffda, collector, custom allocator or unsafe application code. It copies
+32 fixed Unicode strings character-by-character, compares every copy and drops
+the allocations. On this WSL2 / Core i9-14900K host, the same optimized binary
+passed an initial 60-second run, then failed on five of eight separately pinned
+virtual CPUs during 20-second samples: a string mismatch, allocator aborts and
+segmentation faults. Passing samples must not be used to discard those failures.
+Virtual CPU affinity does not identify a faulty physical core.
+
+```sh
+rustc --edition=2021 --test test/perf/std-churn.rs -o .tmp/std-churn-tests
+.tmp/std-churn-tests
+rustc --edition=2021 -O test/perf/std-churn.rs -o .tmp/std-churn
+.tmp/std-churn 60
+```
+
+This rules out attributing all observed corruption specifically to Uffda or its
+JSON reader. It does **not** distinguish hardware, host/virtualization,
+allocator/standard-library or compiler faults. Do not change parser paths or
+dependencies to hide it. The
+[Reliability control workflow](../../.github/workflows/reliability.yml) runs the
+dependency-free control on independent Linux, Windows and macOS runners,
+including older Linux Rust toolchains, and regenerates the complete codec report
+on an independent Linux host.
+
+Both independent-host workflow runs
+([first](https://github.com/justinmchase/uffda/actions/runs/40117143067),
+[corrected metadata](https://github.com/justinmchase/uffda/actions/runs/40117460414))
+passed all five 60-second controls: Linux Rust 1.94.0, 1.96.0 and stable, plus
+Windows and macOS stable. Both completed the entire codec report without
+retries. This strongly implicates the local environment, but does not prove a
+particular hardware fault or a universal absence of bugs. Local benchmark
+evidence remains untrusted; no parser/dependency workaround was applied.
+
+### Native Linux baseline
+
+[data-codec-native-baseline.json](./data-codec-native-baseline.json) is the
+unmodified report artifact from the corrected-metadata run above, source
+`be613350192c9c1fc1525929d43097f75e30e75f`, generated 2026-10-24 on independent
+Linux x86_64 / Rust 1.99.1. It contains all 216 parser/RSS samples, 12 size
+comparisons and 24 continuous-stream/batched-array duration/RSS probes.
+
+| Workload      | Codec / JSONL raw bytes | Codec / JSONL gzip bytes | Codec / JSONL raw decode records/s | Codec / JSONL decode RSS KiB |
+| ------------- | ----------------------: | -----------------------: | ---------------------------------: | ---------------------------: |
+| Ordinary      |           2,148 / 2,468 |                421 / 433 |                248,667 / 1,144,270 |                3,580 / 3,372 |
+| Unicode text  |           2,358 / 2,358 |                191 / 191 |                463,931 / 3,523,627 |                3,468 / 3,392 |
+| Nested        |           4,054 / 4,694 |                217 / 228 |                  111,097 / 612,982 |                3,560 / 3,396 |
+| Native tagged |          8,354 / 18,018 |                488 / 633 |                   69,974 / 146,962 |                4,020 / 3,576 |
+
+Rates and RSS are independent-sample medians. Codec is more compact in three
+corpora, but JSONL remains faster in all four. Native JSON uses envelopes and
+does not reconstruct native values. Do not compute a native-parser speedup
+against the historical grammar baseline: the hosts and toolchains differ. Codec
+duration probes measured roughly 3.4–4.3 MiB whole-process RSS for both 32 and
+4,096 records; these limited samples do not prove constant memory. The full
+report retains raw/gzip encode/decode and idle RSS measurements.
+
+The post-cutover
+[six-platform Release Binaries run](https://github.com/justinmchase/uffda/actions/runs/40116098126)
+also passed native standalone CLI and streaming acceptance on Linux, Windows and
+macOS x86_64/aarch64 for merged commit
+`b09c97bc1ece709b19ff750180fba6b35178ca40`. Those are functional release checks,
+not six-platform performance measurements.
