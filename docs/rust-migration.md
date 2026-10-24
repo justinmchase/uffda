@@ -567,6 +567,14 @@ report is blocked by this reliability investigation. Do not bypass it by
 silently changing parser paths, accepting only successful runs, or claiming the
 earlier debug iterator panic is resolved.
 
+Further isolation (2026-10-24) reproduced corruption on Rust 1.94.0, 1.96.0 and
+1.99.0, including optimized slice decoding. A dependency-free standard-library
+string-copy control also produced a mismatch, allocator aborts and segmentation
+faults on the local WSL2 host. This is no longer a reader-only or Uffda-specific
+reproduction; hardware/host/toolchain root cause remains unresolved. See the
+[reproducible control and independent-host workflow](../test/perf/README.md#reliability-investigation-2026-10-24).
+Do not use local successful-only samples as replacement benchmark evidence.
+
 Linux x86_64 relocated all-six-command and public-library streaming acceptance
 passes with empty child PATH and no external artifacts, including byte chunks,
 pre-EOF delivery, native materialization across collection, backpressure,

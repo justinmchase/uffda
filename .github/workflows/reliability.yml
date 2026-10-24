@@ -1,0 +1,71 @@
+name: Reliability control
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - test/perf/std-churn.rs
+      - .github/workflows/reliability.yml
+
+jobs:
+  std-churn:
+    name: Standard-library control (${{ matrix.os }}, Rust ${{ matrix.rust }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rust: stable
+          - os: ubuntu-latest
+            rust: "1.94.0"
+          - os: ubuntu-latest
+            rust: "1.96.0"
+          - os: windows-latest
+            rust: stable
+          - os: macos-latest
+            rust: stable
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ matrix.rust }}
+      - name: Compile, test and stress without Cargo or dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -vV
+          rustc --edition=2021 --test test/perf/std-churn.rs -o std-churn-tests.exe
+          ./std-churn-tests.exe
+          rustc --edition=2021 -O test/perf/std-churn.rs -o std-churn.exe
+          ./std-churn.exe 60
+
+  codec-report:
+    name: Codec measurements on independent Linux host
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - uses: ./.github/actions/uffda-setup
+        with:
+          version: latest
+      - name: Bootstrap and build optimized binaries
+        run: |
+          deno task compile:lang
+          cargo build --locked --manifest-path rust/Cargo.toml --features embed-languages --release --bin uffda --example codec_probe
+      - name: Measure all workloads without successful-only retries
+        run: |
+          deno run --allow-read --allow-write --allow-run --allow-env=SystemRoot \
+            test/perf/data-codec.report.ts \
+            rust/target/release/examples/codec_probe rust/target/release/uffda \
+            .tmp/data-codec-report.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: codec-measurements
+          path: .tmp/data-codec-report.json
+          if-no-files-found: error

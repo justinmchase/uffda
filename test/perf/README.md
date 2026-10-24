@@ -102,6 +102,42 @@ passed. This narrows the investigation, but does not identify the root cause,
 justify changing dependencies, or prove a fix. The report fails explicitly on a
 failed subprocess; no successful-only retry/fallback is implemented.
 
+### Reliability investigation (2026-10-24)
+
+The current native-codec report still fails locally: optimized Unicode JSON
+array decoding reported `expected ',' or ']'`. A small independent `serde_json`
+1.0.151 probe also failed on installed Rust 1.94.0 and 1.96.0, not just 1.99.0.
+Both reader and slice decoding failed, including a decoded-value mismatch,
+aborts and segmentation faults. Earlier passing slice samples did not establish
+that path as safe.
+
+More importantly, [std-churn.rs](./std-churn.rs) reproduces corruption using
+**only the Rust standard library**, compiled directly with `rustc`: no Cargo,
+JSON, Uffda, collector, custom allocator or unsafe application code. It copies
+32 fixed Unicode strings character-by-character, compares every copy and drops
+the allocations. On this WSL2 / Core i9-14900K host, the same optimized binary
+passed an initial 60-second run, then failed on five of eight separately pinned
+virtual CPUs during 20-second samples: a string mismatch, allocator aborts and
+segmentation faults. Passing samples must not be used to discard those failures.
+Virtual CPU affinity does not identify a faulty physical core.
+
+```sh
+rustc --edition=2021 --test test/perf/std-churn.rs -o .tmp/std-churn-tests
+.tmp/std-churn-tests
+rustc --edition=2021 -O test/perf/std-churn.rs -o .tmp/std-churn
+.tmp/std-churn 60
+```
+
+This rules out attributing all observed corruption specifically to Uffda or its
+JSON reader. It does **not** distinguish hardware, host/virtualization,
+allocator/standard-library or compiler faults. Do not change parser paths or
+dependencies to hide it. The
+[Reliability control workflow](../../.github/workflows/reliability.yml) runs the
+dependency-free control on independent Linux, Windows and macOS runners,
+including older Linux Rust toolchains, and regenerates the complete codec report
+on an independent Linux host. Cross-host results remain pending until that
+workflow completes. Local benchmark evidence remains untrusted.
+
 Linux x86_64 standalone acceptance passed locally. Native Linux aarch64, Windows
 x86_64/aarch64, and macOS x86_64/aarch64 are wired in Checks and release builds
 but remain **pending CI execution**, not verified by the Linux report.
