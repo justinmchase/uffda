@@ -28,6 +28,140 @@ use serde_json::json;
 use uffda_heap::rootless_mutate;
 
 #[test]
+// req:standard-library-003 req:data-codec-006
+fn codec_globals_are_strict_single_value_functions_with_metadata() {
+    for name in ["to_codec", "from_codec"] {
+        let global = lookup(name).unwrap();
+        assert_eq!(global.arity(), 1);
+        assert_eq!(global.metadata().parameters.len(), 1);
+        assert!(!global.metadata().description.is_empty());
+        assert_eq!(
+            evaluate(Expression::Member {
+                name: "name".into(),
+                expression: Box::new(reference(name)),
+            }),
+            serde_json::to_string(name).unwrap()
+        );
+        let mut shadowed =
+            Evaluation::with_environment(call(name, vec![literal(json!("null"))]), |mc| {
+                Environment::new(mc, None, vec![(name.into(), Value::Undefined)])
+            });
+        assert_eq!(shadowed.finish().unwrap_err(), EvaluationError::NotCallable);
+    }
+    rootless_mutate(|mc| {
+        let origin = Origin { start: 0, end: 0 };
+        let call = |global, args| match invoke(mc, global, args, origin).unwrap() {
+            NativeResult::Value(value) => value,
+            _ => panic!("expected immediate value"),
+        };
+        let source = r#"# lead
+{text:"\ud800" values:[undefined 42n -0 @bytes"AA" @set[1 2] @map[["x" null]] @error{name:"Error" message:"failed" cause:undefined}]} # comment
+"#;
+        let decoded = call(NativeGlobal::FromCodec, vec![Value::string(mc, source)]);
+        let encoded = call(NativeGlobal::ToCodec, vec![decoded]);
+        let Value::String(text) = encoded else {
+            panic!("expected text")
+        };
+        assert!(!text.to_utf8().unwrap().contains('\n'));
+        assert!(text.to_utf8().unwrap().contains(r#""\ud800""#));
+        let again = call(NativeGlobal::FromCodec, vec![encoded]);
+        let back = call(NativeGlobal::ToCodec, vec![again]);
+        assert!(encoded.strict_eq(back));
+        assert!(
+            call(
+                NativeGlobal::FromCodec,
+                vec![Value::string(mc, "undefined")]
+            )
+            .strict_eq(Value::Undefined)
+        );
+        let empty = call(NativeGlobal::ToCodec, vec![Value::Undefined]);
+        assert!(empty.strict_eq(Value::string(mc, "undefined")));
+        for source in ["", "# empty\n", "1\n2", "1\nbad", "(add 1 2)", "@set[1 1]"] {
+            assert!(
+                invoke(
+                    mc,
+                    NativeGlobal::FromCodec,
+                    vec![Value::string(mc, source)],
+                    origin
+                )
+                .is_err()
+            );
+        }
+        let hooked = Value::object(mc, vec![("toJSON".into(), Value::Native(NativeGlobal::Id))]);
+        assert!(invoke(mc, NativeGlobal::ToCodec, vec![hooked], origin).is_err());
+        assert!(
+            invoke(
+                mc,
+                NativeGlobal::FromCodec,
+                vec![Value::Number(1.0)],
+                origin
+            )
+            .is_err()
+        );
+        assert!(
+            invoke(
+                mc,
+                NativeGlobal::FromCodec,
+                vec![Value::string(mc, RuntimeString::from_utf16(vec![0xd800]))],
+                origin
+            )
+            .is_err()
+        );
+        assert!(
+            invoke(
+                mc,
+                NativeGlobal::ToCodec,
+                vec![Value::Native(NativeGlobal::Id)],
+                origin
+            )
+            .is_err()
+        );
+        let shared = Value::array(mc, vec![]);
+        assert!(
+            invoke(
+                mc,
+                NativeGlobal::ToCodec,
+                vec![Value::array(mc, vec![shared, shared])],
+                origin
+            )
+            .is_err()
+        );
+        for global in [NativeGlobal::FromCodec, NativeGlobal::ToCodec] {
+            assert!(invoke(mc, global, vec![], origin).is_err());
+            assert!(invoke(mc, global, vec![Value::Null, Value::Null], origin).is_err());
+        }
+    });
+}
+
+#[test]
+#[cfg(feature = "embed-languages")]
+// req:standard-library-003 req:runtime-memory-001
+fn codec_globals_execute_as_expression_references_and_survive_collection() {
+    let mut languages = crate::languages::Languages::new().unwrap();
+    let ast = languages
+        .parse(
+            r#"(from_codec (to_codec {text:"hello", values:[undefined 1 2]}))"#,
+            crate::languages::Language::Expression,
+        )
+        .unwrap();
+    let mut evaluation = Evaluation::new(crate::json::from_value(ast).unwrap());
+    let result = evaluation.finish().unwrap();
+    evaluation.collect();
+    let text = evaluation
+        .read(&result, |value| {
+            crate::codec::data::DataDocument::from_value(
+                value,
+                crate::codec::data::DataLimits::default(),
+            )
+            .unwrap()
+            .encode(false, crate::codec::data::DataLimits::default())
+            .unwrap()
+        })
+        .unwrap();
+    assert_eq!(text, r#"{"text":"hello" "values":[undefined 1 2]}"#);
+}
+
+#[test]
 // req:runtime-strings-002
 fn shared_lossless_strings_cover_globals_iteration_and_property_lookup() {
     #[derive(serde::Deserialize)]
@@ -316,9 +450,10 @@ fn native_callable_own_fields_match_all_typescript_names_and_arities() {
         "../../../test/rust/globals-surface-fixtures.json"
     ))
     .unwrap();
-    assert_eq!(GLOBALS.len(), fixtures.len());
+    assert_eq!(GLOBALS.len(), fixtures.len() + 2);
     let actual_names = GLOBALS
         .iter()
+        .filter(|(name, _)| !matches!(*name, "to_codec" | "from_codec"))
         .map(|(name, _)| name.to_string())
         .collect::<std::collections::HashSet<_>>();
     let expected_names = fixtures
@@ -705,7 +840,7 @@ fn enumeration_handles_objects_scalars_and_shared_iterator_exhaustion() {
 #[test]
 // req:expressions-runtime-005 req:expressions-runtime-007 req:cli-exec-001
 fn globals_are_first_class_shadowable_and_echo_is_cli_only() {
-    assert_eq!(GLOBALS.len(), 36);
+    assert_eq!(GLOBALS.len(), 38);
     let mut evaluation = Evaluation::with_environment(call("add", vec![]), |mc| {
         Environment::new(mc, None, vec![("add".into(), Value::Undefined)])
     });

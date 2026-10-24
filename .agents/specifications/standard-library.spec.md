@@ -12,7 +12,7 @@ capitals.
 
 ## Default global surface
 
-The default runtime environment provides the following 36 callable globals.
+The default runtime environment provides the following 38 callable globals.
 Their names are case-sensitive and are the public expression references:
 
 | Global                                  | Purpose                                                                                                                                                |
@@ -28,6 +28,7 @@ Their names are case-sensitive and are the public expression references:
 | `flat(array, depth?)`                   | Flattens a nested array by the requested depth, defaulting to one level.                                                                               |
 | `format(template, ...args)`             | Replaces `{0}`, `{1}`, … with corresponding non-nullish arguments.                                                                                     |
 | `from_entries(entries)`                 | Builds an object from `[key, value]` pairs or `{ name, pattern }` / `{ name, value }` entries.                                                         |
+| `from_codec(text)`                      | Decodes exactly one strict codec value from text.                                                                                                      |
 | `gt(left, right)`                       | Tests whether the supported ordering of left is strictly after right.                                                                                  |
 | `gte(left, right)`                      | Tests whether the supported ordering of left is after or equal to right.                                                                               |
 | `has(collection, value)`                | Tests membership in a Set, Map, or array, or key presence in an object.                                                                                |
@@ -52,6 +53,7 @@ Their names are case-sensitive and are the public expression references:
 | `sub(left, right)`                      | Subtracts right from left.                                                                                                                             |
 | `symbol(name)`                          | Returns the well-known or registered symbol for a name.                                                                                                |
 | `to_set(value)`                         | Converts a collection into a Set.                                                                                                                      |
+| `to_codec(value)`                       | Serializes one data value as canonical compact codec text.                                                                                             |
 | `when(condition, thenValue, elseValue)` | Returns `thenValue` when condition is truthy, otherwise `elseValue`.                                                                                   |
 
 The Rust implementation exposes each callable name and declared arity. It MUST
@@ -86,6 +88,20 @@ callable rejection and conversion boundaries are governed by
 execution is governed by the runtime's JSON-hook contract; this chapter does not
 redefine that mechanism.
 
+## Codec serialization
+
+`to_codec(value)` and `from_codec(text)` MUST be pure, general-purpose native
+functions using the standalone codec and ordinary runtime values. They MUST
+accept exactly one argument, without options, converters or hooks. `to_codec`
+returns compact canonical text without a trailing newline; `from_codec` requires
+one value, with optional surrounding whitespace and comments.
+
+Serialization MUST preserve the fixed codec-native types, undefined and lossless
+strings. Unsupported runtime values, cycles, composite aliases and invalid input
+MUST fail explicitly. Default codec size/depth limits apply. Decoding MUST
+materialize into the caller's arena without grammar loading, expression
+execution or implicit access to runtime scope.
+
 ## Shared implementation evidence
 
 `test/rust/globals-surface-fixtures.json` is the shared name-and-arity fixture
@@ -95,6 +111,10 @@ including expected failures where applicable. Where that corpus includes an
 implementation-specific expected value, it records an observed cross-runtime
 difference rather than silently treating that difference as general library
 behavior.
+
+These historical fixtures cover the original 36 globals. The two codec globals
+are subsequent additions, with direct native-value and error tests rather than
+invented TypeScript parity fixtures.
 
 ## Approved platform divergence
 

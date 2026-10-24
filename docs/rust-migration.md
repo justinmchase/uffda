@@ -589,6 +589,14 @@ requires neither embedded languages nor a resolver. The authored data grammar
 remains the syntax/source-diagnostic oracle, with differential tests for native
 syntax acceptance and fixed construction.
 
+The native reader/writer, framing, owned document and lossless text live in
+`uffda-codec`, independent of the runtime and collector. Runtime arena adapters
+reuse that implementation. Pure `to_codec(value)` / `from_codec(text)` globals
+provide strict single-value serialization without options or conversion hooks.
+The authored grammar remains available for composition and rich source
+diagnostics. Native decoding exposes structured absolute byte positions and
+expectation messages; it does not re-run the grammar on failure.
+
 Rollout uses the existing published compiler's codec emission (0.10.5 verified):
 `compile:lang` remains one published `uffda compile`, with no artifact
 rewriting. The new product is built from its codec output and recompiles the
@@ -612,14 +620,14 @@ CLI. The package should let a consumer replace their Uffda/Deno runtime while
 keeping their own grammar, command name, CLI policy and host integration.
 
 Agreed distribution (2026-10-18): **crates.io** for Rust libraries
-(`uffda-runtime`, `uffda-heap`, `uffda-heap-derive`, `uffda-build`); **GitHub
-Releases** for the product `uffda` CLI binary (embedded ASTs); **JSR** for
-`.uff`, `.uff.ast` (data-codec ModuleDeclarations), `.uff.ast.json` siblings
-during migration, and `jsr:` package resolution. No separate `uffda-cli` / LSP /
-MCP crates for now (they stay in the product binary). Broad library API is
-acceptable; publish the Cargo.toml version as-is without a separate stability
-theater. Polished `examples/` CLIs are deferred past this milestone; the
-downstream-consumer smoke crate is the package gate.
+(`uffda-runtime`, `uffda-codec`, `uffda-heap`, `uffda-heap-derive`,
+`uffda-build`); **GitHub Releases** for the product `uffda` CLI binary (embedded
+ASTs); **JSR** for `.uff`, `.uff.ast` (data-codec ModuleDeclarations),
+`.uff.ast.json` siblings during migration, and `jsr:` package resolution. No
+separate `uffda-cli` / LSP / MCP crates for now (they stay in the product
+binary). Broad library API is acceptable; publish the Cargo.toml version as-is
+without a separate stability theater. Polished `examples/` CLIs are deferred
+past this milestone; the downstream-consumer smoke crate is the package gate.
 
 - [x] Define the `uffda-runtime` library boundary: dynamic values and GC,
       expression/pattern/rule execution, native globals, async host suspension,

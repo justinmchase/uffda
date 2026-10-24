@@ -18,29 +18,9 @@ pub fn encode_declaration_codec(value: &JsonValue) -> Result<String, String> {
 
 /// Decode one data-codec record into a JSON ModuleDeclaration object.
 pub fn decode_declaration_codec(text: &str) -> Result<JsonValue, String> {
-    let mut decoder =
-        crate::codec::data::DataDecoder::new(crate::codec::data::DataLimits::default())
-            .map_err(|error| error.to_string())?;
-    let mut remaining = text.as_bytes();
-    let mut record = None;
-    while !remaining.is_empty() {
-        let (consumed, next) = decoder
-            .push_some(remaining)
-            .map_err(|error| error.to_string())?;
-        remaining = &remaining[consumed..];
-        if let Some(next) = next
-            && record.replace(next).is_some()
-        {
-            return Err("declaration codec has more than one record".into());
-        }
-    }
-    if let Some(last) = decoder.finish().map_err(|error| error.to_string())?
-        && record.replace(last).is_some()
-    {
-        return Err("declaration codec has more than one record".into());
-    }
-    let record = record.ok_or_else(|| "declaration codec record is empty".to_string())?;
-    uffda_heap::rootless_mutate(|mc| heap_to_json(record.document.materialize(mc)))
+    let document =
+        crate::codec::data::DataDocument::from_codec(text).map_err(|error| error.to_string())?;
+    uffda_heap::rootless_mutate(|mc| heap_to_json(document.materialize(mc)))
 }
 
 fn json_to_heap<'gc>(mc: &Mutation<'gc>, value: &JsonValue) -> Result<Value<'gc>, String> {

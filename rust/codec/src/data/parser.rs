@@ -39,7 +39,7 @@ pub(super) fn parse(source: &str, limits: DataLimits) -> Result<DataDocument, Da
     };
     parser
         .parse(limits)
-        .map_err(|cause| error(format!("{cause} at byte {}", parser.offset)))
+        .map_err(|cause| error(format!("{cause} at byte {}", parser.offset)).at(parser.offset))
 }
 
 impl Parser<'_> {

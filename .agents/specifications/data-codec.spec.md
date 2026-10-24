@@ -143,3 +143,16 @@ download failures.
 Binary (non-text) codec encoding remains deferred. Text codec value parsing,
 native reconstruction, encoding, and ModuleDeclaration `.uff.ast` adoption are
 in scope for the current runtime.
+
+## Standalone library
+
+The strict native codec MUST be reusable as `uffda-codec` without the Uffda
+runtime, language loader, resolver or collector. Owned documents and lossless
+strings belong to this layer; runtime arena conversion belongs in adapters. The
+standalone reader MUST expose structured byte positions for decode errors. The
+single-value API MUST accept exactly one value with surrounding trivia, and
+canonical serialization MUST omit the stream-record newline.
+
+There is one format: fixed tags, strict syntax and no custom converters,
+arbitrary construction hooks or permissive modes. Low-level resource limits and
+pretty printing MAY be exposed without changing the value contract.

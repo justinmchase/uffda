@@ -1051,6 +1051,18 @@ name = "uffda-build"
 version = "0.10.6"
 
 [[package]]
+name = "uffda-codec"
+version = "0.10.6"
+dependencies = [
+ "base64 0.22.1",
+ "num-bigint",
+ "ryu-js",
+ "serde",
+ "serde_json",
+ "time",
+]
+
+[[package]]
 name = "uffda-consumer-smoke"
 version = "0.0.0"
 dependencies = [
@@ -1099,6 +1111,7 @@ dependencies = [
  "sha2",
  "time",
  "uffda-build",
+ "uffda-codec",
  "uffda-heap",
  "ureq",
  "url",

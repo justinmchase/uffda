@@ -36,7 +36,7 @@ jobs:
             echo "rust/Cargo.toml version ${ver} != release tag ${tag}" >&2
             exit 1
           fi
-          for manifest in rust/heap/Cargo.toml rust/heap/derive/Cargo.toml rust/build/Cargo.toml; do
+          for manifest in rust/heap/Cargo.toml rust/heap/derive/Cargo.toml rust/build/Cargo.toml rust/codec/Cargo.toml; do
             mver="$(sed -n 's/^version = "\([^"]*\)"/\1/p' "$manifest" | head -1)"
             if [[ "$mver" != "$tag" ]]; then
               echo "${manifest} version ${mver} != release tag ${tag}" >&2
@@ -57,6 +57,7 @@ jobs:
           cargo publish -p uffda-heap-derive --manifest-path rust/Cargo.toml --locked
           cargo publish -p uffda-heap --manifest-path rust/Cargo.toml --locked
           cargo publish -p uffda-build --manifest-path rust/Cargo.toml --locked
+          cargo publish -p uffda-codec --manifest-path rust/Cargo.toml --locked
           cargo publish -p uffda-runtime --manifest-path rust/Cargo.toml --locked
 
   jsr:

@@ -20,6 +20,7 @@ pub enum NativeGlobal {
     Filter,
     Flat,
     Format,
+    FromCodec,
     FromEntries,
     Gt,
     Gte,
@@ -44,6 +45,7 @@ pub enum NativeGlobal {
     Slice,
     Sub,
     Symbol,
+    ToCodec,
     ToSet,
     When,
 }
@@ -59,6 +61,7 @@ pub const GLOBALS: &[(&str, NativeGlobal)] = &[
     ("filter", NativeGlobal::Filter),
     ("flat", NativeGlobal::Flat),
     ("format", NativeGlobal::Format),
+    ("from_codec", NativeGlobal::FromCodec),
     ("from_entries", NativeGlobal::FromEntries),
     ("gt", NativeGlobal::Gt),
     ("gte", NativeGlobal::Gte),
@@ -83,6 +86,7 @@ pub const GLOBALS: &[(&str, NativeGlobal)] = &[
     ("slice", NativeGlobal::Slice),
     ("sub", NativeGlobal::Sub),
     ("symbol", NativeGlobal::Symbol),
+    ("to_codec", NativeGlobal::ToCodec),
     ("to_set", NativeGlobal::ToSet),
     ("when", NativeGlobal::When),
 ];
@@ -123,8 +127,8 @@ impl NativeGlobal {
         use NativeGlobal::*;
         match self {
             Coalesce | Pack => 0,
-            Base58 | Enumerate | Format | FromEntries | Id | Int | Iterable | Json | Length
-            | Not | Sha256 | Symbol | ToSet => 1,
+            Base58 | Enumerate | Format | FromCodec | FromEntries | Id | Int | Iterable | Json
+            | Length | Not | Sha256 | Symbol | ToCodec | ToSet => 1,
             Reduce | Scan | Slice | When => 3,
             Add | At | Compare | Eq | Filter | Flat | Gt | Gte | Has | Join | Last | Lt | Lte
             | Map | One | Pluck | Sub => 2,
@@ -166,6 +170,8 @@ impl NativeGlobal {
         const FLAT: &[GlobalParameter] = &[p("self"), opt("depth")];
         const FORMAT: &[GlobalParameter] = &[p("value"), rest("args")];
         const FROM_ENTRIES: &[GlobalParameter] = &[p("entries")];
+        const FROM_CODEC: &[GlobalParameter] = &[p("text")];
+        const TO_CODEC: &[GlobalParameter] = &[p("value")];
         const GT: &[GlobalParameter] = &[p("left"), p("right")];
         const GTE: &[GlobalParameter] = &[p("left"), p("right")];
         const HAS: &[GlobalParameter] = &[p("collection"), p("value")];
@@ -192,6 +198,14 @@ impl NativeGlobal {
         const TO_SET: &[GlobalParameter] = &[p("items")];
         const WHEN: &[GlobalParameter] = &[p("condition"), p("thenValue"), p("elseValue")];
         match self {
+            FromCodec => GlobalMetadata {
+                description: "Decodes exactly one strict codec value from text, allowing whitespace and hash comments.",
+                parameters: FROM_CODEC,
+            },
+            ToCodec => GlobalMetadata {
+                description: "Encodes one data value as canonical compact codec text without a trailing newline or conversion hooks.",
+                parameters: TO_CODEC,
+            },
             Add => GlobalMetadata {
                 description: "Adds two numbers.",
                 parameters: ADD,
@@ -846,6 +860,12 @@ pub fn invoke<'gc>(
     origin: Origin,
 ) -> Result<NativeResult<'gc>, EvaluationError> {
     use NativeGlobal::*;
+    if matches!(global, ToCodec | FromCodec) && args.len() != 1 {
+        return Err(error(&format!(
+            "{} expects exactly one argument",
+            global.name()
+        )));
+    }
     let arg = |i: usize| args.get(i).copied().unwrap_or(Value::Undefined);
     let result = match global {
         Id => arg(0),
@@ -1149,6 +1169,28 @@ pub fn invoke<'gc>(
             Some(s) => Value::string(mc, s),
             None => Value::Undefined,
         },
+        ToCodec => {
+            let document = crate::codec::data::DataDocument::from_value(
+                arg(0),
+                crate::codec::data::DataLimits::default(),
+            )
+            .map_err(|cause| error(&format!("to_codec: {cause}")))?;
+            let text = document
+                .encode(false, crate::codec::data::DataLimits::default())
+                .map_err(|cause| error(&format!("to_codec: {cause}")))?;
+            Value::string(mc, text)
+        }
+        FromCodec => {
+            let Value::String(text) = arg(0).raw() else {
+                return Err(error("from_codec expects a string"));
+            };
+            let text = text.to_utf8().map_err(|_| {
+                error("from_codec expects scalar UTF-8 source text; escape isolated surrogates")
+            })?;
+            let document = crate::codec::data::DataDocument::from_codec(&text)
+                .map_err(|cause| error(&format!("from_codec: {cause}")))?;
+            document.materialize(mc)
+        }
         Sha256 => {
             let Value::String(s) = arg(0).raw() else {
                 return Err(error("sha256 expects a string"));

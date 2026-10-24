@@ -98,6 +98,33 @@ fn reference_retirement_routes_development_tasks_to_rust() {
 }
 
 #[test]
+// req:data-codec-006
+fn standalone_codec_is_wired_into_release_and_version_tooling() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+    let publish = std::fs::read_to_string(root.join(".github/workflows/publish.yml")).unwrap();
+    let codec = publish.find("cargo publish -p uffda-codec ").unwrap();
+    let runtime = publish.find("cargo publish -p uffda-runtime ").unwrap();
+    assert!(codec < runtime);
+    assert!(publish.contains("rust/codec/Cargo.toml"));
+    let version = std::fs::read_to_string(root.join(".github/version.yml")).unwrap();
+    assert!(version.contains("file: rust/codec/Cargo.toml"));
+    assert!(version.contains("(?:heap|build|codec)"));
+    let manifest = std::fs::read_to_string(root.join("rust/codec/Cargo.toml")).unwrap();
+    for forbidden in [
+        "uffda-runtime",
+        "uffda-heap",
+        "uffda-build",
+        "ureq",
+        "url =",
+    ] {
+        assert!(
+            !manifest.contains(forbidden),
+            "{forbidden} is not a codec dependency"
+        );
+    }
+}
+
+#[test]
 #[cfg(feature = "embed-languages")]
 // req:cli-bootstrap-015 req:data-codec-005
 fn build_script_embeds_the_published_artifact_tree() {

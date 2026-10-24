@@ -1,0 +1,20 @@
+[package]
+name = "uffda-codec"
+version = "0.10.6"
+edition = "2024"
+publish = true
+license = "MIT"
+description = "Strict streaming Uffda data codec with lossless strings and fixed native values"
+repository = "https://github.com/justinmchase/uffda"
+homepage = "https://github.com/justinmchase/uffda"
+readme = "README.md"
+keywords = ["uffda", "codec", "serialization"]
+categories = ["encoding", "parser-implementations"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order", "raw_value"] }
+ryu-js = "1"
+time = { version = "0.3", features = ["parsing", "formatting"] }
+base64 = "0.22"
+num-bigint = "0.4"
