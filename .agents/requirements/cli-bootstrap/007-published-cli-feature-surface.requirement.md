@@ -10,7 +10,7 @@ spec_ref: ".agents/specifications/languages/compiler-bootstrap.spec.md#published
 
 Preconditions:
 
-- Bootstrap produces `./bin` via `deno task compile:lang`.
+- Bootstrap produces `./bin` via `npm run compile:lang`.
 - In-tree sources may already contain unreleased language or std changes for
   version N+1.
 
@@ -39,4 +39,4 @@ Postconditions:
 - The runtime-compiler chicken/egg is broken by a single previous-published-CLI
   step (parse + lower in one process), not by recursive `./bin` import or `src/`
   seeds.
-- Tests: `rust/src/cli/requirement_ports.rs`.
+- Tests: `src/cli/requirement_ports.rs`.

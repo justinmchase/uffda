@@ -135,7 +135,7 @@ jobs:
         run: |
           set -euo pipefail
           # Seed ./bin from the latest published CLI asset so Cargo can embed it,
-          # then rewrite ./bin with the Rust compiler. This job does not use Deno.
+          # then rewrite ./bin with the Rust compiler. No Node helper is needed.
           repo="${{ github.repository }}"
           tmp="$(mktemp -d)"
           # gh release list no longer exposes assets in --json; use the REST API.
@@ -161,9 +161,9 @@ jobs:
           "$tmp/$asset" --version
           rm -rf ./bin
           "$tmp/$asset" compile 'src/lang/**/*.uff'
-          cargo build --locked --release --manifest-path rust/Cargo.toml --features embed-languages --bin uffda
+          cargo build --locked --release --features embed-languages --bin uffda
           rm -rf ./bin
-          ./rust/target/release/uffda compile 'src/lang/**/*.uff'
+          ./target/release/uffda compile 'src/lang/**/*.uff'
           test -f ./bin/ast/src/lang/common/characters/digit.uff.ast.json
           test -f ./bin/ast/src/lang/common/identifier.uff.ast.json
           test -f ./bin/ast/src/lang/common/surround.uff.ast.json
@@ -248,7 +248,7 @@ jobs:
           targets: ${{ matrix.target }}
 
       - name: Build uffda with embedded language ASTs
-        run: cargo build --locked --manifest-path rust/Cargo.toml --target ${{ matrix.target }} --release --features embed-languages --bin uffda --example codec_probe
+        run: cargo build --locked --target ${{ matrix.target }} --release --features embed-languages --bin uffda --example codec_probe
 
       - name: Package CLI binary and portable checksum
         shell: bash
@@ -264,7 +264,7 @@ jobs:
           else
             asset="uffda-${version}-${target}"
           fi
-          cp "rust/target/${target}/release/uffda${suffix}" "${out_dir}/${asset}"
+          cp "target/${target}/release/uffda${suffix}" "${out_dir}/${asset}"
           if [[ "${target}" != *windows* ]]; then
             chmod +x "${out_dir}/${asset}"
           fi
@@ -287,8 +287,8 @@ jobs:
             asset="uffda-${version}-${target}"
           fi
           export UFFDA_ACCEPT_CLI="$PWD/dist/cli/${asset}"
-          export UFFDA_ACCEPT_PROBE="$PWD/rust/target/${target}/release/examples/codec_probe${suffix}"
-          cargo test --locked --manifest-path rust/Cargo.toml --target "${target}" --features embed-languages --test standalone_acceptance -- --ignored
+          export UFFDA_ACCEPT_PROBE="$PWD/target/${target}/release/examples/codec_probe${suffix}"
+          cargo test --locked --target "${target}" --features embed-languages --test standalone_acceptance -- --ignored
 
       - name: Upload uffda artifact
         uses: actions/upload-artifact@v7

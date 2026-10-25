@@ -133,8 +133,7 @@ jobs:
           # crates.io Cargo.toml package versions and path-dep pins).
           semver set "$RELEASE_VERSION"
           # Lockfile package entries are not covered by version.yml hooks.
-          cargo update -p uffda-runtime -p uffda-heap -p uffda-heap-derive -p uffda-build \
-            --manifest-path rust/Cargo.toml
+          cargo update -p uffda-runtime -p uffda-heap -p uffda-heap-derive -p uffda-build -p uffda-codec
           if [ -z "$(git status --porcelain)" ];
           then
             echo "no changes to commit."

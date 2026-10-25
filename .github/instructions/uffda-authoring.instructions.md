@@ -50,18 +50,18 @@ so explanations come only from how the grammar is shaped:
 
 ## Every explained mistake is tested
 
-Add each mistake you explain to the corpus in `rust/src/lang_tests/uffda.rs` and
+Add each mistake you explain to the corpus in `src/lang_tests/uffda.rs` and
 to the tests of the module you changed. Use the existing `assert_mistake`
 helper: mark the source with `‸` at the diagnostic offset and assert the
 expected explanation.
 
 ## Workflow
 
-1. Edit `.uff` sources, then run `deno task fmt:uff`.
-2. Run `deno task compile:lang` (the previous published CLI rebuilds `./bin`;
+1. Edit `.uff` sources, then run `npm run fmt:uff`.
+2. Run `npm run compile:lang` (the previous published CLI rebuilds `./bin`;
    see the compiler bootstrap rules). Never edit `./bin`.
-3. Run `cargo xtask check` (or `deno task test` for bootstrap, Rust tests, and
-   Deno helper tests).
+3. Run `cargo xtask check` (or `npm test` for bootstrap, Rust tests, and
+   Node helper tests).
 
 Syntax the published CLI cannot parse (for example a new operator) can only be
 used in `src/lang/**/*.uff` after a release that supports it is published and

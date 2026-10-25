@@ -37,5 +37,5 @@ Postconditions:
 
 ## Test plan
 
-- `rust/src/compile.rs`, `rust/src/lang_tests/uffda.rs`,
-  `rust/src/languages.rs`, `rust/src/runtime/tests.rs`, `rust/tests/cli.rs`
+- `src/compile.rs`, `src/lang_tests/uffda.rs`,
+  `src/languages.rs`, `src/runtime/tests.rs`, `tests/cli.rs`

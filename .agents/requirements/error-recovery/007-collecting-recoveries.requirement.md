@@ -29,7 +29,7 @@ Postconditions:
 
 ## Test plan
 
-`rust/src/runtime/engine_ports.rs`
+`src/runtime/engine_ports.rs`
 (`engine_port_statement_recovery_collects_only_the_accepted_phase`): none for a
 clean parse, one with its failure, several in document order, beneath a failed
 recovery phase, and none inside a rejected `or` alternative. A match produced

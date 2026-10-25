@@ -39,7 +39,7 @@ RFC 8174.
   "languages": ["./src/lang/foo.uff", "@acme/kv/lang"],
 
   // Directory compiled artifacts are written to. Defaults to "./bin".
-  "outDir": "./bin"
+  "outDir": "./bin",
 }
 ```
 
@@ -143,6 +143,7 @@ RFC 8174.
   - `jsr` maps each package version used to the sha256 of its
     `<version>_meta.json`, whose manifest checksums every file of it (see
     [packages](../modules.spec.md#packages)).
+
 - Tools MUST resolve packages through the lockfile and add to it what they
   resolve, writing it with keys sorted. A lockfile that is not that shape is a
   problem, reported like a project file problem.

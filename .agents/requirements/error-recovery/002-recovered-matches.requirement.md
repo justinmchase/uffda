@@ -29,9 +29,9 @@ Postconditions:
 
 ## Test plan
 
-`rust/src/runtime/engine_ports.rs`: propagation from successful children and not
+`src/runtime/engine_ports.rs`: propagation from successful children and not
 from a clean alternative, and no recovered mark on a clean discovery result
 (`engine_port_recovered_skip_and_rightmost_follow_the_accepted_match`).
-`rust/src/pattern/composite_ports.rs`: RECOVER02, RECOVER06.
-`rust/src/pattern/tests.rs`: a rejected recovered alternative is a `Fail` whose
+`src/pattern/composite_ports.rs`: RECOVER02, RECOVER06.
+`src/pattern/tests.rs`: a rejected recovered alternative is a `Fail` whose
 only child is that alternative's success.

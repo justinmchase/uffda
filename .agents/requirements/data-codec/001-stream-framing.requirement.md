@@ -52,4 +52,4 @@ Postconditions:
 
 - Each delivered frame can be passed unchanged to a separate data-value parser
   with its original byte provenance recoverable from the frame span.
-- Tests: inline tests in `rust/src/codec.rs`.
+- Tests: inline tests in `src/codec_runtime/mod.rs`.

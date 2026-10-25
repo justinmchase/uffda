@@ -39,9 +39,9 @@ leading and trailing whitespace on a line carries no meaning.
   whose content starts with `-`. The item continues on each following line until
   a blank line, the next item, or a fence. Its text is its lines joined with
   single spaces, without the `-` marker. Lists are flat: there is no nesting.
-- **Fence:** a line whose content is `` ``` `` followed by an optional language
+- **Fence:** a line whose content is ` ``` ` followed by an optional language
   tag, then zero or more lines of code, then a line whose content is only
-  `` ``` `` (surrounding whitespace carries no meaning on either delimiter
+  ` ``` ` (surrounding whitespace carries no meaning on either delimiter
   line). Fence lines are code: whitespace inside a fence is preserved exactly as
   written, and nothing inside a fence is a list, paragraph, or inline code.
 - A block MAY be followed directly by another block of a different kind without
@@ -80,7 +80,7 @@ Errors are strict. Each of the following MUST be a syntax error in the file
 containing the comment, reported like any other syntax error (see
 [error recovery](../runtime/error-recovery.spec.md)):
 
-- a fence with no closing `` ``` `` line;
+- a fence with no closing ` ``` ` line;
 - an inline code span with no closing backtick;
 - a fence tag the fence parser does not accept;
 - fenced code that does not parse cleanly with its language's grammar.

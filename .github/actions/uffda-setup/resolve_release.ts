@@ -2,7 +2,7 @@
  * Resolve and download an Uffda CLI release asset for GitHub Actions runners.
  *
  * Usage:
- *   deno run -A ./resolve_release.ts \
+ *   node ./resolve_release.ts \
  *     --repository owner/repo \
  *     --version latest|0.1.2 \
  *     --target x86_64-unknown-linux-gnu \
@@ -11,6 +11,10 @@
  *
  * Prints newline-delimited: tag_name, version, asset_name, asset_path, sums_path
  */
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+
 export type ReleaseAsset = {
   name: string;
   url: string;
@@ -84,13 +88,16 @@ export function selectLatestInstallableRelease(
   releases: Release[],
 ): Release {
   if (
-    latest && !latest.draft && !latest.prerelease &&
+    latest &&
+    !latest.draft &&
+    !latest.prerelease &&
     releaseHasCliAssets(latest)
   ) {
     return latest;
   }
-  const match = releases.find((release) =>
-    !release.draft && !release.prerelease && releaseHasCliAssets(release)
+  const match = releases.find(
+    (release) =>
+      !release.draft && !release.prerelease && releaseHasCliAssets(release),
   );
   if (!match) {
     throw new Error("Unable to resolve an installable latest release");
@@ -114,7 +121,7 @@ async function githubJson<T>(
   if (!response.ok) {
     throw new Error(`GitHub API ${url} failed: ${response.status}`);
   }
-  return await response.json() as T;
+  return (await response.json()) as T;
 }
 
 async function downloadAsset(
@@ -137,7 +144,7 @@ async function downloadAsset(
         throw new Error(`download failed: ${response.status}`);
       }
       const bytes = new Uint8Array(await response.arrayBuffer());
-      await Deno.writeFile(dest, bytes);
+      await writeFile(dest, bytes);
       return;
     } catch (error) {
       lastError = error;
@@ -180,27 +187,30 @@ export async function resolveRelease(
 }
 
 async function main(): Promise<void> {
-  const argv = Deno.args;
+  const argv = process.argv.slice(2);
   const repository = requireArg(argv, "--repository");
   const versionInput = requireArg(argv, "--version");
   const target = requireArg(argv, "--target");
   const outdir = requireArg(argv, "--outdir");
   const token = argValue(argv, "--token");
 
-  await Deno.mkdir(outdir, { recursive: true });
+  await mkdir(outdir, { recursive: true });
   const release = await resolveRelease(repository, versionInput, token);
   const tagName = release.tag_name;
   const version = tagName.replace(/^v/i, "");
   const name = assetFileName(version, target);
 
-  const assetPath = `${outdir}/${name}`;
-  const sumsPath = `${outdir}/SHA256SUMS`;
+  const assetPath = join(outdir, name);
+  const sumsPath = join(outdir, "SHA256SUMS");
   await downloadAsset(assetUrl(release, name), token, assetPath);
   await downloadAsset(assetUrl(release, "SHA256SUMS"), token, sumsPath);
 
   console.log([tagName, version, name, assetPath, sumsPath].join("\n"));
 }
 
-if (import.meta.main) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
   await main();
 }

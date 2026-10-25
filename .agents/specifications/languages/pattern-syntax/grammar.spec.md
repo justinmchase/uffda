@@ -116,7 +116,7 @@ The grammar MUST be able to express the following pattern families:
     requires its value to match `V`.
   - `...name:[P]: V` additionally captures each claimed entry as a
     `[key,
-    value]` pair in `name`.
+value]` pair in `name`.
   - `...ope` accepts all entries left unmatched by earlier clauses and MUST be
     the final rest clause.
 - Variable captures in the key or value pattern of a rest clause MUST collect

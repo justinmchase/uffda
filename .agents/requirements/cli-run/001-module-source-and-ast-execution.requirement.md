@@ -30,4 +30,4 @@ Postconditions:
 
 - Operators can run Uffda modules directly from source or compose a
   `parse
-  --lang uffda` AST pipeline without an artifact wrapper.
+--lang uffda` AST pipeline without an artifact wrapper.

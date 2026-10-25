@@ -37,4 +37,4 @@ with `Main = (ope Primary sneak by any+) end` and a left-recursive
 recovering the seed inside `Primary`'s growth; `[a?b].c` recovers `?b` inside a
 bracketed group within `Primary`'s growth and still grows the member access.
 
-- `rust/src/pattern/tests.rs`, `rust/src/runtime/tests.rs`
+- `src/pattern/tests.rs`, `src/runtime/tests.rs`

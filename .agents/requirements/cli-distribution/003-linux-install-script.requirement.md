@@ -25,4 +25,4 @@ Postconditions:
 
 - Linux operators can install the `uffda` CLI with a single shell script without
   Deno installed on the host.
-- Tests: `rust/src/cli/requirement_ports.rs`.
+- Tests: `src/cli/requirement_ports.rs`.

@@ -28,5 +28,5 @@ Postconditions:
 
 ## Test plan
 
-- `rust/src/pattern/tests.rs`, `rust/src/runtime/input.rs`,
-  `rust/src/runtime/scope_ports.rs`, `rust/src/runtime/tests.rs`
+- `src/pattern/tests.rs`, `src/runtime/input.rs`,
+  `src/runtime/scope_ports.rs`, `src/runtime/tests.rs`

@@ -38,6 +38,6 @@ Postconditions:
 
 ## Test plan
 
-- `rust/src/resolver.rs`, `rust/src/resolver/graph/tests.rs`,
-  `rust/src/resolver/packages/tests.rs`, `rust/src/resolver/ported_tests.rs`,
-  `rust/src/runtime/module_ports.rs`
+- `src/resolver.rs`, `src/resolver/graph/tests.rs`,
+  `src/resolver/packages/tests.rs`, `src/resolver/ported_tests.rs`,
+  `src/runtime/module_ports.rs`

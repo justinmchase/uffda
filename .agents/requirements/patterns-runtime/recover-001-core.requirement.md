@@ -31,7 +31,7 @@ Postconditions:
 
 ## Test plan
 
-`rust/src/pattern/composite_ports.rs`: child success with and without recovery
+`src/pattern/composite_ports.rs`: child success with and without recovery
 (RECOVER00, RECOVER03), failure with recovery disabled (RECOVER01), recovery
 span/value/children/setting (RECOVER02), zero-width skip fails (RECOVER04), skip
 matched without recovery (RECOVER05), recovery continuing after a recovery

@@ -24,5 +24,5 @@ Postconditions:
 
 - Downstream layers can reconstruct object interpolation structure without
   delimiter repair heuristics.
-- Tests: `rust/src/lang_tests/common.rs`
+- Tests: `src/lang_tests/common.rs`
   (`tokenizer_keeps_object_interpolation_delimiters_tokenizable`).

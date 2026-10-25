@@ -1,4 +1,8 @@
-# Rust Uffda migration
+# Rust Uffda migration (historical record)
+
+This document records the earlier Deno-to-Rust runtime migration. Its commands,
+benchmarks, and implementation paths are historical evidence; active tooling
+and paths are documented in the root README and `rust-development.md`.
 
 Tracking issue: [#277](https://github.com/justinmchase/uffda/issues/277).
 
@@ -14,7 +18,8 @@ The Deno runtime, CLI, language wrappers, and reference-only benchmarks and
 snapshot generators are retired. JSON fixtures under `test/rust/` remain
 independent regression inputs to Rust acceptance tests. TypeScript remains for
 the VS Code extension, JSR notice entry point, release/setup helpers, and
-optional Rust codec measurements. Deno development tasks now invoke Rust.
+optional Rust codec measurements; repository helper scripts now run with
+Node.js, while Cargo drives Rust checks.
 
 Earlier migration checkpoints below are historical evidence, not instructions to
 retain or run the retired reference implementation. Codec loading and embedding
@@ -659,8 +664,7 @@ past this milestone; the downstream-consumer smoke crate is the package gate.
       lossless strings/provenance, resolver/project/package loading,
       diagnostics, formatter and codec APIs (current `pub` modules; product
       grammars gated behind `embed-languages`).
-- [x] Keep Uffda's authored grammar bundle behind `embed-languages` (product CLI
-      + in-tree tests). Hosts register their own compiled declarations via
+- [x] Keep Uffda's authored grammar bundle behind `embed-languages` (product CLI + in-tree tests). Hosts register their own compiled declarations via
       `Resolver::insert_declaration_codec_source` / `uffda-build` without
       forking runtime internals.
 - [x] Provide `uffda-build`: validates a compiled codec artifact tree and

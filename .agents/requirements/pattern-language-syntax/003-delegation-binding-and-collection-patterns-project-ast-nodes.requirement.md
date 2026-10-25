@@ -27,4 +27,4 @@ Expected behavior:
 
 Postconditions:
 
-- Tests: `rust/src/lang_tests/pattern.rs`.
+- Tests: `src/lang_tests/pattern.rs`.

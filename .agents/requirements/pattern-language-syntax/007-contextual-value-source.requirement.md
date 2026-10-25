@@ -37,4 +37,4 @@ Postconditions:
 
 ## Test plan
 
-- `rust/src/lang_tests/pattern.rs`
+- `src/lang_tests/pattern.rs`

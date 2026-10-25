@@ -1,77 +1,128 @@
-import { basename, join, resolve } from "@std/path";
+import {
+  chmod,
+  copyFile,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
+import { spawn, type ChildProcess } from "node:child_process";
+import { createInterface } from "node:readline";
+import { tmpdir } from "node:os";
+import { basename, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { codecCorpus } from "../test/perf/data-codec-corpus.ts";
 
-const decoder = new TextDecoder();
-const encoder = new TextEncoder();
+type ProcessResult = {
+  code: number | null;
+  signal: NodeJS.Signals | null;
+  stdout: Buffer;
+  stderr: Buffer;
+};
+
+function collect(stream: NodeJS.ReadableStream): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    stream.on("data", (chunk: Buffer | string) =>
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)),
+    );
+    stream.once("error", reject);
+    stream.once("end", () => resolve(Buffer.concat(chunks)));
+  });
+}
+
+function waitForProcess(child: ChildProcess): Promise<{
+  code: number | null;
+  signal: NodeJS.Signals | null;
+}> {
+  return new Promise((resolve, reject) => {
+    child.once("error", reject);
+    child.once("close", (code, signal) => resolve({ code, signal }));
+  });
+}
+
+function writeInput(
+  stream: NodeJS.WritableStream,
+  bytes: Uint8Array,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    stream.write(bytes, (error?: Error | null) =>
+      error ? reject(error) : resolve(),
+    );
+  });
+}
+
+async function run(
+  executable: string,
+  args: string[],
+  options: { cwd: string; env: NodeJS.ProcessEnv },
+  inputs: Uint8Array[] = [],
+): Promise<ProcessResult> {
+  const child = spawn(executable, args, {
+    cwd: options.cwd,
+    env: options.env,
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  const stdout = collect(child.stdout!);
+  const stderr = collect(child.stderr!);
+  const status = waitForProcess(child);
+  for (const input of inputs) await writeInput(child.stdin!, input);
+  child.stdin!.end();
+  const [result, out, err] = await Promise.all([status, stdout, stderr]);
+  return { ...result, stdout: out, stderr: err };
+}
 
 export async function verifyRustCodec(
   cli: string,
   probe: string,
 ): Promise<void> {
-  const temp = await Deno.makeTempDir({ prefix: "uffda-standalone-codec-" });
+  const temp = await mkdtemp(join(tmpdir(), "uffda-standalone-codec-"));
   try {
     const installedCli = join(temp, basename(cli));
     const installedProbe = join(temp, basename(probe));
-    await Deno.copyFile(cli, installedCli);
-    await Deno.copyFile(probe, installedProbe);
-    if (Deno.build.os !== "windows") {
-      await Deno.chmod(installedCli, 0o755);
-      await Deno.chmod(installedProbe, 0o755);
+    await copyFile(cli, installedCli);
+    await copyFile(probe, installedProbe);
+    if (process.platform !== "win32") {
+      await chmod(installedCli, 0o755);
+      await chmod(installedProbe, 0o755);
     }
-    const systemRoot = Deno.build.os === "windows"
-      ? Deno.env.get("SystemRoot")
-      : undefined;
-    if (Deno.build.os === "windows" && !systemRoot) {
+    const systemRoot =
+      process.platform === "win32" ? process.env.SystemRoot : undefined;
+    if (process.platform === "win32" && !systemRoot) {
       throw new Error("Windows acceptance requires SystemRoot");
     }
     const options = {
       cwd: temp,
-      clearEnv: true,
       env: { PATH: "", ...(systemRoot ? { SystemRoot: systemRoot } : {}) },
-      stdout: "piped",
-      stderr: "piped",
     } as const;
     const cliOutput = async (args: string[], input = ""): Promise<string> => {
-      const child = new Deno.Command(installedCli, {
-        ...options,
-        args,
-        stdin: "piped",
-      }).spawn();
-      const finished = child.output();
-      const writer = child.stdin.getWriter();
-      try {
-        await writer.write(encoder.encode(input));
-        await writer.close();
-      } finally {
-        writer.releaseLock();
-      }
-      const output = await finished;
-      if (!output.success) {
+      const output = await run(installedCli, args, options, [
+        Buffer.from(input),
+      ]);
+      if (output.code !== 0) {
         throw new Error(
-          `Standalone CLI failed (${output.code}): ${
-            decoder.decode(output.stderr)
-          }`,
+          `Standalone CLI failed (${output.code ?? output.signal}): ${output.stderr.toString()}`,
         );
       }
       if (output.stderr.length !== 0) {
         throw new Error(
-          `Unexpected standalone stderr: ${decoder.decode(output.stderr)}`,
+          `Unexpected standalone stderr: ${output.stderr.toString()}`,
         );
       }
-      return decoder.decode(output.stdout).trim();
+      return output.stdout.toString().trim();
     };
-    if (await cliOutput(["exec", "-e", "(add 20 22)"]) !== "42") {
+    if ((await cliOutput(["exec", "-e", "(add 20 22)"])) !== "42") {
       throw new Error("Standalone expression failed");
     }
     if (
-      await cliOutput(["match", "-e", "any", "--input-data", "42n"]) !== "42n"
-    ) throw new Error("Native CLI subject lost BigInt");
+      (await cliOutput(["match", "-e", "any", "--input-data", "42n"])) !== "42n"
+    )
+      throw new Error("Native CLI subject lost BigInt");
     const module = "export Main; rule Main = any;";
+    if (JSON.parse(await cliOutput(["parse", "-e", module])).kind !== "module")
+      throw new Error("Standalone parse failed");
     if (
-      JSON.parse(await cliOutput(["parse", "-e", module])).kind !== "module"
-    ) throw new Error("Standalone parse failed");
-    if (
-      await cliOutput([
+      (await cliOutput([
         "run",
         "-e",
         module,
@@ -79,114 +130,98 @@ export async function verifyRustCodec(
         "Main",
         "--input-data",
         "42n",
-      ]) !== "42n"
-    ) throw new Error("Standalone native module failed");
-    await Deno.writeTextFile(join(temp, "main.uff"), module);
+      ])) !== "42n"
+    )
+      throw new Error("Standalone native module failed");
+    await writeFile(join(temp, "main.uff"), module);
     if (JSON.parse(await cliOutput(["compile", "main.uff"])).ok !== true) {
       throw new Error("Standalone compile failed");
     }
     const artifact = JSON.parse(
-      await Deno.readTextFile(join(temp, "bin", "ast", "main.uff.ast.json")),
+      await readFile(join(temp, "bin", "ast", "main.uff.ast.json"), "utf8"),
     );
     if (artifact.rules[0].name !== "Main") {
       throw new Error("Standalone compiled declaration failed");
     }
-    await Deno.remove(join(temp, "bin"), { recursive: true });
+    await rm(join(temp, "bin"), { recursive: true, force: true });
     if (
-      await cliOutput(["fmt", "-"], "rule Main=any;") !== "rule Main = any;"
-    ) throw new Error("Standalone fmt failed");
+      (await cliOutput(["fmt", "-"], "rule Main=any;")) !== "rule Main = any;"
+    )
+      throw new Error("Standalone fmt failed");
     const corpusPath = join(temp, "corpus.json");
-    await Deno.writeTextFile(corpusPath, JSON.stringify(codecCorpus()));
-    const corpusResult = await new Deno.Command(installedProbe, {
-      ...options,
-      args: ["verify", corpusPath],
-    }).output();
+    await writeFile(corpusPath, JSON.stringify(codecCorpus()));
+    const corpusResult = await run(
+      installedProbe,
+      ["verify", corpusPath],
+      options,
+    );
     if (
-      !corpusResult.success || corpusResult.stderr.length !== 0 ||
-      decoder.decode(corpusResult.stdout).trim() !== "codec corpus verified"
+      corpusResult.code !== 0 ||
+      corpusResult.stderr.length !== 0 ||
+      corpusResult.stdout.toString().trim() !== "codec corpus verified"
     ) {
       throw new Error(
-        `Standalone native corpus failed: ${
-          decoder.decode(corpusResult.stderr)
-        }`,
+        `Standalone native corpus failed: ${corpusResult.stderr.toString()}`,
       );
     }
     const source =
       '# comment\n[42n\n @bytes"AA"]\n{a:"é😀" b:@set[1 2]}\n"\\ud800"\nundefined';
     const expected =
       '[42n @bytes"AA"]\n{"a":"é😀" "b":@set[1 2]}\n"\\ud800"\nundefined\n';
-    const stream = async (source: Uint8Array, chunk: number) => {
-      const child = new Deno.Command(installedProbe, {
-        ...options,
-        args: ["stream", String(chunk)],
-        stdin: "piped",
-      }).spawn();
-      const output = child.output();
-      const writer = child.stdin.getWriter();
-      try {
-        for (let offset = 0; offset < source.length; offset += chunk) {
-          await writer.write(source.subarray(offset, offset + chunk));
-        }
-        await writer.close();
-      } finally {
-        writer.releaseLock();
+    const stream = async (input: Uint8Array, chunk: number) => {
+      const chunks: Buffer[] = [];
+      for (let offset = 0; offset < input.length; offset += chunk) {
+        chunks.push(Buffer.from(input.subarray(offset, offset + chunk)));
       }
-      return await output;
+      return await run(
+        installedProbe,
+        ["stream", String(chunk)],
+        options,
+        chunks,
+      );
     };
     for (const chunk of [1, 2, 7, 4096]) {
-      const result = await stream(encoder.encode(source), chunk);
-      if (!result.success || decoder.decode(result.stdout) !== expected) {
+      const result = await stream(Buffer.from(source), chunk);
+      if (result.code !== 0 || result.stdout.toString() !== expected) {
         throw new Error(
-          `Standalone chunk ${chunk} mismatch: ${
-            decoder.decode(result.stderr)
-          } ${decoder.decode(result.stdout)}`,
+          `Standalone chunk ${chunk} mismatch: ${result.stderr.toString()} ${result.stdout.toString()}`,
         );
       }
     }
-    for (
-      const invalid of [
-        ...["42\n[", '42\n"unfinished', "42\n(boom)"].map((value) =>
-          encoder.encode(value)
-        ),
-        new Uint8Array([52, 50, 10, 0xff]),
-        new Uint8Array([52, 50, 10, 0xc3]),
-      ]
-    ) {
+    for (const invalid of [
+      ...["42\n[", '42\n"unfinished', "42\n(boom)"].map((value) =>
+        Buffer.from(value),
+      ),
+      Buffer.from([52, 50, 10, 0xff]),
+      Buffer.from([52, 50, 10, 0xc3]),
+    ]) {
       const result = await stream(invalid, 1);
       if (
-        result.code !== 2 || decoder.decode(result.stdout) !== "42\n" ||
-        !decoder.decode(result.stderr).includes("codec acceptance failure:")
+        result.code !== 2 ||
+        result.stdout.toString() !== "42\n" ||
+        !result.stderr.toString().includes("codec acceptance failure:")
       ) {
         throw new Error(
           "Standalone consumer did not preserve delivery and explicitly fail malformed trailing input",
         );
       }
     }
-    const child = new Deno.Command(installedProbe, {
-      ...options,
-      args: ["stream", "7"],
-      stdin: "piped",
-    }).spawn();
-    const writer = child.stdin.getWriter();
-    const reader = child.stdout.getReader();
-    const errors = new Response(child.stderr).text();
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let exited = false;
-    child.status.then(() => {
-      exited = true;
+    const child = spawn(installedProbe, ["stream", "7"], {
+      cwd: options.cwd,
+      env: options.env,
+      stdio: ["pipe", "pipe", "pipe"],
     });
+    const stdoutLines = createInterface({
+      input: child.stdout!,
+      crlfDelay: Infinity,
+    })[Symbol.asyncIterator]();
+    const errors = collect(child.stderr!).then((value) => value.toString());
+    const status = waitForProcess(child);
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
-      await writer.write(encoder.encode("42\n"));
+      child.stdin!.write("42\n");
       const delivered = await Promise.race([
-        (async () => {
-          let text = "";
-          while (!text.endsWith("\n")) {
-            const part = await reader.read();
-            if (part.done) throw new Error("EOF before record delivery");
-            text += decoder.decode(part.value);
-          }
-          return text;
-        })(),
+        stdoutLines.next(),
         new Promise<never>((_, reject) => {
           timer = setTimeout(
             () => reject(new Error("No record delivered before EOF")),
@@ -194,44 +229,46 @@ export async function verifyRustCodec(
           );
         }),
       ]);
-      if (delivered !== "42\n") {
+      if (delivered.done || delivered.value !== "42") {
         throw new Error("Incorrect pre-EOF record delivery");
       }
-      await writer.write(encoder.encode("undefined"));
-      await writer.close();
-      let remaining = "";
-      for (;;) {
-        const part = await reader.read();
-        if (part.done) break;
-        remaining += decoder.decode(part.value);
-      }
-      const status = await child.status;
+      child.stdin!.end("undefined");
+      const finalRecord = await stdoutLines.next();
+      const end = await stdoutLines.next();
+      const result = await status;
       if (
-        !status.success || remaining !== "undefined\n" || await errors !== ""
-      ) throw new Error("Final EOF delivery failed");
+        result.code !== 0 ||
+        finalRecord.done ||
+        finalRecord.value !== "undefined" ||
+        !end.done ||
+        (await errors) !== ""
+      )
+        throw new Error("Final EOF delivery failed");
     } catch (error) {
-      if (!exited) child.kill("SIGTERM");
-      await child.status;
+      child.kill("SIGTERM");
+      await status.catch(() => undefined);
       await errors;
       throw error;
     } finally {
       clearTimeout(timer);
-      writer.releaseLock();
-      reader.releaseLock();
     }
     console.log(
-      `Standalone all-six CLI/native streaming passed on ${Deno.build.os}/${Deno.build.arch}; byte chunks, pre-EOF delivery, native GC roundtrip, and malformed EOF verified`,
+      `Standalone all-six CLI/native streaming passed on ${process.platform}/${process.arch}; byte chunks, pre-EOF delivery, native GC roundtrip, and malformed EOF verified`,
     );
   } finally {
-    await Deno.remove(temp, { recursive: true });
+    await rm(temp, { recursive: true, force: true });
   }
 }
 
-if (import.meta.main) {
-  if (Deno.args.length !== 2) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  const args = process.argv.slice(2);
+  if (args.length !== 2) {
     throw new Error(
       "Usage: verify-rust-codec.ts <uffda binary> <codec_probe binary>",
     );
   }
-  await verifyRustCodec(resolve(Deno.args[0]), resolve(Deno.args[1]));
+  await verifyRustCodec(resolve(args[0]), resolve(args[1]));
 }

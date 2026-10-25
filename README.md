@@ -42,7 +42,7 @@ From a source checkout (Rust toolchain and a published `uffda` required):
 
 ```sh
 uffda compile 'src/lang/**/*.uff'
-cargo run --locked --manifest-path rust/Cargo.toml --features embed-languages --bin uffda -- --help
+cargo run --locked --features embed-languages --bin uffda -- --help
 ```
 
 ## CLI
@@ -140,7 +140,7 @@ codec) and `bin/ast/src/foo.uff.ast.json` (JSON). Resolvers prefer `.uff.ast`
 when present and fall back to `.uff.ast.json`. `outDir` is `./bin` unless the
 project file says otherwise, and `run`, `exec`, the language server and MCP
 sessions read compiled imports from the same place. Build output is never
-written next to sources. In this repo, `deno task compile:lang` builds workspace
+written next to sources. In this repo, `npm run compile:lang` builds workspace
 `./bin` with the **previous published** CLI (bootstrap recursion break).
 
 ### Project file
@@ -158,7 +158,7 @@ above the working directory (or the editor's workspace), or the file
   // Modules whose exported rules carry [Language] metadata.
   "languages": ["./lang/foo.uff"],
   // Where compiled artifacts go. Defaults to "./bin".
-  "outDir": "./bin"
+  "outDir": "./bin",
 }
 ```
 
@@ -240,16 +240,16 @@ specified but not yet implemented.
 [`editors/vscode/`](editors/vscode/) contains the VS Code extension: it
 registers `uffda lsp` as the language server for `.uff` files and `uffda mcp` as
 an MCP server, resolving/downloading a compatible `uffda` binary automatically.
-It's an independently versioned npm package, isolated from this repo's
-`deno.jsonc` tasks and CI. See its [README](editors/vscode/README.md) for
+It's an independently versioned npm package, isolated from this repo's root
+tooling package and CI. See its [README](editors/vscode/README.md) for
 development instructions.
 
 ## Library
 
 The Rust runtime library is `uffda-runtime`. The standalone
-[`uffda-codec`](./rust/codec/README.md) crate provides strict value reading,
+[`uffda-codec`](./src/codec/README.md) crate provides strict value reading,
 writing and streaming without a runtime, grammar loader or collector. See
-[`rust/CRATES.md`](./rust/CRATES.md) for the runtime, codec, heap, and
+[`docs/rust-crates.md`](./docs/rust-crates.md) for the runtime, codec, heap, and
 artifact-embedding crates. JSR `@justinmchase/uffda` ships grammars and a notice
 entry point, not a TypeScript runtime. Specs live under
 `.agents/specifications/`; requirements under `.agents/requirements/`.
@@ -267,17 +267,17 @@ Example grammar: [`examples/morse/morse.uff`](./examples/morse/morse.uff).
 ## Development
 
 ```sh
-deno task pre          # formatting, helper lint/tests, Rust checks, JSR dry-run
-deno task test         # compile:lang, Rust workspace tests, Deno helper tests
-deno task compile:lang # previous published uffda → ./bin
-deno task cli --help   # in-tree Rust CLI (requires bootstrapped ./bin)
-deno task compile:cli  # bootstrap then build optimized Rust CLI
+npm run pre           # formatting, helper lint/type/tests, Rust checks, JSR dry-run
+npm test              # compile:lang, Rust workspace tests, Node helper tests
+npm run compile:lang  # previous published uffda → ./bin
+npm run cli -- --help # in-tree Rust CLI (requires bootstrapped ./bin)
+npm run compile:cli   # bootstrap then build optimized Rust CLI
 ```
 
-Without Deno, bootstrap with `uffda compile 'src/lang/**/*.uff'`, then run
-`cargo xtask check`. Deno remains for JSR publishing, repository formatting,
-release/setup helpers, and optional Rust codec measurements. TypeScript also
-remains in the independently built VS Code extension.
+Install the root tooling with `npm ci`. Bootstrap with the previous published
+CLI (`npm run compile:lang`), then run `cargo xtask check`. Deno is no longer
+required for development, tests, formatting, or helper scripts; the retained
+`deno.jsonc` and `deno.lock` describe only the JSR package.
 
 ### Maintainers: publish a CLI release
 

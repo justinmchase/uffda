@@ -30,4 +30,4 @@ Postconditions:
 
 - Distinct Or arms MAY wrap only some arms in Projection so each arm can produce
   a different value shape.
-- Tests: `rust/src/pattern/composite_ports.rs`.
+- Tests: `src/pattern/composite_ports.rs`.

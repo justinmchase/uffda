@@ -34,7 +34,7 @@ Expected behavior:
 - A module name no alias covers MUST fail with the message
   `"<specifier>" is not a module name the project file's \`imports\`
   declares`,
-  and an import chain frame naming the import with no`resolvedUrl`.
+and an import chain frame naming the import with no`resolvedUrl`.
 - A `jsr:` module that no seeded declaration supplies MUST be loaded from
   packages (see
   [JSR packages](../modules-runtime/006-jsr-packages.requirement.md)).
@@ -44,7 +44,7 @@ Postconditions:
 
 - An import means the same module in `compile`, `run`, `exec`, the language
   server, and MCP sessions of one project.
-- Tests: `rust/src/resolver/ported_tests.rs`, `rust/src/runtime/module_ports.rs`
+- Tests: `src/resolver/ported_tests.rs`, `src/runtime/module_ports.rs`
   (`modport_resolve_import_map_artifacts_and_package_boundaries`),
   `src/cli/command_project.test.ts`, `src/cli/contract.test.ts`,
   `src/cli/main.test.ts`, `src/cli/mcp.session.test.ts`,

@@ -39,4 +39,4 @@ Postconditions:
 
 - Compaction and collection MUST preserve values, diagnostics, rejected
   attempts, and stabilized recursion outcomes.
-- Tests: `rust/src/runtime/tests.rs`.
+- Tests: `src/runtime/tests.rs`.

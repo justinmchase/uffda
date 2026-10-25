@@ -46,6 +46,6 @@ Postconditions:
   "safe to skip" conclusion for any rule that could actually be re-entered
   ambiguously at the same position, whether through direct recursion, mutual
   recursion, or an unanalyzable (dynamic) call.
-- Tests: `rust/src/runtime/selective_memo_ports.rs` (`reentrancy02_*` through
+- Tests: `src/runtime/selective_memo_ports.rs` (`reentrancy02_*` through
   `reentrancy08_*`, `reentrancy10_*`, `reentrancy11_*`, `reentrancy12_*`,
   `left_recursive_rules_still_grow_via_memoization`).

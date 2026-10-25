@@ -35,7 +35,7 @@ Rust, reinstall/copy the new binary as `uffda` and restart the MCP connection.
 
 | Setting | Description |
 | --- | --- |
-| `uffda.lsp.serverPath` | Overrides the executable used for both the language server and the MCP server, bypassing `PATH` resolution and download entirely. Point this at **`uffda`** (or a freshly built `rust/target/release/uffda`). Resource-scoped: works in folder `.vscode/settings.json` and multi-root workspaces. |
+| `uffda.lsp.serverPath` | Overrides the executable used for both the language server and the MCP server, bypassing `PATH` resolution and download entirely. Point this at **`uffda`** (or a freshly built `target/release/uffda`). Resource-scoped: works in folder `.vscode/settings.json` and multi-root workspaces. |
 | `uffda.lsp.serverArgs` | Arguments passed to `uffda.lsp.serverPath` when launching the language server (default: `["lsp"]`). |
 | `uffda.mcp.serverArgs` | Arguments passed to `uffda.lsp.serverPath` when launching the MCP server (default: `["mcp"]`). |
 
@@ -50,14 +50,14 @@ the extension surfaces a clear error instead of silently disabling itself.
 | --- | --- |
 | unset / `""` | Prefer `uffda` on PATH, else download |
 | `uffda` | Bare name — run from PATH |
-| `rust/target/release/uffda` | Relative to the uffda workspace folder (local build) |
+| `target/release/uffda` | Relative to the uffda workspace folder (local build) |
 | absolute path | Used verbatim |
 
 Recommended for this checkout (local Rust build):
 
 ```json
 {
-  "uffda.lsp.serverPath": "rust/target/release/uffda",
+  "uffda.lsp.serverPath": "target/release/uffda",
   "uffda.lsp.serverArgs": ["lsp"],
   "uffda.mcp.serverArgs": ["mcp"]
 }

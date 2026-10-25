@@ -18,4 +18,4 @@ Expected behavior:
 
 Postconditions:
 
-- Tests: `rust/src/environment.rs`.
+- Tests: `src/environment.rs`.

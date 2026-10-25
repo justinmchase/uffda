@@ -41,5 +41,5 @@ Postconditions:
 
 - Edited parses MUST match fresh parses in outcome, value, consumed position,
   recovery activations, and diagnostics, including after forced collection.
-- Tests: `rust/src/runtime/tests.rs`, `rust/src/pattern/tests.rs`, and
-  `rust/src/runtime/input.rs`.
+- Tests: `src/runtime/tests.rs`, `src/pattern/tests.rs`, and
+  `src/runtime/input.rs`.

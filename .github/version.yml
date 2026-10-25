@@ -11,34 +11,34 @@ on:
       pattern: '(?<=export const MIN_UFFDA_VERSION = ").*(?=";)'
     # Package versions: `^` needs the `m` flag (JS has no inline (?m)).
     - kind: regexp
-      file: rust/Cargo.toml
+      file: Cargo.toml
       pattern: '(?<=^version = ").*(?=")'
       flags: m
     - kind: regexp
-      file: rust/heap/Cargo.toml
+      file: src/heap/Cargo.toml
       pattern: '(?<=^version = ").*(?=")'
       flags: m
     - kind: regexp
-      file: rust/heap/derive/Cargo.toml
+      file: src/heap/derive/Cargo.toml
       pattern: '(?<=^version = ").*(?=")'
       flags: m
     - kind: regexp
-      file: rust/build/Cargo.toml
+      file: src/build/Cargo.toml
       pattern: '(?<=^version = ").*(?=")'
       flags: m
     - kind: regexp
-      file: rust/codec/Cargo.toml
+      file: src/codec/Cargo.toml
       pattern: '(?<=^version = ").*(?=")'
       flags: m
     # Path-dependency version pins for published crates (not third-party deps).
     - kind: regexp
-      file: rust/Cargo.toml
-      pattern: '(?<=path = "(?:heap|build|codec)", version = ").*(?=")'
+      file: Cargo.toml
+      pattern: '(?<=path = "src/(?:heap|build|codec)", version = ").*(?=")'
       flags: g
     - kind: regexp
-      file: rust/heap/Cargo.toml
+      file: src/heap/Cargo.toml
       pattern: '(?<=path = "derive", version = ").*(?=")'
     - kind: regexp
-      file: rust/consumer/Cargo.toml
-      pattern: '(?<=path = "(?:\.\.|\.\./build)", version = ").*(?=")'
+      file: src/consumer/Cargo.toml
+      pattern: '(?<=path = "(?:\.\./\.\.|\.\./build)", version = ").*(?=")'
       flags: g

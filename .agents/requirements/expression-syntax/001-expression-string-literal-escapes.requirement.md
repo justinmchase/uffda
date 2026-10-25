@@ -29,4 +29,4 @@ Postconditions:
 
 ## Test plan
 
-- `rust/src/lang_tests/expression.rs`
+- `src/lang_tests/expression.rs`

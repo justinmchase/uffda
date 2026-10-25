@@ -36,4 +36,4 @@ Postconditions:
 - The string primitive is suitable for subsequent AST/value integration without
   character replacement. This requirement alone does not assert that all runtime
   surfaces have migrated.
-- Tests: inline tests in `rust/src/text.rs`.
+- Tests: inline tests in `src/text.rs`.

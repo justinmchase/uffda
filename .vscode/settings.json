@@ -1,15 +1,6 @@
 {
-  "deno.enablePaths": [
-    "scripts",
-    "test/perf",
-    ".github/actions/uffda-setup",
-    "mod.ts"
-  ],
-  "uffda.lsp.serverPath": "rust/target/release/uffda",
-  "uffda.lsp.serverArgs": [
-    "lsp"
-  ],
-  "uffda.mcp.serverArgs": [
-    "mcp"
-  ]
+  "files.eol": "\n",
+  "uffda.lsp.serverPath": "target/release/uffda",
+  "uffda.lsp.serverArgs": ["lsp"],
+  "uffda.mcp.serverArgs": ["mcp"]
 }

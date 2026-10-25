@@ -15,7 +15,7 @@ Preconditions:
 
 Expected behavior:
 
-- `deno task compile:cli` MUST run `compile:lang` before building the Rust
+- `npm run compile:cli` MUST run `compile:lang` before building the Rust
   product CLI with `embed-languages`, so the compiled codec files are embedded
   by `uffda-build`.
 - `.github/workflows/release-binaries.yml` MUST compile language modules into
@@ -48,4 +48,4 @@ Postconditions:
 
 ## Test plan
 
-- `rust/src/builtins.rs`, `rust/src/resolver.rs`, `rust/tests/build.rs`
+- `src/builtins.rs`, `src/resolver.rs`, `tests/build.rs`

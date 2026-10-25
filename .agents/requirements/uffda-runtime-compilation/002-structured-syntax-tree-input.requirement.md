@@ -26,5 +26,5 @@ Postconditions:
 
 - The structured values produced by lower language layers remain the semantic
   input to runtime compilation.
-- Tests: `rust/src/lang_tests/uffda.rs`
+- Tests: `src/lang_tests/uffda.rs`
   (`runtime_compiler_consumes_structured_syntax_trees_not_source_text`).

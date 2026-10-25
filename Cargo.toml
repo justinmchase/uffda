@@ -1,0 +1,85 @@
+[package]
+name = "uffda-runtime"
+version = "0.10.6"
+edition = "2024"
+# Product CLI binary ships via GitHub Releases only; this package is the library.
+publish = true
+license = "MIT"
+description = "Uffda pattern/expression runtime, resolver, formatter, and data codec"
+repository = "https://github.com/justinmchase/uffda"
+homepage = "https://github.com/justinmchase/uffda"
+documentation = "https://docs.rs/uffda-runtime"
+readme = "docs/rust-development.md"
+keywords = ["uffda", "parser", "dsl", "runtime"]
+categories = ["parsing", "compilers"]
+include = [
+    "build.rs",
+    "src/*.rs",
+    "src/cli/**/*.rs",
+    "src/codec_runtime/**/*.rs",
+    "src/evaluate/**/*.rs",
+    "src/globals/**/*.rs",
+    "src/lang_tests/**/*.rs",
+    "src/lsp/**/*.rs",
+    "src/mcp/**/*.rs",
+    "src/pattern/**/*.rs",
+    "src/project/**/*.rs",
+    "src/resolver/**/*.rs",
+    "src/runtime/**/*.rs",
+    "docs/rust-development.md",
+]
+
+[[bin]]
+name = "uffda"
+path = "src/main.rs"
+required-features = ["embed-languages"]
+
+[workspace]
+members = [
+    "src/heap",
+    "src/heap/derive",
+    "src/build",
+    "src/codec",
+    "src/xtask",
+    "src/consumer",
+]
+default-members = [".", "src/heap", "src/heap/derive"]
+
+[features]
+default = []
+# Embed this repository's compiled language ASTs from ./bin (product CLI + tests).
+# Library consumers omit this feature and register their own declarations.
+embed-languages = []
+# Experimental only. Intermittent segfaults and wrong-result exits were
+# observed under mimalloc in WSL stress runs; the system allocator was clean.
+# Do not enable for production builds.
+mimalloc = ["dep:mimalloc"]
+# Diagnostic: run on the never-freeing heap backend. Not for production use.
+heap-leak = ["uffda-heap/leak"]
+
+[dependencies]
+uffda-codec = { path = "src/codec", version = "0.10.6" }
+uffda-heap = { path = "src/heap", version = "0.10.6" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order", "raw_value"] }
+ryu-js = "1"
+url = "2"
+ureq = { version = "3", features = ["json"] }
+sha2 = "0.10"
+jsonc-parser = { version = "0.29", features = ["serde"] }
+deno_semver = "0.10"
+bs58 = "0.5"
+regex = "1"
+regress = { version = "0.11", features = ["utf16"] }
+globwalk = "0.9"
+pathdiff = "0.2"
+time = { version = "0.3", features = ["parsing", "formatting"] }
+base64 = "0.22"
+num-bigint = "0.4"
+mimalloc = { version = "0.1", default-features = false, optional = true }
+
+[build-dependencies]
+uffda-build = { path = "src/build", version = "0.10.6" }
+
+[dev-dependencies]
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }

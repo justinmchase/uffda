@@ -30,10 +30,10 @@ Expected behavior:
   action. Release resolution and draft updates MUST use Bash, `gh`, and the
   semver CLI without requiring Deno. The version-bump commit MUST run
   `semver set` so `.github/version.yml` post hooks update those Cargo package
-  versions and path-dep pins (`rust/Cargo.toml`, `rust/heap/Cargo.toml`,
-  `rust/heap/derive/Cargo.toml`, `rust/build/Cargo.toml`, and consumer path pins
+  versions and path-dep pins (`Cargo.toml`, `src/heap/Cargo.toml`,
+  `src/heap/derive/Cargo.toml`, `src/build/Cargo.toml`, and consumer path pins
   — leaving the unpublished consumer package at `0.0.0`), then refresh
-  `rust/Cargo.lock` with `cargo update` for the published crates.
+  `Cargo.lock` with `cargo update` for the published crates.
 - The standalone draft workflow MUST dispatch `repository_dispatch` event type
   `release-binaries` after the draft/version update on `main`.
 - Draft updates MUST preserve the draft state and MUST fail if the selected
@@ -63,4 +63,4 @@ Postconditions:
 
 - Downstream installers can download and verify release binaries without
   rebuilding from source.
-- Tests: `rust/src/cli/requirement_ports.rs`.
+- Tests: `src/cli/requirement_ports.rs`.

@@ -24,7 +24,7 @@ Expected behavior:
   both surface forms.
 - Set and map structuring MUST be expressed in canonical forms such as
   `(set
-  ...)` and `(map (key ... ...))`.
+...)` and `(map (key ... ...))`.
 - Destructuring forms MUST remain outside expression syntax and be handled by
   pattern/binding layers.
 

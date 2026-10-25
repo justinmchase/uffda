@@ -31,12 +31,12 @@ jobs:
           set -euo pipefail
           tag="${{ github.event.release.tag_name }}"
           tag="${tag#v}"
-          ver="$(sed -n 's/^version = "\([^"]*\)"/\1/p' rust/Cargo.toml | head -1)"
+          ver="$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -1)"
           if [[ "$ver" != "$tag" ]]; then
-            echo "rust/Cargo.toml version ${ver} != release tag ${tag}" >&2
+            echo "Cargo.toml version ${ver} != release tag ${tag}" >&2
             exit 1
           fi
-          for manifest in rust/heap/Cargo.toml rust/heap/derive/Cargo.toml rust/build/Cargo.toml rust/codec/Cargo.toml; do
+          for manifest in src/heap/Cargo.toml src/heap/derive/Cargo.toml src/build/Cargo.toml src/codec/Cargo.toml; do
             mver="$(sed -n 's/^version = "\([^"]*\)"/\1/p' "$manifest" | head -1)"
             if [[ "$mver" != "$tag" ]]; then
               echo "${manifest} version ${mver} != release tag ${tag}" >&2
@@ -54,11 +54,11 @@ jobs:
         run: |
           set -euo pipefail
           # Dependency order. Product grammars are not embedded (default features).
-          cargo publish -p uffda-heap-derive --manifest-path rust/Cargo.toml --locked
-          cargo publish -p uffda-heap --manifest-path rust/Cargo.toml --locked
-          cargo publish -p uffda-build --manifest-path rust/Cargo.toml --locked
-          cargo publish -p uffda-codec --manifest-path rust/Cargo.toml --locked
-          cargo publish -p uffda-runtime --manifest-path rust/Cargo.toml --locked
+          cargo publish -p uffda-heap-derive --locked
+          cargo publish -p uffda-heap --locked
+          cargo publish -p uffda-build --locked
+          cargo publish -p uffda-codec --locked
+          cargo publish -p uffda-runtime --locked
 
   jsr:
     name: JSR
@@ -69,6 +69,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install Node tooling
+        run: npm ci
 
       - name: Setup Uffda CLI
         # Use the release's CLI assets (attached by Release Binaries before
@@ -91,12 +100,11 @@ jobs:
       - name: Verify stub + ./bin are in the JSR package
         run: |
           set -euo pipefail
-          # uffda-setup already installs Deno; avoid the npx jsr download wrapper.
-          deno publish --dry-run 2>&1 | tee "$RUNNER_TEMP/jsr-dry-run.log"
+          npx jsr publish --dry-run 2>&1 | tee "$RUNNER_TEMP/jsr-dry-run.log"
           grep -q "bin/ast/src/lang/uffda/uffda.lang.uff.ast.json" "$RUNNER_TEMP/jsr-dry-run.log"
           grep -qE '(^|/)mod\.ts' "$RUNNER_TEMP/jsr-dry-run.log"
           grep -q "uffda.jsonc" "$RUNNER_TEMP/jsr-dry-run.log"
-          # Deno implementation TypeScript must not ship on JSR after cutover.
+          # Runtime TypeScript must not ship on JSR after the Rust cutover.
           if grep -E 'src/(runtime|cli)/.*\.ts' "$RUNNER_TEMP/jsr-dry-run.log"; then
             echo "unexpected Deno TypeScript paths in JSR package" >&2
             exit 1
@@ -114,7 +122,7 @@ jobs:
           delay=30
           for i in $(seq 1 "$attempts"); do
             echo "JSR publish attempt ${i}/${attempts}"
-            if deno publish; then
+            if npx jsr publish; then
               exit 0
             fi
             status=$?

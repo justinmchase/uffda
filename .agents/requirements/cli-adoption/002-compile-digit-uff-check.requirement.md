@@ -28,4 +28,4 @@ Postconditions:
 
 - CI proves language-module compilation produces resolvable `./bin` artifacts
   without recursive compiler import.
-- Tests: `rust/src/cli/requirement_ports.rs`.
+- Tests: `src/cli/requirement_ports.rs`.

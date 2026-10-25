@@ -33,4 +33,4 @@ Postconditions:
 
 ## Test plan
 
-- `rust/src/runtime/scope_ports.rs`
+- `src/runtime/scope_ports.rs`

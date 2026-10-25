@@ -35,4 +35,4 @@ Expected behavior:
 Postconditions:
 
 - CLI display is separate from runtime implicit text conversion.
-- Tests: `rust/tests/cli_data.rs` and `rust/src/output.rs`.
+- Tests: `tests/cli_data.rs` and `src/output.rs`.

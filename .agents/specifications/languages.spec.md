@@ -79,3 +79,10 @@ RFC 8174.
 - TypeScript MAY remain for the VS Code extension, JSR notice entry point,
   release/setup helpers, and Rust measurement tooling. It MUST NOT introduce a
   second runtime implementation.
+- Repository TypeScript helpers MUST execute on a supported Node.js LTS release,
+  with npm-managed dependencies and a committed lockfile. Helper tests MUST use
+  `node:test`; development checks MUST NOT require an installed Deno runtime.
+  The retained JSR publishing surface MAY use `npx jsr publish`.
+- Moving workspace crates MUST preserve public module paths and complete
+  published-package source contents. Runtime adapters MUST NOT be hidden inside
+  another crate's package boundary.

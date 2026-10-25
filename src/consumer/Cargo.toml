@@ -1,0 +1,15 @@
+[package]
+name = "uffda-consumer-smoke"
+version = "0.0.0"
+edition = "2024"
+publish = false
+license = "MIT"
+description = "Downstream-consumer smoke test: embeds its own codec ASTs without this repo's src/lang or bin"
+
+[dependencies]
+uffda-runtime = { path = "../..", version = "0.10.6", default-features = false }
+serde_json = { version = "1", features = ["preserve_order"] }
+url = "2"
+
+[build-dependencies]
+uffda-build = { path = "../build", version = "0.10.6" }

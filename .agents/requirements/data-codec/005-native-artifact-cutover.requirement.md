@@ -35,7 +35,7 @@ Postconditions:
 
 - Embedded language graphs can load and the compiler can recompile all authored
   languages without loading JSON declarations to bootstrap codec decoding.
-- Tests: `rust/src/codec/data/tests.rs`, `rust/codec/src/data/parser.rs`,
-  `rust/src/codec/declaration.rs`, `rust/src/builtins.rs`,
-  `rust/tests/build.rs`, `rust/src/resolver.rs`,
-  `rust/src/resolver/packages/tests.rs`.
+- Tests: `src/codec_runtime/data/tests.rs`, `src/codec/src/data/parser.rs`,
+  `src/codec_runtime/declaration.rs`, `src/builtins.rs`,
+  `tests/build.rs`, `src/resolver.rs`,
+  `src/resolver/packages/tests.rs`.

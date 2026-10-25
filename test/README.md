@@ -14,8 +14,8 @@ Reference-only Deno benchmarks and snapshot generators have been removed.
 Runtime, incremental parsing, memo retention, and GC acceptance live in Rust.
 
 End-to-end correctness that used to live under `test/integration/` is covered by
-Rust lib tests (for example Morse in `rust/src/lang_tests/uffda.rs` and format
-round-trips in `rust/src/format.rs`).
+Rust lib tests (for example Morse in `src/lang_tests/uffda.rs` and format
+round-trips in `src/format.rs`).
 
 Files here are excluded from the published JSR package (`publish.include` in
 `deno.jsonc`) — they are not part of the library's export graph.

@@ -34,5 +34,5 @@ Expected behavior:
 Postconditions:
 
 - Synchronous iterable semantics and existing host-call APIs remain available.
-- Tests: `rust/src/runtime/input.rs`, `rust/src/pattern/tests.rs`,
-  `rust/src/runtime/tests.rs`, `rust/src/evaluate/tests.rs`.
+- Tests: `src/runtime/input.rs`, `src/pattern/tests.rs`,
+  `src/runtime/tests.rs`, `src/evaluate/tests.rs`.

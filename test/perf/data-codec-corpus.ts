@@ -27,27 +27,28 @@ export function codecCorpus(count = 32): CodecWorkload[] {
       } readings:[${i} ${i + 0.25} ${-i - 1}] note:null}`,
       json: value,
     });
-    const message = `record ${i}: café 日本語 😀 "quoted" \\ slash\nline\t${
-      "#".repeat(12)
-    }`;
+    const message = `record ${i}: café 日本語 😀 "quoted" \\ slash\nline\t${"#".repeat(
+      12,
+    )}`;
     text.push({ codec: JSON.stringify(message), json: message });
     const tree = {
       id: i,
-      items: [{ name: "first", values: [1, 2, 3] }, {
-        name: "second",
-        values: [4, 5, 6],
-      }],
+      items: [
+        { name: "first", values: [1, 2, 3] },
+        {
+          name: "second",
+          values: [4, 5, 6],
+        },
+      ],
       meta: { region: "west", tags: ["a", "b"], optional: null },
     };
     nested.push({
-      codec:
-        `{id:${i} items:[{name:"first" values:[1 2 3]} {name:"second" values:[4 5 6]}] meta:{region:"west" tags:["a" "b"] optional:null}}`,
+      codec: `{id:${i} items:[{name:"first" values:[1 2 3]} {name:"second" values:[4 5 6]}] meta:{region:"west" tags:["a" "b"] optional:null}}`,
       json: tree,
     });
     const bigint = `12345678901234567890${i}`;
     native.push({
-      codec:
-        `{id:${i} missing:undefined big:${bigint}n date:@date"2026-10-12T00:00:00Z" bytes:@bytes"AAECA_8" symbol:@symbol"sample" set:@set[1 "x"] map:@map[["key" 42]] error:@error{name:"TypeError" message:"sample" cause:${i}} special:[NaN Infinity -Infinity -0]}`,
+      codec: `{id:${i} missing:undefined big:${bigint}n date:@date"2026-10-12T00:00:00Z" bytes:@bytes"AAECA_8" symbol:@symbol"sample" set:@set[1 "x"] map:@map[["key" 42]] error:@error{name:"TypeError" message:"sample" cause:${i}} special:[NaN Infinity -Infinity -0]}`,
       json: {
         id: i,
         missing: tagged("undefined"),
@@ -84,9 +85,9 @@ export function transport(workload: CodecWorkload, format: string): string {
     case "codec":
       return workload.records.map((record) => record.codec + "\n").join("");
     case "jsonl":
-      return workload.records.map((record) =>
-        JSON.stringify(record.json) + "\n"
-      ).join("");
+      return workload.records
+        .map((record) => JSON.stringify(record.json) + "\n")
+        .join("");
     case "json":
       return JSON.stringify(workload.records.map((record) => record.json));
     default:

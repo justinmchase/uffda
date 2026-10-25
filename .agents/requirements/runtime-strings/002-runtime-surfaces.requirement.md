@@ -40,10 +40,10 @@ Expected behavior:
 
 Postconditions:
 
-- Tests: `rust/src/json.rs`, `rust/src/expression.rs`, `rust/src/program.rs`,
-  `rust/src/value.rs`, `rust/src/coercion.rs`, `rust/src/evaluate/tests.rs`,
-  `rust/src/globals/tests.rs`, `rust/src/pattern/tests.rs`,
-  `rust/src/provenance.rs`, `rust/src/module.rs`, `rust/src/resolver.rs`,
-  `rust/src/resolver/graph/tests.rs`, `rust/src/runtime/tests.rs`,
-  `rust/src/output.rs`, `rust/src/languages.rs`, `rust/src/cli.rs`, and the
+- Tests: `src/json.rs`, `src/expression.rs`, `src/program.rs`,
+  `src/value.rs`, `src/coercion.rs`, `src/evaluate/tests.rs`,
+  `src/globals/tests.rs`, `src/pattern/tests.rs`,
+  `src/provenance.rs`, `src/module.rs`, `src/resolver.rs`,
+  `src/resolver/graph/tests.rs`, `src/runtime/tests.rs`,
+  `src/output.rs`, `src/languages.rs`, `src/cli.rs`, and the
   shared `test/rust/string-fixtures.json` corpus.

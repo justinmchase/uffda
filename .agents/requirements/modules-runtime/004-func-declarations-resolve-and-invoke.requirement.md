@@ -32,5 +32,5 @@ Postconditions:
 
 ## Test plan
 
-- `rust/src/languages.rs`, `rust/src/module.rs`,
-  `rust/src/resolver/graph/tests.rs`
+- `src/languages.rs`, `src/module.rs`,
+  `src/resolver/graph/tests.rs`

@@ -29,4 +29,4 @@ Expected behavior:
 Postconditions:
 
 - Naming a rule in an expression never runs the rule.
-- Tests: `rust/src/evaluate/expression_ports.rs`.
+- Tests: `src/evaluate/expression_ports.rs`.

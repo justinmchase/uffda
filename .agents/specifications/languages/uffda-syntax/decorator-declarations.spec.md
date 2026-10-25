@@ -41,7 +41,7 @@ declarations — see [func declaration syntax](./func-declarations.spec.md).
 - A `decorator` declaration MUST be importable and exportable the same way a
   `rule`/`func` declaration is (`export decorator Name = …;`, or
   `decorator
-  Name = …;` plus a later `export Name;`) — see
+Name = …;` plus a later `export Name;`) — see
   [import and export declaration syntax](./import-and-export.spec.md).
 - A `decorator` declaration's name MUST occupy its own namespace, distinct from
   every `rule`, `func`, and imported name in the same module. It MUST NOT

@@ -1,6 +1,6 @@
 # `test/perf/`
 
-On-demand Rust data-codec measurements and retained baseline evidence. Deno
+On-demand Rust data-codec measurements and retained baseline evidence. Node.js
 orchestrates native Rust binaries; it does not provide a runtime implementation.
 The former Deno Morse-parser report and reference-runtime micro-benchmarks are
 retired. These reports are separate from Rust correctness tests.
@@ -23,9 +23,8 @@ standalone acceptance. Historical evidence is retained in
 After the normal published-compiler bootstrap, run:
 
 ```sh
-cargo build --locked --manifest-path rust/Cargo.toml --features embed-languages --release --bin uffda --example codec_probe
-deno run --allow-read --allow-write --allow-run --allow-env=SystemRoot \
-  test/perf/data-codec.report.ts
+cargo build --locked --features embed-languages --release --bin uffda --example codec_probe
+node test/perf/data-codec.report.ts
 ```
 
 Optional positional arguments are the probe binary, CLI binary, and output JSON
@@ -34,13 +33,13 @@ path (default `.tmp/data-codec-report.json`). Linux GNU `/usr/bin/time` and
 is portable:
 
 ```sh
-UFFDA_ACCEPT_CLI="$PWD/rust/target/release/uffda" \
-UFFDA_ACCEPT_PROBE="$PWD/rust/target/release/examples/codec_probe" \
-  cargo test --locked --manifest-path rust/Cargo.toml --features embed-languages --test standalone_acceptance -- --ignored
+UFFDA_ACCEPT_CLI="$PWD/target/release/uffda" \
+UFFDA_ACCEPT_PROBE="$PWD/target/release/examples/codec_probe" \
+  cargo test --locked --features embed-languages --test standalone_acceptance -- --ignored
 ```
 
 Checks and Release Binaries run that Rust test against their optimized binaries.
-No Deno runtime, tools on PATH, source checkout, or external grammar tree is
+No runtime tools on PATH, source checkout, or external grammar tree is
 available to the relocated Rust child processes. The CLI still accepts **one**
 codec subject; multi-record stdin belongs to the public-library acceptance
 example, not a new CLI command.
@@ -56,7 +55,7 @@ example, not a new CLI command.
   correctness are verified separately, not included in parser throughput.
 - Raw/gzip parser pipelines use `flate2`'s Rust backend and default compression,
   including compression finalization or decompression in timed work. Transport
-  size and separate gzip-only timing use Deno Web compression defaults. The two
+  size and separate gzip-only timing use Node.js zlib default compression. The two
   implementations may emit different compressed byte counts; Rust sample byte
   totals are also retained. All compression is benchmark-only.
 - GNU time peak RSS covers the entire child, including fixtures, embedded
