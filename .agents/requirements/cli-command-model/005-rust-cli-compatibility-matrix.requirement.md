@@ -10,10 +10,9 @@ spec_ref: ".agents/specifications/languages/cli/command-model.spec.md#mode-selec
 
 Preconditions:
 
-- The Rust preview exposes compile, exec, fmt, match, parse, and run.
-- MCP, LSP, installation cutover, and production renaming are excluded from this
-  preview matrix; production cutover still requires MCP/LSP on the Rust CLI (see
-  `docs/rust-migration.md` milestone 10).
+- The Rust CLI exposes compile, exec, fmt, match, parse, and run.
+- MCP, LSP, and installation are covered by their own requirements rather than
+  this six-command compatibility matrix.
 
 Expected behavior:
 
@@ -44,8 +43,8 @@ Expected behavior:
 - Rightmost match failures MUST distinguish nested indices and property keys
   from their outer container. Nested paths MUST participate in selection when
   original source offsets tie, and machine diagnostics MUST retain those paths.
-- Preview help MUST omit deferred integrations and describe the already approved
-  codec-record default output. Version values are build metadata, not identical
+- CLI help MUST describe available commands and the codec-record default output.
+  Version values are build metadata, not identical
   across implementations. Existing inline equals-value and native codec-subject
   support MUST remain covered separately rather than removed for compatibility.
 

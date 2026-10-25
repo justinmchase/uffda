@@ -104,9 +104,9 @@ execution or implicit access to runtime scope.
 
 ## Shared implementation evidence
 
-`test/rust/globals-surface-fixtures.json` is the shared name-and-arity fixture
+`tests/rust/globals-surface-fixtures.json` is the shared name-and-arity fixture
 captured before TypeScript reference retirement. The shared behavior corpus is
-`test/rust/globals-fixtures.json`; it includes at least two cases per global,
+`tests/rust/globals-fixtures.json`; it includes at least two cases per global,
 including expected failures where applicable. Where that corpus includes an
 implementation-specific expected value, it records an observed cross-runtime
 difference rather than silently treating that difference as general library

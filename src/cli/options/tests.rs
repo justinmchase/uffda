@@ -49,7 +49,7 @@ fn unknown_flags_precede_semantic_validation_and_no_subject_file_is_opened() {
 // req:cli-command-model-005
 fn persistent_reference_argument_matrix_matches_options_and_exact_errors() {
     let matrix: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../test/rust/cli-compatibility-matrix.json"
+        "../../../tests/rust/cli-compatibility-matrix.json"
     ))
     .unwrap();
     let entries = matrix["arguments"].as_array().unwrap();

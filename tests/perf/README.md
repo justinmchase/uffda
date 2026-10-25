@@ -1,4 +1,4 @@
-# `test/perf/`
+# `tests/perf/`
 
 On-demand Rust data-codec measurements and retained baseline evidence. Node.js
 orchestrates native Rust binaries; it does not provide a runtime implementation.
@@ -24,7 +24,7 @@ After the normal published-compiler bootstrap, run:
 
 ```sh
 cargo build --locked --features embed-languages --release --bin uffda --example codec_probe
-node test/perf/data-codec.report.ts
+node tests/perf/data-codec.report.ts
 ```
 
 Optional positional arguments are the probe binary, CLI binary, and output JSON
@@ -124,9 +124,9 @@ segmentation faults. Passing samples must not be used to discard those failures.
 Virtual CPU affinity does not identify a faulty physical core.
 
 ```sh
-rustc --edition=2021 --test test/perf/std-churn.rs -o .tmp/std-churn-tests
+rustc --edition=2021 --test tests/perf/std-churn.rs -o .tmp/std-churn-tests
 .tmp/std-churn-tests
-rustc --edition=2021 -O test/perf/std-churn.rs -o .tmp/std-churn
+rustc --edition=2021 -O tests/perf/std-churn.rs -o .tmp/std-churn
 .tmp/std-churn 60
 ```
 

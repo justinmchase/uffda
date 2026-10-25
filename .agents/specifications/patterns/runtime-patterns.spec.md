@@ -2,19 +2,6 @@
 
 This chapter indexes the runtime pattern subtopics.
 
-## Implementation migration plan
-
-The following patterns specified in this chapter will replace or supersede
-existing patterns currently in the codebase during implementation:
-
-- `resolve` (new pattern) will replace and unify the current `reference` and
-  `special` patterns
-- `quantifier` will replace the current `slice` pattern
-- `lookahead` is a new pattern to be implemented
-
-This consolidation simplifies the pattern API and aligns implementation with the
-unified semantics defined in the specifications.
-
 ## Runtime pattern chapter structure
 
 Each runtime pattern subtopic should define:

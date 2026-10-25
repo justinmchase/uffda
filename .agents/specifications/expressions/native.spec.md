@@ -12,8 +12,8 @@ Normative key words in this chapter use the conventions defined in the
 Native expressions provide an escape hatch for host-language projection logic
 when expression-tree forms are insufficient.
 
-This chapter's native JavaScript expression form applies to the TypeScript
-runtime. The side-by-side Rust runtime MUST reject native-JavaScript expression
+This chapter's native JavaScript expression form describes the retired TypeScript
+runtime. The production Rust runtime MUST reject native-JavaScript expression
 ASTs and MUST NOT embed a JavaScript engine. Invocation of Rust-native globals
 remains in scope and follows the ordinary invocation and provenance contracts.
 

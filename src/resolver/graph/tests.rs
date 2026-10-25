@@ -374,7 +374,7 @@ fn shared_module_graph_corpus_matches_typescript() {
     }
 
     let fixtures: Vec<Fixture> = serde_json::from_str(include_str!(
-        "../../../test/rust/module-graph-fixtures.json"
+        "../../../tests/rust/module-graph-fixtures.json"
     ))
     .unwrap();
     let root = Url::parse("file:///uffda-shared-module-graph/").unwrap();

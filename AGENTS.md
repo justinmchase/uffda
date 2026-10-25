@@ -9,15 +9,12 @@ Path-scoped authoring guidance also lives in:
 - `.cursor/rules/` (Cursor)
 - `.github/instructions/` (GitHub Copilot)
 
-The implemented Rust layout and Node.js tooling conventions are described in
-[migration guidance](.github/instructions/nodejs-migration.instructions.md).
-
 **Compiler bootstrap / recursion break** (always apply): see
 `.cursor/rules/compiler-bootstrap.mdc`,
 `.github/instructions/compiler-bootstrap.instructions.md`, and
 `.agents/specifications/languages/compiler-bootstrap.spec.md`. `compile:lang` =
-previous published `uffda compile` only → ModuleDeclaration JSON under `./bin`.
-Resolve only loads that JSON. Never re-lower on import, seed compiler JSON under
+previous published `uffda compile` only → ModuleDeclaration artifacts under `./bin`.
+Resolve only loads those artifacts. Never re-lower on import, seed compiler JSON under
 `src/`, or post-process / migrate / rewrite `./bin` after compile. Wrong AST
 shape → publish emitter → install → `compile:lang` again.
 
@@ -53,7 +50,7 @@ performant grammar.
 - Put scratch scripts and other throwaway files under `.tmp/` (gitignored),
   never in the repository root or `src/`.
 - Every implementation change needs a corresponding test. Preserve the JSON
-  compatibility fixtures under `test/rust/`; do not regenerate them from the
+  compatibility fixtures under `tests/rust/`; do not regenerate them from the
   current implementation to make tests pass.
 - Validate with `npm run format:check`, `npm run lint`,
   `npm run check:types`, `npm run test:tools`, and `cargo xtask check` after a

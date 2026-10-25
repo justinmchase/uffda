@@ -1,6 +1,5 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use uffda_runtime::builtins::DECLARATIONS;
-use uffda_runtime::resolver::packages::sha256;
 
 #[test]
 // req:data-codec-006 req:cli-distribution-008
@@ -78,6 +77,18 @@ fn cross_platform_checkouts_preserve_formatter_line_endings() {
 // req:cli-distribution-008
 fn reference_retirement_preserves_grammars_and_compatibility_fixtures() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    assert!(
+        !root.join("test").exists(),
+        "test assets belong under tests/"
+    );
+    for path in [
+        "tests/perf/data-codec.report.ts",
+        "tests/perf/data-codec-baseline.json",
+        "tests/perf/data-codec-native-baseline.json",
+        "tests/perf/std-churn.rs",
+    ] {
+        assert!(root.join(path).is_file(), "missing {path}");
+    }
     let mut pending = vec![root.join("src")];
     let mut grammars = 0;
     while let Some(directory) = pending.pop() {
@@ -116,7 +127,7 @@ fn reference_retirement_preserves_grammars_and_compatibility_fixtures() {
         "semver-fixtures",
         "string-fixtures",
     ] {
-        let path = root.join(format!("test/rust/{fixture}.json"));
+        let path = root.join(format!("tests/rust/{fixture}.json"));
         let value: serde_json::Value =
             serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
         assert!(
@@ -260,7 +271,7 @@ fn build_script_embeds_the_published_artifact_tree() {
     }
 }
 
-const RUST_PREVIEW_TARGETS: &[&str] = &[
+const RELEASE_TARGETS: &[&str] = &[
     "x86_64-unknown-linux-gnu",
     "aarch64-unknown-linux-gnu",
     "x86_64-pc-windows-msvc",
@@ -269,133 +280,6 @@ const RUST_PREVIEW_TARGETS: &[&str] = &[
     "aarch64-apple-darwin",
 ];
 
-fn rust_release_asset(version: &str, target: &str) -> String {
-    let version_ok = regex_simple_semver(version);
-    let target_ok = RUST_PREVIEW_TARGETS.contains(&target);
-    assert!(
-        version_ok && target_ok,
-        "Invalid release version or unsupported target"
-    );
-    let suffix = if target.contains("windows") {
-        ".exe"
-    } else {
-        ""
-    };
-    format!("uffda-{version}-{target}{suffix}")
-}
-
-fn regex_simple_semver(version: &str) -> bool {
-    let mut parts = version.split('-');
-    let core = parts.next().unwrap_or("");
-    let numbers: Vec<_> = core.split('.').collect();
-    let core_ok = numbers.len() == 3
-        && numbers
-            .iter()
-            .all(|part| !part.is_empty() && part.bytes().all(|b| b.is_ascii_digit()));
-    if !core_ok {
-        return false;
-    }
-    match parts.next() {
-        None => true,
-        Some(pre) => {
-            let mut pre_parts = pre.split('.');
-            pre_parts.next() == Some("pre")
-                && pre_parts
-                    .next()
-                    .is_some_and(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()))
-                && pre_parts.next().is_none()
-                && parts.next().is_none()
-        }
-    }
-}
-
-fn package_rust_cli(
-    source: &Path,
-    version: &str,
-    target: &str,
-    out_dir: &Path,
-) -> std::io::Result<PathBuf> {
-    let asset = rust_release_asset(version, target);
-    std::fs::create_dir_all(out_dir)?;
-    let output = out_dir.join(&asset);
-    std::fs::copy(source, &output)?;
-    #[cfg(unix)]
-    if !target.contains("windows") {
-        use std::os::unix::fs::PermissionsExt;
-        let mut permissions = std::fs::metadata(&output)?.permissions();
-        permissions.set_mode(0o755);
-        std::fs::set_permissions(&output, permissions)?;
-    }
-    let digest = sha256(&std::fs::read(&output)?);
-    let name = output.file_name().unwrap().to_string_lossy();
-    std::fs::write(
-        format!("{}.sha256", output.display()),
-        format!("{digest}  {name}\n"),
-    )?;
-    Ok(output)
-}
-
-#[test]
-// req:data-codec-004
-fn remport_release_assets_use_uffda_names_for_all_native_platforms() {
-    for target in RUST_PREVIEW_TARGETS {
-        assert_eq!(
-            rust_release_asset("1.2.3", target),
-            format!(
-                "uffda-1.2.3-{target}{}",
-                if target.contains("windows") {
-                    ".exe"
-                } else {
-                    ""
-                }
-            )
-        );
-        assert!(rust_release_asset("1.2.3-pre.1", target).starts_with("uffda-1.2.3-pre.1-"));
-    }
-    assert!(
-        std::panic::catch_unwind(|| rust_release_asset("../bad", RUST_PREVIEW_TARGETS[0])).is_err()
-    );
-    assert!(std::panic::catch_unwind(|| rust_release_asset("1.2.3", "unsupported")).is_err());
-}
-
-#[test]
-// req:data-codec-004
-fn remport_preview_packaging_copies_bytes_and_emits_portable_sha256_files() {
-    let temp = std::env::temp_dir().join(format!(
-        "uffda-package-cli-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
-    std::fs::create_dir_all(&temp).unwrap();
-    let source = temp.join("binary");
-    std::fs::write(&source, "abc").unwrap();
-    let asset = package_rust_cli(
-        &source,
-        "1.2.3",
-        RUST_PREVIEW_TARGETS[0],
-        &temp.join("dist"),
-    )
-    .unwrap();
-    assert_eq!(std::fs::read_to_string(&asset).unwrap(), "abc");
-    assert_eq!(
-        std::fs::read_to_string(format!("{}.sha256", asset.display())).unwrap(),
-        "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad  uffda-1.2.3-x86_64-unknown-linux-gnu\n"
-    );
-    assert!(
-        package_rust_cli(
-            &temp.join("missing"),
-            "1.2.3",
-            RUST_PREVIEW_TARGETS[0],
-            &temp.join("dist"),
-        )
-        .is_err()
-    );
-    let _ = std::fs::remove_dir_all(temp);
-}
-
 #[test]
 // req:data-codec-004
 fn remport_release_covers_all_six_native_targets_checks_cover_linux_only() {
@@ -403,7 +287,7 @@ fn remport_release_covers_all_six_native_targets_checks_cover_linux_only() {
     let check = std::fs::read_to_string(root.join(".github/workflows/checks.yml")).unwrap();
     let release =
         std::fs::read_to_string(root.join(".github/workflows/release-binaries.yml")).unwrap();
-    for target in RUST_PREVIEW_TARGETS {
+    for target in RELEASE_TARGETS {
         let needle = format!("target: {target}");
         assert_eq!(
             check.contains(&needle),

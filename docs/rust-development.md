@@ -1,13 +1,11 @@
-# Rust Uffda runtime migration
+# Rust development
 
-This crate is the production Rust runtime and CLI described in the
-[migration plan](../docs/rust-migration.md). The six batch commands (`compile`,
+This crate provides the production Rust runtime and CLI. The six batch commands (`compile`,
 `parse`, `exec`, `match`, `run`, `fmt`) are implemented, plus stdio `mcp` /
 `lsp` servers (MCP: version, parse/match/compile, highlight, session
 open/load/list_modules/eval/describe/query/patch/walk/close, and loopback
 display open/render; LSP: initialize, document sync, `.uff` parse diagnostics).
-Richer LSP features are still landing. Release `uffda-*` assets and the Linux
-installer are this Rust CLI.
+Release `uffda-*` assets and the Linux installer are this Rust CLI.
 
 Developed with substantial assistance from [Cursor](https://cursor.com); see the
 [repository acknowledgments](https://github.com/justinmchase/uffda#acknowledgments).
@@ -33,7 +31,7 @@ printf '%s' '{"kind":"value","value":"hello"}' | \
 ```
 
 Standalone codec streaming and all-six-command acceptance are documented in
-[the codec measurement report](../test/perf/README.md#rust-data-codec-acceptance).
+[the codec measurement report](../tests/perf/README.md#rust-data-codec-acceptance).
 `examples/codec_probe.rs` is a public-library acceptance consumer, not a new
 product CLI command. It reads arbitrary byte chunks, emits records before EOF,
 round-trips native values through a collected arena, and surfaces malformed
@@ -69,7 +67,7 @@ Uffda source display, formatter output and hashing explicitly reject isolated
 units. Root provenance retains the specified code-point positions; slicing a
 surrogate pair retains its character span, and a pair formed across concatenated
 segments covers both contributing spans. The shared string corpus lives in
-`test/rust/string-fixtures.json`.
+`tests/rust/string-fixtures.json`.
 
 `ExpressionExecution::step_status` distinguishes completed work, cooperative
 yielding and suspension. Explicit host callable values suspend ordinary calls
@@ -149,7 +147,7 @@ error fields and nonempty messages remain checked. Preview help omits deferred
 MCP/LSP, and default codec strings intentionally differ from reference text
 display.
 
-The checked-in JSON snapshots under `test/rust/` preserve the former reference
+The checked-in JSON snapshots under `tests/rust/` preserve the former reference
 implementation's accepted outcomes. Rust tests consume them independently; the
 Deno reference runtime and its snapshot generator are retired. Deliberate
 contract changes update specifications, requirements, fixtures, and tests
@@ -192,11 +190,11 @@ cargo test-rust
 
 ### Packaging
 
-| Channel               | Ships                                                                                                            |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| crates.io (libraries) | `uffda-runtime`, `uffda-codec`, `uffda-heap`, `uffda-heap-derive`, `uffda-build`                                 |
-| GitHub Releases       | Product `uffda` CLI (ASTs embedded at build time)                                                                |
-| JSR                   | `.uff`, `.uff.ast` (data-codec ModuleDeclarations), `.uff.ast.json` siblings during migration; `jsr:` resolution |
+| Channel               | Ships                                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------------------- |
+| crates.io (libraries) | `uffda-runtime`, `uffda-codec`, `uffda-heap`, `uffda-heap-derive`, `uffda-build`                              |
+| GitHub Releases       | Product `uffda` CLI (ASTs embedded at build time)                                                             |
+| JSR                   | `.uff`, `.uff.ast` (data-codec ModuleDeclarations), `.uff.ast.json` compatibility siblings; `jsr:` resolution |
 
 Compiled ModuleDeclarations on disk use the **`.uff.ast`** extension for the
 data-codec record. A **`.uff.ast.json`** sibling is still emitted; resolvers and
@@ -215,8 +213,8 @@ The standalone crate lives under `src/codec/`. Runtime adapters live separately
 under `src/codec_runtime/`, exposed as `uffda_runtime::codec`, so Cargo includes
 them in the runtime package instead of treating them as nested-crate files.
 
-See [rust-crates.md](./rust-crates.md) for crates.io OIDC trusted publishing and the
-one-time first-publish steps.
+See [rust-crates.md](./rust-crates.md) for the release publishing process and
+crates.io OIDC configuration.
 
 Library builds default to **no** product grammars. Enable
 `--features embed-languages` (CI, `cargo xtask`, `cargo build-uffda`) so the
@@ -240,7 +238,7 @@ current specs auditor does not recognize Rust inline tests; verify these
 citations separately rather than adding placeholder TypeScript tests to satisfy
 its discovery rules.
 
-## Collector evaluation
+## Memory management
 
 Runtime code uses the collector only through the `uffda-heap` crate
 (`src/heap`), which owns the `Gc`, `RefLock`, `Arena`, `Mutation`, dynamic
@@ -285,7 +283,7 @@ across callback boundaries. The evaluator uses explicit execution frames and
 roots pending values, allowing collection between frames. It services allocation
 debt after each frame; a frame may still do work proportional to an aggregate's
 size. Async invocation must retain suspended state before awaiting external
-work. Testing that integration remains a gate, not an assumption.
+work.
 
 Current coverage includes primitive equality, aggregate identity and sharing,
 ordered object storage, captured lexical environments, external roots (including
@@ -293,7 +291,7 @@ a root held across a suspended future), cyclic reclamation, and repeated
 allocation/collection. Closure tests include actual lambda execution, captured
 callable reuse, 20,000-level invocation nesting, and reclaimable
 object/closure/environment cycles. Rule, module-cache, memo, and real
-async-invocation roots remain open.
+async-invocation rooting are covered by runtime and host integration tests.
 
 ## Expression execution
 
@@ -312,7 +310,7 @@ Errors remain failures on subsequent calls. Both execution and pending-tree
 cleanup are tested at 20,000 nesting levels.
 
 Shared fixtures in
-[test/rust/expression-fixtures.json](../test/rust/expression-fixtures.json)
+[tests/rust/expression-fixtures.json](../tests/rust/expression-fixtures.json)
 preserve compatibility with the retired TypeScript implementation. The Rust
 runtime additionally forces collection after every frame. Run the Rust tests
 that exercise these fixtures with:
@@ -325,14 +323,14 @@ String interpolation and unary `not` now execute through the same frame stack.
 Scalar text and number formatting remain supported. Object/array/callable text
 conversion is intentionally rejected under the updated contract; `join` only
 converts scalar elements. Explicit data JSON and asynchronous non-callable
-JSON-hook behavior have differential tests. Lone-surrogate strings and remaining
-non-JSON/async behaviors remain migration gaps. Deep strings, arrays, negation
-and default Uffda output traversal are tested at 20,000 levels.
+JSON-hook behavior have compatibility tests. Lossless UTF-16 strings and explicit
+async suspension follow the contracts described above. Deep strings, arrays,
+negation and default Uffda output traversal are tested at 20,000 levels.
 
 ## Pattern and provenance execution
 
 `PatternExecution` implements the artifact pattern kinds on the supported value
-types, with iterator-protocol and rule integration still under validation. It
+types, including iterator-protocol and rule integration. It
 uses GC-rooted continuation frames and match trees, restores failed branches,
 and validates repetition bounds and progress. Real lambda invocation uses this
 matcher before evaluating its body in the captured lexical environment. `_`
@@ -348,25 +346,21 @@ observes a rooted result's raw outer value; `read_with_provenance()` allows
 tooling to inspect its wrapper. Neither API reduces undefined or callables to
 JSON.
 
-This is not full runtime parity. The 36 native globals, declared/imported funcs,
-symbols, maps/sets, iterator factories, and canonical declaration subjects now
-have implementations and targeted tests. Rule execution, metadata, memoization,
-left recursion, recovery, full provenance, async integration, and remaining
-member/coercion behavior still require their enclosing acceptance gates.
-Unsupported forms fail explicitly rather than silently producing a value. The
-migration plan records the resolved `and` requirement discrepancy and TypeScript
-`max: 0` correction.
+The 36 native globals, declared/imported funcs, symbols, maps/sets, iterator
+factories, and canonical declaration subjects have implementations and targeted
+tests. Rule execution, metadata, memoization, left recursion, recovery,
+provenance, and async integration are covered by requirement-cited runtime tests.
+Unsupported forms fail explicitly rather than silently producing a value.
 
-## Module loading foundation
+## Module loading
 
-Both runtimes now target `.uff` and `.json` modules. Arbitrary `.ts`/`.js`
-declaration-file loading is retired in both; controlled host injection is not
-file loading. Rust has a filesystem declaration loader with URL-keyed identity,
+The runtime loads `.uff` and `.json` modules. Arbitrary `.ts`/`.js`
+declaration-file loading is unsupported; controlled host injection is not
+file loading. The filesystem declaration loader provides URL-keyed identity,
 direct JSON validation, structured read/parse errors, and `.uff` artifact
 remapping under an explicit absolute layout. It never reads `.uff` source or
 re-lowers imported artifacts. The shared module corpus covers outer declaration
 shape validation. The resolver now also links module graphs and supports JSR
 packages, blocking HTTP data transport, checksum-validated caches, lockfiles,
-import maps, reexports, and cycles. Its 32 targeted tests pass, including the
-shared semver and graph corpora. Runtime execution of these graphs remains a
-separate acceptance gate.
+import maps, reexports, and cycles. Resolver, module-runtime, and host integration
+tests cover these paths, including the shared semver and graph corpora.

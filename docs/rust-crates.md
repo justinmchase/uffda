@@ -16,44 +16,27 @@ Product CLI binaries ship on **GitHub Releases**. These crates ship on
 
 CI publishes them from `.github/workflows/publish.yml` using **OIDC trusted
 publishing** (`rust-lang/crates-io-auth-action`). No long-lived
-`CARGO_REGISTRY_TOKEN` secret is required after the one-time setup below.
+`CARGO_REGISTRY_TOKEN` secret is required.
 
-## One-time setup (crate owner)
+## Release publishing
 
-### 1. First publish (manual)
+Publishing a GitHub Release runs the Publish workflow. The crates.io job uses a
+short-lived OIDC token and publishes in dependency order: heap derive, heap,
+build helper, codec, then runtime. Product grammars are not embedded in these
+library packages.
 
-Trusted publishing can only be attached to crates that already exist. From a
-clean checkout at the version you want (e.g. `0.10.0`):
+## Trusted publishing configuration
 
-```sh
-cargo login   # crates.io API token, once on this machine
-cargo publish -p uffda-heap-derive --locked
-cargo publish -p uffda-heap --locked
-cargo publish -p uffda-build --locked
-cargo publish -p uffda-codec --locked
-cargo publish -p uffda-runtime --locked
-```
-
-### 2. Trusted publishing on crates.io
-
-For **each** of the five crates → Settings → Trusted Publishing:
+Each crate's crates.io trusted publisher uses:
 
 - **Repository**: `justinmchase/uffda`
 - **Workflow filename**: `publish.yml`
 - **Environment**: `crates-io` (must match the job `environment:` in the
   workflow)
 
-### 3. GitHub Environment
-
-Repo → Settings → Environments → create `crates-io` (optional protection rules
-such as required reviewers).
-
-After that, publishing a GitHub Release (or `workflow_dispatch` on Publish) runs
-the crates.io job with a short-lived OIDC token.
-
-`uffda-codec` is a new crate: its owner must perform its first publish and
-configure trusted publishing before the release workflow can publish it.
-Repository changes cannot provision that crates.io ownership setting.
+The repository's `crates-io` GitHub Environment may add protection rules such as
+required reviewers. Keep its name aligned with the workflow and crates.io
+settings.
 
 ## Versioning
 

@@ -94,7 +94,7 @@ fn shared_semver_range_corpus_matches_reference() {
         expected: Option<String>,
     }
     let fixtures: Vec<Fixture> =
-        serde_json::from_str(include_str!("../../../test/rust/semver-fixtures.json")).unwrap();
+        serde_json::from_str(include_str!("../../../tests/rust/semver-fixtures.json")).unwrap();
     for fixture in fixtures {
         let actual =
             highest_satisfying(fixture.versions.iter().map(String::as_str), &fixture.range);

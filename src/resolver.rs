@@ -853,7 +853,7 @@ mod tests {
             valid: bool,
         }
         let fixtures: Vec<Fixture> =
-            serde_json::from_str(include_str!("../test/rust/module-fixtures.json")).unwrap();
+            serde_json::from_str(include_str!("../tests/rust/module-fixtures.json")).unwrap();
         let url = Url::parse("file:///shared-module.json").unwrap();
         for fixture in fixtures {
             assert_eq!(

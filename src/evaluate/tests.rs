@@ -1679,7 +1679,7 @@ fn assert_json_values(actual: &serde_json::Value, expected: &serde_json::Value) 
 // req:runtime-memory-005
 fn shared_fixtures_match_the_typescript_runtime_with_collection_at_every_step() {
     let fixtures: serde_json::Value =
-        serde_json::from_str(include_str!("../../test/rust/expression-fixtures.json")).unwrap();
+        serde_json::from_str(include_str!("../../tests/rust/expression-fixtures.json")).unwrap();
     for fixture in fixtures.as_array().unwrap() {
         let mut evaluation = Evaluation::new(expression(fixture["ast"].clone()));
         if fixture["error"].as_bool() == Some(true) {
