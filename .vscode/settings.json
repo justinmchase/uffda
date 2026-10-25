@@ -1,4 +1,5 @@
 {
+  "files.eol": "\n",
   "uffda.lsp.serverPath": "target/release/uffda",
   "uffda.lsp.serverArgs": ["lsp"],
   "uffda.mcp.serverArgs": ["mcp"]

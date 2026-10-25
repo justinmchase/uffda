@@ -5,6 +5,9 @@ Thanks for your interest in contributing.
 ## Ground rules
 
 - Keep changes focused — one concern per PR.
+- Use LF line endings for all repository text files, including on Windows.
+  Git, EditorConfig, VS Code, and Prettier are configured for LF. Helper tests
+  reject CRLF or mixed line endings in tracked text files.
 - Run `npm ci`, `npm run format:check`, `npm run lint`,
   `npm run check:types`, `npm run test:tools`, and `cargo xtask check` before
   submitting. Bootstrap language artifacts first.

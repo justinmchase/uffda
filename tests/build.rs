@@ -62,6 +62,16 @@ fn cross_platform_checkouts_preserve_formatter_line_endings() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let attributes = std::fs::read_to_string(root.join(".gitattributes")).unwrap();
     assert!(attributes.lines().any(|line| line == "* text=auto eol=lf"));
+    let settings: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(root.join(".vscode/settings.json")).unwrap())
+            .unwrap();
+    assert_eq!(settings["files.eol"], "\n");
+    let prettier: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(root.join(".prettierrc.json")).unwrap())
+            .unwrap();
+    assert_eq!(prettier["endOfLine"], "lf");
+    let editor = std::fs::read_to_string(root.join(".editorconfig")).unwrap();
+    assert!(editor.lines().any(|line| line == "end_of_line = lf"));
 }
 
 #[test]

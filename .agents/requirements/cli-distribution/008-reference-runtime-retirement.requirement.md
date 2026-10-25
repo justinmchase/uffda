@@ -29,6 +29,9 @@ Expected behavior:
 - Repository helpers and codec measurement tooling MUST run with Node.js.
   The VS Code extension keeps its independent package boundary, and JSR
   publishing MAY use the JSR CLI.
+- Repository text files MUST use LF line endings on every platform, including
+  Windows. Git, editor, and formatter configuration MUST preserve LF, and helper
+  tests MUST reject CRLF or mixed line endings in tracked text files.
 - The runtime package MUST contain its codec adapter sources, separately from
   the standalone codec crate, while retaining the `uffda_runtime::codec` API.
 - Published grammar exports and the full-circle bootstrap and standalone
