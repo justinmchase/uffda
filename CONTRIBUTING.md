@@ -53,17 +53,17 @@ the Node helper tests.
 src/lang/                 Authored .uff language definitions
 src/                       Production Rust runtime, CLI, and crates
 tests/                     Rust integration tests
-test/rust/                Preserved compatibility fixtures
+tests/rust/                Preserved compatibility fixtures
+tests/perf/                Codec measurement tools and retained baselines
 scripts/                  Node.js release and measurement helpers
 editors/vscode/           Independently built TypeScript extension
 mod.ts                    JSR notice entry point (no runtime APIs)
 ```
 
-## Rust migration
+## Rust development
 
-See the [migration record](./docs/rust-migration.md) and
-[Rust development instructions](./docs/rust-development.md). The Rust CLI is
-production; the Deno reference implementation is retired. Preserve `.uff`
+See the [Rust development instructions](./docs/rust-development.md) and
+[crate publishing guide](./docs/rust-crates.md). Preserve `.uff`
 grammars and JSON compatibility fixtures, and cite requirements with `req:{id}`
 in Rust tests.
 Checks validates full-circle compilation using the published CLI followed by a

@@ -26,7 +26,7 @@ Expected behavior:
 - Raw and gzip byte sizes, gzip compression/decompression time, Rust encode and
   decode throughput for raw and gzip pipelines, sample count, record count, and
   input chunk size MUST be reportable via the in-tree measurement tooling
-  (`test/perf/data-codec.report.ts`, driven by `examples/codec_probe.rs`).
+  (`tests/perf/data-codec.report.ts`, driven by `examples/codec_probe.rs`).
   Compression-only cost and parser/pipeline cost MUST be identified separately.
   Data-document decode MUST NOT be advertised as fully materialized
   native-runtime throughput.
@@ -39,7 +39,7 @@ Expected behavior:
   speed or size thresholds or claim superiority from shared-host timings.
 - Per-commit Checks MUST NOT re-run the full raw/gzip cost report. Persistent
   measured evidence MUST remain in-repo (for example
-  `test/perf/data-codec-baseline.json`); regenerating the report is a manual /
+  `tests/perf/data-codec-baseline.json`); regenerating the report is a manual /
   on-demand action, not a merge gate.
 - A standalone streaming consumer MUST read arbitrary byte chunks, deliver
   complete records before EOF, retain native value types, honor backpressure,

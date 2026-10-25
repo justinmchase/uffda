@@ -160,7 +160,7 @@ fn persistent_reference_execution_matrix_matches_supported_commands() {
         }
     }
     let matrix: serde_json::Value =
-        serde_json::from_str(include_str!("../test/rust/cli-compatibility-matrix.json")).unwrap();
+        serde_json::from_str(include_str!("../tests/rust/cli-compatibility-matrix.json")).unwrap();
     let entries = matrix["executions"].as_array().unwrap();
     assert!(entries.len() > 140);
     let mut failures = Vec::new();

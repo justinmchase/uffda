@@ -13,7 +13,7 @@
   "include": [
     "scripts/**/*.ts",
     ".github/actions/uffda-setup/**/*.ts",
-    "test/perf/**/*.ts"
+    "tests/perf/**/*.ts"
   ],
   "exclude": ["editors/vscode", "node_modules", ".tmp", "target"]
 }

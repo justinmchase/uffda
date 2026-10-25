@@ -46,4 +46,4 @@ Postconditions:
   `src/provenance.rs`, `src/module.rs`, `src/resolver.rs`,
   `src/resolver/graph/tests.rs`, `src/runtime/tests.rs`,
   `src/output.rs`, `src/languages.rs`, `src/cli.rs`, and the
-  shared `test/rust/string-fixtures.json` corpus.
+  shared `tests/rust/string-fixtures.json` corpus.

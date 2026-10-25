@@ -5,16 +5,12 @@ alwaysApply: true
 
 # Repository instructions
 
-For the approved Rust-layout and Node.js tooling migration, follow
-[migration guidance](../../.github/instructions/nodejs-migration.instructions.md).
-It defines the implemented state and validation gates.
-
 Uffda is a Rust parser generator for domain specific languages. The Deno
 runtime/CLI reference is retired; Node.js runs repository helper tooling.
 
 **Compiler bootstrap:** see `.cursor/rules/compiler-bootstrap.mdc` (always
 applied). `compile:lang` = previous published `uffda compile` only →
-ModuleDeclaration under `./bin`; resolve loads JSON only. Never post-process
+ModuleDeclaration artifacts under `./bin`; resolve loads artifacts only. Never post-process
 `./bin` after compile; wrong AST shape → publish → install → recompile.
 
 ## Runtime and dependency conventions
@@ -40,7 +36,7 @@ ModuleDeclaration under `./bin`; resolve loads JSON only. Never post-process
 - Put scratch scripts and other throwaway files under `.tmp/` (gitignored),
   never in the repository root or `src/`.
 - Every implementation change needs a corresponding test. Preserve the JSON
-  compatibility fixtures under `test/rust/`.
+  compatibility fixtures under `tests/rust/`.
 - Validate with `npm run format:check`, `npm run lint`, `npm run check:types`,
   `npm run test:tools`, and `cargo xtask check` after a published-CLI bootstrap.
 - **Before pushing** any commit that changes code (`.ts`, `.uff`, etc.) or

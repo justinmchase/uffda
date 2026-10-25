@@ -10,8 +10,8 @@ Normative detail: `.agents/specifications/languages/compiler-bootstrap.spec.md`.
 ## Chicken / egg (do not “fix” with hacks)
 
 Compiling `runtime.compiler.uff` (and other language `.uff`) into `./bin` must
-**not** load that same module from workspace `./bin` via `Resolver.import` /
-`runUffdaRuntimeCompiler`. That path is recursive.
+**not** load that same module from workspace `./bin` through the resolver and
+runtime compiler. That path is recursive.
 
 **Break the cycle:**
 
@@ -24,7 +24,8 @@ Compiling `runtime.compiler.uff` (and other language `.uff`) into `./bin` must
 2. Build the in-tree Rust CLI with `embed-languages` once workspace `./bin` has
    been populated. It embeds those declarations and runs the authored
    `runtime.compiler.uff` through the ordinary Rust resolver and runtime.
-3. **Runtime resolve** only reads that JSON. It must not re-lower or call the
+3. **Runtime resolve** only reads emitted `.uff.ast` codec declarations (or
+   `.uff.ast.json` compatibility siblings). It must not re-lower or call the
    runtime compiler again. No recursion.
 
 ## Forbidden
@@ -45,11 +46,3 @@ Compiling `runtime.compiler.uff` (and other language `.uff`) into `./bin` must
 Publish a CLI that adds the feature (or the corrected emitter), **install it**,
 then run `compile:lang` so **that** compiler regenerates `./bin`. Do not park
 artifacts in `src/` and do not post-process bin output.
-
-The published `uffda compile` pipeline (parse + lower in one step) has shipped
-(0.1.17+); `compile:lang` uses that single previous-CLI step directly and no
-wrapper script under `src/cli/` is needed.
-
-A one-release **runtime** bridge for older artifacts MAY exist so the new CLI
-can boot long enough to recompile; it MUST NOT rewrite `./bin` and MUST be
-removed after install + `compile:lang` with the new CLI.

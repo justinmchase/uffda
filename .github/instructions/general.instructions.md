@@ -10,8 +10,8 @@ runtime/CLI reference is retired; Node.js runs repository helper tooling.
 
 **Compiler bootstrap:** see
 `.github/instructions/compiler-bootstrap.instructions.md`. `compile:lang` =
-previous published `uffda compile` only → ModuleDeclaration under `./bin`;
-resolve loads JSON only. Never post-process `./bin` after compile; wrong AST
+previous published `uffda compile` only → ModuleDeclaration artifacts under `./bin`;
+resolve loads artifacts only. Never post-process `./bin` after compile; wrong AST
 shape → publish → install → recompile.
 
 ## Runtime and dependency conventions

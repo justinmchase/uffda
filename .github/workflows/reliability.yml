@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - test/perf/std-churn.rs
-      - test/perf/data-codec*.ts
-      - test/perf/data-codec-native-baseline.json
+      - tests/perf/std-churn.rs
+      - tests/perf/data-codec*.ts
+      - tests/perf/data-codec-native-baseline.json
       - .github/workflows/reliability.yml
 
 jobs:
@@ -38,9 +38,9 @@ jobs:
         run: |
           set -euo pipefail
           rustc -vV
-          rustc --edition=2021 --test test/perf/std-churn.rs -o std-churn-tests.exe
+          rustc --edition=2021 --test tests/perf/std-churn.rs -o std-churn-tests.exe
           ./std-churn-tests.exe
-          rustc --edition=2021 -O test/perf/std-churn.rs -o std-churn.exe
+          rustc --edition=2021 -O tests/perf/std-churn.rs -o std-churn.exe
           ./std-churn.exe 60
 
   codec-report:
@@ -66,7 +66,7 @@ jobs:
       - name: Measure all workloads without successful-only retries
         run: |
           npm run test:tools
-          node test/perf/data-codec.report.ts \
+          node tests/perf/data-codec.report.ts \
             target/release/examples/codec_probe target/release/uffda \
             .tmp/data-codec-report.json
       - uses: actions/upload-artifact@v7

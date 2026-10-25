@@ -59,6 +59,7 @@ mod tests {
     use super::*;
 
     #[test]
+    // req:data-codec-004
     fn copies_preserve_unicode_escapes_and_control_characters() {
         let strings = corpus();
         assert_eq!(strings.len(), 32);

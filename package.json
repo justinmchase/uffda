@@ -11,7 +11,7 @@
     "compile:cli": "npm run compile:lang && cargo build --locked --release --features embed-languages --bin uffda",
     "test": "npm run compile:lang && cargo xtask test && npm run test:tools",
     "test:rust": "cargo xtask test",
-    "test:tools": "node --experimental-strip-types --test scripts/compile-lang.test.ts scripts/line-endings.test.ts scripts/package-rust-cli.test.ts scripts/verify-rust-codec.test.ts .github/actions/uffda-setup/resolve_release.test.ts test/perf/data-codec.report.test.ts",
+    "test:tools": "node --experimental-strip-types --test scripts/compile-lang.test.ts scripts/line-endings.test.ts scripts/verify-rust-codec.test.ts .github/actions/uffda-setup/resolve_release.test.ts tests/perf/data-codec.report.test.ts",
     "fmt:uff": "npm run compile:lang && npm run cli -- fmt \"src/lang/**/*.uff\" \"examples/**/*.uff\"",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

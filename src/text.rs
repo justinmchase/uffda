@@ -132,7 +132,7 @@ mod tests {
     // req:runtime-strings-001
     fn shared_host_fixtures_preserve_identical_units() {
         let fixtures: serde_json::Value =
-            serde_json::from_str(include_str!("../test/rust/string-fixtures.json")).unwrap();
+            serde_json::from_str(include_str!("../tests/rust/string-fixtures.json")).unwrap();
         for fixture in fixtures.as_array().unwrap() {
             let source = fixture["source"].as_str().unwrap();
             let expected: Vec<u16> = fixture["units"]

@@ -939,7 +939,7 @@ mod tests {
             memory_scaling: Vec<ScalingRow>,
         }
         let baseline: Baseline =
-            serde_json::from_str(include_str!("../test/perf/data-codec-baseline.json")).unwrap();
+            serde_json::from_str(include_str!("../tests/perf/data-codec-baseline.json")).unwrap();
         assert_eq!(baseline.sizes.len(), 12);
         assert_eq!(baseline.samples.len(), 216);
         assert_eq!(baseline.memory_scaling.len(), 24);

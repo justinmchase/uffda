@@ -1610,7 +1610,7 @@ fn assert_fixture_value(value: Value<'_>, expected: &serde_json::Value) {
 // req:except-001 req:type-001 req:quantifier-001 req:runtime-memory-005
 fn shared_pattern_fixtures_match_typescript_with_gc_between_every_frame() {
     let fixtures: serde_json::Value =
-        serde_json::from_str(include_str!("../../test/rust/pattern-fixtures.json")).unwrap();
+        serde_json::from_str(include_str!("../../tests/rust/pattern-fixtures.json")).unwrap();
     for fixture in fixtures.as_array().unwrap() {
         let pattern: Pattern = serde_json::from_value(fixture["ast"].clone()).unwrap();
         let mut arena = Arena::<Rootable![PatternExecution<'_>]>::new(|mc| {
@@ -1658,7 +1658,7 @@ fn shared_pattern_fixtures_match_typescript_with_gc_between_every_frame() {
 // req:character-001 req:over-001 req:switch-001 req:runtime-memory-005
 fn shared_extra_pattern_fixtures_match_typescript_with_gc_between_every_frame() {
     let fixtures: serde_json::Value =
-        serde_json::from_str(include_str!("../../test/rust/pattern-extra-fixtures.json")).unwrap();
+        serde_json::from_str(include_str!("../../tests/rust/pattern-extra-fixtures.json")).unwrap();
     for fixture in fixtures.as_array().unwrap() {
         let pattern: Pattern = serde_json::from_value(fixture["ast"].clone()).unwrap();
         let mut arena = Arena::<Rootable![PatternExecution<'_>]>::new(|mc| {

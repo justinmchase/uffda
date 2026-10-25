@@ -15,7 +15,7 @@ Preconditions:
 Expected behavior:
 
 - Rust MUST expose the names and declared arities captured in
-  `test/rust/globals-surface-fixtures.json`, plus `to_codec` and `from_codec`
+  `tests/rust/globals-surface-fixtures.json`, plus `to_codec` and `from_codec`
   (arity one), specified by `standard-library-003`.
 - The retired TypeScript implementation is not required to execute these tests.
 - The fixture name set MUST contain no duplicate names.

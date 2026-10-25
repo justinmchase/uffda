@@ -4,10 +4,6 @@ Uffda's runtime and CLI are Rust. The Deno reference implementation is retired.
 Follow [AGENTS.md](../AGENTS.md) for repository conventions, specification
 authority, bootstrap restrictions, and release rules.
 
-For the approved Rust-layout and Node.js tooling migration, follow
-[migration guidance](instructions/nodejs-migration.instructions.md) for the
-implemented Rust layout and Node.js tooling.
-
 ## Layout and tests
 
 - Runtime and CLI: `src/`; Rust unit tests live with their modules and
@@ -15,7 +11,7 @@ implemented Rust layout and Node.js tooling.
 - Languages: authored `.uff` under `src/lang/`, compiled to `bin/` by the
   previous published CLI. Never restore TypeScript language twins or mutate
   artifacts after compilation.
-- Preserve `test/rust/*.json` compatibility fixtures as independent regression
+- Preserve `tests/rust/*.json` compatibility fixtures as independent regression
   inputs; tests must not regenerate expected outcomes.
 - TypeScript helpers use Node.js; the VS Code extension remains an independent
   npm package, and `mod.ts` remains the JSR notice. Helper tests use `.test.ts`.

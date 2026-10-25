@@ -11,7 +11,7 @@ spec_ref: ".agents/specifications/languages/cli/command-model.spec.md#error-shap
 Preconditions:
 
 - The Rust preview and reference CLI receive a common validation fixture from
-  `test/rust/cli-validation-fixtures.json`.
+  `tests/rust/cli-validation-fixtures.json`.
 - A built Rust binary is copied outside the checkout into a directory with no
   project configuration or compiled language artifacts and no runtime tools on
   `PATH`.

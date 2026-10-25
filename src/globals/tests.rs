@@ -170,7 +170,7 @@ fn shared_lossless_strings_cover_globals_iteration_and_property_lookup() {
         units: Vec<u16>,
     }
     let fixtures: Vec<Fixture> =
-        serde_json::from_str(include_str!("../../test/rust/string-fixtures.json")).unwrap();
+        serde_json::from_str(include_str!("../../tests/rust/string-fixtures.json")).unwrap();
     for fixture in fixtures {
         let text = RuntimeString::from_json_string(&fixture.source).unwrap();
         let literal = || Expression::Value {
@@ -447,7 +447,7 @@ fn native_callable_own_fields_match_all_typescript_names_and_arities() {
         arity: usize,
     }
     let fixtures: Vec<Fixture> = serde_json::from_str(include_str!(
-        "../../test/rust/globals-surface-fixtures.json"
+        "../../tests/rust/globals-surface-fixtures.json"
     ))
     .unwrap();
     assert_eq!(GLOBALS.len(), fixtures.len() + 2);
@@ -489,7 +489,7 @@ fn native_callable_own_fields_match_all_typescript_names_and_arities() {
         }
     }
     let behavior_fixtures: serde_json::Value =
-        serde_json::from_str(include_str!("../../test/rust/globals-fixtures.json")).unwrap();
+        serde_json::from_str(include_str!("../../tests/rust/globals-fixtures.json")).unwrap();
     let mut behavior_names = std::collections::HashSet::new();
     for fixture in behavior_fixtures.as_array().unwrap() {
         behavior_names.insert(fixture["name"].as_str().unwrap().to_string());
@@ -648,7 +648,7 @@ fn evaluate(expression: Expression) -> String {
 // req:standard-library-002 req:expressions-runtime-005 req:expressions-runtime-007 req:runtime-memory-005
 fn shared_native_fixtures_match_typescript_with_collection_between_frames() {
     let fixtures: serde_json::Value =
-        serde_json::from_str(include_str!("../../test/rust/globals-fixtures.json")).unwrap();
+        serde_json::from_str(include_str!("../../tests/rust/globals-fixtures.json")).unwrap();
     for fixture in fixtures.as_array().unwrap() {
         let args = if let Some(expressions) = fixture["expressions"].as_array() {
             expressions

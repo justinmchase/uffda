@@ -11,7 +11,7 @@ import { createInterface } from "node:readline";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { codecCorpus } from "../test/perf/data-codec-corpus.ts";
+import { codecCorpus } from "../tests/perf/data-codec-corpus.ts";
 
 type ProcessResult = {
   code: number | null;

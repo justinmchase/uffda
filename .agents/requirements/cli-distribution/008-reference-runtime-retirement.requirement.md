@@ -16,9 +16,11 @@ Expected behavior:
 
 - `src/` MUST retain authored `.uff` grammars but MUST NOT contain a tracked
   TypeScript or JavaScript runtime, CLI, or grammar wrapper implementation.
-- The checked-in JSON compatibility fixtures under `test/rust/` MUST remain
+- The checked-in JSON compatibility fixtures under `tests/rust/` MUST remain
   available to the Rust parser, process, and runtime regression tests. Tests
   MUST NOT regenerate expected outcomes from the removed reference runtime.
+- Integration tests, compatibility fixtures, and performance tooling MUST share
+  the root `tests/` tree; there MUST NOT be a separate root `test/` directory.
 - Development tasks `cli`, `compile:cli`, and `test` MUST use the Rust CLI and
   test suite. `compile:lang` MUST continue using the published CLI directly.
 - Node.js helper tests MUST have an explicit scope that excludes obsolete

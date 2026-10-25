@@ -1144,7 +1144,7 @@ mod tests {
     // req:cli-command-model-004
     fn reference_validation_fixtures_preserve_exact_diagnostic_objects() {
         let fixtures: serde_json::Value =
-            serde_json::from_str(include_str!("../test/rust/cli-validation-fixtures.json"))
+            serde_json::from_str(include_str!("../tests/rust/cli-validation-fixtures.json"))
                 .unwrap();
         for fixture in fixtures.as_array().unwrap() {
             let args = fixture["args"]

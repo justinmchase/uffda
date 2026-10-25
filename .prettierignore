@@ -6,6 +6,6 @@ target/
 editors/vscode/
 deno.lock
 Cargo.lock
-test/rust/
-test/perf/*baseline.json
+tests/rust/
+tests/perf/*baseline.json
 src/consumer/artifacts/
