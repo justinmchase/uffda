@@ -23,5 +23,5 @@ Expected behavior:
 Postconditions:
 
 - Compiler execution requires no bootstrap-only resolver or matching behavior.
-- Tests: `rust/src/lang_tests/uffda.rs`
+- Tests: `src/lang_tests/uffda.rs`
   (`runtime_compiler_is_an_executable_language_export`).

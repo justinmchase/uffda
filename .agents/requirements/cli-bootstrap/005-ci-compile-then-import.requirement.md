@@ -27,4 +27,4 @@ Postconditions:
 
 - CI proves compile emission and `.uff` remapping agree on the product artifact
   layout before language modules switch to importing `.uff`.
-- Tests: `rust/src/resolver/ported_tests.rs`.
+- Tests: `src/resolver/ported_tests.rs`.

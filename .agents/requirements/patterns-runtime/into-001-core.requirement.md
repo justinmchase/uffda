@@ -25,4 +25,4 @@ Error behavior:
 
 ## Test plan
 
-`rust/src/pattern/composite_ports.rs`.
+`src/pattern/composite_ports.rs`.

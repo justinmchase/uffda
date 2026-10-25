@@ -21,4 +21,4 @@ Expected behavior:
 Postconditions:
 
 - Success output MUST be the consumed item.
-- Tests: `rust/src/pattern/tests.rs`.
+- Tests: `src/pattern/tests.rs`.

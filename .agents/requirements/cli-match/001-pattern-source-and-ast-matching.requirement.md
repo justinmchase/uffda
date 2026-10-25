@@ -38,4 +38,4 @@ Postconditions:
 
 - Operators can match directly from pattern source or compose a
   `parse --lang
-  pattern` AST pipeline without an artifact wrapper.
+pattern` AST pipeline without an artifact wrapper.

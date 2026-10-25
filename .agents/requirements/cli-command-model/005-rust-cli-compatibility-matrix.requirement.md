@@ -53,7 +53,7 @@ Postconditions:
 
 - The matrix is reproducible without changing expected outcomes during testing.
 - Tests cite this requirement in Rust parser/process tests
-  (`rust/src/cli/options/tests.rs`).
+  (`src/cli/options/tests.rs`).
 - Native parser, filesystem, and runtime diagnostic prose MAY differ from the
   reference. The user explicitly prefers the new Rust error formats:
   unstructured output is not a byte-for-byte compatibility contract. Failure

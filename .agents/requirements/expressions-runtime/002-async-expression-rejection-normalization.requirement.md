@@ -28,4 +28,4 @@ Postconditions:
 
 ## Test plan
 
-- `rust/src/evaluate/expression_ports.rs`, `rust/src/runtime/scope_ports.rs`
+- `src/evaluate/expression_ports.rs`, `src/runtime/scope_ports.rs`

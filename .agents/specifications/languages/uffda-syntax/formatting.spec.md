@@ -38,7 +38,7 @@ pattern matching rather than host code.
 - The formatter MUST NOT change any string, number, or name.
 - Every `.uff` file in this repository MUST be in canonical form. CI MUST check
   it with `uffda fmt --check` (the in-tree CLI, against the formatter of the
-  same commit), and `deno task fmt:uff` MUST format them.
+  same commit), and `npm run fmt:uff` MUST format them.
 
 ## Line width and indentation
 

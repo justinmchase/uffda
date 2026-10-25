@@ -25,4 +25,4 @@ Postconditions:
 
 - Operators can select a binary for any Deno-supported compile target from the
   release.
-- Tests: `rust/src/cli/requirement_ports.rs`, `rust/src/cli/surface_ports.rs`.
+- Tests: `src/cli/requirement_ports.rs`, `src/cli/surface_ports.rs`.

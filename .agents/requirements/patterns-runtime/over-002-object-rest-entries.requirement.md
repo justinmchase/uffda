@@ -41,4 +41,4 @@ Expected behavior:
 Postconditions:
 
 - Success MUST preserve the original object or Map as the output value.
-- Tests: `rust/src/pattern/composite_ports.rs`.
+- Tests: `src/pattern/composite_ports.rs`.

@@ -30,6 +30,6 @@ Expected behavior:
 
 Postconditions:
 
-- Tests: `rust/codec/tests/public_api.rs`, `rust/codec/src/data/tests.rs`,
-  `rust/codec/src/data/parser.rs`, `rust/codec/src/text.rs`,
-  `rust/src/codec/data/tests.rs`, `rust/src/globals/tests.rs`.
+- Tests: `src/codec/tests/public_api.rs`, `src/codec/src/data/tests.rs`,
+  `src/codec/src/data/parser.rs`, `src/codec/src/text.rs`,
+  `src/codec_runtime/data/tests.rs`, `src/globals/tests.rs`.

@@ -25,4 +25,4 @@ Postconditions:
 
 ## Test plan
 
-- `rust/src/pattern/terminal_ports.rs`
+- `src/pattern/terminal_ports.rs`

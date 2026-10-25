@@ -45,5 +45,5 @@ Postconditions:
 
 - Integration-level behavior remains deterministic and executable from syntax to
   runtime value output or explicit conversion failure across the full matrix.
-- Tests: `rust/src/lang_tests/expression.rs`
+- Tests: `src/lang_tests/expression.rs`
   (`expression_three_level_combinatorics_evaluate`).

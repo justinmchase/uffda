@@ -22,4 +22,4 @@ Expected behavior:
 Postconditions:
 
 - Literal expression evaluation is deterministic for a fixed expression tree.
-- Tests: `rust/src/evaluate/tests.rs`.
+- Tests: `src/evaluate/tests.rs`.

@@ -21,4 +21,4 @@ Expected behavior:
 
 Postconditions:
 
-- Tests: `rust/src/lang_tests/uffda.rs`.
+- Tests: `src/lang_tests/uffda.rs`.

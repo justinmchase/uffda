@@ -38,13 +38,13 @@ Postconditions:
 
 ## Test plan
 
-`rust/src/runtime/engine_ports.rs`: clean input returns the discovery result,
+`src/runtime/engine_ports.rs`: clean input returns the discovery result,
 failed discovery recovers, an error does not start the recovery phase, and no
 recovery point reached skips the recovery phase
 (`engine_port_statement_recovery_collects_only_the_accepted_phase`).
-`rust/src/runtime/scope_ports.rs`: default and propagation of the setting
+`src/runtime/scope_ports.rs`: default and propagation of the setting
 (`scope_port_recovery_defaults_off_and_propagates_through_derived_execution`).
-`rust/src/runtime/engine_ports.rs`
+`src/runtime/engine_ports.rs`
 (`engine_port_memo_keys_isolate_the_recovery_setting`).
-`rust/src/runtime/engine_ports.rs`: only an unrecovered success is clean
+`src/runtime/engine_ports.rs`: only an unrecovered success is clean
 (`engine_port_recovered_skip_and_rightmost_follow_the_accepted_match`).

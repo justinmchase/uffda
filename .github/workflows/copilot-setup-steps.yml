@@ -22,7 +22,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: ${{ runner.os }}-cargo-${{ hashFiles('rust/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
 
@@ -33,8 +33,13 @@ jobs:
 
       - name: Verify toolchain
         run: |
+          node --version
+          npm --version
           rustc --version
           cargo --version
           rustfmt --version
           cargo clippy --version
           uffda --version
+
+      - name: Install Node tooling
+        run: npm ci

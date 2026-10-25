@@ -19,7 +19,7 @@ Expected behavior:
   prefix operand.
 - `ope P sneak by until T` MUST normalize to a recover pattern whose skip is
   `{ kind: "quantifier", pattern: { kind: "then", patterns: [{ kind: "not",
-  pattern: T }, { kind: "any" }] }, min: 1 }`.
+pattern: T }, { kind: "any" }] }, min: 1 }`.
 - `ope`, `sneak`, and `until` MUST be reserved keywords and MUST NOT parse as
   bare rule-reference identifiers; `@ope`, `@sneak`, and `@until` still
   reference rules with those names.
@@ -30,5 +30,5 @@ Postconditions:
 
 ## Test plan
 
-`rust/src/lang_tests/pattern.rs` (`prefix_ope`, `prefix_ope_until`,
+`src/lang_tests/pattern.rs` (`prefix_ope`, `prefix_ope_until`,
 `prefix_ope_requires_sneak_by`).

@@ -26,5 +26,5 @@ Postconditions:
 
 ## Test plan
 
-- `rust/src/cli.rs`, `rust/src/diagnostics.rs`, `rust/src/source_paths.rs`,
-  `rust/tests/cli.rs`
+- `src/cli.rs`, `src/diagnostics.rs`, `src/source_paths.rs`,
+  `tests/cli.rs`

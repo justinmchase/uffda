@@ -39,4 +39,4 @@ Postconditions:
 
 ## Test plan
 
-- `rust/src/lang_tests/uffda.rs`
+- `src/lang_tests/uffda.rs`

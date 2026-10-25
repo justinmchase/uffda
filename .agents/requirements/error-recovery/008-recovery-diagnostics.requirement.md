@@ -35,7 +35,7 @@ Postconditions:
 
 ## Test plan
 
-`rust/src/runtime/engine_ports.rs`
+`src/runtime/engine_ports.rs`
 (`engine_port_recovery_diagnostics_are_source_spans_in_document_order` for a
 clean parse, document order, a failed match, an explanation, and a preceding
 match; `engine_port_recovery_spans_follow_into_pipeline_stage_origins` for

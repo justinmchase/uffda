@@ -30,6 +30,6 @@ Postconditions:
 
 ## Test plan
 
-`rust/src/pattern/composite_ports.rs`: RECOVER04, RECOVER05.
-`rust/src/pattern/tests.rs` (not, lookahead, and except match their children
+`src/pattern/composite_ports.rs`: RECOVER04, RECOVER05.
+`src/pattern/tests.rs` (not, lookahead, and except match their children
 with recovery disabled).

@@ -24,4 +24,4 @@ Expected behavior:
 Postconditions:
 
 - Pipeline success output MUST be the final step output.
-- Tests: `rust/src/pattern/structure_ports.rs`.
+- Tests: `src/pattern/structure_ports.rs`.

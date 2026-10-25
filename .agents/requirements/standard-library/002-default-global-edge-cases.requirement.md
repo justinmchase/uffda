@@ -69,8 +69,8 @@ Postconditions:
 - Every row is exercised by the shared portable fixtures or a requirement-cited
   direct-runtime test in the Rust runtime.
 - The shared surface, behavior fixture and direct-runtime assertions are checked
-  by `rust/src/globals/tests.rs` against `test/rust/globals-fixtures.json` and
+  by `src/globals/tests.rs` against `test/rust/globals-fixtures.json` and
   `test/rust/globals-surface-fixtures.json`.
-- Tests: `rust/src/globals/tests.rs`. Identity, provenance, and native JSON
+- Tests: `src/globals/tests.rs`. Identity, provenance, and native JSON
   acceptance for the ported globals, including `slice`, are in
-  `rust/src/globals/tests.rs`.
+  `src/globals/tests.rs`.

@@ -144,7 +144,7 @@ and
   assign the result onto `metadata[Name]`.
 - `Rule` (and `Func`) gain an optional `attributes` (ordered
   `{ decorator, args
-  }` list) and an optional `metadata` (name-keyed object)
+}` list) and an optional `metadata` (name-keyed object)
   field.
 - Rule metadata does not require a new field on `Match`: it is reachable through
   the existing `MatchOrigin.rule` link (see `src/match.ts`), which is already

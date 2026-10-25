@@ -31,5 +31,5 @@ Postconditions:
 
 ## Test plan
 
-- `rust/src/evaluate/tests.rs`, `rust/src/runtime/scope_ports.rs`,
-  `rust/src/runtime/tests.rs`
+- `src/evaluate/tests.rs`, `src/runtime/scope_ports.rs`,
+  `src/runtime/tests.rs`

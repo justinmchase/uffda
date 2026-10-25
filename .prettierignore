@@ -1,0 +1,11 @@
+.git/
+.tmp/
+bin/
+node_modules/
+target/
+editors/vscode/
+deno.lock
+Cargo.lock
+test/rust/
+test/perf/*baseline.json
+src/consumer/artifacts/

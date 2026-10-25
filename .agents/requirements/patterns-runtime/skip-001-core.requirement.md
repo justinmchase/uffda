@@ -27,4 +27,4 @@ Postconditions:
 - On failure, the caller-visible position MUST remain S.
 - A top-level skipped success is a success whose host-visible value is
   `undefined`.
-- Tests: `rust/src/pattern/tests.rs`.
+- Tests: `src/pattern/tests.rs`.

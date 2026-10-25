@@ -30,4 +30,4 @@ Postconditions:
 
 ## Test plan
 
-- `rust/src/lang_tests/common.rs`, `rust/src/runtime/engine_ports.rs`
+- `src/lang_tests/common.rs`, `src/runtime/engine_ports.rs`

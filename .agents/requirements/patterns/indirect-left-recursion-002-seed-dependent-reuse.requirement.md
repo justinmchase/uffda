@@ -37,13 +37,13 @@ Postconditions:
 
 ## Test plan
 
-- `rust/src/runtime/tests.rs`
+- `src/runtime/tests.rs`
   (`compaction_preserves_pending_growth_and_transitive_seed_dependencies`)
   covers seed-dependency retention across eviction.
-- `rust/src/runtime/module_ports.rs`
+- `src/runtime/module_ports.rs`
   (`modport_rule_indirect_growth_marks_involved_outcomes_seeded`) asserts
   involved outcomes carry `origin.seeded` while the head's does not.
-- `rust/src/runtime/engine_ports.rs`
+- `src/runtime/engine_ports.rs`
   (`engine_port_incremental_seeded_edit_matches_a_fresh_parse`) asserts an edit
   that lets an indirect cycle grow further re-parses to the same value as a
   fresh parse, with no seeded outcome rehydrated.

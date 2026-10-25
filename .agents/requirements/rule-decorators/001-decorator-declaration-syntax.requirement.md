@@ -20,7 +20,7 @@ Expected behavior:
   keyword.
 - `decorator` declarations MUST be exportable inline
   (`export decorator Name =
-  …;`) and via a later bare `export Name;`, the same
+…;`) and via a later bare `export Name;`, the same
   way `rule`/`func` declarations are.
 - A `decorator` declaration MAY be preceded by an attribute list
   (`[Foo] decorator Bar = …;`), including one naming the decorator itself.

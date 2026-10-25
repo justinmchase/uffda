@@ -32,4 +32,4 @@ Error behavior:
 
 Postconditions:
 
-- Tests: `rust/src/pattern/structure_ports.rs`.
+- Tests: `src/pattern/structure_ports.rs`.

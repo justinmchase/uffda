@@ -11,6 +11,6 @@
     "./expression-syntax": "./src/lang/expression/expression.uff",
     "./imports": "./src/lang/uffda/import.rules.uff",
     "./exports": "./src/lang/uffda/export.rules.uff",
-    "./language": "./src/lang/uffda/uffda.lang.uff"
-  }
+    "./language": "./src/lang/uffda/uffda.lang.uff",
+  },
 }

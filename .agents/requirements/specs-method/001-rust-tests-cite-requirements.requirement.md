@@ -22,5 +22,5 @@ Expected behavior:
 
 Postconditions:
 
-- Tests: `rust/src/traceability_tests.rs`
+- Tests: `src/traceability_tests.rs`
   (`rust_inline_tests_cite_existing_requirement_documents`).

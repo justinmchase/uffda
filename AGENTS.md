@@ -9,6 +9,9 @@ Path-scoped authoring guidance also lives in:
 - `.cursor/rules/` (Cursor)
 - `.github/instructions/` (GitHub Copilot)
 
+The implemented Rust layout and Node.js tooling conventions are described in
+[migration guidance](.github/instructions/nodejs-migration.instructions.md).
+
 **Compiler bootstrap / recursion break** (always apply): see
 `.cursor/rules/compiler-bootstrap.mdc`,
 `.github/instructions/compiler-bootstrap.instructions.md`, and
@@ -28,39 +31,39 @@ performant grammar.
 
 - Runtime and CLI code belongs in the Rust workspace. Keep `.uff` language
   definitions under `src/lang/`.
-- Remaining helper scripts use ESM TypeScript with Deno-native and Web Platform
-  APIs rather than Node.js APIs.
-- **Scripting language hard rule:** the only acceptable scripting languages in
-  this repository are TypeScript and Deno. Python (and other non-Deno scripting
-  languages) are completely hard-blocked, including in GitHub Actions, composite
-  actions, install helpers, and one-liners. Shell may orchestrate
-  Deno/`gh`/`curl` commands, but non-trivial logic MUST live in TypeScript run
-  with Deno.
-- Add third-party imports through the `imports` field in `deno.jsonc` before
-  using them in source files.
-- Prefer JSR packages first. Use npm packages only when there is a clear need.
+- Remaining helper scripts use ESM TypeScript executed by Node.js. Prefer Node
+  built-ins and Web Platform APIs.
+- **Scripting language hard rule:** TypeScript on Node.js is the only
+  acceptable scripting language. Python and other scripting languages remain
+  prohibited, including in GitHub Actions. Shell may orchestrate Node, Cargo,
+  `gh`, and `curl`; non-trivial scripting logic belongs in TypeScript.
+- Add repository tooling dependencies through the root `package.json` and
+  commit `package-lock.json`. The VS Code extension keeps its separate package
+  boundary.
+- Retain `deno.jsonc`, `deno.lock`, and `mod.ts` only for the JSR package.
 - Keep the library focused on parser-generation and runtime concerns rather than
   app-specific frameworks.
 
 ## Project conventions
 
-- Rust entry points: `rust/src/lib.rs` and `rust/src/main.rs`. `mod.ts` is only
+- Rust entry points: `src/lib.rs` and `src/main.rs`. `mod.ts` is only
   the published JSR notice; it has no runtime APIs.
-- Keep Rust unit tests with their modules and integration tests under
-  `rust/tests/`. Deno helper tests use the `.test.ts` suffix.
+- Keep Rust unit tests with their modules and integration tests under `tests/`.
+  Node helper tests use the `.test.ts` suffix.
 - Put scratch scripts and other throwaway files under `.tmp/` (gitignored),
   never in the repository root or `src/`.
 - Every implementation change needs a corresponding test. Preserve the JSON
   compatibility fixtures under `test/rust/`; do not regenerate them from the
   current implementation to make tests pass.
-- Validate with `deno fmt`, `deno lint`, `deno task test:tools`, and
-  `cargo xtask check` after a published-CLI bootstrap.
+- Validate with `npm run format:check`, `npm run lint`,
+  `npm run check:types`, `npm run test:tools`, and `cargo xtask check` after a
+  published-CLI bootstrap.
 - **Before pushing** any commit that changes code (`.ts`, `.uff`, etc.) or
-  Markdown (`.md`, `.mdc`), run `deno fmt` and include the formatting updates in
+  Markdown (`.md`, `.mdc`), run `npm run format` and include the formatting updates in
   the commit. Checks runs Rust `cargo fmt`, Clippy, and `cargo test`.
-- A commit that changes `.uff` files MUST also run `deno task fmt:uff` (the
+- A commit that changes `.uff` files MUST also run `npm run fmt:uff` (the
   in-tree `uffda fmt`) and include its changes.
-- Prefer `deno task pre` before committing. For Rust changes, run
+- Prefer `npm run pre` before committing. For Rust changes, run
   `cargo xtask check` (or `cargo xtask fix`) before pushing — same Format /
   Clippy / Test steps as the Checks workflow.
 - Keep modules small and composable when adding or refactoring parser logic.
@@ -112,10 +115,13 @@ After making changes—and **before pushing** when those changes include code or
 Markdown—run:
 
 ```sh
-deno fmt
-deno task fmt:uff
-deno lint
-deno task test
+npm ci
+npm run format:check
+npm run fmt:uff
+npm run lint
+npm run check:types
+npm run test:tools
+cargo xtask check
 ```
 
 Do not cancel these commands; they normally finish quickly. Checks gates Rust

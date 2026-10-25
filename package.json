@@ -1,0 +1,31 @@
+{
+  "name": "@justinmchase/uffda-repository",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "cli": "cargo run --locked --release --features embed-languages --bin uffda --",
+    "compile:lang": "node --experimental-strip-types scripts/compile-lang.ts",
+    "compile:cli": "npm run compile:lang && cargo build --locked --release --features embed-languages --bin uffda",
+    "test": "npm run compile:lang && cargo xtask test && npm run test:tools",
+    "test:rust": "cargo xtask test",
+    "test:tools": "node --experimental-strip-types --test scripts/compile-lang.test.ts scripts/package-rust-cli.test.ts scripts/verify-rust-codec.test.ts .github/actions/uffda-setup/resolve_release.test.ts test/perf/data-codec.report.test.ts",
+    "fmt:uff": "npm run compile:lang && npm run cli -- fmt \"src/lang/**/*.uff\" \"examples/**/*.uff\"",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "check:types": "tsc --noEmit",
+    "pre": "npm run format:check && npm run fmt:uff && npm run lint && npm run check:types && cargo xtask check && npm run test:tools && npx jsr publish --dry-run --allow-dirty"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@types/node": "^24.10.0",
+    "eslint": "^9.39.0",
+    "jsr": "^0.14.3",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.0"
+  }
+}

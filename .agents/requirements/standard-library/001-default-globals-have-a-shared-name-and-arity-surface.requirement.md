@@ -30,5 +30,5 @@ Postconditions:
 - Every default global name resolves to the corresponding callable, with the
   declared callable arity available through the runtime's existing metadata
   surface.
-- Tests: `rust/src/globals/tests.rs`
+- Tests: `src/globals/tests.rs`
   (`native_callable_own_fields_match_all_typescript_names_and_arities`).

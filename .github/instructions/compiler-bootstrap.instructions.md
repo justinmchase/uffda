@@ -15,7 +15,7 @@ Compiling `runtime.compiler.uff` (and other language `.uff`) into `./bin` must
 
 **Break the cycle:**
 
-1. **Bootstrap compile** (`deno task compile:lang`) shells out to the **previous
+1. **Bootstrap compile** (`npm run compile:lang`) shells out to the **previous
    published `uffda` CLI** (`uffda compile 'src/lang/**/*.uff'`, which writes
    the default `./bin`). That binary embeds its own languages and compiler, so
    it parses **and** lowers `.uff` to **ModuleDeclarations** (`imports` /

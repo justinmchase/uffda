@@ -39,8 +39,8 @@ Postconditions:
   through the built-in module-specifier grammar) does not require a repository
   checkout; the built-in `.uff` artifacts load from the package wherever it is
   served.
-- Tests: `rust/src/resolver/packages/tests.rs`,
-  `rust/src/resolver/ported_tests.rs` (serves the repository's own `uffda.jsonc`
+- Tests: `src/resolver/packages/tests.rs`,
+  `src/resolver/ported_tests.rs` (serves the repository's own `uffda.jsonc`
   and `bin/` as a package from a fake registry and resolves each exported
-  grammar), and `rust/src/resolver/ported_tests.rs` (loads a built-in artifact
+  grammar), and `src/resolver/ported_tests.rs` (loads a built-in artifact
   from an `https:` package root over a stubbed network fetch).

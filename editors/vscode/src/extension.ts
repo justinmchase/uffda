@@ -354,7 +354,7 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): void {
         outputChannel?.info(
           `Registering MCP server: ${resolved.command} ${resolved.args.join(" ")} (${resolved.source})`,
         );
-        // Relative overrides (e.g. rust/target/release/uffda) are resolved
+        // Relative overrides (e.g. target/release/uffda) are resolved
         // against the uffda workspace folder in resolveUffdaServer.
         return [new McpStdioServerDefinition("Uffda", resolved.command, resolved.args)];
       } catch (err) {

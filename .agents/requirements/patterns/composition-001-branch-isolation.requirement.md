@@ -28,4 +28,4 @@ Postconditions:
 
 ## Test plan
 
-- `rust/src/pattern/tests.rs`
+- `src/pattern/tests.rs`

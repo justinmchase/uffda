@@ -57,13 +57,13 @@ self-hosting while maintaining deterministic and diagnosable behavior.
 - New language features MUST land in a published release before any `.uff`
   module in the tree depends on them for compile-time acceptance.
 - Authored `.uff` modules MUST stay within that published feature surface.
-- Local bootstrap of `./bin` (`deno task compile:lang`) and Checks bootstrap
+- Local bootstrap of `./bin` (`npm run compile:lang`) and Checks bootstrap
   MUST use the previous published `uffda compile` for the full parse + lower
   pipeline in one step (quoted glob such as `'src/lang/**/*.uff'`), producing
   ModuleDeclaration codec records and JSON siblings directly. Checks invokes
   that published binary directly. The release `compile-lang` job downloads that
   published asset with `gh` and does not run Deno; it then rewrites `./bin` with
-  the Rust CLI. `deno task compile:lang` is the same command for local use and
+  the Rust CLI. `npm run compile:lang` is the same command for local use and
   other workflows. No separate in-tree lower stage or frozen compiler snapshot
   is needed once the published CLI includes that pipeline (0.1.17+).
 
@@ -85,7 +85,7 @@ workspace `./bin`, so an empty `./bin` cannot be filled by in-tree parse alone.
 - Bootstrap of workspace `./bin` MUST shell out to the **previous published
   `uffda` CLI** for the full parse + lower pipeline (embedded languages and
   compiler in that binary), either as `uffda compile 'src/lang/**/*.uff'` or as
-  `deno task compile:lang`, which is that command. It MUST NOT leave syntax ASTs
+  `npm run compile:lang`, which is that command. It MUST NOT leave syntax ASTs
   as the final artifacts and MUST NOT commit seeds under `src/`.
 - Once workspace `./bin` is populated, an in-tree Rust CLI MAY be built with
   those artifacts embedded. Its compile pipeline runs the authored
@@ -130,7 +130,7 @@ workspace `./bin`, so an empty `./bin` cannot be filled by in-tree parse alone.
 compile` wrote. Authors and agents MUST NOT “fix” stale or incomplete
 artifacts with host-side rewriters.
 
-- `deno task compile:lang` MUST be only previous published
+- `npm run compile:lang` MUST be only previous published
   `uffda compile 'src/lang/**/*.uff'` (plus clearing `./bin` beforehand as the
   task already does). It MUST NOT chain Deno scripts, jq transforms, AST
   walkers, or other steps that mutate compiled artifacts after compile.

@@ -20,7 +20,7 @@ outputs:
     description: Installed CLI version without a leading v.
     value: ${{ steps.install.outputs.version }}
   target:
-    description: Deno compile target that was installed.
+    description: Rust compile target that was installed.
     value: ${{ steps.install.outputs.target }}
   path:
     description: Absolute path to the installed uffda binary.
@@ -28,10 +28,10 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Setup Deno
-      uses: denoland/setup-deno@v2
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
       with:
-        deno-version: v2.x
+        node-version: 24
 
     - name: Install Uffda CLI
       id: install
@@ -60,7 +60,7 @@ runs:
 
         tmpdir="$(mktemp -d)"
         mapfile -t resolved < <(
-          deno run -A "${{ github.action_path }}/resolve_release.ts" \
+          node --experimental-strip-types "${{ github.action_path }}/resolve_release.ts" \
             --repository "${INPUT_REPOSITORY}" \
             --version "${INPUT_VERSION}" \
             --target "${target}" \

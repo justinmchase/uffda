@@ -22,4 +22,4 @@ Expected behavior:
 Postconditions:
 
 - On total failure, caller-visible position MUST remain P.
-- Tests: `rust/src/pattern/tests.rs`.
+- Tests: `src/pattern/tests.rs`.

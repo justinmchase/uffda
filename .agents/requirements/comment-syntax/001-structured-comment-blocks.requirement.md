@@ -23,8 +23,8 @@ Expected behavior:
   following lines until a blank line, the next item, or a fence. Consecutive
   items MUST form one list.
 - Leading and trailing whitespace outside a fence MUST NOT affect the output.
-- A fence MUST open with a line starting with `` ``` `` and an optional tag, and
-  close with a line that is only `` ``` `` (and whitespace). Its code MUST be
+- A fence MUST open with a line starting with ` ``` ` and an optional tag, and
+  close with a line that is only ` ``` ` (and whitespace). Its code MUST be
   its lines joined with newlines, whitespace preserved.
 - Untagged fences and `text` fences MUST NOT be passed to the fence parser and
   MUST have no `tree`.
@@ -48,4 +48,4 @@ Postconditions:
 
 ## Test plan
 
-- `rust/src/lang_tests/common.rs`
+- `src/lang_tests/common.rs`

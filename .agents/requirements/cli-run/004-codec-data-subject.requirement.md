@@ -32,4 +32,4 @@ Expected behavior:
 
 Postconditions:
 
-- Tests: `rust/tests/cli_data.rs` and `rust/src/runtime/tests.rs`.
+- Tests: `tests/cli_data.rs` and `src/runtime/tests.rs`.

@@ -33,6 +33,6 @@ Postconditions:
 
 - The fixture demonstrates a source-authored DSL compiling to the reusable Uffda
   runtime target without bootstrap-only parsing or execution behavior.
-- Tests: `rust/src/lang_tests/uffda.rs`
+- Tests: `src/lang_tests/uffda.rs`
   (`remport_source_authored_morse_decodes_the_full_repertoire`,
   `remport_morse_compiles_and_roundtrips_moby_dick_excerpt`).

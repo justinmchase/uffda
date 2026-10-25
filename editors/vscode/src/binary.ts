@@ -24,7 +24,7 @@ export interface ResolveOptions {
   storageDir: string;
   /**
    * Workspace folder used to resolve relative overrides such as
-   * `rust/target/release/uffda`. Bare names (`uffda`) stay on PATH.
+   * `target/release/uffda`. Bare names (`uffda`) stay on PATH.
    */
   workspaceFolder?: string;
   minVersion?: string;
@@ -40,7 +40,7 @@ export interface ResolveOptions {
  * Overrides:
  * - bare name (`uffda`) → used as a PATH command
  * - absolute path → used verbatim
- * - relative path (`rust/target/release/uffda`) → resolved against
+ * - relative path (`target/release/uffda`) → resolved against
  *   `workspaceFolder` when provided
  */
 export async function resolveUffdaServer(opts: ResolveOptions): Promise<ResolvedServer> {

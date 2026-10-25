@@ -26,7 +26,7 @@ Expected behavior:
   produce the left-associative result `[[N, "+", N], "+", N]`.
 - Interwoven cycles that share a rule
   (`E = F "e" | "x"; F = E "f" | G;
-  G = F "g" | "y"`) MUST grow each head to
+G = F "g" | "y"`) MUST grow each head to
   its fixed point, re-growing an inner head whenever the enclosing head's seed
   changes.
 - An independent left-recursive cycle nested at the same position inside an
@@ -48,5 +48,5 @@ Postconditions:
 runs each case above over both `Input.Iterable(string)` and an async-generator
 input and asserts identical kind, value, and end position.
 
-- `rust/src/runtime/module_ports.rs`, `rust/src/runtime/scope_ports.rs`,
-  `rust/src/runtime/tests.rs`
+- `src/runtime/module_ports.rs`, `src/runtime/scope_ports.rs`,
+  `src/runtime/tests.rs`

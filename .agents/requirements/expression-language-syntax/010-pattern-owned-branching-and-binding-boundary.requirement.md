@@ -25,5 +25,5 @@ Postconditions:
 
 - The expression layer remains low-sugar and projection-focused while the
   pattern layer remains the primary branching and binding mechanism.
-- Tests: `rust/src/lang_tests/expression.rs`
+- Tests: `src/lang_tests/expression.rs`
   (`expression_excludes_statement_style_branching_and_binding`).

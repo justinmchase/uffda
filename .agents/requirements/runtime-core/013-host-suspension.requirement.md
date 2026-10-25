@@ -36,6 +36,6 @@ Expected behavior:
 Postconditions:
 
 - No future or Promise appears in a runtime value.
-- Tests: `rust/src/evaluate/tests.rs`, `rust/src/value.rs`,
-  `rust/src/coercion.rs`, `rust/src/globals/tests.rs`, `rust/src/output.rs`,
-  `rust/src/pattern/tests.rs`, `rust/src/runtime/tests.rs`.
+- Tests: `src/evaluate/tests.rs`, `src/value.rs`,
+  `src/coercion.rs`, `src/globals/tests.rs`, `src/output.rs`,
+  `src/pattern/tests.rs`, `src/runtime/tests.rs`.

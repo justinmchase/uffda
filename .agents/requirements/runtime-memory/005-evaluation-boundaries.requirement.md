@@ -27,5 +27,5 @@ Expected behavior:
 
 Postconditions:
 
-- Tests: `rust/src/evaluate/tests.rs`.
+- Tests: `src/evaluate/tests.rs`.
 - These tests do not establish async invocation or full expression parity.

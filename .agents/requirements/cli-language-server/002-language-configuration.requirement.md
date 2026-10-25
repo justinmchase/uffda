@@ -21,7 +21,7 @@ Expected behavior:
   `languages` declare.
 - Each language MUST be described by
   `[Language { id, name?, description?,
-  extensions }]` on an exported rule of
+extensions }]` on an exported rule of
   its module, and parsed with that rule. The project file has no per-language
   fields.
 - `.uff` itself MUST be declared through the same `[Language]` metadata, on
@@ -51,8 +51,8 @@ Postconditions:
 - Every document the editor opens is served by exactly one language (chosen by
   extension) or is not served at all; there is no ambiguity or fallback grammar
   guessing.
-- Tests: `rust/src/lsp/mod.rs`
+- Tests: `src/lsp/mod.rs`
   (`language_metadata_includes_project_languages_and_ignores_unowned_extensions`,
-  `language_metadata_lists_uff_extension`); `rust/src/languages.rs`
+  `language_metadata_lists_uff_extension`); `src/languages.rs`
   (`project_languages_read_exported_metadata_without_executing_rule_bodies`,
   `extension_of_and_language_for_document_match_by_lowercase_extension`).

@@ -1,4 +1,6 @@
-import { basename, join } from "@std/path";
+import { copyFile, chmod, mkdir, readFile, writeFile } from "node:fs/promises";
+import { basename, join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 export const RUST_PREVIEW_TARGETS = [
   "x86_64-unknown-linux-gnu",
@@ -28,31 +30,29 @@ export async function packageRustCli(
   outDir: string,
 ): Promise<string> {
   const asset = rustReleaseAsset(version, target);
-  await Deno.mkdir(outDir, { recursive: true });
+  await mkdir(outDir, { recursive: true });
   const output = join(outDir, asset);
-  await Deno.copyFile(source, output);
-  if (!target.includes("windows")) await Deno.chmod(output, 0o755);
+  await copyFile(source, output);
+  if (!target.includes("windows")) await chmod(output, 0o755);
   const hash = new Uint8Array(
-    await crypto.subtle.digest("SHA-256", await Deno.readFile(output)),
+    await crypto.subtle.digest("SHA-256", await readFile(output)),
   );
-  const hex = Array.from(hash).map((byte) => byte.toString(16).padStart(2, "0"))
+  const hex = Array.from(hash)
+    .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("");
-  await Deno.writeTextFile(output + ".sha256", `${hex}  ${basename(output)}\n`);
+  await writeFile(output + ".sha256", `${hex}  ${basename(output)}\n`);
   return output;
 }
 
-if (import.meta.main) {
-  if (Deno.args.length !== 4) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  const args = process.argv.slice(2);
+  if (args.length !== 4) {
     throw new Error(
       "Usage: package-rust-cli.ts <binary> <version> <target> <out-dir>",
     );
   }
-  console.log(
-    await packageRustCli(
-      Deno.args[0],
-      Deno.args[1],
-      Deno.args[2],
-      Deno.args[3],
-    ),
-  );
+  console.log(await packageRustCli(args[0], args[1], args[2], args[3]));
 }

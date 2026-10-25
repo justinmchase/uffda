@@ -203,7 +203,7 @@ the way Deno loads a `jsr:` import.
   module failed, or its import names were invalid) MUST identify the import
   edges that led to it: the chain of
   `(importer, import index, specifier,
-  resolved URL)` frames from the
+resolved URL)` frames from the
   requested module down to the failing module, outermost first, so tooling can
   attribute the error to a source location. An error about one imported name
   (unknown export or conflict) also identifies that name.

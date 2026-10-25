@@ -22,4 +22,4 @@ Expected behavior:
 
 Postconditions:
 
-- Tests: `rust/src/gc_tests.rs`.
+- Tests: `src/gc_tests.rs`.

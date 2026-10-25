@@ -1,22 +1,21 @@
-import { fromFileUrl } from "@std/path";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+import { test } from "node:test";
 import { verifyRustCodec } from "./verify-rust-codec.ts";
 
-Deno.test({
-  name:
-    "req:data-codec-004 - installed CLI and streaming consumer execute without runtime tools or external grammars",
-  ignore: (await Deno.permissions.query({ name: "run" })).state !== "granted",
-  fn: async () => {
-    const suffix = Deno.build.os === "windows" ? ".exe" : "";
-    await verifyRustCodec(
-      fromFileUrl(
-        new URL(`../rust/target/release/uffda${suffix}`, import.meta.url),
-      ),
-      fromFileUrl(
-        new URL(
-          `../rust/target/release/examples/codec_probe${suffix}`,
-          import.meta.url,
-        ),
-      ),
-    );
+const suffix = process.platform === "win32" ? ".exe" : "";
+const cli = resolve(`target/release/uffda${suffix}`);
+const probe = resolve(`target/release/examples/codec_probe${suffix}`);
+
+test(
+  "req:data-codec-004 - installed CLI and streaming consumer execute without runtime tools or external grammars",
+  {
+    skip:
+      !existsSync(cli) || !existsSync(probe)
+        ? "release CLI and codec probe are not built"
+        : false,
   },
-});
+  async () => {
+    await verifyRustCodec(cli, probe);
+  },
+);

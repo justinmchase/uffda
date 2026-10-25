@@ -30,4 +30,4 @@ Postconditions:
 
 ## Test plan
 
-- `rust/src/runtime/tests.rs`
+- `src/runtime/tests.rs`

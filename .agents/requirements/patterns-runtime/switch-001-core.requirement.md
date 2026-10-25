@@ -29,4 +29,4 @@ Postconditions:
 
 - Switch's own result MUST equal the chosen case's body pattern result exactly
   (success value, failure, error, or left-recursion outcome).
-- Tests: `rust/src/pattern/composite_ports.rs`.
+- Tests: `src/pattern/composite_ports.rs`.

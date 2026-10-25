@@ -21,17 +21,21 @@ Expected behavior:
   MUST NOT regenerate expected outcomes from the removed reference runtime.
 - Development tasks `cli`, `compile:cli`, and `test` MUST use the Rust CLI and
   test suite. `compile:lang` MUST continue using the published CLI directly.
-- Deno helper tests MUST have an explicit scope that excludes reference-only and
-  scratch trees. The release version hooks MUST NOT address deleted files.
+- Node.js helper tests MUST have an explicit scope that excludes obsolete
+  reference-only and scratch trees. The release version hooks MUST NOT address
+  deleted files.
 - The repository's `fmt:uff` task MUST format authored grammars and examples
   explicitly, without discovering scratch trees or Cargo package copies.
-- The VS Code extension, JSR notice entry point, release/setup helpers, and Rust
-  codec measurement tooling MAY continue using TypeScript and Deno.
+- Repository helpers and codec measurement tooling MUST run with Node.js.
+  The VS Code extension keeps its independent package boundary, and JSR
+  publishing MAY use the JSR CLI.
+- The runtime package MUST contain its codec adapter sources, separately from
+  the standalone codec crate, while retaining the `uffda_runtime::codec` API.
 - Published grammar exports and the full-circle bootstrap and standalone
   acceptance gates MUST remain unchanged.
 
 Postconditions:
 
-- Tests: `rust/tests/build.rs`, `rust/src/cli/options/tests.rs`,
-  `rust/tests/cli.rs`, `rust/src/lang_tests/`, and
-  `rust/tests/standalone_acceptance.rs`.
+- Tests: `tests/build.rs`, `src/cli/options/tests.rs`,
+  `tests/cli.rs`, `src/lang_tests/`, and
+  `tests/standalone_acceptance.rs`.

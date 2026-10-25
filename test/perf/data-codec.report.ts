@@ -1,4 +1,9 @@
-import { dirname, join, resolve } from "@std/path";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { spawn } from "node:child_process";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+import { gzipSync, gunzipSync } from "node:zlib";
 import { codecCorpus, transport } from "./data-codec-corpus.ts";
 import { verifyRustCodec } from "../../scripts/verify-rust-codec.ts";
 
@@ -18,26 +23,31 @@ export const decodeMethodology =
   "Decode: grammar-independent native codec parser to DataDocument; JSON/JSONL serde_json to Value. Encode: prepared DataDocument or JSON Value. Native materialization/GC roundtrip is verified separately, not included in timed decode.";
 
 async function command(executable: string, args: string[]): Promise<string> {
-  const result = await new Deno.Command(executable, {
-    args,
-    stdout: "piped",
-    stderr: "piped",
-  }).output();
-  if (!result.success) {
+  const child = spawn(executable, args, { stdio: ["ignore", "pipe", "pipe"] });
+  const stdout: Buffer[] = [];
+  const stderr: Buffer[] = [];
+  child.stdout!.on("data", (chunk: Buffer) => stdout.push(chunk));
+  child.stderr!.on("data", (chunk: Buffer) => stderr.push(chunk));
+  const result = await new Promise<{
+    code: number | null;
+    signal: string | null;
+  }>((resolve, reject) => {
+    child.once("error", reject);
+    child.once("close", (code, signal) => resolve({ code, signal }));
+  });
+  if (result.code !== 0) {
     throw new Error(
-      `${executable} ${args.join(" ")} failed (${result.code}): ${
-        new TextDecoder().decode(result.stderr)
-      }`,
+      `${executable} ${args.join(" ")} failed (${result.code ?? result.signal}): ${Buffer.concat(stderr).toString()}`,
     );
   }
-  return new TextDecoder().decode(result.stdout).trim();
+  return Buffer.concat(stdout).toString().trim();
 }
 
-async function gzip(bytes: Uint8Array, decode = false): Promise<Uint8Array> {
-  const stream = new Blob([bytes.slice()]).stream().pipeThrough(
-    decode ? new DecompressionStream("gzip") : new CompressionStream("gzip"),
-  );
-  return new Uint8Array(await new Response(stream).arrayBuffer());
+export async function gzip(
+  bytes: Uint8Array,
+  decode = false,
+): Promise<Uint8Array> {
+  return decode ? gunzipSync(bytes) : gzipSync(bytes);
 }
 
 export function median(values: number[]): number {
@@ -55,22 +65,22 @@ export function median(values: number[]): number {
 }
 
 async function main(): Promise<void> {
-  if (Deno.build.os !== "linux") {
+  if (process.platform !== "linux") {
     throw new Error(
       "RSS measurement requires Linux GNU /usr/bin/time; use verify-rust-codec.ts for portable acceptance",
     );
   }
   const probe = resolve(
-    Deno.args[0] ?? "rust/target/release/examples/codec_probe",
+    process.argv[2] ?? "target/release/examples/codec_probe",
   );
-  const cli = resolve(Deno.args[1] ?? "rust/target/release/uffda");
-  const output = resolve(Deno.args[2] ?? ".tmp/data-codec-report.json");
+  const cli = resolve(process.argv[3] ?? "target/release/uffda");
+  const output = resolve(process.argv[4] ?? ".tmp/data-codec-report.json");
   const corpus = codecCorpus();
-  const temp = await Deno.makeTempDir({ prefix: "uffda-codec-measure-" });
+  const temp = await mkdtemp(join(tmpdir(), "uffda-codec-measure-"));
   try {
     const corpusPath = join(temp, "corpus.json");
     const rssPath = join(temp, "rss.txt");
-    await Deno.writeTextFile(corpusPath, JSON.stringify(corpus));
+    await writeFile(corpusPath, JSON.stringify(corpus));
     await command(probe, ["verify", corpusPath]);
     await verifyRustCodec(cli, probe);
     const sizes = [];
@@ -133,11 +143,14 @@ async function main(): Promise<void> {
         compression,
       ]);
       const result: Omit<Sample, "peakRssKiB"> = JSON.parse(text);
-      const peakRssKiB = Number((await Deno.readTextFile(rssPath)).trim());
+      const peakRssKiB = Number((await readFile(rssPath, "utf8")).trim());
       if (
-        !Number.isSafeInteger(peakRssKiB) || peakRssKiB <= 0 ||
-        result.workload !== workload || result.format !== format ||
-        result.operation !== operation || result.compression !== compression ||
+        !Number.isSafeInteger(peakRssKiB) ||
+        peakRssKiB <= 0 ||
+        result.workload !== workload ||
+        result.format !== format ||
+        result.operation !== operation ||
+        result.compression !== compression ||
         (operation !== "baseline" &&
           (result.records !== 32 * rounds || result.elapsedMs <= 0))
       ) {
@@ -164,7 +177,7 @@ async function main(): Promise<void> {
         if (result.elapsedMs >= 100) return result;
         rounds = Math.max(
           rounds * 2,
-          Math.ceil(rounds * 125 / result.elapsedMs),
+          Math.ceil((rounds * 125) / result.elapsedMs),
         );
       }
       throw new Error(
@@ -220,9 +233,9 @@ async function main(): Promise<void> {
     const report = {
       generatedAt: new Date().toISOString(),
       host: {
-        os: Deno.build.os,
-        arch: Deno.build.arch,
-        deno: Deno.version.deno,
+        os: process.platform,
+        arch: process.arch,
+        node: process.version,
         rustc: await command("rustc", ["--version"]),
         kernel: await command("uname", ["-srmo"]),
       },
@@ -233,7 +246,7 @@ async function main(): Promise<void> {
         "Codec decode feeds 4096-byte chunks and drops each document on delivery; JSONL drops each parsed line, JSON retains a whole array per pass. Sources and fixture comparison values are caller-owned resident data.",
         "Peak RSS is GNU time %M for each complete child, including startup, fixture loading, verification/preparation, warmup and embedded grammars. Initialized baseline parses fixtures but performs no codec/JSON decode; do not subtract peaks as live heap deltas.",
         "Memory scaling feeds repeated resident corpus bytes as one continuous codec/JSONL stream for 32 or 4096 records, resetting once at its start and finishing once at EOF. JSON reads one 32-record array per batch, not a single 4096-record array. Gzip uses concatenated corpus members. This measures duration growth, not larger-record, larger-array, or caller-retained-output memory.",
-        "Transport size/gzip-only timings use Deno Web CompressionStream default settings, five warm byte-only samples. Rust raw/gzip parser pipelines separately measure flate2 rust_backend default compression, including gzip finalization in encode and decompression in decode; measured bytes are recorded per sample and may differ between implementations.",
+        "Transport size/gzip-only timings use Node.js zlib default gzip settings, five warm byte-only samples. Rust raw/gzip parser pipelines separately measure flate2 rust_backend default compression, including gzip finalization in encode and decompression in decode; measured bytes are recorded per sample and may differ between implementations.",
         "Raw/gzip pipeline RSS includes resident corpus, prepared input, gzip setup, and all timed work. Native arena materialization is excluded from the parser pipeline, so do not advertise the rates as fully materialized compressed-native throughput.",
         "No speed/size threshold: measurements are informational on a shared host.",
       ],
@@ -241,8 +254,8 @@ async function main(): Promise<void> {
       samples,
       memoryScaling,
     };
-    await Deno.mkdir(dirname(output), { recursive: true });
-    await Deno.writeTextFile(output, JSON.stringify(report, null, 2) + "\n");
+    await mkdir(dirname(output), { recursive: true });
+    await writeFile(output, JSON.stringify(report, null, 2) + "\n");
     console.log(`Report written to ${output}`);
     console.log(
       "| Workload | Format | Pipeline | Raw / gzip bytes | Encode / decode records/s | Decode / idle RSS KiB | Gzip-only encode / decode ms |",
@@ -250,34 +263,41 @@ async function main(): Promise<void> {
     console.log("| --- | --- | --- | ---: | ---: | ---: | ---: |");
     for (const size of sizes) {
       for (const compression of ["raw", "gzip"]) {
-        const selected = samples.filter((sample) =>
-          sample.workload === size.workload && sample.format === size.format &&
-          sample.compression === compression
+        const selected = samples.filter(
+          (sample) =>
+            sample.workload === size.workload &&
+            sample.format === size.format &&
+            sample.compression === compression,
         );
         const rate = (operation: string) =>
           median(
-            selected.filter((sample) => sample.operation === operation).map((
-              sample,
-            ) => sample.records * 1000 / sample.elapsedMs),
+            selected
+              .filter((sample) => sample.operation === operation)
+              .map((sample) => (sample.records * 1000) / sample.elapsedMs),
           ).toFixed(0);
         const rss = (operation: string) =>
           median(
-            selected.filter((sample) => sample.operation === operation).map((
-              sample,
-            ) => sample.peakRssKiB),
+            selected
+              .filter((sample) => sample.operation === operation)
+              .map((sample) => sample.peakRssKiB),
           ).toFixed(0);
         console.log(
-          `| ${size.workload} | ${size.format} | ${compression} | ${size.rawBytes} / ${size.gzipBytes} | ${
-            rate("encode")
-          } / ${rate("decode")} | ${rss("decode")} / ${rss("baseline")} | ${
-            size.gzipEncodeMs.toFixed(3)
-          } / ${size.gzipDecodeMs.toFixed(3)} |`,
+          `| ${size.workload} | ${size.format} | ${compression} | ${size.rawBytes} / ${size.gzipBytes} | ${rate(
+            "encode",
+          )} / ${rate("decode")} | ${rss("decode")} / ${rss("baseline")} | ${size.gzipEncodeMs.toFixed(
+            3,
+          )} / ${size.gzipDecodeMs.toFixed(3)} |`,
         );
       }
     }
   } finally {
-    await Deno.remove(temp, { recursive: true });
+    await rm(temp, { recursive: true, force: true });
   }
 }
 
-if (import.meta.main) await main();
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  await main();
+}

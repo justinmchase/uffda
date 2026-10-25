@@ -31,4 +31,4 @@ Postconditions:
 
 ## Test plan
 
-- `rust/src/lang_tests/common.rs`
+- `src/lang_tests/common.rs`

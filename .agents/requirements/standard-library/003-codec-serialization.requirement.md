@@ -29,4 +29,4 @@ Expected behavior:
 
 Postconditions:
 
-- Tests: `rust/src/globals/tests.rs`.
+- Tests: `src/globals/tests.rs`.

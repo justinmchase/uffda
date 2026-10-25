@@ -22,4 +22,4 @@ Expected behavior:
 Postconditions:
 
 - Success scope MUST include binding N with child output value.
-- Tests: `rust/src/pattern/composite_ports.rs`.
+- Tests: `src/pattern/composite_ports.rs`.

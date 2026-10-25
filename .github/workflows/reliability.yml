@@ -50,22 +50,24 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
-      - uses: denoland/setup-deno@v2
+      - uses: actions/setup-node@v4
         with:
-          deno-version: v2.x
+          node-version: 24
+          cache: npm
+      - name: Install Node tooling
+        run: npm ci
       - uses: ./.github/actions/uffda-setup
         with:
           version: latest
       - name: Bootstrap and build optimized binaries
         run: |
-          deno task compile:lang
-          cargo build --locked --manifest-path rust/Cargo.toml --features embed-languages --release --bin uffda --example codec_probe
+          npm run compile:lang
+          cargo build --locked --features embed-languages --release --bin uffda --example codec_probe
       - name: Measure all workloads without successful-only retries
         run: |
-          deno test test/perf/data-codec.report.test.ts
-          deno run --allow-read --allow-write --allow-run --allow-env=SystemRoot \
-            test/perf/data-codec.report.ts \
-            rust/target/release/examples/codec_probe rust/target/release/uffda \
+          npm run test:tools
+          node test/perf/data-codec.report.ts \
+            target/release/examples/codec_probe target/release/uffda \
             .tmp/data-codec-report.json
       - uses: actions/upload-artifact@v7
         with:

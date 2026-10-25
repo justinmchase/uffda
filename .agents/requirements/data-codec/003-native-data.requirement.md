@@ -45,6 +45,6 @@ Expected behavior:
 
 Postconditions:
 
-- Tests: `rust/src/codec/data/tests.rs`, `rust/src/value.rs`,
-  `rust/src/coercion.rs`, `rust/src/output.rs`, `rust/src/globals/tests.rs`, and
-  `rust/src/gc_tests.rs`.
+- Tests: `src/codec_runtime/data/tests.rs`, `src/value.rs`,
+  `src/coercion.rs`, `src/output.rs`, `src/globals/tests.rs`, and
+  `src/gc_tests.rs`.

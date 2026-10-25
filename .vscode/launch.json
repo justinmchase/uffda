@@ -5,24 +5,13 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug Deno helper tests",
+      "name": "Debug Node.js helper tests",
       "request": "launch",
       "type": "node",
       "cwd": "${workspaceFolder}",
-      "runtimeExecutable": "deno",
-      "attachSimplePort": 9229,
-      "runtimeArgs": [
-        "test",
-
-        // This will run the tests in the _current file_
-        // So switch to the file you want to test before running the debugger
-        "${file}",
-        "--inspect-wait",
-        // Optional parameters you may need...
-        "--allow-all"
-        // "--filter",
-        // "runtime.rule"
-      ]
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--test"],
+      "program": "${file}"
     }
   ]
 }

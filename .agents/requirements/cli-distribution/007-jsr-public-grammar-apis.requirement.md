@@ -35,5 +35,5 @@ Postconditions:
   grammar exports) still resolve through the published package.
 - `import { parseGrammar } from "jsr:@justinmchase/uffda/grammar"` is not a
   supported published import after cutover.
-- Tests: `rust/src/resolver/packages/tests.rs`,
-  `rust/src/cli/requirement_ports.rs`.
+- Tests: `src/resolver/packages/tests.rs`,
+  `src/cli/requirement_ports.rs`.

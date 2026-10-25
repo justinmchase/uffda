@@ -30,6 +30,6 @@ Postconditions:
 
 ## Test plan
 
-`rust/src/pattern/tests.rs`: a later clean alternative wins, the first recovered
+`src/pattern/tests.rs`: a later clean alternative wins, the first recovered
 alternative wins when none is clean, and a passed-over recovered alternative is
 a `Fail` whose only child is that alternative's success.

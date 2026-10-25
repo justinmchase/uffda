@@ -6,8 +6,7 @@ applyTo: "**"
 # Repository instructions
 
 Uffda is a Rust parser generator for domain specific languages. The Deno
-runtime/CLI reference is retired; TypeScript remains for editor and helper
-tools.
+runtime/CLI reference is retired; Node.js runs repository helper tooling.
 
 **Compiler bootstrap:** see
 `.github/instructions/compiler-bootstrap.instructions.md`. `compile:lang` =
@@ -17,35 +16,32 @@ shape → publish → install → recompile.
 
 ## Runtime and dependency conventions
 
-- Write runtime and CLI implementations in Rust under `rust/`.
-- Remaining helper scripts use ESM TypeScript with Deno-native and Web Platform
-  APIs rather than Node.js APIs.
-- **Scripting language hard rule:** the only acceptable scripting languages in
-  this repository are TypeScript and Deno. Python (and other non-Deno scripting
-  languages) are completely hard-blocked, including in GitHub Actions, composite
-  actions, install helpers, and one-liners. Shell may orchestrate
-  Deno/`gh`/`curl` commands, but non-trivial logic MUST live in TypeScript run
-  with Deno.
-- Add third-party imports through the `imports` field in `deno.jsonc` before
-  using them in source files.
-- Prefer JSR packages first. Use npm packages only when there is a clear need.
+- Write runtime and CLI implementations in Rust under `src/`.
+- Remaining helper scripts use ESM TypeScript on Node.js and Node/Web APIs.
+- **Scripting language hard rule:** TypeScript on Node.js is the only acceptable
+  scripting language. Python and other scripting languages are prohibited,
+  including in GitHub Actions. Shell may orchestrate Node, Cargo, `gh`, and
+  `curl`, but non-trivial scripting logic belongs in TypeScript.
+- Add repository tooling dependencies through root `package.json` and commit
+  `package-lock.json`. The VS Code extension keeps its separate package.
+- Retain `deno.jsonc`, `deno.lock`, and `mod.ts` only for the JSR package.
 - Keep the library focused on parser-generation and runtime concerns rather than
   app-specific frameworks.
 
 ## Project conventions
 
 - Keep authored `.uff` under `src/lang/`, Rust unit tests with their modules,
-  and integration tests under `rust/tests/`. Deno helper tests use `.test.ts`.
+  and integration tests under `tests/`. Node helper tests use `.test.ts`.
 - Put scratch scripts and other throwaway files under `.tmp/` (gitignored),
   never in the repository root or `src/`.
-- Validate with `deno fmt`, `deno lint`, `deno task test:tools`, and
-  `cargo xtask check` after a published-CLI bootstrap.
+- Validate with `npm run format:check`, `npm run lint`, `npm run check:types`,
+  `npm run test:tools`, and `cargo xtask check` after a published-CLI bootstrap.
 - **Before pushing** any commit that changes code (`.ts`, `.uff`, etc.) or
-  Markdown (`.md`, `.mdc`), run `deno fmt` and include the formatting updates in
+  Markdown (`.md`, `.mdc`), run `npm run format` and include the formatting updates in
   the commit. Checks runs Rust `cargo fmt`, Clippy, and `cargo test`.
-- A commit that changes `.uff` files MUST also run `deno task fmt:uff` (the
+- A commit that changes `.uff` files MUST also run `npm run fmt:uff` (the
   in-tree `uffda fmt`) and include its changes.
-- Prefer `deno task pre` before committing. For Rust changes, run
+- Prefer `npm run pre` before committing. For Rust changes, run
   `cargo xtask check` (or `cargo xtask fix`) before pushing — same Format /
   Clippy / Test steps as the Checks workflow.
 - Keep modules small and composable when adding or refactoring parser logic.
@@ -75,7 +71,7 @@ Correctness and thoroughness outrank speed.
 
 ## Global function purity
 
-- `rust/src/globals/` (see `rust/src/globals.rs`) are the always-available
+- `src/globals/` (see `src/globals.rs`) are the always-available
   runtime kernel — the essential primitives every instance of the runtime gets
   by default. They MUST stay pure, general purpose, and free of hidden side
   channels or behavior tied to a single language/module's needs.
@@ -148,10 +144,13 @@ After making changes—and **before pushing** when those changes include code or
 Markdown—run:
 
 ```sh
-deno fmt
-deno task fmt:uff
-deno lint
-deno task test
+npm ci
+npm run format:check
+npm run fmt:uff
+npm run lint
+npm run check:types
+npm run test:tools
+cargo xtask check
 ```
 
 Checks gates Rust `cargo fmt`, Clippy, and `cargo test`.
