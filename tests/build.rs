@@ -58,6 +58,14 @@ fn helper_debugging_uses_node_without_deno_editor_paths() {
 
 #[test]
 // req:cli-distribution-008
+fn cross_platform_checkouts_preserve_formatter_line_endings() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let attributes = std::fs::read_to_string(root.join(".gitattributes")).unwrap();
+    assert!(attributes.lines().any(|line| line == "* text=auto eol=lf"));
+}
+
+#[test]
+// req:cli-distribution-008
 fn reference_retirement_preserves_grammars_and_compatibility_fixtures() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let mut pending = vec![root.join("src")];
