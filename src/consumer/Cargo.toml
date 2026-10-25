@@ -7,9 +7,9 @@ license = "MIT"
 description = "Downstream-consumer smoke test: embeds its own codec ASTs without this repo's src/lang or bin"
 
 [dependencies]
-uffda-runtime = { path = "../..", version = "0.10.6", default-features = false }
+uffda-runtime = { path = "../..", version = "0.10.7", default-features = false }
 serde_json = { version = "1", features = ["preserve_order"] }
 url = "2"
 
 [build-dependencies]
-uffda-build = { path = "../build", version = "0.10.6" }
+uffda-build = { path = "../build", version = "0.10.7" }
