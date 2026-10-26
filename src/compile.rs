@@ -1,7 +1,6 @@
-use crate::json::JsonValue as Value;
-use crate::languages::{Language, Languages};
+use crate::languages::Languages;
 use crate::resolver::graph::unfurl_specifier;
-use crate::resolver::{decode_declaration, normalize_path};
+use crate::resolver::normalize_path;
 use crate::source_paths::{expand, stable_path};
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
@@ -32,7 +31,7 @@ pub struct CompileFailure {
 pub struct CompileSuccess {
     pub source_path: String,
     pub output_path: String,
-    pub module: Value,
+    pub module_codec: String,
 }
 
 #[derive(Serialize)]
@@ -181,10 +180,7 @@ pub fn compile(request: CompileRequest<'_>, languages: &mut Languages) -> Compil
                 continue;
             }
         };
-        let output = out_dir
-            .join("ast")
-            .join(relative)
-            .with_extension("uff.ast.json");
+        let output = out_dir.join("ast").join(relative).with_extension("uff.ast");
         if !outputs.insert(output.clone()) {
             result.fail(failure(
                 "CLI_COMPILE_OUTPUT_COLLISION",
@@ -363,29 +359,26 @@ fn prepare_and_read(
     output: &Path,
     overwrite: bool,
 ) -> Result<String, Box<CompileFailure>> {
-    let codec_output = codec_output_path(output);
-    for candidate in [output, &codec_output] {
-        match candidate.metadata() {
-            Ok(metadata) if metadata.is_file() && !overwrite => {
-                return Err(Box::new(CompileFailure {
-                    code: "CLI_COMPILE_OUTPUT_EXISTS",
-                    source_path: source_path.into(),
-                    output_path: Some(candidate.to_string_lossy().into_owned()),
-                    message: "Output already exists and overwrite=false".into(),
-                    location: None,
-                }));
-            }
-            Ok(_) => {}
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-            Err(error) => {
-                return Err(Box::new(CompileFailure {
-                    code: "CLI_COMPILE_WRITE_FAILURE",
-                    source_path: source_path.into(),
-                    output_path: Some(candidate.to_string_lossy().into_owned()),
-                    message: error.to_string(),
-                    location: None,
-                }));
-            }
+    match output.metadata() {
+        Ok(metadata) if metadata.is_file() && !overwrite => {
+            return Err(Box::new(CompileFailure {
+                code: "CLI_COMPILE_OUTPUT_EXISTS",
+                source_path: source_path.into(),
+                output_path: Some(output.to_string_lossy().into_owned()),
+                message: "Output already exists and overwrite=false".into(),
+                location: None,
+            }));
+        }
+        Ok(_) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => {
+            return Err(Box::new(CompileFailure {
+                code: "CLI_COMPILE_WRITE_FAILURE",
+                source_path: source_path.into(),
+                output_path: Some(output.to_string_lossy().into_owned()),
+                message: error.to_string(),
+                location: None,
+            }));
         }
     }
     std::fs::read_to_string(source).map_err(|error| {
@@ -399,15 +392,6 @@ fn prepare_and_read(
     })
 }
 
-fn codec_output_path(json_output: &Path) -> PathBuf {
-    let text = json_output.to_string_lossy();
-    if let Some(stem) = text.strip_suffix(".uff.ast.json") {
-        PathBuf::from(format!("{stem}.uff.ast"))
-    } else {
-        json_output.with_extension("uff.ast")
-    }
-}
-
 fn compile_text(
     languages: &mut Languages,
     source: &Path,
@@ -417,10 +401,7 @@ fn compile_text(
     imports: &BTreeMap<String, String>,
     overwrite: bool,
 ) -> Result<CompileSuccess, UnitFailure> {
-    let mut module = match languages
-        .parse(text, Language::Uffda)
-        .and_then(|syntax| languages.compile(syntax))
-    {
+    let module = match languages.compile_source_native(text) {
         Ok(module) => module,
         Err(error) => {
             if !error.diagnostics.is_empty() {
@@ -451,7 +432,7 @@ fn compile_text(
             })));
         }
     };
-    let url = Url::from_file_path(source).map_err(|()| {
+    let _url = Url::from_file_path(source).map_err(|()| {
         UnitFailure::Single(Box::new(CompileFailure {
             code: "CLI_COMPILE_INVALID_CONTEXT",
             source_path: source_path.clone(),
@@ -460,21 +441,43 @@ fn compile_text(
             location: None,
         }))
     })?;
-    if let Err(error) = decode_declaration(&url, &module.to_string()) {
-        return Err(UnitFailure::Single(Box::new(CompileFailure {
-            code: "CLI_COMPILE_PARSE_FAILURE",
-            source_path,
-            output_path: Some(output.to_string_lossy().into_owned()),
-            message: error.to_string(),
-            location: None,
-        })));
-    }
+    let codec_text = module
+        .encode(false, crate::codec::data::DataLimits::default())
+        .map_err(|error| {
+            UnitFailure::Single(Box::new(CompileFailure {
+                code: "CLI_COMPILE_PARSE_FAILURE",
+                source_path: source_path.clone(),
+                output_path: Some(output.to_string_lossy().into_owned()),
+                message: error.to_string(),
+                location: None,
+            }))
+        })?;
+    let mut declaration: crate::resolver::ModuleDeclaration =
+        crate::codec::declaration::decode_declaration_codec_as(&codec_text).map_err(|error| {
+            UnitFailure::Single(Box::new(CompileFailure {
+                code: "CLI_COMPILE_PARSE_FAILURE",
+                source_path: source_path.clone(),
+                output_path: Some(output.to_string_lossy().into_owned()),
+                message: error,
+                location: None,
+            }))
+        })?;
     let mut diagnostics = Vec::new();
-    for import in module["imports"]
-        .as_array_mut()
-        .expect("validated declaration imports")
-    {
-        let Some(specifier) = import["moduleUrl"].as_str() else {
+    for import in &mut declaration.imports {
+        let specifier = match import.field("moduleUrl") {
+            Ok(value) => value.and_then(|value| value.string_value()),
+            Err(error) => {
+                diagnostics.push(CompileFailure {
+                    code: "CLI_COMPILE_PARSE_FAILURE",
+                    source_path: source_path.clone(),
+                    output_path: Some(output.to_string_lossy().into_owned()),
+                    message: format!("Invalid import declaration: {error}"),
+                    location: None,
+                });
+                continue;
+            }
+        };
+        let Some(specifier) = specifier else {
             diagnostics.push(CompileFailure {
                 code: "CLI_COMPILE_PARSE_FAILURE",
                 source_path: source_path.clone(),
@@ -484,8 +487,38 @@ fn compile_text(
             });
             continue;
         };
-        match unfurl_specifier(imports, specifier) {
-            Ok(full) => import["moduleUrl"] = Value::String(full.into()),
+        match unfurl_specifier(imports, &specifier) {
+            Ok(full) => {
+                let replacement = crate::codec::data::DataDocument::from_nodes(
+                    vec![crate::codec::data::DataNode::String(full.into())],
+                    0,
+                    crate::codec::data::DataLimits::default(),
+                )
+                .map_err(|error| {
+                    UnitFailure::Single(Box::new(CompileFailure {
+                        code: "CLI_COMPILE_PARSE_FAILURE",
+                        source_path: source_path.clone(),
+                        output_path: Some(output.to_string_lossy().into_owned()),
+                        message: error.to_string(),
+                        location: None,
+                    }))
+                })?;
+                *import = import
+                    .replace_root_field(
+                        "moduleUrl",
+                        &replacement,
+                        crate::codec::data::DataLimits::default(),
+                    )
+                    .map_err(|error| {
+                        UnitFailure::Single(Box::new(CompileFailure {
+                            code: "CLI_COMPILE_PARSE_FAILURE",
+                            source_path: source_path.clone(),
+                            output_path: Some(output.to_string_lossy().into_owned()),
+                            message: error.to_string(),
+                            location: None,
+                        }))
+                    })?;
+            }
             Err(error) => {
                 diagnostics.push(CompileFailure {
                     code: "CLI_COMPILE_UNDECLARED_MODULE_NAME",
@@ -500,14 +533,20 @@ fn compile_text(
     if !diagnostics.is_empty() {
         return Err(UnitFailure::Many(diagnostics));
     }
-    let codec_output = codec_output_path(output);
+    let module_codec = crate::codec::declaration::encode_declaration_documents(&declaration)
+        .map_err(|error| {
+            UnitFailure::Single(Box::new(CompileFailure {
+                code: "CLI_COMPILE_PARSE_FAILURE",
+                source_path: source_path.clone(),
+                output_path: Some(output.to_string_lossy().into_owned()),
+                message: error,
+                location: None,
+            }))
+        })?;
     let write = || -> Result<(), String> {
-        let json_text = serde_json::to_string_pretty(&module).map_err(|error| error.to_string())?;
-        let codec_text = crate::codec::declaration::encode_declaration_codec(&module)?;
         std::fs::create_dir_all(output.parent().ok_or("Output has no parent")?)
             .map_err(|error| error.to_string())?;
-        write_artifact(output, json_text.as_bytes(), overwrite)?;
-        write_artifact(&codec_output, codec_text.as_bytes(), overwrite)?;
+        write_artifact(output, module_codec.as_bytes(), overwrite)?;
         Ok(())
     };
     if let Err(error) = write() {
@@ -522,7 +561,7 @@ fn compile_text(
     Ok(CompileSuccess {
         source_path,
         output_path: output.to_string_lossy().into_owned(),
-        module,
+        module_codec,
     })
 }
 
@@ -600,7 +639,7 @@ mod tests {
     }
 
     #[test]
-    // req:project-file-003 req:cli-bootstrap-034 req:cli-compile-002
+    // req:project-file-003 req:cli-bootstrap-034 req:cli-compile-002 req:cli-compile-008
     fn compilation_writes_module_declarations_in_mirrored_layout_and_refuses_overwrite() {
         let root = std::env::temp_dir().join(format!("uffda-compile-{}", std::process::id()));
         std::fs::create_dir_all(root.join("src")).unwrap();
@@ -619,22 +658,26 @@ mod tests {
         let mut languages = Languages::new().unwrap();
         let result = compile(request(), &mut languages);
         assert!(result.ok, "{}", serde_json::to_string(&result).unwrap());
-        let output = out.join("ast/src/main.uff.ast.json");
-        let codec = out.join("ast/src/main.uff.ast");
-        let module: Value =
-            serde_json::from_str(&std::fs::read_to_string(&output).unwrap()).unwrap();
-        assert!(module.get("kind").is_none());
-        assert_eq!(module["rules"].as_array().unwrap()[0]["name"], "Main");
-        let codec_module = crate::codec::declaration::decode_declaration_codec(
-            &std::fs::read_to_string(&codec).unwrap(),
-        )
-        .unwrap();
-        assert_eq!(codec_module["rules"].as_array().unwrap()[0]["name"], "Main");
+        let output = out.join("ast/src/main.uff.ast");
+        let codec_text = std::fs::read_to_string(&output).unwrap();
+        let codec_module: crate::resolver::ModuleDeclaration =
+            crate::codec::declaration::decode_declaration_codec_as(&codec_text).unwrap();
+        assert_eq!(
+            codec_module.rules[0]
+                .field("name")
+                .unwrap()
+                .unwrap()
+                .string_value()
+                .as_deref(),
+            Some("Main")
+        );
+        assert!(!out.join("ast/src/main.uff.ast.json").exists());
+        let result_json = serde_json::to_value(&result).unwrap();
+        assert_eq!(result_json["successes"][0]["moduleCodec"], codec_text);
         let result = compile(request(), &mut languages);
         assert!(!result.ok);
         assert_eq!(result.failures[0].code, "CLI_COMPILE_OUTPUT_EXISTS");
         std::fs::remove_file(output).unwrap();
-        std::fs::remove_file(codec).unwrap();
         std::fs::remove_file(root.join("src/main.uff")).unwrap();
         for directory in ["build/ast/src", "build/ast", "build", "src"] {
             std::fs::remove_dir(root.join(directory)).unwrap();

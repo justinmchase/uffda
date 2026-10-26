@@ -21,6 +21,21 @@ fn document(ast: Json) -> DataDocument {
 }
 
 #[test]
+// req:data-codec-007
+fn replacing_a_root_field_preserves_native_subtrees_and_insertion_order() {
+    let original = crate::from_str(r#"{first:undefined target:{keep:42n} last:true}"#).unwrap();
+    let replacement = crate::from_str(r#"{native:@bytes"AA"}"#).unwrap();
+    let updated = original
+        .replace_root_field("target", &replacement, DataLimits::default())
+        .unwrap();
+    let encoded = updated.encode(false, DataLimits::default()).unwrap();
+    assert_eq!(
+        encoded,
+        r#"{first:undefined target:{native:@bytes"AA"} last:true}"#
+    );
+}
+
+#[test]
 // req:data-codec-003
 fn encoder_rejects_shared_or_cyclic_composites_and_limits() {
     let alias = DataDocument {
@@ -122,7 +137,7 @@ fn nesting_limits_count_physical_containers_not_tag_names() {
     for ast in [
         tag("date", string("\"2026-10-10T00:00:00Z\"")),
         tag("set", array(vec![number("1")])),
-        tag("map", array(vec![])),
+        object(vec![("key", number("1"))]),
         tag(
             "error",
             object(vec![
@@ -131,17 +146,43 @@ fn nesting_limits_count_physical_containers_not_tag_names() {
             ]),
         ),
     ] {
-        assert!(DataDocument::from_ast(ast, limits).is_ok());
+        assert!(DataDocument::from_ast(ast.clone(), limits).is_ok(), "{ast}");
     }
     for ast in [
         array(vec![array(vec![])]),
-        tag("map", array(vec![array(vec![number("1"), number("2")])])),
+        object(vec![("key", object(vec![("nested", number("2"))]))]),
     ] {
         assert!(DataDocument::from_ast(ast, limits).is_err());
     }
+
     let alias = DataDocument {
         nodes: vec![DataNode::Bytes(vec![]), DataNode::Array(vec![0, 0])],
         root: 1,
     };
     assert!(alias.encode(false, DataLimits::default()).is_err());
+}
+
+#[test]
+// req:data-codec-007
+fn object_keys_are_native_values_and_duplicate_keys_use_same_value_zero() {
+    let document = crate::from_str(r#"{42:"answer" @symbol"registered":true}"#).unwrap();
+    assert_eq!(
+        document.encode(false, DataLimits::default()).unwrap(),
+        r#"{42:"answer" @symbol"registered":true}"#
+    );
+    for source in [
+        "{1:\"a\" 1.0:\"b\"}",
+        "{0:\"a\" -0:\"b\"}",
+        "{NaN:\"a\" NaN:\"b\"}",
+    ] {
+        assert!(
+            crate::from_str(source)
+                .unwrap_err()
+                .to_string()
+                .contains("duplicate object key"),
+            "{source}"
+        );
+    }
+    assert!(crate::from_str("{[]:1 []:2}").is_ok());
+    assert!(crate::from_str("@map[[1 2]]").is_err());
 }

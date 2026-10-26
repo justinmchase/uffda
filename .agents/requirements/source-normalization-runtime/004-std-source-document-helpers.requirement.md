@@ -20,7 +20,7 @@ Expected behavior:
 - `base58` MUST return the Base58 (Bitcoin alphabet) encoding of bytes.
 - `slice` MUST return a slice of a string or array using JS `slice` semantics
   (exclusive `end`, negative indices count from the end).
-- `length` MUST return the length/size of a string, array, Set, or Map.
+- `length` MUST return the length/size of a string, array, Set, or Object.
 - `line_starts` and `units` MUST produce deterministic indexes for fixed
   normalized text.
 - `document_id` MUST return `source:{length}:{digest}` for the given text, where

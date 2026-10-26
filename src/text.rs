@@ -30,6 +30,10 @@ impl DerefMut for RuntimeString {
     }
 }
 impl RuntimeString {
+    pub fn codec_text(&self) -> &uffda_codec::text::RuntimeString {
+        &self.0
+    }
+
     pub fn from_utf16(units: Vec<u16>) -> Self {
         Self(uffda_codec::text::RuntimeString::from_utf16(units))
     }

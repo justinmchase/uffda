@@ -1467,7 +1467,7 @@ fn async_input_and_host_invocation_share_one_driver_and_rooted_composite_values(
                 order.push("input");
                 crate::evaluate::ExternalCompletion::Input(Ok(input::InputCompletion::Item(
                     HostCompletion::materialize(vec![], |mc, _| {
-                        Ok(Value::map(
+                        Ok(Value::association(
                             mc,
                             vec![(
                                 Value::string(mc, "key"),
@@ -1483,7 +1483,7 @@ fn async_input_and_host_invocation_share_one_driver_and_rooted_composite_values(
                     runtime
                         .read_rooted(&request.arguments[0], |value| value.runtime_type())
                         .unwrap(),
-                    crate::value::RuntimeType::Map
+                    crate::value::RuntimeType::Object
                 );
                 retained = Some(request.arguments[0].clone());
                 crate::evaluate::ExternalCompletion::Host(Ok(HostCompletion::Rooted(
@@ -1503,7 +1503,7 @@ fn async_input_and_host_invocation_share_one_driver_and_rooted_composite_values(
         runtime
             .read_rooted(&retained.unwrap(), |v| v.runtime_type())
             .unwrap(),
-        crate::value::RuntimeType::Map
+        crate::value::RuntimeType::Object
     );
 }
 

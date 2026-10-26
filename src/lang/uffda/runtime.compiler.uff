@@ -26,7 +26,7 @@ rule CommentNode = object & { kind: "comment", blocks: array };
 
 rule UncommentedArray = array & [i:(skip CommentNode | Uncommented)*] -> i;
 
-rule UncommentedEntry = { index: n:string, value: v:Uncommented } -> [n v];
+rule UncommentedEntry = [n:string v:Uncommented] -> [n v];
 
 rule Collapsed =
   | ({ kind: in["or" "and" "then"], patterns: [p:any end] } -> p)
@@ -36,7 +36,7 @@ rule Collapsed =
 
 rule UncommentedObject =
   |> (
-    o:object e:((ok -> [...(enumerate o)]) |> [x:UncommentedEntry*] -> x)
+    o:object e:((ok -> [...o]) |> [x:UncommentedEntry*] -> x)
     -> (from_entries e)
   )
   |> Collapsed

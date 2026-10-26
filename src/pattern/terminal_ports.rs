@@ -210,7 +210,6 @@ fn port_type_matches_one_item_by_runtime_type() {
             ),
             (Value::Undefined, RuntimeType::Undefined),
             (Value::Null, RuntimeType::Null),
-            (Value::map(mc, vec![]), RuntimeType::Map),
             (Value::set(mc, vec![]), RuntimeType::Set),
             (
                 Value::date(mc, OffsetDateTime::UNIX_EPOCH),
@@ -245,7 +244,6 @@ fn port_type_matches_one_item_by_runtime_type() {
             (Value::Null, RuntimeType::Symbol),
             (Value::Null, RuntimeType::Undefined),
             (Value::Undefined, RuntimeType::Null),
-            (Value::Null, RuntimeType::Map),
             (Value::Null, RuntimeType::Set),
             (Value::Null, RuntimeType::Date),
             (Value::Null, RuntimeType::Error),

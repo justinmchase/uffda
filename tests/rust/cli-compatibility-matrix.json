@@ -47962,11 +47962,11 @@
             {
               "ok": false,
               "sourcePath": "broken.uff",
-              "outputPath": "<cwd>/bin/ast/broken.uff.ast.json",
+              "outputPath": "<cwd>/bin/ast/broken.uff.ast",
               "failure": {
                 "code": "CLI_COMPILE_PARSE_RECOVERED",
                 "sourcePath": "broken.uff",
-                "outputPath": "<cwd>/bin/ast/broken.uff.ast.json",
+                "outputPath": "<cwd>/bin/ast/broken.uff.ast",
                 "message": "<native diagnostic text>",
                 "location": {
                   "offset": 0,
@@ -47979,7 +47979,7 @@
                 {
                   "code": "CLI_COMPILE_PARSE_RECOVERED",
                   "sourcePath": "broken.uff",
-                  "outputPath": "<cwd>/bin/ast/broken.uff.ast.json",
+                  "outputPath": "<cwd>/bin/ast/broken.uff.ast",
                   "message": "<native diagnostic text>",
                   "location": {
                     "offset": 0,
@@ -47996,7 +47996,7 @@
             {
               "code": "CLI_COMPILE_PARSE_RECOVERED",
               "sourcePath": "broken.uff",
-              "outputPath": "<cwd>/bin/ast/broken.uff.ast.json",
+              "outputPath": "<cwd>/bin/ast/broken.uff.ast",
               "message": "<native diagnostic text>",
               "location": {
                 "offset": 0,
@@ -48462,83 +48462,22 @@
             {
               "ok": true,
               "sourcePath": "file.uff",
-              "outputPath": "<cwd>/build/ast/file.uff.ast.json",
-              "module": {
-                "imports": [],
-                "rules": [
-                  {
-                    "name": "Main",
-                    "parameters": [],
-                    "pattern": {
-                      "kind": "any"
-                    },
-                    "attributes": []
-                  }
-                ],
-                "funcs": [],
-                "decorators": [],
-                "exports": [
-                  {
-                    "kind": "rule",
-                    "name": "Main"
-                  }
-                ]
-              }
+              "outputPath": "<cwd>/build/ast/file.uff.ast",
+              "moduleCodec": "{imports:[] exports:[{kind:\"rule\" name:\"Main\"}] rules:[{name:\"Main\" parameters:[] pattern:{kind:\"any\"} expression:undefined attributes:[]}] funcs:[] decorators:[]}\n"
             }
           ],
           "successes": [
             {
               "sourcePath": "file.uff",
-              "outputPath": "<cwd>/build/ast/file.uff.ast.json",
-              "module": {
-                "imports": [],
-                "rules": [
-                  {
-                    "name": "Main",
-                    "parameters": [],
-                    "pattern": {
-                      "kind": "any"
-                    },
-                    "attributes": []
-                  }
-                ],
-                "funcs": [],
-                "decorators": [],
-                "exports": [
-                  {
-                    "kind": "rule",
-                    "name": "Main"
-                  }
-                ]
-              }
+              "outputPath": "<cwd>/build/ast/file.uff.ast",
+              "moduleCodec": "{imports:[] exports:[{kind:\"rule\" name:\"Main\"}] rules:[{name:\"Main\" parameters:[] pattern:{kind:\"any\"} expression:undefined attributes:[]}] funcs:[] decorators:[]}\n"
             }
           ],
           "failures": []
         },
         "stderr": null,
         "files": {
-          "build/ast/file.uff.ast.json": {
-            "imports": [],
-            "rules": [
-              {
-                "name": "Main",
-                "parameters": [],
-                "pattern": {
-                  "kind": "any"
-                },
-                "attributes": []
-              }
-            ],
-            "funcs": [],
-            "decorators": [],
-            "exports": [
-              {
-                "kind": "rule",
-                "name": "Main"
-              }
-            ]
-          },
-          "build/ast/file.uff.ast": "{\"imports\":[] \"rules\":[{\"name\":\"Main\" \"parameters\":[] \"pattern\":{\"kind\":\"any\"} \"attributes\":[]}] \"funcs\":[] \"decorators\":[] \"exports\":[{\"kind\":\"rule\" \"name\":\"Main\"}]}\n",
+          "build/ast/file.uff.ast": "{imports:[] exports:[{kind:\"rule\" name:\"Main\"}] rules:[{name:\"Main\" parameters:[] pattern:{kind:\"any\"} expression:undefined attributes:[]}] funcs:[] decorators:[]}\n",
           "file.uff": "export Main; rule Main = any;",
           "uffda.jsonc": "{\"outDir\":\"./build\"}"
         }
@@ -48654,83 +48593,22 @@
             {
               "ok": true,
               "sourcePath": "file.uff",
-              "outputPath": "<cwd>/build/ast/file.uff.ast.json",
-              "module": {
-                "imports": [],
-                "rules": [
-                  {
-                    "name": "Main",
-                    "parameters": [],
-                    "pattern": {
-                      "kind": "any"
-                    },
-                    "attributes": []
-                  }
-                ],
-                "funcs": [],
-                "decorators": [],
-                "exports": [
-                  {
-                    "kind": "rule",
-                    "name": "Main"
-                  }
-                ]
-              }
+              "outputPath": "<cwd>/build/ast/file.uff.ast",
+              "moduleCodec": "{imports:[] exports:[{kind:\"rule\" name:\"Main\"}] rules:[{name:\"Main\" parameters:[] pattern:{kind:\"any\"} expression:undefined attributes:[]}] funcs:[] decorators:[]}\n"
             }
           ],
           "successes": [
             {
               "sourcePath": "file.uff",
-              "outputPath": "<cwd>/build/ast/file.uff.ast.json",
-              "module": {
-                "imports": [],
-                "rules": [
-                  {
-                    "name": "Main",
-                    "parameters": [],
-                    "pattern": {
-                      "kind": "any"
-                    },
-                    "attributes": []
-                  }
-                ],
-                "funcs": [],
-                "decorators": [],
-                "exports": [
-                  {
-                    "kind": "rule",
-                    "name": "Main"
-                  }
-                ]
-              }
+              "outputPath": "<cwd>/build/ast/file.uff.ast",
+              "moduleCodec": "{imports:[] exports:[{kind:\"rule\" name:\"Main\"}] rules:[{name:\"Main\" parameters:[] pattern:{kind:\"any\"} expression:undefined attributes:[]}] funcs:[] decorators:[]}\n"
             }
           ],
           "failures": []
         },
         "stderr": null,
         "files": {
-          "build/ast/file.uff.ast.json": {
-            "imports": [],
-            "rules": [
-              {
-                "name": "Main",
-                "parameters": [],
-                "pattern": {
-                  "kind": "any"
-                },
-                "attributes": []
-              }
-            ],
-            "funcs": [],
-            "decorators": [],
-            "exports": [
-              {
-                "kind": "rule",
-                "name": "Main"
-              }
-            ]
-          },
-          "build/ast/file.uff.ast": "{\"imports\":[] \"rules\":[{\"name\":\"Main\" \"parameters\":[] \"pattern\":{\"kind\":\"any\"} \"attributes\":[]}] \"funcs\":[] \"decorators\":[] \"exports\":[{\"kind\":\"rule\" \"name\":\"Main\"}]}\n",
+          "build/ast/file.uff.ast": "{imports:[] exports:[{kind:\"rule\" name:\"Main\"}] rules:[{name:\"Main\" parameters:[] pattern:{kind:\"any\"} expression:undefined attributes:[]}] funcs:[] decorators:[]}\n",
           "file.uff": "export Main; rule Main = any;",
           "uffda.jsonc": "{\"outDir\":\"./build\"}"
         }

@@ -1,3 +1,4 @@
+use crate::codec::data::DataDocument;
 use crate::json::JsonValue as Value;
 use serde::Deserialize;
 use std::collections::{BTreeMap, HashMap};
@@ -12,13 +13,13 @@ pub mod packages;
 /// Declaration data only. Linking and runtime rule compilation are separate stages.
 #[derive(Debug, Deserialize)]
 pub struct ModuleDeclaration {
-    pub imports: Vec<Value>,
-    pub exports: Vec<Value>,
-    pub rules: Vec<Value>,
+    pub imports: Vec<DataDocument>,
+    pub exports: Vec<DataDocument>,
+    pub rules: Vec<DataDocument>,
     #[serde(default)]
-    pub funcs: Vec<Value>,
+    pub funcs: Vec<DataDocument>,
     #[serde(default)]
-    pub decorators: Vec<Value>,
+    pub decorators: Vec<DataDocument>,
 }
 
 #[derive(Debug)]
@@ -41,17 +42,12 @@ pub struct Resolver {
     root: PathBuf,
     out_dir: PathBuf,
     declarations: HashMap<Url, Rc<ModuleDeclaration>>,
-    declaration_sources: HashMap<Url, DeclarationSource>,
+    declaration_sources: HashMap<Url, &'static str>,
     packages: Option<packages::JsrPackages>,
     import_map: BTreeMap<String, String>,
     graphs: HashMap<Url, Rc<graph::ModuleGraph>>,
     transport: Rc<dyn packages::Transport>,
     artifact_packages: Vec<(Url, String)>,
-}
-
-enum DeclarationSource {
-    Json(&'static str),
-    Codec(&'static str),
 }
 
 impl Resolver {
@@ -136,20 +132,11 @@ impl Resolver {
         self.declarations.insert(url, Rc::new(declaration));
     }
 
-    /// Register immutable declaration data; validation occurs on first access.
-    pub fn insert_declaration_source(&mut self, url: Url, source: &'static str) {
-        self.declarations.remove(&url);
-        self.graphs.clear();
-        self.declaration_sources
-            .insert(url, DeclarationSource::Json(source));
-    }
-
     /// Register an immutable codec artifact without loading a grammar to decode it.
     pub fn insert_declaration_codec_source(&mut self, url: Url, source: &'static str) {
         self.declarations.remove(&url);
         self.graphs.clear();
-        self.declaration_sources
-            .insert(url, DeclarationSource::Codec(source));
+        self.declaration_sources.insert(url, source);
     }
 
     pub fn load_declaration(
@@ -162,10 +149,7 @@ impl Resolver {
             return Ok(Rc::clone(declaration));
         }
         if let Some(source) = self.declaration_sources.get(url) {
-            let declaration = Rc::new(match source {
-                DeclarationSource::Json(source) => decode_declaration(url, source)?,
-                DeclarationSource::Codec(source) => decode_artifact(url, ".uff.ast", source)?,
-            });
+            let declaration = Rc::new(decode_artifact(url, ".uff.ast", source)?);
             self.declarations
                 .insert(url.clone(), Rc::clone(&declaration));
             return Ok(declaration);
@@ -188,18 +172,16 @@ impl Resolver {
             let source = &url.path()[root.path().len()..];
             let stem = &source[..source.len() - 4];
             let mut candidates = Vec::new();
-            for suffix in [".uff.ast", ".uff.ast.json", ".uffda.ast", ".uffda.ast.json"] {
-                candidates.push(
-                    root.join(&format!("{out_dir}/ast/{stem}{suffix}"))
-                        .map_err(|cause| {
-                            error(
-                                url,
-                                "invalid package artifact URL".into(),
-                                Some(cause.to_string()),
-                            )
-                        })?,
-                );
-            }
+            candidates.push(
+                root.join(&format!("{out_dir}/ast/{stem}.uff.ast"))
+                    .map_err(|cause| {
+                        error(
+                            url,
+                            "invalid package artifact URL".into(),
+                            Some(cause.to_string()),
+                        )
+                    })?,
+            );
             let declaration = Rc::new(load_artifact_candidates(url, &candidates, &self.transport)?);
             self.declarations
                 .insert(url.clone(), Rc::clone(&declaration));
@@ -207,51 +189,14 @@ impl Resolver {
         }
         if url.scheme() == "https" || url.scheme() == "http" {
             require_extension(url)?;
-            if !url.path().ends_with(".json") {
-                return Err(error(
-                    url,
-                    "remote .uff module needs a package artifact layout".into(),
-                    None,
-                ));
-            }
-            let bytes = self.transport.read(url).map_err(|cause| {
-                error(url, "could not read JSON declaration".into(), Some(cause))
-            })?;
-            let text = String::from_utf8(bytes).map_err(|cause| {
-                error(
-                    url,
-                    "declaration is not UTF-8".into(),
-                    Some(cause.to_string()),
-                )
-            })?;
-            let declaration = Rc::new(decode_declaration(url, &text)?);
-            self.declarations
-                .insert(url.clone(), Rc::clone(&declaration));
-            return Ok(declaration);
+            return Err(error(
+                url,
+                "remote .uff module needs a package artifact layout".into(),
+                None,
+            ));
         }
-        let extension = require_extension(url)?;
-        let declaration = if extension == "json" {
-            let path = url.to_file_path().map_err(|()| {
-                error(
-                    url,
-                    format!(
-                        "filesystem declaration loader does not support {}",
-                        url.scheme()
-                    ),
-                    None,
-                )
-            })?;
-            let text = std::fs::read_to_string(&path).map_err(|cause| {
-                error(
-                    url,
-                    format!("could not read declaration {}", path.display()),
-                    Some(cause.to_string()),
-                )
-            })?;
-            Rc::new(decode_declaration(url, &text)?)
-        } else {
-            Rc::new(self.load_uff_declaration_file(url)?)
-        };
+        require_extension(url)?;
+        let declaration = Rc::new(self.load_uff_declaration_file(url)?);
         self.declarations
             .insert(url.clone(), Rc::clone(&declaration));
         Ok(declaration)
@@ -259,10 +204,9 @@ impl Resolver {
 
     /// Preferred on-disk artifact path for a logical module URL.
     ///
-    /// For `.uff` modules this selects codec before JSON compatibility artifacts,
-    /// or the preferred `.uff.ast` path when no candidate exists.
+    /// For `.uff` modules this selects the single native `.uff.ast` artifact.
     pub fn load_path(&self, url: &Url) -> Result<PathBuf, ModuleResolutionError> {
-        let extension = require_extension(url)?;
+        require_extension(url)?;
         let path = url.to_file_path().map_err(|()| {
             error(
                 url,
@@ -273,9 +217,6 @@ impl Resolver {
                 None,
             )
         })?;
-        if extension == "json" {
-            return Ok(path);
-        }
         let candidates = self.uff_artifact_paths(url, &path)?;
         Ok(select_existing_artifact(candidates))
     }
@@ -352,16 +293,10 @@ impl Resolver {
 
 /// Artifact path candidates for a `.uff` source, preferred first.
 ///
-/// Order: `.uff.ast` (data codec), `.uff.ast.json` (JSON compatibility), then
-/// the corresponding legacy `.uffda.ast` / `.uffda.ast.json` names.
+/// Compiled module declarations have one supported artifact format.
 pub fn uff_artifact_paths(out_dir: &Path, relative_uff: &Path) -> Vec<PathBuf> {
     let base = out_dir.join("ast").join(relative_uff);
-    vec![
-        base.with_extension("uff.ast"),
-        base.with_extension("uff.ast.json"),
-        base.with_extension("uffda.ast"),
-        base.with_extension("uffda.ast.json"),
-    ]
+    vec![base.with_extension("uff.ast")]
 }
 
 fn select_existing_artifact(candidates: Vec<PathBuf>) -> PathBuf {
@@ -427,8 +362,7 @@ fn read_artifact_url(
 }
 
 fn is_codec_artifact_path(path: &str) -> bool {
-    (path.ends_with(".uff.ast") && !path.ends_with(".uff.ast.json"))
-        || (path.ends_with(".uffda.ast") && !path.ends_with(".uffda.ast.json"))
+    path.ends_with(".uff.ast")
 }
 
 pub fn decode_artifact(
@@ -436,26 +370,15 @@ pub fn decode_artifact(
     path: &str,
     text: &str,
 ) -> Result<ModuleDeclaration, ModuleResolutionError> {
-    if is_codec_artifact_path(path) {
-        let value = crate::codec::declaration::decode_declaration_codec(text)
-            .map_err(|cause| error(url, "invalid declaration codec".into(), Some(cause)))?;
-        if !value.is_object() {
-            return Err(error(
-                url,
-                "declaration must be a ModuleDeclaration".into(),
-                Some("expected a declaration object".into()),
-            ));
-        }
-        crate::json::from_value(value).map_err(|cause| {
-            error(
-                url,
-                "declaration must be a ModuleDeclaration".into(),
-                Some(cause.to_string()),
-            )
-        })
-    } else {
-        decode_declaration(url, text)
+    if !is_codec_artifact_path(path) {
+        return Err(error(
+            url,
+            "declaration artifacts must use the .uff.ast codec format".into(),
+            None,
+        ));
     }
+    crate::codec::declaration::decode_declaration_codec_as(text)
+        .map_err(|cause| error(url, "invalid declaration codec".into(), Some(cause)))
 }
 
 fn require_extension(url: &Url) -> Result<&str, ModuleResolutionError> {
@@ -463,7 +386,7 @@ fn require_extension(url: &Url) -> Result<&str, ModuleResolutionError> {
         .extension()
         .and_then(|ext| ext.to_str())
         .unwrap_or("");
-    if extension != "uff" && extension != "json" {
+    if extension != "uff" {
         return Err(error(
             url,
             format!(
@@ -550,11 +473,22 @@ mod tests {
     fn raw_declarations_preserve_literal_strings_but_scalar_names_error() {
         let url = Url::parse("file:///lossless.json").unwrap();
         let declaration = decode_declaration(&url, r#"{"imports":[],"exports":[],"rules":[],"funcs":[{"name":"Text","pattern":{"kind":"end"},"expression":{"kind":"value","value":{"\ud800":"\udfff"}}}]}"#).unwrap();
-        let literal = &declaration.funcs[0]["expression"]["value"];
-        let Value::Object(properties) = literal else {
+        let literal = declaration.funcs[0]
+            .field("expression")
+            .unwrap()
+            .unwrap()
+            .field("value")
+            .unwrap()
+            .unwrap();
+        let crate::codec::data::DataNode::Object(properties) = &literal.nodes()[literal.root()]
+        else {
             panic!()
         };
-        assert_eq!(properties.iter().next().unwrap().0.as_utf16(), &[0xd800]);
+        let (key, _) = properties.iter().next().unwrap();
+        let crate::codec::data::DataNode::String(key) = &literal.nodes()[*key] else {
+            panic!("JSON declaration field keys remain strings")
+        };
+        assert_eq!(key.as_utf16(), &[0xd800]);
         assert!(
             crate::json::from_value::<crate::expression::Expression>(
                 crate::json::from_str(r#"{"kind":"reference","name":"\ud800"}"#).unwrap()
@@ -605,6 +539,7 @@ mod tests {
     }
 
     const DECLARATION: &str = r#"{"imports":[],"exports":[],"rules":[]}"#;
+    const DECLARATION_CODEC: &str = "{imports:[] exports:[] rules:[]}\n";
 
     #[test]
     // req:cli-bootstrap-015 req:modules-runtime-001
@@ -613,8 +548,8 @@ mod tests {
         let mut resolver = dir.resolver();
         let url = dir.url("embedded.uff");
         let invalid = dir.url("unused.uff");
-        resolver.insert_declaration_source(url.clone(), DECLARATION);
-        resolver.insert_declaration_source(invalid.clone(), "{");
+        resolver.insert_declaration_codec_source(url.clone(), DECLARATION_CODEC);
+        resolver.insert_declaration_codec_source(invalid.clone(), "{");
         assert_eq!(resolver.declaration_count(), 0);
         let first = resolver.load_declaration(&url).unwrap();
         let second = resolver.load_declaration(&url).unwrap();
@@ -623,13 +558,21 @@ mod tests {
         assert_eq!(resolver.declaration_count(), 1);
         assert!(resolver.load_declaration(&invalid).is_err());
         assert_eq!(resolver.declaration_count(), 1);
-        resolver.insert_declaration_source(
+        resolver.insert_declaration_codec_source(
             url.clone(),
-            r#"{"imports":[],"exports":[],"rules":[{"name":"New","parameters":[],"pattern":{"kind":"any"}}]}"#,
+            "{imports:[] exports:[] rules:[{name:\"New\" parameters:[] pattern:{kind:\"any\"}}]}\n",
         );
         let replaced = resolver.load_declaration(&url).unwrap();
         assert!(!Rc::ptr_eq(&first, &replaced));
-        assert_eq!(replaced.rules[0]["name"], "New");
+        assert_eq!(
+            replaced.rules[0]
+                .field("name")
+                .unwrap()
+                .unwrap()
+                .string_value()
+                .as_deref(),
+            Some("New")
+        );
         let replaced_graph = resolver.load_graph(&url).unwrap();
         assert!(!Rc::ptr_eq(&graph, &replaced_graph));
         resolver.insert_declaration(url.clone(), decode_declaration(&url, DECLARATION).unwrap());
@@ -664,17 +607,15 @@ mod tests {
 
     #[test]
     // req:modules-runtime-001 req:modules-runtime-002
-    fn loads_direct_json_as_data_and_reuses_logical_identity() {
+    fn rejects_direct_json_declarations() {
         let dir = Directory::new();
         std::fs::write(dir.0.join("module.json"), DECLARATION).unwrap();
         let mut resolver = dir.resolver();
-        let first = resolver.load_declaration(&dir.url("module.json")).unwrap();
-        assert!(first.funcs.is_empty());
-        assert!(first.decorators.is_empty());
-        std::fs::remove_file(dir.0.join("module.json")).unwrap();
-        let second = resolver.load_declaration(&dir.url("module.json")).unwrap();
-        assert!(Rc::ptr_eq(&first, &second));
-        assert_eq!(resolver.declaration_count(), 1);
+        let error = resolver
+            .load_declaration(&dir.url("module.json"))
+            .unwrap_err();
+        assert!(error.message.contains("unknown extension .json"));
+        assert_eq!(resolver.declaration_count(), 0);
     }
 
     #[test]
@@ -682,14 +623,21 @@ mod tests {
     fn uff_remaps_without_reading_source_or_relowering() {
         let dir = Directory::new();
         std::fs::create_dir_all(dir.0.join("bin/ast/src")).unwrap();
-        std::fs::write(dir.0.join("bin/ast/src/module.uff.ast.json"), DECLARATION).unwrap();
+        let codec = crate::codec::declaration::encode_declaration_codec(
+            &crate::json::from_str(DECLARATION).unwrap(),
+        )
+        .unwrap();
+        std::fs::write(dir.0.join("bin/ast/src/module.uff.ast"), codec).unwrap();
         let mut resolver = dir.resolver();
         let logical = dir.url("src/module.uff");
-        let artifact = dir.url("bin/ast/src/module.uff.ast.json");
+        let artifact = dir.url("bin/ast/src/module.uff.ast");
         let loaded = resolver.load_declaration(&logical).unwrap();
-        let direct = resolver.load_declaration(&artifact).unwrap();
-        assert!(!Rc::ptr_eq(&loaded, &direct));
-        assert_eq!(resolver.declaration_count(), 2);
+        assert!(resolver.load_declaration(&artifact).is_err());
+        assert!(Rc::ptr_eq(
+            &loaded,
+            &resolver.load_declaration(&logical).unwrap()
+        ));
+        assert_eq!(resolver.declaration_count(), 1);
         let outside = Url::from_file_path(dir.0.parent().unwrap().join("outside.uff")).unwrap();
         assert!(
             resolver
@@ -722,7 +670,15 @@ mod tests {
         let loaded = resolver
             .load_declaration(&dir.url("src/module.uff"))
             .unwrap();
-        assert_eq!(loaded.rules[0]["name"], "Codec");
+        assert_eq!(
+            loaded.rules[0]
+                .field("name")
+                .unwrap()
+                .unwrap()
+                .string_value()
+                .as_deref(),
+            Some("Codec")
+        );
         assert_eq!(
             resolver.load_path(&dir.url("src/module.uff")).unwrap(),
             dir.0.join("bin/ast/src/module.uff.ast")
@@ -731,7 +687,7 @@ mod tests {
 
     #[test]
     // req:project-file-003 req:cli-bootstrap-004
-    fn uff_loads_codec_only_and_json_only_artifacts() {
+    fn uff_loads_codec_artifacts_and_rejects_json_only_artifacts() {
         let dir = Directory::new();
         std::fs::create_dir_all(dir.0.join("bin/ast")).unwrap();
         let codec = crate::codec::declaration::encode_declaration_codec(
@@ -748,13 +704,7 @@ mod tests {
                 .rules
                 .is_empty()
         );
-        assert!(
-            resolver
-                .load_declaration(&dir.url("json.uff"))
-                .unwrap()
-                .rules
-                .is_empty()
-        );
+        assert!(resolver.load_declaration(&dir.url("json.uff")).is_err());
     }
 
     #[test]
@@ -773,7 +723,7 @@ mod tests {
         resolver.insert_declaration_codec_source(url.clone(), "{}\n{}\n");
         assert_eq!(resolver.declaration_count(), 0);
         assert!(resolver.load_declaration(&url).is_err());
-        resolver.insert_declaration_source(url.clone(), DECLARATION);
+        resolver.insert_declaration_codec_source(url.clone(), DECLARATION_CODEC);
         assert!(resolver.load_declaration(&url).unwrap().rules.is_empty());
         resolver.insert_declaration_codec_source(url.clone(), "{imports:[] exports:[] rules:[]}\n");
         assert!(resolver.load_declaration(&url).unwrap().rules.is_empty());
@@ -811,7 +761,7 @@ mod tests {
                 .load_path(&remote)
                 .unwrap_err()
                 .message
-                .contains("does not support https")
+                .contains("unknown extension .json")
         );
         assert_eq!(resolver.declaration_count(), 0);
     }
@@ -821,24 +771,25 @@ mod tests {
     fn validates_structure_and_does_not_cache_failures() {
         let dir = Directory::new();
         let mut resolver = dir.resolver();
-        let url = dir.url("module.json");
+        let url = dir.url("module.uff");
+        std::fs::create_dir_all(dir.0.join("bin/ast")).unwrap();
         for text in [
             "{",
-            "null",
-            "42",
-            "[]",
-            "{}",
-            r#"{"imports":[],"exports":[],"rules":null}"#,
-            r#"{"imports":[],"exports":[],"rules":[],"funcs":null}"#,
-            r#"{"imports":[],"exports":[],"rules":[],"decorators":{}}"#,
+            "null\n",
+            "42\n",
+            "[]\n",
+            "{}\n",
+            "{imports:[] exports:[] rules:null}\n",
+            "{imports:[] exports:[] rules:[] funcs:null}\n",
+            "{imports:[] exports:[] rules:[] decorators:{}}\n",
         ] {
-            std::fs::write(dir.0.join("module.json"), text).unwrap();
+            std::fs::write(dir.0.join("bin/ast/module.uff.ast"), text).unwrap();
             let failure = resolver.load_declaration(&url).unwrap_err();
             assert_eq!(failure.module_url, url.as_str());
             assert!(failure.cause.is_some());
             assert_eq!(resolver.declaration_count(), 0);
         }
-        std::fs::write(dir.0.join("module.json"), DECLARATION).unwrap();
+        std::fs::write(dir.0.join("bin/ast/module.uff.ast"), DECLARATION_CODEC).unwrap();
         resolver.load_declaration(&url).unwrap();
         assert_eq!(resolver.declaration_count(), 1);
     }
@@ -873,7 +824,7 @@ mod tests {
             .resolver()
             .load_declaration(&dir.url("missing.uff"))
             .unwrap_err();
-        assert!(failure.message.contains("bin/ast/missing.uff.ast.json"));
+        assert!(failure.message.contains("bin/ast/missing.uff.ast"));
         assert!(failure.cause.is_some());
         assert!(Resolver::new("relative".into(), dir.0.join("bin")).is_err());
         assert!(Resolver::new(dir.0.clone(), "relative".into()).is_err());

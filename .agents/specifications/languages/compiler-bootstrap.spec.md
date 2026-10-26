@@ -28,8 +28,8 @@ self-hosting while maintaining deterministic and diagnosable behavior.
   `compile-lang` tree present. Local product builds likewise enable
   `embed-languages`; no Deno compile or TypeScript language hosts are involved.
 - The published JSR package MUST likewise ship the compiled `./bin` language
-  ModuleDeclaration codec records and compatibility JSON siblings alongside the
-  notice entry point and `.uff` sources. The release Publish workflow installs
+  ModuleDeclaration codec records alongside the notice entry point and `.uff`
+  sources. The release Publish workflow installs
   the release's CLI (from Release Binaries assets) and runs that `uffda compile`
   once to fill `./bin`. It MUST NOT rebuild the Rust CLI in the JSR job. The
   workflow verifies the package file list with `jsr publish --dry-run`.
@@ -60,8 +60,8 @@ self-hosting while maintaining deterministic and diagnosable behavior.
 - Local bootstrap of `./bin` (`npm run compile:lang`) and Checks bootstrap
   MUST use the previous published `uffda compile` for the full parse + lower
   pipeline in one step (quoted glob such as `'src/lang/**/*.uff'`), producing
-  ModuleDeclaration codec records and JSON siblings directly. Checks invokes
-  that published binary directly. The release `compile-lang` job downloads that
+  only ModuleDeclaration codec records. Checks invokes that published binary
+  directly. The release `compile-lang` job downloads that
   published asset with `gh` and does not run Deno; it then rewrites `./bin` with
   the Rust CLI. `npm run compile:lang` is the same command for local use and
   other workflows. No separate in-tree lower stage or frozen compiler snapshot
@@ -77,9 +77,9 @@ workspace `./bin`, so an empty `./bin` cannot be filled by in-tree parse alone.
 
 - `uffda compile` MUST be a single product pipeline: parse authored `.uff` to a
   syntax module, then run `UffdaRuntimeCompiler` as the next stage, then write
-  the resulting **ModuleDeclaration** (`imports` / `exports` / `rules`) as codec
-  records and compatibility JSON siblings. The published CLI binary embeds this
-  whole pipeline (0.1.17+), so invoking it externally
+  the resulting **ModuleDeclaration** (`imports` / `exports` / `rules`) as
+  codec records only. The published CLI binary embeds this whole pipeline
+  (0.1.17+), so invoking it externally
   (`uffda compile 'src/lang/**/*.uff'`, which writes the default `./bin` output
   directory) already performs both stages.
 - Bootstrap of workspace `./bin` MUST shell out to the **previous published
@@ -112,15 +112,16 @@ workspace `./bin`, so an empty `./bin` cannot be filled by in-tree parse alone.
   authors MUST publish a new CLI that adds that feature and then compile with it
   — not by checking compiler output into `src/` and not by splitting lowering
   out of the compile pipeline.
-- Compiling those sources MUST emit ModuleDeclaration codec records and JSON
-  siblings under `./bin/`.
+- Compiling those sources MUST emit only ModuleDeclaration codec records under
+  `./bin/`.
 - The next CLI binary MUST load language definitions from those `./bin/` codec
   artifacts for the compiled product.
 - Artifact paths and names under `./bin/` MUST be deterministic for a fixed
   source tree and compiler version.
 - Runtime module imports that name a `.uff` source MUST resolve through that
-  artifact remapping (logical `.uff` URL → mirrored `./bin/ast/.../*.uff.ast`,
-  else `./bin/ast/.../*.uff.ast.json`), not by reading `.uff` source text. See
+  artifact remapping (logical `.uff` URL → mirrored
+  `./bin/ast/.../*.uff.ast`), not by reading `.uff` source text. JSON and
+  legacy `.uffda.ast` artifacts MUST NOT be loaded as fallbacks. See
   the [modules specification](../modules.spec.md#uffda-source-imports-uff).
 
 ## Bin artifact integrity (no post-compile hacks)
@@ -150,6 +151,19 @@ artifacts with host-side rewriters.
 - Authors MUST NOT treat “post-process the bin” or “infer missing tags at load
   by duck-typing arbitrary objects” as substitutes for the publish → install →
   recompile cycle.
+
+## Native compiler handoffs
+
+Native source compilation MUST pass the parser's syntax value to the authored
+runtime compiler as owned codec data, not by serializing it through JSON.
+Native values, including explicit undefined fields, MUST retain their semantics
+across the two arena executions. Exported owned data MUST remain valid after
+collection or reuse of either execution's arena.
+
+Native compiler orchestration MUST report source parse/recovery diagnostics
+before producing a successful declaration. It MUST NOT execute JSON conversion
+hooks to obtain a syntax or declaration value. JSON protocol envelopes and
+explicit JSON interchange do not define the native compiler value model.
 
 ## Full-circle validation requirements
 

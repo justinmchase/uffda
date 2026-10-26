@@ -1,7 +1,14 @@
 use std::io::Write;
 use std::process::{Command, Output, Stdio};
+use std::sync::{Mutex, OnceLock};
+
+fn invoke_lock() -> &'static Mutex<()> {
+    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| Mutex::new(()))
+}
 
 fn invoke(args: &[&str], input: &str) -> Output {
+    let _guard = invoke_lock().lock().unwrap();
     let mut child = Command::new(env!("CARGO_BIN_EXE_uffda"))
         .args(args)
         .stdin(Stdio::piped())
@@ -32,7 +39,7 @@ fn output(result: &Output) -> &str {
 // req:standard-library-003
 fn codec_globals_execute_through_the_binary() {
     let encoded = invoke(&["exec", "-e", "(to_codec {values:[undefined 42]})"], "");
-    assert_eq!(output(&encoded), "\"{\\\"values\\\":[undefined 42]}\"\n");
+    assert_eq!(output(&encoded), "\"{values:[undefined 42]}\"\n");
     let decoded = invoke(
         &[
             "exec",
@@ -41,7 +48,7 @@ fn codec_globals_execute_through_the_binary() {
         ],
         "",
     );
-    assert_eq!(output(&decoded), "{\"values\":[undefined 42]}\n");
+    assert_eq!(output(&decoded), "{values:[undefined 42]}\n");
 }
 
 #[test]
@@ -109,7 +116,7 @@ fn codec_subjects_preserve_native_tags_special_numbers_and_surrogate_units() {
         r#"@bytes"AP8""#,
         r#"@symbol"key""#,
         "@set[1 2]",
-        r#"@map[["key" 42n]]"#,
+        r#"{key:42n}"#,
         r#"@error{name:"TypeError" message:"bad" cause:[undefined]}"#,
         r#"{"__proto__":42 "surrogate":"\udfff"}"#,
     ] {
@@ -256,7 +263,7 @@ fn file_data_subjects_accept_one_record_and_report_read_and_decode_errors() {
             file,
         ],
     ] {
-        assert_eq!(output(&invoke(&args, "")), "{\"a\":42n}\n");
+        assert_eq!(output(&invoke(&args, "")), "{a:42n}\n");
     }
     std::fs::write(&path, "1\n2\n").unwrap();
     let invalid = invoke(&["match", "-e", "any", "--input-data-file", file], "");
@@ -289,10 +296,7 @@ fn codec_output_rejects_callables_without_conversion_hooks() {
     }
     let ast = r#"{"kind":"value","value":{"\ud800":"\udfff","a":[-0.0,1.25]}}"#;
     let result = invoke(&["exec", "--ast"], ast);
-    assert_eq!(
-        output(&result),
-        "{\"\\ud800\":\"\\udfff\" \"a\":[-0 1.25]}\n"
-    );
+    assert_eq!(output(&result), "{\"\\ud800\":\"\\udfff\" a:[-0 1.25]}\n");
     let matched = invoke(&["match", "-e", "any", "--input-data", output(&result)], "");
     assert_eq!(output(&matched), output(&result));
     let invoked = invoke(&["exec", "-e", "(json { toJSON: <any> -> 42 })"], "");

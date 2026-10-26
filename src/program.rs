@@ -3,7 +3,7 @@ use crate::expression::{
     StringSegment,
 };
 use crate::pattern::PatternProgram;
-use crate::{json::JsonValue, text::RuntimeString};
+use crate::text::RuntimeString;
 use std::rc::Rc;
 
 pub(crate) struct Program {
@@ -14,7 +14,7 @@ pub(crate) enum Node {
     Undefined,
     Number(f64),
     Boolean(bool),
-    Value(JsonValue),
+    Data(crate::codec::data::DataDocument),
     Reference(String),
     Member(RuntimeString, usize),
     Array(Vec<(usize, bool)>),
@@ -32,6 +32,12 @@ pub(crate) enum Key {
 }
 
 impl Program {
+    pub fn from_data(document: crate::codec::data::DataDocument) -> Rc<Self> {
+        Rc::new(Self {
+            nodes: vec![Node::Data(document)],
+        })
+    }
+
     // Flat shared syntax permits repeated closure calls without recursively
     // cloning or dropping a deeply nested expression tree.
     pub fn compile(expression: Expression) -> Rc<Self> {
@@ -49,23 +55,7 @@ impl Program {
                 Expression::Number { value } => Node::Number(value),
                 Expression::Boolean { value } => Node::Boolean(value),
                 Expression::Value { value: None } => Node::Undefined,
-                Expression::Value { value: Some(value) } => match value {
-                    JsonValue::Array(values) => Node::Array(
-                        values
-                            .into_iter()
-                            .map(|value| (child(Expression::Value { value: Some(value) }), false))
-                            .collect(),
-                    ),
-                    JsonValue::Object(values) => Node::Object(
-                        values
-                            .into_iter()
-                            .map(|(name, value)| {
-                                Key::Named(name, child(Expression::Value { value: Some(value) }))
-                            })
-                            .collect(),
-                    ),
-                    value => Node::Value(value),
-                },
+                Expression::Value { value: Some(value) } => Node::Data(value),
                 Expression::Reference { name } => Node::Reference(name),
                 Expression::Member { name, expression } => Node::Member(name, child(*expression)),
                 Expression::Not { expression } => Node::Not(child(*expression)),
@@ -105,7 +95,16 @@ impl Program {
                             child(match value {
                                 StringSegment::Expression(expression) => expression,
                                 StringSegment::Literal(value) => Expression::Value {
-                                    value: Some(JsonValue::String(value)),
+                                    value: Some(
+                                        crate::codec::data::DataDocument::from_nodes(
+                                            vec![crate::codec::data::DataNode::String(
+                                                value.codec_text().clone(),
+                                            )],
+                                            0,
+                                            crate::codec::data::DataLimits::default(),
+                                        )
+                                        .expect("scalar string is a valid codec value"),
+                                    ),
                                 },
                             })
                         })
@@ -145,17 +144,15 @@ mod tests {
     fn compiled_segments_and_literal_object_keys_remain_lossless() {
         let ast = crate::json::from_str(r#"{"kind":"value","value":{"\ud800":"\udfff"}}"#).unwrap();
         let program = Program::compile(ast);
-        let Node::Object(keys) = &program.nodes[0] else {
+        let Node::Data(document) = &program.nodes[0] else {
             panic!()
         };
-        let Key::Named(name, child) = &keys[0] else {
-            panic!()
-        };
-        assert_eq!(name.as_utf16(), &[0xd800]);
-        let Node::Value(JsonValue::String(value)) = &program.nodes[*child] else {
-            panic!()
-        };
-        assert_eq!(value.as_utf16(), &[0xdfff]);
+        assert!(
+            document
+                .encode(false, crate::codec::data::DataLimits::default())
+                .unwrap()
+                .contains(r#""\ud800":"\udfff""#)
+        );
     }
 
     #[test]
@@ -164,9 +161,9 @@ mod tests {
         let undefined = Program::compile(Expression::Value { value: None });
         assert!(matches!(undefined.nodes[0], Node::Undefined));
         let null = Program::compile(Expression::Value {
-            value: Some(JsonValue::Null),
+            value: Some(crate::codec::data::DataDocument::from_codec("null").unwrap()),
         });
-        assert!(matches!(null.nodes[0], Node::Value(JsonValue::Null)));
+        assert!(matches!(null.nodes[0], Node::Data(_)));
     }
 
     #[test]

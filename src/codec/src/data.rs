@@ -4,7 +4,9 @@ use crate::text::RuntimeString;
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use num_bigint::BigInt;
 use serde_json::Value as Json;
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeMap, HashSet};
+
+pub mod de;
 use std::fmt;
 use std::fmt::Write as _;
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
@@ -100,7 +102,7 @@ impl DataDecoder {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum DataNode {
     Undefined,
     Null,
@@ -112,9 +114,8 @@ pub enum DataNode {
     Bytes(Vec<u8>),
     Symbol(RuntimeString),
     Array(Vec<usize>),
-    Object(Vec<(RuntimeString, usize)>),
+    Object(Vec<(usize, usize)>),
     Set(Vec<usize>),
-    Map(Vec<(usize, usize)>),
     Error {
         name: RuntimeString,
         message: RuntimeString,
@@ -123,7 +124,7 @@ pub enum DataNode {
     },
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct DataDocument {
     nodes: Vec<DataNode>,
     root: usize,
@@ -202,8 +203,9 @@ impl fmt::Write for BoundedOutput {
 
 enum Build {
     Value(usize, usize),
+    Literal(DataNode),
     Array(usize),
-    Object(Vec<RuntimeString>),
+    Object(usize),
     Tag(String),
 }
 
@@ -267,22 +269,13 @@ impl DataDocument {
             return Err(error("invalid data root index"));
         }
         for (index, node) in nodes.iter().enumerate() {
-            let mut children = Vec::new();
+            let mut children = Vec::<&usize>::new();
             match node {
                 DataNode::Array(items) => children.extend(items),
                 DataNode::Set(items) => {
                     children.extend(items);
                 }
                 DataNode::Object(entries) => {
-                    let mut keys = BTreeSet::new();
-                    for (key, child) in entries {
-                        if !keys.insert(key) {
-                            return Err(error("duplicate object key"));
-                        }
-                        children.push(child);
-                    }
-                }
-                DataNode::Map(entries) => {
                     for (key, value) in entries {
                         children.extend([key, value]);
                     }
@@ -298,7 +291,7 @@ impl DataDocument {
             }
             match node {
                 DataNode::Set(items) => unique(items, &nodes)?,
-                DataNode::Map(entries) => unique(
+                DataNode::Object(entries) => unique(
                     &entries.iter().map(|(key, _)| *key).collect::<Vec<_>>(),
                     &nodes,
                 )?,
@@ -315,6 +308,90 @@ impl DataDocument {
     }
     pub fn root(&self) -> usize {
         self.root
+    }
+
+    pub fn subdocument(&self, root: usize, limits: DataLimits) -> Result<Self, DataError> {
+        Self::from_nodes(self.nodes.clone(), root, limits)
+    }
+
+    pub fn replace_root_field(
+        &self,
+        key: &str,
+        replacement: &Self,
+        limits: DataLimits,
+    ) -> Result<Self, DataError> {
+        let DataNode::Object(_) = &self.nodes[self.root] else {
+            return Err(error("data root is not an object"));
+        };
+        let offset = replacement.nodes.len();
+        let replacement_root = replacement.root;
+        let root = self
+            .root
+            .checked_add(offset)
+            .ok_or_else(|| error("data node index overflow"))?;
+        let mut nodes = replacement.nodes.clone();
+        let mut additions = self.nodes.clone();
+        for node in &mut additions {
+            let shift = |index: &mut usize| -> Result<(), DataError> {
+                *index = index
+                    .checked_add(offset)
+                    .ok_or_else(|| error("data node index overflow"))?;
+                Ok(())
+            };
+            match node {
+                DataNode::Array(items) | DataNode::Set(items) => {
+                    for index in items {
+                        shift(index)?;
+                    }
+                }
+                DataNode::Object(entries) => {
+                    for (key, value) in entries {
+                        shift(key)?;
+                        shift(value)?;
+                    }
+                }
+                DataNode::Error {
+                    cause: Some(index), ..
+                } => shift(index)?,
+                _ => {}
+            }
+        }
+        nodes.extend(additions);
+        let DataNode::Object(entries) = &nodes[root] else {
+            unreachable!("root was validated as an object")
+        };
+        let mut entries = entries.clone();
+        if let Some((_, index)) = entries.iter_mut().find(|(name, _)| {
+            matches!(&nodes[*name], DataNode::String(text) if text.to_utf8().is_ok_and(|text| text == key))
+        }) {
+            *index = replacement_root;
+        } else {
+            let key_index = nodes.len();
+            nodes.push(DataNode::String(RuntimeString::from(key)));
+            entries.push((key_index, replacement_root));
+        }
+        nodes.push(DataNode::Object(entries));
+        let root = nodes.len() - 1;
+        Self::from_nodes(nodes, root, limits)
+    }
+
+    pub fn root_field(&self, key: &str, limits: DataLimits) -> Result<Option<Self>, DataError> {
+        let DataNode::Object(entries) = self
+            .nodes
+            .get(self.root)
+            .ok_or_else(|| error("invalid data root"))?
+        else {
+            return Err(error("data root is not an object"));
+        };
+        let Some((_, child)) = entries
+            .iter()
+            .find(|(name, _)| {
+                matches!(&self.nodes[*name], DataNode::String(text) if text.to_utf8().is_ok_and(|text| text == key))
+            })
+        else {
+            return Ok(None);
+        };
+        self.subdocument(*child, limits).map(Some)
     }
 
     /// Validate an authored AST, bounding its compact encoding rather than its JSON representation.
@@ -368,39 +445,44 @@ impl DataDocument {
                         }
                         "object" => {
                             let entries = take_array(&mut object, "entries", &mut ast)?;
-                            let mut keys = Vec::new();
-                            let mut items = Vec::new();
-                            let mut seen = BTreeSet::new();
+                            let mut items = Vec::with_capacity(entries.len());
                             for entry in entries {
                                 let AstNode::Object(mut entry) = ast.take(entry)? else {
                                     return Err(error("invalid data object entry"));
                                 };
-                                let key = take_string(&mut entry, "key", &mut ast)?;
-                                let key = if key.starts_with('"') {
-                                    quoted(&key)?
-                                } else {
-                                    if !identifier(&key) {
-                                        return Err(error("invalid identifier key"));
+                                let key_index = entry
+                                    .remove("key")
+                                    .ok_or_else(|| error("missing object key"))?;
+                                let key = match ast.0.get(key_index).and_then(Option::as_ref) {
+                                    Some(AstNode::Object(_)) => Build::Value(key_index, depth + 1),
+                                    Some(AstNode::Scalar(Json::String(token))) => {
+                                        let key = if token.starts_with('"') {
+                                            quoted(token)?
+                                        } else {
+                                            if !identifier(token) {
+                                                return Err(error("invalid identifier key"));
+                                            }
+                                            RuntimeString::from(token.as_str())
+                                        };
+                                        ast.take(key_index)?;
+                                        Build::Literal(DataNode::String(key))
                                     }
-                                    RuntimeString::from(key.as_str())
+                                    _ => return Err(error("invalid data object key")),
                                 };
-                                if !seen.insert(key.clone()) {
-                                    return Err(error("duplicate object key"));
-                                }
-                                keys.push(key);
-                                items.push(
+                                items.push((
+                                    key,
                                     entry
                                         .remove("value")
                                         .ok_or_else(|| error("missing object value"))?,
-                                );
+                                ));
                                 no_fields(entry)?;
                             }
-                            work.push(Build::Object(keys));
+                            work.push(Build::Object(items.len()));
                             work.extend(
                                 items
                                     .into_iter()
                                     .rev()
-                                    .map(|item| Build::Value(item, depth + 1)),
+                                    .flat_map(|(key, value)| [Build::Value(value, depth + 1), key]),
                             );
                             no_fields(object)?;
                             continue;
@@ -427,12 +509,23 @@ impl DataDocument {
                         .ok_or_else(|| error("invalid array AST"))?;
                     DataNode::Array(values.split_off(start))
                 }
-                Build::Object(keys) => {
+                Build::Literal(node) => node,
+                Build::Object(count) => {
+                    let child_count = count
+                        .checked_mul(2)
+                        .ok_or_else(|| error("object AST entry count overflow"))?;
                     let start = values
                         .len()
-                        .checked_sub(keys.len())
+                        .checked_sub(child_count)
                         .ok_or_else(|| error("invalid object AST"))?;
-                    DataNode::Object(keys.into_iter().zip(values.split_off(start)).collect())
+                    let children = values.split_off(start);
+                    let entries = children
+                        .as_chunks::<2>()
+                        .0
+                        .iter()
+                        .map(|[key, value]| (*key, *value))
+                        .collect();
+                    DataNode::Object(entries)
                 }
                 Build::Tag(tag) => {
                     let payload = values
@@ -447,20 +540,15 @@ impl DataDocument {
         if values.len() != 1 {
             return Err(error("data AST did not produce one value"));
         }
-        let document = Self {
-            nodes,
-            root: values[0],
-        };
-        document.encode(false, limits)?;
-        Ok(document)
+        Self::from_nodes(nodes, values[0], limits)
     }
 
     pub fn encode(&self, pretty: bool, limits: DataLimits) -> Result<String, DataError> {
         validate_limits(limits)?;
-        enum Write<'a> {
+        enum Write {
             Node(usize, usize),
+            ObjectKey(usize, usize),
             Text(String),
-            Key(&'a RuntimeString),
         }
         let mut output = BoundedOutput {
             text: String::new(),
@@ -475,10 +563,21 @@ impl DataDocument {
             }
             match action {
                 Write::Text(text) => output.push_str(&text),
-                Write::Key(key) => {
-                    key.write_json_string(&mut output)
-                        .map_err(|_| error("data record byte limit exceeded"))?;
-                    output.push(':');
+                Write::ObjectKey(index, depth) => {
+                    if let Some(DataNode::String(key)) = self.nodes.get(index)
+                        && key
+                            .to_utf8()
+                            .is_ok_and(|key| identifier(&key) && !reserved_key(&key))
+                    {
+                        let key = key
+                            .to_utf8()
+                            .map_err(|failure| error(failure.to_string()))?;
+                        output.push_str(&key);
+                        output.push(':');
+                        continue;
+                    }
+                    work.push(Write::Text(":".into()));
+                    work.push(Write::Node(index, depth));
                 }
                 Write::Node(index, depth) => {
                     if depth > limits.max_depth {
@@ -493,13 +592,6 @@ impl DataDocument {
                         | DataNode::Object(_)
                         | DataNode::Set(_)
                         | DataNode::Error { .. } => 1,
-                        DataNode::Map(entries) => {
-                            if entries.is_empty() {
-                                1
-                            } else {
-                                2
-                            }
-                        }
                         _ => 0,
                     };
                     if nesting > limits.max_depth.saturating_sub(depth) {
@@ -583,27 +675,9 @@ impl DataDocument {
                             "}",
                             entries
                                 .iter()
-                                .map(|(key, index)| (Some(key), *index))
+                                .map(|(key, value)| (Some(*key), *value))
                                 .collect(),
                         ),
-                        DataNode::Map(entries) => {
-                            if !seen.insert(index) {
-                                return Err(error("cyclic or shared composite data"));
-                            }
-                            output.push_str("@map[");
-                            work.push(Write::Text("]".into()));
-                            for (position, (key, value)) in entries.iter().enumerate().rev() {
-                                if position + 1 < entries.len() {
-                                    work.push(Write::Text(" ".into()));
-                                }
-                                work.push(Write::Text("]".into()));
-                                work.push(Write::Node(*value, depth + 2));
-                                work.push(Write::Text(" ".into()));
-                                work.push(Write::Node(*key, depth + 2));
-                                work.push(Write::Text("[".into()));
-                            }
-                            continue;
-                        }
                         DataNode::Error {
                             name,
                             message,
@@ -647,7 +721,7 @@ impl DataDocument {
                     for (position, (key, child)) in children.iter().enumerate().rev() {
                         work.push(Write::Node(*child, depth + 1));
                         if let Some(key) = key {
-                            work.push(Write::Key(key));
+                            work.push(Write::ObjectKey(*key, depth + 1));
                         }
                         if pretty {
                             work.push(Write::Text(format!("\n{}", "  ".repeat(depth + 1))));
@@ -722,6 +796,13 @@ fn identifier(key: &str) -> bool {
         .next()
         .is_some_and(|b| b.is_ascii_alphabetic() || b == b'_')
         && bytes.all(|b| b.is_ascii_alphanumeric() || b == b'_')
+}
+
+fn reserved_key(key: &str) -> bool {
+    matches!(
+        key,
+        "null" | "undefined" | "true" | "false" | "NaN" | "Infinity"
+    )
 }
 
 fn bigint(token: &str) -> Result<BigInt, DataError> {
@@ -809,26 +890,6 @@ fn construct_tag(tag: &str, index: usize, nodes: &[DataNode]) -> Result<DataNode
             unique(items, nodes)?;
             Ok(DataNode::Set(items.clone()))
         }
-        "map" => {
-            let Some(DataNode::Array(items)) = nodes.get(index) else {
-                return Err(error("map requires array payload"));
-            };
-            let mut pairs = Vec::new();
-            for item in items {
-                let Some(DataNode::Array(pair)) = nodes.get(*item) else {
-                    return Err(error("map entry must be a pair"));
-                };
-                if pair.len() != 2 {
-                    return Err(error("map entry must have exactly two values"));
-                }
-                pairs.push((pair[0], pair[1]));
-            }
-            unique(
-                &pairs.iter().map(|(key, _)| *key).collect::<Vec<_>>(),
-                nodes,
-            )?;
-            Ok(DataNode::Map(pairs))
-        }
         "error" => {
             let Some(DataNode::Object(entries)) = nodes.get(index) else {
                 return Err(error("error requires object payload"));
@@ -838,6 +899,9 @@ fn construct_tag(tag: &str, index: usize, nodes: &[DataNode]) -> Result<DataNode
             let mut stack = None;
             let mut cause = None;
             for (key, value) in entries {
+                let DataNode::String(key) = &nodes[*key] else {
+                    return Err(error("error fields must use string keys"));
+                };
                 match key.to_utf8().map_err(|e| error(e.to_string()))?.as_str() {
                     "name" => name = Some(string_node(*value, nodes)?),
                     "message" => message = Some(string_node(*value, nodes)?),
@@ -860,7 +924,19 @@ fn construct_tag(tag: &str, index: usize, nodes: &[DataNode]) -> Result<DataNode
 fn unique(items: &[usize], nodes: &[DataNode]) -> Result<(), DataError> {
     let mut seen = HashSet::new();
     for item in items {
-        let key = match &nodes[*item] {
+        if !seen.insert(key_identity(*item, nodes)?) {
+            return Err(error("duplicate set entry or object key"));
+        }
+    }
+    Ok(())
+}
+
+fn key_identity(index: usize, nodes: &[DataNode]) -> Result<String, DataError> {
+    Ok(
+        match nodes
+            .get(index)
+            .ok_or_else(|| error("invalid object key reference"))?
+        {
             DataNode::Undefined => "undefined".into(),
             DataNode::Null => "null".into(),
             DataNode::Boolean(value) => format!("boolean:{value}"),
@@ -871,13 +947,9 @@ fn unique(items: &[usize], nodes: &[DataNode]) -> Result<(), DataError> {
             DataNode::BigInt(value) => format!("bigint:{value}"),
             DataNode::String(value) => format!("string:{:?}", value.as_utf16()),
             DataNode::Symbol(value) => format!("symbol:{:?}", value.as_utf16()),
-            _ => format!("identity:{item}"),
-        };
-        if !seen.insert(key) {
-            return Err(error("duplicate set entry or map key"));
-        }
-    }
-    Ok(())
+            _ => format!("identity:{index}"),
+        },
+    )
 }
 
 mod parser;

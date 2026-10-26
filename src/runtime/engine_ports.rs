@@ -344,7 +344,7 @@ fn engine_port_source_spans_follow_item_origins_including_unread_and_eof() {
 }
 
 #[test]
-// req:runtime-strings-002 req:runtime-core-012 req:into-001
+// req:runtime-strings-002 req:runtime-core-012 req:into-001 req:expressions-runtime-012
 fn engine_port_wrapped_values_keep_origins_identity_and_reject_composites() {
     uffda_heap::rootless_mutate(|mc| {
         let inner = Value::string(mc, "a").wrap(mc, Origin { start: 0, end: 1 });
@@ -429,8 +429,13 @@ fn engine_port_wrapped_values_keep_origins_identity_and_reject_composites() {
                 .unwrap_deep(mc)
                 .strict_eq(date)
         );
-        let map = Value::map(mc, vec![]);
-        assert!(map.unwrap_deep(mc).strict_eq(map));
+        let map = Value::association(mc, vec![]);
+        let unwrapped = map.unwrap_deep(mc);
+        assert!(!unwrapped.strict_eq(map));
+        let Value::Object(properties) = unwrapped else {
+            panic!("association object");
+        };
+        assert!(properties.borrow().entries().is_empty());
 
         let linear = Value::string(mc, "a").wrap_root(mc);
         if let Value::Located(located) = linear {

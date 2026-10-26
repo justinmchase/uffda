@@ -23,7 +23,6 @@ pub enum RuntimeType {
     Array,
     Error,
     Object,
-    Map,
     Set,
     Date,
 }
@@ -42,7 +41,6 @@ impl std::fmt::Display for RuntimeType {
             Self::Array => "array",
             Self::Error => "error",
             Self::Object => "object",
-            Self::Map => "map",
             Self::Set => "set",
             Self::Date => "date",
         })
@@ -103,7 +101,6 @@ pub enum Value<'gc> {
     IteratorFactory(Gc<'gc, Value<'gc>>),
     Symbol(Gc<'gc, RuntimeString>),
     Set(Array<'gc>),
-    Map(Array<'gc>),
     Bytes(Gc<'gc, Vec<u8>>),
     Iterable(Gc<'gc, RefLock<IterableState<'gc>>>),
     Match(Gc<'gc, crate::pattern::PatternMatch<'gc>>),
@@ -154,7 +151,6 @@ impl<'gc> Value<'gc> {
             Self::Native(_) | Self::Host(_) | Self::IteratorFactory(_) => RuntimeType::Function,
             Self::Symbol(_) => RuntimeType::Symbol,
             Self::Set(_) => RuntimeType::Set,
-            Self::Map(_) => RuntimeType::Map,
             Self::Bytes(_) | Self::Iterable(_) | Self::Match(_) | Self::InputSource(_) => {
                 RuntimeType::Object
             }
@@ -201,12 +197,17 @@ impl<'gc> Value<'gc> {
     }
 
     pub fn object(mc: &Mutation<'gc>, properties: Vec<(RuntimeString, Self)>) -> Self {
-        let mut result = ObjectProperties {
-            entries: Vec::with_capacity(properties.len()),
-            symbols: Vec::new(),
-        };
+        let mut result = ObjectProperties::default();
         for (name, value) in properties {
             result.set(name, value);
+        }
+        Self::Object(Gc::new(mc, RefLock::new(result)))
+    }
+
+    pub fn association(mc: &Mutation<'gc>, entries: Vec<(Self, Self)>) -> Self {
+        let mut result = ObjectProperties::default();
+        for (key, value) in entries {
+            result.set_key(key, value);
         }
         Self::Object(Gc::new(mc, RefLock::new(result)))
     }
@@ -228,35 +229,6 @@ impl<'gc> Value<'gc> {
             }
         }
         Self::Set(Gc::new(mc, RefLock::new(result)))
-    }
-
-    pub fn map(mc: &Mutation<'gc>, entries: Vec<(Self, Self)>) -> Self {
-        let mut result: Vec<(Self, Self)> = Vec::new();
-        for (key, value) in entries {
-            let key = key.raw();
-            let key = if matches!(key, Self::Number(n) if n == 0.0) {
-                Self::Number(0.0)
-            } else {
-                key
-            };
-            if let Some((_, existing)) = result
-                .iter_mut()
-                .find(|(existing, _)| crate::globals::same_value_zero(*existing, key))
-            {
-                *existing = value;
-            } else {
-                result.push((key, value));
-            }
-        }
-        Self::Map(Gc::new(
-            mc,
-            RefLock::new(
-                result
-                    .into_iter()
-                    .map(|(key, value)| Self::array(mc, vec![key, value]))
-                    .collect(),
-            ),
-        ))
     }
 
     /// Deep wrapper removal clones arrays/objects and preserves their cycles.
@@ -299,10 +271,7 @@ impl<'gc> Value<'gc> {
                     let source = source.borrow();
                     let mut target = target.borrow_mut(mc);
                     for (key, value) in source.entries() {
-                        target.set(key.clone(), shell(*value, &mut seen, &mut pending));
-                    }
-                    for (key, value) in source.symbol_entries() {
-                        target.set_symbol(key.clone(), shell(*value, &mut seen, &mut pending));
+                        target.set_key(key.to_value(mc), shell(*value, &mut seen, &mut pending));
                     }
                 }
                 _ => unreachable!(),
@@ -329,9 +298,7 @@ impl<'gc> Value<'gc> {
                 left.identity().position(0) == right.identity().position(0)
             }
             (Self::Symbol(left), Self::Symbol(right)) => *left == *right,
-            (Self::Set(left), Self::Set(right)) | (Self::Map(left), Self::Map(right)) => {
-                Gc::ptr_eq(left, right)
-            }
+            (Self::Set(left), Self::Set(right)) => Gc::ptr_eq(left, right),
             (Self::Bytes(left), Self::Bytes(right)) => Gc::ptr_eq(left, right),
             (Self::Iterable(left), Self::Iterable(right)) => Gc::ptr_eq(left, right),
             (Self::Match(left), Self::Match(right)) => Gc::ptr_eq(left, right),
@@ -406,32 +373,81 @@ mod host_tests {
     }
 }
 
+#[derive(Clone, Collect)]
+#[collect(no_drop)]
+pub enum AssociationKey<'gc> {
+    String(#[collect(require_static)] RuntimeString),
+    Symbol(#[collect(require_static)] RuntimeString),
+    Value(Value<'gc>),
+}
+
+impl<'gc> AssociationKey<'gc> {
+    fn from_value(value: Value<'gc>) -> Self {
+        match value.raw() {
+            Value::String(text) => Self::String((*text).clone()),
+            Value::Symbol(text) => Self::Symbol((*text).clone()),
+            Value::Number(0.0) => Self::Value(Value::Number(0.0)),
+            value => Self::Value(value),
+        }
+    }
+
+    pub fn same_value(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::String(left), Self::String(right))
+            | (Self::Symbol(left), Self::Symbol(right)) => left == right,
+            (Self::Value(left), Self::Value(right)) => {
+                crate::globals::same_value_zero(*left, *right)
+            }
+            _ => false,
+        }
+    }
+
+    pub fn to_value(&self, mc: &Mutation<'gc>) -> Value<'gc> {
+        match self {
+            Self::String(text) => Value::String(Gc::new(mc, text.clone())),
+            Self::Symbol(text) => Value::Symbol(Gc::new(mc, text.clone())),
+            Self::Value(value) => *value,
+        }
+    }
+
+    pub fn as_string(&self) -> Option<&RuntimeString> {
+        match self {
+            Self::String(text) => Some(text),
+            _ => None,
+        }
+    }
+
+    pub fn is_symbol(&self) -> bool {
+        matches!(self, Self::Symbol(_))
+    }
+}
+
 #[derive(Default, Collect)]
 #[collect(no_drop)]
 pub struct ObjectProperties<'gc> {
-    entries: Vec<(RuntimeString, Value<'gc>)>,
-    symbols: Vec<(RuntimeString, Value<'gc>)>,
+    entries: Vec<(AssociationKey<'gc>, Value<'gc>)>,
 }
 
 impl<'gc> ObjectProperties<'gc> {
-    pub fn symbol_entries(&self) -> &[(RuntimeString, Value<'gc>)] {
-        &self.symbols
+    pub fn has_symbol_keys(&self) -> bool {
+        self.entries
+            .iter()
+            .any(|(key, _)| matches!(key, AssociationKey::Symbol(_)))
     }
+
     pub fn get_symbol(&self, name: impl Into<RuntimeString>) -> Option<Value<'gc>> {
         let name = name.into();
-        self.symbols
+        self.entries
             .iter()
-            .find(|(key, _)| *key == name)
+            .find(|(key, _)| matches!(key, AssociationKey::Symbol(key) if *key == name))
             .map(|(_, value)| *value)
     }
+
     pub fn set_symbol(&mut self, name: RuntimeString, value: Value<'gc>) {
-        if let Some((_, existing)) = self.symbols.iter_mut().find(|(key, _)| *key == name) {
-            *existing = value;
-        } else {
-            self.symbols.push((name, value));
-        }
+        self.set_association_key(AssociationKey::Symbol(name), value);
     }
-    pub fn entries(&self) -> &[(RuntimeString, Value<'gc>)] {
+
+    pub fn entries(&self) -> &[(AssociationKey<'gc>, Value<'gc>)] {
         &self.entries
     }
 
@@ -439,54 +455,37 @@ impl<'gc> ObjectProperties<'gc> {
         let name = name.into();
         self.entries
             .iter()
-            .find(|(key, _)| *key == name)
+            .find(|(key, _)| matches!(key, AssociationKey::String(key) if *key == name))
             .map(|(_, value)| *value)
     }
 
     pub fn set(&mut self, name: RuntimeString, value: Value<'gc>) {
-        if let Some((_, existing)) = self.entries.iter_mut().find(|(key, _)| *key == name) {
-            *existing = value;
-            return;
-        }
-        // Ordinary identifier / string keys never start with a digit. Reject those
-        // before any index parsing so object-literal construction stays O(entries)
-        // without UTF-8 / decimal string allocations on the hot path.
-        if let Some(index) = canonical_array_index(name.as_utf16()) {
-            let position = self
-                .entries
-                .iter()
-                .position(|(key, _)| {
-                    canonical_array_index(key.as_utf16()).is_none_or(|other| other > index)
-                })
-                .unwrap_or(self.entries.len());
-            self.entries.insert(position, (name, value));
-        } else {
-            self.entries.push((name, value));
-        }
+        self.set_association_key(AssociationKey::String(name), value);
     }
-}
 
-/// ECMAScript canonical numeric index string: decimal digits, no leading zeros
-/// (except `"0"`), and value strictly less than `2^32 - 1`.
-fn canonical_array_index(units: &[u16]) -> Option<u32> {
-    let first = *units.first()?;
-    if !(b'0' as u16..=b'9' as u16).contains(&first) {
-        return None;
+    pub fn get_key(&self, key: Value<'gc>) -> Option<Value<'gc>> {
+        let key = AssociationKey::from_value(key);
+        self.entries
+            .iter()
+            .find(|(existing, _)| existing.same_value(&key))
+            .map(|(_, value)| *value)
     }
-    if first == b'0' as u16 {
-        return if units.len() == 1 { Some(0) } else { None };
+
+    pub fn set_key(&mut self, key: Value<'gc>, value: Value<'gc>) {
+        self.set_association_key(AssociationKey::from_value(key), value);
     }
-    let mut value: u64 = 0;
-    for &unit in units {
-        if !(b'0' as u16..=b'9' as u16).contains(&unit) {
-            return None;
+
+    fn set_association_key(&mut self, key: AssociationKey<'gc>, value: Value<'gc>) {
+        if let Some((_, existing)) = self
+            .entries
+            .iter_mut()
+            .find(|(existing, _)| existing.same_value(&key))
+        {
+            *existing = value;
+        } else {
+            self.entries.push((key, value));
         }
-        value = value * 10 + u64::from(unit - b'0' as u16);
-        if value >= u64::from(u32::MAX) {
-            return None;
-        }
     }
-    Some(value as u32)
 }
 
 #[cfg(test)]
@@ -542,7 +541,7 @@ mod tests {
 
     #[test]
     // req:runtime-memory-001 req:expressions-runtime-007
-    fn native_and_collection_values_have_identity_and_symbol_keys_are_separate() {
+    fn native_and_collection_values_have_identity_and_symbol_keys_share_association_storage() {
         rootless_mutate(|mc| {
             let native = Value::Native(crate::globals::NativeGlobal::Id);
             assert!(native.strict_eq(native));
@@ -566,6 +565,7 @@ mod tests {
                     .unwrap()
                     .strict_eq(Value::Number(2.0))
             );
+            assert_eq!(o.borrow().entries().len(), 2);
             let set = Value::Set(Gc::new(mc, RefLock::new(vec![])));
             assert!(set.strict_eq(set));
             assert!(!set.strict_eq(Value::Set(Gc::new(mc, RefLock::new(vec![])))));
@@ -574,7 +574,7 @@ mod tests {
 
     #[test]
     // req:expressions-runtime-006 req:runtime-memory-001
-    fn integer_object_keys_precede_other_keys_in_numeric_order() {
+    fn object_keys_preserve_insertion_order() {
         rootless_mutate(|mc| {
             let object = Value::object(
                 mc,
@@ -592,36 +592,33 @@ mod tests {
                 o.borrow()
                     .entries()
                     .iter()
-                    .map(|(k, _)| k.as_scalar_str().expect("scalar fixture key"))
+                    .map(|(k, _)| k.as_string().unwrap().as_scalar_str().unwrap())
                     .collect::<Vec<_>>(),
-                ["2", "10", "x", "01"]
+                ["x", "10", "2", "01"]
             );
-            let index = |text: &str| canonical_array_index(RuntimeString::from(text).as_utf16());
-            assert_eq!(index("0"), Some(0));
-            assert_eq!(index("01"), None);
-            assert_eq!(index("4294967294"), Some(u32::MAX - 1));
-            assert_eq!(index("4294967295"), None);
-            assert_eq!(index("kind"), None);
         });
     }
 
     #[test]
     // req:runtime-memory-001 req:expressions-runtime-007
-    fn map_set_constructors_and_deep_unwrapping_preserve_host_semantics() {
+    fn association_set_constructors_and_deep_unwrapping_preserve_host_semantics() {
         rootless_mutate(|mc| {
-            let map = Value::map(
+            let object = Value::association(
                 mc,
                 vec![
                     (Value::Number(f64::NAN), Value::Number(1.0)),
                     (Value::Number(f64::NAN), Value::Number(2.0)),
                 ],
             );
-            let Value::Map(m) = map else { unreachable!() };
-            assert_eq!(m.borrow().len(), 1);
-            let Value::Array(entry) = m.borrow()[0] else {
+            let Value::Object(properties) = object else {
                 unreachable!()
             };
-            assert!(entry.borrow()[1].strict_eq(Value::Number(2.0)));
+            assert_eq!(properties.borrow().entries().len(), 1);
+            assert!(
+                properties.borrow().entries()[0]
+                    .1
+                    .strict_eq(Value::Number(2.0))
+            );
             let set = Value::set(mc, vec![Value::Number(-0.0), Value::Number(0.0)]);
             let Value::Set(s) = set else { unreachable!() };
             let Value::Number(n) = s.borrow()[0] else {
@@ -670,7 +667,6 @@ mod tests {
             assert!(Value::string(mc, "\u{1f600}").strict_eq(Value::string(mc, "\u{1f600}")));
             assert_eq!(Value::Number(1.0).runtime_type(), RuntimeType::Number);
             assert_eq!(Value::Number(1.0).runtime_type().to_string(), "number");
-            assert_eq!(RuntimeType::Map.to_string(), "map");
             assert_eq!(Value::Undefined.runtime_type(), RuntimeType::Undefined);
             assert_eq!(Value::array(mc, vec![]).runtime_type(), RuntimeType::Array);
             assert_eq!(
@@ -733,7 +729,7 @@ mod tests {
             let properties = storage.borrow();
             assert_eq!(properties.entries.len(), 2);
             assert_eq!(properties.entries().len(), 2);
-            assert_eq!(properties.entries[0].0, "first");
+            assert_eq!(properties.entries[0].0.as_string().unwrap(), "first");
             assert!(
                 properties
                     .get("first")

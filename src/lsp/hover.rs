@@ -574,7 +574,7 @@ mod tests {
         assert!(text.starts_with("(global func) `length`"), "{text}");
         assert!(text.contains("(length value)"), "{text}");
         assert!(
-            text.contains("The length of a string, array, Set, or Map."),
+            text.contains("The length of a string, array, Set, or object."),
             "{text}"
         );
         let pack = fixture

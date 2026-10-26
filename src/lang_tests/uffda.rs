@@ -272,13 +272,24 @@ fn compile_declaration_path(runtime: &Runtime) -> Option<String> {
 }
 
 fn execute_module(module_json: &str, entry: &str, input: Json, mode: InputMode) -> Runtime {
+    let declaration = resolver::decode_declaration(
+        &Url::parse("file:///lang-tests/compiled.json").unwrap(),
+        module_json,
+    )
+    .unwrap();
+    execute_declaration(declaration, entry, input, mode)
+}
+
+fn execute_declaration(
+    declaration: resolver::ModuleDeclaration,
+    entry: &str,
+    input: Json,
+    mode: InputMode,
+) -> Runtime {
     let mut resolver = Resolver::from_cwd().unwrap();
     let _root = crate::builtins::register(&mut resolver).unwrap();
     let url = Url::parse("file:///lang-tests/compiled.json").unwrap();
-    resolver.insert_declaration(
-        url.clone(),
-        resolver::decode_declaration(&url, module_json).unwrap(),
-    );
+    resolver.insert_declaration(url.clone(), declaration);
     let compiled =
         Rc::new(CompiledModuleGraph::compile(resolver.load_graph(&url).unwrap()).unwrap());
     let mut runtime =
@@ -1714,7 +1725,7 @@ fn remport_source_authored_morse_decodes_the_full_repertoire() {
 }
 
 #[test]
-// req:uffda-runtime-compilation-006
+// req:uffda-runtime-compilation-006 req:uffda-runtime-compilation-008
 fn remport_morse_compiles_and_roundtrips_moby_dick_excerpt() {
     let _guard = crate::test_sync::languages_lock();
     use crate::compile::{CompileRequest, compile};
@@ -1762,8 +1773,9 @@ you perhaps think for.";
     assert!(result.failures.is_empty());
     assert_eq!(result.successes.len(), 1);
     let artifact = std::fs::read_to_string(&result.successes[0].output_path).unwrap();
-    let declaration: Json = serde_json::from_str(&artifact).unwrap();
-    assert!(declaration["rules"].as_array().is_some());
+    let declaration: resolver::ModuleDeclaration =
+        crate::codec::declaration::decode_declaration_codec_as(&artifact).unwrap();
+    assert!(!declaration.rules.is_empty());
 
     let source_text = MOBY_DICK
         .split("\n\n")
@@ -1771,11 +1783,14 @@ you perhaps think for.";
         .collect::<Vec<_>>()
         .join("\n\n")
         .to_uppercase();
-    let mut encoded = execute_module(&artifact, "Text", json!(source_text), InputMode::Iterable);
+    let mut encoded =
+        execute_declaration(declaration, "Text", json!(source_text), InputMode::Iterable);
     assert_eq!(kind_and_clean(&encoded).0, MatchKind::Ok);
     let encoded_text = json_value(&mut encoded);
     assert!(encoded_text.as_str().is_some());
-    let mut decoded = execute_module(&artifact, "Morse", encoded_text, InputMode::Iterable);
+    let declaration: resolver::ModuleDeclaration =
+        crate::codec::declaration::decode_declaration_codec_as(&artifact).unwrap();
+    let mut decoded = execute_declaration(declaration, "Morse", encoded_text, InputMode::Iterable);
     assert_eq!(kind_and_clean(&decoded).0, MatchKind::Ok);
     assert_eq!(json_value(&mut decoded), json!(source_text));
     let _ = std::fs::remove_dir_all(root);

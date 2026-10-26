@@ -22,6 +22,10 @@ Expected behavior:
 - Object key initializers MUST assign the evaluated value to the declared key.
 - Object computed-key initializers MUST assign the evaluated value to the
   evaluated key expression's result.
+- Object computed keys MUST accept any runtime value and use SameValueZero
+  equality. Updating an existing key MUST preserve its original insertion
+  position; adding a new key MUST append it.
+- Object enumeration MUST preserve insertion order.
 - Object spread initializers MUST merge evaluated object properties into the
   resulting object.
 
@@ -30,8 +34,6 @@ Error behavior:
 - Child-expression errors MUST propagate unchanged.
 - Non-spreadable child values MUST report runtime spread errors according to the
   host runtime behavior.
-- Object computed-key initializers whose resolved key is not a `string`,
-  `number`, or `symbol` MUST throw an evaluation exception.
 
 Postconditions:
 

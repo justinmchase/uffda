@@ -469,8 +469,19 @@ mod tests {
         // no funcs and no globals.
         let items = complete(session, &path, "export Main;\nrule Main<P> = O|");
         let found = labels(&items);
-        assert_eq!(found.first().map(String::as_str), Some("P"), "{found:?}");
-        assert!(found.contains(&"Other".to_string()), "{found:?}");
+        assert_eq!(
+            found.first().map(String::as_str),
+            Some("P"),
+            "{found:?}; declarations={:?}",
+            session.list_declarations(&Url::from_file_path(&path).unwrap())
+        );
+        assert!(
+            found.contains(&"Other".to_string()),
+            "{found:?}; graph={:?}",
+            session
+                .compiled_graph_for(&Url::from_file_path(&path).unwrap())
+                .map(|_| ())
+        );
         assert!(!found.contains(&"F".to_string()), "{found:?}");
         assert!(!found.contains(&"add".to_string()), "{found:?}");
 

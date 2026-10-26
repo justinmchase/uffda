@@ -1,4 +1,4 @@
-use super::{ModuleDeclaration, ModuleResolutionError, decode_declaration, error};
+use super::{ModuleDeclaration, ModuleResolutionError, error};
 use deno_semver::{RangeBound, Version, VersionBoundKind, VersionReq};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -508,41 +508,27 @@ impl JsrPackages {
             .map_err(|message| error(url, message, None))?;
         if path.ends_with(".uff") {
             let stem = &path[..path.len() - 4];
-            let candidates = [
-                format!("{}/ast/{stem}.uff.ast", info.out_dir),
-                format!("{}/ast/{stem}.uff.ast.json", info.out_dir),
-                format!("{}/ast/{stem}.uffda.ast", info.out_dir),
-                format!("{}/ast/{stem}.uffda.ast.json", info.out_dir),
-            ];
-            for target in candidates {
-                if !info.manifest.contains_key(&target) {
-                    continue;
-                }
-                let bytes = self
-                    .package_file(&info, &target)
-                    .map_err(|message| error(url, message, None))?;
-                let text = String::from_utf8(bytes).map_err(|cause| {
-                    error(
-                        url,
-                        "declaration is not UTF-8".into(),
-                        Some(cause.to_string()),
-                    )
-                })?;
-                return crate::resolver::decode_artifact(url, &target, &text);
+            let target = format!("{}/ast/{stem}.uff.ast", info.out_dir);
+            if !info.manifest.contains_key(&target) {
+                return Err(error(url, format!("no package artifact for {path}"), None));
             }
-            return Err(error(url, format!("no package artifact for {path}"), None));
+            let bytes = self
+                .package_file(&info, &target)
+                .map_err(|message| error(url, message, None))?;
+            let text = String::from_utf8(bytes).map_err(|cause| {
+                error(
+                    url,
+                    "declaration is not UTF-8".into(),
+                    Some(cause.to_string()),
+                )
+            })?;
+            return crate::resolver::decode_artifact(url, &target, &text);
         }
-        let bytes = self
-            .package_file(&info, &path)
-            .map_err(|message| error(url, message, None))?;
-        let text = String::from_utf8(bytes).map_err(|cause| {
-            error(
-                url,
-                "declaration is not UTF-8".into(),
-                Some(cause.to_string()),
-            )
-        })?;
-        decode_declaration(url, &text)
+        Err(error(
+            url,
+            "package declarations must be compiled .uff.ast codec artifacts".into(),
+            None,
+        ))
     }
 
     fn package_version(
@@ -696,10 +682,10 @@ impl JsrPackages {
 }
 
 fn supported(path: &str) -> Result<(), String> {
-    if path.ends_with(".uff") || path.ends_with(".json") {
+    if path.ends_with(".uff") {
         Ok(())
     } else {
-        Err("a package supplies .uff or .json modules only".into())
+        Err("a package supplies compiled .uff modules only".into())
     }
 }
 

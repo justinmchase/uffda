@@ -48,7 +48,7 @@ export function codecCorpus(count = 32): CodecWorkload[] {
     });
     const bigint = `12345678901234567890${i}`;
     native.push({
-      codec: `{id:${i} missing:undefined big:${bigint}n date:@date"2026-10-12T00:00:00Z" bytes:@bytes"AAECA_8" symbol:@symbol"sample" set:@set[1 "x"] map:@map[["key" 42]] error:@error{name:"TypeError" message:"sample" cause:${i}} special:[NaN Infinity -Infinity -0]}`,
+      codec: `{id:${i} missing:undefined big:${bigint}n date:@date"2026-10-12T00:00:00Z" bytes:@bytes"AAECA_8" symbol:@symbol"sample" set:@set[1 "x"] assoc:{key:42} error:@error{name:"TypeError" message:"sample" cause:${i}} special:[NaN Infinity -Infinity -0]}`,
       json: {
         id: i,
         missing: tagged("undefined"),
@@ -57,7 +57,7 @@ export function codecCorpus(count = 32): CodecWorkload[] {
         bytes: tagged("bytes", "AAECA_8"),
         symbol: tagged("symbol", "sample"),
         set: tagged("set", [1, "x"]),
-        map: tagged("map", [["key", 42]]),
+        assoc: { key: 42 },
         error: tagged("error", {
           name: "TypeError",
           message: "sample",
