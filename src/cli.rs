@@ -691,22 +691,97 @@ fn run_fmt(
     cwd: &std::path::Path,
     stdin: impl FnOnce() -> std::io::Result<String>,
 ) -> CliResult {
+    fn unsupported_only_result(
+        cwd: &std::path::Path,
+        paths: &[String],
+        check: bool,
+    ) -> Option<crate::format::FormatResult> {
+        if paths.is_empty()
+            || paths
+                .iter()
+                .any(|path| path.contains(['*', '?', '[', '{']) || path == "-")
+        {
+            return None;
+        }
+        let expanded = crate::source_paths::expand(
+            cwd,
+            paths,
+            &[
+                "**/.git",
+                "**/.git/**",
+                "**/node_modules",
+                "**/node_modules/**",
+            ],
+        );
+        if expanded.files.iter().any(|path| {
+            path.extension()
+                .is_some_and(|extension| extension.to_string_lossy().eq_ignore_ascii_case("uff"))
+        }) {
+            return None;
+        }
+        let mut files: Vec<_> = expanded
+            .failures
+            .into_iter()
+            .map(|failure| crate::format::FormatFile {
+                source_path: failure.source_path,
+                status: "failed",
+                language: None,
+                diagnostics: vec![crate::format::FormatDiagnostic {
+                    code: if failure.not_found {
+                        "CLI_FMT_SOURCE_NOT_FOUND"
+                    } else {
+                        "CLI_FMT_SOURCE_NOT_READABLE"
+                    },
+                    message: failure.message,
+                    location: None,
+                }],
+            })
+            .collect();
+        for path in expanded.files {
+            let stable = crate::source_paths::stable_path(cwd, &path);
+            files.push(crate::format::FormatFile {
+                source_path: stable,
+                status: "failed",
+                language: None,
+                diagnostics: vec![crate::format::FormatDiagnostic {
+                    code: "CLI_FMT_NO_LANGUAGE",
+                    message: "No language owns this file's extension".into(),
+                    location: None,
+                }],
+            });
+        }
+        Some(crate::format::FormatResult {
+            ok: false,
+            check,
+            files,
+            text: None,
+        })
+    }
+
     let paths = options.paths;
     let check = options.check;
     let json = options.json;
     let config = options.config;
     let input = paths.iter().any(|path| path == "-");
+    let project_path = match Project::discover(cwd, config.as_deref()) {
+        Ok(path) => path,
+        Err(error) => return failure("CLI_CONFIG", "configuration", error),
+    };
+    let result = if !input && project_path.is_none() && config.is_none() {
+        unsupported_only_result(cwd, &paths, check)
+    } else {
+        None
+    };
     let mut grammar = match Languages::new() {
         Ok(grammar) => grammar,
         Err(error) => return failure("CLI_CONFIG", "configuration", error),
     };
-    let project = match Project::discover(cwd, config.as_deref()) {
-        Ok(Some(path)) => match Project::load(path, &mut grammar) {
+    let project = match project_path {
+        Some(path) => match Project::load(path, &mut grammar) {
             Ok(project) => Some(project),
             Err(error) => return failure("CLI_CONFIG", "configuration", error),
         },
-        Ok(None) => None,
-        Err(error) => return failure("CLI_CONFIG", "configuration", error),
+        None => None,
     };
     if let Some(project) = &project {
         grammar = match project
@@ -723,7 +798,9 @@ fn run_fmt(
         Ok(languages) => languages,
         Err(error) => return failure("CLI_CONFIG", "configuration", error),
     };
-    let result = if input {
+    let result = if let Some(result) = result {
+        result
+    } else if input {
         let source = match stdin() {
             Ok(source) => source,
             Err(error) => return failure("CLI_USAGE", "input", error),

@@ -27,6 +27,93 @@ fn literal_bounds_regex_and_character_classes_accept_lossless_subjects() {
     }
 }
 
+#[test]
+// req:uffda-runtime-compilation-008
+fn native_pattern_codec_distinguishes_undefined_from_null_literals() {
+    let literal = uffda_codec::from_str(
+        r#"{
+            kind: "value.literal"
+            value: undefined
+        }"#,
+    )
+    .unwrap();
+    assert!(matches!(
+        uffda_codec::data::de::from_document::<ValueSource>(&literal).unwrap(),
+        ValueSource::Literal {
+            value: LiteralValue::Missing
+        }
+    ));
+
+    let undefined = uffda_codec::from_str("undefined").unwrap();
+    assert!(uffda_codec::data::de::from_document::<ValueSource>(&undefined).is_err());
+    assert!(matches!(
+        uffda_codec::data::de::from_document_with_undefined::<ValueSource>(&undefined).unwrap(),
+        ValueSource::Literal {
+            value: LiteralValue::Missing
+        }
+    ));
+
+    let undefined_pattern = uffda_codec::from_str(
+        r#"{
+            kind: "equal"
+            value: {
+                kind: "value.literal"
+                value: undefined
+            }
+        }"#,
+    )
+    .unwrap();
+    let decoded =
+        uffda_codec::data::de::from_document_with_undefined::<Pattern>(&undefined_pattern).unwrap();
+    assert!(
+        matches!(
+            &decoded,
+            Pattern::Equal {
+                value: ValueSource::Literal {
+                    value: LiteralValue::Missing
+                }
+            }
+        ),
+        "{decoded:?}"
+    );
+
+    let null = uffda_codec::from_str(
+        r#"{
+            kind: "equal"
+            value: {
+                kind: "value.literal"
+                value: null
+            }
+        }"#,
+    )
+    .unwrap();
+    assert!(matches!(
+        uffda_codec::data::de::from_document_with_undefined::<Pattern>(&null).unwrap(),
+        Pattern::Equal {
+            value: ValueSource::Literal {
+                value: LiteralValue::Present(crate::json::JsonValue::Null)
+            }
+        }
+    ));
+
+    let regexp = uffda_codec::from_str(
+        r#"{
+            kind: "regexp"
+            pattern: {
+                source: "word"
+                flags: undefined
+            }
+        }"#,
+    )
+    .unwrap();
+    assert!(matches!(
+        uffda_codec::data::de::from_document_with_undefined::<Pattern>(&regexp).unwrap(),
+        Pattern::Regexp {
+            pattern: RegExpSpec::Detailed { flags, .. }
+        } if flags.is_empty()
+    ));
+}
+
 fn literal(value: serde_json::Value) -> Pattern {
     Pattern::Equal {
         value: ValueSource::Literal {
@@ -1188,7 +1275,7 @@ fn over_matches_object_fields_and_rest_captures_in_entry_order() {
         let mut execution = PatternExecution::new(
             mc,
             pattern,
-            vec![Value::map(
+            vec![Value::association(
                 mc,
                 vec![(Value::string(mc, "k"), Value::Number(7.0))],
             )],
@@ -1595,8 +1682,12 @@ fn assert_fixture_value(value: Value<'_>, expected: &serde_json::Value) {
                 assert_fixture_value(
                     *value,
                     expected
-                        .get(key.as_scalar_str().expect("scalar fixture key"))
-                        .unwrap_or_else(|| panic!("unexpected object key {key:?}")),
+                        .get(
+                            key.as_string()
+                                .and_then(|key| key.as_scalar_str())
+                                .expect("scalar fixture key"),
+                        )
+                        .unwrap_or_else(|| panic!("unexpected object key")),
                 );
             }
         }

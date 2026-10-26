@@ -137,10 +137,11 @@ export async function verifyRustCodec(
     if (JSON.parse(await cliOutput(["compile", "main.uff"])).ok !== true) {
       throw new Error("Standalone compile failed");
     }
-    const artifact = JSON.parse(
-      await readFile(join(temp, "bin", "ast", "main.uff.ast.json"), "utf8"),
+    const artifact = await readFile(
+      join(temp, "bin", "ast", "main.uff.ast"),
+      "utf8",
     );
-    if (artifact.rules[0].name !== "Main") {
+    if (!artifact.includes('rules:[{name:"Main"')) {
       throw new Error("Standalone compiled declaration failed");
     }
     await rm(join(temp, "bin"), { recursive: true, force: true });

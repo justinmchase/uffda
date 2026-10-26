@@ -1561,9 +1561,13 @@ rule Custom = "ok";
         let source = std::fs::read_to_string(&lang_path).unwrap();
         let syntax = bootstrap.parse(&source, Language::Uffda).unwrap();
         let declaration = bootstrap.compile(syntax).unwrap();
-        let artifact = root.join("bin/ast/custom.uff.ast.json");
+        let declaration = crate::codec::declaration::encode_declaration_codec(
+            &crate::json::from_str(&declaration.to_string()).unwrap(),
+        )
+        .unwrap();
+        let artifact = root.join("bin/ast/custom.uff.ast");
         std::fs::create_dir_all(artifact.parent().unwrap()).unwrap();
-        std::fs::write(&artifact, declaration.to_string()).unwrap();
+        std::fs::write(&artifact, declaration).unwrap();
 
         let mut state = ServerState::new();
         state.workspace_folders = vec![root.clone()];

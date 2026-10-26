@@ -21,7 +21,7 @@ Expected behavior:
   failures, invariant under input chunk boundaries. Messages MUST describe the
   failed expectation. No grammar reparse or alternate decoder runs on failure.
 - The public postorder document constructor MUST reject invalid indices, cycles,
-  composite aliases, duplicate keys and invalid Set/Map entries.
+  composite aliases, duplicate keys and invalid Set/Object entries.
 - Runtime adapters MUST reuse codec parsing, text and native validation rather
   than duplicate those algorithms. The authored grammar remains available for
   composition, rich source diagnostics and differential acceptance tests.

@@ -111,54 +111,14 @@ impl LanguageHeap {
         member: &ModuleMember,
         input: Value,
         mode: InputMode,
+        include_metadata: bool,
     ) -> Result<MemberRun, RuntimeError> {
-        self.arena.mutate_root(|mc, session| {
-            session.reclaim();
-            let warm = match session.take_warm(cache_url) {
-                Some(warm) if Rc::ptr_eq(&warm.graph, &graph) => warm,
-                _ => WarmGraph {
-                    graph: Rc::clone(&graph),
-                    bindings: ModuleBindings::with_environment(mc, &graph, None)
-                        .map_err(RuntimeError::Module)?,
-                },
-            };
-            let items = runtime_input(mc, input, mode)?;
-            let execution = RuleExecution::for_member_with_bindings(
-                mc,
-                Rc::clone(&warm.graph),
-                warm.bindings,
-                member,
-                items,
-            )?;
-            session.active = Some(cache_url.clone());
-            session.active_graph = Some(warm.graph);
-            session.execution = Some(execution);
-            Ok::<(), RuntimeError>(())
+        self.begin_member(cache_url, graph, member, |mc| {
+            runtime_input(mc, input, mode)
         })?;
-
         self.run_until_complete()?;
-
-        let diagnostics = self.diagnostics_with(|declaration| {
-            let RuntimeValue::Object(metadata) = declaration.metadata.raw() else {
-                return None;
-            };
-            let RuntimeValue::Object(documentation) = metadata.borrow().get("Documentation")?.raw()
-            else {
-                return None;
-            };
-            let RuntimeValue::String(error) = documentation.borrow().get("error")?.raw() else {
-                return None;
-            };
-            error.to_utf8().ok()
-        });
-
-        let failed = self.arena.mutate(|_, session| {
-            session
-                .execution
-                .as_ref()
-                .and_then(|execution| execution.result())
-                .is_some_and(|result| result.kind == MatchKind::Fail)
-        });
+        let diagnostics = self.member_diagnostics();
+        let failed = self.member_failed();
         if failed {
             self.reclaim_and_collect();
             return Ok(MemberRun {
@@ -170,13 +130,118 @@ impl LanguageHeap {
         }
 
         let value = self.serialize_result()?;
-        let metadata = self.serialize_metadata(member)?;
+        let metadata = if include_metadata {
+            self.serialize_metadata(member)?
+        } else {
+            None
+        };
         self.reclaim_and_collect();
         Ok(MemberRun {
             value,
             metadata,
             diagnostics,
             failed: false,
+        })
+    }
+
+    fn begin_member(
+        &mut self,
+        cache_url: &Url,
+        graph: Rc<CompiledModuleGraph>,
+        member: &ModuleMember,
+        input: impl for<'gc> FnOnce(
+            &uffda_heap::Mutation<'gc>,
+        ) -> Result<Vec<RuntimeValue<'gc>>, RuntimeError>,
+    ) -> Result<(), RuntimeError> {
+        self.arena.mutate_root(|mc, session| {
+            session.reclaim();
+            let warm = match session.take_warm(cache_url) {
+                Some(warm) if Rc::ptr_eq(&warm.graph, &graph) => warm,
+                _ => WarmGraph {
+                    graph: Rc::clone(&graph),
+                    bindings: ModuleBindings::with_environment(mc, &graph, None)
+                        .map_err(RuntimeError::Module)?,
+                },
+            };
+            let items = input(mc)?;
+            let execution = RuleExecution::for_member_with_bindings(
+                mc,
+                Rc::clone(&warm.graph),
+                warm.bindings,
+                member,
+                items,
+            )?;
+            session.active = Some(cache_url.clone());
+            session.active_graph = Some(warm.graph);
+            session.execution = Some(execution);
+            Ok::<(), RuntimeError>(())
+        })
+    }
+
+    fn member_diagnostics(&self) -> Vec<RuntimeDiagnostic> {
+        self.diagnostics_with(|declaration| {
+            let RuntimeValue::Object(metadata) = declaration.metadata.raw() else {
+                return None;
+            };
+            let RuntimeValue::Object(documentation) = metadata.borrow().get("Documentation")?.raw()
+            else {
+                return None;
+            };
+            let RuntimeValue::String(error) = documentation.borrow().get("error")?.raw() else {
+                return None;
+            };
+            error.to_utf8().ok()
+        })
+    }
+
+    fn member_failed(&self) -> bool {
+        self.arena.mutate(|_, session| {
+            session
+                .execution
+                .as_ref()
+                .and_then(|execution| execution.result())
+                .is_some_and(|result| result.kind == MatchKind::Fail)
+        })
+    }
+
+    fn run_native_member(
+        &mut self,
+        cache_url: &Url,
+        graph: Rc<CompiledModuleGraph>,
+        member: &ModuleMember,
+        input: &crate::codec::data::DataDocument,
+    ) -> Result<NativeMemberRun, RuntimeError> {
+        self.begin_member(cache_url, graph, member, |mc| {
+            Ok(vec![input.materialize(mc).wrap_root(mc)])
+        })?;
+        self.run_until_complete()?;
+        let diagnostics = self.member_diagnostics();
+        let failed = self.member_failed();
+        let value = if failed {
+            Ok(None)
+        } else {
+            self.arena.mutate(|_, session| {
+                let result = session
+                    .execution
+                    .as_ref()
+                    .and_then(|execution| execution.result())
+                    .ok_or(RuntimeError::InvalidState)?;
+                crate::codec::data::DataDocument::from_value(
+                    result.value,
+                    crate::codec::data::DataLimits::default(),
+                )
+                .map(Some)
+                .map_err(|error| {
+                    RuntimeError::Expression(crate::evaluate::EvaluationError::Native(
+                        error.to_string(),
+                    ))
+                })
+            })
+        };
+        self.reclaim_and_collect();
+        Ok(NativeMemberRun {
+            value: value?,
+            diagnostics,
         })
     }
 
@@ -281,6 +346,11 @@ struct MemberRun {
     metadata: Option<String>,
     diagnostics: Vec<RuntimeDiagnostic>,
     failed: bool,
+}
+
+struct NativeMemberRun {
+    value: Option<crate::codec::data::DataDocument>,
+    diagnostics: Vec<RuntimeDiagnostic>,
 }
 
 #[derive(Clone, Debug)]
@@ -458,14 +528,14 @@ pub struct Analysis {
     pub spans: Vec<crate::highlight::HighlightSpan>,
     pub tree: Option<crate::mcp::ops::RetainedMatch>,
     pub diagnostics: Vec<SourceDiagnostic>,
-    /// Serialized AST from the same parse, when the grammar produced a value.
-    /// Callers can compile/load this without running UffdaLang again.
-    pub syntax: Option<crate::json::JsonValue>,
+    /// Owned AST from the same parse, when the grammar produced a value.
+    /// Callers can compile/load this without a JSON round trip or reparsing.
+    pub syntax: Option<crate::codec::data::DataDocument>,
 }
 
 struct LanguageOutcome {
     value: Value,
-    metadata: Value,
+    metadata: Option<Value>,
     diagnostics: Vec<SourceDiagnostic>,
 }
 
@@ -534,7 +604,6 @@ impl Languages {
             diagnostics: vec![],
         })?;
         self.execute_url(&url, entry, input, mode)
-            .map(|(value, _)| value)
     }
 
     fn execute_url(
@@ -543,8 +612,35 @@ impl Languages {
         entry: &str,
         input: Value,
         mode: InputMode,
+    ) -> Result<Value, LanguageError> {
+        let outcome = self.execute_url_outcome(url, entry, input, mode, false)?;
+        Self::checked_outcome(url, outcome).map(|(value, _)| value)
+    }
+
+    fn execute_url_with_metadata(
+        &mut self,
+        url: &Url,
+        entry: &str,
+        input: Value,
+        mode: InputMode,
     ) -> Result<(Value, Value), LanguageError> {
-        let outcome = self.execute_url_outcome(url, entry, input, mode)?;
+        let outcome = self.execute_url_outcome(url, entry, input, mode, true)?;
+        let (value, metadata) = Self::checked_outcome(url, outcome)?;
+        Ok((
+            value,
+            metadata.ok_or_else(|| LanguageError {
+                phase: "output",
+                module_url: url.to_string(),
+                message: "Language rule has no metadata object".into(),
+                diagnostics: vec![],
+            })?,
+        ))
+    }
+
+    fn checked_outcome(
+        url: &Url,
+        outcome: LanguageOutcome,
+    ) -> Result<(Value, Option<Value>), LanguageError> {
         if !outcome.diagnostics.is_empty() {
             return Err(LanguageError {
                 phase: "match",
@@ -567,6 +663,7 @@ impl Languages {
         entry: &str,
         input: Value,
         mode: InputMode,
+        include_metadata: bool,
     ) -> Result<LanguageOutcome, LanguageError> {
         let error = |phase, message: String| LanguageError {
             phase,
@@ -587,7 +684,7 @@ impl Languages {
             .ok_or_else(|| error("resolve", format!("Unknown rule {entry}")))?;
         let run = self
             .heap
-            .run_member(url, graph, &member, input, mode)
+            .run_member(url, graph, &member, input, mode, include_metadata)
             .map_err(|failure| error("execute", failure.to_string()))?;
         let diagnostics = diagnostics::map_runtime_diagnostics(
             run.diagnostics,
@@ -615,13 +712,15 @@ impl Languages {
                 "Language rule did not produce an AST value".into(),
             )
         })?;
-        let metadata = run
-            .metadata
-            .ok_or_else(|| error("output", "Language rule has no metadata object".into()))?;
         let value = crate::json::from_str(&value)
             .map_err(|failure| error("output", failure.to_string()))?;
-        let metadata = crate::json::from_str(&metadata)
-            .map_err(|failure| error("output", failure.to_string()))?;
+        let metadata = run
+            .metadata
+            .map(|metadata| {
+                crate::json::from_str(&metadata)
+                    .map_err(|failure| error("output", failure.to_string()))
+            })
+            .transpose()?;
         Ok(LanguageOutcome {
             value,
             metadata,
@@ -935,13 +1034,13 @@ impl Languages {
             .formatter
             .as_ref()
             .ok_or_else(|| error("Language has no Formatter".into()))?;
-        let (syntax, _) = self.execute_url(
+        let syntax = self.execute_url(
             &language.module,
             &language.entry,
             Value::String(source.into()),
             InputMode::Scalar,
         )?;
-        let (value, _) = self
+        let value = self
             .execute_url(module, entry, syntax, InputMode::Scalar)
             .map_err(|mut failure| {
                 failure.phase = "format";
@@ -971,7 +1070,7 @@ impl Languages {
             .toggle_comment
             .as_ref()
             .ok_or_else(|| error("Language has no ToggleComment".into()))?;
-        let (value, _) = self
+        let value = self
             .execute_url(module, entry, Value::String(text.into()), InputMode::Scalar)
             .map_err(|mut failure| {
                 failure.phase = "toggleComment";
@@ -1058,8 +1157,13 @@ impl Languages {
     ) -> Result<ParsedSource, LanguageError> {
         let (path, entry) = language.entry();
         let url = self.root.join(path).expect("static language path");
-        let outcome =
-            self.execute_url_outcome(&url, entry, Value::String(source.into()), InputMode::Scalar)?;
+        let outcome = self.execute_url_outcome(
+            &url,
+            entry,
+            Value::String(source.into()),
+            InputMode::Scalar,
+            false,
+        )?;
         Ok(ParsedSource {
             value: outcome.value,
             diagnostics: outcome.diagnostics,
@@ -1146,17 +1250,34 @@ impl Languages {
         entry: &str,
         open: bool,
     ) -> Result<Analysis, LanguageError> {
-        let (mut runtime, diagnostics) = self.parse_runtime_member(source, url, entry, open)?;
+        let (runtime, diagnostics) = self.parse_runtime_member(source, url, entry, open)?;
         let spans = crate::highlight::spans_from_runtime(&runtime, source);
-        let tree = crate::mcp::ops::project_match_tree(&runtime);
+        let tree =
+            crate::mcp::ops::project_match_tree(&runtime).map_err(|error| LanguageError {
+                phase: "output",
+                module_url: url.to_string(),
+                message: error,
+                diagnostics: vec![],
+            })?;
         // Serialize after projecting the match tree: serialization mutates the
         // runtime, but the tree/spans only need a finished parse.
         let syntax = if diagnostics.is_empty() {
             runtime
-                .serialize_result()
-                .ok()
-                .flatten()
-                .and_then(|text| crate::json::from_str(&text).ok())
+                .read(|execution| {
+                    execution.result().map(|result| {
+                        crate::codec::data::DataDocument::from_value(
+                            result.value,
+                            crate::codec::data::DataLimits::default(),
+                        )
+                    })
+                })
+                .transpose()
+                .map_err(|error| LanguageError {
+                    phase: "output",
+                    module_url: url.to_string(),
+                    message: error.to_string(),
+                    diagnostics: vec![],
+                })?
         } else {
             None
         };
@@ -1228,6 +1349,135 @@ impl Languages {
         )
     }
 
+    pub fn parse_source_native(
+        &mut self,
+        source: &str,
+        language: Language,
+    ) -> Result<crate::codec::data::DataDocument, LanguageError> {
+        let (path, entry) = language.entry();
+        let error = |phase, message: String| LanguageError {
+            phase,
+            module_url: path.into(),
+            message,
+            diagnostics: vec![],
+        };
+        let source_data = crate::codec::data::DataDocument::from_nodes(
+            vec![crate::codec::data::DataNode::String(source.into())],
+            0,
+            crate::codec::data::DataLimits::default(),
+        )
+        .map_err(|failure| error("input", failure.to_string()))?;
+        let url = self
+            .root
+            .join(path)
+            .map_err(|failure| error("resolve", failure.to_string()))?;
+        let graph = self.graph(&url)?;
+        let member = graph
+            .export(&url, Some(entry))
+            .or_else(|| graph.resolve(&url, entry))
+            .ok_or_else(|| error("resolve", format!("Unknown rule {entry}")))?;
+        let run = self
+            .heap
+            .run_native_member(&url, graph, &member, &source_data)
+            .map_err(|failure| error("execute", failure.to_string()))?;
+        let diagnostics = diagnostics::map_runtime_diagnostics(
+            run.diagnostics,
+            source,
+            "CLI_STREAM_PARSE_RECOVERED",
+            "CLI_STREAM_PARSE_FAILURE",
+            "parse",
+        )
+        .map_err(|failure| error("output", failure.to_string()))?;
+        if !diagnostics.is_empty() {
+            return Err(LanguageError {
+                phase: "parse",
+                module_url: url.to_string(),
+                message: diagnostics
+                    .iter()
+                    .map(|diagnostic| diagnostic.message.as_str())
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+                diagnostics,
+            });
+        }
+        run.value.ok_or_else(|| {
+            error(
+                "output",
+                "Language rule did not produce a native AST value".into(),
+            )
+        })
+    }
+
+    /// Parse and lower source without serializing either grammar's result as JSON.
+    pub fn compile_source_native(
+        &mut self,
+        source: &str,
+    ) -> Result<crate::codec::data::DataDocument, LanguageError> {
+        let syntax = self.parse_source_native(source, Language::Uffda)?;
+        self.compile_syntax_native(source, syntax)
+    }
+
+    pub fn compile_syntax_native(
+        &mut self,
+        source: &str,
+        syntax: crate::codec::data::DataDocument,
+    ) -> Result<crate::codec::data::DataDocument, LanguageError> {
+        let error = |phase, path: &str, message: String| LanguageError {
+            phase,
+            module_url: path.into(),
+            message,
+            diagnostics: vec![],
+        };
+        let mut input = syntax;
+        {
+            let (path, entry) = (
+                "src/lang/uffda/runtime.compiler.uff",
+                "UffdaRuntimeCompiler",
+            );
+            let url = self
+                .root
+                .join(path)
+                .map_err(|failure| error("resolve", path, failure.to_string()))?;
+            let graph = self.graph(&url)?;
+            let member = graph
+                .export(&url, Some(entry))
+                .or_else(|| graph.resolve(&url, entry))
+                .ok_or_else(|| error("resolve", path, format!("Unknown rule {entry}")))?;
+            let run = self
+                .heap
+                .run_native_member(&url, graph, &member, &input)
+                .map_err(|failure| error("execute", path, failure.to_string()))?;
+            let diagnostics = diagnostics::map_runtime_diagnostics(
+                run.diagnostics,
+                source,
+                "CLI_COMPILE_PARSE_RECOVERED",
+                "CLI_COMPILE_PARSE_FAILURE",
+                "compile",
+            )
+            .map_err(|failure| error("output", path, failure.to_string()))?;
+            if !diagnostics.is_empty() {
+                return Err(LanguageError {
+                    phase: "compile",
+                    module_url: url.to_string(),
+                    message: diagnostics
+                        .iter()
+                        .map(|diagnostic| diagnostic.message.as_str())
+                        .collect::<Vec<_>>()
+                        .join("\n"),
+                    diagnostics,
+                });
+            }
+            input = run.value.ok_or_else(|| {
+                error(
+                    "output",
+                    path,
+                    "Language rule did not produce a native AST value".into(),
+                )
+            })?;
+        }
+        Ok(input)
+    }
+
     pub fn module_specifier(&mut self, text: &str) -> Result<Value, LanguageError> {
         self.execute(
             "src/lang/uffda/specifier.rules.uff",
@@ -1245,8 +1495,12 @@ impl Languages {
             message: failure.to_string(),
             diagnostics: vec![],
         })?;
-        let (syntax, metadata) =
-            self.execute_url(&url, entry, Value::String(source.into()), InputMode::Scalar)?;
+        let (syntax, metadata) = self.execute_url_with_metadata(
+            &url,
+            entry,
+            Value::String(source.into()),
+            InputMode::Scalar,
+        )?;
         let error = |message: String| LanguageError {
             phase: "format",
             module_url: url.to_string(),
@@ -1266,7 +1520,7 @@ impl Languages {
             .as_str()
             .ok_or_else(|| error("Formatter metadata has no rule name".into()))?;
         let module = Url::parse(module).map_err(|failure| error(failure.to_string()))?;
-        let (value, _) = self.execute_url(&module, name, syntax, InputMode::Scalar)?;
+        let value = self.execute_url(&module, name, syntax, InputMode::Scalar)?;
         match value {
             Value::String(text) => text.to_utf8().map_err(|failure| error(failure.to_string())),
             _ => Err(error("Formatter rule did not produce text".into())),
@@ -1334,13 +1588,15 @@ fn scalar_data_ast(value: crate::value::Value<'_>) -> Result<serde_json::Value, 
                         return Err("Cyclic data AST".into());
                     }
                     let object = object.borrow();
-                    if !object.symbol_entries().is_empty() {
-                        return Err("Symbol data AST keys".into());
-                    }
                     let keys = object
                         .entries()
                         .iter()
-                        .map(|(key, _)| key.to_utf8().map_err(|failure| failure.to_string()))
+                        .map(|(key, _)| {
+                            key.as_string()
+                                .ok_or_else(|| "Non-string data AST key".to_owned())?
+                                .to_utf8()
+                                .map_err(|failure| failure.to_string())
+                        })
                         .collect::<Result<Vec<_>, _>>()?;
                     pending.push(Work::Object(keys, identity));
                     pending.extend(
@@ -1464,6 +1720,94 @@ mod tests {
         let declaration = languages.compile(syntax).unwrap();
         assert!(declaration["rules"].is_array());
         assert_eq!(declaration["rules"].as_array().unwrap()[0]["name"], "Main");
+    }
+
+    #[test]
+    // req:uffda-runtime-compilation-008
+    fn native_compiler_keeps_undefined_fields_and_owned_results_across_heap_reuse() {
+        let mut languages = Languages::new().unwrap();
+        let declaration = languages
+            .compile_source_native("export Main;\nrule Main = any;")
+            .unwrap();
+        let source = declaration
+            .encode(false, crate::codec::data::DataLimits::default())
+            .unwrap();
+        assert!(source.contains("name:\"Main\""), "{source}");
+        assert!(source.contains("expression:undefined"), "{source}");
+        let next = languages
+            .compile_source_native("export Other;\nrule Other = \"x\";")
+            .unwrap();
+        assert!(
+            next.encode(false, crate::codec::data::DataLimits::default())
+                .unwrap()
+                .contains("name:\"Other\"")
+        );
+        assert_eq!(
+            declaration
+                .encode(false, crate::codec::data::DataLimits::default())
+                .unwrap(),
+            source
+        );
+    }
+
+    #[test]
+    // req:uffda-runtime-compilation-008
+    fn native_compiler_reports_recovery_and_remains_usable_after_failure() {
+        let mut languages = Languages::new().unwrap();
+        let error = languages
+            .compile_source_native("export Main;\nrule Main = any")
+            .unwrap_err();
+        assert!(!error.diagnostics.is_empty());
+        assert!(error.diagnostics.iter().any(|diagnostic| {
+            diagnostic.code == "CLI_STREAM_PARSE_RECOVERED"
+                && diagnostic.message.contains("A declaration ends with")
+        }));
+        assert!(languages.compile_source_native("rule Main = (").is_err());
+        assert!(languages.compile_source_native("rule Main = any;").is_ok());
+    }
+
+    #[test]
+    // req:uffda-runtime-compilation-008 req:cli-bootstrap-034
+    fn native_compiler_recompiles_all_authored_languages_as_codec_documents() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let mut pending = vec![root.join("src/lang")];
+        let mut sources = Vec::new();
+        while let Some(directory) = pending.pop() {
+            for entry in std::fs::read_dir(directory).unwrap() {
+                let entry = entry.unwrap();
+                if entry.file_type().unwrap().is_dir() {
+                    pending.push(entry.path());
+                } else if entry
+                    .path()
+                    .extension()
+                    .is_some_and(|extension| extension == "uff")
+                {
+                    sources.push(entry.path());
+                }
+            }
+        }
+        sources.sort();
+        assert_eq!(sources.len(), crate::builtins::DECLARATIONS.len());
+        assert!(sources.len() >= 70);
+        let mut languages = Languages::new().unwrap();
+        for path in sources {
+            let source = std::fs::read_to_string(&path).unwrap();
+            let declaration = languages
+                .compile_source_native(&source)
+                .unwrap_or_else(|error| panic!("{}: {error}", path.display()));
+            let encoded = declaration
+                .encode(false, crate::codec::data::DataLimits::default())
+                .unwrap_or_else(|error| panic!("{}: {error}", path.display()));
+            let decoded = crate::codec::data::DataDocument::from_codec(&encoded).unwrap();
+            assert_eq!(
+                decoded
+                    .encode(false, crate::codec::data::DataLimits::default())
+                    .unwrap(),
+                encoded,
+                "{}",
+                path.display(),
+            );
+        }
     }
 
     #[test]

@@ -84,12 +84,33 @@ fn comparison(document: &DataDocument, index: usize) -> Result<Json, Box<dyn std
                 .map(|index| comparison(document, *index))
                 .collect::<Result<_, _>>()?,
         ),
-        DataNode::Object(values) => Json::Object(
-            values
-                .iter()
-                .map(|(key, index)| Ok((key.to_utf8()?, comparison(document, *index)?)))
-                .collect::<Result<_, Box<dyn std::error::Error>>>()?,
-        ),
+        DataNode::Object(values) => {
+            let mut object_entries = Vec::with_capacity(values.len());
+            let mut association_entries = Vec::with_capacity(values.len());
+            let mut all_string_keys = true;
+            for (key_index, value_index) in values {
+                let key = match &document.nodes()[*key_index] {
+                    DataNode::String(key) => key.to_utf8().ok(),
+                    _ => None,
+                };
+                if let Some(key) = key {
+                    let value = comparison(document, *value_index)?;
+                    object_entries.push((key.clone(), value.clone()));
+                    association_entries.push(json!([key, value]));
+                } else {
+                    all_string_keys = false;
+                    association_entries.push(json!([
+                        comparison(document, *key_index)?,
+                        comparison(document, *value_index)?
+                    ]));
+                }
+            }
+            if all_string_keys {
+                Json::Object(object_entries.into_iter().collect())
+            } else {
+                tagged("object", Json::Array(association_entries))
+            }
+        }
         DataNode::Set(values) => tagged(
             "set",
             Json::Array(
@@ -97,20 +118,6 @@ fn comparison(document: &DataDocument, index: usize) -> Result<Json, Box<dyn std
                     .iter()
                     .map(|index| comparison(document, *index))
                     .collect::<Result<_, _>>()?,
-            ),
-        ),
-        DataNode::Map(values) => tagged(
-            "map",
-            Json::Array(
-                values
-                    .iter()
-                    .map(|(key, value)| {
-                        Ok(json!([
-                            comparison(document, *key)?,
-                            comparison(document, *value)?
-                        ]))
-                    })
-                    .collect::<Result<_, Box<dyn std::error::Error>>>()?,
             ),
         ),
         DataNode::Error {

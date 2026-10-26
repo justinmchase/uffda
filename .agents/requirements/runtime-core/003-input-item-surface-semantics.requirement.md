@@ -18,7 +18,7 @@ Expected behavior:
 - A scalar item MUST be matched as one direct item value.
 - An iterable item MUST be traversable only through nested traversal behavior
   that evaluates a child pattern against a new stream from iterable items.
-- A keyed item (object or Map) MUST be traversable only through keyed traversal
+- A keyed item (Object) MUST be traversable only through keyed traversal
   behavior that evaluates declared keys against nested single-item streams.
 
 Composition constraints:

@@ -1180,7 +1180,7 @@ mod tests {
         assert_eq!(payload["declaration"]["kind"], "rule");
         assert_eq!(
             payload["declaration"]["attributes"],
-            json!([{ "decorator": "Loud", "args": [] }])
+            json!([{ "decorator": "Loud", "argsCodec": "[]" }])
         );
 
         let queried = call(

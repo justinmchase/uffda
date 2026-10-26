@@ -22,20 +22,23 @@ described in RFC 2119 and RFC 8174 when they appear in all capitals.
 - Quoted strings MUST use JSON string escapes, without interpolation. Escaped
   surrogate units MUST round-trip without replacement.
 - Arrays are `[value value]`. Objects are `{key:value key:value}`. Keys MAY be
-  JSON quoted strings or ASCII identifiers matching `[A-Za-z_][A-Za-z_0-9]*`.
-  Duplicate object keys MUST fail rather than overwrite. Own keys including
-  `__proto__` are ordinary data keys.
+  any data value or an ASCII identifier matching
+  `[A-Za-z_][A-Za-z_0-9]*` as shorthand for a string key. Duplicate object keys
+  MUST fail rather than overwrite. Own keys including `__proto__` are ordinary
+  data keys.
 - Tags are fixed spellings, not names resolved from an environment:
   `@date"timestamp"`, `@bytes"base64url"`, `@symbol"registry-key"`,
-  `@set[value value]`, `@map[[key value] [key value]]`, and
-  `@error{name:"Error" message:"description"}`. Whitespace MAY separate a tag
-  from its payload.
+  `@set[value value]`, and `@error{name:"Error" message:"description"}`.
+  Whitespace MAY separate a tag from its payload.
 - Dates MUST be valid RFC3339 timestamps representing a millisecond-precision
   instant. Bytes MUST use canonical unpadded base64url. Symbols MUST be global
-  registry symbols, not newly allocated local symbols. Map entries MUST each
-  contain exactly two values; duplicate map keys and set entries MUST fail under
-  runtime equality. Errors MUST have string `name` and `message`, and MAY have
-  data `cause` and string `stack`; unknown fields fail.
+  registry symbols, not newly allocated local symbols. Duplicate set entries
+  MUST fail under runtime equality. Errors MUST have string `name` and
+  `message`, and MAY have data `cause` and string `stack`; unknown fields fail.
+- Object keys MUST use runtime SameValueZero equality: NaN keys compare equal,
+  positive and negative zero compare equal, primitive keys compare by value,
+  and reference keys compare by identity. Object entries MUST retain insertion
+  order when encoded and decoded. `@map` is not a valid tag.
 - Unknown tags, executable syntax and multiple values per record MUST fail. V1
   has no metadata header. `@meta` MUST NOT be treated specially.
 
@@ -48,9 +51,11 @@ handles MUST fail encoding. Decoding MUST construct only the fixed native types
 above; unsupported native construction MUST fail explicitly.
 
 Decoded values MUST materialize as genuine runtime-native values in the
-collector arena. BigInt is a value-equal primitive; Date and Error use object
-identity. Error causes remain traced runtime references. Encoding runtime values
-MUST iteratively walk the reachable graph, preserve insertion order, and reject
+collector arena. Objects are the sole runtime association type and MUST support
+arbitrary data keys, preserving insertion order and key identity semantics.
+BigInt is a value-equal primitive; Date and Error use object identity. Error
+causes remain traced runtime references. Encoding runtime values MUST
+iteratively walk the reachable graph, preserve insertion order, and reject
 aliases, cycles, unsupported values and out-of-contract date precision.
 Materialization and export MUST not retain unrooted arena values across a
 collection boundary.
@@ -69,8 +74,8 @@ a `.uff.ast.json` sibling may exist during migration.
 Compact encoding MUST produce one physical line. Pretty encoding MAY indent
 containers across lines without changing values. Strings MUST escape controls,
 quotes, backslashes and isolated surrogate units. Encoding MUST be
-deterministic, preserve object/map insertion order and never implicitly invoke
-conversion hooks.
+deterministic, preserve object and set insertion order and never implicitly
+invoke conversion hooks.
 
 The authored grammar MUST produce a validated structural AST with distinct
 scalar, array, object and tag variants. Number and quoted-string tokens MAY

@@ -4,9 +4,9 @@
 
 use super::editor::Node;
 use super::positions::utf16;
+use crate::codec::data::DataDocument;
 use crate::diagnostics::SourceDiagnostic;
 use crate::highlight::{HighlightSpan, identifier_at_offset};
-use crate::json::JsonValue;
 use crate::languages::{Language, Languages, ProjectLanguage};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -39,7 +39,7 @@ pub struct DocumentAnalysis {
     pub diagnostics: Vec<SourceDiagnostic>,
     /// AST from the same UffdaLang parse, when clean — reused for `session.load`
     /// so resolve does not re-parse the buffer.
-    pub syntax: Option<JsonValue>,
+    pub syntax: Option<DataDocument>,
 }
 
 impl DocumentAnalysis {

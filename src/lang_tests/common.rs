@@ -65,11 +65,49 @@ fn code_points(text: &str) -> usize {
 }
 
 fn json_of(runtime: &mut Runtime) -> Json {
-    let text = runtime
-        .serialize_result()
-        .expect("serialize")
-        .expect("value");
-    serde_json::from_str(&text).expect("json")
+    fn project(value: Value<'_>) -> Json {
+        match value.raw() {
+            Value::Null | Value::Undefined | Value::Symbol(_) => Json::Null,
+            Value::Boolean(value) => Json::Bool(value),
+            Value::Number(value) => {
+                serde_json::from_str(&crate::coercion::number_text(value)).unwrap_or(Json::Null)
+            }
+            Value::String(value) => value.to_utf8().map(Json::String).unwrap_or(Json::Null),
+            Value::Array(values) => {
+                Json::Array(values.borrow().iter().copied().map(project).collect())
+            }
+            Value::Object(object) => {
+                let mut projected = serde_json::Map::new();
+                for (key, value) in object.borrow().entries() {
+                    if key.is_symbol() {
+                        continue;
+                    }
+                    if matches!(value.raw(), Value::Undefined) {
+                        continue;
+                    }
+                    let key = key
+                        .as_string()
+                        .expect("test JSON projection only omits symbol protocol keys")
+                        .to_utf8()
+                        .expect("test fixture object keys are scalar strings");
+                    projected.insert(key, project(*value));
+                }
+                Json::Object(projected)
+            }
+            Value::Date(date) => Json::String(
+                date.0
+                    .format(&time::format_description::well_known::Rfc3339)
+                    .expect("test date formats as RFC 3339"),
+            ),
+            Value::Error(_) => Json::Object(serde_json::Map::new()),
+            _ => panic!(
+                "test JSON projection does not support {:?}",
+                value.runtime_type()
+            ),
+        }
+    }
+
+    runtime.read(|execution| project(execution.result().expect("result").value))
 }
 
 fn assert_clean(path: &str, rule: &str, input: Json, mode: InputMode, value: Json, end: usize) {
@@ -792,7 +830,7 @@ fn surround_keeps_the_payload_when_either_delimiter_is_absent() {
 }
 
 #[test]
-// req:data-codec-002
+// req:data-codec-002 req:data-codec-008
 fn data_grammar_keeps_safe_tokens_and_rejects_non_data_syntax() {
     let path = "src/lang/data/data.lang.uff";
     let accepted = [
@@ -837,7 +875,6 @@ fn data_grammar_keeps_safe_tokens_and_rejects_non_data_syntax() {
         "@bytes\"SGVsbG8\"",
         "@symbol\"registry\"",
         "@set[1 2]",
-        "@map[[\"key\" 42]]",
         "@error{name:\"Error\" message:\"failed\"}",
     ] {
         let runtime = run(path, "DataLang", json!(source), InputMode::Scalar);
@@ -858,6 +895,7 @@ fn data_grammar_keeps_safe_tokens_and_rejects_non_data_syntax() {
         "(add 1 2)",
         "import \"x\";",
         "@meta{version:1}",
+        "@map[[\"key\" 42]]",
         "@unknown\"value\"",
         "\"\\q\"",
         "\"\\u12\"",
@@ -1591,7 +1629,7 @@ fn recovery_phase_skips_one_unexpected_item_and_keeps_the_rest() {
 }
 
 #[test]
-// req:cli-distribution-007
+// req:cli-distribution-007 req:cli-compile-008
 fn an_external_grammar_artifact_parses_with_its_entry_rule() {
     let root = std::env::temp_dir().join(format!(
         "uffda-foreign-{}-{}",
@@ -1604,12 +1642,12 @@ fn an_external_grammar_artifact_parses_with_its_entry_rule() {
     let _cleanup = TempTree(root.clone());
     std::fs::create_dir_all(root.join("bin/ast/src")).expect("artifact dir");
     let mut languages = Languages::new().expect("languages");
-    let declaration = compile_module(
-        &mut languages,
-        "export rule Main = \"a\" -> { kind: \"foreign\" };",
-    );
-    std::fs::write(root.join("bin/ast/src/foreign.uff.ast.json"), declaration)
-        .expect("write artifact");
+    let declaration = languages
+        .compile_source_native("export rule Main = \"a\" -> { kind: \"foreign\" };")
+        .expect("compile native declaration")
+        .encode(false, crate::codec::data::DataLimits::default())
+        .expect("encode native declaration");
+    std::fs::write(root.join("bin/ast/src/foreign.uff.ast"), declaration).expect("write artifact");
     let mut resolver = Resolver::new(root.clone(), root.join("bin")).expect("resolver");
     let url = Url::from_file_path(root.join("src/foreign.uff")).expect("file url");
     let graph = Rc::new(
@@ -2264,29 +2302,76 @@ fn tokenizer_semantic_token_texts_omit_comments() {
 // req:source-normalization-runtime-003
 fn expression_language_pipeline_normalizes_before_tokenization() {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("bin/ast/src/lang/expression/expression.lang.uff.ast.json");
-    let ast: Json =
-        serde_json::from_str(&std::fs::read_to_string(&path).expect("expression.lang artifact"))
-            .unwrap();
-    let rule = ast["rules"]
-        .as_array()
-        .unwrap()
+        .join("bin/ast/src/lang/expression/expression.lang.uff.ast");
+    let declaration: crate::resolver::ModuleDeclaration =
+        crate::codec::declaration::decode_declaration_codec_as(
+            &std::fs::read_to_string(&path).expect("expression.lang artifact"),
+        )
+        .unwrap();
+    let rule = declaration
+        .rules
         .iter()
-        .find(|rule| rule["name"] == "ExpressionLang")
+        .find(|rule| {
+            rule.field("name")
+                .ok()
+                .flatten()
+                .and_then(|value| value.string_value())
+                .as_deref()
+                == Some("ExpressionLang")
+        })
         .expect("ExpressionLang");
-    assert_eq!(rule["pattern"]["kind"], "pipeline");
-    let steps: Vec<String> = rule["pattern"]["steps"]
-        .as_array()
+    let pattern = rule.field("pattern").unwrap().unwrap();
+    assert_eq!(
+        pattern
+            .field("kind")
+            .unwrap()
+            .unwrap()
+            .string_value()
+            .as_deref(),
+        Some("pipeline")
+    );
+    let steps: Vec<String> = pattern
+        .field("steps")
+        .unwrap()
+        .unwrap()
+        .array_items()
         .unwrap()
         .iter()
         .map(|step| {
-            let resolved = if step["kind"] == "into" {
-                &step["pattern"]
+            let resolved = if step
+                .field("kind")
+                .unwrap()
+                .unwrap()
+                .string_value()
+                .as_deref()
+                == Some("into")
+            {
+                step.field("pattern").unwrap().unwrap()
             } else {
-                step
+                step.clone()
             };
-            if resolved["kind"] == "resolve" && resolved["targetKind"] == "reference" {
-                resolved["name"].as_str().unwrap_or("").to_string()
+            if resolved
+                .field("kind")
+                .unwrap()
+                .unwrap()
+                .string_value()
+                .as_deref()
+                == Some("resolve")
+                && resolved
+                    .field("targetKind")
+                    .unwrap()
+                    .unwrap()
+                    .string_value()
+                    .as_deref()
+                    == Some("reference")
+            {
+                resolved
+                    .field("name")
+                    .unwrap()
+                    .unwrap()
+                    .string_value()
+                    .unwrap_or_default()
+                    .to_string()
             } else {
                 String::new()
             }

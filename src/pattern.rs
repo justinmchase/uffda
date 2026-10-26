@@ -8,7 +8,7 @@ use crate::provenance::Origin;
 use crate::runtime::input::{InputIdentity, InputPosition, PathSegment, RecoveryContext};
 use crate::value::{RuntimeType, Value};
 use crate::{json::JsonValue, text::RuntimeString};
-use serde::Deserialize;
+use serde::{Deserialize, de::DeserializeOwned};
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::rc::Rc;
@@ -114,7 +114,9 @@ pub enum Pattern {
         values: Vec<ValueSource>,
     },
     Between {
+        #[serde(default, deserialize_with = "deserialize_optional_native")]
         left: Option<ValueSource>,
+        #[serde(default, deserialize_with = "deserialize_optional_native")]
         right: Option<ValueSource>,
     },
     And {
@@ -154,16 +156,20 @@ pub enum Pattern {
     },
     Quantifier {
         pattern: Box<Self>,
+        #[serde(default, deserialize_with = "deserialize_optional_native")]
         min: Option<ValueSource>,
+        #[serde(default, deserialize_with = "deserialize_optional_native")]
         max: Option<ValueSource>,
     },
     Over {
         #[serde(default, deserialize_with = "deserialize_pattern_keys")]
         keys: Option<Vec<(RuntimeString, Self)>>,
+        #[serde(default, deserialize_with = "deserialize_optional_native")]
         rest: Option<Vec<OverRestClause>>,
     },
     Switch {
         cases: Vec<SwitchCase>,
+        #[serde(default, deserialize_with = "deserialize_optional_native")]
         default: Option<Box<Self>>,
     },
     Character {
@@ -176,7 +182,7 @@ pub enum Pattern {
     Resolve {
         #[serde(rename = "targetKind")]
         target_kind: ResolveTargetKind,
-        #[serde(default)]
+        #[serde(default, deserialize_with = "deserialize_optional_native")]
         name: Option<String>,
         #[serde(default)]
         args: Vec<Self>,
@@ -598,16 +604,43 @@ fn deserialize_resolve_value<'de, D>(deserializer: D) -> Result<Option<ResolveVa
 where
     D: serde::Deserializer<'de>,
 {
-    let Some(value) = Option::<JsonValue>::deserialize(deserializer)? else {
-        return Ok(None);
-    };
-    if matches!(value, JsonValue::Null) {
+    let document = uffda_codec::data::DataDocument::deserialize(deserializer)?;
+    if matches!(
+        document.nodes()[document.root()],
+        uffda_codec::data::DataNode::Undefined | uffda_codec::data::DataNode::Null
+    ) {
         return Ok(None);
     }
+    let value = uffda_codec::data::de::from_document_with_undefined::<JsonValue>(&document)
+        .map_err(serde::de::Error::custom)?;
     if let Some(special) = special_from_json(&value) {
         return special.map(Some).map_err(serde::de::Error::custom);
     }
     Ok(Some(ResolveValue::json(value)))
+}
+
+fn deserialize_optional_native<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: DeserializeOwned,
+{
+    let document = uffda_codec::data::DataDocument::deserialize(deserializer)?;
+    if matches!(
+        document.nodes()[document.root()],
+        uffda_codec::data::DataNode::Undefined | uffda_codec::data::DataNode::Null
+    ) {
+        return Ok(None);
+    }
+    uffda_codec::data::de::from_document_with_undefined(&document)
+        .map(Some)
+        .map_err(serde::de::Error::custom)
+}
+
+fn deserialize_optional_string_native<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    deserialize_optional_native(deserializer).map(|value| value.unwrap_or_default())
 }
 
 #[derive(Debug, Deserialize)]
@@ -616,7 +649,7 @@ pub enum RegExpSpec {
     Source(RuntimeString),
     Detailed {
         source: RuntimeString,
-        #[serde(default)]
+        #[serde(default, deserialize_with = "deserialize_optional_string_native")]
         flags: String,
     },
 }
@@ -627,19 +660,27 @@ fn deserialize_pattern_keys<'de, D>(
 where
     D: serde::Deserializer<'de>,
 {
-    let value = Option::<JsonValue>::deserialize(deserializer)?;
-    match value {
-        None => Ok(None),
-        Some(JsonValue::Object(values)) => values
-            .into_iter()
-            .map(|(key, value)| {
-                crate::json::from_value(value)
-                    .map(|pattern| (key, pattern))
+    let document = uffda_codec::data::DataDocument::deserialize(deserializer)?;
+    match &document.nodes()[document.root()] {
+        uffda_codec::data::DataNode::Undefined | uffda_codec::data::DataNode::Null => Ok(None),
+        uffda_codec::data::DataNode::Object(entries) => entries
+            .iter()
+            .map(|(key_index, value_index)| {
+                let Some(uffda_codec::data::DataNode::String(key)) =
+                    document.nodes().get(*key_index)
+                else {
+                    return Err(serde::de::Error::custom("over keys must have string keys"));
+                };
+                let value = document
+                    .subdocument(*value_index, uffda_codec::data::DataLimits::default())
+                    .map_err(serde::de::Error::custom)?;
+                uffda_codec::data::de::from_document_with_undefined(&value)
+                    .map(|pattern| (key.clone().into(), pattern))
                     .map_err(serde::de::Error::custom)
             })
             .collect::<Result<Vec<_>, _>>()
             .map(Some),
-        Some(_) => Err(serde::de::Error::custom(
+        _ => Err(serde::de::Error::custom(
             "over keys must be an object of patterns",
         )),
     }
@@ -649,6 +690,7 @@ where
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum OverRestClause {
     Pattern {
+        #[serde(default, deserialize_with = "deserialize_optional_native")]
         entry: Option<String>,
         key: Box<Pattern>,
         value: Box<Pattern>,
@@ -740,16 +782,81 @@ impl PatternKind {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
-#[serde(tag = "kind")]
+#[derive(Clone, Debug)]
 pub enum ValueSource {
-    #[serde(rename = "value.literal")]
-    Literal {
-        #[serde(default, deserialize_with = "deserialize_literal_value")]
-        value: LiteralValue,
-    },
-    #[serde(rename = "value.variable")]
+    Literal { value: LiteralValue },
     Variable { name: String },
+}
+
+impl<'de> Deserialize<'de> for ValueSource {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct ValueSourceVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for ValueSourceVisitor {
+            type Value = ValueSource;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("a value source object with a kind field")
+            }
+
+            fn visit_map<A: serde::de::MapAccess<'de>>(
+                self,
+                mut access: A,
+            ) -> Result<Self::Value, A::Error> {
+                let mut fields = HashMap::new();
+                while let Some(key) = access.next_key::<String>()? {
+                    let value = access.next_value::<crate::codec::data::DataDocument>()?;
+                    if fields.insert(key.clone(), value).is_some() {
+                        return Err(serde::de::Error::custom(format!("duplicate field `{key}`")));
+                    }
+                }
+
+                let kind = take_data_field::<String, A::Error>(&mut fields, "kind")?;
+                match kind.as_str() {
+                    "value.literal" => {
+                        let value = match fields.remove("value") {
+                            None => LiteralValue::Missing,
+                            Some(document)
+                                if matches!(
+                                    document.nodes()[document.root()],
+                                    crate::codec::data::DataNode::Undefined
+                                ) =>
+                            {
+                                LiteralValue::Missing
+                            }
+                            Some(document) => LiteralValue::Present(
+                                uffda_codec::data::de::from_document(&document)
+                                    .map_err(serde::de::Error::custom)?,
+                            ),
+                        };
+                        Ok(ValueSource::Literal { value })
+                    }
+                    "value.variable" => Ok(ValueSource::Variable {
+                        name: take_data_field(&mut fields, "name")?,
+                    }),
+                    _ => Err(serde::de::Error::unknown_variant(
+                        &kind,
+                        &["value.literal", "value.variable"],
+                    )),
+                }
+            }
+
+            fn visit_bytes<E: serde::de::Error>(self, value: &[u8]) -> Result<Self::Value, E> {
+                if uffda_codec::data::de::is_undefined_marker(value) {
+                    Ok(ValueSource::Literal {
+                        value: LiteralValue::Missing,
+                    })
+                } else {
+                    Err(E::invalid_type(
+                        serde::de::Unexpected::Bytes(value),
+                        &"a value source object with a kind field",
+                    ))
+                }
+            }
+        }
+
+        deserializer.deserialize_any(ValueSourceVisitor)
+    }
 }
 
 #[derive(Clone, Debug, Default)]
@@ -777,11 +884,14 @@ impl ValueSource {
     }
 }
 
-fn deserialize_literal_value<'de, D>(deserializer: D) -> Result<LiteralValue, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    JsonValue::deserialize(deserializer).map(LiteralValue::Present)
+fn take_data_field<T: serde::de::DeserializeOwned, E: serde::de::Error>(
+    fields: &mut HashMap<String, crate::codec::data::DataDocument>,
+    name: &'static str,
+) -> Result<T, E> {
+    let document = fields
+        .remove(name)
+        .ok_or_else(|| serde::de::Error::missing_field(name))?;
+    uffda_codec::data::de::from_document(&document).map_err(serde::de::Error::custom)
 }
 
 pub(crate) struct PatternProgram {
@@ -3741,26 +3851,15 @@ fn span(mut scope: Scope<'_>, end: usize) -> Origin {
 }
 
 fn is_iterable_candidate(value: Value<'_>) -> bool {
-    match value.raw() {
+    matches!(
+        value.raw(),
         Value::Iterable(_)
-        | Value::Array(_)
-        | Value::String(_)
-        | Value::Set(_)
-        | Value::Map(_)
-        | Value::Bytes(_) => true,
-        Value::Object(properties) => ["asyncIterator", "iterator"].iter().any(|key| {
-            properties.borrow().get_symbol(key).is_some_and(|factory| {
-                matches!(
-                    factory.raw(),
-                    Value::Lambda(_)
-                        | Value::Native(_)
-                        | Value::Host(_)
-                        | Value::IteratorFactory(_)
-                )
-            })
-        }),
-        _ => false,
-    }
+            | Value::Array(_)
+            | Value::String(_)
+            | Value::Set(_)
+            | Value::Object(_)
+            | Value::Bytes(_)
+    )
 }
 
 fn equal(
@@ -3958,31 +4057,13 @@ fn keyed_entries<'gc>(
             .enumerate()
             .map(|(index, (key, value))| {
                 (
-                    source.carry_item(mc, Value::string(mc, key), index * 2),
+                    source.carry_item(mc, key.to_value(mc), index * 2),
                     source.carry_item(mc, *value, index * 2 + 1),
                 )
             })
             .collect()),
-        Value::Map(entries) => entries
-            .borrow()
-            .iter()
-            .enumerate()
-            .map(|(index, entry)| {
-                let Value::Array(pair) = entry.raw() else {
-                    return Err(PatternError::InvalidState);
-                };
-                let pair = pair.borrow();
-                if pair.len() != 2 {
-                    return Err(PatternError::InvalidState);
-                }
-                Ok((
-                    source.carry_item(mc, pair[0], index * 2),
-                    source.carry_item(mc, pair[1], index * 2 + 1),
-                ))
-            })
-            .collect(),
         value => Err(PatternError::TypeError(format!(
-            "expected value to be an object or Map but got {:?}",
+            "expected value to be an object but got {:?}",
             value.runtime_type()
         ))),
     }
@@ -3994,17 +4075,7 @@ fn keyed_lookup<'gc>(
     key: &RuntimeString,
 ) -> Option<Value<'gc>> {
     match source.raw() {
-        Value::Object(properties) => properties.borrow().get(key),
-        Value::Map(entries) => {
-            let key = Value::string(mc, key);
-            entries.borrow().iter().find_map(|entry| {
-                let Value::Array(pair) = entry.raw() else {
-                    return None;
-                };
-                let pair = pair.borrow();
-                (pair.len() == 2 && pair[0].strict_eq(key)).then_some(pair[1])
-            })
-        }
+        Value::Object(properties) => properties.borrow().get_key(Value::string(mc, key)),
         _ => None,
     }
 }

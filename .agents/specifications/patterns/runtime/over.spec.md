@@ -18,21 +18,18 @@ key-addressable input value.
 - An `over` pattern MUST inspect the current input position.
 - If no input item is available at the current position, the `over` pattern MUST
   fail.
-- The current input item MUST be either a JavaScript object value or a `Map`
-  value for the `over` pattern to proceed.
-- If the current input item is neither an object value nor a `Map`, the `over`
-  pattern MUST report a type error.
+- The current input item MUST be an Object value for the `over` pattern to
+  proceed.
+- If the current input item is not an Object, the `over` pattern MUST report a
+  type error.
 - An `over` pattern MUST support declared string keys from its key map.
 - An `over` pattern MUST evaluate key patterns in declaration order.
 - For each declared key, the `over` pattern MUST evaluate the corresponding
   child pattern against a single-item input stream containing the current value
   for that key.
-- When the current input item is an object value, declared keys MUST be resolved
-  using JavaScript property-key semantics.
-- When the current input item is a `Map`, declared string keys MUST be resolved
-  using `Map` key semantics.
-- For `Map` values, key presence MUST be determined by `map.has(key)` and MUST
-  NOT be inferred from `map.get(key)` alone.
+- Declared keys MUST be resolved using Object SameValueZero key semantics.
+- Key presence MUST be determined independently of the associated value and
+  MUST NOT be inferred from a lookup result alone.
 - A key MUST be treated as missing when it is not present in the current target
   value under the target's native key-presence semantics.
 - Missing keys MUST be evaluated as `undefined` values.
@@ -45,20 +42,15 @@ key-addressable input value.
 
 - An `over` pattern MAY include an ordered list of key/value rest clauses and an
   optional final catch-all clause.
-- For object values, rest clauses MUST consider each own, enumerable,
-  string-keyed property not declared in the pattern's key map. Symbol-keyed
-  properties MUST be excluded.
-- Object rest properties MUST be processed in JavaScript `Object.keys` order.
-- For `Map` values, rest clauses MUST consider each entry not declared in the
-  pattern's key map, in Map insertion order. The key pattern MUST receive the
-  original Map key value, without coercion.
+- Rest clauses MUST consider each Object entry not declared in the pattern's
+  key map, in insertion order. Key patterns MUST receive the original key value
+  without coercion.
 - A key-pattern failure MUST leave that entry unclaimed for later rest clauses.
 - When a key pattern succeeds, the corresponding value pattern MUST be run. A
   key- or value-pattern failure MUST leave that entry unclaimed for later rest
   clauses.
 - Named keys and entries claimed by earlier rest clauses MUST NOT be checked by
-  later rest clauses. For a Map, declared keys are matched using native Map key
-  identity.
+  later rest clauses.
 - A final catch-all clause MUST accept all entries left unclaimed by earlier
   clauses. Without a catch-all, any remaining unclaimed entry MUST fail `over`.
 - Left-recursion and error outcomes from key/value patterns MUST propagate
@@ -85,9 +77,8 @@ key-addressable input value.
 - Each child pattern evaluated for a key MUST consume only within that key's
   single-item nested input stream.
 - Each nested key/value stream MUST have a unique position. Object paths extend
-  the object's position by the property key and item index. Map paths extend the
-  Map's position by the entry index, then distinguish the key from its value.
-  Positions in two entries' streams MUST never coincide.
+  the object's position by the entry index, then distinguish the key from its
+  value. Positions in two entries' streams MUST never coincide.
 
 ## Expected output
 
@@ -98,8 +89,8 @@ key-addressable input value.
 
 ## Error conditions
 
-- If the current input item is neither an object value nor a `Map`, the `over`
-  pattern MUST report a type error.
+- If the current input item is not an Object, the `over` pattern MUST report a
+  type error.
 
 ## Side effects
 

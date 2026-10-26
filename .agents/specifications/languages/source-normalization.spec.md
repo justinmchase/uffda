@@ -156,7 +156,7 @@ conversion.
 | `sha256`      | SHA-256 digest of a string, as raw bytes                               |
 | `base58`      | Base58 (Bitcoin alphabet) encoding of bytes                            |
 | `slice`       | Slice of a string or array (JS `slice` semantics: exclusive end)       |
-| `length`      | Length/size of a string, array, Set, or Map                            |
+| `length`      | Length/size of a string, array, Set, or Object                         |
 | `line_starts` | Ordered normalized line-start offsets for a string                     |
 | `units`       | Ordered `SourceUnit` rows from text and lineStarts                     |
 | `document_id` | Stable `source:{length}:{digest}` identifier                           |

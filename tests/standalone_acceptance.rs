@@ -64,22 +64,37 @@ fn standalone_cli_and_codec_accept_outside_checkout() {
     ))
     .expect("standalone compile output");
     assert_eq!(compiled["ok"], true, "standalone compile failed");
-    let artifact: serde_json::Value = serde_json::from_slice(
-        &std::fs::read(directory.0.join("bin/ast/main.uff.ast.json")).unwrap(),
-    )
-    .unwrap();
+    let artifact: uffda_runtime::resolver::ModuleDeclaration =
+        uffda_runtime::codec::declaration::decode_declaration_codec_as(
+            &std::fs::read_to_string(directory.0.join("bin/ast/main.uff.ast")).unwrap(),
+        )
+        .unwrap();
     assert_eq!(
-        artifact["rules"][0]["name"], "Main",
+        artifact.rules[0]
+            .field("name")
+            .unwrap()
+            .unwrap()
+            .string_value()
+            .as_deref(),
+        Some("Main"),
         "standalone compiled declaration failed"
     );
-    std::fs::remove_file(directory.0.join("bin/ast/main.uff.ast.json")).unwrap();
+    std::fs::remove_file(directory.0.join("bin/ast/main.uff.ast")).unwrap();
     std::fs::remove_file(directory.0.join("main.uff")).unwrap();
     let mut resolver =
         uffda_runtime::resolver::Resolver::new(directory.0.clone(), directory.0.join("bin"))
             .unwrap();
     let logical = url::Url::from_file_path(directory.0.join("main.uff")).unwrap();
     let graph = resolver.load_graph(&logical).unwrap();
-    assert_eq!(graph.modules[&logical].declaration.rules[0]["name"], "Main");
+    assert_eq!(
+        graph.modules[&logical].declaration.rules[0]
+            .field("name")
+            .unwrap()
+            .unwrap()
+            .string_value()
+            .as_deref(),
+        Some("Main")
+    );
     std::fs::remove_dir_all(directory.0.join("bin")).unwrap();
     assert_eq!(
         cli_output(&cli, &directory.0, &["fmt", "-"], "rule Main=any;"),
