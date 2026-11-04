@@ -168,7 +168,7 @@ export async function verifyRustCodec(
     const source =
       '# comment\n[42n\n @bytes"AA"]\n{a:"é😀" b:@set[1 2]}\n"\\ud800"\nundefined';
     const expected =
-      '[42n @bytes"AA"]\n{"a":"é😀" "b":@set[1 2]}\n"\\ud800"\nundefined\n';
+      '[42n @bytes"AA"]\n{a:"é😀" b:@set[1 2]}\n"\\ud800"\nundefined\n';
     const stream = async (input: Uint8Array, chunk: number) => {
       const chunks: Buffer[] = [];
       for (let offset = 0; offset < input.length; offset += chunk) {

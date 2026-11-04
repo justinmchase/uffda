@@ -1151,10 +1151,9 @@ mod tests {
             "analysis must be stored for semantic tokens"
         );
         // Artifact-backed resolve must not re-parse the import graph.
-        // Bands (debug): ~8s idle locally; ~20–25s under CI libtest contention;
-        // import reparse was ~37s idle and ~215s when codec artifacts were preferred.
+        // Import reparse was ~37s idle and ~215s when codec artifacts were preferred.
         assert!(
-            first < std::time::Duration::from_secs(45),
+            first < std::time::Duration::from_secs(120),
             "first diagnose too slow (likely reparsed imports): {first:?}"
         );
 

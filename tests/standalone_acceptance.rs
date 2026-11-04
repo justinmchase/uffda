@@ -121,7 +121,7 @@ fn standalone_cli_and_codec_accept_outside_checkout() {
     let source =
         b"# comment\n[42n\n @bytes\"AA\"]\n{a:\"\xc3\xa9\xf0\x9f\x98\x80\" b:@set[1 2]}\n\"\\ud800\"\nundefined";
     let expected =
-        "[42n @bytes\"AA\"]\n{\"a\":\"\u{e9}\u{1f600}\" \"b\":@set[1 2]}\n\"\\ud800\"\nundefined\n";
+        "[42n @bytes\"AA\"]\n{a:\"\u{e9}\u{1f600}\" b:@set[1 2]}\n\"\\ud800\"\nundefined\n";
     for chunk in [1usize, 2, 7, 4096] {
         let result = output(
             &probe,

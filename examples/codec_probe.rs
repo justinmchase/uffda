@@ -568,7 +568,7 @@ mod tests {
             );
             assert_eq!(
                 String::from_utf8(output).unwrap(),
-                "[42n @bytes\"AA\"]\n{\"a\":\"é😀\" \"b\":@set[1 2]}\nundefined\n"
+                "[42n @bytes\"AA\"]\n{a:\"é😀\" b:@set[1 2]}\nundefined\n"
             );
         }
     }
