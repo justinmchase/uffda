@@ -283,7 +283,7 @@ fn port_member_returns_the_propertys_own_wrapper() {
 }
 
 #[test]
-// req:expressions-runtime-006
+// req:expressions-runtime-006 req:expressions-runtime-012
 fn port_array_appends_referenced_elements_in_order() {
     let ast = expression(json!({"kind":"array","expressions":[
         {"kind":"arrayElement","expression":{"kind":"reference","name":"a"}},
@@ -377,6 +377,13 @@ fn port_array_spread_expands_nested_arrays_in_declaration_order() {
             ]}
         }]}),
         json!([7, 11, 13]),
+    );
+    assert_expr(
+        json!({"kind":"array","expressions":[{
+            "kind":"arraySpread",
+            "expression":{"kind":"value","value":{"x":7,"y":11}}
+        }]}),
+        json!([["x", 7], ["y", 11]]),
     );
 }
 
@@ -493,16 +500,29 @@ fn port_object_computed_string_key_assigns_the_evaluated_name() {
 }
 
 #[test]
-// req:expressions-runtime-006
-fn port_object_computed_key_rejects_a_non_property_key() {
-    assert_error(
-        json!({"kind":"object","keys":[{
+// req:expressions-runtime-006 req:expressions-runtime-012
+fn port_object_computed_key_accepts_arbitrary_runtime_values() {
+    for key in [json!(null), json!(true), json!([]), json!({})] {
+        let mut evaluation = Evaluation::new(expression(json!({"kind":"object","keys":[{
             "kind":"objectComputedKey",
-            "keyExpression":{"kind":"value","value":{"not":"a valid key"}},
+            "keyExpression":{"kind":"value","value":key},
             "expression":{"kind":"value","value":1}
-        }]}),
-        EvaluationError::InvalidPropertyKey,
-    );
+        }]})));
+        let result = evaluation.finish().unwrap();
+        evaluation
+            .read(&result, |value| {
+                let Value::Object(object) = value.raw() else {
+                    panic!("computed object literal returns an Object")
+                };
+                let object = object.borrow();
+                assert_eq!(object.entries().len(), 1);
+                assert!(matches!(
+                    object.entries()[0].0,
+                    crate::value::AssociationKey::Value(_)
+                ));
+            })
+            .unwrap();
+    }
 }
 
 #[test]
@@ -518,7 +538,7 @@ fn port_object_immediate_key_evaluates_to_the_object() {
 
 #[test]
 // req:expressions-runtime-006 req:expressions-runtime-007 req:runtime-memory-001
-fn port_object_keeps_named_wrappers_and_stores_symbol_keys_raw() {
+fn port_object_keeps_named_values_and_symbol_key_identity() {
     let ast = expression(json!({"kind":"object","keys":[
         {"kind":"objectKey","name":"a","expression":{"kind":"reference","name":"x"}},
         {"kind":"objectComputedKey",
@@ -551,11 +571,10 @@ fn port_object_keeps_named_wrappers_and_stores_symbol_keys_raw() {
                 .unwrap()
                 .same_wrapper(state.environment.get("x").unwrap())
         );
-        let symbols = object.symbol_entries();
-        assert_eq!(symbols.len(), 1);
-        assert_eq!(symbols[0].0.to_utf8().unwrap(), "iterator");
-        assert!(is_number(symbols[0].1, 1.0));
-        assert!(symbols[0].1.origin().is_none());
+        assert!(object.has_symbol_keys());
+        let iterator = object.get_symbol("iterator").unwrap();
+        assert!(is_number(iterator, 1.0));
+        assert_eq!(iterator.origin(), Some(Origin { start: 2, end: 3 }));
     });
 }
 

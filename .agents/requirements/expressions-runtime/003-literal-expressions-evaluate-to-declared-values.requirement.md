@@ -18,6 +18,10 @@ Expected behavior:
 - The runtime MUST NOT depend on runtime scope values for evaluation.
 - The runtime MUST NOT introduce additional evaluation errors for these literal
   expression kinds.
+- A host-provided owned codec literal MUST evaluate without a JSON conversion
+  bridge, preserving native kinds and lossless strings.
+- Reusing its compiled expression MUST construct fresh arena reference values;
+  the compiled expression MUST NOT retain references to a previous arena.
 
 Postconditions:
 

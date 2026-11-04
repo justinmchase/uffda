@@ -42,7 +42,6 @@ pub fn truthy(value: Value<'_>) -> bool {
         | Value::Date(_)
         | Value::Error(_)
         | Value::Set(_)
-        | Value::Map(_)
         | Value::Bytes(_)
         | Value::Iterable(_)
         | Value::InputSource(_)
@@ -79,7 +78,6 @@ pub fn string_text(value: Value<'_>) -> Result<RuntimeString, StringCoercionErro
         | Value::Declaration(_)
         | Value::Url(_)
         | Value::Set(_)
-        | Value::Map(_)
         | Value::Bytes(_)
         | Value::Iterable(_)
         | Value::InputSource(_)
@@ -171,7 +169,7 @@ mod tests {
                 Value::array(mc, vec![]),
                 Value::object(mc, vec![]),
                 Value::Set(Gc::new(mc, uffda_heap::RefLock::new(vec![]))),
-                Value::map(mc, vec![]),
+                Value::association(mc, vec![]),
                 Value::Bytes(Gc::new(mc, vec![])),
                 Value::Url(Gc::new(
                     mc,

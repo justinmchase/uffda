@@ -15,46 +15,46 @@ capitals.
 The default runtime environment provides the following 38 callable globals.
 Their names are case-sensitive and are the public expression references:
 
-| Global                                  | Purpose                                                                                                                                                |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `add(left, right)`                      | Adds two numbers.                                                                                                                                      |
-| `at(value, index)`                      | Selects the element at an ordinal index from a string, array, Set, or Map. String indexing follows UTF-16 code units; Set and Map use iteration order. |
-| `base58(bytes)`                         | Encodes bytes with the Bitcoin Base58 alphabet.                                                                                                        |
-| `coalesce(...values)`                   | Returns the first argument that is neither null nor undefined.                                                                                         |
-| `compare(left, right)`                  | Compares two numbers or two strings and returns -1, 0, or 1.                                                                                           |
-| `eq(left, right)`                       | Tests strict runtime equality.                                                                                                                         |
-| `enumerate(value)`                      | Lazily pairs each item with its index as `{ index, value }`. Strings are iterated by Unicode code point.                                               |
-| `filter(value, predicate)`              | Lazily yields items for which the predicate is truthy.                                                                                                 |
-| `flat(array, depth?)`                   | Flattens a nested array by the requested depth, defaulting to one level.                                                                               |
-| `format(template, ...args)`             | Replaces `{0}`, `{1}`, … with corresponding non-nullish arguments.                                                                                     |
-| `from_entries(entries)`                 | Builds an object from `[key, value]` pairs or `{ name, pattern }` / `{ name, value }` entries.                                                         |
-| `from_codec(text)`                      | Decodes exactly one strict codec value from text.                                                                                                      |
-| `gt(left, right)`                       | Tests whether the supported ordering of left is strictly after right.                                                                                  |
-| `gte(left, right)`                      | Tests whether the supported ordering of left is after or equal to right.                                                                               |
-| `has(collection, value)`                | Tests membership in a Set, Map, or array, or key presence in an object.                                                                                |
-| `id(value)`                             | Returns its argument unchanged.                                                                                                                        |
-| `int(value)`                            | Parses a scalar value as a base-10 integer.                                                                                                            |
-| `iterable(value)`                       | Normalizes a synchronous or asynchronous iterable for runtime iteration.                                                                               |
-| `join(array, separator?)`               | Joins array elements with a separator; nullish elements become empty strings and other elements use the runtime's scalar text conversion.              |
-| `json(value)`                           | Serializes a value as JSON text, subject to runtime JSON and callable-conversion rules.                                                                |
-| `last(value, fallback)`                 | Returns the last element of a string or array, or the fallback when empty or unsupported.                                                              |
-| `length(value)`                         | Returns the length of a string, array, Set, or Map. String length is measured in UTF-16 code units.                                                    |
-| `lt(left, right)`                       | Tests whether the supported ordering of left is strictly before right.                                                                                 |
-| `lte(left, right)`                      | Tests whether the supported ordering of left is before or equal to right.                                                                              |
-| `map(value, callback)`                  | Lazily projects each item through a callback.                                                                                                          |
-| `not(value)`                            | Returns the logical negation of the value's truthiness.                                                                                                |
-| `one(items, fallback)`                  | Returns the sole item of a one-element array, or the fallback otherwise.                                                                               |
-| `pack(...values)`                       | Collects its arguments into an array.                                                                                                                  |
-| `pluck(collection, key)`                | Collects `item[key]` for each item in a collection.                                                                                                    |
-| `reduce(value, initial, fn)`            | Eagerly folds the items into one value by applying `fn(accumulator, item)`.                                                                            |
-| `scan(value, initial, fn)`              | Lazily yields each accumulator produced by `fn(accumulator, item)`.                                                                                    |
-| `sha256(text)`                          | Computes the SHA-256 digest of a string and returns bytes.                                                                                             |
-| `slice(value, start?, end?)`            | Returns the selected half-open slice of a string or array.                                                                                             |
-| `sub(left, right)`                      | Subtracts right from left.                                                                                                                             |
-| `symbol(name)`                          | Returns the well-known or registered symbol for a name.                                                                                                |
-| `to_set(value)`                         | Converts a collection into a Set.                                                                                                                      |
-| `to_codec(value)`                       | Serializes one data value as canonical compact codec text.                                                                                             |
-| `when(condition, thenValue, elseValue)` | Returns `thenValue` when condition is truthy, otherwise `elseValue`.                                                                                   |
+| Global                                  | Purpose                                                                                                                                                              |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `add(left, right)`                      | Adds two numbers.                                                                                                                                                    |
+| `at(value, index)`                      | Selects the element at an ordinal index from a string, array, Set, or Object entries. String indexing follows UTF-16 code units; Set and Object use iteration order. |
+| `base58(bytes)`                         | Encodes bytes with the Bitcoin Base58 alphabet.                                                                                                                      |
+| `coalesce(...values)`                   | Returns the first argument that is neither null nor undefined.                                                                                                       |
+| `compare(left, right)`                  | Compares two numbers or two strings and returns -1, 0, or 1.                                                                                                         |
+| `eq(left, right)`                       | Tests strict runtime equality.                                                                                                                                       |
+| `enumerate(value)`                      | Lazily pairs each item with its index as `{ index, value }`. Strings are iterated by Unicode code point.                                                             |
+| `filter(value, predicate)`              | Lazily yields items for which the predicate is truthy.                                                                                                               |
+| `flat(array, depth?)`                   | Flattens a nested array by the requested depth, defaulting to one level.                                                                                             |
+| `format(template, ...args)`             | Replaces `{0}`, `{1}`, … with corresponding non-nullish arguments.                                                                                                   |
+| `from_entries(entries)`                 | Builds an object from `[key, value]` pairs or `{ name, pattern }` / `{ name, value }` entries.                                                                       |
+| `from_codec(text)`                      | Decodes exactly one strict codec value from text.                                                                                                                    |
+| `gt(left, right)`                       | Tests whether the supported ordering of left is strictly after right.                                                                                                |
+| `gte(left, right)`                      | Tests whether the supported ordering of left is after or equal to right.                                                                                             |
+| `has(collection, value)`                | Tests membership in a Set or array, or key presence in an Object.                                                                                                    |
+| `id(value)`                             | Returns its argument unchanged.                                                                                                                                      |
+| `int(value)`                            | Parses a scalar value as a base-10 integer.                                                                                                                          |
+| `iterable(value)`                       | Normalizes a synchronous or asynchronous iterable for runtime iteration; Objects without an explicit iterator yield ordered `[key, value]` entries.                  |
+| `join(array, separator?)`               | Joins array elements with a separator; nullish elements become empty strings and other elements use the runtime's scalar text conversion.                            |
+| `json(value)`                           | Serializes a value as JSON text, subject to runtime JSON and callable-conversion rules.                                                                              |
+| `last(value, fallback)`                 | Returns the last element of a string or array, or the fallback when empty or unsupported.                                                                            |
+| `length(value)`                         | Returns the length of a string, array, Set, or Object. String length is measured in UTF-16 code units.                                                               |
+| `lt(left, right)`                       | Tests whether the supported ordering of left is strictly before right.                                                                                               |
+| `lte(left, right)`                      | Tests whether the supported ordering of left is before or equal to right.                                                                                            |
+| `map(value, callback)`                  | Lazily projects each item through a callback.                                                                                                                        |
+| `not(value)`                            | Returns the logical negation of the value's truthiness.                                                                                                              |
+| `one(items, fallback)`                  | Returns the sole item of a one-element array, or the fallback otherwise.                                                                                             |
+| `pack(...values)`                       | Collects its arguments into an array.                                                                                                                                |
+| `pluck(collection, key)`                | Collects `item[key]` for each item in a collection.                                                                                                                  |
+| `reduce(value, initial, fn)`            | Eagerly folds the items into one value by applying `fn(accumulator, item)`.                                                                                          |
+| `scan(value, initial, fn)`              | Lazily yields each accumulator produced by `fn(accumulator, item)`.                                                                                                  |
+| `sha256(text)`                          | Computes the SHA-256 digest of a string and returns bytes.                                                                                                           |
+| `slice(value, start?, end?)`            | Returns the selected half-open slice of a string or array.                                                                                                           |
+| `sub(left, right)`                      | Subtracts right from left.                                                                                                                                           |
+| `symbol(name)`                          | Returns the well-known or registered symbol for a name.                                                                                                              |
+| `to_set(value)`                         | Converts a collection into a Set.                                                                                                                                    |
+| `to_codec(value)`                       | Serializes one data value as canonical compact codec text.                                                                                                           |
+| `when(condition, thenValue, elseValue)` | Returns `thenValue` when condition is truthy, otherwise `elseValue`.                                                                                                 |
 
 The Rust implementation exposes each callable name and declared arity. It MUST
 preserve the compatibility fixture's name set and declared arities. Names or
@@ -81,6 +81,16 @@ arguments unless their documented purpose requires an iterator, callback, or
 cryptographic operation. They MUST NOT introduce hidden access to a current
 rule, match, module, or source location. Source provenance is carried by runtime
 values as specified in [value provenance](./runtime/value-provenance.spec.md).
+
+## Object associations
+
+Objects are the sole runtime association type. They accept arbitrary runtime
+values as keys, compare keys with SameValueZero semantics, and retain insertion
+order. `at(object, index)` returns the indexed `[key, value]` entry;
+`has(object, key)` checks key presence without conflating a missing key with an
+explicit `undefined` value; and `length(object)` returns the number of entries.
+When an Object has no explicit iterator, runtime iteration MUST produce its
+`[key, value]` entries in insertion order.
 
 `json` is explicit data serialization, not implicit text conversion. Its
 callable rejection and conversion boundaries are governed by

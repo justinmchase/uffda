@@ -26,7 +26,6 @@ rule ReservedKeyword =
   | "includes"
   | "into"
   | "lookahead"
-  | "map"
   | "maybe"
   | "not"
   | "null"

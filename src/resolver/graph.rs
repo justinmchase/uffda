@@ -1,6 +1,6 @@
 use super::{ModuleDeclaration, ModuleResolutionError, Resolver, error};
-use crate::json::JsonValue as Value;
-use serde::Deserialize;
+use crate::codec::data::{DataDocument, DataNode};
+use serde::{Deserialize, Deserializer};
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::rc::Rc;
 use url::Url;
@@ -42,6 +42,21 @@ pub struct ModuleGraph {
     pub modules: HashMap<Url, ResolvedModule>,
 }
 
+fn deserialize_undefined_as_none<'de, D>(deserializer: D) -> Result<Option<DataDocument>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let document = DataDocument::deserialize(deserializer)?;
+    if matches!(
+        document.nodes()[document.root()],
+        DataNode::Undefined | DataNode::Null
+    ) {
+        Ok(None)
+    } else {
+        Ok(Some(document))
+    }
+}
+
 #[derive(Deserialize)]
 struct Export {
     kind: ExportKind,
@@ -65,7 +80,7 @@ struct Import {
     #[serde(rename = "moduleUrl")]
     module_url: String,
     names: Vec<String>,
-    module: Option<Value>,
+    module: Option<DataDocument>,
 }
 
 #[derive(Deserialize)]
@@ -154,18 +169,19 @@ impl Resolver {
                         &parents,
                     ));
                 }
-                let import: Import = crate::json::from_value(value.clone()).map_err(|cause| {
-                    annotate(
-                        error(
+                let import: Import =
+                    uffda_codec::data::de::from_document(value).map_err(|cause| {
+                        annotate(
+                            error(
+                                &url,
+                                "invalid import declaration".into(),
+                                Some(cause.to_string()),
+                            ),
                             &url,
-                            "invalid import declaration".into(),
-                            Some(cause.to_string()),
-                        ),
-                        &url,
-                        &entry,
-                        &parents,
-                    )
-                })?;
+                            &entry,
+                            &parents,
+                        )
+                    })?;
                 let mut frame = ImportFrame {
                     importer_url: url.to_string(),
                     import_index: index,
@@ -192,15 +208,13 @@ impl Resolver {
                         failure.import_chain.push(frame.clone());
                         annotate(failure, &url, &entry, &parents)
                     })?;
-                    let text = serde_json::to_string(&payload).map_err(|cause| {
-                        error(
-                            &url,
-                            "invalid native import declaration".into(),
-                            Some(cause.to_string()),
-                        )
-                    })?;
                     let declaration =
-                        super::decode_declaration(&target, &text).map_err(|mut error| {
+                        uffda_codec::data::de::from_document(&payload).map_err(|cause| {
+                            let mut error = error(
+                                &url,
+                                "invalid native import declaration".into(),
+                                Some(cause.to_string()),
+                            );
                             error.import_chain.push(frame.clone());
                             annotate(error, &url, &entry, &parents)
                         })?;
@@ -280,7 +294,7 @@ impl Resolver {
                         ));
                     }
                     let export: Export =
-                        crate::json::from_value(value.clone()).map_err(|cause| {
+                        uffda_codec::data::de::from_document(value).map_err(|cause| {
                             error(
                                 url,
                                 "invalid export declaration".into(),
@@ -327,8 +341,8 @@ impl Resolver {
             }
             let module = &graph.modules[url];
             for value in &module.declaration.exports {
-                let export: Export =
-                    crate::json::from_value(value.clone()).expect("previously validated export");
+                let export: Export = uffda_codec::data::de::from_document(value)
+                    .expect("previously validated export");
                 if !module.exports.contains_key(&export.name) {
                     return Err(annotate(
                         error(url, format!("Unknown import {}", export.name), None),
@@ -417,6 +431,16 @@ fn materialize(
     url: &Url,
     declaration: Rc<ModuleDeclaration>,
 ) -> Result<ResolvedModule, ModuleResolutionError> {
+    #[derive(Deserialize)]
+    struct MemberHeader {
+        name: String,
+        pattern: DataDocument,
+        #[serde(default, deserialize_with = "deserialize_undefined_as_none")]
+        parameters: Option<DataDocument>,
+        #[serde(default, deserialize_with = "deserialize_undefined_as_none")]
+        expression: Option<DataDocument>,
+    }
+
     let mut locals = BTreeMap::new();
     for (kind, declarations) in [
         (MemberKind::Rule, &declaration.rules),
@@ -424,24 +448,36 @@ fn materialize(
         (MemberKind::Decorator, &declaration.decorators),
     ] {
         for (index, value) in declarations.iter().enumerate() {
-            let record = value
-                .as_object()
-                .ok_or_else(|| error(url, "member declaration must be an object".into(), None))?;
-            let name = record
-                .get("name")
-                .and_then(Value::as_str)
-                .ok_or_else(|| error(url, "member declaration lacks name".into(), None))?;
-            if !record.get("pattern").is_some_and(Value::is_object) {
+            let record: MemberHeader =
+                uffda_codec::data::de::from_document(value).map_err(|cause| {
+                    error(
+                        url,
+                        "invalid member declaration".into(),
+                        Some(cause.to_string()),
+                    )
+                })?;
+            let name = record.name;
+            if !record.pattern.is_object() {
                 return Err(error(
                     url,
                     format!("declaration {name} lacks pattern"),
                     None,
                 ));
             }
-            if kind == MemberKind::Rule && !record.get("parameters").is_some_and(Value::is_array) {
+            if kind == MemberKind::Rule
+                && !record
+                    .parameters
+                    .as_ref()
+                    .is_some_and(DataDocument::is_array)
+            {
                 return Err(error(url, format!("rule {name} lacks parameters"), None));
             }
-            if kind != MemberKind::Rule && !record.get("expression").is_some_and(Value::is_object) {
+            if kind != MemberKind::Rule
+                && !record
+                    .expression
+                    .as_ref()
+                    .is_some_and(DataDocument::is_object)
+            {
                 return Err(error(
                     url,
                     format!("callable {name} lacks expression"),
@@ -450,7 +486,7 @@ fn materialize(
             }
             if locals
                 .insert(
-                    name.into(),
+                    name.clone(),
                     ModuleMember {
                         module_url: url.clone(),
                         kind,
@@ -476,7 +512,7 @@ fn materialize(
     };
     let mut default_count = 0;
     for value in &module.declaration.exports {
-        let export: Export = crate::json::from_value(value.clone()).map_err(|cause| {
+        let export: Export = uffda_codec::data::de::from_document(value).map_err(|cause| {
             error(
                 url,
                 "invalid export declaration".into(),

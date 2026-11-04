@@ -24,12 +24,13 @@ Expected behavior:
   trailing invalid input and multiple records, including after a newline.
 - Product embedding MUST copy unmodified `.uff.ast` records, with no JSON seed
   or fallback. Missing codec artifacts MUST fail with bootstrap guidance.
-- Filesystem, package-root and registry resolution MUST prefer `.uff.ast` over
-  `.uff.ast.json`. JSON-only dependencies and explicit JSON declarations MUST
-  remain supported. Compile MUST continue to emit both siblings.
-- A present codec artifact with invalid encoding or declarations MUST fail
-  rather than silently load a valid JSON sibling. Registry artifacts listed in
-  the manifest MUST surface download and integrity failures, not fall back.
+- Filesystem, package-root, registry resolution, and product embedding MUST
+  accept only `.uff.ast` declarations and MUST NOT load JSON declarations or
+  fall back to legacy JSON/`.uffda.ast` siblings. Compile MUST emit only
+  `.uff.ast`.
+- A missing, invalid, or corrupt codec artifact MUST fail explicitly.
+  Registry artifacts listed in the manifest MUST surface download and
+  integrity failures.
 
 Postconditions:
 

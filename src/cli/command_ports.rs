@@ -38,7 +38,7 @@ fn execute(args: &[&str]) -> cli::CliResult {
 }
 
 #[test]
-// req:cli-compile-001 req:cli-bootstrap-034
+// req:cli-compile-001 req:cli-compile-008 req:cli-bootstrap-034
 fn compile_writes_a_single_file_artifact_under_the_ast_layout() {
     let root = temp_root("compile-single");
     let src = root.join("src");
@@ -66,15 +66,16 @@ fn compile_writes_a_single_file_artifact_under_the_ast_layout() {
     assert!(result.failures.is_empty());
     assert_eq!(result.successes.len(), 1);
     assert_eq!(result.successes[0].source_path, "main.uff");
-    let artifact = out.join("ast/main.uff.ast.json");
-    let codec = out.join("ast/main.uff.ast");
+    let artifact = out.join("ast/main.uff.ast");
     assert_eq!(PathBuf::from(&result.successes[0].output_path), artifact);
-    let on_disk: serde_json::Value =
-        serde_json::from_str(&std::fs::read_to_string(&artifact).unwrap()).unwrap();
-    assert!(on_disk["imports"].is_array());
-    assert!(on_disk["exports"].is_array());
-    assert!(!on_disk["rules"].as_array().unwrap().is_empty());
-    assert!(codec.is_file());
+    let on_disk: crate::resolver::ModuleDeclaration =
+        crate::codec::declaration::decode_declaration_codec_as(
+            &std::fs::read_to_string(&artifact).unwrap(),
+        )
+        .unwrap();
+    assert!(!on_disk.imports.is_empty() || !on_disk.exports.is_empty());
+    assert!(!on_disk.rules.is_empty());
+    assert!(!out.join("ast/main.uff.ast.json").exists());
     cleanup(&root);
 }
 
@@ -120,8 +121,6 @@ fn compile_globs_are_recursive_ordered_and_keep_partial_failures() {
     assert_eq!(parse_failure.code, "CLI_COMPILE_PARSE_RECOVERED");
     assert!(parse_failure.location.is_some());
     assert_eq!(result.successes.len(), 2);
-    assert!(out.join("ast/a/ok.uff.ast.json").is_file());
-    assert!(out.join("ast/b/ok.uff.ast.json").is_file());
     assert!(out.join("ast/a/ok.uff.ast").is_file());
     assert!(out.join("ast/b/ok.uff.ast").is_file());
     cleanup(&root);
@@ -186,7 +185,7 @@ fn compile_rejects_directory_inputs_and_empty_globs() {
 }
 
 #[test]
-// req:cli-compile-001 req:project-file-002
+// req:cli-compile-001 req:cli-compile-008 req:project-file-002
 fn compile_expands_import_map_names_and_rejects_undeclared_ones() {
     let root = temp_root("compile-imports");
     let source = [
@@ -216,14 +215,22 @@ fn compile_expands_import_map_names_and_rejects_undeclared_ones() {
         &mut languages,
     );
     assert!(ok.ok, "{}", serde_json::to_string(&ok).unwrap_or_default());
-    let on_disk: serde_json::Value =
-        serde_json::from_str(&std::fs::read_to_string(&ok.successes[0].output_path).unwrap())
-            .unwrap();
-    let urls: Vec<_> = on_disk["imports"]
-        .as_array()
-        .unwrap()
+    let on_disk: crate::resolver::ModuleDeclaration =
+        crate::codec::declaration::decode_declaration_codec_as(
+            &std::fs::read_to_string(&ok.successes[0].output_path).unwrap(),
+        )
+        .unwrap();
+    let urls: Vec<_> = on_disk
+        .imports
         .iter()
-        .map(|entry| entry["moduleUrl"].as_str().unwrap())
+        .map(|entry| {
+            entry
+                .field("moduleUrl")
+                .unwrap()
+                .unwrap()
+                .string_value()
+                .unwrap()
+        })
         .collect();
     assert_eq!(
         urls,
@@ -251,7 +258,7 @@ fn compile_expands_import_map_names_and_rejects_undeclared_ones() {
         "CLI_COMPILE_UNDECLARED_MODULE_NAME"
     );
     assert!(missing.failures[0].message.contains("@acme/kv/tokens"));
-    assert!(!missing_out.join("ast/main.uff.ast.json").exists());
+    assert!(!missing_out.join("ast/main.uff.ast").exists());
     cleanup(&root);
     cleanup(&missing_root);
 }
@@ -341,8 +348,6 @@ fn compile_relative_imports_emit_dependency_artifacts_and_reject_outside_root() 
         "{}",
         serde_json::to_string(&result).unwrap_or_default()
     );
-    assert!(out.join("ast/main.uff.ast.json").is_file());
-    assert!(out.join("ast/lib/word.uff.ast.json").is_file());
     assert!(out.join("ast/main.uff.ast").is_file());
     assert!(out.join("ast/lib/word.uff.ast").is_file());
 

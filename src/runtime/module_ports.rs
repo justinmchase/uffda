@@ -51,6 +51,14 @@ fn rule(name: &str, pattern: Json) -> Json {
     json!({"name":name,"parameters":[],"pattern":pattern})
 }
 
+fn write_codec_artifact(path: &std::path::Path, declaration: Json) {
+    let declaration = crate::codec::declaration::encode_declaration_codec(
+        &crate::json::from_str(&declaration.to_string()).unwrap(),
+    )
+    .unwrap();
+    std::fs::write(path, declaration).unwrap();
+}
+
 fn exported(name: &str) -> Json {
     json!({
         "imports": [],
@@ -181,6 +189,13 @@ fn declaration(name: &str, imports: Json) -> String {
         "rules": [{"name":name,"parameters":[],"pattern":{"kind":"any"}}]
     })
     .to_string()
+}
+
+fn declaration_codec(name: &str, imports: Json) -> String {
+    crate::codec::declaration::encode_declaration_codec(
+        &crate::json::from_str(&declaration(name, imports)).unwrap(),
+    )
+    .unwrap()
 }
 
 fn must_fail_graph(
@@ -902,16 +917,14 @@ fn modport_run_imports_resolve_through_maps_artifacts_and_packages() {
     let dir = TempDir::new("uffda-execute-layout");
     let out = dir.0.join("out");
     std::fs::create_dir_all(out.join("ast")).unwrap();
-    std::fs::write(
-        out.join("ast/dep.uff.ast.json"),
+    write_codec_artifact(
+        &out.join("ast/dep.uff.ast"),
         json!({
             "imports":[],
             "exports":[{"kind":"rule","name":"T"}],
             "rules":[rule("T", json!({"kind":"any"}))]
-        })
-        .to_string(),
-    )
-    .unwrap();
+        }),
+    );
     let mut resolver = Resolver::new(dir.0.clone(), out).unwrap();
     let main = dir.url("main.uff");
     resolver.insert_declaration(
@@ -967,40 +980,30 @@ fn modport_resolve_injected_declarations_skip_executable_loaders() {
 }
 
 #[test]
-// req:modules-runtime-001 req:modules-runtime-002
+// req:modules-runtime-001
 fn modport_resolve_json_modules_cache_success_and_drop_failures() {
     let dir = TempDir::new("uffda-resolve-json");
-    let path = dir.0.join("module.json");
-    std::fs::write(
-        &path,
-        json!({
-            "imports":[],
-            "exports":[],
-            "rules":[rule("A", json!({"kind":"any"})), rule("B", json!({"kind":"any"}))]
-        })
-        .to_string(),
-    )
-    .unwrap();
     let mut resolver = Resolver::new(dir.0.clone(), dir.0.join("bin")).unwrap();
     let url = dir.url("module.json");
-    let graph = resolver.load_graph(&url).unwrap();
-    let names: Vec<_> = graph.modules[&url].locals.keys().cloned().collect();
-    assert_eq!(names, ["A", "B"]);
-    assert!(Rc::ptr_eq(&graph, &resolver.load_graph(&url).unwrap()));
-    assert_eq!(resolver.declaration_count(), 1);
+    let error = match resolver.load_graph(&url) {
+        Ok(_) => panic!("module.json should be rejected"),
+        Err(error) => error,
+    };
+    assert!(error.message.contains("unknown extension .json"));
+    assert_eq!(resolver.declaration_count(), 0);
 
     let bad = dir.url("bad.json");
     std::fs::write(dir.0.join("bad.json"), "{").unwrap();
     assert!(resolver.load_declaration(&bad).is_err());
-    assert_eq!(resolver.declaration_count(), 1);
+    assert_eq!(resolver.declaration_count(), 0);
     assert!(resolver.load_declaration(&bad).is_err());
     std::fs::write(
         dir.0.join("bad.json"),
         r#"{"imports":[],"exports":[],"rules":[]}"#,
     )
     .unwrap();
-    resolver.load_declaration(&bad).unwrap();
-    assert_eq!(resolver.declaration_count(), 2);
+    assert!(resolver.load_declaration(&bad).is_err());
+    assert_eq!(resolver.declaration_count(), 0);
 }
 
 #[test]
@@ -1240,16 +1243,14 @@ fn modport_resolve_import_map_artifacts_and_package_boundaries() {
     let dir = TempDir::new("uffda-resolve12");
     let out = dir.0.join("out");
     std::fs::create_dir_all(out.join("ast/lib")).unwrap();
-    std::fs::write(
-        out.join("ast/lib/dep.uff.ast.json"),
+    write_codec_artifact(
+        &out.join("ast/lib/dep.uff.ast"),
         json!({
             "imports":[],
             "exports":[{"kind":"rule","name":"T"}],
             "rules":[rule("T", json!({"kind":"any"}))]
-        })
-        .to_string(),
-    )
-    .unwrap();
+        }),
+    );
     let dep = dir.url("lib/dep.uff");
     let loaded = Resolver::new(dir.0.clone(), out)
         .unwrap()
@@ -1368,23 +1369,23 @@ fn package_resolver(dir: &TempDir) -> (Resolver, Url) {
         r#"{"exports":{".":"./kv.uff","./tokens":"./tokens.uff"}}"#,
         &[
             (
-                "bin/ast/kv.uff.ast.json",
-                declaration(
+                "bin/ast/kv.uff.ast",
+                declaration_codec(
                     "KV",
                     json!([{"kind":"module","moduleUrl":"./tokens.uff","names":["T"]}]),
                 ),
             ),
-            ("bin/ast/tokens.uff.ast.json", declaration("T", json!([]))),
+            ("bin/ast/tokens.uff.ast", declaration_codec("T", json!([]))),
             (
-                "bin/ast/named.uff.ast.json",
-                declaration(
+                "bin/ast/named.uff.ast",
+                declaration_codec(
                     "N",
                     json!([{"kind":"module","moduleUrl":"@acme/kv/tokens","names":["T"]}]),
                 ),
             ),
             (
-                "bin/ast/escape.uff.ast.json",
-                declaration(
+                "bin/ast/escape.uff.ast",
+                declaration_codec(
                     "E",
                     json!([{"kind":"module","moduleUrl":"../../@acme/other/1.0.0/x.uff","names":["X"]}]),
                 ),

@@ -1,4 +1,5 @@
 use super::*;
+use crate::resolver::decode_declaration;
 use serde_json::json;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -47,6 +48,24 @@ impl Transport for FakeTransport {
 
 fn declaration(name: &str) -> String {
     json!({"imports":[],"exports":[{"kind":"rule","name":name}],"rules":[{"name":name,"parameters":[],"pattern":{"kind":"any"}}]}).to_string()
+}
+
+fn declaration_codec(name: &str) -> String {
+    declaration_text_codec(&declaration(name))
+}
+
+fn declaration_text_codec(text: &str) -> String {
+    crate::codec::declaration::encode_declaration_codec(&crate::json::from_str(text).unwrap())
+        .unwrap()
+}
+
+fn rule_name(declaration: &crate::resolver::ModuleDeclaration) -> String {
+    declaration.rules[0]
+        .field("name")
+        .unwrap()
+        .unwrap()
+        .string_value()
+        .unwrap()
 }
 
 fn version(fake: &FakeTransport, version: &str, project: &str, extra: &[(&str, String)]) {
@@ -110,7 +129,7 @@ fn shared_semver_range_corpus_matches_reference() {
 
 #[test]
 // req:modules-runtime-006 req:modules-runtime-001 req:modules-runtime-002 req:cli-bootstrap-004
-fn resolves_exports_and_loads_uff_artifacts_and_direct_json_without_source_access() {
+fn resolves_exports_and_loads_codec_artifacts_but_rejects_json_modules() {
     let dir = Directory::new();
     let fake = Rc::new(FakeTransport::default());
     fake.files.borrow_mut().insert(
@@ -129,7 +148,7 @@ fn resolves_exports_and_loads_uff_artifacts_and_direct_json_without_source_acces
           "outDir":"./out",
         }"#,
             &[
-                ("out/ast/src/module.uff.ast.json", declaration("UFF")),
+                ("out/ast/src/module.uff.ast", declaration_codec("UFF")),
                 ("data.json", declaration("JSON")),
                 ("invalid.json", "{}".into()),
             ],
@@ -141,9 +160,14 @@ fn resolves_exports_and_loads_uff_artifacts_and_direct_json_without_source_acces
         uff.as_str(),
         "https://registry.test/@acme/kv/1.3.0/src/module.uff"
     );
-    assert_eq!(packages.load(&uff).unwrap().rules[0]["name"], "UFF");
-    let json = packages.resolve("jsr:@acme/kv@^1.2.0/json").unwrap();
-    assert_eq!(packages.load(&json).unwrap().rules[0]["name"], "JSON");
+    assert_eq!(rule_name(&packages.load(&uff).unwrap()), "UFF");
+    assert!(
+        packages
+            .resolve("jsr:@acme/kv@^1.2.0/json")
+            .unwrap_err()
+            .message
+            .contains("compiled .uff modules only")
+    );
     assert!(
         !fake
             .requests
@@ -157,7 +181,7 @@ fn resolves_exports_and_loads_uff_artifacts_and_direct_json_without_source_acces
             .load(&invalid)
             .unwrap_err()
             .message
-            .contains("ModuleDeclaration")
+            .contains("compiled .uff modules only")
     );
     let executable = Url::parse("https://registry.test/@acme/kv/1.3.0/mod.ts").unwrap();
     assert!(
@@ -165,7 +189,7 @@ fn resolves_exports_and_loads_uff_artifacts_and_direct_json_without_source_acces
             .load(&executable)
             .unwrap_err()
             .message
-            .contains("modules only")
+            .contains("compiled .uff modules only")
     );
     assert!(
         !fake
@@ -204,7 +228,7 @@ fn registry_and_package_root_prefer_codec_without_reading_json_siblings() {
     );
     let mut packages = setup(&dir, fake.clone(), Lockfile::memory());
     let module = packages.resolve("jsr:@acme/kv@1.0.0").unwrap();
-    assert_eq!(packages.load(&module).unwrap().rules[0]["name"], "CODEC");
+    assert_eq!(rule_name(&packages.load(&module).unwrap()), "CODEC");
     fake.files
         .borrow_mut()
         .insert("/pkg/bin/ast/main.uff.ast".into(), codec.into_bytes());
@@ -219,10 +243,11 @@ fn registry_and_package_root_prefer_codec_without_reading_json_siblings() {
         .add_artifact_package(root.clone(), "./bin")
         .unwrap();
     assert_eq!(
-        resolver
-            .load_declaration(&root.join("main.uff").unwrap())
-            .unwrap()
-            .rules[0]["name"],
+        rule_name(
+            &resolver
+                .load_declaration(&root.join("main.uff").unwrap())
+                .unwrap()
+        ),
         "CODEC"
     );
     assert!(
@@ -296,8 +321,8 @@ fn cache_rechecks_checksums_and_lockfile_pins_metadata_even_offline() {
     version(
         &fake,
         "1.0.0",
-        r#"{"exports":{".":"./module.json"}}"#,
-        &[("module.json", declaration("A"))],
+        r#"{"exports":{".":"./module.uff"}}"#,
+        &[("bin/ast/module.uff.ast", declaration_codec("A"))],
     );
     let lock_path = dir.0.join("uffda.lock");
     let mut packages = setup(
@@ -307,18 +332,22 @@ fn cache_rechecks_checksums_and_lockfile_pins_metadata_even_offline() {
     );
     let url = packages.resolve("jsr:@acme/kv@1.0.0").unwrap();
     packages.load(&url).unwrap();
-    std::fs::write(dir.0.join("jsr/@acme/kv/1.0.0/module.json"), "tampered").unwrap();
+    std::fs::write(
+        dir.0.join("jsr/@acme/kv/1.0.0/bin/ast/module.uff.ast"),
+        "tampered",
+    )
+    .unwrap();
     let mut again = setup(
         &dir,
         fake.clone(),
         Lockfile::load(lock_path.clone()).unwrap(),
     );
-    assert_eq!(again.load(&url).unwrap().rules[0]["name"], "A");
+    assert_eq!(rule_name(&again.load(&url).unwrap()), "A");
     fake.files.borrow_mut().clear();
     let mut offline = setup(&dir, fake.clone(), Lockfile::load(lock_path).unwrap());
     let same = offline.resolve("jsr:@acme/kv@1.0.0").unwrap();
     assert_eq!(same, url);
-    assert_eq!(offline.load(&same).unwrap().rules[0]["name"], "A");
+    assert_eq!(rule_name(&offline.load(&same).unwrap()), "A");
     let count = fake.requests.borrow().len();
     assert_eq!(offline.resolve("jsr:@acme/kv@^1.0.0").unwrap(), url);
     assert_eq!(count + 1, fake.requests.borrow().len());
@@ -340,12 +369,12 @@ fn tampered_downloads_and_locked_metadata_are_explicit_errors() {
     version(
         &fake,
         "1.0.0",
-        r#"{"exports":{".":"./module.json"}}"#,
-        &[("module.json", declaration("A"))],
+        r#"{"exports":{".":"./module.uff"}}"#,
+        &[("bin/ast/module.uff.ast", declaration_codec("A"))],
     );
     fake.files.borrow_mut().insert(
-        "/@acme/kv/1.0.0/module.json".into(),
-        declaration("TAMPERED").into_bytes(),
+        "/@acme/kv/1.0.0/bin/ast/module.uff.ast".into(),
+        declaration_codec("TAMPERED").into_bytes(),
     );
     let mut packages = setup(&dir, fake.clone(), Lockfile::memory());
     let url = packages.resolve("jsr:@acme/kv@1.0.0").unwrap();
@@ -439,30 +468,34 @@ fn resolver_network_data_package_artifacts_and_registry_graph_preserve_identity(
         .borrow_mut()
         .insert("/plain.json".into(), declaration("PLAIN").into_bytes());
     fake.files.borrow_mut().insert(
-        "/pkg/bin/ast/src/module.uff.ast.json".into(),
-        declaration("PKG").into_bytes(),
+        "/pkg/bin/ast/src/module.uff.ast".into(),
+        declaration_codec("PKG").into_bytes(),
     );
     fake.files.borrow_mut().insert(
         "/@acme/kv/meta.json".into(),
         json!({"versions":{"1.0.0":{}}}).to_string().into_bytes(),
     );
-    version(&fake, "1.0.0", r#"{"exports":{".":"./module.json"}}"#, &[
-        ("module.json", json!({"imports":[{"kind":"module","moduleUrl":"./leaf.json","names":["LEAF"]}],"exports":[{"kind":"import","name":"LEAF"}],"rules":[]}).to_string()),
-        ("leaf.json", declaration("LEAF")),
+    version(&fake, "1.0.0", r#"{"exports":{".":"./module.uff"},"outDir":"./bin"}"#, &[
+        ("bin/ast/module.uff.ast", declaration_text_codec(&json!({"imports":[{"kind":"module","moduleUrl":"./leaf.uff","names":["LEAF"]}],"exports":[{"kind":"import","name":"LEAF"}],"rules":[]}).to_string())),
+        ("bin/ast/leaf.uff.ast", declaration_codec("LEAF")),
     ]);
     let mut resolver = super::super::Resolver::new(dir.0.clone(), dir.0.join("bin")).unwrap();
     resolver.set_transport(fake.clone());
     let direct = Url::parse("https://data.test/plain.json").unwrap();
-    assert_eq!(
-        resolver.load_declaration(&direct).unwrap().rules[0]["name"],
-        "PLAIN"
+    assert!(resolver.load_declaration(&direct).is_err());
+    assert!(
+        !fake
+            .requests
+            .borrow()
+            .iter()
+            .any(|path| path == "/plain.json")
     );
     resolver
         .add_artifact_package(Url::parse("https://data.test/pkg/").unwrap(), "./bin")
         .unwrap();
     let logical = Url::parse("https://data.test/pkg/src/module.uff").unwrap();
     assert_eq!(
-        resolver.load_declaration(&logical).unwrap().rules[0]["name"],
+        rule_name(&resolver.load_declaration(&logical).unwrap()),
         "PKG"
     );
     assert!(
@@ -477,34 +510,34 @@ fn resolver_network_data_package_artifacts_and_registry_graph_preserve_identity(
     let graph = resolver.load_graph(&specified).unwrap();
     assert_eq!(
         graph.entry.as_str(),
-        "https://registry.test/@acme/kv/1.0.0/module.json"
+        "https://registry.test/@acme/kv/1.0.0/module.uff"
     );
     assert_eq!(
         graph.modules[&graph.entry].exports["LEAF"]
             .module_url
             .as_str(),
-        "https://registry.test/@acme/kv/1.0.0/leaf.json"
+        "https://registry.test/@acme/kv/1.0.0/leaf.uff"
     );
     assert!(Rc::ptr_eq(
         &resolver.load_graph(&graph.entry).unwrap(),
         &graph
     ));
-    let malformed = Url::parse("https://registry.test/@acme/kv/1.0.0/leaf.json?bypass").unwrap();
+    let malformed = Url::parse("https://registry.test/@acme/kv/1.0.0/leaf.uff?bypass").unwrap();
     assert!(resolver.load_declaration(&malformed).is_err());
 }
 
 #[test]
 // req:modules-runtime-006
 fn package_graph_rejects_aliases_and_relative_escape_without_fetching_target() {
-    for target in ["@acme/kv", "../../2.0.0/leaf.json"] {
+    for target in ["@acme/kv", "../../2.0.0/leaf.uff"] {
         let dir = Directory::new();
         let fake = Rc::new(FakeTransport::default());
         fake.files.borrow_mut().insert(
             "/@acme/kv/meta.json".into(),
             json!({"versions":{"1.0.0":{}}}).to_string().into_bytes(),
         );
-        version(&fake, "1.0.0", r#"{"exports":{".":"./src/module.json"},"imports":{"@acme/kv":"jsr:@acme/kv@1.0.0"}}"#, &[
-            ("src/module.json", json!({"imports":[{"kind":"module","moduleUrl":target,"names":[]}],"exports":[],"rules":[]}).to_string()),
+        version(&fake, "1.0.0", r#"{"exports":{".":"./src/module.uff"},"imports":{"@acme/kv":"jsr:@acme/kv@1.0.0"}}"#, &[
+            ("bin/ast/src/module.uff.ast", declaration_text_codec(&json!({"imports":[{"kind":"module","moduleUrl":target,"names":[]}],"exports":[],"rules":[]}).to_string())),
         ]);
         let mut resolver = super::super::Resolver::new(dir.0.clone(), dir.0.join("bin")).unwrap();
         resolver.set_packages(setup(&dir, fake.clone(), Lockfile::memory()));
@@ -588,12 +621,12 @@ fn selected_build_metadata_version_loads_and_failed_save_does_not_reuse_selectio
     version(
         &fake,
         "1.0.0+build",
-        r#"{"exports":{".":"./module.json"}}"#,
-        &[("module.json", declaration("BUILD"))],
+        r#"{"exports":{".":"./module.uff"}}"#,
+        &[("bin/ast/module.uff.ast", declaration_codec("BUILD"))],
     );
     let mut packages = setup(&dir, fake.clone(), Lockfile::memory());
     let url = packages.resolve("jsr:@acme/kv@1.0.0+build").unwrap();
-    assert_eq!(packages.load(&url).unwrap().rules[0]["name"], "BUILD");
+    assert_eq!(rule_name(&packages.load(&url).unwrap()), "BUILD");
 
     let lockfile = Lockfile::load(dir.0.join("missing/uffda.lock")).unwrap();
     let mut packages = setup(&dir, fake, lockfile);
@@ -644,7 +677,7 @@ fn publish_package_files(fake: &FakeTransport, package: &str, version: &str) {
             let path = entry.path();
             if path.is_dir() {
                 pending.push(path);
-            } else if path.extension().and_then(|ext| ext.to_str()) == Some("json") {
+            } else if path.extension().and_then(|ext| ext.to_str()) == Some("ast") {
                 let relative = path
                     .strip_prefix(&root)
                     .unwrap()

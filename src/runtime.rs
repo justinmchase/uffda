@@ -3270,16 +3270,13 @@ fn same_input_item<'gc>(left: Value<'gc>, right: Value<'gc>) -> bool {
             (Value::Object(left), Value::Object(right)) => {
                 let left = left.borrow();
                 let right = right.borrow();
-                if !left.symbol_entries().is_empty()
-                    || !right.symbol_entries().is_empty()
-                    || left.entries().len() != right.entries().len()
-                {
+                if left.entries().len() != right.entries().len() {
                     return false;
                 }
                 for ((left_key, left), (right_key, right)) in
                     left.entries().iter().zip(right.entries())
                 {
-                    if left_key != right_key {
+                    if !left_key.same_value(right_key) {
                         return false;
                     }
                     pending.push((*left, *right));
@@ -3301,7 +3298,10 @@ pub(crate) fn runtime_input<'gc>(
     let mut literal = ExpressionExecution::new(
         mc,
         Expression::Value {
-            value: Some(input.into()),
+            value: Some(
+                crate::codec::data::DataDocument::from_json(input.into())
+                    .expect("runtime input is a supported JSON value"),
+            ),
         },
         environment,
         crate::provenance::Origin { start: 0, end: 0 },

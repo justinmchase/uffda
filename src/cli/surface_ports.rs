@@ -606,9 +606,8 @@ fn main_compile_honors_project_outdir_and_rejects_outside_root() {
         result.stdout, result.stderr
     );
     assert!(
-        root.join("build/ast/src/nested/main.uff.ast.json")
-            .is_file()
-            || root.join("build/ast/nested/main.uff.ast.json").is_file(),
+        root.join("build/ast/src/nested/main.uff.ast").is_file()
+            || root.join("build/ast/nested/main.uff.ast").is_file(),
         "stdout={}",
         result.stdout
     );

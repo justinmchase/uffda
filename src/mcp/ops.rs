@@ -1,13 +1,13 @@
 //! Session introspection, patch, walk retention, and highlight helpers.
 
-use crate::json::JsonValue;
+use crate::codec::data::DataDocument;
 use crate::languages::{Language, Languages};
 use crate::module::CompiledModuleGraph;
 use crate::pattern::{MatchKind, PatternMatch};
 use crate::resolver::graph::MemberKind;
-use crate::resolver::{ModuleDeclaration, decode_declaration};
+use crate::resolver::{ModuleDeclaration, decode_artifact};
 use crate::runtime::Runtime;
-use crate::value::Value as RuntimeValue;
+use crate::value::{AssociationKey, Value as RuntimeValue};
 use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -34,18 +34,20 @@ impl RetainedMatch {
     }
 }
 
-pub fn project_match_tree(runtime: &Runtime) -> Option<RetainedMatch> {
+pub fn project_match_tree(runtime: &Runtime) -> Result<Option<RetainedMatch>, String> {
     runtime.read(|execution| {
-        let matched = execution.result()?;
+        let Some(matched) = execution.result() else {
+            return Ok(None);
+        };
         let mut memo = HashMap::new();
-        Some(project_node(matched, &mut memo))
+        Ok(Some(project_node(matched, &mut memo)?))
     })
 }
 
 fn project_node(
     node: uffda_heap::Gc<'_, PatternMatch<'_>>,
     memo: &mut HashMap<usize, Rc<RetainedMatch>>,
-) -> RetainedMatch {
+) -> Result<RetainedMatch, String> {
     let kind = match node.kind {
         MatchKind::Ok => "ok",
         MatchKind::Fail => "fail",
@@ -67,13 +69,13 @@ fn project_node(
             }
             _ => None,
         });
-    let metadata = node
-        .rule
-        .as_ref()
-        .map(|declaration| runtime_value_to_json(declaration.metadata))
-        .unwrap_or(Value::Null);
+    let metadata = if let Some(declaration) = &node.rule {
+        runtime_value_to_json(declaration.metadata)?
+    } else {
+        Value::Null
+    };
     let value = match node.kind {
-        MatchKind::Ok | MatchKind::Skip => Some(runtime_value_to_json(node.value)),
+        MatchKind::Ok | MatchKind::Skip => Some(runtime_value_to_json(node.value)?),
         _ => None,
     };
     let children = node
@@ -82,14 +84,14 @@ fn project_node(
         .map(|child| {
             let key = uffda_heap::Gc::as_ptr(*child) as usize;
             if let Some(shared) = memo.get(&key) {
-                return Rc::clone(shared);
+                return Ok(Rc::clone(shared));
             }
-            let shared = Rc::new(project_node(*child, memo));
+            let shared = Rc::new(project_node(*child, memo)?);
             memo.insert(key, Rc::clone(&shared));
-            shared
+            Ok(shared)
         })
-        .collect();
-    RetainedMatch {
+        .collect::<Result<Vec<_>, String>>()?;
+    Ok(RetainedMatch {
         kind,
         // Character offsets (Deno originalSpan), not token-stream indices.
         start: node.origin.start,
@@ -100,36 +102,60 @@ fn project_node(
         value,
         metadata,
         children,
-    }
+    })
 }
 
-fn runtime_value_to_json(value: RuntimeValue<'_>) -> Value {
+fn runtime_value_to_json(value: RuntimeValue<'_>) -> Result<Value, String> {
     match value.raw() {
-        RuntimeValue::Null => Value::Null,
-        RuntimeValue::Undefined => Value::Null,
-        RuntimeValue::Boolean(value) => Value::Bool(value),
-        RuntimeValue::Number(value) => serde_json::Number::from_f64(value)
+        RuntimeValue::Null => Ok(Value::Null),
+        RuntimeValue::Undefined => Ok(Value::Null),
+        RuntimeValue::Boolean(value) => Ok(Value::Bool(value)),
+        RuntimeValue::Number(value) => Ok(serde_json::Number::from_f64(value)
             .map(Value::Number)
-            .unwrap_or(Value::Null),
-        RuntimeValue::String(value) => value.to_utf8().map(Value::String).unwrap_or(Value::Null),
-        RuntimeValue::Array(array) => Value::Array(
+            .unwrap_or(Value::Null)),
+        RuntimeValue::String(value) => {
+            Ok(value.to_utf8().map(Value::String).unwrap_or(Value::Null))
+        }
+        RuntimeValue::Array(array) => Ok(Value::Array(
             array
                 .borrow()
                 .iter()
                 .copied()
                 .map(runtime_value_to_json)
-                .collect(),
-        ),
+                .collect::<Result<Vec<_>, _>>()?,
+        )),
         RuntimeValue::Object(object) => {
-            let mut map = serde_json::Map::new();
-            for (key, value) in object.borrow().entries() {
-                if let Ok(key) = key.to_utf8() {
-                    map.insert(key, runtime_value_to_json(*value));
+            let object = object.borrow();
+            if object
+                .entries()
+                .iter()
+                .all(|(key, _)| key.as_string().is_some_and(|key| key.to_utf8().is_ok()))
+            {
+                let mut map = serde_json::Map::new();
+                for (key, value) in object.entries() {
+                    let key = key
+                        .as_string()
+                        .expect("all keys were checked")
+                        .to_utf8()
+                        .map_err(|error| error.to_string())?;
+                    map.insert(key, runtime_value_to_json(*value)?);
                 }
+                Ok(Value::Object(map))
+            } else {
+                let entries = object
+                    .entries()
+                    .iter()
+                    .map(|(key, value)| {
+                        Ok(json!([
+                            association_key_to_json(key)?,
+                            runtime_value_to_json(*value)?
+                        ]))
+                    })
+                    .collect::<Result<Vec<_>, String>>()?;
+                Ok(json!({"$type":"uffda-object","entries":entries}))
             }
-            Value::Object(map)
         }
-        _ => Value::Null,
+        _ => Ok(Value::Null),
     }
 }
 
@@ -259,7 +285,7 @@ pub fn describe_declaration(
     name: &str,
     declaration_json: &str,
 ) -> Value {
-    let declaration = match decode_declaration(module, declaration_json) {
+    let declaration = match decode_artifact(module, ".uff.ast", declaration_json) {
         Ok(declaration) => declaration,
         Err(error) => {
             return json!({
@@ -283,54 +309,82 @@ pub fn describe_declaration(
         });
     };
     let exported = declaration.exports.iter().any(|export| {
-        matches!(
-            export.get("name"),
-            Some(JsonValue::String(text)) if text.to_utf8().ok().as_deref() == Some(name)
-        )
+        export
+            .field("name")
+            .ok()
+            .flatten()
+            .and_then(|value| value.string_value())
+            .as_deref()
+            == Some(name)
     });
-    let attributes = item
-        .get("attributes")
-        .and_then(|value| match value {
-            JsonValue::Array(items) => Some(items),
-            _ => None,
-        })
-        .map(|items| {
-            items
-                .iter()
-                .filter_map(|attribute| {
-                    let decorator = match attribute.get("name") {
-                        Some(JsonValue::String(text)) => text.to_utf8().ok()?,
-                        _ => return None,
-                    };
-                    let args = attribute
-                        .get("args")
-                        .map(json_from_runtime)
-                        .unwrap_or_else(|| json!([]));
-                    Some(json!({ "decorator": decorator, "args": args }))
-                })
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
+    let mut attributes = Vec::new();
+    if let Some(attribute_list) = match item.field("attributes") {
+        Ok(attributes) => attributes,
+        Err(error) => return codec_payload_failure(error.to_string()),
+    } {
+        let attribute_list = match attribute_list.array_items() {
+            Ok(items) => items,
+            Err(error) => return codec_payload_failure(error.to_string()),
+        };
+        for attribute in attribute_list {
+            let Some(decorator) = (match attribute.field("name") {
+                Ok(value) => value.and_then(|value| value.string_value()),
+                Err(error) => return codec_payload_failure(error.to_string()),
+            }) else {
+                continue;
+            };
+            let args = match attribute.field("args") {
+                Ok(Some(args)) => match codec_text(&args) {
+                    Ok(text) => text,
+                    Err(error) => return codec_payload_failure(error),
+                },
+                Ok(None) => "[]".into(),
+                Err(error) => return codec_payload_failure(error.to_string()),
+            };
+            attributes.push(json!({ "decorator": decorator, "argsCodec": args }));
+        }
+    }
 
     let metadata = match kind {
         "rule" | "func" => metadata_for_member(graph, module, name).unwrap_or(json!({})),
         _ => json!({}),
     };
 
+    let pattern = match item.field("pattern") {
+        Ok(Some(value)) => match codec_text(&value) {
+            Ok(text) => text,
+            Err(error) => return codec_payload_failure(error),
+        },
+        Ok(None) => return codec_payload_failure("declaration has no pattern".into()),
+        Err(error) => return codec_payload_failure(error.to_string()),
+    };
+    let expression = match item.field("expression") {
+        Ok(Some(value)) => match codec_text(&value) {
+            Ok(text) => text,
+            Err(error) => return codec_payload_failure(error),
+        },
+        Ok(None) => "undefined".into(),
+        Err(error) => return codec_payload_failure(error.to_string()),
+    };
     let mut described = json!({
         "moduleUrl": module.as_str(),
         "name": name,
         "kind": kind,
         "exported": exported,
-        "pattern": item.get("pattern").map(json_from_runtime).unwrap_or(Value::Null),
-        "expression": item.get("expression").map(json_from_runtime).unwrap_or(Value::Null),
+        "patternCodec": pattern,
+        "expressionCodec": expression,
         "attributes": attributes,
         "metadata": metadata
     });
-    if kind == "rule"
-        && let Some(parameters) = item.get("parameters")
-    {
-        described["parameters"] = json_from_runtime(parameters);
+    if kind == "rule" {
+        match item.field("parameters") {
+            Ok(Some(parameters)) => match codec_text(&parameters) {
+                Ok(text) => described["parametersCodec"] = json!(text),
+                Err(error) => return codec_payload_failure(error),
+            },
+            Ok(None) => {}
+            Err(error) => return codec_payload_failure(error.to_string()),
+        }
     }
     json!({ "ok": true, "declaration": described })
 }
@@ -373,16 +427,28 @@ pub fn query_by_metadata(
     }
 
     let mut matches = Vec::new();
-    for (module_url, declaration_json) in modules {
-        let Ok(declaration) = decode_declaration(module_url, declaration_json) else {
-            continue;
+    for (module_url, declaration_codec) in modules {
+        let declaration = match decode_artifact(module_url, ".uff.ast", declaration_codec) {
+            Ok(declaration) => declaration,
+            Err(error) => {
+                return json!({
+                    "ok": false,
+                    "error": {
+                        "code": "MCP_SESSION_QUERY_INVALID_DECLARATION",
+                        "phase": "resolve",
+                        "message": error.to_string()
+                    }
+                });
+            }
         };
         for (kind, items) in [("rule", &declaration.rules), ("func", &declaration.funcs)] {
             for item in items {
-                let Some(JsonValue::String(name)) = item.get("name") else {
-                    continue;
-                };
-                let Ok(name) = name.to_utf8() else {
+                let Some(name) = item
+                    .field("name")
+                    .ok()
+                    .flatten()
+                    .and_then(|value| value.string_value())
+                else {
                     continue;
                 };
                 let Some(metadata) = metadata_for_member(graph, module_url, &name) else {
@@ -425,15 +491,20 @@ fn metadata_for_member(graph: &Rc<CompiledModuleGraph>, module: &Url, name: &str
 fn find_named<'a>(
     declaration: &'a ModuleDeclaration,
     name: &str,
-) -> Option<(&'static str, &'a JsonValue)> {
+) -> Option<(&'static str, &'a DataDocument)> {
     for (kind, items) in [
         ("rule", &declaration.rules),
         ("func", &declaration.funcs),
         ("decorator", &declaration.decorators),
     ] {
         for item in items {
-            if let Some(JsonValue::String(text)) = item.get("name")
-                && text.to_utf8().ok().as_deref() == Some(name)
+            if item
+                .field("name")
+                .ok()
+                .flatten()
+                .and_then(|value| value.string_value())
+                .as_deref()
+                == Some(name)
             {
                 return Some((kind, item));
             }
@@ -442,8 +513,54 @@ fn find_named<'a>(
     None
 }
 
-fn json_from_runtime(value: &JsonValue) -> Value {
-    serde_json::from_str(&value.to_string()).unwrap_or(Value::Null)
+fn codec_text(value: &DataDocument) -> Result<String, String> {
+    value
+        .encode(false, crate::codec::data::DataLimits::default())
+        .map_err(|error| error.to_string())
+}
+
+fn codec_payload_failure(message: String) -> Value {
+    json!({
+        "ok": false,
+        "error": {
+            "code": "MCP_SESSION_DESCRIBE_CODEC_FAILURE",
+            "phase": "serialize",
+            "message": message
+        }
+    })
+}
+
+fn association_key_to_json(key: &AssociationKey<'_>) -> Result<Value, String> {
+    match key {
+        AssociationKey::String(value) => match value.to_utf8() {
+            Ok(value) => Ok(Value::String(value)),
+            Err(_) => codec_key_to_json(crate::codec::data::DataNode::String(
+                value.codec_text().clone(),
+            )),
+        },
+        AssociationKey::Symbol(value) => codec_key_to_json(crate::codec::data::DataNode::Symbol(
+            value.codec_text().clone(),
+        )),
+        AssociationKey::Value(value) => {
+            let limits = crate::codec::data::DataLimits::default();
+            let document =
+                DataDocument::from_value(*value, limits).map_err(|error| error.to_string())?;
+            Ok(json!({
+                "$type": "uffda-codec-key",
+                "value": document.encode(false, limits).map_err(|error| error.to_string())?
+            }))
+        }
+    }
+}
+
+fn codec_key_to_json(node: crate::codec::data::DataNode) -> Result<Value, String> {
+    let limits = crate::codec::data::DataLimits::default();
+    let document =
+        DataDocument::from_nodes(vec![node], 0, limits).map_err(|error| error.to_string())?;
+    Ok(json!({
+        "$type": "uffda-codec-key",
+        "value": document.encode(false, limits).map_err(|error| error.to_string())?
+    }))
 }
 
 pub fn highlight_source(source: &str, language: Language) -> Value {
@@ -482,3 +599,46 @@ pub fn highlight_source(source: &str, language: Language) -> Value {
 }
 
 pub type MatchResults = HashMap<String, RetainedMatch>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    // req:mcp-server-016
+    fn match_projection_preserves_native_object_keys_and_entry_order() {
+        uffda_heap::rootless_mutate(|mc| {
+            let object = RuntimeValue::association(
+                mc,
+                vec![
+                    (RuntimeValue::Number(1.0), RuntimeValue::string(mc, "first")),
+                    (
+                        RuntimeValue::string(mc, "second"),
+                        RuntimeValue::string(mc, "last"),
+                    ),
+                ],
+            );
+            let projected = runtime_value_to_json(object).unwrap();
+            assert_eq!(projected["$type"], "uffda-object");
+            let entries = projected["entries"].as_array().unwrap();
+            assert_eq!(entries.len(), 2);
+            assert_eq!(
+                entries[0][0],
+                json!({"$type":"uffda-codec-key","value":"1"})
+            );
+            assert_eq!(entries[0][1], "first");
+            assert_eq!(entries[1], json!(["second", "last"]));
+
+            let string_object = RuntimeValue::association(
+                mc,
+                vec![(RuntimeValue::string(mc, "key"), RuntimeValue::Number(2.0))],
+            );
+            assert_eq!(
+                runtime_value_to_json(string_object).unwrap(),
+                json!({"key": 2.0})
+            );
+            let runtime_only = RuntimeValue::set(mc, vec![]);
+            assert_eq!(runtime_value_to_json(runtime_only).unwrap(), Value::Null);
+        });
+    }
+}

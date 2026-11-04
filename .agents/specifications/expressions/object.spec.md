@@ -21,6 +21,12 @@ Object expressions construct key-value objects from object initializer entries.
 - Object-spread initializers MUST merge properties from an evaluated object-like
   value according to runtime spread semantics.
 - Later assignments MAY override earlier properties when names collide.
+- Objects are the sole runtime association type and MUST support arbitrary
+  runtime values as keys.
+- Object key equality MUST use SameValueZero semantics. Reassigning an existing
+  key MUST update its value without changing its insertion position; adding a
+  new key MUST append it.
+- Object iteration and entry extraction MUST preserve insertion order.
 
 ## Error conditions
 

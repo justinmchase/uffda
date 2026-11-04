@@ -7,7 +7,7 @@ fn independent_reader_writer_preserve_fixed_native_values_and_comments() {
     let source = r#"# lead
 {value:[undefined null true -0 NaN Infinity -Infinity 12345678901234567890n "\ud800"]
  native:[@date"2026-10-10T00:00:00.123Z" @bytes"SGVsbG8" @symbol"key"
- @set[1 2] @map[["x" 1]] @error{name:"Error" message:"bad" cause:null}]} # trailing
+ @set[1 2] {"x":1} @error{name:"Error" message:"bad" cause:null}]} # trailing
 "#;
     let text = to_string(&from_str(source).unwrap()).unwrap();
     assert!(!text.contains('\n'));
@@ -80,10 +80,11 @@ fn safe_document_construction_rejects_invalid_indices_duplicates_and_aliases() {
     assert!(
         DataDocument::from_nodes(
             vec![
+                DataNode::String("x".into()),
                 DataNode::Null,
-                DataNode::Object(vec![("x".into(), 0), ("x".into(), 0)])
+                DataNode::Object(vec![(0, 1), (0, 1)])
             ],
-            1,
+            2,
             limits,
         )
         .is_err()

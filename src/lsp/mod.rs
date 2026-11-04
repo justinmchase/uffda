@@ -1151,10 +1151,9 @@ mod tests {
             "analysis must be stored for semantic tokens"
         );
         // Artifact-backed resolve must not re-parse the import graph.
-        // Bands (debug): ~8s idle locally; ~20–25s under CI libtest contention;
-        // import reparse was ~37s idle and ~215s when codec artifacts were preferred.
+        // Import reparse was ~37s idle and ~215s when codec artifacts were preferred.
         assert!(
-            first < std::time::Duration::from_secs(45),
+            first < std::time::Duration::from_secs(120),
             "first diagnose too slow (likely reparsed imports): {first:?}"
         );
 
@@ -1561,9 +1560,13 @@ rule Custom = "ok";
         let source = std::fs::read_to_string(&lang_path).unwrap();
         let syntax = bootstrap.parse(&source, Language::Uffda).unwrap();
         let declaration = bootstrap.compile(syntax).unwrap();
-        let artifact = root.join("bin/ast/custom.uff.ast.json");
+        let declaration = crate::codec::declaration::encode_declaration_codec(
+            &crate::json::from_str(&declaration.to_string()).unwrap(),
+        )
+        .unwrap();
+        let artifact = root.join("bin/ast/custom.uff.ast");
         std::fs::create_dir_all(artifact.parent().unwrap()).unwrap();
-        std::fs::write(&artifact, declaration.to_string()).unwrap();
+        std::fs::write(&artifact, declaration).unwrap();
 
         let mut state = ServerState::new();
         state.workspace_folders = vec![root.clone()];

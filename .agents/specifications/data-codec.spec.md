@@ -127,16 +127,13 @@ that form is **`.uff.ast`**: one newline-framed codec record under
 [output directory](./languages/project-file.spec.md#output-directory) and
 [AST artifact contracts](./languages/cli/compile-and-stream.spec.md#ast-artifact-contracts).
 
-During migration, compile also writes a JSON sibling (`<path>.uff.ast.json`).
-Resolvers prefer `.uff.ast` and fall back to `.uff.ast.json` for compatibility
-with JSON-only dependencies. Product builds MUST embed unmodified `.uff.ast`
-records directly, decoded without loading languages or resolving other
-artifacts. A declaration artifact MUST contain exactly one record; trailing
-records or malformed input MUST fail. Removing JSON emission is a separate
-compatibility change, not part of codec-first loading and embedding. Fallback
-MUST NOT hide invalid codec bytes or declarations behind a JSON sibling.
-Registry artifacts present in a package manifest MUST surface integrity and
-download failures.
+Compile MUST emit only `.uff.ast`. Resolvers, package loading, and product
+builds MUST reject JSON declaration artifacts and MUST NOT fall back between
+declaration formats. Product builds MUST embed unmodified `.uff.ast` records
+directly, decoded without loading languages or resolving other artifacts. A
+declaration artifact MUST contain exactly one record; trailing records or
+malformed input MUST fail. Registry artifacts present in a package manifest
+MUST surface integrity and download failures.
 
 ## Open questions
 
@@ -152,6 +149,12 @@ strings belong to this layer; runtime arena conversion belongs in adapters. The
 standalone reader MUST expose structured byte positions for decode errors. The
 single-value API MUST accept exactly one value with surrounding trivia, and
 canonical serialization MUST omit the stream-record newline.
+
+Typed structural decoding MUST read owned documents directly, without a runtime
+arena or JSON text intermediate. It MUST validate the target's field and value
+types, preserve lossless strings where supported, and fail explicitly when a
+target cannot represent a native value. It MUST NOT silently convert native
+values to JSON-compatible approximations.
 
 There is one format: fixed tags, strict syntax and no custom converters,
 arbitrary construction hooks or permissive modes. Low-level resource limits and

@@ -22,7 +22,7 @@ fn document(ast: Json) -> DataDocument {
 
 #[test]
 #[cfg(feature = "embed-languages")]
-// req:data-codec-005 req:data-codec-002 req:data-codec-003
+// req:data-codec-005 req:data-codec-002 req:data-codec-003 req:data-codec-008
 fn native_parser_matches_authored_grammar_and_fixed_construction() {
     let mut languages = crate::languages::Languages::new().unwrap();
     let limits = DataLimits::default();
@@ -41,8 +41,8 @@ fn native_parser_matches_authored_grammar_and_fixed_construction() {
         "[1 2# separator\n3]",
         r#"{"\udfff":"\ud800" __proto__:null}"#,
         r#"[@date "2026-10-10T00:00:00.123Z" @bytes "SGVsbG8" @symbol "\udfff"]"#,
-        r#"[@set[1 2] @map[["key" true] [@symbol"x" undefined]] @error{name:"Error" message:"failed" stack:"trace" cause:[null]}]"#,
-        r#"[[] {} "" @set[] @map[]]"#,
+        r#"[@set[1 2] {"key":true @symbol"x":undefined} @error{name:"Error" message:"failed" stack:"trace" cause:[null]}]"#,
+        r#"[[] {} "" @set[] {}]"#,
     ];
     let invalid = [
         "",
@@ -72,8 +72,8 @@ fn native_parser_matches_authored_grammar_and_fixed_construction() {
         "@bytes\"AB\"",
         "@date\"2026-10-10T00:00:00.0001Z\"",
         "@set[0 -0]",
-        "@map[[1 2] [1 3]]",
-        "@map[[1]]",
+        "{1:2 1:3}",
+        "{1}",
         "@error{name:\"Error\"}",
         "@error{name:1 message:\"x\"}",
         "@error{name:\"Error\" message:\"x\" extra:0}",
@@ -142,18 +142,15 @@ fn compact_and_pretty_containers_preserve_insertion_order() {
     ]));
     assert_eq!(
         doc.encode(false, DataLimits::default()).unwrap(),
-        "{\"name\":\"Ada\" \"display name\":\"Lovelace\" \"items\":[1 2]}"
+        "{name:\"Ada\" \"display name\":\"Lovelace\" items:[1 2]}"
     );
     assert_eq!(
         doc.encode(true, DataLimits::default()).unwrap(),
-        "{\n  \"name\":\"Ada\"\n  \"display name\":\"Lovelace\"\n  \"items\":[\n    1\n    2\n  ]\n}"
+        "{\n  name:\"Ada\"\n  \"display name\":\"Lovelace\"\n  items:[\n    1\n    2\n  ]\n}"
     );
     let native = document(array(vec![
         tag("set", array(vec![number("1"), number("2")])),
-        tag(
-            "map",
-            array(vec![array(vec![string("\"key\""), number("42")])]),
-        ),
+        object(vec![("key", number("42"))]),
         tag(
             "error",
             object(vec![
@@ -165,12 +162,12 @@ fn compact_and_pretty_containers_preserve_insertion_order() {
     ]));
     assert_eq!(
         native.encode(false, DataLimits::default()).unwrap(),
-        "[@set[1 2] @map[[\"key\" 42]] @error{name:\"Error\" message:\"failed\" cause:undefined}]"
+        "[@set[1 2] {key:42} @error{name:\"Error\" message:\"failed\" cause:undefined}]"
     );
 }
 
 #[test]
-// req:data-codec-003
+// req:data-codec-003 req:data-codec-008
 fn invalid_native_payloads_and_duplicate_keys_fail_explicitly() {
     for ast in [
         number("1e999"),
@@ -194,16 +191,13 @@ fn invalid_native_payloads_and_duplicate_keys_fail_explicitly() {
         object(vec![("name", number("1")), ("\"name\"", number("2"))]),
         tag("set", array(vec![number("0"), number("-0")])),
         tag("set", array(vec![number("NaN"), number("NaN")])),
-        tag("map", array(vec![array(vec![number("1")])])),
-        tag(
-            "map",
-            array(vec![
-                array(vec![number("1"), number("2")]),
-                array(vec![number("1"), number("3")]),
-            ]),
-        ),
+        object(vec![("name", number("1")), ("name", number("2"))]),
+        tag("map", array(vec![])),
     ] {
-        assert!(DataDocument::from_ast(ast, DataLimits::default()).is_err());
+        assert!(
+            DataDocument::from_ast(ast.clone(), DataLimits::default()).is_err(),
+            "{ast}"
+        );
     }
 }
 
@@ -268,7 +262,7 @@ fn codec_roundtrips_every_utf16_unit_and_lossless_property_keys() {
     ]));
     assert_eq!(
         doc.encode(false, DataLimits::default()).unwrap(),
-        r#"{"\ud800":"\udfff" "__proto__":null}"#
+        r#"{"\ud800":"\udfff" __proto__:null}"#
     );
     let distinct = document(tag("set", array(vec![array(vec![]), array(vec![])])));
     assert_eq!(
@@ -290,7 +284,7 @@ fn codec_roundtrips_every_utf16_unit_and_lossless_property_keys() {
 fn authored_grammar_roundtrips_native_records_with_demand_driven_streaming() {
     let sources = [
         r#"{name:"Ada" "space key":[undefined null -0 NaN Infinity -Infinity 12345678901234567890n "\ud800"]}"#,
-        r#"[@date"2026-10-10T00:00:00.123Z" @bytes"SGVsbG8" @symbol"registry" @set[1 2] @map[["key" true]] @error{name:"Error" message:"failed" stack:"trace" cause:undefined}]"#,
+        r#"[@date"2026-10-10T00:00:00.123Z" @bytes"SGVsbG8" @symbol"registry" @set[1 2] {key:true} @error{name:"Error" message:"failed" stack:"trace" cause:undefined}]"#,
     ];
     let stream = sources.join("\n") + "\n";
     let mut decoder = DataDecoder::new(DataLimits::default()).unwrap();
@@ -329,7 +323,7 @@ fn authored_grammar_roundtrips_native_records_with_demand_driven_streaming() {
 // req:data-codec-001 req:data-codec-002 req:data-codec-003
 fn value_decoding_is_invariant_under_every_two_chunk_split() {
     let source = "# leading\n\"😀\\udfff\" # comment\n@set[1\n2]\n{a:true}";
-    let expected = [r#""😀\udfff""#, "@set[1 2]", "{\"a\":true}"];
+    let expected = [r#""😀\udfff""#, "@set[1 2]", "{a:true}"];
     let mut decoder = DataDecoder::new(DataLimits::default()).unwrap();
     for split in 0..=source.len() {
         decoder.reset();
@@ -472,13 +466,7 @@ fn native_documents_materialize_and_export_gc_values_without_identity_loss() {
             tag("symbol", string("\"registry-key\"")),
             tag("bytes", string("\"AQID\"")),
             tag("set", array(vec![number("1"), string("\"two\"")])),
-            tag(
-                "map",
-                array(vec![array(vec![
-                    string("\"k\""),
-                    json!({"kind":"boolean","value":true}),
-                ])]),
-            ),
+            object(vec![("k", json!({"kind":"boolean","value":true}))]),
             tag(
                 "error",
                 object(vec![
@@ -509,7 +497,7 @@ fn native_documents_materialize_and_export_gc_values_without_identity_loss() {
         assert_eq!(actual_date.0, date);
         assert_eq!(items[2].runtime_type(), crate::value::RuntimeType::Symbol);
         assert_eq!(items[4].runtime_type(), crate::value::RuntimeType::Set);
-        assert_eq!(items[5].runtime_type(), crate::value::RuntimeType::Map);
+        assert_eq!(items[5].runtime_type(), crate::value::RuntimeType::Object);
         let Value::Error(actual_error) = items[6].raw() else {
             panic!("expected Error")
         };
@@ -526,7 +514,7 @@ fn native_documents_materialize_and_export_gc_values_without_identity_loss() {
 
 #[test]
 // req:data-codec-003
-fn runtime_export_rejects_aliases_cycles_symbols_as_keys_and_execution_values() {
+fn runtime_export_rejects_aliases_cycles_and_execution_values_but_encodes_native_keys() {
     use crate::value::Value;
     uffda_heap::rootless_mutate(|mc| {
         let shared = Value::array(mc, vec![]);
@@ -550,12 +538,11 @@ fn runtime_export_rejects_aliases_cycles_symbols_as_keys_and_execution_values() 
         properties
             .borrow_mut(mc)
             .set_symbol("key".into(), Value::Null);
-        assert!(
-            DataDocument::from_value(symbol_keyed, DataLimits::default())
-                .unwrap_err()
-                .0
-                .contains("symbol object keys")
-        );
+        let encoded = DataDocument::from_value(symbol_keyed, DataLimits::default())
+            .unwrap()
+            .encode(false, DataLimits::default())
+            .unwrap();
+        assert_eq!(encoded, r#"{@symbol"key":null}"#);
         assert!(
             DataDocument::from_value(
                 Value::Native(crate::globals::NativeGlobal::Id),
@@ -668,7 +655,7 @@ fn codec_corpus(count: usize) -> Vec<CorpusWorkload> {
         let bigint = format!("12345678901234567890{i}");
         native.push(CorpusRecord {
             codec: format!(
-                "{{id:{i} missing:undefined big:{bigint}n date:@date\"2026-10-12T00:00:00Z\" bytes:@bytes\"AAECA_8\" symbol:@symbol\"sample\" set:@set[1 \"x\"] map:@map[[\"key\" 42]] error:@error{{name:\"TypeError\" message:\"sample\" cause:{i}}} special:[NaN Infinity -Infinity -0]}}"
+                "{{id:{i} missing:undefined big:{bigint}n date:@date\"2026-10-12T00:00:00Z\" bytes:@bytes\"AAECA_8\" symbol:@symbol\"sample\" set:@set[1 \"x\"] assoc:{{key:42}} error:@error{{name:\"TypeError\" message:\"sample\" cause:{i}}} special:[NaN Infinity -Infinity -0]}}"
             ),
             json: json!({
                 "id": i,
@@ -678,7 +665,7 @@ fn codec_corpus(count: usize) -> Vec<CorpusWorkload> {
                 "bytes": tagged_json("bytes", Some(json!("AAECA_8"))),
                 "symbol": tagged_json("symbol", Some(json!("sample"))),
                 "set": tagged_json("set", Some(json!([1, "x"]))),
-                "map": tagged_json("map", Some(json!([["key", 42]]))),
+                "assoc": json!({"key": 42}),
                 "error": tagged_json("error", Some(json!({
                     "name": "TypeError",
                     "message": "sample",

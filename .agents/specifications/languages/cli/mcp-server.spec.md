@@ -93,6 +93,16 @@ chapter(s).
 - The server MUST expose a tool to evaluate an expression, or invoke a named
   rule or func, against a loaded session and return a structured result (match
   kind, value, and source span information where applicable).
+- Match-tree JSON projection MUST preserve native Object associations. Objects
+  whose keys are all valid scalar strings MAY use ordinary JSON objects.
+  Otherwise the projection MUST use
+  `{"$type":"uffda-object","entries":[[key,value],...]}` in Object insertion
+  order. Non-string keys MUST use
+  `{"$type":"uffda-codec-key","value":"<one codec value>"}`. This projection
+  format MUST NOT change the ordinary JSON serializer's rejection of
+  non-string Object keys.
+- Runtime values that the existing JSON match projection does not represent
+  MUST retain its established JSON-null projection.
 - Evaluation MUST use the session's live resolved state (including any
   decorator-derived metadata) rather than re-resolving from source on every
   call.

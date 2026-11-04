@@ -28,7 +28,7 @@ Expected behavior:
 | Global         | Required acceptance case                                                                                                                              |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `add`          | Adds finite and fractional numeric operands; propagates IEEE-754 results for non-finite operands.                                                     |
-| `at`           | Uses UTF-16 code-unit string indexing and preserves a selected array element's reference; Map and Set indices follow insertion order.                 |
+| `at`           | Uses UTF-16 code-unit string indexing and preserves selected array references; Object entry and Set indices follow insertion order.                   |
 | `base58`       | Encodes byte values including leading zero bytes; rejects non-byte inputs.                                                                            |
 | `coalesce`     | Skips both null and undefined, returns false/zero when selected, and preserves the selected aggregate reference.                                      |
 | `compare`      | Orders numbers and strings within their respective domains; unsupported operand types fail explicitly.                                                |
@@ -40,14 +40,14 @@ Expected behavior:
 | `from_entries` | Accepts supported pair/record entry forms; a later duplicate key replaces the earlier value without silently dropping unrelated entries.              |
 | `gt`           | Returns false for equal supported operands and compares supported numeric/string operands consistently with `compare`.                                |
 | `gte`          | Returns true for equal supported operands and compares supported numeric/string operands consistently with `compare`.                                 |
-| `has`          | Checks array/Set/Map membership and own object-key presence; uses SameValueZero membership for array/Set values.                                      |
+| `has`          | Checks array/Set membership and Object key presence; uses SameValueZero membership for array/Set values and Object keys.                              |
 | `id`           | Returns the exact input value, including aggregate, native, undefined, and wrapped references.                                                        |
 | `int`          | Parses a base-10 integer prefix with sign/whitespace handling and rejects composite/callable coercion.                                                |
-| `iterable`     | Normalizes supported arrays, strings, and host/authored iterators; iteration is demand-driven and failures propagate when consumed.                   |
+| `iterable`     | Normalizes arrays, strings, Objects, and host/authored iterators; default Object iteration yields ordered `[key, value]` entries.                     |
 | `join`         | Converts nullish elements to empty fields, uses the supplied separator, and rejects unsupported composite/callable scalar conversion.                 |
 | `json`         | Serializes supported values explicitly, rejects callables and unsupported BigInt, and preserves documented date/error behavior and hook divergence.   |
 | `last`         | Returns the final string/array element, including the specified UTF-16 string element, or the supplied fallback for empty/unsupported input.          |
-| `length`       | Counts UTF-16 code units for strings and entries/elements for arrays, Maps, and Sets; unsupported values fail.                                        |
+| `length`       | Counts UTF-16 code units for strings and entries/elements for arrays, Objects, and Sets; unsupported values fail.                                     |
 | `lt`           | Returns false for equal supported operands and compares supported numeric/string operands consistently with `compare`.                                |
 | `lte`          | Returns true for equal supported operands and compares supported numeric/string operands consistently with `compare`.                                 |
 | `map`          | Is lazy, yields callback results in source order, and propagates callback failures when consumed.                                                     |

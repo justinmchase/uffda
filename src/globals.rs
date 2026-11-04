@@ -211,7 +211,7 @@ impl NativeGlobal {
                 parameters: ADD,
             },
             At => GlobalMetadata {
-                description: "The element at an ordinal index of a string, array, Set, or Map.",
+                description: "Looks up an object key or returns the element at an ordinal index of a string, array, or Set.",
                 parameters: AT,
             },
             Base58 => GlobalMetadata {
@@ -247,7 +247,7 @@ impl NativeGlobal {
                 parameters: FORMAT,
             },
             FromEntries => GlobalMetadata {
-                description: "Builds an object from [key, value] pairs or { name, value } entries.",
+                description: "Builds an object from [key, value] pairs or { name, value } entries without coercing keys.",
                 parameters: FROM_ENTRIES,
             },
             Gt => GlobalMetadata {
@@ -259,7 +259,7 @@ impl NativeGlobal {
                 parameters: GTE,
             },
             Has => GlobalMetadata {
-                description: "Whether a Set, Map, array, or object contains a value or key.",
+                description: "Whether a Set or array contains a value, or an object contains a key.",
                 parameters: HAS,
             },
             Id => GlobalMetadata {
@@ -287,7 +287,7 @@ impl NativeGlobal {
                 parameters: LAST,
             },
             Length => GlobalMetadata {
-                description: "The length of a string, array, Set, or Map.",
+                description: "The length of a string, array, Set, or object.",
                 parameters: LENGTH,
             },
             Lt => GlobalMetadata {
@@ -465,16 +465,14 @@ pub fn iterator<'gc>(
             mc,
             RefLock::new(IterableState::External { source, index: 0 }),
         )),
-        Value::Array(_) | Value::String(_) | Value::Set(_) | Value::Map(_) | Value::Bytes(_) => {
-            Ok(Gc::new(
-                mc,
-                RefLock::new(IterableState::Source {
-                    value,
-                    index: 0,
-                    offset: 0,
-                }),
-            ))
-        }
+        Value::Array(_) | Value::String(_) | Value::Set(_) | Value::Bytes(_) => Ok(Gc::new(
+            mc,
+            RefLock::new(IterableState::Source {
+                value,
+                index: 0,
+                offset: 0,
+            }),
+        )),
         Value::Object(object) => {
             let properties = object.borrow();
             let factory = properties
@@ -510,8 +508,13 @@ pub fn iterator<'gc>(
                         done: false,
                     }),
                 )),
-                None => Err(error(
-                    "iterable expects a value with Symbol.iterator or Symbol.asyncIterator",
+                None => Ok(Gc::new(
+                    mc,
+                    RefLock::new(IterableState::Source {
+                        value,
+                        index: 0,
+                        offset: 0,
+                    }),
                 )),
             }
         }
@@ -524,14 +527,11 @@ pub fn iterator<'gc>(
 pub fn source_item<'gc>(mc: &Mutation<'gc>, value: Value<'gc>, index: usize) -> Option<Value<'gc>> {
     let item = match value.raw() {
         Value::Array(values) | Value::Set(values) => values.borrow().get(index).copied(),
-        Value::Map(values) => values
+        Value::Object(object) => object
             .borrow()
+            .entries()
             .get(index)
-            .copied()
-            .map(|entry| match entry.raw() {
-                Value::Array(pair) => Value::array(mc, pair.borrow().clone()),
-                _ => entry,
-            }),
+            .map(|(key, value)| Value::array(mc, vec![key.to_value(mc), *value])),
         Value::String(text) => text
             .code_points()
             .nth(index)
@@ -595,8 +595,9 @@ fn ordinal(value: Value<'_>) -> Option<usize> {
 fn length(value: Value<'_>) -> Result<usize, EvaluationError> {
     match value.raw() {
         Value::String(text) => Ok(text.len()),
-        Value::Array(array) | Value::Set(array) | Value::Map(array) => Ok(array.borrow().len()),
-        _ => Err(error("length expects a string, array, Set, or Map")),
+        Value::Array(array) | Value::Set(array) => Ok(array.borrow().len()),
+        Value::Object(object) => Ok(object.borrow().entries().len()),
+        _ => Err(error("length expects a string, array, Set, or object")),
     }
 }
 
@@ -606,8 +607,11 @@ fn at<'gc>(
     index: Value<'gc>,
 ) -> Result<Value<'gc>, EvaluationError> {
     match value.raw() {
-        Value::String(_) | Value::Array(_) | Value::Set(_) | Value::Map(_) => {}
-        _ => return Err(error("at expects a string, array, Set, or Map")),
+        Value::Object(object) => {
+            return Ok(object.borrow().get_key(index).unwrap_or(Value::Undefined));
+        }
+        Value::String(_) | Value::Array(_) | Value::Set(_) => {}
+        _ => return Err(error("at expects a string, array, Set, or object")),
     }
     let Some(index) = ordinal(index) else {
         return Ok(Value::Undefined);
@@ -640,23 +644,13 @@ fn at<'gc>(
 fn elements(value: Value<'_>) -> Result<Vec<Value<'_>>, EvaluationError> {
     match value.raw() {
         Value::Array(array) | Value::Set(array) => Ok(array.borrow().clone()),
-        Value::Map(array) => array
-            .borrow()
-            .iter()
-            .map(|entry| {
-                let Value::Array(pair) = entry.raw() else {
-                    return Err(error("invalid Map entry"));
-                };
-                Ok(pair.borrow().get(1).copied().unwrap_or(Value::Undefined))
-            })
-            .collect(),
         Value::Object(object) => Ok(object
             .borrow()
             .entries()
             .iter()
             .map(|(_, value)| *value)
             .collect()),
-        _ => Err(error("expects an array, object, Map, or Set")),
+        _ => Err(error("expects an array, object, or Set")),
     }
 }
 
@@ -955,17 +949,7 @@ pub fn invoke<'gc>(
                 Value::Array(a) | Value::Set(a) => {
                     a.borrow().iter().any(|v| same_value_zero(*v, arg(1)))
                 }
-                Value::Map(a) => a.borrow().iter().any(|entry| match entry.raw() {
-                    Value::Array(pair) => pair
-                        .borrow()
-                        .first()
-                        .is_some_and(|key| same_value_zero(*key, arg(1))),
-                    _ => false,
-                }),
-                Value::Object(o) => match arg(1).raw() {
-                    Value::Symbol(s) => o.borrow().get_symbol(&*s).is_some(),
-                    _ => o.borrow().get(&property_key(arg(1))?).is_some(),
-                },
+                Value::Object(o) => o.borrow().get_key(arg(1)).is_some(),
                 _ => false,
             };
             Value::Boolean(found)
@@ -1099,13 +1083,7 @@ pub fn invoke<'gc>(
             let mut out = vec![];
             for v in elements(arg(0))? {
                 let item = match v.raw() {
-                    Value::Object(o) => match arg(1).raw() {
-                        Value::Symbol(s) => o.borrow().get_symbol(&*s).unwrap_or(Value::Undefined),
-                        _ => o
-                            .borrow()
-                            .get(&property_key(arg(1))?)
-                            .unwrap_or(Value::Undefined),
-                    },
+                    Value::Object(o) => o.borrow().get_key(arg(1)).unwrap_or(Value::Undefined),
                     Value::Array(a) => {
                         if property_key(arg(1))? == "length" {
                             Value::Number(a.borrow().len() as f64)
@@ -1158,10 +1136,7 @@ pub fn invoke<'gc>(
                         )));
                     }
                 };
-                match key.raw() {
-                    Value::Symbol(s) => o.borrow_mut(mc).set_symbol((*s).clone(), value),
-                    _ => o.borrow_mut(mc).set(property_key(key)?, value),
-                }
+                o.borrow_mut(mc).set_key(key, value);
             }
             out
         }
@@ -1238,53 +1213,21 @@ pub fn invoke<'gc>(
                 object
             }
         }
-        Enumerate => match arg(0).raw() {
-            Value::Object(o)
-                if !["asyncIterator", "iterator"].iter().any(|key| {
-                    o.borrow().get_symbol(key).is_some_and(|v| {
-                        matches!(
-                            v.raw(),
-                            Value::Lambda(_)
-                                | Value::Native(_)
-                                | Value::Host(_)
-                                | Value::IteratorFactory(_)
-                        )
-                    })
-                }) =>
-            {
-                let items = o
-                    .borrow()
-                    .entries()
-                    .iter()
-                    .enumerate()
-                    .map(|(i, (key, item))| {
-                        Value::object(
-                            mc,
-                            vec![
-                                ("index".into(), Value::string(mc, key)),
-                                ("value".into(), arg(0).carry_item(mc, *item, i)),
-                            ],
-                        )
-                    })
-                    .collect();
-                Value::Iterable(iterator(mc, Value::array(mc, items))?)
-            }
-            _ => match iterator(mc, arg(0)) {
-                Ok(source) => Value::Iterable(Gc::new(
+        Enumerate => match iterator(mc, arg(0)) {
+            Ok(source) => Value::Iterable(Gc::new(
+                mc,
+                RefLock::new(IterableState::Enumerate { source, index: 0 }),
+            )),
+            Err(_) => {
+                let record = Value::object(
                     mc,
-                    RefLock::new(IterableState::Enumerate { source, index: 0 }),
-                )),
-                Err(_) => {
-                    let record = Value::object(
-                        mc,
-                        vec![
-                            ("index".into(), Value::Number(0.0)),
-                            ("value".into(), arg(0)),
-                        ],
-                    );
-                    Value::Iterable(iterator(mc, Value::array(mc, vec![record]))?)
-                }
-            },
+                    vec![
+                        ("index".into(), Value::Number(0.0)),
+                        ("value".into(), arg(0)),
+                    ],
+                );
+                Value::Iterable(iterator(mc, Value::array(mc, vec![record]))?)
+            }
         },
         Map | Filter | Scan | Reduce => {
             let source = Gc::new(mc, RefLock::new(IterableState::Deferred { value: arg(0) }));
@@ -1359,9 +1302,7 @@ pub fn json_text(value: Value<'_>) -> Result<Option<String>, EvaluationError> {
                 Value::String(s) => {
                     out.push_str(&serde_json::to_string(&*s).map_err(|e| error(&e.to_string()))?)
                 }
-                Value::Set(_) | Value::Map(_) | Value::Iterable(_) | Value::InputSource(_) => {
-                    out.push_str("{}")
-                }
+                Value::Set(_) | Value::Iterable(_) | Value::InputSource(_) => out.push_str("{}"),
                 Value::Match(_) => {
                     return Err(error("current match scope serialization is not supported"));
                 }
@@ -1409,6 +1350,15 @@ pub fn json_text(value: Value<'_>) -> Result<Option<String>, EvaluationError> {
                     if !ancestors.insert(id) {
                         return Err(error("Converting circular structure to JSON"));
                     }
+                    if o.borrow()
+                        .entries()
+                        .iter()
+                        .any(|(key, _)| key.as_string().is_none())
+                    {
+                        return Err(error(
+                            "cannot serialize object with non-string keys to JSON",
+                        ));
+                    }
                     if o.borrow().get("toJSON").is_some_and(|v| {
                         matches!(
                             v.raw(),
@@ -1430,6 +1380,9 @@ pub fn json_text(value: Value<'_>) -> Result<Option<String>, EvaluationError> {
                         .cloned()
                         .collect::<Vec<_>>();
                     for (i, (key, item)) in entries.into_iter().enumerate().rev() {
+                        let key = key
+                            .as_string()
+                            .expect("object keys validated before serialization");
                         frames.push(Frame::Value(item, false));
                         frames.push(Frame::Text(format!(
                             "{}:",

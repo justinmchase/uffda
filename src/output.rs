@@ -111,6 +111,9 @@ pub fn uffda_output(value: Value<'_>) -> Result<String, OutputError> {
                     if index != 0 {
                         output.push_str(", ");
                     }
+                    let name = name
+                        .as_string()
+                        .ok_or_else(|| unsupported_display("non-string object keys"))?;
                     output.push('[');
                     output.push_str(&uffda_quote(name)?);
                     output.push_str("]: ");
@@ -149,8 +152,13 @@ pub fn uffda_output(value: Value<'_>) -> Result<String, OutputError> {
                     frames.push(UffdaFrame::Array(array, 0));
                 }
                 Value::Object(object) => {
-                    if !object.borrow().symbol_entries().is_empty() {
-                        return Err(unsupported_display("symbol object keys"));
+                    if object
+                        .borrow()
+                        .entries()
+                        .iter()
+                        .any(|(key, _)| key.as_string().is_none())
+                    {
+                        return Err(unsupported_display("non-string object keys"));
                     }
                     if !ancestors.insert(Gc::as_ptr(object) as usize) {
                         return Err(OutputError::CircularValue);
@@ -164,7 +172,6 @@ pub fn uffda_output(value: Value<'_>) -> Result<String, OutputError> {
                 | Value::IteratorFactory(_) => {
                     return Err(unsupported_display("callable values"));
                 }
-                Value::Map(_) => return Err(unsupported_display("Map values")),
                 Value::Set(_) => return Err(unsupported_display("Set values")),
                 Value::Iterable(_) => return Err(unsupported_display("iterable values")),
                 Value::InputSource(_) => return Err(unsupported_display("external input sources")),
@@ -301,9 +308,7 @@ pub fn operation_output(value: Value<'_>, json: bool) -> Result<String, OutputEr
                         "BigInt values require the Uffda data codec".into(),
                     ));
                 }
-                Value::Map(_) | Value::Set(_) | Value::Iterable(_) | Value::InputSource(_) => {
-                    output.push_str("{}")
-                }
+                Value::Set(_) | Value::Iterable(_) | Value::InputSource(_) => output.push_str("{}"),
                 Value::Match(_) => {
                     return Err(OutputError::Encoding(
                         "current match scope serialization is not supported".into(),
@@ -340,7 +345,21 @@ pub fn operation_output(value: Value<'_>, json: bool) -> Result<String, OutputEr
                 }
                 Value::Error(_) => output.push_str("{}"),
                 Value::Declaration(declaration) => {
-                    frames.push(Frame::Value(Value::Object(declaration.properties)));
+                    output.push('{');
+                    output.push_str("\"name\":");
+                    output.push_str(&quote(&RuntimeString::from(&declaration.compiled.name))?);
+                    output.push_str(",\"kind\":");
+                    let kind = match declaration.member.kind {
+                        crate::resolver::graph::MemberKind::Rule => "rule",
+                        crate::resolver::graph::MemberKind::Func => "func",
+                        crate::resolver::graph::MemberKind::Decorator => "decorator",
+                    };
+                    output.push_str(&quote(&RuntimeString::from(kind))?);
+                    output.push_str(",\"moduleUrl\":");
+                    output.push_str(&quote(&RuntimeString::from(
+                        declaration.member.module_url.as_str(),
+                    ))?);
+                    output.push('}');
                 }
                 Value::Array(array) => {
                     let pointer = Gc::as_ptr(array) as usize;
@@ -359,6 +378,16 @@ pub fn operation_output(value: Value<'_>, json: bool) -> Result<String, OutputEr
                     output.push('[');
                 }
                 Value::Object(properties) => {
+                    if properties
+                        .borrow()
+                        .entries()
+                        .iter()
+                        .any(|(key, _)| key.as_string().is_none())
+                    {
+                        return Err(OutputError::Encoding(
+                            "JSON cannot represent non-string object keys".into(),
+                        ));
+                    }
                     let pointer = Gc::as_ptr(properties) as usize;
                     if !ancestors.insert(pointer) {
                         return Err(OutputError::CircularValue);
@@ -366,20 +395,13 @@ pub fn operation_output(value: Value<'_>, json: bool) -> Result<String, OutputEr
                     frames.push(Frame::Leave(pointer));
                     frames.push(Frame::Text("}".into()));
                     let properties = properties.borrow();
-                    let mut entries: Vec<_> = properties
+                    let entries: Vec<_> = properties
                         .entries()
                         .iter()
                         .filter(|(_, value)| !omitted(*value))
                         .collect();
-                    // JavaScript enumerates array-index keys before other string keys.
-                    entries.sort_by_key(|(name, _)| {
-                        name.as_scalar_str()
-                            .and_then(|name| name.parse::<u32>().ok())
-                            .filter(|index| *index != u32::MAX && *name == index.to_string())
-                            .map(|index| (false, index))
-                            .unwrap_or((true, 0))
-                    });
                     for (index, (name, value)) in entries.into_iter().enumerate().rev() {
+                        let name = name.as_string().expect("validated string object key");
                         frames.push(Frame::Value(*value));
                         frames.push(Frame::Text(":".into()));
                         frames.push(Frame::Text(quote(name)?));
@@ -404,7 +426,7 @@ mod tests {
     use uffda_heap::rootless_mutate;
 
     #[test]
-    // req:cli-exec-002 req:data-codec-003 req:runtime-strings-002
+    // req:cli-exec-002 req:data-codec-003 req:data-codec-008 req:runtime-strings-002
     fn codec_records_include_top_level_strings_undefined_and_native_values() {
         rootless_mutate(|mc| {
             assert_eq!(codec_output(Value::Undefined).unwrap(), "undefined\n");
@@ -422,7 +444,7 @@ mod tests {
                     vec![("a".into(), Value::array(mc, vec![Value::Number(-2.5)]))]
                 ))
                 .unwrap(),
-                "{\"a\":[-2.5]}\n"
+                "{a:[-2.5]}\n"
             );
             assert_eq!(
                 codec_output(Value::bigint(mc, num_bigint::BigInt::from(42))).unwrap(),
@@ -652,7 +674,7 @@ mod tests {
 
     #[test]
     // req:cli-exec-002
-    fn non_expression_values_and_symbol_keys_fail_without_conversion() {
+    fn non_expression_values_and_native_keys_fail_without_conversion() {
         use crate::globals::IterableState;
         use uffda_heap::RefLock;
         rootless_mutate(|mc| {
@@ -661,7 +683,7 @@ mod tests {
                 _ => unreachable!(),
             };
             for value in [
-                Value::Map(array),
+                Value::association(mc, vec![(Value::Number(1.0), Value::Null)]),
                 Value::Set(array),
                 Value::Bytes(Gc::new(mc, vec![1, 2])),
                 Value::Url(Gc::new(
@@ -706,7 +728,7 @@ mod tests {
             );
             assert_eq!(
                 uffda_output(Value::array(mc, vec![shared, shared])).unwrap(),
-                "[{[\"1\"]: 1, [\"2\"]: 2, [\"b\"]: 3} {[\"1\"]: 1, [\"2\"]: 2, [\"b\"]: 3}]\n"
+                "[{[\"b\"]: 3, [\"2\"]: 2, [\"1\"]: 1} {[\"b\"]: 3, [\"2\"]: 2, [\"1\"]: 1}]\n"
             );
             let array = Value::array(mc, vec![]);
             let Value::Array(values) = array else {
@@ -841,7 +863,7 @@ mod tests {
             );
             assert_eq!(
                 operation_output(object, true).unwrap(),
-                "{\n  \"1\": 1,\n  \"2\": 2,\n  \"b\": 3\n}\n"
+                "{\n  \"b\": 3,\n  \"2\": 2,\n  \"1\": 1\n}\n"
             );
             assert!(operation_output(Value::array(mc, vec![object, object]), true).is_ok());
             let array = Value::array(mc, vec![]);

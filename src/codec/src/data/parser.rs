@@ -11,13 +11,9 @@ enum Work {
     Value(usize),
     Array(Vec<usize>, usize),
     ArrayItem(Vec<usize>, usize),
-    Object(Vec<(RuntimeString, usize)>, BTreeSet<RuntimeString>, usize),
-    ObjectItem(
-        Vec<(RuntimeString, usize)>,
-        BTreeSet<RuntimeString>,
-        RuntimeString,
-        usize,
-    ),
+    Object(Vec<(usize, usize)>, BTreeSet<String>, usize),
+    ObjectKey(Vec<(usize, usize)>, BTreeSet<String>, usize),
+    ObjectItem(Vec<(usize, usize)>, BTreeSet<String>, usize, usize),
     Tag(String),
 }
 
@@ -74,7 +70,7 @@ impl Parser<'_> {
                             self.trivia();
                             let expected = match tag.as_str() {
                                 "date" | "bytes" | "symbol" => b'"',
-                                "set" | "map" => b'[',
+                                "set" => b'[',
                                 "error" => b'{',
                                 _ => return Err(error(format!("unknown native data tag {tag}"))),
                             };
@@ -123,7 +119,7 @@ impl Parser<'_> {
                     work.push(Work::Array(items, depth));
                     continue;
                 }
-                Work::Object(entries, mut seen, depth) => {
+                Work::Object(entries, seen, depth) => {
                     let separated = self.trivia();
                     if self.peek() == Some(b'}') {
                         self.offset += 1;
@@ -134,25 +130,31 @@ impl Parser<'_> {
                                 "expected whitespace or comment between object entries",
                             ));
                         }
-                        let key = if self.peek() == Some(b'"') {
-                            quoted(self.string()?)?
+                        if let Some(key) = self.identifier_key()? {
+                            let key_index = self.nodes.len();
+                            self.nodes
+                                .push(DataNode::String(RuntimeString::from(key.as_str())));
+                            self.object_colon()?;
+                            work.push(Work::ObjectItem(entries, seen, key_index, depth));
+                            work.push(Work::Value(depth + 1));
                         } else {
-                            RuntimeString::from(self.identifier()?)
-                        };
-                        if !seen.insert(key.clone()) {
-                            return Err(error("duplicate object key"));
+                            work.push(Work::ObjectKey(entries, seen, depth));
+                            work.push(Work::Value(depth + 1));
                         }
-                        self.trivia();
-                        if self.peek() != Some(b':') {
-                            return Err(error("expected : after object key"));
-                        }
-                        self.offset += 1;
-                        work.push(Work::ObjectItem(entries, seen, key, depth));
-                        work.push(Work::Value(depth + 1));
                         continue;
                     }
                 }
-                Work::ObjectItem(mut entries, seen, key, depth) => {
+                Work::ObjectKey(entries, seen, depth) => {
+                    let key = value.take().ok_or_else(|| error("missing object key"))?;
+                    self.object_colon()?;
+                    work.push(Work::ObjectItem(entries, seen, key, depth));
+                    work.push(Work::Value(depth + 1));
+                    continue;
+                }
+                Work::ObjectItem(mut entries, mut seen, key, depth) => {
+                    if !seen.insert(super::key_identity(key, &self.nodes)?) {
+                        return Err(error("duplicate object key"));
+                    }
                     entries.push((
                         key,
                         value.take().ok_or_else(|| error("missing object value"))?,
@@ -183,6 +185,34 @@ impl Parser<'_> {
 
     fn peek(&self) -> Option<u8> {
         self.source.as_bytes().get(self.offset).copied()
+    }
+
+    fn object_colon(&mut self) -> Result<(), DataError> {
+        self.trivia();
+        if self.peek() != Some(b':') {
+            return Err(error("expected : after object key"));
+        }
+        self.offset += 1;
+        Ok(())
+    }
+
+    fn identifier_key(&mut self) -> Result<Option<String>, DataError> {
+        let Some(first) = self.peek() else {
+            return Ok(None);
+        };
+        if !(first.is_ascii_alphabetic() || first == b'_') {
+            return Ok(None);
+        }
+        let offset = self.offset;
+        let token = self.token().to_owned();
+        self.offset = offset;
+        if matches!(
+            token.as_str(),
+            "null" | "undefined" | "true" | "false" | "NaN" | "Infinity"
+        ) {
+            return Ok(None);
+        }
+        Ok(Some(self.identifier()?.to_owned()))
     }
 
     fn trivia(&mut self) -> bool {
@@ -244,10 +274,12 @@ impl Parser<'_> {
 
     fn token(&mut self) -> &str {
         let start = self.offset;
-        while self
-            .peek()
-            .is_some_and(|byte| !matches!(byte, b' ' | b'\t' | b'\r' | b'\n' | b'#' | b']' | b'}'))
-        {
+        while self.peek().is_some_and(|byte| {
+            !matches!(
+                byte,
+                b' ' | b'\t' | b'\r' | b'\n' | b'#' | b']' | b'}' | b':'
+            )
+        }) {
             self.offset += 1;
         }
         &self.source[start..self.offset]

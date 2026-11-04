@@ -1,3 +1,4 @@
+use crate::codec::data::{DataDocument, DataNode};
 use crate::environment::Environment;
 use crate::evaluate::{CompiledExpression, ExpressionExecution};
 use crate::expression::Expression;
@@ -7,6 +8,7 @@ use crate::provenance::Origin;
 use crate::resolver::graph::{MemberKind, ModuleGraph, ModuleMember};
 use crate::value::{Declaration, RuntimeUrl, Value};
 use serde::Deserialize;
+use serde::Deserializer;
 use std::collections::HashMap;
 use std::fmt;
 use std::rc::Rc;
@@ -44,11 +46,29 @@ struct AttributeSyntax {
     args: Vec<Expression>,
 }
 
+fn deserialize_undefined_expression<'de, D>(deserializer: D) -> Result<Option<Expression>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let document = DataDocument::deserialize(deserializer)?;
+    if matches!(
+        document.nodes()[document.root()],
+        DataNode::Undefined | DataNode::Null
+    ) {
+        Ok(None)
+    } else {
+        uffda_codec::data::de::from_document(&document)
+            .map(Some)
+            .map_err(serde::de::Error::custom)
+    }
+}
+
 #[derive(Deserialize)]
 struct RuleSyntax {
     name: String,
     parameters: Vec<Parameter>,
     pattern: Pattern,
+    #[serde(default, deserialize_with = "deserialize_undefined_expression")]
     expression: Option<Expression>,
     #[serde(default)]
     attributes: Vec<AttributeSyntax>,
@@ -187,12 +207,13 @@ impl<'gc> ModuleBindings<'gc> {
                     properties.set("name".into(), Value::string(mc, &compiled.name));
                     properties.set("module".into(), runtime_modules[url]);
                     for name in ["pattern", "parameters", "expression"] {
-                        if let Some(value) = source.get(name) {
+                        if let Some(value) = source
+                            .root_field(name, crate::codec::data::DataLimits::default())
+                            .map_err(|error| error.to_string())?
+                        {
                             let mut execution = ExpressionExecution::new(
                                 mc,
-                                Expression::Value {
-                                    value: Some(value.clone()),
-                                },
+                                Expression::Value { value: Some(value) },
                                 Environment::new(mc, None, vec![]),
                                 Origin { start: 0, end: 0 },
                                 Value::Undefined,
@@ -270,7 +291,7 @@ impl<'gc> ModuleBindings<'gc> {
                         Ok((Value::string(mc, name), value))
                     })
                     .collect::<Result<Vec<_>, String>>()?;
-                object.set(name.into(), Value::map(mc, values));
+                object.set(name.into(), Value::association(mc, values));
             }
             if let Some(member) = &module.default {
                 let value = subjects
@@ -440,8 +461,8 @@ impl CompiledModuleGraph {
                 decorators: Vec::new(),
             };
             for (index, value) in module.declaration.rules.iter().enumerate() {
-                let syntax: RuleSyntax =
-                    crate::json::from_value(value.clone()).map_err(|error| ModuleCompileError {
+                let syntax: RuleSyntax = uffda_codec::data::de::from_document_with_undefined(value)
+                    .map_err(|error| ModuleCompileError {
                         module_url: Box::new(url.clone()),
                         kind: MemberKind::Rule,
                         declaration_index: index,
@@ -480,15 +501,15 @@ impl CompiledModuleGraph {
                 ),
             ] {
                 for (index, value) in values.iter().enumerate() {
-                    let syntax: FuncSyntax =
-                        crate::json::from_value(value.clone()).map_err(|error| {
-                            ModuleCompileError {
-                                module_url: Box::new(url.clone()),
-                                kind,
-                                declaration_index: index,
-                                message: error.to_string(),
-                            }
-                        })?;
+                    let syntax: FuncSyntax = uffda_codec::data::de::from_document_with_undefined(
+                        value,
+                    )
+                    .map_err(|error| ModuleCompileError {
+                        module_url: Box::new(url.clone()),
+                        kind,
+                        declaration_index: index,
+                        message: error.to_string(),
+                    })?;
                     target.push(Rc::new(CompiledDeclaration {
                         name: syntax.name,
                         parameters: Vec::new(),
@@ -738,13 +759,10 @@ mod tests {
                 unreachable!()
             };
             assert_eq!(url.0, entry);
-            let Value::Map(rules) = module.borrow().get("rules").unwrap() else {
+            let Value::Object(rules) = module.borrow().get("rules").unwrap() else {
                 unreachable!()
             };
-            let Value::Array(pair) = rules.borrow()[0] else {
-                unreachable!()
-            };
-            assert!(pair.borrow()[1].strict_eq(value));
+            assert!(rules.borrow().get("Main").unwrap().strict_eq(value));
             assert!(module.borrow().get("default").unwrap().strict_eq(value));
             let info = bindings.environment(&entry).unwrap().get("Main").unwrap();
             assert!(!info.strict_eq(value));

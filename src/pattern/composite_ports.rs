@@ -1346,7 +1346,9 @@ fn describe(value: Value<'_>) -> String {
                 .map(|(key, value)| {
                     format!(
                         "{}:{}",
-                        key.as_scalar_str().expect("scalar key"),
+                        key.as_string()
+                            .and_then(|key| key.as_scalar_str())
+                            .expect("scalar key"),
                         describe(*value)
                     )
                 })
@@ -1654,7 +1656,7 @@ fn port_over_matches_undeclared_object_entries() {
         (MatchKind::Ok, 1, "{id:42}".into())
     );
 
-    // Symbol keys are not string entries, so a failing rest clause never sees them.
+    // Rest clauses visit symbol-keyed entries as native association entries.
     uffda_heap::rootless_mutate(|mc| {
         let source = Value::object(mc, vec![]);
         let Value::Object(properties) = source else {
@@ -1673,15 +1675,15 @@ fn port_over_matches_undeclared_object_entries() {
             Environment::new(mc, None, vec![]),
         );
         finish(mc, &mut execution);
-        assert_eq!(execution.result().unwrap().kind, MatchKind::Ok);
+        assert_eq!(execution.result().unwrap().kind, MatchKind::Fail);
     });
 }
 
 #[test]
 // req:over-002
-fn port_over_matches_map_rest_entries() {
+fn port_over_matches_object_rest_entries() {
     uffda_heap::rootless_mutate(|mc| {
-        let value = Value::map(
+        let value = Value::association(
             mc,
             vec![
                 (Value::Number(3.0), Value::string(mc, "three")),
@@ -1724,13 +1726,13 @@ fn port_over_matches_map_rest_entries() {
                     },
                 )]),
             },
-            vec![Value::map(mc, vec![(key, key)])],
+            vec![Value::association(mc, vec![(key, key)])],
             Environment::new(mc, None, vec![]),
         );
         finish(mc, &mut execution);
         assert_eq!(execution.result().unwrap().kind, MatchKind::Ok);
 
-        let value = Value::map(
+        let value = Value::association(
             mc,
             vec![
                 (Value::string(mc, "id"), Value::Number(1.0)),
@@ -1767,7 +1769,7 @@ fn port_over_matches_map_rest_entries() {
                     number_type(),
                 )]),
             },
-            vec![Value::map(
+            vec![Value::association(
                 mc,
                 vec![(
                     Value::Symbol(uffda_heap::Gc::new(mc, "map-rest-key".into())),
@@ -1785,7 +1787,7 @@ fn port_over_matches_map_rest_entries() {
                 keys: Some(vec![]),
                 rest: Some(vec![rest_pattern(None, number_type(), Pattern::Fail)]),
             },
-            vec![Value::map(
+            vec![Value::association(
                 mc,
                 vec![(Value::Number(1.0), Value::Number(2.0))],
             )],
@@ -1800,7 +1802,7 @@ fn port_over_matches_map_rest_entries() {
                 keys: Some(vec![]),
                 rest: Some(vec![rest_pattern(None, number_type(), Pattern::Any)]),
             },
-            vec![Value::map(
+            vec![Value::association(
                 mc,
                 vec![(Value::string(mc, "name"), Value::string(mc, "Ada"))],
             )],
@@ -1809,7 +1811,7 @@ fn port_over_matches_map_rest_entries() {
         finish(mc, &mut execution);
         assert_eq!(execution.result().unwrap().kind, MatchKind::Fail);
 
-        let value = Value::map(mc, vec![(Value::string(mc, "id"), Value::Number(1.0))]);
+        let value = Value::association(mc, vec![(Value::string(mc, "id"), Value::Number(1.0))]);
         let mut execution = PatternExecution::new(
             mc,
             Pattern::Over {

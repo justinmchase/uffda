@@ -99,9 +99,6 @@ rule TypeError = "error" -> { kind: "type", type: "error" };
 rule TypeFunction = "function" -> { kind: "type", type: "function" };
 
 [Keyword]
-rule TypeMap = "map" -> { kind: "type", type: "map" };
-
-[Keyword]
 rule TypeNumber = "number" -> { kind: "type", type: "number" };
 
 [Keyword]
@@ -123,7 +120,6 @@ rule TypeKeyword =
   | TypeDate
   | TypeError
   | TypeFunction
-  | TypeMap
   | TypeNumber
   | TypeObject
   | TypeSet

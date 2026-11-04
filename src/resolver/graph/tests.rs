@@ -11,7 +11,14 @@ fn linked_declarations_keep_lossless_json_literal_payloads() {
     resolver.insert_declaration(url.clone(), super::super::decode_declaration(&url, r#"{"imports":[],"exports":[{"kind":"func","name":"Text"}],"rules":[],"funcs":[{"name":"Text","pattern":{"kind":"end"},"expression":{"kind":"value","value":"\ud800"}}]}"#).unwrap());
     let graph = resolver.load_graph(&url).unwrap();
     let declaration = &graph.modules[&url].declaration.funcs[0];
-    let crate::json::JsonValue::String(text) = &declaration["expression"]["value"] else {
+    let expression = declaration
+        .field("expression")
+        .unwrap()
+        .unwrap()
+        .field("value")
+        .unwrap()
+        .unwrap();
+    let crate::codec::data::DataNode::String(text) = &expression.nodes()[expression.root()] else {
         panic!()
     };
     assert_eq!(text.as_utf16(), &[0xd800]);

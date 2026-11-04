@@ -81,11 +81,6 @@ rule Identifier =
   -> (join [a (join b "")] "")
 ;
 
-rule Key =
-  | Quoted
-  | Identifier
-;
-
 rule Integer =
   | "0"
   | (a:NonzeroDigit b:Digit* -> (join [a (join b "")] ""))
@@ -183,7 +178,26 @@ rule Colon = ":";
 }]
 rule RequiredValue = Value;
 
-rule Entry = k:Key Trivia Colon Trivia v:RequiredValue -> { key: k, value: v };
+rule IdentifierKey =
+  i:Identifier
+  -> { kind: "string", token: (join ["\"" i "\""] "") }
+;
+
+rule Key =
+  | Value
+  | IdentifierKey
+;
+
+[Documentation {
+  description: "A required data object key.",
+  error: "Expected a data value or identifier key here."
+}]
+rule RequiredKey = Key;
+
+rule Entry =
+  k:RequiredKey Trivia Colon Trivia v:RequiredValue
+  -> { key: k, value: v }
+;
 
 rule SubsequentEntry = Separator e:Entry -> e;
 
@@ -213,10 +227,8 @@ rule StringTag =
 
 rule SetTag = "s" "e" "t" -> "set";
 
-rule MapTag = "m" "a" "p" -> "map";
-
 rule ArrayTag =
-  "@" t:(SetTag | MapTag) Trivia v:ArrayValue
+  "@" t:SetTag Trivia v:ArrayValue
   -> { kind: "tag", tag: t, value: v }
 ;
 

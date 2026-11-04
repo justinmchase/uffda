@@ -22,23 +22,22 @@ Normative key words in this chapter use the conventions defined in the
 
 ## AST artifact contracts
 
-- Compile outputs MUST represent runtime ModuleDeclarations in JSON-serializable
-  structures (`imports`, `exports`, `rules`).
-- The data-codec on-disk form for those artifacts MUST use the **`.uff.ast`**
-  extension (one codec record). The JSON sibling MUST use **`.uff.ast.json`**.
-- Artifact emission MUST support one source unit mapping to both a data-codec
-  artifact (`.uff.ast`) and a JSON artifact (`.uff.ast.json`) and MUST define
-  naming/path conventions deterministically: each source's artifacts are its
-  paths in the project's artifact layout (see
+- Compile outputs MUST represent runtime ModuleDeclarations as native codec
+  data, including values that JSON cannot represent.
+- The on-disk artifact MUST use the **`.uff.ast`** extension (one codec
+  record). Compile MUST NOT emit a JSON sibling.
+- Artifact emission MUST support one source unit mapping to a single data-codec
+  artifact and MUST define naming/path conventions deterministically: each
+  source's artifact is its path in the project's artifact layout (see
   [output directory](../project-file.spec.md#output-directory)), never next to
   the source. A source outside the project root MUST fail its unit without
   writing.
-- Each emitted `.uff.ast` and `.uff.ast.json` file MUST contain the same
-  ModuleDeclaration produced by the compile pipeline (parse → previous published
-  `UffdaRuntimeCompiler` → write), without CLI-specific module identity,
-  version, or source-path metadata.
+- Each emitted `.uff.ast` file MUST contain the ModuleDeclaration produced by
+  the compile pipeline (native parse → native compiler handoff → write),
+  without CLI-specific module identity, version, or source-path metadata.
 - Compile results and diagnostics MUST retain source-path provenance separately
-  from the emitted ModuleDeclaration.
+  from the emitted ModuleDeclaration. JSON result envelopes MUST expose the
+  declaration payload in a `moduleCodec` text field, not as JSON.
 - Compile MUST NOT emit raw syntax ASTs (`kind: "module"` + `declarations`) as
   the on-disk artifact; lowering is a stage of compile, not a post-pass.
 - Compile MUST write every import's module name out in full, resolved through

@@ -1,5 +1,11 @@
 use std::io::Write;
 use std::process::{Command, Output, Stdio};
+use std::sync::{Mutex, OnceLock};
+
+fn invoke_lock() -> &'static Mutex<()> {
+    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| Mutex::new(()))
+}
 
 fn invoke(args: &[&str], input: &str) -> Output {
     invoke_in(args, input, None)
@@ -13,7 +19,7 @@ fn uffda_display_and_strict_interpolation_are_separate() {
     assert_eq!(text(&result.stdout), "[1 2]\n");
     let result = invoke(&["exec", "-e", "{ a: [1 2] }"], "");
     assert!(result.status.success(), "{}", text(&result.stderr));
-    assert_eq!(text(&result.stdout), "{\"a\":[1 2]}\n");
+    assert_eq!(text(&result.stdout), "{a:[1 2]}\n");
     let roundtrip = invoke(&["exec", "-e", "{ a: [1 2] }", "--json"], "");
     assert!(roundtrip.status.success(), "{}", text(&roundtrip.stderr));
     assert_eq!(
@@ -59,6 +65,7 @@ fn invoke_binary_in(
     input: &str,
     cwd: Option<&std::path::Path>,
 ) -> Output {
+    let _guard = invoke_lock().lock().unwrap();
     let mut command = Command::new(binary);
     command.args(args);
     command.env("PATH", "");
@@ -519,14 +526,23 @@ fn relocated_binary_executes_all_six_commands_without_runtime_tools_or_checkout_
     );
     let payload: serde_json::Value = serde_json::from_slice(&compiled.stdout).unwrap();
     assert_eq!(payload["ok"], true);
-    let artifact = directory.0.join("bin/ast/main.uff.ast.json");
-    let codec = directory.0.join("bin/ast/main.uff.ast");
-    let declaration: serde_json::Value =
-        serde_json::from_slice(&std::fs::read(&artifact).unwrap()).unwrap();
-    assert_eq!(declaration["rules"][0]["name"], "Main");
-    assert!(codec.is_file());
+    let artifact = directory.0.join("bin/ast/main.uff.ast");
+    let declaration: uffda_runtime::resolver::ModuleDeclaration =
+        uffda_runtime::codec::declaration::decode_declaration_codec_as(
+            &std::fs::read_to_string(&artifact).unwrap(),
+        )
+        .unwrap();
+    assert_eq!(
+        declaration.rules[0]
+            .field("name")
+            .unwrap()
+            .unwrap()
+            .string_value()
+            .as_deref(),
+        Some("Main")
+    );
+    assert!(!directory.0.join("bin/ast/main.uff.ast.json").exists());
     std::fs::remove_file(artifact).unwrap();
-    std::fs::remove_file(codec).unwrap();
     for path in ["bin/ast", "bin"] {
         std::fs::remove_dir(directory.0.join(path)).unwrap();
     }
@@ -737,7 +753,7 @@ fn actual_expression_and_subject_paths_are_read() {
     std::fs::write(&subject, "world").unwrap();
     let result = invoke(&["exec", "--ast", expression.to_str().unwrap()], "");
     assert!(result.status.success(), "{}", text(&result.stderr));
-    assert_eq!(text(&result.stdout), "{\"answer\":42}\n");
+    assert_eq!(text(&result.stdout), "{answer:42}\n");
     let result = invoke(
         &["match", "--ast", "--input-file", subject.to_str().unwrap()],
         r#"{"kind":"any"}"#,
@@ -851,7 +867,7 @@ fn explicit_valid_configuration_is_used_for_execution() {
 }
 
 #[test]
-// req:cli-bootstrap-034 req:project-file-003 req:cli-command-model-001
+// req:cli-bootstrap-034 req:cli-compile-008 req:project-file-003 req:cli-command-model-001
 fn compile_process_uses_project_layout_and_reports_existing_output() {
     let root = std::env::temp_dir().join(format!("uffda-cli-compile-{}", std::process::id()));
     std::fs::create_dir_all(root.join("src")).unwrap();
@@ -871,12 +887,7 @@ fn compile_process_uses_project_layout_and_reports_existing_output() {
     assert_eq!(result.status.code(), Some(2));
     let payload: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
     assert_eq!(payload["failures"][0]["code"], "CLI_COMPILE_OUTPUT_EXISTS");
-    for file in [
-        "build/ast/src/main.uff.ast.json",
-        "build/ast/src/main.uff.ast",
-        "src/main.uff",
-        "uffda.jsonc",
-    ] {
+    for file in ["build/ast/src/main.uff.ast", "src/main.uff", "uffda.jsonc"] {
         std::fs::remove_file(root.join(file)).unwrap();
     }
 
@@ -1036,9 +1047,7 @@ rule Render = any -> "canonical";
     assert!(text(&result.stderr).contains("same id or extension"));
     assert!(result.stdout.is_empty());
     for file in [
-        "bin/ast/grammar.uff.ast.json",
         "bin/ast/grammar.uff.ast",
-        "bin/ast/duplicate.uff.ast.json",
         "bin/ast/duplicate.uff.ast",
         "uffda.jsonc",
         "grammar.uff",

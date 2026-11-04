@@ -137,10 +137,11 @@ export async function verifyRustCodec(
     if (JSON.parse(await cliOutput(["compile", "main.uff"])).ok !== true) {
       throw new Error("Standalone compile failed");
     }
-    const artifact = JSON.parse(
-      await readFile(join(temp, "bin", "ast", "main.uff.ast.json"), "utf8"),
+    const artifact = await readFile(
+      join(temp, "bin", "ast", "main.uff.ast"),
+      "utf8",
     );
-    if (artifact.rules[0].name !== "Main") {
+    if (!artifact.includes('rules:[{name:"Main"')) {
       throw new Error("Standalone compiled declaration failed");
     }
     await rm(join(temp, "bin"), { recursive: true, force: true });
@@ -167,7 +168,7 @@ export async function verifyRustCodec(
     const source =
       '# comment\n[42n\n @bytes"AA"]\n{a:"é😀" b:@set[1 2]}\n"\\ud800"\nundefined';
     const expected =
-      '[42n @bytes"AA"]\n{"a":"é😀" "b":@set[1 2]}\n"\\ud800"\nundefined\n';
+      '[42n @bytes"AA"]\n{a:"é😀" b:@set[1 2]}\n"\\ud800"\nundefined\n';
     const stream = async (input: Uint8Array, chunk: number) => {
       const chunks: Buffer[] = [];
       for (let offset = 0; offset < input.length; offset += chunk) {

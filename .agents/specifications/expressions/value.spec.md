@@ -16,6 +16,11 @@ tree.
 
 - A value expression MUST evaluate to its declared serializable value.
 - Evaluation of a value expression MUST NOT depend on runtime scope values.
+- Hosts MUST be able to compile an owned codec document as a literal without
+  converting its value through JSON. Evaluation MUST preserve its native value
+  kinds and lossless strings. Each evaluation MUST construct fresh reference
+  values in the evaluating arena, rather than retaining arena references in the
+  compiled expression.
 
 ## Error conditions
 

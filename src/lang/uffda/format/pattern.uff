@@ -400,24 +400,14 @@ func Labeled<label:string pattern:string> =
 ;
 
 rule PatternOverEntry<L> =
-  l:L
-  (
-    object
-    & {
-      index: n:string,
-      value: p:Pattern<(ok -> (Shift l (add (length n) 2)))>
-    }
-  )
+  l:L (array & [n:string p:Pattern<(ok -> (Shift l (add (length n) 2)))>])
   -> (Labeled n p)
 ;
 
 rule PatternOverBody<L> =
   l:L
   (object & { kind: "over", keys: k:object })
-  e:(
-    (ok -> [...(enumerate k)]) |> [x:PatternOverEntry<(ok -> (Entry l 1))>*]
-    -> x
-  )
+  e:((ok -> [...k]) |> [x:PatternOverEntry<(ok -> (Entry l 1))>*] -> x)
   -> (List l "\{" " " e "," "}")
 ;
 
@@ -442,7 +432,6 @@ rule ReservedName =
     "includes"
     "into"
     "lookahead"
-    "map"
     "maybe"
     "not"
     "null"

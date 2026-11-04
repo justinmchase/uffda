@@ -8,7 +8,7 @@ use crate::module::{CompiledModuleGraph, ModuleBindings};
 use crate::pattern::MatchKind;
 use crate::project::Project;
 use crate::resolver::graph::{MemberKind, ResolvedModule};
-use crate::resolver::{ModuleDeclaration, Resolver, decode_declaration};
+use crate::resolver::{ModuleDeclaration, Resolver};
 use crate::runtime::{InputMode, Runtime};
 use serde_json::{Value, json};
 use std::cell::RefCell;
@@ -32,7 +32,7 @@ pub struct Session {
     cache_dir: Option<PathBuf>,
     project: Option<Project>,
     pub languages: Languages,
-    /// href → ModuleDeclaration JSON (committed successful loads).
+    /// href → ModuleDeclaration codec text (committed successful loads).
     declarations: HashMap<Url, String>,
     module_order: Vec<Url>,
     last_loaded: Option<Url>,
@@ -194,7 +194,7 @@ impl Session {
     pub fn load_syntax(
         &mut self,
         source: &str,
-        syntax: crate::json::JsonValue,
+        syntax: crate::codec::data::DataDocument,
         path: Option<&str>,
     ) -> Value {
         let module_url = match self.module_url_for(path) {
@@ -234,8 +234,8 @@ impl Session {
             },
         };
 
-        let parsed = match self.languages.parse_source(source, Language::Uffda) {
-            Ok(parsed) => parsed,
+        let syntax = match self.languages.parse_source_native(source, Language::Uffda) {
+            Ok(syntax) => syntax,
             Err(error) if !error.diagnostics.is_empty() => {
                 return parse_failure(&error.diagnostics, self.list_loaded_modules());
             }
@@ -249,20 +249,17 @@ impl Session {
                 );
             }
         };
-        if !parsed.diagnostics.is_empty() {
-            return parse_failure(&parsed.diagnostics, self.list_loaded_modules());
-        }
 
-        self.commit_loaded(source, module_url, parsed.value)
+        self.commit_loaded(source, module_url, syntax)
     }
 
     fn commit_loaded(
         &mut self,
         source: &str,
         module_url: Url,
-        syntax: crate::json::JsonValue,
+        syntax: crate::codec::data::DataDocument,
     ) -> Value {
-        let compiled = match self.languages.compile(syntax) {
+        let compiled = match self.languages.compile_syntax_native(source, syntax) {
             Ok(value) => value,
             Err(error) => {
                 return load_failure(
@@ -274,19 +271,32 @@ impl Session {
                 );
             }
         };
-        let declaration_json = compiled.to_string();
-        let declaration = match decode_declaration(&module_url, &declaration_json) {
-            Ok(declaration) => declaration,
-            Err(error) => {
-                return load_failure(
-                    "MCP_SESSION_LOAD_COMPILE_FAILURE",
-                    "compile",
-                    error.to_string(),
-                    self.list_loaded_modules(),
-                    vec![],
-                );
-            }
-        };
+        let declaration_codec =
+            match compiled.encode(false, crate::codec::data::DataLimits::default()) {
+                Ok(codec) => codec,
+                Err(error) => {
+                    return load_failure(
+                        "MCP_SESSION_LOAD_COMPILE_FAILURE",
+                        "compile",
+                        error.to_string(),
+                        self.list_loaded_modules(),
+                        vec![],
+                    );
+                }
+            };
+        let declaration: ModuleDeclaration =
+            match crate::codec::declaration::decode_declaration_codec_as(&declaration_codec) {
+                Ok(declaration) => declaration,
+                Err(error) => {
+                    return load_failure(
+                        "MCP_SESSION_LOAD_COMPILE_FAILURE",
+                        "compile",
+                        error,
+                        self.list_loaded_modules(),
+                        vec![],
+                    );
+                }
+            };
 
         let exclude: std::collections::HashSet<String> = self
             .module_order
@@ -307,8 +317,8 @@ impl Session {
                 );
             }
         };
-        for (url, json) in &self.declarations {
-            match decode_declaration(url, json) {
+        for (url, codec) in &self.declarations {
+            match decode_stored_declaration(url, codec) {
                 Ok(existing) => resolver.insert_declaration(url.clone(), existing),
                 Err(error) => {
                     return load_failure(
@@ -337,13 +347,28 @@ impl Session {
             }
         };
 
+        let mut serialized = Vec::new();
+        for (url, module) in &graph.modules {
+            match serialize_declaration(&module.declaration) {
+                Ok(codec) => serialized.push((url.clone(), codec)),
+                Err(error) => {
+                    return load_failure(
+                        "MCP_SESSION_LOAD_COMPILE_FAILURE",
+                        "compile",
+                        error,
+                        self.list_loaded_modules(),
+                        vec![],
+                    );
+                }
+            }
+        }
+
         // Commit every module the resolver reached (root + transitive imports).
         self.graph_cache.borrow_mut().clear();
         self.metadata_cache.borrow_mut().clear();
-        for (url, module) in &graph.modules {
-            let json = serialize_declaration(&module.declaration);
-            self.declarations.insert(url.clone(), json);
-            if !self.module_order.iter().any(|existing| existing == url) {
+        for (url, codec) in serialized {
+            self.declarations.insert(url.clone(), codec);
+            if !self.module_order.contains(&url) {
                 self.module_order.push(url.clone());
             }
         }
@@ -358,8 +383,8 @@ impl Session {
         self.module_order
             .iter()
             .filter_map(|url| {
-                let json = self.declarations.get(url)?;
-                let declaration = decode_declaration(url, json).ok()?;
+                let codec = self.declarations.get(url)?;
+                let declaration = decode_stored_declaration(url, codec).ok()?;
                 Some(summarize_declaration(url, &declaration))
             })
             .collect()
@@ -561,8 +586,14 @@ impl Session {
         };
         self.next_match_result_id += 1;
         let match_result_id = self.next_match_result_id.to_string();
-        if let Some(tree) = ops::project_match_tree(&runtime) {
-            self.match_results.insert(match_result_id.clone(), tree);
+        match ops::project_match_tree(&runtime) {
+            Ok(Some(tree)) => {
+                self.match_results.insert(match_result_id.clone(), tree);
+            }
+            Ok(None) => {}
+            Err(error) => {
+                return eval_failure("MCP_SESSION_EVAL_EXPRESSION_EXCEPTION", "eval", error);
+            }
         }
         json!({
             "ok": true,
@@ -771,7 +802,8 @@ impl Session {
         }
         let mut resolver = self.make_resolver()?;
         for (url, json) in &self.declarations {
-            let declaration = decode_declaration(url, json).map_err(|error| error.to_string())?;
+            let declaration =
+                decode_stored_declaration(url, json).map_err(|error| error.to_string())?;
             resolver.insert_declaration(url.clone(), declaration);
         }
         let graph = resolver
@@ -863,15 +895,15 @@ impl Session {
         let Some(json) = self.declarations.get(module_url) else {
             return Vec::new();
         };
-        let Ok(declaration) = decode_declaration(module_url, json) else {
+        let Ok(declaration) = decode_stored_declaration(module_url, json) else {
             return Vec::new();
         };
         let mut urls = Vec::new();
         for import in &declaration.imports {
-            let Some(path) = import.get("moduleUrl").and_then(|value| match value {
-                crate::json::JsonValue::String(text) => text.to_utf8().ok(),
-                _ => None,
-            }) else {
+            let Ok(Some(module_specifier)) = import.field("moduleUrl") else {
+                continue;
+            };
+            let Some(path) = module_specifier.string_value() else {
                 continue;
             };
             if let Ok(url) = module_url.join(&path) {
@@ -956,26 +988,23 @@ impl Session {
     /// session and without writing artifacts: `(name, kind)` pairs, `None` when
     /// the source does not parse and lower cleanly.
     pub fn exports_from_source(&mut self, source: &str) -> Option<Vec<(String, String)>> {
-        let parsed = self.languages.parse_source(source, Language::Uffda).ok()?;
-        if !parsed.diagnostics.is_empty() {
-            return None;
-        }
-        let compiled = self.languages.compile(parsed.value).ok()?;
-        let crate::json::JsonValue::Array(exports) = compiled.get("exports")? else {
-            return None;
-        };
+        let syntax = self
+            .languages
+            .parse_source_native(source, Language::Uffda)
+            .ok()?;
+        let compiled = self.languages.compile_syntax_native(source, syntax).ok()?;
+        let exports = compiled.field("exports").ok()??.array_items().ok()?;
         Some(
             exports
                 .iter()
                 .filter_map(|export| {
-                    let name = match export.get("name")? {
-                        crate::json::JsonValue::String(text) => text.to_utf8().ok()?,
-                        _ => return None,
-                    };
-                    let kind = match export.get("kind") {
-                        Some(crate::json::JsonValue::String(text)) => text.to_utf8().ok()?,
-                        _ => "rule".to_string(),
-                    };
+                    let name = export.field("name").ok()??.string_value()?;
+                    let kind = export
+                        .field("kind")
+                        .ok()
+                        .flatten()
+                        .and_then(|value| value.string_value())
+                        .unwrap_or_else(|| "rule".to_string());
                     Some((name, kind))
                 })
                 .collect(),
@@ -983,22 +1012,15 @@ impl Session {
     }
 }
 
-fn serialize_declaration(declaration: &ModuleDeclaration) -> String {
-    // Re-encode via serde_json for a stable round-trip string.
-    serde_json::to_string(&json!({
-        "imports": declaration.imports.iter().map(json_from_runtime).collect::<Vec<_>>(),
-        "exports": declaration.exports.iter().map(json_from_runtime).collect::<Vec<_>>(),
-        "rules": declaration.rules.iter().map(json_from_runtime).collect::<Vec<_>>(),
-        "funcs": declaration.funcs.iter().map(json_from_runtime).collect::<Vec<_>>(),
-        "decorators": declaration.decorators.iter().map(json_from_runtime).collect::<Vec<_>>(),
-    }))
-    .unwrap_or_else(|_| {
-        r#"{"imports":[],"exports":[],"rules":[],"funcs":[],"decorators":[]}"#.to_string()
-    })
+fn decode_stored_declaration(
+    url: &Url,
+    codec: &str,
+) -> Result<ModuleDeclaration, crate::resolver::ModuleResolutionError> {
+    crate::resolver::decode_artifact(url, ".uff.ast", codec)
 }
 
-fn json_from_runtime(value: &crate::json::JsonValue) -> Value {
-    serde_json::from_str(&value.to_string()).unwrap_or(Value::Null)
+fn serialize_declaration(declaration: &ModuleDeclaration) -> Result<String, String> {
+    crate::codec::declaration::encode_declaration_documents(declaration)
 }
 
 fn summarize_resolved(module_url: &Url, module: &ResolvedModule) -> Value {
@@ -1026,20 +1048,17 @@ fn summarize_declaration(module_url: &Url, declaration: &ModuleDeclaration) -> V
     let exported_names: std::collections::HashSet<String> = declaration
         .exports
         .iter()
-        .filter_map(|export| {
-            export.get("name").and_then(|v| match v {
-                crate::json::JsonValue::String(s) => s.to_utf8().ok(),
-                _ => None,
-            })
-        })
+        .filter_map(|export| export.field("name").ok().flatten()?.string_value())
         .collect();
     let mut declarations = Vec::new();
-    let mut push_all = |kind: &str, items: &[crate::json::JsonValue]| {
+    let mut push_all = |kind: &str, items: &[crate::codec::data::DataDocument]| {
         for item in items {
-            let Some(crate::json::JsonValue::String(name)) = item.get("name") else {
-                continue;
-            };
-            let Ok(name) = name.to_utf8() else {
+            let Some(name) = item
+                .field("name")
+                .ok()
+                .flatten()
+                .and_then(|value| value.string_value())
+            else {
                 continue;
             };
             declarations.push(json!({

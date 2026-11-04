@@ -1,4 +1,4 @@
-use crate::coercion::{StringCoercionError, number_text, truthy};
+use crate::coercion::{StringCoercionError, truthy};
 use crate::environment::Environment;
 use crate::expression::Expression;
 use crate::globals::{self, IterableState, Iterator, NativeResult};
@@ -7,8 +7,8 @@ use crate::pattern::{
 };
 use crate::program::{Key, Node, Program};
 use crate::provenance::{Origin, concatenate};
+use crate::text::RuntimeString;
 use crate::value::{Closure, HostCallable, Value};
-use crate::{json::JsonValue, text::RuntimeString};
 use std::fmt;
 use std::future::Future;
 use std::pin::Pin;
@@ -161,7 +161,6 @@ impl fmt::Debug for RootedValue {
 pub enum EvaluationError {
     UnknownReference(String),
     NotIterable,
-    InvalidPropertyKey,
     NullishMember(RuntimeString),
     UnsupportedMember,
     ForeignRoot,
@@ -184,7 +183,6 @@ impl fmt::Display for EvaluationError {
         match self {
             Self::UnknownReference(name) => write!(f, "unknown reference: {name}"),
             Self::NotIterable => write!(f, "array spread value is not iterable"),
-            Self::InvalidPropertyKey => write!(f, "object computed key must be a string or number"),
             Self::NullishMember(name) => {
                 write!(f, "cannot read property {name:?} of null or undefined")
             }
@@ -255,6 +253,11 @@ pub struct CompiledExpression(Rc<Program>);
 impl CompiledExpression {
     pub fn new(expression: Expression) -> Self {
         Self(Program::compile(expression))
+    }
+
+    /// Compiles an owned native literal without an intervening JSON value.
+    pub fn from_data(document: crate::codec::data::DataDocument) -> Self {
+        Self(Program::from_data(document))
     }
 
     pub(crate) fn from_program(program: Rc<Program>) -> Self {
@@ -746,7 +749,6 @@ impl<'gc> ExpressionExecution<'gc> {
 #[collect(no_drop)]
 enum Frame<'gc> {
     Evaluate(usize),
-    Literal(#[collect(require_static)] JsonValue),
     Array(Vec<bool>),
     Object(#[collect(require_static)] Vec<ObjectKey>),
     Member(RuntimeString),
@@ -1376,7 +1378,7 @@ fn execute<'gc>(
             Node::Number(value) => state.values.push(Value::Number(*value)),
             Node::Boolean(value) => state.values.push(Value::Boolean(*value)),
             Node::Undefined => state.values.push(Value::Undefined),
-            Node::Value(value) => state.frames.push(Frame::Literal(value.clone())),
+            Node::Data(document) => state.values.push(document.materialize(mc)),
             Node::Reference(name) if name == "_" => state.values.push(state.matched_value),
             Node::Reference(name) if name == "this" => state.values.push(match state.subject {
                 Some(subject) => subject,
@@ -1466,31 +1468,6 @@ fn execute<'gc>(
                 state.frames.push(Frame::Evaluate(*expression));
             }
         },
-        Frame::Literal(value) => match value {
-            JsonValue::Null => state.values.push(Value::Null),
-            JsonValue::Bool(value) => state.values.push(Value::Boolean(value)),
-            JsonValue::Number(value) => state.values.push(Value::Number(
-                value.as_f64().ok_or(EvaluationError::InvalidState)?,
-            )),
-            JsonValue::String(value) => state.values.push(Value::string(mc, value)),
-            JsonValue::Array(values) => {
-                state.frames.push(Frame::Array(vec![false; values.len()]));
-                state
-                    .frames
-                    .extend(values.into_iter().rev().map(Frame::Literal));
-            }
-            JsonValue::Object(values) => {
-                state.frames.push(Frame::Object(
-                    values
-                        .iter()
-                        .map(|(k, _)| ObjectKey::Named(k.clone()))
-                        .collect(),
-                ));
-                state
-                    .frames
-                    .extend(values.into_iter().map(|(_, v)| v).rev().map(Frame::Literal));
-            }
-        },
         Frame::Array(spreads) => {
             let values = take_values(&mut state.values, spreads.len())?;
             state.frames.push(Frame::Spread {
@@ -1514,42 +1491,31 @@ fn execute<'gc>(
                 .sum();
             let mut values = take_values(&mut state.values, count)?.into_iter();
             let mut result = Vec::new();
-            let mut symbols = Vec::new();
             for key in keys {
                 let value = values.next().ok_or(EvaluationError::InvalidState)?;
                 match key {
-                    ObjectKey::Named(name) => result.push((name, value)),
+                    ObjectKey::Named(name) => result.push((Value::string(mc, name), value)),
                     ObjectKey::Computed => {
                         let item = values.next().ok_or(EvaluationError::InvalidState)?;
-                        match value.raw() {
-                            Value::Symbol(name) => {
-                                symbols.push(((*name).clone(), item.unwrap_deep(mc)))
-                            }
-                            Value::String(name) => result.push(((*name).clone(), item)),
-                            Value::Number(name) => result.push((number_text(name).into(), item)),
-                            _ => return Err(EvaluationError::InvalidPropertyKey),
-                        }
+                        result.push((value, item));
                     }
                     ObjectKey::Spread => {
                         match value.raw() {
                             Value::Declaration(declaration) => {
                                 result.extend(
-                                    declaration.properties.borrow().entries().iter().cloned(),
+                                    declaration
+                                        .properties
+                                        .borrow()
+                                        .entries()
+                                        .iter()
+                                        .map(|(key, item)| (key.to_value(mc), *item)),
                                 );
                             }
                             Value::Object(properties) => {
-                                symbols.extend(properties.borrow().symbol_entries().iter().map(
-                                    |(name, item)| {
-                                        (
-                                            name.clone(),
-                                            item.wrap(mc, value.origin().unwrap_or(state.origin)),
-                                        )
-                                    },
-                                ));
                                 result.extend(properties.borrow().entries().iter().map(
-                                    |(name, item)| {
+                                    |(key, item)| {
                                         (
-                                            name.clone(),
+                                            key.to_value(mc),
                                             item.wrap(mc, value.origin().unwrap_or(state.origin)),
                                         )
                                     },
@@ -1557,7 +1523,10 @@ fn execute<'gc>(
                             }
                             Value::Array(values) => result.extend(
                                 values.borrow().iter().enumerate().map(|(i, item)| {
-                                    (i.to_string().into(), value.carry_item(mc, *item, i))
+                                    (
+                                        Value::string(mc, i.to_string()),
+                                        value.carry_item(mc, *item, i),
+                                    )
                                 }),
                             ),
                             // Current object spreading ignores non-object primitives.
@@ -1566,13 +1535,7 @@ fn execute<'gc>(
                     }
                 }
             }
-            let object = Value::object(mc, result);
-            if let Value::Object(storage) = object {
-                for (name, item) in symbols {
-                    storage.borrow_mut(mc).set_symbol(name, item);
-                }
-            }
-            state.values.push(object);
+            state.values.push(Value::association(mc, result));
         }
         Frame::Member(name) => {
             let value = state.values.pop().ok_or(EvaluationError::InvalidState)?;
@@ -1612,7 +1575,14 @@ fn execute<'gc>(
                     _ => Value::Undefined,
                 },
                 Value::Object(properties) => {
-                    properties.borrow().get(&name).unwrap_or(Value::Undefined)
+                    let properties = properties.borrow();
+                    properties.get(&name).unwrap_or_else(|| {
+                        if name == "size" {
+                            Value::Number(properties.entries().len() as f64)
+                        } else {
+                            Value::Undefined
+                        }
+                    })
                 }
                 Value::Declaration(declaration) => declaration
                     .properties
@@ -1675,9 +1645,7 @@ fn execute<'gc>(
                         },
                     }
                 }
-                Value::Set(values) | Value::Map(values) if name == "size" => {
-                    Value::Number(values.borrow().len() as f64)
-                }
+                Value::Set(values) if name == "size" => Value::Number(values.borrow().len() as f64),
                 Value::Bytes(bytes) if name == "length" => Value::Number(bytes.len() as f64),
                 Value::Bytes(bytes) => array_index(&name)
                     .and_then(|i| bytes.get(i))
@@ -1872,6 +1840,15 @@ fn execute<'gc>(
                             ));
                         }
                         let properties = object.borrow();
+                        if properties
+                            .entries()
+                            .iter()
+                            .any(|(key, _)| key.as_string().is_none())
+                        {
+                            return Err(EvaluationError::Native(
+                                "cannot serialize object with non-string keys to JSON".into(),
+                            ));
+                        }
                         state.frames.push(Frame::JsonLeave {
                             path,
                             container: value,
@@ -1880,15 +1857,24 @@ fn execute<'gc>(
                             properties
                                 .entries()
                                 .iter()
-                                .map(|(key, _)| key.clone())
+                                .map(|(key, _)| {
+                                    key.as_string()
+                                        .expect("object keys validated before JSON traversal")
+                                        .clone()
+                                })
                                 .collect(),
                         ));
                         state.frames.extend(properties.entries().iter().rev().map(
-                            |(key, value)| Frame::JsonValue {
-                                value: *value,
-                                key: key.clone(),
-                                path,
-                                hook: true,
+                            |(key, value)| {
+                                Frame::JsonValue {
+                                    value: *value,
+                                    key: key
+                                        .as_string()
+                                        .expect("object keys validated before JSON traversal")
+                                        .clone(),
+                                    path,
+                                    hook: true,
+                                }
                             },
                         ));
                     }

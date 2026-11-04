@@ -1,6 +1,6 @@
 ---
 id: over-002
-title: Over matches undeclared object entries with rest patterns
+title: Over matches undeclared Object entries with rest patterns
 spec_ref: ".agents/specifications/patterns/runtime/over.spec.md#rest-clauses"
 ---
 
@@ -10,15 +10,12 @@ spec_ref: ".agents/specifications/patterns/runtime/over.spec.md#rest-clauses"
 
 Preconditions:
 
-- An `over` pattern with rest clauses is evaluated on an object or Map value.
+- An `over` pattern with rest clauses is evaluated on an Object value.
 
 Expected behavior:
 
-- On an object, rest clauses MUST consider every own, enumerable, string-keyed
-  property not named in its declared key map; symbol-keyed properties MUST be
-  ignored.
-- On a Map, rest clauses MUST consider every entry not named in its declared key
-  map, using the original Map key value.
+- Rest clauses MUST consider every Object entry not named in its declared key
+  map and MUST use the original key value.
 - For each remaining property or entry, `over` MUST try rest clauses in source
   order and accept the first clause whose key and value patterns both match.
 - A key or value pattern failure MUST let `over` try the next rest clause.
@@ -31,8 +28,7 @@ Expected behavior:
   that variable MUST remain unbound.
 - `over` MUST NOT apply rest clauses to declared keys or re-match an entry
   accepted by an earlier clause.
-- Object properties MUST be processed in `Object.keys` order. Map entries MUST
-  be processed in insertion order.
+- Object entries MUST be processed in insertion order.
 - If no rest clause matches an entry, `over` MUST fail unless the final rest
   clause is the catch-all.
 - A pattern without rest clauses MUST preserve the existing behavior of ignoring
@@ -40,5 +36,5 @@ Expected behavior:
 
 Postconditions:
 
-- Success MUST preserve the original object or Map as the output value.
+- Success MUST preserve the original Object as the output value.
 - Tests: `src/pattern/composite_ports.rs`.

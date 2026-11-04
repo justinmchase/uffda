@@ -167,7 +167,7 @@ fn literal_value<'gc>(mc: &uffda_heap::Mutation<'gc>, value: Json) -> Value<'gc>
     let mut literal = ExpressionExecution::new(
         mc,
         Expression::Value {
-            value: Some(value.into()),
+            value: Some(crate::codec::data::DataDocument::from_json(value.into()).unwrap()),
         },
         environment,
         Origin { start: 0, end: 0 },

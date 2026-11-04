@@ -20,19 +20,16 @@ rather than a bare identifier.
 - An object-computed-key initializer MUST evaluate its value expression.
 - The resulting key value MUST be assigned as the property key, and the
   resulting value MUST be assigned as that property's value.
+- The key expression MAY evaluate to any runtime value.
 - Key evaluation order relative to value evaluation is unspecified beyond the
   requirement that both complete before assignment.
 
 ## Error conditions
 
-- A resolved key value that is not a `string`, `number`, or `symbol` MUST throw
-  an evaluation exception.
 - Child-expression errors (from either the key expression or the value
   expression) MUST propagate unchanged.
 
 ## Composition intent
 
 - Object computed-key initializers SHOULD be used when a property key is not
-  known statically, for example a well-known or interned symbol obtained from
-  another expression (such as a `symbol` lookup), or a dynamically computed
-  string/number key.
+  known statically, including primitive and reference values.

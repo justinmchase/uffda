@@ -408,7 +408,9 @@ fn scope_port_conversion_rejects_callables_and_composites() {
             mc,
             environment,
             Expression::Value {
-                value: Some(json!("hidden").into()),
+                value: Some(
+                    crate::codec::data::DataDocument::from_json(json!("hidden").into()).unwrap(),
+                ),
             },
         );
         let origin = Origin { start: 0, end: 1 };
@@ -497,7 +499,7 @@ fn scope_port_conversion_rejects_callables_and_composites() {
         for value in [
             Value::object(mc, vec![]),
             Value::array(mc, vec![]),
-            Value::map(mc, vec![]),
+            Value::association(mc, vec![]),
             Value::set(mc, vec![]),
             Value::Url(uffda_heap::Gc::new(
                 mc,

@@ -22,8 +22,14 @@ fn check_child_depth(depth: usize, additional: usize, limits: DataLimits) -> Res
     Ok(())
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct DataDocument(uffda_codec::data::DataDocument);
+
+impl<'de> serde::Deserialize<'de> for DataDocument {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        uffda_codec::data::DataDocument::deserialize(deserializer).map(Self)
+    }
+}
 impl std::ops::Deref for DataDocument {
     type Target = uffda_codec::data::DataDocument;
     fn deref(&self) -> &Self::Target {
@@ -31,6 +37,14 @@ impl std::ops::Deref for DataDocument {
     }
 }
 impl DataDocument {
+    pub fn from_nodes(
+        nodes: Vec<DataNode>,
+        root: usize,
+        limits: DataLimits,
+    ) -> Result<Self, DataError> {
+        uffda_codec::data::DataDocument::from_nodes(nodes, root, limits).map(Self)
+    }
+
     pub fn from_codec(text: &str) -> Result<Self, DataError> {
         uffda_codec::from_str(text).map(Self)
     }
@@ -38,6 +52,149 @@ impl DataDocument {
     pub fn from_ast(ast: Json, limits: DataLimits) -> Result<Self, DataError> {
         uffda_codec::data::DataDocument::from_ast(ast, limits).map(Self)
     }
+
+    pub fn from_json(value: crate::json::JsonValue) -> Result<Self, DataError> {
+        use crate::json::JsonValue;
+        enum Build {
+            Visit(JsonValue),
+            Array(usize),
+            Object(Vec<uffda_codec::text::RuntimeString>),
+        }
+        let mut nodes = Vec::new();
+        let mut work = vec![Build::Visit(value)];
+        let mut results = Vec::<usize>::new();
+        while let Some(action) = work.pop() {
+            match action {
+                Build::Visit(value) => match value {
+                    JsonValue::Array(items) => {
+                        work.push(Build::Array(items.len()));
+                        work.extend(items.into_iter().rev().map(Build::Visit));
+                    }
+                    JsonValue::Object(entries) => {
+                        let entries: Vec<_> = entries.into_iter().collect();
+                        work.push(Build::Object(
+                            entries
+                                .iter()
+                                .map(|(key, _)| key.codec_text().clone())
+                                .collect(),
+                        ));
+                        work.extend(
+                            entries
+                                .into_iter()
+                                .rev()
+                                .map(|(_, item)| Build::Visit(item)),
+                        );
+                    }
+                    JsonValue::Null => {
+                        results.push(nodes.len());
+                        nodes.push(DataNode::Null);
+                    }
+                    JsonValue::Bool(value) => {
+                        results.push(nodes.len());
+                        nodes.push(DataNode::Boolean(value));
+                    }
+                    JsonValue::Number(value) => {
+                        let number = value
+                            .as_f64()
+                            .ok_or_else(|| error("JSON number is outside the runtime range"))?;
+                        results.push(nodes.len());
+                        nodes.push(DataNode::Number(number));
+                    }
+                    JsonValue::String(value) => {
+                        results.push(nodes.len());
+                        nodes.push(DataNode::String(value.codec_text().clone()));
+                    }
+                },
+                Build::Array(count) => {
+                    let start = results
+                        .len()
+                        .checked_sub(count)
+                        .ok_or_else(|| error("invalid JSON array children"))?;
+                    let children = results.split_off(start);
+                    results.push(nodes.len());
+                    nodes.push(DataNode::Array(children));
+                }
+                Build::Object(keys) => {
+                    let start = results
+                        .len()
+                        .checked_sub(keys.len())
+                        .ok_or_else(|| error("invalid JSON object children"))?;
+                    let values = results.split_off(start);
+                    let entries = keys
+                        .into_iter()
+                        .zip(values)
+                        .map(|(key, value)| {
+                            let index = nodes.len();
+                            nodes.push(DataNode::String(key));
+                            (index, value)
+                        })
+                        .collect();
+                    results.push(nodes.len());
+                    nodes.push(DataNode::Object(entries));
+                }
+            }
+        }
+        if results.len() != 1 {
+            return Err(error("invalid JSON document result"));
+        }
+        Self::from_nodes(nodes, results[0], DataLimits::default())
+    }
+
+    pub fn root_field(&self, key: &str, limits: DataLimits) -> Result<Option<Self>, DataError> {
+        let DataNode::Object(entries) = &self.nodes()[self.root()] else {
+            return Err(error("data root is not an object"));
+        };
+        let Some((_, child)) = entries
+            .iter()
+            .find(|(name, _)| {
+                matches!(&self.nodes()[*name], DataNode::String(name) if name.to_utf8().is_ok_and(|text| text == key))
+            })
+        else {
+            return Ok(None);
+        };
+        self.subdocument(*child, limits).map(Self).map(Some)
+    }
+
+    pub fn field(&self, key: &str) -> Result<Option<Self>, DataError> {
+        self.root_field(key, DataLimits::default())
+    }
+
+    pub fn replace_root_field(
+        &self,
+        key: &str,
+        replacement: &Self,
+        limits: DataLimits,
+    ) -> Result<Self, DataError> {
+        self.0
+            .replace_root_field(key, &replacement.0, limits)
+            .map(Self)
+    }
+
+    pub fn string_value(&self) -> Option<String> {
+        match &self.nodes()[self.root()] {
+            DataNode::String(value) => value.to_utf8().ok(),
+            _ => None,
+        }
+    }
+
+    pub fn array_items(&self) -> Result<Vec<Self>, DataError> {
+        let DataNode::Array(items) = &self.nodes()[self.root()] else {
+            return Err(error("data root is not an array"));
+        };
+        items
+            .iter()
+            .map(|index| self.subdocument(*index, DataLimits::default()).map(Self))
+            .collect()
+    }
+
+    pub fn is_object(&self) -> bool {
+        matches!(self.nodes()[self.root()], DataNode::Object(_))
+    }
+
+    pub fn is_array(&self) -> bool {
+        matches!(self.nodes()[self.root()], DataNode::Array(_))
+    }
+
     /// Materializes the validated tree inside the caller's arena mutation.
     pub fn materialize<'gc>(&self, mc: &uffda_heap::Mutation<'gc>) -> crate::value::Value<'gc> {
         use crate::value::Value;
@@ -57,23 +214,16 @@ impl DataDocument {
                 DataNode::Array(items) => {
                     Value::array(mc, items.iter().map(|index| child(*index)).collect())
                 }
-                DataNode::Object(entries) => Value::object(
-                    mc,
-                    entries
-                        .iter()
-                        .map(|(key, index)| (key.clone().into(), child(*index)))
-                        .collect(),
-                ),
-                DataNode::Set(items) => {
-                    Value::set(mc, items.iter().map(|index| child(*index)).collect())
-                }
-                DataNode::Map(entries) => Value::map(
+                DataNode::Object(entries) => Value::association(
                     mc,
                     entries
                         .iter()
                         .map(|(key, value)| (child(*key), child(*value)))
                         .collect(),
                 ),
+                DataNode::Set(items) => {
+                    Value::set(mc, items.iter().map(|index| child(*index)).collect())
+                }
                 DataNode::Error {
                     name,
                     message,
@@ -100,10 +250,10 @@ impl DataDocument {
         use crate::value::Value;
         enum Work<'gc> {
             Visit(Value<'gc>, usize),
+            Literal(DataNode),
             Array(usize),
-            Object(Vec<uffda_codec::text::RuntimeString>),
+            Object(usize),
             Set(usize),
-            Map(usize),
             Error {
                 name: uffda_codec::text::RuntimeString,
                 message: uffda_codec::text::RuntimeString,
@@ -164,18 +314,26 @@ impl DataDocument {
                                 return Err(error("cyclic or shared composite data"));
                             }
                             let properties = object.borrow();
-                            if !properties.symbol_entries().is_empty() {
-                                return Err(error("symbol object keys cannot be encoded"));
-                            }
                             let entries = properties.entries().to_vec();
-                            let keys = entries.iter().map(|(key, _)| (**key).clone()).collect();
-                            work.push(Work::Object(keys));
-                            work.extend(
-                                entries
-                                    .into_iter()
-                                    .rev()
-                                    .map(|(_, value)| Work::Visit(value, depth + 1)),
-                            );
+                            work.push(Work::Object(entries.len()));
+                            for (key, value) in entries.into_iter().rev() {
+                                work.push(Work::Visit(value, depth + 1));
+                                match key {
+                                    crate::value::AssociationKey::String(key) => {
+                                        work.push(Work::Literal(DataNode::String(
+                                            key.codec_text().clone(),
+                                        )));
+                                    }
+                                    crate::value::AssociationKey::Symbol(key) => {
+                                        work.push(Work::Literal(DataNode::Symbol(
+                                            key.codec_text().clone(),
+                                        )));
+                                    }
+                                    crate::value::AssociationKey::Value(key) => {
+                                        work.push(Work::Visit(key, depth + 1));
+                                    }
+                                }
+                            }
                             continue;
                         }
                         Value::Set(set) => {
@@ -191,34 +349,6 @@ impl DataDocument {
                                     .rev()
                                     .map(|value| Work::Visit(value, depth + 1)),
                             );
-                            continue;
-                        }
-                        Value::Map(map) => {
-                            let entries = map.borrow().clone();
-                            check_child_depth(
-                                depth,
-                                if entries.is_empty() { 1 } else { 2 },
-                                limits,
-                            )?;
-                            if !seen.insert((5, Gc::as_ptr(map) as usize)) {
-                                return Err(error("cyclic or shared composite data"));
-                            }
-                            let mut pairs = Vec::with_capacity(entries.len());
-                            for entry in entries {
-                                let Value::Array(pair) = entry.raw() else {
-                                    return Err(error("map entry must be an array pair"));
-                                };
-                                let pair = pair.borrow();
-                                if pair.len() != 2 {
-                                    return Err(error("map entry must have exactly two values"));
-                                }
-                                pairs.push((pair[0], pair[1]));
-                            }
-                            work.push(Work::Map(pairs.len()));
-                            for (key, value) in pairs.into_iter().rev() {
-                                work.push(Work::Visit(value, depth + 2));
-                                work.push(Work::Visit(key, depth + 2));
-                            }
                             continue;
                         }
                         Value::Error(value) => {
@@ -253,6 +383,7 @@ impl DataDocument {
                         Value::Located(_) => unreachable!("raw values are not wrapped"),
                     }
                 }
+                Work::Literal(node) => node,
                 Work::Array(count) => {
                     let start = values
                         .len()
@@ -260,12 +391,22 @@ impl DataDocument {
                         .ok_or_else(|| error("invalid array construction"))?;
                     DataNode::Array(values.split_off(start))
                 }
-                Work::Object(keys) => {
+                Work::Object(count) => {
+                    let item_count = count
+                        .checked_mul(2)
+                        .ok_or_else(|| error("invalid object construction"))?;
                     let start = values
                         .len()
-                        .checked_sub(keys.len())
+                        .checked_sub(item_count)
                         .ok_or_else(|| error("invalid object construction"))?;
-                    DataNode::Object(keys.into_iter().zip(values.split_off(start)).collect())
+                    let entries = values
+                        .split_off(start)
+                        .as_chunks::<2>()
+                        .0
+                        .iter()
+                        .map(|[key, value]| (*key, *value))
+                        .collect();
+                    DataNode::Object(entries)
                 }
                 Work::Set(count) => {
                     let start = values
@@ -274,25 +415,6 @@ impl DataDocument {
                         .ok_or_else(|| error("invalid set construction"))?;
                     let items = values.split_off(start);
                     DataNode::Set(items)
-                }
-                Work::Map(count) => {
-                    let item_count = count
-                        .checked_mul(2)
-                        .ok_or_else(|| error("invalid map construction"))?;
-                    let start = values
-                        .len()
-                        .checked_sub(item_count)
-                        .ok_or_else(|| error("invalid map construction"))?;
-                    let items = values.split_off(start);
-                    let (pairs, remainder) = items.as_chunks::<2>();
-                    if !remainder.is_empty() {
-                        return Err(error("invalid map construction"));
-                    }
-                    let entries = pairs
-                        .iter()
-                        .map(|[key, value]| (*key, *value))
-                        .collect::<Vec<_>>();
-                    DataNode::Map(entries)
                 }
                 Work::Error {
                     name,

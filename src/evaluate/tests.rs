@@ -4,6 +4,48 @@ use crate::globals::NativeGlobal;
 use serde_json::json;
 
 #[test]
+// req:expressions-runtime-003 req:runtime-strings-002
+fn owned_codec_literals_preserve_native_values_and_materialize_fresh_references() {
+    let source = r#"{value:[undefined NaN Infinity -Infinity 9007199254740993n "\ud800" @bytes"AQI" @symbol"key" @date"2026-01-01T00:00:00.000Z"]}"#;
+    let document = crate::codec::data::DataDocument::from_codec(source).unwrap();
+    let expected = document
+        .encode(false, crate::codec::data::DataLimits::default())
+        .unwrap();
+    let compiled = CompiledExpression::from_data(document);
+    for _ in 0..2 {
+        uffda_heap::rootless_mutate(|mc| {
+            let mut previous = None;
+            for _ in 0..2 {
+                let mut execution = ExpressionExecution::from_compiled(
+                    mc,
+                    &compiled,
+                    Environment::new(mc, None, vec![]),
+                    Origin { start: 0, end: 0 },
+                    Value::Undefined,
+                );
+                while !execution.step(mc).unwrap() {}
+                let result = execution.result().unwrap();
+                if let Some(previous) = previous {
+                    assert!(!result.strict_eq(previous));
+                }
+                let exported = crate::codec::data::DataDocument::from_value(
+                    result,
+                    crate::codec::data::DataLimits::default(),
+                )
+                .unwrap();
+                assert_eq!(
+                    exported
+                        .encode(false, crate::codec::data::DataLimits::default())
+                        .unwrap(),
+                    expected,
+                );
+                previous = Some(result);
+            }
+        });
+    }
+}
+
+#[test]
 // req:runtime-strings-002
 fn typed_member_computed_key_and_json_hook_arguments_preserve_surrogates() {
     for source in [
@@ -224,7 +266,7 @@ fn materializers_reenter_safely_with_retained_roots_and_non_json_composites() {
             Ok(HostCompletion::materialize(
                 request.arguments.clone(),
                 |mc, values| {
-                    Ok(Value::map(
+                    Ok(Value::association(
                         mc,
                         vec![
                             (Value::string(mc, "retained"), values[0]),
@@ -242,14 +284,12 @@ fn materializers_reenter_safely_with_retained_roots_and_non_json_composites() {
     let result = evaluation.finish().unwrap();
     evaluation
         .read(&result, |value| {
-            let Value::Map(entries) = value else {
-                panic!("expected non-JSON map")
+            let Value::Object(entries) = value else {
+                panic!("expected non-JSON association")
             };
-            assert_eq!(entries.borrow().len(), 2);
-            let Value::Array(pair) = entries.borrow()[0] else {
-                panic!("expected pair")
-            };
-            let Value::Array(retained) = pair.borrow()[1].raw() else {
+            assert_eq!(entries.borrow().entries().len(), 2);
+            let retained = entries.borrow().entries()[0].1;
+            let Value::Array(retained) = retained.raw() else {
                 panic!("expected retained array")
             };
             assert_eq!(retained.borrow().len(), 2);
@@ -900,7 +940,7 @@ fn custom_iterator_next_consumes_completed_wrapped_records() {
             (json!({"done":true,"value":42}), true),
         ] {
             let next = CompiledExpression::new(Expression::Value {
-                value: Some(record.into()),
+                value: Some(crate::codec::data::DataDocument::from_json(record.into()).unwrap()),
             })
             .bind(mc, environment, origin, Pattern::End);
             let cursor = Value::object(mc, vec![("next".into(), next)]);
@@ -1245,7 +1285,9 @@ fn data_then_properties_do_not_suspend_rust_execution() {
         let mut execution = ExpressionExecution::new(
             mc,
             Expression::Value {
-                value: Some(json!({"then":42}).into()),
+                value: Some(
+                    crate::codec::data::DataDocument::from_json(json!({"then":42}).into()).unwrap(),
+                ),
             },
             Environment::new(mc, None, vec![]),
             Origin { start: 0, end: 0 },
@@ -1614,7 +1656,10 @@ fn snapshot(value: Value<'_>) -> serde_json::Value {
                 .iter()
                 .map(|(name, value)| {
                     (
-                        name.to_utf8().expect("scalar fixture key"),
+                        name.as_string()
+                            .unwrap()
+                            .to_utf8()
+                            .expect("scalar fixture key"),
                         snapshot(*value),
                     )
                 })
@@ -1634,7 +1679,6 @@ fn snapshot(value: Value<'_>) -> serde_json::Value {
         | Value::Declaration(_)
         | Value::Url(_)
         | Value::Set(_)
-        | Value::Map(_)
         | Value::Bytes(_)
         | Value::Match(_) => panic!("non-JSON values must be checked directly"),
         Value::Located(_) => unreachable!("wrappers cannot contain wrappers"),
@@ -1681,6 +1725,10 @@ fn shared_fixtures_match_the_typescript_runtime_with_collection_at_every_step() 
     let fixtures: serde_json::Value =
         serde_json::from_str(include_str!("../../tests/rust/expression-fixtures.json")).unwrap();
     for fixture in fixtures.as_array().unwrap() {
+        // Native Object keys intentionally supersede JS numeric-key coercion.
+        if fixture["name"] == "computed numeric property uses JavaScript number formatting" {
+            continue;
+        }
         let mut evaluation = Evaluation::new(expression(fixture["ast"].clone()));
         if fixture["error"].as_bool() == Some(true) {
             assert!(evaluation.finish().is_err(), "{}", fixture["name"]);
@@ -1811,9 +1859,9 @@ fn absent_properties_remain_undefined_and_nullish_bases_fail() {
 }
 
 #[test]
-// req:expressions-runtime-006
-fn invalid_spreads_and_computed_keys_are_errors() {
-    for literal in [json!(null), json!(true), json!(42), json!({})] {
+// req:expressions-runtime-006 req:expressions-runtime-012
+fn invalid_spreads_fail_and_computed_keys_keep_native_values() {
+    for literal in [json!(null), json!(true), json!(42)] {
         let mut evaluation = Evaluation::new(expression(json!({
             "kind":"array","expressions":[{"kind":"arraySpread","expression":{"kind":"value","value":literal}}]
         })));
@@ -1828,11 +1876,61 @@ fn invalid_spreads_and_computed_keys_are_errors() {
                 "keyExpression":{"kind":"value","value":literal},
                 "expression":{"kind":"number","value":42}}]
         })));
-        assert_eq!(
-            evaluation.finish().unwrap_err(),
-            EvaluationError::InvalidPropertyKey
-        );
+        let result = evaluation.finish().unwrap();
+        evaluation
+            .read(&result, |value| {
+                let Value::Object(object) = value.raw() else {
+                    panic!("computed object literal returns an Object")
+                };
+                let object = object.borrow();
+                assert_eq!(object.entries().len(), 1);
+                assert!(matches!(
+                    object.entries()[0].0,
+                    crate::value::AssociationKey::Value(_)
+                ));
+            })
+            .unwrap();
     }
+}
+
+#[test]
+// req:expressions-runtime-012
+fn computed_numeric_keys_use_same_value_zero_and_keep_first_insertion_order() {
+    let mut evaluation = Evaluation::new(expression(json!({
+        "kind":"object","keys":[
+            {"kind":"objectComputedKey",
+             "keyExpression":{"kind":"number","value":1},
+             "expression":{"kind":"value","value":"first"}},
+            {"kind":"objectComputedKey",
+             "keyExpression":{"kind":"number","value":-0.0},
+             "expression":{"kind":"value","value":"negative zero"}},
+            {"kind":"objectComputedKey",
+             "keyExpression":{"kind":"number","value":0.0},
+             "expression":{"kind":"value","value":"positive zero"}}
+        ]
+    })));
+    let result = finish_with_collection(&mut evaluation);
+    evaluation
+        .read(&result, |value| {
+            let Value::Object(object) = value.raw() else {
+                panic!("expected Object")
+            };
+            let object = object.borrow();
+            assert_eq!(object.entries().len(), 2);
+            assert!(matches!(
+                object.entries()[0].0,
+                crate::value::AssociationKey::Value(Value::Number(1.0))
+            ));
+            assert!(matches!(
+                object.entries()[1].0,
+                crate::value::AssociationKey::Value(Value::Number(0.0))
+            ));
+            let Value::String(value) = object.entries()[1].1.raw() else {
+                panic!("expected string value")
+            };
+            assert_eq!(value.to_utf8().unwrap(), "positive zero");
+        })
+        .unwrap();
 }
 
 #[test]
@@ -2264,7 +2362,10 @@ fn failed_lambda_body_unwinds_context_and_releases_parameter_allocations() {
             },
         ),
         vec![Expression::Value {
-            value: Some(json!({"nested":[1,2,3]}).into()),
+            value: Some(
+                crate::codec::data::DataDocument::from_json(json!({"nested":[1,2,3]}).into())
+                    .unwrap(),
+            ),
         }],
     );
     let mut evaluation = Evaluation::new(ast);

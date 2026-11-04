@@ -106,7 +106,7 @@ receives input derived from the previous step's matched value.
   protocol for downstream stream consumption while remaining a plain record that
   MUST NOT be discarded and replaced with an array of its own iterated items.
 - Values that are already arrays, or that are not generator instances at all
-  (strings, plain objects, `Set`/`Map`, etc.), are unaffected by this draining
+  (strings, plain objects, Sets, etc.), are unaffected by this draining
   step.
 
 ## Source provenance
