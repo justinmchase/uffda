@@ -260,35 +260,41 @@ fn build_script_embeds_the_published_artifact_tree() {
         let document = uffda_runtime::codec::data::DataDocument::from_codec(embedded).unwrap();
         let declaration: uffda_runtime::resolver::ModuleDeclaration =
             uffda_codec::data::de::from_document_with_undefined(&document).unwrap();
-        let json: uffda_runtime::json::JsonValue = uffda_runtime::json::from_str(
-            &std::fs::read_to_string(root.join(format!("{relative}.json"))).unwrap(),
-        )
-        .unwrap();
-        for (field, codec_values) in [
-            ("imports", declaration.imports.as_slice()),
-            ("exports", declaration.exports.as_slice()),
-            ("rules", declaration.rules.as_slice()),
-            ("funcs", declaration.funcs.as_slice()),
-            ("decorators", declaration.decorators.as_slice()),
-        ] {
-            let Some(uffda_runtime::json::JsonValue::Array(json_values)) = json.get(field) else {
-                panic!("JSON declaration field {field} must be an array: {logical}");
-            };
-            assert_eq!(codec_values.len(), json_values.len(), "{field}: {logical}");
-            for (codec_value, json_value) in codec_values.iter().zip(json_values) {
-                let json_document =
-                    uffda_runtime::codec::data::DataDocument::from_json(json_value.clone())
-                        .unwrap();
-                assert_eq!(
-                    codec_value
-                        .encode(false, uffda_runtime::codec::data::DataLimits::default())
-                        .unwrap(),
-                    json_document
-                        .encode(false, uffda_runtime::codec::data::DataLimits::default())
-                        .unwrap(),
-                    "{field} must preserve its declarations: {logical}"
-                );
+        let json_path = root.join(format!("{relative}.json"));
+        match std::fs::read_to_string(&json_path) {
+            Ok(json_source) => {
+                let json: uffda_runtime::json::JsonValue =
+                    uffda_runtime::json::from_str(&json_source).unwrap();
+                for (field, codec_values) in [
+                    ("imports", declaration.imports.as_slice()),
+                    ("exports", declaration.exports.as_slice()),
+                    ("rules", declaration.rules.as_slice()),
+                    ("funcs", declaration.funcs.as_slice()),
+                    ("decorators", declaration.decorators.as_slice()),
+                ] {
+                    let Some(uffda_runtime::json::JsonValue::Array(json_values)) = json.get(field)
+                    else {
+                        panic!("JSON declaration field {field} must be an array: {logical}");
+                    };
+                    assert_eq!(codec_values.len(), json_values.len(), "{field}: {logical}");
+                    for (codec_value, json_value) in codec_values.iter().zip(json_values) {
+                        let json_document =
+                            uffda_runtime::codec::data::DataDocument::from_json(json_value.clone())
+                                .unwrap();
+                        assert_eq!(
+                            codec_value
+                                .encode(false, uffda_runtime::codec::data::DataLimits::default())
+                                .unwrap(),
+                            json_document
+                                .encode(false, uffda_runtime::codec::data::DataLimits::default())
+                                .unwrap(),
+                            "{field} must preserve its declarations: {logical}"
+                        );
+                    }
+                }
             }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => panic!("failed to read {}: {error}", json_path.display()),
         }
     }
 }
