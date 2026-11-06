@@ -1,6 +1,6 @@
 ---
 id: cli-compile-004
-title: CLI compile emits ModuleDeclaration JSON
+title: CLI compile emits ModuleDeclaration codec artifacts
 spec_ref: ".agents/specifications/languages/cli/compile-and-stream.spec.md#ast-artifact-contracts; .agents/specifications/languages/compiler-bootstrap.spec.md#compile-pipeline-and-recursion-break"
 ---
 
@@ -15,10 +15,12 @@ Preconditions:
 
 Expected behavior:
 
-- The emitted JSON file MUST be the ModuleDeclaration (`imports` / `exports` /
-  `rules`).
-- The emitted value MUST NOT contain CLI-specific compiler, module identity,
+- The emitted `.uff.ast` codec record MUST be the ModuleDeclaration
+  (`imports` / `exports` / `rules`).
+- The emitted record MUST NOT contain CLI-specific compiler, module identity,
   version, or source-path metadata.
+- Compile result envelopes remain JSON and expose the codec record as
+  `moduleCodec`.
 - Source-path provenance MUST remain available through the compile result and
   failure diagnostics.
 

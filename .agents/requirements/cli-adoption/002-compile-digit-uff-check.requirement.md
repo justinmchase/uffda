@@ -19,10 +19,10 @@ Expected behavior:
 - Checks MUST compile language `.uff` sources into `./bin/` by clearing `./bin`
   and running `uffda compile 'src/lang/**/*.uff'` with that published CLI.
 - That command MUST be the previous published `uffda compile` for parse, then
-  the compile-pipeline lower stage to ModuleDeclaration JSON. It is the same
+  the compile-pipeline lower stage to a data-codec ModuleDeclaration. It is the same
   invocation as `compile:lang`, without a Deno task runner.
-- The compile MUST emit deterministic ModuleDeclaration JSON artifacts under
-  `./bin/ast/`.
+- The compile MUST emit deterministic `.uff.ast` artifacts under `./bin/ast/`
+  and MUST NOT emit `.uff.ast.json` siblings.
 
 Postconditions:
 

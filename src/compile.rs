@@ -639,7 +639,7 @@ mod tests {
     }
 
     #[test]
-    // req:project-file-003 req:cli-bootstrap-034 req:cli-compile-002 req:cli-compile-008
+    // req:project-file-003 req:cli-bootstrap-034 req:cli-compile-002 req:cli-compile-004 req:cli-compile-008
     fn compilation_writes_module_declarations_in_mirrored_layout_and_refuses_overwrite() {
         let root = std::env::temp_dir().join(format!("uffda-compile-{}", std::process::id()));
         std::fs::create_dir_all(root.join("src")).unwrap();

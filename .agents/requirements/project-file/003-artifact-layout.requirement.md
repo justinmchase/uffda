@@ -21,10 +21,10 @@ Expected behavior:
 - The artifact layout MUST be the project's root and `outDir`, or, without a
   project, the working directory (the language server: its workspace root) and
   `./bin`.
-- `<root>/<path>.uff` MUST compile to both `<outDir>/ast/<path>.uff.ast` (data
-  codec) and `<outDir>/ast/<path>.uff.ast.json` (JSON). A resolver given that
-  layout MUST prefer the `.uff.ast` file when it exists and otherwise read
-  `.uff.ast.json`. Nothing is written next to a source.
+- `<root>/<path>.uff` MUST compile to `<outDir>/ast/<path>.uff.ast` as one
+  data-codec ModuleDeclaration record. Compile MUST NOT emit a JSON sibling.
+  Resolvers given that layout MUST read only the `.uff.ast` artifact. Nothing
+  is written next to a source.
 - `uffda compile`, MCP `uffda_compile`, `run`, `exec`, MCP sessions (their
   compile-on-demand included), and the language server MUST all use the layout.
   MCP tools take no output or artifact directory argument.

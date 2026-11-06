@@ -190,18 +190,17 @@ cargo test-rust
 
 ### Packaging
 
-| Channel               | Ships                                                                                                         |
-| --------------------- | ------------------------------------------------------------------------------------------------------------- |
-| crates.io (libraries) | `uffda-runtime`, `uffda-codec`, `uffda-heap`, `uffda-heap-derive`, `uffda-build`                              |
-| GitHub Releases       | Product `uffda` CLI (ASTs embedded at build time)                                                             |
-| JSR                   | `.uff`, `.uff.ast` (data-codec ModuleDeclarations), `.uff.ast.json` compatibility siblings; `jsr:` resolution |
+| Channel               | Ships                                                                            |
+| --------------------- | -------------------------------------------------------------------------------- |
+| crates.io (libraries) | `uffda-runtime`, `uffda-codec`, `uffda-heap`, `uffda-heap-derive`, `uffda-build` |
+| GitHub Releases       | Product `uffda` CLI (ASTs embedded at build time)                                |
+| JSR                   | `.uff`, `.uff.ast` (data-codec ModuleDeclarations); `jsr:` resolution            |
 
-Compiled ModuleDeclarations on disk use the **`.uff.ast`** extension for the
-data-codec record. A **`.uff.ast.json`** sibling is still emitted; resolvers and
-`uffda-build` embeds use codec records directly. Value decoding is independent
-of language loading, breaking the codec/bootstrap cycle. JSON-only dependencies
-and explicit JSON declarations remain supported; removing JSON emission is a
-separate compatibility change.
+Compiled ModuleDeclarations on disk use only the **`.uff.ast`** extension for
+the data-codec record. Resolvers and `uffda-build` use codec records directly.
+Value decoding is independent of language loading, breaking the
+codec/bootstrap cycle. JSON-only dependencies and explicit JSON declarations
+remain supported; they are distinct from compiled `.uff` artifacts.
 
 Use [`uffda-codec`](../src/codec/README.md) directly for strict reading/writing
 without the runtime, grammar loader, resolver or collector. Runtime expressions

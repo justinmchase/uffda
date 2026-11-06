@@ -219,7 +219,7 @@ fn help(args: &[String]) -> String {
     };
     let mut text = format!("{usage}\n\n");
     text.push_str(match target {
-        Some("compile") => "Compile source files or globs to .uff.ast codec records and .uff.ast.json\ncompatibility siblings under <outDir>/ast.\n",
+        Some("compile") => "Compile source files or globs to .uff.ast codec records under <outDir>/ast.\n",
         Some("fmt") => "Format source files in place, or .uff stdin with '-'. --check lists changed\nfiles without writing. Files that do not parse cleanly are never rewritten.\n",
         Some("parse") => "Read one source unit from a path, stdin, or inline input and emit its raw AST.\n",
         Some("exec") => "Evaluate expression source or explicit AST JSON.\n",
@@ -1042,7 +1042,7 @@ mod tests {
     fn contextual_help_describes_only_applicable_inputs_and_preview_output() {
         let compile = help(&["compile".into(), "--help".into()]);
         assert!(compile.contains(".uff.ast codec records"));
-        assert!(compile.contains(".uff.ast.json\ncompatibility siblings"));
+        assert!(!compile.contains(".uff.ast.json"));
         let parse = help(&["parse".into(), "--help".into()]);
         assert!(parse.starts_with("Usage: uffda parse"));
         assert!(parse.contains("--lang"));
