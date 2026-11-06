@@ -92,9 +92,10 @@ workspace `./bin`, so an empty `./bin` cannot be filled by in-tree parse alone.
   `runtime.compiler.uff` from those declarations. This is not the recursive
   case: the artifact being used was produced by an earlier, separate invocation
   of the previous published CLI, not by the compile call that is using it.
-- Runtime resolution of logical `.uff` URLs MUST load the mirrored
-  ModuleDeclaration artifacts only, preferring codec records. It MUST NOT re-run
-  the runtime compiler or parse `.uff` source text on import.
+- Runtime resolution of logical `.uff` URLs MUST load only mirrored
+  `.uff.ast` ModuleDeclaration codec artifacts. It MUST NOT load JSON
+  declaration artifacts, re-run the runtime compiler, or parse `.uff` source
+  text on import.
 - Authors MUST NOT introduce host workarounds that park compiler JSON under
   `src/` or special-case the runtime compiler artifact path outside normal
   resolve.

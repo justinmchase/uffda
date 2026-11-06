@@ -32,11 +32,10 @@ Expected behavior:
   `https://jsr.io/@scope/name/<version>/<path>`. The `Resolver` MUST key the
   module, and its import chain frame's `resolvedUrl`, by that URL, so two
   specifiers choosing the same file are one module.
-- Loading that URL MUST read `<outDir>/ast/<path>.uff.ast.json` within the
-  package version for `.uff` when present, else `<outDir>/ast/<path>.uff.ast`,
-  with `outDir` from its `uffda.jsonc`. A `.json` module MUST read and validate
-  its actual declaration file without remapping. Any other module extension in a
-  package MUST fail before reading its file.
+- Loading that URL MUST read only `<outDir>/ast/<path>.uff.ast` within the
+  package version for `.uff`, with `outDir` from its `uffda.jsonc`. A `.json`
+  module MUST read and validate its actual declaration file without remapping.
+  Any other module extension in a package MUST fail before reading its file.
 - In a package's module, an import of a module name MUST fail, and a relative
   import that resolves outside its package version MUST fail.
 - Files MUST be cached under `<cache>/uffda/jsr/<registry path>`
@@ -60,10 +59,6 @@ Postconditions:
 
 - A package's consumers load its compiled modules from its project file alone;
   the lockfile reproduces the same versions and bytes on every checkout.
-- Tests: `src/packages/jsr_packages.test.ts`,
-  `src/packages/jsr_specifier.test.ts`, `src/packages/lockfile.test.ts`,
-  `src/packages/cache_dir.test.ts`, `src/runtime/module_ports.rs`
-  (`modport_resolve_import_map_artifacts_and_package_boundaries`),
-  `src/cli/command_project.test.ts`, `src/cli/exec.test.ts`,
-  `src/cli/mcp.session.test.ts`, `src/cli/lsp.documents.test.ts`,
-  `src/cli/distribution.test.ts`.
+- Tests: `src/resolver/packages/tests.rs`,
+  `src/runtime/module_ports.rs` (`modport_resolve_import_map_artifacts_and_package_boundaries`),
+  `src/resolver/ported_tests.rs`.

@@ -25,9 +25,9 @@ the resolver and runtime compiler. That path is recursive.
 2. Build the in-tree Rust CLI with `embed-languages` once workspace `./bin`
    has been populated. It embeds those declarations and runs the authored
    `runtime.compiler.uff` through the ordinary Rust resolver and runtime.
-3. **Runtime resolve** only reads emitted `.uff.ast` codec declarations (or
-   `.uff.ast.json` compatibility siblings). It must not re-lower or call the
-   runtime compiler again. No recursion.
+3. **Runtime resolve** only reads emitted `.uff.ast` codec declarations. It
+   must not load JSON declaration artifacts, re-lower, or call the runtime
+   compiler again. No recursion.
 
 ## Forbidden
 

@@ -21,8 +21,8 @@ Expected behavior:
   shipped).
 - `compile:lang` MUST invoke the previous published `uffda compile` directly for
   the full parse + lower pipeline in one step (quoted glob such as
-  `'src/lang/**/*.uff'`), producing ModuleDeclaration JSON without any in-tree
-  TypeScript lower stage or frozen compiler snapshot.
+  `'src/lang/**/*.uff'`), producing `.uff.ast` data-codec ModuleDeclarations
+  without any in-tree TypeScript lower stage or frozen compiler snapshot.
 - Compile MUST NOT leave syntax ASTs as final `./bin` artifacts and MUST NOT
   commit seeds under `src/`.
 - New language or std features MUST ship in a published CLI before in-tree

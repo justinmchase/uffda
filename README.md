@@ -10,9 +10,8 @@ and lowering—can be expressed as pattern matching.
 
 Language modules under `src/lang/` are authored as `.uff` and compiled to
 `./bin` ModuleDeclaration artifacts. The on-disk data-codec form uses the
-`.uff.ast` extension; a `.uff.ast.json` sibling is still written during
-migration. The published CLI embeds those artifacts, so bootstrap uses the
-previous release to compile the next one.
+`.uff.ast` extension. The published CLI embeds those artifacts, so bootstrap
+uses the previous release to compile the next one.
 
 ## Install
 
@@ -124,9 +123,8 @@ uffda exec -e '"hello"' |
 
 Parse output, project/lockfile files, and structured diagnostics remain JSON.
 Compiled ModuleDeclarations use the Uffda data codec on disk: the file extension
-is `.uff.ast` (one codec record per module). Compile also writes a
-`.uff.ast.json` compatibility sibling. Resolvers prefer codec records and the
-product embeds them directly.
+is `.uff.ast` (one codec record per module). Resolvers read that codec artifact,
+and the product embeds it directly.
 
 ### Compile layout
 
@@ -135,9 +133,8 @@ uffda compile 'src/**/*.uff'
 ```
 
 Writes ModuleDeclaration artifacts under `<outDir>/ast`, mirroring each source's
-path in the project: `src/foo.uff` becomes both `bin/ast/src/foo.uff.ast` (data
-codec) and `bin/ast/src/foo.uff.ast.json` (JSON). Resolvers prefer `.uff.ast`
-when present and fall back to `.uff.ast.json`. `outDir` is `./bin` unless the
+path in the project: `src/foo.uff` becomes `bin/ast/src/foo.uff.ast` (data
+codec). Resolvers load `.uff.ast` artifacts only. `outDir` is `./bin` unless the
 project file says otherwise, and `run`, `exec`, the language server and MCP
 sessions read compiled imports from the same place. Build output is never
 written next to sources. In this repo, `npm run compile:lang` builds workspace

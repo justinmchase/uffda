@@ -164,38 +164,42 @@ jobs:
           cargo build --locked --release --features embed-languages --bin uffda
           rm -rf ./bin
           ./target/release/uffda compile 'src/lang/**/*.uff'
-          test -f ./bin/ast/src/lang/common/characters/digit.uff.ast.json
-          test -f ./bin/ast/src/lang/common/identifier.uff.ast.json
-          test -f ./bin/ast/src/lang/common/surround.uff.ast.json
-          test -f ./bin/ast/src/lang/tokenizer/token.uff.ast.json
-          test -f ./bin/ast/src/lang/common/spread.uff.ast.json
-          test -f ./bin/ast/src/lang/expression/boolean.uff.ast.json
-          test -f ./bin/ast/src/lang/expression/nullish.uff.ast.json
-          test -f ./bin/ast/src/lang/expression/reference.uff.ast.json
-          test -f ./bin/ast/src/lang/expression/terminal.uff.ast.json
-          test -f ./bin/ast/src/lang/expression/not.uff.ast.json
-          test -f ./bin/ast/src/lang/expression/array.uff.ast.json
-          test -f ./bin/ast/src/lang/expression/object.uff.ast.json
-          test -f ./bin/ast/src/lang/expression/sequence.uff.ast.json
-          test -f ./bin/ast/src/lang/expression/primary.uff.ast.json
-          test -f ./bin/ast/src/lang/expression/unary.uff.ast.json
-          test -f ./bin/ast/src/lang/expression/expression.uff.ast.json
-          test -f ./bin/ast/src/lang/pattern/atoms.uff.ast.json
-          test -f ./bin/ast/src/lang/pattern/then.uff.ast.json
-          test -f ./bin/ast/src/lang/pattern/pipe.uff.ast.json
-          test -f ./bin/ast/src/lang/pattern/and.uff.ast.json
-          test -f ./bin/ast/src/lang/pattern/or.uff.ast.json
-          test -f ./bin/ast/src/lang/pattern/pattern.uff.ast.json
-          test -f ./bin/ast/src/lang/expression/expression.lang.uff.ast.json
-          test -f ./bin/ast/src/lang/pattern/pattern.lang.uff.ast.json
-          test -f ./bin/ast/src/lang/pattern/atomic.uff.ast.json
-          test -f ./bin/ast/src/lang/uffda/shared.rules.uff.ast.json
-          test -f ./bin/ast/src/lang/uffda/import.rules.uff.ast.json
-          test -f ./bin/ast/src/lang/uffda/export.rules.uff.ast.json
-          test -f ./bin/ast/src/lang/uffda/rule.rules.uff.ast.json
-          test -f ./bin/ast/src/lang/uffda/uffda.lang.uff.ast.json
-          test -f ./bin/ast/src/lang/uffda/runtime.compiler.uff.ast.json
-          test -f ./bin/ast/src/lang/expression/number.uff.ast.json
+          test -f ./bin/ast/src/lang/common/characters/digit.uff.ast
+          test -f ./bin/ast/src/lang/common/identifier.uff.ast
+          test -f ./bin/ast/src/lang/common/surround.uff.ast
+          test -f ./bin/ast/src/lang/tokenizer/token.uff.ast
+          test -f ./bin/ast/src/lang/common/spread.uff.ast
+          test -f ./bin/ast/src/lang/expression/boolean.uff.ast
+          test -f ./bin/ast/src/lang/expression/nullish.uff.ast
+          test -f ./bin/ast/src/lang/expression/reference.uff.ast
+          test -f ./bin/ast/src/lang/expression/terminal.uff.ast
+          test -f ./bin/ast/src/lang/expression/not.uff.ast
+          test -f ./bin/ast/src/lang/expression/array.uff.ast
+          test -f ./bin/ast/src/lang/expression/sequence.uff.ast
+          test -f ./bin/ast/src/lang/expression/object.uff.ast
+          test -f ./bin/ast/src/lang/expression/primary.uff.ast
+          test -f ./bin/ast/src/lang/expression/unary.uff.ast
+          test -f ./bin/ast/src/lang/expression/expression.uff.ast
+          test -f ./bin/ast/src/lang/pattern/atoms.uff.ast
+          test -f ./bin/ast/src/lang/pattern/then.uff.ast
+          test -f ./bin/ast/src/lang/pattern/pipe.uff.ast
+          test -f ./bin/ast/src/lang/pattern/and.uff.ast
+          test -f ./bin/ast/src/lang/pattern/or.uff.ast
+          test -f ./bin/ast/src/lang/pattern/pattern.uff.ast
+          test -f ./bin/ast/src/lang/expression/expression.lang.uff.ast
+          test -f ./bin/ast/src/lang/pattern/pattern.lang.uff.ast
+          test -f ./bin/ast/src/lang/pattern/atomic.uff.ast
+          test -f ./bin/ast/src/lang/uffda/shared.rules.uff.ast
+          test -f ./bin/ast/src/lang/uffda/import.rules.uff.ast
+          test -f ./bin/ast/src/lang/uffda/export.rules.uff.ast
+          test -f ./bin/ast/src/lang/uffda/rule.rules.uff.ast
+          test -f ./bin/ast/src/lang/uffda/uffda.lang.uff.ast
+          test -f ./bin/ast/src/lang/uffda/runtime.compiler.uff.ast
+          test -f ./bin/ast/src/lang/expression/number.uff.ast
+          if find ./bin/ast -type f -name '*.uff.ast.json' -print -quit | grep -q .; then
+            echo "unexpected JSON ModuleDeclaration artifact" >&2
+            exit 1
+          fi
 
       - name: Upload language bin artifacts
         uses: actions/upload-artifact@v7

@@ -94,14 +94,18 @@ jobs:
           # Full ModuleDeclaration JSON on stdout floods the log (~MBs) and
           # looks like a hang; keep a copy for debugging failures.
           uffda compile 'src/lang/**/*.uff' >"$RUNNER_TEMP/uffda-compile.json"
-          test -f ./bin/ast/src/lang/uffda/uffda.lang.uff.ast.json
-          test -f ./bin/ast/src/lang/uffda/runtime.compiler.uff.ast.json
+          test -f ./bin/ast/src/lang/uffda/uffda.lang.uff.ast
+          test -f ./bin/ast/src/lang/uffda/runtime.compiler.uff.ast
+          if find ./bin/ast -type f -name '*.uff.ast.json' -print -quit | grep -q .; then
+            echo "unexpected JSON ModuleDeclaration artifact" >&2
+            exit 1
+          fi
 
       - name: Verify stub + ./bin are in the JSR package
         run: |
           set -euo pipefail
           npx jsr publish --dry-run 2>&1 | tee "$RUNNER_TEMP/jsr-dry-run.log"
-          grep -q "bin/ast/src/lang/uffda/uffda.lang.uff.ast.json" "$RUNNER_TEMP/jsr-dry-run.log"
+          grep -q "bin/ast/src/lang/uffda/uffda.lang.uff.ast" "$RUNNER_TEMP/jsr-dry-run.log"
           grep -qE '(^|/)mod\.ts' "$RUNNER_TEMP/jsr-dry-run.log"
           grep -q "uffda.jsonc" "$RUNNER_TEMP/jsr-dry-run.log"
           # Runtime TypeScript must not ship on JSR after the Rust cutover.
