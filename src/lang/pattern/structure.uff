@@ -14,8 +14,55 @@ func UniqueNames<names:any> =
   (eq (length names) (length (to_set names)))
 ;
 
-func KeyBindName<e:any> =
-  (when (eq (length e) 2) [(at e 1).name] [])
+rule CollectEntryBinds =
+  [any p:CollectPatternBinds]
+  -> p
+;
+
+rule CollectVariableBinds =
+  object
+  & {
+    kind: "variable",
+    name: (n:string),
+    pattern: (p:CollectPatternBinds)
+  }
+  -> (flat [[n] p])
+;
+
+rule CollectOverBinds =
+  object
+  & { kind: "over", keys: (k:object) }
+  names:((ok -> [...k]) |> [e:CollectEntryBinds*] -> (flat e))
+  -> names
+;
+
+rule CollectProjectionBinds =
+  object
+  & { kind: "projection", pattern: (p:CollectPatternBinds) }
+  -> p
+;
+
+rule CollectThenAndBinds =
+  object
+  & { kind: in["then" "and"], patterns: (ps:array) }
+  names:((ok -> ps) |> [p:CollectPatternBinds*] -> (flat p))
+  -> names
+;
+
+rule CollectPipelineBinds =
+  object
+  & { kind: "pipeline", steps: (ps:array) }
+  names:((ok -> ps) |> [p:CollectPatternBinds*] -> (flat p))
+  -> names
+;
+
+rule CollectPatternBinds =
+  | CollectVariableBinds
+  | CollectOverBinds
+  | CollectProjectionBinds
+  | CollectThenAndBinds
+  | CollectPipelineBinds
+  | (any -> [])
 ;
 
 [Documentation {
@@ -215,7 +262,7 @@ rule Over =
   "{"
   body:OverBody
   OverEnd
-  ((ok -> (flat [...(map [...body.keys] KeyBindName)])) |> UniqueObjectBinds)
+  ((ok -> body) |> CollectPatternBinds |> UniqueObjectBinds)
   -> body
 ;
 

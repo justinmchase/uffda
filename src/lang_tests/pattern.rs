@@ -1567,6 +1567,57 @@ fn structure_aliases_nested_duplicate_fields() {
 
 #[test]
 // req:pattern-language-syntax-012
+fn structure_rejects_nested_duplicate_fields() {
+    fail(
+        PATTERN_LANG,
+        "PatternLang",
+        json!("{ a: { x: number }, b: { x: number } }"),
+        InputMode::Scalar,
+    );
+}
+
+#[test]
+// req:pattern-language-syntax-012
+fn structure_allows_duplicate_names_in_alternatives() {
+    clean(
+        PATTERN_LANG,
+        "PatternLang",
+        json!("{ a: { x: number } } | { b: { x: number } }"),
+        InputMode::Scalar,
+        json!({
+            "kind": "or",
+            "patterns": [
+                {
+                    "kind": "over",
+                    "keys": {
+                        "a": bind(
+                            "a",
+                            json!({
+                                "kind": "over",
+                                "keys": {"x": bind("x", ty("number"))}
+                            })
+                        )
+                    }
+                },
+                {
+                    "kind": "over",
+                    "keys": {
+                        "b": bind(
+                            "b",
+                            json!({
+                                "kind": "over",
+                                "keys": {"x": bind("x", ty("number"))}
+                            })
+                        )
+                    }
+                }
+            ]
+        }),
+    );
+}
+
+#[test]
+// req:pattern-language-syntax-012
 fn pattern_lang_binds_ping_object() {
     clean(
         PATTERN_LANG,
