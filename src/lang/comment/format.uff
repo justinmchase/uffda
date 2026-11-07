@@ -6,7 +6,7 @@
 # written as it is.
 export rule CommentFormat<W, F> =
   object
-  & ((object -> _.kind) |> "comment")
+  & (object -> _.kind) |> "comment"
   & { blocks: [b:CommentBlockFormat<W, F>*] }
   -> (when (eq (length b) 0) "#" (join b "\n#\n"))
 ;
@@ -19,13 +19,10 @@ rule CommentBlockFormat<W, F> =
 
 rule InlineAtoms =
   | (
-    (object & ((object -> _.kind) |> "code") & { text: (t:string) })
+    (object & (object -> _.kind) |> "code" & { text: string as t })
     -> [(join ["`" t "`"] "")]
   )
-  | (
-    (object & ((object -> _.kind) |> "text") & { text: [c:any*] })
-    -> c
-  )
+  | ((object & (object -> _.kind) |> "text" & { text: [c:any*] }) -> c)
 ;
 
 rule WordChar = not " " c:any -> c;
@@ -79,18 +76,17 @@ func ListItemLines<lines:array> =
 ;
 
 rule ParagraphFormat<W> =
-  w:W
-  (object & ((object -> _.kind) |> "paragraph") & { inlines: (i:Words) })
+  w:W (object & (object -> _.kind) |> "paragraph" & { inlines: Words as i })
   -> (join [...(map (Wrap i (sub w 2)) CommentLine)] "\n")
 ;
 
 rule ListItemFormat<W> =
-  w:W (object & { inlines: (i:Words) })
+  w:W (object & { inlines: Words as i })
   -> (ListItemLines (Wrap i (sub w 4)))
 ;
 
 rule ListFormat<W> =
-  object & ((object -> _.kind) |> "list") & { items: [x:ListItemFormat<W>*] }
+  object & (object -> _.kind) |> "list" & { items: [x:ListItemFormat<W>*] }
   -> (join x "\n")
 ;
 
@@ -103,7 +99,7 @@ rule NextCodeLine = "\n" l:CodeLine -> l;
 rule CodeLines = [f:CodeLine r:NextCodeLine*] -> [f ...r];
 
 rule FenceText<F> =
-  | ((object & { tree: undefined, code: (c:string) }) -> c)
+  | ((object & { tree: undefined, code: string as c }) -> c)
   | F
 ;
 
@@ -114,7 +110,7 @@ func FenceBody<lines:array> =
 ;
 
 rule FenceFormat<F> =
-  (object & ((object -> _.kind) |> "fence") & { language: (t:string) })
+  (object & (object -> _.kind) |> "fence" & { language: string as t })
   & l:(FenceText<F> |> CodeLines)
   -> (join [(join ["# ```" t] "") ...(FenceBody l) "# ```"] "\n")
 ;

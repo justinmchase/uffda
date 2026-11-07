@@ -32,8 +32,9 @@ Postconditions:
 
 - Each named entry normalizes to a `variable` wrapping the field pattern, with
   `name` equal to the key or the `as` alias.
-- In-tree Uffda grammars that still need a capture distinct from the key use
-  grouped `{ field: (x:P) }` so previous and current PatternLang both compile.
+- In-tree Uffda grammars MUST spell a field capture distinct from the key as
+  `{ field: P as x }`. Grouped `{ field: (x:P) }` remains valid dual-bind
+  syntax in PatternLang and is not an alias.
 - Tests: `src/lang_tests/pattern.rs`
   (`structure_object_keys`, `pattern_lang_object`,
   `structure_binds_bare_object_key`, `structure_binds_typed_object_key`,

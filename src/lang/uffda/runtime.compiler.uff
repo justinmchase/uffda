@@ -54,7 +54,7 @@ rule CompileEmptyDeclarations =
 ;
 
 rule CompileImportDeclaration =
-  { kind: "import", moduleUrl: (u:string), names: (n:[string+]) }
+  { kind: "import", moduleUrl: string as u, names: [string+] as n }
   -> {
     imports: [{ kind: "module", moduleUrl: u, names: n }],
     exports: [],
@@ -65,7 +65,7 @@ rule CompileImportDeclaration =
 ;
 
 rule CompileExportDeclaration =
-  { kind: "export", name: (n:string) }
+  { kind: "export", name: string as n }
   -> {
     imports: [],
     exports: [{ kind: "rule", name: n }],
@@ -76,18 +76,18 @@ rule CompileExportDeclaration =
 ;
 
 rule CompileAttribute =
-  { kind: "attribute", name: (n:string), args: (a:[any*]) }
+  { kind: "attribute", name: string as n, args: [any*] as a }
   -> { name: n, args: a }
 ;
 
 rule CompileRuleDeclaration =
   {
     kind: "rule",
-    name: (n:string),
-    pattern: (t:(object & Uncommented)),
-    parameters: (p:any),
-    projection: (j:Uncommented),
-    attributes: (c:[CompileAttribute*])
+    name: string as n,
+    pattern: object & Uncommented as t,
+    parameters as p,
+    projection: Uncommented as j,
+    attributes: [CompileAttribute*] as c
   }
   -> {
     imports: [],
@@ -109,10 +109,10 @@ rule CompileRuleDeclaration =
 rule CompileFuncDeclaration =
   {
     kind: "func",
-    name: (n:string),
-    pattern: (t:(object & Uncommented)),
-    expression: (x:(object & Uncommented)),
-    attributes: (c:[CompileAttribute*])
+    name: string as n,
+    pattern: object & Uncommented as t,
+    expression: object & Uncommented as x,
+    attributes: [CompileAttribute*] as c
   }
   -> {
     imports: [],
@@ -126,10 +126,10 @@ rule CompileFuncDeclaration =
 rule CompileDecoratorDeclaration =
   {
     kind: "decorator",
-    name: (n:string),
-    pattern: (t:(object & Uncommented)),
-    expression: (x:(object & Uncommented)),
-    attributes: (c:[CompileAttribute*])
+    name: string as n,
+    pattern: object & Uncommented as t,
+    expression: object & Uncommented as x,
+    attributes: [CompileAttribute*] as c
   }
   -> {
     imports: [],
@@ -172,13 +172,7 @@ rule CompileDeclarations =
 ;
 
 rule AttachNameSets =
-  {
-    imports: (i:any),
-    rules: (r:any),
-    funcs: (f:any),
-    decorators: (d:any),
-    exports: (e:any)
-  }
+  { imports as i, rules as r, funcs as f, decorators as d, exports as e }
   -> {
     imports: i,
     rules: r,
@@ -194,15 +188,15 @@ rule AttachNameSets =
 
 rule FinalizeExports =
   {
-    imports: (i:any),
-    rules: (r:any),
-    funcs: (f:any),
-    decorators: (d:any),
-    t: (t:any),
-    u: (u:any),
-    s: (s:any),
-    v: (v:any),
-    exports: (e:[
+    imports as i,
+    rules as r,
+    funcs as f,
+    decorators as d,
+    t,
+    u,
+    s,
+    v,
+    exports: [
       (
         any
         -> (when
@@ -216,7 +210,7 @@ rule FinalizeExports =
           _
         )
       )*
-    ])
+    ] as e
   }
   -> { imports: i, rules: r, funcs: f, decorators: d, exports: e }
 ;
@@ -227,7 +221,7 @@ rule NormalizeModule =
 ;
 
 rule CompileSyntaxModule =
-  { kind: "module", declarations: (m:[CompileDeclarations]) } end
+  { kind: "module", declarations: [CompileDeclarations] as m } end
   -> m
 ;
 

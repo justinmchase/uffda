@@ -57,7 +57,7 @@ rule DeclarationRecovery =
 # The fence parser for comments: fences tagged `uffda` are Uffda modules. Every
 # other tag (apart from untagged and `text` fences, which the comment grammar
 # keeps as written) fails, so it is a syntax error.
-rule UffdaFence = object & { language: "uffda", code: (m:UffdaLang) } -> m;
+rule UffdaFence = object & { language: "uffda", code: UffdaLang as m } -> m;
 
 rule UffdaComment = CommentBlock<UffdaFence>;
 
@@ -76,7 +76,7 @@ rule CommentNodes = i:(string | CommentNode | any)* end -> i;
 
 rule ModuleComment =
   | object & { kind: "comment", blocks: array }
-  | object & ({ kind: "lineEndComment", comment: (c:any) } -> c)
+  | object & ({ kind: "lineEndComment", comment as c } -> c)
 ;
 
 # Between top-level declarations, each list admits `ModuleComment` ahead of its

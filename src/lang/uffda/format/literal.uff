@@ -47,6 +47,8 @@ rule LiteralText =
 ;
 
 rule ValueSourceText =
-  | object & AstKind<"value.literal"> & ({ value: (v:LiteralText) } -> v)
-  | object & AstKind<"value.variable"> & ({ name: (n:string) } -> (join ["$" n] ""))
+  | object & AstKind<"value.literal"> & ({ value: LiteralText as v } -> v)
+  | object
+    & AstKind<"value.variable">
+    & ({ name: string as n } -> (join ["$" n] ""))
 ;

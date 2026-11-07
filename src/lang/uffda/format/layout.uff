@@ -202,7 +202,10 @@ func HugFits<l:object head:string> =
 
 # Match an AST node's `kind` without binding the name `kind`. Nested object
 # patterns in one rule cannot each bind `kind`.
-rule AstKind<K> = (object -> _.kind) |> K;
+rule AstKind<K> =
+  |> (object -> _.kind)
+  |> K
+;
 
 # Writes `B` flat when it fits, otherwise broken, unless it must be flat.
 rule Fit<B, L> =
