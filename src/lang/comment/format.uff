@@ -16,7 +16,7 @@ rule CommentBlockFormat<W, F> =
 ;
 
 rule InlineAtoms =
-  | ((object & { kind: "code", text: t:string }) -> [(join ["`" t "`"] "")])
+  | ((object & { kind: "code", text: (t:string) }) -> [(join ["`" t "`"] "")])
   | ((object & { kind: "text", text: [c:any*] }) -> c)
 ;
 
@@ -71,12 +71,12 @@ func ListItemLines<lines:array> =
 ;
 
 rule ParagraphFormat<W> =
-  w:W (object & { kind: "paragraph", inlines: i:Words })
+  w:W (object & { kind: "paragraph", inlines: (i:Words) })
   -> (join [...(map (Wrap i (sub w 2)) CommentLine)] "\n")
 ;
 
 rule ListItemFormat<W> =
-  w:W (object & { inlines: i:Words })
+  w:W (object & { inlines: (i:Words) })
   -> (ListItemLines (Wrap i (sub w 4)))
 ;
 
@@ -94,7 +94,7 @@ rule NextCodeLine = "\n" l:CodeLine -> l;
 rule CodeLines = [f:CodeLine r:NextCodeLine*] -> [f ...r];
 
 rule FenceText<F> =
-  | ((object & { tree: undefined, code: c:string }) -> c)
+  | ((object & { tree: undefined, code: (c:string) }) -> c)
   | F
 ;
 
@@ -105,7 +105,7 @@ func FenceBody<lines:array> =
 ;
 
 rule FenceFormat<F> =
-  (object & { kind: "fence", language: t:string })
+  (object & { kind: "fence", language: (t:string) })
   & l:(FenceText<F> |> CodeLines)
   -> (join [(join ["# ```" t] "") ...(FenceBody l) "# ```"] "\n")
 ;

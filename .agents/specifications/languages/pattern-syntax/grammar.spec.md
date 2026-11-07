@@ -78,8 +78,10 @@ The grammar MUST be able to express the following pattern families:
   the captured child pattern.
 - Capture MUST bind less tightly than postfix repetition and more tightly than
   ordered sequence composition.
-- A keyed object entry such as `{ field: x:P }` MUST parse its first colon as
-  the field separator and its second colon as the nested variable capture.
+- Object entries MUST NOT use a second colon for capture. `{ key: P }` binds
+  `key` while matching `P`; `{ key }` is `{ key: any }`; `{ key: P as alias }`
+  and `{ key as alias }` bind only `alias`. An ungrouped `name:P` capture as a
+  field value (`{ n: n: number }`) MUST be rejected.
 - Repetition MUST use postfix syntax on a primary or explicitly grouped child:
   - `P*` means zero or more matches.
   - `P*min` means at least `min` matches.
@@ -110,7 +112,14 @@ The grammar MUST be able to express the following pattern families:
 ## Object patterns
 
 - An object pattern MUST use `{ key: P, ... }`, where each named entry checks
-  the value at that property using pattern `P`.
+  the value at that property using pattern `P` and binds `key` unless renamed
+  with `as`.
+- `{ key }` MUST parse as `{ key: any }`.
+- `{ key: P as alias }` and `{ key as alias }` MUST bind only `alias`.
+- Duplicate capture names on one matching path, including nested object
+  entries, MUST be a pattern error. Alternatives MAY reuse names.
+- `as` in this position is an object-entry delimiter, not a second colon and
+  not `=`. It MUST NOT be consumed as a following sequence prefix.
 - An object pattern MAY include one or more ordered rest clauses:
   - `...[P]: V` matches each remaining entry whose key matches `P`, then
     requires its value to match `V`.
@@ -218,7 +227,7 @@ erroneous tokens and contributes nothing to the pattern AST.
 
 - After a sequence's first element, a token that does not start an element MUST
   be skipped, unless it is a delimiter an enclosing construct consumes: `)`,
-  `]`, `}`, `|`, `&`, `-`, `>`, `,`, `:`, or a comment node (see
+  `]`, `}`, `|`, `&`, `-`, `>`, `,`, `:`, `as`, or a comment node (see
   [Comments](#comments)).
 - Tokens left over after a complete pattern MUST be skipped through the end of
   the input.

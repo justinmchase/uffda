@@ -75,13 +75,13 @@ rule Declaration<W> =
 
 rule InlineExport<L> =
   l:L
-  (object & { kind: "export", name: n:string })
+  (object & { kind: "export", name: (n:string) })
   d:((object & { name: $n }) & Definition<(ok -> (Shift l 7))>)
   -> { kind: "declaration", text: (join ["export " d] "") }
 ;
 
 rule ImportBody<L> =
-  l:L (object & { kind: "import", moduleUrl: u:string, names: [n:string*] })
+  l:L (object & { kind: "import", moduleUrl: (u:string), names: [n:string*] })
   -> (join
     [
       "import \""
@@ -98,7 +98,7 @@ rule ImportBody<L> =
 rule Import<L> = Fit<ImportBody, L>;
 
 rule Export =
-  object & { kind: "export", name: n:string }
+  object & { kind: "export", name: (n:string) }
   -> (join ["export " n ";"] "")
 ;
 
@@ -113,7 +113,7 @@ rule AttributeHug<L> =
     object
     & {
       kind: "attribute",
-      name: n:string,
+      name: (n:string),
       args: [
         x:NotLast<Expression<(ok -> (Flat))>>*
         ((ok -> (HugFits l (HugHead (join ["[" n] "") x))) |> true)
@@ -133,7 +133,7 @@ rule AttributeList<L> =
     object
     & {
       kind: "attribute",
-      name: n:string,
+      name: (n:string),
       args: [x:Expression<(ok -> (Entry l 0))>*]
     }
   )
@@ -149,7 +149,7 @@ rule Attribute<L> = a:Fit<AttributeBody, L> -> (join [a "\n"] "");
 
 rule Attributes<L> = [a:Attribute<L>*] -> (join a "");
 
-rule ParameterName = object & { name: n:string } -> n;
+rule ParameterName = object & { name: (n:string) } -> n;
 
 rule ParameterNames = [p:ParameterName*] -> p;
 
@@ -187,17 +187,17 @@ rule RuleBody<L> =
     object
     & {
       kind: "rule",
-      name: n:string,
-      parameters: a:ParameterNames,
-      pattern: p:RuleBodyPattern<(ok -> (BodyLayout l (RuleHead n a)))>,
-      projection: j:Projection<L>
+      name: (n:string),
+      parameters: (a:ParameterNames),
+      pattern: (p:RuleBodyPattern<(ok -> (BodyLayout l (RuleHead n a)))>),
+      projection: (j:Projection<L>)
     }
   )
   -> (join [(RuleHead n a) (when l.flat " " "\n  ") p j (Terminator l)] "")
 ;
 
 rule RuleDeclaration<L> =
-  l:L (object & { kind: "rule", attributes: a:Attributes<L> })
+  l:L (object & { kind: "rule", attributes: (a:Attributes<L>) })
   & b:Fit<RuleBody, L>
   -> (join [a b] "")
 ;
@@ -212,24 +212,24 @@ rule FuncHead<L> =
   (
     object
     & {
-      kind: k:in["func" "decorator"],
-      name: n:string,
-      pattern: a:ParameterPattern<
+      kind: (k:in["func" "decorator"]),
+      name: (n:string),
+      pattern: (a:ParameterPattern<
         (ok -> (Suffix (Shift l (add (length k) (add (length n) 1))) 2))
-      >
+      >)
     }
   )
   -> (join [k " " n a " ="] "")
 ;
 
 rule FuncBody<L> =
-  l:L (object & { expression: e:Expression<(ok -> (BodyLayout l ""))> })
+  l:L (object & { expression: (e:Expression<(ok -> (BodyLayout l ""))>) })
   & h:FuncHead<L>
   -> (join [h (when l.flat " " "\n  ") e (Terminator l)] "")
 ;
 
 rule FuncDeclaration<L> =
-  l:L (object & { kind: in["func" "decorator"], attributes: a:Attributes<L> })
+  l:L (object & { kind: in["func" "decorator"], attributes: (a:Attributes<L>) })
   & b:Fit<FuncBody, L>
   -> (join [a b] "")
 ;

@@ -19,10 +19,11 @@ export rule PatternDelimiter =
   | ">"
   | ","
   | ":"
+  | "as"
   | CommentNode
 ;
 
-rule ThenTail = c:CommentNode* p:Prefix -> (flat [c [p]]);
+rule ThenTail = c:CommentNode* not "as" p:Prefix -> (flat [c [p]]);
 
 rule Then =
   m:(

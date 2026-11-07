@@ -258,8 +258,8 @@ rule PatternProjectionBody<L> =
     object
     & {
       kind: "projection",
-      pattern: p:AndOperand<(ok -> (Inside l 1 1))>,
-      expression: e:Expression<(ok -> (Shift (Inside l 1 1) 3))>
+      pattern: (p:AndOperand<(ok -> (Inside l 1 1))>),
+      expression: (e:Expression<(ok -> (Shift (Inside l 1 1) 3))>)
     }
   )
   -> (Bracket
@@ -278,26 +278,26 @@ rule PatternVariable<L> =
     object
     & {
       kind: "variable",
-      name: n:string,
-      pattern: p:PrefixOperand<(ok -> (Shift l (add (length n) 1)))>
+      name: (n:string),
+      pattern: (p:PrefixOperand<(ok -> (Shift l (add (length n) 1)))>)
     }
   )
   -> (join [n ":" p] "")
 ;
 
 rule PatternNot<L> =
-  l:L (object & { kind: "not", pattern: p:PrefixOperand<(ok -> (Shift l 4))> })
+  l:L (object & { kind: "not", pattern: (p:PrefixOperand<(ok -> (Shift l 4))>) })
   -> (join ["not " p] "")
 ;
 
 rule PatternSkip<L> =
-  l:L (object & { kind: "skip", pattern: p:PrefixOperand<(ok -> (Shift l 5))> })
+  l:L (object & { kind: "skip", pattern: (p:PrefixOperand<(ok -> (Shift l 5))>) })
   -> (join ["skip " p] "")
 ;
 
 rule PatternExcept<L> =
   l:L
-  (object & { kind: "except", pattern: p:PrefixOperand<(ok -> (Shift l 7))> })
+  (object & { kind: "except", pattern: (p:PrefixOperand<(ok -> (Shift l 7))>) })
   -> (join ["except " p] "")
 ;
 
@@ -305,7 +305,7 @@ rule PatternLookahead<L> =
   l:L
   (
     object
-    & { kind: "lookahead", pattern: p:PrefixOperand<(ok -> (Shift l 10))> }
+    & { kind: "lookahead", pattern: (p:PrefixOperand<(ok -> (Shift l 10))>) }
   )
   -> (join ["lookahead " p] "")
 ;
@@ -323,7 +323,7 @@ rule SneakByUntil<L> =
       pattern: {
         kind: "then",
         patterns: [
-          { kind: "not", pattern: t:PrefixOperand<(ok -> (Shift l 6))> }
+          { kind: "not", pattern: (t:PrefixOperand<(ok -> (Shift l 6))>) }
           { kind: "any" }
         ]
       }
@@ -343,8 +343,8 @@ rule PatternRecoverBody<L> =
     object
     & {
       kind: "recover",
-      pattern: p:PrefixOperand<(ok -> (Shift l 4))>,
-      skip: s:SneakBy<(ok -> (Next l 9))>
+      pattern: (p:PrefixOperand<(ok -> (Shift l 4))>),
+      skip: (s:SneakBy<(ok -> (Next l 9))>)
     }
   )
   -> (join ["ope " p (Sep l " sneak by " "sneak by ") s] "")
@@ -371,11 +371,11 @@ rule PatternQuantifier<L> =
     object
     & {
       kind: "quantifier",
-      min: a:Bound,
-      max: b:Bound,
-      pattern: p:PostfixOperand<
+      min: (a:Bound),
+      max: (b:Bound),
+      pattern: (p:PostfixOperand<
         (ok -> (Suffix l (length (QuantifierSuffix a b))))
-      >
+      >)
     }
   )
   -> (join [p (QuantifierSuffix a b)] "")
@@ -383,12 +383,12 @@ rule PatternQuantifier<L> =
 
 rule PatternMaybe<L> =
   l:L
-  (object & { kind: "maybe", pattern: p:PostfixOperand<(ok -> (Suffix l 1))> })
+  (object & { kind: "maybe", pattern: (p:PostfixOperand<(ok -> (Suffix l 1))>) })
   -> (join [p "?"] "")
 ;
 
 rule PatternIntoBody<L> =
-  l:L (object & { kind: "into", pattern: p:Pattern<(ok -> (Inside l 1 1))> })
+  l:L (object & { kind: "into", pattern: (p:Pattern<(ok -> (Inside l 1 1))>) })
   -> (Bracket l "[" p "]")
 ;
 
@@ -399,14 +399,113 @@ func Labeled<label:string pattern:string> =
   (join [label (when (eq (at pattern 0) "\n") ":" ": ") pattern] "")
 ;
 
-rule PatternOverEntry<L> =
-  l:L (array & [n:string p:Pattern<(ok -> (Shift l (add (length n) 2)))>])
+rule PatternOverEntryBare<L> =
+  l:L
+  (
+    array
+    & [
+      n:string
+      (
+        object
+        & {
+          kind: "variable",
+          name: $n,
+          pattern: object & { kind: "any" }
+        }
+      )
+    ]
+  )
+  -> n
+;
+
+rule PatternOverEntryTypedGroup<L> =
+  l:L
+  (
+    array
+    & [
+      n:string
+      (
+        object
+        & {
+          kind: "variable",
+          name: $n,
+          pattern: (object & { kind: "variable" })
+            & p:Pattern<(ok -> (Shift l (add (length n) 4)))>
+        }
+      )
+    ]
+  )
+  -> (Labeled n (join ["(" p ")"] ""))
+;
+
+rule PatternOverEntryTyped<L> =
+  l:L
+  (
+    array
+    & [
+      n:string
+      (
+        object
+        & {
+          kind: "variable",
+          name: $n,
+          pattern: (p:Pattern<(ok -> (Shift l (add (length n) 2)))>)
+        }
+      )
+    ]
+  )
   -> (Labeled n p)
+;
+
+rule PatternOverEntryBareAlias<L> =
+  l:L
+  (
+    array
+    & [
+      n:string
+      (
+        object
+        & {
+          kind: "variable",
+          name: (b:string),
+          pattern: object & { kind: "any" }
+        }
+      )
+    ]
+  )
+  -> (join [n " as " b] "")
+;
+
+rule PatternOverEntryTypedAlias<L> =
+  l:L
+  (
+    array
+    & [
+      n:string
+      (
+        object
+        & {
+          kind: "variable",
+          name: (b:string),
+          pattern: (p:Pattern<(ok -> (Shift l (add (length n) 2)))>)
+        }
+      )
+    ]
+  )
+  -> (join [(Labeled n p) " as " b] "")
+;
+
+rule PatternOverEntry<L> =
+  | PatternOverEntryBare<L>
+  | PatternOverEntryTypedGroup<L>
+  | PatternOverEntryTyped<L>
+  | PatternOverEntryBareAlias<L>
+  | PatternOverEntryTypedAlias<L>
 ;
 
 rule PatternOverBody<L> =
   l:L
-  (object & { kind: "over", keys: k:object })
+  (object & { kind: "over", keys: (k:object) })
   e:((ok -> [...k]) |> [x:PatternOverEntry<(ok -> (Entry l 1))>*] -> x)
   -> (List l "\{" " " e "," "}")
 ;
@@ -468,7 +567,7 @@ rule PatternResolveBody<L> =
     & {
       kind: "resolve",
       targetKind: "reference",
-      name: n:ResolveName,
+      name: (n:ResolveName),
       args: [a:Pattern<(ok -> (Entry l 1))>*]
     }
   )
@@ -482,7 +581,7 @@ rule PatternResolve<L> =
       & {
         kind: "resolve",
         targetKind: "reference",
-        name: n:ResolveName,
+        name: (n:ResolveName),
         args: [end]
       }
     )
@@ -497,7 +596,7 @@ rule SwitchKey =
     -> (join v ", ")
   )
   | (
-    (object & { kind: "characterClass", characterClass: c:string })
+    (object & { kind: "characterClass", characterClass: (c:string) })
     -> (join ["\\c" c] "")
   )
 ;
@@ -507,8 +606,8 @@ rule SwitchCase<L> =
   (
     object
     & {
-      key: k:SwitchKey,
-      pattern: p:Pattern<(ok -> (Shift l (add (length k) 2)))>
+      key: (k:SwitchKey),
+      pattern: (p:Pattern<(ok -> (Shift l (add (length k) 2)))>)
     }
   )
   -> (Labeled k p)
@@ -526,7 +625,7 @@ rule PatternSwitchBody<L> =
     & {
       kind: "switch",
       cases: [c:SwitchCase<(ok -> (Entry l 1))>*],
-      default: d:SwitchDefault<(ok -> (Entry l 1))>
+      default: (d:SwitchDefault<(ok -> (Entry l 1))>)
     }
   )
   -> (List l "switch \{" " " (flat [c d]) "," "}")
@@ -539,14 +638,14 @@ rule PatternAtom =
   | ((object & { kind: "end" }) -> "end")
   | ((object & { kind: "ok" }) -> "ok")
   | ((object & { kind: "fail" }) -> "fail")
-  | ((object & { kind: "equal", value: v:ValueSourceText }) -> v)
-  | ((object & { kind: "type", type: t:string }) -> t)
+  | ((object & { kind: "equal", value: (v:ValueSourceText) }) -> v)
+  | ((object & { kind: "type", type: (t:string) }) -> t)
   | (
-    (object & { kind: "character", characterClass: c:string })
+    (object & { kind: "character", characterClass: (c:string) })
     -> (join ["\\c" c] "")
   )
   | (
-    (object & { kind: "between", left: a:Bound, right: b:Bound })
+    (object & { kind: "between", left: (a:Bound), right: (b:Bound) })
     -> (join [a ".." b] "")
   )
 ;

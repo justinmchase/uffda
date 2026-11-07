@@ -45,6 +45,6 @@ rule LiteralText =
 ;
 
 rule ValueSourceText =
-  | object & ({ kind: "value.literal", value: v:LiteralText } -> v)
-  | object & ({ kind: "value.variable", name: n:string } -> (join ["$" n] ""))
+  | object & ({ kind: "value.literal", value: (v:LiteralText) } -> v)
+  | object & ({ kind: "value.variable", name: (n:string) } -> (join ["$" n] ""))
 ;
