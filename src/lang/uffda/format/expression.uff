@@ -3,6 +3,7 @@
 # are written on their own lines (see `comment.uff`).
 import "./layout.uff"
   Fit
+  AstKind
   Shift
   After
   Suffix
@@ -33,18 +34,18 @@ export rule Expression<L> =
   | ExpressionInvocation<L>
 ;
 
-rule ExpressionReference = object & { kind: "reference", name: (n:string) } -> n;
+rule ExpressionReference = object & AstKind<"reference"> & { name: (n:string) } -> n;
 
-rule ExpressionNumber = object & { kind: "number", value: (n:NumberText) } -> n;
+rule ExpressionNumber = object & AstKind<"number"> & { value: (n:NumberText) } -> n;
 
 rule ExpressionBoolean =
-  object & { kind: "boolean", value: (b:boolean) }
+  object & AstKind<"boolean"> & { value: (b:boolean) }
   -> (when b "true" "false")
 ;
 
 rule ExpressionValue =
   object
-  & { kind: "value", value: (v:((null -> "null") | (undefined -> "undefined"))) }
+  & AstKind<"value"> & { value: (v:((null -> "null") | (undefined -> "undefined"))) }
   -> v
 ;
 
@@ -54,12 +55,12 @@ rule ExpressionStringPart =
 ;
 
 rule ExpressionString =
-  object & { kind: "string", values: [p:ExpressionStringPart*] }
+  object & AstKind<"string"> & { values: [p:ExpressionStringPart*] }
   -> (join ["\"" (join p "") "\""] "")
 ;
 
 rule ExpressionNot<L> =
-  l:L (object & { kind: "not", expression: (e:Expression<(ok -> (Shift l 4))>) })
+  l:L (object & AstKind<"not"> & { expression: (e:Expression<(ok -> (Shift l 4))>) })
   -> (join ["not " e] "")
 ;
 
@@ -67,8 +68,8 @@ rule ExpressionMember<L> =
   l:L
   (
     object
-    & {
-      kind: "member",
+    & AstKind<"member">
+      & {
       name: (n:string),
       expression: (e:Expression<(ok -> (Suffix l (add (length n) 1)))>)
     }
@@ -78,7 +79,7 @@ rule ExpressionMember<L> =
 
 # The body follows `> -> ` on the parameter list's last line.
 rule ExpressionLambda<L> =
-  l:L (object & { kind: "lambda", pattern: (p:Parameters<(ok -> (Suffix l 4))>) })
+  l:L (object & AstKind<"lambda"> & { pattern: (p:Parameters<(ok -> (Suffix l 4))>) })
   & o:(
     | ((ok -> p) |> [(not "\n" any)* end] -> (Shift l (add (length p) 4)))
     | (ok -> (After l 5))
@@ -93,11 +94,11 @@ rule ExpressionArrayItem<L> =
     | (
       (
         object
-        & { kind: "arraySpread", expression: (e:Expression<(ok -> (Shift l 3))>) }
+        & AstKind<"arraySpread"> & { expression: (e:Expression<(ok -> (Shift l 3))>) }
       )
       -> (join ["..." e] "")
     )
-    | ((object & { kind: "arrayElement", expression: (e:Expression<L>) }) -> e)
+    | ((object & AstKind<"arrayElement"> & { expression: (e:Expression<L>) }) -> e)
   )
   -> r
 ;
@@ -106,8 +107,8 @@ rule ExpressionArrayBody<L> =
   l:L
   (
     object
-    & {
-      kind: "array",
+    & AstKind<"array">
+      & {
       expressions: [
         x:Commented<ExpressionArrayItem, (ok -> (Entry l 0))>*
         t:CommentAt<(ok -> (Entry l 0)), (ok -> (Indent l.i))>*
@@ -125,8 +126,8 @@ rule ExpressionObjectEntry<L> =
     | (
       (
         object
-        & {
-          kind: "objectKey",
+        & AstKind<"objectKey">
+          & {
           name: (n:string),
           expression: (e:Expression<(ok -> (Shift l (add (length n) 2)))>)
         }
@@ -136,8 +137,8 @@ rule ExpressionObjectEntry<L> =
     | (
       (
         object
-        & {
-          kind: "objectSpread",
+        & AstKind<"objectSpread">
+          & {
           expression: (e:Expression<(ok -> (Shift l 3))>)
         }
       )
@@ -146,8 +147,8 @@ rule ExpressionObjectEntry<L> =
     | (
       (
         object
-        & {
-          kind: "objectComputedKey",
+        & AstKind<"objectComputedKey">
+          & {
           keyExpression: (k:Expression<(ok -> (Flat))>),
           expression: (e:Expression<(ok -> (Shift l (add (length k) 4)))>)
         }
@@ -162,8 +163,8 @@ rule ExpressionObjectBody<L> =
   l:L
   (
     object
-    & {
-      kind: "object",
+    & AstKind<"object">
+      & {
       keys: [
         x:Commented<ExpressionObjectEntry, (ok -> (Entry l 1))>*
         t:CommentAt<(ok -> (Entry l 1)), (ok -> (Indent l.i))>*
@@ -181,8 +182,8 @@ rule InvocationArgument<L> =
     | (
       (
         object
-        & {
-          kind: "invocationSpread",
+        & AstKind<"invocationSpread">
+          & {
           expression: (e:Expression<(ok -> (Shift l 3))>)
         }
       )
@@ -193,7 +194,7 @@ rule InvocationArgument<L> =
   -> r
 ;
 
-rule Hugged = object & { kind: in["object" "array"] };
+rule Hugged = object & AstKind<in["object" "array"]>;
 
 # The last argument, when it is an object or array, starts at the end of the
 # line holding the callee and the other arguments.
@@ -201,8 +202,8 @@ rule InvocationHug<L> =
   l:L
   (
     object
-    & {
-      kind: "invocation",
+    & AstKind<"invocation">
+      & {
       expression: (c:Expression<(ok -> (Flat))>),
       args: [
         x:NotLast<InvocationArgument<(ok -> (Flat))>>*
@@ -223,8 +224,8 @@ rule InvocationList<L> =
   l:L
   (
     object
-    & {
-      kind: "invocation",
+    & AstKind<"invocation">
+      & {
       expression: (c:Expression<(ok -> (Flat))>),
       args: [
         x:Commented<InvocationArgument, (ok -> (Entry l 0))>*

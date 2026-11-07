@@ -12,6 +12,7 @@
 # before and its closing bracket on its own line. A construct that must be flat
 # and cannot be (it holds a comment) fails, so its parent breaks instead.
 export Fit;
+export AstKind;
 export Indent;
 export Continuation;
 export Starts;
@@ -198,6 +199,10 @@ func HugHead<head:string items:array> = (join [head ...items ""] " ");
 func HugFits<l:object head:string> =
   (when l.flat false (lte (add (add l.c (length head)) 1) l.w))
 ;
+
+# Match an AST node's `kind` without binding the name `kind`. Nested object
+# patterns in one rule cannot each bind `kind`.
+rule AstKind<K> = (object -> _.kind) |> K;
 
 # Writes `B` flat when it fits, otherwise broken, unless it must be flat.
 rule Fit<B, L> =

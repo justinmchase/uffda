@@ -5,7 +5,9 @@
 # list item). Blocks are separated by one empty comment line, and fenced code is
 # written as it is.
 export rule CommentFormat<W, F> =
-  object & { kind: "comment", blocks: [b:CommentBlockFormat<W, F>*] }
+  object
+  & ((object -> _.kind) |> "comment")
+  & { blocks: [b:CommentBlockFormat<W, F>*] }
   -> (when (eq (length b) 0) "#" (join b "\n#\n"))
 ;
 
@@ -16,8 +18,14 @@ rule CommentBlockFormat<W, F> =
 ;
 
 rule InlineAtoms =
-  | ((object & { kind: "code", text: (t:string) }) -> [(join ["`" t "`"] "")])
-  | ((object & { kind: "text", text: [c:any*] }) -> c)
+  | (
+    (object & ((object -> _.kind) |> "code") & { text: (t:string) })
+    -> [(join ["`" t "`"] "")]
+  )
+  | (
+    (object & ((object -> _.kind) |> "text") & { text: [c:any*] })
+    -> c
+  )
 ;
 
 rule WordChar = not " " c:any -> c;
@@ -71,7 +79,8 @@ func ListItemLines<lines:array> =
 ;
 
 rule ParagraphFormat<W> =
-  w:W (object & { kind: "paragraph", inlines: (i:Words) })
+  w:W
+  (object & ((object -> _.kind) |> "paragraph") & { inlines: (i:Words) })
   -> (join [...(map (Wrap i (sub w 2)) CommentLine)] "\n")
 ;
 
@@ -81,7 +90,7 @@ rule ListItemFormat<W> =
 ;
 
 rule ListFormat<W> =
-  object & { kind: "list", items: [x:ListItemFormat<W>*] }
+  object & ((object -> _.kind) |> "list") & { items: [x:ListItemFormat<W>*] }
   -> (join x "\n")
 ;
 
@@ -105,7 +114,7 @@ func FenceBody<lines:array> =
 ;
 
 rule FenceFormat<F> =
-  (object & { kind: "fence", language: (t:string) })
+  (object & ((object -> _.kind) |> "fence") & { language: (t:string) })
   & l:(FenceText<F> |> CodeLines)
   -> (join [(join ["# ```" t] "") ...(FenceBody l) "# ```"] "\n")
 ;

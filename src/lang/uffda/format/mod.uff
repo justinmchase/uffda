@@ -8,6 +8,7 @@
 # written as one inline `export` declaration.
 import "./layout.uff"
   Fit
+  AstKind
   Root
   Shift
   Suffix
@@ -40,11 +41,11 @@ func Append<a:object b:object> =
 ;
 
 rule ModuleFormat<W> =
-  | ((object & ((object -> _.kind) |> "module") & { declarations: [end] }) -> "")
+  | ((object & AstKind<"module"> & { declarations: [end] }) -> "")
   | (
     (
       object
-      & ((object -> _.kind) |> "module")
+      & AstKind<"module">
       & { declarations: [f:DeclarationGroup<W> r:DeclarationGroup<W>*] }
     )
     -> (reduce r f Append).text
@@ -73,14 +74,14 @@ rule Declaration<W> =
 
 rule InlineExport<L> =
   l:L
-  (object & ((object -> _.kind) |> "export") & { name: (n:string) })
-  d:((object & { name: $n }) & Definition<(ok -> (Shift l 7))>)
+  (object & AstKind<"export"> & { name: (n:string) })
+  d:((object & ((object -> _.name) |> $n)) & Definition<(ok -> (Shift l 7))>)
   -> { kind: "declaration", text: (join ["export " d] "") }
 ;
 
 rule ImportBody<L> =
   l:L
-  (object & ((object -> _.kind) |> "import") & {
+  (object & AstKind<"import"> & {
     moduleUrl: (u:string),
     names: [n:string*]
   })
@@ -100,7 +101,7 @@ rule ImportBody<L> =
 rule Import<L> = Fit<ImportBody, L>;
 
 rule Export =
-  object & ((object -> _.kind) |> "export") & { name: (n:string) }
+  object & AstKind<"export"> & { name: (n:string) }
   -> (join ["export " n ";"] "")
 ;
 
@@ -113,14 +114,14 @@ rule AttributeHug<L> =
   l:L
   (
     object
-    & ((object -> _.kind) |> "attribute")
+    & AstKind<"attribute">
     & {
       name: (n:string),
       args: [
         x:NotLast<Expression<(ok -> (Flat))>>*
         ((ok -> (HugFits l (HugHead (join ["[" n] "") x))) |> true)
         z:(
-          (object & ((object -> _.kind) |> in["object" "array"]))
+          (object & AstKind<in["object" "array"]>)
           & Expression<(ok -> (Shift l (length (HugHead (join ["[" n] "") x))))>
         )
       ]
@@ -133,7 +134,7 @@ rule AttributeList<L> =
   l:L
   (
     object
-    & ((object -> _.kind) |> "attribute")
+    & AstKind<"attribute">
     & {
       name: (n:string),
       args: [x:Expression<(ok -> (Entry l 0))>*]
@@ -151,7 +152,7 @@ rule Attribute<L> = a:Fit<AttributeBody, L> -> (join [a "\n"] "");
 
 rule Attributes<L> = [a:Attribute<L>*] -> (join a "");
 
-rule ParameterName = object & { name: (n:string) } -> n;
+rule ParameterName = object & ((object -> _.name) |> (n:string)) -> n;
 
 rule ParameterNames = [p:ParameterName*] -> p;
 
@@ -187,7 +188,7 @@ rule RuleBody<L> =
   l:L
   (
     object
-    & ((object -> _.kind) |> "rule")
+    & AstKind<"rule">
     & {
       name: (n:string),
       parameters: (a:ParameterNames),
@@ -200,13 +201,13 @@ rule RuleBody<L> =
 
 rule RuleDeclaration<L> =
   l:L
-  (object & ((object -> _.kind) |> "rule") & { attributes: (a:Attributes<L>) })
+  (object & AstKind<"rule"> & { attributes: (a:Attributes<L>) })
   & b:Fit<RuleBody, L>
   -> (join [a b] "")
 ;
 
 rule ParameterPattern<L> =
-  | ((object & ((object -> _.kind) |> "end")) -> "")
+  | ((object & AstKind<"end">) -> "")
   | Parameters<L>
 ;
 
@@ -233,7 +234,7 @@ rule FuncBody<L> =
 
 rule FuncDeclaration<L> =
   l:L
-  (object & ((object -> _.kind) |> in["func" "decorator"]) & {
+  (object & AstKind<in["func" "decorator"]> & {
     attributes: (a:Attributes<L>)
   })
   & b:Fit<FuncBody, L>
