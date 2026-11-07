@@ -318,13 +318,12 @@ rule SneakByUntil<L> =
     object
     & {
       kind: "quantifier",
-      min: { kind: "value.literal", value: 1 },
+      min: { value: 1 },
       max: undefined,
       pattern: {
-        kind: "then",
         patterns: [
-          { kind: "not", pattern: (t:PrefixOperand<(ok -> (Shift l 6))>) }
-          { kind: "any" }
+          { pattern: (t:PrefixOperand<(ok -> (Shift l 6))>) }
+          any
         ]
       }
     }

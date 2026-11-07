@@ -19,12 +19,23 @@ rule CollectEntryBinds =
   -> p
 ;
 
+rule CollectNestedOvers =
+  | CollectOverBinds
+  | CollectProjectionBinds
+  | (
+    object
+    & { kind: "variable", pattern: (p:CollectNestedOvers) }
+    -> p
+  )
+  | (any -> [])
+;
+
 rule CollectVariableBinds =
   object
   & {
     kind: "variable",
     name: (n:string),
-    pattern: (p:CollectPatternBinds)
+    pattern: (p:CollectNestedOvers)
   }
   -> (flat [[n] p])
 ;
@@ -38,30 +49,14 @@ rule CollectOverBinds =
 
 rule CollectProjectionBinds =
   object
-  & { kind: "projection", pattern: (p:CollectPatternBinds) }
+  & { kind: "projection", pattern: (p:CollectNestedOvers) }
   -> p
-;
-
-rule CollectThenAndBinds =
-  object
-  & { kind: in["then" "and"], patterns: (ps:array) }
-  names:((ok -> ps) |> [p:CollectPatternBinds*] -> (flat p))
-  -> names
-;
-
-rule CollectPipelineBinds =
-  object
-  & { kind: "pipeline", steps: (ps:array) }
-  names:((ok -> ps) |> [p:CollectPatternBinds*] -> (flat p))
-  -> names
 ;
 
 rule CollectPatternBinds =
   | CollectVariableBinds
   | CollectOverBinds
   | CollectProjectionBinds
-  | CollectThenAndBinds
-  | CollectPipelineBinds
   | (any -> [])
 ;
 
