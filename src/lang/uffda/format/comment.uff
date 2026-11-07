@@ -16,7 +16,8 @@ export Trailed;
 # The fence parser keeps the Uffda module each `uffda` fence holds as its
 # `tree`, so the fence's code is that module, formatted to fit after `# `.
 rule UffdaFence<W> =
-  w:W (object & { language: "uffda", tree: (m:ModuleFormat<(ok -> (sub w 2))>) })
+  w:W
+  (object & { language: "uffda", tree: ModuleFormat<(ok -> (sub w 2))> as m })
   -> m
 ;
 

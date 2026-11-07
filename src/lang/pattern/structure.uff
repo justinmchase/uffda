@@ -10,46 +10,32 @@ import "../editor/editor.uff" Documentation;
 
 export Structure;
 
-func UniqueNames<names:any> =
-  (eq (length names) (length (to_set names)))
-;
+func UniqueNames<names:any> = (eq (length names) (length (to_set names)));
 
-rule CollectEntryBinds =
-  [any p:CollectPatternBinds]
-  -> p
-;
+rule CollectEntryBinds = [any p:CollectPatternBinds] -> p;
 
 rule CollectNestedOvers =
   | CollectOverBinds
   | CollectProjectionBinds
-  | (
-    object
-    & { kind: "variable", pattern: (p:CollectNestedOvers) }
-    -> p
-  )
+  | object & ({ kind: "variable", pattern: CollectNestedOvers as p } -> p)
   | (any -> [])
 ;
 
 rule CollectVariableBinds =
   object
-  & {
-    kind: "variable",
-    name: (n:string),
-    pattern: (p:CollectNestedOvers)
-  }
+  & { kind: "variable", name: string as n, pattern: CollectNestedOvers as p }
   -> (flat [[n] p])
 ;
 
 rule CollectOverBinds =
   object
-  & { kind: "over", keys: (k:object) }
-  names:((ok -> [...k]) |> [e:CollectEntryBinds*] -> (flat e))
+  & { kind: "over", keys: object as k }
+    names:((ok -> [...k]) |> [e:CollectEntryBinds*] -> (flat e))
   -> names
 ;
 
 rule CollectProjectionBinds =
-  object
-  & { kind: "projection", pattern: (p:CollectNestedOvers) }
+  object & { kind: "projection", pattern: CollectNestedOvers as p }
   -> p
 ;
 
@@ -85,21 +71,14 @@ rule OverEntryAsName = IdToken;
 rule OverEntryAs = OverEntryAsKeyword n:OverEntryAsName -> n;
 
 func OverFieldBind<n:string p:any a:any> =
-  {
-    name: n,
-    pattern: { kind: "variable", name: (coalesce a n), pattern: p }
-  }
+  { name: n, pattern: { kind: "variable", name: (coalesce a n), pattern: p } }
 ;
 
 [Documentation {
   description: "The pattern an object field's value must match. It cannot be an ungrouped `name: pattern` capture.",
   error: "An object field cannot use an ungrouped `name: pattern` capture. Write `\{ n: number }` to bind `n`, or `\{ n: number as x }` to rename it."
 }]
-rule OverFieldPattern =
-  not (IdToken OverEntryColon)
-  p:Pattern
-  -> p
-;
+rule OverFieldPattern = not (IdToken OverEntryColon) p:Pattern -> p;
 
 rule OverEntryTyped =
   n:IdToken OverEntryColon p:OverFieldPattern a:OverEntryAs?
@@ -250,7 +229,8 @@ rule OverBody =
   error: "This object pattern binds the same name more than once. Rename one field with `as`."
 }]
 rule UniqueObjectBinds =
-  (names:any -> (UniqueNames names)) |> true
+  |> (names:any -> (UniqueNames names))
+  |> true
 ;
 
 rule Over =

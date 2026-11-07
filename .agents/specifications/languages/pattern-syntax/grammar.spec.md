@@ -289,7 +289,8 @@ repetition, prefix operators and capture, ordered sequence, pipeline, projection
 ## Worked examples
 
 Object field `:` is key-to-pattern only. Capture `name:P` still works; it is
-not how a field is named:
+not how a field is named. In-tree Uffda grammars use `{ text: string as t }`
+when the capture name differs from the key:
 
 ```uff
 { text: string }        # bind text
