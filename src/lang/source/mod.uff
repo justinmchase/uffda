@@ -33,7 +33,7 @@ rule NormalizedText =
 
 # `line_starts` is module-local: it is only needed by LineIndex and is not part
 # of the general globals toolbox (#124).
-func LineStart<{ index: i:number, value: v:string }> =
+func LineStart<{ index: (i:number), value: (v:string) }> =
   (when (eq v "\n") (add i 1) null)
 ;
 
@@ -44,7 +44,7 @@ func line_starts<s:string> =
 ;
 
 rule LineIndex =
-  { kind: "NormalizedText", text: t:string }
+  { kind: "NormalizedText", text: (t:string) }
   -> { kind: "LineIndex", text: t, lineStarts: (line_starts t) }
 ;
 
@@ -71,8 +71,8 @@ rule LineIndex =
 #   processed in strictly increasing offset order and `lineStarts` is sorted
 #   ascending — makes this O(units + lines).
 func UnitPosition<
-  { offset: po:number }
-  entry:{ index: ei:number, value: ev:string }
+  { offset: (po:number) }
+  entry:{ index: (ei:number), value: (ev:string) }
 > =
   {
     offset: (add po (length ev)),
@@ -85,7 +85,7 @@ func UnitPosition<
   }
 ;
 
-func UnitPositionEntry<{ entry: upe:any }> = upe;
+func UnitPositionEntry<{ entry: (upe:any) }> = upe;
 
 func unit_positions<text:string> =
   (map (scan (enumerate text) { offset: 0 } UnitPosition) UnitPositionEntry)
@@ -93,12 +93,12 @@ func unit_positions<text:string> =
 
 func build_source_unit<
   bsEntry:{
-    index: bsIndex:number,
-    value: bsValue:string,
-    offsetStart: bsOffsetStart:number,
-    offsetEnd: bsOffsetEnd:number
+    index: (bsIndex:number),
+    value: (bsValue:string),
+    offsetStart: (bsOffsetStart:number),
+    offsetEnd: (bsOffsetEnd:number)
   }
-  bsPos:{ line: bsLine:number, lineStart: bsLineStart:number }
+  bsPos:{ line: (bsLine:number), lineStart: (bsLineStart:number) }
 > =
   {
     index: bsIndex,
@@ -201,10 +201,10 @@ func to_source_unit_step<
   )
 ;
 
-func indexed_source_unit_out<{ out: isuOut:any }> = isuOut;
+func indexed_source_unit_out<{ out: (isuOut:any) }> = isuOut;
 
 rule UnitIndex =
-  { kind: "LineIndex", text: t:string, lineStarts: s:array }
+  { kind: "LineIndex", text: (t:string), lineStarts: (s:array) }
   -> {
     kind: "UnitIndex",
     text: t,
@@ -237,7 +237,7 @@ func document_id<text:string> =
 ;
 
 rule SourceDocument =
-  { kind: "UnitIndex", text: t:string, lineStarts: s:array, units: u:array }
+  { kind: "UnitIndex", text: (t:string), lineStarts: (s:array), units: (u:array) }
   -> {
     ...(iterable t),
     documentId: (document_id t),

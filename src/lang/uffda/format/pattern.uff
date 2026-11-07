@@ -6,6 +6,7 @@
 # lines (see `comment.uff`).
 import "./layout.uff"
   Fit
+  AstKind
   Indent
   Shift
   Suffix
@@ -56,22 +57,22 @@ rule PatternGroupBody<L> =
 rule PatternGroup<L> = Fit<PatternGroupBody, L>;
 
 rule OrAlternative<L> =
-  | (object & { kind: "or" }) & (g:PatternGroup<L> -> g)
+  | (object & AstKind<"or">) & (g:PatternGroup<L> -> g)
   | Pattern<L>
 ;
 
 rule AndOperand<L> =
-  | (object & { kind: in["or" "and"] }) & (g:PatternGroup<L> -> g)
+  | (object & AstKind<in["or" "and"]>) & (g:PatternGroup<L> -> g)
   | Pattern<L>
 ;
 
 rule PipelineStep<L> =
-  | (object & { kind: in["or" "and" "pipeline"] }) & (g:PatternGroup<L> -> g)
+  | (object & AstKind<in["or" "and" "pipeline"]>) & (g:PatternGroup<L> -> g)
   | Pattern<L>
 ;
 
 rule ThenItem<L> =
-  | (object & { kind: in["or" "and" "pipeline" "then"] })
+  | (object & AstKind<in["or" "and" "pipeline" "then"]>)
     & (g:PatternGroup<L> -> g)
   | Pattern<L>
 ;
@@ -83,9 +84,9 @@ rule PrefixOperand<L> = ThenItem<L>;
 rule ParametersBody<L> =
   l:L
   r:(
-    | ((object & { kind: "end" }) -> [])
+    | ((object & AstKind<"end">) -> [])
     | (
-      (object & { kind: "then", patterns: [x:ThenItem<(ok -> (Entry l 0))>*] })
+      (object & AstKind<"then"> & { patterns: [x:ThenItem<(ok -> (Entry l 0))>*] })
       -> x
     )
     | (p:Pattern<(ok -> (Entry l 0))> -> [p])
@@ -98,8 +99,7 @@ rule Parameters<L> = Fit<ParametersBody, L>;
 rule PostfixOperand<L> =
   | (
     object
-    & {
-      kind: in[
+    & AstKind<in[
         "or"
         "and"
         "pipeline"
@@ -112,8 +112,7 @@ rule PostfixOperand<L> =
         "recover"
         "quantifier"
         "maybe"
-      ]
-    }
+      ]>
   )
     & (g:PatternGroup<L> -> g)
   | Pattern<L>
@@ -134,8 +133,8 @@ rule PatternOrItems<L, M, B> =
     l:L
     (
       object
-      & {
-        kind: "or",
+      & AstKind<"or">
+        & {
         patterns: [
           c:Lead<L>*
           f:OrAlternative<(ok -> (Shift l (when l.flat 0 2)))>
@@ -147,11 +146,11 @@ rule PatternOrItems<L, M, B> =
     -> (join [...c (when l.flat "" "| ") f ...r ...t] "")
   )
   | (
-    l:L (object & { kind: "or", patterns: [c:Lead<L>+ f:B<L> t:Trail<L>*] })
+    l:L (object & AstKind<"or"> & { patterns: [c:Lead<L>+ f:B<L> t:Trail<L>*] })
     -> (join [...c f ...t] "")
   )
   | (
-    l:L (object & { kind: "or", patterns: [f:M<L> t:Trail<L>+] })
+    l:L (object & AstKind<"or"> & { patterns: [f:M<L> t:Trail<L>+] })
     -> (join [f ...t] "")
   )
 ;
@@ -159,7 +158,7 @@ rule PatternOrItems<L, M, B> =
 # Comments before the first alternative start on a line of their own.
 rule PatternOrLayout<L, M, B> =
   | l:L
-    (object & { kind: "or", patterns: [(object & { kind: "comment" }) any*] })
+    (object & AstKind<"or"> & { patterns: [(object & AstKind<"comment">) any*] })
     & (
       b:PatternOrItems<(ok -> (LineStart l)), M, B>
       -> (join [(LineBreak l) b] "")
@@ -180,27 +179,27 @@ rule PatternOr<L> = Fit<PatternOrBody, L>;
 # rule whose body is one always breaks, with each alternative or step on its own
 # line.
 rule RuleBodyPattern<L> =
-  | (object & { kind: "or" })
+  | (object & AstKind<"or">)
     & (
       l:L
       ((ok -> l.flat) |> false)
       p:PatternOrLayout<L, RuleBodyMember, RuleBodyBarred>
       -> p
     )
-  | (object & { kind: "pipeline" })
+  | (object & AstKind<"pipeline">)
     & (l:L ((ok -> l.flat) |> false) p:PatternPipelineBody<L> -> p)
-  | (not (object & { kind: in["or" "pipeline"] }) p:Pattern<L> -> p)
+  | (not (object & AstKind<in["or" "pipeline"]>) p:Pattern<L> -> p)
 ;
 
 # The single alternative of a rule body's alternation keeps its rule-body form;
 # a pipeline leads with `|>` in place of `|`.
 rule RuleBodyMember<L> =
-  | (object & { kind: "or" }) & (g:PatternGroup<L> -> g)
+  | (object & AstKind<"or">) & (g:PatternGroup<L> -> g)
   | RuleBodyPattern<L>
 ;
 
 rule RuleBodyBarred<L> =
-  | (object & { kind: "pipeline" }) & RuleBodyPattern<L>
+  | (object & AstKind<"pipeline">) & RuleBodyPattern<L>
   | OrBarred<L>
 ;
 
@@ -211,7 +210,7 @@ rule PatternAndRest<L> =
 
 rule PatternAndBody<L> =
   l:L
-  (object & { kind: "and", patterns: [f:AndOperand<L> r:PatternAndRest<L>*] })
+  (object & AstKind<"and"> & { patterns: [f:AndOperand<L> r:PatternAndRest<L>*] })
   -> (join [f ...r] "")
 ;
 
@@ -226,8 +225,8 @@ rule PatternPipelineBody<L> =
   l:L
   (
     object
-    & {
-      kind: "pipeline",
+    & AstKind<"pipeline">
+      & {
       steps: [
         f:PipelineStep<(ok -> (Shift l (when l.flat 0 3)))>
         r:PatternPipelineRest<L>*
@@ -246,7 +245,7 @@ rule PatternThenRest<L> =
 
 rule PatternThenBody<L> =
   l:L
-  (object & { kind: "then", patterns: [f:ThenItem<L> r:PatternThenRest<L>*] })
+  (object & AstKind<"then"> & { patterns: [f:ThenItem<L> r:PatternThenRest<L>*] })
   -> (join [f ...r] "")
 ;
 
@@ -256,10 +255,10 @@ rule PatternProjectionBody<L> =
   l:L
   (
     object
-    & {
-      kind: "projection",
-      pattern: p:AndOperand<(ok -> (Inside l 1 1))>,
-      expression: e:Expression<(ok -> (Shift (Inside l 1 1) 3))>
+    & AstKind<"projection">
+      & {
+      pattern: (p:AndOperand<(ok -> (Inside l 1 1))>),
+      expression: (e:Expression<(ok -> (Shift (Inside l 1 1) 3))>)
     }
   )
   -> (Bracket
@@ -276,28 +275,28 @@ rule PatternVariable<L> =
   l:L
   (
     object
-    & {
-      kind: "variable",
-      name: n:string,
-      pattern: p:PrefixOperand<(ok -> (Shift l (add (length n) 1)))>
+    & AstKind<"variable">
+      & {
+      name: (n:string),
+      pattern: (p:PrefixOperand<(ok -> (Shift l (add (length n) 1)))>)
     }
   )
   -> (join [n ":" p] "")
 ;
 
 rule PatternNot<L> =
-  l:L (object & { kind: "not", pattern: p:PrefixOperand<(ok -> (Shift l 4))> })
+  l:L (object & AstKind<"not"> & { pattern: (p:PrefixOperand<(ok -> (Shift l 4))>) })
   -> (join ["not " p] "")
 ;
 
 rule PatternSkip<L> =
-  l:L (object & { kind: "skip", pattern: p:PrefixOperand<(ok -> (Shift l 5))> })
+  l:L (object & AstKind<"skip"> & { pattern: (p:PrefixOperand<(ok -> (Shift l 5))>) })
   -> (join ["skip " p] "")
 ;
 
 rule PatternExcept<L> =
   l:L
-  (object & { kind: "except", pattern: p:PrefixOperand<(ok -> (Shift l 7))> })
+  (object & AstKind<"except"> & { pattern: (p:PrefixOperand<(ok -> (Shift l 7))>) })
   -> (join ["except " p] "")
 ;
 
@@ -305,7 +304,8 @@ rule PatternLookahead<L> =
   l:L
   (
     object
-    & { kind: "lookahead", pattern: p:PrefixOperand<(ok -> (Shift l 10))> }
+    & AstKind<"lookahead">
+    & { pattern: (p:PrefixOperand<(ok -> (Shift l 10))>) }
   )
   -> (join ["lookahead " p] "")
 ;
@@ -316,15 +316,14 @@ rule SneakByUntil<L> =
   l:L
   (
     object
-    & {
-      kind: "quantifier",
-      min: { kind: "value.literal", value: 1 },
+    & AstKind<"quantifier">
+      & {
+      min: { value: 1 },
       max: undefined,
       pattern: {
-        kind: "then",
         patterns: [
-          { kind: "not", pattern: t:PrefixOperand<(ok -> (Shift l 6))> }
-          { kind: "any" }
+          ((object -> _.pattern) |> (t:PrefixOperand<(ok -> (Shift l 6))>))
+          any
         ]
       }
     }
@@ -341,10 +340,10 @@ rule PatternRecoverBody<L> =
   l:L
   (
     object
-    & {
-      kind: "recover",
-      pattern: p:PrefixOperand<(ok -> (Shift l 4))>,
-      skip: s:SneakBy<(ok -> (Next l 9))>
+    & AstKind<"recover">
+      & {
+      pattern: (p:PrefixOperand<(ok -> (Shift l 4))>),
+      skip: (s:SneakBy<(ok -> (Next l 9))>)
     }
   )
   -> (join ["ope " p (Sep l " sneak by " "sneak by ") s] "")
@@ -369,13 +368,13 @@ rule PatternQuantifier<L> =
   l:L
   (
     object
-    & {
-      kind: "quantifier",
-      min: a:Bound,
-      max: b:Bound,
-      pattern: p:PostfixOperand<
+    & AstKind<"quantifier">
+      & {
+      min: (a:Bound),
+      max: (b:Bound),
+      pattern: (p:PostfixOperand<
         (ok -> (Suffix l (length (QuantifierSuffix a b))))
-      >
+      >)
     }
   )
   -> (join [p (QuantifierSuffix a b)] "")
@@ -383,12 +382,12 @@ rule PatternQuantifier<L> =
 
 rule PatternMaybe<L> =
   l:L
-  (object & { kind: "maybe", pattern: p:PostfixOperand<(ok -> (Suffix l 1))> })
+  (object & AstKind<"maybe"> & { pattern: (p:PostfixOperand<(ok -> (Suffix l 1))>) })
   -> (join [p "?"] "")
 ;
 
 rule PatternIntoBody<L> =
-  l:L (object & { kind: "into", pattern: p:Pattern<(ok -> (Inside l 1 1))> })
+  l:L (object & AstKind<"into"> & { pattern: (p:Pattern<(ok -> (Inside l 1 1))>) })
   -> (Bracket l "[" p "]")
 ;
 
@@ -399,14 +398,113 @@ func Labeled<label:string pattern:string> =
   (join [label (when (eq (at pattern 0) "\n") ":" ": ") pattern] "")
 ;
 
-rule PatternOverEntry<L> =
-  l:L (array & [n:string p:Pattern<(ok -> (Shift l (add (length n) 2)))>])
+rule PatternOverEntryBare<L> =
+  l:L
+  (
+    array
+    & [
+      n:string
+      (
+        object
+        & AstKind<"variable">
+          & {
+          name: $n,
+          pattern: object & AstKind<"any">
+        }
+      )
+    ]
+  )
+  -> n
+;
+
+rule PatternOverEntryTypedGroup<L> =
+  l:L
+  (
+    array
+    & [
+      n:string
+      (
+        object
+        & AstKind<"variable">
+          & {
+          name: $n,
+          pattern: (object & AstKind<"variable">)
+            & p:Pattern<(ok -> (Shift l (add (length n) 4)))>
+        }
+      )
+    ]
+  )
+  -> (Labeled n (join ["(" p ")"] ""))
+;
+
+rule PatternOverEntryTyped<L> =
+  l:L
+  (
+    array
+    & [
+      n:string
+      (
+        object
+        & AstKind<"variable">
+          & {
+          name: $n,
+          pattern: (p:Pattern<(ok -> (Shift l (add (length n) 2)))>)
+        }
+      )
+    ]
+  )
   -> (Labeled n p)
+;
+
+rule PatternOverEntryBareAlias<L> =
+  l:L
+  (
+    array
+    & [
+      n:string
+      (
+        object
+        & AstKind<"variable">
+          & {
+          name: (b:string),
+          pattern: object & AstKind<"any">
+        }
+      )
+    ]
+  )
+  -> (join [n " as " b] "")
+;
+
+rule PatternOverEntryTypedAlias<L> =
+  l:L
+  (
+    array
+    & [
+      n:string
+      (
+        object
+        & AstKind<"variable">
+          & {
+          name: (b:string),
+          pattern: (p:Pattern<(ok -> (Shift l (add (length n) 2)))>)
+        }
+      )
+    ]
+  )
+  -> (join [(Labeled n p) " as " b] "")
+;
+
+rule PatternOverEntry<L> =
+  | PatternOverEntryBare<L>
+  | PatternOverEntryTypedGroup<L>
+  | PatternOverEntryTyped<L>
+  | PatternOverEntryBareAlias<L>
+  | PatternOverEntryTypedAlias<L>
 ;
 
 rule PatternOverBody<L> =
   l:L
-  (object & { kind: "over", keys: k:object })
+  (object & AstKind<"over"> & { keys: (k:object) })
   e:((ok -> [...k]) |> [x:PatternOverEntry<(ok -> (Entry l 1))>*] -> x)
   -> (List l "\{" " " e "," "}")
 ;
@@ -465,10 +563,10 @@ rule PatternResolveBody<L> =
   l:L
   (
     object
-    & {
-      kind: "resolve",
+    & AstKind<"resolve">
+      & {
       targetKind: "reference",
-      name: n:ResolveName,
+      name: (n:ResolveName),
       args: [a:Pattern<(ok -> (Entry l 1))>*]
     }
   )
@@ -479,10 +577,10 @@ rule PatternResolve<L> =
   | (
     (
       object
-      & {
-        kind: "resolve",
+      & AstKind<"resolve">
+        & {
         targetKind: "reference",
-        name: n:ResolveName,
+        name: (n:ResolveName),
         args: [end]
       }
     )
@@ -493,11 +591,11 @@ rule PatternResolve<L> =
 
 rule SwitchKey =
   | (
-    (object & { kind: "values", values: [v:ValueSourceText*] })
+    (object & AstKind<"values"> & { values: [v:ValueSourceText*] })
     -> (join v ", ")
   )
   | (
-    (object & { kind: "characterClass", characterClass: c:string })
+    (object & AstKind<"characterClass"> & { characterClass: (c:string) })
     -> (join ["\\c" c] "")
   )
 ;
@@ -507,8 +605,8 @@ rule SwitchCase<L> =
   (
     object
     & {
-      key: k:SwitchKey,
-      pattern: p:Pattern<(ok -> (Shift l (add (length k) 2)))>
+      key: (k:SwitchKey),
+      pattern: (p:Pattern<(ok -> (Shift l (add (length k) 2)))>)
     }
   )
   -> (Labeled k p)
@@ -523,10 +621,10 @@ rule PatternSwitchBody<L> =
   l:L
   (
     object
-    & {
-      kind: "switch",
+    & AstKind<"switch">
+      & {
       cases: [c:SwitchCase<(ok -> (Entry l 1))>*],
-      default: d:SwitchDefault<(ok -> (Entry l 1))>
+      default: (d:SwitchDefault<(ok -> (Entry l 1))>)
     }
   )
   -> (List l "switch \{" " " (flat [c d]) "," "}")
@@ -535,24 +633,24 @@ rule PatternSwitchBody<L> =
 rule PatternSwitch<L> = Fit<PatternSwitchBody, L>;
 
 rule PatternAtom =
-  | ((object & { kind: "any" }) -> "any")
-  | ((object & { kind: "end" }) -> "end")
-  | ((object & { kind: "ok" }) -> "ok")
-  | ((object & { kind: "fail" }) -> "fail")
-  | ((object & { kind: "equal", value: v:ValueSourceText }) -> v)
-  | ((object & { kind: "type", type: t:string }) -> t)
+  | ((object & AstKind<"any">) -> "any")
+  | ((object & AstKind<"end">) -> "end")
+  | ((object & AstKind<"ok">) -> "ok")
+  | ((object & AstKind<"fail">) -> "fail")
+  | ((object & AstKind<"equal"> & { value: (v:ValueSourceText) }) -> v)
+  | ((object & AstKind<"type"> & { type: (t:string) }) -> t)
   | (
-    (object & { kind: "character", characterClass: c:string })
+    (object & AstKind<"character"> & { characterClass: (c:string) })
     -> (join ["\\c" c] "")
   )
   | (
-    (object & { kind: "between", left: a:Bound, right: b:Bound })
+    (object & AstKind<"between"> & { left: (a:Bound), right: (b:Bound) })
     -> (join [a ".." b] "")
   )
 ;
 
 rule PatternIncludesBody<L> =
-  l:L (object & { kind: "includes", values: [v:ValueSourceText*] })
+  l:L (object & AstKind<"includes"> & { values: [v:ValueSourceText*] })
   -> (List l "in[" "" v "" "]")
 ;
 

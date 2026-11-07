@@ -1,6 +1,8 @@
 # Literal text: quoted strings, numbers, and value sources. Pattern strings
 # escape quotes, backslashes, and control characters; expression strings also
 # escape `{`, which would otherwise start an interpolation.
+import "./layout.uff" AstKind;
+
 export PatternString;
 export ExpressionStringText;
 export NumberText;
@@ -45,6 +47,6 @@ rule LiteralText =
 ;
 
 rule ValueSourceText =
-  | object & ({ kind: "value.literal", value: v:LiteralText } -> v)
-  | object & ({ kind: "value.variable", name: n:string } -> (join ["$" n] ""))
+  | object & AstKind<"value.literal"> & ({ value: (v:LiteralText) } -> v)
+  | object & AstKind<"value.variable"> & ({ name: (n:string) } -> (join ["$" n] ""))
 ;

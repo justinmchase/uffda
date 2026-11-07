@@ -1,13 +1,64 @@
-# Structure matches grouping `(P)` and object-like Over `{ k:P, ... }`. Over
-# builds named keys via std from_entries; ordered rest clauses can match
-# remaining entries by key/value patterns or accept all leftovers with `...ope`.
-# Cycles with Pattern via Atomic are expected (B9); Resolver import caching
-# breaks recursion.
+# Structure matches grouping `(P)` and object-like Over `{ k:P, ... }`. Named
+# keys bind the field (or an `as` alias) as a variable wrapping P. Over builds
+# named keys via std from_entries; ordered rest clauses can match remaining
+# entries by key/value patterns or accept all leftovers with `...ope`. Cycles
+# with Pattern via Atomic are expected (B9); Resolver import caching breaks
+# recursion.
 import "../common/identifier.uff" IdToken;
 import "./pattern.uff" Pattern;
 import "../editor/editor.uff" Documentation;
 
 export Structure;
+
+func UniqueNames<names:any> =
+  (eq (length names) (length (to_set names)))
+;
+
+rule CollectEntryBinds =
+  [any p:CollectPatternBinds]
+  -> p
+;
+
+rule CollectNestedOvers =
+  | CollectOverBinds
+  | CollectProjectionBinds
+  | (
+    object
+    & { kind: "variable", pattern: (p:CollectNestedOvers) }
+    -> p
+  )
+  | (any -> [])
+;
+
+rule CollectVariableBinds =
+  object
+  & {
+    kind: "variable",
+    name: (n:string),
+    pattern: (p:CollectNestedOvers)
+  }
+  -> (flat [[n] p])
+;
+
+rule CollectOverBinds =
+  object
+  & { kind: "over", keys: (k:object) }
+  names:((ok -> [...k]) |> [e:CollectEntryBinds*] -> (flat e))
+  -> names
+;
+
+rule CollectProjectionBinds =
+  object
+  & { kind: "projection", pattern: (p:CollectNestedOvers) }
+  -> p
+;
+
+rule CollectPatternBinds =
+  | CollectVariableBinds
+  | CollectOverBinds
+  | CollectProjectionBinds
+  | (any -> [])
+;
 
 [Documentation {
   description: "The `)` that ends a group.",
@@ -19,11 +70,57 @@ rule Group = "(" p:Pattern GroupEnd -> p;
 
 [Documentation {
   description: "The `:` between an object pattern entry's key and its pattern.",
-  error: "Each entry of an object pattern is a key, `:`, and the pattern its value must match, as in `\{ kind: \"rule\" }`."
+  error: "Each entry of an object pattern is a key and optional `: pattern` or `as` alias, as in `\{ kind: \"rule\", n: number as x }`."
 }]
 rule OverEntryColon = ":";
 
-rule OverEntry = n:IdToken OverEntryColon p:Pattern -> { name: n, pattern: p };
+rule OverEntryAsKeyword = "as";
+
+[Documentation {
+  description: "The name that receives an object field instead of the key.",
+  error: "Expected a capture name after `as`."
+}]
+rule OverEntryAsName = IdToken;
+
+rule OverEntryAs = OverEntryAsKeyword n:OverEntryAsName -> n;
+
+func OverFieldBind<n:string p:any a:any> =
+  {
+    name: n,
+    pattern: { kind: "variable", name: (coalesce a n), pattern: p }
+  }
+;
+
+[Documentation {
+  description: "The pattern an object field's value must match. It cannot be an ungrouped `name: pattern` capture.",
+  error: "An object field cannot use an ungrouped `name: pattern` capture. Write `\{ n: number }` to bind `n`, or `\{ n: number as x }` to rename it."
+}]
+rule OverFieldPattern =
+  not (IdToken OverEntryColon)
+  p:Pattern
+  -> p
+;
+
+rule OverEntryTyped =
+  n:IdToken OverEntryColon p:OverFieldPattern a:OverEntryAs?
+  -> (OverFieldBind n p a)
+;
+
+rule OverEntryBareAlias =
+  n:IdToken a:OverEntryAs
+  -> (OverFieldBind n { kind: "any" } a)
+;
+
+rule OverEntryBare =
+  n:IdToken not OverEntryColon not OverEntryAsKeyword
+  -> (OverFieldBind n { kind: "any" } undefined)
+;
+
+rule OverEntry =
+  | OverEntryTyped
+  | OverEntryBareAlias
+  | OverEntryBare
+;
 
 rule OverEntryTail = "," e:OverEntry -> e;
 
@@ -137,7 +234,7 @@ rule OverEmpty = ok -> { kind: "over", keys: (from_entries []) };
 
 [Documentation {
   description: "The `}` that ends an object pattern.",
-  error: "Expected `}` here to close the object pattern, or `,` before its next `key: pattern` entry or `...` rest matcher."
+  error: "Expected `}` here to close the object pattern, or `,` before its next field or `...` rest matcher."
 }]
 rule OverEnd = "}";
 
@@ -148,7 +245,21 @@ rule OverBody =
   | OverEmpty
 ;
 
-rule Over = "{" body:OverBody OverEnd -> body;
+[Documentation {
+  description: "Object pattern capture names on one matching path must be unique.",
+  error: "This object pattern binds the same name more than once. Rename one field with `as`."
+}]
+rule UniqueObjectBinds =
+  (names:any -> (UniqueNames names)) |> true
+;
+
+rule Over =
+  "{"
+  body:OverBody
+  OverEnd
+  ((ok -> body) |> CollectPatternBinds |> UniqueObjectBinds)
+  -> body
+;
 
 rule Structure =
   | Group

@@ -141,7 +141,7 @@ over({
 
 ```
 // Grammar rule with expression
-Point = { x: x:Number, y: y:Number } -> Math.sqrt(x*x + y*y)
+Point = { x: Number, y: Number } -> Math.sqrt(x*x + y*y)
 ```
 
 Input `[{ x: 3, y: 4 }]` succeeds, binding `x = 3` and `y = 4`; a rule

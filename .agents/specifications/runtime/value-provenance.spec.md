@@ -261,7 +261,7 @@ original characters it replaced.
 
 ```
 rule WordToken = WordChar+ -> { kind: "word", text: (join (flat _) "") };
-func TokenText<{text: t:string}> = t;
+func TokenText<{ text: string as t }> = t;
 rule TokenizerNoWhitespace = Tokenizer -> (semantic_no_whitespace_texts _);
 rule UffdaLang = Source |> [TokenizerNoWhitespace] |> [ModuleBody];
 ```

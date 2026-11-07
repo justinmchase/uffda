@@ -216,6 +216,10 @@ fn ty(name: &str) -> Json {
     json!({"kind": "type", "type": name})
 }
 
+fn bind(name: &str, pattern: Json) -> Json {
+    json!({"kind": "variable", "name": name, "pattern": pattern})
+}
+
 #[test]
 // req:cli-bootstrap-029
 fn and_joins_any_and_fail() {
@@ -784,7 +788,10 @@ fn pattern_lang_object() {
         InputMode::Scalar,
         json!({
             "kind": "over",
-            "keys": {"name": any(), "enabled": end_pat()}
+            "keys": {
+                "name": bind("name", any()),
+                "enabled": bind("enabled", end_pat())
+            }
         }),
     );
 }
@@ -863,7 +870,10 @@ fn pattern_lang_newlines_inside_an_object() {
         InputMode::Scalar,
         json!({
             "kind": "over",
-            "keys": {"name": any(), "enabled": end_pat()}
+            "keys": {
+                "name": bind("name", any()),
+                "enabled": bind("enabled", end_pat())
+            }
         }),
     );
 }
@@ -878,7 +888,7 @@ fn pattern_lang_parses_rest_entry_object_syntax() {
         InputMode::Scalar,
         json!({
             "kind": "over",
-            "keys": {"id": ty("number")},
+            "keys": {"id": bind("id", ty("number"))},
             "rest": [{
                 "kind": "pattern",
                 "key": ty("string"),
@@ -998,15 +1008,18 @@ fn pattern_lang_canonical_multiline() {
                 {
                     "kind": "over",
                     "keys": {
-                        "name": ty("string"),
-                        "aliases": {
-                            "kind": "into",
-                            "pattern": {
-                                "kind": "quantifier",
-                                "pattern": any(),
-                                "min": literal(json!(1))
-                            }
-                        }
+                        "name": bind("name", ty("string")),
+                        "aliases": bind(
+                            "aliases",
+                            json!({
+                                "kind": "into",
+                                "pattern": {
+                                    "kind": "quantifier",
+                                    "pattern": any(),
+                                    "min": literal(json!(1))
+                                }
+                            })
+                        )
                     }
                 }
             ]
@@ -1438,8 +1451,204 @@ fn resolve_explains_a_missing_closer() {
 fn object_keys(name: Json, enabled: Json) -> Json {
     json!({
         "kind": "over",
-        "keys": {"name": name, "enabled": enabled}
+        "keys": {
+            "name": bind("name", name),
+            "enabled": bind("enabled", enabled)
+        }
     })
+}
+
+#[test]
+// req:pattern-language-syntax-012
+fn structure_binds_bare_object_key() {
+    clean(
+        STRUCTURE,
+        "Structure",
+        json!(["{", "n", "}"]),
+        InputMode::Iterable,
+        json!({
+            "kind": "over",
+            "keys": {"n": bind("n", any())}
+        }),
+    );
+}
+
+#[test]
+// req:pattern-language-syntax-012
+fn structure_binds_typed_object_key() {
+    clean(
+        STRUCTURE,
+        "Structure",
+        json!(["{", "n", ":", "number", "}"]),
+        InputMode::Iterable,
+        json!({
+            "kind": "over",
+            "keys": {"n": bind("n", ty("number"))}
+        }),
+    );
+}
+
+#[test]
+// req:pattern-language-syntax-012
+fn structure_aliases_object_key_with_as() {
+    clean(
+        STRUCTURE,
+        "Structure",
+        json!(["{", "n", ":", "number", "as", "x", "}"]),
+        InputMode::Iterable,
+        json!({
+            "kind": "over",
+            "keys": {"n": bind("x", ty("number"))}
+        }),
+    );
+    clean(
+        STRUCTURE,
+        "Structure",
+        json!(["{", "n", "as", "x", "}"]),
+        InputMode::Iterable,
+        json!({
+            "kind": "over",
+            "keys": {"n": bind("x", any())}
+        }),
+    );
+}
+
+#[test]
+// req:pattern-language-syntax-012
+fn structure_rejects_ungrouped_field_capture() {
+    fail(
+        STRUCTURE,
+        "Structure",
+        json!(["{", "n", ":", "n", ":", "number", "}"]),
+        InputMode::Iterable,
+    );
+}
+
+#[test]
+// req:pattern-language-syntax-012
+fn structure_grouped_field_capture_binds_key_and_inner() {
+    clean(
+        PATTERN_LANG,
+        "PatternLang",
+        json!("{ text: (t:string) }"),
+        InputMode::Scalar,
+        json!({
+            "kind": "over",
+            "keys": {
+                "text": bind("text", bind("t", ty("string")))
+            }
+        }),
+    );
+}
+
+#[test]
+// req:pattern-language-syntax-012
+fn structure_rejects_duplicate_aliases() {
+    fail(
+        PATTERN_LANG,
+        "PatternLang",
+        json!("{ n: number as x, m: number as x }"),
+        InputMode::Scalar,
+    );
+}
+
+#[test]
+// req:pattern-language-syntax-012
+fn structure_aliases_nested_duplicate_fields() {
+    clean(
+        PATTERN_LANG,
+        "PatternLang",
+        json!("{ a: { x: number as ax }, b: { x: number as bx } }"),
+        InputMode::Scalar,
+        json!({
+            "kind": "over",
+            "keys": {
+                "a": bind(
+                    "a",
+                    json!({
+                        "kind": "over",
+                        "keys": {"x": bind("ax", ty("number"))}
+                    })
+                ),
+                "b": bind(
+                    "b",
+                    json!({
+                        "kind": "over",
+                        "keys": {"x": bind("bx", ty("number"))}
+                    })
+                )
+            }
+        }),
+    );
+}
+
+#[test]
+// req:pattern-language-syntax-012
+fn structure_rejects_nested_duplicate_fields() {
+    fail(
+        PATTERN_LANG,
+        "PatternLang",
+        json!("{ a: { x: number }, b: { x: number } }"),
+        InputMode::Scalar,
+    );
+}
+
+#[test]
+// req:pattern-language-syntax-012
+fn structure_allows_duplicate_names_in_alternatives() {
+    clean(
+        PATTERN_LANG,
+        "PatternLang",
+        json!("{ a: { x: number } } | { b: { x: number } }"),
+        InputMode::Scalar,
+        json!({
+            "kind": "or",
+            "patterns": [
+                {
+                    "kind": "over",
+                    "keys": {
+                        "a": bind(
+                            "a",
+                            json!({
+                                "kind": "over",
+                                "keys": {"x": bind("x", ty("number"))}
+                            })
+                        )
+                    }
+                },
+                {
+                    "kind": "over",
+                    "keys": {
+                        "b": bind(
+                            "b",
+                            json!({
+                                "kind": "over",
+                                "keys": {"x": bind("x", ty("number"))}
+                            })
+                        )
+                    }
+                }
+            ]
+        }),
+    );
+}
+
+#[test]
+// req:pattern-language-syntax-012
+fn pattern_lang_binds_ping_object() {
+    clean(
+        PATTERN_LANG,
+        "PatternLang",
+        json!(r#"{ kind: "Ping", n: number }"#),
+        InputMode::Scalar,
+        json!({
+            "kind": "over",
+            "keys": {
+                "kind": bind("kind", equal(json!("Ping"))),
+                "n": bind("n", ty("number"))
+            }
+        }),
+    );
 }
 
 #[test]
@@ -1501,7 +1710,7 @@ fn structure_parses_named_keys_followed_by_rest() {
         InputMode::Iterable,
         json!({
             "kind": "over",
-            "keys": {"id": ty("number")},
+            "keys": {"id": bind("id", ty("number"))},
             "rest": [{
                 "kind": "pattern",
                 "key": ty("string"),
@@ -1627,8 +1836,8 @@ fn structure_explains_mistakes_where_they_occur() {
         "Expected `}` here to close the object pattern",
     );
     expect_mistake(
-        "rule A = { a ‸};",
-        "Each entry of an object pattern is a key",
+        "rule A = { n: ‸n: number };",
+        "An object field cannot use an ungrouped",
     );
     expect_mistake(
         "rule A = { a: ‸};",

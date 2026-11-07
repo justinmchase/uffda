@@ -16,8 +16,8 @@ Preconditions:
 Expected behavior:
 
 - `x:P` MUST normalize to a variable pattern named `x` whose child is `P`.
-- `{ field: x:P }` MUST normalize to a keyed `field` pattern containing that
-  variable pattern.
+- `{ field: P }` MUST normalize to a keyed `field` pattern whose child is a
+  variable named `field` wrapping `P`. `{ field: x:P }` MUST NOT parse.
 - `P*`, `P*min`, `P*min..max`, `P*min..`, and `P*..max` MUST normalize to
   quantifier patterns with the corresponding inclusive bounds.
 - `P+` MUST normalize to a quantifier with minimum one.

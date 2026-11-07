@@ -87,12 +87,12 @@ rule FenceContent<F> =
 ;
 
 rule RawFence =
-  object & { language: l:in["" "text"], code: c:string }
+  object & { language: (l:in["" "text"]), code: (c:string) }
   -> { kind: "fence", language: l, code: c }
 ;
 
 rule ParsedFence<F> =
-  (object & { language: l:string, code: c:string }) & r:F
+  (object & { language: (l:string), code: (c:string) }) & r:F
   -> { kind: "fence", language: l, code: c, tree: r }
 ;
 
