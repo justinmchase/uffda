@@ -177,14 +177,8 @@ fn literal_value<'gc>(mc: &uffda_heap::Mutation<'gc>, value: Json) -> Value<'gc>
     literal.result().unwrap()
 }
 
-fn evaluate(text: &str, bindings: &[(&str, Json)]) -> (Evaluation, RootedValue) {
-    let mut runtime = source(
-        "src/lang/expression/expression.lang.uff",
-        "ExpressionLang",
-        text,
-    );
-    assert_clean(&runtime, text);
-    let expression: Expression = serde_json::from_value(projected(&mut runtime)).unwrap();
+fn evaluate_ast(ast: Json, bindings: &[(&str, Json)], label: &str) -> (Evaluation, RootedValue) {
+    let expression: Expression = serde_json::from_value(ast).unwrap();
     let owned: Vec<(String, Json)> = bindings
         .iter()
         .map(|(name, value)| ((*name).to_owned(), value.clone()))
@@ -201,8 +195,30 @@ fn evaluate(text: &str, bindings: &[(&str, Json)]) -> (Evaluation, RootedValue) 
             .collect();
         Environment::new(mc, None, values)
     });
-    let rooted = evaluation.finish().expect(text);
+    let rooted = evaluation.finish().expect(label);
     (evaluation, rooted)
+}
+
+fn evaluate(text: &str, bindings: &[(&str, Json)]) -> (Evaluation, RootedValue) {
+    let mut runtime = source(
+        "src/lang/expression/expression.lang.uff",
+        "ExpressionLang",
+        text,
+    );
+    assert_clean(&runtime, text);
+    evaluate_ast(projected(&mut runtime), bindings, text)
+}
+
+fn evaluated_ast(ast: Json, bindings: &[(&str, Json)], label: &str) -> Json {
+    let (mut evaluation, rooted) = evaluate_ast(ast, bindings, label);
+    let serialized = evaluation.serialize_rooted(&rooted).expect(label);
+    let output = evaluation
+        .read(&serialized, crate::output::serialized_output)
+        .unwrap()
+        .unwrap();
+    serde_json::from_str(output.trim()).unwrap_or_else(|error| {
+        panic!("{label} serialized {output:?}: {error}");
+    })
 }
 
 fn evaluated(text: &str, bindings: &[(&str, Json)]) -> Json {
@@ -1157,7 +1173,8 @@ fn expression_three_level_combinatorics_evaluate() {
                         "{syntax}: {message}"
                     );
                 } else if *leaf_name == "undefined" {
-                    let (evaluation, rooted) = evaluate(&syntax, &bindings);
+                    let (evaluation, rooted) =
+                        evaluate_ast(expected_ast.clone(), &bindings, &syntax);
                     evaluation
                         .read(&rooted, |value| {
                             assert_wrapped_undefined(expr1, expr2, value);
@@ -1165,7 +1182,11 @@ fn expression_three_level_combinatorics_evaluate() {
                         .unwrap();
                 } else {
                     let expected = wrap_value(expr1, wrap_value(expr2, leaf_value.clone()));
-                    assert_eq!(evaluated(&syntax, &bindings), expected, "{syntax}");
+                    assert_eq!(
+                        evaluated_ast(expected_ast.clone(), &bindings, &syntax),
+                        expected,
+                        "{syntax}"
+                    );
                 }
             }
         }
@@ -1179,14 +1200,18 @@ fn expression_three_level_combinatorics_evaluate() {
         assert_clean(&runtime, &syntax);
         assert_eq!(projected(&mut runtime), expected_ast, "{syntax}");
         if *leaf_name == "undefined" {
-            let (evaluation, rooted) = evaluate(&syntax, &bindings);
+            let (evaluation, rooted) = evaluate_ast(expected_ast.clone(), &bindings, &syntax);
             evaluation
                 .read(&rooted, |value| {
                     assert!(matches!(value.raw(), Value::Undefined), "{syntax}");
                 })
                 .unwrap();
         } else {
-            assert_eq!(evaluated(&syntax, &bindings), *leaf_value, "{syntax}");
+            assert_eq!(
+                evaluated_ast(expected_ast.clone(), &bindings, &syntax),
+                *leaf_value,
+                "{syntax}"
+            );
         }
     }
 

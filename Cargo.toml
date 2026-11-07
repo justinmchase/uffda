@@ -83,3 +83,8 @@ uffda-build = { path = "src/build", version = "0.10.8" }
 
 [dev-dependencies]
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+
+# The runtime is an interpreter. Unoptimized tests spend minutes in a handful of
+# language compiles; -O2 keeps `cargo test` usable without a release rebuild.
+[profile.test]
+opt-level = 2

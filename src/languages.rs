@@ -1766,9 +1766,7 @@ mod tests {
         assert!(languages.compile_source_native("rule Main = any;").is_ok());
     }
 
-    #[test]
-    // req:uffda-runtime-compilation-008 req:cli-bootstrap-034
-    fn native_compiler_recompiles_all_authored_languages_as_codec_documents() {
+    fn authored_language_sources() -> Vec<std::path::PathBuf> {
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
         let mut pending = vec![root.join("src/lang")];
         let mut sources = Vec::new();
@@ -1787,26 +1785,54 @@ mod tests {
             }
         }
         sources.sort();
+        sources
+    }
+
+    fn assert_native_compile_codec_round_trip(languages: &mut Languages, path: &std::path::Path) {
+        let source = std::fs::read_to_string(path).unwrap();
+        let declaration = languages
+            .compile_source_native(&source)
+            .unwrap_or_else(|error| panic!("{}: {error}", path.display()));
+        let encoded = declaration
+            .encode(false, crate::codec::data::DataLimits::default())
+            .unwrap_or_else(|error| panic!("{}: {error}", path.display()));
+        let decoded = crate::codec::data::DataDocument::from_codec(&encoded).unwrap();
+        assert_eq!(
+            decoded
+                .encode(false, crate::codec::data::DataLimits::default())
+                .unwrap(),
+            encoded,
+            "{}",
+            path.display(),
+        );
+    }
+
+    #[test]
+    // req:uffda-runtime-compilation-008 req:cli-bootstrap-034
+    fn native_compiler_compiles_representative_authored_sources_as_codec_documents() {
+        let sources = authored_language_sources();
         assert_eq!(sources.len(), crate::builtins::DECLARATIONS.len());
         assert!(sources.len() >= 70);
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let mut languages = Languages::new().unwrap();
+        for relative in [
+            "src/lang/common/identifier.uff",
+            "src/lang/expression/boolean.uff",
+            "src/lang/uffda/export.rules.uff",
+        ] {
+            assert_native_compile_codec_round_trip(&mut languages, &root.join(relative));
+        }
+    }
+
+    #[test]
+    #[ignore = "full src/lang corpus; Checks full-circle compile covers it"]
+    // req:uffda-runtime-compilation-008 req:cli-bootstrap-034
+    fn native_compiler_recompiles_all_authored_languages_as_codec_documents() {
+        let sources = authored_language_sources();
+        assert_eq!(sources.len(), crate::builtins::DECLARATIONS.len());
         let mut languages = Languages::new().unwrap();
         for path in sources {
-            let source = std::fs::read_to_string(&path).unwrap();
-            let declaration = languages
-                .compile_source_native(&source)
-                .unwrap_or_else(|error| panic!("{}: {error}", path.display()));
-            let encoded = declaration
-                .encode(false, crate::codec::data::DataLimits::default())
-                .unwrap_or_else(|error| panic!("{}: {error}", path.display()));
-            let decoded = crate::codec::data::DataDocument::from_codec(&encoded).unwrap();
-            assert_eq!(
-                decoded
-                    .encode(false, crate::codec::data::DataLimits::default())
-                    .unwrap(),
-                encoded,
-                "{}",
-                path.display(),
-            );
+            assert_native_compile_codec_round_trip(&mut languages, &path);
         }
     }
 
