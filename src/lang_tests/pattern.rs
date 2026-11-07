@@ -1526,6 +1526,23 @@ fn structure_rejects_ungrouped_field_capture() {
 
 #[test]
 // req:pattern-language-syntax-012
+fn structure_grouped_field_capture_binds_key_and_inner() {
+    clean(
+        PATTERN_LANG,
+        "PatternLang",
+        json!("{ text: (t:string) }"),
+        InputMode::Scalar,
+        json!({
+            "kind": "over",
+            "keys": {
+                "text": bind("text", bind("t", ty("string")))
+            }
+        }),
+    );
+}
+
+#[test]
+// req:pattern-language-syntax-012
 fn structure_rejects_duplicate_aliases() {
     fail(
         PATTERN_LANG,

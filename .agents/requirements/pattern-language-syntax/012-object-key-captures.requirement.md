@@ -21,6 +21,7 @@ Expected behavior:
 - `{ kind: "Ping", n: number }` MUST bind both `kind` and `n`.
 - `{ n: n }` MUST mean key `n` matching rule `n`, not `any`.
 - `{ n: n: number }` MUST fail to parse (ungrouped capture as a field value).
+- `{ text: (t:string) }` MUST bind both `text` and `t`. Grouping does not alias.
 - `{ n: number as x, m: number as x }` MUST fail because `x` is bound twice.
 - `{ a: { x: number as ax }, b: { x: number as bx } }` MUST bind `a`, `b`, `ax`,
   and `bx`.
@@ -37,6 +38,7 @@ Postconditions:
   (`structure_object_keys`, `pattern_lang_object`,
   `structure_binds_bare_object_key`, `structure_binds_typed_object_key`,
   `structure_aliases_object_key_with_as`, `structure_rejects_ungrouped_field_capture`,
+  `structure_grouped_field_capture_binds_key_and_inner`,
   `structure_rejects_duplicate_aliases`,
   `structure_aliases_nested_duplicate_fields`,
   `structure_rejects_nested_duplicate_fields`,

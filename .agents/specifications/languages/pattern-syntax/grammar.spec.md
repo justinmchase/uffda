@@ -81,7 +81,10 @@ The grammar MUST be able to express the following pattern families:
 - Object entries MUST NOT use a second colon for capture. `{ key: P }` binds
   `key` while matching `P`; `{ key }` is `{ key: any }`; `{ key: P as alias }`
   and `{ key as alias }` bind only `alias`. An ungrouped `name:P` capture as a
-  field value (`{ n: n: number }`) MUST be rejected.
+  field value (`{ key: name:P }`) MUST be rejected. Sequence capture `name:P`
+  outside object entries is unchanged. A grouped capture as the field pattern
+  (`{ key: (name:P) }`) is still `name:P` inside a group: it binds `key` and
+  `name`. It is not an alias.
 - Repetition MUST use postfix syntax on a primary or explicitly grouped child:
   - `P*` means zero or more matches.
   - `P*min` means at least `min` matches.
@@ -116,6 +119,10 @@ The grammar MUST be able to express the following pattern families:
   with `as`.
 - `{ key }` MUST parse as `{ key: any }`.
 - `{ key: P as alias }` and `{ key as alias }` MUST bind only `alias`.
+- `{ key: (name:P) }` MUST bind both `key` and `name`. The parentheses group a
+  capture as the field pattern; they do not rename the field.
+- `{ key: name:P }` MUST be rejected. Capture `name:P` remains valid in
+  sequences, groups, and other non-field positions.
 - Duplicate capture names on one matching path, including nested object
   entries, MUST be a pattern error. Alternatives MAY reuse names.
 - `as` in this position is an object-entry delimiter, not a second colon and
@@ -280,6 +287,17 @@ repetition, prefix operators and capture, ordered sequence, pipeline, projection
 - Projection MUST remain distinct from pipeline (`|>`).
 
 ## Worked examples
+
+Object field `:` is key-to-pattern only. Capture `name:P` still works; it is
+not how a field is named:
+
+```uff
+{ text: string }        # bind text
+{ text: string as t }   # bind only t
+{ text: (t:string) }    # bind text and t
+{ text: t:string }      # illegal
+t:string                # sequence capture, unchanged
+```
 
 The following style is valid when leading `|` alternation is enabled:
 
