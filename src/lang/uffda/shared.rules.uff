@@ -2,11 +2,12 @@
 # reserved keyword tokens themselves, each decorated with [Keyword] (see
 # ../editor/editor.uff) so editor tooling classifies their matched spans as
 # keywords without a separately maintained rule-name-to-role mapping.
-import "../common/identifier.uff" IdToken;
+import "../common/identifier.uff" IdToken SymbolToken;
 import "../editor/editor.uff" Keyword Documentation;
 import "../common/comment.uff" OwnLineComment;
 
 export IdentifierToken;
+export SymbolToken;
 export ReservedKeywordToken;
 export ImportKeyword;
 export ExportKeyword;
@@ -43,6 +44,8 @@ rule ReservedKeywordToken =
   | DecoratorKeyword
 ;
 
+# A reserved word is not an identifier. SymbolToken is not a keyword escape:
+# `@func` is a symbol named func, and `func` is still not an IdentifierToken.
 rule IdentifierToken = not ReservedKeywordToken & IdToken;
 
 [Documentation {

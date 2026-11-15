@@ -558,7 +558,23 @@ fn shared_rules_explains_mistakes_where_they_occur() {
         ("rule A ‸a;", "Expected `=` here"),
         ("rule A = a‸", "A declaration ends with `;`"),
         ("[Foo] ‸;", "Expected a declaration here"),
+        ("rule ‸func = any;", "cannot be names"),
+        ("func ‸func = 1;", "cannot be names"),
+        ("func ‸@func = 1;", "cannot be names"),
+        ("rule A = a -> @‸;", "Expected an identifier after `@`"),
     ]);
+}
+
+#[test]
+// req:expression-language-syntax-006 req:expressions-runtime-003
+fn symbol_literal_in_a_func_is_not_a_keyword_escape() {
+    let module = parse_value("func Example = @func;");
+    let func = &declarations(&module)[0];
+    assert_eq!(func["name"], "Example");
+    assert_eq!(func["expression"]["kind"], "symbol");
+    assert_eq!(func["expression"]["name"], "func");
+    assert_formats("func Example = @Name;", "func Example = @Name;\n");
+    assert_formats("func Example = @func;", "func Example = @func;\n");
 }
 
 #[test]
@@ -719,6 +735,7 @@ fn rule_modules_compose_into_uffda_lang() {
 
     let shared = include_str!("../../src/lang/uffda/shared.rules.uff");
     assert!(shared.contains("export IdentifierToken"));
+    assert!(shared.contains("export SymbolToken"));
     assert!(shared.contains("IdToken"));
     assert!(!shared.contains("string & [Identifier]"));
     assert!(shared.contains("export ReservedKeywordToken"));

@@ -1,0 +1,5 @@
+# SymbolLiteral matches @Identifier and projects a symbol expression. The name
+# may be a reserved word; this is not an identifier escape.
+import "../common/identifier.uff" SymbolToken;
+
+export rule SymbolLiteral = n:SymbolToken -> { kind: "symbol", name: n };

@@ -652,6 +652,64 @@ fn number_expression() {
 }
 
 #[test]
+// req:expression-language-syntax-006 req:expressions-runtime-003 req:cli-bootstrap-014
+fn symbol_literal_is_a_registry_symbol_not_an_identifier_escape() {
+    let mut name = source(LANG, "ExpressionLang", "@Name");
+    assert_clean(&name, "@Name");
+    assert_eq!(
+        projected(&mut name),
+        json!({"kind": "symbol", "name": "Name"})
+    );
+    let mut keyword = source(LANG, "ExpressionLang", "@func");
+    assert_clean(&keyword, "@func");
+    assert_eq!(
+        projected(&mut keyword),
+        json!({"kind": "symbol", "name": "func"})
+    );
+    let mut bare = source(LANG, "ExpressionLang", "func");
+    assert_clean(&bare, "func");
+    assert_eq!(projected(&mut bare), reference("func"));
+
+    let symbol_name = |text: &str| {
+        let (evaluation, rooted) = evaluate(text, &[("Name", json!("shadow"))]);
+        evaluation
+            .read(&rooted, |value| {
+                let Value::Symbol(name) = value.raw() else {
+                    panic!("{text} produced {:?}", value.runtime_type());
+                };
+                name.to_utf8().expect(text)
+            })
+            .expect(text)
+    };
+    let at_name = symbol_name("@Name");
+    let at_func = symbol_name("@func");
+    assert_eq!(at_name, "Name");
+    assert_eq!(at_func, "func");
+    assert_eq!(symbol_name("(symbol \"Name\")"), "Name");
+    assert_eq!(symbol_name("(symbol \"func\")"), "func");
+    assert_eq!(evaluated("(eq @Name (symbol \"Name\"))", &[]), json!(true));
+    assert_eq!(evaluated("(eq @func (symbol \"func\"))", &[]), json!(true));
+    assert_eq!(
+        evaluated("(eq @Name (symbol \"other\"))", &[]),
+        json!(false)
+    );
+    uffda_heap::rootless_mutate(|mc| {
+        let codec_name = |source: &str| {
+            let value = crate::codec::data::DataDocument::from_codec(source)
+                .unwrap()
+                .materialize(mc);
+            let Value::Symbol(name) = value.raw() else {
+                panic!("{source}");
+            };
+            name.to_utf8().unwrap()
+        };
+        assert_eq!(codec_name("s\"Name\""), at_name);
+        assert_eq!(codec_name("@symbol\"Name\""), at_name);
+        assert_eq!(codec_name("s\"func\""), at_func);
+    });
+}
+
+#[test]
 // req:cli-bootstrap-022 req:expression-language-syntax-005
 fn object_expression() {
     assert_tokens(OBJECT, "Object", json!(["{", "}"]), object(json!([])));

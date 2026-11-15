@@ -3,9 +3,11 @@
 import "../tokenizer/token.uff" Token;
 import "./reference.uff" Reference;
 import "./number.uff" Number;
+import "./symbol.uff" SymbolLiteral;
 
 export rule Terminal =
   | Token<Number>
+  | Token<SymbolLiteral>
   | Token<Reference>
   -> _
 ;

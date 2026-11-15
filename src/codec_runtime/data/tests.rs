@@ -43,6 +43,10 @@ fn native_parser_matches_authored_grammar_and_fixed_construction() {
         r#"[@date "2026-10-10T00:00:00.123Z" @bytes "SGVsbG8" @symbol "\udfff"]"#,
         r#"[@set[1 2] {"key":true @symbol"x":undefined} @error{name:"Error" message:"failed" stack:"trace" cause:[null]}]"#,
         r#"[[] {} "" @set[] {}]"#,
+        r#"b"SGVsbG8""#,
+        r#"s"registry""#,
+        r#"d"2026-10-10T00:00:00Z""#,
+        r#"e{name:"Error" message:"failed"}"#,
     ];
     let invalid = [
         "",
@@ -66,10 +70,16 @@ fn native_parser_matches_authored_grammar_and_fixed_construction() {
         "{a:}",
         "[1",
         "@unknown\"x\"",
+        "x\"no\"",
+        "s[1]",
+        "b \"AA\"",
+        "bytes\"AA\"",
+        "@set[@symbol\"a\" s\"a\"]",
         "@meta{}",
         "@date[1]",
         "@set @set[]",
         "@bytes\"AB\"",
+        "b\"AB\"",
         "@date\"2026-10-10T00:00:00.0001Z\"",
         "@set[0 -0]",
         "{1:2 1:3}",
@@ -118,11 +128,11 @@ fn owned_native_scalars_encode_losslessly_without_hooks() {
             "123456789012345678901234567890n",
         ),
         (string(r#""\ud800""#), r#""\ud800""#),
-        (tag("bytes", string("\"SGVsbG8\"")), "@bytes\"SGVsbG8\""),
-        (tag("symbol", string(r#""\udfff""#)), r#"@symbol"\udfff""#),
+        (tag("bytes", string("\"SGVsbG8\"")), "b\"SGVsbG8\""),
+        (tag("symbol", string(r#""\udfff""#)), r#"s"\udfff""#),
         (
             tag("date", string("\"2026-10-10T00:00:00Z\"")),
-            "@date\"2026-10-10T00:00:00Z\"",
+            "d\"2026-10-10T00:00:00Z\"",
         ),
     ] {
         assert_eq!(
@@ -162,7 +172,7 @@ fn compact_and_pretty_containers_preserve_insertion_order() {
     ]));
     assert_eq!(
         native.encode(false, DataLimits::default()).unwrap(),
-        "[@set[1 2] {key:42} @error{name:\"Error\" message:\"failed\" cause:undefined}]"
+        "[@set[1 2] {key:42} e{name:\"Error\" message:\"failed\" cause:undefined}]"
     );
 }
 
@@ -542,7 +552,7 @@ fn runtime_export_rejects_aliases_cycles_and_execution_values_but_encodes_native
             .unwrap()
             .encode(false, DataLimits::default())
             .unwrap();
-        assert_eq!(encoded, r#"{@symbol"key":null}"#);
+        assert_eq!(encoded, r#"{s"key":null}"#);
         assert!(
             DataDocument::from_value(
                 Value::Native(crate::globals::NativeGlobal::Id),
@@ -655,7 +665,7 @@ fn codec_corpus(count: usize) -> Vec<CorpusWorkload> {
         let bigint = format!("12345678901234567890{i}");
         native.push(CorpusRecord {
             codec: format!(
-                "{{id:{i} missing:undefined big:{bigint}n date:@date\"2026-10-12T00:00:00Z\" bytes:@bytes\"AAECA_8\" symbol:@symbol\"sample\" set:@set[1 \"x\"] assoc:{{key:42}} error:@error{{name:\"TypeError\" message:\"sample\" cause:{i}}} special:[NaN Infinity -Infinity -0]}}"
+                "{{id:{i} missing:undefined big:{bigint}n date:d\"2026-10-12T00:00:00Z\" bytes:b\"AAECA_8\" symbol:s\"sample\" set:@set[1 \"x\"] assoc:{{key:42}} error:e{{name:\"TypeError\" message:\"sample\" cause:{i}}} special:[NaN Infinity -Infinity -0]}}"
             ),
             json: json!({
                 "id": i,

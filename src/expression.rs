@@ -12,6 +12,9 @@ pub enum Expression {
     Boolean {
         value: bool,
     },
+    Symbol {
+        name: String,
+    },
     Value {
         value: Option<DataDocument>,
     },
@@ -56,6 +59,9 @@ impl Expression {
             "boolean" => Self::Boolean {
                 value: take_field(&mut fields, "value")?,
             },
+            "symbol" => Self::Symbol {
+                name: take_field(&mut fields, "name")?,
+            },
             "value" => Self::Value {
                 value: take_optional_field(&mut fields, "value")?,
             },
@@ -92,6 +98,7 @@ impl Expression {
                     &[
                         "number",
                         "boolean",
+                        "symbol",
                         "value",
                         "reference",
                         "member",
@@ -484,7 +491,7 @@ mod tests {
             value
                 .encode(false, crate::codec::data::DataLimits::default())
                 .unwrap(),
-            r#"[undefined NaN 9007199254740993n @symbol"key"]"#
+            r#"[undefined NaN 9007199254740993n s"key"]"#
         );
     }
 }

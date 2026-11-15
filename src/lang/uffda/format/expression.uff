@@ -22,6 +22,7 @@ import "./pattern.uff" Parameters;
 
 export rule Expression<L> =
   | ExpressionReference
+  | ExpressionSymbol
   | ExpressionNumber
   | ExpressionBoolean
   | ExpressionValue
@@ -37,6 +38,11 @@ export rule Expression<L> =
 rule ExpressionReference =
   object & AstKind<"reference"> & { name: string as n }
   -> n
+;
+
+rule ExpressionSymbol =
+  object & AstKind<"symbol"> & { name: string as n }
+  -> (join ["@" n] "")
 ;
 
 rule ExpressionNumber =

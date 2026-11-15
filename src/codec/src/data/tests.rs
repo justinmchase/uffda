@@ -31,7 +31,7 @@ fn replacing_a_root_field_preserves_native_subtrees_and_insertion_order() {
     let encoded = updated.encode(false, DataLimits::default()).unwrap();
     assert_eq!(
         encoded,
-        r#"{first:undefined target:{native:@bytes"AA"} last:true}"#
+        r#"{first:undefined target:{native:b"AA"} last:true}"#
     );
 }
 
@@ -168,7 +168,7 @@ fn object_keys_are_native_values_and_duplicate_keys_use_same_value_zero() {
     let document = crate::from_str(r#"{42:"answer" @symbol"registered":true}"#).unwrap();
     assert_eq!(
         document.encode(false, DataLimits::default()).unwrap(),
-        r#"{42:"answer" @symbol"registered":true}"#
+        r#"{42:"answer" s"registered":true}"#
     );
     for source in [
         "{1:\"a\" 1.0:\"b\"}",
@@ -185,4 +185,46 @@ fn object_keys_are_native_values_and_duplicate_keys_use_same_value_zero() {
     }
     assert!(crate::from_str("{[]:1 []:2}").is_ok());
     assert!(crate::from_str("@map[[1 2]]").is_err());
+}
+
+#[test]
+// req:data-codec-002 req:data-codec-003
+fn compact_encoding_prefers_short_tags_and_keeps_set_long() {
+    for (long, short) in [
+        (r#"@bytes"AA""#, r#"b"AA""#),
+        (r#"@symbol"key""#, r#"s"key""#),
+        (
+            r#"@date"2026-10-10T00:00:00Z""#,
+            r#"d"2026-10-10T00:00:00Z""#,
+        ),
+        (
+            r#"@error{name:"Error" message:"bad"}"#,
+            r#"e{name:"Error" message:"bad"}"#,
+        ),
+    ] {
+        let encoded = crate::from_str(long)
+            .unwrap()
+            .encode(false, DataLimits::default())
+            .unwrap();
+        assert_eq!(encoded, short, "{long}");
+        assert!(encoded.len() < long.len(), "{long}");
+        assert_eq!(
+            crate::from_str(short)
+                .unwrap()
+                .encode(false, DataLimits::default())
+                .unwrap(),
+            encoded
+        );
+    }
+    assert_eq!(
+        crate::from_str("@set[1 2]")
+            .unwrap()
+            .encode(false, DataLimits::default())
+            .unwrap(),
+        "@set[1 2]"
+    );
+    for source in ["s[1]", "x\"no\"", "b \"AA\"", "@unknown\"x\"", "@meta{a:1}"] {
+        assert!(crate::from_str(source).is_err(), "{source}");
+    }
+    assert!(crate::from_str(r#"@set[@symbol"a" s"a"]"#).is_err());
 }

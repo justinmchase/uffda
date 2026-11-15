@@ -17,10 +17,13 @@ assert_eq!(
 
 `from_str` requires exactly one value, with optional surrounding whitespace and
 hash comments. `to_string` emits canonical compact text **without** a trailing
-newline. Append LF when writing a stream record. Empty input, extra records,
-duplicate SameValueZero keys, unknown tags and executable syntax fail
-explicitly. Object keys are codec values: `{ 42: "answer" @symbol"s": true }`
-uses a number and a registered symbol as keys. Legacy `@map` is rejected.
+newline. Append LF when writing a stream record. Compact text spells date,
+bytes, symbol, and error with the one-letter tags `d`, `b`, `s`, and `e`.
+Decoding also accepts `@date`, `@bytes`, `@symbol`, and `@error`. Set stays
+`@set`. Empty input, extra records, duplicate SameValueZero keys, unknown tags
+and executable syntax fail explicitly. Object keys are codec values:
+`{ 42: "answer" s"s": true }` uses a number and a registered symbol as keys.
+Legacy `@map` is rejected.
 
 For streams, use `data::DataDecoder::push_some` and resume with the unconsumed
 input. Each record carries an absolute byte span. Decode failures expose

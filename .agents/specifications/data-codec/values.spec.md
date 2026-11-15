@@ -26,10 +26,20 @@ described in RFC 2119 and RFC 8174 when they appear in all capitals.
   `[A-Za-z_][A-Za-z_0-9]*` as shorthand for a string key. Duplicate object keys
   MUST fail rather than overwrite. Own keys including `__proto__` are ordinary
   data keys.
-- Tags are fixed spellings, not names resolved from an environment:
-  `@date"timestamp"`, `@bytes"base64url"`, `@symbol"registry-key"`,
-  `@set[value value]`, and `@error{name:"Error" message:"description"}`.
-  Whitespace MAY separate a tag from its payload.
+- Tags are fixed spellings, not names resolved from an environment. Date,
+  bytes, symbol, and error each have a long spelling and a short spelling.
+  Decoding MUST accept both. Set has only `@set[value value]`; there is no
+  one-letter set tag.
+  - date: `d"timestamp"` and `@date"timestamp"`
+  - bytes: `b"base64url"` and `@bytes"base64url"`
+  - symbol: `s"registry-key"` and `@symbol"registry-key"`
+  - error: `e{name:"Error" message:"description"}` and
+    `@error{name:"Error" message:"description"}`
+  - set: `@set[value value]`
+    A short letter MUST be the single character `b`, `s`, `e`, or `d` and MUST
+    be immediately followed by its payload delimiter (`"` or `{`). Whitespace
+    MAY separate a long tag name from its payload. A one-letter prefix other
+    than those four, or a short letter with a different payload, is not a tag.
 - Dates MUST be valid RFC3339 timestamps representing a millisecond-precision
   instant. Bytes MUST use canonical unpadded base64url. Symbols MUST be global
   registry symbols, not newly allocated local symbols. Duplicate set entries
@@ -70,8 +80,11 @@ extension (see
 
 ## Encoding and diagnostics
 
-Compact encoding MUST produce one physical line. Pretty encoding MAY indent
-containers across lines without changing values. Strings MUST escape controls,
+Compact encoding MUST produce one physical line and MUST spell date, bytes,
+symbol, and error with their one-letter tags. That short spelling is the
+canonical wire form; it is smaller than the long tag spelling. Pretty
+encoding uses those same spellings and MAY indent containers across lines
+without changing values. Set remains `@set` in both forms. Strings MUST escape controls,
 quotes, backslashes and isolated surrogate units. Encoding MUST be
 deterministic, preserve object and set insertion order and never implicitly
 invoke conversion hooks.
