@@ -11,7 +11,8 @@
  *
  * Prints newline-delimited: tag_name, version, asset_name, asset_path, sums_path
  */
-import { mkdir, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -41,6 +42,38 @@ export function requireArg(argv: string[], name: string): string {
     throw new Error(`Missing required argument ${name}`);
   }
   return value;
+}
+
+/** SHA-256 of the asset bytes. Line-ending translation changes the digest. */
+export function sha256Hex(bytes: Uint8Array): string {
+  return createHash("sha256").update(bytes).digest("hex");
+}
+
+/** Hex digest recorded for `name` in a SHA256SUMS document. */
+export function checksumForAsset(
+  sums: string,
+  name: string,
+): string | undefined {
+  for (const line of sums.split(/\r?\n/)) {
+    const match = /^([0-9a-fA-F]+)\s+(\S+)\s*$/.exec(line);
+    if (match?.[2] === name) return match[1].toLowerCase();
+  }
+  return undefined;
+}
+
+export function assertAssetChecksum(
+  bytes: Uint8Array,
+  sums: string,
+  name: string,
+): void {
+  const expected = checksumForAsset(sums, name);
+  if (!expected) {
+    throw new Error(`No checksum entry for ${name}`);
+  }
+  const actual = sha256Hex(bytes);
+  if (actual !== expected) {
+    throw new Error(`Checksum mismatch for ${name}`);
+  }
 }
 
 export function assetFileName(version: string, target: string): string {
@@ -204,6 +237,11 @@ async function main(): Promise<void> {
   const sumsPath = join(outdir, "SHA256SUMS");
   await downloadAsset(assetUrl(release, name), token, assetPath);
   await downloadAsset(assetUrl(release, "SHA256SUMS"), token, sumsPath);
+  assertAssetChecksum(
+    await readFile(assetPath),
+    await readFile(sumsPath, "utf8"),
+    name,
+  );
 
   console.log([tagName, version, name, assetPath, sumsPath].join("\n"));
 }

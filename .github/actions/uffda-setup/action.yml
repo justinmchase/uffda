@@ -59,33 +59,24 @@ runs:
         esac
 
         tmpdir="$(mktemp -d)"
-        mapfile -t resolved < <(
-          node --experimental-strip-types "${{ github.action_path }}/resolve_release.ts" \
-            --repository "${INPUT_REPOSITORY}" \
-            --version "${INPUT_VERSION}" \
-            --target "${target}" \
-            --token "${GH_TOKEN}" \
-            --outdir "${tmpdir}"
-        )
-        tag_name="${resolved[0]}"
-        version="${resolved[1]}"
-        asset="${resolved[2]}"
-        asset_path="${resolved[3]}"
-        sums_path="${resolved[4]}"
-
-        expected="$(awk -v name="${asset}" '$2 == name { print $1; exit }' "${sums_path}")"
-        if [[ -z "${expected}" ]]; then
-          echo "No checksum entry for ${asset}" >&2
-          exit 1
-        fi
-
-        if command -v sha256sum >/dev/null 2>&1; then
-          actual="$(sha256sum "${asset_path}" | awk '{ print $1 }')"
-        else
-          actual="$(shasum -a 256 "${asset_path}" | awk '{ print $1 }')"
-        fi
-        if [[ "${actual}" != "${expected}" ]]; then
-          echo "Checksum mismatch for ${asset}" >&2
+        resolved="${tmpdir}/resolved.txt"
+        # Bash 3.2 (macOS /bin/bash) has no mapfile. The resolver checks the
+        # asset bytes; Git Bash sha256sum would hash a Windows .exe as text.
+        node --experimental-strip-types "${{ github.action_path }}/resolve_release.ts" \
+          --repository "${INPUT_REPOSITORY}" \
+          --version "${INPUT_VERSION}" \
+          --target "${target}" \
+          --token "${GH_TOKEN}" \
+          --outdir "${tmpdir}" > "${resolved}"
+        {
+          IFS= read -r tag_name
+          IFS= read -r version
+          IFS= read -r asset
+          IFS= read -r asset_path
+          IFS= read -r sums_path
+        } < "${resolved}"
+        if [[ -z "${tag_name}" || -z "${version}" || -z "${asset}" || -z "${asset_path}" || -z "${sums_path}" ]]; then
+          echo "Uffda resolver did not report an asset" >&2
           exit 1
         fi
 

@@ -1,12 +1,16 @@
 import { strictEqual, throws } from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
+  assertAssetChecksum,
   assetFileName,
   assetUrl,
+  checksumForAsset,
   releaseHasCliAssets,
   requireArg,
   selectLatestInstallableRelease,
   selectReleaseByTag,
+  sha256Hex,
 } from "./resolve_release.ts";
 
 describe("req:cli-distribution-004 - uffda-setup resolve_release helpers", () => {
@@ -98,6 +102,41 @@ describe("req:cli-distribution-004 - uffda-setup resolve_release helpers", () =>
       () => selectLatestInstallableRelease(empty, [empty]),
       Error,
       "Unable to resolve an installable latest release",
+    );
+  });
+
+  it("req:cli-distribution-004 - hashes asset bytes that contain CR", () => {
+    const bytes = new Uint8Array([0x61, 0x0d, 0x0a, 0x62]);
+    strictEqual(
+      sha256Hex(bytes),
+      "18745f36a05e29072709042d6062ce54f1b08ff36c27ba80c39f81fb010c8ce2",
+    );
+    const name = "uffda-0.1.2-x86_64-pc-windows-msvc.exe";
+    const sums = `${sha256Hex(bytes)}  ${name}\r\n`;
+    strictEqual(checksumForAsset(sums, name), sha256Hex(bytes));
+    assertAssetChecksum(bytes, sums, name);
+    throws(
+      () => assertAssetChecksum(bytes, `deadbeef  ${name}\n`, name),
+      Error,
+      `Checksum mismatch for ${name}`,
+    );
+  });
+
+  it("req:cli-distribution-004 - install script stays on Bash 3.2", () => {
+    const action = readFileSync(
+      new URL("./action.yml", import.meta.url),
+      "utf8",
+    );
+    const commands = action
+      .split("\n")
+      .filter((line) => !line.trimStart().startsWith("#"));
+    strictEqual(
+      commands.some((line) => /\bmapfile\b/.test(line)),
+      false,
+    );
+    strictEqual(
+      commands.some((line) => /\bsha256sum\b/.test(line)),
+      false,
     );
   });
 });
