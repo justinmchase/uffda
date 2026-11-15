@@ -18,7 +18,7 @@ is the identifier after `@`.
   `Identifier`.
 - That value MUST be the same symbol as the data-codec forms
   `@symbol"Identifier"` and `s"Identifier"`, and the same symbol as
-  `symbol("Identifier")`.
+  `(symbol "Identifier")`.
 - Evaluation MUST NOT depend on runtime scope. `@Name` is not a reference to a
   binding named `Name`.
 - The identifier MAY be a reserved word. `@func` MUST evaluate to the symbol

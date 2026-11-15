@@ -17,7 +17,7 @@ Expected behavior:
 
 - The runtime MUST return the expression's declared value.
 - A symbol expression `@Identifier` MUST evaluate to the global registry symbol
-  named `Identifier`, the same value as `symbol("Identifier")` and the
+  named `Identifier`, the same value as `(symbol "Identifier")` and the
   data-codec symbols `@symbol"Identifier"` and `s"Identifier"`.
 - The runtime MUST NOT depend on runtime scope values for evaluation. `@Name`
   MUST NOT resolve a binding named `Name`.
