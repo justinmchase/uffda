@@ -126,8 +126,8 @@ Normative key words in this chapter use the conventions defined in the
 - The action MUST map the runner operating system and architecture to the
   matching Deno compile target triple.
 - The action MUST download the corresponding release binary, verify its checksum
-  when checksums are published, install it onto the runner `PATH`, and expose an
-  invocable `uffda` command.
+  against the asset bytes when checksums are published, install it onto the
+  runner `PATH`, and expose an invocable `uffda` command.
 - Workflows that need the published CLI MUST prefer this action over ad-hoc
   download scripts.
 
