@@ -633,7 +633,7 @@ impl DataDocument {
                             if value.nanosecond() % 1_000_000 != 0 {
                                 return Err(error("date precision exceeds milliseconds"));
                             }
-                            output.push_str("@date");
+                            output.push_str("d");
                             let formatted =
                                 value.format(&Rfc3339).map_err(|e| error(e.to_string()))?;
                             RuntimeString::from(formatted.as_str())
@@ -645,13 +645,13 @@ impl DataDocument {
                             if value.len().saturating_mul(4).div_ceil(3) > limits.max_bytes {
                                 return Err(error("data record byte limit exceeded"));
                             }
-                            output.push_str("@bytes\"");
+                            output.push_str("b\"");
                             output.push_str(&URL_SAFE_NO_PAD.encode(value));
                             output.push('"');
                             continue;
                         }
                         DataNode::Symbol(value) => {
-                            output.push_str("@symbol");
+                            output.push_str("s");
                             value
                                 .write_json_string(&mut output)
                                 .map_err(|_| error("data record byte limit exceeded"))?;
@@ -687,7 +687,7 @@ impl DataDocument {
                             if !seen.insert(index) {
                                 return Err(error("cyclic or shared composite data"));
                             }
-                            output.push_str("@error{name:");
+                            output.push_str("e{name:");
                             name.write_json_string(&mut output)
                                 .map_err(|_| error("data record byte limit exceeded"))?;
                             output.push_str(" message:");

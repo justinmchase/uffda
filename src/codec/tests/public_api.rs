@@ -12,6 +12,15 @@ fn independent_reader_writer_preserve_fixed_native_values_and_comments() {
     let text = to_string(&from_str(source).unwrap()).unwrap();
     assert!(!text.contains('\n'));
     assert!(text.contains(r#""\ud800""#));
+    assert!(text.contains(r#"d"2026-10-10T00:00:00.123Z""#));
+    assert!(text.contains(r#"b"SGVsbG8""#));
+    assert!(text.contains(r#"s"key""#));
+    assert!(text.contains(r#"e{name:"Error" message:"bad" cause:null}"#));
+    assert!(text.contains("@set[1 2]"));
+    assert!(!text.contains("@date"));
+    assert!(!text.contains("@bytes"));
+    assert!(!text.contains("@symbol"));
+    assert!(!text.contains("@error"));
     assert_eq!(to_string(&from_str(&text).unwrap()).unwrap(), text);
     assert!(matches!(
         from_str("undefined").unwrap().nodes()[0],

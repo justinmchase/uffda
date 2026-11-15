@@ -14,6 +14,7 @@ pub(crate) enum Node {
     Undefined,
     Number(f64),
     Boolean(bool),
+    Symbol(String),
     Data(crate::codec::data::DataDocument),
     Reference(String),
     Member(RuntimeString, usize),
@@ -54,6 +55,7 @@ impl Program {
             let node = match expression {
                 Expression::Number { value } => Node::Number(value),
                 Expression::Boolean { value } => Node::Boolean(value),
+                Expression::Symbol { name } => Node::Symbol(name),
                 Expression::Value { value: None } => Node::Undefined,
                 Expression::Value { value: Some(value) } => Node::Data(value),
                 Expression::Reference { name } => Node::Reference(name),

@@ -18,6 +18,8 @@ Expected behavior:
 - `src/lang/uffda/shared.rules.uff` MUST export `IdentifierToken` as
   `string & (not ReservedKeywordToken) & [Identifier]` and
   `ReservedKeywordToken` as `import|export|rule`.
+- It MUST export `SymbolToken`. `SymbolToken` MUST NOT be accepted as
+  `IdentifierToken`. `@func` is a symbol named `func`, not a declaration name.
 - `src/lang/expression/number.uff` MUST export `Number` as
   `string & [Digit+] -> { kind: "number", value: (int (join (flat _) "")) }`.
 - Compiling those files with the bootstrap compile path MUST succeed and emit

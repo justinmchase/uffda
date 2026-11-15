@@ -1,7 +1,7 @@
 ---
 id: expressions-runtime-003
 title: Literal expressions evaluate to their declared values without consulting runtime scope
-spec_ref: ".agents/specifications/expressions/number.spec.md#behavioral-expectations; .agents/specifications/expressions/boolean.spec.md#behavioral-expectations; .agents/specifications/expressions/value.spec.md#behavioral-expectations"
+spec_ref: ".agents/specifications/expressions/number.spec.md#behavioral-expectations; .agents/specifications/expressions/boolean.spec.md#behavioral-expectations; .agents/specifications/expressions/symbol.spec.md#behavioral-expectations; .agents/specifications/expressions/value.spec.md#behavioral-expectations"
 ---
 
 # Literal Expression Evaluation
@@ -10,12 +10,17 @@ spec_ref: ".agents/specifications/expressions/number.spec.md#behavioral-expectat
 
 Preconditions:
 
-- The runtime evaluates a number, boolean, or serializable value expression.
+- The runtime evaluates a number, boolean, symbol, or serializable value
+  expression.
 
 Expected behavior:
 
 - The runtime MUST return the expression's declared value.
-- The runtime MUST NOT depend on runtime scope values for evaluation.
+- A symbol expression `@Identifier` MUST evaluate to the global registry symbol
+  named `Identifier`, the same value as `(symbol "Identifier")` and the
+  data-codec symbols `@symbol"Identifier"` and `s"Identifier"`.
+- The runtime MUST NOT depend on runtime scope values for evaluation. `@Name`
+  MUST NOT resolve a binding named `Name`.
 - The runtime MUST NOT introduce additional evaluation errors for these literal
   expression kinds.
 - A host-provided owned codec literal MUST evaluate without a JSON conversion

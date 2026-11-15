@@ -7,6 +7,7 @@ import "./characters/digit.uff" Digit;
 import "./characters/connecting.uff" Connecting;
 import "./characters/combining.uff" Combining;
 import "./characters/formatting.uff" Formatting;
+import "../editor/editor.uff" Documentation;
 
 export rule Identifier =
   IdentifierStartCharacter IdentifierCharacter*
@@ -14,6 +15,16 @@ export rule Identifier =
 ;
 
 export rule IdToken = string & [Identifier];
+
+# `@Name` is a global registry symbol whose key is Name. It is not an identifier
+# and it does not escape a reserved word: `@func` is the symbol named func.
+export rule SymbolToken = "@" n:SymbolName -> n;
+
+[Documentation {
+  description: "The identifier that names a `@` symbol.",
+  error: "Expected an identifier after `@`, as in `@Name`."
+}]
+rule SymbolName = IdToken;
 
 rule IdentifierStartCharacter =
   | Letter

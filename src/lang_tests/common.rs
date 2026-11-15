@@ -765,6 +765,22 @@ fn identifier_joins_letters_marks_connectors_and_format_characters() {
         1,
     );
     assert_fail(path, "IdToken", json!([1]), InputMode::Iterable);
+    assert_clean(
+        path,
+        "SymbolToken",
+        json!(["@", "func"]),
+        InputMode::Iterable,
+        json!("func"),
+        2,
+    );
+    assert_clean(
+        path,
+        "SymbolToken",
+        json!(["@", "Name"]),
+        InputMode::Iterable,
+        json!("Name"),
+        2,
+    );
 }
 
 #[test]
@@ -862,6 +878,30 @@ fn data_grammar_keeps_safe_tokens_and_rejects_non_data_syntax() {
                 "value":{"kind":"string","token":"\"2026-10-10T00:00:00Z\""}
             }),
         ),
+        (
+            "d\"2026-10-10T00:00:00Z\"",
+            json!({
+                "kind":"tag",
+                "tag":"date",
+                "value":{"kind":"string","token":"\"2026-10-10T00:00:00Z\""}
+            }),
+        ),
+        (
+            "b\"AA\"",
+            json!({
+                "kind":"tag",
+                "tag":"bytes",
+                "value":{"kind":"string","token":"\"AA\""}
+            }),
+        ),
+        (
+            "s\"registry\"",
+            json!({
+                "kind":"tag",
+                "tag":"symbol",
+                "value":{"kind":"string","token":"\"registry\""}
+            }),
+        ),
     ];
     for (source, expected) in accepted {
         assert_text(path, "DataLang", source, InputMode::Scalar, expected);
@@ -876,6 +916,7 @@ fn data_grammar_keeps_safe_tokens_and_rejects_non_data_syntax() {
         "@symbol\"registry\"",
         "@set[1 2]",
         "@error{name:\"Error\" message:\"failed\"}",
+        "e{name:\"Error\" message:\"failed\"}",
     ] {
         let runtime = run(path, "DataLang", json!(source), InputMode::Scalar);
         runtime.read(|execution| assert!(execution.is_clean(), "{source}"));
@@ -897,6 +938,10 @@ fn data_grammar_keeps_safe_tokens_and_rejects_non_data_syntax() {
         "@meta{version:1}",
         "@map[[\"key\" 42]]",
         "@unknown\"value\"",
+        "x\"no\"",
+        "s[1]",
+        "b \"AA\"",
+        "bytes\"AA\"",
         "\"\\q\"",
         "\"\\u12\"",
         "\"line\nbreak\"",
@@ -947,6 +992,7 @@ fn embedded_language_modules_load_from_declarations_not_a_host_registry() {
         "src/lang/expression/boolean.uff",
         "src/lang/expression/nullish.uff",
         "src/lang/expression/reference.uff",
+        "src/lang/expression/symbol.uff",
         "src/lang/expression/terminal.uff",
         "src/lang/expression/not.uff",
         "src/lang/expression/member.uff",

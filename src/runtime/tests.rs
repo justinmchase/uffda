@@ -43,7 +43,7 @@ fn codec_subjects_are_native_scalar_values_rooted_in_both_execution_modes() {
             assert_eq!(result.kind, MatchKind::Ok);
             assert_eq!(
                 crate::output::codec_output(result.value).unwrap(),
-                "[42n @bytes\"AA\"]\n"
+                "[42n b\"AA\"]\n"
             );
         });
     }

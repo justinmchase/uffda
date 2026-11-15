@@ -214,6 +214,23 @@ rule ObjectValue =
   -> { kind: "object", entries: v }
 ;
 
+rule ShortBytesTag =
+  "b" v:StringValue
+  -> { kind: "tag", tag: "bytes", value: v }
+;
+
+rule ShortSymbolTag =
+  "s" v:StringValue
+  -> { kind: "tag", tag: "symbol", value: v }
+;
+
+rule ShortDateTag = "d" v:StringValue -> { kind: "tag", tag: "date", value: v };
+
+rule ShortErrorTag =
+  "e" v:ObjectValue
+  -> { kind: "tag", tag: "error", value: v }
+;
+
 rule DateTag = "d" "a" "t" "e" -> "date";
 
 rule BytesTag = "b" "y" "t" "e" "s" -> "bytes";
@@ -249,6 +266,10 @@ rule Value =
   | InfinityValue
   | BigIntValue
   | NumberValue
+  | ShortBytesTag
+  | ShortSymbolTag
+  | ShortDateTag
+  | ShortErrorTag
   | StringTag
   | ArrayTag
   | ErrorTag

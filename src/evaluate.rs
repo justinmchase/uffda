@@ -1377,6 +1377,9 @@ fn execute<'gc>(
         Frame::Evaluate(index) => match &state.program.nodes[index] {
             Node::Number(value) => state.values.push(Value::Number(*value)),
             Node::Boolean(value) => state.values.push(Value::Boolean(*value)),
+            Node::Symbol(name) => state
+                .values
+                .push(Value::Symbol(Gc::new(mc, name.as_str().into()))),
             Node::Undefined => state.values.push(Value::Undefined),
             Node::Data(document) => state.values.push(document.materialize(mc)),
             Node::Reference(name) if name == "_" => state.values.push(state.matched_value),

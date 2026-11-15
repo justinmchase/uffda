@@ -83,7 +83,9 @@ Func declarations MAY be preceded by a decorator list; see
 - Parameter slots MUST delegate parsing to `PatternLang`.
 - Expression slots MUST delegate parsing to `ExpressionLang`.
 - `func` MUST be a reserved declaration keyword (not a legal identifier token in
-  Uffda declaration positions that use `IdentifierToken`).
+  Uffda declaration positions that use `IdentifierToken`). `@func` in an
+  expression is a symbol literal named `func`, not a spelling of that keyword
+  and not a way to use `func` as an identifier.
 
 ## Failure surface
 

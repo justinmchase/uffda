@@ -17,6 +17,7 @@ RFC 8174.
 - [array spread initializer](./expressions/array-spread.spec.md)
 - [binary expression](./expressions/binary.spec.md)
 - [boolean expression](./expressions/boolean.spec.md)
+- [symbol expression](./expressions/symbol.spec.md)
 - [invocation expression](./expressions/invocation.spec.md)
 - [lambda expression](./expressions/lambda.spec.md)
 - [member expression](./expressions/member.spec.md)
@@ -81,9 +82,9 @@ matching behavior.
 
 ## Expression categories and expected behavior
 
-- Literal/value expressions (for example number, boolean, string fragments,
-  undefined, and serializable value expressions) MUST evaluate to their declared
-  values.
+- Literal/value expressions (for example number, boolean, symbol, string
+  fragments, undefined, and serializable value expressions) MUST evaluate to
+  their declared values.
 - Collection expressions (array/object forms) MUST evaluate children and build
   aggregate values in declaration order.
 - Binary and unary expressions MUST apply their declared operator semantics to

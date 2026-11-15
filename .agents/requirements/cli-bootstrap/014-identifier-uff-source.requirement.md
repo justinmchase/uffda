@@ -20,6 +20,9 @@ Expected behavior:
 - It MUST also export `IdToken` as `string & [Identifier]` for token-stream
   identifier matching (PatternLang / ExpressionLang). Uffda’s `IdentifierToken`
   remains separate and MAY compose `IdToken` with reserved- keyword exclusion.
+- It MUST export `SymbolToken` as `@` followed by `IdToken`, projecting that
+  identifier. `SymbolToken` is a global registry symbol name. It MUST NOT
+  exclude reserved words and MUST NOT be an identifier escape.
 - Compiling that file with the bootstrap compile path MUST succeed and emit AST
   JSON under `./bin/`.
 

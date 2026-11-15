@@ -85,6 +85,12 @@ impl Parser<'_> {
                             continue;
                         }
                         Some(_) => {
+                            if let Some(tag) = self.short_tag() {
+                                self.offset += 1;
+                                work.push(Work::Tag(tag.to_owned()));
+                                work.push(Work::Value(depth));
+                                continue;
+                            }
                             let token = self.token();
                             match token {
                                 "null" => DataNode::Null,
@@ -203,6 +209,9 @@ impl Parser<'_> {
         if !(first.is_ascii_alphabetic() || first == b'_') {
             return Ok(None);
         }
+        if self.short_tag().is_some() {
+            return Ok(None);
+        }
         let offset = self.offset;
         let token = self.token().to_owned();
         self.offset = offset;
@@ -227,6 +236,19 @@ impl Parser<'_> {
                 }
                 _ => return self.offset != start,
             }
+        }
+    }
+
+    fn short_tag(&self) -> Option<&'static str> {
+        let bytes = self.source.as_bytes();
+        let letter = bytes.get(self.offset).copied()?;
+        let next = bytes.get(self.offset + 1).copied()?;
+        match (letter, next) {
+            (b'b', b'"') => Some("bytes"),
+            (b's', b'"') => Some("symbol"),
+            (b'd', b'"') => Some("date"),
+            (b'e', b'{') => Some("error"),
+            _ => None,
         }
     }
 

@@ -568,7 +568,7 @@ mod tests {
             );
             assert_eq!(
                 String::from_utf8(output).unwrap(),
-                "[42n @bytes\"AA\"]\n{a:\"é😀\" b:@set[1 2]}\nundefined\n"
+                "[42n b\"AA\"]\n{a:\"é😀\" b:@set[1 2]}\nundefined\n"
             );
         }
     }
@@ -755,7 +755,7 @@ mod tests {
             let bigint = format!("12345678901234567890{i}");
             native.push(Record {
                 codec: format!(
-                    "{{id:{i} missing:undefined big:{bigint}n date:@date\"2026-10-12T00:00:00Z\" bytes:@bytes\"AAECA_8\" symbol:@symbol\"sample\" set:@set[1 \"x\"] map:@map[[\"key\" 42]] error:@error{{name:\"TypeError\" message:\"sample\" cause:{i}}} special:[NaN Infinity -Infinity -0]}}"
+                    "{{id:{i} missing:undefined big:{bigint}n date:d\"2026-10-12T00:00:00Z\" bytes:b\"AAECA_8\" symbol:s\"sample\" set:@set[1 \"x\"] map:@map[[\"key\" 42]] error:e{{name:\"TypeError\" message:\"sample\" cause:{i}}} special:[NaN Infinity -Infinity -0]}}"
                 ),
                 json: json!({
                     "id": i,

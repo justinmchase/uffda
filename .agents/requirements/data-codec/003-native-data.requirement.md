@@ -22,6 +22,10 @@ Expected behavior:
   collapse.
 - Compact/pretty encoding MUST preserve all supported values including negative
   zero, nonfinite numbers, surrogate units and nested native values.
+- Compact encoding MUST spell date, bytes, symbol, and error with the
+  one-letter tags `d`, `b`, `s`, and `e`. Pretty encoding MUST use those same
+  spellings. Set MUST remain `@set`. Decoding MUST still accept the long
+  spellings `@date`, `@bytes`, `@symbol`, and `@error`.
 - Encoding MUST reject composite aliases/cycles and enforce output byte/depth
   limits. Traversal and document destruction MUST not recurse with input depth.
 - Nesting MUST count simultaneous physical containers, including map entry
